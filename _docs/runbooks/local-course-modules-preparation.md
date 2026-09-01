@@ -60,23 +60,83 @@ course format/status counts.
 The local-only orchestrator composes migrations, the reviewed event identity manifest, the
 baseline course catalog, and this three-course module preparation. It also validates the prepared
 Eventbrite and Luma aggregate snapshots against the safe facts recorded in
-`_docs/migration-data/event-registration-sources.json`. It does not activate those registration
-totals: the exact provider-to-event mapping review remains a required gate, and the command never
-prints or persists attendee-level fields.
+`_docs/migration-data/event-registration-sources.json`. It stages aggregate evidence for both
+providers, keeps legacy candidates review-required, and can activate only the exact current-event
+bindings supplied through a separate input file. The command never prints or persists
+attendee-level fields.
+
+### Explicit current-event input
+
+The optional input is a small, local JSON file. Each mapping must name the exact provider event
+identity accepted by the adapter and the exact canonical source identity from
+`events/event_identity_manifest.json`:
+
+```json
+{
+  "schema_version": 1,
+  "mapping_set_revision": 1,
+  "mappings": [
+    {
+      "provider": "luma",
+      "provider_event_identity": "https://luma.com/z25lskik",
+      "canonical_source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "2026-06-02-llm-zoomcamp-2026-pre-course-live-q-a"
+      }
+    },
+    {
+      "provider": "luma",
+      "provider_event_identity": "https://luma.com/yqpx18b5",
+      "canonical_source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "2026-06-08-llm-zoomcamp-2026-course-launch"
+      }
+    },
+    {
+      "provider": "luma",
+      "provider_event_identity": "https://luma.com/a8qa5s2s",
+      "canonical_source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "2026-08-24-ai-dev-tools-zoomcamp-2026-pre-course-live-q-a"
+      }
+    }
+  ]
+}
+```
+
+The input contains no titles, dates, attendee values, or counts. The adapter finds each URL in the
+protected Luma snapshot, derives the approved aggregate by its provider `event_id`, and the
+service attaches it to the manifest event by the exact source identity. The resulting public
+counts for this snapshot are 543 for event 344 (LLM pre-course), 1,248 for event 347 (LLM launch),
+and 158 for event 364 (AI Dev Tools pre-course). Declined rows remain excluded from those totals.
+
+The 31 August AI Dev Tools launch is intentionally absent: `https://luma.com/tsiusx8s` is not in
+the 29 August protected snapshot, so it must not be added to this input and event 365 must remain
+without a public registration total. Do not infer a replacement from a title or date. A later
+snapshot may be used only after its checksum and exact provider identity are reviewed.
 
 Run it against a new SQLite database, then run the same command without `--fresh` to prove replay:
 
 ```bash
 uv run --frozen python scripts/prepare_local_data.py \
-  --database .tmp/production-prep.sqlite3 \
-  --course-modules-input .tmp/course-modules-input.json \
+  --database .tmp/production-prep-current.sqlite3 \
+  --course-modules-input .tmp/course-modules-input-fresh.json \
+  --current-registration-input .tmp/current-registration-input.json \
   --fresh
 
 uv run --frozen python scripts/prepare_local_data.py \
-  --database .tmp/production-prep.sqlite3 \
-  --course-modules-input .tmp/course-modules-input.json
+  --database .tmp/production-prep-current.sqlite3 \
+  --course-modules-input .tmp/course-modules-input-fresh.json \
+  --current-registration-input .tmp/current-registration-input.json
 ```
 
-The script refuses databases outside `.tmp/` and forces the local SQLite settings. It is a
-rehearsal tool, not a production importer; provider credentials, live registrations, and
+The script refuses databases outside `.tmp/` and forces the local SQLite settings. With the input,
+the three listed Luma aggregates become active on a fresh database while all other Luma/Eventbrite
+candidates remain review-required. The JSON report includes only aggregate counts and activation
+state; the event pages are the final check that the three counts render as `N registered`. Without
+the input, the sources are still staged for review and no public registration total is activated.
+It is a rehearsal tool, not a production importer; provider credentials, live registrations, and
 unreviewed mapping decisions must be supplied through a separately approved operational flow.

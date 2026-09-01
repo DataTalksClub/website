@@ -6,9 +6,9 @@ explicit SQLite database below ``.tmp/`` and never connects to a deployed databa
 
 The public event identity manifest and course catalog are imported into the database.  The
 protected Eventbrite and Luma exports are parsed and reconciled against their recorded safe
-facts, but their aggregate rows are not activated: an exact, reviewed event mapping is still
-required before a registration total can become public.  This distinction keeps a successful
-rehearsal from turning a provider identifier or a title/date guess into a public count.
+facts.  Legacy candidates remain review-required; an optional explicit current-event mapping
+input can stage and activate only those exact provider identities so a fresh database can render
+their aggregate count without a title/date guess.
 """
 
 from __future__ import annotations
@@ -115,19 +115,90 @@ def _load_registration_facts() -> dict[str, dict[str, Any]]:
     return facts  # type: ignore[return-value]
 
 
+def _load_current_registration_input(path: Path | None):
+    if path is None:
+        return None
+    from events.current_registration import (
+        CurrentRegistrationInputError,
+        load_current_registration_input,
+    )
+
+    try:
+        return load_current_registration_input(path)
+    except CurrentRegistrationInputError as error:
+        raise LocalPreparationError(f"current_registration_input_{error.code}") from error
+
+
+def _current_mapping_bridges(current_input) -> tuple[dict[str, dict[str, dict[str, str]]], dict]:
+    """Resolve input targets by exact Event source identity and build adapter bridges."""
+
+    from events.identity import EventIdentityNotFound, resolve_source_identity
+
+    bridges: dict[str, dict[str, dict[str, str]]] = {
+        "luma": {},
+        "eventbrite": {},
+    }
+    target_events: dict[tuple[str, str, str], Any] = {}
+    for mapping in current_input.mappings:
+        try:
+            event = resolve_source_identity(
+                repository=mapping.canonical_repository,
+                revision=mapping.canonical_revision,
+                source_key=mapping.canonical_source_key,
+            )
+        except EventIdentityNotFound as error:
+            raise LocalPreparationError("current_registration_target_unavailable") from error
+        target_key = mapping.canonical_identity
+        if target_key in target_events and target_events[target_key].id != event.id:
+            raise LocalPreparationError("current_registration_target_ambiguous")
+        target_events[target_key] = event
+        bridges[mapping.provider][mapping.provider_event_identity] = {
+            "repository": event.source_repository,
+            "revision": event.source_revision,
+            "source_key": event.source_key,
+            "slug": event.slug,
+        }
+    return bridges, target_events
+
+
 def _registration_source_report(
     *,
     luma_source: Path,
     eventbrite_source: Path,
+    current_input=None,
 ) -> dict[str, Any]:
+    report, _derived = _registration_source_derivations(
+        luma_source=luma_source,
+        eventbrite_source=eventbrite_source,
+        current_input=current_input,
+    )
+    return report
+
+
+def _registration_source_derivations(
+    *,
+    luma_source: Path,
+    eventbrite_source: Path,
+    current_input=None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     from events.importers import derive_eventbrite, derive_luma
 
     facts = _load_registration_facts()
+    bridges = {"luma": {}, "eventbrite": {}}
+    if current_input is not None:
+        bridges, _target_events = _current_mapping_bridges(current_input)
     try:
-        luma = derive_luma(luma_source, expected_checksum=facts["luma"]["tree_sha256"])
+        luma = derive_luma(
+            luma_source,
+            expected_checksum=facts["luma"]["tree_sha256"],
+            mapping_bridge=bridges["luma"],
+            allow_partial_mapping=current_input is not None,
+        )
         eventbrite = derive_eventbrite(
             eventbrite_source,
             expected_checksum=facts["eventbrite"]["prepared_archive_sha256"],
+            mapping_bridge=bridges["eventbrite"],
+            allow_partial_mapping=current_input is not None,
         )
     except Exception as error:
         # Never echo provider identifiers, paths, or protected parser diagnostics.
@@ -155,10 +226,14 @@ def _registration_source_report(
         report[name] = {
             **observed,
             "validated": True,
-            "database_written": False,
-            "activation_state": "mapping_review_required",
+            "database_written": True,
+            "activation_state": (
+                "explicit_current_event_pending"
+                if current_input is not None and bridges[name]
+                else "mapping_review_required"
+            ),
         }
-    return report
+    return report, {"luma": luma, "eventbrite": eventbrite}
 
 
 def run(
@@ -168,6 +243,7 @@ def run(
     identity_manifest: Path,
     luma_source: Path,
     eventbrite_source: Path,
+    current_registration_input: Path | None = None,
     fresh: bool,
 ) -> dict[str, Any]:
     if fresh and any(
@@ -191,6 +267,8 @@ def run(
 
     django.setup()
 
+    current_input = _load_current_registration_input(current_registration_input)
+
     migrations = _json_management_command("migrate", interactive=False)
     identities = _json_management_command(
         "import_event_identities", apply=True, manifest=identity_manifest
@@ -202,10 +280,93 @@ def run(
     modules = _json_management_command(
         "prepare_local_course_modules", manifest_path=course_modules_input
     )
-    registration_sources = _registration_source_report(
+    registration_sources, derived_sources = _registration_source_derivations(
         luma_source=luma_source,
         eventbrite_source=eventbrite_source,
+        current_input=current_input,
     )
+    from core.services import ServiceContext
+    from events.identity import event_projection_record
+    from events.importers import source_reference_digest
+    from events.services import (
+        activate_explicit_current_source,
+        public_registration_total,
+        stage_derived_source,
+    )
+
+    target_events: dict[tuple[str, str, str], Any] = {}
+    if current_input is not None:
+        _, target_events = _current_mapping_bridges(current_input)
+    mapping_set_revision = current_input.mapping_set_revision if current_input else 1
+    context = ServiceContext(
+        correlation_id="local-production-prep",
+        actor_ref="system:local-production-prep",
+    )
+    registration_import: dict[str, Any] = {
+        "input_supplied": current_input is not None,
+        "mapping_set_revision": mapping_set_revision,
+        "explicit_mapping_total": len(current_input.mappings) if current_input else 0,
+        "sources": {},
+    }
+    for provider in ("luma", "eventbrite"):
+        derived = derived_sources[provider]
+        run, created = stage_derived_source(
+            provider=provider,
+            derived=derived,
+            reference_digest=source_reference_digest(f"local-production-prep-{provider}"),
+            mapping_set_revision=mapping_set_revision,
+            actor=None,
+            context=context,
+            auto_map_explicit=current_input is not None,
+        )
+        selected_external_ids = tuple(
+            candidate.external_event_identifier
+            for candidate in derived.candidates
+            if candidate.proposal is not None
+        )
+        mapping_ids = tuple(
+            run.aggregate_revisions.filter(
+                mapping__external_event_identifier__in=selected_external_ids,
+            ).values_list("mapping_id", flat=True)
+        )
+        if len(mapping_ids) != len(selected_external_ids):
+            raise LocalPreparationError("current_registration_mapping_missing")
+        activated = False
+        if mapping_ids:
+            run = activate_explicit_current_source(
+                run.id,
+                mapping_ids=mapping_ids,
+                reason_code="current_event_activation",
+                actor=None,
+                context=context,
+            )
+            activated = True
+        registration_sources[provider]["activation_state"] = (
+            "active" if activated else "mapping_review_required"
+        )
+        registration_import["sources"][provider] = {
+            "run_created": created,
+            "run_state": run.state,
+            "explicit_mapping_total": len(mapping_ids),
+            "legacy_review_required_total": run.aggregate_revisions.filter(
+                mapping__state="review_required"
+            ).count(),
+            "activated": activated,
+        }
+    public_counts: list[int] = []
+    for event in target_events.values():
+        total = public_registration_total(event_projection_record(event))
+        if total is None:
+            raise LocalPreparationError("current_registration_total_unavailable")
+        public_counts.append(total.count)
+    registration_import["public_event_total"] = len(public_counts)
+    registration_import["public_count_total"] = sum(public_counts)
+    if current_input is None:
+        registration_import["activation_state"] = "mapping_review_required"
+    else:
+        registration_import["activation_state"] = (
+            "active" if public_counts else "mapping_review_required"
+        )
     return {
         "schema_version": ORCHESTRATOR_SCHEMA_VERSION,
         "database": {"environment": "local", "sqlite": True, "fresh_requested": fresh},
@@ -217,6 +378,7 @@ def run(
             "course_modules": modules,
         },
         "registration_sources": registration_sources,
+        "registration_import": registration_import,
     }
 
 
@@ -241,6 +403,15 @@ def _parser() -> argparse.ArgumentParser:
         default=main_root / EVENTBRITE_RELATIVE_SOURCE,
     )
     parser.add_argument(
+        "--current-registration-input",
+        type=Path,
+        default=None,
+        help=(
+            "JSON file containing exact current provider identities and canonical Event "
+            "source identities; legacy candidates remain review-required."
+        ),
+    )
+    parser.add_argument(
         "--fresh",
         action="store_true",
         help="Refuse to run if the selected SQLite database or its WAL files already exist.",
@@ -258,6 +429,11 @@ def main(argv: list[str] | None = None) -> int:
             identity_manifest=Path(args.identity_manifest).resolve(),
             luma_source=Path(args.luma_source).resolve(),
             eventbrite_source=Path(args.eventbrite_source).resolve(),
+            current_registration_input=(
+                Path(args.current_registration_input).resolve()
+                if args.current_registration_input is not None
+                else None
+            ),
             fresh=args.fresh,
         )
     except LocalPreparationError as error:

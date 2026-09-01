@@ -340,7 +340,15 @@ def derive_luma(
     mapping_bridge: Mapping[str, object] = MappingProxyType({}),
     source_missing: Mapping[str, object] = MappingProxyType({}),
     enforce_pinned_reconciliation: bool = False,
+    allow_partial_mapping: bool = False,
 ) -> DerivedSource:
+    """Derive one complete source, optionally carrying an explicit current-event bridge.
+
+    ``allow_partial_mapping`` skips only the legacy whole-snapshot mapping cardinality
+    gate.  Checksum, structure, row, status, and aggregate validation still run.  It is
+    intended for the separate current-event activation path, never for inferred mappings.
+    """
+
     bridge, missing = _mapping_evidence(
         provider=HistoricalRegistrationSourceRun.Provider.LUMA,
         mapping_bridge=mapping_bridge,
@@ -440,6 +448,8 @@ def derive_luma(
         all_statuses.update(statuses)
         eligible_total += eligible
         excluded_total += excluded + statuses["duplicate"]
+        if event_id in bridge and event_url in bridge:
+            raise ProtectedSourceError("invalid_mapping_bridge")
         candidates.append(
             AggregateCandidate(
                 external_event_identifier=event_id,
@@ -465,10 +475,10 @@ def derive_luma(
                         if status not in {"approved", "declined"}
                     ),
                 ),
-                proposal=bridge.get(event_url),
+                proposal=bridge[event_id] if event_id in bridge else bridge.get(event_url),
             )
         )
-    if set(bridge) - event_urls or set(missing) & event_ids:
+    if set(bridge) - (event_ids | event_urls) or set(missing) & (event_ids | event_urls):
         raise ProtectedSourceError("invalid_mapping_bridge")
     quarantined_total = sum(
         item.state == HistoricalRegistrationAggregateRevision.State.QUARANTINED
@@ -477,7 +487,7 @@ def derive_luma(
     state_totals = Counter(item.state for item in candidates)
     reason_codes = tuple(sorted({item.reason_code for item in candidates if item.reason_code}))
     candidate_tuple = tuple(candidates)
-    if enforce_pinned_reconciliation:
+    if enforce_pinned_reconciliation and not allow_partial_mapping:
         _require_pinned_luma_reconciliation(
             files=files,
             candidates=candidate_tuple,
@@ -530,7 +540,15 @@ def derive_eventbrite(
     source_missing: Mapping[str, object] = MappingProxyType({}),
     allowed_schema_fingerprints: Mapping[str, tuple[str, int]] = EVENTBRITE_SCHEMA_FINGERPRINTS,
     enforce_pinned_reconciliation: bool = False,
+    allow_partial_mapping: bool = False,
 ) -> DerivedSource:
+    """Derive one complete archive with an optional explicit current-event bridge.
+
+    The partial mode bypasses only the pinned legacy bridge-cardinality assertion; the
+    archive checksum, member safety, schema, row, status, and aggregate checks remain
+    mandatory.
+    """
+
     bridge, missing = _mapping_evidence(
         provider=HistoricalRegistrationSourceRun.Provider.EVENTBRITE,
         mapping_bridge=mapping_bridge,
@@ -705,7 +723,9 @@ def derive_eventbrite(
         or "unsupported"
     )
     candidate_tuple = tuple(candidates)
-    if checksum == PINNED_EVENTBRITE_SOURCE_CHECKSUM or enforce_pinned_reconciliation:
+    if (
+        checksum == PINNED_EVENTBRITE_SOURCE_CHECKSUM or enforce_pinned_reconciliation
+    ) and not allow_partial_mapping:
         _require_pinned_eventbrite_reconciliation(
             entries_total=len(entries),
             candidates=candidate_tuple,
@@ -816,7 +836,12 @@ def resolve_registered_source_reference(selection: str) -> str:
 
 
 def derive_registered_source(
-    reference: str, *, expected_provider: str | None = None
+    reference: str,
+    *,
+    expected_provider: str | None = None,
+    mapping_bridge: Mapping[str, object] | None = None,
+    source_missing: Mapping[str, object] | None = None,
+    allow_partial_mapping: bool = False,
 ) -> DerivedSource:
     digest = source_reference_digest(reference)
     del digest  # The digest is stored by the service; the raw reference is not.
@@ -836,8 +861,8 @@ def derive_registered_source(
     provider = configuration.get("provider")
     raw_path = configuration.get("path")
     checksum = configuration.get("sha256")
-    bridge = configuration.get("mapping_bridge", {})
-    missing = configuration.get("source_missing", {})
+    bridge = configuration.get("mapping_bridge", {}) if mapping_bridge is None else mapping_bridge
+    missing = configuration.get("source_missing", {}) if source_missing is None else source_missing
     reconciliation_profile = configuration.get("reconciliation_profile")
     if (
         provider not in HistoricalRegistrationSourceRun.Provider.values
@@ -867,6 +892,7 @@ def derive_registered_source(
             mapping_bridge=bridge,
             source_missing=missing,
             enforce_pinned_reconciliation=enforce_pinned_reconciliation,
+            allow_partial_mapping=allow_partial_mapping,
         )
     return derive_eventbrite(
         Path(raw_path),
@@ -874,4 +900,5 @@ def derive_registered_source(
         mapping_bridge=bridge,
         source_missing=missing,
         enforce_pinned_reconciliation=enforce_pinned_reconciliation,
+        allow_partial_mapping=allow_partial_mapping,
     )

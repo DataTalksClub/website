@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import re
 import uuid
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -188,6 +188,62 @@ def _event_for_proposal(proposal: CanonicalProposal | None):
         return None
 
 
+def _ensure_explicit_mapping(
+    mapping: HistoricalEventMapping,
+    *,
+    event: Any,
+    mapping_set_revision: int,
+    actor: Any | None,
+    context: ServiceContext,
+) -> HistoricalEventMapping:
+    """Apply one exact current-event mapping without retargeting an active row."""
+
+    expected = (
+        event.id,
+        event.source_repository,
+        event.source_revision,
+        event.source_key,
+        event.slug,
+    )
+    current = (
+        mapping.event_id,
+        mapping.canonical_repository,
+        mapping.canonical_revision,
+        mapping.canonical_source_key,
+        mapping.canonical_slug_snapshot,
+    )
+    if mapping.state in {
+        HistoricalEventMapping.State.EXCLUDED,
+        HistoricalEventMapping.State.SOURCE_MISSING,
+    }:
+        raise HistoricalRegistrationConflict("explicit_mapping_conflict")
+    if mapping.event_id is not None and current != expected:
+        raise HistoricalRegistrationConflict("explicit_mapping_conflict")
+    changes = {
+        "event": event,
+        "canonical_repository": event.source_repository,
+        "canonical_revision": event.source_revision,
+        "canonical_source_key": event.source_key,
+        "canonical_slug_snapshot": event.slug,
+        "state": HistoricalEventMapping.State.MAPPED,
+        "mapping_set_revision": mapping_set_revision,
+        "reviewer": actor,
+        "reviewer_ref": _actor_ref(context, actor) or "explicit-current-import-v1",
+        "reason_code": "explicit_current_event",
+        "reason": "Exact current-event mapping supplied by the import input.",
+    }
+    if any(getattr(mapping, field) != value for field, value in changes.items()):
+        if mapping.aggregate_revisions.filter(
+            state=HistoricalRegistrationAggregateRevision.State.ACTIVE
+        ).exists():
+            raise HistoricalRegistrationConflict("explicit_mapping_active_conflict")
+        for field, value in changes.items():
+            setattr(mapping, field, value)
+        mapping.revision += 1
+        mapping.save(update_fields=(*changes, "revision", "updated_at"))
+    return mapping
+
+
 def stage_registered_source(
     *,
     provider: str,
@@ -216,6 +272,44 @@ def stage_registered_source(
     )
 
 
+def stage_derived_source(
+    *,
+    provider: str,
+    derived: DerivedSource,
+    reference_digest: str,
+    mapping_set_revision: int,
+    actor: Any | None,
+    context: ServiceContext,
+    auto_map_explicit: bool = False,
+) -> tuple[HistoricalRegistrationSourceRun, bool]:
+    """Persist already-derived aggregate evidence without crossing attendee data.
+
+    The local rehearsal uses this seam after the protected adapter has parsed the complete
+    source with an explicit current-event bridge.  Ordinary registered-source staging keeps
+    proposals review-required by default.
+    """
+
+    if provider not in HistoricalRegistrationSourceRun.Provider.values:
+        raise HistoricalRegistrationInvalid("provider_invalid")
+    if derived.provider != provider:
+        raise HistoricalRegistrationInvalid("provider_mismatch")
+    if not isinstance(reference_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", reference_digest):
+        raise HistoricalRegistrationInvalid("source_reference_digest_invalid")
+    if not isinstance(mapping_set_revision, int) or isinstance(mapping_set_revision, bool):
+        raise HistoricalRegistrationInvalid("mapping_set_revision_invalid")
+    if mapping_set_revision < 1:
+        raise HistoricalRegistrationInvalid("mapping_set_revision_invalid")
+    return _persist_derived_source(
+        provider=provider,
+        derived=derived,
+        reference_digest=reference_digest,
+        mapping_set_revision=mapping_set_revision,
+        actor=actor,
+        context=context,
+        auto_map_explicit=auto_map_explicit,
+    )
+
+
 @transaction.atomic
 def _persist_derived_source(
     *,
@@ -225,6 +319,7 @@ def _persist_derived_source(
     mapping_set_revision: int,
     actor: Any | None,
     context: ServiceContext,
+    auto_map_explicit: bool = False,
 ) -> tuple[HistoricalRegistrationSourceRun, bool]:
     existing = HistoricalRegistrationSourceRun.objects.filter(
         provider=provider,
@@ -233,59 +328,110 @@ def _persist_derived_source(
         mapping_set_revision=mapping_set_revision,
         policy_version=POLICY_VERSION,
     ).first()
+    created = False
     if existing is not None:
-        return existing, False
-    try:
-        run = HistoricalRegistrationSourceRun.objects.create(
-            provider=provider,
-            adapter_version=derived.adapter_version,
-            schema_version=derived.schema_version,
-            whole_source_checksum=derived.whole_source_checksum,
-            source_reference_digest=reference_digest,
-            manifest_entry_total=derived.manifest_entry_total,
-            manifest_event_total=derived.manifest_event_total,
-            parsed_row_total=derived.parsed_row_total,
-            eligible_row_total=derived.eligible_row_total,
-            excluded_row_total=derived.excluded_row_total,
-            quarantined_event_total=derived.quarantined_event_total,
-            status_totals=dict(derived.status_totals),
-            state_totals=dict(derived.state_totals),
-            reason_codes=list(derived.reason_codes),
-            mapping_set_revision=mapping_set_revision,
-            policy_version=POLICY_VERSION,
-            state=(
-                HistoricalRegistrationSourceRun.State.QUARANTINED
-                if derived.quarantined_event_total
-                else HistoricalRegistrationSourceRun.State.STAGED
-            ),
-            actor=actor,
-            actor_ref=_actor_ref(context, actor),
-            reason_code="source_contains_quarantine" if derived.quarantined_event_total else "",
-        )
-    except IntegrityError:
-        return (
-            HistoricalRegistrationSourceRun.objects.get(
+        run = existing
+    if existing is None:
+        try:
+            run = HistoricalRegistrationSourceRun.objects.create(
+                provider=provider,
+                adapter_version=derived.adapter_version,
+                schema_version=derived.schema_version,
+                whole_source_checksum=derived.whole_source_checksum,
+                source_reference_digest=reference_digest,
+                manifest_entry_total=derived.manifest_entry_total,
+                manifest_event_total=derived.manifest_event_total,
+                parsed_row_total=derived.parsed_row_total,
+                eligible_row_total=derived.eligible_row_total,
+                excluded_row_total=derived.excluded_row_total,
+                quarantined_event_total=derived.quarantined_event_total,
+                status_totals=dict(derived.status_totals),
+                state_totals=dict(derived.state_totals),
+                reason_codes=list(derived.reason_codes),
+                mapping_set_revision=mapping_set_revision,
+                policy_version=POLICY_VERSION,
+                state=(
+                    HistoricalRegistrationSourceRun.State.QUARANTINED
+                    if derived.quarantined_event_total
+                    else HistoricalRegistrationSourceRun.State.STAGED
+                ),
+                actor=actor,
+                actor_ref=_actor_ref(context, actor),
+                reason_code="source_contains_quarantine" if derived.quarantined_event_total else "",
+            )
+        except IntegrityError:
+            run = HistoricalRegistrationSourceRun.objects.get(
                 provider=provider,
                 whole_source_checksum=derived.whole_source_checksum,
                 schema_version=derived.schema_version,
                 mapping_set_revision=mapping_set_revision,
                 policy_version=POLICY_VERSION,
-            ),
-            False,
-        )
+            )
+        else:
+            created = True
+    if not created:
+        if auto_map_explicit:
+            for candidate in derived.candidates:
+                if candidate.proposal is None:
+                    continue
+                if candidate.state != HistoricalRegistrationAggregateRevision.State.STAGED:
+                    raise HistoricalRegistrationConflict("explicit_mapping_not_activatable")
+                event = _event_for_proposal(candidate.proposal)
+                if event is None:
+                    raise HistoricalRegistrationConflict("explicit_mapping_target_unavailable")
+                try:
+                    mapping = HistoricalEventMapping.objects.get(
+                        provider=provider,
+                        external_event_identifier=candidate.external_event_identifier,
+                    )
+                except HistoricalEventMapping.DoesNotExist as error:
+                    raise HistoricalRegistrationConflict("explicit_mapping_conflict") from error
+                _ensure_explicit_mapping(
+                    mapping,
+                    event=event,
+                    mapping_set_revision=mapping_set_revision,
+                    actor=actor,
+                    context=context,
+                )
+        return run, False
     for candidate in derived.candidates:
         event = _event_for_proposal(candidate.proposal)
+        explicit = auto_map_explicit and candidate.proposal is not None
+        if explicit and candidate.state != HistoricalRegistrationAggregateRevision.State.STAGED:
+            raise HistoricalRegistrationConflict("explicit_mapping_not_activatable")
+        if explicit and event is None:
+            raise HistoricalRegistrationConflict("explicit_mapping_target_unavailable")
         mapping, _created = HistoricalEventMapping.objects.get_or_create(
             provider=provider,
             external_event_identifier=candidate.external_event_identifier,
             defaults={
                 **_candidate_proposal_fields(candidate.proposal),
                 "event": event,
-                "state": HistoricalEventMapping.State.REVIEW_REQUIRED,
+                "state": (
+                    HistoricalEventMapping.State.MAPPED
+                    if explicit
+                    else HistoricalEventMapping.State.REVIEW_REQUIRED
+                ),
                 "mapping_set_revision": mapping_set_revision,
+                "reviewer": actor if explicit else None,
+                "reviewer_ref": (
+                    _actor_ref(context, actor) or "explicit-current-import-v1" if explicit else ""
+                ),
+                "reason_code": "explicit_current_event" if explicit else "",
+                "reason": (
+                    "Exact current-event mapping supplied by the import input." if explicit else ""
+                ),
             },
         )
-        if event is not None:
+        if explicit:
+            _ensure_explicit_mapping(
+                mapping,
+                event=event,
+                mapping_set_revision=mapping_set_revision,
+                actor=actor,
+                context=context,
+            )
+        elif event is not None:
             attach_historical_mapping(mapping)
         HistoricalRegistrationAggregateRevision.objects.create(
             source_run=run,
@@ -784,32 +930,18 @@ def _preflight_activation(
         targets.add(target)
 
 
-@transaction.atomic
-def activate_source(
-    run_id: uuid.UUID,
+def _activate_aggregates(
+    run: HistoricalRegistrationSourceRun,
+    aggregates: tuple[HistoricalRegistrationAggregateRevision, ...],
     *,
     reason_code: str,
     actor: Any | None,
     context: ServiceContext,
 ) -> HistoricalRegistrationSourceRun:
-    _validate_reason_code(reason_code)
-    run = HistoricalRegistrationSourceRun.objects.get(pk=run_id)
-    if run.state == HistoricalRegistrationSourceRun.State.ACTIVE:
-        return run
-    if run.state != HistoricalRegistrationSourceRun.State.VALIDATED:
-        raise HistoricalRegistrationConflict("run_not_validated")
-    aggregates = tuple(
-        run.aggregate_revisions.select_related("mapping").filter(
-            state=HistoricalRegistrationAggregateRevision.State.VALIDATED
-        )
-    )
-    if not aggregates:
-        raise HistoricalRegistrationConflict("run_has_no_validated_aggregates")
-    # Resolve the whole mapping set before changing any slot. Two candidates from
-    # one run cannot replace each other in the same destination slot because that
-    # would make the rollback receipt describe an intra-run state, not the exact
-    # accepted state that existed before this atomic activation.
+    """Activate an already-selected, fully preflighted aggregate subset."""
+
     _preflight_activation(run, aggregates)
+    before_run_state = run.state
     affected: set[tuple[str, str, str, str]] = set()
     for aggregate in aggregates:
         mapping = aggregate.mapping
@@ -862,11 +994,13 @@ def activate_source(
             == HistoricalRegistrationAggregateRevision.CombinationPolicy.REPLACEMENT
         ):
             for existing_slot in existing_slots:
-                previous = existing_slot.active_revision
+                if existing_slot.active_revision_id == aggregate.id:
+                    continue
                 _record_displaced_pointer(
                     replacing_revision=aggregate,
                     slot=existing_slot,
                 )
+                previous = existing_slot.active_revision
                 if previous is not None and previous.id != aggregate.id:
                     _transition(
                         previous,
@@ -913,17 +1047,19 @@ def activate_source(
                     "updated_at",
                 )
             )
+        if aggregate.state != HistoricalRegistrationAggregateRevision.State.ACTIVE:
+            _transition(
+                aggregate,
+                state=HistoricalRegistrationAggregateRevision.State.ACTIVE,
+                reason_code=reason_code,
+            )
+        affected.add(key)
+    if run.state != HistoricalRegistrationSourceRun.State.ACTIVE:
         _transition(
-            aggregate,
-            state=HistoricalRegistrationAggregateRevision.State.ACTIVE,
+            run,
+            state=HistoricalRegistrationSourceRun.State.ACTIVE,
             reason_code=reason_code,
         )
-        affected.add(key)
-    _transition(
-        run,
-        state=HistoricalRegistrationSourceRun.State.ACTIVE,
-        reason_code=reason_code,
-    )
     for key in affected:
         _bump_public_total(key, complete=True)
     record_audit_event(
@@ -933,15 +1069,111 @@ def activate_source(
         target_label="historical-registration-source",
         outcome=AuditEvent.Outcome.SUCCEEDED,
         context=_audit_context(context, actor=actor),
-        changes={"state": {"before": "validated", "after": run.state}},
+        changes={"state": {"before": before_run_state, "after": run.state}},
         metadata={
             "source_checksum": run.whole_source_checksum,
             "event_total": len(affected),
-            "eligible_total": run.eligible_row_total,
+            "eligible_total": sum(item.eligible_count for item in aggregates),
             "reason_code": reason_code,
         },
     )
     return run
+
+
+@transaction.atomic
+def activate_source(
+    run_id: uuid.UUID,
+    *,
+    reason_code: str,
+    actor: Any | None,
+    context: ServiceContext,
+) -> HistoricalRegistrationSourceRun:
+    _validate_reason_code(reason_code)
+    run = HistoricalRegistrationSourceRun.objects.get(pk=run_id)
+    if run.state == HistoricalRegistrationSourceRun.State.ACTIVE:
+        return run
+    if run.state != HistoricalRegistrationSourceRun.State.VALIDATED:
+        raise HistoricalRegistrationConflict("run_not_validated")
+    aggregates = tuple(
+        run.aggregate_revisions.select_related("mapping").filter(
+            state=HistoricalRegistrationAggregateRevision.State.VALIDATED
+        )
+    )
+    if not aggregates:
+        raise HistoricalRegistrationConflict("run_has_no_validated_aggregates")
+    # Resolve the whole mapping set before changing any slot. Two candidates from
+    # one run cannot replace each other in the same destination slot because that
+    # would make the rollback receipt describe an intra-run state, not the exact
+    # accepted state that existed before this atomic activation.
+    return _activate_aggregates(
+        run,
+        aggregates,
+        reason_code=reason_code,
+        actor=actor,
+        context=context,
+    )
+
+
+@transaction.atomic
+def activate_explicit_current_source(
+    run_id: uuid.UUID,
+    *,
+    mapping_ids: Collection[uuid.UUID],
+    reason_code: str,
+    actor: Any | None,
+    context: ServiceContext,
+) -> HistoricalRegistrationSourceRun:
+    """Activate only mappings supplied by the explicit current-event import input.
+
+    Other candidates from the same provider snapshot intentionally remain staged and
+    review-required.  This path is separate from whole-snapshot historical activation.
+    """
+
+    _validate_reason_code(reason_code)
+    try:
+        requested = tuple(mapping_ids)
+    except TypeError as error:
+        raise HistoricalRegistrationInvalid("mapping_ids_invalid") from error
+    if not requested or any(not isinstance(item, uuid.UUID) for item in requested):
+        raise HistoricalRegistrationInvalid("mapping_ids_invalid")
+    requested_set = set(requested)
+    run = HistoricalRegistrationSourceRun.objects.get(pk=run_id)
+    if run.state == HistoricalRegistrationSourceRun.State.ACTIVE:
+        return run
+    if run.state != HistoricalRegistrationSourceRun.State.STAGED:
+        raise HistoricalRegistrationConflict("run_not_staged")
+    aggregates = tuple(
+        run.aggregate_revisions.select_related("mapping").filter(
+            mapping_id__in=requested_set,
+            state__in=(
+                HistoricalRegistrationAggregateRevision.State.STAGED,
+                HistoricalRegistrationAggregateRevision.State.VALIDATED,
+            ),
+        )
+    )
+    if len(aggregates) != len(requested_set):
+        raise HistoricalRegistrationConflict("explicit_mapping_not_in_run")
+    for aggregate in aggregates:
+        if (
+            aggregate.mapping.state != HistoricalEventMapping.State.MAPPED
+            or aggregate.mapping.reason_code != "explicit_current_event"
+        ):
+            raise HistoricalRegistrationConflict("explicit_mapping_not_activatable")
+        if not _mapping_matches_projection(aggregate.mapping):
+            raise HistoricalRegistrationConflict("canonical_identity_changed")
+        if aggregate.state == HistoricalRegistrationAggregateRevision.State.STAGED:
+            _transition(
+                aggregate,
+                state=HistoricalRegistrationAggregateRevision.State.VALIDATED,
+                reason_code="explicit_current_event",
+            )
+    return _activate_aggregates(
+        run,
+        aggregates,
+        reason_code=reason_code,
+        actor=actor,
+        context=context,
+    )
 
 
 @transaction.atomic
