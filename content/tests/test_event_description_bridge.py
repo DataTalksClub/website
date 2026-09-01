@@ -520,7 +520,19 @@ class PublicEventDescriptionTests(TestCase):
                     "provenance",
                 ):
                     self.assertEqual(rollback_event[field], baseline_event[field])
-                    self.assertEqual(current_event[field], baseline_event[field])
+                    if field == "speakers":
+                        # The public adapter adds the canonical profile biography to
+                        # each credit. Compare the source-owned identity fields here;
+                        # the derived bio is covered by test_event_speakers.
+                        current_speakers = [
+                            {key: speaker[key] for key in baseline_speaker}
+                            for speaker, baseline_speaker in zip(
+                                current_event[field], baseline_event[field], strict=True
+                            )
+                        ]
+                        self.assertEqual(current_speakers, baseline_event[field])
+                    else:
+                        self.assertEqual(current_event[field], baseline_event[field])
                 self.assertEqual(current_event["slug"], event_title_slug(current_event["title"]))
                 self.assertRegex(
                     current_event["public_path"],

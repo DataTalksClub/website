@@ -179,7 +179,11 @@
               </span>
             {% endif %}
             <p class="mono-note">
-              {{ neighbour.type }} · {{ neighbour.relation_kind }} · weight {{ neighbour.weight }}{% if not neighbour.url %} · destination unavailable{% endif %}
+              {{ neighbour.type }} · {{ neighbour.relation_kind }} · weight
+              {{ neighbour.weight }}
+              {% if not neighbour.url %}
+                · destination unavailable
+              {% endif %}
             </p>
           </li>
         {% endfor %}

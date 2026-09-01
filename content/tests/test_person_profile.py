@@ -58,7 +58,7 @@ class PersonCompositionTests(SimpleTestCase):
         person = person_view(profile(RICH_SLUG))
         self.assertEqual(
             [(group.key, group.count) for group in person.groups],
-            [("podcast", 5), ("events", 50), ("blog", 7), ("books", 1)],
+            [("podcast", 5), ("events", 51), ("blog", 7), ("books", 1)],
         )
         self.assertEqual(
             [group.heading for group in person.groups],
@@ -173,10 +173,10 @@ class PersonCompositionTests(SimpleTestCase):
         groups = {group.key: group for group in person_view(profile(RICH_SLUG)).groups}
 
         events = groups["events"]
-        self.assertEqual(events.count, 50)
+        self.assertEqual(events.count, 51)
         self.assertEqual(len(events.visible_items), ROWS_BEFORE_FOLD)
-        self.assertEqual(events.folded_count, 50 - ROWS_BEFORE_FOLD)
-        self.assertEqual(events.fold_label, "Show 44 more events")
+        self.assertEqual(events.folded_count, 51 - ROWS_BEFORE_FOLD)
+        self.assertEqual(events.fold_label, "Show 45 more events")
         self.assertEqual(events.fold_close_label, "Show fewer events")
         # The fold reorders nothing: it is the same list, cut in two.
         self.assertEqual((*events.visible_items, *events.folded_items), events.items)
@@ -224,7 +224,7 @@ class PersonCompositionTests(SimpleTestCase):
         person = person_view(profile(RICH_SLUG))
         labels = {group.key: (group.count_label, group.role_phrase) for group in person.groups}
         self.assertEqual(labels["podcast"], ("5 episodes", "guest"))
-        self.assertEqual(labels["events"], ("50 events", "speaker"))
+        self.assertEqual(labels["events"], ("51 events", "speaker"))
         self.assertEqual(labels["books"], ("1 book", "author"))
 
     def test_a_profile_may_carry_any_subset_of_its_own_facts(self) -> None:
@@ -404,7 +404,7 @@ class PersonPageTests(TestCase):
 
         self.assertEqual(body.count('<details class="row-fold"'), 1)
         self.assertIn('id="person-events-more"', body)
-        self.assertIn('<span class="row-fold-open">Show 44 more events</span>', body)
+        self.assertIn('<span class="row-fold-open">Show 45 more events</span>', body)
         self.assertIn('<span class="row-fold-close">Show fewer events</span>', body)
         # It is a control the browser owns: no script, and no ARIA restating what
         # <details> already announces.
@@ -419,7 +419,7 @@ class PersonPageTests(TestCase):
         self.assertEqual(events_band.count('class="list-row archive-row person-row"'), 6)
         self.assertEqual(
             remainder.partition("</details>")[0].count('class="list-row archive-row person-row"'),
-            44,
+            45,
         )
         # A short group offers no control at all.
         self.assertNotIn("Show 4 more episodes", body)

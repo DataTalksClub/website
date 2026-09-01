@@ -42,6 +42,7 @@ EXPECTED_COMMANDS = {
     "datamailer_status": "courses",
     "import_development_course_content": "courses",
     "monitoring_datamailer_health": "data",
+    "prepare_local_course_modules": "courses",
     "preview_peer_review_email": "courses",
     "process_datamailer_outbox": "data",
     "reconcile_accounts": "accounts",

@@ -179,6 +179,7 @@ Mounted from `courses.urls`.
 | `datamailer_status` | `courses` | Look up Datamailer contact sendability and recent send history. |
 | `import_development_course_content` | `courses` | Import the one approved sanitized CMP public-content artifact into development |
 | `monitoring_datamailer_health` | `data` | Emit compact Datamailer health observability events. |
+| `prepare_local_course_modules` | `courses` | Validate explicit course-repository snapshots and prepare the three reviewed 2026 cohorts as module curricula in local/test SQLite only. |
 | `preview_peer_review_email` | `courses` | Preview the peer-review-assignment email for a project. |
 | `process_datamailer_outbox` | `data` | Dispatch pending/retrying Datamailer outbox events. |
 | `reconcile_accounts` | `accounts` | Dry-run, apply, or rollback-check reviewed account mappings. |
