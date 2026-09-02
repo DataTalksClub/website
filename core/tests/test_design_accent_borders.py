@@ -67,10 +67,6 @@ STRUCTURAL_LEFT_BORDERS: dict[tuple[str, str], str] = {
     ): "The dashed rule between the two latest-columns, drawn only at >=40rem, is the divider "
     "the bands use; it separates siblings and disappears with the second column.",
     (
-        "templates/review/course_cohort.html",
-        ".cohort-specs .spec",
-    ): "The dashed rule between spec cells inside one bordered table; the first cell resets it.",
-    (
         "courses/templates/courses/course.html",
         ".course-specs .spec",
     ): "The dashed rule between spec cells inside one bordered table; the first cell and the "

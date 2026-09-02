@@ -1273,7 +1273,6 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
                 .values_list("course__slug", flat=True)
                 .distinct()
             ),
-            ("/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026", ""),
         )
     if section == "wiki":
         discovery = (

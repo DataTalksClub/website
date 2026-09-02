@@ -76,7 +76,6 @@ def test_public_home_and_hubs(
     expect(featured_course.get_by_text("Starts August 31, 2026")).to_be_visible()
     expect(featured_course.get_by_role("link", name="View the syllabus")).to_have_attribute(
         "href",
-        "/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026",
     )
     expect(page.get_by_role("link", name="all courses")).to_have_attribute(
         "href",

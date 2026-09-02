@@ -17,7 +17,6 @@ from pathlib import Path
 from django.db import OperationalError
 from django.test import TestCase
 from django.urls import reverse
-from django.utils.html import escape
 
 from content.public_data import public_projection
 from core.home_content import FEATURED_FAMILY, course_catalog
@@ -167,16 +166,11 @@ class HomepageCourseRenderingTests(TestCase):
 
         for entry in course_catalog():
             with self.subTest(path=entry.public_path):
-                # Every family's resolved cohort page answers 200.  The catalogue cards
-                # link to it directly; the featured family is shown by the hero instead,
-                # whose call to action is the reviewed cohort landing route below.
+                # Every family's resolved cohort page answers 200 and is linked from the
+                # homepage: the catalogue cards link to it directly, and the featured
+                # family's hero call to action goes to the same page.
                 self.assertEqual(self.client.get(entry.public_path).status_code, 200)
-                if entry.family != FEATURED_FAMILY:
-                    self.assertIn(f'href="{entry.public_path}"', body)
-
-        featured_path = reverse("course-cohort-ai-dev-tools-2026")
-        self.assertIn(f'href="{featured_path}"', body)
-        self.assertEqual(self.client.get(featured_path).status_code, 200)
+                self.assertIn(f'href="{entry.public_path}"', body)
 
     def test_the_featured_panel_omits_a_zero_project_count(self) -> None:
         response = self.client.get(reverse("home"))
@@ -244,8 +238,9 @@ class CourseSitemapSourceTests(TestCase):
 
         self.assertTrue(locations)
         self.assertEqual(locations & projection_paths, set())
-        # Every course entry is a family path the database supplied, plus the reviewed
-        # cohort landing route; none is a `<family>/<year>` path taken from the artefact.
+        # Every course entry is a family path the database supplied; none is a
+        # `<family>/<year>` path taken from the artefact, and none is a hardcoded
+        # per-cohort route.
         family_slugs = set(
             Cohort.objects.filter(visible=True, course__visible=True).values_list(
                 "course__slug", flat=True
@@ -253,8 +248,7 @@ class CourseSitemapSourceTests(TestCase):
         )
         self.assertEqual(
             locations,
-            {"/courses", "/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026"}
-            | {f"/courses/{slug}" for slug in family_slugs},
+            {"/courses"} | {f"/courses/{slug}" for slug in family_slugs},
         )
 
     def test_the_checked_projection_artifact_is_untouched(self) -> None:
@@ -263,57 +257,3 @@ class CourseSitemapSourceTests(TestCase):
         records = json.loads(PROJECTION_COURSES.read_text(encoding="utf-8"))
         self.assertEqual(len(records), 12)
 
-
-class ReviewCohortPageTests(TestCase):
-    COHORT_PATH = "/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026"
-    PREVIEW_PATH = "/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026/registration-preview/"
-
-    def test_the_cohort_page_takes_its_facts_from_the_database(self) -> None:
-        build_reviewed_catalog()
-
-        response = self.client.get(self.COHORT_PATH)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "AI Dev Tools Zoomcamp 2026")
-        self.assertContains(response, "August 31, 2026")
-        self.assertContains(response, "Online")
-        self.assertContains(response, "Free")
-        # The workspace call to action was silently missing while the page looked the
-        # cohort up by a slug no dataset holds.
-        self.assertContains(response, "Open the existing course workspace")
-        self.assertContains(
-            response,
-            escape(reverse("courses:course", kwargs={"course_slug": "ai-dev-tools-zoomcamp-2026"})),
-        )
-
-    def test_the_cohort_page_renders_without_any_ai_dev_tools_cohort(self) -> None:
-        self.assertEqual(Cohort.objects.count(), 0)
-
-        for path in (self.COHORT_PATH, self.PREVIEW_PATH):
-            with self.subTest(path=path):
-                response = self.client.get(path)
-                self.assertEqual(response.status_code, 200)
-                self.assertNotContains(response, "Open the existing course workspace")
-
-    def test_the_registration_preview_carries_the_database_cohort_title(self) -> None:
-        build_reviewed_catalog()
-
-        response = self.client.get(self.PREVIEW_PATH)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "AI Dev Tools Zoomcamp 2026")
-
-    def test_neither_page_renders_a_stored_description(self) -> None:
-        build_reviewed_catalog()
-        family = Course.objects.get(slug="ai-dev-tools-zoomcamp")
-        family.description = '<img src="https://example.invalid/readme.png">'
-        family.save(update_fields=["description"])
-        cohort = Cohort.objects.get(slug="ai-dev-tools-zoomcamp-2026")
-        cohort.description = "The 2026 live delivery of AI Dev Tools Zoomcamp."
-        cohort.save(update_fields=["description"])
-
-        for path in (self.COHORT_PATH, self.PREVIEW_PATH):
-            with self.subTest(path=path):
-                body = self.client.get(path).content.decode()
-                self.assertNotIn("example.invalid", body)
-                self.assertNotIn("live delivery of AI Dev Tools Zoomcamp", body)

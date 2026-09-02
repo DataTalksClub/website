@@ -132,16 +132,6 @@ urlpatterns = [
         name="legacy-studio-courses-root",
     ),
     path("cadmin/", include("cadmin.legacy_urls")),
-    path(
-        "courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026",
-        review_views.course_cohort,
-        name="course-cohort-ai-dev-tools-2026",
-    ),
-    path(
-        "courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026/registration-preview/",
-        review_views.registration_preview,
-        name="course-registration-preview-ai-dev-tools-2026",
-    ),
     path("courses", course_list.course_list, name="course_list"),
     path(
         "courses/",

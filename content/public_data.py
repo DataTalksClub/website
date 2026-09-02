@@ -1068,7 +1068,6 @@ def public_paths() -> tuple[str, ...]:
         "/faq/",
         "/faq/ai-dev-tools-zoomcamp.html",
         "/slack",
-        "/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026",
     }
     paths.update(
         record["public_path"]

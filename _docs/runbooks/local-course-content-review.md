@@ -163,8 +163,8 @@ used to reason about public course content:
 
 Note that the public homepage reads this database. `core/home_content.py` `course_catalog()` and the
 featured panel resolve the newest visible cohort of every visible course family through
-`courses/services/public_course_catalog.py`, and so do `/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026`
-and its registration preview. Refreshing the review database therefore changes what the homepage
+`courses/services/public_course_catalog.py`, and the featured call to action links straight to that
+cohort's own `/courses/<family>/<year>` page. Refreshing the review database therefore changes what the homepage
 advertises, and any visible row here — including the `fake-course` test rows above — would be
 advertised on the front page. Confirm the cutover database carries no visible fixture course.
 

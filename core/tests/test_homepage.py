@@ -18,6 +18,7 @@ from core.home_content import (
     FEATURED_COHORT_SUMMARY,
     FEATURED_FAMILY,
     MEMBER_STORIES,
+    course_catalog,
 )
 from courses.models.cohort import Cohort
 from courses.views.course import course_view
@@ -197,10 +198,13 @@ class MainHomepageRoutingTests(TestCase):
         self.assertContains(response, "Courses")
         self.assertContains(response, "AI Dev Tools Zoomcamp")
         self.assertContains(response, "Starts August 31")
-        self.assertContains(
-            response,
-            f'href="{reverse("course-cohort-ai-dev-tools-2026")}"',
+        # The featured call to action goes to the cohort's own database-backed course
+        # page, the same route the catalogue cards use.  The hardcoded per-cohort
+        # landing route it used to point at has been removed.
+        featured = next(
+            entry for entry in course_catalog() if entry.family == FEATURED_FAMILY
         )
+        self.assertContains(response, f'href="{featured.public_path}"')
         self.assertContains(response, "View the syllabus")
         self.assertContains(response, "all courses →")
         self.assertEqual(

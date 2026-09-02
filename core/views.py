@@ -12,14 +12,12 @@ from django.http import (
     JsonResponse,
 )
 from django.shortcuts import render
-from django.urls import NoReverseMatch, reverse
 from django.views.decorators.http import require_GET, require_safe
 
 from content.public_data import event_groups, ordered_podcasts, public_projection
 from core.home_content import (
     FEATURED_BUILD_ITEMS,
     FEATURED_COHORT_FORMAT,
-    FEATURED_COHORT_ROUTE_NAME,
     FEATURED_COHORT_SUMMARY,
     FEATURED_FAMILY,
     MEMBER_STORIES,
@@ -73,13 +71,14 @@ def home(request: HttpRequest):
     )
     # The featured panel is the newest visible cohort of the featured family, or nothing
     # at all when the database holds none; the template renders no hero in that case.
+    #
+    # The call to action goes to that cohort's own database-backed course page, the same
+    # `/courses/<family>/<year>` route the catalogue cards use.  It used to go to a
+    # hardcoded per-cohort landing route whose copy was written in Python, including a
+    # "materials are still being finalized" notice that had gone stale; that route and its
+    # page are gone, so there is one cohort page and the hero links to it.
     featured_entry = next((entry for entry in catalog if entry.family == FEATURED_FAMILY), None)
-    featured_cohort_path = ""
-    if featured_entry is not None:
-        try:
-            featured_cohort_path = reverse(FEATURED_COHORT_ROUTE_NAME)
-        except NoReverseMatch:
-            featured_cohort_path = featured_entry.public_path
+    featured_cohort_path = featured_entry.public_path if featured_entry is not None else ""
     return render(
         request,
         "core/home.html",

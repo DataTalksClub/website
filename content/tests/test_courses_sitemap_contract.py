@@ -15,7 +15,6 @@ from courses.models import Cohort
 
 URLSET_NS = {"s": SITEMAP_NAMESPACE}
 COURSES_HUB = f"{PRODUCTION_ORIGIN}/courses"
-COURSES_COHORT = f"{PRODUCTION_ORIGIN}/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026"
 VISIBLE_SLUGS = ("aa-visible-sitemap-2026", "zeta-visible-sitemap-2026")
 VISIBLE_FAMILY_SLUGS = tuple(slug.removesuffix("-2026") for slug in VISIBLE_SLUGS)
 HIDDEN_SLUG = "hidden-sitemap-2026"
@@ -27,12 +26,12 @@ PRIVATE_MARKERS = (
 
 
 class CoursesSitemapContractTests(TestCase):
-    def test_empty_course_table_emits_hub_and_cohort_only(self) -> None:
+    def test_empty_course_table_emits_the_hub_only(self) -> None:
         self.assertEqual(Cohort.objects.count(), 0)
 
         locations = self._courses_sitemap_locations()
 
-        self.assertEqual(locations, [COURSES_HUB, COURSES_COHORT])
+        self.assertEqual(locations, [COURSES_HUB])
         self._assert_index_and_sibling_remain_valid()
 
     def test_populated_visible_and_hidden_courses_follow_the_public_contract(self) -> None:
@@ -66,7 +65,6 @@ class CoursesSitemapContractTests(TestCase):
                 COURSES_HUB,
                 f"{PRODUCTION_ORIGIN}/courses/{VISIBLE_FAMILY_SLUGS[0]}",
                 f"{PRODUCTION_ORIGIN}/courses/{VISIBLE_FAMILY_SLUGS[1]}",
-                COURSES_COHORT,
             ],
         )
         self.assertNotIn(f"{PRODUCTION_ORIGIN}/courses/{HIDDEN_SLUG}", locations)

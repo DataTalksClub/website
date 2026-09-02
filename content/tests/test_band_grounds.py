@@ -37,7 +37,6 @@ BODIES_BELOW_THE_SEAM: dict[str, str] = {
     "templates/public/text_page.html": '<div class="prose prose-reading text-page-body">',
     "templates/public/wiki_detail.html": '<div class="prose wiki-prose">',
     "templates/review/faq_home.html": '<div class="row-list faq-rows">',
-    "templates/review/registration_preview.html": 'aria-labelledby="registration-state-heading"',
     "templates/core/content_page.html": "{% block page_content %}",
     # Authentication pages share their bands through auth_page.html; the child
     # supplies the ways in through the parent's content block.

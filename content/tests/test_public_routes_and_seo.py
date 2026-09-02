@@ -515,7 +515,6 @@ class PublicRouteAndSeoTests(TestCase):
         for path in (
             "/faq/ai-dev-tools-zoomcamp.html",
             "/slack",
-            "/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026",
         ):
             with self.subTest(path=path):
                 response = self.client.get(path)

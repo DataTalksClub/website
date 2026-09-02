@@ -8,13 +8,7 @@ from django.conf import settings
 from django.test import SimpleTestCase
 
 REMOVED_PAGE_EYEBROWS = {
-    "templates/review/course_cohort.html": (
-        '<p class="mono-label mono-label-indigo">2026 cohort</p>'
-    ),
     "templates/review/faq_detail.html": ('<p class="mono-label mono-label-indigo">Course FAQ</p>'),
-    "templates/review/registration_preview.html": (
-        '<p class="mono-label mono-label-indigo">Course registration</p>'
-    ),
     "templates/studio/event_identity_detail.html": "Studio · Event identity",
     "studio_courses/templates/studio_courses/course_list.html": (
         '<p class="mono-label mono-label-indigo">Studio</p>'
