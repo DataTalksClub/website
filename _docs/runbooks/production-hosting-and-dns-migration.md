@@ -119,15 +119,19 @@ critical path)** · D15 Relay sandbox data (clean start recommended) — §3.2.
 
 - E.1 **[P]** = step 0.6 (SES production access)
 - E.3 **[P]** **[B:D14 hand-off]** `main/relay` root; bind to the `datatalks.club` identity + a
-  Relay-owned configuration set; deploy dark
+  Relay-owned configuration set; **observability on the django-website injected-alarm contract,
+  decided before the Terraform is written** (sandbox stacks' empty-topic bug not copied); deploy dark
 - E.4 Clean-start the data volume (D15); sandbox Relay stays as dev Relay
-- E.5 **[B:audit]** GATE — commissioned code audit + observability must-fix list closed
-- E.6 **[B:E.5]** Battle-testing ramp, stages 0–4; abort trigger 3% bounce / 0.08% complaint
+- E.5 GATE — **[B:code audit]** (still running) + observability assessment **delivered**: E.5b
+  must-do list items 1–9; items 1 + 1b (< 1 day) move Relay to 15-min detection
+- E.6 **[B:E.5]** Battle-testing ramp, stages 0–4; hard precondition: CMP's email canary +
+  `outbox_*` alarms re-pointed at Relay, live subscriber proven; abort 3% bounce / 0.08% complaint
 - E.7 Datamailer stays read-only; fixes the 7.4 teardown order
 
 **Phase 7 — decommission and harvest (CLEANUP; after all rollback windows)** — details §12
 
 - 7.0 **[P]** SES identity `state mv` out of `main/cmp` (**execute early, with E.3**)
+- 7.0a **[P]** Rehome the email canary (health probe + alarms) out of `main/cmp` into `main/relay`
 - 7.1 **[P]** **[OW]** Destroy `main/cmp` (final Aurora snapshot is the point of no return)
 - 7.2 **[OW]** Retire the four GitHub Pages deployments
 - 7.3 Retire `main/legacy-site` after the 9.4 window
@@ -811,7 +815,7 @@ full release cycle there, and only then start the sandbox decommission (7.5).
 ### 9.3 Staging discipline while `prod.` and the apex both serve content
 
 From the moment `prod.datatalks.club` serves real pages until the stage-2 swap, the same corpus
-exists twice (S3 legacy on apex, Django on `prod.`). Duplicate-content risk (#6 in §16) is
+exists twice (S3 legacy on apex, Django on `prod.`). Duplicate-content risk (#7 in §16) is
 controlled by construction, all four controls mandatory:
 
 - `prod.` responses carry `X-Robots-Tag: noindex, nofollow` at edge and application
@@ -1134,7 +1138,7 @@ work (spec 09:119-143), arrives purpose-by-purpose under #22/M8.6 gates, and mus
 estimated as "just switch the URL" — that shortcut describes Effort 1 only.
 
 The adopted Datamailer client itself stays read-only/dry-run per spec — but see the new
-boundary-hardening risk (#9, §16): the no-send promise is currently **config-enforced, not
+boundary-hardening risk (#10, §16): the no-send promise is currently **config-enforced, not
 code-enforced**. ~3,900 lines of live-callable Datamailer client exist with reachable call
 sites (`courses/views/homework_confirmation.py:8-9,149`); what makes the spec true is
 `deploy/task_definitions.py:36-42` pinning `DATAMAILER_URL: ""` and
@@ -1165,6 +1169,19 @@ deliberate differences:
 - **Inbound mail:** optional. Sandbox receives `relay@inbound.relay.dtcdev.click` to S3; a main
   equivalent needs its own MX decision and is **not** required for sending — default: omit.
 - **Deploy:** same OIDC/SSM pattern, trust re-pinned to the main account.
+- **Observability wiring — decide BEFORE writing the Terraform (time-sensitive, from the E.5b
+  assessment):** do **not** copy the sandbox stacks' alarm plumbing. Both carry an inherited
+  empty-topic bug — `alarm_email = ""` default with `count = var.alarm_email == "" ? 0 : 1`
+  (`sandbox/datamailer/variables.tf:47-51` + `main.tf:194`; `sandbox/relay/monitoring.tf:6`) —
+  meaning **their alarms may currently fire into the void**. Adopt instead the
+  `modules/django-website` observability contract, the only pattern in the repo that takes
+  `alarm_actions = var.alarm_action_arns` as an injected required variable, validates log
+  retention (`runtime-variables.tf:242-249`), and exports alarm names for drift detection
+  (`outputs.tf:240-251`). (Adopt the *contract* — injected actions, exported names, validated
+  retention — not a full module instantiation; the module builds an ECS/ALB/RDS stack and Relay
+  is one EC2 host.) Since `main/relay` does not exist yet this is a free choice now and an
+  expensive retrofit later. *Verification item:* prove the alarm topic has at least one real,
+  confirmed subscriber before E.6 stage 0 — a delivered test notification, not a plan diff.
 
 **The SES binding — the critical dependency, made explicit.** Relay does not manage SES. In
 sandbox it sends "through the existing `dtcdev.click` SES identity and `datamailer-sandbox`
@@ -1194,35 +1211,91 @@ history has no production value. Queues are ephemeral — drain sandbox before r
 sandbox stack stays running as the *development* Relay (CMP dev and website dev keep pointing at
 `relay.dtcdev.click`) until the sandbox teardown, whose internal ordering E.7 constrains.
 
-### E.5 GATE — code audit + observability. **BLOCKED(audit)**
+### E.5 GATE — code audit + observability. **BLOCKED(code audit)** — observability delivered
 
 Owner: "1) audit the code 2) make sure that we have enough visibility to fix things quickly."
-Two assessments are commissioned and running against `/home/alexey/git/relay`:
+Two assessments were commissioned against `/home/alexey/git/relay`:
 
-- **(a) adversarial code audit:** correctness of the send/event/inbound pipelines; secrets;
-  authentication — an unauthenticated send endpoint would be an open relay; SNS signature
-  verification on the webhook drain; MIME parsing safety; idempotency under SQS at-least-once
-  redelivery; backup/restore of the single-EBS PostgreSQL; SES rate-limit and suppression
-  handling.
-- **(b) observability assessment** against the owner’s visibility requirement, made concrete
-  in E.6’s stage-1 criterion (trace one message end-to-end in under 10 minutes).
+- **(a) adversarial code audit — still running:** correctness of the send/event/inbound
+  pipelines; secrets; authentication — an unauthenticated send endpoint would be an open relay;
+  SNS signature verification on the webhook drain; MIME parsing safety; idempotency under SQS
+  at-least-once redelivery; backup/restore of the single-EBS PostgreSQL; SES rate-limit and
+  suppression handling. Findings will be appended here when delivered.
+- **(b) observability assessment — DELIVERED (2026-09-02), verdict and must-do list in E.5b.**
 
-The fork finding (§11E intro) focuses rather than shrinks this gate: the shared `mailing/`
+The fork finding (§11E intro) focuses rather than shrinks the code audit: the shared `mailing/`
 engine inherits Datamailer's production exposure, so audit attention concentrates on Relay's
 ~4,200 added lines (`jobs/` task API, vendored `taskdeck`, per-task IAM assumption, deploy) and
 on properties no test suite settles (open-relay/auth posture at the edge, SNS signature
 verification, backup/restore of the single-EBS PostgreSQL, SES limit/suppression behavior).
 
-**Production sending does not begin until the audit’s "must fix before sending production
-email" list is closed and the observability gaps are addressed.** Findings will be appended
-here when the coordinator delivers them. E.3 infrastructure may proceed in parallel (deployed
-dark, send-disabled); E.6 may not start. Independent of the audit outcome, one item is already
-known and joins the gate: the single-EBS PostgreSQL needs a scheduled snapshot + one rehearsed
-restore before real delivery records accumulate.
+**Production sending does not begin until (a)'s "must fix before sending production email"
+list is closed AND (b)'s pre-production items below are done.** E.3 infrastructure may proceed
+in parallel (deployed dark, send-disabled); E.6 may not start. Independent of both, one item
+already stands: the single-EBS PostgreSQL needs a scheduled snapshot + one rehearsed restore
+before real delivery records accumulate.
+
+#### E.5b Observability assessment — verdict and pre-production must-do list
+
+**Verdict: not enough visibility today to operate Relay in production — but this is a gate,
+not a blocker.** Items 1 + 1b below are under a day's combined work and move Relay from
+"no detection" to "15-minute detection with an auto-filed ticket," reusing infrastructure that
+already exists and works.
+
+**The highest-value finding — a working email canary already exists and is free to inherit.**
+`main/cmp/cmp_deadline_reminder.tf:98-110` runs `manage.py monitoring_datamailer_health --json`
+on EventBridge **every 15 minutes**; failures raise `datamailer.health_warning`, firing alarm
+`cmp-prod-datamailer-health-warning` → SNS → email **and** an auto-filed GitHub issue
+(`main/cmp/observability.tf:66-166`). Two more app-event alarms exist: `datamailer.outbox_failed`
+and `datamailer.outbox_dispatch_failed` (`observability.tf:11-22`). Re-pointing all three at
+Relay is configuration, not a build — and it is **mandatory before Relay carries real traffic**
+(E.6 precondition; silent-failure risk #5, §16).
+
+Pre-production must-do list (ordered; effort per item):
+
+1. **Give the `main/relay` alarm topic a real subscriber** — reuse CMP's
+   `lambdas/cloudwatch_alarm_to_github.py` verbatim (SNS → email + auto-filed issue). ~1 h.
+   **Precondition: item 4** — that handler files issues into a *public* GitHub repo and
+   deliberately publishes only log context, never log lines
+   (`cloudwatch_alarm_to_github.py:171-172`); redaction must land before logs become quotable.
+1b. **Re-point CMP's health probe and the two `datamailer.outbox_*` alarms at Relay** — ~2 h,
+   the highest value per hour in this list.
+2. JSON `LOGGING` config + send-path events + `ADMINS`/root handler for 500s — ~1 d. **No prior
+   art exists in these repos** — Datamailer, AISL, and CMP all log printf-style plain text with
+   no correlation IDs and no redaction, so this makes Relay *exceed* the estate; align with
+   dtc-website's unmerged #265 logging contract rather than inventing a new one.
+3. Log the two silent-swallow sites — `relay/mailing/sqs.py:47` (handler exception → message ID
+   appended to the batch-failure list with no log) and
+   `relay/mailing/services/campaign_sender.py:157` (send exception classified, unlogged). ~30 m.
+4. **Redact PII from logs** — `relay/mailing/services/mailchimp.py:195,199` logs raw recipient
+   email addresses (inherited verbatim from Datamailer), and gunicorn access logs expose
+   `contacts/<email>/` paths. ~2 h. Precondition for item 1, as above.
+5. EMF-based metrics + alarms on send failure, oldest `QUEUED`, stuck `SENDING` — ~1 d. Cheaper
+   than it sounds: CMP already emits embedded-metric-format JSON on stdout through the existing
+   log stream (`main/cmp/app_prod.tf:61-71`), so **no new IAM is needed** — there is no
+   `cloudwatch:PutMetricData` grant anywhere in `main/cmp/`.
+6. SES reputation alarms — copy `main/aisl/email.tf:167-195` (`Reputation.BounceRate` ≥ 5% and
+   the complaint twin). ~1 h. This is the concrete implementation of the E.6/risk-#4
+   identity-suspension protection.
+7. Widen the CloudWatch agent to the data volume; alarm on memory and data-volume disk — ~2 h.
+8. `/health/ready` returns version/source_sha/image_digest plus per-check detail — ~4 h.
+9. `relay-alert-investigator` read-only role modelled on `main/cmp/iam_alert_investigator.tf` —
+   scoped `logs:FilterLogEvents`/`StartQuery` plus alarm/ECS/RDS describes, assumable only from
+   the sandbox role, 1-hour sessions; CMP's alarm Lambda already hands the operator a
+   pre-computed ready-to-run assume command. ~2 h. The best debugging-ergonomics win available
+   for an SSM-only host.
+
+House-wide context, so this is not misread as a Relay deficiency: dashboards, saved queries,
+and composite alarms are an estate-wide gap — zero `aws_cloudwatch_dashboard` and zero
+`aws_cloudwatch_query_definition` exist anywhere in aws-infra.
 
 ### E.6 Battle-testing: a graduated ramp, not a big-bang switch
 
-Preconditions: E.5 gate closed; E.1 production access verified; D14 identity hand-off done.
+Preconditions: E.5 gate closed (both assessments); E.1 production access verified; D14 identity
+hand-off done; **E.5b items 1 + 1b done — the alarm topic has a proven live subscriber and
+CMP's 15-minute health probe plus the two `datamailer.outbox_*` alarms are re-pointed at Relay
+before any real traffic** (otherwise the estate's only email monitoring stays green while
+watching a system that no longer sends the mail — risk #5).
 
 | Stage | Traffic | Volume / duration | Advance when (all of) | Rollback |
 | --- | --- | --- | --- | --- |
@@ -1275,6 +1348,13 @@ DNS/apex rollback windows expired.
   at teardown time** (it moved onto the Relay critical path); it is listed here because it is
   the hard precondition for 7.1. Destroying CMP with the identity still in its state **deletes
   the verified sending domain** and breaks all outbound mail (risk #2).
+- **7.0a [aws-infra] PRECONDITION for 7.1 — rehome the email canary out of CMP.** The
+  15-minute health probe and its alarm→SNS→GitHub pipeline live in CMP's stack
+  (`cmp_deadline_reminder.tf:98-110`, `observability.tf:66-166`) and, after E.5b item 1b, they
+  are the production monitoring for *Relay*. Destroying `main/cmp` with them still in its state
+  silently deletes Relay's only email monitoring — the same trap class as the D14 identity.
+  Move the probe schedule + alarm resources (or equivalents) into `main/relay` before 7.1, and
+  prove the canary still fires end-to-end (test alarm → notification received) afterward.
 - **7.1 [aws-infra] [CREDS] [ONE-WAY]** Destroy `main/cmp` compute/ALB/dev resources (final DB
   snapshot is enforced — `db.tf:22-24`, `deletion_protection = true` must be lifted knowingly;
   the Aurora final snapshot is the point-of-no-return gate). Keep the snapshot per the retention
@@ -1613,19 +1693,20 @@ automating registrar changes adds risk instead of removing it.
 | 2 | **CMP teardown deletes the shared `datatalks.club` SES identity** — Terraform-owned by `main/cmp` (`iam_ses.tf:54-71`) while all Relay production sending binds to it (§11E E.3). Elevated: this is now on the *Relay critical path*, not just a Phase 7 hazard | High if the hand-off is skipped; zero once done | All outbound email, org-wide | canary send after every ownership/state change; `sesv2 get-email-identity` status | D14/step 7.0 procedure (`state mv` to the owner root, clean plans both sides, canary) executed before or alongside E.3; hard precondition for 7.1 |
 | 3 | S3 rehost silently breaks URL shapes (trailing-slash/index, `/docs` 301, extensionless files, Content-Type, 404s) | High if done naively — the exact failure the OAC/website-endpoint difference causes | 2,937-URL preserve contract; SEO | 15.4 staging crawl vs `legacy-manifest.jsonl` | Function-based resolver from the baseline's real directory set (not dot heuristics); parity gate before apex swap; 10-min-TTL alias rollback to untouched GitHub Pages |
 | 4 | SES identity suspension from bounce/complaint breach once Relay ramps — takes down **all** `@datatalks.club` mail, not just Relay's | Low with the E.6 ramp; real with big-bang bulk sending | Org-wide email (existential for the identity) | CloudWatch alarms on the Relay configuration-set metrics: warn 2% bounce / 0.05% complaint | E.6 graduated ramp (transactional first, bulk last); **abort trigger at 3% bounce / 0.08% complaint** = Relay kill switch + hold jobs + triage; suppression handling per E.5 audit |
-| 5 | GoDaddy forwarders (`www`, `join`) die at NS move with no AWS replacement live | Certain unless pre-built | Slack onboarding funnel + www traffic | curl checks in 1.5 verify list | 1.2 (join custom domain) and Phase-2-first ordering for www; both built and verified pre-delegation |
-| 6 | `prod.datatalks.club` (or the S3 copy + new site together) creates duplicate-content/canonical conflicts | Medium | Rankings for the whole editorial corpus | Search Console coverage + canonical monitoring (spec 02:280-291) | The four §9.3 controls (edge+app `noindex` on `prod.` for its entire life, restrictive robots, no `prod.` sitemap, apex canonicals everywhere); `prod.` 301s to apex after the swap (§9.4) |
-| 7 | courses cutover breaks API consumers (scripts, certificate tooling, email links) | Medium | Learner-facing workflows | maintenance-Lambda 503 metrics; redirect-Lambda unknown-path metrics (spec 08:300) | Stage A′ keeps real compat endpoints on the new stack (no cross-host redirect for APIs, spec 02:152); redirect Lambda only after the consumer gate; 503-not-200 fix (1.2-6) |
-| 8 | Relay defect surfaces under real load (auth/open-relay, SNS verification, idempotency, single-EBS backup gaps) — zero live clients to date, though the shared `mailing/` engine is production-exercised via CMP's Datamailer path and both suites pass (fork finding, §11E) | Unknown until the audit lands; narrowed to Relay's ~4,200 added lines + operational behavior | Email correctness/security | commissioned code audit + observability assessment (E.5) | **E.5 gate: no production sending until the must-fix list closes**; ramp stages keep early blast radius to allowlisted/low-volume traffic |
-| 9 | Spec's no-Datamailer-send promise is **config-enforced, not code-enforced**: ~3,900 lines of live-callable client with reachable call sites (`courses/views/homework_confirmation.py:8-9,149`); only `deploy/task_definitions.py:36-42` env pins (`DATAMAILER_URL: ""`, dry-run `"1"`) keep it inert — one env var from live sends during exactly the kind of change an email migration makes | Medium during Phase E churn | Duplicate/unauthorized sends; spec breach | `core/tests/test_deployment_release.py:1001` guards the pins; env diff review on every deploy | E.2 hardening issue: fail closed in code (refuse non-empty `DATAMAILER_URL` outside tests or excise send call sites) when Effort 1 repoints to Relay |
-| 10 | Cache poisoning / auth-content leak when Phase 5 turns caching on | Low with spec design, High without | Security incident | authenticated canary + poison canaries + log audit (10.6) | Fail-closed classifier, origin-response guard, `min_ttl=0`, TTL-zero one-step rollback; enable pre-cutover on low-stakes hosts first |
-| 11 | Mixed-NS window serves divergent answers | Low (parity-gated) | Any record | 15.2 against multiple resolvers during window | Byte-parity before delegation + change freeze during the 48 h window |
-| 12 | ACM validation stalls a cutover step | Medium (timing, not correctness) | Schedule | ACM console status | All certs DNS-validated *ahead* of their consuming step (1.2 dual-zone CNAME trick; 2.2 before 2.5) |
-| 13 | Un-invalidatable wrong object (bad Cache-Control/Content-Type published, `CreateInvalidation` denied) | Medium | Up to max-age per object | 15.4/15.5 verify passes | Short/moderate max-age chosen everywhere (no `immutable` on mutable trees); worst case bounded at 24 h; guardrail-change path exists (10.4c) if ever needed |
-| 14 | State-root blast radius (a bad apply in a broad root touches NS-critical records) | Low | DNS | plan review | D6 dedicated `main/dns` root; courses zone optionally imported for drift detection (0.4); untracked roots (`main/dtc-website`, `main/maintenance-page`) get committed + backends before any further apply |
-| 15 | Shared dev/prod infra (D2): dev workload degrades prod via common RDS instance/ALB | Medium over time | prod latency/availability, not data (separate databases + credentials) | RDS connection/CPU/IOPS alarms; ALB target-health per target group (prod-only alarms, CMP precedent `observability.tf:55-58`) | §9.2 fidelity controls: 1-task dev, separate db + creds, explicit listener priorities, throwaway snapshot-restored instance for destructive rehearsals |
-| 16 | Running both stacks doubles spend during migration | Certain, bounded | Budget | Cost Explorer + budget alarm | §14 sizing keeps the overlap ≈ $370–445/mo; Phase 7 harvest is scheduled, not aspirational |
-| 17 | SES main account turns out to be in sandbox mode — learner mail blocked behind an AWS support request | Low (CMP mails learners today) but unverified | Phase E timeline (multi-day external lead) | E.1 / step 0.6 `aws sesv2 get-account` | Verification is front-loaded into Phase 0; if false, the support request files immediately and only E.6 waits |
+| 5 | **Silent monitoring failure at the Relay cutover**: the estate's only email canary — CMP's 15-minute `monitoring_datamailer_health` probe and the `datamailer.outbox_*` alarms (`cmp_deadline_reminder.tf:98-110`, `observability.tf:11-22`) — keeps passing while watching a system that no longer sends the mail. Green alarms, no email, nobody notified. Compounded by the sandbox stacks' empty-topic bug (alarms with zero subscribers, §11E E.3) | High if E.5b item 1b is skipped; zero once done | All email failure detection | deliberate test alarm → confirmed human notification, rehearsed at E.6 stage 0 | E.6 hard precondition: re-point probe + both alarms at Relay and prove a live subscriber **before** real traffic; rehome the probe out of CMP before teardown (step 7.0a — same trap class as D14) |
+| 6 | GoDaddy forwarders (`www`, `join`) die at NS move with no AWS replacement live | Certain unless pre-built | Slack onboarding funnel + www traffic | curl checks in 1.5 verify list | 1.2 (join custom domain) and Phase-2-first ordering for www; both built and verified pre-delegation |
+| 7 | `prod.datatalks.club` (or the S3 copy + new site together) creates duplicate-content/canonical conflicts | Medium | Rankings for the whole editorial corpus | Search Console coverage + canonical monitoring (spec 02:280-291) | The four §9.3 controls (edge+app `noindex` on `prod.` for its entire life, restrictive robots, no `prod.` sitemap, apex canonicals everywhere); `prod.` 301s to apex after the swap (§9.4) |
+| 8 | courses cutover breaks API consumers (scripts, certificate tooling, email links) | Medium | Learner-facing workflows | maintenance-Lambda 503 metrics; redirect-Lambda unknown-path metrics (spec 08:300) | Stage A′ keeps real compat endpoints on the new stack (no cross-host redirect for APIs, spec 02:152); redirect Lambda only after the consumer gate; 503-not-200 fix (1.2-6) |
+| 9 | Relay defect surfaces under real load (auth/open-relay, SNS verification, idempotency, single-EBS backup gaps) — zero live clients to date, though the shared `mailing/` engine is production-exercised via CMP's Datamailer path and both suites pass (fork finding, §11E) | Unknown until the audit lands; narrowed to Relay's ~4,200 added lines + operational behavior | Email correctness/security | commissioned code audit + observability assessment (E.5) | **E.5 gate: no production sending until the must-fix list closes**; ramp stages keep early blast radius to allowlisted/low-volume traffic |
+| 10 | Spec's no-Datamailer-send promise is **config-enforced, not code-enforced**: ~3,900 lines of live-callable client with reachable call sites (`courses/views/homework_confirmation.py:8-9,149`); only `deploy/task_definitions.py:36-42` env pins (`DATAMAILER_URL: ""`, dry-run `"1"`) keep it inert — one env var from live sends during exactly the kind of change an email migration makes | Medium during Phase E churn | Duplicate/unauthorized sends; spec breach | `core/tests/test_deployment_release.py:1001` guards the pins; env diff review on every deploy | E.2 hardening issue: fail closed in code (refuse non-empty `DATAMAILER_URL` outside tests or excise send call sites) when Effort 1 repoints to Relay |
+| 11 | Cache poisoning / auth-content leak when Phase 5 turns caching on | Low with spec design, High without | Security incident | authenticated canary + poison canaries + log audit (10.6) | Fail-closed classifier, origin-response guard, `min_ttl=0`, TTL-zero one-step rollback; enable pre-cutover on low-stakes hosts first |
+| 12 | Mixed-NS window serves divergent answers | Low (parity-gated) | Any record | 15.2 against multiple resolvers during window | Byte-parity before delegation + change freeze during the 48 h window |
+| 13 | ACM validation stalls a cutover step | Medium (timing, not correctness) | Schedule | ACM console status | All certs DNS-validated *ahead* of their consuming step (1.2 dual-zone CNAME trick; 2.2 before 2.5) |
+| 14 | Un-invalidatable wrong object (bad Cache-Control/Content-Type published, `CreateInvalidation` denied) | Medium | Up to max-age per object | 15.4/15.5 verify passes | Short/moderate max-age chosen everywhere (no `immutable` on mutable trees); worst case bounded at 24 h; guardrail-change path exists (10.4c) if ever needed |
+| 15 | State-root blast radius (a bad apply in a broad root touches NS-critical records) | Low | DNS | plan review | D6 dedicated `main/dns` root; courses zone optionally imported for drift detection (0.4); untracked roots (`main/dtc-website`, `main/maintenance-page`) get committed + backends before any further apply |
+| 16 | Shared dev/prod infra (D2): dev workload degrades prod via common RDS instance/ALB | Medium over time | prod latency/availability, not data (separate databases + credentials) | RDS connection/CPU/IOPS alarms; ALB target-health per target group (prod-only alarms, CMP precedent `observability.tf:55-58`) | §9.2 fidelity controls: 1-task dev, separate db + creds, explicit listener priorities, throwaway snapshot-restored instance for destructive rehearsals |
+| 17 | Running both stacks doubles spend during migration | Certain, bounded | Budget | Cost Explorer + budget alarm | §14 sizing keeps the overlap ≈ $370–445/mo; Phase 7 harvest is scheduled, not aspirational |
+| 18 | SES main account turns out to be in sandbox mode — learner mail blocked behind an AWS support request | Low (CMP mails learners today) but unverified | Phase E timeline (multi-day external lead) | E.1 / step 0.6 `aws sesv2 get-account` | Verification is front-loaded into Phase 0; if false, the support request files immediately and only E.6 waits |
 
 ---
 
