@@ -64,6 +64,20 @@ def fixture_source(*, commit_sha: str = FIRST_COMMIT) -> CourseRepositorySource:
     return parse_course_repository(snapshot, commit_sha=commit_sha)
 
 
+def source_without_site_description(
+    *, commit_sha: str = FIRST_COMMIT
+) -> CourseRepositorySource:
+    """Parse the fixture repository as if it published no ``SITE.md``."""
+
+    snapshot = {
+        path.relative_to(FIXTURE_ROOT).as_posix(): path.read_bytes()
+        for path in FIXTURE_ROOT.rglob("*")
+        if path.is_file()
+    }
+    del snapshot["SITE.md"]
+    return parse_course_repository(snapshot, commit_sha=commit_sha)
+
+
 def explicit_legacy_source() -> CourseRepositorySource:
     source = fixture_source()
     explicit_legacy = next(
@@ -130,6 +144,33 @@ class CurriculumImportServiceTests(TestCase):
         cohort.refresh_from_db()
         project.refresh_from_db()
         return result, course, cohort, project
+
+
+    def test_adopts_the_course_description_the_repository_publishes_in_site_md(self):
+        _, course, _, _ = self.import_fixture_with_project()
+
+        self.assertEqual(
+            course.description,
+            "A free course about building production-style applications with language models.",
+        )
+
+    def test_keeps_the_stored_description_when_the_repository_publishes_no_site_md(self):
+        """A repository with no ``SITE.md`` must not disturb curated catalogue copy.
+
+        Assigning the parsed description unconditionally is what replaced three families'
+        curated text with their README banners, so absence has to mean "leave it alone"
+        rather than "blank it" or "fall back to the README".
+        """
+
+        curated = "Free nine-week course on production LLM systems."
+        course, _, _ = self.create_adoption_target()
+        course.description = curated
+        course.save(update_fields=["description"])
+
+        import_course_repository_curriculum(import_command(source_without_site_description()))
+
+        course.refresh_from_db()
+        self.assertEqual(course.description, curated)
 
     def test_creates_new_course_and_explicit_cohort_from_source_metadata(self):
         result = import_course_repository_curriculum(import_command(explicit_legacy_source()))

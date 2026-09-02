@@ -598,7 +598,8 @@ Field-level ownership, declared once, so re-running cannot flip a value:
 | Module/Unit structure, ordering, unit content | **Course repository** | CMP has no such tables |
 | Homework/question/project content — titles, descriptions, questions, answers, due dates, scores | **CMP** | Authored in CMP; the repo has no questions |
 | Cohort dates, visibility, `finished`, passing scores | **CMP** | Operational state |
-| Family title, description, outcome | **Reviewed catalog → CMP → repo** | §3.6: the repo currently overwrites curated text with README markup |
+| Family description | **`SITE.md` in the course repository**, else unchanged | Owner decision. The README is never read; a repo without `SITE.md` leaves the stored description alone |
+| Family title, outcome | **Reviewed catalog → CMP → repo** | §3.6 |
 | `curriculum_format` | **Manifest presence** (§7.1) | |
 
 ⚠ The family-description reversal is the **one behaviour change** in this plan that is not
@@ -825,12 +826,18 @@ it is not this refactor.
 
 ## 12. Open questions for the owner
 
-1. **The six unmapped cohorts** (§6.6). Which publish, under which family, and what
-   `identifier`/`year` do `ai-buildcamp-2` and `ai-buildcamp-3` get, given `2`/`3` are
-   edition numbers rather than years? They block a *complete* import; everything else can
-   proceed without them.
-2. **Family description precedence** (§7.3). Confirm the reviewed catalog outranks the
-   repository README, reversing today's behaviour.
+1. ~~The six unmapped cohorts.~~ **Answered: skip all six for now** — `ai-bootcamp-2025`,
+   `ai-hero-2025`, `ai-hero-2026`, `sma-zoomcamp-2026`, `ai-buildcamp-2`, `ai-buildcamp-3`.
+   They are excluded by an explicit named list with a recorded reason each, not by an
+   unmatched branch, and appear in the verification output with their row counts and their
+   skipped dependent rows. Four need only a mapping entry to return; `ai-buildcamp-2`/`-3`
+   need real design first, because family+year cannot express an edition number.
+2. ~~Family description precedence.~~ **Answered:** `Course.description` comes from a
+   repository-authored `SITE.md`; the README is never read, and its absence leaves the
+   stored description untouched. Authored for the three module repos only.
+   *Known follow-up, deliberately deferred:* `de-zoomcamp`, `mlops-zoomcamp` and
+   `sma-zoomcamp` keep their curated text with no `SITE.md`; unifying the two sources is
+   a later decision, not a temporary inconsistency to design around.
 3. **`Makefile` ownership.** Step 10 edits it. No other lane has claimed it; this plan
    takes it.
 4. **Reconciliation with `script-inventory.md`** (§4), which did not exist when this was

@@ -336,7 +336,11 @@ class _CurriculumImporter:
 
         course.slug = family_slug
         course.title = source.title
-        course.description = source.description
+        if source.description is not None:
+            # A repository without ``SITE.md`` describes no website copy, so the stored
+            # description stands.  Assigning unconditionally is what overwrote three
+            # families' curated text with their README banners.
+            course.description = source.description
         course.outcome = source.outcome
         course.github_repo_url = source.repository_url
         course.docs_url = source.docs_url
