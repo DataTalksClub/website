@@ -26,6 +26,21 @@
   <meta name="twitter:title" content="{{ homework.title }} — {{ course.title }} — DataTalks.Club">
 {% endblock %}
 
+{% block breadcrumbs %}
+  {% comment %}
+    The module crumb, restored.  A learner reaches this page from a module rail
+    that names "Homework 1: Agentic RAG"; without the module the trail forgot
+    the only step that was theirs.  The trail still stops at the parent — the
+    homework title is the h1 directly beneath it — and it keeps the quiet
+    shared treatment the course, module and unit trails now use.
+  {% endcomment %}
+  {% if homework_module and course.course %}
+    <li>
+      <a href="{% url 'module' course.course.slug course.identifier homework_module.slug %}">{{ homework_module.title }}</a>
+    </li>
+  {% endif %}
+{% endblock %}
+
 {% block hero_heading %}
   <h1 id="submission-heading">{{ homework.title }}</h1>
 {% endblock %}

@@ -123,16 +123,28 @@
     padding-top: 1.25rem;
   }
 
-  .submission-navigation-next {
+  /* Previous/next are one pair and wrap as one: with a back-to-module button
+     leading the row, three loose flex children broke into a ragged two-row
+     arrangement whose second row started with the last control. */
+  .submission-navigation-adjacent {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    gap: 0.75rem;
     margin-inline-start: auto;
   }
 
   @media (max-width: 47.99rem) {
     .submission-actions,
     .submission-form-actions,
-    .submission-navigation {
+    .submission-navigation,
+    .submission-navigation-adjacent {
       display: grid;
       width: 100%;
+    }
+
+    .submission-navigation-adjacent {
+      margin-inline-start: 0;
     }
   }
 
@@ -193,25 +205,39 @@
     {% endblock %}
   {% endif %}
   {% if homework %}
-    {% if previous_homework or next_homework %}
-      <nav class="submission-navigation" aria-label="Homework navigation">
-        {% if previous_homework %}
-          {% if course.course %}
-            {% url 'homework' course.course.slug course.identifier previous_homework.slug as previous_homework_url %}
-          {% else %}
-            {% url 'homework' course.slug previous_homework.slug as previous_homework_url %}
+    {% if homework_module or previous_homework or next_homework %}
+    <nav class="submission-navigation" aria-label="Homework navigation">
+      {% if homework_module and course.course %}
+        {% comment %}
+          The way back out. The module page and its rail both link into the
+          homework; without this the learner's module → units → homework loop
+          has a dead end at its last stop. It leads the row so it is also the
+          first control in the stacked mobile layout.
+        {% endcomment %}
+        {% url 'module' course.course.slug course.identifier homework_module.slug as homework_module_url %}
+        {% include "core/_button.html" with href=homework_module_url label="← Back to "|add:homework_module.title variant="subtle" compact=True %}
+      {% endif %}
+      {% if previous_homework or next_homework %}
+        <div class="submission-navigation-adjacent">
+          {% if previous_homework %}
+            {% if course.course %}
+              {% url 'homework' course.course.slug course.identifier previous_homework.slug as previous_homework_url %}
+            {% else %}
+              {% url 'homework' course.slug previous_homework.slug as previous_homework_url %}
+            {% endif %}
+            {% include "core/_button.html" with href=previous_homework_url label="← Previous homework" variant="secondary" compact=True aria_label="Previous homework" %}
           {% endif %}
-          {% include "core/_button.html" with href=previous_homework_url label="← Previous homework" variant="secondary" compact=True aria_label="Previous homework" %}
-        {% endif %}
-        {% if next_homework %}
-          {% if course.course %}
-            {% url 'homework' course.course.slug course.identifier next_homework.slug as next_homework_url %}
-          {% else %}
-            {% url 'homework' course.slug next_homework.slug as next_homework_url %}
+          {% if next_homework %}
+            {% if course.course %}
+              {% url 'homework' course.course.slug course.identifier next_homework.slug as next_homework_url %}
+            {% else %}
+              {% url 'homework' course.slug next_homework.slug as next_homework_url %}
+            {% endif %}
+            {% include "core/_button.html" with href=next_homework_url label="Next homework →" variant="secondary" compact=True aria_label="Next homework" %}
           {% endif %}
-          {% include "core/_button.html" with href=next_homework_url label="Next homework →" variant="secondary" compact=True classes="submission-navigation-next" aria_label="Next homework" %}
-        {% endif %}
-      </nav>
+        </div>
+      {% endif %}
+    </nav>
     {% endif %}
   {% endif %}
 {% endblock %}

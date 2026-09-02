@@ -1,7 +1,8 @@
 """Design contracts for the redesigned homework page.
 
 The page states facts in the cream header and exactly one state notice in the
-lavender band, and carries no coloured accent border.
+lavender band, carries no coloured accent border, and always offers a way back
+to the module it closes.
 """
 
 import re
@@ -10,6 +11,7 @@ from pathlib import Path
 from django.test import SimpleTestCase
 from django.utils import timezone
 
+from courses.models.curriculum import Module
 from courses.tests.homework_view_base import HomeworkDetailViewTestBase
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -106,6 +108,53 @@ class HomeworkPageStructureTests(HomeworkDetailViewTestBase):
 
         self.assertContains(response, 'class="question-note mono-label"')
         self.assertNotContains(response, "(not graded)")
+
+
+class HomeworkModuleTrailTests(HomeworkDetailViewTestBase):
+    def add_module(self):
+        self.course.curriculum_format = "modules"
+        self.course.save(update_fields=["curriculum_format"])
+        return Module.objects.create(
+            cohort=self.course,
+            position=1,
+            slug="module-one",
+            title="Module 1: Agentic RAG",
+            terminal_homework=self.homework,
+        )
+
+    def test_module_crumb_and_back_link_appear_for_a_module_homework(self) -> None:
+        module = self.add_module()
+
+        response = self.get_homework_response()
+        body = response.content.decode()
+        breadcrumb = re.search(
+            r'<nav class="breadcrumbs" aria-label="Breadcrumb">(.*?)</nav>',
+            body,
+            re.DOTALL,
+        )
+
+        self.assertEqual(response.context["homework_module"], module)
+        self.assertIsNotNone(breadcrumb)
+        assert breadcrumb is not None
+        self.assertIn(module.title, breadcrumb.group(1))
+        # The trail still stops at the parent: the homework title is the h1.
+        self.assertNotIn(self.homework.title, breadcrumb.group(1))
+        self.assertContains(response, f"← Back to {module.title}")
+
+    def test_a_homework_without_a_module_keeps_the_shorter_trail(self) -> None:
+        response = self.get_homework_response()
+        body = response.content.decode()
+        breadcrumb = re.search(
+            r'<nav class="breadcrumbs" aria-label="Breadcrumb">(.*?)</nav>',
+            body,
+            re.DOTALL,
+        )
+
+        self.assertIsNone(response.context["homework_module"])
+        self.assertIsNotNone(breadcrumb)
+        assert breadcrumb is not None
+        self.assertNotIn("modules/", breadcrumb.group(1))
+        self.assertNotContains(response, "← Back to")
 
 
 class HomeworkStateMatrixTests(HomeworkDetailViewTestBase):
