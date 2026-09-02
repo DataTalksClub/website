@@ -49,6 +49,7 @@ from content.podcast_routes import (  # noqa: E402
     podcast_canonical_path,
 )
 from content.public_text import strip_target_attributes_from_links  # noqa: E402
+from courses.course_family_catalog import cohort_family_identity  # noqa: E402
 from events.slugs import event_title_slug  # noqa: E402
 
 DEFAULT_OUTPUT = REPOSITORY_ROOT / "content" / "public_projection"
@@ -2434,10 +2435,14 @@ def _courses(course_specs: Path) -> list[dict[str, Any]]:
             for assignment in homeworks + projects
         ):
             raise ProjectionBuildError("course catalog assignment fields are invalid")
+        # The public catalog serves a cohort at `/courses/<family>/<year>`, not at the flat
+        # source slug.  Deriving it here keeps a rebuild byte-identical to the checked artifact;
+        # emitting `/courses/<slug>` would silently move all twelve cohort URLs.
+        family_slug, family_year = cohort_family_identity(slug)
         courses.append(
             {
                 "slug": slug,
-                "public_path": f"/courses/{slug}",
+                "public_path": f"/courses/{family_slug}/{family_year}",
                 "title": _string(item.get("title"), field="course title", maximum=500),
                 "finished": bool(item.get("finished")),
                 "homework_count": len(homeworks),
