@@ -1010,16 +1010,39 @@ Rules for editing:
          (restored on the course page after the design 5a rebuild; the mockups
          draw none, so the shape is this system's own).  Markup contract: a
          nav.breadcrumbs with aria-label="Breadcrumb" holding an ol, one li per
-         level; every ancestor is a link and the current page sits on
-         li[aria-current="page"] as plain text, never a link.  The separator is
-         CSS-drawn with empty alternative text so it is never announced; engines
-         without the alt-text syntax fall back to the bare glyph.  Links keep
-         the 2.75rem target height the system guarantees. */
+         level; every ancestor is a link.  A page whose h1 sits directly under
+         the trail stops at its parent and lets the heading say where you are —
+         the course, module and unit pages do — because a last crumb repeating
+         the h1 word for word is duplication that costs a whole row.  Where the
+         current page is still listed it sits on li[aria-current="page"] as
+         plain text, never a link; the content pages keep it because their
+         BreadcrumbList JSON-LD lists the page itself and the visible trail must
+         match what is published.
+
+         A trail is chrome, not content, so it is drawn at the secondary size
+         and in the muted ink `.mono-note` already uses rather than at body size
+         in saturated indigo.  At the earlier scale a five-level course trail
+         competed with the heading beneath it and filled two 44px rows before
+         the page had said anything.  Every level keeps an underline — a link
+         still says it is one, and colour alone would not — and colour is what
+         answers the pointer, so the trail is quiet until it is aimed at.
+
+         The separator follows its crumb rather than leading the next one.  A
+         trail that wraps then breaks after the "/", where a reader expects the
+         line to continue, instead of opening the second row with a slash that
+         reads as broken markup.  It is CSS-drawn with empty alternative text so
+         it is never announced; engines without the alt-text syntax fall back to
+         the bare glyph.
+
+         2rem is the target height here rather than the 2.75rem a control
+         carries.  A crumb is a dense inline trail read on the way past, and
+         32px clears the 24px WCAG 2.2 AA target-size floor with room to spare
+         while halving the height of the row. */
       .breadcrumbs ol {
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        font-size: 0.92rem;
+        font-size: 0.78rem;
       }
 
       .breadcrumbs li {
@@ -1030,25 +1053,31 @@ Rules for editing:
 
       .breadcrumbs a {
         align-items: center;
-        color: var(--indigo);
+        color: var(--muted);
         display: inline-flex;
-        font-weight: 600;
-        min-height: 2.75rem;
+        font-weight: 500;
+        min-height: 2rem;
         text-decoration: underline;
+        text-decoration-thickness: 1px;
         text-underline-offset: 0.2em;
       }
 
-      .breadcrumbs li + li::before {
+      .breadcrumbs a:hover,
+      .breadcrumbs a:focus-visible {
+        color: var(--indigo);
+      }
+
+      .breadcrumbs li:not(:last-child)::after {
         color: var(--muted);
         content: "/";
         content: "/" / "";
         flex: none;
-        margin-inline: 0.65rem;
+        margin-inline: 0.45rem;
       }
 
       .breadcrumbs [aria-current="page"] {
         color: var(--muted);
-        font-weight: 600;
+        font-weight: 500;
       }
 
       /* --- calls to action ---------------------------------------------- */

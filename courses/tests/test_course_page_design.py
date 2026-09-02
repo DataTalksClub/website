@@ -305,24 +305,34 @@ class CoursePageBreadcrumbTests(CourseDetailViewTestBase):
         self.assertEqual(len(trails), 1)
         return body, trails[0]
 
-    def test_the_trail_is_an_ordered_list_from_the_index_to_this_course(self):
+    def test_the_trail_is_an_ordered_list_of_the_ancestors_of_this_course(self):
         _body, trail = self.breadcrumb_nav()
 
         self.assertIn("<ol>", trail)
         self.assertNotIn("<ul>", trail)
         crumbs = re.findall(r"<li[^>]*>(.*?)</li>", trail, re.DOTALL)
-        self.assertEqual(len(crumbs), 3)
+        self.assertEqual(len(crumbs), 2)
         self.assertIn(f'href="{reverse("course_list")}"', crumbs[0])
         self.assertIn(">Courses<", crumbs[0])
         self.assertIn(f">{self.course.title}<", crumbs[1])
 
-    def test_the_current_page_is_marked_and_is_not_a_link(self):
+    def test_the_trail_stops_before_this_cohort_because_the_heading_names_it(self):
+        """A last crumb repeating the h1 is duplication, so the trail leaves it out."""
+
+        body, trail = self.breadcrumb_nav()
+
+        self.assertNotIn('aria-current="page"', trail)
+        self.assertNotIn(str(self.course.year), trail)
+        # The cohort is still named on the page — once, as the heading.
+        self.assertIn(f'<h1 id="course-heading">{self.course.title}</h1>', body)
+
+    def test_every_crumb_is_a_link_back_to_an_ancestor(self):
         _body, trail = self.breadcrumb_nav()
 
-        current = re.search(r'<li aria-current="page">(.*?)</li>', trail, re.DOTALL)
-        self.assertIsNotNone(current)
-        self.assertIn(str(self.course.year), current.group(1))
-        self.assertNotIn("<a", current.group(1))
+        crumbs = re.findall(r"<li[^>]*>(.*?)</li>", trail, re.DOTALL)
+        self.assertTrue(crumbs)
+        for crumb in crumbs:
+            self.assertIn("<a", crumb)
 
     def test_separators_are_css_drawn_and_never_written_into_the_markup(self):
         body, trail = self.breadcrumb_nav()

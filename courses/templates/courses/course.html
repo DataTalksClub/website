@@ -386,7 +386,8 @@
 {% block page_header %}
         {% comment %}
           The trail the adopted shell used to draw, restored as a design 5a
-          primitive: the ancestor index is a link, the current page is text.
+          primitive: every crumb is an ancestor index and a link.  It stops
+          before this cohort, which the heading underneath already names.
         {% endcomment %}
         <nav class="breadcrumbs" aria-label="Breadcrumb">
           <ol>
@@ -396,7 +397,6 @@
             <li>
               <a href="{% url 'course_family' course_family.slug %}">{{ course_family.title }}</a>
             </li>
-            <li aria-current="page">{{ course.identifier }}</li>
           </ol>
         </nav>
         <div class="course-hero-inner">

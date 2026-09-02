@@ -150,8 +150,14 @@
           <ol>
             <li><a href="{% url 'course_list' %}">Courses</a></li>
             <li><a href="{% url 'course_family' course_family.slug %}">{{ course_family.title }}</a></li>
-            <li><a href="{% url 'course' course_family.slug cohort.identifier %}">{{ cohort.title }}</a></li>
-            <li aria-current="page">{{ module.title }}</li>
+            {% comment %}
+              The edition, not the course name again: the crumb before it is the
+              course family, and every other course trail shows the identifier.
+            {% endcomment %}
+            <li><a href="{% url 'course' course_family.slug cohort.identifier %}">{{ cohort.identifier }}</a></li>
+            {% comment %}
+              The trail stops at the edition: this module is the heading below.
+            {% endcomment %}
           </ol>
         </nav>
         <div class="module-hero-inner">

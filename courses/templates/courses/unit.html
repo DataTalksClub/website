@@ -30,11 +30,6 @@
         letter-spacing: -0.03em;
       }
 
-      .unit-module {
-        color: var(--body-text);
-        font-size: 1rem;
-      }
-
       .unit-content {
         min-height: 12rem;
       }
@@ -101,17 +96,33 @@
               <a href="{% url 'course_family' course_family.slug %}">{{ course_family.title }}</a>
             </li>
             <li>
-              <a href="{% url 'course' course_family.slug cohort.identifier %}">{{ cohort.title }}</a>
+              {% comment %}
+                The cohort crumb is the edition, not the course said twice: the
+                crumb above it already names "Machine Learning Zoomcamp", so
+                "ML Zoomcamp 2026" repeated it in an abbreviation the reader
+                then had to match up.  The identifier is what the URL segment
+                and every other course page's trail already show.
+              {% endcomment %}
+              <a href="{% url 'course' course_family.slug cohort.identifier %}">{{ cohort.identifier }}</a>
             </li>
+            {% comment %}
+              The trail stops at the module.  The lesson is the heading directly
+              beneath it, so a fifth crumb repeating that heading said nothing
+              and was what pushed the trail onto a second row.
+            {% endcomment %}
             <li>
               <a href="{% url 'module' course_family.slug cohort.identifier module.slug %}">{{ module.title }}</a>
             </li>
-            <li aria-current="page">{{ unit.title }}</li>
           </ol>
         </nav>
         <div class="unit-hero-inner">
+          {% comment %}
+            The heading alone.  The module line that used to sit under it was
+            already the crumb above — and where a lesson title carries its
+            module's name ("1.1 Introduction to Machine Learning" under
+            "Introduction to Machine Learning") it repeated the heading too.
+          {% endcomment %}
           <h1 id="unit-heading">{{ unit.title }}</h1>
-          <p class="unit-module">{{ module.title }}</p>
         </div>
 {% endblock %}
 

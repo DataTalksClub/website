@@ -196,12 +196,16 @@ def _assert_local_page_assets(page: Page, origin: str) -> None:
 def _assert_design_breadcrumb_trail(page: Page) -> None:
     """The design 5a trail: two levels, a real target on the way back, text where you are.
 
-    The adopted shell drew a compact 24px crumb row and made the current page a link too.
-    Design 5a (issue #179) states the opposite contract: every ancestor is a link that keeps
-    the system's 2.75rem minimum target height, and the current page is plain text on
-    ``li[aria-current="page"]``.  The trail is allowed to wrap onto a second row on a phone —
-    that is exactly why its links carry the target height — so this asserts the levels, the
-    link/text split and the target height rather than a single-line geometry.
+    The adopted shell drew a compact crumb row and made the current page a link too.
+    Design 5a (issue #179) states the opposite contract: every ancestor is a link with a
+    real target, and the current page is plain text on ``li[aria-current="page"]``.
+
+    The trail was later quietened, because at body size in saturated indigo it competed
+    with the heading under it.  Its links now carry the 2rem height a dense inline trail
+    wants rather than the 2.75rem a control carries; 32px still clears the 24px WCAG 2.2
+    AA target-size floor.  The trail is allowed to wrap onto a second row on a phone, so
+    this asserts the levels, the link/text split and the target floor rather than a
+    single-line geometry.
     """
 
     geometry = page.locator(".breadcrumbs li").evaluate_all(
@@ -218,7 +222,7 @@ def _assert_design_breadcrumb_trail(page: Page) -> None:
     assert len(geometry) == 2, geometry
     ancestor, current = geometry
     assert ancestor["isLink"] and ancestor["current"] is None, geometry
-    assert ancestor["linkHeight"] + 0.5 >= 44, geometry
+    assert ancestor["linkHeight"] + 0.5 >= 32, geometry
     assert not current["isLink"] and current["current"] == "page", geometry
     assert current["text"], geometry
 
