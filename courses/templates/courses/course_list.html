@@ -450,10 +450,14 @@
                       {% if card.cohort.index_registered %}
                         <span class="course-card-registered">{{ card.cohort.index_registered }} registered</span>
                       {% endif %}
+                      {% comment %}
+                        Registration happens on this site.  A card offers it only when a
+                        campaign promotes that edition; the CMP ``registration_url`` this
+                        branch used to fall through to points off-site at the platform
+                        this catalogue replaces.
+                      {% endcomment %}
                       {% if card.cohort.registration_campaign and not card.cohort.is_enrolled and not card.cohort.is_registered %}
                         <a class="cta cta-primary cta-compact interactive-lift" href="{% url 'registration_campaign' card.cohort.registration_campaign.slug %}">Register</a>
-                      {% elif card.cohort.home_registration_open and not card.cohort.is_enrolled %}
-                        <a class="cta cta-primary cta-compact interactive-lift" href="{{ card.cohort.registration_url }}">Register</a>
                       {% endif %}
                     </div>
                   </article>

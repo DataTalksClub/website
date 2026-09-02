@@ -2,8 +2,9 @@
 """Import real CMP course content into a local development database.
 
 Reads a CMP production export read-only and replaces the seeded placeholder copy on the
-local catalogue's existing legacy cohorts.  Content only: no account, enrollment,
-submission, answer or registration row is read.
+local catalogue's cohorts, and brings across the registration campaign definitions that
+decide what is open.  Content only: no account, enrollment, submission, answer or
+learner registration row is read.
 
     uv run --frozen python scripts/prod/import_cmp_content.py \
         --database .tmp/production-prep-current.sqlite3 \

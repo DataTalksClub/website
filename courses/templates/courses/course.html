@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load seo static custom_filters %}
+{% load breadcrumbs seo static custom_filters %}
 
 {% block document_title %}
   {{ course.title }} — DataTalks.Club
@@ -389,16 +389,9 @@
           primitive: every crumb is an ancestor index and a link.  It stops
           before this cohort, which the heading underneath already names.
         {% endcomment %}
-        <nav class="breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'course_list' %}">Courses</a>
-            </li>
-            <li>
-              <a href="{% url 'course_family' course_family.slug %}">{{ course_family.title }}</a>
-            </li>
-          </ol>
-        </nav>
+        {% url 'course_list' as course_list_url %}
+        {% url 'course_family' course_family.slug as course_family_url %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url %}
         <div class="course-hero-inner">
           <h1 id="course-heading">{{ course.title }}</h1>
           {% if course.home_outcome %}
@@ -414,8 +407,9 @@
             {% if registration_campaign and not has_enrollment and not has_registration %}
               {% url 'registration_campaign' registration_campaign.slug as registration_campaign_url %}
               {% include "core/_button.html" with href=registration_campaign_url label="Register for the cohort" variant="primary" compact=True %}
-            {% elif course.registration_url and not has_enrollment %}
-              {% include "core/_button.html" with href=course.registration_url label="Register" variant="primary" compact=True %}
+            {% elif next_edition_campaign and not has_enrollment %}
+              {% url 'registration_campaign' next_edition_campaign.slug as next_edition_campaign_url %}
+              {% include "core/_button.html" with href=next_edition_campaign_url label="Register for the next edition" variant="primary" compact=True %}
             {% endif %}
             {% if course.github_repo_url %}
               {% include "core/_button.html" with href=course.github_repo_url label="Course materials on GitHub" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
@@ -764,6 +758,13 @@
           <section aria-labelledby="next-heading">
             <h2 id="next-heading" class="sr-only">Registration and deadlines</h2>
             <div class="course-closing">
+              {% comment %}
+                Three registration states, and only the first names this edition.  A
+                campaign that promotes this cohort means it is genuinely open; a closed
+                edition offers the course's next one rather than a call to action for a
+                cohort the reader is standing in the archive of; and a course with no
+                campaign offers nothing rather than a link off this site.
+              {% endcomment %}
               {% if registration_campaign and not has_enrollment and not has_registration %}
                 <div class="panel panel-lavender panel-outlined course-register-panel">
                   <h3>Register for {{ course.title }}</h3>
@@ -771,11 +772,12 @@
                   {% url 'registration_campaign' registration_campaign.slug as registration_campaign_url %}
                   {% include "core/_button.html" with href=registration_campaign_url label="Register for the cohort" variant="primary" compact=True %}
                 </div>
-              {% elif course.registration_url and not has_enrollment %}
+              {% elif next_edition_campaign and not has_enrollment %}
                 <div class="panel panel-lavender panel-outlined course-register-panel">
-                  <h3>Register for {{ course.title }}</h3>
-                  <p>Registration for this course is handled on its own page.</p>
-                  {% include "core/_button.html" with href=course.registration_url label="Register" variant="primary" compact=True %}
+                  <h3>Register for the next {{ course_family.title }} edition</h3>
+                  <p>This edition is closed. Register and we will let you know when the next cohort is announced.</p>
+                  {% url 'registration_campaign' next_edition_campaign.slug as next_edition_campaign_url %}
+                  {% include "core/_button.html" with href=next_edition_campaign_url label="Register for the next edition" variant="primary" compact=True %}
                 </div>
               {% elif has_registration and not has_enrollment %}
                 <div class="panel panel-lavender panel-outlined course-register-panel">

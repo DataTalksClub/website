@@ -23,6 +23,7 @@ from courses.models import (
     Question,
     ReviewCriteria,
 )
+from courses.models.cohort import CourseRegistration, RegistrationCampaign
 from courses.services.cmp_content_import import (
     SKIPPED_COHORTS,
     CmpContentImportError,
@@ -58,6 +59,11 @@ CREATE TABLE courses_project (
 CREATE TABLE courses_reviewcriteria (
     id INTEGER, description TEXT, options TEXT, review_criteria_type TEXT, course_id INTEGER
 );
+CREATE TABLE courses_registrationcampaign (
+    id INTEGER, slug TEXT, title TEXT, edition_label TEXT, is_active INTEGER,
+    marketing_markdown TEXT, meta_description TEXT, hero_image_url TEXT, video_url TEXT,
+    created_at TEXT, updated_at TEXT, current_course_id INTEGER
+);
 CREATE TABLE courses_enrollment (id INTEGER, course_id INTEGER);
 CREATE TABLE courses_submission (id INTEGER, homework_id INTEGER);
 CREATE TABLE courses_projectsubmission (id INTEGER, project_id INTEGER);
@@ -66,9 +72,33 @@ CREATE TABLE courses_projectsubmission (id INTEGER, project_id INTEGER);
 _DUE = "2026-01-15 12:00:00+00"
 
 
-def _build_source(path: Path, *, cohort_slugs: tuple[str, ...]) -> None:
+def _build_source(
+    path: Path,
+    *,
+    cohort_slugs: tuple[str, ...],
+    campaigns: tuple[tuple[str, str], ...] = (),
+) -> None:
     connection = sqlite3.connect(path)
     connection.executescript(_SCHEMA)
+    positions = {slug: index for index, slug in enumerate(cohort_slugs, start=1)}
+    for index, (campaign_slug, promoted) in enumerate(campaigns, start=1):
+        connection.execute(
+            "INSERT INTO courses_registrationcampaign VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                index,
+                campaign_slug,
+                f"Campaign {campaign_slug}",
+                "2026 cohort",
+                1,
+                f"Register for {campaign_slug}.",
+                f"Meta for {campaign_slug}.",
+                "",
+                "",
+                "2026-07-01 00:00:00+00",
+                "2026-07-01 00:00:00+00",
+                positions.get(promoted),
+            ),
+        )
     for index, slug in enumerate(cohort_slugs, start=1):
         connection.execute(
             "INSERT INTO courses_course VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -385,3 +415,130 @@ class CmpContentImportTests(TestCase):
 
         self.assertEqual(str(raised.exception), "source-unreadable")
         self.assertNotIn(str(missing), str(raised.exception))
+
+
+class CmpReviewedCohortAdoptionTests(CmpContentImportTests):
+    """A cohort CMP publishes and the local catalogue lacks, under a reviewed identity."""
+
+    def test_creates_a_missing_cohort_under_its_reviewed_family_and_year(self) -> None:
+        family = Course.objects.create(slug="sma-zoomcamp", title="Stock Markets Zoomcamp")
+        _build_source(self.source, cohort_slugs=("sma-zoomcamp-2026",))
+
+        result = import_cmp_course_content(self.source)
+
+        cohort = Cohort.objects.get(slug="sma-zoomcamp-2026")
+        self.assertEqual(cohort.course, family)
+        self.assertEqual((cohort.year, cohort.identifier), (2026, "2026"))
+        self.assertEqual(cohort.title, "Title sma-zoomcamp-2026")
+        self.assertEqual(result.created_cohorts, ("sma-zoomcamp-2026",))
+        self.assertEqual(result.summary()["cohorts_imported"], 1)
+        self.assertTrue(Homework.objects.filter(course=cohort).exists())
+
+    def test_adoption_replays_without_creating_a_second_cohort(self) -> None:
+        Course.objects.create(slug="sma-zoomcamp", title="Stock Markets Zoomcamp")
+        _build_source(self.source, cohort_slugs=("sma-zoomcamp-2026",))
+
+        import_cmp_course_content(self.source)
+        second = import_cmp_course_content(self.source)
+
+        self.assertEqual(Cohort.objects.filter(slug="sma-zoomcamp-2026").count(), 1)
+        self.assertEqual(second.created_cohorts, ())
+
+    def test_never_mints_a_family_to_adopt_a_cohort(self) -> None:
+        _build_source(self.source, cohort_slugs=("sma-zoomcamp-2026",))
+
+        result = import_cmp_course_content(self.source)
+
+        self.assertEqual(result.skipped_not_in_local_catalogue, ("sma-zoomcamp-2026",))
+        self.assertFalse(Course.objects.exists())
+        self.assertFalse(Cohort.objects.exists())
+
+    def test_never_adopts_a_slug_the_reviewers_have_not_ruled_on(self) -> None:
+        Course.objects.create(slug="unreviewed", title="Unreviewed")
+        _build_source(self.source, cohort_slugs=("unreviewed-2026",))
+
+        result = import_cmp_course_content(self.source)
+
+        self.assertEqual(result.skipped_not_in_local_catalogue, ("unreviewed-2026",))
+        self.assertFalse(Cohort.objects.exists())
+
+
+class CmpRegistrationCampaignImportTests(CmpContentImportTests):
+    """Campaign definitions arrive; the learner rows that reference them never do."""
+
+    def test_imports_the_campaign_definition_and_links_the_cohort_it_promotes(self) -> None:
+        cohort = self._cohort("de-zoomcamp-2026")
+        _build_source(
+            self.source,
+            cohort_slugs=("de-zoomcamp-2026",),
+            campaigns=(("de-zoomcamp", "de-zoomcamp-2026"),),
+        )
+
+        result = import_cmp_course_content(self.source)
+
+        campaign = RegistrationCampaign.objects.get(slug="de-zoomcamp")
+        self.assertEqual(campaign.current_course, cohort)
+        self.assertEqual(campaign.title, "Campaign de-zoomcamp")
+        self.assertEqual(campaign.edition_label, "2026 cohort")
+        self.assertTrue(campaign.is_active)
+        self.assertEqual(campaign.marketing_markdown, "Register for de-zoomcamp.")
+        summary = result.summary()
+        self.assertEqual(summary["campaigns_written"], 1)
+        self.assertEqual(summary["campaigns_created"], 1)
+        self.assertEqual(summary["campaigns"], [
+            {"slug": "de-zoomcamp", "created": True, "promotes": "de-zoomcamp-2026"},
+        ])
+
+    def test_a_campaign_promoting_no_cohort_arrives_unlinked_rather_than_refused(self) -> None:
+        self._cohort("de-zoomcamp-2026")
+        _build_source(
+            self.source,
+            cohort_slugs=("de-zoomcamp-2026",),
+            campaigns=(("mlops-zoomcamp", ""),),
+        )
+
+        result = import_cmp_course_content(self.source)
+
+        campaign = RegistrationCampaign.objects.get(slug="mlops-zoomcamp")
+        self.assertIsNone(campaign.current_course)
+        self.assertEqual(result.campaigns_without_a_local_cohort, ())
+
+    def test_reports_a_campaign_whose_cohort_this_database_does_not_hold(self) -> None:
+        _build_source(
+            self.source,
+            cohort_slugs=("ai-hero-2026",),
+            campaigns=(("ai-hero", "ai-hero-2026"),),
+        )
+
+        result = import_cmp_course_content(self.source)
+
+        self.assertEqual(result.campaigns_without_a_local_cohort, ("ai-hero",))
+        self.assertIsNone(RegistrationCampaign.objects.get(slug="ai-hero").current_course)
+
+    def test_running_twice_writes_no_second_campaign(self) -> None:
+        self._cohort("de-zoomcamp-2026")
+        _build_source(
+            self.source,
+            cohort_slugs=("de-zoomcamp-2026",),
+            campaigns=(("de-zoomcamp", "de-zoomcamp-2026"),),
+        )
+
+        import_cmp_course_content(self.source)
+        before = RegistrationCampaign.objects.get(slug="de-zoomcamp").updated_at
+        second = import_cmp_course_content(self.source)
+
+        self.assertEqual(RegistrationCampaign.objects.count(), 1)
+        self.assertEqual(second.summary()["campaigns_created"], 0)
+        self.assertEqual(RegistrationCampaign.objects.get(slug="de-zoomcamp").updated_at, before)
+
+    def test_never_reads_or_writes_a_learner_registration(self) -> None:
+        self._cohort("de-zoomcamp-2026")
+        _build_source(
+            self.source,
+            cohort_slugs=("de-zoomcamp-2026",),
+            campaigns=(("de-zoomcamp", "de-zoomcamp-2026"),),
+        )
+
+        import_cmp_course_content(self.source)
+
+        self.assertEqual(CourseRegistration.objects.count(), 0)

@@ -1,10 +1,10 @@
 {% extends "core/content_page.html" %}
-{% load static %}
+{% load breadcrumbs static %}
 
 {% block document_title %}{{ course_family.title }} — DataTalks.Club{% endblock %}
 
 {% block metadata %}
-    <meta name="description" content="{{ course_family.description|striptags|truncatechars:180 }}">
+    <meta name="description" content="{{ family_lede|striptags|truncatechars:180 }}">
 {% endblock %}
 
 {% block page_styles %}
@@ -26,6 +26,13 @@
       .family-hero h1 {
         font-size: clamp(2rem, 5vw, 3.4rem);
         max-width: 44rem;
+      }
+
+      .family-hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.35rem;
       }
 
       .family-lede {
@@ -123,16 +130,31 @@
 {% block header_attributes %}aria-labelledby="family-heading"{% endblock %}
 
 {% block page_header %}
-        <nav class="breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li><a href="{% url 'course_list' %}">Courses</a></li>
-            <li aria-current="page">{{ course_family.title }}</li>
-          </ol>
-        </nav>
+        {% comment %}
+          The trail lists ancestors only; the h1 underneath says where you are.  A
+          trailing self-crumb repeated the family title a third time on this page.
+        {% endcomment %}
+        {% url 'course_list' as course_list_url %}
+        {% breadcrumbs "Courses" course_list_url %}
         <div class="family-hero-inner">
           <h1 id="family-heading">{{ course_family.title }}</h1>
-          {% if course_family.description %}
-            <div class="family-lede">{{ course_family.description }}</div>
+          {% if family_lede %}
+            <div class="family-lede">{{ family_lede }}</div>
+          {% endif %}
+          {% comment %}
+            Registration for the course, not for one of its editions: an open edition is
+            named because naming it is honest, a course whose editions have all closed
+            offers the next one, and a course with no campaign offers nothing.
+          {% endcomment %}
+          {% if family_registration %}
+            <div class="family-hero-actions">
+              {% url 'registration_campaign' family_registration.campaign.slug as family_registration_url %}
+              {% if family_registration.cohort %}
+                {% include "core/_button.html" with href=family_registration_url label="Register for the "|add:family_registration.cohort.identifier|add:" cohort" variant="primary" compact=True %}
+              {% else %}
+                {% include "core/_button.html" with href=family_registration_url label="Register for the next edition" variant="primary" compact=True %}
+              {% endif %}
+            </div>
           {% endif %}
         </div>
 {% endblock %}

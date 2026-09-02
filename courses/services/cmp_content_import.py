@@ -8,13 +8,19 @@ CMP production export.
 
 Scope, deliberately narrow:
 
-* **Content only.**  Courses, homework, questions, projects and review criteria.  No
-  account, enrollment, submission, answer, review or registration row is read, so no
-  personal data can reach the local database through this path at all.
-* **Existing cohorts only.**  A cohort is matched by slug against rows the local database
-  already has.  This service never mints a course family, chooses a year, or publishes a
-  URL; deriving cohort identity a second way is what split the AI Dev Tools family and
-  needed migration ``0052`` to repair.
+* **Content only.**  Courses, homework, questions, projects, review criteria and
+  registration *campaigns*.  No account, enrollment, submission, answer, review or
+  learner registration row is read, so no personal data can reach the local database
+  through this path at all.  A ``RegistrationCampaign`` is the marketing definition of an
+  open registration -- its slug, copy, dates and the cohort it promotes.  The learner
+  rows that hang off it live in ``courses_courseregistration`` and are never touched.
+* **Reviewed cohort identity only.**  A cohort is matched by slug against the rows the
+  local database already has.  When the local catalogue is missing a cohort whose slug the
+  reviewed ``COHORT_FAMILY_IDENTITIES`` mapping already names, and whose family row
+  already exists, the cohort is created under that reviewed identity.  This service still
+  never mints a course *family*, invents a year, or derives a slug; deriving cohort
+  identity a second way is what split the AI Dev Tools family and needed migration
+  ``0052`` to repair.
 * **CMP owns homework identity.**  A homework's slug is whatever CMP says it is, copied
   verbatim, including on the modules-format cohorts whose repositories declare a
   different one.  Nothing is derived, mapped or rewritten.
@@ -43,8 +49,10 @@ from django.db import transaction
 
 from courses.course_family_catalog import COHORT_FAMILY_IDENTITIES
 from courses.models import Cohort, Homework, Module, Project, Question, ReviewCriteria
+from courses.models.cohort import Course, RegistrationCampaign
 
 __all__ = [
+    "CampaignReport",
     "CmpContentImportError",
     "CmpContentImportResult",
     "SKIPPED_COHORTS",
@@ -59,13 +67,16 @@ class CmpContentImportError(RuntimeError):
 # Cohorts the owner has decided not to publish yet.  They are listed by name with the
 # reason attached, rather than left to fall through an unmatched branch: a cohort that
 # vanishes because no rule matched is indistinguishable from a bug, while a cohort on
-# this list is a decision someone can revisit.  Four of the six need only an entry in
+# this list is a decision someone can revisit.  Three of the five need only an entry in
 # ``COHORT_FAMILY_IDENTITIES`` to return.
+#
+# ``sma-zoomcamp-2026`` used to be here.  It is visible and active in CMP and its family
+# ``sma-zoomcamp`` is already reviewed, so the only thing it ever needed was the identity
+# entry it now has; deferring it left the local catalogue one edition short of CMP.
 SKIPPED_COHORTS: Mapping[str, str] = {
     "ai-bootcamp-2025": "owner deferred; needs a reviewed family, title and publication state",
     "ai-hero-2025": "owner deferred; needs a reviewed family, title and publication state",
     "ai-hero-2026": "owner deferred; needs a reviewed family, title and publication state",
-    "sma-zoomcamp-2026": "owner deferred; needs a reviewed family identity entry",
     "ai-buildcamp-2": (
         "owner deferred; '2' is an edition number, not a year, and the family+year model "
         "cannot express it. Needs design, not a mapping entry"
@@ -132,6 +143,17 @@ _PROJECT_FIELDS = (
     "instructions_url",
 )
 _CRITERIA_FIELDS = ("description", "options", "review_criteria_type")
+# A campaign row is editorial: what is open, under which slug, with which copy.  The
+# learner rows that reference it are personal data and are never read.
+_CAMPAIGN_FIELDS = (
+    "title",
+    "edition_label",
+    "is_active",
+    "marketing_markdown",
+    "meta_description",
+    "hero_image_url",
+    "video_url",
+)
 
 _BOOLEAN_FIELDS = frozenset(
     {
@@ -139,6 +161,7 @@ _BOOLEAN_FIELDS = frozenset(
         "finished",
         "homework_problems_comments_field",
         "visible",
+        "is_active",
         "homework_url_field",
         "time_spent_lectures_field",
         "time_spent_homework_field",
@@ -149,6 +172,19 @@ _BOOLEAN_FIELDS = frozenset(
     }
 )
 _DATE_FIELDS = frozenset({"start_date", "end_date"})
+# Text columns CMP may leave NULL that this schema declares ``blank=True`` and NOT NULL.
+_NULLABLE_TEXT_FIELDS = frozenset(
+    {
+        "title",
+        "description",
+        "state",
+        "edition_label",
+        "marketing_markdown",
+        "meta_description",
+        "hero_image_url",
+        "video_url",
+    }
+)
 _DATETIME_FIELDS = frozenset({"due_date", "submission_due_date", "peer_review_due_date"})
 
 
@@ -169,8 +205,20 @@ class CohortReport:
 
 
 @dataclass(frozen=True, slots=True)
+class CampaignReport:
+    """What one registration campaign contributed. Definition only, never a learner."""
+
+    campaign_slug: str
+    created: bool
+    promoted_cohort: str = ""
+
+
+@dataclass(frozen=True, slots=True)
 class CmpContentImportResult:
     imported: tuple[CohortReport, ...] = ()
+    created_cohorts: tuple[str, ...] = ()
+    campaigns: tuple[CampaignReport, ...] = ()
+    campaigns_without_a_local_cohort: tuple[str, ...] = ()
     skipped_by_owner: tuple[tuple[str, str], ...] = ()
     skipped_not_in_local_catalogue: tuple[str, ...] = ()
     skipped_fixture: tuple[str, ...] = ()
@@ -179,6 +227,18 @@ class CmpContentImportResult:
     def summary(self) -> dict[str, Any]:
         return {
             "cohorts_imported": len(self.imported),
+            "cohorts_created": list(self.created_cohorts),
+            "campaigns_written": len(self.campaigns),
+            "campaigns_created": sum(1 for row in self.campaigns if row.created),
+            "campaigns": [
+                {
+                    "slug": row.campaign_slug,
+                    "created": row.created,
+                    "promotes": row.promoted_cohort,
+                }
+                for row in self.campaigns
+            ],
+            "campaigns_without_a_local_cohort": list(self.campaigns_without_a_local_cohort),
             "homework_written": sum(row.homework_written for row in self.imported),
             "homework_removed": sum(row.homework_removed for row in self.imported),
             "questions_written": sum(row.questions_written for row in self.imported),
@@ -243,9 +303,10 @@ def _assert_content_only(connection: sqlite3.Connection) -> None:
     """
 
     reads = {"courses_course", "courses_homework", "courses_question"}
-    reads |= {"courses_project", "courses_reviewcriteria"}
+    reads |= {"courses_project", "courses_reviewcriteria", "courses_registrationcampaign"}
     personal = {
         "accounts_customuser",
+        "accounts_token",
         "account_emailaddress",
         "courses_enrollment",
         "courses_submission",
@@ -256,6 +317,7 @@ def _assert_content_only(connection: sqlite3.Connection) -> None:
         "courses_courseregistration",
         "django_session",
         "socialaccount_socialaccount",
+        "socialaccount_socialapp",
     }
     if reads & personal:
         _refuse("content-boundary-violated")
@@ -302,7 +364,7 @@ def _coerce(name: str, value: Any) -> Any:
         return _date(value)
     if name in _DATETIME_FIELDS:
         return _datetime(value)
-    if value is None and name in {"title", "description", "state"}:
+    if value is None and name in _NULLABLE_TEXT_FIELDS:
         return ""
     return value
 
@@ -336,6 +398,7 @@ def import_cmp_course_content(
         local = {cohort.slug: cohort for cohort in Cohort.objects.select_related("course")}
 
         imported: list[CohortReport] = []
+        created: list[str] = []
         by_owner: list[tuple[str, str]] = []
         missing: list[str] = []
         fixture: list[str] = []
@@ -355,9 +418,13 @@ def import_cmp_course_content(
                 continue
             cohort = local.get(slug)
             if cohort is None:
-                missing.append(slug)
-                dependent[slug] = _dependent_row_total(connection, row["id"])
-                continue
+                cohort = _adopt_reviewed_cohort(slug, row)
+                if cohort is None:
+                    missing.append(slug)
+                    dependent[slug] = _dependent_row_total(connection, row["id"])
+                    continue
+                local[slug] = cohort
+                created.append(slug)
             if slug in COHORT_FAMILY_IDENTITIES:
                 family_slug, _year = COHORT_FAMILY_IDENTITIES[slug]
                 if cohort.course.slug != family_slug:
@@ -365,8 +432,15 @@ def import_cmp_course_content(
             with transaction.atomic():
                 imported.append(_import_cohort(connection, row, cohort))
 
+        campaigns, unlinked = _import_registration_campaigns(
+            connection, source_cohorts, local, cohort_slugs
+        )
+
         return CmpContentImportResult(
             imported=tuple(imported),
+            created_cohorts=tuple(created),
+            campaigns=campaigns,
+            campaigns_without_a_local_cohort=unlinked,
             skipped_by_owner=tuple(by_owner),
             skipped_not_in_local_catalogue=tuple(missing),
             skipped_fixture=tuple(fixture),
@@ -374,6 +448,81 @@ def import_cmp_course_content(
         )
     finally:
         connection.close()
+
+
+def _adopt_reviewed_cohort(slug: str, row: Any) -> Cohort | None:
+    """Create a local cohort CMP publishes and the local catalogue is missing.
+
+    Only a slug the reviewed ``COHORT_FAMILY_IDENTITIES`` mapping already names can be
+    adopted, and only under a family row that already exists.  Nothing is derived: the
+    family and the year both come from the reviewed mapping, so this cannot mint the
+    second family for one course that migration ``0052`` had to repair.  A slug the
+    reviewers have not ruled on stays missing and is reported.
+    """
+
+    identity = COHORT_FAMILY_IDENTITIES.get(slug)
+    if identity is None:
+        return None
+    family_slug, year = identity
+    family = Course.objects.filter(slug=family_slug).first()
+    if family is None:
+        return None
+    return Cohort.objects.create(
+        course=family,
+        slug=slug,
+        identifier=str(year),
+        year=year,
+        curriculum_format=Cohort.CurriculumFormat.LEGACY,
+        **_values(row, _COHORT_FIELDS),
+    )
+
+
+def _import_registration_campaigns(
+    connection: sqlite3.Connection,
+    source_cohorts: Sequence[Any],
+    local: Mapping[str, Cohort],
+    cohort_slugs: Sequence[str] | None = None,
+) -> tuple[tuple[CampaignReport, ...], tuple[str, ...]]:
+    """Copy CMP's registration campaign *definitions*, keyed by slug.
+
+    A campaign says what is open, under which public slug, with which copy, and which
+    cohort it promotes.  The learners who registered through it are a different table and
+    are never read.  ``current_course`` is resolved through the local catalogue, so a
+    campaign whose cohort this database does not hold arrives unlinked and is reported
+    rather than silently pointing at nothing.
+    """
+
+    slug_by_source_id = {row["id"]: str(row["slug"]) for row in source_cohorts}
+    rows = _rows(connection, "SELECT * FROM courses_registrationcampaign ORDER BY slug")
+    existing = {campaign.slug: campaign for campaign in RegistrationCampaign.objects.all()}
+
+    reports: list[CampaignReport] = []
+    unlinked: list[str] = []
+    for source in rows:
+        slug = str(source["slug"])
+        promoted_slug = slug_by_source_id.get(source["current_course_id"], "")
+        if cohort_slugs is not None and promoted_slug not in cohort_slugs:
+            continue
+        cohort = local.get(promoted_slug) if promoted_slug else None
+        if promoted_slug and cohort is None:
+            unlinked.append(slug)
+        values = {**_values(source, _CAMPAIGN_FIELDS), "current_course": cohort}
+        campaign = existing.get(slug)
+        with transaction.atomic():
+            if campaign is None:
+                campaign = RegistrationCampaign.objects.create(slug=slug, **values)
+                created = True
+            else:
+                _apply(campaign, values)
+                created = False
+        reports.append(
+            CampaignReport(
+                campaign_slug=slug,
+                created=created,
+                promoted_cohort=cohort.slug if cohort is not None else "",
+            )
+        )
+    return tuple(reports), tuple(unlinked)
 
 
 def _dependent_row_total(connection: sqlite3.Connection, course_id: Any) -> int:

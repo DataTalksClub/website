@@ -51,6 +51,7 @@ COHORT_FAMILY_IDENTITIES: dict[str, tuple[str, int]] = {
     "mlops-zoomcamp-2025": ("mlops-zoomcamp", 2025),
     "sma-zoomcamp-2024": ("sma-zoomcamp", 2024),
     "sma-zoomcamp-2025": ("sma-zoomcamp", 2025),
+    "sma-zoomcamp-2026": ("sma-zoomcamp", 2026),
     "ai-dev-tools-2025": ("ai-dev-tools", 2025),
 }
 
