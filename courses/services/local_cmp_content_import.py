@@ -5,19 +5,21 @@ and leaves learner tables empty.  This service applies that dataset to the
 already-migrated local SQLite database that ``scripts/prepare_local_data.py``
 builds, which ``make review-data`` never writes.
 
-It also applies two local-only cuts the review snapshot itself does not:
+It also applies one local-only cut the review snapshot itself does not: the
+upstream fixture rows ``fake-course`` and ``fake-course-2`` are dropped.
 
-* drop the upstream fixture rows ``fake-course`` and ``fake-course-2``;
-* rewrite ``hwN`` homework slugs on the three 2026 module cohorts to
-  ``homework-0N`` so ``prepare_local_course_modules`` can adopt them by slug
-  without replacing their questions.
+Homework slugs are copied verbatim.  A CMP slug is data, not something to derive:
+deriving one identity two different ways is what split the AI Dev Tools course
+family and needed migration ``0052`` to repair.  Where a repository-authored
+module must bind to a CMP homework whose slug differs, declare it in the
+``homework_slug_overrides`` manifest hook that ``local_course_modules`` already
+validates, so the pairing is a table someone can read rather than a transform.
 """
 
 from __future__ import annotations
 
 import json
 import os
-import re
 import shutil
 import tempfile
 from collections.abc import Mapping
@@ -27,7 +29,6 @@ from typing import Any, NoReturn
 
 from django.db import connections
 
-from courses.services.local_course_modules import TARGET_COHORTS
 from courses.services.local_course_seed import LocalCourseSeedError, assert_local_database
 from review_import.manifest import ALLOWLIST, COPY_ORDER
 from review_import.workflow import (
@@ -47,10 +48,6 @@ from review_import.workflow import (
 )
 
 FORBIDDEN_COURSE_SLUGS = frozenset({"fake-course", "fake-course-2"})
-MODULE_HOMEWORK_SLUG = re.compile(r"^hw(\d+)$")
-MODULE_COHORT_SLUGS = frozenset(
-    f"{family}-{year}" for family, year in TARGET_COHORTS.items()
-)
 
 
 class LocalCmpContentImportError(RuntimeError):
@@ -63,7 +60,6 @@ class LocalCmpContentImportResult:
     relationship_counts: Mapping[str, int]
     skipped_empty_unknown_tables: tuple[str, ...]
     excluded_fixture_courses: tuple[str, ...]
-    remapped_homework_slugs: int
     logical_checksum: str
 
     def summary(self) -> dict[str, Any]:
@@ -73,7 +69,6 @@ class LocalCmpContentImportResult:
             "relationship_counts": dict(self.relationship_counts),
             "skipped_empty_unknown_tables": list(self.skipped_empty_unknown_tables),
             "excluded_fixture_courses": list(self.excluded_fixture_courses),
-            "remapped_homework_slugs": self.remapped_homework_slugs,
             "logical_checksum": self.logical_checksum,
         }
 
@@ -132,9 +127,7 @@ def exclude_fixture_courses(dataset: AllowedDataset) -> tuple[AllowedDataset, tu
     for table in COPY_ORDER:
         table_rows = dataset.rows[table]
         if table == "courses_course":
-            rows[table] = [
-                row for row in table_rows if row[course_id_index] in kept_course_ids
-            ]
+            rows[table] = [row for row in table_rows if row[course_id_index] in kept_course_ids]
             continue
         if "course_id" in ALLOWLIST[table]:
             index = _column_index(table, "course_id")
@@ -197,49 +190,6 @@ def exclude_fixture_courses(dataset: AllowedDataset) -> tuple[AllowedDataset, tu
     return _rebuild_dataset(rows), excluded
 
 
-def align_module_homework_slugs(dataset: AllowedDataset) -> tuple[AllowedDataset, int]:
-    """Map CMP ``hwN`` slugs onto the module-curriculum ``homework-0N`` slugs."""
-
-    course_id_index = _column_index("courses_course", "id")
-    course_slug_index = _column_index("courses_course", "slug")
-    homework_course_index = _column_index("courses_homework", "course_id")
-    homework_slug_index = _column_index("courses_homework", "slug")
-    module_course_ids = {
-        row[course_id_index]
-        for row in dataset.rows["courses_course"]
-        if row[course_slug_index] in MODULE_COHORT_SLUGS
-    }
-    if not module_course_ids:
-        return dataset, 0
-
-    remapped = 0
-    rewritten: list[tuple[Any, ...]] = []
-    occupied = {
-        (row[homework_course_index], row[homework_slug_index])
-        for row in dataset.rows["courses_homework"]
-    }
-    for row in dataset.rows["courses_homework"]:
-        slug = str(row[homework_slug_index])
-        match = MODULE_HOMEWORK_SLUG.fullmatch(slug)
-        if row[homework_course_index] not in module_course_ids or match is None:
-            rewritten.append(row)
-            continue
-        aligned = f"homework-{int(match.group(1)):02d}"
-        identity = (row[homework_course_index], aligned)
-        if aligned == slug or identity in occupied:
-            rewritten.append(row)
-            continue
-        occupied.discard((row[homework_course_index], slug))
-        occupied.add(identity)
-        rewritten.append(_replace_column(row, "courses_homework", "slug", aligned))
-        remapped += 1
-    if not remapped:
-        return dataset, 0
-    rows = dict(dataset.rows)
-    rows["courses_homework"] = rewritten
-    return _rebuild_dataset(rows), remapped
-
-
 def _copy_source(source_db: Path) -> tuple[Path, str]:
     try:
         resolved = source_db.expanduser().resolve(strict=True)
@@ -280,7 +230,6 @@ def import_local_cmp_content(source_db: Path, target_db: Path) -> LocalCmpConten
             if existing:
                 _refuse("target-courses-not-empty")
             dataset, excluded = exclude_fixture_courses(dataset)
-            dataset, remapped = align_module_homework_slugs(dataset)
             _insert_dataset(target, dataset)
             _assert_sqlite_integrity(target)
         return LocalCmpContentImportResult(
@@ -288,7 +237,6 @@ def import_local_cmp_content(source_db: Path, target_db: Path) -> LocalCmpConten
             relationship_counts=dataset.relationships,
             skipped_empty_unknown_tables=skipped,
             excluded_fixture_courses=excluded,
-            remapped_homework_slugs=remapped,
             logical_checksum=dataset.logical_checksum,
         )
     except LocalCmpContentImportError:
@@ -309,7 +257,6 @@ __all__ = [
     "FORBIDDEN_COURSE_SLUGS",
     "LocalCmpContentImportError",
     "LocalCmpContentImportResult",
-    "align_module_homework_slugs",
     "exclude_fixture_courses",
     "import_local_cmp_content",
 ]

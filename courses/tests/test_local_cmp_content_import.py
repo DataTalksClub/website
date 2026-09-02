@@ -3,7 +3,6 @@ from __future__ import annotations
 from unittest import TestCase
 
 from courses.services.local_cmp_content_import import (
-    align_module_homework_slugs,
     exclude_fixture_courses,
 )
 from review_import.manifest import ALLOWLIST, COPY_ORDER
@@ -115,30 +114,3 @@ class ExcludeFixtureCourseTests(TestCase):
             zip(ALLOWLIST["courses_question"], filtered.rows["courses_question"][0], strict=True)
         )
         self.assertEqual(question["text"], "Real question")
-
-
-class AlignModuleHomeworkSlugTests(TestCase):
-    def test_rewrites_hw_slugs_on_module_cohorts_only(self) -> None:
-        dataset = _dataset(
-            {
-                "courses_course": [
-                    _course(course_id=1, slug="llm-zoomcamp-2026"),
-                    _course(course_id=2, slug="llm-zoomcamp-2025"),
-                ],
-                "courses_homework": [
-                    _homework(homework_id=10, course_id=1, slug="hw1"),
-                    _homework(homework_id=11, course_id=1, slug="dlt"),
-                    _homework(homework_id=12, course_id=2, slug="hw1"),
-                ],
-            }
-        )
-
-        aligned, remapped = align_module_homework_slugs(dataset)
-
-        homework_slugs = [
-            dict(zip(ALLOWLIST["courses_homework"], row, strict=True))
-            for row in aligned.rows["courses_homework"]
-        ]
-        by_id = {int(row["id"]): str(row["slug"]) for row in homework_slugs}
-        self.assertEqual(remapped, 1)
-        self.assertEqual(by_id, {10: "homework-01", 11: "dlt", 12: "hw1"})
