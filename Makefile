@@ -57,6 +57,12 @@ COMPATIBILITY_PYTHON = \
 	scripts/build_legacy_manifest.py \
 	scripts/build_pinned_legacy_sources.py
 
+# Entry points for imports that read real production data.  ``scripts/**`` is excluded
+# from the default ruff and mypy roots, so this package opts back in explicitly.
+PRODUCTION_IMPORT_PYTHON = \
+	scripts/prod \
+	courses/services/cmp_content_import.py
+
 setup:
 	uv sync --locked
 	mkdir -p .tmp/screenshots
@@ -66,13 +72,13 @@ lock-check:
 	uv lock --check
 
 lint:
-	uv run ruff check . $(ADOPTION_INTEGRATION_PYTHON) $(COMPATIBILITY_PYTHON)
+	uv run ruff check . $(ADOPTION_INTEGRATION_PYTHON) $(COMPATIBILITY_PYTHON) $(PRODUCTION_IMPORT_PYTHON)
 
 format:
-	uv run ruff format . $(ADOPTION_INTEGRATION_PYTHON) $(COMPATIBILITY_PYTHON)
+	uv run ruff format . $(ADOPTION_INTEGRATION_PYTHON) $(COMPATIBILITY_PYTHON) $(PRODUCTION_IMPORT_PYTHON)
 
 format-check:
-	uv run ruff format --check . $(ADOPTION_INTEGRATION_PYTHON) $(COMPATIBILITY_PYTHON)
+	uv run ruff format --check . $(ADOPTION_INTEGRATION_PYTHON) $(COMPATIBILITY_PYTHON) $(PRODUCTION_IMPORT_PYTHON)
 
 typecheck:
 	uv run mypy manage.py website core content content_sync events email_app studio jobs deploy ci \
@@ -85,7 +91,8 @@ typecheck:
 		scripts/render_course_platform_inventory.py \
 	scripts/verify_course_platform_adoption.py \
 	scripts/sync_course_platform.py \
-	scripts/prepare_course_platform_source.py
+	scripts/prepare_course_platform_source.py \
+	$(PRODUCTION_IMPORT_PYTHON)
 
 migrations-check:
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py makemigrations --check --dry-run
