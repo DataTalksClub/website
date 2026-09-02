@@ -102,6 +102,18 @@
         text-underline-offset: 0.2em;
       }
 
+      .rail-signin {
+        font-size: 0.85rem;
+      }
+
+      /* 32px clears the 24px WCAG 2.2 target floor for an inline link, the
+         same allowance a breadcrumb crumb takes. */
+      .rail-signin .band-link {
+        align-items: center;
+        display: inline-flex;
+        min-height: 2rem;
+      }
+
       .sidebar-homework {
         border-top: 2px dashed var(--line-soft);
         display: grid;

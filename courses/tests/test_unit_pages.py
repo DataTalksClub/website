@@ -370,6 +370,27 @@ class PublicUnitPageTests(TestCase):
                 response = self.client.post(read_state_url, {"is_read": "1", "next": hostile})
                 self.assertRedirects(response, module_url, fetch_redirect_response=False)
 
+    def test_the_rail_states_sign_in_once_and_returns_to_this_lesson(self):
+        """The rail said sign-in twice; the masthead already says it globally.
+
+        What survives is the one contextual line, because it explains the read
+        marks that are visibly absent here -- and its `next` used to be the
+        module page, so signing in from a lesson dropped the reader back on the
+        index they had already left.
+        """
+
+        unit_url = self.unit_url(self.middle_unit)
+        body = self.client.get(unit_url).content.decode()
+        rail_start = body.index('class="module-sidebar module-rail"')
+        rail = body[rail_start : body.index("</aside>", rail_start)]
+
+        self.assertEqual(rail.count("Sign in"), 1)
+        self.assertIn(f'href="/accounts/login/?next={unit_url}"', rail)
+        self.assertNotIn("Sign in to keep track of what you have read.", rail)
+        # Reading is not gated, so the local prompt is a link, not a button.
+        self.assertIn('class="band-link"', rail)
+        self.assertNotIn("cta-secondary", rail)
+
     def test_final_unit_links_to_homework_with_a_button(self):
         response = self.client.get(self.unit_url(self.final_unit))
         homework_url = reverse(

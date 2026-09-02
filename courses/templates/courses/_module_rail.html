@@ -4,8 +4,6 @@
     <h2 id="module-navigation-heading">In this module</h2>
     {% if user.is_authenticated %}
       <p class="sidebar-progress">{{ module_rail_read_count }} of {{ module_rail_units|length }} lessons read</p>
-    {% else %}
-      <p class="sidebar-progress">Sign in to keep track of what you have read.</p>
     {% endif %}
 
     {% if module_rail_units %}
@@ -28,8 +26,20 @@
     {% endif %}
 
     {% if not user.is_authenticated %}
-      {% url 'login' as login_url %}
-      {% include "core/_button.html" with href=login_url|add:"?next="|add:module_url label="Sign in to track progress" variant="secondary" compact=True %}
+      {% comment %}
+        One quiet line, not a second sentence at the top of the rail and not a
+        bordered control.  The masthead already offers "Log in" and "Sign up
+        free" on every page; this stays only because it explains something
+        visibly absent here -- the read marks -- and reading itself is not
+        gated, so it does not get the framed treatment the homework page
+        reserves for an action that genuinely requires an account.
+
+        `next` is this page, not the module: signing in from a lesson used to
+        return the reader to the module index they had already left.
+      {% endcomment %}
+      <p class="rail-signin">
+        <a class="band-link" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Sign in to track progress</a>
+      </p>
     {% endif %}
 
     <div class="sidebar-homework">

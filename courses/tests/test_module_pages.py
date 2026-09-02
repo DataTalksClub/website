@@ -86,7 +86,10 @@ class ModulePageTests(TestCase):
         self.assertContains(response, self.module.title)
         self.assertContains(response, self.homework.title)
         self.assertContains(response, "Lessons")
-        self.assertContains(response, "Sign in to keep track of what you have read.")
+        # The rail states sign-in once, as a quiet link, and no longer opens
+        # with a preamble sentence above the list.
+        self.assertNotContains(response, "Sign in to keep track of what you have read.")
+        self.assertContains(response, "Sign in to track progress")
         self.assertContains(response, 'class="module-sidebar module-rail"')
         for unit in self.units:
             self.assertContains(response, unit.title)
