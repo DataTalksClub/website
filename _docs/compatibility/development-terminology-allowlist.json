@@ -180,7 +180,7 @@
     },
     {
       "path": "core/tests/test_deployment_release.py",
-      "sha256": "be7d6084690013d155d5f12aa4969515b405282148d944238b32c1e28ced6c4a",
+      "sha256": "7d8ceff5ec493b95bd45c27678f97b452ceaba43177c11ff784bb7090eed9d6f",
       "class": "legacy_contract_test",
       "reason": "Release tests exercise exact physical task, secret, repository, and tag values.",
       "follow_up": "#94",
@@ -491,6 +491,54 @@
       "reason": "Decision 14 uses \"sandbox\" as ordinary English for a possible future, separately costed AWS network tier, not a reference to this project's former development-environment name.",
       "follow_up": "#94",
       "expected_count": 2
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?:sandbox/(?:website|relay|datamailer)|_sandbox\\.(?:py|sh)|datamailer-sandbox)",
+      "class": "legacy_physical_identifier",
+      "reason": "The migration runbook cites the unrenamed aws-infra Terraform roots (sandbox/website, sandbox/relay, sandbox/datamailer), the Relay smoke/deploy script filenames, and the live datamailer-sandbox SES configuration set by their exact physical names.",
+      "follow_up": "#94; these citations disappear when Phase 7 destroys the roots they name.",
+      "expected_count": 37
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "\"sandbox mode\"",
+      "class": "compatibility_note",
+      "reason": "AWS SES calls its pre-production account posture \"sandbox mode\"; that is vendor terminology for the email quota, not this project's former development-environment name.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![-_])sandbox(?!/(?:website|relay|datamailer))(?! mode\")",
+      "class": "legacy_physical_identifier",
+      "reason": "Every remaining use names the legacy AWS account 817685572750 and the stacks inside it - sandbox Relay, sandbox Datamailer, the sandbox Django website stack, its OIDC claim values and its teardown - which this runbook exists to decommission. The count is the reviewed size of that legacy estate discussion; raising it requires re-reading what was added.",
+      "follow_up": "#94; delete these rules with the runbook once Phase 7 teardown is complete and the runbook is archived.",
+      "expected_count": 83
+    },
+    {
+      "path": "_docs/runbooks/external-model-agents.md",
+      "pattern": "--sandbox read-only",
+      "class": "compatibility_note",
+      "reason": "The external model CLI spells its own isolation flag --sandbox read-only; it is third-party command syntax, not this project's former development-environment name.",
+      "follow_up": "Update with the next reviewed change to the external agent command.",
+      "expected_count": 2
+    },
+    {
+      "path": "_docs/runbooks/public-media-objects.md",
+      "pattern": "(?:Sandbox account|sandbox credentials)",
+      "class": "legacy_physical_identifier",
+      "reason": "The media-object runbook names the legacy AWS account 817685572750 and its credentials as the read-only consumer of the published bucket.",
+      "follow_up": "#94; remove with the cross-account read at Phase 7.5.",
+      "expected_count": 2
+    },
+    {
+      "path": "_docs/runbooks/session-handoff-20260902.md",
+      "pattern": "sandbox backup vault",
+      "class": "legacy_physical_identifier",
+      "reason": "The handoff names an open aws-infra pull request that provisions a backup vault inside the legacy sandbox account.",
+      "follow_up": "#94; remove when the referenced aws-infra pull request lands or closes.",
+      "expected_count": 1
     }
   ]
 }

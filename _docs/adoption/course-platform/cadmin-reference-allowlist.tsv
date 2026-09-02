@@ -16,6 +16,7 @@ _docs/compatibility/legacy-manifest-differences.json	legacy contract provenance	
 _docs/compatibility/legacy-manifest.jsonl	legacy contract provenance	seo	Retain until the corresponding immutable compatibility capture is retired.
 _docs/compatibility/machine-contract-samples.json	legacy contract provenance	seo	Remove legacy samples only after observed traffic and the course-host cutover gate approve removal.
 _docs/compatibility/public-contracts.jsonl	legacy contract provenance	seo	Remove legacy contracts only after observed traffic and the course-host cutover gate approve removal.
+_docs/design/specs/script-inventory.md	tooling analysis provenance	testing	Retain while the script inventory documents the cadmin reference allowlist as a deletion blocker; remove when the analysis is superseded.
 _docs/planning/guideline.md	historical specification	product	Retain until the planning source is superseded and its provenance is archived.
 _docs/planning/wiki/sources/dtc-course-platform.md	historical specification	product	Retain while the CMP planning source remains part of the evidence wiki.
 _docs/specs/02-url-link-seo-compatibility.md	historical specification	seo	Remove legacy route language only after the approved compatibility retirement gate.
