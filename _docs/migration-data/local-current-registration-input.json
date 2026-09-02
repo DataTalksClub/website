@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "mapping_set_revision": 1,
+  "mappings": [
+    {
+      "provider": "luma",
+      "provider_event_identity": "https://luma.com/z25lskik",
+      "canonical_source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "2026-06-02-llm-zoomcamp-2026-pre-course-live-q-a"
+      }
+    },
+    {
+      "provider": "luma",
+      "provider_event_identity": "https://luma.com/yqpx18b5",
+      "canonical_source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "2026-06-08-llm-zoomcamp-2026-course-launch"
+      }
+    },
+    {
+      "provider": "luma",
+      "provider_event_identity": "https://luma.com/a8qa5s2s",
+      "canonical_source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "2026-08-24-ai-dev-tools-zoomcamp-2026-pre-course-live-q-a"
+      }
+    }
+  ]
+}

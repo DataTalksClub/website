@@ -395,6 +395,71 @@ production-prep-local:
 		$(if $(PRODUCTION_PREP_CURRENT_REGISTRATION_INPUT),--current-registration-input "$(PRODUCTION_PREP_CURRENT_REGISTRATION_INPUT)",) \
 		$(if $(PRODUCTION_PREP_FRESH),--fresh,)
 
+# One command that rebuilds the whole local dataset from its sources. See
+# _docs/runbooks/local-course-modules-preparation.md for prerequisites.
+PRODUCTION_PREP_DATASET_ROOT ?= .tmp/production-prep-dataset
+PRODUCTION_PREP_DATASET_DATABASE ?= $(PRODUCTION_PREP_DATASET_ROOT)/dataset.sqlite3
+PRODUCTION_PREP_COURSE_SOURCE_DIR ?= $(PRODUCTION_PREP_DATASET_ROOT)/course-sources
+PRODUCTION_PREP_COURSE_MODULES_MANIFEST ?= $(PRODUCTION_PREP_DATASET_ROOT)/course-modules.json
+PRODUCTION_PREP_DATASET_PORT ?= 8001
+# Set empty to skip activating the reviewed current-event registration aggregates.
+PRODUCTION_PREP_DATASET_REGISTRATION_INPUT ?= \
+	_docs/migration-data/local-current-registration-input.json
+# Where the three course repositories are cloned from. This defaults to the operator's
+# sibling clones and NOT to https://github.com/DataTalksClub, because the 2026 module
+# curricula for llm-zoomcamp and machine-learning-zoomcamp are not published upstream
+# yet: their `course.yaml`/`module.yaml` layout exists only on local `main`. Point this
+# at GitHub once those commits are pushed.
+PRODUCTION_PREP_COURSE_REMOTE ?= $(HOME)/git
+PRODUCTION_PREP_COURSE_REPOSITORIES = \
+	llm-zoomcamp:llm-zoomcamp \
+	ml-zoomcamp:machine-learning-zoomcamp \
+	ai-dev-tools-zoomcamp:ai-dev-tools-zoomcamp
+
+production-prep-course-sources:
+	@set -eu; \
+	mkdir -p "$(PRODUCTION_PREP_COURSE_SOURCE_DIR)"; \
+	for pair in $(PRODUCTION_PREP_COURSE_REPOSITORIES); do \
+		name="$${pair%%:*}"; repository="$${pair##*:}"; \
+		checkout="$(PRODUCTION_PREP_COURSE_SOURCE_DIR)/$$name"; \
+		if test -d "$$checkout/.git"; then \
+			git -C "$$checkout" fetch --quiet origin main; \
+			git -C "$$checkout" checkout --quiet main; \
+			git -C "$$checkout" reset --hard --quiet FETCH_HEAD; \
+			git -C "$$checkout" clean --quiet -fdx; \
+		else \
+			git clone --quiet --branch main \
+				"$(PRODUCTION_PREP_COURSE_REMOTE)/$$repository" "$$checkout"; \
+		fi; \
+		echo "$$name $$(git -C "$$checkout" rev-parse HEAD)"; \
+	done
+
+production-prep-course-modules-manifest: production-prep-course-sources
+	uv run --frozen python scripts/build_course_modules_manifest.py \
+		--checkout-root "$(PRODUCTION_PREP_COURSE_SOURCE_DIR)" \
+		--output "$(PRODUCTION_PREP_COURSE_MODULES_MANIFEST)"
+
+production-prep-dataset: production-prep-course-modules-manifest
+	rm -f "$(PRODUCTION_PREP_DATASET_DATABASE)" \
+		"$(PRODUCTION_PREP_DATASET_DATABASE)-shm" \
+		"$(PRODUCTION_PREP_DATASET_DATABASE)-wal"
+	$(MAKE) production-prep-local \
+		PRODUCTION_PREP_DATABASE="$(PRODUCTION_PREP_DATASET_DATABASE)" \
+		PRODUCTION_PREP_COURSE_MODULES_INPUT="$(PRODUCTION_PREP_COURSE_MODULES_MANIFEST)" \
+		PRODUCTION_PREP_CURRENT_REGISTRATION_INPUT="$(PRODUCTION_PREP_DATASET_REGISTRATION_INPUT)" \
+		PRODUCTION_PREP_FRESH=1
+	$(MAKE) production-prep-dataset-verify
+
+production-prep-dataset-verify:
+	uv run --frozen python scripts/verify_local_dataset.py \
+		--database "$(PRODUCTION_PREP_DATASET_DATABASE)"
+
+run-production-prep-dataset:
+	DTC_ENVIRONMENT=local \
+		DTC_SQLITE_PATH=$(PRODUCTION_PREP_DATASET_DATABASE) \
+		DJANGO_SETTINGS_MODULE=website.settings.local \
+		uv run python manage.py runserver 0.0.0.0:$(PRODUCTION_PREP_DATASET_PORT)
+
 run:
 	uv run python manage.py runserver 0.0.0.0:8000
 
