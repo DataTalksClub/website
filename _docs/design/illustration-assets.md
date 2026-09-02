@@ -7,12 +7,27 @@ must treat decorative artwork as `alt=""`, with `decoding="async"`. Below-the-fo
 artwork normally uses `loading="lazy"`; the homepage's paired light/dark files use
 `loading="eager"` so a theme switch or a mobile scroll cannot expose an empty slot.
 
+## How assets are produced
+
+**`imagegen` produces the finished asset.** Ask it for the exact canvas, a
+transparent outer background, and the dark companion as its own generation pass with
+the matching light file as the reference image. The goal is an output that needs no
+post-processing at all.
+
+**Nothing recolours, filters, or derives a dark asset from a light one.** A dark
+companion that was produced by inverting, tinting, or filtering a light bitmap is
+wrong and must be regenerated, not corrected.
+
+ImageMagick is not part of asset production. Where `magick` still appears below it is
+either a crop of an external source that arrived untrimmed, or a throwaway preview
+that flattens a transparent asset onto a page colour so edges can be inspected — it
+never writes a shipped asset. Prefer generating at the right size and alpha so even
+the crop is unnecessary.
+
 ## Requirements
 
-- ImageMagick, available as either `magick` or `convert`.
 - The repository's `uv` environment.
-- A source PNG (or another format ImageMagick can read), saved under `.tmp/` when
-  it came from an issue or another external source.
+- For an externally supplied source image, a copy saved under `.tmp/`.
 
 ## Prepare the image
 
