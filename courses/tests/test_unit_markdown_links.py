@@ -197,3 +197,83 @@ class UnitMarkdownLinkTests(TestCase):
         response = self.client.get(self.unit_url(self.current))
 
         self.assertContains(response, "../notes.md")
+
+
+class UpstreamRepositoryLinkTests(UnitMarkdownLinkTests):
+    """Targets this site has no page for resolve upstream instead of 404ing.
+
+    The inherited cases run again with a repository configured, which is how
+    they show that a page this site publishes still wins over the source file.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.cohort.github_repo_url = "https://github.com/DataTalksClub/llm-zoomcamp.git"
+        self.cohort.save(update_fields=["github_repo_url"])
+
+    def test_an_unrelated_markdown_file_is_not_mistaken_for_homework(self):
+        self.current.content_markdown = "[Notes](../notes.md)"
+        self.current.save(update_fields=["content_markdown"])
+
+        response = self.client.get(self.unit_url(self.current))
+
+        # Not a homework page -- the upstream file, which is where it is.
+        self.assertContains(
+            response,
+            "https://github.com/DataTalksClub/llm-zoomcamp/blob/main/"
+            "cohorts/2026/01-agentic-rag/notes.md",
+        )
+
+    def rendered(self, markdown):
+        self.current.content_markdown = markdown
+        self.current.save(update_fields=["content_markdown"])
+        return self.client.get(self.unit_url(self.current)).content.decode()
+
+    def test_a_notebook_script_or_dataset_resolves_to_the_upstream_file(self):
+        body = self.rendered(
+            "[Notebook](../code/notebook.ipynb)\n\n"
+            "[Ingest](../../02-vector-search/code/ingest.py)\n\n"
+            "[Slides](../../slides.pdf)"
+        )
+
+        base = "https://github.com/DataTalksClub/llm-zoomcamp/blob/main"
+        self.assertIn(f"{base}/cohorts/2026/01-agentic-rag/code/notebook.ipynb", body)
+        self.assertIn(f"{base}/cohorts/2026/02-vector-search/code/ingest.py", body)
+        self.assertIn(f"{base}/cohorts/2026/slides.pdf", body)
+
+    def test_a_directory_resolves_to_the_upstream_tree(self):
+        body = self.rendered("[The code](../code/)\n\n[This module](../)")
+
+        base = "https://github.com/DataTalksClub/llm-zoomcamp/tree/main"
+        self.assertIn(f"{base}/cohorts/2026/01-agentic-rag/code", body)
+        self.assertIn(f"{base}/cohorts/2026/01-agentic-rag", body)
+
+    def test_a_markdown_file_that_is_not_an_imported_page_resolves_upstream(self):
+        body = self.rendered("[Older lesson](../../../2025/01-intro/elastic-search.md#setup)")
+
+        self.assertIn(
+            "https://github.com/DataTalksClub/llm-zoomcamp/blob/main/"
+            "cohorts/2025/01-intro/elastic-search.md#setup",
+            body,
+        )
+
+    def test_a_page_this_site_publishes_still_wins_over_the_upstream_file(self):
+        body = self.rendered(
+            "[Dataset](04-dataset.md)\n\n[Vector module](../../02-vector-search/README.md)"
+        )
+
+        self.assertIn(self.unit_url(self.previous), body)
+        self.assertNotIn("blob/main/cohorts/2026/01-agentic-rag/lessons/04-dataset.md", body)
+        self.assertNotIn("blob/main/cohorts/2026/02-vector-search/README.md", body)
+
+    def test_a_target_that_climbs_out_of_the_repository_is_left_alone(self):
+        body = self.rendered("[Escape](../../../../../etc/passwd)")
+
+        self.assertIn("../../../../../etc/passwd", body)
+        self.assertNotIn("github.com/DataTalksClub/llm-zoomcamp/blob", body)
+
+    def test_external_and_anchor_targets_are_untouched(self):
+        body = self.rendered("[Site](https://example.com/x.ipynb)\n\n[Section](#later)")
+
+        self.assertIn("https://example.com/x.ipynb", body)
+        self.assertIn('href="#later"', body)
