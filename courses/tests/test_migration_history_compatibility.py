@@ -24,6 +24,9 @@ ROOT = Path(__file__).resolve().parents[2]
 SEED = ROOT / "test_support" / "migration_seeds" / "courses-legacy-history-v1.json"
 LEGACY_TARGET = ("courses", "0041_courseregistrationcountsourcerun_and_more")
 REPAIRED_TARGET = ("courses", "0052_merge_duplicate_course_families")
+# The family repair is the seed's replay target; the leaf moves on with every
+# ordinary product migration that lands after it.
+LEAF_TARGET = ("courses", "0053_unit_lesson_video_and_code_sources")
 FROZEN_AT = datetime(2025, 9, 1, 12, 0, tzinfo=UTC)
 
 
@@ -69,7 +72,8 @@ class CourseMigrationHistoryCompatibilityTests(unittest.TestCase):
         repaired_loader = MigrationLoader(self.connection)
         self.assertIn(("courses", "0001_squashed_0029"), repaired_loader.graph.nodes)
         self.assertNotIn(("courses", "0001_initial"), repaired_loader.graph.nodes)
-        self.assertIn(REPAIRED_TARGET, repaired_loader.graph.leaf_nodes())
+        self.assertIn(REPAIRED_TARGET, repaired_loader.graph.nodes)
+        self.assertIn(LEAF_TARGET, repaired_loader.graph.leaf_nodes())
 
         executor = MigrationExecutor(self.connection)
         executor.migrate([REPAIRED_TARGET])

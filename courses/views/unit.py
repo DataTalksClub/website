@@ -8,7 +8,11 @@ from django.utils.safestring import mark_safe
 
 from courses.models import CurriculumFormat, Unit
 from courses.registration import render_markdown, youtube_embed_url
-from courses.services.unit_assets import rewrite_unit_image_sources, unit_repository
+from courses.services.unit_assets import (
+    rewrite_unit_image_sources,
+    unit_code_links,
+    unit_repository,
+)
 from courses.services.unit_links import rewrite_unit_markdown_links
 from courses.views.module import module_rail_context
 from courses.views.url_utils import get_cohort_or_404
@@ -51,9 +55,6 @@ def _adjacent_units(unit: Unit) -> tuple[Unit | None, Unit | None]:
     return previous_unit, next_unit
 
 
-_VIDEO_LINE_RE = re.compile(
-    r"(?mi)^[ \t]*video:[ \t]*\[[^\]]+\]\((https?://[^)\s]+)\)[ \t]*(?:\n|$)"
-)
 _LEADING_H1_RE = re.compile(r"\A(?:\s*\n)*#[ \t]+([^\n]+?)[ \t]*#*[ \t]*(?:\n|$)")
 
 
@@ -64,24 +65,24 @@ def _same_title(left: str, right: str) -> bool:
     return normalize(left) == normalize(right)
 
 
-def _unit_content(markdown: str, title: str) -> tuple[str, str]:
-    """Return body Markdown and a safe YouTube embed URL for a unit."""
+def _unit_content(markdown: str, title: str) -> str:
+    """Return the unit's body Markdown without its redundant leading heading."""
 
     body = markdown or ""
-    video_match = _VIDEO_LINE_RE.search(body)
-    video_embed_url = ""
-    if video_match:
-        candidate_url = video_match.group(1)
-        candidate_embed_url = youtube_embed_url(candidate_url)
-        if candidate_embed_url.startswith("https://www.youtube.com/embed/"):
-            video_embed_url = candidate_embed_url
-            body = body[: video_match.start()] + body[video_match.end() :]
-
     heading_match = _LEADING_H1_RE.match(body)
     if heading_match and _same_title(heading_match.group(1), title):
         body = body[heading_match.end() :]
 
-    return body.lstrip("\n"), video_embed_url
+    return body.lstrip("\n")
+
+
+def unit_video_embed_url(unit: Unit) -> str:
+    """Return the safe YouTube embed URL for a unit's declared lesson video."""
+
+    embed_url = youtube_embed_url(unit.video_url)
+    if embed_url.startswith("https://www.youtube.com/embed/"):
+        return embed_url
+    return ""
 
 
 def unit_view(
@@ -109,10 +110,7 @@ def unit_view(
     )
     previous_unit, next_unit = _adjacent_units(unit)
     canonical_path = _unit_url(unit)
-    unit_body_markdown, video_embed_url = _unit_content(
-        unit.content_markdown,
-        unit.title,
-    )
+    unit_body_markdown = _unit_content(unit.content_markdown, unit.title)
     unit_body_markdown = rewrite_unit_markdown_links(unit_body_markdown, unit)
     unit_body_markdown = rewrite_unit_image_sources(unit_body_markdown, unit)
     # ``render_markdown`` applies the course allowlist, so the rendered body is
@@ -135,7 +133,8 @@ def unit_view(
             "unit_content_html": rendered_content,
             "previous_unit": previous_unit,
             "next_unit": next_unit,
-            "video_embed_url": video_embed_url,
+            "video_embed_url": unit_video_embed_url(unit),
+            "unit_code_links": unit_code_links(unit),
             "edit_on_github_url": unit_edit_on_github_url(unit),
             "canonical_url": f"https://datatalks.club{canonical_path}",
             **rail_context,

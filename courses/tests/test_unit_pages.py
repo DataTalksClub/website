@@ -122,13 +122,16 @@ class PublicUnitPageTests(TestCase):
         self.assertContains(response, "Evaluation →")
         self.assertNotContains(response, "Continue to homework")
 
-    def test_video_link_is_embedded_and_redundant_markdown_title_is_removed(self):
-        self.first_unit.content_markdown = (
-            "# Introduction\n\n"
-            "Video: [Watch this lesson](https://www.youtube.com/watch?v=abc123)\n\n"
-            "The lesson body."
-        )
-        self.first_unit.save(update_fields=["content_markdown"])
+    def test_declared_lesson_video_is_embedded_and_leading_title_is_removed(self):
+        """The video is a persisted lesson field, not a line fished out of the body.
+
+        The repository declares it in the lesson frontmatter, so it never
+        appears in the Markdown the page renders.
+        """
+
+        self.first_unit.content_markdown = "# Introduction\n\nThe lesson body."
+        self.first_unit.video_url = "https://www.youtube.com/watch?v=abc123&list=PL3"
+        self.first_unit.save(update_fields=["content_markdown", "video_url"])
 
         response = self.client.get(self.unit_url(self.first_unit))
 
@@ -136,8 +139,56 @@ class PublicUnitPageTests(TestCase):
         self.assertContains(response, 'title="Introduction video lesson"')
         self.assertContains(response, 'referrerpolicy="strict-origin-when-cross-origin"')
         self.assertContains(response, "The lesson body.")
-        self.assertNotContains(response, "Watch this lesson")
         self.assertNotContains(response, "<h1>Introduction</h1>", html=True)
+
+    def test_unit_without_a_declared_video_renders_no_player(self):
+        response = self.client.get(self.unit_url(self.first_unit))
+
+        self.assertEqual(response.context["video_embed_url"], "")
+        self.assertNotContains(response, "<iframe")
+
+    def test_non_youtube_video_url_is_never_framed(self):
+        self.first_unit.video_url = "https://videos.example.invalid/watch?v=abc123"
+        self.first_unit.save(update_fields=["video_url"])
+
+        response = self.client.get(self.unit_url(self.first_unit))
+
+        self.assertEqual(response.context["video_embed_url"], "")
+        self.assertNotContains(response, "videos.example.invalid")
+
+    def test_declared_code_files_resolve_to_upstream_repository_links(self):
+        self.first_unit.code_sources = [
+            {
+                "label": "notebook.ipynb",
+                "source_path": "cohorts/2026/01-agentic-rag/code/notebook.ipynb",
+            }
+        ]
+        self.first_unit.save(update_fields=["code_sources"])
+
+        response = self.client.get(self.unit_url(self.first_unit))
+
+        self.assertEqual(
+            [(link.label, link.url) for link in response.context["unit_code_links"]],
+            [
+                (
+                    "notebook.ipynb",
+                    "https://github.com/DataTalksClub/llm-zoomcamp/blob/main/"
+                    "cohorts/2026/01-agentic-rag/code/notebook.ipynb",
+                )
+            ],
+        )
+
+    def test_declared_code_files_are_dropped_without_a_known_repository(self):
+        self.cohort.github_repo_url = ""
+        self.cohort.save(update_fields=["github_repo_url"])
+        self.first_unit.code_sources = [
+            {"label": "notebook.ipynb", "source_path": "code/notebook.ipynb"}
+        ]
+        self.first_unit.save(update_fields=["code_sources"])
+
+        response = self.client.get(self.unit_url(self.first_unit))
+
+        self.assertEqual(response.context["unit_code_links"], ())
 
     def test_renders_edit_on_github_link_from_cohort_repository_and_source_path(self):
         response = self.client.get(self.unit_url(self.first_unit))

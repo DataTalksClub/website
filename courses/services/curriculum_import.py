@@ -717,6 +717,15 @@ class _CurriculumImporter:
         unit.title = source.title
         unit.content_markdown = source.markdown
         unit.rendered_html = render_markdown(source.markdown)
+        # The parser already lifts the lesson's video and companion code files
+        # out of the frontmatter.  Persist them instead of discarding them: the
+        # Markdown body no longer contains either, so a unit page that does not
+        # read these columns can only lose them.
+        unit.video_url = source.metadata.video_url or ""
+        unit.code_sources = [
+            {"label": code.label, "source_path": code.source_path}
+            for code in source.metadata.code
+        ]
         for field, value in self._provenance(source, source.source_path, source.content_id).items():
             setattr(unit, field, value)
         _validate_model(unit)

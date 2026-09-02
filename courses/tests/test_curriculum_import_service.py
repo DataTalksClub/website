@@ -196,6 +196,20 @@ class CurriculumImportServiceTests(TestCase):
         self.assertEqual([unit.slug for unit in units], ["01-intro", "02-environment"])
         self.assertIn("The first lesson in the Agentic RAG", units[0].content_markdown)
         self.assertIn("<", units[0].rendered_html)
+        # The lesson frontmatter never reaches ``content_markdown``, so the
+        # projection is the only place its video and code files survive.
+        self.assertEqual(units[0].video_url, "https://www.youtube.com/watch?v=fixture-intro")
+        self.assertEqual(
+            units[0].code_sources,
+            [
+                {
+                    "label": "notebook.ipynb",
+                    "source_path": "cohorts/2026/01-agentic-rag/code/notebook.ipynb",
+                }
+            ],
+        )
+        self.assertEqual(units[1].video_url, "")
+        self.assertEqual(units[1].code_sources, [])
 
         homework = module.terminal_homework
         self.assertIn("working through every unit", homework.instructions_markdown)

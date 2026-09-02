@@ -78,6 +78,23 @@ class UnitRepository:
             f"{quote(repository_path, safe='/')}"
         )
 
+    def browse_url(self, repository_path: str, *, directory: bool = False) -> str:
+        """Return the upstream browsing URL for one repository-relative path."""
+
+        view = "tree" if directory else "blob"
+        suffix = quote(repository_path.rstrip("/"), safe="/")
+        if not suffix:
+            return f"{self.base_url}/tree/{quote(self.branch, safe='/')}"
+        return f"{self.base_url}/{view}/{quote(self.branch, safe='/')}/{suffix}"
+
+
+@dataclass(frozen=True, slots=True)
+class UnitCodeLink:
+    """One companion code file a lesson declares, resolved to a public URL."""
+
+    label: str
+    url: str
+
 
 def unit_repository(unit: Unit) -> UnitRepository | None:
     """Return the upstream repository for a unit, or ``None`` when unknown."""
@@ -184,9 +201,39 @@ def rewrite_unit_image_sources(markdown: str, unit: Unit) -> str:
     return _HTML_IMAGE_RE.sub(replace_html_image, rewritten)
 
 
+def unit_code_links(unit: Unit) -> tuple[UnitCodeLink, ...]:
+    """Return the lesson's declared code files as public upstream links.
+
+    The paths are repository-relative, so they only become addressable through
+    the upstream repository.  A unit whose repository is unknown or is not on
+    GitHub yields nothing rather than a link that can only 404.
+    """
+
+    declared = unit.code_sources or []
+    if not isinstance(declared, list) or not declared:
+        return ()
+
+    repository = unit_repository(unit)
+    if repository is None or not repository.is_github:
+        return ()
+
+    links: list[UnitCodeLink] = []
+    for entry in declared:
+        if not isinstance(entry, dict):
+            continue
+        label = str(entry.get("label") or "").strip()
+        source_path = str(entry.get("source_path") or "").strip().lstrip("/")
+        if not label or not source_path:
+            continue
+        links.append(UnitCodeLink(label=label, url=repository.browse_url(source_path)))
+    return tuple(links)
+
+
 __all__ = [
     "DEFAULT_REPOSITORY_BRANCH",
+    "UnitCodeLink",
     "UnitRepository",
     "rewrite_unit_image_sources",
+    "unit_code_links",
     "unit_repository",
 ]
