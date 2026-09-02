@@ -72,6 +72,21 @@ EXPECTED_COUNTS = {
 # in the published text for the runtime to clean up.  Person bios still take the older plain-text
 # path, so their ten markers are still removed here.
 EXPECTED_LEAKED_TARGET_MARKERS = {"articles": 0, "people": 10}
+# Media objects are served from an object store, so the complete-tree digest covers only
+# the JSON artifacts and the wiki assets.  The manifest must declare that scope in
+# machine-readable form: a manifest produced by an older whole-tree builder, or one that
+# omits the declaration, fails closed instead of being silently accepted with a digest
+# that would happen to match an unhydrated checkout.
+MEDIA_TREE_PREFIX = "media/"
+EXPECTED_TREE_DIGEST_SCOPE = (
+    "projection artifacts and wiki assets; excludes manifest.json and media/"
+)
+EXPECTED_MEDIA_STORAGE = {
+    "location": "object-store",
+    "records": "media.json",
+    "count": EXPECTED_COUNTS["media"],
+    "integrity": "per-record provenance.checksum",
+}
 EXPECTED_SELECTION = "preferred"
 EDITORIAL_ROUTE_COLLECTIONS = {
     "articles": "/blog",
@@ -337,13 +352,22 @@ def _sha256(path: Path) -> str:
 
 
 def _tree_sha256(root: Path) -> str:
+    """Digest the projection artifacts and wiki assets, excluding the media objects.
+
+    The 1,253 media objects live in an object store and are verified per record against
+    ``provenance.checksum``, so they are outside the complete-tree digest.  The symlink
+    rejection deliberately still covers ``media/``: a symlink anywhere below the root is
+    a hard failure whether or not its bytes contribute to the digest.
+    """
+
     digest = hashlib.sha256()
     for path in sorted(item for item in root.rglob("*") if item.is_file()):
-        if path.is_symlink() or path.name == "manifest.json":
-            if path.is_symlink():
-                raise ImproperlyConfigured("Public projection tree contains a symlink.")
+        if path.is_symlink():
+            raise ImproperlyConfigured("Public projection tree contains a symlink.")
+        relative_path = path.relative_to(root).as_posix()
+        if path.name == "manifest.json" or relative_path.startswith(MEDIA_TREE_PREFIX):
             continue
-        relative = path.relative_to(root).as_posix().encode()
+        relative = relative_path.encode()
         payload = path.read_bytes()
         digest.update(len(relative).to_bytes(8, "big"))
         digest.update(relative)
@@ -622,6 +646,10 @@ def _checked_public_projection() -> dict[str, Any]:
         raise ImproperlyConfigured("Unsupported public projection selection.")
     if manifest.get("counts") != EXPECTED_COUNTS:
         raise ImproperlyConfigured("Public projection count canaries do not match.")
+    if manifest.get("tree_digest_scope") != EXPECTED_TREE_DIGEST_SCOPE:
+        raise ImproperlyConfigured("Public projection tree digest scope is not declared.")
+    if manifest.get("media_storage") != EXPECTED_MEDIA_STORAGE:
+        raise ImproperlyConfigured("Public projection media storage declaration mismatch.")
     if manifest.get("tree_sha256") != _tree_sha256(PROJECTION_ROOT):
         raise ImproperlyConfigured("Public projection complete-tree digest mismatch.")
     sources = manifest.get("sources", {})

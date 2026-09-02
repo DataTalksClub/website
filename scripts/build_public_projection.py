@@ -119,6 +119,11 @@ EXPECTED_FALLBACK_CONTENT_MEDIA_COUNT = 807
 EXPECTED_PEOPLE_MEDIA_COUNT = 438
 EXPECTED_PREFERRED_MEDIA_COUNT = 1_253
 EXPECTED_FALLBACK_MEDIA_COUNT = 1_245
+# Media objects are published to an object store, so the complete-tree digest covers the
+# JSON artifacts and wiki assets only.  The manifest declares the scope in
+# machine-readable form; the runtime rejects a manifest that does not declare it.
+MEDIA_TREE_PREFIX = "media/"
+TREE_DIGEST_SCOPE = "projection artifacts and wiki assets; excludes manifest.json and media/"
 COURSE_SPECS_SHA256 = "34077cd485265ffcae96e9acdb06351ee5b6b3b6a5b370639525cc111f1019a7"
 EVENT_SOURCE_TIMEZONE = ZoneInfo("Europe/Berlin")
 MAX_SOURCE_FILE_BYTES = 2 * 1024 * 1024
@@ -2688,13 +2693,22 @@ def _write_json(path: Path, payload: Any) -> str:
 
 
 def _tree_sha256(root: Path) -> str:
+    """Digest the projection artifacts and wiki assets, excluding the media objects.
+
+    This must stay byte-for-byte equivalent to ``content.public_data._tree_sha256``:
+    the media objects are served from an object store and verified per record against
+    ``provenance.checksum``, while a symlink anywhere below the root — including under
+    ``media/`` — is still a hard failure.
+    """
+
     digest = hashlib.sha256()
     for path in sorted(item for item in root.rglob("*") if item.is_file()):
-        if path.is_symlink() or path.name == "manifest.json":
-            if path.is_symlink():
-                raise ProjectionBuildError("projection tree contains a symlink")
+        if path.is_symlink():
+            raise ProjectionBuildError("projection tree contains a symlink")
+        relative_path = path.relative_to(root).as_posix()
+        if path.name == "manifest.json" or relative_path.startswith(MEDIA_TREE_PREFIX):
             continue
-        relative = path.relative_to(root).as_posix().encode()
+        relative = relative_path.encode()
         payload = path.read_bytes()
         digest.update(len(relative).to_bytes(8, "big"))
         digest.update(relative)
@@ -3127,6 +3141,13 @@ def build(args: argparse.Namespace) -> None:
         },
         "artifacts": artifact_digests,
         "tree_sha256": _tree_sha256(output),
+        "tree_digest_scope": TREE_DIGEST_SCOPE,
+        "media_storage": {
+            "location": "object-store",
+            "records": "media.json",
+            "count": expected_media_count,
+            "integrity": "per-record provenance.checksum",
+        },
         "wiki_assets": asset_digests,
         "selection_rule": {
             "preferred": "exact accepted revision with pinned green CI evidence",

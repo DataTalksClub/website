@@ -12,3 +12,7 @@ __pycache__
 playwright-report
 test-results
 _docs/planning
+# The release image serves projection media from the object store, never from the
+# build context. Excluding a locally hydrated tree keeps a local image build byte
+# equivalent to a CI build from a clean checkout.
+content/public_projection/media

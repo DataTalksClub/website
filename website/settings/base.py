@@ -234,6 +234,27 @@ CLOUDWATCH_APP_METRIC_REGION = os.getenv(
     "CLOUDWATCH_APP_METRIC_REGION", os.getenv("AWS_REGION", os.getenv("AWS_DEFAULT_REGION", ""))
 )
 
+# Public projection media objects are read through a pluggable store so the 1,253
+# release images do not have to be carried in the git working tree.  The default is the
+# credential-free, network-free local filesystem backend, so a developer, a tester, and
+# an offline checkout all behave the same.  CI test jobs select the deterministic
+# ``memory`` fixture backend in the workflow environment; a deployed environment selects
+# ``s3`` and is checked for it under production settings.
+PUBLIC_MEDIA_STORE_BACKEND = os.getenv("PUBLIC_MEDIA_STORE_BACKEND", "local").strip().lower()
+PUBLIC_MEDIA_LOCAL_ROOT = Path(
+    os.getenv("PUBLIC_MEDIA_LOCAL_ROOT") or (BASE_DIR / "content" / "public_projection" / "media")
+)
+PUBLIC_MEDIA_S3_BUCKET = os.getenv("PUBLIC_MEDIA_S3_BUCKET", "").strip()
+PUBLIC_MEDIA_S3_PREFIX = os.getenv("PUBLIC_MEDIA_S3_PREFIX", "public-projection").strip("/")
+PUBLIC_MEDIA_S3_REGION = os.getenv("PUBLIC_MEDIA_S3_REGION", "").strip()
+# Optional. Lets a developer point the s3 backend at a local or faked endpoint.
+PUBLIC_MEDIA_S3_ENDPOINT_URL = os.getenv("PUBLIC_MEDIA_S3_ENDPOINT_URL", "").strip()
+PUBLIC_MEDIA_S3_TIMEOUT_SECONDS = float(os.getenv("PUBLIC_MEDIA_S3_TIMEOUT_SECONDS", "5"))
+# Fail-closed size bound. The largest known projection object is 3,022,797 bytes.
+PUBLIC_MEDIA_MAX_OBJECT_BYTES = int(
+    os.getenv("PUBLIC_MEDIA_MAX_OBJECT_BYTES", str(8 * 1024 * 1024))
+)
+
 DATAMAILER_URL = os.getenv("DATAMAILER_URL", "")
 DATAMAILER_API_KEY = os.getenv("DATAMAILER_API_KEY", "")
 DATAMAILER_CLIENT = os.getenv("DATAMAILER_CLIENT", "")

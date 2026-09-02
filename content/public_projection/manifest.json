@@ -24,6 +24,12 @@
     "transcripts": 201,
     "wiki": 282
   },
+  "media_storage": {
+    "count": 1253,
+    "integrity": "per-record provenance.checksum",
+    "location": "object-store",
+    "records": "media.json"
+  },
   "projection_rules": {
     "conference_links_outside_slice": "omitted",
     "event_description_bridge": {
@@ -156,7 +162,8 @@
       "revision": "988b79d0d655bf4755945c3118544cb9e0dbead6"
     }
   },
-  "tree_sha256": "29a1819fa006965b093501353d009acdcbac2f85b5f30f88b9f5507fd0c9f793",
+  "tree_digest_scope": "projection artifacts and wiki assets; excludes manifest.json and media/",
+  "tree_sha256": "07780b307e80d47d4467a739a642e8aa9e6ed49e92d617e52789070e9469b5e7",
   "wiki_assets": {
     "/wiki/assets/og-default.png": "afddea001f9cf846630cb7a8046352a52d4d6c2edacd0feaaecb0e8d9b27e8de"
   }

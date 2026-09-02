@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from functools import wraps
-from pathlib import Path
+from io import BytesIO
+from typing import Any
 from xml.sax.saxutils import escape as xml_escape
 
 from django.conf import settings
@@ -18,11 +20,13 @@ from django.http import (
     HttpResponsePermanentRedirect,
     JsonResponse,
 )
+from django.http.response import HttpResponseBase
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_safe
 
 from core.sponsors import public_events_hub_sponsors
+from course_management.observability import record_event
 from courses.models import Cohort
 from events.identity import (
     EventIdentityNotFound,
@@ -40,6 +44,14 @@ from . import wiki_content
 from .article_content import article_view, render_body_markdown
 from .article_faq import ArticleFaq, article_faq
 from .faq_data import faq_courses
+from .media_store import (
+    MediaStore,
+    MediaStoreError,
+    media_store,
+    read_media_object,
+    record_filename,
+    record_key,
+)
 from .pagination import (
     PublicPagination,
     paginate_public_request,
@@ -1149,15 +1161,69 @@ def wiki_asset(request: HttpRequest, asset: str) -> FileResponse:
 
 
 @require_safe
-def media(request: HttpRequest, media_path: str) -> FileResponse:
+def media(request: HttpRequest, media_path: str) -> HttpResponseBase:
+    """Serve one recorded projection image through the configured media store.
+
+    The public URL, the response status, and the response header shape are unchanged
+    from the era when the bytes lived in the git working tree.  An unrecognised path is
+    still an ordinary ``404``; a *recorded* object that cannot be retrieved and verified
+    fails closed as an uncacheable ``502`` so an edge cache can never memorise an origin
+    outage as "not found".
+    """
+
     public_path = f"/images/{media_path}"
     record = public_projection()["media_by_path"].get(public_path)
     if record is None:
         raise Http404
-    path = PROJECTION_ROOT / "media" / Path(media_path)
-    if not path.is_file() or path.is_symlink():
-        raise Http404
-    return FileResponse(path.open("rb"), content_type=record["content_type"])
+    store = media_store()
+    try:
+        payload = read_media_object(store, record)
+    except MediaStoreError as error:
+        _record_media_failure(request, store=store, record=record, error=error)
+        return _media_unavailable()
+    return FileResponse(
+        BytesIO(payload),
+        content_type=record["content_type"],
+        filename=record_filename(record),
+    )
+
+
+def _media_unavailable() -> HttpResponse:
+    """Return the fail-closed media response: no bytes, no detail, no caching."""
+
+    response = HttpResponse(
+        "Image temporarily unavailable.\n",
+        status=502,
+        content_type="text/plain; charset=utf-8",
+    )
+    response["Cache-Control"] = "no-store"
+    return response
+
+
+def _record_media_failure(
+    request: HttpRequest,
+    *,
+    store: MediaStore,
+    record: dict[str, Any],
+    error: MediaStoreError,
+) -> None:
+    """Emit exactly one redacted structured event for a failed media read."""
+
+    try:
+        key = record_key(record)
+    except MediaStoreError:
+        key = ""
+    record_event(
+        "public_media_object_unavailable",
+        request=request,
+        properties={
+            "media_store_backend": store.name,
+            "media_failure_reason": error.reason,
+            # The record key is a public URL fragment, but it is still reduced to a
+            # digest so no filename, bucket, or key ever reaches the log stream.
+            "media_record_digest": hashlib.sha256(key.encode("utf-8")).hexdigest()[:16],
+        },
+    )
 
 
 def _section_records(section: str) -> tuple[tuple[str, str], ...]:

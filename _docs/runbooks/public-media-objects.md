@@ -1,0 +1,213 @@
+# Public projection media objects
+
+The 1,253 public projection images (`/images/...`, about 154 MB) are **not** carried in the git
+working tree. `content/public_projection/media/` is gitignored and excluded from the container build
+context. Django resolves each request against `content/public_projection/media.json` and then reads
+the object through a pluggable media store.
+
+Public URLs, statuses, and response headers are unchanged: `/images/<path>` still returns `200` with
+the record's `Content-Type`, a correct `Content-Length`, and
+`Content-Disposition: inline; filename="<basename>"`, and no `Cache-Control`.
+
+## Backends
+
+Selected by `PUBLIC_MEDIA_STORE_BACKEND`.
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `PUBLIC_MEDIA_STORE_BACKEND` | `local` | `local`, `memory`, or `s3` |
+| `PUBLIC_MEDIA_LOCAL_ROOT` | `content/public_projection/media` | filesystem root for `local` |
+| `PUBLIC_MEDIA_S3_BUCKET` | `""` | bucket name for `s3` |
+| `PUBLIC_MEDIA_S3_PREFIX` | `public-projection` | key prefix for `s3` |
+| `PUBLIC_MEDIA_S3_REGION` | `""` | region for `s3` |
+| `PUBLIC_MEDIA_S3_ENDPOINT_URL` | `""` | optional; point at a local or faked endpoint |
+| `PUBLIC_MEDIA_S3_TIMEOUT_SECONDS` | `5` | connect/read timeout; at most one retry |
+| `PUBLIC_MEDIA_MAX_OBJECT_BYTES` | `8388608` | fail-closed size bound |
+
+- **`local`** reads the historic on-disk tree. It is the default everywhere, needs no AWS credential
+  and no network, and is what a developer or tester uses so pages render the real artwork.
+- **`memory`** is a deterministic offline fixture derived from `media.json`. Each record is served a
+  minimal *valid* image of its recorded content type, and that image's SHA-256 is the checksum the
+  read path verifies. CI test jobs set it in the workflow environment. It refuses to activate under
+  production settings.
+- **`s3`** reads the published release assets from the object store using the ambient
+  role/credential chain. The repository holds no credential and no static key.
+
+Object keys are path mirrored: `<PUBLIC_MEDIA_S3_PREFIX>/<record_key>`, for example
+`public-projection/images/authors/ aashishnair.jpg`. The key is derived from the **matched record
+only**, never from the request path.
+
+## Hydrating a fresh clone
+
+A fresh clone has no images. `manage.py check` says so and names the command:
+
+```bash
+# from the pinned upstream revisions recorded in each record's provenance
+uv run python manage.py public_media_hydrate
+
+# fully offline, from local checkouts of the pinned upstream repositories
+uv run python manage.py public_media_hydrate --source checkout \
+  --checkout DataTalksClub/content=/path/to/content \
+  --checkout DataTalksClub/datatalksclub.github.io=/path/to/datatalksclub.github.io
+
+# from an already hydrated peer checkout or the configured object store
+PUBLIC_MEDIA_LOCAL_ROOT=/path/to/other/checkout/content/public_projection/media \
+  uv run python manage.py public_media_hydrate --source store \
+  --destination content/public_projection/media
+```
+
+Hydration is idempotent and resumable: an object already present with the recorded checksum is
+skipped, and an object whose retrieved digest does not match its record is never written. The
+command prints `{"failed": N, "skipped": N, "total": 1253, "written": N}` and exits non-zero if any
+object failed. `--force` re-fetches everything.
+
+The `github` source needs network access to `raw.githubusercontent.com`. No source needs an AWS
+credential except `--source store` with the `s3` backend.
+
+## Provisioned object store
+
+Terraform has been applied. These are the live values.
+
+| Item | Value |
+| --- | --- |
+| Bucket | `dtc-website-media` |
+| Region | `eu-west-1` |
+| Account | `387546586013` |
+| Key prefix | `public-projection` (the `PUBLIC_MEDIA_S3_PREFIX` default) |
+| CDN | `https://d3tgrbv0nfqbcz.cloudfront.net` (distribution `ER7BPQ5U74DFE`) |
+| Publisher role | `arn:aws:iam::387546586013:role/dtc-website-media-publisher` |
+| Sandbox account `817685572750` | **read only**; `s3:PutObject` is denied by design |
+
+The bucket is **empty** until the first publish runs, so no environment may select the `s3`
+backend yet. The default stays `local` everywhere.
+
+## Publishing to the object store
+
+Publishing requires main-account credentials that can assume
+`arn:aws:iam::387546586013:role/dtc-website-media-publisher`. The sandbox credentials used for
+development are read-only and cannot publish.
+
+```bash
+# 1. Assume the publisher role (main-account credentials in the ambient profile).
+eval "$(aws sts assume-role \
+  --role-arn arn:aws:iam::387546586013:role/dtc-website-media-publisher \
+  --role-session-name dtc-website-media-publish \
+  --query 'Credentials.[
+      join(``,[`export AWS_ACCESS_KEY_ID=`,AccessKeyId]),
+      join(``,[`export AWS_SECRET_ACCESS_KEY=`,SecretAccessKey]),
+      join(``,[`export AWS_SESSION_TOKEN=`,SessionToken])]' \
+  --output text | tr '\t' '\n')"
+
+# 2. Dry run first: reports added/changed/skipped/orphan/failed without writing.
+PUBLIC_MEDIA_STORE_BACKEND=s3 \
+PUBLIC_MEDIA_S3_BUCKET=dtc-website-media \
+PUBLIC_MEDIA_S3_REGION=eu-west-1 \
+  uv run python manage.py public_media_publish --dry-run
+
+# 3. Publish.
+PUBLIC_MEDIA_STORE_BACKEND=s3 \
+PUBLIC_MEDIA_S3_BUCKET=dtc-website-media \
+PUBLIC_MEDIA_S3_REGION=eu-west-1 \
+  uv run python manage.py public_media_publish
+
+# 4. Prove 1253/1253 checksums against the bucket.
+PUBLIC_MEDIA_STORE_BACKEND=s3 \
+PUBLIC_MEDIA_S3_BUCKET=dtc-website-media \
+PUBLIC_MEDIA_S3_REGION=eu-west-1 \
+  uv run python manage.py public_media_verify
+```
+
+Run these from a checkout whose `content/public_projection/media/` is hydrated — that tree is the
+publish source. `public_media_verify` exits non-zero unless every one of the 1,253 records is
+present with a matching checksum and the store holds no unrecorded object.
+
+`publish` uploads exactly the recorded objects with the recorded `ContentType` and
+`ChecksumAlgorithm=SHA256`, skips objects already present with a matching checksum, and **refuses**
+to upload any file that has no record. It reports `added` / `changed` / `skipped` / `orphan` /
+`failed` counts. The one known orphan
+(`media/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.jpg`, owned by issue #253)
+stays unpublished and keeps returning `404`.
+
+**Publish before deploying a new `media.json`.** A record whose object is not in the bucket fails
+closed with a `502` for that one path rather than serving wrong bytes.
+
+## Verifying
+
+```bash
+PUBLIC_MEDIA_STORE_BACKEND=s3 \
+PUBLIC_MEDIA_S3_BUCKET=dtc-website-media \
+PUBLIC_MEDIA_S3_REGION=eu-west-1 \
+  uv run python manage.py public_media_verify
+```
+
+`verify` compares the configured store against `media.json` and exits non-zero when any recorded
+object is missing, unreadable, or checksum mismatched, or when the store holds an object that has no
+record. It also works against a local root.
+
+## What a `502` on an image means
+
+An unrecognised `/images/...` path is still an ordinary `404`. A **recorded** object that cannot be
+retrieved and verified returns `502` with `Cache-Control: no-store`, a fixed body, and exactly one
+redacted structured log event (`public_media_object_unavailable`) carrying the backend name, a
+failure reason, and a digest of the record key. Never a `404` — an edge cache must not be able to
+memorise an origin outage as "not found" — never a placeholder, and never unverified bytes.
+
+Failure reasons:
+
+| Reason | Cause | Action |
+| --- | --- | --- |
+| `object-missing` | the record exists but the store has no object | hydrate, or publish the missing object |
+| `checksum-mismatch` | retrieved bytes do not match `provenance.checksum` | republish that object |
+| `object-oversized` | the object exceeds `PUBLIC_MEDIA_MAX_OBJECT_BYTES` | investigate; raise the bound only deliberately |
+| `store-unavailable` | timeout, permission, or transport failure | check the store, the role, and the region |
+| `record-invalid` | the record itself is unusable | a projection defect; rebuild the projection |
+
+## Integrity contract
+
+The projection `tree_sha256` covers the JSON artifacts and wiki assets only. `manifest.json` states
+this explicitly:
+
+```json
+"tree_digest_scope": "projection artifacts and wiki assets; excludes manifest.json and media/",
+"media_storage": {
+  "location": "object-store",
+  "records": "media.json",
+  "count": 1253,
+  "integrity": "per-record provenance.checksum"
+}
+```
+
+`content/public_data.py` verifies both declarations and fails closed if either is missing or
+different, so a manifest produced by an older whole-tree builder can never be silently accepted. A
+symlink anywhere below the projection root — including under `media/` — is still a hard failure.
+
+Per-object integrity moved to `provenance.checksum`: every served object is verified before a byte
+reaches the client.
+
+To recompute only the derived digest fields after an artifact change, without re-running the full
+builder:
+
+```bash
+uv run python scripts/repin_projection_digests.py --check
+uv run python scripts/repin_projection_digests.py --write
+```
+
+The utility rewrites only `tree_sha256`, `tree_digest_scope`, and `media_storage`.
+
+## Deployment
+
+A deployed environment must set `PUBLIC_MEDIA_STORE_BACKEND=s3` and `PUBLIC_MEDIA_S3_BUCKET`.
+`manage.py check` fails under production settings otherwise (`content.E004`, `content.E005`), because
+the release image does not contain the media tree.
+
+The deployed values are:
+
+```bash
+PUBLIC_MEDIA_STORE_BACKEND=s3
+PUBLIC_MEDIA_S3_BUCKET=dtc-website-media
+PUBLIC_MEDIA_S3_REGION=eu-west-1
+```
+
+**Do not set these anywhere until the publish above has run and `public_media_verify` reports
+1253/1253.** The bucket is empty today, so selecting the `s3` backend early would turn every
+`/images/...` request into a fail-closed `502`.

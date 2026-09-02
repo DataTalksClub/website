@@ -70,6 +70,20 @@ assigns peer reviews with the existing assignment service, and moves Project 1 i
 peer review. It is repeatable, reports counts and state only, and refuses to overwrite
 non-synthetic submissions or run outside local/test SQLite.
 
+### Public projection images
+
+The 1,253 public projection images (`/images/...`, about 154 MB) are not tracked in git. A fresh
+clone renders every page except the artwork, and `manage.py check` warns with the command to run:
+
+```bash
+uv run python manage.py public_media_hydrate
+```
+
+Hydration is idempotent, verifies every object against its recorded checksum, and needs no AWS
+credential. The default `local` backend then serves the real bytes at the unchanged URLs. See the
+[public media runbook](_docs/runbooks/public-media-objects.md) for the backends, the operator
+publish/verify flow, and what a `502` on an image means.
+
 Local development and ordinary CI require no PostgreSQL installation or service. Tests always use isolated SQLite and ignore an ambient `DATABASE_URL`. Deployed development and production continue to use PostgreSQL/RDS through their fail-closed settings and deployment migration/readiness/smoke path.
 
 ## Common commands
@@ -103,5 +117,6 @@ Deployed development and production require a non-placeholder secret, a PostgreS
 See [`_docs/architecture/app-boundaries.md`](_docs/architecture/app-boundaries.md) for dependency
 direction, [`_docs/architecture/database-portability.md`](_docs/architecture/database-portability.md)
 for the database boundary and remaining-term inventory, the
-[`content-update` runbook](_docs/runbooks/content-update.md) for the checked projection lane, and
+[`content-update` runbook](_docs/runbooks/content-update.md) for the checked projection lane, the
+[public media runbook](_docs/runbooks/public-media-objects.md) for the projection image objects, and
 [`_docs/contributing.md`](_docs/contributing.md) for the full contribution handoff.

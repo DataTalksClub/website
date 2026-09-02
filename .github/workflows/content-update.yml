@@ -65,6 +65,10 @@ jobs:
     name: Validate ${{ matrix.family }} content
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      # The checkout carries no projection media objects; read them from the
+      # deterministic offline fixture store.
+      PUBLIC_MEDIA_STORE_BACKEND: memory
     permissions:
       contents: read
     strategy:
