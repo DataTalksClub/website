@@ -143,6 +143,12 @@
 
 {% block page_content %}
       <section aria-label="Unit content">
+        {% comment %}
+          The one wide element on this page: a reading column at the system's
+          reading measure plus a persistent module rail beside it is wider than
+          `--content-width`, but the page shell itself must not widen for it.
+          The article inside never exceeds the reading measure.
+        {% endcomment %}
         <div class="module-layout shell-breakout">
           <div class="module-main unit-main">
             {% if video_embed_url %}

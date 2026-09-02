@@ -41,8 +41,12 @@
         margin-bottom: 1rem;
       }
 
-      .module-section-heading h2,
-      .module-sidebar h2 {
+      {% comment %}
+        The rail's heading is no longer a section title at this size: it now
+        carries the mono metadata voice `.rail-heading` gives it, so this rule
+        stopped at the main column's own section headings.
+      {% endcomment %}
+      .module-section-heading h2 {
         font-size: 1.35rem;
       }
 

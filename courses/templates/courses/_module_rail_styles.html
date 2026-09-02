@@ -1,9 +1,21 @@
+      /* Shared module-rail layout and rail rules, included by the module and
+         unit pages inside their own <style> element. */
+
+      /* The reading column is capped at the system's own content width rather
+         than stretched to whatever the breakout leaves over.  At the old
+         `1fr` the article sat at its 38rem measure inside a ~53rem column, so
+         the video and the "next lesson" button floated a long way past the
+         edge of the prose they belonged to, and moving from a lesson to its
+         homework page was a visible change of shape.  The pair is centred
+         inside the breakout; the rail is chrome and is allowed to weigh less
+         than the content beside it. */
       .module-layout {
         align-items: start;
         display: grid;
-        gap: 2rem;
+        gap: 3rem;
         grid-template-areas: "rail main";
-        grid-template-columns: minmax(17rem, 21rem) minmax(0, 1fr);
+        grid-template-columns: minmax(16rem, 19rem) minmax(0, var(--content-width));
+        justify-content: center;
       }
 
       .module-main,
@@ -21,42 +33,79 @@
         grid-area: main;
       }
 
-      .module-sidebar .card {
-        gap: 1rem;
+      /* No card, no border, no shadow: the rail is navigation at the same
+         altitude as the breadcrumb trail, and the only framed things on a
+         lesson page should be the lesson.  A twenty-lesson module is taller
+         than a laptop viewport, so the sticky rail scrolls itself rather than
+         pushing its own foot off the screen; its links are focusable, so the
+         scroll region needs no tabindex of its own. */
+      .module-rail {
+        display: grid;
+        gap: 0.75rem;
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
       }
 
-      .sidebar-progress {
+      .rail-heading {
         color: var(--muted);
-        font-size: 0.88rem;
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
-      .sidebar-unit-list {
+      .rail-progress {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+      }
+
+      /* Spacing separates the rows.  A rule between every pair of navigation
+         items at this density is noise, the way the site navigation draws
+         none. */
+      .rail-units {
         display: grid;
-        gap: 0.35rem;
+        gap: 0.15rem;
       }
 
-      .sidebar-unit {
-        border-top: 1.5px solid var(--line-soft);
+      .rail-unit-link {
+        align-items: start;
+        border-radius: 0.6rem;
+        color: var(--ink);
         display: grid;
-        gap: 0.35rem;
-        padding: 0.75rem 0 0;
-      }
-
-      .sidebar-unit.is-current {
-        background: var(--lavender-deep);
-        border-left: 0.3rem solid var(--indigo);
-        margin-left: -0.75rem;
-        padding-left: 0.45rem;
-      }
-
-      .sidebar-unit-heading {
-        align-items: center;
-        display: grid;
-        gap: 0.65rem;
+        font-size: 0.9rem;
+        font-weight: 700;
+        gap: 0.6rem;
         grid-template-columns: 1.75rem minmax(0, 1fr);
+        line-height: 1.4;
+        min-height: 2.25rem;
+        overflow-wrap: anywhere;
+        padding: 0.3rem 0.5rem;
+        text-decoration: none;
       }
 
-      .read-indicator {
+      .rail-unit-link:hover .rail-unit-title {
+        color: var(--indigo);
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      /* The current row's own 0.5rem inline padding is what makes the tint
+         read as a rounded highlight, so it needs no accent bar and no negative
+         margin pulling it out of alignment with the rows above and below. */
+      .rail-unit.is-current .rail-unit-link {
+        background: var(--lavender-deep);
+      }
+
+      /* --indigo on --lavender-deep measures 4.11:1 and fails AA, so the one
+         tinted row answers the pointer with the underline alone and keeps its
+         ink.  Nothing indigo may sit on this surface. */
+      .rail-unit.is-current .rail-unit-link:hover .rail-unit-title {
+        color: var(--ink);
+      }
+
+      .rail-unit-link .read-indicator {
         align-items: center;
         border: 1.5px solid var(--line-soft);
         border-radius: var(--drawn-circle);
@@ -66,40 +115,49 @@
         font-family: var(--font-mono);
         font-size: 0.72rem;
         font-weight: 700;
-        height: 2rem;
-        justify-content: center;
-        width: 2rem;
-      }
-
-      .sidebar-unit .read-indicator {
         height: 1.75rem;
+        justify-content: center;
         width: 1.75rem;
       }
 
-      .read-indicator.is-read {
+      /* Three rotations of the drawn circle down the column, exactly as the
+         pagination pills do it, so a stack of marks does not repeat one shape
+         and stop reading as drawing. */
+      .rail-units > li:nth-child(3n + 2) .read-indicator {
+        border-radius: var(--drawn-circle-b);
+      }
+
+      .rail-units > li:nth-child(3n) .read-indicator {
+        border-radius: var(--drawn-circle-c);
+      }
+
+      .rail-unit-link .read-indicator.is-read {
         background: var(--mint);
         border-color: var(--green-deep);
         color: var(--green-deep);
       }
 
-      .read-indicator.is-current {
+      .rail-unit-link .read-indicator.is-current {
         background: var(--indigo);
         border-color: var(--indigo);
         color: var(--cream);
       }
 
-      .sidebar-unit a {
-        color: var(--ink);
-        font-size: 0.9rem;
-        font-weight: 700;
-        overflow-wrap: anywhere;
-        text-decoration: none;
+      /* Homework is the module's last step, not an appendix under it, so it is
+         a rail row with the same anatomy and the section rule the bands
+         themselves use. */
+      .rail-homework {
+        border-top: 2px dashed var(--line-soft);
+        margin-top: 0.25rem;
+        padding-top: 0.85rem;
       }
 
-      .sidebar-unit a:hover {
-        color: var(--indigo);
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
+      .rail-unit-link .rail-homework-mark {
+        background: var(--bubble);
+        border: 2px solid var(--line);
+        border-radius: var(--drawn-circle);
+        color: var(--on-bubble);
+        font-size: 0.6rem;
       }
 
       .rail-signin {
@@ -114,35 +172,26 @@
         min-height: 2rem;
       }
 
-      .sidebar-homework {
-        border-top: 2px dashed var(--line-soft);
-        display: grid;
-        gap: 0.25rem;
-        padding-top: 0.9rem;
-      }
-
-      .sidebar-homework span {
-        color: var(--muted);
-        font-family: var(--font-mono);
-        font-size: 0.68rem;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-
-      .sidebar-homework a {
-        font-weight: 700;
-      }
-
       @media (max-width: 52rem) {
         .module-layout {
+          gap: 2rem;
           grid-template-areas:
             "main"
             "rail";
-          grid-template-columns: 1fr;
+          grid-template-columns: minmax(0, 1fr);
         }
 
         .module-sidebar {
           position: static;
+        }
+
+        /* The list runs in full and the page carries one scroll.  With the
+           card frame gone the rail needs a boundary of its own here, drawn in
+           the same dashed grammar the bands use. */
+        .module-rail {
+          border-top: 2px dashed var(--line-soft);
+          max-height: none;
+          overflow-y: visible;
+          padding-top: 1.5rem;
         }
       }

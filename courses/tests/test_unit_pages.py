@@ -154,9 +154,9 @@ class PublicUnitPageTests(TestCase):
 
         body = self.client.get(self.unit_url(self.first_unit)).content.decode()
         start = body.index('class="module-sidebar module-rail"')
-        rail = body[start : body.index("</aside>", start)]
+        rail = body[start : body.index("</nav>", start)]
 
-        self.assertIn(">Environment</a>", rail)
+        self.assertIn(">Environment</span>", rail)
         self.assertNotIn("1.2 Environment", rail)
 
     def test_declared_lesson_video_is_embedded_and_leading_title_is_removed(self):
@@ -286,7 +286,7 @@ class PublicUnitPageTests(TestCase):
         footer_start = body.index('<div class="unit-footer">')
         footer = body[footer_start : body.index("</nav>", footer_start)]
         rail_start = body.index('class="module-sidebar module-rail"')
-        rail = body[rail_start : body.index("</aside>", rail_start)]
+        rail = body[rail_start : body.index("</nav>", rail_start)]
 
         self.assertEqual(body.count("Mark as read"), 1)
         self.assertIn("Mark as read", footer)
@@ -382,7 +382,7 @@ class PublicUnitPageTests(TestCase):
         unit_url = self.unit_url(self.middle_unit)
         body = self.client.get(unit_url).content.decode()
         rail_start = body.index('class="module-sidebar module-rail"')
-        rail = body[rail_start : body.index("</aside>", rail_start)]
+        rail = body[rail_start : body.index("</nav>", rail_start)]
 
         self.assertEqual(rail.count("Sign in"), 1)
         self.assertIn(f'href="/accounts/login/?next={unit_url}"', rail)
@@ -390,6 +390,61 @@ class PublicUnitPageTests(TestCase):
         # Reading is not gated, so the local prompt is a link, not a button.
         self.assertIn('class="band-link"', rail)
         self.assertNotIn("cta-secondary", rail)
+
+    def test_the_rail_is_a_named_nav_landmark_without_a_card(self):
+        """A trail is chrome, not content, and so is the rail beside it."""
+
+        body = self.client.get(self.unit_url(self.first_unit)).content.decode()
+        rail_start = body.index('class="module-sidebar module-rail"')
+        rail = body[rail_start : body.index("</nav>", rail_start)]
+
+        self.assertIn("<nav class=\"module-sidebar module-rail\"", body)
+        self.assertIn('aria-labelledby="module-navigation-heading"', rail)
+        self.assertIn('<h2 class="rail-heading" id="module-navigation-heading">', rail)
+        self.assertNotIn('class="card', rail)
+
+    def test_the_current_row_keeps_its_ordinal_and_is_the_whole_link(self):
+        body = self.client.get(self.unit_url(self.middle_unit)).content.decode()
+        current = body[body.index('class="rail-unit is-current"') :]
+        current = current[: current.index("</li>")]
+
+        self.assertIn('aria-current="page"', current)
+        self.assertIn(">2</span>", current)
+        # The arrow was the one row whose position a reader could not read.
+        self.assertNotIn("→", current)
+        # One focus stop per lesson: the indicator lives inside the anchor.
+        self.assertLess(current.index('class="rail-unit-link"'), current.index("read-indicator"))
+
+    def test_homework_is_the_last_row_of_the_module_sequence(self):
+        body = self.client.get(self.unit_url(self.first_unit)).content.decode()
+        rail_start = body.index('class="module-sidebar module-rail"')
+        rail = body[rail_start : body.index("</nav>", rail_start)]
+
+        self.assertIn('class="rail-unit-link rail-homework"', rail)
+        self.assertIn('class="read-indicator rail-homework-mark"', rail)
+        self.assertIn(self.homework.title, rail)
+        # It follows the lessons and sits outside the ordered list of lessons.
+        self.assertLess(rail.index("</ol>"), rail.index("rail-homework"))
+        self.assertNotIn("HOMEWORK", rail)
+
+    def test_a_read_lesson_is_announced_as_well_as_marked(self):
+        user = get_user_model().objects.create_user(username="rail-reader")
+        self.client.force_login(user)
+        set_unit_read_state(
+            user=user,
+            module=self.module,
+            unit=self.first_unit,
+            is_read=True,
+        )
+
+        body = self.client.get(self.unit_url(self.middle_unit)).content.decode()
+        rail_start = body.index('class="module-sidebar module-rail"')
+        rail = body[rail_start : body.index("</nav>", rail_start)]
+
+        self.assertIn("1 of 3 read", rail)
+        self.assertIn(">✓</span>", rail)
+        self.assertIn(">(read)</span>", rail)
+        self.assertNotIn("Sign in", rail)
 
     def test_final_unit_links_to_homework_with_a_button(self):
         response = self.client.get(self.unit_url(self.final_unit))

@@ -43,15 +43,17 @@ def module_rail_context(
     else:
         read_state = Value(False, output_field=BooleanField())
     rail_units = list(module.units.annotate(is_read=read_state))
-    current_unit_is_read = any(
-        rail_unit.is_read
-        for rail_unit in rail_units
-        if current_unit is not None and rail_unit.pk == current_unit.pk
-    )
+    current_unit_is_read = False
+    for rail_unit in rail_units:
+        # The rail renders "you are here" three ways (tint, filled disc,
+        # aria-current), so the comparison is made once here instead of three
+        # times per row in the template.
+        rail_unit.is_current = current_unit is not None and rail_unit.pk == current_unit.pk
+        if rail_unit.is_current:
+            current_unit_is_read = bool(rail_unit.is_read)
     return {
         "module_rail_units": rail_units,
         "module_rail_read_count": sum(unit.is_read for unit in rail_units),
-        "module_rail_current_unit": current_unit,
         # The unit page's read toggle needs the current lesson's state, and only
         # the rail query has annotated it.
         "module_rail_current_unit_is_read": current_unit_is_read,
