@@ -1,3 +1,4 @@
+{% load curriculum_titles %}
 <aside class="module-sidebar module-rail" aria-labelledby="module-navigation-heading">
   <div class="card module-rail-card">
     <h2 id="module-navigation-heading">In this module</h2>
@@ -19,7 +20,7 @@
               <a
                 href="{% url 'unit' course_family.slug cohort.identifier module.slug rail_unit.slug %}"
                 {% if module_rail_current_unit and module_rail_current_unit.pk == rail_unit.pk %}aria-current="page"{% endif %}
-              >{{ rail_unit.title }}</a>
+              >{{ rail_unit.title|unit_display_title }}</a>
             </div>
             {% if user.is_authenticated %}
               <form class="read-state-form" method="post" action="{% url 'unit_read_state' course_family.slug cohort.identifier module.slug rail_unit.slug %}">

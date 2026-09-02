@@ -6,6 +6,7 @@ from django.urls import resolve, reverse
 from django.utils import timezone
 
 from courses.models import Cohort, Course, CurriculumFormat, Homework, Module, Unit
+from courses.templatetags.curriculum_titles import unit_display_title
 
 
 class PublicUnitPageTests(TestCase):
@@ -121,6 +122,40 @@ class PublicUnitPageTests(TestCase):
         self.assertContains(response, "← Introduction")
         self.assertContains(response, "Evaluation →")
         self.assertNotContains(response, "Continue to homework")
+
+    def test_prev_and_next_share_one_variant_and_carry_normalised_labels(self):
+        """Both directions match the homework page, and neither repeats an ordinal.
+
+        The rail's disc numbers the lesson, so a button saying "1.2 ML vs
+        Rule-Based Systems →" numbered it a second time inside a control.
+        """
+
+        self.first_unit.title = "1.1 Introduction"
+        self.first_unit.save(update_fields=["title"])
+        self.final_unit.title = "1.3 Evaluation"
+        self.final_unit.save(update_fields=["title"])
+
+        body = self.client.get(self.unit_url(self.middle_unit)).content.decode()
+        start = body.index('class="unit-navigation"')
+        navigation = body[start : body.index("</nav>", start)]
+
+        self.assertIn("← Introduction", navigation)
+        self.assertIn("Evaluation →", navigation)
+        self.assertNotIn("1.1 ", navigation)
+        self.assertNotIn("1.3 ", navigation)
+        self.assertNotIn("cta-subtle", navigation)
+        self.assertEqual(navigation.count("cta-secondary"), 2)
+
+    def test_the_rail_numbers_each_lesson_once(self):
+        self.middle_unit.title = "1.2 Environment"
+        self.middle_unit.save(update_fields=["title"])
+
+        body = self.client.get(self.unit_url(self.first_unit)).content.decode()
+        start = body.index('class="module-sidebar module-rail"')
+        rail = body[start : body.index("</aside>", start)]
+
+        self.assertIn(">Environment</a>", rail)
+        self.assertNotIn("1.2 Environment", rail)
 
     def test_declared_lesson_video_is_embedded_and_leading_title_is_removed(self):
         """The video is a persisted lesson field, not a line fished out of the body.
@@ -471,3 +506,41 @@ class PublicUnitPageTests(TestCase):
         cache_control = response.headers.get("Cache-Control", "")
         self.assertNotIn("private", cache_control)
         self.assertNotIn("no-store", cache_control)
+
+
+class UnitDisplayTitleTests(TestCase):
+    """Upstream titles number themselves raggedly; the UI numbers them once."""
+
+    def test_strips_the_ordinal_the_surrounding_chrome_already_states(self):
+        cases = {
+            "1.1 Introduction to Machine Learning": "Introduction to Machine Learning",
+            "1.10 Summary": "Summary",
+            "2.3.1 Nested Section": "Nested Section",
+            "1.1. Punctuated Section": "Punctuated Section",
+            "3) Bracketed Ordinal": "Bracketed Ordinal",
+            "4. Dotted Ordinal": "Dotted Ordinal",
+        }
+        for raw, expected in cases.items():
+            with self.subTest(title=raw):
+                self.assertEqual(unit_display_title(raw), expected)
+
+    def test_leaves_a_title_whose_number_is_part_of_its_name(self):
+        """A bare leading integer is not evidence of an ordinal.
+
+        "10 Minutes to Pandas" opens with a number that belongs to the lesson's
+        name; deleting it would produce a wrong title rather than a quieter one.
+        """
+
+        cases = (
+            "Setting up the Environment",
+            "10 Minutes to Pandas",
+            "3 Ways to Evaluate a Model",
+            "Introduction",
+        )
+        for raw in cases:
+            with self.subTest(title=raw):
+                self.assertEqual(unit_display_title(raw), raw)
+
+    def test_a_title_that_is_only_an_ordinal_keeps_it(self):
+        self.assertEqual(unit_display_title("1.1 "), "1.1 ")
+        self.assertEqual(unit_display_title(None), "")

@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load seo static %}
+{% load seo static curriculum_titles %}
 
 {% block document_title %}{{ unit.title }} — {{ cohort.title }} — DataTalks.Club{% endblock %}
 
@@ -160,16 +160,26 @@
               {% endif %}
             </article>
 
+            {% comment %}
+              Both directions carry the secondary variant, the pairing the
+              homework page's navigation already uses, and both labels are
+              normalised: the rail's disc numbers the lesson, so a button did
+              not need to say "1.2 " inside itself as well.
+            {% endcomment %}
             <nav class="unit-navigation" aria-label="Unit navigation">
               {% if previous_unit %}
                 {% url 'unit' course_family.slug cohort.identifier module.slug previous_unit.slug as previous_unit_url %}
-                {% include "core/_button.html" with href=previous_unit_url label="← "|add:previous_unit.title variant="subtle" compact=True aria_label="Previous unit: "|add:previous_unit.title %}
+                {% with previous_title=previous_unit.title|unit_display_title %}
+                  {% include "core/_button.html" with href=previous_unit_url label="← "|add:previous_title variant="secondary" compact=True aria_label="Previous unit: "|add:previous_title %}
+                {% endwith %}
               {% endif %}
 
               <div class="unit-navigation-next">
                 {% if next_unit %}
                   {% url 'unit' course_family.slug cohort.identifier module.slug next_unit.slug as next_unit_url %}
-                  {% include "core/_button.html" with href=next_unit_url label=next_unit.title|add:" →" variant="secondary" compact=True aria_label="Next unit: "|add:next_unit.title %}
+                  {% with next_title=next_unit.title|unit_display_title %}
+                    {% include "core/_button.html" with href=next_unit_url label=next_title|add:" →" variant="secondary" compact=True aria_label="Next unit: "|add:next_title %}
+                  {% endwith %}
                 {% else %}
                   {% url 'homework' course_family.slug cohort.identifier module.terminal_homework.slug as homework_url %}
                   {% include "core/_button.html" with href=homework_url label="Continue to homework →" variant="primary" compact=True aria_label="Continue to homework: "|add:module.terminal_homework.title %}
