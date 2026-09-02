@@ -29,10 +29,15 @@ def visible_course_list_queryset():
     homework_count = Count("homework", distinct=True)
     project_count = Count("project", distinct=True)
     learner_count = Count("enrollment", distinct=True)
+    # The cohort's own module rows, imported from its curriculum source.  A public page
+    # that says how many modules a cohort has must read it here: editorial copy carrying a
+    # hand-written module count is how the homepage came to advertise the 2025 curriculum.
+    module_count = Count("modules", distinct=True)
     courses = courses.annotate(
         homework_count=homework_count,
         project_count=project_count,
         learner_count=learner_count,
+        module_count=module_count,
     )
     courses = courses.select_related("course").prefetch_related(
         "homework_set", "project_set"

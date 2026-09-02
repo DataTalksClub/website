@@ -1,3 +1,5 @@
+import hashlib
+import json
 import re
 from datetime import timedelta
 from pathlib import Path
@@ -31,36 +33,94 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 ADOPTED_COURSE_LIST_TEMPLATE = (REPO_ROOT / "courses/templates/courses/course_list.html").resolve()
 ADOPTED_COURSE_DETAIL_TEMPLATE = (REPO_ROOT / "courses/templates/courses/course.html").resolve()
 
+CURRICULUM_2026 = REPO_ROOT / "core/tests/data/ai_dev_tools_zoomcamp_2026"
+
 
 class FeaturedBuildPanelTests(TestCase):
-    """The mint "What you'll build" panel may only claim what the course teaches.
+    """The mint "What you'll build" panel may only claim what the featured cohort teaches.
 
-    The panel once advertised a multi-agent/RAG curriculum and "small groups of 6-8
-    people"; none of that describes the AI Dev Tools Zoomcamp.  Every bullet is now
-    anchored to a phrase in the course's own curriculum page, so a future edit that
-    drifts back into invented marketing copy fails here instead of shipping.
+    Two generations of wrong copy have shipped here.  The first advertised a
+    multi-agent/RAG curriculum and "small groups of 6-8 people", which describes no
+    DataTalks.Club course.  The second described the 2025 edition -- "six modules", a
+    coding agent you build, n8n automation -- because it was anchored to the course-wide
+    docs page ``/docs/courses/ai-dev-tools-zoomcamp/curriculum/``, which still enumerates
+    the 2025 modules.
+
+    So the anchor is the featured cohort's own curriculum, not the course's: the four
+    module lessons of ``cohorts/2026/`` copied verbatim into ``core/tests/data/`` with
+    their revision and checksums.  Every clause the panel states is pinned to a phrase
+    those lessons contain, so copy that drifts back into marketing -- or back into a
+    previous edition -- fails here instead of shipping.
     """
 
-    CURRICULUM_PATH = "/docs/courses/ai-dev-tools-zoomcamp/curriculum/"
+    # The panel's sentence, and the phrases the 2026 lessons state it from.
+    SUMMARY_SOURCE_ANCHORS = (
+        ("01-ai-native-workflow", "AI-Native Development"),
+        (
+            "01-ai-native-workflow",
+            "we take a vague product idea through specification and context",
+        ),
+        ("02-development", "you build a working end-to-end application with AI assistance"),
+        ("03-deployment", "Test, Containerize, and Deploy an AI-Assisted App"),
+        ("04-devops", "DevOps and Observability for AI-Built Apps"),
+    )
 
-    # Each build item, and a phrase its module's curriculum entry actually contains.
+    # Each build item, the 2026 module it comes from, and phrases that module's lesson
+    # actually contains.  One item per module, in module order.
     BUILD_ITEM_SOURCE_ANCHORS = (
         (
-            "a full app with a frontend, backend, and database, deployed with CI/CD",
-            "Build a full app (frontend, backend, database) with a coding assistant",
+            "a Django app built from a specification, with the AI tool of your choice",
+            "01-ai-native-workflow",
+            (
+                "Build a Django app with the AI tool of your choice",
+                "we take a vague product idea through specification and context",
+            ),
         ),
         (
-            "your own coding agent that scaffolds and extends a Django project",
-            "Build your own coding agent that scaffolds and extends a Django project",
+            "a full-stack app with a frontend, a backend, an OpenAPI contract, "
+            "and data persisted in SQLite",
+            "02-development",
+            (
+                "a frontend and a backend that talk to each other over a defined contract, "
+                "with data persisted in SQLite",
+                "Define an OpenAPI contract as the source of truth between frontend and backend",
+            ),
         ),
         (
-            "task automations with n8n, such as creating LinkedIn posts",
-            "Automate tasks with n8n",
+            "the same app containerized, integration-tested, and deployed at a public URL",
+            "03-deployment",
+            (
+                "Containerize the app with a multi-stage Dockerfile and Docker Compose",
+                "Write integration tests that hit a real database",
+                "The app should be deployed at a public URL",
+            ),
         ),
         (
-            "a complete application of your own, end to end, as the final project",
-            "Build a complete application of your own using AI tools, end to end",
+            "an observability stack, an alert on real user impact, "
+            "and an agent as first line of support",
+            "04-devops",
+            (
+                "The concrete stack is OpenTelemetry into Prometheus, Loki, and Tempo, "
+                "with Grafana on top",
+                "Write one alert that represents real user impact",
+                "put an agent inside that loop as the first line of support",
+            ),
         ),
+    )
+
+    # Claims that belong to the 2025 edition (cohorts/2025) and to the invented copy before
+    # it.  None of them may reappear in the panel.
+    RETIRED_CLAIMS = (
+        "6–8",
+        "6-8",
+        "small groups",
+        "RAG evaluation",
+        "multi-agent",
+        "Six modules",
+        "six modules",
+        "n8n",
+        "coding agent that scaffolds",
+        "low-code",
     )
 
     def setUp(self) -> None:
@@ -68,42 +128,94 @@ class FeaturedBuildPanelTests(TestCase):
         super().setUp()
         build_reviewed_catalog()
 
-    def _curriculum_body(self) -> str:
-        for page in docs_projection()["pages"]:
-            if page["public_path"] == self.CURRICULUM_PATH:
-                return str(page["body"])
-        self.fail(f"The docs projection has no {self.CURRICULUM_PATH} page.")
+    def _module_lessons(self) -> dict[str, str]:
+        """Return each checked-in 2026 module lesson, whitespace-normalised for matching.
 
-    def test_the_featured_summary_is_grounded_in_the_course_curriculum_page(self) -> None:
-        """The panel's own sentence is held to the same standard as its bullets.
-
-        It previously claimed the course runs "over four modules" and produces "a
-        specification and a groomed backlog", which the curriculum page states nowhere.
+        The lessons are prose wrapped at the source's own column, so a sentence is only a
+        contiguous string once its line breaks are collapsed.
         """
 
-        body = self._curriculum_body()
-        self.assertIn("six modules plus a final project", body)
-        self.assertIn("Six modules and a final project", FEATURED_COHORT_SUMMARY)
-        for invented in ("four modules", "groomed backlog", "specification"):
-            with self.subTest(invented=invented):
-                self.assertNotIn(invented, FEATURED_COHORT_SUMMARY)
+        manifest = json.loads((CURRICULUM_2026 / "SOURCE.json").read_text())
+        lessons: dict[str, str] = {}
+        for module in manifest["modules"]:
+            raw = (CURRICULUM_2026 / str(module["file"])).read_bytes()
+            self.assertEqual(
+                hashlib.sha256(raw).hexdigest(),
+                module["sha256"],
+                f"{module['source_path']} no longer matches its recorded checksum.",
+            )
+            lessons[str(module["slug"])] = " ".join(raw.decode().split())
+        return lessons
+
+    def test_the_checked_curriculum_copy_is_the_2026_cohort(self) -> None:
+        """The anchor source is the featured cohort's curriculum, pinned and identified."""
+
+        manifest = json.loads((CURRICULUM_2026 / "SOURCE.json").read_text())
+
+        self.assertEqual(
+            manifest["source"]["repository"],
+            "https://github.com/DataTalksClub/ai-dev-tools-zoomcamp",
+        )
+        self.assertEqual(manifest["source"]["cohort_path"], "cohorts/2026")
+        self.assertRegex(manifest["source"]["revision"], r"^[0-9a-f]{40}$")
+        self.assertEqual(
+            tuple(str(module["slug"]) for module in manifest["modules"]),
+            ("01-ai-native-workflow", "02-development", "03-deployment", "04-devops"),
+        )
+        lessons = self._module_lessons()
+        for module in manifest["modules"]:
+            with self.subTest(module=module["slug"]):
+                self.assertTrue(str(module["source_path"]).startswith("cohorts/2026/"))
+                self.assertIn(f"# {module['title']}", lessons[str(module["slug"])])
+
+    def test_the_featured_summary_is_grounded_in_the_2026_module_lessons(self) -> None:
+        """The panel's own sentence is held to the same standard as its bullets."""
+
+        lessons = self._module_lessons()
+        for module, anchor in self.SUMMARY_SOURCE_ANCHORS:
+            with self.subTest(anchor=anchor):
+                self.assertIn(anchor, lessons[module])
+        for retired in self.RETIRED_CLAIMS:
+            with self.subTest(retired=retired):
+                self.assertNotIn(retired, FEATURED_COHORT_SUMMARY)
+        # The module count is a database fact rendered beside the homework and project
+        # counts; a sentence that states its own count is what shipped the 2025 curriculum.
+        self.assertNotIn("module", FEATURED_COHORT_SUMMARY)
 
         response = self.client.get(reverse("home"))
 
         self.assertContains(response, escape(FEATURED_COHORT_SUMMARY))
-        self.assertNotContains(response, "Over four modules")
 
-    def test_every_build_item_is_grounded_in_the_course_curriculum_page(self) -> None:
-        body = self._curriculum_body()
+    def test_every_build_item_is_grounded_in_its_2026_module_lesson(self) -> None:
+        lessons = self._module_lessons()
         self.assertEqual(
             FEATURED_BUILD_ITEMS,
-            tuple(item for item, _anchor in self.BUILD_ITEM_SOURCE_ANCHORS),
+            tuple(item for item, _module, _anchors in self.BUILD_ITEM_SOURCE_ANCHORS),
         )
-        for item, anchor in self.BUILD_ITEM_SOURCE_ANCHORS:
-            with self.subTest(item=item):
-                self.assertIn(anchor, body)
+        for item, module, anchors in self.BUILD_ITEM_SOURCE_ANCHORS:
+            for anchor in anchors:
+                with self.subTest(item=item, anchor=anchor):
+                    self.assertIn(anchor, lessons[module])
 
-    def test_the_panel_renders_the_build_items_and_no_group_size_claim(self) -> None:
+    def test_the_stale_course_docs_curriculum_is_not_the_panel_source(self) -> None:
+        """The docs page this panel used to read still describes the 2025 edition.
+
+        It is a course-wide page, not a cohort page, and DataTalksClub/docs has not
+        refreshed it for 2026.  Pin that here so the drift is visible rather than
+        rediscovered by copying from it again.
+        """
+
+        body = ""
+        for page in docs_projection()["pages"]:
+            if page["public_path"] == "/docs/courses/ai-dev-tools-zoomcamp/curriculum/":
+                body = str(page["body"])
+        self.assertIn("six modules plus a final project", body)
+        self.assertIn("Automate tasks with n8n", body)
+        for item in FEATURED_BUILD_ITEMS:
+            with self.subTest(item=item):
+                self.assertNotIn(item, body)
+
+    def test_the_panel_renders_the_build_items_and_no_retired_claim(self) -> None:
         response = self.client.get(reverse("home"))
 
         self.assertEqual(response.status_code, 200)
@@ -113,9 +225,11 @@ class FeaturedBuildPanelTests(TestCase):
 
         body = response.content.decode()
         self.assertNotIn("build-note", body)
-        for retired in ("6–8", "6-8", "small groups", "RAG evaluation", "multi-agent"):
+        panel = body[body.index("data-featured-course") :]
+        panel = panel[: panel.index("catalog-scroller")]
+        for retired in self.RETIRED_CLAIMS:
             with self.subTest(retired=retired):
-                self.assertNotIn(retired, body)
+                self.assertNotIn(retired, panel)
 
 
 class CatalogCardTests(TestCase):
@@ -201,9 +315,7 @@ class MainHomepageRoutingTests(TestCase):
         # The featured call to action goes to the cohort's own database-backed course
         # page, the same route the catalogue cards use.  The hardcoded per-cohort
         # landing route it used to point at has been removed.
-        featured = next(
-            entry for entry in course_catalog() if entry.family == FEATURED_FAMILY
-        )
+        featured = next(entry for entry in course_catalog() if entry.family == FEATURED_FAMILY)
         self.assertContains(response, f'href="{featured.public_path}"')
         self.assertContains(response, "View the syllabus")
         self.assertContains(response, "all courses →")

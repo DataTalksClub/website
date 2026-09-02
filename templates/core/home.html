@@ -272,9 +272,33 @@
       /* Keep the supporting catalogue visually separate from the featured
          course instead of letting two heavy card outlines touch. */
       .catalog-scroller {
-        margin-inline: 0;
         margin-top: 1.25rem;
-        padding-inline: 0;
+      }
+
+      /* Both strips are scroll containers, and `overflow-x: auto` clips on both
+         axes -- a neighbouring `overflow-y: visible` computes to `auto` -- so a
+         card that moves left has nowhere to go.  The shared primitive already
+         buys that room: it pays an inline gutter and cancels it again with an
+         equal negative margin, so the cards still line up with the featured
+         panel and the arrows under them.
+
+         That gutter was inert.  `scroll-snap-align: start` measures against the
+         snapport, which is the scrollport reduced by `scroll-padding`, and
+         `scroll-padding` defaults to zero -- so the first card snapped its left
+         edge to the *padding* edge, spending the whole gutter and coming to rest
+         flat against the clipping boundary, six pixels left of the shell.  The
+         catalogue had answered that by zeroing the gutter, which recovered the
+         alignment but left `.interactive-lift`'s `translate: -2px -2px` on hover
+         and keyboard focus to be cropped off the first card.
+
+         Declaring the same length as `scroll-padding` puts the snapport on the
+         content box, so the resting card is aligned *and* inset, and the lift
+         has room at every width.  The length mirrors the shared scroller
+         padding in `core/_design_system.html`; the browser test asserts the two
+         stay equal rather than trusting the constant. */
+      .catalog-scroller,
+      .stories-scroller {
+        scroll-padding-inline: 0.4rem;
       }
 
       .catalog-scroller-controls {
@@ -1012,12 +1036,18 @@
               </p>
               <p class="featured-desc">{{ featured_cohort_summary }}</p>
               {% comment %}
-                Both counts are the coursework the selected cohort actually holds in the
-                database, so a clause is dropped rather than shown as zero: the 2026 AI
-                Dev Tools cohort has homework but no project rows yet, and "0 projects"
-                would read as a promise of none.
+                Every count is the curriculum and coursework the selected cohort actually
+                holds in the database, so a clause is dropped rather than shown as zero:
+                a cohort whose modules are not imported yet says nothing about modules,
+                and "0 projects" would read as a promise of none.  The module count lives
+                here, not in the editorial summary above: a hand-written count is what let
+                the panel keep advertising the previous edition's curriculum.
               {% endcomment %}
               <p class="featured-meta">
+                {% if featured_catalog_entry.module_count %}
+                  {{ featured_catalog_entry.module_count }}
+                  module{{ featured_catalog_entry.module_count|pluralize }} ·
+                {% endif %}
                 {% if featured_catalog_entry.homework_count %}
                   {{ featured_catalog_entry.homework_count }} homework
                   assignment{{ featured_catalog_entry.homework_count|pluralize }} ·

@@ -8,9 +8,11 @@ would silently assert the pin rather than the behaviour under test.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import UTC, date, datetime, timedelta
 
 from courses.models.cohort import Cohort, Course
+from courses.models.curriculum import Module
 from courses.models.homework import Homework
 from courses.models.project import Project
 
@@ -27,6 +29,18 @@ def make_family(slug: str, title: str, *, visible: bool = True) -> Course:
     return family
 
 
+def drop_cohort(slug: str) -> None:
+    """Delete one cohort and the curriculum that protects it.
+
+    ``Module.terminal_homework`` is ``PROTECT``, so a cohort that carries modules cannot
+    be deleted homework-first.  Tests that replace a fixture cohort use this instead of
+    deleting the row directly.
+    """
+
+    Module.objects.filter(cohort__slug=slug).delete()
+    Cohort.objects.filter(slug=slug).delete()
+
+
 def make_cohort(
     family: Course,
     year: int,
@@ -37,7 +51,17 @@ def make_cohort(
     start_date: date | None = None,
     homework_count: int = 0,
     project_count: int = 0,
+    module_titles: Sequence[str] = (),
 ) -> Cohort:
+    """Build one cohort, optionally with the modules its curriculum source defines.
+
+    ``module_titles`` is opt-in and defaults to none, so a cohort is module-less unless a
+    caller states the curriculum it stands for.  Each module needs a terminal homework, so
+    a caller asking for modules must ask for at least as many homeworks.
+    """
+
+    if len(module_titles) > homework_count:
+        raise ValueError("A module-format cohort needs one homework per module.")
     cohort = Cohort.objects.create(
         course=family,
         slug=slug or f"{family.slug}-{year}",
@@ -49,12 +73,22 @@ def make_cohort(
         start_date=start_date or date(year, 8, 31),
     )
     due = datetime(year, 9, 30, 12, 0, tzinfo=UTC)
-    for index in range(homework_count):
+    homeworks = [
         Homework.objects.create(
             course=cohort,
             slug=f"{cohort.slug}-hw{index + 1}",
             title=f"Homework {index + 1}",
             due_date=due + timedelta(days=index),
+        )
+        for index in range(homework_count)
+    ]
+    for index, module_title in enumerate(module_titles):
+        Module.objects.create(
+            cohort=cohort,
+            position=index,
+            slug=f"{index + 1:02d}-module",
+            title=module_title,
+            terminal_homework=homeworks[index],
         )
     for index in range(project_count):
         Project.objects.create(
@@ -89,6 +123,15 @@ def build_reviewed_catalog() -> dict[str, Cohort]:
         start_date=date(2026, 8, 31),
         homework_count=4,
         project_count=0,
+        # The four modules of ``cohorts/2026`` in DataTalksClub/ai-dev-tools-zoomcamp, in
+        # the cohort's own order.  The homepage's featured panel counts modules from the
+        # database, so this dataset has to carry the curriculum it advertises.
+        module_titles=(
+            "AI-Native Developer Workflow",
+            "Build and Ship an AI-Assisted Full-Stack App",
+            "Test, Containerize, and Deploy an AI-Assisted App",
+            "DevOps and Observability for AI-Built Apps",
+        ),
     )
     for slug, title, newest_year, start in (
         ("de-zoomcamp", "Data Engineering Zoomcamp", 2026, date(2026, 1, 26)),

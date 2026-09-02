@@ -21,7 +21,12 @@ from django.urls import reverse
 from content.public_data import public_projection
 from core.home_content import FEATURED_FAMILY, course_catalog
 from courses.models.cohort import Cohort, Course
-from test_support.course_catalog import build_reviewed_catalog, make_cohort, make_family
+from test_support.course_catalog import (
+    build_reviewed_catalog,
+    drop_cohort,
+    make_cohort,
+    make_family,
+)
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 PROJECTION_COURSES = REPOSITORY_ROOT / "content/public_projection/courses.json"
@@ -184,8 +189,38 @@ class HomepageCourseRenderingTests(TestCase):
         self.assertIn("certificate of completion", featured)
         self.assertEqual(body.count("data-featured-course"), 1)
 
+    def test_the_featured_panel_counts_modules_from_the_database(self) -> None:
+        """The advertised module count follows the cohort's imported curriculum.
+
+        The panel's editorial summary once carried a hand-written "Six modules", taken
+        from the previous edition's docs page, while the database held the 2026 cohort's
+        four.  The count is a database fact now, so the two cannot disagree.
+        """
+
+        body = self.client.get(reverse("home")).content.decode()
+        featured = body[body.index("data-featured-course") :]
+        featured = " ".join(featured[: featured.index("catalog-scroller")].split())
+
+        self.assertIn("4 modules ·", featured)
+        self.assertNotIn("Six modules", featured)
+
+    def test_the_featured_panel_omits_a_module_count_the_database_lacks(self) -> None:
+        """A cohort whose curriculum is not imported yet claims no modules at all."""
+
+        drop_cohort("ai-dev-tools-zoomcamp-2026")
+        family = Course.objects.get(slug="ai-dev-tools-zoomcamp")
+        make_cohort(family, 2026, start_date=date(2026, 8, 31), homework_count=4)
+
+        body = self.client.get(reverse("home")).content.decode()
+        featured = body[body.index("data-featured-course") :]
+        featured = " ".join(featured[: featured.index("catalog-scroller")].split())
+
+        self.assertNotIn("0 module", featured)
+        self.assertNotIn("module", featured)
+        self.assertIn("4 homework assignments", featured)
+
     def test_the_featured_panel_makes_a_single_count_singular(self) -> None:
-        Cohort.objects.filter(slug="ai-dev-tools-zoomcamp-2026").delete()
+        drop_cohort("ai-dev-tools-zoomcamp-2026")
         family = Course.objects.get(slug="ai-dev-tools-zoomcamp")
         make_cohort(family, 2026, start_date=date(2026, 8, 31), homework_count=1, project_count=1)
 
@@ -256,4 +291,3 @@ class CourseSitemapSourceTests(TestCase):
 
         records = json.loads(PROJECTION_COURSES.read_text(encoding="utf-8"))
         self.assertEqual(len(records), 12)
-

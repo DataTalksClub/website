@@ -56,44 +56,56 @@ FEATURED_COHORT_ROUTE_NAME = "course-cohort-ai-dev-tools-2026"
 # nor ``Course.description`` (raw README markup carrying external image tags and
 # courses.datatalks.club links) may be rendered in its place.
 #
-# The summary is written from the course's own curriculum page,
+# THE SOURCE IS THE COHORT THIS PANEL ADVERTISES, AND ONLY THAT COHORT.  The featured
+# cohort is AI Dev Tools Zoomcamp 2026, whose curriculum is the four module lessons in
+# ``cohorts/2026/`` of DataTalksClub/ai-dev-tools-zoomcamp.  Those are the same lessons the
+# site imports into ``courses.Module``/``courses.Unit`` and renders on the cohort's course
+# page, so the panel and the page it links to describe one curriculum.  A verbatim copy is
+# checked in at ``core/tests/data/ai_dev_tools_zoomcamp_2026/`` with its revision and
+# per-file checksums, and ``core.tests.test_homepage`` pins every clause below to a phrase
+# that copy actually contains.
+#
+# This replaces copy that described the 2025 edition: "six modules", a coding agent you
+# build yourself, and n8n automation are ``cohorts/2025/`` (modules 01-overview through
+# 06-automation-lowcode).  It was taken in good faith from
 # ``courses/ai-dev-tools-zoomcamp/curriculum.md`` in DataTalksClub/docs (projected into
-# `content/docs_projection.json` and served at
-# /docs/courses/ai-dev-tools-zoomcamp/curriculum/), the same source FEATURED_BUILD_ITEMS
-# is anchored to.  It replaces the sentence this panel carried while it read
-# ``content/review_projection.json``, which claimed the course runs "over four modules"
-# and produces "a specification and a groomed backlog".  The curriculum says six modules
-# plus a final project and describes neither artefact, so that sentence was false; the
-# identical claim survives in the pinned ``content/public_projection/articles.json``
-# ("Across four modules"), which this issue does not touch.
+# ``content/docs_projection.json`` at revision 3f23e006 and served at
+# /docs/courses/ai-dev-tools-zoomcamp/curriculum/), which still enumerates the 2025 modules
+# and is therefore not a source for the 2026 cohort.  Do not anchor this panel to a
+# course-wide docs page again; anchor it to the cohort's own modules.
+#
+# The module count is deliberately absent from this sentence.  It is a database fact
+# (``CatalogCourse.module_count``) rendered next to the homework and project counts, so it
+# cannot drift from the curriculum the site actually holds -- which is how the "six
+# modules" claim survived here in the first place.
 FEATURED_COHORT_FORMAT = "Online"
 FEATURED_COHORT_SUMMARY = (
-    "Six modules and a final project on AI-native software engineering: build and deploy "
-    "a full app with a coding assistant, build your own coding agent, and automate "
-    "everyday work with low-code AI tools."
+    "AI-native development: take a vague product idea through specification, build a "
+    "working end-to-end application with AI assistance, then deploy and operate it with "
+    "observability."
 )
 
-# What the featured cohort's mint panel promises you will build.
+# What the featured cohort's mint panel promises you will build: one artefact per 2026
+# module, in module order, each traceable to that module's own lesson (see the source note
+# above).  The framing is "What you'll build", so each item is something a learner ends up
+# holding, not a topic the module covers.
 #
-# These four items are taken from the AI Dev Tools Zoomcamp's own curriculum page,
-# `courses/ai-dev-tools-zoomcamp/curriculum.md` in DataTalksClub/docs (projected into
-# `content/docs_projection.json` and served at
-# /docs/courses/ai-dev-tools-zoomcamp/curriculum/).  Only the modules whose curriculum
-# entry actually says you *build* something are listed, one bullet each: module 2
-# (end-to-end project), module 4 (build a coding agent), module 6 (automation with n8n),
-# and the final project.  Modules 1, 3, and 5 teach tools and practices rather than
-# producing an artefact, so they are deliberately not claimed here.
+# There is no final-project item.  The 2026 cohort definition (``cohorts/2026/cohort.yaml``)
+# and cohort README list these four modules and their four homeworks and nothing else; the
+# repository's ``project/README.md`` marks the 2026 project requirements as a draft that may
+# still change.  The panel does not promise coursework the cohort has not committed to, and
+# the cohort's real project rows are counted from the database beside it.
 #
-# Do not add an item that the curriculum page does not state.  The previous copy
-# ("multi-agent system that researches and writes", "RAG evaluation with dashboards",
-# "agents with memory and tools", "deployment with monitoring") described no DataTalks.Club
-# course at all and was removed as factually false, together with a "small groups of 6–8
-# people" note that the course does not offer.
+# Do not add an item the 2026 lessons do not state.  Two generations of invented copy have
+# already shipped here: a multi-agent/RAG curriculum belonging to no DataTalks.Club course
+# at all (with a "small groups of 6-8 people" note the course does not offer), and then the
+# 2025 curriculum described as if it were the 2026 one.
 FEATURED_BUILD_ITEMS: tuple[str, ...] = (
-    "a full app with a frontend, backend, and database, deployed with CI/CD",
-    "your own coding agent that scaffolds and extends a Django project",
-    "task automations with n8n, such as creating LinkedIn posts",
-    "a complete application of your own, end to end, as the final project",
+    "a Django app built from a specification, with the AI tool of your choice",
+    "a full-stack app with a frontend, a backend, an OpenAPI contract, "
+    "and data persisted in SQLite",
+    "the same app containerized, integration-tested, and deployed at a public URL",
+    "an observability stack, an alert on real user impact, and an agent as first line of support",
 )
 
 # The wiki hub the graph is drawn around, and the direct relations it is drawn to.  Every
@@ -142,6 +154,7 @@ class CatalogCourse:
     cohort_label: str
     homework_count: int
     project_count: int
+    module_count: int = 0
     cohort_title: str = ""
     start_date: date | None = None
 
@@ -331,6 +344,7 @@ def course_catalog() -> tuple[CatalogCourse, ...]:
                 cohort_label=f"{cohort.year} cohort",
                 homework_count=int(cohort.homework_count),
                 project_count=int(cohort.project_count),
+                module_count=int(getattr(cohort, "module_count", 0) or 0),
                 cohort_title=str(cohort.title),
                 start_date=cohort.start_date,
             )
