@@ -119,13 +119,16 @@ critical path)** · D15 Relay sandbox data (clean start recommended) — §3.2.
 
 - E.1 **[P]** = step 0.6 (SES production access)
 - E.3 **[P]** **[B:D14 hand-off]** `main/relay` root; bind to the `datatalks.club` identity + a
-  Relay-owned configuration set; **observability on the django-website injected-alarm contract,
-  decided before the Terraform is written** (sandbox stacks' empty-topic bug not copied); deploy dark
+  Relay-owned configuration set; **outbound-only — inbound stays unconfigured (audit key
+  mitigation)**; `--memory` limits (1 GiB host); backups = part of done (C3); **observability on
+  the django-website injected-alarm contract, decided before the Terraform is written**; deploy dark
 - E.4 Clean-start the data volume (D15); sandbox Relay stays as dev Relay
-- E.5 GATE — **[B:code audit]** (still running) + observability assessment **delivered**: E.5b
-  must-do list items 1–9; items 1 + 1b (< 1 day) move Relay to 15-min detection
-- E.6 **[B:E.5]** Battle-testing ramp, stages 0–4; hard precondition: CMP's email canary +
-  `outbox_*` alarms re-pointed at Relay, live subscriber proven; abort 3% bounce / 0.08% complaint
+- E.5 GATE — both assessments **delivered**; **[B:remediation]**: code audit verdict "not ready
+  to send production email" — minimum fix list C1–C4 + H2 + H5 via groomed issues (E.5a); plus
+  observability items 1–9 (E.5b; 1 + 1b < 1 day → 15-min detection)
+- E.6 **[B:E.5a minimum list]** Ramp: stage −1 shadow week (`dry_run` at volume), then stages
+  0–4; hard precondition: canary + `outbox_*` alarms re-pointed at Relay, live subscriber
+  proven; abort 3% bounce / 0.08% complaint
 - E.7 Datamailer stays read-only; fixes the 7.4 teardown order
 
 **Phase 7 — decommission and harvest (CLEANUP; after all rollback windows)** — details §12
@@ -320,7 +323,9 @@ State-root ownership when the dust settles:
   sending (`app-boundaries.md:66`; spec 09:143), **no spec amendment is needed and no interim
   exception exists**; Datamailer stays read-only migration/history/reconciliation input. The
   owner attached two conditions — a code audit and sufficient operational visibility — which
-  gate production sending (§11E E.5, BLOCKED pending commissioned audit results).
+  gate production sending. Both commissioned assessments have since landed — the code audit's
+  verdict is "not ready to send production email" — so the gate is now the E.5a/E.5b
+  remediation lists (§11E E.5, BLOCKED(remediation)).
 
 ### 3.2 Still open — each blocks the steps that reference it
 
@@ -371,7 +376,10 @@ State-root ownership when the dust settles:
   volume holds Relay's PostgreSQL (templates, delivery/event records — all test-era,
   `sandbox/relay/README.md:13-15`). **Recommendation: clean start** (§11E E.4) — re-publish
   production templates through Relay's own draft/publish flow; migrate nothing. Owner confirms
-  or names data worth carrying.
+  or names data worth carrying. Audit interaction (C3, §11E E.5a): clean start is fine
+  precisely because sandbox data is disposable — but the *production* volume will hold the
+  non-reconstructible suppression list, so a backup/restore story is part of `main/relay`'s
+  definition of done before any real sending, not an afterthought.
 
 ---
 
@@ -401,7 +409,7 @@ Phase 5  Anonymous edge caching                            ── needs 4 (deplo
 Phase 6  courses.: maintenance Lambda → website edge →     ── a) anytime after rehearsal;
          redirect Lambda                                       b/c) gated by spec 09 M4–M8
 Phase E  Email: Relay sandbox → main (eu-west-1), audited  ── parallel lane; E.1 SES check in
-         and battle-tested; Datamailer stays read-only         Phase 0; E.5 audit gate BLOCKED
+         and battle-tested; Datamailer stays read-only         Phase 0; E.5 BLOCKED(remediation)
 Phase 7  Decommission CMP + GitHub Pages + legacy S3 (after   ── after rollback windows close;
          its window) + sandbox Relay → sandbox Datamailer →      7.0 SES hand-off precedes 7.1
          sandbox/website (E.7 order)
@@ -1058,7 +1066,9 @@ consequential code difference is the API-key prefix (`mailing/services/auth.py:9
 task+schedule API, vendored `taskdeck`, per-task IAM role assumption, a readiness probe, and a
 containerized gunicorn deploy with a post-deploy smoke test (`scripts/smoke_test_relay.py`)
 that Datamailer lacks. Both test suites pass — Datamailer 493, Relay 520, a strict superset —
-so the owner's "never been tested" premise does not hold as stated. What *is* true, and what
+so the owner's "never been tested" premise does not hold as stated, though the delivered code
+audit qualifies the comfort: at least the retry-critical send path has passing tests that cover
+dead code rather than the live path (E.5a C1). What *is* true, and what
 this phase manages: **Relay has zero real clients and has never carried live traffic.** The
 risk is "unproven under real load", not "untested code" — and the shared `mailing/` engine
 *is* production-exercised today through CMP's Datamailer path, which narrows the genuinely
@@ -1166,9 +1176,25 @@ deliberate differences:
   CMP-era VPC’s blast radius; acceptable for one small host, and one less VPC to own.
 - **DNS:** `relay.datatalks.club` — record in `main/dns` after Phase 1 (or at GoDaddy if E runs
   first; the hostname has no email-authentication role).
-- **Inbound mail:** optional. Sandbox receives `relay@inbound.relay.dtcdev.click` to S3; a main
-  equivalent needs its own MX decision and is **not** required for sending — default: omit.
-- **Deploy:** same OIDC/SSM pattern, trust re-pinned to the main account.
+- **Inbound mail: OFF in production — a requirement, not a default (audit key mitigation,
+  E.5a).** Leave `SQS_INBOUND_EMAIL_QUEUE_URL` and `INBOUND_EMAIL_ROUTES` unset and create no
+  inbound MX/receipt resources in `main/relay`. This keeps the entire measured inbound-DoS
+  class (C5, C6, H8–H12) dormant: with the serial single-worker design, inbound email is a
+  remote, unauthenticated DoS against *outbound* email. Enabling inbound later is a separately
+  gated project with its own fix list (E.5a "before enabling inbound").
+- **Host sizing and containment:** the host is a `t4g.micro` with **1 GiB RAM** (the sandbox
+  deploy assumed 2 GB); declare `--memory` limits on every container so any OOM is contained
+  rather than host-wide, and revisit instance size against measured outbound load during E.6.
+- **Backups (audit C3):** scheduled EBS/data snapshots plus one rehearsed restore are part of
+  this root's definition of done — the volume will hold the suppression list, which is not
+  reconstructible and protects the SES reputation thresholds.
+- **Deploy:** same OIDC/SSM pattern, trust re-pinned to the main account — but note audit
+  **C4: no production deploy path exists yet**; building it is part of the minimum gate.
+- **Verification items inherited from the audit's could-not-assess list:** confirm live queue
+  redrive (`maxReceiveCount`, `VisibilityTimeout`, DLQ wiring), IAM scoping, `DEBUG` off,
+  signature-verification mode, absence of demo API keys in the production DB, the Cognito
+  pool's self-signup setting, real SES account state, and botocore's retry classification for
+  `SendEmail` — none of these is assumed safe.
 - **Observability wiring — decide BEFORE writing the Terraform (time-sensitive, from the E.5b
   assessment):** do **not** copy the sandbox stacks' alarm plumbing. Both carry an inherited
   empty-topic bug — `alarm_email = ""` default with `count = var.alarm_email == "" ? 0 : 1`
@@ -1211,29 +1237,101 @@ history has no production value. Queues are ephemeral — drain sandbox before r
 sandbox stack stays running as the *development* Relay (CMP dev and website dev keep pointing at
 `relay.dtcdev.click`) until the sandbox teardown, whose internal ordering E.7 constrains.
 
-### E.5 GATE — code audit + observability. **BLOCKED(code audit)** — observability delivered
+### E.5 GATE — both assessments delivered. **BLOCKED(remediation)**
 
 Owner: "1) audit the code 2) make sure that we have enough visibility to fix things quickly."
-Two assessments were commissioned against `/home/alexey/git/relay`:
+Both commissioned assessments of `/home/alexey/git/relay` have now landed (2026-09-02):
 
-- **(a) adversarial code audit — still running:** correctness of the send/event/inbound
-  pipelines; secrets; authentication — an unauthenticated send endpoint would be an open relay;
-  SNS signature verification on the webhook drain; MIME parsing safety; idempotency under SQS
-  at-least-once redelivery; backup/restore of the single-EBS PostgreSQL; SES rate-limit and
-  suppression handling. Findings will be appended here when delivered.
-- **(b) observability assessment — DELIVERED (2026-09-02), verdict and must-do list in E.5b.**
+- **(a) adversarial code audit — DELIVERED. Verdict: NOT ready to send production email.**
+  Findings and the revised gate in E.5a.
+- **(b) observability assessment — DELIVERED.** Verdict and must-do list in E.5b.
 
-The fork finding (§11E intro) focuses rather than shrinks the code audit: the shared `mailing/`
-engine inherits Datamailer's production exposure, so audit attention concentrates on Relay's
-~4,200 added lines (`jobs/` task API, vendored `taskdeck`, per-task IAM assumption, deploy) and
-on properties no test suite settles (open-relay/auth posture at the edge, SNS signature
-verification, backup/restore of the single-EBS PostgreSQL, SES limit/suppression behavior).
+**The gate is now real remediation work, not assessment-waiting.** Production sending (E.6)
+does not begin until E.5a's minimum fix list is closed and E.5b's pre-production items are
+done. E.3 infrastructure may proceed in parallel (deployed dark, send-disabled); E.6 may not
+start. **Every fix below is remediation work that goes through its own groomed issue per
+`_docs/PROCESS.md` — nothing in this runbook authorises skipping that lifecycle or shipping a
+fix unreviewed.**
 
-**Production sending does not begin until (a)'s "must fix before sending production email"
-list is closed AND (b)'s pre-production items below are done.** E.3 infrastructure may proceed
-in parallel (deployed dark, send-disabled); E.6 may not start. Independent of both, one item
-already stands: the single-EBS PostgreSQL needs a scheduled snapshot + one rehearsed restore
-before real delivery records accumulate.
+#### E.5a Code audit — verdict: not ready to send production email
+
+The fork finding (§11E intro) is qualified by the audit, not overturned: the engine is shared
+with production-exercised Datamailer, but the audit found passing tests that cover **dead code
+rather than the live path** on at least the retry-critical send path (C1) — so "both suites
+pass" is weaker assurance than it looked.
+
+**Four original criticals (outbound-relevant):**
+
+- **C1** — no retry on the live send path; the retry tests exercise dead code.
+- **C2** — SNS certificate-URL validation bypass: signature verification is defeatable.
+- **C3** — **no database backup.** Postgres lives on a single EBS volume on a single host; send
+  history and the **suppression list** are not reconstructible. Interacts with D15: clean-start
+  is fine for sandbox data, but production must have a backup/restore story *before* it holds
+  the suppression list — losing suppression risks re-mailing addresses that bounced or
+  complained, feeding directly into the SES reputation abort thresholds (E.6, risk #4).
+- **C4** — no production deploy path.
+
+**The structural finding that reshapes the risk.** `scripts/deploy_relay_sandbox.sh:162` runs
+**one** `db_worker` with a strictly serial loop: inbound mail, ALL outbound transactional and
+campaign sending, and SES webhook handling share one process, one task at a time; no container
+declares a `--memory` limit. Therefore **inbound email is a remote, unauthenticated, zero-cost
+denial of service against outbound email** — inbound is the one input any stranger can supply.
+Measured, not theorised:
+
+- **C5 (critical)** — unbounded MIME part count (`mailing/inbound_mime.py:74-75`,
+  `services/inbound_email.py:33`: full `.read()`, no size check). 500,000 parts from 2.5 MB
+  input → 46 s CPU, **373 MiB RSS** (~150× amplification); SES accepts ~40 MB inbound → ~5.8 GiB
+  projected — against a `t4g.micro` with **1 GiB RAM** (not the 2 GB the deploy assumed). The
+  OOM killer takes `relay-worker`; `--restart unless-stopped` revives it; one such email every
+  few seconds is a sustained total outage of outbound mail.
+- **C6 (critical)** — unknown charset name raises `LookupError` uncaught
+  (`inbound_mime.py:78-87` — `errors="replace"` guards bad bytes, not a bad codec name), and
+  the traceback lands in an **untruncated** `TextField` (`django_tasks_db/models.py:123,248`)
+  with the attacker's charset string embedded verbatim twice. **~25 emails with a 40 MB
+  parameter fill the 2 GB volume and take Postgres read-only.** No prune/retention job exists.
+- **H8** — no cap on attachment count/bytes (~37 bytes per counted part): one 40 MB email →
+  ~1M synchronous S3 PUTs → **~8 hours of blocked worker**, and ~1M billed PUTs.
+- **H9** — routing trusts `To`/`Cc`/**`Bcc`** headers instead of the SES envelope recipient
+  (already collected): one message injects events into every configured route.
+- **H10** — SPF/DKIM/DMARC/spam/virus verdicts are parsed and then **never checked or
+  forwarded**; `sender.addresses` derives from `From:` alone — a spoofed sender with a FAIL
+  virus verdict republishes downstream as authentic, and the v1 contract gives consumers no
+  field to filter on.
+- **H11** — inbound idempotency key is `sha256(message_id + route)` with attacker-controlled
+  `Message-ID` (`services/inbound_email.py:41`): pre-claiming predictable IDs silently discards
+  the real message as `idempotent_replay` — targeted suppression of inbound business mail.
+- **H12** — SQS message deleted immediately after a local DB insert (`sqs_worker.py:40-47`);
+  the real work happens later in `db_worker` with no retry, so **the inbound DLQ is unreachable
+  by construction**, whatever Terraform configures. Zero `logger.` calls exist in `sqs.py`,
+  `ingress.py`, `sqs_worker.py`, `inbound_mime.py`, or `services/inbound_email.py`; an
+  OOM-killed worker leaves the row `RUNNING`, which `ready()` never re-selects.
+
+**THE KEY MITIGATION — the phase is built around it.** Inbound processing runs only when
+`SQS_INBOUND_EMAIL_QUEUE_URL` and `INBOUND_EMAIL_ROUTES` are configured, and `.env.example`
+ships them blank. **Promoting Relay outbound-only — `SQS_INBOUND_EMAIL_QUEUE_URL` left unset in
+production — leaves C5, C6, and H8–H12 dormant.** That is an explicit design decision of E.3,
+the single highest-value constraint available, and it costs nothing (E.3 already omits inbound
+by default; the audit upgrades that from "default" to "requirement").
+
+**Revised gate:**
+
+- Minimum before ANY real mail (E.6 stage 0): **C1, C2, C3, C4, H2, H5** closed (H2 and H5 per
+  the audit's full findings list, which this runbook does not reproduce), plus E.5b items 1+1b+4.
+- Before enabling inbound at all — a later, separately-gated step outside this plan's scope:
+  C5, C6, H8 (input caps *before* parsing: object size, part count, attachment count/bytes,
+  nesting depth), H9, H10, H12, **plus `--memory` limits on every container** so an OOM is
+  contained rather than host-wide.
+- **Shadow period**: one week of real payloads through the already-built `dry_run: true` mode
+  before live sending — exercises rendering and suppression at volume with zero reputation
+  exposure. Added to E.6 as stage −1.
+
+**What the audit could NOT assess** — so this runbook implies no assurance where none exists:
+the external Terraform's live values (queue `maxReceiveCount`, `VisibilityTimeout`, DLQ
+redrive, IAM scoping, alarms), live host state (actual `DEBUG` value, signature-verification
+mode, whether demo API keys exist in the real DB), the Cognito pool's self-signup setting
+(which decides whether finding H4 is critical or benign), real SES account state, and
+botocore's retry classification for `SendEmail`. Each becomes a verification item in E.3/E.6
+rather than an assumed-safe default.
 
 #### E.5b Observability assessment — verdict and pre-production must-do list
 
@@ -1291,14 +1389,17 @@ and composite alarms are an estate-wide gap — zero `aws_cloudwatch_dashboard` 
 
 ### E.6 Battle-testing: a graduated ramp, not a big-bang switch
 
-Preconditions: E.5 gate closed (both assessments); E.1 production access verified; D14 identity
-hand-off done; **E.5b items 1 + 1b done — the alarm topic has a proven live subscriber and
+Preconditions: **E.5a minimum fix list closed — C1, C2, C3, C4, H2, H5, each through its own
+groomed issue** — plus E.1 production access verified; D14 identity hand-off done; production
+config confirmed **outbound-only** (`SQS_INBOUND_EMAIL_QUEUE_URL` unset — E.3/E.5a key
+mitigation); and **E.5b items 1 + 1b done — the alarm topic has a proven live subscriber and
 CMP's 15-minute health probe plus the two `datamailer.outbox_*` alarms are re-pointed at Relay
 before any real traffic** (otherwise the estate's only email monitoring stays green while
 watching a system that no longer sends the mail — risk #5).
 
 | Stage | Traffic | Volume / duration | Advance when (all of) | Rollback |
 | --- | --- | --- | --- | --- |
+| −1 | **Shadow week**: real production payloads through the already-built `dry_run: true` mode — exercises rendering, templating, and suppression at volume with **zero reputation exposure** (audit recommendation) | full realistic volume, 1 week | dry-run outcomes reconcile against expected sends; no worker stalls/OOM; suppression decisions correct on known-suppressed fixtures | none needed — nothing was sent |
 | 0 | Allowlisted-recipient transactional canaries, operator-triggered, CMP dev → `main/relay` | handful/day, 1 week | delivery + callback + reconciliation green; DLQs empty; received headers show SPF+DKIM pass and `From: courses@datatalks.club` | point CMP dev back at `relay.dtcdev.click` |
 | 1 | One lowest-blast-radius production transactional purpose — the `courses` sender canary of spec 08:224 (e.g. deadline reminders for one active cohort) | tens/day, 2 weeks | zero unexplained ambiguity events (spec 09:131); DLQs empty; bounce/complaint under warning thresholds; **operator traces one arbitrary message end-to-end in <10 min using only the shipped observability** | flip that purpose’s CMP env back (sticky env vars via `cmp-env`, `aws-infra/README.md:41`); hold + reconcile in-flight sends |
 | 2 | All CMP transactional purposes | current CMP volume, 2 weeks | same criteria sustained | per-purpose flip back |
@@ -1697,7 +1798,7 @@ automating registrar changes adds risk instead of removing it.
 | 6 | GoDaddy forwarders (`www`, `join`) die at NS move with no AWS replacement live | Certain unless pre-built | Slack onboarding funnel + www traffic | curl checks in 1.5 verify list | 1.2 (join custom domain) and Phase-2-first ordering for www; both built and verified pre-delegation |
 | 7 | `prod.datatalks.club` (or the S3 copy + new site together) creates duplicate-content/canonical conflicts | Medium | Rankings for the whole editorial corpus | Search Console coverage + canonical monitoring (spec 02:280-291) | The four §9.3 controls (edge+app `noindex` on `prod.` for its entire life, restrictive robots, no `prod.` sitemap, apex canonicals everywhere); `prod.` 301s to apex after the swap (§9.4) |
 | 8 | courses cutover breaks API consumers (scripts, certificate tooling, email links) | Medium | Learner-facing workflows | maintenance-Lambda 503 metrics; redirect-Lambda unknown-path metrics (spec 08:300) | Stage A′ keeps real compat endpoints on the new stack (no cross-host redirect for APIs, spec 02:152); redirect Lambda only after the consumer gate; 503-not-200 fix (1.2-6) |
-| 9 | Relay defect surfaces under real load (auth/open-relay, SNS verification, idempotency, single-EBS backup gaps) — zero live clients to date, though the shared `mailing/` engine is production-exercised via CMP's Datamailer path and both suites pass (fork finding, §11E) | Unknown until the audit lands; narrowed to Relay's ~4,200 added lines + operational behavior | Email correctness/security | commissioned code audit + observability assessment (E.5) | **E.5 gate: no production sending until the must-fix list closes**; ramp stages keep early blast radius to allowlisted/low-volume traffic |
+| 9 | **Relay audit findings (delivered): not ready to send production email.** Outbound gate: C1 no live-path retry (tests cover dead code), C2 SNS signature bypass, C3 no database backup (suppression list unrecoverable), C4 no production deploy path. Separate dormant class: measured inbound-mail DoS against outbound (C5 OOM at ~150× memory amplification on a 1 GiB host, C6 disk-fill to read-only Postgres in ~25 emails, H8–H12) — dormant **only while inbound stays disabled** | Certain if E.6 starts before remediation; inbound class certain if inbound is ever enabled un-fixed | All outbound email; SES reputation | E.5a revised gate; E.6 stage −1 shadow week; per-fix groomed-issue evidence | **E.5a minimum list (C1–C4, H2, H5) closed before any real mail; production config outbound-only (`SQS_INBOUND_EMAIL_QUEUE_URL` unset); inbound enablement is a separately gated future project** |
 | 10 | Spec's no-Datamailer-send promise is **config-enforced, not code-enforced**: ~3,900 lines of live-callable client with reachable call sites (`courses/views/homework_confirmation.py:8-9,149`); only `deploy/task_definitions.py:36-42` env pins (`DATAMAILER_URL: ""`, dry-run `"1"`) keep it inert — one env var from live sends during exactly the kind of change an email migration makes | Medium during Phase E churn | Duplicate/unauthorized sends; spec breach | `core/tests/test_deployment_release.py:1001` guards the pins; env diff review on every deploy | E.2 hardening issue: fail closed in code (refuse non-empty `DATAMAILER_URL` outside tests or excise send call sites) when Effort 1 repoints to Relay |
 | 11 | Cache poisoning / auth-content leak when Phase 5 turns caching on | Low with spec design, High without | Security incident | authenticated canary + poison canaries + log audit (10.6) | Fail-closed classifier, origin-response guard, `min_ttl=0`, TTL-zero one-step rollback; enable pre-cutover on low-stakes hosts first |
 | 12 | Mixed-NS window serves divergent answers | Low (parity-gated) | Any record | 15.2 against multiple resolvers during window | Byte-parity before delegation + change freeze during the 48 h window |
@@ -1719,9 +1820,10 @@ automating registrar changes adds risk instead of removing it.
 - The per-purpose email approval catalog and template content (spec 09 M6/M8.6; #22, #290):
   Phase E covers Relay's *infrastructure* promotion, the SES identity hand-off, the audit gate,
   and the battle-testing ramp; which individual website purposes go live remains owned by those
-  issues within the E.6 stage-3 framework. The Relay code audit and observability assessment
-  themselves are commissioned separately — their findings gate E.6 but are not reproduced here
-  until delivered.
+  issues within the E.6 stage-3 framework. The delivered audit findings are summarised in
+  E.5a/E.5b as gate inputs; the full audit reports, and the remediation work itself, live in
+  their own documents and groomed issues per `_docs/PROCESS.md` — this runbook sequences them
+  but does not replace them.
 - Git history rewrite for the media blobs (D11), Search Console property administration, Google
   Workspace/DKIM *configuration* (only DNS carriage of its records), registrar transfer execution
   (D7), and any change to `web.dtcdev.click`/`dtcdev.click`.
