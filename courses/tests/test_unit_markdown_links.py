@@ -148,3 +148,52 @@ class UnitMarkdownLinkTests(TestCase):
         # description survives.
         self.assertNotContains(response, 'src="04-dataset.md"')
         self.assertContains(response, "diagram")
+
+    def homework_url(self, homework):
+        return reverse(
+            "homework",
+            kwargs={
+                "course_slug": self.course.slug,
+                "cohort_year": self.cohort.identifier,
+                "homework_slug": homework.slug,
+            },
+        )
+
+    def test_a_link_to_the_instructions_file_lands_on_the_homework_page(self):
+        """The homework record states the Markdown it was imported from.
+
+        Without that path nothing can connect a lesson's ``homework.md`` link
+        to the page that publishes those instructions, so the link 404s.
+        """
+
+        homework = self.module.terminal_homework
+        homework.instructions_source_path = "cohorts/2026/01-agentic-rag/homework.md"
+        homework.save(update_fields=["instructions_source_path"])
+        self.current.content_markdown = "[Homework](../homework.md#question-1)"
+        self.current.save(update_fields=["content_markdown"])
+
+        response = self.client.get(self.unit_url(self.current))
+
+        self.assertContains(response, f"{self.homework_url(homework)}#question-1")
+        self.assertNotContains(response, "../homework.md")
+
+    def test_homework_beside_a_module_manifest_lands_on_that_modules_homework(self):
+        """The ML curriculum keeps ``homework.md`` next to ``module.yaml``."""
+
+        self.current.content_markdown = "[Homework](../../02-vector-search/homework.md)"
+        self.current.save(update_fields=["content_markdown"])
+
+        response = self.client.get(self.unit_url(self.current))
+
+        self.assertContains(
+            response,
+            self.homework_url(self.other_module.terminal_homework),
+        )
+
+    def test_an_unrelated_markdown_file_is_not_mistaken_for_homework(self):
+        self.current.content_markdown = "[Notes](../notes.md)"
+        self.current.save(update_fields=["content_markdown"])
+
+        response = self.client.get(self.unit_url(self.current))
+
+        self.assertContains(response, "../notes.md")

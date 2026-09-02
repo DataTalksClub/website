@@ -26,7 +26,7 @@ LEGACY_TARGET = ("courses", "0041_courseregistrationcountsourcerun_and_more")
 REPAIRED_TARGET = ("courses", "0052_merge_duplicate_course_families")
 # The family repair is the seed's replay target; the leaf moves on with every
 # ordinary product migration that lands after it.
-LEAF_TARGET = ("courses", "0053_unit_lesson_video_and_code_sources")
+LEAF_TARGET = ("courses", "0054_homework_instructions_source_path")
 FROZEN_AT = datetime(2025, 9, 1, 12, 0, tzinfo=UTC)
 
 

@@ -8,7 +8,7 @@ from collections.abc import Iterable
 
 from django.urls import reverse
 
-from courses.models import Unit
+from courses.models import Homework, Unit
 
 _MARKDOWN_LINK_RE = re.compile(
     r'(?<!\!)'
@@ -51,6 +51,18 @@ def _module_url(module) -> str:
     )
 
 
+def _homework_url(homework) -> str:
+    cohort = homework.course
+    return reverse(
+        "homework",
+        kwargs={
+            "course_slug": cohort.course.slug,
+            "cohort_year": cohort.identifier,
+            "homework_slug": homework.slug,
+        },
+    )
+
+
 def rewrite_unit_markdown_links(markdown: str, unit: Unit) -> str:
     """Rewrite resolvable repository-relative ``.md`` links in unit content.
 
@@ -79,12 +91,30 @@ def rewrite_unit_markdown_links(markdown: str, unit: Unit) -> str:
     }
 
     modules = cohort.modules.filter(source_path__isnull=False).select_related(
-        "cohort", "cohort__course"
+        "cohort", "cohort__course", "terminal_homework"
     )
     modules_by_directory = {
         posixpath.dirname(module.source_path): module
         for module in modules
         if module.source_path
+    }
+    # A lesson that links to ``homework.md`` means the page that publishes
+    # those instructions.  The homework record states the Markdown file it was
+    # imported from, which is the direct bridge; a repository that keeps the
+    # module's homework beside its ``module.yaml`` -- the ML curriculum does --
+    # is covered by the module's own directory, the same shape the README rule
+    # above already uses.
+    homework_by_instructions = {
+        homework.instructions_source_path: homework
+        for homework in Homework.objects.filter(course=cohort).select_related(
+            "course", "course__course"
+        )
+        if homework.instructions_source_path
+    }
+    homework_by_module_directory = {
+        directory: module.terminal_homework
+        for directory, module in modules_by_directory.items()
+        if module.terminal_homework_id
     }
     current_directory = posixpath.dirname(unit.source_path)
 
@@ -104,11 +134,18 @@ def rewrite_unit_markdown_links(markdown: str, unit: Unit) -> str:
             suffix = f"#{fragment}" if separator else ""
             return f"{_unit_url(target_unit)}{suffix}"
 
-        if posixpath.basename(resolved_path).casefold() == "readme.md":
+        suffix = f"#{fragment}" if separator else ""
+        basename = posixpath.basename(resolved_path).casefold()
+        if basename == "readme.md":
             target_module = modules_by_directory.get(posixpath.dirname(resolved_path))
             if target_module is not None:
-                suffix = f"#{fragment}" if separator else ""
                 return f"{_module_url(target_module)}{suffix}"
+
+        target_homework = homework_by_instructions.get(resolved_path)
+        if target_homework is None and basename == "homework.md":
+            target_homework = homework_by_module_directory.get(posixpath.dirname(resolved_path))
+        if target_homework is not None:
+            return f"{_homework_url(target_homework)}{suffix}"
 
         return None
 

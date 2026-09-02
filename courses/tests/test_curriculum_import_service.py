@@ -213,6 +213,12 @@ class CurriculumImportServiceTests(TestCase):
 
         homework = module.terminal_homework
         self.assertIn("working through every unit", homework.instructions_markdown)
+        # The instructions path is the only bridge from a lesson's
+        # ``homework.md`` link to the page that publishes them.
+        self.assertEqual(
+            homework.instructions_source_path,
+            "cohorts/2026/01-agentic-rag/homework.md",
+        )
         self.assertEqual(homework.state, HomeworkState.OPEN.value)
         questions = list(Question.objects.filter(homework=homework).order_by("pk"))
         self.assertEqual(

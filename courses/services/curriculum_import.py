@@ -554,6 +554,9 @@ class _CurriculumImporter:
         homework.slug = source.slug
         homework.title = source.title
         homework.instructions_markdown = source.instructions_markdown
+        # The path is the only bridge between a lesson that links to
+        # ``homework.md`` and the page that publishes those instructions.
+        homework.instructions_source_path = source.instructions_source_path
         homework.due_date = source.due_at
         homework.learning_in_public_cap = source.form.learning_in_public_cap
         homework.homework_url_field = source.form.homework_url
