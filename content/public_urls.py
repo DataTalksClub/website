@@ -23,12 +23,6 @@ urlpatterns = [
         public_views.permanent_detail_redirect,
         {"collection": "blog"},
     ),
-    path(
-        "blog/ai-dev-tools-zoomcamp.html",
-        public_views.article_detail,
-        {"slug": "ai-dev-tools-zoomcamp"},
-        name="article-ai-dev-tools",
-    ),
     path("blog/<path:slug>.html", public_views.article_detail, name="public-article"),
     path(
         "blog/<path:slug>",

@@ -72,11 +72,6 @@ urlpatterns = [
         review_views.faq_asset,
         name="faq-asset",
     ),
-    path(
-        "faq/ai-dev-tools-zoomcamp.html",
-        review_views.faq_ai_dev_tools,
-        name="faq-ai-dev-tools",
-    ),
     path("faq/<slug:course_slug>.html", review_views.faq_course, name="faq-course"),
     path("slack", review_views.slack, name="slack"),
     path("slack.html", public_views.permanent_public_redirect, {"target": "/slack"}),

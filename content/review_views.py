@@ -293,11 +293,6 @@ def faq_course(request: HttpRequest, course_slug: str) -> HttpResponse:
 
 
 @require_safe
-def faq_ai_dev_tools(request: HttpRequest) -> HttpResponse:
-    return faq_course(request, "ai-dev-tools-zoomcamp")
-
-
-@require_safe
 def faq_courses_json(request: HttpRequest) -> JsonResponse:
     return JsonResponse(
         [
