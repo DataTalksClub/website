@@ -1821,13 +1821,68 @@ checks, and idempotency that already work), or a not-yet-written tool. Either wa
 **unbuilt work requiring its own groomed issue(s) per `_docs/PROCESS.md`** — this runbook
 sequences it, nothing here builds it.
 
-**Provenance — how a cutover-time export is produced.** The developer copy at
-`course-management-platform/db/db.sqlite3` came via Aurora → RDS snapshot → Parquet in S3
-(`aws-infra/main/rds-export/`) → SQLite conversion. The cutover import must **not** use a stale
-developer copy: at the milestone-8 write freeze (spec 09:163), take a fresh Aurora snapshot,
-run the same rds-export → conversion chain, record the snapshot identifier + output checksums,
-and feed *that* artifact to the importer. The runbook step is "produce the export at the
-freeze", with the exact procedure documented in the importer's groomed issue.
+**Provenance — where the export actually is, and how it is produced.** Located and verified
+2026-09-02.
+
+**A nightly cron already produces a full production export. Nobody has to build this part.**
+
+```cron
+0 1 * * * cd /home/alexey/rds-export && /usr/bin/flock -n /tmp/rds-export-cmp.lock \
+  ./notify_run.sh cmp uv run run_pipeline.py --db cmp --schema prod
+```
+
+The chain is Aurora → RDS manual snapshot (`cmp-YYYY-MM-DD`) → Parquet export to S3 →
+`parquet_to_sqlite.py` → SQLite, plus an upload of the result back to S3. Tooling lives in
+`github.com/alexeygrigorev/rds-export`; the deployed checkout is `~/rds-export` (a second
+working copy sits at `~/git/rds-export`). Terraform for the export role, bucket and KMS key is
+`aws-infra/main/rds-export/`. AISL runs the same pipeline an hour later.
+
+| | |
+| --- | --- |
+| **Latest production export** | `/data/tmp/rds-export/rds-prod-20260902-012536.db` |
+| Size / shape | 235 MB · 38 tables · 664,806 rows |
+| S3 copy | `s3://course-management-rds-backups-387546586013/sqlite/rds-prod-20260902-012536.db` |
+| Schema state | latest applied migration `0043_remove_registrationcampaign_email_body_markdown_and_more`, 2026-08-31 |
+| Retention on disk | six daily rotations in `/data/tmp/rds-export/`; **always take the newest** |
+
+Production row counts as of that export:
+
+| Table | Rows | Table | Rows |
+| --- | ---: | --- | ---: |
+| `courses_answer` | 218,157 | `courses_enrollment` | 20,907 |
+| `courses_criteriaresponse` | 107,691 | `accounts_customuser` | 20,009 |
+| `django_session` | 71,095 | `account_emailaddress` | 20,005 |
+| `courses_projectevaluationscore` | 38,026 | `courses_peerreview` | 13,041 |
+| `courses_submission` | 36,547 | `data_datamailersendaudit` | 10,174 |
+| `data_datamaileroutboxevent` | 33,529 | `courses_projectsubmission` | 4,261 |
+| `courses_courseregistration` | 27,656 | `courses_question` | 616 |
+| `socialaccount_socialaccount` | 21,761 | `courses_homework` | 128 |
+
+⚠️ **`course-management-platform/db/db.sqlite3` is CMP's *dev* database, not production**
+(owner, 2026-09-02) — an earlier draft of this section said otherwise. Its counts differ
+materially: 17,582 accounts against production's 20,009, 595 questions against 616, and it has
+**no `courses_courseregistration` table at all** while production holds 27,656 rows there. Any
+schema mapping derived from the dev copy is incomplete. Use the dated `rds-prod-*.db` exports.
+
+**Tables that must never be imported**, whatever the mode: `django_session` (71,095 live
+session keys), `socialaccount_socialaccount` (21,761 OAuth tokens), `socialaccount_socialapp`,
+and `accounts_token`. They carry live credentials, they change nothing a page renders, and
+copying them is pure downside. The `data_datamailer*` tables are recipient addresses and
+delivery history — PII, and in scope only if the target actually needs send history.
+
+**Handling.** Both the export directory and the dev copy were world-readable (mode 644 files in
+755 directories) when found on 2026-09-02, holding 20,009 real accounts; both were tightened to
+mode 600 inside mode-700 directories — the same defect, and the same fix, as the `.local/`
+finding in §13.8. `/home/alexey/git/rds-export/.env` carries a **static AWS access key pair**
+and was also world-readable; likewise tightened. That key pair is worth a separate look: the
+aws-infra policy suite forbids `aws_iam_user` and `aws_iam_access_key` precisely because
+long-lived static keys are what this repository has decided not to use.
+
+**At cutover**, do not use a stale export. At the milestone-8 write freeze (spec 09:163) take a
+fresh Aurora snapshot, run the same chain, record the snapshot identifier and the output
+checksums, and feed *that* artifact to the importer — the nightly run is the rehearsal
+mechanism, not the cutover artifact. The runbook step is "produce the export at the freeze",
+with the exact procedure documented in the importer's groomed issue.
 
 **The schema-drift blocker (verified).** `make review-data` currently **fails closed**:
 `category=schema-unknown-table table=courses_emailcampaign` (raised at
