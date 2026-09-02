@@ -720,11 +720,7 @@ def _scrub_sensitive_rows(connection: sqlite3.Connection) -> None:
 
 
 def _unknown_table_row_count(connection: sqlite3.Connection, table: str) -> int:
-    return int(
-        connection.execute(
-            f"SELECT COUNT(*) FROM {_quote_identifier(table)}"
-        ).fetchone()[0]
-    )
+    return int(connection.execute(f"SELECT COUNT(*) FROM {_quote_identifier(table)}").fetchone()[0])
 
 
 def _validate_source_schema(
