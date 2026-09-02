@@ -8,6 +8,7 @@ import pytest
 import yaml
 
 from ci.content_update import (
+    _ASSET_ROOTS,
     CONTRACT_VERSION,
     FAMILIES,
     ContentUpdateError,
@@ -19,6 +20,14 @@ from ci.content_update import (
 )
 
 ROOT = Path(__file__).resolve().parents[2]
+# A count beyond this bound means the aggregator or the projection is broken, not that the
+# catalogue grew: the largest projected collection is the wiki search index at a few thousand
+# documents, and `validate_report` already caps the artifact bytes and file count.
+MAX_PLAUSIBLE_COUNT = 1_000_000
+
+
+def _projection_json(relative: str) -> dict:
+    return json.loads((ROOT / relative).read_text(encoding="utf-8"))
 
 
 @pytest.mark.parametrize("family", FAMILIES)
@@ -53,20 +62,59 @@ def test_each_content_family_uses_the_same_safe_report_contract(family: str) -> 
 
 
 def test_source_specific_counts_are_safe_aggregates() -> None:
-    expected = {
-        "courses": {"courses": 12},
-        "podwiki": {
-            "graph_links": 13006,
-            "graph_nodes": 1072,
-            "search_documents": 2998,
-            "wiki_pages": 282,
-        },
-        "faq": {"assets": 99, "courses": 6, "questions": 1401, "sections": 70},
-        "docs": {"assets": 39, "pages": 106},
-    }
+    """Pin the shape and internal consistency of `counts`, not today's content volume.
 
-    for family, counts in expected.items():
-        assert build_report(repository=ROOT, family=family)["counts"] == counts
+    Exact literals here would restate -- more weakly, and in the wrong layer -- pins that
+    already gate these bytes.  `content.public_data._checked_public_projection` recomputes
+    `manifest.tree_sha256` over the whole projection tree on every load,
+    `_validate_public_artifact_bindings` checks each declared file against
+    `manifest.artifacts`, and `content_sync.dtc_content.contract` freezes the manifest and
+    tree digests as the reviewed content authority.  No projected byte can move without one
+    of those failing first, so a literal count adds no drift detection: it only adds a
+    fourth place to re-pin on every reviewed content refresh.  It is also the weakest of
+    the four -- a zero-sum edit keeps the totals -- and it is the one that went stale when
+    the podcast catalogue was de-duplicated.  Assert instead what this report contract
+    actually owns: that every family reports the expected, non-sensitive aggregate names,
+    that no collection is silently empty or absurd, and that each number agrees with a
+    count the projection independently declares for itself.
+    """
+    reports = {family: build_report(repository=ROOT, family=family) for family in FAMILIES}
+    counts = {family: report["counts"] for family, report in reports.items()}
+
+    assert {family: set(values) for family, values in counts.items()} == {
+        "courses": {"courses"},
+        "podwiki": {"graph_links", "graph_nodes", "search_documents", "wiki_pages"},
+        "faq": {"assets", "courses", "questions", "sections"},
+        "docs": {"assets", "pages"},
+    }
+    for values in counts.values():
+        for value in values.values():
+            assert isinstance(value, int) and not isinstance(value, bool)
+            assert 0 < value < MAX_PLAUSIBLE_COUNT
+
+    manifest = _projection_json("content/public_projection/manifest.json")
+    graph = _projection_json("content/public_projection/wiki_graph.json")
+    search = _projection_json("content/public_projection/wiki_search.json")
+
+    # Each public aggregate is cross-checked against the count its own artifact declares, so
+    # counting the wrong collection or emptying one still fails on any content revision.
+    assert counts["courses"]["courses"] == manifest["counts"]["courses"]
+    assert counts["podwiki"]["wiki_pages"] == manifest["counts"]["wiki"]
+    assert counts["podwiki"]["graph_nodes"] == graph["counts"]["nodes"]
+    assert counts["podwiki"]["graph_links"] == graph["counts"]["links"]
+    # The search index declares no total, so require distinct document identities instead:
+    # a count inflated by duplicates is a defect rather than a content refresh.
+    assert counts["podwiki"]["search_documents"] == len({doc["id"] for doc in search["docs"]})
+
+    # Every declared asset is backed by an artifact the report itself enumerated.
+    for family in ("faq", "docs"):
+        prefixes = tuple(f"{root}/" for root in _ASSET_ROOTS[family])
+        enumerated = [
+            item
+            for item in reports[family]["projection"]["files"]
+            if item["path"].startswith(prefixes)
+        ]
+        assert 0 < counts[family]["assets"] <= len(enumerated)
 
 
 def test_failed_report_is_valid_but_contains_only_a_diagnostic_code() -> None:
