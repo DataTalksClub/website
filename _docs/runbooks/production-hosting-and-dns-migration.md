@@ -98,9 +98,10 @@ D17 Luma refresh owner/cadence — §3.2.
 - 9.1 **[P]** **[B:D9]** Production website root (module instantiation; policy-suite churn budgeted)
 - 9.2 **[P]** Minimal `dev.datatalks.club` on shared prod infra (≈ $10/mo; tradeoffs accepted, D2)
 - 9.3 Staging discipline while both serve: 4 duplicate-content controls, `prod.` noindexed
-- 9.4 **[P]** **[OW-SEO]** Stage-2 apex swap after the 5-item gate (parity on `prod.` vs live
+- 9.4 **[P]** **[OW-SEO]** Stage-2 apex swap after the 6-item gate (parity on `prod.` vs live
   apex, M8 steps 1–4, caching evidence, rehearsed rollback, **data freshness: sources re-synced
-  ≤ 72 h + ≥ N future-dated events — §13.8**); alias rollback 1–10 min; S3 legacy warm ≥30 d
+  ≤ 72 h + ≥ N future-dated events — §13.8**, **full-fidelity CMP import proven on a disposable
+  target — §13.9, currently unbuilt**); alias rollback 1–10 min; S3 legacy warm ≥30 d
 
 **Phase 5 — anonymous edge caching (MAIN; must be proven before 9.4)** — details §10
 
@@ -876,6 +877,12 @@ redirect/canonical/feed/sitemap contract at once** — there is no partial cutov
    projection is 2026-08-31 — without this gate the new site launches with an empty
    upcoming-events section and superseded cohorts (#307), a day-one visible failure. The same
    check joins the post-swap monitoring set.
+6. **Full-fidelity import proven (§13.9):** the complete CMP database import — all accounts,
+   enrollments, submissions, real PII — has been rehearsed end-to-end at least once against a
+   disposable snapshot-restored target, its verification suite passed (row counts, referential
+   integrity, identity-free spot checks), and the target destroyed. Every rehearsal to date
+   proved only the *sanitized* path; this gate exists because the path that actually runs on
+   migration day is currently unbuilt.
 
 **Mechanism and true rollback latency:** in `main/dns`, change the apex A/AAAA **alias** records
 from the `main/legacy-site` distribution to the website distribution (`www` follows). Route 53
@@ -1481,7 +1488,15 @@ DNS/apex rollback windows expired.
 - **7.1 [aws-infra] [CREDS] [ONE-WAY]** Destroy `main/cmp` compute/ALB/dev resources (final DB
   snapshot is enforced — `db.tf:22-24`, `deletion_protection = true` must be lifted knowingly;
   the Aurora final snapshot is the point-of-no-return gate). Keep the snapshot per the retention
-  decision in `migration-checklist.md:177`.
+  decision in `migration-checklist.md:177`. **Privacy note (owner observation to record, not
+  migration work):** CMP has no erasure feature (§13.9), so for personal data *not* carried
+  forward into the new site, **the disposal of the CMP database and its RDS snapshots is itself
+  the erasure event**. The final-snapshot retention window is therefore a privacy decision as
+  much as an ops one: set an explicit expiry for the final snapshot and every automated/manual
+  snapshot, delete them when the rollback window closes, and record the deletions. The
+  pre-existing observation — personal data for tens of thousands of people in a system with no
+  deletion capability — is resolved by this disposal and is noted here because decommissioning
+  is the moment that question gets asked.
 - **7.2** Retire the four GitHub Pages deployments (remove custom-domain CNAME files; archive the
   repos' Pages settings). ONE-WAY in practice — re-serving requires re-verification with GitHub.
 - **7.3** Retire `main/legacy-site` after the stage-2 swap's own ≥30-day rollback window (§9.4):
@@ -1616,7 +1631,9 @@ Its "ingestion" is the CMP database import + delta + freeze choreography owned b
 `migration-checklist.md:18-29`, spec 09 milestones 4–5 and M8.1-2, and the registration-count
 aggregate rollout (spec 09:300-315). Nothing in this section's sync machinery touches it; the
 only interaction is Phase 6's hostname routing. Do not let a "content sync" issue absorb learner
-data — different consent, retention, and rollback rules apply (spec 09:209-246).
+data — different consent, retention, and rollback rules apply (spec 09:209-246). The
+full-fidelity form of that import — the one that actually runs at cutover — is specified in
+§13.9, including its unbuilt-mechanism finding and the mandatory pre-swap dry-run gate.
 
 ### 13.7 Genuinely undecided ingestion items (routed to decisions, not invented)
 
@@ -1687,6 +1704,106 @@ Privacy/retention authority: `_docs/specs/07-security-privacy-operations.md`; re
 migration owners: #112, #242, #243 — cross-referenced, not restated. Note the freshness gate
 and the activation review are **independent**: refreshing the *event catalogue* (titles, dates,
 descriptions) for the gate does not require activating *registration totals*.
+
+**Repo-hygiene warning — HEAD is currently un-rebuildable (verified 2026-09-02).**
+`_docs/migration-data/event-registration-sources.json` sits modified-but-uncommitted in the
+working tree with refreshed Luma facts (`event_total` 166 → **174**, capture
+`2026-09-02T11:26Z`) while committed HEAD still says 166 — and a rebuild from committed HEAD
+fails with `checksum_drift` against the refreshed Luma export. The refreshed export artifacts
+and their facts file must be **committed together** as one change; until then, anyone
+regenerating from HEAD gets a hard failure, and the numbers quoted above are the *committed*
+contract, not the in-flight refresh.
+
+### 13.9 Full-fidelity CMP database import — two modes, only one of them built
+
+Owner (2026-09-02): "the whole import should contain PII and enrollment. It should be the
+entire database. For testing now we can skip it, but we need to make sure it works." The
+runbook previously contemplated only the first of two import modes; the second is the one that
+actually runs on migration day, **and it has never been exercised**.
+
+| Mode | Tool | Contents | Status |
+| --- | --- | --- | --- |
+| **Sanitized** | `review_import/` via `make review-data` (`Makefile:469`) | 0 enrollments, 0 submissions, 1 synthetic user (`review-admin@example.invalid`, `review_import/workflow.py:42`) | Working; correct for local dev, CI, design review — every rehearsal so far proved *this* path |
+| **Full fidelity** | — | the entire CMP database: **17,582 accounts, 18,945 enrollments, 34,764 submissions** (counts verified against `db/db.sqlite3` 2026-09-02), all real PII | **Unbuilt. No tool, no runbook step, never run. A cutover blocker hiding in plain sight** |
+
+**Mechanism — what would actually perform it.** Two candidates examined, one eliminated:
+
+- `scripts/load_rds_export.py` is **not viable** (empirically confirmed): `main()` is disabled
+  and returns 2 (`load_rds_export.py:832-837`); it raises
+  `RuntimeError: courses_course: source export is missing required local columns without
+  defaults: ['course_id']`; CMP has no `courses_course_family`, `courses_module`, or
+  `courses_unit` tables at all; and `plan.default_values` evaluates callable defaults once per
+  table, so every copied cohort would receive the same UUID and violate two unique constraints.
+- `review_import/` is the working importer but **sanitizes by design**.
+
+The full path is therefore **an extension of `review_import` with sanitization disabled behind
+an explicit, loudly-named flag** (recommended — it reuses the schema mapping, fail-closed
+checks, and idempotency that already work), or a not-yet-written tool. Either way this is
+**unbuilt work requiring its own groomed issue(s) per `_docs/PROCESS.md`** — this runbook
+sequences it, nothing here builds it.
+
+**Provenance — how a cutover-time export is produced.** The developer copy at
+`course-management-platform/db/db.sqlite3` came via Aurora → RDS snapshot → Parquet in S3
+(`aws-infra/main/rds-export/`) → SQLite conversion. The cutover import must **not** use a stale
+developer copy: at the milestone-8 write freeze (spec 09:163), take a fresh Aurora snapshot,
+run the same rds-export → conversion chain, record the snapshot identifier + output checksums,
+and feed *that* artifact to the importer. The runbook step is "produce the export at the
+freeze", with the exact procedure documented in the importer's groomed issue.
+
+**The schema-drift blocker (verified).** `make review-data` currently **fails closed**:
+`category=schema-unknown-table table=courses_emailcampaign` (raised at
+`review_import/workflow.py:731`). Cause: the site's adopted CMP schema is pinned at `98a2352`
+(2026-08-04) while the dump is CMP HEAD `6d3cc0e`; three tables added upstream after the pin —
+`courses_emailcampaign` (migration 0043), `courses_systemprojectevaluation` and
+`courses_systemevaluationcriteriaresponse` (0041) — do not exist in the target schema. All
+three are currently empty, which makes the fix cheap **but not optional**: resolve it properly
+(adopt the upstream migrations into the pinned schema, or re-pin the adoption and re-run its
+characterization suite) before any cutover import. Hand-editing tables out of a dump is not a
+resolution. Note the drift will keep growing while CMP stays live — re-check at freeze time.
+
+**Verification (all without printing any learner's identity):** per-table row-count
+reconciliation source↔target; referential-integrity sweep (no orphaned enrollments/submissions);
+spot checks that a known learner's enrollments, submissions, and scores survived — executed by
+an operator with access, reported only as pass/fail and counts. This instantiates the general
+rules of `migration-checklist.md:169-176` and spec 09:209-224 for this specific import.
+
+**Privacy and legal — the single largest movement of personal data in the whole migration.**
+Authority: `_docs/specs/07-security-privacy-operations.md` (retention, minimisation, erasure);
+registration-migration owners #112, #242, #243 — cross-referenced, not restated. This runbook
+adds the operational handling: the export lives only in operator-controlled, mode-700,
+non-git-tracked locations (the `.local/` pattern, §13.8) and named encrypted S3 staging with
+least-privilege read; encrypted at rest and in transit at every hop of the Aurora → S3 → SQLite
+chain; every intermediate copy (Parquet, SQLite, scratch restores) is enumerated at export time
+and **deleted after verification, with the deletion recorded**. The export never enters git,
+CI, logs, screenshots, or issue bodies; reports carry counts and checksums only.
+
+On erasure, the owner's statement (2026-09-02) settles it: **"There are currently no erasure
+requests in CMP — it's not a feature that exists."** Consequence, stated plainly: the CMP
+import is a straight forward-migration of records that have never been subject to an erasure
+action, so **no tombstone reconciliation is required at import time** — the importer needs no
+such step and executors should not go looking for one. The obligation moves *forward*, not
+away: once these ~17,582 accounts with enrollments and submissions land, they enter a system
+that **is** being built with retention/erasure machinery — spec 07 plus #256 (privacy export/
+correction), #257 (retention registry), #258 (erasure tombstone replay on restores), #259
+(privacy invalidation/processor receipts) — and are covered by it from that moment. That
+handover is a genuine post-migration item owned by those issues, not an import-time one.
+
+**Rollback — the least reversible step in the migration.** If the full import lands wrong
+*before* the apex swap: destroy and re-import; nothing public happened. If discovered *after*
+DNS has moved and real writes have landed on the new stack, spec 09's rules govern
+(09:184-206): no destructive reverse of a successful migration, application-image rollback
+with the database retained, expand/contract discipline. The import-specific additions:
+snapshot the target database immediately **before** the full import (the restore point);
+rehearse restoring it; and treat the gap between freeze and swap as the window where aborting
+is still cheap — which is why the dry-run gate below must happen earlier still.
+
+**The dry-run gate (mandatory, pre-swap).** Testing may proceed sanitized for now, per the
+owner — but before the apex swap the full-fidelity path must be **proven end-to-end once**:
+run the complete import against a disposable target (snapshot-restored RDS instance, never the
+shared dev database — §9.2 already reserves throwaway instances for destructive rehearsals),
+run the full verification suite above, record pass/fail + counts, then **destroy the target
+and its credentials and record the destruction**. This joins §9.4's swap gate as item 6,
+alongside the data-freshness gate.
 
 ---
 
@@ -1892,6 +2009,7 @@ automating registrar changes adds risk instead of removing it.
 | 17 | Running both stacks doubles spend during migration | Certain, bounded | Budget | Cost Explorer + budget alarm | §14 sizing keeps the overlap ≈ $370–445/mo; Phase 7 harvest is scheduled, not aspirational |
 | 18 | SES main account turns out to be in sandbox mode — learner mail blocked behind an AWS support request | Low (CMP mails learners today) but unverified | Phase E timeline (multi-day external lead) | E.1 / step 0.6 `aws sesv2 get-account` | Verification is front-loaded into Phase 0; if false, the support request files immediately and only E.6 waits |
 | 19 | **Events staleness at and after cutover** — the events pipeline is a manually-run local script in a personal temp dir (§13.8, D16/D17); already realised once: zero future-dated events in the projection on 2026-09-02 (newest = 2026-08-31), which would have shipped an empty upcoming-events section and superseded cohorts (#307) | High until D17 assigns ownership; certain without the gate | Day-one credibility of the new site's events/courses surface | §9.4 gate item 5 pre-swap; the same "≥ N future-dated events" check in post-swap monitoring | Mandatory ≤ 72 h pre-swap re-sync + freshness check; D16 (exporter into version control) and D17 (owner/cadence, later automation) remove the root cause |
+| 20 | **The cutover-day import path is unbuilt and unproven** — every rehearsal so far exercised the *sanitized* importer (0 enrollments, synthetic user); the full-fidelity path (17,582 accounts / 18,945 enrollments / 34,764 submissions, real PII) has no tool (`load_rds_export.py` empirically non-viable; `review_import` sanitizes by design) and is blocked by verified schema drift (`courses_emailcampaign` + two 0041 tables absent from the `98a2352`-pinned schema; `make review-data` fails closed at `review_import/workflow.py:731`). Also the least reversible step once DNS has moved and real writes land | Certain, until the §13.9 work is groomed, built, and rehearsed | Learner data integrity; cutover timeline; privacy (largest PII movement in the migration) | §9.4 gate item 6; drift re-check at freeze; import verification suite (counts/integrity/spot checks) | §13.9: build as a review_import extension via groomed issues; resolve drift properly (no hand-edits); fresh freeze-time export; pre-import target snapshot; disposable-target dry-run before the swap; intermediates deleted and recorded (no erasure reconciliation needed — CMP has no erasure feature, §13.9) |
 
 ---
 
