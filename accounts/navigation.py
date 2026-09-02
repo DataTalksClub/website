@@ -145,6 +145,12 @@ def _is_account_transition_path(path: str) -> bool:
 
 
 def safe_next_path(request) -> str:
+    # A response marked recipient-private is scoped to one person and its URL may
+    # carry the opaque token that identifies them (Relay's unsubscribe and
+    # tracking links do).  Echoing that URL back as a sign-in return target would
+    # put the token into the page, the referrer, and the login flow.
+    if getattr(request, "private_response_required", False):
+        return SAFE_ACCOUNT_DESTINATION
     candidate = request.GET.get("next", "")
     if not candidate:
         candidate = request.path

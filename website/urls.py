@@ -85,6 +85,10 @@ urlpatterns = [
         public_views.permanent_public_redirect,
         {"target": "/slack"},
     ),
+    # Relay renders these three paths into every message it sends, from its own
+    # PUBLIC_BASE_URL. They are declared before the course aliases so a legacy
+    # slug can never shadow a live unsubscribe link.
+    path("", include("email_app.urls")),
     path("health/live", core_views.liveness, name="health-live"),
     path("health/ready", core_views.readiness, name="health-ready"),
     path("studio", core_views.management_slash_redirect, name="studio-slash-redirect"),

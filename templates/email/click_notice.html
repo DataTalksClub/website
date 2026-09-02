@@ -1,0 +1,88 @@
+{% extends "public/text_page.html" %}
+{% comment %}
+  The page a reader lands on when a tracked link from an email could not be
+  verified.  Normally a click is verified against Relay and the reader is
+  redirected straight through; this page exists for the two cases where it is
+  not, and it is deliberately a page rather than a redirect.
+
+  The destination arrives in the URL's query string, so it is caller-controlled.
+  Redirecting to it without a verdict would make this site an open redirect for
+  anyone who guesses the URL shape, which is exactly the property phishing
+  campaigns look for on a well-regarded domain.  So the unverified case shows
+  where the link goes and lets the reader decide -- one click, destination
+  visible -- rather than following it silently.
+
+  `unavailable` distinguishes "we could not ask" from "we asked and the link is
+  not one of ours"; `destination` is absent when there was nothing usable to
+  offer at all.
+{% endcomment %}
+
+{% block document_title %}
+  <title>Link could not be verified — DataTalks.Club</title>
+{% endblock %}
+
+{% block document_meta %}
+  {% comment %}
+    Deliberately empty: an unverified link is not a destination.
+  {% endcomment %}
+  <meta name="robots" content="noindex, nofollow">
+{% endblock %}
+
+{% block kicker %}
+  Email link
+{% endblock %}
+
+{% block title %}
+  {% if unavailable %}
+    We could not check this link
+  {% else %}
+    This link could not be verified
+  {% endif %}
+{% endblock %}
+
+{% block lede %}
+  {% if not destination %}
+    This link is incomplete, so there is nothing for us to open.
+  {% elif unavailable %}
+    Our email system is not answering at the moment, so we could not confirm
+    where this link came from. You can still continue to it.
+  {% else %}
+    We could not match this link to a message we sent. It may be from an old
+    message, or it may have been altered. Check where it goes before continuing.
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  {% if destination %}
+    <p>This link goes to:</p>
+    <p class="click-notice-destination"><code class="mono-code">{{ destination }}</code></p>
+  {% else %}
+    <p>
+      Try opening the link from the original message again, or go to the site
+      directly.
+    </p>
+  {% endif %}
+{% endblock %}
+
+{% block actions %}
+  {% if destination %}
+    {% include "core/_button.html" with href=destination label="Continue to this address" variant="primary" rel="noopener noreferrer nofollow" %}
+  {% endif %}
+  {% url 'home' as site_home_url %}
+  {% if site_home_url %}
+    {% include "core/_button.html" with href=site_home_url label="Return to DataTalks.Club" variant="secondary" %}
+  {% endif %}
+{% endblock %}
+
+{% block page_styles %}
+      /* ------------------------------------------------------------------ *
+       * Click notice.  One addition to the shared text page: the destination
+       * is a long URL, so it wraps at any character rather than pushing the
+       * reading column sideways on a phone.
+       * ------------------------------------------------------------------ */
+
+      .click-notice-destination .mono-code {
+        overflow-wrap: anywhere;
+        word-break: break-all;
+      }
+{% endblock %}

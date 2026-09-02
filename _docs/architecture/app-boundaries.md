@@ -34,11 +34,45 @@ email_app/jobs may receive identifiers from domains, but domains do not import w
 - `email_app`: logical `EmailDelivery` intents, Relay idempotency/correlation metadata, redacted
   transport projections, and callback/reconciliation commands. It owns no canonical template body,
   renderer, provider adapter, provider attempt/event stack, suppression engine, or sender worker.
+  It additionally owns the Relay recipient-link ingress described below.
 - `studio`: staff HTML presentation only; mutations call owning application services.
 - `api`: versioned admin JSON presentation only; mutations call the same services as Studio.
 - `jobs`: queue wrappers, scheduling, leases/fences, heartbeat, and operator diagnostics. A leased
-  durable job is the only website boundary that calls Relay, and it does so only after the business
-  transaction commits.
+  durable job is the only website boundary that *initiates* a Relay call, and it does so only after
+  the business transaction commits. The recipient-link ingress below is the single named exception,
+  and it initiates nothing: it answers a request Relay already caused.
+
+## Relay recipient-link ingress
+
+Relay renders open-tracking, click-tracking, and unsubscribe URLs into mail from one
+`PUBLIC_BASE_URL`. That value names the public website, because `relay.datatalks.club` is an
+operator surface behind OIDC and the public unsubscribe surface belongs on the website. Relay has
+no public ingress and is reachable only in-VPC over plain HTTP, so the website answers those three
+paths and bridges each request to Relay.
+
+Which website host carries them is a deployment value that changes once. Until the stage-2 apex
+swap, `datatalks.club` still ALIASes the legacy static site and cannot serve a Django route, so
+`PUBLIC_BASE_URL` is `https://prod.datatalks.club`; after the swap it becomes
+`https://datatalks.club`. The application therefore never derives one of these URLs from a request
+host, and holds neither value: a mail client fetching a pixel presents no host worth trusting.
+
+This is a second, deliberately narrow Relay boundary, owned by `email_app`, and it is bounded by
+these rules:
+
+- It is inbound-caused. Relay's own link brings the request; the website starts nothing.
+- The website holds no recipient token logic. Hashing, lookup, scope semantics, engagement
+  counters, and the unsubscribe mutation stay in Relay, which owns the recipient data. Duplicating
+  them is how two codebases drift apart on a security-sensitive contract.
+- Every route is anonymous, session-free, and CSRF-free, touches no website database row on the
+  read path, and emits no `Set-Cookie` for an anonymous caller.
+- Failure behavior is decided per route, not shared. The open pixel always returns a valid GIF. A
+  click is redirected only on Relay's verdict; otherwise the reader is shown the destination and
+  chooses. An unsubscribe is never refused: when Relay does not answer, the request is persisted
+  and replayed by a leased durable job, which is the ordinary after-commit boundary above.
+- A recipient token is identifying. It never appears in a log record, an observability event, an
+  exception, or an error report, on this seam or in the access log.
+- With no Relay configured the routes answer `404` and the click route never redirects, so an
+  unconfigured deployment cannot become an open redirect.
 
 Apps may depend on `accounts` for actor or ownership references and on `core` for generic primitives. Cross-domain behavior is coordinated by an application service at the owning boundary, using scalar identifiers for queued work. Circular imports are not an acceptable coordination mechanism.
 

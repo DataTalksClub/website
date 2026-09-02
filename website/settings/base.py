@@ -275,6 +275,30 @@ DATAMAILER_IMPORT_S3_REGION = os.getenv("DATAMAILER_IMPORT_S3_REGION", "")
 DATAMAILER_SYNC_ON_USER_CREATE = env_flag("DATAMAILER_SYNC_ON_USER_CREATE", True)
 DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY = env_flag("DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY")
 
+# Relay recipient-link bridge.  Relay renders open, click and unsubscribe links
+# from its own ``PUBLIC_BASE_URL``; that value points at this site, so this site
+# has to answer ``/t/o/<token>.gif``, ``/t/c/<token>`` and ``/unsubscribe/<token>``
+# and hand each one to Relay in-VPC.  Relay has no public listener, so the base
+# below is the private ``http://relay.<zone>:8000`` address, never a public URL.
+#
+# Empty is the fail-closed default: with no configured Relay the three public
+# routes answer 404 and the click route never redirects, so an unconfigured
+# environment cannot become an open redirect.
+RELAY_LINK_BRIDGE_BASE_URL = os.getenv("RELAY_LINK_BRIDGE_BASE_URL", "").strip()
+# Distinct budgets, because the three endpoints have different stakes.  The open
+# pixel is the highest-volume route in the system and must never park a worker;
+# unsubscribe is low volume and prefers correctness over speed.
+RELAY_LINK_BRIDGE_OPEN_TIMEOUT_SECONDS = float(
+    os.getenv("RELAY_LINK_BRIDGE_OPEN_TIMEOUT_SECONDS", "2")
+)
+RELAY_LINK_BRIDGE_CLICK_TIMEOUT_SECONDS = float(
+    os.getenv("RELAY_LINK_BRIDGE_CLICK_TIMEOUT_SECONDS", "3")
+)
+RELAY_LINK_BRIDGE_UNSUBSCRIBE_TIMEOUT_SECONDS = float(
+    os.getenv("RELAY_LINK_BRIDGE_UNSUBSCRIBE_TIMEOUT_SECONDS", "10")
+)
+RELAY_LINK_BRIDGE_POOL_SIZE = int(os.getenv("RELAY_LINK_BRIDGE_POOL_SIZE", "16"))
+
 # Opaque keys are configured by deployment code.  Locators and protected source
 # metadata are never accepted from Studio/API or persisted in the application DB.
 COURSE_REGISTRATION_COUNT_SOURCES: dict[str, dict[str, object]] = {}

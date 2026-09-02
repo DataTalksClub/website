@@ -289,6 +289,9 @@ AUTHORED_TEMPLATE_ROOTS = {
     "templates/core": "public",
     "templates/public": "public",
     "templates/events": "public",
+    # Recipient-scoped pages reached from a link in an email. Public in the sense
+    # that they need no account, but never linked, indexed, or crawlable.
+    "templates/email": "public",
     "templates/review": "public-review",
     "templates/studio": "studio",
     "templates/registration": "account",
