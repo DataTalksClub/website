@@ -75,6 +75,7 @@ class MigrationSeedContractTests(SimpleTestCase):
                 "courses/migrations/0042_course_schema_bridge.py",
                 "courses/migrations/0043_curriculum_and_project_criteria.py",
                 "courses/migrations/0046_cohort_identifier_and_more.py",
+                "courses/migrations/0052_merge_duplicate_course_families.py",
                 "events/migrations/0005_seed_event_identity_manifest.py",
                 "events/migrations/0006_event_public_id.py",
                 "events/migrations/0007_reconcile_public_event_identity.py",

@@ -4,7 +4,7 @@
     "family_slug": "legacy-17",
     "legacy_course_id": 17,
     "rows": 22,
-    "target": ["courses", "0051_unitreadstate"],
+    "target": ["courses", "0052_merge_duplicate_course_families"],
     "unresolved": []
   },
   "payload": {
@@ -215,5 +215,5 @@
   "schema_version": 1,
   "seed_version": "courses-legacy-history-v1",
   "start": ["courses", "0041_courseregistrationcountsourcerun_and_more"],
-  "target": ["courses", "0051_unitreadstate"]
+  "target": ["courses", "0052_merge_duplicate_course_families"]
 }

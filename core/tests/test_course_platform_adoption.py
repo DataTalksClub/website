@@ -66,7 +66,7 @@ EXPECTED_MIGRATION_COUNTS = {
     "accounts": 12,
     "api": 0,
     "studio_courses": 0,
-    "courses": 52,
+    "courses": 53,
     "data": 5,
 }
 EXPECTED_COURSES_MIGRATIONS = (
@@ -122,6 +122,7 @@ EXPECTED_COURSES_MIGRATIONS = (
     "0049_question_source_option_ids",
     "0050_homework_instructions_markdown_unit_content_markdown_and_more",
     "0051_unitreadstate",
+    "0052_merge_duplicate_course_families",
 )
 EXPECTED_UNIFIED_ROUTE_CALLBACK_OVERRIDES: dict[tuple[str, str], str] = {}
 ORIGINAL_ACCOUNTS_MIGRATIONS = (
@@ -358,7 +359,7 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
         self.assertEqual(migration_names("courses")[0], "0001_initial")
         self.assertEqual(
             migration_names("courses")[-1],
-            "0051_unitreadstate",
+            "0052_merge_duplicate_course_families",
         )
         self.assertEqual(migration_names("data")[0], "0001_initial")
         self.assertEqual(migration_names("data")[-1], "0005_datamailersendaudit")

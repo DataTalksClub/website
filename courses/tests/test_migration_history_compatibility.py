@@ -16,13 +16,14 @@ from django.db.migrations.loader import MigrationLoader
 from test_support.factories.context import canonical_json_bytes
 from test_support.migrations import (
     assert_data_migration_isolation,
+    assert_stable_migration_module_isolation,
     load_migration_seed,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
 SEED = ROOT / "test_support" / "migration_seeds" / "courses-legacy-history-v1.json"
 LEGACY_TARGET = ("courses", "0041_courseregistrationcountsourcerun_and_more")
-REPAIRED_TARGET = ("courses", "0051_unitreadstate")
+REPAIRED_TARGET = ("courses", "0052_merge_duplicate_course_families")
 FROZEN_AT = datetime(2025, 9, 1, 12, 0, tzinfo=UTC)
 
 
@@ -185,9 +186,11 @@ class CourseMigrationHistoryCompatibilityTests(unittest.TestCase):
             "0042_course_schema_bridge.py",
             "0043_curriculum_and_project_criteria.py",
             "0046_cohort_identifier_and_more.py",
+            "0052_merge_duplicate_course_families.py",
         ):
             with self.subTest(name=name):
                 assert_data_migration_isolation(ROOT / "courses" / "migrations" / name)
+        assert_stable_migration_module_isolation(ROOT / "courses" / "migration_family_identity.py")
         MigrationLoader(self.connection, replace_migrations=False)
 
     def _migrate(self, target: tuple[str, str], *, replace_migrations: bool = True):

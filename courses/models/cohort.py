@@ -8,6 +8,7 @@ from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
 from accounts.models import CustomUser
 
+from courses.course_family_catalog import canonical_family_slug
 from courses.random_names import generate_random_name
 
 from .curriculum_import import (
@@ -211,7 +212,10 @@ class Cohort(SourceProvenanceModel):
         # required Course -> Cohort relationship.  The production/local seed
         # uses the reviewed mapping in course_family_catalog.py explicitly.
         if self.course_id is None:
-            family_slug = re.sub(r"-\d{4}$", "", self.slug)
+            # Year stripping alone would mint ``ai-dev-tools-zoomcamp`` beside the
+            # published ``ai-dev-tools`` family.  Resolve the reviewed slug so no
+            # writer can create a second family for one course.
+            family_slug = canonical_family_slug(re.sub(r"-\d{4}$", "", self.slug))
             family_title = re.sub(r"\s+\d{4}$", "", self.title).strip()
             family, _ = Course.objects.get_or_create(
                 slug=family_slug,
