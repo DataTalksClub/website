@@ -55,7 +55,13 @@ def _adjacent_units(unit: Unit) -> tuple[Unit | None, Unit | None]:
     return previous_unit, next_unit
 
 
-_LEADING_H1_RE = re.compile(r"\A(?:\s*\n)*#[ \t]+([^\n]+?)[ \t]*#*[ \t]*(?:\n|$)")
+# The page already prints the unit title as its `h1`, so a body that opens by
+# repeating it says the same thing twice.  Repositories write that opening
+# heading at whichever level suits the file they came from: the LLM lessons use
+# `#`, the ML lessons use `## 1.1 Introduction to Machine Learning`.  Both are
+# the document's own title, so both are matched -- and only ever removed when
+# the heading text is the unit title, never when it introduces a real section.
+_LEADING_TITLE_HEADING_RE = re.compile(r"\A(?:\s*\n)*#{1,2}[ \t]+([^\n]+?)[ \t]*#*[ \t]*(?:\n|$)")
 
 
 def _same_title(left: str, right: str) -> bool:
@@ -69,7 +75,7 @@ def _unit_content(markdown: str, title: str) -> str:
     """Return the unit's body Markdown without its redundant leading heading."""
 
     body = markdown or ""
-    heading_match = _LEADING_H1_RE.match(body)
+    heading_match = _LEADING_TITLE_HEADING_RE.match(body)
     if heading_match and _same_title(heading_match.group(1), title):
         body = body[heading_match.end() :]
 
