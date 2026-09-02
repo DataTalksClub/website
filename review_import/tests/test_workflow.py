@@ -1167,8 +1167,9 @@ if any(
         mutations = (
             (
                 "unknown-table",
-                lambda connection: connection.execute(
-                    "CREATE TABLE unexpected_private_data (id INTEGER)"
+                lambda connection: connection.executescript(
+                    "CREATE TABLE unexpected_private_data (id INTEGER);"
+                    "INSERT INTO unexpected_private_data(id) VALUES (1);"
                 ),
                 "schema-unknown-table",
             ),
@@ -1275,6 +1276,30 @@ if any(
                 )
                 self.assertEqual(fingerprint(source), source_before)
                 cleanup_snapshot(f"{self.snapshot_id}-{label}")
+
+    def test_empty_unknown_source_tables_are_skipped(self) -> None:
+        with closing(sqlite3.connect(self.source)) as connection:
+            connection.executescript(
+                """
+                CREATE TABLE courses_emailcampaign (id INTEGER PRIMARY KEY);
+                CREATE TABLE courses_systemprojectevaluation (id INTEGER PRIMARY KEY);
+                CREATE TABLE courses_systemevaluationcriteriaresponse (id INTEGER PRIMARY KEY);
+                """
+            )
+            connection.commit()
+
+        report = self.run_from_migrated_baseline(self.config())
+
+        self.assertEqual(
+            report["skipped_empty_unknown_tables"],
+            [
+                "courses_emailcampaign",
+                "courses_systemevaluationcriteriaresponse",
+                "courses_systemprojectevaluation",
+            ],
+        )
+        self.assertEqual(report["table_counts"]["courses_course"], 2)
+        self.assertEqual(report["validation_results"]["source_schema"], "passed")
 
     def test_failure_at_each_stage_preserves_previous_target_and_outputs(self) -> None:
         self.run_from_migrated_baseline(self.config())

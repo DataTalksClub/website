@@ -393,6 +393,7 @@ production-prep-local:
 		--database "$(PRODUCTION_PREP_DATABASE)" \
 		--course-modules-input "$(PRODUCTION_PREP_COURSE_MODULES_INPUT)" \
 		$(if $(PRODUCTION_PREP_CURRENT_REGISTRATION_INPUT),--current-registration-input "$(PRODUCTION_PREP_CURRENT_REGISTRATION_INPUT)",) \
+		$(if $(PRODUCTION_PREP_CMP_SOURCE),--cmp-source-db "$(PRODUCTION_PREP_CMP_SOURCE)",) \
 		$(if $(PRODUCTION_PREP_FRESH),--fresh,)
 
 # One command that rebuilds the whole local dataset from its sources. See
@@ -402,6 +403,9 @@ PRODUCTION_PREP_DATASET_DATABASE ?= $(PRODUCTION_PREP_DATASET_ROOT)/dataset.sqli
 PRODUCTION_PREP_COURSE_SOURCE_DIR ?= $(PRODUCTION_PREP_DATASET_ROOT)/course-sources
 PRODUCTION_PREP_COURSE_MODULES_MANIFEST ?= $(PRODUCTION_PREP_DATASET_ROOT)/course-modules.json
 PRODUCTION_PREP_DATASET_PORT ?= 8001
+# Protected CMP SQLite snapshot. The sanitizing importer copies it and never
+# writes learner rows. Override when the snapshot lives somewhere else.
+PRODUCTION_PREP_CMP_SOURCE ?= $(HOME)/git/course-management-platform/db/db.sqlite3
 # Set empty to skip activating the reviewed current-event registration aggregates.
 PRODUCTION_PREP_DATASET_REGISTRATION_INPUT ?= \
 	_docs/migration-data/local-current-registration-input.json

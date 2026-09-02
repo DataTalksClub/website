@@ -30,7 +30,9 @@ It creates no learners, enrollments, submissions, scores, registrations, or camp
 Generating production-like participants remains the adopted
 ``scripts/generate_production_like_leaderboard_data.py`` path.  Operational state that a
 developer or that script has already set (homework/project state, registration URLs,
-scoring flags) is preserved: this seed owns catalogue identity only.
+scoring flags) is preserved: this seed owns catalogue identity only.  If a cohort
+already has homework or projects (for example from a CMP content import), this seed
+does not add placeholder assignments beside them.
 """
 
 from __future__ import annotations
@@ -54,8 +56,8 @@ from courses.course_family_catalog import (
     cohort_family_identity,
 )
 from courses.models import (
-    Course,
     Cohort,
+    Course,
     Homework,
     HomeworkState,
     Project,
@@ -298,18 +300,19 @@ def _seed_course(spec: dict[str, Any], now: datetime) -> SeededCourse:
             "visible": True,
         },
     )
+    identity = {
+        "course": family,
+        "year": year,
+        "title": str(spec["title"]),
+        "start_date": start_date,
+        "end_date": end_date,
+        "finished": bool(spec["finished"]),
+        "visible": True,
+    }
     course, created = Cohort.objects.update_or_create(
         slug=slug,
-        defaults={
-            "course": family,
-            "year": year,
-            "title": str(spec["title"]),
-            "description": course_description(spec),
-            "start_date": start_date,
-            "end_date": end_date,
-            "finished": bool(spec["finished"]),
-            "visible": True,
-        },
+        defaults=identity,
+        create_defaults={**identity, "description": course_description(spec)},
     )
     homeworks_created = _seed_homeworks(course, spec["homeworks"], now)
     projects_created = _seed_projects(course, spec["projects"], now)
@@ -326,6 +329,8 @@ def _seed_course(spec: dict[str, Any], now: datetime) -> SeededCourse:
 
 
 def _seed_homeworks(course: Cohort, homeworks: Iterable[Sequence[Any]], now: datetime) -> int:
+    if Homework.objects.filter(course=course).exists():
+        return 0
     created_count = 0
     for index, assignment in enumerate(homeworks, start=1):
         title = str(assignment[0])
@@ -346,6 +351,8 @@ def _seed_homeworks(course: Cohort, homeworks: Iterable[Sequence[Any]], now: dat
 
 
 def _seed_projects(course: Cohort, projects: Iterable[Sequence[Any]], now: datetime) -> int:
+    if Project.objects.filter(course=course).exists():
+        return 0
     created_count = 0
     for index, assignment in enumerate(projects, start=1):
         title = str(assignment[0])

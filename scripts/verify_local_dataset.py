@@ -108,6 +108,43 @@ def _cohort_report() -> dict[str, Any]:
     }
 
 
+def _content_report() -> dict[str, Any]:
+    from django.db.models import Count
+
+    from courses.models import Homework, Project, Question
+
+    homework_questions = {
+        f"{row['course__slug']}/{row['slug']}": row["question_total"]
+        for row in Homework.objects.values("course__slug", "slug")
+        .annotate(question_total=Count("question"))
+        .order_by("course__slug", "slug")
+    }
+    return {
+        "question_total": Question.objects.count(),
+        "homework_total": Homework.objects.count(),
+        "project_total": Project.objects.count(),
+        "practice_assignment_homeworks": Homework.objects.filter(
+            description__startswith="Practice assignment for"
+        ).count(),
+        "generated_project_descriptions": Project.objects.filter(
+            description__startswith="Production-like generated"
+        ).count(),
+        "llm_zoomcamp_2026_homework_questions": {
+            slug: homework_questions.get(f"llm-zoomcamp-2026/{slug}", 0)
+            for slug in (
+                "homework-01",
+                "homework-02",
+                "homework-03",
+                "homework-04",
+                "homework-05",
+                "homework-06",
+                "homework-07",
+                "hw1",
+            )
+        },
+    }
+
+
 def _event_report() -> dict[str, Any]:
     from django.utils import timezone
 
@@ -148,6 +185,26 @@ def _failures(report: dict[str, Any]) -> list[str]:
         failures.append(f"course families with no cohorts: {courses['empty_course_families']}")
     if not report["events"]["future_dated_events"]:
         failures.append("no future-dated events (issue #307 data-freshness gate)")
+    content = report["content"]
+    if content["practice_assignment_homeworks"]:
+        failures.append(
+            "placeholder homework descriptions present: "
+            f"{content['practice_assignment_homeworks']}"
+        )
+    if content["generated_project_descriptions"]:
+        failures.append(
+            "placeholder project descriptions present: "
+            f"{content['generated_project_descriptions']}"
+        )
+    if content["llm_zoomcamp_2026_homework_questions"].get("homework-01", 0) < 6:
+        failures.append(
+            "llm-zoomcamp-2026 homework-01 is missing imported questions: "
+            f"{content['llm_zoomcamp_2026_homework_questions']}"
+        )
+    if content["llm_zoomcamp_2026_homework_questions"].get("hw1", 0):
+        failures.append("llm-zoomcamp-2026 still has unmapped CMP slug hw1")
+    if content["question_total"] < 500:
+        failures.append(f"question total too low for a CMP import: {content['question_total']}")
     return failures
 
 
@@ -165,6 +222,7 @@ def main(argv: list[str] | None = None) -> int:
     report = {
         "database": str(args.database.resolve()),
         "courses": _cohort_report(),
+        "content": _content_report(),
         "events": _event_report(),
     }
     failures = _failures(report)

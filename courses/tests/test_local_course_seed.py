@@ -9,11 +9,12 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from core.bootstrap import RuntimeEnvironment
 from core.home_content import course_catalog
 from courses.course_family_catalog import cohort_family_identity
-from courses.models import Course, Cohort, Homework, Project
+from courses.models import Cohort, Course, Homework, Project
 from courses.services.local_course_seed import (
     CATALOG_SOURCE_SHA256,
     LocalCourseSeedError,
@@ -109,6 +110,46 @@ class LocalCourseSeedTests(TestCase):
         )
         self.assertTrue(course.first_homework_scored)
         self.assertEqual(homework.state, "SC")
+
+    def test_seed_does_not_replace_imported_assignments(self) -> None:
+        seed_local_courses()
+        course = Cohort.objects.get(slug="de-zoomcamp-2026")
+        course.description = "Imported course description."
+        course.save()
+        Homework.objects.filter(course=course).delete()
+        Project.objects.filter(course=course).delete()
+        due = timezone.now()
+        imported_homework = Homework.objects.create(
+            course=course,
+            slug="hw1",
+            title="Imported homework",
+            description="Real homework description.",
+            due_date=due,
+        )
+        imported_project = Project.objects.create(
+            course=course,
+            slug="project1",
+            title="Imported project",
+            description="Real project description.",
+            submission_due_date=due,
+            peer_review_due_date=due,
+        )
+
+        seed_local_courses()
+
+        course.refresh_from_db()
+        imported_homework.refresh_from_db()
+        imported_project.refresh_from_db()
+        self.assertEqual(course.description, "Imported course description.")
+        self.assertEqual(Homework.objects.filter(course=course).count(), 1)
+        self.assertEqual(Project.objects.filter(course=course).count(), 1)
+        self.assertEqual(imported_homework.description, "Real homework description.")
+        self.assertEqual(imported_project.description, "Real project description.")
+        self.assertFalse(
+            Homework.objects.filter(
+                course=course, description__startswith="Practice assignment for"
+            ).exists()
+        )
 
     def test_homepage_catalog_links_resolve_to_seeded_courses(self) -> None:
         seed_local_courses()

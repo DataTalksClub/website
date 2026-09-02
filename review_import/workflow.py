@@ -719,19 +719,36 @@ def _scrub_sensitive_rows(connection: sqlite3.Connection) -> None:
     _assert_sqlite_integrity(connection)
 
 
+def _unknown_table_row_count(connection: sqlite3.Connection, table: str) -> int:
+    return int(
+        connection.execute(
+            f"SELECT COUNT(*) FROM {_quote_identifier(table)}"
+        ).fetchone()[0]
+    )
+
+
 def _validate_source_schema(
     source: sqlite3.Connection,
     target: sqlite3.Connection,
-) -> None:
+) -> tuple[str, ...]:
     source_tables = _table_names(source)
     target_tables = _table_names(target)
     unknown_tables = sorted(source_tables - target_tables)
-    if unknown_tables:
+    skipped_empty_unknown_tables = tuple(
+        table for table in unknown_tables if _unknown_table_row_count(source, table) == 0
+    )
+    nonempty_unknown_tables = [
+        table for table in unknown_tables if table not in skipped_empty_unknown_tables
+    ]
+    if nonempty_unknown_tables:
         raise ImportFailure(
-            "schema-unknown-table", table=unknown_tables[0], count=len(unknown_tables)
+            "schema-unknown-table",
+            table=nonempty_unknown_tables[0],
+            count=len(nonempty_unknown_tables),
         )
 
-    for table in sorted(source_tables):
+    comparable_tables = source_tables - set(skipped_empty_unknown_tables)
+    for table in sorted(comparable_tables):
         source_columns = set(_columns(source, table))
         target_columns = set(_columns(target, table))
         unknown_columns = sorted(source_columns - target_columns)
@@ -754,6 +771,7 @@ def _validate_source_schema(
                 column=missing_columns[0],
                 count=len(missing_columns),
             )
+    return skipped_empty_unknown_tables
 
 
 def _is_integer_column(column: str) -> bool:
@@ -1410,17 +1428,17 @@ def _build_sanitized_database(
     source_path: Path,
     destination: Path,
     fault_hook: FaultHook,
-) -> tuple[AllowedDataset, dict[str, int]]:
+) -> tuple[AllowedDataset, dict[str, int], tuple[str, ...]]:
     _migrate_fresh_database(destination)
     with _readonly_connection(source_path) as source, _writable_connection(destination) as target:
         _assert_source_integrity(source)
-        _validate_source_schema(source, target)
+        skipped_empty_unknown_tables = _validate_source_schema(source, target)
         dataset = _read_allowed_dataset(source)
         fault_hook("during-validation")
         _insert_dataset(target, dataset)
     fault_hook("after-build")
     deny_counts = _assert_sanitized_database(destination, dataset)
-    return dataset, deny_counts
+    return dataset, deny_counts, skipped_empty_unknown_tables
 
 
 def _repo_relative(path: Path) -> str:
@@ -1433,6 +1451,7 @@ def _report(
     source: SnapshotFingerprint,
     dataset: AllowedDataset,
     deny_counts: Mapping[str, int],
+    skipped_empty_unknown_tables: Sequence[str] = (),
 ) -> dict[str, Any]:
     return {
         "snapshot_id": config.snapshot_id,
@@ -1441,6 +1460,7 @@ def _report(
         "allowlist_schema_version": ALLOWLIST_SCHEMA_VERSION,
         "table_counts": dataset.counts,
         "relationship_counts": dataset.relationships,
+        "skipped_empty_unknown_tables": list(skipped_empty_unknown_tables),
         "source_origin_denylist_zero_counts": {table: 0 for table in deny_counts},
         "logical_checksum": dataset.logical_checksum,
         "validation_results": {
@@ -1565,14 +1585,21 @@ class ReviewImporter:
 
         try:
             with _private_umask():
-                dataset, deny_counts = _build_sanitized_database(
+                dataset, deny_counts, skipped_empty_unknown_tables = _build_sanitized_database(
                     paths.source,
                     staged_artifact,
                     self.fault_hook,
                 )
                 _assert_public_review_pages(staged_artifact, dataset)
                 _assert_source_unchanged(paths.source, before)
-                report = _report(config, paths, before, dataset, deny_counts)
+                report = _report(
+                    config,
+                    paths,
+                    before,
+                    dataset,
+                    deny_counts,
+                    skipped_empty_unknown_tables,
+                )
                 if config.dry_run:
                     self.fault_hook("before-publish")
                     _assert_source_unchanged(paths.source, before)

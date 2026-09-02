@@ -244,6 +244,7 @@ def run(
     luma_source: Path,
     eventbrite_source: Path,
     current_registration_input: Path | None = None,
+    cmp_source_db: Path | None = None,
     fresh: bool,
 ) -> dict[str, Any]:
     if fresh and any(
@@ -273,6 +274,19 @@ def run(
     identities = _json_management_command(
         "import_event_identities", apply=True, manifest=identity_manifest
     )
+    cmp_content: dict[str, Any]
+    if cmp_source_db is None:
+        cmp_content = {"imported": False, "skipped": "source_not_supplied"}
+    else:
+        from courses.services.local_cmp_content_import import (
+            LocalCmpContentImportError,
+            import_local_cmp_content,
+        )
+
+        try:
+            cmp_content = import_local_cmp_content(cmp_source_db, database).summary()
+        except LocalCmpContentImportError as error:
+            raise LocalPreparationError(f"cmp_content_{error}") from error
     catalog = _json_management_command("seed_local_courses")
     modules_check = _json_management_command(
         "prepare_local_course_modules", manifest_path=course_modules_input, check=True
@@ -373,6 +387,7 @@ def run(
         "steps": {
             "migrations": {"completed": True, "report": migrations},
             "event_identities": identities,
+            "cmp_content": cmp_content,
             "course_catalog": catalog,
             "course_modules_check": modules_check,
             "course_modules": modules,
@@ -416,6 +431,15 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Refuse to run if the selected SQLite database or its WAL files already exist.",
     )
+    parser.add_argument(
+        "--cmp-source-db",
+        type=Path,
+        default=None,
+        help=(
+            "Protected CMP SQLite snapshot to import as sanitized course content. "
+            "The file is copied and read only; learner tables are not imported."
+        ),
+    )
     return parser
 
 
@@ -433,6 +457,9 @@ def main(argv: list[str] | None = None) -> int:
                 Path(args.current_registration_input).resolve()
                 if args.current_registration_input is not None
                 else None
+            ),
+            cmp_source_db=(
+                Path(args.cmp_source_db).resolve() if args.cmp_source_db is not None else None
             ),
             fresh=args.fresh,
         )

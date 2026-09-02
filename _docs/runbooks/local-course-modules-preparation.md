@@ -177,10 +177,11 @@ activating the reviewed current-event registration aggregates.
   those commits are pushed, this dataset cannot be rebuilt on a machine that does not already
   have the local clones, and neither can production ingest the curricula through the course
   repository webhook.
-- **No CMP database dump.** The catalogue comes from the pinned
-  `scripts/production_like_course_specs.json`, not from a CMP export. `make review-data` builds a
-  separate content-only review database from a protected CMP snapshot and is not part of this
-  flow.
+- **The protected CMP snapshot.** `PRODUCTION_PREP_CMP_SOURCE` defaults to
+  `$(HOME)/git/course-management-platform/db/db.sqlite3`. `make production-prep-local` copies that
+  file and runs the sanitizing importer before the catalogue seed and module preparation, so
+  homework questions and project copy come from CMP rather than the placeholder seed. Learner
+  tables stay empty. `make review-data` remains the standalone review-database path.
 
 ### What the gate checks
 
