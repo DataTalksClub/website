@@ -128,14 +128,44 @@ at all** — confirming that any mapping derived from the dev copy is incomplete
 
 ### 3.4 Where the placeholder generators live
 
-The exact answer, for the record:
+⚠ **The "placeholder generator scripts" are not the cause.** `add_data.py`,
+`add_more_test_data.py`, `seed_local_questions.py`,
+`generate_production_like_leaderboard_data.py` and `build_synthetic_design_review_db.py`
+contribute **zero rows** to the site. Deleting all of them changes nothing the owner sees.
+
+The junk arrives through the **live** path this refactor restructures:
+
+```
+scripts/prepare_local_data.py:290   catalog = _json_management_command("seed_local_courses")
+  -> courses/services/local_course_seed.py:276   "Practice assignment for {title}. "
+  -> courses/services/local_course_seed.py:362   "Production-like generated project: {title}"
+  -> names from scripts/production_like_course_specs.json:42-50
+```
+
+So this is a **product change to the seed service inside the import path**, not a cleanup
+beside it. It lands within this work (§6.5).
+
+⚠ **`production_like_course_specs.json` cannot simply be edited.** It is not an invented
+fixture: it is a verbatim copy of CMP's *own* file at
+`98a235283904b4ef9ad29e196298540756cf1bcc`, and its SHA-256
+`34077cd4…1019a7` is verified in **three** independent places —
+`local_course_seed.py:73` (`CATALOG_SOURCE_SHA256`, checked before writing rows),
+`scripts/build_public_projection.py:2918` (checked before projecting), and
+`_docs/adoption/course-platform/copied-files.tsv:757`. Verified: the file on disk matches
+that digest exactly. The pin guarantees the seed and the public projection describe the
+*same* catalogue because both read the same pinned upstream file. Editing it breaks the
+projection's provenance chain (`source_path` at `build_public_projection.py:2459`, `:3143`)
+and the adoption ledger simultaneously.
+
+That also explains `Project Attempt N` (below): it is in this file because it was in CMP's
+file, because it reflects real production copy.
 
 | String | Source |
 | --- | --- |
 | `Practice assignment for …` | `courses/services/local_course_seed.py:276` (`homework_description`) |
 | `Production-like generated project: …` | `courses/services/local_course_seed.py:362` (`_seed_projects`) |
-| both, duplicated | `scripts/generate_production_like_leaderboard_data.py:228`, `:412` |
-| `Project Attempt N` titles | `scripts/production_like_course_specs.json` |
+| `Project Attempt N` titles | `scripts/production_like_course_specs.json:42-50` (pinned upstream copy) |
+| both strings, duplicated but unreachable | `scripts/generate_production_like_leaderboard_data.py:228`, `:412` |
 
 ⚠ **`Project Attempt N` is a false positive.** It is genuine DataTalksClub production copy:
 28 of 52 projects in the production export carry it, and `content/faq_projection.json:310`
@@ -236,9 +266,26 @@ scope (§11) because it is a different lane's code.
 
 ## 4. Current surface inventory
 
-⚠ `_docs/design/specs/script-inventory.md` **did not exist** when this was written. The
-"survives" column below is therefore an *assumption* to be reconciled with that audit; any
-script it marks dead must be removed from §5 before implementation.
+**Reconciled with `_docs/design/specs/script-inventory.md`.** That audit landed after the
+first draft of this plan and overturned its deletion list; the corrections are folded in
+below and in §10.
+
+⚠ **Nothing under `scripts/` is deletable in a cleanup commit.**
+`_docs/adoption/course-platform/copied-files.tsv` pins 14 files under `scripts/`, and
+`core/tests/test_course_platform_adoption.py:239` asserts the ledger has exactly **768**
+rows while `:262` asserts `destination.is_file()` for every one of them. Verified
+independently: `add_data.py` (row 747), `add_more_test_data.py` (748),
+`generate_production_like_leaderboard_data.py` (753), `load_rds_export.py` (755) and
+`production_like_course_specs.json` (757) are all pinned, and the file has 769 lines
+(768 rows + header). The `retired_adoption_destinations` escape hatch
+(`scripts/verify_course_platform_adoption.py:74-84`) covers only `courses/migrations/` and
+`courses/models/course.py`, so no `scripts/` path qualifies.
+
+Deleting any of them needs a four-part change in one commit — drop the `copied-files.tsv`
+row, drop any matching `integration-patched-files.tsv` row, extend
+`retired_adoption_destinations` to `scripts/`, and lower the 768 constant. That is a
+**groomed issue of its own**, not a step in this refactor. This plan therefore **moves and
+renames, and deletes nothing under `scripts/`.**
 
 | Path | Purpose | Disposition |
 | --- | --- | --- |
@@ -255,21 +302,28 @@ script it marks dead must be removed from §5 before implementation.
 | `scripts/import_historical_zoomcamp_data.py` (194) + `scripts/historical_import/` | pre-2024 scoring/certificates | **Move to `scripts/prod/`**; already a package |
 | `scripts/build_public_projection.py` (3213) | pinned repos → projection | Move to `scripts/prod/` (touches real upstream). Internals out of scope |
 | `scripts/sync_course_platform.py` (873), `prepare_course_platform_source.py` (95) | upstream sync | Move to `scripts/prod/`; internals out of scope |
-| `scripts/load_rds_export.py` (842) | CMP full copy, `main()` returns 2 | **Delete** once `FULL_FIDELITY` mode exists (§6.3) |
+| `scripts/load_rds_export.py` (842) | CMP full copy, `main()` returns 2 | ⚠ **Keep.** `main()` is disabled, but `courses/tests/test_load_rds_export_script.py:9-19` imports nine internals and `review_import/tests/test_workflow.py:36,2411-2417` patches four more and calls `main()`. Also ledger-pinned (row 755). If the CMP adapter absorbs its internals, those test imports move with them |
 | `courses/services/local_course_seed.py` (394) | catalog seed + placeholders | **Scaffolding.** Stays out of `scripts/prod/`; defanged (§6.5) |
 | `courses/services/local_question_seed.py` | question placeholders | Scaffolding; defanged |
 | `courses/management/commands/import_development_course_content.py` (82) | dev content bootstrap | **Keep** — load-bearing for `core/tests/test_course_platform_adoption.py` |
 | `scripts/generate_production_like_leaderboard_data.py` (917) | placeholder generator | Scaffolding. Keep for now — referenced by `README.md` and the adoption docs |
 | `scripts/build_synthetic_design_review_db.py` (147) | synthetic review DB | Scaffolding. Keep — referenced by `_docs/design/issue-237-review-state-matrix.md` |
-| `scripts/add_data.py` (476) | placeholder generator | **Delete.** Zero references anywhere in the repo |
-| `scripts/add_more_test_data.py` (447) | placeholder generator | **Delete.** Zero references anywhere in the repo |
-| `scripts/production_like_course_specs.json` | project/homework titles | ⚠ **Keep — load-bearing.** Also feeds `courses/course_page_contract.py`, `scripts/build_public_projection.py` and `content/tests/test_public_projection_builder.py`. Not merely a seed input |
-
-Immediate dead weight: **923 lines** across `add_data.py` and `add_more_test_data.py`.
+| `scripts/add_data.py` (476), `scripts/add_more_test_data.py` (447) | unreachable seeders | ⚠ **Keep.** Zero code references, but ledger-pinned (rows 747, 748). Contribute zero rows to the site. Deletion is a separate groomed ledger issue |
+| `scripts/production_like_course_specs.json` | pinned upstream catalogue | ⚠ **Keep, unedited.** SHA-256-pinned in three places (§3.4) |
 
 Genuinely needed by tests/CI, and therefore kept despite generating placeholders:
 `local_course_seed.py`, `local_question_seed.py`, `import_development_course_content.py`,
 `production_like_course_specs.json`.
+
+⚠ **Management-command budget.** `core/tests/test_course_platform_adoption.py:330-333`
+asserts `EXPECTED_COMMANDS` by **exact equality** over the `accounts`, `api`,
+`studio_courses`, `courses` and `data` apps. Adding *or* removing a command in those apps
+turns the tree red until the ledger is amended and
+`scripts/render_course_platform_inventory.py` re-renders
+`_docs/adoption/course-platform/behavior-inventory.md`. This plan therefore puts the new
+entry points under `scripts/prod/` rather than adding management commands, which keeps the
+whole refactor outside that assertion. Any later change that does add one must budget the
+ledger amendment into the same commit.
 
 ## 5. Target layout
 
@@ -449,8 +503,20 @@ dependency.
 
 ### 6.5 Placeholder generators structurally unable to overwrite real data
 
-Layout does most of it (§2). Four layers, because the current guard is namespace-scoped and
-therefore useless (§3.4):
+**The answer, stated directly: the seed becomes a synthetic-target-only bootstrap that can
+never run alongside a real adapter.** Of the three options —
+
+1. *edit the catalogue JSON* — **rejected.** Blocked by three independent SHA-256 pins
+   (§3.4); it would break the public projection's provenance chain and the adoption ledger.
+2. *let the real adapter overwrite the seeded rows* — **rejected.** It only works if the
+   slug namespaces agree, and §3.5 shows they do not: the seeder writes
+   `homework-01-<slug>` while CMP writes `hw1`, so the rows never collide and the seeded
+   ones survive beside the real ones. That is the observed 100-row homework table.
+3. *seed is synthetic-target-only* — **chosen.** The seed is a bootstrap for a database
+   with **no real source**, not an overlay on one that has one.
+
+Layout does most of the work (§2). Four layers, because the current guard is
+namespace-scoped and therefore useless (§3.4):
 
 1. **Import boundary, enforced by test.** A test walks the import graph of every module
    under `scripts/prod/` and asserts it never reaches `local_course_seed`,
@@ -537,7 +603,7 @@ Field-level ownership, declared once, so re-running cannot flip a value:
 
 ⚠ The family-description reversal is the **one behaviour change** in this plan that is not
 purely structural. It is called out separately so it cannot be smuggled into a move-only
-commit (§9 step 8), and it needs owner confirmation (§12).
+commit (§9 step 7), and it needs owner confirmation (§12).
 
 ### 7.4 Idempotency across both sources
 
@@ -701,39 +767,48 @@ A is the first implementation increment because it is the one the owner reported
 Behaviour-preserving first. Each step leaves the tree green. **No step mixes "move code"
 with "change behaviour".**
 
-1. **Delete** `scripts/add_data.py`, `scripts/add_more_test_data.py`. Zero references.
-2. **Create `scripts/prod/`**; move `prepare_local_data.py` → `scripts/prod/run.py`
-   verbatim. Update the four call sites. No shim.
-3. **Extract the five seams** from `run()` into `scripts/prod/sources/`: event identity,
+⚠ **No step deletes a file under `scripts/`** (§4). Relocations must keep the ledger's
+`copied-files.tsv` destination paths valid, so a "move" of a ledger-pinned file is a *copy
+plus re-export*, not a `git mv`, until the ledger issue lands.
+
+1. **Create `scripts/prod/`**; move `prepare_local_data.py` → `scripts/prod/run.py`
+   verbatim. Update the four call sites. No shim. `prepare_local_data.py` is **not**
+   ledger-pinned, so this one is a true rename.
+2. **Extract the five seams** from `run()` into `scripts/prod/sources/`: event identity,
    CMP snapshot, course catalog, course modules, registration. Pure moves; `run()` becomes
    composition.
-4. **Relocate** the remaining real-data scripts into `scripts/prod/` (public projection,
+3. **Relocate** the remaining real-data scripts into `scripts/prod/` (public projection,
    course-platform sync, historical scoring, course-modules manifest, review DB CLI).
    Path changes only. Reconcile against `script-inventory.md` first.
-5. **Add the registry and `SourceProvenance`** (§5); register `events.importers` in place.
-6. **`modes.py`** with `ImportMode` and `NEVER_IMPORTABLE`, threaded through `extract`.
+4. **Add the registry and `SourceProvenance`** (§5); register `events.importers` in place.
+5. **`modes.py`** with `ImportMode` and `NEVER_IMPORTABLE`, threaded through `extract`.
    Default `SANITIZED` — no behaviour change.
-7. **`provenance.py`**; assert the CMP snapshot is a pipeline export and fresh (§6.4).
-8. **Import-boundary test** (§6.5 layer 1) plus seeder defanging and the precedence change
+6. **`provenance.py`**; assert the CMP snapshot is a pipeline export and fresh (§6.4).
+7. **Import-boundary test** (§6.5 layer 1) plus seeder defanging and the precedence change
    (§6.5, §7.3). **Behaviour changes here** — its own commit, family-description ownership
    flip called out explicitly.
-9. **Schema-drift adoption** (§6.4): `KNOWN_UNMAPPED_TABLES`, version bump.
-10. **`Makefile:408`** → newest `/data/tmp/rds-export/rds-prod-*.db`, resolved not
-    hardcoded, still overridable. *(This takes ownership of `Makefile`; see §11.)*
-11. **Homework binding** (§7.2): emit `homework_slug_overrides`; delete the regex.
-12. **Delete `scripts/load_rds_export.py`** once `FULL_FIDELITY` exists (later increment).
+8. **Schema-drift adoption** (§6.4): `KNOWN_UNMAPPED_TABLES`, version bump.
+9. **`Makefile:408`** → newest `/data/tmp/rds-export/rds-prod-*.db`, resolved not
+    hardcoded, still overridable. *(This takes ownership of `Makefile`; see §12.)*
+10. **Homework binding** (§7.2): emit `homework_slug_overrides`; delete the regex.
 
-Steps 1-7 are behaviour-preserving. Steps 8-11 are the visible fix.
+Steps 1-6 are behaviour-preserving. Steps 7-10 are the visible fix.
 
 ## 10. What gets deleted
 
-| File | Lines | Why |
-| --- | --- | --- |
-| `scripts/add_data.py` | 476 | Zero references |
-| `scripts/add_more_test_data.py` | 447 | Zero references |
-| `scripts/load_rds_export.py` | 842 | Superseded by `FULL_FIDELITY` mode; `main()` already disabled |
-| `local_cmp_content_import.py:50` regex | — | Replaced by the override table (§7.2) |
-| row-count escape hatch in `_validate_source_schema` | — | Replaced by `KNOWN_UNMAPPED_TABLES` (§6.4) |
+⚠ **No file is deleted.** The first draft proposed removing `add_data.py`,
+`add_more_test_data.py` and `load_rds_export.py`; the script inventory and the independent
+checks in §4 overturned all three. Only code *within* surviving files goes:
+
+| Deleted | Why |
+| --- | --- |
+| `local_cmp_content_import.py:50` — the `^hw(\d+)$` regex | Replaced by the per-cohort override table (§7.2). It would break `ml-zoomcamp-2026` |
+| row-count escape hatch in `_validate_source_schema` | Replaced by `KNOWN_UNMAPPED_TABLES` (§6.4); it does not work against production (§3.2) |
+| unconditional `course.description` assignment, `curriculum_import.py:339` | Replaced by declared field ownership (§7.3). Held by another lane — coordinate before touching |
+
+File deletion under `scripts/` is a **separate groomed ledger issue** covering the nine
+genuinely unused files the inventory lists (~2,000 lines). It is one issue, not nine, and
+it is not this refactor.
 
 ## 11. Out of scope
 
