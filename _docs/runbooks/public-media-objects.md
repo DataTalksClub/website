@@ -196,11 +196,12 @@ The utility rewrites only `tree_sha256`, `tree_digest_scope`, and `media_storage
 
 ## Deployment
 
-A deployed environment must set `PUBLIC_MEDIA_STORE_BACKEND=s3` and `PUBLIC_MEDIA_S3_BUCKET`.
-`manage.py check` fails under production settings otherwise (`content.E004`, `content.E005`), because
-the release image does not contain the media tree.
+Every deployed environment must set `PUBLIC_MEDIA_STORE_BACKEND=s3` and `PUBLIC_MEDIA_S3_BUCKET`.
+`manage.py check` fails otherwise (`content.E004`, `content.E005`) for both `development` and
+`production`, because both run the release image and that image does not contain the media tree.
 
-The deployed values are:
+These are wired in the release contract at `deploy/task_definitions.py`
+(`PUBLIC_MEDIA_ENVIRONMENT`), so every registered task definition carries them:
 
 ```bash
 PUBLIC_MEDIA_STORE_BACKEND=s3
@@ -208,6 +209,23 @@ PUBLIC_MEDIA_S3_BUCKET=dtc-website-media
 PUBLIC_MEDIA_S3_REGION=eu-west-1
 ```
 
-**Do not set these anywhere until the publish above has run and `public_media_verify` reports
-1253/1253.** The bucket is empty today, so selecting the `s3` backend early would turn every
-`/images/...` request into a fail-closed `502`.
+The task definitions currently live in AWS predate these variables, so the builder introduces them
+onto a prior task exactly once. It refuses to overwrite a *different* value for any of the three: a
+source task that names another bucket is a hard `ReleaseContractError`, not something the normalizer
+silently repoints.
+
+Do not deploy the media-free image before `public_media_verify` reports 1253/1253 against the
+bucket. A record whose object is absent fails closed with a `502` for that one path.
+
+### Why Django reads S3 directly and not the CDN
+
+`/images/...` stays on the site's own hostname. Django is the origin for those paths and reads the
+object from S3 through the ambient task role, verifies it against `provenance.checksum`, and serves
+it. The `d3tgrbv0nfqbcz.cloudfront.net` distribution is an origin/edge detail of the bucket; no
+public URL is ever rewritten to that hostname, because that would move 1,253 URLs off the
+preserve-first contract in `_docs/specs/02-url-link-seo-compatibility.md`. Putting the CDN between
+Django and the bucket would also insert a cache in front of the integrity check without removing
+Django from the request path, so it buys nothing in Phase 1.
+
+Phase 2 — a CloudFront cache behavior serving `/images/*` from the S3 origin under the site's own
+hostname, with Django out of the request path — remains the named non-goal of #301.

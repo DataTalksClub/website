@@ -55,6 +55,10 @@ DEFAULT_S3_TIMEOUT_SECONDS = 5.0
 # wide margin above it while still bounding the per-request allocation.
 DEFAULT_MAX_OBJECT_BYTES = 8 * 1024 * 1024
 SUPPORTED_BACKENDS = ("local", "memory", "s3")
+#: Environments that run the release image.  That image excludes the media tree from its
+#: build context, so a deployed workload has to read the objects from the object store;
+#: `local` is only a valid backend for a checkout that has the files on disk.
+DEPLOYED_ENVIRONMENTS = frozenset({"development", "production"})
 
 HYDRATE_COMMAND = "manage.py public_media_hydrate"
 
@@ -619,9 +623,9 @@ def media_store_config() -> MediaStoreConfig:
 @lru_cache(maxsize=4)
 def _build_media_store(config: MediaStoreConfig) -> MediaStore:
     if config.backend == "memory":
-        if config.environment == "production":
+        if config.environment in DEPLOYED_ENVIRONMENTS:
             raise ImproperlyConfigured(
-                "The offline media fixture store cannot serve a production environment."
+                "The offline media fixture store cannot serve a deployed environment."
             )
         return MemoryMediaStore(maximum_object_bytes=config.maximum_object_bytes)
     if config.backend == "s3":

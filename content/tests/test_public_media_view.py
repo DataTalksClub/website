@@ -295,27 +295,56 @@ class MediaStoreSystemCheckTests(SimpleTestCase):
         with override_settings(PUBLIC_MEDIA_STORE_BACKEND="memory"):
             self.assertEqual(public_media_store_check(None), [])
 
-    def test_production_requires_the_object_store_backend(self) -> None:
+    def test_every_deployed_environment_requires_the_object_store_backend(self) -> None:
         from content.apps import public_media_store_check
 
-        with override_settings(ENVIRONMENT="production", PUBLIC_MEDIA_STORE_BACKEND="local"):
-            self.assertEqual(
-                [error.id for error in public_media_store_check(None)], ["content.E004"]
-            )
-        with override_settings(
-            ENVIRONMENT="production",
-            PUBLIC_MEDIA_STORE_BACKEND="s3",
-            PUBLIC_MEDIA_S3_BUCKET="",
-        ):
-            self.assertEqual(
-                [error.id for error in public_media_store_check(None)], ["content.E005"]
-            )
-        with override_settings(
-            ENVIRONMENT="production",
-            PUBLIC_MEDIA_STORE_BACKEND="s3",
-            PUBLIC_MEDIA_S3_BUCKET="release-assets",
-        ):
-            self.assertEqual(public_media_store_check(None), [])
+        # The release image excludes the media tree from its build context, so both
+        # deployed environments must read the published objects, not the filesystem.
+        for environment in ("development", "production"):
+            with self.subTest(environment=environment):
+                with override_settings(ENVIRONMENT=environment, PUBLIC_MEDIA_STORE_BACKEND="local"):
+                    self.assertEqual(
+                        [error.id for error in public_media_store_check(None)], ["content.E004"]
+                    )
+                with override_settings(
+                    ENVIRONMENT=environment, PUBLIC_MEDIA_STORE_BACKEND="memory"
+                ):
+                    self.assertEqual(
+                        [error.id for error in public_media_store_check(None)], ["content.E004"]
+                    )
+                with override_settings(
+                    ENVIRONMENT=environment,
+                    PUBLIC_MEDIA_STORE_BACKEND="s3",
+                    PUBLIC_MEDIA_S3_BUCKET="",
+                ):
+                    self.assertEqual(
+                        [error.id for error in public_media_store_check(None)], ["content.E005"]
+                    )
+                with override_settings(
+                    ENVIRONMENT=environment,
+                    PUBLIC_MEDIA_STORE_BACKEND="s3",
+                    PUBLIC_MEDIA_S3_BUCKET="release-assets",
+                ):
+                    self.assertEqual(public_media_store_check(None), [])
+
+    def test_the_deployed_task_definition_wires_the_published_bucket(self) -> None:
+        from deploy.task_definitions import FIXED_NONSECRET_ENVIRONMENT
+
+        self.assertEqual(
+            {
+                name: FIXED_NONSECRET_ENVIRONMENT[name]
+                for name in (
+                    "PUBLIC_MEDIA_STORE_BACKEND",
+                    "PUBLIC_MEDIA_S3_BUCKET",
+                    "PUBLIC_MEDIA_S3_REGION",
+                )
+            },
+            {
+                "PUBLIC_MEDIA_STORE_BACKEND": "s3",
+                "PUBLIC_MEDIA_S3_BUCKET": "dtc-website-media",
+                "PUBLIC_MEDIA_S3_REGION": "eu-west-1",
+            },
+        )
 
 
 class MediaToolingReachabilityTests(SimpleTestCase):

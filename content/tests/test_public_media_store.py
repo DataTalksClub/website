@@ -225,10 +225,20 @@ class MemoryMediaStoreTests(SimpleTestCase):
         self.assertEqual(deterministic_fixture(first), deterministic_fixture(first))
         self.assertNotEqual(deterministic_fixture(first), deterministic_fixture(second))
 
-    def test_the_offline_store_refuses_to_serve_production(self) -> None:
-        with override_settings(PUBLIC_MEDIA_STORE_BACKEND="memory", ENVIRONMENT="production"):
-            with self.assertRaises(ImproperlyConfigured):
-                media_store()
+    def test_the_offline_store_refuses_to_serve_a_deployed_environment(self) -> None:
+        # Both deployed environments run the release image, which excludes the media
+        # tree, so neither may fall back to the offline fixture.
+        for environment in ("development", "production"):
+            with self.subTest(environment=environment):
+                with override_settings(
+                    PUBLIC_MEDIA_STORE_BACKEND="memory", ENVIRONMENT=environment
+                ):
+                    with self.assertRaises(ImproperlyConfigured):
+                        media_store()
+
+    def test_the_offline_store_still_serves_a_local_checkout(self) -> None:
+        with override_settings(PUBLIC_MEDIA_STORE_BACKEND="memory", ENVIRONMENT="local"):
+            self.assertEqual(media_store().name, "memory")
 
 
 class _StubBody:
