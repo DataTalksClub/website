@@ -59,17 +59,23 @@ class HomeworkAccentBorderTests(SimpleTestCase):
                         )
 
     def test_the_form_box_is_removed_without_losing_the_shared_measure(self) -> None:
+        """The removal moved into the primitive, so this page scopes nothing."""
+
         styles = page_styles(HOMEWORK_TEMPLATE)
-        form_rule = re.search(
-            r"\.submission-band \.cmp-form \{(.*?)\}", styles, re.DOTALL
-        )
+        self.assertNotIn(".submission-band .cmp-form", styles)
+
+        design_system = (
+            REPOSITORY_ROOT / "templates/core/_design_system.html"
+        ).read_text(encoding="utf-8")
+        form_rule = re.search(r"\n      \.cmp-form \{(.*?)\}", design_system, re.DOTALL)
 
         self.assertIsNotNone(form_rule)
         assert form_rule is not None
-        self.assertIn("background: transparent", form_rule.group(1))
-        self.assertIn("border: 0", form_rule.group(1))
-        self.assertIn("padding: 0", form_rule.group(1))
-        self.assertNotIn("max-width", form_rule.group(1))
+        self.assertNotIn("background", form_rule.group(1))
+        self.assertNotIn("border", form_rule.group(1))
+        self.assertNotIn("padding", form_rule.group(1))
+        self.assertIn("max-width: var(--form-measure)", form_rule.group(1))
+        self.assertIn("gap: 1.25rem", form_rule.group(1))
 
 
 class HomeworkPageStructureTests(HomeworkDetailViewTestBase):

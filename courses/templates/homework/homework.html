@@ -193,26 +193,12 @@
     margin-bottom: 2rem;
   }
 
-  /* The page's purpose is not a box.  `.cmp-form` paints lavender on the
-     lavender band, so the form reads as a faint outline around everything
-     that matters while the disabled controls inside it are the darkest thing
-     on the page.  The measure, grid and rhythm the class exists for all stay;
-     only the invisible box is removed.  This belongs in the primitive — see
-     the report — and is scoped here while that file has another owner. */
-  .submission-band .cmp-form {
-    background: transparent;
-    border: 0;
-    border-radius: 0;
-    padding: 0;
-  }
-
-  /* A control you cannot touch must not be the heaviest object in view. */
-  .submission-band .field-input[disabled],
-  .submission-band .field-input[readonly],
-  .submission-band .form-control[disabled],
-  .submission-band .form-control[readonly] {
-    border-color: var(--line-soft);
-  }
+  /* `.cmp-form` is now a measure rather than a box, and a disabled control's
+     edge now recedes in the design system itself, so the two rules this page
+     scoped to itself while that file had another owner are gone.  The readonly
+     half of the scoped rule went with them on purpose: a readonly field is
+     still focusable, so WCAG 1.4.11 does not exempt it and it keeps the full
+     `--line` border the primitive gives it. */
 
   .homework-facts {
     display: grid;

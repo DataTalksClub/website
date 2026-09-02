@@ -843,14 +843,24 @@ disclose; no page uses it today.
 ```
 
 `.field-input` styles `input`, `select` and `textarea` alike; readonly and
-disabled fields sit on `--sand`.
+disabled fields sit on `--sand`. A **disabled** field also drops to a
+`--line-soft` edge, because a control you cannot touch must not be the heaviest
+object in view. A **readonly** field does not: WCAG 1.4.11 exempts an *inactive*
+component from the 3:1 non-text floor, and readonly is still focusable and still
+in the tab order, so it keeps the full `--line` border. `--line-soft` on `--sand`
+is 1.23:1 light and 2.20:1 dark; `--line` on `--sand` is 13.91:1 and 3.48:1.
+Softening the readonly edge as well would be an accessibility regression wearing
+a design fix's clothes.
 
 Mutation forms use the shared CMP primitives so homework, project submission and
 peer-review forms keep one visual system even when their fields differ:
 
-- **`.cmp-form`** — a lavender content surface with the shared 46rem measure,
-  border, padding and vertical rhythm.
-- **`.cmp-form-fields`** — the field group rhythm inside the surface;
+- **`.cmp-form`** — the shared 46rem measure and vertical rhythm, and nothing
+  else. The form is **not a box**: it already sits on the lavender content band,
+  so a second lavender panel with its own border and padding only framed the
+  page again, at 1.25:1 against its own identical ground. The measure and the
+  field rhythm do the grouping.
+- **`.cmp-form-fields`** — the field group rhythm inside the form;
   `.field`, `.field-label`, `.field-hint`, `.field-input` and `.form-control`
   share the same labels, controls and disabled/readonly treatment.
 - **`.cmp-form-actions`** — the dashed action rule, spacing and responsive
@@ -885,6 +895,15 @@ detection, country and role validation and accessible error summary. The rebuilt
 course page therefore keeps its register **call to action** and links to that
 page rather than growing a second copy of a mutation surface; these field
 primitives are still the ones a page in this system uses when it does own a form.
+
+One option row is `.form-check` with `.form-check-input` and
+`.form-check-label`. The row keeps the system's 2.75rem (44px) target floor —
+that is what the pointer target is — and the control itself is **1.25rem (20px)**
+in every theme and on every page. A page that restates the primitive to get a
+different checkbox size is drifting, not designing, and it wins by accident:
+page styles are emitted after the design system inside the same `<style>`
+element (`templates/core/content_page.html`), so an equal-specificity copy
+silently overrides the shared rule.
 
 ### Panels
 

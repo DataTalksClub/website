@@ -1,5 +1,6 @@
 """Focused contracts for the shared learner submission design primitives."""
 
+import re
 from pathlib import Path
 
 from django.template.loader import get_template
@@ -99,6 +100,91 @@ class SharedSubmissionPrimitiveTests(SimpleTestCase):
         self.assertIn("border-style: dashed", quiet_rule)
         self.assertNotIn("border-inline-start", quiet_rule)
         self.assertIn("var(--focus)", design_system)
+
+    def test_cmp_form_is_a_measure_and_not_a_box(self) -> None:
+        """The form sits on the lavender band; it does not repaint it."""
+
+        design_system = read_template("templates/core/_design_system.html")
+        start = design_system.index(".cmp-form {")
+        rule = design_system[start : design_system.index("}", start)]
+
+        self.assertIn("display: grid", rule)
+        self.assertIn("gap: 1.25rem", rule)
+        self.assertIn("max-width: var(--form-measure)", rule)
+        self.assertIn("width: 100%", rule)
+        self.assertNotIn("background", rule)
+        self.assertNotIn("border", rule)
+        self.assertNotIn("padding", rule)
+
+    def test_disabled_controls_recede_while_readonly_keeps_its_border(self) -> None:
+        """WCAG 1.4.11 exempts inactive components, not focusable readonly ones."""
+
+        design_system = read_template("templates/core/_design_system.html")
+        start = design_system.index(
+            ".field-input[disabled],\n      .form-control[disabled] {"
+        )
+        rule = design_system[start : design_system.index("}", start)]
+
+        self.assertIn("border-color: var(--line-soft)", rule)
+        self.assertNotIn("[readonly]", rule)
+        # The shared surface/text treatment still covers both states.
+        shared_start = design_system.index(".field-input[readonly],")
+        shared_rule = design_system[shared_start : design_system.index("}", shared_start)]
+        self.assertIn("background: var(--sand)", shared_rule)
+        self.assertIn("color: var(--muted)", shared_rule)
+        self.assertNotIn("border-color", shared_rule)
+
+    def test_choice_controls_use_the_shared_size_without_page_overrides(self) -> None:
+        design_system = read_template("templates/core/_design_system.html")
+        start = design_system.index(".form-check-input {")
+        rule = design_system[start : design_system.index("}", start)]
+        row_start = design_system.index(".form-check {")
+        row_rule = design_system[row_start : design_system.index("}", row_start)]
+
+        self.assertIn("height: 1.25rem", rule)
+        self.assertIn("width: 1.25rem", rule)
+        # The 44px pointer target is the row, so the larger control does not
+        # change it.
+        self.assertIn("min-height: 2.75rem", row_rule)
+        # Page styles are emitted after the design system inside the same style
+        # element, so an equal-specificity restatement silently wins.  Every
+        # page that includes the design system and draws a checkbox is checked,
+        # Studio included: the size is the system's, not the page's.
+        choice_primitives = ("form-check", "form-check-input", "form-check-label")
+        for path, primitives in (
+            (
+                "courses/templates/homework/homework.html",
+                (*choice_primitives, "form-control", "cmp-form"),
+            ),
+            (
+                "courses/templates/homework/_submission_form.html",
+                (*choice_primitives, "form-control", "cmp-form"),
+            ),
+            (
+                "courses/templates/projects/eval_submit.html",
+                (*choice_primitives, "form-control", "cmp-form"),
+            ),
+            (
+                "courses/templates/projects/project.html",
+                (*choice_primitives, "form-control", "cmp-form"),
+            ),
+            # Studio still gives the copied widget names its own `.form-control`
+            # treatment, which is out of this change's scope; the checkbox size
+            # is not the page's to decide.
+            (
+                "studio_courses/templates/studio_courses/campaign_form.html",
+                choice_primitives,
+            ),
+        ):
+            with self.subTest(template=path):
+                source = read_template(path)
+                for primitive in primitives:
+                    # A bare restatement of the primitive, not the pages' own
+                    # qualified `.option-answer-* .form-check-input` marks.
+                    self.assertIsNone(
+                        re.search(rf"^\s*\.{primitive} \{{", source, re.MULTILINE),
+                        f"{path} restates the .{primitive} primitive",
+                    )
 
 
 class SubmissionTemplateStructureTests(SimpleTestCase):

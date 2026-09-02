@@ -46,12 +46,10 @@
     margin-top: 0.35rem;
   }
 
-  .form-check-input {
-    accent-color: var(--green);
-    flex: none;
-    height: 1.1rem;
-    width: 1.1rem;
-  }
+  /* `.form-check-input` is not restated here.  This block is emitted after
+     `core/_design_system.html` inside the same style element, so a copy at the
+     same specificity silently wins, and this one pinned the checkbox to the
+     old 1.1rem while the shared control moved to 1.25rem. */
 {% endblock %}
 
 {% block breadcrumbs %}

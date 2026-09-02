@@ -69,7 +69,21 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
                 self.assertIsNone(
                     re.search(rf"^\s*\.{duplicated} \{{", extra_styles, re.MULTILINE)
                 )
-        self.assertIn("border-color: var(--line-soft)", extra_styles)
+        # The receding disabled edge, and the form that is a measure rather
+        # than a box, now come from the design system this page used to scope
+        # them out of, so the page states neither.
+        self.assertNotIn("border-color: var(--line-soft)", extra_styles)
+        self.assertNotIn(".submission-band .cmp-form", extra_styles)
+        design_system = (
+            Path(__file__).resolve().parents[2] / "templates/core/_design_system.html"
+        ).read_text(encoding="utf-8")
+        disabled_start = design_system.index(
+            ".field-input[disabled],\n      .form-control[disabled] {"
+        )
+        self.assertIn(
+            "border-color: var(--line-soft)",
+            design_system[disabled_start : design_system.index("}", disabled_start)],
+        )
         self.assertNotIn("Answer the questions below to complete your homework.", body)
         self.assertNotIn('<div class="submission-support">', body)
         self.assertContains(

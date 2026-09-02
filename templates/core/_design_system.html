@@ -2544,18 +2544,19 @@ Rules for editing:
 
       /* --- shared form primitives -------------------------------------- */
 
-      /* CMP mutation surfaces share one lavender ground, measure and rhythm.
-         Homework, project submission and peer-review pages use this class on
-         their actual form so a different field set cannot create a different
-         page shape. */
+      /* CMP mutation surfaces share one measure and rhythm.  Homework, project
+         submission and peer-review pages use this class on their actual form
+         so a different field set cannot create a different page shape.
+
+         The form is not a box.  It already sits on the lavender content band,
+         so a lavender panel with a soft border only drew a second frame around
+         everything that matters, at 1.25:1 against its own identical ground —
+         decoration, not a boundary.  The measure and the field rhythm do the
+         grouping. */
       .cmp-form {
-        background: var(--lavender);
-        border: 2px solid var(--line-soft);
-        border-radius: 0.9rem;
         display: grid;
         gap: 1.25rem;
         max-width: var(--form-measure);
-        padding: clamp(1rem, 2.5vw, 1.5rem);
         width: 100%;
       }
 
@@ -2617,6 +2618,19 @@ Rules for editing:
         color: var(--muted);
       }
 
+      /* A control you cannot touch must not be the heaviest object in view, so
+         a disabled field's edge recedes to the soft line.  Only the disabled
+         one: WCAG 1.4.11 exempts an *inactive* component from the 3:1 non-text
+         floor, and --line-soft on --sand is 1.23:1 light and 2.20:1 dark.  A
+         readonly control is still focusable and still in the tab order, so it
+         is not exempt and keeps the full --line border (13.91:1 and 3.48:1).
+         Softening it too would be an accessibility regression wearing a design
+         fix's clothes. */
+      .field-input[disabled],
+      .form-control[disabled] {
+        border-color: var(--line-soft);
+      }
+
       .field-hint {
         color: var(--muted);
         font-size: 0.8rem;
@@ -2659,11 +2673,16 @@ Rules for editing:
         min-height: 2.75rem;
       }
 
+      /* The control is 1.25rem (20px) in every theme and on every page: 1.1rem
+         (17.6px) was smaller than a browser's own default checkbox and read as
+         an afterthought beside the label.  This is affordance, not target size
+         — `.form-check` above keeps the 2.75rem (44px) row, which is what the
+         pointer target actually is. */
       .form-check-input {
         accent-color: var(--green);
         flex: none;
-        height: 1.1rem;
-        width: 1.1rem;
+        height: 1.25rem;
+        width: 1.25rem;
       }
 
       .form-check-label {

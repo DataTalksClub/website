@@ -46,16 +46,11 @@
     gap: 0.35rem;
   }
 
-  .form-check {
-    align-items: center;
-    display: flex;
-    gap: 0.6rem;
-    min-height: 2.75rem;
-  }
+  /* `.form-check` and `.form-check-label` are design-system primitives.  Page
+     styles are emitted after the system inside the same style element, so an
+     equal-specificity copy here silently wins and pins the page to whatever
+     the copy was last edited to say. */
 
-  .form-check-label {
-    color: var(--body-text);
-  }
   .cta.is-voted {
     background: var(--green);
     border-color: var(--line);
