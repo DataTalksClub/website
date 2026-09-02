@@ -53,7 +53,8 @@ D3 (two courses Lambdas), D13 (Relay is the sender) — §3.1. Open, each gating
 cite it: D4 cache freshness · D5 media keys · D6 zone root placement · D7 registrar transfer
 (deferred) · D8 courses-zone fold-in · D9 RDS Multi-AZ timing · D10 SPF strategy · D11 git
 history rewrite · D12 direct-sync source manifest · **D14 SES identity owner (on the EMAIL
-critical path)** · D15 Relay sandbox data (clean start recommended) — §3.2.
+critical path)** · D15 Relay sandbox data (clean start recommended) · D16 Luma-exporter home ·
+D17 Luma refresh owner/cadence — §3.2.
 
 **Phase 0 — inventories and prerequisites (MAIN; read-only)** — details §5
 
@@ -97,8 +98,10 @@ critical path)** · D15 Relay sandbox data (clean start recommended) — §3.2.
 - 9.1 **[P]** **[B:D9]** Production website root (module instantiation; policy-suite churn budgeted)
 - 9.2 **[P]** Minimal `dev.datatalks.club` on shared prod infra (≈ $10/mo; tradeoffs accepted, D2)
 - 9.3 Staging discipline while both serve: 4 duplicate-content controls, `prod.` noindexed
-- 9.4 **[P]** **[OW-SEO]** Stage-2 apex swap after the 4-item gate (parity on `prod.` vs live apex,
-  M8 steps 1–4, caching evidence, rehearsed rollback); alias rollback 1–10 min; S3 legacy warm ≥30 d
+- 9.4 **[P]** **[OW-SEO]** Stage-2 apex swap after the 6-item gate (parity on `prod.` vs live
+  apex, M8 steps 1–4, caching evidence, rehearsed rollback, **data freshness: sources re-synced
+  ≤ 72 h + ≥ N future-dated events — §13.8**, **full-fidelity CMP import proven on a disposable
+  target — §13.9, currently unbuilt**); alias rollback 1–10 min; S3 legacy warm ≥30 d
 
 **Phase 5 — anonymous edge caching (MAIN; must be proven before 9.4)** — details §10
 
@@ -380,6 +383,20 @@ State-root ownership when the dust settles:
   precisely because sandbox data is disposable — but the *production* volume will hold the
   non-reconstructible suppression list, so a backup/restore story is part of `main/relay`'s
   definition of done before any real sending, not an afterthought.
+- **D16 — Where does the Luma exporter live?** The tool producing the events dump sits in a
+  personal temp directory (`/home/alexey/tmp/luma-exporter/` — `uv` project with Makefile,
+  README, tests), outside both repos (§13.8). A required migration input with no home in
+  version control is a risk in itself. Options: its own `DataTalksClub` repository (it holds no
+  PII itself — the *outputs* do); a directory in the website repo. **Recommendation: a small
+  dedicated repo**, keeping PII-bearing outputs strictly in `.local/` per the existing pattern.
+- **D17 — Who owns re-running the Luma export, on what cadence, once the site is live?** An
+  events site whose event source is a manually-run local script is a standing staleness risk —
+  exactly the failure verified in §13.8 (newest event 2026-08-31, zero future events on
+  2026-09-02). Options: (a) named human owner + calendar cadence (weekly + before each cutover
+  gate); (b) scheduled automation (needs D16 resolved first, plus credential custody for the
+  Luma token — which is deliberately not stored anywhere in-repo,
+  `migration-checklist.md:80-85`). **Recommendation: (a) now, (b) as a groomed issue after
+  D16**; either way the §9.4 freshness check is the enforcement backstop.
 
 ---
 
@@ -854,6 +871,18 @@ redirect/canonical/feed/sitemap contract at once** — there is no partial cutov
    caching deliberately left at TTL-zero for the swap.
 4. Rollback rehearsed: alias swapped to the website distribution and back on a low-stakes
    hostname.
+5. **Data-freshness gate (§13.8):** events, cohorts, and content re-synced from their sources
+   within ≤ 72 h of the swap, and the concrete check "**at least N future-dated events exist**"
+   passes (owner-set N, floor 1). Verified 2026-09-02: the newest event anywhere in the current
+   projection is 2026-08-31 — without this gate the new site launches with an empty
+   upcoming-events section and superseded cohorts (#307), a day-one visible failure. The same
+   check joins the post-swap monitoring set.
+6. **Full-fidelity import proven (§13.9):** the complete CMP database import — all accounts,
+   enrollments, submissions, real PII — has been rehearsed end-to-end at least once against a
+   disposable snapshot-restored target, its verification suite passed (row counts, referential
+   integrity, identity-free spot checks), and the target destroyed. Every rehearsal to date
+   proved only the *sanitized* path; this gate exists because the path that actually runs on
+   migration day is currently unbuilt.
 
 **Mechanism and true rollback latency:** in `main/dns`, change the apex A/AAAA **alias** records
 from the `main/legacy-site` distribution to the website distribution (`www` follows). Route 53
@@ -1459,7 +1488,15 @@ DNS/apex rollback windows expired.
 - **7.1 [aws-infra] [CREDS] [ONE-WAY]** Destroy `main/cmp` compute/ALB/dev resources (final DB
   snapshot is enforced — `db.tf:22-24`, `deletion_protection = true` must be lifted knowingly;
   the Aurora final snapshot is the point-of-no-return gate). Keep the snapshot per the retention
-  decision in `migration-checklist.md:177`.
+  decision in `migration-checklist.md:177`. **Privacy note (owner observation to record, not
+  migration work):** CMP has no erasure feature (§13.9), so for personal data *not* carried
+  forward into the new site, **the disposal of the CMP database and its RDS snapshots is itself
+  the erasure event**. The final-snapshot retention window is therefore a privacy decision as
+  much as an ops one: set an explicit expiry for the final snapshot and every automated/manual
+  snapshot, delete them when the rollback window closes, and record the deletions. The
+  pre-existing observation — personal data for tens of thousands of people in a system with no
+  deletion capability — is resolved by this disposal and is noted here because decommissioning
+  is the moment that question gets asked.
 - **7.2** Retire the four GitHub Pages deployments (remove custom-domain CNAME files; archive the
   repos' Pages settings). ONE-WAY in practice — re-serving requires re-verification with GitHub.
 - **7.3** Retire `main/legacy-site` after the stage-2 swap's own ≥30-day rollback window (§9.4):
@@ -1507,7 +1544,7 @@ DNS/apex rollback windows expired.
 | `DataTalksClub/course-management-platform` | code adopted at `98a23528…` (open-decisions §2); course specs same revision (`manifest.json` `sources.courses`) | 12-course public catalog projection + the live service | live DB | **Service migration, not content sync — 13.6** |
 | Course repositories (e.g. `llm-zoomcamp`) | per-repo branch config | Course/Cohort curriculum | per course | Already webhook-shaped: `content_sync/course_repository_webhook.py` + sync (#218, `_docs/planning/2026-08-20-course-repository-curriculum-sync.md`) |
 | Datamailer | inventory pin = #290 (P0, groomed) | read-only email history/reconciliation input, never a sender (spec role reaffirmed by D13's Relay resolution) | TBD by #290 | send-disabled import only (spec 09:141-143); live sending is Relay's (Phase E) |
-| Luma / Eventbrite exports | protected local snapshots, checksummed (`migration-checklist.md:62-124`) | registration aggregates | 51,873 accepted rows (Luma) | operator-gated aggregate import |
+| Luma / Eventbrite exports | protected local snapshots, checksummed (`migration-checklist.md:62-124`; contract `_docs/migration-data/event-registration-sources.json`) | new-website events + registration aggregates — **see §13.8**, incl. the mandatory pre-cutover freshness gate | Luma 166 events / 51,873 accepted rows; Eventbrite 209 / 24,001 | operator-gated aggregate import; exporter re-run for fresh events (§13.8) |
 | `DataTalksClub/zoomcamp-scoring`, Mailchimp, CMP SQLite snapshot | per `migration-checklist.md:14, :135-140` and spec 09:300-315 | historical course/email data | TBD | one-time gated imports |
 
 ### 13.2 The current mechanism, honestly
@@ -1594,7 +1631,9 @@ Its "ingestion" is the CMP database import + delta + freeze choreography owned b
 `migration-checklist.md:18-29`, spec 09 milestones 4–5 and M8.1-2, and the registration-count
 aggregate rollout (spec 09:300-315). Nothing in this section's sync machinery touches it; the
 only interaction is Phase 6's hostname routing. Do not let a "content sync" issue absorb learner
-data — different consent, retention, and rollback rules apply (spec 09:209-246).
+data — different consent, retention, and rollback rules apply (spec 09:209-246). The
+full-fidelity form of that import — the one that actually runs at cutover — is specified in
+§13.9, including its unbuilt-mechanism finding and the mandatory pre-swap dry-run gate.
 
 ### 13.7 Genuinely undecided ingestion items (routed to decisions, not invented)
 
@@ -1604,6 +1643,167 @@ before or after the apex cutover (no dependency either way once D12 exists — b
 the *legacy static* copies of those sections are what's live, so a direct-sync cutover of `/docs`
 before milestone 8 would be invisible until the apex swap; sequence family cutovers after
 milestone 8 unless the owner wants them proving out on `prod.` first).
+
+### 13.8 Events: the Luma data dump, the freshness gate, and the PII boundary
+
+Owner (2026-09-02): "there should be some data dump with new events that we will use for the
+new website — it's taken from Luma. Make sure it's mentioned in the migration plan." It exists,
+is documented below, and carries one prominent warning and one mandatory gate.
+
+**Where the dump lives (verified 2026-09-02).** The prepared aggregate is at
+`.local/migration-data/events/luma-aggregate-v1/` in the main checkout — 332 files, one
+`.csv` + `.json` pair per event, named `<date>_<slug>_<evt-id>`, captured
+`2026-08-29T20:46:15Z`. Siblings: `.local/migration-data/events/luma/` (raw per-event exports)
+and `.local/migration-data/events/eventbrite/` (archive). A working copy sits at
+`.tmp/production-prep/.tmp/luma-prepared-20260831/luma-aggregate-v1` (same 332 files). The
+`.local` events directory is **mode 700 and outside the git tree, deliberately** — this runbook
+documents where it lives and how to regenerate it
+(`scripts/prepare_event_registration_sources.py`, invocation in `migration-checklist.md:92-99`)
+and never embeds its contents.
+
+**The checked contract that describes it** — `_docs/migration-data/event-registration-sources.json`
+(committed provenance: `3adb7b9` "Document located Luma migration snapshot"; values re-verified
+against the file):
+
+- Luma: `adapter: historical-aggregate-v1`, `event_total: 166`, `registration_total: 51,873`
+  approved, `excluded_registration_total: 51` declined, `row_total: 51,924`,
+  `status_policy: historical-status-v1`, `tree_sha256: 5362e8c2…`, and
+  **`activation_state: "mapping_review_required"`**.
+- Eventbrite: `event_total: 209`, `registration_total: 24,001` attending,
+  `source_archive_sha256` + `prepared_archive_sha256` recorded, `unsupported_xlsx_total: 1`,
+  same **`mapping_review_required`** state.
+
+**The exporter — a required input with no home in version control (D16).** The tool that
+produces the raw Luma exports lives at `/home/alexey/tmp/luma-exporter/` — a `uv` project with
+Makefile, README, and tests, **outside both repos, in a personal temp directory**. That is
+itself a migration risk: the pipeline that feeds the events section depends on a script that no
+checkout contains. Its `luma-events/` output already holds events **newer than the prepared
+aggregate** (e.g. `2026-09-01_ml-zoomcamp-2026-pre-course-live-q-a`), i.e. fresh data has been
+pulled but not re-aggregated.
+
+**Why this is a cutover gate, not housekeeping.** Verified today (2026-09-02): the newest date
+anywhere in the 421-record events projection is **2026-08-31** — the site currently has **zero
+future-dated events**. Launching the new site in this state means an empty upcoming-events
+section and superseded cohorts on day one (issue #307) — a visible failure exactly where the
+migration is supposed to shine. Therefore §9.4's swap gate gains a **data-freshness item**:
+within a defined window before the apex swap (recommend ≤ 72 h), events, cohorts, and content
+are re-synced from their sources and the concrete check "**at least N future-dated events
+exist**" passes (owner sets N; N ≥ 1 is the floor, the realistic value is the count of genuinely
+scheduled upcoming events). The same check joins post-swap monitoring so staleness cannot
+silently return — an events site fed by a manually-run local script is a standing staleness
+risk (risk #19; D17 assigns ownership and cadence).
+
+**The PII boundary — explicit, non-negotiable.** These dumps hold **51,873 Luma + 24,001
+Eventbrite registrations with real names and email addresses.** They stay out of the git tree
+and out of CI; no row is ever quoted in a report, issue, screenshot, or log (only checksums and
+aggregate counts are safe facts — `migration-checklist.md:80-85`); and
+`activation_state: "mapping_review_required"` means **the registration data is explicitly not
+cleared for activation** — any step that would make it publicly visible requires the owner's
+mapping review first (exact event-mapping, exclusion, and quarantine rules per spec 09:280-299).
+Privacy/retention authority: `_docs/specs/07-security-privacy-operations.md`; registration-
+migration owners: #112, #242, #243 — cross-referenced, not restated. Note the freshness gate
+and the activation review are **independent**: refreshing the *event catalogue* (titles, dates,
+descriptions) for the gate does not require activating *registration totals*.
+
+**Repo-hygiene warning — HEAD is currently un-rebuildable (verified 2026-09-02).**
+`_docs/migration-data/event-registration-sources.json` sits modified-but-uncommitted in the
+working tree with refreshed Luma facts (`event_total` 166 → **174**, capture
+`2026-09-02T11:26Z`) while committed HEAD still says 166 — and a rebuild from committed HEAD
+fails with `checksum_drift` against the refreshed Luma export. The refreshed export artifacts
+and their facts file must be **committed together** as one change; until then, anyone
+regenerating from HEAD gets a hard failure, and the numbers quoted above are the *committed*
+contract, not the in-flight refresh.
+
+### 13.9 Full-fidelity CMP database import — two modes, only one of them built
+
+Owner (2026-09-02): "the whole import should contain PII and enrollment. It should be the
+entire database. For testing now we can skip it, but we need to make sure it works." The
+runbook previously contemplated only the first of two import modes; the second is the one that
+actually runs on migration day, **and it has never been exercised**.
+
+| Mode | Tool | Contents | Status |
+| --- | --- | --- | --- |
+| **Sanitized** | `review_import/` via `make review-data` (`Makefile:469`) | 0 enrollments, 0 submissions, 1 synthetic user (`review-admin@example.invalid`, `review_import/workflow.py:42`) | Working; correct for local dev, CI, design review — every rehearsal so far proved *this* path |
+| **Full fidelity** | — | the entire CMP database: **17,582 accounts, 18,945 enrollments, 34,764 submissions** (counts verified against `db/db.sqlite3` 2026-09-02), all real PII | **Unbuilt. No tool, no runbook step, never run. A cutover blocker hiding in plain sight** |
+
+**Mechanism — what would actually perform it.** Two candidates examined, one eliminated:
+
+- `scripts/load_rds_export.py` is **not viable** (empirically confirmed): `main()` is disabled
+  and returns 2 (`load_rds_export.py:832-837`); it raises
+  `RuntimeError: courses_course: source export is missing required local columns without
+  defaults: ['course_id']`; CMP has no `courses_course_family`, `courses_module`, or
+  `courses_unit` tables at all; and `plan.default_values` evaluates callable defaults once per
+  table, so every copied cohort would receive the same UUID and violate two unique constraints.
+- `review_import/` is the working importer but **sanitizes by design**.
+
+The full path is therefore **an extension of `review_import` with sanitization disabled behind
+an explicit, loudly-named flag** (recommended — it reuses the schema mapping, fail-closed
+checks, and idempotency that already work), or a not-yet-written tool. Either way this is
+**unbuilt work requiring its own groomed issue(s) per `_docs/PROCESS.md`** — this runbook
+sequences it, nothing here builds it.
+
+**Provenance — how a cutover-time export is produced.** The developer copy at
+`course-management-platform/db/db.sqlite3` came via Aurora → RDS snapshot → Parquet in S3
+(`aws-infra/main/rds-export/`) → SQLite conversion. The cutover import must **not** use a stale
+developer copy: at the milestone-8 write freeze (spec 09:163), take a fresh Aurora snapshot,
+run the same rds-export → conversion chain, record the snapshot identifier + output checksums,
+and feed *that* artifact to the importer. The runbook step is "produce the export at the
+freeze", with the exact procedure documented in the importer's groomed issue.
+
+**The schema-drift blocker (verified).** `make review-data` currently **fails closed**:
+`category=schema-unknown-table table=courses_emailcampaign` (raised at
+`review_import/workflow.py:731`). Cause: the site's adopted CMP schema is pinned at `98a2352`
+(2026-08-04) while the dump is CMP HEAD `6d3cc0e`; three tables added upstream after the pin —
+`courses_emailcampaign` (migration 0043), `courses_systemprojectevaluation` and
+`courses_systemevaluationcriteriaresponse` (0041) — do not exist in the target schema. All
+three are currently empty, which makes the fix cheap **but not optional**: resolve it properly
+(adopt the upstream migrations into the pinned schema, or re-pin the adoption and re-run its
+characterization suite) before any cutover import. Hand-editing tables out of a dump is not a
+resolution. Note the drift will keep growing while CMP stays live — re-check at freeze time.
+
+**Verification (all without printing any learner's identity):** per-table row-count
+reconciliation source↔target; referential-integrity sweep (no orphaned enrollments/submissions);
+spot checks that a known learner's enrollments, submissions, and scores survived — executed by
+an operator with access, reported only as pass/fail and counts. This instantiates the general
+rules of `migration-checklist.md:169-176` and spec 09:209-224 for this specific import.
+
+**Privacy and legal — the single largest movement of personal data in the whole migration.**
+Authority: `_docs/specs/07-security-privacy-operations.md` (retention, minimisation, erasure);
+registration-migration owners #112, #242, #243 — cross-referenced, not restated. This runbook
+adds the operational handling: the export lives only in operator-controlled, mode-700,
+non-git-tracked locations (the `.local/` pattern, §13.8) and named encrypted S3 staging with
+least-privilege read; encrypted at rest and in transit at every hop of the Aurora → S3 → SQLite
+chain; every intermediate copy (Parquet, SQLite, scratch restores) is enumerated at export time
+and **deleted after verification, with the deletion recorded**. The export never enters git,
+CI, logs, screenshots, or issue bodies; reports carry counts and checksums only.
+
+On erasure, the owner's statement (2026-09-02) settles it: **"There are currently no erasure
+requests in CMP — it's not a feature that exists."** Consequence, stated plainly: the CMP
+import is a straight forward-migration of records that have never been subject to an erasure
+action, so **no tombstone reconciliation is required at import time** — the importer needs no
+such step and executors should not go looking for one. The obligation moves *forward*, not
+away: once these ~17,582 accounts with enrollments and submissions land, they enter a system
+that **is** being built with retention/erasure machinery — spec 07 plus #256 (privacy export/
+correction), #257 (retention registry), #258 (erasure tombstone replay on restores), #259
+(privacy invalidation/processor receipts) — and are covered by it from that moment. That
+handover is a genuine post-migration item owned by those issues, not an import-time one.
+
+**Rollback — the least reversible step in the migration.** If the full import lands wrong
+*before* the apex swap: destroy and re-import; nothing public happened. If discovered *after*
+DNS has moved and real writes have landed on the new stack, spec 09's rules govern
+(09:184-206): no destructive reverse of a successful migration, application-image rollback
+with the database retained, expand/contract discipline. The import-specific additions:
+snapshot the target database immediately **before** the full import (the restore point);
+rehearse restoring it; and treat the gap between freeze and swap as the window where aborting
+is still cheap — which is why the dry-run gate below must happen earlier still.
+
+**The dry-run gate (mandatory, pre-swap).** Testing may proceed sanitized for now, per the
+owner — but before the apex swap the full-fidelity path must be **proven end-to-end once**:
+run the complete import against a disposable target (snapshot-restored RDS instance, never the
+shared dev database — §9.2 already reserves throwaway instances for destructive rehearsals),
+run the full verification suite above, record pass/fail + counts, then **destroy the target
+and its credentials and record the destruction**. This joins §9.4's swap gate as item 6,
+alongside the data-freshness gate.
 
 ---
 
@@ -1808,6 +2008,8 @@ automating registrar changes adds risk instead of removing it.
 | 16 | Shared dev/prod infra (D2): dev workload degrades prod via common RDS instance/ALB | Medium over time | prod latency/availability, not data (separate databases + credentials) | RDS connection/CPU/IOPS alarms; ALB target-health per target group (prod-only alarms, CMP precedent `observability.tf:55-58`) | §9.2 fidelity controls: 1-task dev, separate db + creds, explicit listener priorities, throwaway snapshot-restored instance for destructive rehearsals |
 | 17 | Running both stacks doubles spend during migration | Certain, bounded | Budget | Cost Explorer + budget alarm | §14 sizing keeps the overlap ≈ $370–445/mo; Phase 7 harvest is scheduled, not aspirational |
 | 18 | SES main account turns out to be in sandbox mode — learner mail blocked behind an AWS support request | Low (CMP mails learners today) but unverified | Phase E timeline (multi-day external lead) | E.1 / step 0.6 `aws sesv2 get-account` | Verification is front-loaded into Phase 0; if false, the support request files immediately and only E.6 waits |
+| 19 | **Events staleness at and after cutover** — the events pipeline is a manually-run local script in a personal temp dir (§13.8, D16/D17); already realised once: zero future-dated events in the projection on 2026-09-02 (newest = 2026-08-31), which would have shipped an empty upcoming-events section and superseded cohorts (#307) | High until D17 assigns ownership; certain without the gate | Day-one credibility of the new site's events/courses surface | §9.4 gate item 5 pre-swap; the same "≥ N future-dated events" check in post-swap monitoring | Mandatory ≤ 72 h pre-swap re-sync + freshness check; D16 (exporter into version control) and D17 (owner/cadence, later automation) remove the root cause |
+| 20 | **The cutover-day import path is unbuilt and unproven** — every rehearsal so far exercised the *sanitized* importer (0 enrollments, synthetic user); the full-fidelity path (17,582 accounts / 18,945 enrollments / 34,764 submissions, real PII) has no tool (`load_rds_export.py` empirically non-viable; `review_import` sanitizes by design) and is blocked by verified schema drift (`courses_emailcampaign` + two 0041 tables absent from the `98a2352`-pinned schema; `make review-data` fails closed at `review_import/workflow.py:731`). Also the least reversible step once DNS has moved and real writes land | Certain, until the §13.9 work is groomed, built, and rehearsed | Learner data integrity; cutover timeline; privacy (largest PII movement in the migration) | §9.4 gate item 6; drift re-check at freeze; import verification suite (counts/integrity/spot checks) | §13.9: build as a review_import extension via groomed issues; resolve drift properly (no hand-edits); fresh freeze-time export; pre-import target snapshot; disposable-target dry-run before the swap; intermediates deleted and recorded (no erasure reconciliation needed — CMP has no erasure feature, §13.9) |
 
 ---
 
