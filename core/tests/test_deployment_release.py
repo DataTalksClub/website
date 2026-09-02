@@ -47,6 +47,7 @@ from deploy.smoke import (
 )
 from deploy.task_definitions import (
     FIXED_NONSECRET_ENVIRONMENT,
+    PUBLIC_MEDIA_ENVIRONMENT,
     SAFETY_ENVIRONMENT,
     TaskDefinitionConfig,
     build_task_definitions,
@@ -964,6 +965,40 @@ class TaskDefinitionBuilderTests(SimpleTestCase):
         self.assertEqual(environments[1], environments[2])
         self.assertEqual(secrets[0], secrets[1])
         self.assertEqual(secrets[1], secrets[2])
+
+    def test_builder_introduces_the_media_store_variables_onto_a_prior_task(self) -> None:
+        # The currently deployed task definitions predate the object-store media read, so
+        # the builder must be able to introduce the variables exactly once.  It must never
+        # overwrite a *different* value: that would silently repoint the release at
+        # another bucket.
+        media_names = set(PUBLIC_MEDIA_ENVIRONMENT)
+        tasks = {workload: task_document(workload) for workload in CONTAINERS}
+        for task in tasks.values():
+            container = task["containerDefinitions"][0]
+            container["environment"] = [
+                item for item in container["environment"] if item["name"] not in media_names
+            ]
+
+        normalized = build_task_definitions(tasks, self.identity, self.config)
+
+        for task in normalized.values():
+            environment = {
+                item["name"]: item["value"]
+                for item in task["containerDefinitions"][0]["environment"]
+            }
+            self.assertEqual(
+                {name: environment[name] for name in media_names}, PUBLIC_MEDIA_ENVIRONMENT
+            )
+
+        for name in media_names:
+            with self.subTest(name=name):
+                tasks = {workload: task_document(workload) for workload in CONTAINERS}
+                for task in tasks.values():
+                    for item in task["containerDefinitions"][0]["environment"]:
+                        if item["name"] == name:
+                            item["value"] = "someone-elses-value"
+                with self.assertRaises(ReleaseContractError):
+                    build_task_definitions(tasks, self.identity, self.config)
 
     def test_builder_rejects_role_environment_and_secret_mismatches(self) -> None:
         mutations = ("role", "environment", "secret")

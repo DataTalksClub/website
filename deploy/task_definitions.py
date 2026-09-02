@@ -40,6 +40,16 @@ SAFETY_ENVIRONMENT = {
     "DATAMAILER_URL": "",
     "DATAMAILER_API_KEY": "",
 }
+# The release image deliberately excludes content/public_projection/media (see
+# .dockerignore), so a deployed workload cannot serve the projection images from its own
+# filesystem.  It reads them from the published object store instead, at unchanged public
+# /images/... URLs.  The CloudFront distribution in front of the bucket is an origin/edge
+# detail: Django is the origin for /images/..., so no public URL moves to a CDN hostname.
+PUBLIC_MEDIA_ENVIRONMENT = {
+    "PUBLIC_MEDIA_STORE_BACKEND": "s3",
+    "PUBLIC_MEDIA_S3_BUCKET": "dtc-website-media",
+    "PUBLIC_MEDIA_S3_REGION": "eu-west-1",
+}
 FIXED_NONSECRET_ENVIRONMENT = {
     "CANONICAL_ORIGIN": "https://datatalks.club",
     "DJANGO_ALLOWED_HOSTS": "web.dtcdev.click",
@@ -50,6 +60,7 @@ FIXED_NONSECRET_ENVIRONMENT = {
     "WEB_CONCURRENCY": "2",
     "AWS_DEFAULT_REGION": "eu-west-1",
     "AWS_REGION": "eu-west-1",
+    **PUBLIC_MEDIA_ENVIRONMENT,
     **SAFETY_ENVIRONMENT,
 }
 COMMANDS = {
@@ -158,6 +169,15 @@ def build_task_definitions(
         source_environment = _environment(container)
         for identity_name in ("APP_VERSION", "VERSION", "SOURCE_SHA", "IMAGE_DIGEST"):
             source_environment.pop(identity_name, None)
+        # The media-store variables are introduced by this release, so the currently
+        # deployed task definition is allowed to omit them exactly once.  It is never
+        # allowed to *contradict* them: a wrong backend, bucket, or region in the source
+        # is a hard failure rather than something the normalizer silently overwrites.
+        for name, value in PUBLIC_MEDIA_ENVIRONMENT.items():
+            if source_environment.setdefault(name, value) != value:
+                raise ReleaseContractError(
+                    f"{workload} source environment sets an unexpected {name}"
+                )
         if source_environment != FIXED_NONSECRET_ENVIRONMENT:
             raise ReleaseContractError(
                 f"{workload} source environment differs from the development contract"
