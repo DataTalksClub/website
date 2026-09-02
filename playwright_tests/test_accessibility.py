@@ -555,42 +555,70 @@ def test_homework_breadcrumb_target_spacing_ignores_closed_account_menu(
     live_server,
     accessibility_environment: AccessibilityEnvironment,
 ) -> None:
-    page.set_viewport_size({"width": 390, "height": 844})
-    _visit_surface(page, live_server, accessibility_environment, "homework")
+    for width, height, suffix in ((390, 844, "mobile"), (1280, 900, "desktop")):
+        page.set_viewport_size({"width": width, "height": height})
+        _visit_surface(page, live_server, accessibility_environment, "homework")
 
-    account_menu = page.locator("details.user-menu")
-    expect(account_menu).not_to_have_attribute("open", "")
-    hidden_courses_link = account_menu.locator("a.user-menu-item", has_text="Courses")
-    expect(hidden_courses_link).to_have_count(0)
+        # The trail must be measured with the account menu shut: Chromium keeps a
+        # stale rectangle for links inside a closed `details`, and counting those
+        # would make the crumbs look crowded by controls nobody can reach.
+        account_menu = page.locator("details.user-menu")
+        expect(account_menu).not_to_have_attribute("open", "")
+        hidden_courses_link = account_menu.locator("a.user-menu-item", has_text="Courses")
+        expect(hidden_courses_link).to_have_count(0)
 
-    geometry = page.locator(".breadcrumbs a[href]").evaluate_all(
-        """nodes => nodes.map(node => {
-          const rect = node.getBoundingClientRect();
-          return {
-            text: node.textContent.trim(),
-            top: rect.top,
-            bottom: rect.bottom,
-            width: rect.width,
-            height: rect.height,
-          };
-        })"""
-    )
-    # The shared submission document names the full ancestor trail: courses,
-    # course family, and course edition.  The homework itself is the current page.
-    assert len(geometry) == 3, geometry
-    first, second, *_ = geometry
-    # Design 5a replaced the adopted shell's compact crumb row (issue #128's
-    # remediation asserted links no taller than 24px plus compensating spacing):
-    # every breadcrumb ancestor now carries the system's 2.75rem (44px) target
-    # floor, so each crumb is its own sufficient target and the WCAG 2.5.8
-    # spacing exception no longer applies (`templates/core/_design_system.html`,
-    # `.breadcrumbs a`; `_docs/design/design-5a.md`).
-    assert first["height"] + 0.5 >= 44 and second["height"] + 0.5 >= 44, geometry
-    assert target_size_issues(page, "learner.homework") == []
+        geometry = page.locator(".breadcrumbs a[href]").evaluate_all(
+            """nodes => nodes.map(node => {
+              const rect = node.getBoundingClientRect();
+              return {
+                text: node.textContent.trim(),
+                top: rect.top,
+                left: rect.left,
+                right: rect.right,
+                bottom: rect.bottom,
+                width: rect.width,
+                height: rect.height,
+              };
+            })"""
+        )
+        # This fixture's cohort publishes no curriculum, so the trail is the
+        # ancestors the shared submission document always names: courses, course
+        # family, course edition.  A module-format cohort adds the module crumb;
+        # that branch is covered in `courses/tests/test_homework_page_design.py`.
+        # The homework itself is never a crumb — it is the h1 beneath the trail.
+        assert len(geometry) == 3, geometry
 
-    screenshot_dir = Path(".tmp/screenshots/issue-128-breadcrumb-spacing-remediation")
-    screenshot_dir.mkdir(parents=True, exist_ok=True)
-    _capture_deterministic_screenshot(page, screenshot_dir / "homework-mobile.png")
+        # WCAG 2.2 AA target size (2.5.8) is 24x24 CSS px, and the trail meets it
+        # outright, so the spacing exception never has to be invoked for a crumb.
+        # Issue #128's remediation had asserted the opposite arrangement — crumbs
+        # under 24px relying on compensating space — and the design 5a rebuild
+        # then over-corrected to a 44px row, which is the AAA (2.5.5) figure and
+        # cost a whole row of the page.  The settled quiet trail draws a 2rem
+        # crumb; measured on the homework route at both widths, the smallest is
+        # "2026" at 29x32 CSS px (`templates/core/_design_system.html`,
+        # `.breadcrumbs a`).  This asserts the AA floor, not a specific height,
+        # so a later type-scale change is free as long as the floor holds.
+        for crumb in geometry:
+            assert crumb["width"] + 0.5 >= 24, (suffix, crumb, geometry)
+            assert crumb["height"] + 0.5 >= 24, (suffix, crumb, geometry)
+
+        # And no crumb sits on top of another: sufficient targets stay separate
+        # targets, whether the trail is one row or wraps to two.
+        for index, crumb in enumerate(geometry):
+            for other in geometry[index + 1 :]:
+                overlaps = (
+                    crumb["left"] < other["right"]
+                    and crumb["right"] > other["left"]
+                    and crumb["top"] < other["bottom"]
+                    and crumb["bottom"] > other["top"]
+                )
+                assert not overlaps, (suffix, crumb, other)
+
+        assert target_size_issues(page, "learner.homework") == []
+
+        screenshot_dir = Path(".tmp/screenshots/issue-128-breadcrumb-spacing-remediation")
+        screenshot_dir.mkdir(parents=True, exist_ok=True)
+        _capture_deterministic_screenshot(page, screenshot_dir / f"homework-{suffix}.png")
 
 
 @pytest.mark.accessibility
