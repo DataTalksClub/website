@@ -154,3 +154,56 @@ Recorded so they are not repeated:
 - `.local/` was mode 755, not 700, while holding ~76,000 registration records. It has been
   tightened.
 - `/courses/ai-dev-tools` was never empty; it renders the 2025 cohort only.
+
+---
+
+## Final state (appended after the session limit was reached)
+
+The session ended on a usage limit at 15:50 Europe/Berlin. Five Claude agents were
+terminated mid-task and two Codex jobs were killed by signal before writing output. What
+follows supersedes the status recorded above where they disagree.
+
+**`production-prep` carries 12 commits and is the source of truth.** Later additions:
+
+| Commit | What |
+| --- | --- |
+| `ae85da2` | Raw HTML in course units rendered through the allowlist — 104 of 181 units were broken |
+| `70fcf3f` | Handoff documents |
+| `651c7b4` | Unit, homework and learning-flow design specifications preserved from scratch |
+| `2f3f946` | Public course surfaces served from the database (#307) |
+| `60ead98` | Sanitized CMP course content imported into the local database |
+
+Roughly 29 files remained uncommitted, from agents cut off mid-task. Reconcile them
+against the ownership table in `session-handoff-agents-20260902.md` before doing anything
+else.
+
+**Landed after the agent document was written**, so its entries for these are stale:
+
+- The raw-HTML sanitizer is **done**, not running. Root cause was `_CourseMarkdownRenderer`
+  inheriting `mistune.HTMLRenderer`'s `escape=True` default. Images now resolve to
+  `raw.githubusercontent.com`; all 112 distinct sources return 200. Images resolve to the
+  branch tip, not a pinned commit, so a renamed upstream file goes stale until reimport.
+- **#307 is done.** The homepage, hero, cohort page and registration preview all read the
+  ORM. `/courses/<family>/<year>` is unchanged, verified by `reverse()`. The false
+  "four modules" claim was corrected to six modules plus a final project, anchored in the
+  curriculum page and pinned by a test — this deliberately changed a lede the issue had
+  asked to preserve verbatim, on the grounds that shipping a known-false claim is worse.
+- **#308 landed during #307's work.** The dev database now holds one `ai-dev-tools` family
+  with both 2025 and 2026 cohorts, and the 2026 cohort was renamed to `ai-dev-tools-2026`.
+  Its migration `0052`, `courses/migration_family_identity.py` and tests were **not
+  committed** — the agent was cut off while updating the data-migration allowlist in
+  `test_support/tests/test_migrations.py`. That is the first thing to finish.
+
+**Not done, and each needs restarting:**
+
+- **The media publish never ran.** `s3://dtc-website-media/` is still empty. This session had
+  write access; whoever resumes will need it again. Run `public_media_publish` then
+  `public_media_verify`, expecting 1253/1253, then spot-check both literal-space filenames
+  through `https://d3tgrbv0nfqbcz.cloudfront.net`.
+- **The #301 independent verification** was interrupted partway.
+- **Both Codex jobs** (the CMP schema map, and four pipeline fixes) were killed before
+  writing anything. Re-run both; the schema map should go first.
+- **The gate audit** reported, just before termination, that a pristine full Django suite has
+  exactly one real failure. That claim was never written up.
+
+Grok's CMP import notes are preserved at `_docs/design/specs/cmp-import-fix-notes.md`.
