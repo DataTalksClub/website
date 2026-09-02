@@ -1438,7 +1438,45 @@ done. The genuinely unverified item is E.1.
 
 ### E.1 [AWS console/CLI] [CREDS] — record the live SES quota and send rate (EARLY, in Phase 0)
 
-**Not a blocker.** The main account has SES production access in `eu-west-1` — attested by
+> ## ✅ ANSWERED 2026-09-02 — this step is complete
+>
+> The owner queried SES directly for account `387546586013` in **eu-west-1**:
+>
+> | | |
+> | --- | ---: |
+> | `Max24HourSend` (rolling 24 h quota) | **150,000** |
+> | `MaxSendRate` | **50/second** |
+> | Sent in last 24 h | 4 |
+> | Production access | Enabled |
+> | Account status | Healthy, sending enabled |
+>
+> So the increase from the 2026-08-09 baseline (50,000/24 h, 14/s) **was granted in part** —
+> 3× the daily quota and 3.6× the rate, short of the 200,000/200 requested. This closes the
+> follow-up item that support document left open, and supersedes every figure below.
+>
+> **Against a 130,000-recipient campaign:**
+>
+> - **Send rate is comfortable.** 130,000 ÷ 50/s ≈ **43 minutes** for the burst.
+> - **The daily quota is the binding constraint, with a thin margin.** One newsletter leaves
+>   **20,000 recipients** (13% of quota) for that day's transactional mail, and the list can
+>   grow only **~15%** before the newsletter alone reaches the cap.
+>
+> Two foreseeable ways to breach it, both worth watching rather than fearing: the list growing
+> past ~150,000, and a newsletter day coinciding with a transactional spike — a cohort launch
+> or a deadline-reminder run.
+>
+> **Owner decision, 2026-09-02: ramp first, then request the increase.**
+> *"we will slowly ramp it up and then ask for quota increase."* The E.6 ramp (stage −1 shadow
+> week, then stages 0–4) runs far below 150,000/day throughout, so no quota work gates starting.
+> The outstanding request to 200,000/24 h and 200/s becomes a **precondition of the final ramp
+> stage**, not of the first — and by then there will be real send data to justify it, which is a
+> stronger request than the speculative one filed in August.
+>
+> Add to the E.6 stage gates: before the stage whose volume exceeds ~120,000/day, confirm the
+> increase is granted. Re-query rather than trusting this table — a quota can move.
+
+**Historical context, superseded by the box above.** The main account has SES production access
+in `eu-west-1` — attested by
 `aws-infra/docs/aws-support/2026-08-09-ses-newsletter-quota-increase.md:19` ("Production access
 enabled, sending enabled, enforcement healthy", account `387546586013`) and corroborated by CMP
 mailing real learners today (`main/cmp/cmp_deadline_reminder.tf:8-13`). The owner further states
