@@ -590,8 +590,93 @@ convergence bound; the untouched GoDaddy zone resumes. Keep the GoDaddy zone int
 
 ## 7. Phase 2 — GitHub Pages → S3/CloudFront apex rehost
 
-**Goal:** `datatalks.club` serves the four pinned legacy trees from S3 behind CloudFront with all
-2,937 baseline URLs behaving identically; GitHub Pages remains the instant rollback.
+> ## ✅ EXECUTED 2026-09-02 — and the executed design differs from the plan below
+>
+> The apex is live on S3/CloudFront. `curl -sI https://datatalks.club/` returns 200 with
+> `x-amz-version-id` and `x-amz-server-side-encryption: AES256`, so the main tree is being
+> served from the bucket.
+>
+> **What changed:** only the **main site tree** was rehosted into S3. The other three trees —
+> `/docs/`, `/faq/`, `/podwiki/` — were **not** rebuilt and uploaded. A CloudFront
+> viewer-request Function now answers them with `302` to `datatalksclub.github.io`:
+>
+> ```
+> GET https://datatalks.club/faq/ai-dev-tools-zoomcamp.html
+>   → HTTP/2 302, x-cache: FunctionGeneratedResponse from cloudfront
+>   → location: https://datatalksclub.github.io/faq/ai-dev-tools-zoomcamp.html
+> ```
+>
+> Same for `/docs/…` and `/podwiki/…`, verified live.
+>
+> **The split, measured against `generated-path-baseline.jsonl`:**
+>
+> | Tree | `source_id` | Rows | Now |
+> | --- | --- | ---: | --- |
+> | Main site | `dtc-main-site` | 2,301 | **Served from S3** (200) |
+> | Docs | `dtc-docs` | 174 | 302 → `datatalksclub.github.io` |
+> | FAQ | `dtc-faq` | 152 | 302 → `datatalksclub.github.io` |
+> | Podwiki | `dtc-podwiki` | 310 | 302 → `datatalksclub.github.io` |
+>
+> **636 rows — 21.7% of the contract — now redirect instead of returning 200.**
+>
+> ### Consequences that must be worked through
+>
+> **C1 — the compatibility contract no longer describes reality.** All 636 rows carry
+> `classification: "preserve"` and `expected_status: 200`. The baseline schema hard-codes
+> `const: "preserve"`, so a redirect is not expressible in the baseline at all; it can only be
+> recorded through the digest-bound approved-expectations sidecar. Until that is done, the
+> Phase 2.4 parity crawl reports 636 regressions and **cannot function as a gate** — neither
+> for this phase nor for the 9.4 stage-2 swap that depends on it. This is the highest-priority
+> follow-up in the phase.
+>
+> **C2 — GitHub Pages is now a permanent production dependency, not a rollback net.** Step 2.6
+> ("leave all four Pages deployments live and frozen for ≥30 days") and step 7.2 ("retire the
+> four GitHub Pages deployments") are both invalidated for three of the four. `docs`, `faq` and
+> `podwiki` must stay **live and maintained indefinitely**, because the apex has no copy of
+> their content. Only the main-site Pages deployment is a disposable rollback target.
+>
+> **C3 — SEO: the FAQ tree has no canonical and can be indexed under the wrong hostname.**
+> Verified live:
+>
+> - `/podwiki/` on github.io → `<link rel="canonical" href="https://datatalks.club/podwiki/">` ✅
+> - `/docs/…` on github.io → `<link rel="canonical" href="https://datatalks.club/docs/…" />` ✅
+> - `/faq/…` on github.io → **no canonical tag at all** ❌
+>
+> `https://datatalksclub.github.io/robots.txt` 404s, so nothing restrains crawling of the
+> github.io hostname. For the 152 FAQ rows, a crawler follows the 302, finds a self-canonical
+> page, and may index `datatalksclub.github.io/faq/*` in place of `datatalks.club/faq/*`.
+> **Fix at source: add `rel=canonical` to the FAQ Jekyll layout.** Docs and podwiki are already
+> correct and need nothing.
+>
+> **C4 — keep the 302; do not "upgrade" it to 301.** A 302 tells search engines the *source*
+> URL remains canonical, which is what preserves `datatalks.club/faq/*` in the index and keeps
+> the door open to serving these trees from the apex again later. A 301 would consolidate
+> ranking onto `datatalksclub.github.io` — the opposite of what this migration is for. The
+> current status code is right; C3 is the gap, not the verb.
+>
+> **C5 — stale sitemap reference.** The apex `robots.txt` still advertises
+> `Sitemap: https://datatalks.club/podwiki/sitemap.xml`, which now 302s off-domain. Either
+> point it at the github.io sitemap or drop the line.
+>
+> **C6 — issue #306 is superseded.** It records that 310 legacy `/podwiki/*` URLs would 404 at
+> cutover. They now redirect instead, so the 404 risk is gone; what replaces it is C1 and C2.
+> Close or rewrite #306 rather than leaving it to describe a condition that no longer exists.
+>
+> **C7 — the redirect must survive the stage-2 swap.** When the apex alias moves from this
+> distribution to the Django site (§9.4), these 636 paths break unless the new distribution
+> carries the same Function, or Django itself answers them. Add this to the 9.4 gate.
+>
+> ### What in the plan below still applies
+>
+> Steps 2.1–2.3 remain accurate **for the main tree only** — the pinned rebuild, upload with
+> explicit Content-Type and Cache-Control, and the twice-run idempotency check all still stand
+> for `dtc-main-site`'s 2,301 rows. The rest of the section is retained as the record of what
+> was designed and why, and because the directory-resolution and Content-Type traps it
+> documents still govern the tree that *is* in S3.
+
+**Goal (as originally planned):** `datatalks.club` serves the four pinned legacy trees from S3
+behind CloudFront with all 2,937 baseline URLs behaving identically; GitHub Pages remains the
+instant rollback.
 
 **Context that makes this non-trivial** (the classic silent breakage):
 
