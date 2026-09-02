@@ -4,9 +4,10 @@ Two contracts are checked here.  The composition contract: every fact the page
 shows is read from the checked article record and the people it names, and a
 record that cannot supply one fails loudly.  The page contract: the rebuild kept
 every affordance the previous page had — the trail back to the blog, the byline
-and its profile links, the publication date, the artwork and its alternative
-text, the heading anchors and every word of the body — while carrying the design
-system's own stylesheet and shell.
+and its profile links, the publication date, the heading anchors and every word
+of the body — while carrying the design system's own stylesheet and shell.  The
+article's artwork is a social card: it is published in the head as `og:image`
+and is never drawn in the reading band.
 """
 
 from __future__ import annotations
@@ -14,8 +15,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.template.loader import render_to_string
 from django.test import SimpleTestCase, TestCase
 from django.utils.html import escape
 
@@ -84,8 +85,10 @@ class ArticleCompositionTests(SimpleTestCase):
                 [author.public_path for author in view.authors],
                 [profile["public_path"] for profile in record["author_profiles"]],
             )
-            self.assertEqual(view.image_path, record["image_path"])
-            self.assertEqual(view.media_available, bool(record["media_available"]))
+            # The artwork is deliberately absent from the composed view: the page
+            # publishes it as a social card from the record, not in the body.
+            self.assertFalse(hasattr(view, "image_path"))
+            self.assertFalse(hasattr(view, "media_available"))
 
     def test_the_body_keeps_every_projected_block_in_its_own_order(self) -> None:
         """Every block becomes exactly one drawn thing, in the order it was written."""
@@ -404,7 +407,7 @@ class ArticlePageTests(TestCase):
             self.assertIn(f'src="{person["image_path"]}"', body)
             self.assertNotIn(f'alt="Portrait of {escape(profile["name"])}"', body)
 
-    def test_the_date_the_reading_time_and_the_artwork_are_all_shown(self) -> None:
+    def test_the_date_and_the_reading_time_are_shown(self) -> None:
         article = public_projection()["articles"][0]
 
         response = self.client.get(article["public_path"])
@@ -412,24 +415,27 @@ class ArticlePageTests(TestCase):
         self.assertContains(response, f'datetime="{article["published"]}"')
         self.assertContains(response, published_display(article["published"]))
         self.assertContains(response, f"{reading_minutes(article)} min read")
-        self.assertContains(response, f'src="{article["image_path"]}"')
-        self.assertContains(response, f'alt="Artwork for {escape(article["title"])}"')
         self.assertContains(response, escape(article["subtitle"]))
 
-    def test_an_article_without_artwork_says_so_where_the_picture_would_be(self) -> None:
-        """No catalogue entry lacks artwork today; the state is still drawn."""
+    def test_the_artwork_is_a_social_card_and_is_never_drawn_in_the_body(self) -> None:
+        """The image is composed for a link preview, so only the head publishes it.
 
-        record = dict(public_projection()["articles"][0])
-        record["media_available"] = False
-        record["image_path"] = ""
-        composed = article_view(record, public_projection()["people_by_slug"])
+        A body that embeds the same file as one of its own image blocks is a
+        different thing and stays; what must not come back is the cover plate the
+        reading band once opened with, or the placeholder that stood in for it.
+        """
 
-        rendered = render_to_string("public/article_detail.html", {"article": composed})
+        for article in public_projection()["articles"][:20]:
+            with self.subTest(slug=article["slug"]):
+                body = self.client.get(article["public_path"]).content.decode()
 
-        self.assertFalse(composed.media_available)
-        self.assertIn("Artwork unavailable.", rendered)
-        self.assertNotIn('alt="Artwork for', rendered)
-        self.assertIn(escape(record["title"]), rendered)
+                self.assertNotIn("article-cover", body)
+                self.assertNotIn('alt="Artwork for', body)
+                self.assertNotIn("Artwork unavailable.", body)
+                if article["image_path"]:
+                    canonical = f"{settings.CANONICAL_ORIGIN.rstrip('/')}{article['image_path']}"
+                    self.assertIn(f'<meta property="og:image" content="{canonical}">', body)
+                    self.assertIn(f'<meta name="twitter:image" content="{canonical}">', body)
 
     def test_every_word_of_the_richest_body_reaches_the_page(self) -> None:
         article = _richest_article()

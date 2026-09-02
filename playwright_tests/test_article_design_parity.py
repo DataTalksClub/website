@@ -284,10 +284,9 @@ def test_the_article_stays_usable_at_320px_without_javascript(
         expect(page.locator("main h1")).to_have_count(1)
         expect(page.get_by_role("navigation", name="Primary navigation")).to_be_visible()
         expect(page.get_by_role("navigation", name="Breadcrumb")).to_be_visible()
-        # The cover never outgrows its column.
-        cover = page.locator(".article-cover img")
-        if cover.count():
-            assert cover.evaluate("(node) => node.getBoundingClientRect().right") <= 320.5
+        # The artwork is a social card, published in the head, never in the body.
+        assert page.locator(".article-cover").count() == 0
+        assert page.locator('meta[property="og:image"]').count() == 1
         _assert_no_horizontal_overflow(page)
         SCREENSHOTS.mkdir(parents=True, exist_ok=True)
         page.screenshot(path=SCREENSHOTS / "article-320-no-js.png", full_page=True)
