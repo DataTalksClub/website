@@ -1,8 +1,9 @@
 # Production hosting, DNS, and content migration runbook
 
-Status: draft for owner review — D1–D3 resolved by the owner 2026-09-02 (§3.1); remaining
-BLOCKED markers reference the still-open decisions in §3.2
-Date: 2026-09-02 (updated same day after owner resolutions D1–D3)
+Status: draft for owner review — D1–D3, D13 and D18–D27 resolved by the owner 2026-09-02
+(§3.1); remaining BLOCKED markers reference the still-open decisions in §3.2
+Date: 2026-09-02 (updated same day after owner resolutions D1–D3, then again in the evening
+after D18–D27, the costed infrastructure design, and the content-pipeline findings)
 Scope: DataTalks.Club domain, hosting, edge, cost, and content-ingestion migration across
 `DataTalksClub/website` (this repo) and `DataTalksClub/aws-infra`
 Relationship to existing documents: complements — does not replace — the milestone roadmap in
@@ -11,6 +12,36 @@ data-migration checklist in [`_docs/migration-checklist.md`](../migration-checkl
 *what* is migrated (data, application behavior, milestone gates); this runbook owns *where the site
 is hosted, how DNS moves, what it costs, and the exact operational sequence*. Section 1 audits the
 existing documents and records where they are stale or contradictory.
+
+**Companion design documents (linked, never restated here).** Four documents now carry detail this
+runbook deliberately does not duplicate. Where one of them contradicts a passage below, the
+companion wins and this runbook is corrected:
+
+- [`_docs/design/specs/data-migration-architecture.md`](../design/specs/data-migration-architecture.md)
+  — the CMP database import, the local dataset, the curriculum-format split, and the cohort
+  identity model (§13.9 defers to it).
+- [`_docs/design/specs/unit-content-pipeline.md`](../design/specs/unit-content-pipeline.md) — the
+  course-repository → unit-page path, its twenty measured divergences, and the unified
+  `cohorts/<year>/<module>/` layout migration (§13.10 defers to it).
+- [`_docs/design/specs/script-inventory.md`](../design/specs/script-inventory.md) — what every
+  script under `scripts/` is for and which are deletion candidates (§15 defers to it for the
+  *existing* inventory; §15 still specifies the *new* migration scripts).
+- The costed Terraform design for website prod/dev plus Relay prod/dev, currently at
+  `.tmp/infra-design-dev-prod-relay.md` (1,129 lines, design-only, no Terraform written). §14 is
+  now a summary of it, not an independent estimate. **That file lives outside version control;
+  giving it a home under `_docs/design/specs/` is an open item (§3.2 D36).**
+
+**A structural note, recorded rather than acted on.** This runbook now carries three things with
+different lifetimes: the hosting/DNS/edge cutover *sequence* (§§0–12, 15–17 — genuinely a
+runbook, consumed step by step by an operator), a cost-and-topology *design* (§14, now a summary
+of a 1,129-line companion), and a content/data-ingestion *programme* (§13, ~350 lines that mostly
+defer to two companions). The recommended re-cut, when someone has an issue to hang it on: keep
+§§0–12 and 15–17 as the runbook; move §14 wholesale into
+`_docs/design/specs/infrastructure-cost-and-topology.md` (D36) leaving a one-table summary and a
+link; and reduce §13 to its migration-sequencing interface, letting
+`data-migration-architecture.md` and `unit-content-pipeline.md` own the detail they already own.
+Doing that now, mid-migration, would churn every §-reference in issue #309 and in the phase
+handoffs, so it is proposed, not performed.
 
 Per `_docs/PROCESS.md`, every implementation step below that changes product code or infrastructure
 goes through a groomed GitHub issue; this runbook is the sequence and the specification source for
@@ -49,12 +80,19 @@ Lanes: **MAIN** = apex/DNS critical path; **COURSES**, **EMAIL**, **DEV**, **CLE
 named cross-lane joins.
 
 **Decisions.** Resolved: D1 (two-stage apex swap), D2 (minimal shared dev; sandbox retired),
-D3 (two courses Lambdas), D13 (Relay is the sender) — §3.1. Open, each gating the steps that
-cite it: D4 cache freshness · D5 media keys · D6 zone root placement · D7 registrar transfer
-(deferred) · D8 courses-zone fold-in · D9 RDS Multi-AZ timing · D10 SPF strategy · D11 git
-history rewrite · D12 direct-sync source manifest · **D14 SES identity owner (on the EMAIL
-critical path)** · D15 Relay sandbox data (clean start recommended) · D16 Luma-exporter home ·
-D17 Luma refresh owner/cadence — §3.2.
+D3 (two courses Lambdas), D13 (Relay is the sender), and — 2026-09-02 evening — D18 (unified
+`cohorts/<year>/<module>/` curriculum layout), D19 (modules-format rollout scope), D20
+(convention over configuration), D21 (`zoomcamp-template` owns the convention), D22 (`dev.` runs
+fake data), D23 (Datamailer suppression copy is a first-send precondition), D24 (no homework
+slug rewrites), D25 (six cohorts skipped), D26 (the cost bar is website-only), D27 (apex-redirect
+SEO impact accepted) — §3.1. Open, each gating the steps that cite it: D4 cache freshness ·
+D5 media keys · D6 zone root placement · D7 registrar transfer (deferred) · D8 courses-zone
+fold-in · D9 RDS Multi-AZ timing · D10 SPF strategy · D11 git history rewrite · D12 direct-sync
+source manifest · **D14 SES identity owner (on the EMAIL critical path)** · D15 Relay sandbox
+data (clean start recommended) · D16 Luma-exporter home · D17 Luma refresh owner/cadence ·
+**D28 SITE.md rollout shape (two incompatible implementations in flight)** · D29–D36 from the
+costed design (dev-database placement, Relay instance size, transactional volume, NAT form,
+policy-scan sequencing, `modules/relay-host`, bastion retirement, design-doc home) — §3.2.
 
 **Phase 0 — inventories and prerequisites (MAIN; read-only)** — details §5
 
@@ -63,7 +101,9 @@ D17 Luma refresh owner/cadence — §3.2.
 - 0.3 **[P]** Pull the 3-month Cost Explorer baseline
 - 0.4 **[P]** Identify + record the courses hosted zone (`Z00653771…`)
 - 0.5 Owner settles open decisions D4–D10
-- 0.6 **[P]** Verify SES production access (= E.1; multi-day external lead if missing)
+- 0.6 **[P]** Record the live SES **sending quota and maximum send rate** (= E.1); production
+  access already exists — this step establishes the two numbers a 130,000-recipient campaign
+  has to clear
 - 0.7 Re-verify compatibility artifacts (`make compatibility-artifacts-check`)
 
 **Phase 1 — DNS hosting moves to Route 53 (MAIN)** — details §6
@@ -120,7 +160,7 @@ D17 Luma refresh owner/cadence — §3.2.
 
 **Phase E — email via Relay (EMAIL lane; parallel; does not wait for DNS)** — details §11E
 
-- E.1 **[P]** = step 0.6 (SES production access)
+- E.1 **[P]** = step 0.6 (SES quota + send rate recorded against the 130,000-recipient campaign)
 - E.3 **[P]** **[B:D14 hand-off]** `main/relay` root; bind to the `datatalks.club` identity + a
   Relay-owned configuration set; **outbound-only — inbound stays unconfigured (audit key
   mitigation)**; `--memory` limits (1 GiB host); backups = part of done (C3); **observability on
@@ -141,14 +181,16 @@ D17 Luma refresh owner/cadence — §3.2.
 - 7.1 **[P]** **[OW]** Destroy `main/cmp` (final Aurora snapshot is the point of no return)
 - 7.2 **[OW]** Retire the four GitHub Pages deployments
 - 7.3 Retire `main/legacy-site` after the 9.4 window
-- 7.4 Sandbox preconditions; teardown order: sandbox Relay → sandbox Datamailer → `sandbox/website`
+- 7.4 Sandbox preconditions; **corrected** teardown order: sandbox Relay → `sandbox/website` →
+  CMP (7.1) → sandbox Datamailer
 - 7.5 **[P]** Remove the cross-account media-bucket read (PR #30 grant)
 - 7.6 **[P]** **[OW]** Destroy `sandbox/website`; retire its OIDC pipeline + policy fixtures
 - 7.7 **[P]** Cost-Explorer harvest vs §14 (expected ≈ $270–340/mo freed)
 
-Reference layers (not steps): §13 content-ingestion programme (parallel, own gates) · §14 cost
-and security analysis · §15 script specifications · §16 risk register · §17 non-goals ·
-Appendix A DNS worksheet.
+Reference layers (not steps): §13 content-ingestion programme (parallel, own gates; §13.10 is
+the course-repository curriculum layout) · §14 cost and security analysis, now split into
+**Budget A (website, measured against CMP)** and **Budget B (Relay, judged separately)** per
+D26 · §15 script specifications · §16 risk register · §17 non-goals · Appendix A DNS worksheet.
 
 ---
 
@@ -330,6 +372,89 @@ State-root ownership when the dust settles:
   verdict is "not ready to send production email" — so the gate is now the E.5a/E.5b
   remediation lists (§11E E.5, BLOCKED(remediation)).
 
+#### Resolved later the same day (2026-09-02, evening session)
+
+- **D18 — RESOLVED: one curriculum layout, `cohorts/<year>/<module>/module.yaml`.** Owner:
+  *"let's unify. it should be in cohorts."* Verified state of the three module-format repositories
+  on 2026-09-02: `llm-zoomcamp` already conforms — 7 `module.yaml` files under
+  `cohorts/2026/<module>/`; `machine-learning-zoomcamp` holds 9 at the repository root; and
+  `ai-dev-tools-zoomcamp` holds 4 at the repository root. The latter two move. The importer
+  accepts both shapes today (`content_sync/course_repository.py:641-643`, `:657-674`), so this is
+  a repository-content change, not a website change. **No public URL moves:**
+  `/courses/<family>/<year>/modules/<module>[/<unit>]` is built from the module *directory name*
+  and the unit *filename stem* (`courses/urls.py:44-54`), and
+  `_docs/compatibility/generated-path-baseline.jsonl` (2,937 rows, re-counted) contains no
+  `/courses/<family>/<year>/modules/…` row at all. Migration mechanics, the nine `homework.md`
+  collisions, and the 103 `](../)` back-links that change meaning with depth are specified in
+  `unit-content-pipeline.md` §5.
+  **⚠️ This reverses an earlier recommendation.** `_docs/runbooks/session-handoff-20260902.md:53-55`
+  advises reverting `llm-zoomcamp@c04db93` because it contradicts
+  `llm-zoomcamp/cohorts/README.md`. Under D18 `c04db93` is **correct**; the README is what is
+  wrong and must be rewritten. That handoff line is superseded by this entry. Verified 2026-09-02:
+  `c04db93` and `machine-learning-zoomcamp@1aa481e` are **now on their repositories' `origin/main`
+  (`944b35e`, `61fdaab`)** — the "unpushed local commits" blocker recorded earlier today is
+  closed; what remains unpushed in all three repositories is the newer `SITE.md` commit (D28).
+- **D19 — RESOLVED: scope of the modules-format rollout.** Every course adopts the modules format
+  **except `stock-markets-analytics-zoomcamp`, which stays `legacy` for 2026**.
+  `data-engineering-zoomcamp` is a **conversion candidate to assess, not a commitment**. Verified:
+  `data-engineering-zoomcamp`, `mlops-zoomcamp` and `stock-markets-analytics-zoomcamp` carry no
+  `module.yaml` and no `course.yaml` today.
+- **D20 — RESOLVED: convention over configuration for unit and page structure.** The structure of
+  unit notes is consistent across courses and **derived by convention**, not declared per course.
+  Consequence for this plan: every per-course special case in the importer is a cost to be
+  justified, not a feature. `unit-content-pipeline.md` §2 already separates the five deliberate
+  special cases from the four heuristics; the heuristics are the ones D20 targets.
+- **D21 — RESOLVED: `DataTalksClub/zoomcamp-template` is the home of that convention.** Verified
+  contents: `STRUCTURE.md`, `docs/conventions.md`, and `templates/root-README.md`,
+  `templates/module-README.md`, `templates/cohort-README.md`. **Any layout change is incomplete
+  until the template repository carries it** — that repository is part of the D18 change set, not
+  a follow-up.
+- **D22 — RESOLVED: `dev.datatalks.club` carries fake data, never production-derived.** This
+  settles the largest open risk in the shared-dev design: dev Relay never sees a real address, so
+  the shared dev database stays genuinely low-stakes and the §9.2 fidelity tradeoffs stand as
+  written. It answers the costed design's Q2 outright. Consequence: the full-fidelity CMP import
+  (§13.9) is *never* pointed at dev — its rehearsal target is a disposable snapshot-restored
+  instance, which §13.9's dry-run gate already requires.
+- **D23 — RESOLVED: Datamailer is the source of Relay's suppression state, and copying it is a
+  precondition of the first production send.** Not a Phase 7 cleanup item. Two consequences, both
+  load-bearing:
+  (i) **sandbox Datamailer must survive until that copy is done**, which reinforces — and further
+  constrains — the 7.4 teardown ordering trap (§12 7.4, corrected below);
+  (ii) D15's clean start remains correct as a *deployment* decision (no test-era rows migrate)
+  but is no longer a complete answer to state: suppression and unsubscribe records are the one
+  category that must arrive before stage 1 of the ramp, because an empty suppression list
+  re-mails people who unsubscribed or hard-bounced, which feeds straight into the SES reputation
+  thresholds of E.6/risk #4. Where the export proves impractical, seed **SES account-level
+  suppression** instead — worth doing regardless, since today nothing outside Relay's own
+  PostgreSQL holds this state.
+- **D24 — RESOLVED: no homework slug rewrites.** The `^hw(\d+)$` → `homework-0N` transform is
+  removed (`1f4be1a`); explicit `homework_slug_overrides` entries are the only mechanism.
+  Verified: no such regex remains anywhere under `courses/`, `content_sync/` or `scripts/`, and
+  `courses/services/local_course_modules.py:435-443` validates the override table. Rationale
+  recorded in the commit: the transform was right for `llm-zoomcamp-2026` and wrong for
+  `ml-zoomcamp-2026`, whose `hw01…hw10` already match its repository modules exactly; deriving one
+  identity two ways is what split the AI Dev Tools course family and needed migration 0052 to
+  repair.
+- **D25 — RESOLVED: six cohorts stay skipped for now.** `ai-bootcamp-2025`, `ai-hero-2025`,
+  `ai-hero-2026`, `sma-zoomcamp-2026`, `ai-buildcamp-2`, `ai-buildcamp-3` — enumerated with their
+  reasons at `courses/services/cmp_content_import.py:59-71`, so a missing cohort is a decision
+  someone can revisit rather than an unmatched branch. **Four need only a mapping entry to
+  return. `ai-buildcamp-2`/`-3` do not:** their `2` and `3` are **edition numbers, not years**,
+  which the family+year cohort model cannot express. That one needs design work and is not a
+  data-entry task.
+- **D26 — RESOLVED: the cost bar applies to the website only.** Owner: *"cost for dtc website
+  should be equal to cmp or less. for relay it's different."* §14 is restructured accordingly into
+  **Budget A** (website prod + dev + all shared plumbing, measured against CMP's $180–225) and
+  **Budget B** (Relay prod + dev, judged on its own merits). A single blended total is no longer
+  the unit of judgement — but §14.3 still states the combined invoice, because the invoice does
+  not respect budget boundaries.
+- **D27 — RESOLVED (recorded earlier the same day, re-verified here): the SEO impact of the apex
+  redirect is accepted; no action.** The `/docs/`, `/faq/`, `/podwiki/` 302s to
+  `datatalksclub.github.io` stay as they are. Recorded in full with the observed facts at §7
+  C3/C4/C5; still present and consistent. This decision touches **neither C1 (the compatibility
+  contract no longer describes reality) nor C2 (GitHub Pages became a permanent dependency)**,
+  which remain open.
+
 ### 3.2 Still open — each blocks the steps that reference it
 
 - **D4 — Edge-cache freshness mechanism** (the owner wants "cache updated on updates" while
@@ -397,6 +522,75 @@ State-root ownership when the dust settles:
   Luma token — which is deliberately not stored anywhere in-repo,
   `migration-checklist.md:80-85`). **Recommendation: (a) now, (b) as a groomed issue after
   D16**; either way the §9.4 freshness check is the enforcement backstop.
+- **D28 — SITE.md rollout shape. Two incompatible implementations are in flight and the owner has
+  not chosen.** Both agree that a course description comes from a repository's `SITE.md` rather
+  than its `README.md`; they disagree on the `course.yaml` contract and on the copy.
+
+  | | Lane 1 | Lane 2 |
+  | --- | --- | --- |
+  | Where | committed to **local `main`** in `llm-zoomcamp`, `machine-learning-zoomcamp`, `ai-dev-tools-zoomcamp` (unpushed) | **six PRs opened from `origin/main`** |
+  | `course.yaml` | **deletes** `description_path` | **repoints** `description_path` at `SITE.md` |
+  | Copy | short — 128 / 162 / 141 bytes, measured | long — ~551–635 characters, sourced from `content/docs_projection.json` |
+
+  **The website side has already landed, and it decides part of this.** Verified on this branch
+  (`b81d825`): `content_sync/course_repository.py:711-741` no longer lists `description` or
+  `description_path` in the `course.yaml` allowed-key set, and `_strict_mapping` (`:297-315`)
+  fails closed on any unknown key. So **Lane 2's repointed `description_path` would be rejected
+  outright** with `unknown_key /description_path`, and Lane 1's deletion is what the parser now
+  requires. An earlier note held the opposite — that deleting both keys would make an equality
+  hold and fail the import closed. That is **not** what the code does: `_parse_site_description`
+  (`:767-796`) reads `SITE.md` alone, returns `None` when it is absent, and the importer then
+  leaves the stored description untouched (`curriculum_import.py:339-343`). That "leave it alone"
+  branch is what keeps `data-engineering-zoomcamp`, `mlops-zoomcamp` and
+  `stock-markets-analytics-zoomcamp` intact, and it is permanent behaviour rather than a
+  transitional fallback.
+  **Recommendation: Lane 1's convention (drop `description_path`) with Lane 2's copy** — the short
+  strings are noticeably thinner than the catalogue copy the site already publishes.
+  Two verified facts to carry into the decision:
+  (i) `origin/main` in all three repositories still carries `description_path` in `course.yaml`
+  and has **no `SITE.md`**, so as things stand a production webhook import of any of the three
+  fails closed on the unknown key — the repository change is not optional once the parser change
+  ships, and the two must be sequenced together;
+  (ii) `course.yaml` exists on `origin/main` for **all three** module-format repositories (llm, ml
+  **and** ai-dev-tools) and for none of `data-engineering-zoomcamp`, `mlops-zoomcamp`,
+  `stock-markets-analytics-zoomcamp`. An earlier note claiming `course.yaml` existed only in
+  unpushed commits, and only for llm/ml, is wrong.
+  One more thread belongs to whoever closes D28: the manifest builder still selects
+  `course.yaml:/description_path` and knows nothing of `SITE.md`
+  (`scripts/build_course_modules_manifest.py:162-165`), so `SITE.md` never enters the snapshot and
+  the three new files are inert until it is added to `_referenced_paths()`
+  (`unit-content-pipeline.md` §3).
+- **D29 — Dev-database placement.** A dedicated `db.t4g.micro` for the shared dev database
+  (≈ $15.68/mo) versus two logical databases on the production website instance ($0). The costed
+  design declines the free option deliberately: the $15.68 buys keeping a dev EC2 host out of the
+  production database's security group. Budget A passes either way. **Recommendation: dedicated
+  instance.**
+- **D30 — Relay production database size.** `db.t4g.medium` (≈ $52.56/mo) versus `db.t4g.small`
+  (≈ $26.28). The binding constraint is the index working set against RAM, which crosses 2 GiB
+  inside a year at 130k/week. **Recommendation: `db.t4g.medium`**; `t4g.small` is defensible only
+  once pruning is proven before go-live.
+- **D31 — Transactional email volume.** The costed design assumed 30,000/month as a placeholder.
+  It moves postage by roughly $1 per 10,000 messages, so it matters far more for database growth
+  than for the bill. **Recommendation: confirm the real number before sizing storage.**
+- **D32 — NAT gateway (≈ $41.09/mo) or NAT instance (≈ $7.46)?** Budget A clears its bar with the
+  gateway. **Recommendation: gateway**; the instance stays a documented lever, not a default.
+- **D33 — When does `main/dtc-website` join the policy scan?** Adding it turns its existing,
+  legitimate `cloudfront:CreateInvalidation` grant
+  (`main/dtc-website/legacy_static_site.tf:459-469`) into a violation. **Recommendation: add the
+  three new roots first and defer `main/dtc-website` until the legacy publisher retires at 7.3** —
+  sequenced with the D4 invalidation decision, not separately.
+- **D34 — Extract `modules/relay-host`, or duplicate two ~200-line Relay roots?**
+  **Recommendation: extract.** Duplication guarantees dev/prod Relay drift, and the drift lands on
+  the stack that sends production email.
+- **D35 — Retire the `main/common` bastion in favour of SSM Session Manager?** −$6.70/mo, and it
+  removes a 24/7 SSH-exposed host whose allowlist is one hand-maintained home IP
+  (`main/common/main.tf:6-10`). All four new workloads are SSM-only already.
+  **Recommendation: yes, as a separate small issue** — not on this plan's critical path.
+- **D36 — Where does the costed infrastructure design live?** It is currently
+  `.tmp/infra-design-dev-prod-relay.md`, outside version control — the same class of risk as D16's
+  homeless Luma exporter. **Recommendation:
+  `_docs/design/specs/infrastructure-cost-and-topology.md`, with §14 reduced to a summary that
+  links it.**
 
 ---
 
@@ -427,9 +621,9 @@ Phase 6  courses.: maintenance Lambda → website edge →     ── a) anytime
          redirect Lambda                                       b/c) gated by spec 09 M4–M8
 Phase E  Email: Relay sandbox → main (eu-west-1), audited  ── parallel lane; E.1 SES check in
          and battle-tested; Datamailer stays read-only         Phase 0; E.5 BLOCKED(remediation)
-Phase 7  Decommission CMP + GitHub Pages + legacy S3 (after   ── after rollback windows close;
-         its window) + sandbox Relay → sandbox Datamailer →      7.0 SES hand-off precedes 7.1
-         sandbox/website (E.7 order)
+Phase 7  Decommission GitHub Pages + legacy S3 (after its     ── after rollback windows close;
+         window) + sandbox Relay → sandbox/website → CMP →         7.0 SES hand-off precedes 7.1;
+         sandbox Datamailer (corrected order, §12 7.4)             Datamailer retires LAST
 ```
 
 Independent lanes: Phases 1–2 (edge/DNS), Phase 3 (media), Phase E (email — it does *not* wait
@@ -480,10 +674,17 @@ drift-protection. *Verify:* zone NS match the live delegation (`ns-2001.awsdns-5
 **0.5 Owner settles the open decisions D4–D10** (D1–D3 resolved, §3.1). BLOCKED steps downstream
 reference them individually.
 
-**0.6 [AWS console/CLI] [CREDS] Verify SES production access in the main account** — run Phase
-E's step E.1 now (`aws sesv2 get-account --region eu-west-1`, §11E). It is the only step in this
-runbook with potential multi-day *external* lead time (an AWS support request if access is
-missing), so it goes ahead of everything that doesn't depend on it.
+**0.6 [AWS console/CLI] [CREDS] Record the live SES sending quota and maximum send rate** — run
+Phase E's step E.1 now (`aws sesv2 get-account --region eu-west-1`, §11E). Production access
+already exists on the main account and the owner states the quota has been raised above the
+default, so this is a **verification step, not a blocker**. What it establishes is two numbers,
+not one, because a weekly newsletter is bursty: the **rolling-24-hour sending quota**
+(`Max24HourSend`, which must clear ~130,000 recipients in a day *alongside* transactional
+traffic) and the **maximum send rate** (`MaxSendRate`, recipients/second — 130,000 arrives in one
+window, not spread over 24 h, so the rate decides whether a campaign takes minutes or hours).
+If both clear the volume, nothing further is needed. If either does not, a quota increase is an
+AWS support request with multi-day external lead time and should be raised immediately — which is
+why the step still sits ahead of everything that does not depend on it.
 
 **0.7 [website] Re-verify the compatibility artifacts are intact** (they gate Phases 2 and 8):
 
@@ -963,7 +1164,29 @@ redirect/canonical/feed/sitemap contract at once** — there is no partial cutov
    proved only the *sanitized* path; this gate exists because the path that actually runs on
    migration day is currently unbuilt.
 
-**Mechanism and true rollback latency:** in `main/dns`, change the apex A/AAAA **alias** records
+**Mechanism — the DNS change alone is necessary but not sufficient.** ⚠️ Correction to the
+earlier text: CloudFront refuses an alternate domain name that another distribution already
+claims, and **both apex names are claimed by the legacy distribution today**
+(`main/dtc-website/legacy_static_site.tf:269`). Pointing a second distribution at
+`datatalks.club` returns `CNAMEAlreadyExists`. The supported procedure is:
+
+1. add the alias to the *new* distribution with `aws cloudfront associate-alias
+   --target-distribution-id <new> --alias datatalks.club` (and again for `www`), which AWS
+   permits because the requester demonstrably controls the DNS for the name — this moves the
+   claim without an outage;
+2. **then** flip the Route 53 alias records to the new distribution;
+3. **then** remove both names from the legacy distribution's `aliases` in Terraform, so the next
+   plan is clean.
+
+Doing step 3 first is what turns a rehearsed swap into an outage: the legacy distribution stops
+answering for the apex before the new one is allowed to. Rehearse the whole three-step sequence
+on a low-stakes hostname (gate item 4). A related module question is open as D-level detail:
+either add an `additional_aliases` input to `modules/django-website` for a fully graceful swap,
+or simply flip its `hostname` input and accept a minutes-long planned gap on `prod.` — which is
+`noindex` staging for its entire life, so the gap costs nothing. **Recommendation: flip
+`hostname`**, and keep a module contract change off the critical path.
+
+**True rollback latency:** in `main/dns`, change the apex A/AAAA **alias** records
 from the `main/legacy-site` distribution to the website distribution (`www` follows). Route 53
 alias answers are served with a short effective TTL (~60 s for alias-to-CloudFront); resolvers
 that cached the pre-swap answer under the prior TTL age out within minutes. **True rollback
@@ -1172,7 +1395,9 @@ Relay is a ~5-week-old **fork of Datamailer**, not an independent project — sa
 consequential code difference is the API-key prefix (`mailing/services/auth.py:9` —
 `"relay_"` vs `"dm_"`; verified in both checkouts). Relay adds ~4,200 lines: a generic `jobs/`
 task+schedule API, vendored `taskdeck`, per-task IAM role assumption, a readiness probe, and a
-containerized gunicorn deploy with a post-deploy smoke test (`scripts/smoke_test_relay.py`)
+containerized gunicorn deploy with a post-deploy smoke test (`scripts/smoke_test_relay.py`
+**in the Relay repository**, beside `smoke_test_sandbox.py` and `smoke_test_staging.py` — it
+does not exist in this repository and is not expected to)
 that Datamailer lacks. Both test suites pass — Datamailer 493, Relay 520, a strict superset —
 so the owner's "never been tested" premise does not hold as stated, though the delivered code
 audit qualifies the comfort: at least the retry-critical send path has passing tests that cover
@@ -1211,15 +1436,40 @@ Verified live (2026-09-02) and against Terraform:
 This corrects the intuition that SPF surgery is the dangerous step — for sending, the DNS is
 done. The genuinely unverified item is E.1.
 
-### E.1 [AWS console/CLI] [CREDS] — verify SES production access in the main account (EARLY; do
-this in Phase 0 alongside 0.3)
+### E.1 [AWS console/CLI] [CREDS] — record the live SES quota and send rate (EARLY, in Phase 0)
 
-Sandbox-account evidence says the *sandbox* SES is in sandbox mode
-(`sandbox/datamailer/terraform.tfvars.example:5-9` lists three individually verified recipient
-identities — the signature of sandbox-mode SES). The **main** account is almost certainly in
-production mode (CMP mails real learners: daily deadline reminders,
-`main/cmp/cmp_deadline_reminder.tf:8-13`, and the Datamailer outbox path), but this runbook could
-not verify it — only sandbox credentials were available. With main-account credentials:
+**Not a blocker.** The main account has SES production access in `eu-west-1` — attested by
+`aws-infra/docs/aws-support/2026-08-09-ses-newsletter-quota-increase.md:19` ("Production access
+enabled, sending enabled, enforcement healthy", account `387546586013`) and corroborated by CMP
+mailing real learners today (`main/cmp/cmp_deadline_reminder.tf:8-13`). The owner further states
+the production quota has since been raised above the default. What this step establishes is
+**the two live numbers**, because a 130,000-recipient weekly campaign is bursty and each number
+constrains it differently:
+
+- **`Max24HourSend`** — the rolling-24-hour recipient quota. It has to clear ~130,000 in one day
+  *plus* that day's transactional traffic.
+- **`MaxSendRate`** — recipients/second. A campaign is delivered in one window, not spread across
+  24 hours, so this decides its duration: at 14/s a 130,000 campaign takes ≈ 2.6 hours; at 200/s
+  ≈ 11 minutes (AWS's own arithmetic in the support request,
+  `2026-08-09-ses-newsletter-quota-increase.md:22-24`).
+
+**The only quota figures recorded anywhere in the estate, with their dates — cited as history,
+not as current state.** `2026-08-09-ses-newsletter-quota-increase.md:17` records the main
+account's quota **at submission on 2026-08-09** as 50,000 recipients/24 h and 14 recipients/s,
+and requests 200,000/24 h and 200/s (Service Quotas requests
+`86d22a77…`/`291b4c24…`, support cases `178628060500737`/`178628058900407`, both **"Open,
+unassigned" as of that date**). That document's own follow-up item 2 — "record approved values
+and decision dates" — was never completed, so the approved numbers exist only in the AWS console.
+Recording them is part of this step. (A separate 50,000/day + 14/s figure at
+`sandbox/datamailer/README.md:61` is the **sandbox** account in **us-east-1**, dated 2026-07-02 —
+do not read it as the production quota.)
+
+The same document also carries a volume figure worth reconciling against §14: it tells AWS
+**5–7 newsletters/month, ≈ 650,000–910,000 recipients/month**, where the costed design assumes a
+strictly weekly cadence (563,333/month). Postage scales linearly, so the SES line is
+**$56–91/mo** across that range rather than a single number. Settle the real cadence with D31.
+
+With main-account credentials:
 
 ```console
 aws sesv2 get-account --region eu-west-1        # expect "ProductionAccessEnabled": true
@@ -1229,11 +1479,18 @@ aws sesv2 get-email-identity --email-identity datatalks.club --region eu-west-1
 aws sesv2 get-account --region eu-west-1 --query 'SendQuota'   # note Max24HourSend / MaxSendRate
 ```
 
-- If `ProductionAccessEnabled` is **true**: record the quota and move on — E is unblocked.
-- If **false**: file the SES production-access support request **immediately** — it has
-  multi-day external lead time, can come back with questions, and nothing can compress it. That
-  request becomes the front of this entire lane; the `main/relay` deployment (E.3) can proceed
-  in parallel, send-disabled.
+- **Both numbers clear the campaign** (quota ≥ ~130,000 + transactional headroom in a rolling
+  24 h; rate high enough that one campaign completes inside its send window): record them in this
+  runbook and in `2026-08-09-ses-newsletter-quota-increase.md`, configure Relay's production
+  throttling *from the live quota while reserving capacity for transactional traffic*, and move
+  on — E is unblocked.
+- **Either falls short:** file the Service Quotas increase immediately. It has multi-day external
+  lead time and can come back with questions, so it goes to the front of this lane; `main/relay`
+  (E.3) still proceeds in parallel, send-disabled. Only E.6's ramp waits.
+- Also record `ProductionAccessEnabled` and the DKIM configuration returned by
+  `get-email-identity` — E.0 found the live DKIM to be a classic single-selector TXT rather than
+  the three Easy-DKIM CNAMEs CMP's Terraform would emit, so identity state is read from the API,
+  never inferred from `iam_ses.tf`.
 
 ### E.2 What already speaks Relay, and what will — two efforts, kept distinct
 
@@ -1293,9 +1550,32 @@ deliberate differences:
 - **Host sizing and containment:** the host is a `t4g.micro` with **1 GiB RAM** (the sandbox
   deploy assumed 2 GB); declare `--memory` limits on every container so any OOM is contained
   rather than host-wide, and revisit instance size against measured outbound load during E.6.
-- **Backups (audit C3):** scheduled EBS/data snapshots plus one rehearsed restore are part of
-  this root's definition of done — the volume will hold the suppression list, which is not
-  reconstructible and protects the SES reputation thresholds.
+- **Database: managed RDS, not PostgreSQL on the host.** `sandbox/relay` runs its own PostgreSQL
+  on an EBS volume (`sandbox/relay/user_data.sh.tftpl:62` creates `/var/lib/relay/postgres`; that
+  root contains no `aws_db_instance`). Production does not copy that. `main/relay` gets
+  **`db.t4g.medium`, single-AZ, gp3 `allocated = 50` → `max_allocated = 500` GB**, encrypted,
+  private, 7-day backups, `skip_final_snapshot = false`, `deletion_protection = true` (D30 for the
+  instance size, D9 for Multi-AZ). Relay reaches its database only through `DATABASE_URL` and
+  issues no privileged SQL, so **Terraform creates both the database and its unprivileged owner
+  role** — Relay creates neither.
+- **Sizing driver — the number that changes the design.** 130,000 newsletter recipients weekly is
+  ~563,000 messages/month, and delivery history is measured at **250–400 MB per 50k campaign**,
+  i.e. **0.65–1.04 GB per weekly campaign and 34–54 GB/year unpruned**. A 20 GiB volume is
+  exhausted in four to six months, which is why `allocated` starts at 50.
+- **Retention and pruning are a go-live prerequisite, not an open milestone.**
+  `prune_db_task_results` exists in Relay and is **never invoked** — because nothing has ever run
+  at volume there. It must be scheduled and proven before the ramp reaches full send volume:
+  RDS storage autoscaling is **one-way**, so an unpruned year silently ratchets the storage floor
+  up by ~$4–7/mo and never comes back down. Ship it as `pruning.tf` in the same root, in the same
+  change.
+- **Backups (audit C3): scheduled RDS backups plus one rehearsed restore are part of this root's
+  definition of done.** State this precisely, because the audit's phrasing invites a misreading:
+  **C3 is not a defect in Relay.** Relay has never had a client — the website is its first, on
+  both dev and prod — so backups, a pruning job, and monitoring on its data volume are
+  capabilities that were never *required*, not capabilities that were skipped. They become
+  requirements the moment Relay carries the suppression list, which is not reconstructible and is
+  what protects the SES reputation thresholds. Treat every item in this bullet list the same way:
+  a requirement for a first production client, not a fault list.
 - **Deploy:** same OIDC/SSM pattern, trust re-pinned to the main account — but note audit
   **C4: no production deploy path exists yet**; building it is part of the minimum gate.
 - **Verification items inherited from the audit's could-not-assess list:** confirm live queue
@@ -1341,7 +1621,23 @@ execute it before or alongside E.3. It is risk #2 in the register.
 The sandbox EBS data volume holds Relay’s PostgreSQL — template versions, delivery/event
 records, all of it test-era. **Clean start on main** (D15): production templates are
 re-published through Relay’s own draft/immutable-publish flow (spec 06), and test delivery
-history has no production value. Queues are ephemeral — drain sandbox before retiring it. The
+history has no production value.
+
+**The one exception, and it is a precondition rather than a migration (D23): suppression and
+unsubscribe state.** Datamailer is the source of truth for who has unsubscribed, hard-bounced or
+complained, and **copying that state into Relay is a precondition of the first production send**,
+not a Phase 7 cleanup task. An empty suppression list re-mails exactly the people whose addresses
+already damaged the sending reputation, which is the failure mode E.6's abort thresholds exist to
+catch. Two consequences:
+
+- **Sandbox Datamailer must survive until the copy is done and verified.** This is a second,
+  independent constraint on the 7.4 teardown order, on top of the configuration-set dependency
+  (E.7) and on top of CMP still being Datamailer's client until 7.1.
+- If the export proves impractical, the fallback is to seed **SES account-level suppression**
+  instead — worth doing regardless, because today nothing outside Relay's own PostgreSQL holds
+  this state.
+
+Queues are ephemeral — drain sandbox before retiring it. The
 sandbox stack stays running as the *development* Relay (CMP dev and website dev keep pointing at
 `relay.dtcdev.click`) until the sandbox teardown, whose internal ordering E.7 constrains.
 
@@ -1497,8 +1793,16 @@ and composite alarms are an estate-wide gap — zero `aws_cloudwatch_dashboard` 
 
 ### E.6 Battle-testing: a graduated ramp, not a big-bang switch
 
+**What actually constrains this ramp is deliverability evidence, not sending capacity.** The
+account has production access and raised quota (E.1); the stages below exist to accumulate bounce
+and complaint evidence at increasing volume, and their advance criteria are all reputation and
+observability criteria. Capacity appears only once, at stage 4, where a full campaign has to fit
+inside its send window at the live `MaxSendRate`.
+
 Preconditions: **E.5a minimum fix list closed — C1, C2, C3, C4, H2, H5, each through its own
-groomed issue** — plus E.1 production access verified; D14 identity hand-off done; production
+groomed issue** — plus E.1's quota and rate recorded against the campaign size; the Datamailer
+suppression copy landed and verified (D23) before stage 1; retention/pruning scheduled and proven
+before stage 4; D14 identity hand-off done; production
 config confirmed **outbound-only** (`SQS_INBOUND_EMAIL_QUEUE_URL` unset — E.3/E.5a key
 mitigation); and **E.5b items 1 + 1b done — the alarm topic has a proven live subscriber and
 CMP's 15-minute health probe plus the two `datamailer.outbox_*` alarms are re-pointed at Relay
@@ -1528,18 +1832,45 @@ Datamailer reverts to exactly its specified role: **read-only migration/history/
 input** (#290; `app-boundaries.md:117-118`). No `main/datamailer` root is built. One explicit
 ordering trap for Phase 7: because **sandbox Relay sends through the `datamailer-sandbox`
 configuration set and event topic** (E.3), tearing down sandbox Datamailer while sandbox Relay
-still operates breaks sandbox Relay. Teardown order inside 7.4–7.6: retire sandbox Relay first
-(possible once E.6 stage 2 holds and dev consumers move to `main/relay` or stub), **then**
-sandbox Datamailer, then `sandbox/website` per its own preconditions.
+still operates breaks sandbox Relay. That is one of **three** dependencies holding sandbox
+Datamailer alive; the other two are CMP production still being its client until 7.1, and the D23
+suppression copy that must complete before Relay's first production send. The corrected order is
+therefore **sandbox Relay → `sandbox/website` → CMP (7.1) → sandbox Datamailer**, specified in
+full at §12 step 7.4.
 
-### E.8 Cost
+### E.8 Cost — **corrected; the previous figure was wrong by roughly 8×**
 
-`main/relay` ≈ **$15–18/mo** (t4g.micro ≈ $6.7 + public IPv4 ≈ $3.6 + two encrypted gp3
-volumes ≈ $3–5 + SQS/SNS/S3/alarms pennies + SES $0.10 per 1,000 mails). Versus the superseded
-Datamailer-on-main plan (≈ $13–16): the delta is noise, and **no `main/datamailer` root is
-built at all**. Dual-run window (sandbox Relay + `main/relay`) ≈ +$13/mo until E.6 stage 2.
-The Phase 7 sandbox harvest now includes both sandbox Relay (≈ $13–15) and sandbox Datamailer
-(≈ $13–15).
+This section previously priced all of `main/relay` at **$15–18/mo**. That estimate predated the
+130,000-recipients-per-week number and omitted SES postage almost entirely. **Relay production is
+≈ $144/mo, and Relay prod + dev is ≈ $155/mo** (Budget B, §14.3). It does not threaten the
+website's cost bar, because D26 judges Relay on a separate budget — but the old number must not
+survive anywhere.
+
+| Driver | Est. $/mo | Share |
+| --- | ---: | --- |
+| SES postage (563k newsletter + 30k transactional + message data) | 62.69 | 40 % |
+| Relay production database (`db.t4g.medium` + 50 GB gp3) | 58.89 | 38 % |
+| Everything else — two hosts, volumes, queues, secrets, KMS, logs, alarms | 33.70 | 22 % |
+| **Relay production** | **144.03** | |
+| Relay dev (`t4g.micro`, database on the shared dev instance) | 11.45 | |
+| **Budget B total** | **155.48** | |
+
+Three things follow:
+
+- **SES postage is the largest single line and has no infrastructure alternative.** The only
+  levers are cadence and list segmentation, both owner decisions. At the 5–7 newsletters/month
+  stated to AWS (E.1) rather than a strict weekly cadence, the postage line is **$56–91/mo**.
+- **The database line is a consequence of retention, not of instance choice.** 34–54 GB/year of
+  unpruned delivery history is what drives both the instance size (D30) and the storage floor;
+  the pruning job (E.3) is what keeps it from ratcheting.
+- **Relay is largely new spend, not a substitution.** What disappears is sandbox Datamailer at
+  ≈ $13–15/mo. The newsletter itself moves off **Mailchimp**, whose cost sits outside this
+  account entirely — so the AWS invoice rises while the total marketing-mail cost may not. Record
+  the Mailchimp line before the cutover if that comparison is going to be made.
+
+Dual-run window (sandbox Relay + `main/relay`) ≈ +$13/mo until E.6 stage 2. **No
+`main/datamailer` root is built at all.** The Phase 7 sandbox harvest includes sandbox Relay
+(≈ $13–15) and sandbox Datamailer (≈ $13–15) — the latter landing after 7.1, not at 7.4 (§12).
 
 ---
 
@@ -1582,14 +1913,28 @@ DNS/apex rollback windows expired.
   the S3 tree is the designated read-only fallback (spec 09:205) — cheapest thing in the whole
   account; keeping it for a year costs ≈ $1/mo, so err long.
 - **Sandbox decommission (owner, D2: "sandbox infra will be gone once we migrate"):**
-- **7.4 Preconditions and internal order:** `dev.datatalks.club` (§9.2) has served as the
-  working dev deployment through at least one full release cycle; nothing deploys to
+- **7.4 Preconditions and internal order — CORRECTED.** `dev.datatalks.club` (§9.2) has served as
+  the working dev deployment through at least one full release cycle; nothing deploys to
   `web.dtcdev.click` any more (`.github/workflows` in the website repo retargeted); no
-  compatibility capture or CI job references the sandbox host. Email stacks retire in the E.7
-  order — **sandbox Relay first** (after E.6 stage 2, dev consumers moved off
-  `relay.dtcdev.click`), **then sandbox Datamailer** (sandbox Relay sends through Datamailer's
-  `datamailer-sandbox` configuration set and event topic, `sandbox/relay/README.md:20-21` —
-  reversing the order breaks sandbox Relay while it still runs), then `sandbox/website`.
+  compatibility capture or CI job references the sandbox host.
+  **Sandbox Datamailer retires last, and after 7.1 — not inside 7.4.** Three independent
+  dependencies hold it alive, and the earlier ordering (Relay → Datamailer → `sandbox/website`)
+  only accounted for the first:
+  1. **sandbox Relay sends through Datamailer's `datamailer-sandbox` configuration set and event
+     topic** (`sandbox/relay/README.md:20-21`, `sandbox/relay/messaging.tf:35-47`), so sandbox
+     Relay must go first or it breaks while still serving as the dev sender;
+  2. **CMP production is Datamailer's client** until `main/cmp` is destroyed at 7.1 — the path is
+     HTTPS plus a shared API key over the public internet, with no cross-account IAM grant to
+     revoke (`sandbox/datamailer/main.tf:73-100`), so nothing has to be un-granted; the only
+     requirement is not to destroy the endpoint while CMP still calls it. Note CMP's Datamailer
+     URL is set through the sticky-env mechanism rather than Terraform
+     (`main/cmp/app_prod.tf:101-105` sets `ignore_changes = [container_definitions]`), so the live
+     value must be read from the running task definition, not from the repo;
+  3. **the D23 suppression copy** — Datamailer is the source of Relay's suppression state, and
+     that copy is a precondition of the *first production send*, so Datamailer must outlive it.
+  Resulting order: **sandbox Relay → `sandbox/website` → CMP (7.1) → sandbox Datamailer.**
+  Consequence for §14.5: Datamailer's ≈ $13–15/mo lands *after* the CMP decommission. Counting it
+  at 7.4 understated the transitional bill by that amount for the whole window.
 - **7.5 [aws-infra]** Remove the cross-account media-bucket read: drop the sandbox account from
   `media_reader_account_ids` / `media_reader_principal_arns` in `main/dtc-website`
   (`variables.tf:37-59`, granted by PR #30 for the migration period only) and apply — the grant
