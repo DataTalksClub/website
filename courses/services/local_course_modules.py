@@ -401,7 +401,11 @@ def _load_manifest(path: Path) -> tuple[Mapping[str, Any], ...]:
     sources: list[Mapping[str, Any]] = []
     for raw_source in raw_sources:
         source = _mapping(raw_source, code="preparation_source_invalid")
-        required = _SOURCE_FIELDS - {"homework_slug_overrides"}
+        # Both optional fields record an *exception*, so their absence is the normal
+        # case: no homework slug needed overriding, and the commit is public so no
+        # reason was needed to ship it. The builder omits the reason for a public
+        # commit, which made this validation reject every manifest built from one.
+        required = _SOURCE_FIELDS - {"homework_slug_overrides", "unpublished_commit_reason"}
         if not required.issubset(source) or not set(source).issubset(_SOURCE_FIELDS):
             _refuse("preparation_source_invalid")
         sources.append(source)

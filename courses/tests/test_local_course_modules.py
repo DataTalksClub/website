@@ -30,6 +30,7 @@ from courses.services.curriculum_import import (
 from courses.services.local_course_modules import (
     TARGET_COHORTS,
     LocalCourseModulesError,
+    _load_manifest,
     select_target_cohort,
     snapshot_checksum,
     target_source_graph,
@@ -357,3 +358,63 @@ class ReviewedCourseModuleRenderingTests(TestCase):
                 self.assertContains(response, 'id="curriculum-flow-heading"')
                 self.assertContains(response, "First module")
                 self.assertNotContains(response, 'id="projects-heading"')
+
+
+class ManifestSourceFieldTests(TestCase):
+    """The two optional manifest fields both record an *exception*."""
+
+    def _manifest(self, *, include_reason: bool) -> dict:
+        sources = []
+        for stable_id, identifier in TARGET_COHORTS.items():
+            source = {
+                "source_uuid": "10000000-0000-4000-8000-000000000001",
+                "source_stable_id": stable_id,
+                "repository_owner": "DataTalksClub",
+                "repository_name": stable_id,
+                "repository_branch": "main",
+                "commit_sha": COMMIT_SHA,
+                "cohort_identifier": identifier,
+                "root": "/nonexistent",
+                "files": {},
+                "snapshot_sha256": snapshot_checksum({}),
+            }
+            if include_reason:
+                source["unpublished_commit_reason"] = ""
+            sources.append(source)
+        return {"schema_version": 1, "sources": sources}
+
+    def _load(self, manifest: dict) -> tuple:
+        import json
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "manifest.json"
+            path.write_text(json.dumps(manifest), encoding="utf-8")
+            return _load_manifest(path)
+
+    def test_a_manifest_from_a_public_commit_omits_the_reason_and_still_validates(self):
+        """The builder writes the reason only for an unpublished commit.
+
+        Requiring it therefore rejected every manifest built from a public commit, which
+        is the normal case now that the curricula are pushed.
+        """
+
+        sources = self._load(self._manifest(include_reason=False))
+
+        self.assertEqual(len(sources), len(TARGET_COHORTS))
+        for source in sources:
+            self.assertNotIn("unpublished_commit_reason", source)
+
+    def test_an_explicit_empty_reason_still_validates(self):
+        sources = self._load(self._manifest(include_reason=True))
+
+        self.assertEqual(len(sources), len(TARGET_COHORTS))
+
+    def test_an_unknown_field_is_still_refused(self):
+        manifest = self._manifest(include_reason=False)
+        manifest["sources"][0]["surprise"] = "value"
+
+        with self.assertRaises(LocalCourseModulesError) as raised:
+            self._load(manifest)
+
+        self.assertEqual(str(raised.exception), "preparation_source_invalid")

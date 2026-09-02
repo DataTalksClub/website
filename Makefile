@@ -416,20 +416,18 @@ PRODUCTION_PREP_CMP_SOURCE ?= $(HOME)/git/course-management-platform/db/db.sqlit
 # Set empty to skip activating the reviewed current-event registration aggregates.
 PRODUCTION_PREP_DATASET_REGISTRATION_INPUT ?= \
 	_docs/migration-data/local-current-registration-input.json
-# Where the three course repositories are cloned from. This defaults to the operator's
-# sibling clones and NOT to https://github.com/DataTalksClub, because the 2026 module
-# curricula for llm-zoomcamp and machine-learning-zoomcamp are not published upstream
-# yet: their `course.yaml`/`module.yaml` layout exists only on local `main`. Point this
-# at GitHub once those commits are pushed.
-PRODUCTION_PREP_COURSE_REMOTE ?= $(HOME)/git
-# Because those clones are local, the commits they pin are not reachable on the
-# public GitHub repositories, so every source link the imported pages build --
-# the edit link, the raw image URL, a source path a reader follows -- resolves
-# to a 404 until the owner pushes them. The manifest builder refuses such a
-# checkout unless the reason is stated, and records the reason it was given.
-# Clear this once the 2026 curricula are pushed; then the guard passes on its own.
-PRODUCTION_PREP_UNPUBLISHED_COMMIT_REASON ?= \
-	The 2026 llm-zoomcamp and machine-learning-zoomcamp curricula exist only on the owner's local main; pushing them is a tracked owner action.
+# Where the three course repositories are cloned from. The 2026 module curricula are
+# published now, so this points at GitHub rather than the operator's sibling clones.
+# That is what lets the public-commit guard pass: it reads reachability from the
+# checkout's own remote-tracking branches to stay offline, so a checkout cloned from a
+# local mirror can never satisfy it however public the commit actually is.
+PRODUCTION_PREP_COURSE_REMOTE ?= https://github.com/DataTalksClub
+# The 2026 curricula are published now, so the commits these clones pin are reachable
+# on GitHub and every source link an imported page builds -- the edit link, the raw
+# image URL, a source path a reader follows -- resolves. The manifest builder's guard
+# therefore passes on its own; set this only if a checkout goes ahead of its remote
+# again, and state why.
+PRODUCTION_PREP_UNPUBLISHED_COMMIT_REASON ?=
 PRODUCTION_PREP_COURSE_REPOSITORIES = \
 	llm-zoomcamp:llm-zoomcamp \
 	ml-zoomcamp:machine-learning-zoomcamp \
