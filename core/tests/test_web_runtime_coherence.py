@@ -20,18 +20,29 @@ from deploy.contracts import (
     ServiceUpdateReceipt,
     WebRuntimeBinding,
 )
-from deploy.legacy_development_compatibility import ECR_REPOSITORY_URI
+from deploy.deployment_targets import SELECTED_TARGET
 from test_support.safety import authorize_from_environment
 
 SOURCE_SHA = "a" * 40
 IMAGE_DIGEST = f"sha256:{'b' * 64}"
 VERSION = f"20260809-143205-{SOURCE_SHA[:7]}"
-WEB_DEFINITION = "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-web:14"
-OLD_WEB_DEFINITION = "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-web:13"
-WORKER_DEFINITION = "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-worker:14"
-TASK_ARN = "arn:aws:ecs:eu-west-1:817685572750:task/website-sandbox/" + "1" * 32
-STALE_TASK_ARN = "arn:aws:ecs:eu-west-1:817685572750:task/website-sandbox/" + "2" * 32
-REPLACEMENT_TASK_ARN = "arn:aws:ecs:eu-west-1:817685572750:task/website-sandbox/" + "3" * 32
+NAMESPACE = SELECTED_TARGET.resource_namespace
+WEB_DEFINITION = SELECTED_TARGET.task_definition_arn_prefix(SELECTED_TARGET.web_task_family) + "14"
+OLD_WEB_DEFINITION = (
+    SELECTED_TARGET.task_definition_arn_prefix(SELECTED_TARGET.web_task_family) + "13"
+)
+WORKER_DEFINITION = (
+    SELECTED_TARGET.task_definition_arn_prefix(SELECTED_TARGET.worker_task_family) + "14"
+)
+OLD_WORKER_DEFINITION = (
+    SELECTED_TARGET.task_definition_arn_prefix(SELECTED_TARGET.worker_task_family) + "13"
+)
+TASK_PREFIX = (
+    f"arn:aws:ecs:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}:task/{NAMESPACE}/"
+)
+TASK_ARN = TASK_PREFIX + "1" * 32
+STALE_TASK_ARN = TASK_PREFIX + "2" * 32
+REPLACEMENT_TASK_ARN = TASK_PREFIX + "3" * 32
 PRIVATE_ADDRESS = "10.0.1.17"
 TARGET_PORT = 8000
 
@@ -51,7 +62,7 @@ class FakeClock:
 
 def service_document() -> dict[str, Any]:
     return {
-        "serviceName": "website-sandbox-web",
+        "serviceName": SELECTED_TARGET.web_service_name,
         "taskDefinition": WEB_DEFINITION,
         "desiredCount": 1,
         "runningCount": 1,
@@ -84,7 +95,7 @@ def service_document() -> dict[str, Any]:
 def receipt() -> ServiceUpdateReceipt:
     return ServiceUpdateReceipt(
         workload="web",
-        configured_service_identity="website-sandbox-web",
+        configured_service_identity=SELECTED_TARGET.web_service_name,
         target=ServiceTarget(WEB_DEFINITION, 1),
         primary_deployment_id="ecs-svc/web-14",
         predecessors=(
@@ -98,7 +109,7 @@ def receipt() -> ServiceUpdateReceipt:
 
 
 def identity() -> ReleaseIdentity:
-    return ReleaseIdentity(SOURCE_SHA, IMAGE_DIGEST, ECR_REPOSITORY_URI, VERSION)
+    return ReleaseIdentity(SOURCE_SHA, IMAGE_DIGEST, SELECTED_TARGET.ecr_repository_uri, VERSION)
 
 
 def task_definition() -> dict[str, Any]:
@@ -109,7 +120,7 @@ def task_definition() -> dict[str, Any]:
         "containerDefinitions": [
             {
                 "name": "web",
-                "image": f"{ECR_REPOSITORY_URI}@{IMAGE_DIGEST}",
+                "image": f"{SELECTED_TARGET.ecr_repository_uri}@{IMAGE_DIGEST}",
                 "environment": [
                     {"name": "IMAGE_DIGEST", "value": IMAGE_DIGEST},
                     {"name": "SOURCE_SHA", "value": SOURCE_SHA},
@@ -150,7 +161,7 @@ def running_task(task_arn: str = TASK_ARN) -> dict[str, Any]:
             {
                 "name": "web",
                 "healthStatus": "HEALTHY",
-                "image": f"{ECR_REPOSITORY_URI}@{IMAGE_DIGEST}",
+                "image": f"{SELECTED_TARGET.ecr_repository_uri}@{IMAGE_DIGEST}",
                 "imageDigest": IMAGE_DIGEST,
                 "networkInterfaces": [
                     {
@@ -198,24 +209,27 @@ def target_health(
 def config(*, poll_seconds: int = 10, timeout_seconds: int = 180) -> AwsReleaseConfig:
     return AwsReleaseConfig(
         region="eu-west-1",
-        cluster_arn=("arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox"),
+        cluster_arn=SELECTED_TARGET.ecs_cluster_arn,
         web_target_group_arn=(
-            "arn:aws:elasticloadbalancing:eu-west-1:817685572750:"
-            "targetgroup/website-sandbox-web/0123456789abcdef"
+            f"arn:aws:elasticloadbalancing:{SELECTED_TARGET.aws_region}:"
+            f"{SELECTED_TARGET.aws_account_id}:targetgroup/{NAMESPACE}-web/0123456789abcdef"
         ),
-        service_names={"web": "website-sandbox-web", "worker": "website-sandbox-worker"},
+        service_names={
+            "web": SELECTED_TARGET.web_service_name,
+            "worker": SELECTED_TARGET.worker_service_name,
+        },
         task_families={
-            "web": "website-sandbox-web",
-            "worker": "website-sandbox-worker",
-            "migration": "website-sandbox-migration",
+            "web": SELECTED_TARGET.web_task_family,
+            "worker": SELECTED_TARGET.worker_task_family,
+            "migration": SELECTED_TARGET.migration_task_family,
         },
         container_names={"web": "web", "worker": "worker", "migration": "migration"},
-        task_role_arn="arn:aws:iam::817685572750:role/website-task",
-        execution_role_arn="arn:aws:iam::817685572750:role/website-execution",
+        task_role_arn=SELECTED_TARGET.task_role_arn,
+        execution_role_arn=SELECTED_TARGET.execution_role_arn,
         subnet_ids=["subnet-0123456789abcdef0"],
         security_group_ids=["sg-0123456789abcdef0"],
         assign_public_ip=True,
-        base_url="https://web.dtcdev.click",
+        base_url=SELECTED_TARGET.origin,
         screenshot_directory=Path(".tmp/deployed-smoke"),
         timeout_seconds=timeout_seconds,
         poll_seconds=poll_seconds,
@@ -343,10 +357,10 @@ class WebRuntimeCoherenceTests(SimpleTestCase):
         self.assertEqual(environment["DTC_TEST_SAFETY_COMMAND"], "remote_readonly")
         self.assertEqual(environment["DTC_TEST_TARGET_CLASS"], "isolated_development")
         self.assertEqual(environment["DTC_TEST_REMOTE_NAMESPACE"], "deploy-12345678-1")
-        self.assertEqual(environment["DTC_TEST_BASE_URL"], "https://web.dtcdev.click")
+        self.assertEqual(environment["DTC_TEST_BASE_URL"], SELECTED_TARGET.origin)
         with patch.dict("os.environ", environment, clear=True):
             authorization = authorize_from_environment("remote_readonly")
-        self.assertEqual(authorization.base_url, "https://web.dtcdev.click")
+        self.assertEqual(authorization.base_url, SELECTED_TARGET.origin)
 
     def test_eventual_visibility_freezes_two_samples_around_public_health(self) -> None:
         events: list[str] = []
@@ -486,7 +500,7 @@ class WebRuntimeCoherenceTests(SimpleTestCase):
             ),
             "wrong definition image": lambda _task, definition: definition["containerDefinitions"][
                 0
-            ].__setitem__("image", f"{ECR_REPOSITORY_URI}@sha256:{'c' * 64}"),
+            ].__setitem__("image", f"{SELECTED_TARGET.ecr_repository_uri}@sha256:{'c' * 64}"),
             "malformed overrides": lambda task, _definition: task.__setitem__(
                 "overrides", {"containerOverrides": "not-a-list"}
             ),
@@ -897,14 +911,13 @@ class WorkerWebBindingGuardTests(SimpleTestCase):
         gateway.elbv2 = Mock()
         worker_receipt = ServiceUpdateReceipt(
             workload="worker",
-            configured_service_identity="website-sandbox-worker",
+            configured_service_identity=SELECTED_TARGET.worker_service_name,
             target=ServiceTarget(WORKER_DEFINITION, 1),
             primary_deployment_id="ecs-svc/worker-14",
             predecessors=(
                 ServicePredecessor(
                     ServiceTarget(
-                        "arn:aws:ecs:eu-west-1:817685572750:task-definition/"
-                        "website-sandbox-worker:13",
+                        OLD_WORKER_DEFINITION,
                         1,
                     ),
                     "ecs-svc/worker-13",
@@ -916,7 +929,7 @@ class WorkerWebBindingGuardTests(SimpleTestCase):
         )
         gateway.ecs.update_service.return_value = {
             "service": {
-                "serviceName": "website-sandbox-worker",
+                "serviceName": SELECTED_TARGET.worker_service_name,
                 "taskDefinition": WORKER_DEFINITION,
                 "desiredCount": 1,
                 "runningCount": 1,
@@ -961,14 +974,13 @@ class WorkerWebBindingGuardTests(SimpleTestCase):
         gateway.config = config()
         worker_receipt = ServiceUpdateReceipt(
             workload="worker",
-            configured_service_identity="website-sandbox-worker",
+            configured_service_identity=SELECTED_TARGET.worker_service_name,
             target=ServiceTarget(WORKER_DEFINITION, 1),
             primary_deployment_id="ecs-svc/worker-14",
             predecessors=(
                 ServicePredecessor(
                     ServiceTarget(
-                        "arn:aws:ecs:eu-west-1:817685572750:task-definition/"
-                        "website-sandbox-worker:13",
+                        OLD_WORKER_DEFINITION,
                         1,
                     ),
                     "ecs-svc/worker-13",
@@ -1088,14 +1100,13 @@ class WorkerWebBindingGuardTests(SimpleTestCase):
     def _worker_receipt() -> ServiceUpdateReceipt:
         return ServiceUpdateReceipt(
             workload="worker",
-            configured_service_identity="website-sandbox-worker",
+            configured_service_identity=SELECTED_TARGET.worker_service_name,
             target=ServiceTarget(WORKER_DEFINITION, 1),
             primary_deployment_id="ecs-svc/worker-14",
             predecessors=(
                 ServicePredecessor(
                     ServiceTarget(
-                        "arn:aws:ecs:eu-west-1:817685572750:task-definition/"
-                        "website-sandbox-worker:13",
+                        OLD_WORKER_DEFINITION,
                         1,
                     ),
                     "ecs-svc/worker-13",

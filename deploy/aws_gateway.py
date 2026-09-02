@@ -39,11 +39,7 @@ from deploy.contracts import (
     validate_source_sha,
     validate_version,
 )
-from deploy.legacy_development_compatibility import (
-    ECR_REPOSITORY_NAME,
-    ECR_REPOSITORY_URI,
-    RESOURCE_ENVIRONMENT_TAG,
-)
+from deploy.deployment_targets import SELECTED_TARGET
 from deploy.smoke import run_http_smoke, verify_health, verify_legacy_health
 from deploy.task_definitions import (
     TaskDefinitionConfig,
@@ -481,7 +477,7 @@ class AwsReleaseGateway:
         expected_tags = {
             "ReleaseManager": "DataTalksClub/website",
             "Project": "website",
-            "Environment": RESOURCE_ENVIRONMENT_TAG,
+            "Environment": SELECTED_TARGET.resource_environment_tag,
         }
         for workload, reference in references.items():
             cluster_arn_parts = self.config.cluster_arn.split(":")
@@ -568,12 +564,12 @@ class AwsReleaseGateway:
         )
 
     def verify_image_digest_exists(self, identity: ReleaseIdentity) -> None:
-        if identity.repository_uri != ECR_REPOSITORY_URI:
+        if identity.repository_uri != SELECTED_TARGET.ecr_repository_uri:
             raise ReleaseContractError(
                 "active image repository is outside the development boundary"
             )
         tagged = self.ecr.describe_images(
-            repositoryName=ECR_REPOSITORY_NAME,
+            repositoryName=SELECTED_TARGET.ecr_repository_name,
             imageIds=[{"imageTag": identity.source_sha}],
         )
         tagged_details = tagged.get("imageDetails", [])
@@ -585,7 +581,7 @@ class AwsReleaseGateway:
                 "active source SHA tag does not resolve to the exact development image digest"
             )
         described = self.ecr.describe_images(
-            repositoryName=ECR_REPOSITORY_NAME,
+            repositoryName=SELECTED_TARGET.ecr_repository_name,
             imageIds=[{"imageDigest": identity.image_digest}],
         )
         details = described.get("imageDetails", [])
@@ -593,7 +589,7 @@ class AwsReleaseGateway:
             raise ReleaseContractError("active image digest is missing from development ECR")
         if identity.identity_schema == 2:
             versioned = self.ecr.describe_images(
-                repositoryName=ECR_REPOSITORY_NAME,
+                repositoryName=SELECTED_TARGET.ecr_repository_name,
                 imageIds=[{"imageTag": identity.version}],
             )
             versioned_details = versioned.get("imageDetails", [])
@@ -605,7 +601,7 @@ class AwsReleaseGateway:
                     "active VERSION tag does not resolve to the exact development image digest"
                 )
         manifest = self.ecr.batch_get_image(
-            repositoryName=ECR_REPOSITORY_NAME,
+            repositoryName=SELECTED_TARGET.ecr_repository_name,
             imageIds=[{"imageDigest": identity.image_digest}],
         )
         if not self._contains_exact_image_manifest(manifest, identity.image_digest):
@@ -613,7 +609,7 @@ class AwsReleaseGateway:
             # BatchGetImage. The already-proven immutable full-SHA tag is an equivalent
             # lookup key only when the returned image still binds to the same digest.
             manifest = self.ecr.batch_get_image(
-                repositoryName=ECR_REPOSITORY_NAME,
+                repositoryName=SELECTED_TARGET.ecr_repository_name,
                 imageIds=[{"imageTag": identity.source_sha}],
             )
         if not self._contains_exact_image_manifest(manifest, identity.image_digest):
@@ -2504,7 +2500,10 @@ class AwsReleaseGateway:
         deadline: float,
     ) -> WebRuntimeBinding:
         deadline = self._validate_web_coherence_deadline(deadline)
-        if type(identity) is not ReleaseIdentity or identity.repository_uri != ECR_REPOSITORY_URI:
+        if (
+            type(identity) is not ReleaseIdentity
+            or identity.repository_uri != SELECTED_TARGET.ecr_repository_uri
+        ):
             raise ReleaseContractError("web runtime expected repository differs")
         binding: WebRuntimeBinding | None = None
         while binding is None:
@@ -2568,7 +2567,7 @@ class AwsReleaseGateway:
         identity = ReleaseIdentity(
             source_sha=binding.source_sha,
             image_digest=binding.image_digest,
-            repository_uri=ECR_REPOSITORY_URI,
+            repository_uri=SELECTED_TARGET.ecr_repository_uri,
             version=binding.version,
             identity_schema=binding.identity_schema,
         )

@@ -12,11 +12,11 @@ injected value fails at import instead of widening ``ALLOWED_HOSTS`` on a
 deployed service.  Adding a further development host stays a reviewed code
 change; choosing between the reviewed ones does not.
 
-The physical AWS identifiers of a development deployment -- role ARNs, cluster
-and service names, subnets, security groups -- are deliberately *not* here.  They
-cannot be known before their stack is applied, and they stay pinned in
-``deploy.legacy_development_compatibility`` so that a release fails closed when
-the configured deployment is not the reviewed one.
+The physical AWS identifiers of a deployment -- role ARNs, cluster and service
+names, subnets, security groups -- are deliberately *not* here.  They belong to a
+reviewed deployment target in ``deploy.deployment_targets``, which is what the
+release pipeline binds to; this module exists so ``website.settings.development``
+can name its host without importing the release tooling's target registry.
 """
 
 from __future__ import annotations

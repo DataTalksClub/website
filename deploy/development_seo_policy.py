@@ -6,15 +6,25 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from deploy.contracts import ReleaseContractError, validate_source_sha
-from deploy.legacy_development_compatibility import TERRAFORM_ROOT
+from deploy.deployment_targets import SELECTED_TARGET
 
-DEVELOPMENT_TERRAFORM_VARS_PATH = f"{TERRAFORM_ROOT}/terraform.tfvars.example"
+#: The Terraform example variables of the selected deployment target's root.  The
+#: path follows the target, and the hostname and robots value the check demands
+#: come from the reviewed target rather than from the file being verified, so
+#: parameterising the check does not make it vacuous.
+TARGET_TERRAFORM_VARS_PATH = f"{SELECTED_TARGET.terraform_root}/terraform.tfvars.example"
+#: Retained name for the same path.
+DEVELOPMENT_TERRAFORM_VARS_PATH = TARGET_TERRAFORM_VARS_PATH
 
 REQUIRED_TERRAFORM_PATHS = (
+    "modules/django-website/compute.tf",
     "modules/django-website/edge.tf",
-    DEVELOPMENT_TERRAFORM_VARS_PATH,
+    TARGET_TERRAFORM_VARS_PATH,
     "tests/fixtures/website-production/main.tf",
 )
+#: The workloads ``modules/django-website`` registers, each of which must run on
+#: the target's declared CPU architecture.
+TASK_DEFINITION_COUNT = 3
 TRUSTED_REVISION = "origin/main"
 TRUSTED_REMOTES = frozenset(
     {
@@ -28,6 +38,10 @@ TRUSTED_REMOTES = frozenset(
 class TerraformSeoEvidence:
     commit: str
     cache_behavior_count: int
+    #: The ``task_cpu_architecture`` the trusted Terraform source declares for
+    #: the selected target.  Read back rather than assumed so the architecture
+    #: the release pipeline builds cannot drift from the applied stack.
+    task_cpu_architecture: str
 
 
 def _git(repository: Path, *arguments: str) -> str:
@@ -178,6 +192,45 @@ def _require_assignment(source: str, name: str, value_pattern: str, error: str) 
         raise ReleaseContractError(error)
 
 
+def validate_terraform_target_architecture(
+    target_vars: str,
+    compute: str,
+) -> str:
+    """Return the declared CPU architecture, proving it reaches every task.
+
+    An image built for the other architecture is accepted by ECS and then dies
+    on start with nothing useful in its log, so the pipeline derives what it
+    builds from this value.  Reading ``task_cpu_architecture`` alone would not
+    be enough: the check also proves that every task definition's
+    ``runtime_platform`` is bound to that variable, so a stack cannot declare
+    one architecture and register another.
+    """
+
+    _require_assignment(
+        target_vars,
+        "task_cpu_architecture",
+        f'"{re.escape(SELECTED_TARGET.task_cpu_architecture)}"',
+        "deployment target task CPU architecture differs",
+    )
+    platforms = _all_blocks(compute, "runtime_platform")
+    if len(platforms) != TASK_DEFINITION_COUNT:
+        raise ReleaseContractError("every workload task definition must declare a runtime platform")
+    for platform in platforms:
+        _require_assignment(
+            platform,
+            "cpu_architecture",
+            r"var\.task_cpu_architecture",
+            "task runtime platform is detached from task_cpu_architecture",
+        )
+        _require_assignment(
+            platform,
+            "operating_system_family",
+            '"LINUX"',
+            "task runtime platform is not Linux",
+        )
+    return SELECTED_TARGET.task_cpu_architecture
+
+
 def validate_terraform_seo_source(
     sources: dict[str, str],
     *,
@@ -186,21 +239,23 @@ def validate_terraform_seo_source(
     validate_source_sha(commit)
     if set(sources) != set(REQUIRED_TERRAFORM_PATHS):
         raise ReleaseContractError("Terraform source set is incomplete")
+    compute = _strip_comments(sources["modules/django-website/compute.tf"])
     edge = _strip_comments(sources["modules/django-website/edge.tf"])
-    development = _strip_comments(sources[DEVELOPMENT_TERRAFORM_VARS_PATH])
+    target_vars = _strip_comments(sources[TARGET_TERRAFORM_VARS_PATH])
     production = _strip_comments(sources["tests/fixtures/website-production/main.tf"])
 
+    task_cpu_architecture = validate_terraform_target_architecture(target_vars, compute)
     _require_assignment(
-        development,
+        target_vars,
         "hostname",
-        '"web\\.dtcdev\\.click"',
-        "development viewer host differs",
+        f'"{re.escape(SELECTED_TARGET.hostname)}"',
+        "deployment target viewer host differs",
     )
     _require_assignment(
-        development,
+        target_vars,
         "robots_header_value",
-        '"noindex, nofollow"',
-        "development robots value differs",
+        '"noindex, nofollow"' if SELECTED_TARGET.robots_noindex else "null",
+        "deployment target robots value differs",
     )
     distributions = re.findall(
         r'(?m)^\s*resource\s+"aws_cloudfront_distribution"\s+"[^"\n]+"\s*\{',
@@ -283,9 +338,13 @@ def validate_terraform_seo_source(
         production,
         "robots_header_value",
         "null",
-        "production fixture enables development robots header",
+        "production policy fixture enables the non-indexable robots header",
     )
-    return TerraformSeoEvidence(commit=commit, cache_behavior_count=len(behaviors))
+    return TerraformSeoEvidence(
+        commit=commit,
+        cache_behavior_count=len(behaviors),
+        task_cpu_architecture=task_cpu_architecture,
+    )
 
 
 def verify_trusted_terraform_source(

@@ -5,6 +5,7 @@ import argparse
 from django.test import SimpleTestCase
 
 from deploy.cli import _add_runtime_arguments
+from deploy.deployment_targets import DEPLOYMENT_TARGETS, SELECTED_TARGET
 from deploy.development_target import (
     DEFAULT_DEVELOPMENT_HOSTNAME,
     DEVELOPMENT_HOSTNAME_VARIABLE,
@@ -14,7 +15,7 @@ from deploy.development_target import (
     development_origin,
 )
 from deploy.task_definitions import FIXED_NONSECRET_ENVIRONMENT
-from test_support.safety import DEVELOPMENT_HOSTS
+from test_support.safety import REMOTE_HOSTS
 
 
 class DevelopmentTargetSelectionTests(SimpleTestCase):
@@ -45,27 +46,42 @@ class DevelopmentTargetSelectionTests(SimpleTestCase):
 
 
 class DevelopmentTargetCoherenceTests(SimpleTestCase):
-    def test_remote_test_allowlist_matches_the_reviewed_hostnames(self) -> None:
-        self.assertEqual(DEVELOPMENT_HOSTS, PERMITTED_DEVELOPMENT_HOSTNAMES)
+    def test_remote_test_allowlist_covers_exactly_the_reviewed_hostnames(self) -> None:
+        deployable = {
+            target.hostname for target in DEPLOYMENT_TARGETS.values() if not target.retired
+        }
+        self.assertEqual(REMOTE_HOSTS, PERMITTED_DEVELOPMENT_HOSTNAMES | deployable)
+        self.assertIn(SELECTED_TARGET.hostname, REMOTE_HOSTS)
 
-    def test_task_definition_environment_follows_the_selected_hostname(self) -> None:
+    def test_task_definition_environment_follows_the_selected_deployment_target(self) -> None:
         self.assertEqual(
             FIXED_NONSECRET_ENVIRONMENT["DJANGO_ALLOWED_HOSTS"],
-            DEFAULT_DEVELOPMENT_HOSTNAME,
+            SELECTED_TARGET.hostname,
         )
         self.assertEqual(
             FIXED_NONSECRET_ENVIRONMENT["DJANGO_CSRF_TRUSTED_ORIGINS"],
-            f"https://{DEFAULT_DEVELOPMENT_HOSTNAME}",
+            SELECTED_TARGET.origin,
         )
+        self.assertEqual(
+            FIXED_NONSECRET_ENVIRONMENT["DJANGO_SETTINGS_MODULE"],
+            SELECTED_TARGET.settings_module,
+        )
+        # A non-indexable staging or development host still consolidates to the
+        # production apex, so this is the apex and not the served origin.
         self.assertEqual(
             FIXED_NONSECRET_ENVIRONMENT["CANONICAL_ORIGIN"],
             "https://datatalks.club",
         )
 
-    def test_release_smoke_default_follows_the_selected_hostname(self) -> None:
+    def test_release_smoke_default_follows_the_selected_deployment_target(self) -> None:
         parser = argparse.ArgumentParser()
         _add_runtime_arguments(parser)
-        self.assertEqual(
-            parser.get_default("base_url"),
-            f"https://{DEFAULT_DEVELOPMENT_HOSTNAME}",
-        )
+        self.assertEqual(parser.get_default("base_url"), SELECTED_TARGET.origin)
+
+    def test_a_development_hostname_is_never_the_deployed_target_by_accident(self) -> None:
+        # The development hostnames are Django-settings configuration.  Deploying
+        # to one of them requires a reviewed deployment target that names it.
+        if SELECTED_TARGET.hostname in PERMITTED_DEVELOPMENT_HOSTNAMES:
+            self.assertEqual(SELECTED_TARGET.settings_module, "website.settings.development")
+        else:
+            self.assertNotEqual(SELECTED_TARGET.settings_module, "website.settings.development")

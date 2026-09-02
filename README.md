@@ -110,7 +110,9 @@ Settings modules are:
 - `website.settings.local`: local development with project-local SQLite.
 - `website.settings.test`: deterministic isolated SQLite for ordinary tests and checks.
 - `website.settings.development`: the hostname selected by `deploy/development_target.py`; production-shaped and always non-indexable.
-- `website.settings.production`: production security settings and fail-closed bootstrap configuration.
+- `website.settings.production`: production security settings and fail-closed bootstrap configuration. `prod.datatalks.club` is staging for its whole life while the apex still serves the legacy corpus, so these settings are non-indexable and account links resolve on the served host while canonical links stay on the apex.
+
+`deploy/deployment_targets.py` holds the reviewed deployment targets — account, region, hostname, resource namespace, settings module, desired counts and secret shapes for each applied stack. `DTC_DEPLOYMENT_TARGET` selects one from that in-code allowlist; an unreviewed or retired name fails closed, and so does a stack whose real identifiers disagree with the reviewed profile.
 
 Deployed development and production require a non-placeholder secret, a PostgreSQL `DATABASE_URL`, allowed hosts, and trusted CSRF origins. Readiness checks the database, unapplied migrations, and these bootstrap settings without calling GitHub, AWS, email, or any other optional provider. The retained `psycopg` dependency is for these deployed processes only; application services and migrations use portable Django contracts exercised on SQLite.
 

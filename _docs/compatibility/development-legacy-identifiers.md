@@ -23,12 +23,40 @@ not be rewritten to fit a future development environment:
 - physical resource-tag value `Environment=sandbox`; and
 - bootstrap role/session identifiers `phone-aws-sandbox-role` and `phone-sandbox-*`.
 
-Current Python code consumes these values through
-`deploy/legacy_development_compatibility.py`. The workflow reads only
-`DEVELOPMENT_*` GitHub variables; its four exact GitHub-environment bindings
-remain literal compatibility declarations because GitHub resolves them before
-any checked-out code can run. No Terraform, state, AWS resource, tag, IAM,
-GitHub-environment, or OIDC-trust mutation is part of #93.
+Current Python code consumes these values through the retired
+`website-sandbox` deployment target in `deploy/deployment_targets.py`. That
+profile is retained rather than deleted: the Gate-B and release evidence in this
+repository was verified against exactly these values, so deleting it would
+orphan that history. It is marked retired, which means it can still be read but
+can never be selected for a deployment —
+`DTC_DEPLOYMENT_TARGET=website-sandbox` fails closed.
+
+`deploy/legacy_development_compatibility.py` survives only as the module path
+`.github/workflows/ci.yml` invokes; nothing else should import it. The workflow
+reads only `DEVELOPMENT_*` GitHub variables; its four exact GitHub-environment
+bindings remain literal compatibility declarations because GitHub resolves them
+before any checked-out code can run. No Terraform, state, AWS resource, tag,
+IAM, GitHub-environment, or OIDC-trust mutation is part of #93.
+
+## Reviewed deployment targets
+
+`deploy/deployment_targets.py` holds every reviewed deployment target as a named
+profile: account, region, hostname, physical resource namespace, Django settings
+module, `DTC_ENVIRONMENT`, canonical origin, robots policy, desired counts,
+Terraform root and state bucket, and secret-ARN shapes. `DTC_DEPLOYMENT_TARGET`
+only selects a member of that in-code allowlist, so a mistyped or injected value
+fails at import instead of widening the boundary. Every gate in `deploy/` — the
+role-profile variable validation, the release record, the task-definition
+contract, the deployed smoke origin, and the Terraform SEO source check — reads
+its expectations from the selected target and still fails closed, naming the
+value that disagreed.
+
+Identifiers AWS generates at apply time (KMS key ARN, hosted zone id, subnet and
+security-group ids, target-group ARN) are never invented in code. A target
+either pins the reviewed value it was verified against — the retired sandbox
+does — or declares the strict shape a supplied value must have, scoped to that
+target's own account, region and namespace. Supplying another reviewed target's
+pinned identifier is rejected by name.
 
 ## Frozen evidence
 

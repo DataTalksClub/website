@@ -5,11 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from deploy.contracts import ReleaseContractError, ReleaseIdentity
-from deploy.development_target import DEVELOPMENT_HOSTNAME, DEVELOPMENT_ORIGIN
-from deploy.legacy_development_compatibility import (
-    DATABASE_SECRET_ARN_PATTERN,
-    DJANGO_SECRET_ARN_PATTERN,
-)
+from deploy.deployment_targets import SELECTED_TARGET
 
 WORKLOADS = ("web", "worker", "migration")
 REGISTERABLE_FIELDS = {
@@ -31,39 +27,19 @@ REGISTERABLE_FIELDS = {
 }
 REQUIRED_SECRET_NAMES = {"DATABASE_URL", "DJANGO_SECRET_KEY"}
 SECRET_ARN_PATTERNS = {
-    "DATABASE_URL": DATABASE_SECRET_ARN_PATTERN,
-    "DJANGO_SECRET_KEY": DJANGO_SECRET_ARN_PATTERN,
+    "DATABASE_URL": SELECTED_TARGET.database_secret_arn_pattern,
+    "DJANGO_SECRET_KEY": SELECTED_TARGET.django_secret_arn_pattern,
 }
-SAFETY_ENVIRONMENT = {
-    "DATAMAILER_SYNC_ON_USER_CREATE": "0",
-    "DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY": "0",
-    "DATAMAILER_TRANSACTIONAL_DRY_RUN": "1",
-    "DATAMAILER_URL": "",
-    "DATAMAILER_API_KEY": "",
-}
+SAFETY_ENVIRONMENT = SELECTED_TARGET.safety_environment
 # The release image deliberately excludes content/public_projection/media (see
 # .dockerignore), so a deployed workload cannot serve the projection images from its own
 # filesystem.  It reads them from the published object store instead, at unchanged public
 # /images/... URLs.  The CloudFront distribution in front of the bucket is an origin/edge
 # detail: Django is the origin for /images/..., so no public URL moves to a CDN hostname.
-PUBLIC_MEDIA_ENVIRONMENT = {
-    "PUBLIC_MEDIA_STORE_BACKEND": "s3",
-    "PUBLIC_MEDIA_S3_BUCKET": "dtc-website-media",
-    "PUBLIC_MEDIA_S3_REGION": "eu-west-1",
-}
-FIXED_NONSECRET_ENVIRONMENT = {
-    "CANONICAL_ORIGIN": "https://datatalks.club",
-    "DJANGO_ALLOWED_HOSTS": DEVELOPMENT_HOSTNAME,
-    "DJANGO_CSRF_TRUSTED_ORIGINS": DEVELOPMENT_ORIGIN,
-    "DJANGO_SETTINGS_MODULE": "website.settings.development",
-    "DTC_ENVIRONMENT": "development",
-    "OBSERVABILITY_EVENT_BACKENDS": "log",
-    "WEB_CONCURRENCY": "2",
-    "AWS_DEFAULT_REGION": "eu-west-1",
-    "AWS_REGION": "eu-west-1",
-    **PUBLIC_MEDIA_ENVIRONMENT,
-    **SAFETY_ENVIRONMENT,
-}
+PUBLIC_MEDIA_ENVIRONMENT = SELECTED_TARGET.public_media_environment
+# The exact non-secret environment the selected deployment target deploys.  A
+# source task definition that sets anything else fails the release closed.
+FIXED_NONSECRET_ENVIRONMENT = SELECTED_TARGET.fixed_nonsecret_environment
 COMMANDS = {
     "web": {"command": ["web"]},
     "worker": {"command": ["worker"]},
@@ -88,6 +64,28 @@ class TaskDefinitionConfig:
         ):
             if set(values) != set(WORKLOADS) or any(not value for value in values.values()):
                 raise ReleaseContractError(f"{name} must define web, worker, and migration")
+
+
+def _assert_runtime_platform(task: dict[str, Any], workload: str) -> None:
+    """Fail closed when a task definition declares another CPU architecture.
+
+    ``runtimePlatform`` is carried over from the Terraform-managed task
+    definition this release normalizes, so it is the applied stack's own
+    ``task_cpu_architecture``.  ECS accepts an image built for the other
+    architecture and the task then dies on start with nothing useful in its log,
+    so the release refuses to register a task definition whose architecture
+    disagrees with the one the pipeline built and published.
+    """
+
+    runtime_platform = task.get("runtimePlatform")
+    if not isinstance(runtime_platform, dict):
+        raise ReleaseContractError(f"{workload} task definition declares no runtime platform")
+    if runtime_platform.get("cpuArchitecture") != SELECTED_TARGET.task_cpu_architecture:
+        raise ReleaseContractError(
+            f"{workload} runtime platform is not {SELECTED_TARGET.task_cpu_architecture}"
+        )
+    if runtime_platform.get("operatingSystemFamily") != "LINUX":
+        raise ReleaseContractError(f"{workload} runtime platform is not Linux")
 
 
 def _only_container(task: dict[str, Any], expected_name: str) -> dict[str, Any]:
@@ -141,7 +139,7 @@ def _secrets(container: dict[str, Any]) -> tuple[tuple[str, str], ...]:
     for name, value in result:
         if not SECRET_ARN_PATTERNS[name].fullmatch(value):
             raise ReleaseContractError(
-                f"{name} secret reference is outside the development boundary"
+                f"{name} secret reference is outside the {SELECTED_TARGET.name} boundary"
             )
     return tuple(sorted(result))
 
@@ -181,7 +179,7 @@ def build_task_definitions(
                 )
         if source_environment != FIXED_NONSECRET_ENVIRONMENT:
             raise ReleaseContractError(
-                f"{workload} source environment differs from the development contract"
+                f"{workload} source environment differs from the {SELECTED_TARGET.name} contract"
             )
         source_environments.append(source_environment)
         source_secrets.append(_secrets(container))
@@ -241,6 +239,7 @@ def _assert_normalized_workloads(
             raise ReleaseContractError(f"{workload} task role mismatch")
         if task.get("executionRoleArn") != config.execution_role_arn:
             raise ReleaseContractError(f"{workload} execution role mismatch")
+        _assert_runtime_platform(task, workload)
         container = _only_container(task, config.container_names[workload])
         if container.get("image") != identity.image:
             raise ReleaseContractError(f"{workload} image is not the exact immutable digest")

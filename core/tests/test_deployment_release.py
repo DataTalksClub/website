@@ -25,6 +25,7 @@ from deploy.contracts import (
     ServiceUpdateReceipt,
     WebRuntimeBinding,
 )
+from deploy.deployment_targets import SELECTED_TARGET
 from deploy.release import (
     RELEASE_A_SHA,
     RELEASE_B_SHA,
@@ -57,16 +58,20 @@ SHA_A = RELEASE_A_SHA
 SHA_B = RELEASE_B_SHA
 DIGEST_A = f"sha256:{'a' * 64}"
 DIGEST_B = f"sha256:{'b' * 64}"
-REPOSITORY = "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox"
-TASK_ROLE = "arn:aws:iam::817685572750:role/website-task"
-EXECUTION_ROLE = "arn:aws:iam::817685572750:role/website-execution"
-FAMILIES = {name: f"website-sandbox-{name}" for name in ("web", "worker", "migration")}
+NAMESPACE = SELECTED_TARGET.resource_namespace
+REPOSITORY = SELECTED_TARGET.ecr_repository_uri
+TASK_ROLE = SELECTED_TARGET.task_role_arn
+EXECUTION_ROLE = SELECTED_TARGET.execution_role_arn
+FAMILIES = {name: f"{NAMESPACE}-{name}" for name in ("web", "worker", "migration")}
 CONTAINERS = {name: name for name in ("web", "worker", "migration")}
-DATABASE_SECRET_ARN = (
-    "arn:aws:secretsmanager:eu-west-1:817685572750:secret:website-sandbox/database-url-Ab12Cd"
+SECRET_PREFIX = (
+    f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"
+    f":secret:{NAMESPACE}"
 )
-DJANGO_SECRET_ARN = (
-    "arn:aws:secretsmanager:eu-west-1:817685572750:secret:website-sandbox/django-secret-key-Ef34Gh"
+DATABASE_SECRET_ARN = f"{SECRET_PREFIX}/database-url-Ab12Cd"
+DJANGO_SECRET_ARN = f"{SECRET_PREFIX}/django-secret-key-Ef34Gh"
+TASK_PREFIX = (
+    f"arn:aws:ecs:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}:task/{NAMESPACE}/"
 )
 
 
@@ -79,7 +84,7 @@ VERSION_B = version_for(SHA_B)
 
 
 def arn(workload: str, revision: int) -> str:
-    return f"arn:aws:ecs:eu-west-1:817685572750:task-definition/{FAMILIES[workload]}:{revision}"
+    return SELECTED_TARGET.task_definition_arn_prefix(FAMILIES[workload]) + str(revision)
 
 
 def deployment_id(workload: str, revision: int) -> str:
@@ -93,6 +98,10 @@ def task_document(workload: str, source_sha: str = "bootstrap-disabled") -> dict
         "executionRoleArn": EXECUTION_ROLE,
         "networkMode": "awsvpc",
         "requiresCompatibilities": ["FARGATE"],
+        "runtimePlatform": {
+            "cpuArchitecture": SELECTED_TARGET.task_cpu_architecture,
+            "operatingSystemFamily": "LINUX",
+        },
         "cpu": "256",
         "memory": "512",
         "containerDefinitions": [
@@ -365,7 +374,7 @@ class FakeGateway:
             predecessors=receipt.predecessors,
             source_sha=identity.source_sha,
             image_digest=identity.image_digest,
-            task_arn=("arn:aws:ecs:eu-west-1:817685572750:task/website-sandbox/" + "a" * 32),
+            task_arn=(TASK_PREFIX + "a" * 32),
             network_attachment_id="attachment-web",
             network_interface_id="eni-0123456789abcdef0",
             private_ipv4_address="10.0.1.17",
@@ -1256,7 +1265,7 @@ class PromotionTests(SimpleTestCase):
         self.assertEqual(proof["deadline_budget_seconds"], 180)
         evidence_text = json.dumps(evidence, sort_keys=True)
         for forbidden in (
-            "arn:aws:ecs:eu-west-1:817685572750:task/website-sandbox/",
+            TASK_PREFIX,
             "eni-0123456789abcdef0",
             "10.0.1.17",
             "attachment-web",
@@ -2683,8 +2692,8 @@ class PromotionTests(SimpleTestCase):
 
 class RemoteSmokeSafetyTests(SimpleTestCase):
     def test_remote_smoke_is_restricted_to_the_exact_development_origin(self) -> None:
-        self.assertEqual(validate_origin("https://web.dtcdev.click/"), "https://web.dtcdev.click")
-        for origin in ("http://web.dtcdev.click", "https://example.com"):
+        self.assertEqual(validate_origin(SELECTED_TARGET.origin + "/"), SELECTED_TARGET.origin)
+        for origin in ("http://" + SELECTED_TARGET.hostname, "https://example.com"):
             with self.subTest(origin=origin), self.assertRaises(ReleaseContractError):
                 validate_origin(origin)
 
@@ -2794,9 +2803,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
         with tempfile.TemporaryDirectory(dir=".tmp") as directory:
             path = Path(directory) / "http-evidence.json"
             with patch("deploy.smoke._request", side_effect=responses) as request:
-                evidence = run_http_smoke(
-                    "https://web.dtcdev.click", VERSION_A, SHA_A, DIGEST_A, path
-                )
+                evidence = run_http_smoke(SELECTED_TARGET.origin, VERSION_A, SHA_A, DIGEST_A, path)
             self.assertEqual(
                 [call.args[1] for call in request.call_args_list][-4:],
                 [
@@ -2862,7 +2869,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                     patch("deploy.smoke._request", side_effect=invalid_responses),
                     self.assertRaisesMessage(ReleaseContractError, error_message),
                 ):
-                    run_http_smoke("https://web.dtcdev.click", VERSION_A, SHA_A, DIGEST_A)
+                    run_http_smoke(SELECTED_TARGET.origin, VERSION_A, SHA_A, DIGEST_A)
 
         exact_courses_canonical = b'<link rel="canonical" href="https://datatalks.club/courses">'
         invalid_courses_canonicals = (
@@ -2895,7 +2902,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                     "course discovery production canonical differs",
                 ),
             ):
-                run_http_smoke("https://web.dtcdev.click", VERSION_A, SHA_A, DIGEST_A)
+                run_http_smoke(SELECTED_TARGET.origin, VERSION_A, SHA_A, DIGEST_A)
 
         invalid_admin_responses = (
             (
@@ -2931,7 +2938,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                     patch("deploy.smoke._request", side_effect=invalid_responses),
                     self.assertRaisesMessage(ReleaseContractError, error_message),
                 ):
-                    run_http_smoke("https://web.dtcdev.click", VERSION_A, SHA_A, DIGEST_A)
+                    run_http_smoke(SELECTED_TARGET.origin, VERSION_A, SHA_A, DIGEST_A)
 
 
 class SmokeFailureTokenScreeningTests(SimpleTestCase):
@@ -3041,7 +3048,7 @@ class SmokeFailureTokenScreeningTests(SimpleTestCase):
 
     def _run_smoke(self, home_body: bytes, missing_body: bytes) -> None:
         with patch("deploy.smoke._request", side_effect=self._responses(home_body, missing_body)):
-            run_http_smoke("https://web.dtcdev.click", VERSION_A, SHA_A, DIGEST_A)
+            run_http_smoke(SELECTED_TARGET.origin, VERSION_A, SHA_A, DIGEST_A)
 
     def test_home_leg_passes_with_tokens_only_in_style_script_and_comments(self) -> None:
         home_body = self._home_body(

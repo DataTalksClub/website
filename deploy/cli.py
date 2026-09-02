@@ -20,7 +20,7 @@ from deploy.aws_gateway import (
     AwsReleaseGateway,
 )
 from deploy.contracts import ActiveServicePair, ReleaseContractError, ReleaseIdentity, ReleaseRecord
-from deploy.development_target import DEVELOPMENT_ORIGIN
+from deploy.deployment_targets import SELECTED_TARGET
 from deploy.release import (
     FAILURE_INJECTIONS,
     PromotionConfig,
@@ -58,7 +58,7 @@ def _add_runtime_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--subnet-id", action="append", required=True)
     parser.add_argument("--security-group-id", action="append", required=True)
     parser.add_argument("--assign-public-ip", type=_boolean, required=True)
-    parser.add_argument("--base-url", default=DEVELOPMENT_ORIGIN)
+    parser.add_argument("--base-url", default=SELECTED_TARGET.origin)
     parser.add_argument("--screenshot-directory", type=Path, default=Path(".tmp/deployed-smoke"))
     parser.add_argument("--timeout-seconds", type=int, default=MAX_STAGE_TIMEOUT_SECONDS)
     parser.add_argument(

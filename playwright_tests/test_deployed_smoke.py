@@ -19,8 +19,9 @@ from courses.course_page_contract import (
     RETIRED_MODULES_HEADING,
 )
 from deploy.contracts import validate_image_digest, validate_source_sha, validate_version
-from deploy.smoke import DEVELOPMENT_ORIGIN, ROBOTS_VALUE
+from deploy.deployment_targets import SELECTED_TARGET
 from deploy.smoke import HOME_IDENTITY_MARKER as HOME_HEADING
+from deploy.smoke import ROBOTS_VALUE
 from playwright_tests.course_catalog_contract import assert_copied_course_catalog_link
 
 pytestmark = [pytest.mark.core, pytest.mark.remote_readonly]
@@ -46,7 +47,7 @@ def deployed_config() -> tuple[str, str, str, str, Path]:
         and not screenshot_directory
     ):
         pytest.skip("deployed read-only smoke is enabled only by explicit safe configuration")
-    assert origin == DEVELOPMENT_ORIGIN
+    assert origin == SELECTED_TARGET.origin
     assert source_sha is not None
     validate_source_sha(source_sha)
     assert version is not None

@@ -43,7 +43,7 @@ from deploy.contracts import (
     ServiceTarget,
     ServiceUpdateReceipt,
 )
-from deploy.legacy_development_compatibility import ECR_REPOSITORY_URI
+from deploy.deployment_targets import SELECTED_TARGET
 from deploy.release import capture_current_service_pair, capture_recovery_context
 from deploy.task_definitions import (
     FIXED_NONSECRET_ENVIRONMENT,
@@ -64,12 +64,12 @@ STUDIO_COURSES_PYPROJECT_SHA256 = "832e5a9f985b840dc401b1fb563e0f3366c16c7387d0e
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
     "19c4d94ddfb753e5a1b85fc817a268d23ec6829162400c14734119915f00e458"
 )
-DATABASE_SECRET_ARN = (
-    "arn:aws:secretsmanager:eu-west-1:817685572750:secret:website-sandbox/database-url-Ab12Cd"
+SECRET_PREFIX = (
+    f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"
+    f":secret:{SELECTED_TARGET.resource_namespace}"
 )
-DJANGO_SECRET_ARN = (
-    "arn:aws:secretsmanager:eu-west-1:817685572750:secret:website-sandbox/django-secret-key-Ef34Gh"
-)
+DATABASE_SECRET_ARN = f"{SECRET_PREFIX}/database-url-Ab12Cd"
+DJANGO_SECRET_ARN = f"{SECRET_PREFIX}/django-secret-key-Ef34Gh"
 
 
 class DeploymentWorkflowContractTests(SimpleTestCase):
@@ -266,7 +266,15 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertIn("Rollback requires reuse with no failure injection", resolve)
         self.assertIn("deploy.release_identity inspect-published", resolve)
         self.assertIn("identity_schema", resolve)
-        self.assertIn('.platform == "linux/amd64"', resolve)
+        # The reused record's platform is compared against the selected
+        # deployment target's declared architecture, not a literal, so a
+        # target that moves architecture cannot leave a stale pin behind.
+        self.assertIn(
+            "deploy.deployment_targets architecture --field build_platform",
+            resolve,
+        )
+        self.assertIn(".platform == $build_platform", resolve)
+        self.assertNotIn('.platform == "linux/', resolve)
         self.assertIn('.user == "10001:10001"', resolve)
 
     def test_schema2_identity_is_constructed_once_and_propagated_without_new_aws_access(
@@ -295,7 +303,8 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         build = next(
             step
             for step in document["jobs"]["container"]["steps"]
-            if step.get("name") == "Build the production image once for development architecture"
+            if step.get("name")
+            == "Build the production image once for the deployment target architecture"
         )["run"]
         for label in (
             "org.opencontainers.image.version=$VERSION",
@@ -1286,7 +1295,11 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
 
         self.assertEqual(workflow.count("docker buildx build"), 1)
-        self.assertIn("--platform linux/amd64", workflow)
+        # One image, built for the architecture the deployment target declares.
+        # The platform is resolved from the target rather than pinned here, so a
+        # literal cannot outlive a change to task_cpu_architecture.
+        self.assertIn('--platform "$build_platform"', workflow)
+        self.assertNotIn("--platform linux/", workflow)
         self.assertIn("org.opencontainers.image.revision=$RELEASE_SHA", workflow)
         self.assertIn("10001:10001", workflow)
         self.assertIn(
@@ -1477,7 +1490,7 @@ class CaptureServiceContractTests(SimpleTestCase):
     WORKER_TASK = "arn:aws:ecs:eu-west-1:817685572750:task-definition/worker:1"
     SOURCE_SHA = "a" * 40
     DIGEST = f"sha256:{'b' * 64}"
-    REPOSITORY = "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox"
+    REPOSITORY = SELECTED_TARGET.ecr_repository_uri
 
     @classmethod
     def gateway(cls, ecs: CaptureServiceEcs) -> AwsReleaseGateway:
@@ -1496,7 +1509,7 @@ class CaptureServiceContractTests(SimpleTestCase):
             subnet_ids=["subnet-1"],
             security_group_ids=["sg-1"],
             assign_public_ip=True,
-            base_url="https://web.dtcdev.click",
+            base_url=SELECTED_TARGET.origin,
             screenshot_directory=Path(".tmp/deployed-smoke"),
             timeout_seconds=MAX_STAGE_TIMEOUT_SECONDS,
             web_stabilization_timeout_seconds=WEB_STABILIZATION_TIMEOUT_SECONDS,
@@ -1880,7 +1893,7 @@ class WorkerStabilizationContractTests(SimpleTestCase):
             subnet_ids=["subnet-1"],
             security_group_ids=["sg-1"],
             assign_public_ip=True,
-            base_url="https://web.dtcdev.click",
+            base_url=SELECTED_TARGET.origin,
             screenshot_directory=Path(".tmp/deployed-smoke"),
             timeout_seconds=MAX_STAGE_TIMEOUT_SECONDS,
             web_stabilization_timeout_seconds=WEB_STABILIZATION_TIMEOUT_SECONDS,
@@ -2236,7 +2249,7 @@ class ServiceReceiptAdoptionContractTests(SimpleTestCase):
             subnet_ids=["subnet-1"],
             security_group_ids=["sg-1"],
             assign_public_ip=True,
-            base_url="https://web.dtcdev.click",
+            base_url=SELECTED_TARGET.origin,
             screenshot_directory=Path(".tmp/deployed-smoke"),
             poll_seconds=poll_seconds,
         )
@@ -5686,7 +5699,7 @@ class WorkerTimeoutCliContractTests(SimpleTestCase):
             "subnet_id": ["subnet-1"],
             "security_group_id": ["sg-1"],
             "assign_public_ip": True,
-            "base_url": "https://web.dtcdev.click",
+            "base_url": SELECTED_TARGET.origin,
             "screenshot_directory": Path(".tmp/deployed-smoke"),
             "timeout_seconds": MAX_STAGE_TIMEOUT_SECONDS,
             "web_stabilization_timeout_seconds": WEB_STABILIZATION_TIMEOUT_SECONDS,
@@ -5927,7 +5940,7 @@ class MigrationTaskContractTests(SimpleTestCase):
             subnet_ids=["subnet-1"],
             security_group_ids=["sg-1"],
             assign_public_ip=True,
-            base_url="https://web.dtcdev.click",
+            base_url=SELECTED_TARGET.origin,
             screenshot_directory=Path(".tmp/deployed-smoke"),
             timeout_seconds=timeout,
             poll_seconds=1,
@@ -6112,7 +6125,7 @@ class MigrationTaskContractTests(SimpleTestCase):
         gateway = self.gateway(FakeMigrationEcs({}, {}))
         source_sha = "a" * 40
         image_digest = f"sha256:{'a' * 64}"
-        repository = "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox"
+        repository = SELECTED_TARGET.ecr_repository_uri
         version = f"20260809-143205-{source_sha[:7]}"
         identity = ReleaseIdentity(source_sha, image_digest, repository, version)
         config = TaskDefinitionConfig(
@@ -6129,6 +6142,10 @@ class MigrationTaskContractTests(SimpleTestCase):
                 "executionRoleArn": gateway.config.execution_role_arn,
                 "networkMode": "awsvpc",
                 "requiresCompatibilities": ["FARGATE"],
+                "runtimePlatform": {
+                    "cpuArchitecture": SELECTED_TARGET.task_cpu_architecture,
+                    "operatingSystemFamily": "LINUX",
+                },
                 "cpu": "256",
                 "memory": "512",
                 "containerDefinitions": [
@@ -6172,8 +6189,8 @@ class MigrationTaskContractTests(SimpleTestCase):
         )
         exact_tags = [
             {"key": "ReleaseManager", "value": "DataTalksClub/website"},
-            {"key": "Project", "value": "website"},
-            {"key": "Environment", "value": "sandbox"},
+            {"key": "Project", "value": SELECTED_TARGET.resource_project_tag},
+            {"key": "Environment", "value": SELECTED_TARGET.resource_environment_tag},
         ]
         responses = {
             reference: (tasks[workload], exact_tags) for workload, reference in references.items()
@@ -6203,7 +6220,7 @@ class MigrationTaskContractTests(SimpleTestCase):
         identity = ReleaseIdentity(
             source_sha,
             image_digest,
-            "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox",
+            SELECTED_TARGET.ecr_repository_uri,
             version,
         )
         gateway.ecr.describe_images.side_effect = [
@@ -6241,7 +6258,7 @@ class MigrationTaskContractTests(SimpleTestCase):
         identity = ReleaseIdentity(
             source_sha,
             image_digest,
-            ECR_REPOSITORY_URI,
+            SELECTED_TARGET.ecr_repository_uri,
             f"20260809-143205-{source_sha[:7]}",
         )
         gateway.ecr.describe_images.side_effect = [
@@ -6284,7 +6301,7 @@ class MigrationTaskContractTests(SimpleTestCase):
         identity = ReleaseIdentity(
             source_sha,
             image_digest,
-            ECR_REPOSITORY_URI,
+            SELECTED_TARGET.ecr_repository_uri,
             f"20260809-143205-{source_sha[:7]}",
         )
         malformed_failure_values: tuple[object, ...] = ({}, None, "", 0, False)
@@ -6374,7 +6391,7 @@ class MigrationTaskContractTests(SimpleTestCase):
         identity = ReleaseIdentity(
             source_sha,
             f"sha256:{'a' * 64}",
-            "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox",
+            SELECTED_TARGET.ecr_repository_uri,
             f"20260809-143205-{source_sha[:7]}",
         )
         gateway._service = Mock(return_value={"desiredCount": 1})  # type: ignore[method-assign]
@@ -6409,7 +6426,7 @@ class MigrationTaskContractTests(SimpleTestCase):
         identity = ReleaseIdentity.legacy(
             source_sha,
             f"sha256:{'a' * 64}",
-            ECR_REPOSITORY_URI,
+            SELECTED_TARGET.ecr_repository_uri,
         )
         gateway._service = Mock(return_value={"desiredCount": 1})  # type: ignore[method-assign]
         gateway.elbv2 = Mock()
