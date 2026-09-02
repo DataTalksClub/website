@@ -1,11 +1,13 @@
 import uuid
 from datetime import timedelta
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import resolve, reverse
 from django.utils import timezone
 
 from courses.models import Cohort, Course, CurriculumFormat, Homework, Module, Unit
+from courses.services.unit_read_state import set_unit_read_state
 from courses.templatetags.curriculum_titles import unit_display_title
 
 
@@ -232,7 +234,7 @@ class PublicUnitPageTests(TestCase):
             "https://github.com/DataTalksClub/llm-zoomcamp/edit/main/"
             "cohorts/2026/01-agentic-rag/lessons/01-intro.md"
         )
-        self.assertContains(response, "Edit on GitHub")
+        self.assertContains(response, "Edit this page on GitHub")
         self.assertContains(
             response,
             edit_url,
@@ -271,7 +273,102 @@ class PublicUnitPageTests(TestCase):
 
         response = self.client.get(self.unit_url(self.first_unit))
 
-        self.assertNotContains(response, "Edit on GitHub")
+        self.assertNotContains(response, "Edit this page on GitHub")
+
+    def test_the_read_toggle_is_the_one_control_at_the_foot_of_the_lesson(self):
+        """One toggle, at the end of the lesson, not one under every rail row."""
+
+        user = get_user_model().objects.create_user(username="learner")
+        self.client.force_login(user)
+        unit_url = self.unit_url(self.first_unit)
+
+        body = self.client.get(unit_url).content.decode()
+        footer_start = body.index('<div class="unit-footer">')
+        footer = body[footer_start : body.index("</nav>", footer_start)]
+        rail_start = body.index('class="module-sidebar module-rail"')
+        rail = body[rail_start : body.index("</aside>", rail_start)]
+
+        self.assertEqual(body.count("Mark as read"), 1)
+        self.assertIn("Mark as read", footer)
+        self.assertIn('name="is_read" value="1"', footer)
+        self.assertIn(f'name="next" value="{unit_url}"', footer)
+        self.assertNotIn("<form", rail)
+        # The footer sits after the article and before the prev/next row.
+        self.assertLess(body.index("</article>"), footer_start)
+        self.assertLess(footer_start, body.index('class="unit-navigation"'))
+
+        set_unit_read_state(
+            user=user,
+            module=self.module,
+            unit=self.first_unit,
+            is_read=True,
+        )
+        body = self.client.get(unit_url).content.decode()
+        self.assertIn("Mark as unread", body)
+        self.assertNotIn("Mark as read<", body)
+
+    def test_signed_out_readers_get_no_read_toggle(self):
+        body = self.client.get(self.unit_url(self.first_unit)).content.decode()
+
+        self.assertNotIn("Mark as read", body)
+        self.assertNotIn("<form", body.split('<div class="unit-footer">', 1)[1])
+
+    def test_the_edit_link_is_a_colophon_after_the_lesson(self):
+        """An editor affordance is information about the page, not part of it."""
+
+        body = self.client.get(self.unit_url(self.first_unit)).content.decode()
+
+        self.assertLess(body.index("</article>"), body.index("Edit this page on GitHub"))
+        self.assertNotIn("unit-edit-link", body)
+
+    def test_marking_a_lesson_read_returns_to_that_lesson(self):
+        user = get_user_model().objects.create_user(username="reader")
+        self.client.force_login(user)
+        unit_url = self.unit_url(self.middle_unit)
+        read_state_url = reverse(
+            "unit_read_state",
+            kwargs={
+                "course_slug": self.course_family.slug,
+                "cohort_identifier": self.cohort.identifier,
+                "module_slug": self.module.slug,
+                "unit_slug": self.middle_unit.slug,
+            },
+        )
+
+        response = self.client.post(read_state_url, {"is_read": "1", "next": unit_url})
+
+        self.assertRedirects(response, unit_url, fetch_redirect_response=False)
+
+    def test_an_off_site_return_path_is_refused(self):
+        user = get_user_model().objects.create_user(username="reader")
+        self.client.force_login(user)
+        read_state_url = reverse(
+            "unit_read_state",
+            kwargs={
+                "course_slug": self.course_family.slug,
+                "cohort_identifier": self.cohort.identifier,
+                "module_slug": self.module.slug,
+                "unit_slug": self.middle_unit.slug,
+            },
+        )
+        module_url = reverse(
+            "module",
+            kwargs={
+                "course_slug": self.course_family.slug,
+                "cohort_identifier": self.cohort.identifier,
+                "module_slug": self.module.slug,
+            },
+        )
+        hostile_paths = (
+            "https://evil.example/steal",
+            "//evil.example/steal",
+            "javascript:alert(1)",
+        )
+
+        for hostile in hostile_paths:
+            with self.subTest(next=hostile):
+                response = self.client.post(read_state_url, {"is_read": "1", "next": hostile})
+                self.assertRedirects(response, module_url, fetch_redirect_response=False)
 
     def test_final_unit_links_to_homework_with_a_button(self):
         response = self.client.get(self.unit_url(self.final_unit))

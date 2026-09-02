@@ -169,8 +169,10 @@ class ModulePageTests(TestCase):
         )
         page = self.client.get(self.module_url())
         self.assertContains(page, "1 of 3 lessons read")
-        self.assertContains(page, "Mark as unread")
         self.assertContains(page, "Read")
+        # The rail shows read state; it never edits it.  The single toggle lives
+        # at the foot of the lesson the reader has just finished.
+        self.assertNotContains(page, "Mark as unread")
 
         response = self.client.post(self.read_state_url(self.units[0]), {"is_read": "0"})
         self.assertRedirects(response, self.module_url(), fetch_redirect_response=False)
@@ -179,7 +181,7 @@ class ModulePageTests(TestCase):
         self.assertFalse(UnitReadState.objects.filter(user=user, unit=self.units[0]).exists())
         page = self.client.get(self.module_url())
         self.assertContains(page, "0 of 3 lessons read")
-        self.assertContains(page, "Mark as read")
+        self.assertNotContains(page, "Mark as read")
 
     def test_anonymous_read_state_update_requires_authentication(self):
         response = self.client.post(self.read_state_url(), {"is_read": "1"})

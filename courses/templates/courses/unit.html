@@ -34,9 +34,24 @@
         min-height: 12rem;
       }
 
-      .unit-edit-link {
-        display: inline-block;
-        margin-bottom: 1.25rem;
+      /* The lesson's colophon: the two pieces of meta-work that belong after
+         reading it, not before.  The read toggle is the moment you finish, and
+         an editor affordance is information about the page rather than part of
+         it -- it used to be the first thing on the page, above the video.
+         Signed out the left slot is empty, and the edit link's auto margin
+         keeps it on the right. */
+      .unit-footer {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: space-between;
+        margin-top: 2rem;
+      }
+
+      .unit-footer-edit {
+        font-size: 0.85rem;
+        margin-left: auto;
       }
 
       .unit-video {
@@ -142,16 +157,6 @@
                 ></iframe>
               </div>
             {% endif %}
-            {% if edit_on_github_url %}
-              <p class="unit-edit-link">
-                <a
-                  class="band-link"
-                  href="{{ edit_on_github_url }}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >Edit on GitHub →</a>
-              </p>
-            {% endif %}
             <article class="prose prose-reading unit-content">
               {% if unit_content_html %}
                 {{ unit_content_html }}
@@ -159,6 +164,45 @@
                 <p>This unit does not have any content yet.</p>
               {% endif %}
             </article>
+
+            <div class="unit-footer">
+              {% if user.is_authenticated %}
+                {% comment %}
+                  The one read-state control on the page.  It used to be a
+                  full-width button repeated under every row of the rail -- ten
+                  buttons for a ten-lesson module -- which is the loudest thing
+                  a quiet navigation list could possibly carry.  It belongs
+                  where its moment happens: at the end of the lesson, beside
+                  "next".  `next` returns the reader here rather than to the
+                  module index.
+                {% endcomment %}
+                <form
+                  class="unit-read-state"
+                  method="post"
+                  action="{% url 'unit_read_state' course_family.slug cohort.identifier module.slug unit.slug %}"
+                >
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  {% if module_rail_current_unit_is_read %}
+                    <input type="hidden" name="is_read" value="0">
+                    {% include "core/_button.html" with tag="button" type="submit" label="Mark as unread" variant="subtle" compact=True aria_label="Mark this lesson as unread" %}
+                  {% else %}
+                    <input type="hidden" name="is_read" value="1">
+                    {% include "core/_button.html" with tag="button" type="submit" label="Mark as read" variant="subtle" compact=True aria_label="Mark this lesson as read" %}
+                  {% endif %}
+                </form>
+              {% endif %}
+              {% if edit_on_github_url %}
+                <p class="unit-footer-edit">
+                  <a
+                    class="band-link"
+                    href="{{ edit_on_github_url }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >Edit this page on GitHub →</a>
+                </p>
+              {% endif %}
+            </div>
 
             {% comment %}
               Both directions carry the secondary variant, the pairing the

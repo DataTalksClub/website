@@ -22,18 +22,6 @@
                 {% if module_rail_current_unit and module_rail_current_unit.pk == rail_unit.pk %}aria-current="page"{% endif %}
               >{{ rail_unit.title|unit_display_title }}</a>
             </div>
-            {% if user.is_authenticated %}
-              <form class="read-state-form" method="post" action="{% url 'unit_read_state' course_family.slug cohort.identifier module.slug rail_unit.slug %}">
-                {% csrf_token %}
-                {% if rail_unit.is_read %}
-                  <input type="hidden" name="is_read" value="0">
-                  {% include "core/_button.html" with tag="button" type="submit" label="Mark as unread" variant="subtle" compact=True aria_label="Mark lesson as unread" %}
-                {% else %}
-                  <input type="hidden" name="is_read" value="1">
-                  {% include "core/_button.html" with tag="button" type="submit" label="Mark as read" variant="subtle" compact=True aria_label="Mark lesson as read" %}
-                {% endif %}
-              </form>
-            {% endif %}
           </li>
         {% endfor %}
       </ol>
