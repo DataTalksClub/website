@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from datetime import date
 
 from django.conf import settings
-from django.db.models import Count
 from django.shortcuts import render
 from django.utils import timezone
 
@@ -14,6 +13,7 @@ from core.course_index_content import (
 from core.home_content import COURSE_FAMILIES
 from courses.models.cohort import Cohort
 from courses.models.wrapped import WrappedStatistics
+from courses.services.public_course_catalog import visible_course_list_queryset
 from courses.services.registration_counts import (
     public_course_registration_count,
 )
@@ -73,20 +73,10 @@ class CourseFamilyCard:
         )
 
 
-def visible_course_list_queryset():
-    courses = Cohort.objects.filter(visible=True, course__visible=True)
-    homework_count = Count("homework", distinct=True)
-    project_count = Count("project", distinct=True)
-    learner_count = Count("enrollment", distinct=True)
-    courses = courses.annotate(
-        homework_count=homework_count,
-        project_count=project_count,
-        learner_count=learner_count,
-    )
-    courses = courses.select_related("course").prefetch_related(
-        "homework_set", "project_set"
-    )
-    return courses.order_by("-id")
+# ``visible_course_list_queryset`` now lives in
+# ``courses.services.public_course_catalog`` so the homepage can share this one selector
+# without importing this view module, which itself imports ``core.home_content``.  It is
+# still imported above, so callers that have always read it from here keep working.
 
 
 def split_courses_by_status(courses, now):
@@ -121,7 +111,7 @@ def featured_course(active_courses):
         for course in active_courses
         if getattr(course, "course", None) is not None
     }
-    for family_slug, _title, _label in COURSE_FAMILIES:
+    for family_slug, _title in COURSE_FAMILIES:
         featured = active_by_family_slug.get(family_slug)
         if featured is not None:
             return featured

@@ -8,54 +8,93 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from django.core.exceptions import ImproperlyConfigured
+from django.urls import NoReverseMatch, reverse
 
 from content.public_data import public_projection
 from core.graph_layout import GraphLayout, GraphPoint, ring_layouts
+from courses.services.public_course_catalog import (
+    cohort_recency_key,
+    latest_visible_cohort_per_family,
+)
 
 FEATURED_FAMILY = "ai-dev-tools"
 
-# Family slug prefix, catalogue title, and short chip label.
-COURSE_FAMILIES: tuple[tuple[str, str, str], ...] = (
-    (
-        "ai-dev-tools",
-        "AI Dev Tools Zoomcamp",
-        "AI Dev Tools",
-    ),
-    (
-        "de-zoomcamp",
-        "Data Engineering Zoomcamp",
-        "Data Engineering",
-    ),
-    (
-        "llm-zoomcamp",
-        "LLM Zoomcamp",
-        "LLMs",
-    ),
-    (
-        "ml-zoomcamp",
-        "Machine Learning Zoomcamp",
-        "Machine Learning",
-    ),
-    (
-        "mlops-zoomcamp",
-        "MLOps Zoomcamp",
-        "MLOps",
-    ),
-    (
-        "sma-zoomcamp",
-        "Stock Markets Analytics Zoomcamp",
-        "Stock Markets",
-    ),
+# Family slug prefix and catalogue title.  The cards used to carry a third value, a
+# short uppercase category pill ("Data Engineering", "LLMs", ...); the owner removed
+# that pill from the catalogue cards, and nothing else read the value.
+#
+# This table is presentation only.  The database decides which families exist and what
+# they are called; all this decides is the order they are shown in.  A family the
+# database holds and this table does not still renders, labelled with its own
+# ``Course.title`` and placed after the listed ones.
+COURSE_FAMILIES: tuple[tuple[str, str], ...] = (
+    ("ai-dev-tools", "AI Dev Tools Zoomcamp"),
+    ("de-zoomcamp", "Data Engineering Zoomcamp"),
+    ("llm-zoomcamp", "LLM Zoomcamp"),
+    ("ml-zoomcamp", "Machine Learning Zoomcamp"),
+    ("mlops-zoomcamp", "MLOps Zoomcamp"),
+    ("sma-zoomcamp", "Stock Markets Analytics Zoomcamp"),
 )
 
-# What the featured cohort's mint panel promises you will build, and the note under it.
-FEATURED_BUILD_ITEMS: tuple[str, ...] = (
-    "multi-agent system that researches and writes",
-    "RAG evaluation with dashboards",
-    "agents with memory and tools",
-    "deployment with monitoring",
+# Two visible ``Course`` rows currently carry the title "AI Dev Tools Zoomcamp":
+# ``ai-dev-tools`` (holding the 2025 cohort) and ``ai-dev-tools-zoomcamp`` (holding the
+# 2026 one).  Reading families straight from the database would therefore show the
+# course twice, and a family-keyed read would keep resolving AI Dev Tools to 2025.  This
+# alias collapses them onto one catalogue key so the homepage shows one card resolved to
+# the newest cohort across both.  It is presentation only: no row, no URL and no
+# migration changes, and it is deleted once issue #308 merges the two rows.
+FAMILY_ALIASES: dict[str, str] = {"ai-dev-tools-zoomcamp": "ai-dev-tools"}
+
+# The designed landing page for the featured cohort.  It is a fixed route rather than a
+# course-page link, so it is named here instead of derived from the resolved cohort.
+FEATURED_COHORT_ROUTE_NAME = "course-cohort-ai-dev-tools-2026"
+
+# Page-owned editorial copy for the featured cohort panel.
+#
+# ``Cohort`` has no format, price or notice field, so this has never been a database fact
+# and is not invented here either.  Neither ``Cohort.description`` (generated boilerplate)
+# nor ``Course.description`` (raw README markup carrying external image tags and
+# courses.datatalks.club links) may be rendered in its place.
+#
+# The summary is written from the course's own curriculum page,
+# ``courses/ai-dev-tools-zoomcamp/curriculum.md`` in DataTalksClub/docs (projected into
+# `content/docs_projection.json` and served at
+# /docs/courses/ai-dev-tools-zoomcamp/curriculum/), the same source FEATURED_BUILD_ITEMS
+# is anchored to.  It replaces the sentence this panel carried while it read
+# ``content/review_projection.json``, which claimed the course runs "over four modules"
+# and produces "a specification and a groomed backlog".  The curriculum says six modules
+# plus a final project and describes neither artefact, so that sentence was false; the
+# identical claim survives in the pinned ``content/public_projection/articles.json``
+# ("Across four modules"), which this issue does not touch.
+FEATURED_COHORT_FORMAT = "Online"
+FEATURED_COHORT_SUMMARY = (
+    "Six modules and a final project on AI-native software engineering: build and deploy "
+    "a full app with a coding assistant, build your own coding agent, and automate "
+    "everyday work with low-code AI tools."
 )
-FEATURED_GROUP_NOTE = "small groups of 6–8 people"
+
+# What the featured cohort's mint panel promises you will build.
+#
+# These four items are taken from the AI Dev Tools Zoomcamp's own curriculum page,
+# `courses/ai-dev-tools-zoomcamp/curriculum.md` in DataTalksClub/docs (projected into
+# `content/docs_projection.json` and served at
+# /docs/courses/ai-dev-tools-zoomcamp/curriculum/).  Only the modules whose curriculum
+# entry actually says you *build* something are listed, one bullet each: module 2
+# (end-to-end project), module 4 (build a coding agent), module 6 (automation with n8n),
+# and the final project.  Modules 1, 3, and 5 teach tools and practices rather than
+# producing an artefact, so they are deliberately not claimed here.
+#
+# Do not add an item that the curriculum page does not state.  The previous copy
+# ("multi-agent system that researches and writes", "RAG evaluation with dashboards",
+# "agents with memory and tools", "deployment with monitoring") described no DataTalks.Club
+# course at all and was removed as factually false, together with a "small groups of 6–8
+# people" note that the course does not offer.
+FEATURED_BUILD_ITEMS: tuple[str, ...] = (
+    "a full app with a frontend, backend, and database, deployed with CI/CD",
+    "your own coding agent that scaffolds and extends a Django project",
+    "task automations with n8n, such as creating LinkedIn posts",
+    "a complete application of your own, end to end, as the final project",
+)
 
 # The wiki hub the graph is drawn around, and the direct relations it is drawn to.  Every
 # slug is validated against the projection so a source change fails loudly instead of
@@ -88,16 +127,31 @@ WIKI_TOPICS = (
 
 @dataclass(frozen=True, slots=True)
 class CatalogCourse:
-    """One zoomcamp family, represented by its most recent cohort."""
+    """One zoomcamp family, represented by its most recent visible cohort.
+
+    Every value here is a database fact: ``title`` is the family's own
+    ``Course.title``, ``cohort_title`` and ``start_date`` come from the selected
+    ``Cohort``, and ``public_path`` is that cohort's canonical course route.  Editorial
+    copy the database has no field for stays in the page-owned constants above.
+    """
 
     family: str
     slug: str
     title: str
-    label: str
     public_path: str
     cohort_label: str
     homework_count: int
     project_count: int
+    cohort_title: str = ""
+    start_date: date | None = None
+
+    @property
+    def start_display(self) -> str:
+        """The start date the way the design writes it, or nothing when unknown."""
+
+        if self.start_date is None:
+            return ""
+        return f"{self.start_date:%B} {self.start_date.day}, {self.start_date:%Y}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -236,42 +290,49 @@ class WikiGraph:
     connections: int
 
 
-def _latest_cohort_records(
-    records: tuple[dict[str, Any], ...],
-) -> dict[str, tuple[str, dict[str, Any]]]:
-    """Return the newest cohort record for every ``<family>-<year>`` course slug."""
+def _catalog_order(family: str) -> tuple[int, str]:
+    """Sort listed families in their reviewed order and unlisted ones after them."""
 
-    latest: dict[str, tuple[str, dict[str, Any]]] = {}
-    for record in records:
-        family, _, year = str(record["slug"]).rpartition("-")
-        if not family or not year.isdigit():
-            continue
-        current = latest.get(family)
-        if current is None or year > current[0]:
-            latest[family] = (year, record)
-    return latest
+    for index, (listed, _title) in enumerate(COURSE_FAMILIES):
+        if listed == family:
+            return (index, family)
+    return (len(COURSE_FAMILIES), family)
 
 
 def course_catalog() -> tuple[CatalogCourse, ...]:
-    """Return one card per zoomcamp family, newest cohort first within each family."""
+    """Return one card per visible course family, showing its newest visible cohort.
 
-    latest = _latest_cohort_records(tuple(public_projection()["courses"]))
+    The database owns which families exist, so a family it holds and ``COURSE_FAMILIES``
+    does not still renders.  Nothing here raises: an empty, partial or unreachable
+    database yields a shorter catalogue or none at all, and the homepage renders its
+    empty state instead of a 500.
+    """
+
+    collapsed: dict[str, Any] = {}
+    for family_slug, cohort in latest_visible_cohort_per_family().items():
+        key = FAMILY_ALIASES.get(family_slug, family_slug)
+        current = collapsed.get(key)
+        if current is None or cohort_recency_key(cohort) > cohort_recency_key(current):
+            collapsed[key] = cohort
+
     catalog: list[CatalogCourse] = []
-    for family, title, label in COURSE_FAMILIES:
-        found = latest.get(family)
-        if found is None:
-            raise ImproperlyConfigured(f"Public course projection has no {family} cohort.")
-        year, record = found
+    for family in sorted(collapsed, key=_catalog_order):
+        cohort = collapsed[family]
+        try:
+            public_path = reverse("course", args=[cohort.course.slug, cohort.identifier])
+        except NoReverseMatch:
+            continue
         catalog.append(
             CatalogCourse(
                 family=family,
-                slug=str(record["slug"]),
-                title=title,
-                label=label,
-                public_path=str(record["public_path"]),
-                cohort_label=f"{year} cohort",
-                homework_count=int(record["homework_count"]),
-                project_count=int(record["project_count"]),
+                slug=str(cohort.slug),
+                title=str(cohort.course.title),
+                public_path=public_path,
+                cohort_label=f"{cohort.year} cohort",
+                homework_count=int(cohort.homework_count),
+                project_count=int(cohort.project_count),
+                cohort_title=str(cohort.title),
+                start_date=cohort.start_date,
             )
         )
     return tuple(catalog)

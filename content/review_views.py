@@ -12,10 +12,12 @@ from django.http import (
     JsonResponse,
 )
 from django.shortcuts import render
+from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_safe
 
 from courses.models.cohort import Cohort
+from courses.services.public_course_catalog import latest_visible_cohort_for_families
 
 from .docs_presentation import (
     docs_body_without_primary_heading,
@@ -375,18 +377,80 @@ def slack(request: HttpRequest) -> HttpResponse:
     )
 
 
+# The AI Dev Tools Zoomcamp cohort page reads ``courses.Cohort`` for its facts.  Two
+# visible ``Course`` rows currently hold that course (issue #308), so both family slugs
+# are named here and the newest visible cohort across them wins; a family-keyed read of
+# the older slug alone would keep showing the 2025 edition.
+AI_DEV_TOOLS_FAMILY_SLUGS = ("ai-dev-tools-zoomcamp", "ai-dev-tools")
+
+# Page-owned editorial copy.  ``Cohort`` has no format, price or notice field, so these
+# have never been database facts; format, price and notice carry the exact strings this
+# page showed while it read ``content/review_projection.json``.  ``Cohort.description`` is
+# generated boilerplate and ``Course.description`` is raw README markup with external
+# image tags and courses.datatalks.club links, so neither is rendered in their place.  The
+# title and start values below are only the fallback for a database that holds no such
+# cohort: the page is a preserved public path and must still render rather than 404 or
+# 500.
+#
+# The lede is written from the course's own curriculum page,
+# /docs/courses/ai-dev-tools-zoomcamp/curriculum/.  It replaces the projection's sentence,
+# which claimed the course runs "over four modules" and produces "a specification and a
+# groomed backlog"; the curriculum says six modules plus a final project and describes
+# neither artefact, so that sentence was false.
+AI_DEV_TOOLS_COHORT_COPY: dict[str, str] = {
+    "description": (
+        "Six modules and a final project on AI-native software engineering: build and "
+        "deploy a full app with a coding assistant, build your own coding agent, and "
+        "automate everyday work with low-code AI tools."
+    ),
+    "format": "Online",
+    "price": "Free",
+    "notice": (
+        "The 2026 materials are still being finalized. Some videos, homework, "
+        "deadlines, and module details may change before the course starts."
+    ),
+}
+AI_DEV_TOOLS_COURSE_TITLE = "AI Dev Tools Zoomcamp"
+AI_DEV_TOOLS_COHORT_TITLE = "AI Dev Tools Zoomcamp 2026"
+AI_DEV_TOOLS_COHORT_YEAR = "2026"
+AI_DEV_TOOLS_COHORT_START_DISPLAY = "August 31, 2026"
+# The public URL segment for this cohort, unchanged by the source-of-truth move.
+AI_DEV_TOOLS_COHORT_URL_SLUG = "ai-dev-tools-2026"
+
+
+def _ai_dev_tools_cohort_page() -> tuple[dict[str, Any], dict[str, Any], Cohort | None]:
+    """Compose the cohort page from database facts and page-owned copy."""
+
+    row = latest_visible_cohort_for_families(AI_DEV_TOOLS_FAMILY_SLUGS)
+    course = {
+        "title": row.course.title if row is not None else AI_DEV_TOOLS_COURSE_TITLE,
+    }
+    start_date = row.start_date if row is not None else None
+    cohort = {
+        "slug": AI_DEV_TOOLS_COHORT_URL_SLUG,
+        "title": row.title if row is not None else AI_DEV_TOOLS_COHORT_TITLE,
+        "year": str(row.year) if row is not None else AI_DEV_TOOLS_COHORT_YEAR,
+        "start_display": (
+            f"{start_date:%B} {start_date.day}, {start_date:%Y}"
+            if start_date is not None
+            else AI_DEV_TOOLS_COHORT_START_DISPLAY
+        ),
+        **AI_DEV_TOOLS_COHORT_COPY,
+    }
+    return course, cohort, row
+
+
 @require_safe
 def course_cohort(request: HttpRequest) -> HttpResponse:
-    course = review_projection()["course"]
-    cohort = course["cohort"]
-    legacy_course = Cohort.objects.filter(slug=cohort["legacy_platform_slug"]).first()
-    path = f"{course['public_path']}/cohorts/{cohort['slug']}"
+    course, cohort, legacy_course = _ai_dev_tools_cohort_page()
     return _render(
         request,
         "review/course_cohort.html",
-        path=path,
+        path=reverse("course-cohort-ai-dev-tools-2026"),
         title=f"{cohort['title']} — DataTalks.Club",
-        description=f"The 2026 cohort of {course['title']}, starting August 31, 2026.",
+        description=(
+            f"The {cohort['year']} cohort of {course['title']}, starting {cohort['start_display']}."
+        ),
         context={
             "course": course,
             "cohort": cohort,
@@ -397,13 +461,11 @@ def course_cohort(request: HttpRequest) -> HttpResponse:
 
 @require_GET
 def registration_preview(request: HttpRequest) -> HttpResponse:
-    course = review_projection()["course"]
-    cohort = course["cohort"]
-    path = f"{course['public_path']}/cohorts/{cohort['slug']}/registration-preview/"
+    course, cohort, _legacy_course = _ai_dev_tools_cohort_page()
     return _render(
         request,
         "review/registration_preview.html",
-        path=path,
+        path=reverse("course-registration-preview-ai-dev-tools-2026"),
         title=f"Registration — {cohort['title']}",
         description=f"Registration for {cohort['title']} opens soon.",
         context={"course": course, "cohort": cohort},

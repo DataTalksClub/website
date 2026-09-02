@@ -169,12 +169,6 @@
         gap: 0.85rem;
       }
 
-      .featured-badges {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-      }
-
       .featured-main h3 {
         font-size: clamp(1.6rem, 3.2vw, 2.35rem);
         line-height: 1.08;
@@ -254,14 +248,6 @@
         top: 0.33rem;
         transform: rotate(-45deg);
         width: 0.54rem;
-      }
-
-      /* Body text, not the muted grey: the note sits on the mint panel, where
-         the dark theme's muted grey reads at about 4.0:1. */
-      .build-note {
-        color: var(--body-text);
-        font-size: 0.88rem;
-        font-weight: 700;
       }
 
       .course-card h3 {
@@ -1015,18 +1001,32 @@
             </div>
             <a class="band-link" href="{% url 'course_list' %}">all courses →</a>
           </div>
+          {% if featured_catalog_entry %}
           <div class="featured" data-featured-course>
             <div class="featured-main">
               <span class="chip chip-ink">New cohort</span>
-              <h3>{{ featured_course.title }}</h3>
+              <h3>{{ featured_catalog_entry.title }}</h3>
               <p class="featured-subline">
-                Starts {{ featured_course.cohort.start_display }} ·
-                {{ featured_course.cohort.format }} · homework + peer review
+                Starts {{ featured_catalog_entry.start_display }} ·
+                {{ featured_cohort_format }} · homework + peer review
               </p>
-              <p class="featured-desc">{{ featured_course.cohort.description }}</p>
+              <p class="featured-desc">{{ featured_cohort_summary }}</p>
+              {% comment %}
+                Both counts are the coursework the selected cohort actually holds in the
+                database, so a clause is dropped rather than shown as zero: the 2026 AI
+                Dev Tools cohort has homework but no project rows yet, and "0 projects"
+                would read as a promise of none.
+              {% endcomment %}
               <p class="featured-meta">
-                {{ featured_catalog_entry.homework_count }} homework assignments ·
-                {{ featured_catalog_entry.project_count }} projects · certificate of completion
+                {% if featured_catalog_entry.homework_count %}
+                  {{ featured_catalog_entry.homework_count }} homework
+                  assignment{{ featured_catalog_entry.homework_count|pluralize }} ·
+                {% endif %}
+                {% if featured_catalog_entry.project_count %}
+                  {{ featured_catalog_entry.project_count }}
+                  project{{ featured_catalog_entry.project_count|pluralize }} ·
+                {% endif %}
+                certificate of completion
               </p>
               <div class="featured-actions">
                 <a class="cta cta-primary interactive-lift" href="{{ featured_cohort_path }}">
@@ -1043,11 +1043,10 @@
                   </li>
                 {% endfor %}
               </ul>
-              <p class="build-note">
-                <span aria-hidden="true">✱</span> {{ featured_group_note }}
-              </p>
             </aside>
           </div>
+          {% endif %}
+          {% if catalog_courses %}
           <div
             class="catalog-scroller"
             id="catalog-scroller"
@@ -1057,9 +1056,6 @@
           >
             {% for course in catalog_courses %}
               <article class="card course-card stretched-card-link interactive-card interactive-lift">
-                <div class="featured-badges">
-                  <span class="chip">{{ course.label }}</span>
-                </div>
                 <h3>{{ course.title }}</h3>
                 <p class="course-cohort">{{ course.cohort_label }}</p>
                 <a class="band-link course-link" href="{{ course.public_path }}">View course</a>
@@ -1090,6 +1086,13 @@
               </svg>
             </button>
           </div>
+          {% elif not featured_catalog_entry %}
+            {% comment %}
+              The same empty state the courses index shows, so a database with no visible
+              cohort renders a designed page here instead of an empty band.
+            {% endcomment %}
+            <p class="band-note">No active courses right now.</p>
+          {% endif %}
         </div>
       </section>
 
@@ -1366,7 +1369,11 @@
         <div class="shell closing">
           <div>
             <h2 id="closing-heading">
-              One free account. {{ course_family_word|capfirst }} courses. 130,000 people building with you.
+              {% if course_family_count %}
+                One free account. {{ course_family_word|capfirst }} course{{ course_family_count|pluralize }}. 130,000 people building with you.
+              {% else %}
+                One free account. 130,000 people building with you.
+              {% endif %}
             </h2>
             <p>
               Homework, leaderboards, weekly events — and

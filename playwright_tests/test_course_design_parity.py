@@ -701,6 +701,21 @@ def test_no_database_course_catalog_uses_the_design_system_empty_state(
     page.screenshot(path=SCREENSHOTS / f"course-catalog-empty-{suffix}.png", full_page=True)
     _capture_design_dark_mode(page, SCREENSHOTS / f"course-catalog-empty-dark-{suffix}.png")
 
+    # The homepage catalogue reads the same database as /courses (issue #307), so the
+    # same empty database must give it the same designed empty state rather than a 500.
+    # The capture above left the shared dark-mode preference set; clear it so the
+    # homepage loads light and its own toggle is what switches it.
+    page.evaluate("localStorage.removeItem('darkMode')")
+    home = page.goto(f"{live_server.url}/", wait_until="networkidle")
+    assert home is not None and home.status == 200
+    expect(page.locator("[data-featured-course]")).to_have_count(0)
+    expect(page.locator(".course-card")).to_have_count(0)
+    expect(page.locator("#catalog-scroller")).to_have_count(0)
+    expect(page.get_by_text("No active courses right now.", exact=True)).to_be_visible()
+    _assert_no_horizontal_overflow(page)
+    page.screenshot(path=SCREENSHOTS / f"home-catalog-empty-{suffix}.png", full_page=True)
+    _capture_design_dark_mode(page, SCREENSHOTS / f"home-catalog-empty-dark-{suffix}.png")
+
     missing_detail = page.goto(f"{live_server.url}/courses/de-zoomcamp/2026")
     assert missing_detail is not None and missing_detail.status == 404
     expect(page.get_by_role("heading", name="Page not found")).to_be_visible()

@@ -10,17 +10,139 @@ from django.urls import resolve, reverse
 from django.utils import timezone
 from django.utils.html import escape
 
+from content.docs_projection import docs_projection
 from core import views as core_views
-from core.home_content import MEMBER_STORIES
+from core.home_content import (
+    COURSE_FAMILIES,
+    FEATURED_BUILD_ITEMS,
+    FEATURED_COHORT_SUMMARY,
+    FEATURED_FAMILY,
+    MEMBER_STORIES,
+)
 from courses.models.cohort import Cohort
 from courses.views.course import course_view
 from courses.views.course_aliases import legacy_course_redirect
 from courses.views.course_list import course_list
 from events.models import Event
+from test_support.course_catalog import build_reviewed_catalog
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ADOPTED_COURSE_LIST_TEMPLATE = (REPO_ROOT / "courses/templates/courses/course_list.html").resolve()
 ADOPTED_COURSE_DETAIL_TEMPLATE = (REPO_ROOT / "courses/templates/courses/course.html").resolve()
+
+
+class FeaturedBuildPanelTests(TestCase):
+    """The mint "What you'll build" panel may only claim what the course teaches.
+
+    The panel once advertised a multi-agent/RAG curriculum and "small groups of 6-8
+    people"; none of that describes the AI Dev Tools Zoomcamp.  Every bullet is now
+    anchored to a phrase in the course's own curriculum page, so a future edit that
+    drifts back into invented marketing copy fails here instead of shipping.
+    """
+
+    CURRICULUM_PATH = "/docs/courses/ai-dev-tools-zoomcamp/curriculum/"
+
+    # Each build item, and a phrase its module's curriculum entry actually contains.
+    BUILD_ITEM_SOURCE_ANCHORS = (
+        (
+            "a full app with a frontend, backend, and database, deployed with CI/CD",
+            "Build a full app (frontend, backend, database) with a coding assistant",
+        ),
+        (
+            "your own coding agent that scaffolds and extends a Django project",
+            "Build your own coding agent that scaffolds and extends a Django project",
+        ),
+        (
+            "task automations with n8n, such as creating LinkedIn posts",
+            "Automate tasks with n8n",
+        ),
+        (
+            "a complete application of your own, end to end, as the final project",
+            "Build a complete application of your own using AI tools, end to end",
+        ),
+    )
+
+    def setUp(self) -> None:
+        # The panel now renders from the database, so the cohort it describes must exist.
+        super().setUp()
+        build_reviewed_catalog()
+
+    def _curriculum_body(self) -> str:
+        for page in docs_projection()["pages"]:
+            if page["public_path"] == self.CURRICULUM_PATH:
+                return str(page["body"])
+        self.fail(f"The docs projection has no {self.CURRICULUM_PATH} page.")
+
+    def test_the_featured_summary_is_grounded_in_the_course_curriculum_page(self) -> None:
+        """The panel's own sentence is held to the same standard as its bullets.
+
+        It previously claimed the course runs "over four modules" and produces "a
+        specification and a groomed backlog", which the curriculum page states nowhere.
+        """
+
+        body = self._curriculum_body()
+        self.assertIn("six modules plus a final project", body)
+        self.assertIn("Six modules and a final project", FEATURED_COHORT_SUMMARY)
+        for invented in ("four modules", "groomed backlog", "specification"):
+            with self.subTest(invented=invented):
+                self.assertNotIn(invented, FEATURED_COHORT_SUMMARY)
+
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, escape(FEATURED_COHORT_SUMMARY))
+        self.assertNotContains(response, "Over four modules")
+
+    def test_every_build_item_is_grounded_in_the_course_curriculum_page(self) -> None:
+        body = self._curriculum_body()
+        self.assertEqual(
+            FEATURED_BUILD_ITEMS,
+            tuple(item for item, _anchor in self.BUILD_ITEM_SOURCE_ANCHORS),
+        )
+        for item, anchor in self.BUILD_ITEM_SOURCE_ANCHORS:
+            with self.subTest(item=item):
+                self.assertIn(anchor, body)
+
+    def test_the_panel_renders_the_build_items_and_no_group_size_claim(self) -> None:
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        for item in FEATURED_BUILD_ITEMS:
+            with self.subTest(item=item):
+                self.assertContains(response, escape(item[0].upper() + item[1:]))
+
+        body = response.content.decode()
+        self.assertNotIn("build-note", body)
+        for retired in ("6–8", "6-8", "small groups", "RAG evaluation", "multi-agent"):
+            with self.subTest(retired=retired):
+                self.assertNotIn(retired, body)
+
+
+class CatalogCardTests(TestCase):
+    """The catalogue cards carry the course title, not an uppercase category pill."""
+
+    def setUp(self) -> None:
+        # The cards are database rows now, so the families have to exist to be shown.
+        super().setUp()
+        build_reviewed_catalog()
+
+    def test_catalog_cards_drop_the_category_pill_and_keep_the_new_cohort_chip(self) -> None:
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        scroller = body[body.index('id="catalog-scroller"') :]
+        scroller = scroller[: scroller.index("catalog-scroller-controls")]
+
+        self.assertNotIn("chip", scroller)
+        self.assertNotIn("featured-badges", body)
+        for family, title in COURSE_FAMILIES:
+            if family == FEATURED_FAMILY:
+                continue
+            with self.subTest(family=family):
+                self.assertIn(escape(title), scroller)
+
+        # The featured cohort keeps its own chip; only the category pills went.
+        self.assertIn('<span class="chip chip-ink">New cohort</span>', body)
 
 
 class MainHomepageRoutingTests(TestCase):
@@ -44,6 +166,10 @@ class MainHomepageRoutingTests(TestCase):
                 self.assertContains(response, escape(context))
 
     def test_root_uses_the_shared_course_platform_shell(self) -> None:
+        # The catalogue and featured panel read ``courses.Course`` / ``courses.Cohort``,
+        # so the families this asserts are built here rather than taken from
+        # ``courses.services.local_course_seed``, whose rows are pinned to one revision.
+        build_reviewed_catalog()
         self.assertEqual(reverse("home"), "/")
         self.assertIs(resolve("/").func, core_views.home)
 
@@ -102,6 +228,8 @@ class MainHomepageRoutingTests(TestCase):
         self.assertEqual(re.findall(r'<link[^>]+rel="stylesheet"', body), [])
 
     def test_single_destination_cards_stretch_their_existing_semantic_links(self) -> None:
+        # The course card is a database row now, so the catalogue has to hold one.
+        build_reviewed_catalog()
         body = self.client.get(reverse("home")).content.decode()
 
         self.assertIn(
@@ -135,12 +263,23 @@ class MainHomepageRoutingTests(TestCase):
                 self.assertNotIn(leak, body)
 
     def test_homepage_renders_when_the_database_is_unavailable(self) -> None:
-        """/unified/ is the container liveness gate, and that runtime has no database."""
+        """/unified/ is the container liveness gate, and that runtime has no database.
 
-        with mock.patch.object(
-            Event.objects,
-            "order_by",
-            side_effect=OperationalError("unable to open database file"),
+        The course catalogue is a database read now, so an unreachable database costs the
+        page its course cards and its featured panel.  It must still answer 200 with the
+        designed empty state rather than propagate the error.
+        """
+
+        with (
+            mock.patch.object(
+                Event.objects,
+                "order_by",
+                side_effect=OperationalError("unable to open database file"),
+            ),
+            mock.patch(
+                "courses.services.public_course_catalog.visible_course_list_queryset",
+                side_effect=OperationalError("unable to open database file"),
+            ),
         ):
             response = self.client.get(reverse("home"))
             unified = self.client.get("/unified/")
@@ -151,7 +290,8 @@ class MainHomepageRoutingTests(TestCase):
                 rendered,
                 "Learn the fundamentals. Build real projects. Share your work.",
             )
-            self.assertContains(rendered, "AI Dev Tools Zoomcamp")
+            self.assertContains(rendered, "No active courses right now.")
+            self.assertNotContains(rendered, "data-featured-course")
             self.assertContains(rendered, "Community knowledgebase")
 
     def test_homepage_navigation_is_local_and_complete(self) -> None:
@@ -507,6 +647,8 @@ class MemberStoriesCarouselTests(TestCase):
     def test_carousel_controls_target_the_stories_scroller_and_reuse_the_shared_button(
         self,
     ) -> None:
+        # The catalogue scroller this reuses only renders when the database holds courses.
+        build_reviewed_catalog()
         response = self.client.get(reverse("home"))
         body = response.content.decode()
 
