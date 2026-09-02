@@ -429,3 +429,35 @@ def test_rejects_an_empty_site_description() -> None:
         parse_course_repository(snapshot)
 
     assert diagnostic_code(raised) == "site_description_empty"
+
+
+def test_accepts_a_course_yaml_that_declares_description_path_site_md() -> None:
+    """Three repositories declare the pointer explicitly; it must stay valid.
+
+    The declaration is redundant with the default, not an alternative to it, so a
+    repository may keep or drop it without changing what is read.
+    """
+
+    snapshot = fixture_snapshot()
+    snapshot["course.yaml"] = snapshot["course.yaml"].replace(
+        b"title: LLM Zoomcamp\n",
+        b"title: LLM Zoomcamp\ndescription_path: SITE.md\n",
+    )
+
+    source = parse_course_repository(snapshot, commit_sha=COMMIT_SHA)
+
+    assert source.course.description_source_path == "SITE.md"
+    assert source.course.description is not None
+
+
+def test_refuses_a_description_path_that_names_anything_but_site_md() -> None:
+    snapshot = fixture_snapshot()
+    snapshot["course.yaml"] = snapshot["course.yaml"].replace(
+        b"title: LLM Zoomcamp\n",
+        b"title: LLM Zoomcamp\ndescription_path: README.md\n",
+    )
+
+    with pytest.raises(CourseRepositoryValidationError) as raised:
+        parse_course_repository(snapshot)
+
+    assert diagnostic_code(raised) == "course_description_path_not_site_md"

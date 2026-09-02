@@ -717,6 +717,7 @@ class _Parser:
                     "content_id",
                     "slug",
                     "title",
+                    "description_path",
                     "outcome",
                     "repository_url",
                     "docs_url",
@@ -741,6 +742,12 @@ class _Parser:
             ),
         )
         _schema(mapping, path=path)
+        # ``description_path`` survives only as a redundant declaration of the one path
+        # this parser reads.  Letting it name any file is what allowed ``README.md`` to
+        # become a course description; naming anything but ``SITE.md`` now fails closed.
+        declared = mapping.get("description_path")
+        if declared is not None and declared != SITE_DESCRIPTION_PATH:
+            _fail("course_description_path_not_site_md", path, "/description_path")
         content_id = _content_id(mapping["content_id"], path=path, pointer="/content_id")
         self._register_content_id(content_id, kind="course", path=path, pointer="/content_id")
         description, description_source_path = self._parse_site_description()
