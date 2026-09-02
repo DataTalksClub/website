@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from deploy.contracts import ReleaseContractError, ReleaseIdentity
+from deploy.development_target import DEVELOPMENT_HOSTNAME, DEVELOPMENT_ORIGIN
 from deploy.legacy_development_compatibility import (
     DATABASE_SECRET_ARN_PATTERN,
     DJANGO_SECRET_ARN_PATTERN,
@@ -52,8 +53,8 @@ PUBLIC_MEDIA_ENVIRONMENT = {
 }
 FIXED_NONSECRET_ENVIRONMENT = {
     "CANONICAL_ORIGIN": "https://datatalks.club",
-    "DJANGO_ALLOWED_HOSTS": "web.dtcdev.click",
-    "DJANGO_CSRF_TRUSTED_ORIGINS": "https://web.dtcdev.click",
+    "DJANGO_ALLOWED_HOSTS": DEVELOPMENT_HOSTNAME,
+    "DJANGO_CSRF_TRUSTED_ORIGINS": DEVELOPMENT_ORIGIN,
     "DJANGO_SETTINGS_MODULE": "website.settings.development",
     "DTC_ENVIRONMENT": "development",
     "OBSERVABILITY_EVENT_BACKENDS": "log",

@@ -19,7 +19,10 @@
 - Keep this project as one Django deployment with the app ownership described in `_docs/architecture/app-boundaries.md`.
 - Business mutations belong in application services shared by public views, Studio, jobs, and the admin API.
 - Network side effects happen after commit through durable jobs. Product-domain behavior is introduced only by its owning issue.
-- Development hostname: `web.dtcdev.click`.
+- Development hostname: none is deployed right now. The `web.dtcdev.click` stack was
+  decommissioned on 2026-09-02 and its replacement `dev.datatalks.club` is not built yet, so
+  automatic deployment is off. `deploy/development_target.py` holds the reviewed hostnames and
+  selects one from `DTC_DEVELOPMENT_HOSTNAME`; do not hardcode a development host elsewhere.
 
 ## Design-system page shells
 

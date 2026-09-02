@@ -18,7 +18,7 @@ make migrate
 make run
 ```
 
-The local site is served at `http://localhost:8000`. Local development uses the gitignored `.tmp/local.sqlite3` database by default. Set `DTC_SQLITE_PATH` to use another SQLite file; relative paths resolve from the repository root. The deployed development hostname is `web.dtcdev.click` and is always marked `noindex, nofollow`.
+The local site is served at `http://localhost:8000`. Local development uses the gitignored `.tmp/local.sqlite3` database by default. Set `DTC_SQLITE_PATH` to use another SQLite file; relative paths resolve from the repository root. No development host is deployed at the moment: the `web.dtcdev.click` stack was decommissioned on 2026-09-02 and its replacement `dev.datatalks.club` is not built yet. `deploy/development_target.py` holds the reviewed development hostnames and selects one from `DTC_DEVELOPMENT_HOSTNAME`; a deployed development host is always marked `noindex, nofollow`.
 
 ### Local administrator
 
@@ -109,7 +109,7 @@ Settings modules are:
 
 - `website.settings.local`: local development with project-local SQLite.
 - `website.settings.test`: deterministic isolated SQLite for ordinary tests and checks.
-- `website.settings.development`: `web.dtcdev.click`; production-shaped and always non-indexable.
+- `website.settings.development`: the hostname selected by `deploy/development_target.py`; production-shaped and always non-indexable.
 - `website.settings.production`: production security settings and fail-closed bootstrap configuration.
 
 Deployed development and production require a non-placeholder secret, a PostgreSQL `DATABASE_URL`, allowed hosts, and trusted CSRF origins. Readiness checks the database, unapplied migrations, and these bootstrap settings without calling GitHub, AWS, email, or any other optional provider. The retained `psycopg` dependency is for these deployed processes only; application services and migrations use portable Django contracts exercised on SQLite.

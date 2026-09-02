@@ -405,7 +405,9 @@ def test_deploy_smoke_has_exact_readonly_authority_and_pinned_base_url() -> None
         "DTC_TEST_REMOTE_NAMESPACE": "deploy-${{ github.run_id }}-${{ github.run_attempt }}",
     }
     assert "DTC_TEST_BASE_URL" not in release["env"]
-    assert "--base-url https://web.dtcdev.click" in release["run"]
+    assert release["env"]["DEVELOPMENT_BASE_URL"] == "${{ vars.DEVELOPMENT_BASE_URL }}"
+    assert '--base-url "$base_url"' in release["run"]
+    assert "from deploy.development_target import DEVELOPMENT_ORIGIN" in release["run"]
 
 
 def test_manual_release_is_full_and_probe_contract_stays_separate() -> None:

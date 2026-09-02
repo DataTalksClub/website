@@ -11,7 +11,11 @@ from urllib.parse import urlsplit
 
 SAFETY_MARKERS = frozenset({"remote_readonly", "remote_mutation", "live_email", "live_provider"})
 LOCAL_MARKERS = frozenset({"smoke", "core", "full"})
-DEVELOPMENT_HOSTS = frozenset({"web.dtcdev.click"})
+# Closed allowlist of hosts an opt-in remote test may address.  It is pinned here
+# rather than read from the environment so that the value under test cannot also
+# be the value that authorises it.  It must stay equal to
+# deploy.development_target.PERMITTED_DEVELOPMENT_HOSTNAMES.
+DEVELOPMENT_HOSTS = frozenset({"web.dtcdev.click", "dev.datatalks.club"})
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 _NAMESPACE_RE = re.compile(r"^[a-z0-9][a-z0-9-]{7,63}$")
 _RECIPIENT_REFERENCE_RE = re.compile(r"^[A-Z][A-Z0-9_]{7,63}$")

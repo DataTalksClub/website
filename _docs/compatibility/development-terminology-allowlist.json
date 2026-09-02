@@ -196,7 +196,7 @@
     },
     {
       "path": "core/tests/test_deployment_workflow.py",
-      "sha256": "26078a354ed06bb410dd69b6bb8c5fdee40a08b686d1b7417b4f386a865a7130",
+      "sha256": "daeb66129c30f5d2ec107cce976dc273dc28bd0e09db802d8bf4a3fb97e3772f",
       "class": "legacy_contract_test",
       "reason": "Workflow tests exercise removed inputs, frozen Gate-B records, exact physical values, the issue-141 dependency advisory remediation, and the #191 static-credential runbook contract.",
       "follow_up": "#94",

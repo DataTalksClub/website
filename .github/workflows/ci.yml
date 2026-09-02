@@ -1756,7 +1756,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: sandbox
-      url: https://web.dtcdev.click
+      url: ${{ vars.DEVELOPMENT_BASE_URL }}
     permissions:
       contents: read
       id-token: write
@@ -1965,6 +1965,7 @@ jobs:
           WORKER_DESIRED_COUNT: ${{ vars.DEVELOPMENT_WORKER_RELEASE_DESIRED_COUNT }}
           PROJECT_TAG: ${{ vars.DEVELOPMENT_RESOURCE_PROJECT_TAG }}
           ENVIRONMENT_TAG: ${{ vars.DEVELOPMENT_RESOURCE_ENVIRONMENT_TAG }}
+          DEVELOPMENT_BASE_URL: ${{ vars.DEVELOPMENT_BASE_URL }}
           FAILURE_INJECTION: ${{ github.event_name == 'push' && 'none' || inputs.failure_injection }}
           DTC_TEST_SAFETY_COMMAND: remote_readonly
           DTC_TEST_TARGET_CLASS: isolated_development
@@ -1974,6 +1975,7 @@ jobs:
           mkdir -p .tmp/deployment .tmp/deployed-smoke
           mapfile -t subnet_ids < <(jq -er '.[]' <<< "$SUBNET_IDS")
           mapfile -t security_group_ids < <(jq -er '.[]' <<< "$SECURITY_GROUP_IDS")
+          base_url="${DEVELOPMENT_BASE_URL:-$(uv run --frozen python -c 'from deploy.development_target import DEVELOPMENT_ORIGIN; print(DEVELOPMENT_ORIGIN)')}"
           web_container="$(jq -er '.web' <<< "$CONTAINER_NAMES")"
           worker_container="$(jq -er '.worker' <<< "$CONTAINER_NAMES")"
           migration_container="$(jq -er '.migration' <<< "$CONTAINER_NAMES")"
@@ -1992,7 +1994,7 @@ jobs:
             --task-role-arn "$TASK_ROLE_ARN"
             --execution-role-arn "$EXECUTION_ROLE_ARN"
             --assign-public-ip "$ASSIGN_PUBLIC_IP"
-            --base-url https://web.dtcdev.click
+            --base-url "$base_url"
             --screenshot-directory .tmp/deployed-smoke
             --timeout-seconds 180
             --web-stabilization-timeout-seconds 240

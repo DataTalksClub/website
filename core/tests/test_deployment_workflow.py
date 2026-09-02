@@ -176,6 +176,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             {
                 "DEVELOPMENT_AUTO_DEPLOY",
                 "DEVELOPMENT_AWS_REGION",
+                "DEVELOPMENT_BASE_URL",
                 "DEVELOPMENT_DEPLOYER_ROLE_ARN",
                 "DEVELOPMENT_ECR_REPOSITORY_NAME",
                 "DEVELOPMENT_ECR_REPOSITORY_URI",
