@@ -1,6 +1,7 @@
 # Development owner bootstrap
 
-This runbook applies only to `web.dtcdev.click`. It does not import or reuse a production user,
+This runbook applies only to a development deployment — the host
+`deploy/development_target.py` selects. It does not import or reuse a production user,
 password hash, session, provider account, or API token.
 
 ## Application contract

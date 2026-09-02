@@ -1,13 +1,16 @@
 # Development immutable release runbook
 
-This runbook covers application release control for `https://web.dtcdev.click`. Issue #69
+This runbook covers application release control for a development deployment. Issue #69
 defines and tests the mechanism. Issue #70 owns the first authorized Terraform apply, secret
 population, image publication, ECS mutation, and live rollback evidence.
 
-The exact legacy physical identifiers used below are catalogued in the
-[development compatibility boundary](../compatibility/development-legacy-identifiers.md) and
-remain unchanged until #94. They name this development deployment; they do not define another
-environment.
+The deployment it was written against and executed on, `https://web.dtcdev.click`, was destroyed
+on 2026-09-02, and its replacement `dev.datatalks.club` is not built yet. The procedure and its
+recorded evidence are kept as written: they describe what was run and against what. The exact
+legacy physical identifiers used below are catalogued in the
+[development compatibility boundary](../compatibility/development-legacy-identifiers.md). They
+name that development deployment; they do not define another environment, and a future
+development host does not inherit them.
 
 Never paste secret values into a workflow input, command, release record, screenshot, issue,
 or log. A release record contains only identity-schema/version/source/digest/task-definition/count

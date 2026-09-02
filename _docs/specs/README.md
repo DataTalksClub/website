@@ -6,9 +6,11 @@ Status: draft for owner review
 
 Rebuild DataTalks.Club as one Django application without losing the URLs, links, content behavior, or search equity of the current sites. Integrate the existing course-management platform with an explicit `Course -> Cohort` model. Add accountless event registration, a private account-owned member profile shared by Slack onboarding and course registration, transactional email, a custom staff workspace called Studio, and an admin-only API covering every management operation.
 
-The development environment runs at `web.dtcdev.click` in AWS account `817685572750`.
-Infrastructure is Terraform-managed in `DataTalksClub/aws-infra` and structured for later
-instantiation in a separate production account. Live physical names are catalogued in the
+No development environment is deployed at the moment: the `web.dtcdev.click` stack in AWS
+account `817685572750` was destroyed on 2026-09-02 and its replacement `dev.datatalks.club`
+is not built yet. Infrastructure is Terraform-managed in `DataTalksClub/aws-infra` and
+structured for later instantiation in a separate production account. `deploy/development_target.py`
+holds the reviewed development hostnames; the retired physical names are catalogued in the
 [development compatibility boundary](../compatibility/development-legacy-identifiers.md).
 
 ## Fixed requirements
