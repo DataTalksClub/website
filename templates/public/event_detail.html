@@ -133,11 +133,16 @@
         min-height: 3rem;
       }
 
+      /* The biography belongs to the credit above it.  That is said with the
+         indent under the portrait and the system's dashed rule — the same
+         separator the narrow layout already used — rather than with a left
+         rule down the side, which is the accent rail this system does not
+         draw. */
       .event-speaker-bio {
-        border-left: 2px solid var(--line-soft);
+        border-top: 2px dashed var(--line-soft);
         margin-left: 3.15rem;
         max-width: 48rem;
-        padding-left: 1rem;
+        padding-top: 0.85rem;
       }
 
       .event-speaker-bio > :first-child,
@@ -150,10 +155,14 @@
         margin-bottom: 0;
       }
 
+      /* The same rule, so a speaker without a biography reads as the same
+         block shape as a speaker with one. */
       .event-speaker-bio-empty {
+        border-top: 2px dashed var(--line-soft);
         color: var(--muted);
         font-size: 0.9rem;
         margin-left: 3.15rem;
+        padding-top: 0.85rem;
       }
 
       @media (max-width: 47.99rem) {
@@ -173,16 +182,12 @@
         }
 
         .event-speaker-bio {
-          border-left: 0;
-          border-top: 2px dashed var(--line-soft);
           margin-left: 0;
           max-width: none;
-          padding-left: 0;
           padding-top: 0.9rem;
         }
 
         .event-speaker-bio-empty {
-          border-top: 2px dashed var(--line-soft);
           margin-left: 0;
           padding-top: 0.9rem;
         }

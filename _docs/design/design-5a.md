@@ -106,7 +106,7 @@ pill kept its light surface while its text flipped with the theme.
 | `--sand` | `#f3f0e8` | `#2a2740` | waitlist/past pills, readonly fields |
 | `--olive` | `#6b6034` | `#cbb98a` | text on `--sand` |
 | `--green-ship` | `#1f6b2c` | `#93c7a5` | "you'll ship" lines, mint-pill text |
-| `--bubble` | `#b9bff0` | same | brand bubble: play discs, date rail |
+| `--bubble` | `#b9bff0` | same | brand bubble: play discs, number discs, CTA shadow |
 | `--on-bubble` | `#1e2136` | same | glyphs and digits on `--bubble` |
 | `--clay` | `#e0847a` | same | YouTube platform dot |
 | `--gold` | `#e2c67a` | same | RSS platform dot |
@@ -197,6 +197,24 @@ the band it sits in.
 - **Borders**: `2px solid var(--line)` on components; `1.5px` on chips, status
   pills and inner dashed rules; `3px solid var(--ink)` only on the featured
   slab; `2px dashed var(--line-soft)` for band and masthead separators.
+- **No accent left-borders.** The system never marks a block with a
+  single-side rail — no `border-inline-start`, no `border-left`, no shorthand
+  equivalent — however quiet its colour. A block that has to stand apart takes
+  a **surface and a full border** (`background: var(--card)` with `2px solid
+  var(--line-soft)`, the tint carrying the tone: `--sand` for attention, a
+  dashed border for the quietest notice) or the system's **dashed rule**
+  (`2px dashed var(--line-soft)`) above it. This is why `.callout`, the prose
+  `blockquote`, the book-thread replies and the event Q&A notices are bordered
+  boxes, and why the events date column is set like every other index's
+  `.date-rail` — position and type, no rule.
+  A left border that **separates siblings** (the dashed rule between spec cells
+  or between the two "latest" columns), a table cell rule, an input outline, or
+  a shape drawn out of borders is not an accent rail and is allowed. The
+  difference is whether the border marks one block or divides two.
+  The rule is global and enforced by
+  `core/tests/test_design_accent_borders.py`, which fails on any new
+  `border-left` / `border-inline-start` that is not a removal or a reviewed
+  structural row in that test's table.
 - **Shadows are hard offsets, never blurs**: cards `0.3rem 0.3rem 0
   var(--shadow-soft)`; CTAs `0.3rem 0.3rem 0 var(--shadow)`; the featured slab
   `0.45rem 0.45rem 0 var(--shadow-soft)`; the ink/bubble CTA pair `0.25rem
@@ -968,7 +986,8 @@ The blog article page extended the same primitive rather than forking one
   same marker, indent and rhythm as `.prose-item`, for the case where the blocks
   really are a list (a page may group *consecutive* source list items into one
   real list, which also tells a screen reader how many items there are);
-  `--ink` strong; a `--bubble`-ruled italic `blockquote`; inline `code` and a
+  `--ink` strong; an italic `blockquote` on the card surface inside the soft
+  2px border the accent-border rule gives a quotation; inline `code` and a
   `pre` block that **wraps rather than scrolling** (the FAQ pages settled that
   first: a box that scrolls sideways with no focus stop of its own cannot be
   reached from a keyboard, and a command or a traceback stays readable when it
@@ -1025,11 +1044,13 @@ The field grows and the button keeps its size; both wrap on a narrow screen.
 </div>
 ```
 
-A `--bubble` left rule with the date stacked beside each event card; the first
-cell of a `.list-row` (`--row-cols: 6.5rem minmax(0,1fr)`). It carries three
-facts, including the start clock, which is why the events index keeps it instead
-of the archive row's two-line `.date-rail`. Only the events index draws it: a
-dated index that publishes a day uses the archive row.
+The date stacked beside each event card in the first cell of a `.list-row`
+(`--row-cols: 6.5rem minmax(0,1fr)`), set the way the archive `.date-rail` is
+set: position and type, no rule. (It drew a `--bubble` left rule until the
+accent-border ban above made that the one thing a date column may not do.) It
+carries three facts, including the start clock, which is why the events index
+keeps it instead of the archive row's two-line `.date-rail`. Only the events
+index draws it: a dated index that publishes a day uses the archive row.
 
 ## The wiki surfaces, as built
 

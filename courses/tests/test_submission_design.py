@@ -92,8 +92,12 @@ class SharedSubmissionPrimitiveTests(SimpleTestCase):
         self.assertIn("var(--line-soft)", subtle_rule)
         self.assertIn("#learning-in-public-links-container .cta-secondary", design_system)
         self.assertIn(".project-toolbar .cta-secondary", design_system)
-        self.assertIn("border-inline-start: 0", quiet_rule)
-        self.assertIn("background: var(--card)", quiet_rule)
+        # The quiet callout is the dashed plate on whatever surface it sits on,
+        # not a second tone rail: the system draws no accent left border at all
+        # (see `core/tests/test_design_accent_borders.py`).
+        self.assertIn("background: transparent", quiet_rule)
+        self.assertIn("border-style: dashed", quiet_rule)
+        self.assertNotIn("border-inline-start", quiet_rule)
         self.assertIn("var(--focus)", design_system)
 
 

@@ -2756,11 +2756,15 @@ Rules for editing:
         background: var(--lavender);
       }
 
-      /* State and guidance callouts: a tinted surface with one token-driven
-         tone rail, kept visually separate from editable controls. */
+      /* State and guidance callouts: a surface and a full border, kept
+         visually separate from editable controls.  The system draws no
+         coloured single-side accent rail anywhere (see "Borders" in
+         `_docs/design/design-5a.md`), so tone here is the surface tint plus
+         the words: a card for information, sand for attention, and a dashed
+         plate when the notice is the quietest thing on the page. */
       .callout {
-        background: var(--lavender);
-        border-inline-start: 0.35rem solid var(--indigo);
+        background: var(--card);
+        border: 2px solid var(--line-soft);
         border-radius: 0.7rem;
         color: var(--body-text);
         display: grid;
@@ -2769,19 +2773,16 @@ Rules for editing:
       }
 
       .callout-info {
-        background: var(--lavender);
-        border-inline-start-color: var(--indigo);
+        background: var(--card);
       }
 
       .callout-attention {
         background: var(--sand);
-        border-inline-start-color: var(--olive);
       }
 
       .callout-quiet {
-        background: var(--card);
-        border-inline-start: 0;
-        padding-inline-start: 1.15rem;
+        background: transparent;
+        border-style: dashed;
       }
 
       .callout strong {
@@ -2811,14 +2812,17 @@ Rules for editing:
         justify-self: start;
       }
 
-      /* Date rail: the events-index date block beside each event card. */
+      /* Date rail: the events-index date block beside each event card.  It is
+         a column, not a marked-up block, so it is distinguished the way every
+         other dated index distinguishes its date (`.date-rail`): position, the
+         bold date line and the mono day/clock beneath it.  The `--bubble` left
+         rule it used to draw is the accent rail the system does not use. */
       .when {
         align-content: start;
-        border-left: 4px solid var(--bubble);
         display: grid;
         gap: 0.15rem;
-        padding-left: 0.7rem;
-        padding-top: 0.3rem;
+        /* The date meets the card's first line rather than its top edge. */
+        padding-top: 0.85rem;
       }
 
       .when strong {
@@ -3294,11 +3298,16 @@ Rules for editing:
         font-weight: 800;
       }
 
+      /* A quotation is a block the body hands over to someone else, so it takes
+         the system's card treatment rather than the accent rail this system
+         does not draw: its own surface inside a soft 2px border. */
       .prose blockquote {
-        border-left: 4px solid var(--bubble);
+        background: var(--card);
+        border: 2px solid var(--line-soft);
+        border-radius: 0.7rem;
         color: var(--ink);
         font-style: italic;
-        padding: 0.15rem 0 0.15rem 1.1rem;
+        padding: 0.85rem 1.1rem;
       }
 
       .prose code {
