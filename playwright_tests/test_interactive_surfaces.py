@@ -5,8 +5,25 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Browser, Page
 
+from test_support.course_catalog import build_reviewed_catalog
+
 pytestmark = [pytest.mark.core]
 SCREENSHOTS = Path(".tmp/screenshots/card-interactions")
+
+
+@pytest.fixture
+def homepage_course_catalog(transactional_db: None) -> None:
+    """Give the homepage the course rows its catalogue band renders from.
+
+    Issue #307 moved the homepage from the checked projection to ``courses.Course`` /
+    ``courses.Cohort``, so the featured panel and the catalogue cards exist only when the
+    database holds visible cohorts.  A browser test must therefore own the rows it
+    measures instead of standing on whatever a developer database happens to contain.
+    This is the same fixture the Django homepage tests use, so both assert one shape:
+    six families, the featured one shown by the panel and the other five as cards.
+    """
+
+    build_reviewed_catalog()
 
 
 def _state(locator) -> dict[str, object]:
@@ -106,6 +123,7 @@ def test_event_card_uses_the_same_bottom_right_cue(
 def test_homepage_cards_keep_the_viewport_aligned_and_use_the_static_cue(
     browser: Browser,
     live_server,
+    homepage_course_catalog: None,
 ) -> None:
     for width, height in ((1440, 900), (1280, 900), (390, 844)):
         context = browser.new_context(viewport={"width": width, "height": height})
