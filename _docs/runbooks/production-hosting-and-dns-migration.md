@@ -635,28 +635,22 @@ convergence bound; the untouched GoDaddy zone resumes. Keep the GoDaddy zone int
 > `podwiki` must stay **live and maintained indefinitely**, because the apex has no copy of
 > their content. Only the main-site Pages deployment is a disposable rollback target.
 >
-> **C3 — SEO: the FAQ tree has no canonical and can be indexed under the wrong hostname.**
-> Verified live:
+> **C3/C4/C5 — SEO impact accepted. Owner decision, 2026-09-02: no action.** These pages are
+> not meaningfully indexed, so the search consequences of the redirect do not need mitigating.
+> Recorded here with the observed facts so the finding is not re-raised by a later audit:
 >
-> - `/podwiki/` on github.io → `<link rel="canonical" href="https://datatalks.club/podwiki/">` ✅
-> - `/docs/…` on github.io → `<link rel="canonical" href="https://datatalks.club/docs/…" />` ✅
-> - `/faq/…` on github.io → **no canonical tag at all** ❌
+> - `/podwiki/` on github.io → `<link rel="canonical" href="https://datatalks.club/podwiki/">`
+> - `/docs/…` on github.io → `<link rel="canonical" href="https://datatalks.club/docs/…" />`
+> - `/faq/…` on github.io → **no canonical tag** (152 rows), and
+>   `https://datatalksclub.github.io/robots.txt` 404s, so nothing restrains crawling there
+> - the status code is `302`, which keeps the source URL canonical rather than consolidating
+>   ranking onto `datatalksclub.github.io`; leaving it as-is is also the cheaper option if
+>   these trees are ever served from the apex again
+> - the apex `robots.txt` still advertises `Sitemap: https://datatalks.club/podwiki/sitemap.xml`,
+>   which now 302s off-domain
 >
-> `https://datatalksclub.github.io/robots.txt` 404s, so nothing restrains crawling of the
-> github.io hostname. For the 152 FAQ rows, a crawler follows the 302, finds a self-canonical
-> page, and may index `datatalksclub.github.io/faq/*` in place of `datatalks.club/faq/*`.
-> **Fix at source: add `rel=canonical` to the FAQ Jekyll layout.** Docs and podwiki are already
-> correct and need nothing.
->
-> **C4 — keep the 302; do not "upgrade" it to 301.** A 302 tells search engines the *source*
-> URL remains canonical, which is what preserves `datatalks.club/faq/*` in the index and keeps
-> the door open to serving these trees from the apex again later. A 301 would consolidate
-> ranking onto `datatalksclub.github.io` — the opposite of what this migration is for. The
-> current status code is right; C3 is the gap, not the verb.
->
-> **C5 — stale sitemap reference.** The apex `robots.txt` still advertises
-> `Sitemap: https://datatalks.club/podwiki/sitemap.xml`, which now 302s off-domain. Either
-> point it at the github.io sitemap or drop the line.
+> **This decision does not touch C1 or C2**, which are contract-integrity and availability
+> problems rather than search problems.
 >
 > **C6 — issue #306 is superseded.** It records that 310 legacy `/podwiki/*` URLs would 404 at
 > cutover. They now redirect instead, so the 404 risk is gone; what replaces it is C1 and C2.
