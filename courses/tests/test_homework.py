@@ -52,7 +52,24 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
         self.assertIn("padding: 0", question_rule.group(1))
         self.assertNotIn("border: 2px", question_rule.group(1))
         self.assertNotIn("border-radius", question_rule.group(1))
-        self.assertIn("border: 2px solid var(--line)", extra_styles)
+        # The page no longer re-declares the shared control primitives, so the
+        # drift that put --olive on a disabled control here and --muted in the
+        # design system cannot come back.
+        for duplicated in (
+            "form-check",
+            "form-check-input",
+            "form-check-label",
+            "form-control",
+            "invalid-feedback",
+            "readonly-value",
+            "homework-status",
+            "homework-submit",
+        ):
+            with self.subTest(rule=duplicated):
+                self.assertIsNone(
+                    re.search(rf"^\s*\.{duplicated} \{{", extra_styles, re.MULTILINE)
+                )
+        self.assertIn("border-color: var(--line-soft)", extra_styles)
         self.assertNotIn("Answer the questions below to complete your homework.", body)
         self.assertNotIn('<div class="submission-support">', body)
         self.assertContains(
@@ -149,7 +166,7 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
         self.assertContains(response, "Deadlines are shown in your timezone.")
         self.assertContains(response, "Instructions on GitHub")
         self.assertContains(response, instructions_url)
-        self.assertContains(response, "callout callout-info callout-quiet")
+        self.assertContains(response, "Log in to submit this homework.")
 
     def test_homework_detail_navigation_uses_canonical_cohort_homework_urls(self):
         previous_homework = self.create_adjacent_homework(

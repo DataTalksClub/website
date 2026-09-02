@@ -121,15 +121,19 @@ class SubmissionTemplateStructureTests(SimpleTestCase):
         self.assertNotIn("homework-specs", source)
         self.assertIn('<h1 id="submission-heading">{{ homework.title }}</h1>', source)
         self.assertNotIn("Answer the questions below to complete your homework.", source)
-        self.assertIn('class="submission-support"', source)
         self.assertIn("border: 0", source)
         self.assertIn(
-            (
-                'classes="callout-quiet" message="No public answers are '
-                'available for this homework yet."'
-            ),
+            'message="No public answers are available for this homework yet."',
             form_source,
         )
+        # Two callout weights for the same kind of message are gone: the page
+        # carries one notice treatment, so `callout-quiet` has nothing to
+        # remove and is no longer used here.
+        self.assertNotIn("callout-quiet", source)
+        self.assertNotIn("callout-quiet", form_source)
+        # The boilerplate line beside the questions heading duplicated the
+        # hero's instructions button.
+        self.assertNotIn("This form is only for submitting your answers", form_source)
         for field in (
             "answer_{{ question.id }}",
             'name="homework_url"',

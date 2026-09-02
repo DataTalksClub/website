@@ -6,6 +6,11 @@
   breadcrumb/context while the homework title names the document; the form
   below keeps the original answer names, ids, disabled rules, CSRF handling,
   and JavaScript hooks.
+
+  Layout law for this page: the cream header states facts (where, what, when,
+  and the one link to the instructions); the lavender band carries at most one
+  state notice, then the questions, then the way back out.  State is never a
+  header decoration, and it is never said twice.
 {% endcomment %}
 
 {% block document_title %}{{ homework.title }} — {{ course.title }} — DataTalks.Club{% endblock %}
@@ -31,30 +36,36 @@
   {% endif %}
 {% endblock %}
 
-{% block hero_instructions %}
-  {% if instructions_url %}
-    {% if "github.com" in instructions_url %}
-      {% include "core/_button.html" with href=instructions_url label="Instructions on GitHub" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
-    {% else %}
-      {% include "core/_button.html" with href=instructions_url label="Instructions" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
-    {% endif %}
-  {% endif %}
-{% endblock %}
-
 {% block hero_specs %}
-  <div class="homework-deadline">
-    <span class="mono-label">deadline</span>
-    <strong>{{ homework.due_date|user_datetime:request }}</strong>
-    <span class="time-left" data-deadline="{{ homework.due_date|date:"c" }}" data-prefix="false"></span>
-  </div>
-  <p class="submission-support">
-    {% if is_authenticated %}
-      Deadlines are shown in your
-      <a class="band-link" href="{% url 'account_settings' %}#display-preferences-section">account timezone</a>.
-    {% else %}
-      Deadlines are shown in your timezone.
+  {% comment %}
+    What, when, then act.  The instructions button rides in this block rather
+    than the shell's `hero_instructions` slot so this page can put the deadline
+    above its only call to action without reordering the project page's hero
+    too.  The timezone note is a hint about the line above it, so it is drawn
+    at hint scale instead of as body copy.
+  {% endcomment %}
+  <div class="homework-facts">
+    <div class="homework-deadline">
+      <span class="mono-label">deadline</span>
+      <strong>{{ homework.due_date|user_datetime:request }}</strong>
+      <span class="time-left" data-deadline="{{ homework.due_date|date:"c" }}" data-prefix="false"></span>
+    </div>
+    <p class="field-hint">
+      {% if is_authenticated %}
+        Deadlines are shown in your
+        <a class="band-link" href="{% url 'account_settings' %}#display-preferences-section">account timezone</a>.
+      {% else %}
+        Deadlines are shown in your timezone.
+      {% endif %}
+    </p>
+    {% if instructions_url %}
+      {% if "github.com" in instructions_url %}
+        {% include "core/_button.html" with href=instructions_url label="Instructions on GitHub" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
+      {% else %}
+        {% include "core/_button.html" with href=instructions_url label="Instructions" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
+      {% endif %}
     {% endif %}
-  </p>
+  </div>
 {% endblock %}
 
 {% block hero_actions %}
@@ -72,8 +83,20 @@
   {% endif %}
 {% endblock %}
 
-{% block hero_notices %}
-  <div class="submission-notices">
+{% block content_notices %}
+  {% comment %}
+    Exactly one state notice, in the band, above the form it gates.  Feedback
+    about a submission the learner just posted may sit above it, because that
+    is about what happened rather than about what may be done next.
+
+    Every branch is exhaustive and mutually exclusive: scored, then open, then
+    closed; inside each, signed out before signed in.  The signed-in, open,
+    before-deadline path deliberately produces nothing — the ordinary case is
+    an enabled form and needs no announcement.  The copy never repeats the
+    deadline state the hero's `.time-left` already says, and it never invites a
+    preview of questions this cohort has not published yet.
+  {% endcomment %}
+  <div class="homework-state-notices">
     {% for message in messages %}
       {% if 'homework' in message.tags %}
         {% include "core/_callout.html" with tone="info" role="status" message=message %}
@@ -82,41 +105,106 @@
     {% for error in errors %}
       {% include "core/_callout.html" with tone="attention" role="alert" message=error %}
     {% endfor %}
-    {% if not is_authenticated and accepting_submissions %}
-      {% url 'login' as login_url %}
-      {% include "core/_callout.html" with tone="info" classes="callout-quiet" title="Log in to submit this homework" message="You can preview the questions, but submissions are saved only for logged-in students." button_url=login_url button_label="Log in to submit" button_variant="primary" %}
-    {% endif %}
-    {% if accepting_submissions and deadline_passed %}
-      {% include "core/_callout.html" with tone="info" title="The deadline has passed, but this homework is still open" message="You can still submit your answers below. Submissions are accepted until the homework is closed for scoring." %}
-    {% endif %}
-    {% if disabled and not homework.is_scored and not accepting_submissions %}
-      {% if is_authenticated %}
-        {% if submission.pk %}
-          {% include "core/_callout.html" with tone="attention" message="This homework is closed. Your saved submission is shown below and cannot be modified." %}
-        {% else %}
-          {% include "core/_callout.html" with tone="attention" message="This homework is not open for submissions yet." %}
-        {% endif %}
-      {% else %}
-        {% url 'login' as login_url %}
-        {% include "core/_callout.html" with tone="info" before_link="" link_url=login_url link_label="Log in" after_link=" to see the status of your submission." %}
-      {% endif %}
-    {% endif %}
+    {% url 'login' as login_url %}
     {% if homework.is_scored %}
-      {% if is_authenticated %}
-        {% if submission.pk %}
-          {% include "core/_callout.html" with tone="info" eyebrow="Scored homework" title="Your submission has been graded." score_label="Score" score=submission.total_score %}
+      {% if not is_authenticated %}
+        {% if question_answers %}
+          {% include "core/_callout.html" with tone="info" title="Correct answers are shown below." message="Log in to see your own submission, score, and feedback." button_url=login_url button_label="Log in to view my results" button_variant="primary" %}
         {% else %}
-          {% include "core/_callout.html" with tone="attention" message="This homework is already scored. You didn't submit your answers." %}
+          {% include "core/_callout.html" with tone="info" title="This homework has been scored." message="Log in to see your own submission, score, and feedback." button_url=login_url button_label="Log in to view my results" button_variant="primary" %}
         {% endif %}
+      {% elif submission.pk %}
+        {% include "core/_callout.html" with tone="info" eyebrow="Scored homework" title="Your submission has been graded." score_label="Score" score=submission.total_score %}
       {% else %}
-        {% url 'login' as login_url %}
-        {% include "core/_callout.html" with tone="info" title="Correct answers are available below" message="This homework has already been scored. Log in to view your own submission, score, and feedback." button_url=login_url button_label="Log in to view my results" button_variant="primary" %}
+        {% include "core/_callout.html" with tone="attention" title="This homework was scored without a submission from you." %}
+      {% endif %}
+    {% elif accepting_submissions %}
+      {% if not is_authenticated %}
+        {% if deadline_passed %}
+          {% if question_answers %}
+            {% include "core/_callout.html" with tone="info" title="Log in to submit — late submissions are still accepted." message="The deadline has passed, but answers are accepted until the homework is closed for scoring. You can preview the questions below." button_url=login_url button_label="Log in to submit" button_variant="primary" %}
+          {% else %}
+            {% include "core/_callout.html" with tone="info" title="Log in to submit — late submissions are still accepted." message="The deadline has passed, but answers are accepted until the homework is closed for scoring." button_url=login_url button_label="Log in to submit" button_variant="primary" %}
+          {% endif %}
+        {% else %}
+          {% if question_answers %}
+            {% include "core/_callout.html" with tone="info" title="Log in to submit this homework." message="You can preview the questions below; submissions are saved only for logged-in students." button_url=login_url button_label="Log in to submit" button_variant="primary" %}
+          {% else %}
+            {% include "core/_callout.html" with tone="info" title="Log in to submit this homework." message="Submissions are saved only for logged-in students." button_url=login_url button_label="Log in to submit" button_variant="primary" %}
+          {% endif %}
+        {% endif %}
+      {% elif deadline_passed %}
+        {% include "core/_callout.html" with tone="info" title="Still accepting late submissions." message="Your latest saved version will be scored when the homework closes." %}
+      {% endif %}
+    {% else %}
+      {% if not is_authenticated %}
+        {% include "core/_callout.html" with tone="attention" title="This homework is closed." link_url=login_url link_label="Log in" after_link=" to see the status of your submission." %}
+      {% elif submission.pk %}
+        {% include "core/_callout.html" with tone="attention" title="This homework is closed." message="Your saved submission is shown below and cannot be changed." %}
+      {% else %}
+        {% include "core/_callout.html" with tone="attention" title="This homework is not open for submissions." %}
       {% endif %}
     {% endif %}
   </div>
 {% endblock %}
 
 {% block extra_styles %}
+  /* No coloured single-side accent border is drawn on this page.  Tone is the
+     surface tint plus the words, which is the system's own rule for state.
+     The shared `.callout` primitive still paints an indigo/olive tone rail and
+     is owned elsewhere this cycle, so the treatment is corrected here, for
+     this page only, at one higher specificity.  When the primitive itself is
+     fixed these four rules delete themselves. */
+  .submission-band .callout {
+    background: var(--card);
+    border: 2px solid var(--line-soft);
+    border-radius: 0.7rem;
+    padding: 1rem 1.15rem;
+  }
+
+  .submission-band .callout-attention {
+    background: var(--sand);
+  }
+
+  .homework-state-notices {
+    display: grid;
+    gap: 0.9rem;
+    max-width: var(--form-measure);
+  }
+
+  /* The gap under the notice belongs to the notice, so a state with nothing
+     to say leaves no hole at the top of the band. */
+  .homework-state-notices > .callout:last-child {
+    margin-bottom: 2rem;
+  }
+
+  /* The page's purpose is not a box.  `.cmp-form` paints lavender on the
+     lavender band, so the form reads as a faint outline around everything
+     that matters while the disabled controls inside it are the darkest thing
+     on the page.  The measure, grid and rhythm the class exists for all stay;
+     only the invisible box is removed.  This belongs in the primitive — see
+     the report — and is scoped here while that file has another owner. */
+  .submission-band .cmp-form {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  /* A control you cannot touch must not be the heaviest object in view. */
+  .submission-band .field-input[disabled],
+  .submission-band .field-input[readonly],
+  .submission-band .form-control[disabled],
+  .submission-band .form-control[readonly] {
+    border-color: var(--line-soft);
+  }
+
+  .homework-facts {
+    display: grid;
+    gap: 0.5rem;
+    justify-items: start;
+  }
+
   .time-left {
     display: block;
     font-family: var(--font-mono);
@@ -148,6 +236,15 @@
     gap: 0.35rem 0.75rem;
   }
 
+  /* Questions read as units through space, never through boxes. */
+  .homework-questions {
+    gap: 2rem;
+  }
+
+  .homework-form .submission-support {
+    margin-bottom: 1.25rem;
+  }
+
   .question {
     background: transparent;
     border: 0;
@@ -164,9 +261,11 @@
     padding: 0;
   }
 
+  /* The point value is metadata about the question, so it is said in the same
+     mono label voice as the deadline instead of competing with the wording. */
   .question-note {
-    color: var(--body-text);
-    font-weight: 500;
+    margin-inline-start: 0.5rem;
+    white-space: nowrap;
   }
 
   .question-options {
@@ -174,23 +273,6 @@
     gap: 0.35rem;
   }
 
-  .form-check {
-    align-items: center;
-    display: flex;
-    gap: 0.6rem;
-    min-height: 2.75rem;
-  }
-
-  .form-check-input {
-    accent-color: var(--green);
-    flex: none;
-    height: 1.1rem;
-    width: 1.1rem;
-  }
-
-  .form-check-label {
-    color: var(--body-text);
-  }
   .option-answer-correct .form-check-label::after,
   .option-answer-incorrect .form-check-label::after {
     font-size: 0.85rem;
@@ -222,66 +304,14 @@
     padding: 0.5rem 0.75rem;
   }
 
-  .form-control {
-    background: var(--card);
-    border: 2px solid var(--line);
-    border-radius: 0.625rem;
-    color: var(--ink);
-    font: inherit;
-    min-height: 2.75rem;
-    padding: 0.65rem 0.8rem;
-    width: 100%;
-  }
-
-  .form-control[disabled] {
-    background: var(--sand);
-    color: var(--olive);
-  }
-
-  .form-control.is-invalid {
-    border-color: var(--olive);
-  }
+  /* Grading marks on a free-form answer: page-specific state, not a variant
+     of the shared control. */
   .form-control.option-answer-correct {
     border-color: var(--green);
   }
 
   .form-control.option-answer-incorrect {
     border-color: var(--olive);
-  }
-
-  .invalid-feedback {
-    color: var(--olive);
-    font-size: 0.85rem;
-    font-weight: 700;
-  }
-
-  .invalid-feedback:empty {
-    display: none;
-  }
-
-  .readonly-value {
-    background: var(--sand);
-    border: 2px solid var(--line-soft);
-    border-radius: 0.625rem;
-    color: var(--olive);
-    font-weight: 700;
-    overflow-wrap: anywhere;
-    padding: 0.65rem 0.8rem;
-  }
-  .homework-status {
-    color: var(--body-text);
-    display: grid;
-    font-size: 0.92rem;
-    gap: 0.3rem;
-  }
-
-  .homework-submit {
-    border-top: 2px dashed var(--line-soft);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-top: 1.25rem;
-    padding-top: 1.25rem;
   }
 {% endblock %}
 

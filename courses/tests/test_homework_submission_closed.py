@@ -8,7 +8,7 @@ class HomeworkSubmissionClosedTests(HomeworkSubmissionValidationBase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(
             response,
-            "This homework is not open for submissions yet.",
+            "This homework is not open for submissions.",
         )
         # The redundant deadline/timezone/status facts are no longer rendered;
         # the closed state remains in the callout above the form.

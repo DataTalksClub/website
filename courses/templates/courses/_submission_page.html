@@ -129,7 +129,8 @@
 
   @media (max-width: 47.99rem) {
     .submission-actions,
-    .submission-form-actions {
+    .submission-form-actions,
+    .submission-navigation {
       display: grid;
       width: 100%;
     }
@@ -179,30 +180,38 @@
 {% endblock %}
 
 {% block page_content %}
+  {% comment %}
+    State notices belong beside the thing they gate, not in the header band:
+    they are what the learner may do with the form below them, and they must
+    still be said when the form itself is withheld — a closed submission page
+    that renders nothing at all is the worst version of this page.
+  {% endcomment %}
+  {% block content_notices %}
+  {% endblock %}
   {% if accepting_submissions or submission.pk or homework.is_scored or project or review %}
     {% block submission_content %}
     {% endblock %}
-    {% if homework %}
-      {% if previous_homework or next_homework %}
-        <nav class="submission-navigation" aria-label="Homework navigation">
-          {% if previous_homework %}
-            {% if course.course %}
-              {% url 'homework' course.course.slug course.identifier previous_homework.slug as previous_homework_url %}
-            {% else %}
-              {% url 'homework' course.slug previous_homework.slug as previous_homework_url %}
-            {% endif %}
-            {% include "core/_button.html" with href=previous_homework_url label="← Previous homework" variant="secondary" compact=True aria_label="Previous homework" %}
+  {% endif %}
+  {% if homework %}
+    {% if previous_homework or next_homework %}
+      <nav class="submission-navigation" aria-label="Homework navigation">
+        {% if previous_homework %}
+          {% if course.course %}
+            {% url 'homework' course.course.slug course.identifier previous_homework.slug as previous_homework_url %}
+          {% else %}
+            {% url 'homework' course.slug previous_homework.slug as previous_homework_url %}
           {% endif %}
-          {% if next_homework %}
-            {% if course.course %}
-              {% url 'homework' course.course.slug course.identifier next_homework.slug as next_homework_url %}
-            {% else %}
-              {% url 'homework' course.slug next_homework.slug as next_homework_url %}
-            {% endif %}
-            {% include "core/_button.html" with href=next_homework_url label="Next homework →" variant="secondary" compact=True classes="submission-navigation-next" aria_label="Next homework" %}
+          {% include "core/_button.html" with href=previous_homework_url label="← Previous homework" variant="secondary" compact=True aria_label="Previous homework" %}
+        {% endif %}
+        {% if next_homework %}
+          {% if course.course %}
+            {% url 'homework' course.course.slug course.identifier next_homework.slug as next_homework_url %}
+          {% else %}
+            {% url 'homework' course.slug next_homework.slug as next_homework_url %}
           {% endif %}
-        </nav>
-      {% endif %}
+          {% include "core/_button.html" with href=next_homework_url label="Next homework →" variant="secondary" compact=True classes="submission-navigation-next" aria_label="Next homework" %}
+        {% endif %}
+      </nav>
     {% endif %}
   {% endif %}
 {% endblock %}

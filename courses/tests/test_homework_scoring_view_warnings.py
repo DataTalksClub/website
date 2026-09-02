@@ -13,7 +13,7 @@ class HomeworkScoringViewWarningTests(HomeworkScoringViewBase):
         self.assertEqual(response.status_code, 200)
 
         content = response.content.decode("utf-8")
-        self.assertIn("Correct answers are available below", content)
+        self.assertIn("Correct answers are shown below.", content)
         self.assertIn("Log in to view my results", content)
         self.assertIn("Correct answers", content)
         self.assertIn("Review the expected answers", content)
