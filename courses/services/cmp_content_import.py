@@ -15,11 +15,16 @@ Scope, deliberately narrow:
   already has.  This service never mints a course family, chooses a year, or publishes a
   URL; deriving cohort identity a second way is what split the AI Dev Tools family and
   needed migration ``0052`` to repair.
-* **Legacy-format cohorts only.**  A modules-format cohort binds its homework to
-  repository-authored modules through ``Module.terminal_homework``, and CMP's homework
-  slugs do not always match the repository's.  That pairing belongs in the reviewed
-  ``homework_slug_overrides`` manifest hook, so those cohorts are skipped here rather
-  than half-imported.
+* **CMP owns homework identity.**  A homework's slug is whatever CMP says it is, copied
+  verbatim, including on the modules-format cohorts whose repositories declare a
+  different one.  Nothing is derived, mapped or rewritten.
+
+  A modules-format cohort binds its homework to repository-authored modules through
+  ``Module.terminal_homework``, so adopting CMP's slug means re-pointing that binding.
+  The pairing is read from data both sides already publish -- the slug when they agree,
+  otherwise an exact title match -- and anything that does not pair is **left unbound
+  and reported**.  Guessing by ordinal position would misattach CMP's ``dlt`` workshop
+  to the sixth LLM module, which renders as a page that looks fine and is wrong.
 
 Running it twice is a no-op: every write is keyed on a natural key, and a homework's
 questions are replaced as a set.
@@ -37,7 +42,7 @@ from typing import Any, NoReturn
 from django.db import transaction
 
 from courses.course_family_catalog import COHORT_FAMILY_IDENTITIES
-from courses.models import Cohort, Homework, Project, Question, ReviewCriteria
+from courses.models import Cohort, Homework, Module, Project, Question, ReviewCriteria
 
 __all__ = [
     "CmpContentImportError",
@@ -158,6 +163,9 @@ class CohortReport:
     projects_written: int = 0
     projects_removed: int = 0
     criteria_written: int = 0
+    rebound_modules: tuple[tuple[str, str, str], ...] = ()
+    unpaired_cmp_homework: tuple[str, ...] = ()
+    unpaired_repository_homework: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -165,7 +173,6 @@ class CmpContentImportResult:
     imported: tuple[CohortReport, ...] = ()
     skipped_by_owner: tuple[tuple[str, str], ...] = ()
     skipped_not_in_local_catalogue: tuple[str, ...] = ()
-    skipped_modules_format: tuple[str, ...] = ()
     skipped_fixture: tuple[str, ...] = ()
     skipped_dependent_rows: Mapping[str, int] = field(default_factory=dict)
 
@@ -178,6 +185,18 @@ class CmpContentImportResult:
             "projects_written": sum(row.projects_written for row in self.imported),
             "projects_removed": sum(row.projects_removed for row in self.imported),
             "criteria_written": sum(row.criteria_written for row in self.imported),
+            "modules_rebound": sum(len(row.rebound_modules) for row in self.imported),
+            "unpaired_cmp_homework": sorted(
+                slug for row in self.imported for slug in row.unpaired_cmp_homework
+            ),
+            "unpaired_repository_homework": sorted(
+                slug for row in self.imported for slug in row.unpaired_repository_homework
+            ),
+            "rebindings": [
+                {"cohort": row.cohort_slug, "module": module, "was": old, "now": new}
+                for row in self.imported
+                for module, old, new in row.rebound_modules
+            ],
             "per_cohort": [
                 {
                     "cohort": row.cohort_slug,
@@ -195,7 +214,6 @@ class CmpContentImportResult:
                     {"cohort": slug, "reason": reason} for slug, reason in self.skipped_by_owner
                 ],
                 "not_in_local_catalogue": list(self.skipped_not_in_local_catalogue),
-                "modules_format": list(self.skipped_modules_format),
                 "fixture": list(self.skipped_fixture),
                 "dependent_rows": dict(self.skipped_dependent_rows),
             },
@@ -320,7 +338,6 @@ def import_cmp_course_content(
         imported: list[CohortReport] = []
         by_owner: list[tuple[str, str]] = []
         missing: list[str] = []
-        modules: list[str] = []
         fixture: list[str] = []
         dependent: dict[str, int] = {}
 
@@ -341,10 +358,6 @@ def import_cmp_course_content(
                 missing.append(slug)
                 dependent[slug] = _dependent_row_total(connection, row["id"])
                 continue
-            if cohort.curriculum_format != Cohort.CurriculumFormat.LEGACY:
-                modules.append(slug)
-                dependent[slug] = _dependent_row_total(connection, row["id"])
-                continue
             if slug in COHORT_FAMILY_IDENTITIES:
                 family_slug, _year = COHORT_FAMILY_IDENTITIES[slug]
                 if cohort.course.slug != family_slug:
@@ -356,7 +369,6 @@ def import_cmp_course_content(
             imported=tuple(imported),
             skipped_by_owner=tuple(by_owner),
             skipped_not_in_local_catalogue=tuple(missing),
-            skipped_modules_format=tuple(modules),
             skipped_fixture=tuple(fixture),
             skipped_dependent_rows=dependent,
         )
@@ -393,25 +405,58 @@ def _import_cohort(connection: sqlite3.Connection, row: Any, cohort: Cohort) -> 
         "SELECT * FROM courses_homework WHERE course_id = ? ORDER BY id",
         (course_id,),
     )
+    is_modules = cohort.curriculum_format != Cohort.CurriculumFormat.LEGACY
+    existing = {row.slug: row for row in Homework.objects.filter(course=cohort)}
+    # Only a repository row CMP has no slug for can stand in for a CMP row, so a title
+    # already claimed by a matching slug is never reused.
+    superseding = {row["slug"] for row in homework_rows}
+    by_title = {
+        row.title: row for row in existing.values() if row.slug not in superseding and row.title
+    }
+
     written = 0
     questions_written = 0
     source_slugs: set[str] = set()
+    rebound: list[tuple[str, str, str]] = []
+    unpaired_cmp: list[str] = []
     for source in homework_rows:
         slug = str(source["slug"])
         source_slugs.add(slug)
-        homework, created = Homework.objects.get_or_create(
-            course=cohort,
-            slug=slug,
-            defaults=_values(source, _HOMEWORK_FIELDS),
-        )
-        if not created:
-            _apply(homework, _values(source, _HOMEWORK_FIELDS))
+        values = _values(source, _HOMEWORK_FIELDS)
+        homework = existing.get(slug)
+        if homework is not None:
+            # Slugs already agree, so the module binding needs no repair.
+            _apply(homework, values)
+        else:
+            superseded = by_title.pop(values["title"], None)
+            homework = Homework.objects.create(course=cohort, slug=slug, **values)
+            if superseded is None:
+                if is_modules:
+                    unpaired_cmp.append(slug)
+            else:
+                for module in Module.objects.filter(terminal_homework=superseded):
+                    module.terminal_homework = homework
+                    module.save(update_fields=["terminal_homework"])
+                    rebound.append((module.slug, superseded.slug, slug))
+                superseded.delete()
+                existing.pop(superseded.slug, None)
+        existing[slug] = homework
         written += 1
         questions_written += _replace_questions(connection, source["id"], homework)
 
-    # CMP owns a legacy cohort's assignments, so a homework it does not have is seed copy.
-    # Module-bound rows cannot occur here: this path only runs for legacy cohorts.
-    removed = Homework.objects.filter(course=cohort).exclude(slug__in=source_slugs).delete()[0]
+    leftover = Homework.objects.filter(course=cohort).exclude(slug__in=source_slugs)
+    if is_modules:
+        # A modules cohort has two legitimate authors.  CMP owns the identity and content
+        # of the assignments it has; it does not assert that an assignment it lacks does
+        # not exist, and deleting a repository-authored homework would strip its module's
+        # page.  Report the divergence instead of resolving it by deletion.
+        removed = 0
+        unpaired_repository = tuple(sorted(leftover.values_list("slug", flat=True)))
+    else:
+        # CMP is the whole source for a legacy cohort, so a homework it does not have is
+        # seed copy.  No module can be bound to one: legacy cohorts have no modules.
+        removed = leftover.delete()[0]
+        unpaired_repository = ()
 
     project_rows = _rows(
         connection,
@@ -456,6 +501,9 @@ def _import_cohort(connection: sqlite3.Connection, row: Any, cohort: Cohort) -> 
         projects_written=projects_written,
         projects_removed=projects_removed,
         criteria_written=len(criteria_rows),
+        rebound_modules=tuple(rebound),
+        unpaired_cmp_homework=tuple(sorted(unpaired_cmp)),
+        unpaired_repository_homework=unpaired_repository,
     )
 
 

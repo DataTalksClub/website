@@ -294,7 +294,7 @@ renames, and deletes nothing under `scripts/`.**
 | `review_import/workflow.py` (1658) | sanitizing CMP reader | **Keep, registered.** Extraction is a later change (§10) |
 | `review_import/manifest.py` | versioned allowlist + sensitive set | **Keep and promote** — becomes the PII boundary (§6.2) |
 | `scripts/build_local_review_db.py` (19) | thin CLI over the above | Becomes `scripts/prod/` entry point |
-| `scripts/build_course_modules_manifest.py` (345) | course repos → manifest | **Move to `scripts/prod/`**; teach it to emit `homework_slug_overrides` |
+| `scripts/build_course_modules_manifest.py` (345) | course repos → manifest | **Move to `scripts/prod/`** |
 | `courses/services/local_course_modules.py` | manifest → curriculum importer | Keep in app code; registered |
 | `courses/services/curriculum_import.py` | transactional curriculum importer | **Keep, untouched** — held by another lane |
 | `events/importers.py` (904) | Luma + Eventbrite adapters | **Keep in place**, registered. Tested; do not move |
@@ -566,17 +566,31 @@ drift between the two becomes a test failure instead of a silent miscategorisati
 
 ### 7.2 How a CMP homework binds to a repo module
 
-By an **explicit override table**, using the existing unused `homework_slug_overrides` hook
-(§3.5), emitted by `build_course_modules_manifest.py` and reviewed as data:
+**Owner decision: CMP's slug, copied verbatim. No overrides, no mapping table.** CMP is
+the source of truth for homework identity, so where the repository declares a different
+slug, CMP's wins and the repository's becomes dead configuration.
 
-```
-llm-zoomcamp-2026:  hw1→homework-01 … hw5→homework-05
-ai-dev-tools-2026:  hw1→hw01 … hw4→hw04
-ml-zoomcamp-2026:   (empty — slugs already agree)
-```
+⚠ This **supersedes the first draft**, which proposed emitting the `homework_slug_overrides`
+hook as a reviewed table. That hook now has **no production caller**: the manifest builder
+never emitted it, and its only remaining uses are its own validation and three tests. It is
+dead code to be dropped under its own issue, not here.
 
-The `^hw(\d+)$` regex at `local_cmp_content_import.py:50` is **deleted**. Per-cohort data
-where the cohorts genuinely differ; no inference.
+Adopting CMP's slug means re-pointing `Module.terminal_homework`, so the module and its
+homework must be paired. The pairing is **read from data both sides already publish** —
+the slug where they agree, otherwise an exact title match — and is never derived:
+
+| Cohort | Paired by slug | Paired by title | Unpaired |
+| --- | ---: | ---: | --- |
+| `ml-zoomcamp-2026` | 9 | 0 | — |
+| `ai-dev-tools-2026` | 0 | 4 | — |
+| `llm-zoomcamp-2026` | 0 | 4 | CMP `hw3`, `dlt`; repo `homework-03`, `-06`, `-07` |
+
+**Ordinal position is rejected.** CMP orders `dlt` sixth for `llm-zoomcamp-2026`, where the
+sixth module is Best Practices, so positional pairing silently binds a workshop to the
+wrong module — a page that renders fine and is wrong. A visible gap is recoverable; a wrong
+attachment is not.
+
+The `^hw(\d+)$` regex at `local_cmp_content_import.py:50` is **deleted**.
 
 Unmatched cases, both of which will occur — decided, not emergent:
 
@@ -791,7 +805,9 @@ plus re-export*, not a `git mv`, until the ledger issue lands.
 8. **Schema-drift adoption** (§6.4): `KNOWN_UNMAPPED_TABLES`, version bump.
 9. **`Makefile:408`** → newest `/data/tmp/rds-export/rds-prod-*.db`, resolved not
     hardcoded, still overridable. *(This takes ownership of `Makefile`; see §12.)*
-10. **Homework binding** (§7.2): emit `homework_slug_overrides`; delete the regex.
+10. **Homework binding** (§7.2): adopt CMP's slug verbatim and re-point the module
+    binding; delete the regex. `homework_slug_overrides` becomes dead and is dropped
+    under its own issue.
 
 Steps 1-6 are behaviour-preserving. Steps 7-10 are the visible fix.
 

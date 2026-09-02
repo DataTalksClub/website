@@ -14,7 +14,15 @@ from pathlib import Path
 
 from django.test import TestCase
 
-from courses.models import Cohort, Course, Homework, Project, Question, ReviewCriteria
+from courses.models import (
+    Cohort,
+    Course,
+    Homework,
+    Module,
+    Project,
+    Question,
+    ReviewCriteria,
+)
 from courses.services.cmp_content_import import (
     SKIPPED_COHORTS,
     CmpContentImportError,
@@ -252,31 +260,108 @@ class CmpContentImportTests(TestCase):
 
         self.assertEqual(result.skipped_dependent_rows["ai-hero-2025"], 1)
 
-    def test_leaves_a_modules_format_cohort_untouched(self) -> None:
-        """A modules cohort binds homework to repository modules by slug.
-
-        Importing CMP's slugs beside the repository's would leave the module rail pointing
-        at one set and the real questions on another, which renders as a page that looks
-        fine and is wrong.  The pairing belongs in ``homework_slug_overrides`` first.
-        """
+    def _modules_cohort(self, repository_homework: dict[str, str]) -> tuple[Cohort, dict]:
+        """Build a modules cohort whose modules terminate in repository homework."""
 
         cohort = self._cohort("llm-zoomcamp-2026", curriculum_format="modules")
-        existing = Homework.objects.create(
-            course=cohort,
-            slug="homework-01",
-            title="Repository homework",
-            description="From the course repository",
-            due_date=datetime.now(timezone.utc) + timedelta(days=7),
+        modules = {}
+        for position, (slug, title) in enumerate(repository_homework.items()):
+            homework = Homework.objects.create(
+                course=cohort,
+                slug=slug,
+                title=title,
+                description="From the course repository",
+                due_date=datetime.now(timezone.utc) + timedelta(days=7),
+            )
+            modules[slug] = Module.objects.create(
+                cohort=cohort,
+                position=position,
+                slug=f"0{position + 1}-module",
+                title=f"Module {position + 1}",
+                terminal_homework=homework,
+            )
+        return cohort, modules
+
+    def test_adopts_the_cmp_slug_and_repoints_the_module_binding(self) -> None:
+        """CMP owns homework identity, so its slug replaces the repository's."""
+
+        cohort, modules = self._modules_cohort({"homework-01": "Homework 1: Real"})
+        _build_source(self.source, cohort_slugs=("llm-zoomcamp-2026",))
+
+        result = import_cmp_course_content(self.source)
+
+        self.assertEqual(
+            list(Homework.objects.filter(course=cohort).values_list("slug", flat=True)),
+            ["hw1"],
+        )
+        module = modules["homework-01"]
+        module.refresh_from_db()
+        self.assertEqual(module.terminal_homework.slug, "hw1")
+        self.assertEqual(module.terminal_homework.question_set.count(), 1)
+        self.assertEqual(
+            result.summary()["rebindings"],
+            [
+                {
+                    "cohort": "llm-zoomcamp-2026",
+                    "module": "01-module",
+                    "was": "homework-01",
+                    "now": "hw1",
+                }
+            ],
+        )
+
+    def test_keeps_the_binding_untouched_when_the_slugs_already_agree(self) -> None:
+        cohort, modules = self._modules_cohort({"hw1": "Homework 1: Real"})
+        _build_source(self.source, cohort_slugs=("llm-zoomcamp-2026",))
+
+        result = import_cmp_course_content(self.source)
+
+        module = modules["hw1"]
+        module.refresh_from_db()
+        self.assertEqual(module.terminal_homework.slug, "hw1")
+        self.assertEqual(result.summary()["rebindings"], [])
+        self.assertEqual(Homework.objects.filter(course=cohort).count(), 1)
+
+    def test_leaves_an_unpairable_homework_unbound_rather_than_guessing(self) -> None:
+        """A wrong attachment renders as a page that looks fine and is wrong.
+
+        Pairing by ordinal position would bind CMP's ``dlt`` workshop to whichever
+        module happened to sit at its index, so a homework whose slug and title both
+        disagree is reported instead.
+        """
+
+        cohort, modules = self._modules_cohort({"homework-01": "Homework 1: Drifted title"})
+        _build_source(self.source, cohort_slugs=("llm-zoomcamp-2026",))
+
+        result = import_cmp_course_content(self.source)
+
+        module = modules["homework-01"]
+        module.refresh_from_db()
+        self.assertEqual(module.terminal_homework.slug, "homework-01")
+        summary = result.summary()
+        self.assertEqual(summary["unpaired_cmp_homework"], ["hw1"])
+        self.assertEqual(summary["unpaired_repository_homework"], ["homework-01"])
+        self.assertEqual(
+            sorted(Homework.objects.filter(course=cohort).values_list("slug", flat=True)),
+            ["homework-01", "hw1"],
+        )
+
+    def test_never_deletes_repository_homework_cmp_does_not_have(self) -> None:
+        """CMP owning identity is not CMP asserting the assignment does not exist.
+
+        Deleting it would strip its module's page, so a modules cohort keeps it and the
+        divergence is reported.
+        """
+
+        cohort, _ = self._modules_cohort(
+            {"hw1": "Homework 1: Real", "homework-99": "Homework 99: Repository only"}
         )
         _build_source(self.source, cohort_slugs=("llm-zoomcamp-2026",))
 
         result = import_cmp_course_content(self.source)
 
-        self.assertEqual(result.skipped_modules_format, ("llm-zoomcamp-2026",))
-        self.assertEqual(
-            list(Homework.objects.filter(course=cohort).values_list("slug", flat=True)),
-            [existing.slug],
-        )
+        self.assertTrue(Homework.objects.filter(course=cohort, slug="homework-99").exists())
+        self.assertEqual(result.summary()["unpaired_repository_homework"], ["homework-99"])
 
     def test_skips_a_cohort_the_local_catalogue_does_not_have(self) -> None:
         _build_source(self.source, cohort_slugs=("de-zoomcamp-2026",))
