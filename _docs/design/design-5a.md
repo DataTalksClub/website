@@ -1290,4 +1290,4 @@ WebP**. The convention:
    tags alone on their line (`content/tests/test_public_template_source.py`).
 8. Verify: both themes, 1440×900 and 390×844 screenshots, keyboard pass
    (skip link, focus visible, menus operable), and the page-owning tests plus
-   `make lint format-check typecheck terminology-check`.
+   `make lint format-check typecheck`.

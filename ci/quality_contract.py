@@ -9,9 +9,8 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-QUALITY_CONTRACT_VERSION = 1
+QUALITY_CONTRACT_VERSION = 2
 QUALITY_TARGETS = (
-    "terminology-check",
     "database-portability-check",
     "security-check",
     "lint",
@@ -23,7 +22,21 @@ QUALITY_TARGETS = (
     "test-ci",
 )
 LEGACY_QUALITY_CONTRACT_VERSION = 0
-LEGACY_QUALITY_TARGETS = tuple(target for target in QUALITY_TARGETS if target != "security-check")
+# The pre-#141 fixture below predates `security-check` and still carries the
+# retired `terminology-check` gate.  Its target list is written out rather than
+# derived, so retiring a current target cannot silently rewrite what release
+# archaeology runs against that frozen source.
+LEGACY_QUALITY_TARGETS = (
+    "terminology-check",
+    "database-portability-check",
+    "lint",
+    "format-check",
+    "typecheck",
+    "migrations-check",
+    "django-check",
+    "deployment-check",
+    "test-ci",
+)
 # One immutable pre-#141 fixture remains runnable for release archaeology.  It
 # is never inferred from a missing target: only this exact historical source
 # may use the legacy contract.

@@ -88,7 +88,6 @@ decision.
 | `build_synthetic_design_review_db.py` | Builds a wholly synthetic issue-#237 design-review SQLite DB + manifest under `.tmp/` | Live (design contract) | `_docs/design/issue-237-review-state-matrix.md:18` |
 | `capture_screenshots.py` | Playwright screenshotter for local pages, for the tester role | **Uncertain** — see §4 | lint/typecheck lists only (`Makefile:48,83`) |
 | `check_database_portability.py` | Fails when app code, CI or specs regain backend-specific behavior | Live (CI gate) | `Makefile:119`; `ci/tests/test_database_portability.py:8` |
-| `check_development_terminology.py` | Rejects unclassified uses of the former development-environment name | Live (CI gate) | `Makefile:116`; `core/tests/test_development_terminology.py:33` |
 | `create_local_admin.py` | Seeds the documented local admin + placeholder social providers (`website.settings.local`) | Live | `README.md:29` |
 | `prepare_course_platform_source.py` | Provisions the clean detached CMP checkout from `source-pin.json` | Live | `Makefile:167`; `.github/workflows/content-update.yml:19,44` |
 | `prepare_event_registration_sources.py` | Prepares protected Eventbrite/Luma exports for aggregate-only migration adapters | Live (migration) | `_docs/migration-checklist.md:94`; `events/tests/test_prepare_registration_sources.py:13` |

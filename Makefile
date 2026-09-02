@@ -8,7 +8,7 @@
 	security-check security-artifact-scan \
 	test-remote-readonly test-remote-mutation test-live-email test-live-provider test-all migrate run worker \
 	production-prep-local \
-	terraform-seo-source-check terminology-check check-openapi check-management-parity \
+	terraform-seo-source-check check-openapi check-management-parity \
 	database-portability-check verify-dtc-content review-data review-data-dry-run \
 	review-data-cleanup run-review-data verification-plan verification-run verification-full \
 	verification-quality verification-container verification-content-invariants \
@@ -118,9 +118,6 @@ security-artifact-scan:
 		$(foreach artifact,$(SECURITY_ARTIFACT_INPUTS),--input "$(artifact)") \
 		$(foreach canary,$(SECURITY_ARTIFACT_CANARIES),--canary "$(canary)") \
 		--output .tmp/security/security-artifact-scan.json
-
-terminology-check:
-	uv run python scripts/check_development_terminology.py
 
 database-portability-check:
 	uv run python scripts/check_database_portability.py
@@ -241,7 +238,7 @@ verification-run:
 	if test "$$report_status" -ne 0; then exit "$$report_status"; fi; \
 	exit "$$runner_status"
 
-verification-quality: terminology-check database-portability-check security-check lint format-check typecheck \
+verification-quality: database-portability-check security-check lint format-check typecheck \
 	migrations-check django-check deployment-check test-ci
 
 verification-container:
@@ -385,7 +382,7 @@ test-live-provider:
 	DTC_TEST_SAFETY_COMMAND=live_provider uv run --frozen pytest -m live_provider -v
 
 .NOTPARALLEL: test-all
-test-all: lock-check terminology-check database-portability-check lint format-check typecheck \
+test-all: lock-check database-portability-check lint format-check typecheck \
 	migrations-check django-check deployment-check compatibility-source-artifacts-check \
 	compatibility-artifacts-check check-links check-seo test-factories test-migrations test \
 	test-playwright

@@ -64,7 +64,7 @@ ALLOWED_COMPONENT_COMMANDS = {
     "playwright": frozenset(
         {"make test-playwright-smoke", "make test-playwright-core", "make test-playwright"}
     ),
-    "quality": frozenset({"quality-contract-v1"}),
+    "quality": frozenset({"quality-contract-v2"}),
     "screenshots": frozenset({"independent tester desktop/mobile capture and inspection"}),
     "selector": frozenset(
         {"make verification-plan", "ci.classifier select and ci.verification plan"}

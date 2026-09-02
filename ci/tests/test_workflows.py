@@ -312,7 +312,7 @@ def test_normal_workflow_uses_versioned_plan_and_trusted_evidence_artifact() -> 
     assert "--component selector" in classifier_script
     assert "ci.verification environment" in classifier_script
     assert "quality compatibility content_invariants evidence_validation" in runs(jobs["quality"])
-    assert "quality-contract-v1" in (ROOT / "ci" / "ownership.json").read_text(encoding="utf-8")
+    assert "quality-contract-v2" in (ROOT / "ci" / "ownership.json").read_text(encoding="utf-8")
     workflow_text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     assert workflow_text.count("ci.verification record") == workflow_text.count("--machine-output")
     assert workflow_text.count("ci.verification record") == workflow_text.count(

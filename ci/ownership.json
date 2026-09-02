@@ -37,7 +37,7 @@
       "validity_class": "volatile"
     },
     "quality": {
-      "command": "quality-contract-v1",
+      "command": "quality-contract-v2",
       "environment_dimensions": ["architecture", "django", "operating_system", "python", "runner_image", "uv"],
       "relevant_patterns": ["**/*.py", "ci/**", "tests_ci/**", ".github/workflows/**", "Makefile", "pyproject.toml", "uv.lock", ".python-version", "manage.py"],
       "validity_class": "standard"

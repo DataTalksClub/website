@@ -230,9 +230,9 @@ a digest-bound artifact. Recording never copies the classifier job's environment
 `ImageVersion`, settings module, or other allowlisted execution value blocks the envelope and
 aggregate gate and cannot be accepted during replay, report validation, or evidence reuse.
 
-Manual promotion and rollback apply `quality-contract-v1` from the trusted current workflow
+Manual promotion and rollback apply `quality-contract-v2` from the trusted current workflow
 controller to the exact selected release checkout. The contract invokes the explicit maintained
-quality targets (`terminology-check`, `database-portability-check`, `security-check`, lint, format,
+quality targets (`database-portability-check`, `security-check`, lint, format,
 type, migration, Django, deployment, and CI-policy checks) in that checkout. A pre-contract release such as
 `a220728` is valid when all primitive targets exist; it does not need the future aggregate
 `verification-quality` target. If an aggregate target is present, its declared prerequisites must
