@@ -415,6 +415,14 @@ PRODUCTION_PREP_DATASET_REGISTRATION_INPUT ?= \
 # yet: their `course.yaml`/`module.yaml` layout exists only on local `main`. Point this
 # at GitHub once those commits are pushed.
 PRODUCTION_PREP_COURSE_REMOTE ?= $(HOME)/git
+# Because those clones are local, the commits they pin are not reachable on the
+# public GitHub repositories, so every source link the imported pages build --
+# the edit link, the raw image URL, a source path a reader follows -- resolves
+# to a 404 until the owner pushes them. The manifest builder refuses such a
+# checkout unless the reason is stated, and records the reason it was given.
+# Clear this once the 2026 curricula are pushed; then the guard passes on its own.
+PRODUCTION_PREP_UNPUBLISHED_COMMIT_REASON ?= \
+	The 2026 llm-zoomcamp and machine-learning-zoomcamp curricula exist only on the owner's local main; pushing them is a tracked owner action.
 PRODUCTION_PREP_COURSE_REPOSITORIES = \
 	llm-zoomcamp:llm-zoomcamp \
 	ml-zoomcamp:machine-learning-zoomcamp \
@@ -441,6 +449,7 @@ production-prep-course-sources:
 production-prep-course-modules-manifest: production-prep-course-sources
 	uv run --frozen python scripts/build_course_modules_manifest.py \
 		--checkout-root "$(PRODUCTION_PREP_COURSE_SOURCE_DIR)" \
+		$(if $(PRODUCTION_PREP_UNPUBLISHED_COMMIT_REASON),--allow-unpublished-commit "$(PRODUCTION_PREP_UNPUBLISHED_COMMIT_REASON)",) \
 		--output "$(PRODUCTION_PREP_COURSE_MODULES_MANIFEST)"
 
 production-prep-dataset: production-prep-course-modules-manifest

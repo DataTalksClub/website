@@ -47,6 +47,7 @@ from courses.services.local_course_modules import (  # noqa: E402
     PREPARATION_SCHEMA_VERSION,
     TARGET_COHORTS,
     TARGET_REPOSITORIES,
+    commit_is_public,
     snapshot_checksum,
 )
 
@@ -200,7 +201,12 @@ def _file_checksums(root: Path, relative_paths: Iterable[str]) -> dict[str, str]
     return checksums
 
 
-def _source_record(stable_id: str, root: Path) -> dict[str, Any]:
+def _source_record(
+    stable_id: str,
+    root: Path,
+    *,
+    unpublished_commit_reason: str = "",
+) -> dict[str, Any]:
     root = root.resolve(strict=False)
     if not root.is_dir():
         raise ManifestBuildError(f"checkout_missing: {stable_id} at {root}")
@@ -210,26 +216,50 @@ def _source_record(stable_id: str, root: Path) -> dict[str, Any]:
     if _git(root, "status", "--porcelain=v1", "--untracked-files=all").strip():
         raise ManifestBuildError(f"checkout_dirty: {stable_id}")
     owner, name = TARGET_REPOSITORIES[stable_id]
+    commit_sha = _git(root, "rev-parse", "HEAD").strip()
+    # A commit no public reader can resolve makes every source-derived link on
+    # the published page -- the edit link, the raw image URL, a source path a
+    # reader follows -- a 404.  Refuse to describe such a checkout unless the
+    # operator states why the import proceeds anyway.
+    commit_public = commit_is_public(root, owner=owner, name=name, commit_sha=commit_sha)
+    if not commit_public and not unpublished_commit_reason:
+        raise ManifestBuildError(
+            f"commit_not_public: {stable_id} at {commit_sha} is not on a branch of "
+            f"https://github.com/{owner}/{name}; push it, or pass "
+            f"--allow-unpublished-commit with the reason it may ship unpublished"
+        )
     checksums = _file_checksums(root, _selected_files(root))
-    return {
+    record = {
         "source_uuid": SOURCE_UUIDS[stable_id],
         "source_stable_id": stable_id,
         "repository_owner": owner,
         "repository_name": name,
         "repository_branch": branch,
-        "commit_sha": _git(root, "rev-parse", "HEAD").strip(),
+        "commit_sha": commit_sha,
         "cohort_identifier": TARGET_COHORTS[stable_id],
         "root": str(root),
         "files": checksums,
         "snapshot_sha256": snapshot_checksum(checksums),
     }
+    if not commit_public:
+        record["unpublished_commit_reason"] = unpublished_commit_reason
+    return record
 
 
-def build_manifest(checkouts: dict[str, Path]) -> dict[str, Any]:
+def build_manifest(
+    checkouts: dict[str, Path],
+    *,
+    unpublished_commit_reason: str = "",
+) -> dict[str, Any]:
     return {
         "schema_version": PREPARATION_SCHEMA_VERSION,
         "sources": [
-            _source_record(stable_id, checkouts[stable_id]) for stable_id in TARGET_COHORTS
+            _source_record(
+                stable_id,
+                checkouts[stable_id],
+                unpublished_commit_reason=unpublished_commit_reason,
+            )
+            for stable_id in TARGET_COHORTS
         ],
     }
 
@@ -253,6 +283,17 @@ def _parser() -> argparse.ArgumentParser:
             help=f"Explicit checkout for {stable_id}.",
         )
     parser.add_argument("--output", type=Path, required=True, help="Manifest JSON to write.")
+    parser.add_argument(
+        "--allow-unpublished-commit",
+        default="",
+        metavar="REASON",
+        help=(
+            "Describe a checkout whose commit is not reachable on the public GitHub "
+            "repository, recording this reason with it.  Without this the builder "
+            "refuses, because the imported pages would carry source links nobody "
+            "outside the operator's machine can resolve."
+        ),
+    )
     return parser
 
 
@@ -266,7 +307,10 @@ def main(argv: list[str] | None = None) -> int:
         for stable_id in TARGET_COHORTS
     }
     try:
-        manifest = build_manifest(checkouts)
+        manifest = build_manifest(
+            checkouts,
+            unpublished_commit_reason=args.allow_unpublished_commit.strip(),
+        )
     except ManifestBuildError as error:
         print(f"course module manifest refused: {error}", file=sys.stderr)
         return 2
@@ -282,6 +326,10 @@ def main(argv: list[str] | None = None) -> int:
                         "commit_sha": source["commit_sha"],
                         "files": len(source["files"]),
                         "snapshot_sha256": source["snapshot_sha256"],
+                        "commit_public": "unpublished_commit_reason" not in source,
+                        "unpublished_commit_reason": source.get(
+                            "unpublished_commit_reason", ""
+                        ),
                     }
                     for source in manifest["sources"]
                 ],

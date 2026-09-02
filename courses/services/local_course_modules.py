@@ -95,6 +95,7 @@ _SOURCE_FIELDS = frozenset(
         "snapshot_sha256",
         "files",
         "homework_slug_overrides",
+        "unpublished_commit_reason",
     }
 )
 
@@ -119,6 +120,8 @@ class PreparedCourseSource:
     cohort_count: int
     module_count: int
     homework_count: int
+    commit_public: bool = True
+    unpublished_commit_reason: str = ""
 
     def summary(self) -> dict[str, Any]:
         return {
@@ -133,6 +136,8 @@ class PreparedCourseSource:
             "cohorts": self.cohort_count,
             "modules": self.module_count,
             "homeworks": self.homework_count,
+            "commit_public": self.commit_public,
+            "unpublished_commit_reason": self.unpublished_commit_reason,
         }
 
 
@@ -257,6 +262,97 @@ def _validate_git_checkout(root: Path, *, commit_sha: str, branch: str) -> None:
             _refuse("source_git_revision_mismatch")
 
 
+def _git(root: Path, *arguments: str) -> str | None:
+    """Return trimmed git output for the checkout, or ``None`` when git fails."""
+
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(root), *arguments],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if completed.returncode != 0:
+        return None
+    return completed.stdout.strip()
+
+
+def public_repository_urls(owner: str, name: str) -> frozenset[str]:
+    """Return the URL spellings that identify one public GitHub repository."""
+
+    path = f"{owner}/{name}".casefold()
+    return frozenset(
+        {
+            f"https://github.com/{path}",
+            f"https://github.com/{path}.git",
+            f"http://github.com/{path}",
+            f"http://github.com/{path}.git",
+            f"ssh://git@github.com/{path}",
+            f"ssh://git@github.com/{path}.git",
+            f"git@github.com:{path}",
+            f"git@github.com:{path}.git",
+        }
+    )
+
+
+def _public_remote_names(root: Path, *, owner: str, name: str) -> tuple[str, ...]:
+    listing = _git(root, "config", "--get-regexp", r"^remote\..*\.url$")
+    if listing is None:
+        return ()
+    expected = public_repository_urls(owner, name)
+    remotes: list[str] = []
+    for line in listing.splitlines():
+        key, _, url = line.partition(" ")
+        if not url or not key.startswith("remote.") or not key.endswith(".url"):
+            continue
+        if url.strip().rstrip("/").casefold() in expected:
+            remotes.append(key[len("remote.") : -len(".url")])
+    return tuple(remotes)
+
+
+def commit_is_public(root: Path, *, owner: str, name: str, commit_sha: str) -> bool:
+    """Return whether the commit is on a branch of the public GitHub remote.
+
+    A unit records its provenance as a repository plus a commit, and every
+    public affordance built from that provenance -- the edit link, the raw image
+    URL, a reader following a source path -- assumes the commit is one the
+    public can resolve.  Reachability is read from the checkout's own
+    remote-tracking branches, so this stays offline and deterministic: a
+    checkout cloned from a private or local mirror simply has no branch of the
+    public remote containing the commit.
+    """
+
+    remotes = _public_remote_names(root, owner=owner, name=name)
+    if not remotes:
+        return False
+    containing = _git(root, "branch", "--remotes", "--contains", commit_sha, "--format=%(refname)")
+    if not containing:
+        return False
+    prefixes = tuple(f"refs/remotes/{remote}/" for remote in remotes)
+    return any(line.strip().startswith(prefixes) for line in containing.splitlines())
+
+
+def validate_public_commit(
+    root: Path,
+    *,
+    owner: str,
+    name: str,
+    commit_sha: str,
+    unpublished_reason: str,
+) -> bool:
+    if commit_is_public(root, owner=owner, name=name, commit_sha=commit_sha):
+        return True
+    if not unpublished_reason:
+        # Importing a commit no reader can resolve publishes pages whose source
+        # links, images and edit affordances can only 404.  Refuse rather than
+        # degrade the page, and make the operator state the reason to proceed.
+        _refuse("source_commit_not_public")
+    return False
+
+
 def _read_snapshot(root: Path, checksums: Mapping[str, str]) -> dict[str, bytes]:
     if not root.is_absolute() or not root.is_dir() or root.is_symlink():
         _refuse("source_checkout_unavailable")
@@ -345,7 +441,18 @@ def _validate_source_record(record: Mapping[str, Any]) -> tuple[dict[str, Any], 
             _refuse("homework_slug_overrides_invalid")
         if path not in checksums or not isinstance(slug, str) or _SLUG.fullmatch(slug) is None:
             _refuse("homework_slug_overrides_invalid")
+    unpublished_reason = record.get("unpublished_commit_reason", "")
+    if not isinstance(unpublished_reason, str) or len(unpublished_reason) > 512:
+        _refuse("unpublished_commit_reason_invalid")
+    unpublished_reason = unpublished_reason.strip()
     _validate_git_checkout(root, commit_sha=commit_sha, branch=branch)
+    commit_public = validate_public_commit(
+        root,
+        owner=owner,
+        name=name,
+        commit_sha=commit_sha,
+        unpublished_reason=unpublished_reason,
+    )
     snapshot = _read_snapshot(root, checksums)
     return (
         {
@@ -360,6 +467,8 @@ def _validate_source_record(record: Mapping[str, Any]) -> tuple[dict[str, Any], 
             "checksums": checksums,
             "snapshot_sha256": expected_snapshot,
             "homework_slug_overrides": dict(overrides),
+            "commit_public": commit_public,
+            "unpublished_commit_reason": "" if commit_public else unpublished_reason,
         },
         snapshot,
     )
@@ -482,6 +591,8 @@ def _prepare_source(
         cohort_count=1,
         module_count=module_count,
         homework_count=homework_count,
+        commit_public=values["commit_public"],
+        unpublished_commit_reason=values["unpublished_commit_reason"],
     )
     command = CurriculumImportCommand(
         source=graph,
@@ -561,6 +672,9 @@ def prepare_local_course_modules(
 
 
 __all__ = [
+    "commit_is_public",
+    "validate_public_commit",
+    "public_repository_urls",
     "LocalCourseModulesError",
     "LocalCourseModulesPreparationResult",
     "PreparedCourseImport",

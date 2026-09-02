@@ -177,6 +177,18 @@ activating the reviewed current-event registration aggregates.
   those commits are pushed, this dataset cannot be rebuilt on a machine that does not already
   have the local clones, and neither can production ingest the curricula through the course
   repository webhook.
+
+  The manifest builder and the preparation service both refuse a checkout whose commit is not
+  reachable from a branch of its public GitHub repository, because every source-derived link the
+  imported pages publish — the edit link, the raw image URL, a source path a reader follows —
+  can only 404 while the commit is private. To proceed anyway the operator must state why, with
+  `--allow-unpublished-commit "<reason>"` on `scripts/build_course_modules_manifest.py`; the
+  reason is written into the manifest as `unpublished_commit_reason` and echoed in the
+  preparation summary next to `commit_public: false`, so an unpublished import is recorded
+  rather than silent. `make production-prep-dataset` passes the reason through
+  `PRODUCTION_PREP_UNPUBLISHED_COMMIT_REASON`; clear that variable once the curricula are
+  pushed and the guard passes on its own. Reachability is read from the checkout's own
+  remote-tracking branches, so the check needs no network.
 - **The protected CMP snapshot.** `PRODUCTION_PREP_CMP_SOURCE` defaults to
   `$(HOME)/git/course-management-platform/db/db.sqlite3`. `make production-prep-local` copies that
   file and runs the sanitizing importer before the catalogue seed and module preparation, so
