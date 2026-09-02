@@ -111,11 +111,11 @@ class UnitMarkdownLinkTests(TestCase):
 
         self.assertContains(
             response,
-            f'{self.unit_url(self.previous)}#faq',
+            f"{self.unit_url(self.previous)}#faq",
         )
         self.assertContains(response, self.unit_url(self.next))
-        self.assertNotContains(response, '04-dataset.md#faq')
-        self.assertNotContains(response, '06-building-prompt.md')
+        self.assertNotContains(response, "04-dataset.md#faq")
+        self.assertNotContains(response, "06-building-prompt.md")
 
     def test_cross_module_readme_and_external_links_keep_their_intended_targets(self):
         self.current.content_markdown = (
@@ -141,6 +141,10 @@ class UnitMarkdownLinkTests(TestCase):
                 },
             ),
         )
-        self.assertContains(response, 'https://example.com/lesson.md')
-        self.assertContains(response, 'src="04-dataset.md"')
-        self.assertContains(response, '99-missing.md')
+        self.assertContains(response, "https://example.com/lesson.md")
+        self.assertContains(response, "99-missing.md")
+        # An image reference is never turned into a unit route, and this course
+        # family has no repository to resolve it against, so only its
+        # description survives.
+        self.assertNotContains(response, 'src="04-dataset.md"')
+        self.assertContains(response, "diagram")

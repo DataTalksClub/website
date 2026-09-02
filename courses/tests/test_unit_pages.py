@@ -201,6 +201,38 @@ class PublicUnitPageTests(TestCase):
         self.assertContains(response, homework_url)
         self.assertContains(response, "Continue to homework →")
 
+    def test_breadcrumb_stops_at_the_module_and_names_the_edition_once(self):
+        """The trail is ancestors only, and the cohort crumb is not the course again.
+
+        "Courses / LLM Zoomcamp / spring-2026 / Agentic RAG", then the lesson as
+        the h1.  The old trail said "LLM Zoomcamp Spring 2026" one crumb after
+        "LLM Zoomcamp" and then repeated the lesson title as a fifth crumb, which
+        is what pushed it onto a second row.
+        """
+
+        body = self.client.get(self.unit_url(self.first_unit)).content.decode()
+        trail = body.split('<nav class="breadcrumbs"', 1)[1].split("</nav>", 1)[0]
+
+        self.assertIn(">Courses</a>", trail)
+        self.assertIn(f">{self.course_family.title}</a>", trail)
+        self.assertIn(f">{self.cohort.identifier}</a>", trail)
+        self.assertIn(f">{self.module.title}</a>", trail)
+        # The edition crumb is the identifier, never the course name repeated.
+        self.assertNotIn(self.cohort.title, trail)
+        # The lesson is the heading below, so it is not also a crumb.
+        self.assertNotIn(self.first_unit.title, trail)
+        self.assertNotIn('aria-current="page"', trail)
+        self.assertEqual(trail.count("<li"), 4)
+
+    def test_the_unit_heading_stands_alone_without_a_module_subtitle(self):
+        """The module line under the h1 was the crumb above it, said twice."""
+
+        body = self.client.get(self.unit_url(self.first_unit)).content.decode()
+        hero = body.split('class="unit-hero-inner"', 1)[1].split("</div>", 1)[0]
+
+        self.assertIn(f'<h1 id="unit-heading">{self.first_unit.title}</h1>', hero)
+        self.assertNotIn("unit-module", body)
+
     def test_arbitrary_cohort_identifier_is_the_route_identity(self):
         url = self.unit_url(self.first_unit)
 
@@ -210,28 +242,98 @@ class PublicUnitPageTests(TestCase):
         )
         self.assertEqual(self.client.get(url).status_code, 200)
 
-    def test_sanitizes_active_content_from_markdown(self):
-        self.first_unit.content_markdown = (
-            "Safe text.\n\n"
-            "<script>alert('xss')</script>\n\n"
-            '<img src="x" onerror="alert(1)">\n\n'
-            "[unsafe](javascript:alert(1))"
-        )
-        self.first_unit.save(update_fields=["content_markdown"])
-
-        response = self.client.get(self.unit_url(self.first_unit))
-        body = response.content.decode()
-        article = body[
+    def unit_article(self, unit):
+        body = self.client.get(self.unit_url(unit)).content.decode()
+        return body[
             body.index('<article class="prose prose-reading unit-content">') : body.index(
                 "</article>"
             )
         ]
 
-        self.assertContains(response, "Safe text.")
+    def test_sanitizes_active_content_from_markdown(self):
+        self.first_unit.content_markdown = (
+            "Safe text.\n\n"
+            "<script>alert('xss')</script>\n\n"
+            '<img src="x" onerror="alert(1)">\n\n'
+            '<iframe src="https://evil.example/frame"></iframe>\n\n'
+            '<a href="javascript:alert(1)" onclick="alert(2)">raw</a>\n\n'
+            "[unsafe](javascript:alert(1))"
+        )
+        self.first_unit.save(update_fields=["content_markdown"])
+
+        article = self.unit_article(self.first_unit)
+
+        self.assertIn("Safe text.", article)
         self.assertNotIn("<script", article)
-        self.assertNotIn("<img", article)
+        self.assertNotIn("<iframe", article)
+        self.assertNotIn("onerror", article)
+        self.assertNotIn("onclick", article)
         self.assertNotIn('href="javascript:', article)
         self.assertIn("&lt;script&gt;", article)
+        self.assertIn("&lt;iframe", article)
+        # The one surviving element is the image, and only because its
+        # repository-relative source was resolved to a public upstream URL.
+        self.assertIn(
+            '<img src="https://raw.githubusercontent.com/DataTalksClub/llm-zoomcamp'
+            '/main/cohorts/2026/01-agentic-rag/lessons/x"',
+            article,
+        )
+
+    def test_renders_raw_html_blocks_written_by_course_authors(self):
+        self.first_unit.content_markdown = (
+            '<a href="https://www.youtube.com/watch?v=Crm_5n4mvmg">'
+            '<img src="images/thumbnail-1-01.jpg"></a>\n\n'
+            "<table>\n<tr>\n<td>Warning</td>\n"
+            "<td>The notes are written by the community.<br>Send a fix.</td>\n"
+            "</tr>\n</table>\n"
+        )
+        self.first_unit.save(update_fields=["content_markdown"])
+
+        article = self.unit_article(self.first_unit)
+
+        self.assertIn('<a href="https://www.youtube.com/watch?v=Crm_5n4mvmg">', article)
+        self.assertIn(
+            '<img src="https://raw.githubusercontent.com/DataTalksClub/llm-zoomcamp'
+            '/main/cohorts/2026/01-agentic-rag/lessons/images/thumbnail-1-01.jpg"',
+            article,
+        )
+        self.assertIn("<table>", article)
+        self.assertIn("<td>Warning</td>", article)
+        self.assertIn("<br>", article)
+        self.assertNotIn("&lt;table&gt;", article)
+        self.assertNotIn("&lt;img", article)
+
+    def test_untitled_upstream_image_borrows_the_unit_title_for_its_description(self):
+        self.first_unit.content_markdown = '<img src="images/diagram.png">'
+        self.first_unit.save(update_fields=["content_markdown"])
+
+        self.assertIn('alt="Introduction"', self.unit_article(self.first_unit))
+
+    def test_unresolvable_image_is_dropped_rather_than_rendered_broken(self):
+        self.cohort.github_repo_url = ""
+        self.cohort.save(update_fields=["github_repo_url"])
+        self.first_unit.content_markdown = (
+            '<img src="images/diagram.png" alt="Diagram">\n\n![Chart](images/chart.png)'
+        )
+        self.first_unit.save(update_fields=["content_markdown"])
+
+        article = self.unit_article(self.first_unit)
+
+        self.assertNotIn("<img", article)
+        self.assertNotIn("images/diagram.png", article)
+        self.assertNotIn("images/chart.png", article)
+        self.assertIn("Chart", article)
+
+    def test_absolute_upstream_image_sources_are_left_alone(self):
+        self.first_unit.content_markdown = (
+            '<img src="https://github.com/user-attachments/assets/abc" alt="Shared">'
+        )
+        self.first_unit.save(update_fields=["content_markdown"])
+
+        self.assertIn(
+            '<img src="https://github.com/user-attachments/assets/abc" alt="Shared">',
+            self.unit_article(self.first_unit),
+        )
 
     def test_returns_404_for_legacy_or_mismatched_ownership(self):
         legacy_cohort = Cohort.objects.create(

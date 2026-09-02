@@ -1,5 +1,4 @@
 import re
-from urllib.parse import quote, urlsplit, urlunsplit
 
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
@@ -9,6 +8,7 @@ from django.utils.safestring import mark_safe
 
 from courses.models import CurriculumFormat, Unit
 from courses.registration import render_markdown, youtube_embed_url
+from courses.services.unit_assets import rewrite_unit_image_sources, unit_repository
 from courses.services.unit_links import rewrite_unit_markdown_links
 from courses.views.module import module_rail_context
 from courses.views.url_utils import get_cohort_or_404
@@ -30,34 +30,10 @@ def _unit_url(unit: Unit) -> str:
 def unit_edit_on_github_url(unit: Unit) -> str:
     """Return the source edit URL for a unit when its provenance is public."""
 
-    cohort = unit.module.cohort
-    course_family = cohort.course
-    repository_url = (
-        getattr(cohort, "github_repo_url", "")
-        or getattr(course_family, "github_repo_url", "")
-    )
-    source_path = (unit.source_path or "").strip("/")
-    if not repository_url or not source_path:
+    repository = unit_repository(unit)
+    if repository is None:
         return ""
-
-    parsed = urlsplit(repository_url.strip())
-    repository_path = parsed.path.rstrip("/").removesuffix(".git")
-    if not parsed.scheme or not parsed.netloc or not repository_path:
-        return ""
-
-    repository_base = urlunsplit(
-        (parsed.scheme, parsed.netloc, repository_path, "", "")
-    )
-    branch = (
-        getattr(cohort, "repository_branch", "")
-        or getattr(course_family, "repository_branch", "")
-        or "main"
-    )
-    return (
-        f"{repository_base}/edit/"
-        f"{quote(str(branch), safe='/')}/"
-        f"{quote(source_path, safe='/')}"
-    )
+    return repository.edit_url()
 
 
 def _adjacent_units(unit: Unit) -> tuple[Unit | None, Unit | None]:
@@ -138,6 +114,9 @@ def unit_view(
         unit.title,
     )
     unit_body_markdown = rewrite_unit_markdown_links(unit_body_markdown, unit)
+    unit_body_markdown = rewrite_unit_image_sources(unit_body_markdown, unit)
+    # ``render_markdown`` applies the course allowlist, so the rendered body is
+    # already sanitized HTML rather than trusted source text.
     rendered_content = mark_safe(render_markdown(unit_body_markdown))
     rail_context = module_rail_context(
         request,

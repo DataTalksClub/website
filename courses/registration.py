@@ -1,4 +1,5 @@
 import html
+import re
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -99,36 +100,86 @@ def _build_country_choices():
 
 COUNTRY_CHOICES = _build_country_choices()
 
+# Course Markdown is learner-authored upstream content that legitimately mixes
+# Markdown with raw HTML blocks (thumbnail links, callout tables, inline
+# emphasis).  The renderer therefore emits that raw HTML and this allowlist --
+# not an unverified trust marker -- decides what survives.  The shape mirrors
+# the article/wiki policy in ``content.services``; the one deliberate difference
+# is the image source rule, because course images live in the upstream course
+# repository rather than in the projection media store.
 ALLOWED_MARKDOWN_TAGS = [
     "a",
+    "abbr",
+    "b",
     "blockquote",
     "br",
     "code",
+    "dd",
+    "del",
+    "details",
     "div",
+    "dl",
+    "dt",
     "em",
+    "figcaption",
+    "figure",
     "h1",
     "h2",
     "h3",
     "h4",
+    "h5",
+    "h6",
     "hr",
+    "i",
+    "img",
+    "kbd",
     "li",
+    "mark",
     "ol",
     "p",
     "pre",
+    "s",
+    "span",
     "strong",
+    "sub",
+    "summary",
+    "sup",
     "table",
     "tbody",
     "td",
     "th",
     "thead",
     "tr",
+    "u",
     "ul",
 ]
 ALLOWED_MARKDOWN_ATTRIBUTES = {
     "a": ["href", "title", "rel", "target"],
     "div": ["aria-label", "class", "role", "tabindex"],
-    "th": ["scope"],
+    "img": ["alt", "height", "loading", "src", "title", "width"],
+    "td": ["colspan", "rowspan"],
+    "th": ["colspan", "rowspan", "scope"],
 }
+ALLOWED_MARKDOWN_PROTOCOLS = ["http", "https", "mailto"]
+
+_PUBLIC_IMAGE_SOURCE_RE = re.compile(r"\Ahttps?://[^\s]+\Z", re.IGNORECASE)
+# Bleach can drop a rejected attribute but not the element that carried it.  An
+# ``<img>`` that lost its source would still paint an empty bordered box, so the
+# sanitized output drops the element itself.
+_SOURCELESS_IMAGE_RE = re.compile(r"<img\b(?![^>]*\ssrc=)[^>]*>", re.IGNORECASE)
+
+
+def _allowed_markdown_attribute(tag: str, name: str, value: str) -> bool:
+    """Return whether one sanitized attribute survives on one element."""
+
+    if name not in ALLOWED_MARKDOWN_ATTRIBUTES.get(tag, ()):
+        return False
+    if tag == "img" and name == "src":
+        # Repository-relative sources are resolved before rendering.  Anything
+        # still relative here cannot be fetched from this site, and ``data:``
+        # or ``javascript:`` sources are never course content.
+        return bool(_PUBLIC_IMAGE_SOURCE_RE.match(value.strip()))
+    return True
 
 
 class _CourseMarkdownRenderer(mistune.HTMLRenderer):
@@ -177,8 +228,11 @@ def _course_tables(markdown: mistune.Markdown) -> None:
         markdown.renderer.register("table_cell", _render_course_table_cell)
 
 
+# ``escape=False`` hands the raw HTML written by course authors to the renderer
+# instead of printing it as literal source.  It is not a trust decision: every
+# rendered fragment still passes the allowlist in ``render_markdown`` below.
 _COURSE_MARKDOWN = mistune.create_markdown(
-    renderer=_CourseMarkdownRenderer(), plugins=[_course_tables]
+    renderer=_CourseMarkdownRenderer(escape=False), plugins=[_course_tables]
 )
 
 
@@ -191,12 +245,13 @@ def render_markdown(markdown_text):
         return ""
 
     rendered_html = _COURSE_MARKDOWN(markdown_text)
-    return bleach.clean(
+    sanitized_html = bleach.clean(
         rendered_html,
         tags=ALLOWED_MARKDOWN_TAGS,
-        attributes=ALLOWED_MARKDOWN_ATTRIBUTES,
-        protocols=["http", "https", "mailto"],
+        attributes=_allowed_markdown_attribute,
+        protocols=ALLOWED_MARKDOWN_PROTOCOLS,
     )
+    return _SOURCELESS_IMAGE_RE.sub("", sanitized_html)
 
 
 def markdown_has_mermaid(rendered_html: str) -> bool:
