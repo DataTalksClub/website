@@ -250,6 +250,12 @@ class PodcastPageCompositionTests(SimpleTestCase):
 
         record = dict(ordered_podcasts()[0])
         record["links"] = {}
+        # The current catalogue carries no episode artwork at all (every record's
+        # ``image_path`` is empty), so this fact is asserted explicitly rather than
+        # relied upon from the real projection -- the point under test is that
+        # artwork availability is independent of a listening link, not of content.
+        record["media_available"] = True
+        record["image_path"] = "/images/podcast/example-episode.jpg"
         unplayable = episode_view(record)
         self.assertEqual(unplayable.watch_url, "")
         self.assertTrue(unplayable.media_available)
@@ -384,10 +390,9 @@ class PodcastEpisodeParityTests(TestCase):
         projection, record = self.representative()
         view = episode_view(record, people_by_slug=projection["people_by_slug"])
 
-        self.assertEqual(
-            record["image_path"],
-            "/images/podcast/s24e07-how-to-build-ai-that-actually-ships-in-production.jpg",
-        )
+        # The catalogue carries no episode artwork today: every record's `image_path`
+        # is empty, this one included.
+        self.assertEqual(record["image_path"], "")
         self.assertEqual(view.image_path, record["image_path"])
         self.assertEqual(
             [(resource.title, resource.url) for resource in view.resources],
