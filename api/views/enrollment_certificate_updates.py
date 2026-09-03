@@ -1,7 +1,11 @@
 from dataclasses import dataclass
 
-from courses.models.cohort import Enrollment, User
-
+from accounts.identity_resolution import (
+    AccountEmailResolution,
+    AccountEmailResolutionStatus,
+    resolve_accounts_by_email,
+)
+from accounts.identity_values import normalize_account_email
 from api.views.enrollment_certificate_delivery import (
     persist_certificate_updates,
     queue_certificate_notifications,
@@ -9,6 +13,7 @@ from api.views.enrollment_certificate_delivery import (
 from api.views.enrollment_certificate_validation import (
     validate_certificate_update_items,
 )
+from courses.models.cohort import Enrollment
 
 
 @dataclass
@@ -41,8 +46,8 @@ class CertificateApplyBatch:
 @dataclass(frozen=True)
 class CertificateUpdateLookups:
     course_slug: str
-    users_by_email: dict
-    enrollments_by_email: dict
+    identities_by_email: dict[str, AccountEmailResolution]
+    enrollments_by_user_id: dict[int, Enrollment]
 
 
 def process_certificate_updates(
@@ -51,9 +56,7 @@ def process_certificate_updates(
     certificate_updates,
     notification_sender,
 ):
-    valid_updates, errors = validate_certificate_update_items(
-        certificate_updates
-    )
+    valid_updates, errors = validate_certificate_update_items(certificate_updates)
 
     lookups = certificate_update_lookups(
         course,
@@ -80,27 +83,24 @@ def deliver_certificate_update_batch(apply_batch, notification_sender):
 
 
 def certificate_update_lookups(course, course_slug, valid_updates):
-    emails = []
-    for update in valid_updates:
-        emails.append(update["email"])
-
-    users_by_email = {}
-    users = User.objects.filter(email__in=emails)
-    for user in users:
-        users_by_email[user.email] = user
-
-    enrollments_by_email = {}
+    identities_by_email = resolve_accounts_by_email(update["email"] for update in valid_updates)
+    related_user_ids = {
+        user_id
+        for identity in identities_by_email.values()
+        for user_id in identity.related_user_ids
+    }
+    enrollments_by_user_id = {}
     enrollments = Enrollment.objects.filter(
         course=course,
-        student__email__in=emails,
+        student_id__in=related_user_ids,
     ).select_related("student")
     for enrollment in enrollments:
-        enrollments_by_email[enrollment.student.email] = enrollment
+        enrollments_by_user_id[enrollment.student_id] = enrollment
 
     lookups = CertificateUpdateLookups(
         course_slug=course_slug,
-        users_by_email=users_by_email,
-        enrollments_by_email=enrollments_by_email,
+        identities_by_email=identities_by_email,
+        enrollments_by_user_id=enrollments_by_user_id,
     )
     return lookups
 
@@ -126,12 +126,31 @@ def apply_certificate_updates(valid_updates, lookups):
 def apply_certificate_update(update, lookups):
     email = update["email"]
     certificate_path = update["certificate_path"]
+    normalized_email = normalize_account_email(email)
+    identity = lookups.identities_by_email.get(normalized_email)
 
-    if email not in lookups.users_by_email:
+    if identity is None or identity.status == AccountEmailResolutionStatus.NOT_FOUND:
         error = user_not_found_error(update)
         return CertificateApplyResult(error=error)
 
-    enrollment = lookups.enrollments_by_email.get(email)
+    if identity.status == AccountEmailResolutionStatus.AMBIGUOUS:
+        return CertificateApplyResult(error=identity_ambiguous_error(update))
+
+    if identity.status != AccountEmailResolutionStatus.AVAILABLE:
+        return CertificateApplyResult(error=identity_unavailable_error(update))
+
+    related_enrollment_user_ids = {
+        user_id
+        for user_id in identity.related_user_ids
+        if user_id in lookups.enrollments_by_user_id
+    }
+    durable_user = identity.user
+    if durable_user is None:
+        return CertificateApplyResult(error=identity_unavailable_error(update))
+    enrollment = lookups.enrollments_by_user_id.get(durable_user.pk)
+    if related_enrollment_user_ids - {durable_user.pk}:
+        return CertificateApplyResult(error=identity_unavailable_error(update))
+
     if enrollment is None:
         error = not_enrolled_error(update, lookups.course_slug)
         return CertificateApplyResult(error=error)
@@ -169,6 +188,22 @@ def not_enrolled_error(update, course_slug):
         update,
         "not_enrolled",
         f"User {email} is not enrolled in course {course_slug}",
+    )
+
+
+def identity_unavailable_error(update):
+    return certificate_update_error(
+        update,
+        "identity_unavailable",
+        "Account identity is unavailable",
+    )
+
+
+def identity_ambiguous_error(update):
+    return certificate_update_error(
+        update,
+        "identity_ambiguous",
+        "Account identity is ambiguous",
     )
 
 
