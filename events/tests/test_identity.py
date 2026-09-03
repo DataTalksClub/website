@@ -20,10 +20,12 @@ from events.identity import (
     canonical_detail_path,
     canonical_registration_path,
     create_event_identity,
+    create_provider_event_identity,
     current_slug,
     import_identity_manifest,
     load_identity_manifest,
     parse_identity_manifest,
+    provider_source_identity,
     resolve_legacy_path,
     resolve_source_identity,
     serialize_event_identity,
@@ -388,3 +390,53 @@ class EventIdentityRouteTests(TestCase):
                 self.assertEqual(response.headers["Allow"], "GET, HEAD")
                 self.assertEqual(response.headers["Cache-Control"], "no-store, max-age=0")
         self.assertEqual((Event.objects.count(), EventAlias.objects.count()), before)
+
+
+class ProviderEventIdentityTests(TestCase):
+    """Identity for a genuinely new provider event, created via the shared allocator."""
+
+    def test_creates_a_real_event_with_a_luma_source_identity(self) -> None:
+        event = create_provider_event_identity(
+            provider="luma",
+            external_event_identifier="evt-BrandNew",
+            title="A Brand New Event",
+        )
+
+        self.assertIsNotNone(event.public_id)
+        self.assertEqual(event.title, "A Brand New Event")
+        self.assertEqual(event.source_repository, "dtc-historical-source/luma")
+        self.assertEqual(event.source_revision, "luma-aggregate-v1")
+        self.assertEqual(event.source_key, "evt-BrandNew")
+        self.assertEqual(canonical_detail_path(event.id), f"/events/{event.public_id}/{event.slug}")
+
+    def test_resolve_source_identity_finds_it_by_provider_and_external_id(self) -> None:
+        created = create_provider_event_identity(
+            provider="luma",
+            external_event_identifier="evt-Findable",
+            title="Findable Event",
+        )
+        source = provider_source_identity(provider="luma", external_event_identifier="evt-Findable")
+
+        found = resolve_source_identity(
+            repository=source.repository,
+            revision=source.revision,
+            source_key=source.source_key,
+        )
+
+        self.assertEqual(found.id, created.id)
+
+    def test_luma_and_eventbrite_ids_never_collide(self) -> None:
+        luma_event = create_provider_event_identity(
+            provider="luma", external_event_identifier="shared-id", title="Luma Event"
+        )
+        eventbrite_event = create_provider_event_identity(
+            provider="eventbrite", external_event_identifier="shared-id", title="Eventbrite Event"
+        )
+
+        self.assertNotEqual(luma_event.id, eventbrite_event.id)
+
+    def test_unsupported_provider_is_rejected(self) -> None:
+        with self.assertRaisesMessage(EventIdentityError, "unsupported_provider"):
+            create_provider_event_identity(
+                provider="meetup", external_event_identifier="evt-1", title="Meetup Event"
+            )

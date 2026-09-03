@@ -24,6 +24,7 @@ from events.importers import (
     derive_eventbrite,
     derive_luma,
     derive_registered_source,
+    discover_luma_events,
 )
 from events.models import HistoricalRegistrationAggregateRevision
 
@@ -432,3 +433,150 @@ class ProtectedSourceAdapterTests(SimpleTestCase):
                 source_missing={"123": proposal},
                 allowed_schema_fingerprints=schemas,
             )
+
+
+class LumaEventDiscoveryTests(SimpleTestCase):
+    """`discover_luma_events` reads identity metadata, never a pinned checksum."""
+
+    def setUp(self) -> None:
+        scratch = Path(settings.BASE_DIR) / ".tmp"
+        scratch.mkdir(exist_ok=True)
+        self.temporary = tempfile.TemporaryDirectory(dir=scratch)
+        self.root = Path(self.temporary.name)
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def _write_event(
+        self,
+        stem: str,
+        *,
+        event_id: str,
+        event_url: str,
+        title: str,
+        start_at: str,
+        statuses: tuple[str, ...],
+    ) -> None:
+        (self.root / f"{stem}.json").write_text(
+            json.dumps({"schema_version": 1, "event_id": event_id, "event_url": event_url}),
+            encoding="utf-8",
+        )
+        fieldnames = (
+            "guest_id",
+            "email",
+            "approval_status",
+            "event_id",
+            "event_name",
+            "event_start_at",
+        )
+        with (self.root / f"{stem}.csv").open("w", encoding="utf-8", newline="") as stream:
+            writer = csv.DictWriter(stream, fieldnames=fieldnames)
+            writer.writeheader()
+            for index, status in enumerate(statuses):
+                writer.writerow(
+                    {
+                        "guest_id": f"guest-{index}",
+                        "email": f"canary-{index}@example.test",
+                        "approval_status": status,
+                        "event_id": event_id,
+                        "event_name": title,
+                        "event_start_at": start_at,
+                    }
+                )
+
+    def test_discovers_title_date_and_counts_without_pinned_checksum_or_pii(self) -> None:
+        self._write_event(
+            "2026-09-08_a-new-event_evt-newone",
+            event_id="evt-NewOne",
+            event_url="https://luma.com/newone",
+            title="A New Event",
+            start_at="2026-09-08T10:00:00.000Z",
+            statuses=("approved", "approved", "declined"),
+        )
+
+        discovered = discover_luma_events(self.root)
+
+        self.assertEqual(len(discovered), 1)
+        event = discovered[0]
+        self.assertEqual(event.external_event_identifier, "evt-NewOne")
+        self.assertEqual(event.event_url, "https://luma.com/newone")
+        self.assertEqual(event.title, "A New Event")
+        self.assertEqual(event.start_at, "2026-09-08T10:00:00.000Z")
+        self.assertEqual(event.eligible_count, 2)
+        self.assertEqual(event.excluded_count, 1)
+        self.assertEqual(event.quarantined_count, 0)
+        self.assertEqual(event.row_total, 3)
+        self.assertNotIn("canary", repr(discovered))
+        self.assertNotIn("guest-0", repr(discovered))
+
+    def test_unknown_status_is_quarantined_not_eligible_or_excluded(self) -> None:
+        self._write_event(
+            "2026-09-09_another-event_evt-newtwo",
+            event_id="evt-NewTwo",
+            event_url="https://luma.com/newtwo",
+            title="Another Event",
+            start_at="2026-09-09T10:00:00.000Z",
+            statuses=("approved", "pending"),
+        )
+
+        discovered = discover_luma_events(self.root)
+
+        self.assertEqual(discovered[0].eligible_count, 1)
+        self.assertEqual(discovered[0].excluded_count, 0)
+        self.assertEqual(discovered[0].quarantined_count, 1)
+
+    def test_zero_registration_event_yields_empty_title_not_an_error(self) -> None:
+        """A real event can have zero registrations; there is nowhere to read a title."""
+
+        self._write_event(
+            "2026-09-11_empty-event_evt-empty",
+            event_id="evt-Empty",
+            event_url="https://luma.com/empty",
+            title="ignored -- statuses is empty so no row is written",
+            start_at="ignored",
+            statuses=(),
+        )
+
+        discovered = discover_luma_events(self.root)
+
+        self.assertEqual(len(discovered), 1)
+        self.assertEqual(discovered[0].title, "")
+        self.assertEqual(discovered[0].start_at, "")
+        self.assertEqual(discovered[0].row_total, 0)
+
+    def test_missing_discovery_columns_is_a_bounded_error(self) -> None:
+        (self.root / "bare.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "event_id": "evt-Bare",
+                    "event_url": "https://luma.com/bare",
+                }
+            ),
+            encoding="utf-8",
+        )
+        with (self.root / "bare.csv").open("w", encoding="utf-8", newline="") as stream:
+            writer = csv.DictWriter(stream, fieldnames=("event_id", "guest_id", "approval_status"))
+            writer.writeheader()
+            writer.writerow(
+                {"event_id": "evt-Bare", "guest_id": "g1", "approval_status": "approved"}
+            )
+
+        with self.assertRaisesMessage(ProtectedSourceError, "unsupported_luma_schema"):
+            discover_luma_events(self.root)
+
+    def test_no_pinned_checksum_is_required_unlike_derive_luma(self) -> None:
+        """A fresh, never-reconciled export is exactly what this function is for."""
+
+        self._write_event(
+            "2026-09-10_yet-another-event_evt-newthree",
+            event_id="evt-NewThree",
+            event_url="https://luma.com/newthree",
+            title="Yet Another Event",
+            start_at="2026-09-10T10:00:00.000Z",
+            statuses=("approved",),
+        )
+
+        # No expected_checksum argument exists on this function at all.
+        discovered = discover_luma_events(self.root)
+        self.assertEqual(len(discovered), 1)
