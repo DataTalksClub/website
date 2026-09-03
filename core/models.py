@@ -30,7 +30,6 @@ class AppendOnlyQuerySet(models.QuerySet[Any]):
     def update(self, **kwargs: Any) -> int:
         retention_fields = {
             AuditEvent: frozenset({"actor", "api_principal"}),
-            OperationalSettingRevision: frozenset({"changed_by"}),
             SponsorRevision: frozenset({"changed_by"}),
         }.get(self.model, frozenset())
         supplied_field = next(iter(kwargs), "").removesuffix("_id")
@@ -257,66 +256,6 @@ class OperationalSetting(RevisionedModel):
 
     def __str__(self) -> str:
         return self.key
-
-
-class OperationalSettingRevision(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    setting = models.ForeignKey(
-        OperationalSetting,
-        on_delete=models.PROTECT,
-        related_name="history",
-    )
-    key = models.CharField(max_length=128)
-    value_type = models.CharField(max_length=16, choices=OperationalSetting.ValueType.choices)
-    value = models.JSONField()
-    source = models.CharField(max_length=64)
-    definition_version = models.PositiveIntegerField()
-    revision = models.PositiveBigIntegerField()
-    changed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="operational_setting_revisions",
-    )
-    changed_by_ref = models.CharField(max_length=128, blank=True)
-    audit_event = models.ForeignKey(
-        AuditEvent,
-        on_delete=models.PROTECT,
-        related_name="setting_revisions",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    objects = AppendOnlyManager()
-
-    class Meta:
-        base_manager_name = "objects"
-        default_manager_name = "objects"
-        ordering = ("setting_id", "revision")
-        constraints = [
-            models.UniqueConstraint(
-                fields=("setting", "revision"),
-                name="core_setting_history_revision_unique",
-            ),
-            models.CheckConstraint(
-                condition=Q(revision__gte=1),
-                name="core_setting_history_revision_positive",
-            ),
-        ]
-        indexes = [models.Index(fields=("key", "-revision"), name="core_setting_history_key")]
-
-    def __str__(self) -> str:
-        return f"{self.key}@{self.revision}"
-
-    def save(self, *args: Any, **kwargs: Any) -> None:
-        if not self._state.adding:
-            raise AppendOnlyViolation("setting history cannot be updated")
-        kwargs["force_insert"] = True
-        super().save(*args, **kwargs)
-
-    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
-        del args, kwargs
-        raise AppendOnlyViolation("setting history cannot be deleted")
 
 
 class IdempotencyRecord(models.Model):

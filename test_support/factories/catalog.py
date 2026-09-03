@@ -70,13 +70,10 @@ BUNDLE_LEAVES: dict[str, tuple[str, ...]] = {
     ),
     "historical_event_totals": (
         "historical_source_run",
-        "historical_event_mapping",
         "historical_aggregate_revision",
         "historical_aggregate_slot",
         "historical_pointer_displacement",
         "historical_total_state",
-        "mapping_conflict",
-        "source_missing_quarantine",
         "aggregate_activation",
         "aggregate_rollback",
         "aggregate_to_native_boundary",
@@ -84,7 +81,6 @@ BUNDLE_LEAVES: dict[str, tuple[str, ...]] = {
     "operations_jobs": (
         "audit_event",
         "operational_setting",
-        "operational_setting_revision",
         "idempotency_record",
         "operation",
         "operation_revision_conflict",

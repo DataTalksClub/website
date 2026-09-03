@@ -12,7 +12,6 @@ from core.idempotency import JsonObject, JsonValue, UnsafeJsonValue, canonical_j
 from core.models import (
     AuditEvent,
     OperationalSetting,
-    OperationalSettingRevision,
     RevisionConflict,
 )
 from core.redaction import is_sensitive_text
@@ -372,7 +371,7 @@ def set_operational_setting(
                 ),
             )
 
-        audit_event = record_audit_event(
+        record_audit_event(
             action="core.operational_setting.set",
             target_type="core.operational_setting",
             target_id=setting.id,
@@ -386,18 +385,6 @@ def set_operational_setting(
             },
             metadata={"definition_version": definition.version},
             using=using,
-        )
-        OperationalSettingRevision.objects.using(using).create(
-            setting=setting,
-            key=setting.key,
-            value_type=setting.value_type,
-            value=validated_value,
-            source=source,
-            definition_version=definition.version,
-            revision=setting.revision,
-            changed_by_id=context.actor_id,
-            changed_by_ref=context.actor_ref,
-            audit_event=audit_event,
         )
 
         return ResolvedOperationalSetting(

@@ -10,7 +10,7 @@ from django.test import TestCase, override_settings
 from accounts.development_owner import bootstrap_development_owner
 from accounts.studio_roles import MANAGE_API_CREDENTIALS
 from core.bootstrap import RuntimeEnvironment
-from core.models import AuditEvent, OperationalSetting, OperationalSettingRevision
+from core.models import AuditEvent, OperationalSetting
 from core.operational_settings import OPERATIONAL_SETTING_KEYS
 from core.runtime_config import get_setting, reset_runtime_settings_cache
 from management_api.openapi import generate_document
@@ -125,10 +125,6 @@ class AdminOperationalSettingsTests(TestCase):
             "dtc-website-media",
         )
         self.assertEqual(
-            OperationalSettingRevision.objects.filter(key="public_media.s3_bucket").count(),
-            1,
-        )
-        self.assertEqual(
             AuditEvent.objects.filter(action="core.runtime_settings.batch_updated").count(),
             1,
         )
@@ -187,10 +183,6 @@ class AdminOperationalSettingsTests(TestCase):
         second = self.patch(payload, key=key)
         self.assert_private_json(second, 200)
         self.assertTrue(second.json()["replayed"])
-        self.assertEqual(
-            OperationalSettingRevision.objects.filter(key="public_media.s3_prefix").count(),
-            1,
-        )
 
     def test_a_value_the_validator_refuses_is_rejected_whole(self) -> None:
         self.clear_rate_admissions()

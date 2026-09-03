@@ -38,7 +38,6 @@ from core.idempotency import (
 from core.models import (
     AuditEvent,
     OperationalSetting,
-    OperationalSettingRevision,
     RevisionConflict,
 )
 from core.services import ServiceContext, validate_actor_ref
@@ -314,9 +313,8 @@ def _apply_settings_batch(
             }
         )
 
-    audit_event = None
     if changed_rows:
-        audit_event = record_audit_event(
+        record_audit_event(
             action=scope.audit_action_write,
             target_type="core.operational_settings",
             target_label=scope.audit_label,
@@ -332,20 +330,6 @@ def _apply_settings_batch(
             },
             using=using,
         )
-    for setting, _before, _after in changed_rows:
-        OperationalSettingRevision.objects.using(using).create(
-            setting=setting,
-            key=setting.key,
-            value_type=setting.value_type,
-            value=setting.value,
-            source=setting.source,
-            definition_version=setting.definition_version,
-            revision=setting.revision,
-            changed_by_id=context.actor_id,
-            changed_by_ref=context.actor_ref,
-            audit_event=audit_event,
-        )
-    if changed_rows:
         # A stamped value this process already resolved is now stale in its own
         # cache.  Other processes pick the write up from the table's stamp; this
         # one would otherwise keep serving the old value for the stamp TTL.

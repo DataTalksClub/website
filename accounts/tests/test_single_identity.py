@@ -633,7 +633,7 @@ class SharedAccountSurfaceTests(TestCase):
 
         self.assertEqual(inventory["auth_user_model"], "accounts.CustomUser")
         self.assertEqual(inventory["user_table"], "accounts_customuser")
-        self.assertEqual(len(inventory["dependent_relations"]), 22)
+        self.assertEqual(len(inventory["dependent_relations"]), 21)
         self.assertEqual(len(inventory["many_to_many_relations"]), 3)
         relation_keys = {
             f"{item['model_label']}.{item['field_name']}"

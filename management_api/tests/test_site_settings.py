@@ -15,7 +15,7 @@ from accounts.studio_roles import MANAGE_API_CREDENTIALS
 from accounts.studio_sessions import SESSION_REFERENCE_KEY, revoke_staff_session
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
 from core.bootstrap import RuntimeEnvironment
-from core.models import AuditEvent, OperationalSetting, OperationalSettingRevision
+from core.models import AuditEvent, OperationalSetting
 from core.site_settings import ANNOUNCEMENT_ENABLED_KEY, ANNOUNCEMENT_MESSAGE_KEY
 from management_api.openapi import generate_document
 from management_auth.models import APICredential, APIPrincipal, APIRateAdmission
@@ -122,7 +122,6 @@ class AdminSiteSettingsTests(TestCase):
         self.assertEqual(changed.json()["settings"][1]["value"], "API announcement")
         self.assertEqual(changed.json()["settings"][1]["source"], "admin_api")
         self.assertTrue(all(item["changed"] for item in changed.json()["settings"]))
-        self.assertEqual(OperationalSettingRevision.objects.count(), 2)
         self.assertEqual(
             AuditEvent.objects.filter(action="core.operational_settings.batch_updated").count(),
             1,
@@ -149,7 +148,6 @@ class AdminSiteSettingsTests(TestCase):
         self.assert_private_json(replay, 200)
         self.assertTrue(replay.json()["replayed"])
         self.assertEqual(replay.json()["settings"], changed.json()["settings"])
-        self.assertEqual(OperationalSettingRevision.objects.count(), 2)
         self.assertEqual(
             AuditEvent.objects.filter(action="core.operational_settings.batch_updated").count(),
             1,
@@ -462,7 +460,6 @@ class AdminSiteSettingsTests(TestCase):
         setting = OperationalSetting.objects.get(key=ANNOUNCEMENT_MESSAGE_KEY)
         self.assertEqual(setting.value, "Initial public message")
         self.assertEqual(setting.revision, 1)
-        self.assertEqual(OperationalSettingRevision.objects.count(), 2)
 
     def test_studio_and_api_permission_denials_have_audit_parity(self) -> None:
         auditor = make_studio_user(
