@@ -976,7 +976,7 @@ three pinned checkouts and is not reproducible (#253).
 **Checkpoint**
 
 ```
-uv run --frozen python -m ci.content_update          # committed artifacts vs manifest
+make content-update-check CONTENT_UPDATE_FAMILY=all  # committed artifacts vs manifest, one run per family
 $TARGET uv run --frozen python manage.py check       # content.E002 digest canary
 ```
 
