@@ -19,6 +19,17 @@ records the consequence; it does not reargue the choice.
 
 ---
 
+> **Superseded in part, 2026-09-03.** Stages (1)–(3) below described three separate
+> readers. There is now one course path: `content_sync/course_repository_ingest.py`,
+> reached by the signed push webhook and by `manage.py pull_course_repositories`, both
+> reading a `git archive` tar of the whole commit. The snapshot manifest
+> (`scripts/build_course_modules_manifest.py`), the local importer
+> (`courses/services/local_course_modules.py`) and the `PRODUCTION_PREP_COURSE_REPOSITORIES`
+> list are gone; registered `ContentSource` rows say which repositories exist. The parse
+> and projection stages below still hold. See
+> `_docs/runbooks/course-content-push-and-pull.md`.
+
+
 ## 1. The end-to-end path
 
 From a Markdown file in a course repository to rendered HTML at

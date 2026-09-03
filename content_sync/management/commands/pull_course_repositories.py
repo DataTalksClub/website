@@ -7,8 +7,10 @@ this command reads checkouts that are already on disk.  Both then call the same
 :func:`content_sync.course_repository_ingest.ingest_course_repository`, so the
 validation is not two implementations that could drift.
 
-This command makes no network call: the commit, the branch and the tracked file
-list all come from the checkout's own git metadata.
+This command makes no network call.  The commit and the branch come from the
+checkout's own git metadata, and the snapshot is ``git archive HEAD`` -- the
+same kind of tar codeload serves the push route, so a repository's
+``.gitattributes`` applies here exactly as it does there.
 
 Which repositories exist is data, not code.  The command iterates the registered
 ``ContentSource`` rows, so adding a course means registering a source with
@@ -26,6 +28,7 @@ from typing import cast
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 
 from content.models import ContentSource
+from content_sync.course_repository_checkout import commit_is_public
 from content_sync.course_repository_ingest import (
     CourseRepositoryIngestError,
     CourseRepositoryIngestResult,
@@ -80,15 +83,33 @@ class Command(BaseCommand):
             action="store_true",
             help=(
                 "Proceed when a checkout has uncommitted changes or is not on the "
-                "registered branch. The recorded commit is still HEAD, so the imported "
-                "bytes and the provenance links will not agree; use it for an edit "
-                "preview, never to build a dataset anyone else will read."
+                "registered branch. HEAD is what gets imported either way -- the "
+                "snapshot is `git archive HEAD`, exactly what the push route "
+                "downloads -- so uncommitted edits are not included. Commit them "
+                "to see them."
+            ),
+        )
+        parser.add_argument(
+            "--require-public-commit",
+            action="store_true",
+            help=(
+                "Refuse a checkout whose HEAD is not on a branch of the public GitHub "
+                "repository. Imported pages link back to the commit they came from, so "
+                "a commit only this machine has publishes source links, images and edit "
+                "affordances that can only 404. Reachability is read from the checkout's "
+                "own remote-tracking branches, so this stays offline."
             ),
         )
 
     # -- source selection ---------------------------------------------------
 
-    def _sources(self, stable_ids: list[str]) -> list[ContentSource]:
+    def _sources(
+        self,
+        stable_ids: list[str],
+        *,
+        explicit: dict[str, Path],
+        root: Path | None,
+    ) -> list[ContentSource]:
         registered = list(
             ContentSource.objects.filter(
                 enabled=True,
@@ -101,14 +122,22 @@ class Command(BaseCommand):
                 "`manage.py register_course_repository --stable-id ... --owner ... "
                 "--repository ... --enabled`."
             )
-        if not stable_ids:
+        selection = list(stable_ids)
+        if not selection and explicit and root is None:
+            # Naming the only checkout there is names the run. Without this the
+            # command went on to attempt every other registered source, found no
+            # checkout for any of them, and exited non-zero on a request that was
+            # completely well formed. With --from-disk the explicit entry is an
+            # override of one source among many, so it does not narrow anything.
+            selection = sorted(explicit)
+        if not selection:
             return registered
         # Report the unmatched selection rather than "nothing to do": a typo must
         # not look like a clean run.
-        missing = sorted(set(stable_ids) - {source.stable_id for source in registered})
+        missing = sorted(set(selection) - {source.stable_id for source in registered})
         if missing:
             raise CommandError(f"not registered or not enabled: {', '.join(missing)}")
-        return [source for source in registered if source.stable_id in set(stable_ids)]
+        return [source for source in registered if source.stable_id in set(selection)]
 
     def _explicit_checkouts(self, entries: list[str]) -> dict[str, Path]:
         checkouts: dict[str, Path] = {}
@@ -169,8 +198,9 @@ class Command(BaseCommand):
         checkout: Path,
         *,
         allow_modified: bool,
-    ) -> tuple[str, list[str], list[str]]:
-        """Return the commit, the tracked paths, and the waivers that were used."""
+        require_public_commit: bool,
+    ) -> tuple[str, list[str]]:
+        """Return the commit to ingest and the waivers that were used."""
 
         if not checkout.is_dir():
             raise CommandError(f"{source.stable_id}: {checkout} is not a directory")
@@ -200,12 +230,22 @@ class Command(BaseCommand):
                 raise CommandError(
                     f"{message}; commit or stash them, or pass --allow-modified-checkout"
                 )
-            waivers.append(f"{len(dirty.splitlines())} uncommitted change(s)")
-
-        tracked = [line for line in self._git(checkout, "ls-files", "-z").split("\0") if line]
-        if not tracked:
-            raise CommandError(f"{source.stable_id}: {checkout} tracks no files")
-        return commit_sha, tracked, waivers
+            waivers.append(
+                f"{len(dirty.splitlines())} uncommitted change(s), which are NOT imported"
+            )
+        if require_public_commit and not commit_is_public(
+            checkout,
+            owner=source.repository_owner,
+            name=source.repository_name,
+            commit_sha=commit_sha,
+        ):
+            raise CommandError(
+                f"{source.stable_id}: {commit_sha} is not on a branch of "
+                f"https://github.com/{source.repository_owner}/{source.repository_name} "
+                f"in {checkout}; every source link the import publishes would 404. "
+                f"Push it, or refresh the checkout with `make content-checkouts`."
+            )
+        return commit_sha, waivers
 
     # -- entry point --------------------------------------------------------
 
@@ -214,9 +254,16 @@ class Command(BaseCommand):
         raw_root = cast("str | None", options["from_disk"])
         root = Path(raw_root).expanduser() if raw_root else None
         explicit = self._explicit_checkouts(cast("list[str]", options["checkout"]))
-        sources = self._sources(cast("list[str]", options["stable_ids"]))
+        sources = self._sources(
+            cast("list[str]", options["stable_ids"]), explicit=explicit, root=root
+        )
         plan_only = cast(bool, options["checkout_plan"])
         allow_modified = cast(bool, options["allow_modified_checkout"])
+        require_public_commit = cast(bool, options["require_public_commit"])
+        # The JSON summary is this command's machine-readable result and is always
+        # printed; the narrative lines are progress, and --verbosity 0 means a
+        # caller does not want them.
+        narrate = int(cast(int, options["verbosity"])) >= 1
 
         if plan_only:
             for source in sources:
@@ -247,8 +294,11 @@ class Command(BaseCommand):
             # Every source is attempted and the aggregate failure is raised last.
             try:
                 checkout = self._checkout_for(source, root=root, explicit=explicit)
-                commit_sha, tracked, waivers = self._describe_checkout(
-                    source, checkout, allow_modified=allow_modified
+                commit_sha, waivers = self._describe_checkout(
+                    source,
+                    checkout,
+                    allow_modified=allow_modified,
+                    require_public_commit=require_public_commit,
                 )
             except CommandError as error:
                 if single:
@@ -259,29 +309,32 @@ class Command(BaseCommand):
             for waiver in waivers:
                 self.stderr.write(
                     self.style.WARNING(
-                        f"  waived for {source.stable_id}: {waiver}; the import still "
-                        f"records {commit_sha}"
+                        f"  waived for {source.stable_id}: {waiver}; the import records "
+                        f"and imports {commit_sha}"
                     )
                 )
-            self.stdout.write(f"Pulling {source.stable_id} from {checkout} at {commit_sha}...")
+            if narrate:
+                self.stdout.write(f"Pulling {source.stable_id} from {checkout} at {commit_sha}...")
             try:
                 result = ingest_course_repository(
                     source=source,
                     commit_sha=commit_sha,
                     checkout_root=checkout,
-                    checkout_paths=tracked,
                 )
             except CourseRepositoryIngestError as error:
                 failures.append(source.stable_id)
                 self.stderr.write(self.style.ERROR(f"  REFUSED [{source.stable_id}]: {error}"))
                 continue
             results.append(result)
-            self.stdout.write(
-                f"  {result.file_count} files, "
-                + ", ".join(f"{key}={value}" for key, value in sorted(result.counts.items()))
-                + (" (replayed)" if result.replayed else "")
-            )
+            if narrate:
+                self.stdout.write(
+                    f"  {result.file_count} files, "
+                    + ", ".join(f"{key}={value}" for key, value in sorted(result.counts.items()))
+                    + (" (replayed)" if result.replayed else "")
+                )
 
-        self.stdout.write(json.dumps([result.summary() for result in results], sort_keys=True))
+        self.stdout.write(
+            json.dumps({"sources": [result.summary() for result in results]}, sort_keys=True)
+        )
         if failures:
             raise CommandError(f"course repository pull refused: {', '.join(failures)}")

@@ -6,10 +6,10 @@ from typing import cast
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.db import IntegrityError
 
-from content.services import CreateContentSource, create_content_source
-from content_sync.course_repository_webhook import COURSE_REPOSITORY_ADAPTER_TYPE
-from core.context import new_context_id
-from core.services import ServiceContext
+from content_sync.course_repository_registration import (
+    CourseRepositoryRegistration,
+    register_course_repository,
+)
 
 
 class Command(BaseCommand):
@@ -38,30 +38,18 @@ class Command(BaseCommand):
         max_files = cast(int, options["max_files"])
         max_bytes = cast(int, options["max_bytes"])
         try:
-            source = create_content_source(
-                CreateContentSource(
+            source = register_course_repository(
+                CourseRepositoryRegistration(
                     stable_id=stable_id,
                     display_name=display_name,
                     repository_owner=owner,
                     repository_name=repository,
                     branch=branch,
-                    path_allowlist=(
-                        "course.yaml",
-                        "cohorts/**",
-                        "**/module.yaml",
-                        "**/*.md",
-                    ),
-                    adapter_type=COURSE_REPOSITORY_ADAPTER_TYPE,
-                    mount_path="/",
-                    enabled=enabled,
                     max_files=max_files,
                     max_bytes=max_bytes,
                     secret_reference=secret_reference,
-                ),
-                context=ServiceContext(
-                    correlation_id=new_context_id(),
-                    actor_ref="management:course-sync",
-                ),
+                    enabled=enabled,
+                )
             )
         except (IntegrityError, ValueError) as error:
             raise CommandError("course repository registration failed") from error

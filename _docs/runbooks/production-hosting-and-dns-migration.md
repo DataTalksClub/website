@@ -428,9 +428,11 @@ State-root ownership when the dust settles:
   suppression** instead — worth doing regardless, since today nothing outside Relay's own
   PostgreSQL holds this state.
 - **D24 — RESOLVED: no homework slug rewrites.** The `^hw(\d+)$` → `homework-0N` transform is
-  removed (`1f4be1a`); explicit `homework_slug_overrides` entries are the only mechanism.
-  Verified: no such regex remains anywhere under `courses/`, `content_sync/` or `scripts/`, and
-  `courses/services/local_course_modules.py:435-443` validates the override table. Rationale
+  removed (`1f4be1a`), and the `homework_slug_overrides` hook went with the local importer it
+  belonged to: there is one course path now and it has no override table. A repository homework
+  binds by the `content_id` its YAML declares; where a pre-existing unowned row already holds the
+  repository's slug the import refuses rather than guessing, and pairing a CMP row with a
+  repository row is `courses/services/cmp_content_import.py`'s job. Rationale
   recorded in the commit: the transform was right for `llm-zoomcamp-2026` and wrong for
   `ml-zoomcamp-2026`, whose `hw01…hw10` already match its repository modules exactly; deriving one
   identity two ways is what split the AI Dev Tools course family and needed migration 0052 to
@@ -555,11 +557,9 @@ State-root ownership when the dust settles:
   **and** ai-dev-tools) and for none of `data-engineering-zoomcamp`, `mlops-zoomcamp`,
   `stock-markets-analytics-zoomcamp`. An earlier note claiming `course.yaml` existed only in
   unpushed commits, and only for llm/ml, is wrong.
-  One more thread belongs to whoever closes D28: the manifest builder still selects
-  `course.yaml:/description_path` and knows nothing of `SITE.md`
-  (`scripts/build_course_modules_manifest.py:162-165`), so `SITE.md` never enters the snapshot and
-  the three new files are inert until it is added to `_referenced_paths()`
-  (`unit-content-pipeline.md` §3).
+  The manifest builder that used to keep `SITE.md` out of the snapshot no longer exists: both
+  transports now read the repository's whole exported tree, so `SITE.md` arrives with everything
+  else and the parser reads it as the course description.
 - **D29 — Dev-database placement.** A dedicated `db.t4g.micro` for the shared dev database
   (≈ $15.68/mo) versus two logical databases on the production website instance ($0). The costed
   design declines the free option deliberately: the $15.68 buys keeping a dev EC2 host out of the

@@ -9,12 +9,15 @@ change that teaches one route something the other does not know fails here.
 
 from __future__ import annotations
 
+import io
 import shutil
+import socket
 import subprocess
 import uuid
 from dataclasses import replace
 from datetime import timedelta
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 from django.core.management import call_command
@@ -48,7 +51,9 @@ from courses.models import (
 from jobs.registry import JobContext
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "course_repository" / "llm_zoomcamp_2026"
+FIXTURE_DIR = Path(__file__).parent / "fixtures" / "course_repository"
+FIXTURE_ROOT = FIXTURE_DIR / "llm_zoomcamp_2026"
+EXPORT_IGNORE_OVERLAY = FIXTURE_DIR / "export_ignore_overlay"
 SCRATCH_ROOT = PROJECT_ROOT / ".tmp" / "course-repository-transport-parity"
 STABLE_ID = "llm-zoomcamp"
 
@@ -64,11 +69,18 @@ def _git(root: Path, *arguments: str) -> str:
     return completed.stdout
 
 
-def build_checkout(root: Path) -> str:
-    """Materialise the fixture repository as a real, clean git checkout."""
+def build_checkout(root: Path, *, overlay: Path | None = None) -> str:
+    """Materialise the fixture repository as a real, clean git checkout.
+
+    ``overlay`` copies extra committed files over the fixture, which is how a
+    checkout that really carries a ``.gitattributes`` is built without a second
+    copy of every fixture file.
+    """
 
     shutil.rmtree(root, ignore_errors=True)
     shutil.copytree(FIXTURE_ROOT, root)
+    if overlay is not None:
+        shutil.copytree(overlay, root, dirs_exist_ok=True)
     _git(root, "init", "--quiet", "--initial-branch=main")
     _git(root, "config", "user.email", "parity@example.invalid")
     _git(root, "config", "user.name", "Transport Parity")
@@ -126,7 +138,25 @@ class _Response:
         pass
 
 
-class CourseRepositoryTransportParityTests(TestCase):
+if TYPE_CHECKING:
+    # A mixin at runtime, so the loader does not collect the contract itself; a
+    # TestCase to the type checker, so its assertions are still checked.
+    _ContractBase = TestCase
+else:
+    _ContractBase = object
+
+
+class _TransportParityContract(_ContractBase):
+    """The parity claims, stated once and driven from more than one fixture.
+
+    ``OVERLAY`` selects which fixture repository the checkout is built from, so
+    a repository carrying export attributes is held to exactly the same claims
+    as one that does not.
+    """
+
+    OVERLAY: Path | None = None
+    CHECKOUT_NAME = "llm-zoomcamp"
+
     checkout: Path
     commit_sha: str
     archive: bytes
@@ -135,13 +165,13 @@ class CourseRepositoryTransportParityTests(TestCase):
     def setUpClass(cls) -> None:
         super().setUpClass()
         SCRATCH_ROOT.mkdir(parents=True, exist_ok=True)
-        cls.checkout = SCRATCH_ROOT / "llm-zoomcamp"
-        cls.commit_sha = build_checkout(cls.checkout)
+        cls.checkout = SCRATCH_ROOT / cls.CHECKOUT_NAME
+        cls.commit_sha = build_checkout(cls.checkout, overlay=cls.OVERLAY)
         cls.archive = codeload_archive(cls.checkout, cls.commit_sha)
 
     @classmethod
     def tearDownClass(cls) -> None:
-        shutil.rmtree(SCRATCH_ROOT, ignore_errors=True)
+        shutil.rmtree(SCRATCH_ROOT / cls.CHECKOUT_NAME, ignore_errors=True)
         super().tearDownClass()
 
     def setUp(self) -> None:
@@ -205,13 +235,16 @@ class CourseRepositoryTransportParityTests(TestCase):
                 },
             )
 
-    def run_pull(self) -> None:
+    def run_pull(self) -> str:
+        out = io.StringIO()
         call_command(
             "pull_course_repositories",
             "--checkout",
             f"{STABLE_ID}={self.checkout}",
-            verbosity=0,
+            stdout=out,
+            stderr=io.StringIO(),
         )
+        return out.getvalue()
 
     def projection(self) -> dict[str, list]:
         """Every row the import owns, in a stable, comparable shape."""
@@ -295,7 +328,7 @@ class CourseRepositoryTransportParityTests(TestCase):
                 limits=limits,
             )
         pulled = read_course_repository_checkout(
-            self.checkout, limits=limits, paths=self.tracked_paths()
+            self.checkout, commit_sha=self.commit_sha, limits=limits
         )
 
         self.assertEqual(sorted(pushed), sorted(pulled))
@@ -339,7 +372,7 @@ class CourseRepositoryTransportParityTests(TestCase):
                 )
         with self.assertRaises(CourseRepositoryFetchError) as pulled:
             read_course_repository_checkout(
-                self.checkout, limits=narrow, paths=self.tracked_paths()
+                self.checkout, commit_sha=self.commit_sha, limits=narrow
             )
 
         self.assertEqual(pushed.exception.code, "course_repository_file_too_large")
@@ -357,3 +390,75 @@ class CourseRepositoryTransportParityTests(TestCase):
         self.assertEqual(limits.max_files, DEFAULT_LIMITS.max_files)
         self.assertEqual(limits.max_total_bytes, DEFAULT_LIMITS.max_total_bytes)
         self.assertEqual(limits.max_file_bytes, DEFAULT_LIMITS.max_file_bytes)
+
+    def test_the_pull_transport_makes_no_network_call(self) -> None:
+        """The claim the runbook makes, enforced rather than asserted in prose."""
+
+        limits = course_repository_limits(self.source)
+
+        def refuse(*args: object, **kwargs: object) -> None:
+            del args, kwargs
+            raise AssertionError("the pull transport opened a network connection")
+
+        with (
+            patch.object(socket.socket, "connect", refuse),
+            patch.object(socket.socket, "connect_ex", refuse),
+            patch("content_sync.course_repository_ingest.requests.get", refuse),
+        ):
+            pulled = read_course_repository_checkout(
+                self.checkout, commit_sha=self.commit_sha, limits=limits
+            )
+
+        self.assertIn("course.yaml", pulled)
+
+
+class CourseRepositoryTransportParityTests(_TransportParityContract, TestCase):
+    """A repository with no ``.gitattributes`` at all."""
+
+
+class CourseRepositoryExportAttributeParityTests(_TransportParityContract, TestCase):
+    """The same claims for a repository that carries ``export-ignore``.
+
+    ``git archive`` -- and therefore codeload, and therefore the push transport
+    -- drops an ``export-ignore`` path.  A pull transport that reads the working
+    tree or ``git ls-files`` keeps it.  No course repository carries a
+    ``.gitattributes`` today, which is exactly why the divergence could sit in
+    the code with a green parity suite; this fixture removes that cover.
+    """
+
+    OVERLAY = EXPORT_IGNORE_OVERLAY
+    CHECKOUT_NAME = "llm-zoomcamp-export-ignore"
+
+    def test_the_fixture_really_exercises_export_ignore(self) -> None:
+        """Guard against a vacuous pass if the attributes stop taking effect."""
+
+        limits = course_repository_limits(self.source)
+        tracked = set(self.tracked_paths())
+        exported = set(
+            read_course_repository_checkout(
+                self.checkout, commit_sha=self.commit_sha, limits=limits
+            )
+        )
+
+        self.assertIn(".gitattributes", tracked)
+        # The exported snapshot is what both transports must agree on, and it is
+        # strictly smaller than the tracked file list -- which is the difference
+        # the pull transport used to be blind to.
+        self.assertEqual(
+            sorted(tracked - exported),
+            ["SITE.md", "cohorts/2025/cohort.yaml"],
+        )
+        self.assertEqual(exported - tracked, set())
+
+    def test_the_export_ignored_cohort_is_absent_from_both_projections(self) -> None:
+        """The divergence was visible in rows, not only in the file list."""
+
+        self.run_pull()
+
+        # cohorts/2025/cohort.yaml is export-ignored, so neither route can see the
+        # 2025 cohort; before the fix the pull route created it and the push route
+        # did not.
+        self.assertEqual(
+            sorted(Cohort.objects.values_list("identifier", flat=True)),
+            ["2026"],
+        )

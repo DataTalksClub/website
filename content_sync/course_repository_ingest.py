@@ -6,28 +6,42 @@ fences the delivery and enqueues a durable job, and the job downloads that exact
 commit's archive.  A developer *pulls*: ``manage.py pull_course_repositories``
 reads a checkout that is already on disk, with no network at all.
 
-The two differ only in how the immutable snapshot is obtained.  Admission
-limits, path rules, parsing, validation and the transactional projection are
-this module's single implementation, so a snapshot a developer can load locally
-is exactly a snapshot the webhook would accept, and a refusal a developer sees
+The two differ only in *where the tar comes from*.  Both read a ``git archive``
+tar: codeload serves one over HTTPS for the push, and the pull runs ``git
+archive`` in the checkout.  Everything after that -- the admission ceilings, the
+path rules, parsing, validation and the transactional projection -- is this
+module's single implementation, so a snapshot a developer can load locally is
+exactly a snapshot the webhook would accept, and a refusal a developer sees
 locally is the refusal production would produce.
+
+Reading the tar on both sides is not a stylistic choice.  A repository's
+``.gitattributes`` can carry ``export-ignore`` and ``export-subst``, which
+``git archive`` honours and a working-tree or ``git ls-files`` walk does not.
+A pull that walked the checkout therefore imported files the push route would
+never see, and left ``export-subst`` placeholders unexpanded -- a divergence no
+course repository happens to trigger today, which is precisely what made it
+survivable.  Running the same reader over the same kind of tar collapses that
+class of difference instead of describing it.
 
 Where the transports must differ, they differ in one place each:
 
-* ``fetch_course_repository_snapshot`` reads GitHub's immutable commit archive.
-* ``read_course_repository_checkout`` reads a directory.
+* ``fetch_course_repository_snapshot`` downloads GitHub's immutable commit archive.
+* ``read_course_repository_checkout`` runs ``git archive`` against a checkout.
 
-Both hand a ``dict[str, bytes]`` to ``ingest_course_repository_snapshot``, and
-both admit files through ``_admit_file`` so the file-count, total-size and
-per-file ceilings are one set of numbers rather than two.
+Both hand their tar to ``read_course_repository_archive``, which hands a
+``dict[str, bytes]`` to ``ingest_course_repository_snapshot`` and admits files
+through ``_admit_file``, so the file-count, total-size and per-file ceilings are
+one set of numbers rather than two.
 """
 
 from __future__ import annotations
 
 import io
+import os
 import re
+import subprocess
 import tarfile
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 from types import MappingProxyType
@@ -51,9 +65,7 @@ from courses.services.curriculum_import import (
 COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 MAX_ARCHIVE_BYTES = 200_000_000
 REQUEST_TIMEOUT_SECONDS = 30
-
-#: Directories a checkout carries that are never part of the published commit.
-CHECKOUT_SKIPPED_DIRECTORIES = frozenset({".git"})
+GIT_ARCHIVE_TIMEOUT_SECONDS = 120
 
 ARCHIVE_TRANSPORT = "archive"
 CHECKOUT_TRANSPORT = "checkout"
@@ -233,58 +245,37 @@ def _response_bytes(response: requests.Response) -> bytes:
     return b"".join(chunks)
 
 
-def fetch_course_repository_snapshot(
+def read_course_repository_archive(
+    archive_bytes: bytes,
     *,
-    owner: str,
-    repository: str,
-    commit_sha: str,
     limits: CourseRepositoryLimits,
+    strip_root: bool,
 ) -> dict[str, bytes]:
-    """Push transport: download GitHub's immutable commit archive.
+    """Project one ``git archive`` tar into a snapshot.  Both transports use this.
 
-    The archive is a ``git archive`` tarball, so it carries a directory entry
-    for every directory as well as a regular entry for every file.  Directories
-    are structure, not content, and are skipped; anything that is neither a
-    directory nor a regular file (a symlink, a device node, a hard link) is a
-    refusal, because a repository must not be able to reach outside itself.
+    A ``git archive`` tar carries a directory entry for every directory as well
+    as a regular entry for every file.  Directories are structure, not content,
+    and are skipped; anything that is neither a directory nor a regular file
+    (a symlink, a device node, a hard link) is a refusal, because a repository
+    must not be able to reach outside itself.
+
+    ``strip_root`` drops the single wrapper directory codeload's archive adds.
+    A locally produced ``git archive`` has no prefix, so the pull passes
+    ``False``; that is the only knob, and it concerns the tar's shape rather
+    than what may be in it.
     """
-
-    commit_sha = validate_commit_sha(commit_sha)
-    url = f"https://codeload.github.com/{owner}/{repository}/tar.gz/{commit_sha}"
-    try:
-        response = requests.get(url, timeout=REQUEST_TIMEOUT_SECONDS, stream=True)
-    except requests.RequestException as error:
-        raise CourseRepositoryFetchError(
-            "course_repository_fetch_failed", retryable=True
-        ) from error
-    try:
-        if response.status_code == 404:
-            raise CourseRepositoryFetchError(
-                "course_repository_commit_not_found",
-                detail=f"{owner}/{repository}@{commit_sha}",
-            )
-        if response.status_code >= 500:
-            raise CourseRepositoryFetchError(
-                "course_repository_provider_unavailable", retryable=True
-            )
-        if response.status_code != 200:
-            raise CourseRepositoryFetchError(
-                "course_repository_fetch_rejected",
-                detail=f"codeload answered {response.status_code}",
-            )
-        archive_bytes = _response_bytes(response)
-    finally:
-        response.close()
 
     snapshot: dict[str, bytes] = {}
     total_bytes = 0
     try:
-        archive = tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:gz")
+        # ``r:*`` accepts codeload's gzip and a local uncompressed tar alike, so
+        # the compression the transport happened to use is not a second rule.
+        archive = tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:*")
     except (tarfile.TarError, OSError) as error:
         raise CourseRepositoryFetchError("course_repository_archive_invalid") from error
     with archive:
         for member in archive:
-            path = _snapshot_relative_path(member.name, strip_root=True)
+            path = _snapshot_relative_path(member.name, strip_root=strip_root)
             if path is None or member.isdir():
                 continue
             if not member.isreg() or member.issym() or member.islnk():
@@ -318,105 +309,125 @@ def fetch_course_repository_snapshot(
     return snapshot
 
 
-def _checkout_candidates(root: Path) -> Iterable[Path]:
-    for candidate in sorted(root.rglob("*")):
-        parts = candidate.relative_to(root).parts
-        if any(part in CHECKOUT_SKIPPED_DIRECTORIES for part in parts):
-            continue
-        yield candidate
+def fetch_course_repository_snapshot(
+    *,
+    owner: str,
+    repository: str,
+    commit_sha: str,
+    limits: CourseRepositoryLimits,
+) -> dict[str, bytes]:
+    """Push transport: download GitHub's immutable commit archive."""
+
+    commit_sha = validate_commit_sha(commit_sha)
+    url = f"https://codeload.github.com/{owner}/{repository}/tar.gz/{commit_sha}"
+    try:
+        response = requests.get(url, timeout=REQUEST_TIMEOUT_SECONDS, stream=True)
+    except requests.RequestException as error:
+        raise CourseRepositoryFetchError(
+            "course_repository_fetch_failed", retryable=True
+        ) from error
+    try:
+        if response.status_code == 404:
+            raise CourseRepositoryFetchError(
+                "course_repository_commit_not_found",
+                detail=f"{owner}/{repository}@{commit_sha}",
+            )
+        if response.status_code >= 500:
+            raise CourseRepositoryFetchError(
+                "course_repository_provider_unavailable", retryable=True
+            )
+        if response.status_code != 200:
+            raise CourseRepositoryFetchError(
+                "course_repository_fetch_rejected",
+                detail=f"codeload answered {response.status_code}",
+            )
+        archive_bytes = _response_bytes(response)
+    finally:
+        response.close()
+
+    return read_course_repository_archive(archive_bytes, limits=limits, strip_root=True)
+
+
+def _git_archive_bytes(root: Path, commit_sha: str) -> bytes:
+    """Return ``git archive <commit>`` for a checkout, without touching a remote.
+
+    ``git archive`` on a local tree-ish is an offline operation: no remote is
+    named, and the environment below disables the operator's global and system
+    git configuration and any terminal prompt so the tar depends on the
+    repository and the commit rather than on the machine.
+    """
+
+    try:
+        completed = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(root),
+                "archive",
+                "--format=tar",
+                commit_sha,
+            ],
+            check=False,
+            capture_output=True,
+            timeout=GIT_ARCHIVE_TIMEOUT_SECONDS,
+            env={
+                "PATH": os.environ.get("PATH", ""),
+                "HOME": os.environ.get("HOME", ""),
+                "GIT_CONFIG_GLOBAL": os.devnull,
+                "GIT_CONFIG_SYSTEM": os.devnull,
+                "GIT_TERMINAL_PROMPT": "0",
+                "GIT_ASKPASS": "",
+            },
+        )
+    except subprocess.TimeoutExpired as error:
+        raise CourseRepositoryFetchError(
+            "course_repository_checkout_archive_failed",
+            detail=f"git archive timed out after {GIT_ARCHIVE_TIMEOUT_SECONDS}s in {root}",
+        ) from error
+    except (OSError, subprocess.SubprocessError) as error:
+        raise CourseRepositoryFetchError(
+            "course_repository_checkout_archive_failed",
+            detail=f"git is unavailable for {root}",
+        ) from error
+    if completed.returncode != 0:
+        reason = completed.stderr.decode("utf-8", "replace").strip().splitlines()
+        raise CourseRepositoryFetchError(
+            "course_repository_checkout_archive_failed",
+            detail=(
+                f"git archive {commit_sha} failed in {root}: "
+                f"{reason[0][:200] if reason else completed.returncode}"
+            ),
+        )
+    if len(completed.stdout) > MAX_ARCHIVE_BYTES:
+        raise CourseRepositoryFetchError(
+            "course_repository_archive_too_large",
+            detail=f"the archive exceeds {MAX_ARCHIVE_BYTES} bytes",
+        )
+    return completed.stdout
 
 
 def read_course_repository_checkout(
     root: Path,
     *,
+    commit_sha: str,
     limits: CourseRepositoryLimits,
-    paths: Sequence[str] | None = None,
 ) -> dict[str, bytes]:
-    """Pull transport: read a checkout that is already on disk.
+    """Pull transport: ``git archive`` one commit out of a checkout on disk.
 
-    No network call is made and no remote is consulted.  ``paths`` lets the
-    caller hand in the exact tracked file list ``git ls-files`` reported, which
-    is how a checkout is made to contain what the commit archive contains; when
-    it is omitted the whole tree below ``root`` is read, minus ``.git``.
-
-    A symlink anywhere on the way to a file is refused, matching the archive
-    transport's refusal of symlink members: a repository must not be able to
-    pull a file from the machine running the import into published content.
+    No network call is made and no remote is consulted.  The snapshot is the
+    commit's exported tree, not the working tree, so a repository's
+    ``.gitattributes`` decides what is in it exactly as it does for codeload.
+    That is what makes the two transports agree by construction: uncommitted
+    edits, untracked files and ``export-ignore``d paths cannot enter here
+    because they cannot enter there.
     """
 
     root = Path(root)
     if not root.is_dir() or root.is_symlink():
         raise CourseRepositoryFetchError("course_repository_checkout_unavailable", detail=str(root))
-    resolved_root = root.resolve()
-
-    raw_candidates: Iterable[str]
-    if paths is None:
-        raw_candidates = (
-            candidate.relative_to(root).as_posix() for candidate in _checkout_candidates(root)
-        )
-    else:
-        raw_candidates = paths
-    relatives: list[str] = []
-    for raw_path in raw_candidates:
-        relative = _snapshot_relative_path(raw_path, strip_root=False)
-        if relative is not None:
-            relatives.append(relative)
-    relatives.sort()
-
-    snapshot: dict[str, bytes] = {}
-    total_bytes = 0
-    for relative in relatives:
-        candidate = root / relative
-        cursor = root
-        for part in PurePosixPath(relative).parts:
-            cursor = cursor / part
-            if cursor.is_symlink():
-                raise CourseRepositoryFetchError(
-                    "course_repository_checkout_entry_invalid",
-                    detail=f"{relative} is reached through the symlink {cursor.name}",
-                )
-        if candidate.is_dir():
-            continue
-        try:
-            resolved = candidate.resolve(strict=True)
-            resolved.relative_to(resolved_root)
-            if not resolved.is_file():
-                raise CourseRepositoryFetchError(
-                    "course_repository_checkout_entry_invalid",
-                    detail=f"{relative} is not a regular file",
-                )
-            size = resolved.stat().st_size
-        except CourseRepositoryFetchError:
-            raise
-        except (OSError, ValueError) as error:
-            raise CourseRepositoryFetchError(
-                "course_repository_checkout_entry_invalid",
-                detail=f"{relative} could not be read from the checkout",
-            ) from error
-        _admit_file(
-            path=relative,
-            size=size,
-            admitted_files=len(snapshot),
-            admitted_bytes=total_bytes,
-            limits=limits,
-        )
-        if relative in snapshot:
-            raise CourseRepositoryFetchError("course_repository_duplicate_path", detail=relative)
-        try:
-            content = resolved.read_bytes()
-        except OSError as error:
-            raise CourseRepositoryFetchError(
-                "course_repository_checkout_entry_invalid",
-                detail=f"{relative} could not be read from the checkout",
-            ) from error
-        if len(content) != size:
-            raise CourseRepositoryFetchError(
-                "course_repository_checkout_entry_invalid",
-                detail=f"{relative} changed size while it was being read",
-            )
-        snapshot[relative] = content
-        total_bytes += len(content)
-    return snapshot
+    commit_sha = validate_commit_sha(commit_sha)
+    archive_bytes = _git_archive_bytes(root, commit_sha)
+    return read_course_repository_archive(archive_bytes, limits=limits, strip_root=False)
 
 
 def _assert_ingestible(source: ContentSource) -> None:
@@ -490,14 +501,13 @@ def ingest_course_repository(
     source: ContentSource,
     commit_sha: str,
     checkout_root: Path | None = None,
-    checkout_paths: Sequence[str] | None = None,
 ) -> CourseRepositoryIngestResult:
     """Ingest one commit of one registered source.
 
     ``checkout_root is None`` selects the push transport and downloads the
-    commit archive.  Any other value selects the pull transport and reads that
-    directory offline.  This ``if`` is the only difference between the two
-    routes; everything after it is shared.
+    commit archive.  Any other value selects the pull transport and produces
+    the same archive locally, offline.  This ``if`` is the only difference
+    between the two routes; everything after it is shared.
     """
 
     _assert_ingestible(source)
@@ -515,7 +525,7 @@ def ingest_course_repository(
     else:
         transport = CHECKOUT_TRANSPORT
         snapshot = read_course_repository_checkout(
-            checkout_root, limits=limits, paths=checkout_paths
+            checkout_root, commit_sha=commit_sha, limits=limits
         )
 
     return ingest_course_repository_snapshot(
@@ -536,6 +546,7 @@ __all__ = (
     "fetch_course_repository_snapshot",
     "ingest_course_repository",
     "ingest_course_repository_snapshot",
+    "read_course_repository_archive",
     "read_course_repository_checkout",
     "validate_commit_sha",
 )

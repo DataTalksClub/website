@@ -79,7 +79,6 @@ decision.
 | Script | What it does | Verdict | Primary caller |
 | --- | --- | --- | --- |
 | `build_article_faq.py` | Recovers ten legacy blog-article FAQ sections from the legacy site repo into one provenance-carrying capture | Live (runbook) | `_docs/article-faq-recovery.md:37` |
-| `build_course_modules_manifest.py` | Builds the pinned course-module snapshot manifest (repo, commit, per-file SHA-256) from local checkouts | Live | `Makefile:450` |
 | `build_event_description_bridge.py` | Builds the reviewed public-safe event-description bridge from a local exporter snapshot | Live (runbook) + test import | `_docs/event-description-bridge.md:19`; `content/tests/test_event_description_bridge.py:25` |
 | `build_legacy_manifest.py` | Crawl/merge/compare/validate the versioned legacy SEO compatibility manifest | Live | `Makefile:299,301,306`; `_docs/compatibility/README.md:133-231` |
 | `build_local_review_db.py` | 19-line shim into `review_import.cli.main()` | Live | `Makefile:485,492,499` |
@@ -154,7 +153,8 @@ noted.
 | `audit_datamailer_recipient_lists` | courses | Live | `studio_courses/views/datamailer_operations.py:51` |
 | `datamailer_campaign` / `datamailer_status` | courses | Live | Studio operations + tests |
 | `import_development_course_content` | courses | **Live, keep** | `courses/tests/test_development_content_import.py:310-320`; §0.2. Imports *real* course content, not placeholders |
-| `prepare_local_course_modules` | courses | Live | `scripts/prepare_local_data.py:292,295` |
+| `pull_course_repositories` | content_sync | Live | `scripts/prepare_local_data.py`; `Makefile` `content-pull`. The one route into the curriculum tables, shared with the signed GitHub push webhook |
+| `register_course_repository` / `seed_course_repository_sources` | content_sync | Live | `Makefile` `content-sources`; `_docs/runbooks/course-content-push-and-pull.md` |
 | `preview_peer_review_email` | courses | Live | `courses/tests/test_datamailer_peer_review.py:283` |
 | `seed_local_courses` | courses | **Live, keep** | `README.md:47`; `scripts/prepare_local_data.py:290`. Source of the "Practice assignment" text (§0.3) |
 | `seed_local_project_review` | courses | Live | `README.md:65`; `courses/tests/test_local_project_review_seed.py:101` |
@@ -228,9 +228,10 @@ executable record of how a checked-in artifact was produced:
 - `build_pinned_legacy_sources.py` → the pinned legacy checkouts (`Makefile:296`).
 - `repin_projection_digests.py` → the projection manifest's digest/scope fields; exists
   precisely because a full rebuild is not currently possible (issue #253, per its docstring).
-- Add to that list: `build_article_faq.py` → `content/article_faq.py:10`;
-  `build_event_description_bridge.py` → the checked bridge; and
-  `build_course_modules_manifest.py` → the course-module snapshot manifest.
+- Add to that list: `build_article_faq.py` → `content/article_faq.py:10` and
+  `build_event_description_bridge.py` → the checked bridge. The course-module snapshot
+  manifest and its builder are gone: course content now comes in through
+  `pull_course_repositories`, the same ingestion the push webhook drives.
 
 ---
 

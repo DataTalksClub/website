@@ -239,7 +239,7 @@ def _registration_source_derivations(
 def run(
     *,
     database: Path,
-    course_modules_input: Path,
+    course_checkout_root: Path,
     identity_manifest: Path,
     luma_source: Path,
     eventbrite_source: Path,
@@ -256,8 +256,10 @@ def run(
         )
     ):
         raise LocalPreparationError("fresh_database_already_exists")
-    if not course_modules_input.is_file() or not identity_manifest.is_file():
+    if not identity_manifest.is_file():
         raise LocalPreparationError("preparation_manifest_unavailable")
+    if not course_checkout_root.is_dir():
+        raise LocalPreparationError("course_checkout_root_unavailable")
     if not luma_source.is_dir() or not eventbrite_source.is_file():
         raise LocalPreparationError("registration_source_unavailable")
 
@@ -288,11 +290,13 @@ def run(
         except LocalCmpContentImportError as error:
             raise LocalPreparationError(f"cmp_content_{error}") from error
     catalog = _json_management_command("seed_local_courses")
-    modules_check = _json_management_command(
-        "prepare_local_course_modules", manifest_path=course_modules_input, check=True
-    )
+    # Which repositories exist is registered data, so the rehearsal registers the
+    # pinned sources and then runs the one ingestion the signed push webhook runs.
+    course_sources = _json_management_command("seed_course_repository_sources")
     modules = _json_management_command(
-        "prepare_local_course_modules", manifest_path=course_modules_input
+        "pull_course_repositories",
+        from_disk=str(course_checkout_root),
+        require_public_commit=True,
     )
     registration_sources, derived_sources = _registration_source_derivations(
         luma_source=luma_source,
@@ -389,7 +393,7 @@ def run(
             "event_identities": identities,
             "cmp_content": cmp_content,
             "course_catalog": catalog,
-            "course_modules_check": modules_check,
+            "course_repository_sources": course_sources,
             "course_modules": modules,
         },
         "registration_sources": registration_sources,
@@ -401,7 +405,15 @@ def _parser() -> argparse.ArgumentParser:
     main_root = _main_checkout_root()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--database", required=True, help="SQLite path below this checkout's .tmp/")
-    parser.add_argument("--course-modules-input", required=True, type=Path)
+    parser.add_argument(
+        "--course-checkout-root",
+        required=True,
+        type=Path,
+        help=(
+            "Directory holding one checkout per registered course-repository source, "
+            "named after the source stable id. `make content-checkouts` produces it."
+        ),
+    )
     parser.add_argument(
         "--identity-manifest",
         type=Path,
@@ -449,7 +461,7 @@ def main(argv: list[str] | None = None) -> int:
         database = _local_database_path(args.database)
         report = run(
             database=database,
-            course_modules_input=Path(args.course_modules_input).resolve(),
+            course_checkout_root=Path(args.course_checkout_root).resolve(),
             identity_manifest=Path(args.identity_manifest).resolve(),
             luma_source=Path(args.luma_source).resolve(),
             eventbrite_source=Path(args.eventbrite_source).resolve(),

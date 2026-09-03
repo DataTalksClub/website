@@ -2,6 +2,16 @@
 
 Status: **proposed, Stage 1 (design) only.** Nothing below is implemented.
 
+> **Partly overtaken by events, 2026-09-03.** The course-repository leg is done and did
+> not land the way this plan assumed. There is one course path,
+> `content_sync/course_repository_ingest.py`, reached by the signed push webhook and by
+> `manage.py pull_course_repositories`. `scripts/build_course_modules_manifest.py`,
+> `courses/services/local_course_modules.py`, the snapshot manifest with its per-file
+> SHA-256 table, the `homework_slug_overrides` hook, `TARGET_COHORTS` and
+> `PRODUCTION_PREP_COURSE_REPOSITORIES` are all gone; registered `ContentSource` rows say
+> which repositories exist. Read every course-repository row in the tables below as
+> history. See `_docs/runbooks/course-content-push-and-pull.md`.
+
 A **refactor**, not a greenfield design. Every capability already exists; it is spread
 across eight entry points and three app homes, with names that do not say what they do.
 The plan renames, relocates and decomposes what exists, then adds one adapter on top.

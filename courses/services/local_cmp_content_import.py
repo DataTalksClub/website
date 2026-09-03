@@ -10,10 +10,10 @@ upstream fixture rows ``fake-course`` and ``fake-course-2`` are dropped.
 
 Homework slugs are copied verbatim.  A CMP slug is data, not something to derive:
 deriving one identity two different ways is what split the AI Dev Tools course
-family and needed migration ``0052`` to repair.  Where a repository-authored
-module must bind to a CMP homework whose slug differs, declare it in the
-``homework_slug_overrides`` manifest hook that ``local_course_modules`` already
-validates, so the pairing is a table someone can read rather than a transform.
+family and needed migration ``0052`` to repair.  A repository-authored homework
+binds to a CMP row by the ``content_id`` its YAML declares, which is the same
+identity the signed push webhook uses; nothing here renames a slug to make a
+pairing happen.
 """
 
 from __future__ import annotations

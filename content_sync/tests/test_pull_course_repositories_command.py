@@ -18,7 +18,7 @@ from content_sync.tests.test_course_repository_transport_parity import (
     _git,
     build_checkout,
 )
-from courses.models import Cohort, Course, Module, Project
+from courses.models import Cohort, Course, Homework, Module, Project
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SCRATCH_ROOT = PROJECT_ROOT / ".tmp" / "pull-course-repositories-command"
@@ -60,7 +60,7 @@ class PullCourseRepositoriesCommandTests(TestCase):
     def tearDown(self) -> None:
         _git(self.checkout, "checkout", "--", ".")
 
-    def pull(self, *arguments: str) -> str:
+    def pull(self, *arguments: str, **options: object) -> str:
         out = io.StringIO()
         call_command(
             "pull_course_repositories",
@@ -69,8 +69,28 @@ class PullCourseRepositoriesCommandTests(TestCase):
             *arguments,
             stdout=out,
             stderr=io.StringIO(),
+            **options,
         )
         return out.getvalue()
+
+    def seed_project_shell(self) -> None:
+        course = Course.objects.create(slug="llm-zoomcamp", title="LLM Zoomcamp")
+        cohort = Cohort.objects.create(
+            course=course,
+            slug="llm-zoomcamp-2026",
+            identifier="2026",
+            year=2026,
+            title="LLM Zoomcamp 2026",
+            description="Existing shell for the project reference.",
+        )
+        now = timezone.now()
+        Project.objects.create(
+            course=cohort,
+            slug="project-01",
+            title="Project 1",
+            submission_due_date=now + timedelta(days=7),
+            peer_review_due_date=now + timedelta(days=14),
+        )
 
     def test_the_repository_list_is_registered_data_not_a_hardcoded_list(self) -> None:
         make_source()
@@ -106,28 +126,94 @@ class PullCourseRepositoriesCommandTests(TestCase):
 
     def test_pull_projects_the_checkout_without_any_network_call(self) -> None:
         make_source()
-        course = Course.objects.create(slug="llm-zoomcamp", title="LLM Zoomcamp")
-        cohort = Cohort.objects.create(
-            course=course,
-            slug="llm-zoomcamp-2026",
-            identifier="2026",
-            year=2026,
-            title="LLM Zoomcamp 2026",
-            description="Existing shell for the project reference.",
-        )
-        now = timezone.now()
-        Project.objects.create(
-            course=cohort,
-            slug="project-01",
-            title="Project 1",
-            submission_due_date=now + timedelta(days=7),
-            peer_review_due_date=now + timedelta(days=14),
-        )
+        self.seed_project_shell()
 
         output = self.pull()
 
         self.assertIn('"transport": "checkout"', output)
         self.assertTrue(Module.objects.exists())
+
+    def test_naming_one_checkout_names_the_run(self) -> None:
+        """`--checkout X=PATH` alone must not attempt every other source."""
+
+        make_source()
+        make_source(
+            id=uuid.uuid4(),
+            stable_id="data-engineering-zoomcamp",
+            display_name="Data Engineering Zoomcamp",
+            repository_name="data-engineering-zoomcamp",
+        )
+        self.seed_project_shell()
+
+        output = self.pull()
+
+        self.assertIn('"source_stable_id": "llm-zoomcamp"', output)
+        self.assertNotIn("data-engineering-zoomcamp", output)
+
+    def test_from_disk_keeps_an_explicit_checkout_as_an_override(self) -> None:
+        """With a root there are many sources, and --checkout overrides one."""
+
+        make_source()
+        make_source(
+            id=uuid.uuid4(),
+            stable_id="data-engineering-zoomcamp",
+            display_name="Data Engineering Zoomcamp",
+            repository_name="data-engineering-zoomcamp",
+        )
+        out = io.StringIO()
+
+        call_command(
+            "pull_course_repositories",
+            "--checkout-plan",
+            "--from-disk",
+            str(SCRATCH_ROOT),
+            "--checkout",
+            f"llm-zoomcamp={self.checkout}",
+            stdout=out,
+        )
+
+        self.assertEqual(
+            [line.split("\t")[0] for line in out.getvalue().splitlines()],
+            ["data-engineering-zoomcamp", "llm-zoomcamp"],
+        )
+
+    def test_verbosity_zero_prints_only_the_machine_readable_summary(self) -> None:
+        make_source()
+        self.seed_project_shell()
+
+        quiet = self.pull(verbosity=0)
+
+        self.assertEqual(len(quiet.strip().splitlines()), 1)
+        self.assertIn('"transport": "checkout"', quiet)
+        self.assertNotIn("Pulling llm-zoomcamp", quiet)
+
+    def test_a_waived_dirty_checkout_still_imports_the_commit(self) -> None:
+        """The snapshot is `git archive HEAD`, so working-tree edits stay out."""
+
+        make_source()
+        self.seed_project_shell()
+        (self.checkout / "cohorts" / "2026" / "cohort.yaml").write_text(
+            (self.checkout / "cohorts" / "2026" / "cohort.yaml")
+            .read_text(encoding="utf-8")
+            .replace("title: LLM Zoomcamp 2026", "title: Tampered In The Working Tree"),
+            encoding="utf-8",
+        )
+        errors = io.StringIO()
+
+        call_command(
+            "pull_course_repositories",
+            "--checkout",
+            f"llm-zoomcamp={self.checkout}",
+            "--allow-modified-checkout",
+            stdout=io.StringIO(),
+            stderr=errors,
+        )
+
+        self.assertIn("NOT imported", errors.getvalue())
+        self.assertEqual(
+            Cohort.objects.get(identifier="2026").title,
+            "LLM Zoomcamp 2026",
+        )
 
     def test_a_dirty_checkout_is_refused_and_names_the_change(self) -> None:
         make_source()
@@ -152,3 +238,40 @@ class PullCourseRepositoriesCommandTests(TestCase):
                 str(SCRATCH_ROOT / "absent"),
                 stdout=io.StringIO(),
             )
+
+    def test_an_unowned_row_holding_the_repository_slug_is_refused(self) -> None:
+        """One path means one adoption rule, and this is what it currently is.
+
+        A homework nobody's import owns -- a row the CMP snapshot copied in, for
+        instance -- that already carries the slug the repository declares is a
+        refusal, not an adoption. The retired local importer adopted it, through
+        ``preserve_existing_records``; the single path does not, and neither
+        does the push route, so the local dataset and production behave the
+        same way. Reconciling a CMP-owned row with a repository-owned one is the
+        CMP importer's job (`courses/services/cmp_content_import.py` already
+        pairs them), not something the course path should special-case for one
+        caller. This test exists so that decision is met here rather than
+        discovered during a rebuild.
+        """
+
+        make_source()
+        self.seed_project_shell()
+        Homework.objects.create(
+            course=Cohort.objects.get(slug="llm-zoomcamp-2026"),
+            slug="hw1",
+            title="Homework 1, copied from CMP and owned by no import",
+            due_date=timezone.now() + timedelta(days=3),
+        )
+
+        errors = io.StringIO()
+        with self.assertRaises(CommandError):
+            call_command(
+                "pull_course_repositories",
+                "--checkout",
+                f"llm-zoomcamp={self.checkout}",
+                stdout=io.StringIO(),
+                stderr=errors,
+            )
+
+        self.assertIn("course_repository_homework_slug_collision", errors.getvalue())
+        self.assertEqual(Homework.objects.get(slug="hw1").source_content_id, None)

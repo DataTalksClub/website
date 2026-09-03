@@ -7,7 +7,9 @@
 	content-update-check \
 	security-check security-artifact-scan \
 	test-remote-readonly test-remote-mutation test-live-email test-live-provider test-all migrate run worker \
-	production-prep-local content-pull content-pull-plan content-checkouts \
+	production-prep-local content-pull content-pull-plan content-checkouts content-sources \
+	production-prep-course-registry production-prep-course-sources production-prep-dataset \
+	production-prep-dataset-verify run-production-prep-dataset \
 	terraform-seo-source-check check-openapi check-management-parity \
 	database-portability-check verify-dtc-content review-data review-data-dry-run \
 	review-data-cleanup run-review-data verification-plan verification-run verification-full \
@@ -403,6 +405,11 @@ CONTENT_CHECKOUT_ROOT ?= .tmp/course-checkouts
 # cloned from that owner rather than silently from DataTalksClub.
 CONTENT_GIT_HOST ?= https://github.com
 
+# Register the pinned course-repository sources. Which repositories exist is
+# registered ContentSource data; this is only how a fresh database gets its rows.
+content-sources:
+	uv run --frozen python manage.py seed_course_repository_sources
+
 # Print the registered sources and the checkout each would be read from.
 content-pull-plan:
 	@uv run --frozen python manage.py pull_course_repositories \
@@ -436,10 +443,10 @@ content-pull:
 
 production-prep-local:
 	@test -n "$(PRODUCTION_PREP_DATABASE)" || (echo "PRODUCTION_PREP_DATABASE is required" >&2; exit 2)
-	@test -n "$(PRODUCTION_PREP_COURSE_MODULES_INPUT)" || (echo "PRODUCTION_PREP_COURSE_MODULES_INPUT is required" >&2; exit 2)
+	@test -n "$(PRODUCTION_PREP_COURSE_SOURCE_DIR)" || (echo "PRODUCTION_PREP_COURSE_SOURCE_DIR is required" >&2; exit 2)
 	uv run --frozen python scripts/prepare_local_data.py \
 		--database "$(PRODUCTION_PREP_DATABASE)" \
-		--course-modules-input "$(PRODUCTION_PREP_COURSE_MODULES_INPUT)" \
+		--course-checkout-root "$(PRODUCTION_PREP_COURSE_SOURCE_DIR)" \
 		$(if $(PRODUCTION_PREP_CURRENT_REGISTRATION_INPUT),--current-registration-input "$(PRODUCTION_PREP_CURRENT_REGISTRATION_INPUT)",) \
 		$(if $(PRODUCTION_PREP_CMP_SOURCE),--cmp-source-db "$(PRODUCTION_PREP_CMP_SOURCE)",) \
 		$(if $(PRODUCTION_PREP_FRESH),--fresh,)
@@ -449,7 +456,6 @@ production-prep-local:
 PRODUCTION_PREP_DATASET_ROOT ?= .tmp/production-prep-dataset
 PRODUCTION_PREP_DATASET_DATABASE ?= $(PRODUCTION_PREP_DATASET_ROOT)/dataset.sqlite3
 PRODUCTION_PREP_COURSE_SOURCE_DIR ?= $(PRODUCTION_PREP_DATASET_ROOT)/course-sources
-PRODUCTION_PREP_COURSE_MODULES_MANIFEST ?= $(PRODUCTION_PREP_DATASET_ROOT)/course-modules.json
 PRODUCTION_PREP_DATASET_PORT ?= 8001
 # Protected CMP SQLite snapshot. The sanitizing importer copies it and never
 # writes learner rows. Override when the snapshot lives somewhere else.
@@ -457,56 +463,37 @@ PRODUCTION_PREP_CMP_SOURCE ?= $(HOME)/git/course-management-platform/db/db.sqlit
 # Set empty to skip activating the reviewed current-event registration aggregates.
 PRODUCTION_PREP_DATASET_REGISTRATION_INPUT ?= \
 	_docs/migration-data/local-current-registration-input.json
-# Where the three course repositories are cloned from. The 2026 module curricula are
-# published now, so this points at GitHub rather than the operator's sibling clones.
-# That is what lets the public-commit guard pass: it reads reachability from the
-# checkout's own remote-tracking branches to stay offline, so a checkout cloned from a
-# local mirror can never satisfy it however public the commit actually is.
-PRODUCTION_PREP_COURSE_REMOTE ?= https://github.com/DataTalksClub
-# The 2026 curricula are published now, so the commits these clones pin are reachable
-# on GitHub and every source link an imported page builds -- the edit link, the raw
-# image URL, a source path a reader follows -- resolves. The manifest builder's guard
-# therefore passes on its own; set this only if a checkout goes ahead of its remote
-# again, and state why.
-PRODUCTION_PREP_UNPUBLISHED_COMMIT_REASON ?=
-PRODUCTION_PREP_COURSE_REPOSITORIES = \
-	llm-zoomcamp:llm-zoomcamp \
-	ml-zoomcamp:machine-learning-zoomcamp \
-	ai-dev-tools-zoomcamp:ai-dev-tools-zoomcamp
+PRODUCTION_PREP_DATASET_ENV = DTC_ENVIRONMENT=local \
+	DJANGO_SETTINGS_MODULE=website.settings.local \
+	DTC_SQLITE_PATH=$(PRODUCTION_PREP_DATASET_DATABASE)
 
-production-prep-course-sources:
-	@set -eu; \
-	mkdir -p "$(PRODUCTION_PREP_COURSE_SOURCE_DIR)"; \
-	for pair in $(PRODUCTION_PREP_COURSE_REPOSITORIES); do \
-		name="$${pair%%:*}"; repository="$${pair##*:}"; \
-		checkout="$(PRODUCTION_PREP_COURSE_SOURCE_DIR)/$$name"; \
-		if test -d "$$checkout/.git"; then \
-			git -C "$$checkout" fetch --quiet origin main; \
-			git -C "$$checkout" checkout --quiet main; \
-			git -C "$$checkout" reset --hard --quiet FETCH_HEAD; \
-			git -C "$$checkout" clean --quiet -fdx; \
-		else \
-			git clone --quiet --branch main \
-				"$(PRODUCTION_PREP_COURSE_REMOTE)/$$repository" "$$checkout"; \
-		fi; \
-		echo "$$name $$(git -C "$$checkout" rev-parse HEAD)"; \
-	done
+# Stage 1. Create the dataset database and register which course repositories
+# exist. This has to come first because that is the only place the answer lives:
+# registered ContentSource rows, not a list in this file.
+production-prep-course-registry:
+	@test ! -e "$(PRODUCTION_PREP_DATASET_DATABASE)" || \
+		(echo "$(PRODUCTION_PREP_DATASET_DATABASE) already exists; remove it to rebuild" >&2; exit 2)
+	@mkdir -p "$(PRODUCTION_PREP_DATASET_ROOT)"
+	$(PRODUCTION_PREP_DATASET_ENV) uv run --frozen python manage.py migrate --no-input
+	$(PRODUCTION_PREP_DATASET_ENV) $(MAKE) content-sources
 
-production-prep-course-modules-manifest: production-prep-course-sources
-	uv run --frozen python scripts/build_course_modules_manifest.py \
-		--checkout-root "$(PRODUCTION_PREP_COURSE_SOURCE_DIR)" \
-		$(if $(PRODUCTION_PREP_UNPUBLISHED_COMMIT_REASON),--allow-unpublished-commit "$(PRODUCTION_PREP_UNPUBLISHED_COMMIT_REASON)",) \
-		--output "$(PRODUCTION_PREP_COURSE_MODULES_MANIFEST)"
+# Stage 2. The only step that touches the network. It clones or refreshes one
+# checkout per registered source, exactly as `make content-checkouts` does for a
+# developer, because it is that target.
+production-prep-course-sources: production-prep-course-registry
+	$(PRODUCTION_PREP_DATASET_ENV) $(MAKE) content-checkouts \
+		CONTENT_CHECKOUT_ROOT="$(PRODUCTION_PREP_COURSE_SOURCE_DIR)"
 
-production-prep-dataset: production-prep-course-modules-manifest
+# Stage 3. Build the dataset offline from those checkouts.
+production-prep-dataset:
 	rm -f "$(PRODUCTION_PREP_DATASET_DATABASE)" \
 		"$(PRODUCTION_PREP_DATASET_DATABASE)-shm" \
 		"$(PRODUCTION_PREP_DATASET_DATABASE)-wal"
+	$(MAKE) production-prep-course-sources
 	$(MAKE) production-prep-local \
 		PRODUCTION_PREP_DATABASE="$(PRODUCTION_PREP_DATASET_DATABASE)" \
-		PRODUCTION_PREP_COURSE_MODULES_INPUT="$(PRODUCTION_PREP_COURSE_MODULES_MANIFEST)" \
-		PRODUCTION_PREP_CURRENT_REGISTRATION_INPUT="$(PRODUCTION_PREP_DATASET_REGISTRATION_INPUT)" \
-		PRODUCTION_PREP_FRESH=1
+		PRODUCTION_PREP_COURSE_SOURCE_DIR="$(PRODUCTION_PREP_COURSE_SOURCE_DIR)" \
+		PRODUCTION_PREP_CURRENT_REGISTRATION_INPUT="$(PRODUCTION_PREP_DATASET_REGISTRATION_INPUT)"
 	$(MAKE) production-prep-dataset-verify
 
 production-prep-dataset-verify:
