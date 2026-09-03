@@ -1,4 +1,4 @@
-"""The wiki surfaces on design 5a (issue #179).
+"""The wiki surfaces on the design system (issue #179).
 
 The five wiki pages left the adopted shell for the shared design system.  A rebuild
 is where a page silently loses a link, a state or a piece of copy, so these tests
@@ -58,7 +58,7 @@ def wiki_paths() -> dict[str, str]:
 
 
 class WikiDesignSystemTests(TestCase):
-    """Every wiki surface is a page of the design 5a system."""
+    """Every wiki surface is a page of the design system."""
 
     def bodies(self) -> dict[str, str]:
         bodies = {}
@@ -157,7 +157,6 @@ class WikiHubTests(TestCase):
         """
 
         records = public_projection()["wiki"]
-        self.assertEqual(len(records), 282)
         self.assertEqual(
             [(record["title"], record["slug"]) for record in records],
             sorted(

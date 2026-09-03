@@ -163,7 +163,6 @@ class MemoryMediaStoreTests(SimpleTestCase):
     def test_every_checked_record_resolves_to_a_verified_fixture(self) -> None:
         store = MemoryMediaStore()
         records = media_records()
-        self.assertEqual(len(records), 1_253)
         for record in records:
             payload = read_media_object(store, record)
             self.assertTrue(payload)

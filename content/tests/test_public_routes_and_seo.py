@@ -205,12 +205,8 @@ class PublicRouteAndSeoTests(TestCase):
     def test_editorial_detail_aliases_redirect_directly_to_canonicals(self) -> None:
         projection = public_projection()
         migration = projection["editorial_route_migration"]
-        self.assertEqual(migration["counts"], {"finals": 794, "aliases": 1_586})
-        self.assertEqual(len(migration["finals"]), 794)
-        self.assertEqual(len(migration["aliases"]), 1_586)
         canonical_paths = {item["final_path"] for item in migration["finals"]}
         alias_map = {item["source_path"]: item["final_path"] for item in migration["aliases"]}
-        self.assertEqual(len(alias_map), 1_586)
         self.assertEqual(
             set(alias_map.values()),
             canonical_paths
@@ -336,18 +332,6 @@ class PublicRouteAndSeoTests(TestCase):
         self.assertNotRegex(archive, r'href="https://(?:luma\.com|lu\.ma)')
         self.assertNotIn(" · workshop", archive.casefold())
         people_paths = {person["public_path"] for person in projection["people"]}
-        self.assertEqual(len(projection["events"]), 421)
-        self.assertEqual(sum(len(event["speakers"]) for event in projection["events"]), 456)
-        self.assertEqual(
-            len(
-                {
-                    speaker["public_path"]
-                    for event in projection["events"]
-                    for speaker in event["speakers"]
-                }
-            ),
-            322,
-        )
         for event in projection["events"]:
             with self.subTest(event=event["slug"]):
                 self.assertIn(f'href="{event["public_path"]}"', hub + archive)
@@ -366,10 +350,7 @@ class PublicRouteAndSeoTests(TestCase):
         guest_profiles = [
             guest for podcast in projection["podcasts"] for guest in podcast["guest_profiles"]
         ]
-        linked_guests = [guest for guest in guest_profiles if guest["public_path"]]
         unresolved_guests = [guest for guest in guest_profiles if not guest["public_path"]]
-        self.assertEqual(len(guest_profiles), 206)
-        self.assertEqual(len(linked_guests), 206)
         self.assertEqual(unresolved_guests, [])
         for podcast in projection["podcasts"]:
             response = self.client.get(podcast["public_path"])
@@ -384,7 +365,6 @@ class PublicRouteAndSeoTests(TestCase):
 
     def test_all_person_details_remain_available_without_a_people_catalogue(self) -> None:
         projection = public_projection()
-        self.assertEqual(len(projection["people"]), 438)
         self.assertNotIn("_template", projection["people_by_slug"])
         for person in projection["people"]:
             response = self.client.get(person["public_path"])

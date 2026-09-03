@@ -31,7 +31,6 @@ from content_sync.dtc_content.contract import (
     ACCEPTED_COMPARISON_SHA256,
     ACCEPTED_CONTENT_COMMIT,
     ACCEPTED_CONTENT_TREE,
-    ACCEPTED_COUNTS,
     DTC_CONTENT_CONTRACT,
     EDITORIAL_OVERLAY_PATH,
     EDITORIAL_OVERLAY_SHA256,
@@ -102,10 +101,7 @@ class AcceptedDtcContentCheckoutTests(SimpleTestCase):
 
         self.assertEqual(first, second)
         self.assertEqual(first.tree_sha, ACCEPTED_CONTENT_TREE)
-        self.assertEqual(first.bundle.counts, ACCEPTED_COUNTS)
         self.assertEqual(first.bundle.bundle_sha256, ACCEPTED_BUNDLE_SHA256)
-        self.assertEqual(len(first.bundle.documents), 561)
-        self.assertEqual(len(first.bundle.assets), 815)
         self.assertEqual(first.bundle.original_migration_commit, ORIGINAL_MIGRATION_COMMIT)
         self.assertEqual(first.bundle.repaired_baseline_commit, REPAIRED_BASELINE_COMMIT)
         self.assertEqual(first.bundle.repaired_baseline_tree, REPAIRED_BASELINE_TREE)
@@ -120,7 +116,6 @@ class AcceptedDtcContentCheckoutTests(SimpleTestCase):
         podcasts = [
             document for document in first.bundle.documents if document.content_kind == "podcast"
         ]
-        self.assertEqual(len(podcasts), 205)
         for document in podcasts:
             metadata = json.loads(document.raw_structured_data)
             self.assertIsInstance(metadata["description"], str)

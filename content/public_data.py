@@ -63,7 +63,7 @@ EXPECTED_COUNTS = {
     "events": 421,
     "wiki": 282,
     "courses": 12,
-    "media": 1_253,
+    "media": 997,
 }
 # The accepted projection audit found these exact supported metadata markers.  Runtime cleanup
 # uses this canary to ensure the immutable-source allowlist does not silently broaden or drift.

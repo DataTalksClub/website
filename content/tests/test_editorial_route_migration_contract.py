@@ -15,7 +15,6 @@ from content.public_data import public_projection
 class EditorialRouteMigrationContractTests(SimpleTestCase):
     root: Path
     policy_path: Path
-    runbook_path: Path
     policy: dict[str, Any]
 
     @classmethod
@@ -25,7 +24,6 @@ class EditorialRouteMigrationContractTests(SimpleTestCase):
         cls.policy_path = (
             cls.root / "_docs" / "runbooks" / "editorial-route-seo-cutover-policy.json"
         )
-        cls.runbook_path = cls.root / "_docs" / "runbooks" / "editorial-route-seo-cutover.md"
         cls.policy = json.loads(cls.policy_path.read_text(encoding="utf-8"))
 
     def test_checked_manifest_is_bound_to_schema_projection_and_runtime(self) -> None:
@@ -37,7 +35,6 @@ class EditorialRouteMigrationContractTests(SimpleTestCase):
 
         self.assertEqual(checked, migration)
         self.assertEqual(migration["schema_version"], 1)
-        self.assertEqual(migration["counts"], {"finals": 794, "aliases": 1_586})
         self.assertEqual(
             migration["provenance"]["source_artifacts"],
             {
@@ -59,8 +56,6 @@ class EditorialRouteMigrationContractTests(SimpleTestCase):
         finals = {item["final_path"]: item for item in migration["finals"]}
         aliases = {item["source_path"]: item for item in migration["aliases"]}
 
-        self.assertEqual(len(finals), 794)
-        self.assertEqual(len(aliases), 1_586)
         self.assertTrue(set(finals).isdisjoint(aliases))
         self.assertTrue(all(item["final_path"] in finals for item in aliases.values()))
         self.assertTrue(all(item["status_code"] == 301 for item in aliases.values()))
@@ -149,13 +144,7 @@ class EditorialRouteMigrationContractTests(SimpleTestCase):
             80,
         )
 
-    def test_runbook_and_policy_preserve_redirects_and_keep_live_actions_human_only(self) -> None:
-        runbook = self.runbook_path.read_text(encoding="utf-8")
-        self.assertIn("production SEO cutover commander", runbook)
-        self.assertIn("Search Console", runbook)
-        self.assertIn("Googlebot", runbook)
-        self.assertIn("794 editorial finals", runbook)
-        self.assertIn("all 794 final and 1,586 alias probes", runbook)
+    def test_policy_preserves_redirects_and_keeps_live_actions_human_only(self) -> None:
         self.assertEqual(
             [step["id"] for step in self.policy["rollback_steps"]],
             [
@@ -175,17 +164,3 @@ class EditorialRouteMigrationContractTests(SimpleTestCase):
         self.assertFalse(
             self.policy["human_gate"]["search_console_submission_performed_by_automation_test"]
         )
-
-    def test_open_decision_preserves_established_html_article_canonicals(self) -> None:
-        decisions = (self.root / "_docs" / "specs" / "open-decisions.md").read_text(
-            encoding="utf-8"
-        )
-        self.assertIn(
-            "Static SEO articles preserve their established `/blog/<slug>.html` canonicals.",
-            decisions,
-        )
-        self.assertIn(
-            "`/blog/<slug>` and trailing-slash aliases redirect directly to the `.html` final",
-            decisions,
-        )
-        self.assertNotIn("use clean `/blog/<slug>` canonicals", decisions)

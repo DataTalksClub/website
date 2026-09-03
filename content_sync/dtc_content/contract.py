@@ -76,10 +76,31 @@ EDITORIAL_OVERLAY_TARGETS = (
     "podcasts/s24e06-how-to-build-ai-that-actually-ships-in-production.yaml",
 )
 
-ACCEPTED_COUNTS = {
+# Two different counts, because they answer two different questions.
+#
+# ACCEPTED_SOURCE_COUNTS is how many files the upstream repository holds.  The
+# repair manifest at the accepted commit declares exactly this under
+# ``current_counts`` and the manifest is digest-pinned, so this pair cannot drift
+# without the pin moving.
+#
+# ACCEPTED_COUNTS is how many documents the adapter ingests, which is what the
+# bundle and the projection are compared against.  The two differ by the accepted
+# commit's two underscore-prefixed drafts -- ``_s12e08.yaml`` and
+# ``_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.yaml`` -- and
+# their two transcripts.  A draft was never published, so it has no legacy route
+# contract and cannot acquire one; ingesting it made the whole checkout
+# unimportable.  See ``_is_draft`` in the adapter.
+ACCEPTED_SOURCE_COUNTS = {
     "articles": 55,
     "podcasts": 205,
     "podcast_transcripts": 203,
+    "books": 98,
+    "media": 815,
+}
+ACCEPTED_COUNTS = {
+    "articles": 55,
+    "podcasts": 203,
+    "podcast_transcripts": 201,
     "books": 98,
     "media": 815,
 }
