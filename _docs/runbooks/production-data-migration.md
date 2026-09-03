@@ -80,7 +80,7 @@ deliberately do nothing", it says so.
 | 15 | Event description bridge | one-time | committed capture; `scripts/build_event_description_bridge.py` | 7 |
 | 16 | Luma aggregates | one-time | `scripts/prod/import_events.py` → `events/importers.py` | 6 |
 | 17 | Eventbrite aggregates | one-time | as above | 6 |
-| 18 | Public media objects (1,253 / 154 MB, measured) | already CDN-resident; verify only | **owner ruling: to the CDN and out of git**, renamed on ingest — §11 B11, B14 | **8** |
+| 18 | Public media objects (1,253 → 997, measured) | already CDN-resident; verify, flatten, delete | **owner ruling: to the CDN and out of git**, renamed on ingest, cards and covers deleted — §11 B11, B14, B15 | **8** |
 | 22 | Site assets in `core/static/core/` (18 + 14 orphaned) | one-time publish, then per-release | **owner ruling: no assets in the repository** — §11 B12, B13 | **8** |
 | 19 | **Sponsors** | one-time then Studio | **owner ruling: give it an import script** — to build, §11 B9 | 9 |
 | 20 | **Testimonials** | one-time then Studio | **owner ruling: same script** — to build, §11 B9 | 9 |
@@ -141,8 +141,9 @@ This is **step 8**, with its own checkpoint; the summary here is so the fate is
 visible from the content section too.
 
 - `images/` → the `dtc-website-media` bucket in `eu-west-1`. **Measured**: 1,253
-  objects, 154,115,635 bytes, all under one prefix `public-projection/`. A second
-  top-level prefix `site-assets/` is added for design assets. See
+  objects, 154,115,635 bytes today. The `public-projection/` prefix is removed and
+  `images/` and `site-assets/` become siblings at the root; 256 objects are deleted
+  along the way. See
   [#301](https://github.com/DataTalksClub/website/issues/301).
 - **No assets in the repository, not just no content images.** Beyond the content
   media there are **18** design assets in `core/static/core/` that also move —
@@ -995,55 +996,121 @@ public-projection/images/podcast/   212      7,390,915 B    7.0 MiB
 public-projection/images/posts/     407    135,564,969 B  129.3 MiB
 ```
 
-`public-projection/` is the only top-level prefix; nothing else exists. The bucket
-matches `media.json` exactly, object for object and byte for byte.
+That is the state **before** the flattening and the two deletions below; it matches
+`media.json` exactly, object for object and byte for byte. The target state is:
+
+| Prefix | Objects | Bytes | Change |
+| --- | ---: | ---: | --- |
+| `images/authors/` | 438 | 2,108,878 | — |
+| `images/books/` | 196 | 9,050,873 | — |
+| `images/posts/` | **357** | **133,108,882** | −50 social cards, −2,456,087 |
+| `images/podcast/badges/` | **6** | **112,316** | badges kept |
+| `images/podcast/` covers | **0** | **0** | −206, −7,278,599 |
+| `site-assets/` | **18** | ~2,083,635 | new |
+| **Total** | **1,015** | **146,464,584** | −238 objects, −7,651,051 bytes |
+
+The content half falls from 1,253 to 997 objects; `site-assets/` adds 18.
 
 **The AWS gate is open from the workstation**, so every claim in this step is
 measurable rather than assumed — `head-bucket` succeeds and a full recursive
 listing completes. Measure rather than infer, and re-measure on the day.
 
-#### What this step places, skips and deletes
+#### Prerequisites — settle these before the first upload
 
-| Group | Files | Bytes | Fate |
+Not prose to be found later. Each is a configuration decision that is cheap now and
+expensive after 1,015 objects are in place.
+
+| # | Prerequisite | Why it cannot wait |
+| --- | --- | --- |
+| 1 | **CloudFront cache key must include the query string** | The whole cache-busting scheme is `?v=<digest>`. A distribution that strips query strings serves stale bytes forever and the version does nothing. Verify before publishing, not after a stale image is reported |
+| 2 | **Decide S3 object versioning, explicitly** | Stable key + regeneration = **overwrite**. With versioning off there is no rollback: the previous bytes are gone and recovery means re-deriving from source. Either turn it on or write down that restore-from-source is the accepted recovery |
+| 3 | **Scope `existing_keys()` to `RECORD_KEY_PREFIX`** | With the prefix flattened, `verify` sees `site-assets/*` as `extra` — 18 permanent false failures |
+| 4 | **`PUBLIC_MEDIA_S3_PREFIX` set to empty** | The flattening is this setting plus the object move. Miss it and keys are written back under `public-projection/` |
+
+Prerequisites 1 and 2 compound: **a stable key, an overwrite, and versioning off
+together mean no rollback of any kind.** That combination should be a decision
+somebody made, not a default nobody looked at.
+
+#### What this step places, deletes and keeps
+
+| Group | Objects | Bytes | Fate |
 | --- | ---: | ---: | --- |
-| `authors/` | 438 | 2.0 MiB | **carry** — people faces |
-| `posts/` | 407 | 129.3 MiB | **carry** — blog illustrations |
-| `books/` | 196 | 8.6 MiB | **carry** — book covers |
-| homepage illustrations | 8 | 1.9 MiB | **carry** — site asset |
-| sponsor logos | 4 | 26 KiB | **carry** — site asset |
-| testimonial portraits | 6 | 44 KiB | **carry** — site asset |
-| **Total to place** | **1,059** | **148,808,355 B** | 141.9 MiB / 148.8 MB |
-| `podcast/` | 212 in the bucket (213 on disk) | 7.0 MiB | **leave alone** — live now, replaced by §11 B14 |
-| `core/static/core/mediakit/` | 14 | 7.4 MiB | **delete** — orphaned, §11 B12 |
+| `images/authors/` | 438 | 2,108,878 | **keep** — people faces |
+| `images/books/` | 196 | 9,050,873 | **keep** — book covers |
+| `images/posts/` illustrations | 357 | 133,108,882 | **keep** — real artwork |
+| `images/podcast/badges/` | 6 | 112,316 | **keep** — platform badges, not covers |
+| homepage illustrations | 8 | ~2,012,078 | **place** — site asset, from `core/static/` |
+| sponsor logos | 4 | 26,839 | **place** — site asset |
+| testimonial portraits | 6 | 44,718 | **place** — site asset |
+| **Bucket after this step** | **1,015** | **146,464,584** | |
+| `images/posts/*/cover.jpg` | **50** | **2,456,087** | **delete** — generated social cards, §11 B15 |
+| `images/podcast/` covers | **206** | **7,278,599** | **delete** — being regenerated, §11 B14 |
+| `core/static/core/mediakit/` | 14 | 7,803,244 | **delete** — orphaned, §11 B12 |
 
-**Measured** on 2026-09-03, against both the local tree and the bucket. The earlier
-figure of 1,253 objects / 154,115,635 bytes is the *current bucket total*, not this
-step's workload; the content media is already published, so what this step actually
-uploads is the **18 site assets**, and the 1,041 figure is what the content half
-must still *verify* to.
+**Measured** on 2026-09-03 against both the local tree and the bucket. What this
+step *uploads* is only the 18 site assets — the content media is already published.
+Everything else is a deletion or a verification.
 
-After B14 replaces the podcast covers the content-media half settles at **1,041
-objects / 146,724,720 bytes**, which is today's 1,253 / 154,115,635 minus the 212
-podcast objects and their 7,390,915 bytes.
+#### The two deletions, and why records go first
 
-**Podcast covers are out of scope, and that does not mean deleting them.** The
-owner is replacing them, so carrying them is wasted work — but **measured**, all
-212 are already in the bucket, `media.json` still names them, and podcast pages
-still render them. They are live, not stale. Deleting them now would break 212
-images on a public site for however long it takes the new covers to arrive.
+Both deletions are the **regenerated path** from further down, and both hinge on
+the same ordering. `verify_media` compares the store against the *record*, so:
 
-So step 8 **neither uploads nor deletes** the podcast objects: they are already
-published and unchanged. The sequence when the replacements exist is B14's, and it
-is the regenerated path in full — new covers generated, records rewritten with the
-new checksums, published, and only then the superseded objects swept. That is also
-why they are the *clearest* case for the rename ruling rather than an exception to
-it: their keys are assigned fresh, from record identity, with nothing inherited.
+> **Rewrite the records, then delete the objects.** Delete first and every page
+> holding a reference renders a broken image, and `verify` reports `missing` for
+> rows that are supposed to be gone — noise that hides real failures.
 
-It makes the stale local file moot as well. **Measured**: the bucket holds 212
-podcast objects and the local tree holds 213 files, so
-`s24e06-how-to-build-ai-that-actually-ships-in-production.jpg` **exists only on a
-developer's disk and was never published.** The one-file gap never reached the
-bucket and never affected a visitor.
+**Podcast covers — 206 objects, 7,278,599 bytes.** Owner ruling: delete them, they
+are being regenerated. **Measured**: 212 podcast records, of which **6 are
+`images/podcast/badges/`** — Apple, Spotify, Google, Anchor and friends. Those are
+platform badges, nothing is regenerating them, and they are **kept**. The 206
+covers go.
+
+*What a podcast page renders in the interval*, which is the part worth getting
+right: `templates/public/_episode_artwork.html` already guards on
+`episode.media_available` and falls through to
+`<span class="player-art-missing mono-note">Artwork unavailable.</span>`. So an
+episode with its record rewritten to `media_available: false` renders **a deliberate
+note in the player frame**, not a broken image — the degradation was designed for.
+That only holds if the record is rewritten first; delete the object while the record
+still says `media_available: true` and the same page renders a broken `<img>`.
+
+**Post social cards — 50 objects, 2,456,087 bytes.** Owner ruling: keep the
+illustrations, remove the social card. The card is the generated
+white-background image carrying title, subtitle and author headshot.
+
+> **Correction to the rule as stated.** "Stem exactly `cover`" is one file too
+> broad. **Measured**: 53 records have stem `cover` — **50 `.jpg` and 3 `.png`** —
+> and the three `.png` are **artwork, not cards**. Three independent signals agree:
+> they are the only cover records **embedded inside article bodies**; their median
+> size is **2,149,542 bytes against 48,740** for the `.jpg` cards (whose whole range
+> is 30,811–78,586, exactly the profile of a flat generated card); and they sit in
+> posts whose bodies reference them inline. **The rule is stem exactly `cover` *and*
+> extension `.jpg`.** `cover-start.png` was already excluded by the `cover-` prefix
+> rule and stays excluded.
+
+*Does anything claim these images?* **Yes, and this is the part that must not be
+skipped.** Of the 50 cards, **44 are an article's `image_path`** and 6 are
+referenced by nothing. `content/public_views.py:708` turns that field into the
+page's Open Graph image:
+
+```python
+"og_image_url": _canonical(article["image_path"]) if article["image_path"] else "",
+```
+
+which `templates/public/article_detail.html:28,31` renders as `og:image` and
+`twitter:image`. Delete the objects without touching the records and **44 of 55
+articles advertise a social preview image that 404s** — invisible on the page
+itself, and visible everywhere the link is shared.
+
+The fix falls out of the guard that is already there. `_canonical(...) if
+... else ""` and the template's `{% if og_image_url %}` mean an article whose
+`image_path` is emptied emits **no `og:image` tag at all**, which is correct rather
+than broken. So: **clear `image_path` on those 44 records, rebuild the projection,
+then delete the objects.** Nothing ever claims an image that does not exist.
+
+The 3 `.png` keep both their `image_path` and their inline body references, because
+they are staying.
 
 **The mediakit assets are dead.** `/mediakit/` is a 301 to `DataTalksClub/mediakit`,
 which hosts its own copies. **Measured**: all 14 files under
@@ -1058,20 +1125,20 @@ The split is structural, not filing. **Content media** belongs to records, arriv
 through ingest, and changes when content changes. **Site assets** belong to the
 design, are deployed rather than ingested, and change when the site changes.
 
-The bucket gets **two top-level prefixes**. The site-asset tree is a **sibling of
-`public-projection/`, not a child of it** — burying design assets under a prefix
-named after the content-projection artifact would misdescribe them permanently,
-and the two halves have different owners, different triggers and different
-lifetimes.
+**Owner ruling: `public-projection/` goes.** It named the artifact that produced
+the objects rather than the objects themselves, and it bought nothing — there was
+never a second thing at the top level for it to disambiguate from. The bucket gets
+**two prefixes at the root**, siblings:
 
 ```
 dtc-website-media/                        eu-west-1
-  public-projection/                      content media — exists today, unchanged
-    images/authors/                       438
-    images/posts/                         407
-    images/books/                         196
-    images/podcast/                       212   live now, replaced by B14
-  site-assets/                            NEW — site assets, by surface
+  images/                                 content media
+    authors/                              438
+    posts/                                407 → 357 after the social cards go
+    books/                                196
+    podcast/                              212 → 6 (badges only) after the covers go
+      badges/                             6     platform badges — KEPT
+  site-assets/                            site assets, by surface
     home/                                 8     homepage illustrations
     courses/                              0     destination for #311; empty today
     sponsors/                             4     logos
@@ -1080,15 +1147,35 @@ dtc-website-media/                        eu-west-1
 
 **Why `site-assets/`.** `static/` would collide with Django's staticfiles, which is
 precisely the pipeline these are leaving, and would confuse the next reader.
-`assets/` is vague. `design/` is too narrow — a sponsor logo is not design. The
-existing prefix is named after what produces it, and `site-assets/` follows that
-convention: it says what the objects are, and it reads correctly beside
-`public-projection/`.
+`assets/` is vague. `design/` is too narrow — a sponsor logo is not design. It says
+what the objects are, and it reads correctly beside `images/`. The reasoning for a
+sibling rather than a child is unchanged by the flattening; only what it is a
+sibling *of* has changed.
 
-**The content-media prefix does not move.** It is correct, it is live, and renaming
-1,041 objects to gain nothing is a risk with no upside. The rename ruling applies
-to keys *we assign from now on*; it is not a reason to re-key what is already
-right.
+**The flattening is a setting change, not a code change.**
+`PUBLIC_MEDIA_S3_PREFIX` is an operational setting
+(`core/operational_settings.py:441`, key `public_media.s3_prefix`, default
+`public-projection`), and `object_key()` already returns the bare record key when
+the prefix is empty:
+
+```python
+return f"{normalized}/{key}" if normalized else key
+```
+
+So the prefix becomes `""`, the objects move, and no key-construction code changes.
+Record keys already begin with `images/` (`RECORD_KEY_PREFIX`), so the content half
+lands at exactly the tree above.
+
+> **One consequence to handle rather than discover.** With the prefix empty,
+> `existing_keys()` lists the **whole bucket**, so `verify_media` will count every
+> `site-assets/*` object as `extra` — 18 permanent false failures the moment site
+> assets land. Either scope the listing to `RECORD_KEY_PREFIX`, or have `verify`
+> ignore keys outside it. The checkpoint below filters on the reporting side so it
+> is honest today, but the tooling is the right place to fix it.
+
+Flattening the bucket and moving 1,253 objects is being executed separately,
+alongside the code side. This document describes the destination and the checks;
+it does not perform the move.
 
 **`site-assets/courses/` is empty today and that is expected.** Every file in
 `core/static/core/illustrations/` is `home-*`; there are no course illustrations in
@@ -1202,7 +1289,7 @@ permanent public URLs:
 
 | Change | Effect |
 | --- | --- |
-| upstream filename changes | **nothing** — the key does not derive from it. This is the `s24e06` fix |
+| upstream filename changes | **nothing** — the key does not derive from it. This is what stranded a podcast cover when an episode was renumbered from e06 to e07 |
 | file moves between upstream directories | nothing |
 | bytes change (regeneration, re-encode) | same key, new `?v=` — see caching below |
 | identical bytes re-ingested | same key, same version; publish reports `skipped` |
@@ -1354,21 +1441,33 @@ import subprocess, sys
 from content.media_store import media_records, media_store
 from content.media_tooling import verify_media
 
-CARRY = ("authors", "posts", "books")          # podcast/ is regenerated: B14
-records = tuple(r for r in media_records()
-                if r["record_key"].split("/")[1] in CARRY)
+# Expected content media after the two deletions: 997 objects.
+# posts/ drops the 50 generated social cards (stem "cover", .jpg only --
+# cover.png is artwork and stays); podcast/ keeps only badges/.
+EXPECTED = {"authors": 438, "books": 196, "posts": 357, "podcast": 6}
+
+def group(key):
+    return key.split("/")[1]
+
+records = tuple(media_records())
 store = media_store()
 report = verify_media(store=store, records=records)
 fail = []
 
-print("carried", report.total, "matched", report.matched,
+counts = {}
+for record in records:
+    counts[group(record["record_key"])] = counts.get(group(record["record_key"]), 0) + 1
+print("records by group:", counts)
+if counts != EXPECTED:
+    fail.append(f"group counts {counts} != {EXPECTED}")
+
+print("total", report.total, "matched", report.matched,
       "missing", len(report.missing), "mismatched", len(report.mismatched),
       "unreadable", len(report.unreadable))
 for name in ("missing", "mismatched", "unreadable"):
     if getattr(report, name):
+        print(f"  {name}:", getattr(report, name)[:5])
         fail.append(f"{name}={len(getattr(report, name))}")
-if report.total != 1041:
-    fail.append(f"expected 1041 carried records, found {report.total}")
 
 size = 0
 for record in records:
@@ -1377,21 +1476,29 @@ for record in records:
     except Exception:
         pass
 print("bytes", size, f"({size / 1024 / 1024:.1f} MiB)")
-if size != 146724720:
+if size != 144380949:
     print("  note: byte total moved; re-baseline deliberately, do not just edit this")
 
-authors = [r for r in records if r["record_key"].startswith("images/authors/")]
-print("author images", len(authors))
-if len(authors) != 438:
-    fail.append(f"author images {len(authors)}")
+# No record may name a social card or a podcast cover any more.
+cards = [r["record_key"] for r in records
+         if r["record_key"].startswith("images/posts/")
+         and r["record_key"].rsplit("/", 1)[-1] == "cover.jpg"]
+covers = [r["record_key"] for r in records
+          if r["record_key"].startswith("images/podcast/")
+          and not r["record_key"].startswith("images/podcast/badges/")]
+print("social cards still in records:", len(cards),
+      "podcast covers still in records:", len(covers))
+if cards or covers:
+    fail.append(f"deleted objects still referenced: {len(cards)} cards, {len(covers)} covers")
 
-# `extra` is expected here: podcast covers are deliberately not carried.
-podcast_extra = [k for k in report.extra if "/podcast/" in k]
-other_extra = [k for k in report.extra if "/podcast/" not in k]
-print("extra:", len(report.extra), "of which podcast", len(podcast_extra))
-if other_extra:
-    print("  unexplained:", other_extra[:5])
-    fail.append(f"unexplained extra={len(other_extra)}")
+# site-assets/ shares the bucket root now that PUBLIC_MEDIA_S3_PREFIX is empty,
+# so it appears as `extra` until verify_media is scoped to RECORD_KEY_PREFIX.
+site = [k for k in report.extra if k.startswith("site-assets/")]
+other = [k for k in report.extra if not k.startswith("site-assets/")]
+print("extra:", len(report.extra), "of which site-assets", len(site))
+if other:
+    print("  unexplained:", other[:5])
+    fail.append(f"unexplained extra={len(other)}")
 
 tracked = subprocess.run(["git", "ls-files",
                           "content/public_projection/media", "core/static/core"],
@@ -1432,10 +1539,28 @@ for g in sorted(grp):
 '
 ```
 
-Expected while B14 is outstanding: two top-level prefixes — `public-projection`
-at 1,253 objects / 154,115,635 bytes, and `site-assets` at 18. After B14:
-`public-projection` at 1,041 / 146,724,720 plus the new podcast covers, and
-`site-assets` unchanged.
+Expected when this step is complete: **two prefixes at the root**, `images` at 997
+objects / 144,380,949 bytes and `site-assets` at 18 — and **no `public-projection`
+prefix at all**. Its continued existence is itself a failure.
+
+**Run against today's state the checkpoint fails, correctly, and its output is the
+work list.** Verbatim:
+
+```
+records by group: {'authors': 438, 'books': 196, 'podcast': 212, 'posts': 407}
+total 1253 matched 1253 missing 0 mismatched 0 unreadable 0
+bytes 154115635 (147.0 MiB)
+social cards still in records: 50 podcast covers still in records: 206
+extra: 1 of which site-assets 0
+  unexplained: ['images/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.jpg']
+image files tracked in git: 32
+FAIL [group counts, 50 cards, 206 covers, unexplained extra=1, 32 tracked images]
+```
+
+Every line is a pending item and none is a surprise: the deletions have not run,
+the site assets are still in git, and the one `extra` is the stale local podcast
+file — which needs no separate cleanup, because it disappears when the tree is
+re-hydrated after the covers go.
 
 Then the site assets, which the first command does not cover because they are not
 media records yet — until B13 lands this is by hand:
@@ -1464,7 +1589,9 @@ upload: between removing a file from `core/static/` and the template pointing at
 the CDN, the page raises. Do those two together, per asset group, and keep the
 `core/static/` copies until the CDN objects verify.
 
-**Duration.** 1,059 objects / ~149 MB on the first run; seconds on any re-run.
+**Duration.** The 18 site assets are the only upload; the deletions are 256 objects
+and the flattening is a move of 997. Seconds to minutes, not the hours a 147 MB
+upload would take — the content bytes are already in the bucket.
 
 #### The reference-rewriting problem, and who owns it
 
@@ -1923,9 +2050,11 @@ registration**, **1 wrapped-statistics row** and **1 certificate**.
       step 9
 - [ ] `/faq/` and `/docs/` served by this application, and their CloudFront 302s
       retired — §11 B8, B10. Retire the redirects **after** the sync works
-- [ ] **Content media verified** — step 8's checkpoint exits 0: 1,041 carried
-      records matched, nothing missing/mismatched/unreadable, 438 author images, and
-      the only `extra` are the podcast covers B14 replaces
+- [ ] **Content media verified** — step 8's checkpoint exits 0: group counts
+      `authors` 438, `books` 196, `posts` 357, `podcast` 6; nothing
+      missing/mismatched/unreadable; no record naming a deleted card or cover
+- [ ] **The bucket has no `public-projection/` prefix** — `images/` and
+      `site-assets/` are siblings at the root
 - [ ] **Site assets published** — 18 objects under `site-assets/`, at their assigned
       `-light`/`-dark` names; homepage and `/sponsors` render every image in both
       themes; a `?v=` change reaches a browser holding the old bytes
@@ -2036,7 +2165,8 @@ The rehearsal is the only place some of them can be obtained. Leave them here.
 | Step 6, wall time | _ | |
 | Step 8, site-asset upload wall time | _ | 18 objects; the content media is already published |
 | Step 8, second publish `added`/`changed` | _ | must be **0/0**, `skipped` equal to `total` |
-| Step 8, bucket after the run | _ | two top-level prefixes; `site-assets` 18 |
+| Step 8, bucket after the run | _ | `images` 997 / 144,380,949 B, `site-assets` 18, no `public-projection` |
+| Step 8, objects deleted | _ | 50 social cards + 206 podcast covers = **256** |
 | **Total** | _ | this is the maintenance window |
 
 ### 8.5 A number worth pre-computing
@@ -2123,8 +2253,9 @@ it, this plan's checkpoints give:
 | Step 6 — 421 events / 1,684 aliases | **PASS** | exactly |
 | Step 6 — activation coverage | **PASS as designed** | 383 mapping rows: **3 mapped, 380 review_required** |
 | Step 7 — projection | **PASS** | the database boots, so `content.E002` is satisfied |
-| Step 8 — content media carried | **PASS** | 1,041 carried records, 1,041 matched, 0 missing/mismatched/unreadable, 146,724,720 bytes, 438 author images. The 213 `extra` are podcast covers, deliberately not carried |
-| Step 8 — bucket | **PASS** | Measured: 1,253 objects / 154,115,635 bytes under one prefix, matching `media.json` exactly. `site-assets/` does not exist yet |
+| Step 8 — content media integrity | **PASS** | 1,253 records, 1,253 matched, 0 missing/mismatched/unreadable. The bytes are all there; what is wrong is which ones exist |
+| Step 8 — group counts | **FAIL** | `posts` 407 (want 357), `podcast` 212 (want 6). The 50 social cards and 206 covers have not been deleted |
+| Step 8 — bucket layout | **FAIL** | Measured: 1,253 objects / 154,115,635 bytes, all under `public-projection/`. The prefix is being removed and `site-assets/` does not exist yet |
 | Step 8 — no asset tracked in git | **FAIL** | 32 image files tracked under `core/static/core` — 8 illustrations, 4 sponsor logos, 6 testimonial portraits, 14 orphaned mediakit. B12 and B13. The 3 `vendor/` SVGs are FontAwesome webfonts and are excluded by the checkpoint |
 | Step 9 — sponsors and testimonials | **FAIL** | 0 sponsors. `courses_testimonial` does not even exist in that database — it predates migrations `0055`/`0056`, which on a freshly migrated database seed 6 testimonials and 0 sponsors |
 | §5.4 — password path | **FAIL** | `/accounts/password/reset/` and `/accounts/email/` are correctly 403, but `/accounts/signup/` creates an account with a usable password and signs it in (measured). §11 A5 |
@@ -2372,16 +2503,32 @@ the old bytes. Depends on B12 only for tidiness. Connects to
 [#311](https://github.com/DataTalksClub/website/issues/311) and
 [#301](https://github.com/DataTalksClub/website/issues/301).
 
-**B14. Replace the podcast covers.** *Medium, and it is content work rather than
-engineering.* 212 objects live in the bucket and named by `media.json`; the owner
-is regenerating them. This is the regenerated path in full: generate, **rewrite the
-records with the new checksums and provenance**, publish, then sweep the superseded
-objects. Do not sweep first — they are live until their replacements exist.
-The generation procedure is `_docs/design/illustration-assets.md` and the gap is
-[#311](https://github.com/DataTalksClub/website/issues/311); the same procedure
-feeds `site-assets/courses/`, which is empty today by design. **Done looks like:**
-`public-projection/images/podcast/` holds the new covers, the bucket totals move to
-1,041 plus the new set, and `verify` is clean with no `extra`.
+**B14. Delete the podcast covers, then regenerate.** *Small to delete, medium to
+regenerate, and it is content work rather than engineering.* Owner ruling: remove
+them, they are being replaced. **206** covers go; the **6** objects under
+`images/podcast/badges/` are platform badges, nothing is regenerating them, and they
+stay. Order, and it is not negotiable: **rewrite the records first**
+(`media_available: false`, drop the image reference), rebuild the projection, *then*
+delete the objects. In the interval `_episode_artwork.html` renders its designed
+"Artwork unavailable." note; delete first and the same page renders a broken
+`<img>`. Regeneration is then the regenerated path in full — generate, rewrite
+records with new checksums and provenance, publish. The procedure is
+`_docs/design/illustration-assets.md`, the gap is
+[#311](https://github.com/DataTalksClub/website/issues/311), and the same procedure
+feeds `site-assets/courses/`. **Done looks like:** `images/podcast/` holds badges
+plus the new covers and `verify` is clean.
+
+**B15. Delete the post social cards.** *Small, but the record rewrite is the whole
+job.* Owner ruling: keep the illustrations, remove the generated social card.
+**50 objects, 2,456,087 bytes** — stem exactly `cover`, **extension `.jpg` only**.
+The 3 `cover.png` are artwork embedded in article bodies and **stay**; see step 8
+for the three measurements that separate them. **44 of the 50 are an article's
+`image_path`**, which `content/public_views.py:708` turns into `og:image` and
+`twitter:image`, so the records must be rewritten first — clear `image_path`, and
+the existing `{% if og_image_url %}` guard omits the tag entirely rather than
+advertising a 404. Then delete. **Done looks like:** no record names a
+`posts/*/cover.jpg`, `images/posts/` is 357 objects / 133,108,882 bytes, and no
+article emits an `og:image` pointing at a deleted object.
 
 
 ### C. Wanted, not blocking
@@ -2522,13 +2669,16 @@ Recorded so they are not reopened.
 | Are 20,009 usable password hashes an emergency? | **No.** Members signed in through a provider; passwords were for admins. The enforcement was URL shadowing and it travelled — §5.4. Every account still imports unprivileged with an unusable password |
 | The two accounts sharing one address | **Consolidate them**, as a general mechanism with one known instance — §5.5, §11 A6 |
 | Public media objects had no fate (`data-ingest.md` §2 row 18) | **Step 8.** Images go to the `dtc-website-media` bucket **and out of every git repository** — §11 B11 |
-| The one-file gap between the tree (1,254) and `media.json` (1,253) | **Stale residue on one developer's disk**, from an episode renumbering. Measured: the bucket holds 212 podcast objects, so it never reached production. Delete the local file |
+| The one-file gap between the tree (1,254) and `media.json` (1,253) | **Stale residue on one developer's disk**, from an episode renumbering. Measured: the bucket holds 212 podcast objects, so it never reached production. Moot once the covers go — it disappears on the next re-hydrate |
 | Do CDN keys come from upstream filenames? | **No — we assign them on ingest.** `site-assets/<surface>/<name>-<theme>.<ext>`, content media from normalised record identity |
 | Do sponsor logos and homepage illustrations stay as static assets because they are design? | **No.** No assets in the repository; all 18 go to the CDN — §11 B13 |
-| Where do site assets live in the bucket? | **`site-assets/`, a sibling of `public-projection/`**, subdivided by surface: `home/`, `courses/`, `sponsors/`, `testimonials/` |
+| Where do site assets live in the bucket? | **`site-assets/`, a sibling of `images/` at the root**, subdivided by surface: `home/`, `courses/`, `sponsors/`, `testimonials/` |
 | Is the light variant implicit? | **No.** `-light` is explicit for any themed asset; theme-neutral assets carry no theme segment |
 | Is `home-step-1` missing? | **No.** `home-stuck` *is* the step 1 drawing, per the partial's own comment; it is published as `home-step-1` |
-| Are the podcast covers deleted now? | **No.** They are live and still referenced. B14 replaces them, then sweeps |
+| Are the podcast covers deleted now? | **Yes** — owner ruling. 206 covers go, the 6 `badges/` stay. Records first, objects second, so the player frame shows its "Artwork unavailable." note rather than a broken image — §11 B14 |
+| Are the post social cards deleted? | **Yes.** 50 `cover.jpg`, keeping the 3 `cover.png`, which are artwork. 44 are an article's `og:image`, so records are rewritten first — §11 B15 |
+| Is `public-projection/` kept as a prefix? | **No** — owner ruling, it names the producing artifact rather than the objects and disambiguates nothing. `images/` and `site-assets/` become siblings at the root |
+| Was "stem exactly `cover`" the right deletion rule? | **Not quite** — one file too broad. `.jpg` only: the 3 `.png` are 2 MB artwork embedded in article bodies, against 49 KB generated cards |
 | Do FAQ and docs stay at the legacy site, or come to us? | **They come to us via content sync.** The CloudFront 302s are transitional — §11 B8, B10 |
 | Sponsors and testimonials have no source | **They get an import script** — step 9, §11 B9 |
 | Is `rds-aisl_prod` in scope? | **No.** §14 |
