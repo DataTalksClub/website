@@ -7,7 +7,7 @@
 	content-update-check \
 	security-check security-artifact-scan \
 	test-remote-readonly test-remote-mutation test-live-email test-live-provider test-all migrate run worker \
-	production-prep-local \
+	production-prep-local content-pull content-pull-plan content-checkouts \
 	terraform-seo-source-check check-openapi check-management-parity \
 	database-portability-check verify-dtc-content review-data review-data-dry-run \
 	review-data-cleanup run-review-data verification-plan verification-run verification-full \
@@ -389,6 +389,50 @@ test-all: lock-check database-portability-check lint format-check typecheck \
 
 migrate:
 	uv run python manage.py migrate
+
+# Content reaches this site two ways, sharing one implementation
+# (content_sync/course_repository_ingest.py). CI/CD pushes: a course repository
+# posts a signed push event and the webhook enqueues a durable job that
+# downloads the commit archive. These targets are the other entry point --
+# the developer pull, which reads checkouts already on disk and makes no
+# network call. Which repositories exist is registered ContentSource data, not
+# a list written here.
+CONTENT_CHECKOUT_ROOT ?= .tmp/course-checkouts
+# Host base only. The owner comes from the registered source, like everything else
+# about which repositories exist, so a source registered under a different owner is
+# cloned from that owner rather than silently from DataTalksClub.
+CONTENT_GIT_HOST ?= https://github.com
+
+# Print the registered sources and the checkout each would be read from.
+content-pull-plan:
+	@uv run --frozen python manage.py pull_course_repositories \
+		--checkout-plan --from-disk "$(CONTENT_CHECKOUT_ROOT)"
+
+# Clone or refresh a checkout per registered source. This is the only step that
+# touches the network, and it is deliberately separate from the pull itself.
+content-checkouts:
+	@set -eu; \
+	mkdir -p "$(CONTENT_CHECKOUT_ROOT)"; \
+	plan="$$(uv run --frozen python manage.py pull_course_repositories \
+		--checkout-plan --from-disk "$(CONTENT_CHECKOUT_ROOT)")"; \
+	printf '%s\n' "$$plan" \
+	| while IFS="$$(printf '\t')" read -r stable repository branch checkout; do \
+		if test -d "$$checkout/.git"; then \
+			git -C "$$checkout" fetch --quiet origin "$$branch"; \
+			git -C "$$checkout" checkout --quiet "$$branch"; \
+			git -C "$$checkout" reset --hard --quiet FETCH_HEAD; \
+			git -C "$$checkout" clean --quiet -fdx; \
+		else \
+			git clone --quiet --branch "$$branch" \
+				"$(CONTENT_GIT_HOST)/$$repository" "$$checkout"; \
+		fi; \
+		echo "$$stable $$(git -C "$$checkout" rev-parse HEAD)"; \
+	done
+
+# Ingest every registered source from its local checkout. Offline.
+content-pull:
+	uv run --frozen python manage.py pull_course_repositories \
+		--from-disk "$(CONTENT_CHECKOUT_ROOT)" $(CONTENT_PULL_ARGS)
 
 production-prep-local:
 	@test -n "$(PRODUCTION_PREP_DATABASE)" || (echo "PRODUCTION_PREP_DATABASE is required" >&2; exit 2)

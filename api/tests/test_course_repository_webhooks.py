@@ -3,26 +3,28 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
 from uuid import UUID
 
 from django.test import TestCase, override_settings
 from django.utils import timezone
-from datetime import timedelta
 
 from content.models import ContentSource
+from content_sync.course_repository_ingest import course_repository_limits
 from content_sync.course_repository_sync import (
     import_course_repository_commit,
 )
 from content_sync.course_repository_webhook import (
     COURSE_REPOSITORY_ADAPTER_TYPE,
     COURSE_REPOSITORY_JOB_HANDLER,
+    COURSE_REPOSITORY_WEBHOOK_NAMESPACE,
     parse_github_course_push,
 )
+from core.models import IdempotencyRecord
 from courses.models import Cohort, Course, Module, Project
 from jobs.models import DurableJob
-
 
 SECRET = "test-course-repository-webhook-secret"
 COMMIT_SHA = "a" * 40
@@ -83,6 +85,24 @@ class CourseRepositoryWebhookTests(TestCase):
             HTTP_X_HUB_SIGNATURE_256=signature(body),
         )
 
+    @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET="")
+    def test_unconfigured_secret_fails_closed_without_fencing_or_enqueueing(self) -> None:
+        """The secret has never been set in production, so this is the live path.
+
+        An unsigned-verifiable delivery must be refused before anything is
+        recorded: no fence, no durable job, and a status GitHub shows as a failed
+        delivery rather than a silent success.
+        """
+
+        response = self.post(github_payload())
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["error"], "course_repository_webhook_not_configured")
+        self.assertFalse(DurableJob.objects.exists())
+        self.assertFalse(
+            IdempotencyRecord.objects.filter(scope=COURSE_REPOSITORY_WEBHOOK_NAMESPACE).exists()
+        )
+
     @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
     def test_valid_push_fences_delivery_and_enqueues_only_safe_identifiers(self) -> None:
         response = self.post(github_payload())
@@ -112,7 +132,9 @@ class CourseRepositoryWebhookTests(TestCase):
     @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
     def test_delivery_id_conflict_does_not_enqueue_or_mutate(self) -> None:
         self.assertEqual(self.post(github_payload()).status_code, 202)
-        changed = github_payload().replace(b'"after":"' + COMMIT_SHA.encode(), b'"after":"' + ("b" * 40).encode())
+        changed = github_payload().replace(
+            b'"after":"' + COMMIT_SHA.encode(), b'"after":"' + ("b" * 40).encode()
+        )
 
         response = self.post(changed)
 
@@ -151,8 +173,8 @@ class CourseRepositoryWebhookTests(TestCase):
         with self.assertRaisesRegex(ValueError, "github_repository_invalid"):
             parse_github_course_push(payload, event_type="push")
 
-    @patch("content_sync.course_repository_sync.import_course_repository_curriculum")
-    @patch("content_sync.course_repository_sync.fetch_course_repository_snapshot")
+    @patch("content_sync.course_repository_ingest.import_course_repository_curriculum")
+    @patch("content_sync.course_repository_ingest.fetch_course_repository_snapshot")
     def test_worker_fetches_exact_commit_and_calls_course_import(
         self,
         fetch_snapshot,
@@ -178,15 +200,14 @@ class CourseRepositoryWebhookTests(TestCase):
             owner="DataTalksClub",
             repository="llm-zoomcamp",
             commit_sha="a" * 40,
-            max_files=5_000,
-            max_bytes=100_000_000,
+            limits=course_repository_limits(self.source),
         )
         import_curriculum.assert_called_once()
         command = import_curriculum.call_args.args[0]
         self.assertEqual(command.source_uuid, self.source.id)
         self.assertEqual(command.commit_sha, "a" * 40)
 
-    @patch("content_sync.course_repository_sync.fetch_course_repository_snapshot")
+    @patch("content_sync.course_repository_ingest.fetch_course_repository_snapshot")
     def test_worker_projects_a_valid_candidate_without_manual_course_creation(
         self,
         fetch_snapshot,
