@@ -75,6 +75,7 @@ BOOTSTRAPPING_ENTRY_POINTS = frozenset(
         "import_cmp_content",
         "import_cmp_learners",
         "import_legacy_zoomcamp",
+        "import_sponsors",
         "import_testimonials",
         "sync_content",
         "sync_course_repositories",

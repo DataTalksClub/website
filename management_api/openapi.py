@@ -1241,7 +1241,7 @@ def generate_document() -> dict[str, Any]:
                     "additionalProperties": False,
                     "required": ["placement", "position", "enabled"],
                     "properties": {
-                        "placement": {"type": "string", "enum": ["events_hub"]},
+                        "placement": {"type": "string", "enum": ["events_hub", "public_directory"]},
                         "position": {"type": "integer", "minimum": 1},
                         "enabled": {"type": "boolean"},
                     },
@@ -1275,7 +1275,7 @@ def generate_document() -> dict[str, Any]:
                             "type": "string",
                             "enum": ["draft", "active", "archived"],
                         },
-                        "source": {"type": "string", "enum": ["studio", "admin_api"]},
+                        "source": {"type": "string", "enum": ["studio", "admin_api", "import"]},
                         "revision": {"type": "integer", "minimum": 1},
                         "assignments": {
                             "type": "array",
@@ -1372,7 +1372,7 @@ def generate_document() -> dict[str, Any]:
                                 },
                                 "placement": {
                                     "type": "string",
-                                    "enum": ["events_hub"],
+                                    "enum": ["events_hub", "public_directory"],
                                 },
                             },
                         },
@@ -1380,7 +1380,7 @@ def generate_document() -> dict[str, Any]:
                             "type": "string",
                             "enum": ["draft", "active", "archived"],
                         },
-                        "placement": {"type": "string", "enum": ["events_hub"]},
+                        "placement": {"type": "string", "enum": ["events_hub", "public_directory"]},
                     },
                 },
                 "SponsorDirectoryExport": {

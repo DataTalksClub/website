@@ -28,7 +28,7 @@ from core.home_content import (
     wiki_graph,
     wiki_topics,
 )
-from core.sponsor_history import PAST_SUPPORTERS, featured_supporters
+from core.sponsors import public_sponsors, public_supporter_history
 from courses.services.member_home import build_member_home_context
 from courses.services.testimonials import homepage_testimonials
 
@@ -118,7 +118,7 @@ def home(request: HttpRequest):
             "wiki_topics": wiki_topics(),
             "wiki_graph": wiki_graph(),
             "counts": projection["manifest"]["counts"],
-            "sponsors": featured_supporters(),
+            "sponsors": public_sponsors(),
         },
     )
 
@@ -130,8 +130,8 @@ def sponsors(request: HttpRequest) -> HttpResponse:
         "core/sponsors.html",
         {
             "canonical_url": "https://datatalks.club/sponsors",
-            "sponsors": featured_supporters(),
-            "past_supporters": PAST_SUPPORTERS,
+            "sponsors": public_sponsors(),
+            "past_supporters": public_supporter_history(),
         },
     )
 

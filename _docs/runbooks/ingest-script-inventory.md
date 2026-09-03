@@ -559,16 +559,19 @@ Destination: [`events/models.py`](../../events/models.py) —
 `EventRegistrantIdentity` (the consolidated person: either `account` set to
 an existing `CustomUser`, or `normalized_email` set on a registrant-only row,
 never both), `EventRegistration` (one provider registration fact per
-identity: event, provider, status, `registered_at`, and the provider's opaque
-per-event attendee token for idempotent replay — never a name, email, or
-phone number), and `EventRegistrantImportProgress` (per-`(provider,
-external_event_identifier)` completion marker; an event's rows are only
-written once, inside one transaction, and a completed event is skipped
-without reopening its file on replay). Admin-only: **no Studio surface reads
-either table in this first pass** — a deliberate, conservative default, not
-an oversight. Public event pages are unaffected — they keep showing 6's
-aggregate counts; a later pass may derive that aggregate from these rows
-instead, but this journey does not change how a public page gets its count.
+identity: event, provider, status, `registered_at` — never a name, email,
+phone number, or the provider's own per-attendee token; replay safety comes
+entirely from the transaction/progress-marker mechanism below, not from a
+natural key stored on this table, so there is no reason to keep that
+protected token around permanently), and `EventRegistrantImportProgress`
+(per-`(provider, external_event_identifier)` completion marker; an event's
+rows are only written once, inside one transaction, and a completed event is
+skipped without reopening its file on replay). Admin-only: **no Studio
+surface reads either table in this first pass** — a deliberate, conservative
+default, not an oversight. Public event pages are unaffected — they keep
+showing 6's aggregate counts; a later pass may derive that aggregate from
+these rows instead, but this journey does not change how a public page gets
+its count.
 
 Notes: Eventbrite is not read yet — the durable export currently holds only
 the Luma side, and this codebase's own Eventbrite adapter never needed that
@@ -655,11 +658,62 @@ arbitrarily chosen row.
 
 ---
 
-# 11. Sponsors — not built
+# 11. Sponsors
 
-No script exists; `Sponsor` has 0 rows as of today's dry run. Source
-undecided. Tracked as B9 in
-[`production-data-migration.md`](production-data-migration.md).
+Single stage, but the destination model predates it: `Sponsor` and
+`SponsorPlacementAssignment` ([`core/models.py`](../../core/models.py)) and
+their Studio/admin-API service
+([`core/sponsors.py`](../../core/sponsors.py)) already existed for the
+events_hub "Supported by" band on `/events`. This entry is the second
+placement onto the same model, not a new one — the reviewed set below is
+what makes `public_directory` the second value the
+`core_sponsor_placement_allowlist` constraint permits, alongside
+`events_hub`.
+
+## 11.1 Import
+
+[`scripts/prod/import_sponsors.py`](../../scripts/prod/import_sponsors.py)
+
+Source: [`core/sponsor_directory.json`](../../core/sponsor_directory.json),
+reviewed and checked in. Every entry carries the `key` `Sponsor` already
+reserves as its natural identifier, so a second run is keyed on that rather
+than on name matching.
+Transform: every write goes through `core.sponsors`' shared
+`create_sponsor`/`update_sponsor`/`archive_sponsor`/`reactivate_sponsor` —
+the same service Studio and the admin API call — never a bypassed ORM write.
+An entry with a `position` (the four companies retired from
+`core.sponsor_history.FEATURED_SUPPORTERS`: dltHub, Astronomer, Kestra,
+Snowplow) is created `active` with one `public_directory` assignment at that
+position. An entry with `position: null` (the remaining 29 names retired
+from `FEATURED_SUPPORTERS ∪ PAST_SUPPORTERS`) is created `draft` and archived
+in the same run — `create_sponsor` never accepts `archived` directly, so
+reaching it is always create-then-archive, the two steps a Studio editor
+would take by hand. `PAST_SUPPORTERS` named every company ever sponsored,
+including the four still featured today; since `key` is unique, that overlap
+became one lifecycle axis instead of two rows per overlapping company —
+`core.sponsors.public_supporter_history()` reproduces the original list
+exactly by reading every `active` or `archived` sponsor, not just the
+archived ones. Reconciling an already-archived row (a reviewed-file
+correction after the first import) reactivates it, applies the edit, and
+re-archives it — again, the same three Studio steps, never a direct write to
+an archived row.
+Destination: `Sponsor` (`public_directory` placement for the featured four,
+`archived` lifecycle with no placement for the rest) and
+`SponsorRevision`/`AuditEvent` (one append-only pair per write, same as every
+other `core.sponsors` mutation).
+
+Notes: `core/views.py`'s `home` and `sponsors` views both read
+`core.sponsors.public_sponsors()` (the `public_directory` placement) and
+`sponsors` additionally reads `core.sponsors.public_supporter_history()` —
+homepage and `/sponsors` render the identical featured set from the
+identical placement, so this is one placement key, not two. Sponsor logos
+(`logo_asset_key`, resolved through the guarded `Sponsor.logo_url`, never a
+raw `{% static %}`/`static()` call on the stored value — see
+`courses.models.Testimonial.portrait_url` for the same guard) and the
+long-form directory `description` are populated only by this import today;
+neither is yet a Studio- or admin-API-writable field, unlike every other
+`Sponsor` field, which editors already manage in Studio exactly as they do
+for an events_hub sponsor.
 
 ---
 
