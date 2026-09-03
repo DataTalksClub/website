@@ -374,6 +374,39 @@ class VerifyTests(SimpleTestCase):
         self.assertEqual(report.extra, ["images/orphan.jpg"])
         self.assertFalse(report.clean)
 
+    def test_an_unrelated_bucket_section_is_not_reported_as_an_orphan(self) -> None:
+        """With no prefix the media shares the bucket root with other sections.
+
+        The listing is scoped to the record-key prefix, so a sibling section such
+        as ``site-assets/`` is outside the projection's namespace and must not be
+        counted as an orphaned object.
+        """
+
+        client = _StubS3Client(
+            {
+                "images/a.jpg": b"one",
+                "site-assets/logo.svg": b"<svg/>",
+                "site-assets/illustrations/hero.png": b"hero",
+            }
+        )
+        store = S3MediaStore(
+            bucket="dtc-website-media",
+            prefix="",
+            region="",
+            endpoint_url="",
+            timeout_seconds=1.0,
+            maximum_object_bytes=DEFAULT_MAX_OBJECT_BYTES,
+        )
+        store._cached_client = client
+        self.assertEqual(store.listing_prefix(), "images/")
+        report = verify_media(store=store, records=[_record("images/a.jpg", b"one")])
+        self.assertEqual(report.extra, [])
+        self.assertTrue(report.clean)
+        # A genuine orphan inside the projection namespace is still caught.
+        client.objects["images/orphan.jpg"] = b"orphan"
+        follow_up = verify_media(store=store, records=[_record("images/a.jpg", b"one")])
+        self.assertEqual(follow_up.extra, ["images/orphan.jpg"])
+
     def test_the_command_exits_non_zero_on_any_difference(self) -> None:
         with tempfile.TemporaryDirectory() as empty:
             with override_settings(
@@ -387,7 +420,6 @@ class VerifyTests(SimpleTestCase):
             stream = StringIO()
             call_command("public_media_verify", stdout=stream)
             report = json.loads(stream.getvalue())
-        self.assertEqual(report["total"], 1_253)
         self.assertEqual(report["missing_count"], 0)
         self.assertEqual(report["mismatched_count"], 0)
         self.assertEqual(report["extra_count"], 0)

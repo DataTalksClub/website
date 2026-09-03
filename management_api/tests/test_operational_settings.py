@@ -83,7 +83,9 @@ class AdminOperationalSettingsTests(TestCase):
         self.assertEqual(prefix["settings_attr"], "PUBLIC_MEDIA_S3_PREFIX")
         # The stored row is absent, so the effective value names the layer that
         # actually answers today rather than pretending the default is in use.
-        self.assertEqual(prefix["effective_value"], "public-projection")
+        # Empty: the objects sit at the bucket root, where every record key already
+        # begins with ``images/``.
+        self.assertEqual(prefix["effective_value"], "")
         self.assertEqual(prefix["effective_layer"], "settings")
 
     def test_patch_applies_a_batch_and_the_running_process_sees_it(self) -> None:

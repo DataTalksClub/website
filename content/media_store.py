@@ -51,7 +51,9 @@ MEDIA_RECORDS_FILENAME = "media.json"
 RECORD_KEY_PREFIX = "images/"
 
 DEFAULT_BACKEND = "local"
-DEFAULT_S3_PREFIX = "public-projection"
+#: Empty: record keys already start with ``images/``, so the objects sit at the bucket
+#: root and share it with unrelated sections such as ``site-assets/``.
+DEFAULT_S3_PREFIX = ""
 DEFAULT_S3_TIMEOUT_SECONDS = 5.0
 # The largest known projection object is 3,022,797 bytes.  The default ceiling keeps a
 # wide margin above it while still bounding the per-request allocation.
@@ -543,11 +545,20 @@ class S3MediaStore(MediaStore):
             found.append(key)
         return tuple(sorted(found))
 
+    def listing_prefix(self) -> str:
+        """Return the key prefix that bounds a listing to projection media.
+
+        Scoped to ``RECORD_KEY_PREFIX`` rather than to the configured prefix alone.
+        With an empty configured prefix the objects live at the bucket root, where
+        they share the namespace with unrelated sections such as ``site-assets/``;
+        listing the whole bucket would report every one of those as an orphan.
+        """
+
+        return f"{self._prefix}/{RECORD_KEY_PREFIX}" if self._prefix else RECORD_KEY_PREFIX
+
     def _iterate_keys(self) -> Iterator[str]:
         marker: str | None = None
-        request: dict[str, Any] = {"Bucket": self._bucket}
-        if self._prefix:
-            request["Prefix"] = f"{self._prefix}/"
+        request: dict[str, Any] = {"Bucket": self._bucket, "Prefix": self.listing_prefix()}
         while True:
             page_request = dict(request)
             if marker:

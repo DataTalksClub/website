@@ -265,7 +265,9 @@ PUBLIC_MEDIA_LOCAL_ROOT = Path(
     os.getenv("PUBLIC_MEDIA_LOCAL_ROOT") or (BASE_DIR / "content" / "public_projection" / "media")
 )
 PUBLIC_MEDIA_S3_BUCKET = os.getenv("PUBLIC_MEDIA_S3_BUCKET", "").strip()
-PUBLIC_MEDIA_S3_PREFIX = os.getenv("PUBLIC_MEDIA_S3_PREFIX", "public-projection").strip("/")
+# The media objects sit at the bucket root under ``images/``, which is already the
+# leading segment of every projection record key, so no extra prefix is needed.
+PUBLIC_MEDIA_S3_PREFIX = os.getenv("PUBLIC_MEDIA_S3_PREFIX", "").strip("/")
 PUBLIC_MEDIA_S3_REGION = os.getenv("PUBLIC_MEDIA_S3_REGION", "").strip()
 # Optional. Lets a developer point the s3 backend at a local or faked endpoint.
 PUBLIC_MEDIA_S3_ENDPOINT_URL = os.getenv("PUBLIC_MEDIA_S3_ENDPOINT_URL", "").strip()
