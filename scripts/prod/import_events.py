@@ -10,6 +10,9 @@ This gathers what used to be in two places -- ``manage.py
 import_event_identities`` for identity, and a block buried inside
 ``scripts/prepare_local_data.py`` for the aggregates.  The orchestrator now
 calls this module, so there is one implementation rather than two that drift.
+The management command itself is retired: it had no caller left once
+``scripts/prepare_local_data.py`` was repointed at :func:`import_identities`
+directly, the same function this script's own identity import calls.
 
 What lands in the database
 --------------------------
