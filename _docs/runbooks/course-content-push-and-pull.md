@@ -9,7 +9,7 @@ cannot drift into disagreeing about what a course repository may contain.
 | Triggered by | CI/CD — a course repository's `Notify course platform` workflow | a developer running a command |
 | Transport | signed GitHub push event → `POST /api/webhooks/github` → durable job → `https://codeload.github.com/.../tar.gz/<commit>` | `git archive HEAD` in a checkout on disk |
 | Network | yes, inside the job, after commit | none |
-| Entry point | `api/views/course_repository_webhooks.py` → `content_sync/course_repository_sync.py` | `manage.py pull_course_repositories` |
+| Entry point | `api/views/course_repository_webhooks.py` → `content_sync/course_repository_sync.py` | `scripts/prod/sync_course_repositories.py` |
 
 Both entry points are thin. Everything that decides what is admitted, how it is
 parsed, and how it is projected lives in one place:
@@ -90,7 +90,8 @@ Point the pull at checkouts you already have:
 
 ```sh
 make content-pull CONTENT_CHECKOUT_ROOT=$HOME/git
-uv run python manage.py pull_course_repositories \
+uv run --frozen python scripts/prod/sync_course_repositories.py \
+    --database .tmp/local.sqlite3 \
     --checkout llm-zoomcamp=$HOME/git/llm-zoomcamp
 ```
 

@@ -43,16 +43,16 @@ A fresh clone has no images. `manage.py check` says so and names the command:
 
 ```bash
 # from the pinned upstream revisions recorded in each record's provenance
-uv run python manage.py public_media_hydrate
+uv run --frozen python scripts/prod/sync_public_media_hydrate.py
 
 # fully offline, from local checkouts of the pinned upstream repositories
-uv run python manage.py public_media_hydrate --source checkout \
+uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source checkout \
   --checkout DataTalksClub/content=/path/to/content \
   --checkout DataTalksClub/datatalksclub.github.io=/path/to/datatalksclub.github.io
 
 # from an already hydrated peer checkout or the configured object store
 PUBLIC_MEDIA_LOCAL_ROOT=/path/to/other/checkout/content/public_projection/media \
-  uv run python manage.py public_media_hydrate --source store \
+  uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source store \
   --destination content/public_projection/media
 ```
 
@@ -102,23 +102,23 @@ eval "$(aws sts assume-role \
 PUBLIC_MEDIA_STORE_BACKEND=s3 \
 PUBLIC_MEDIA_S3_BUCKET=dtc-website-media \
 PUBLIC_MEDIA_S3_REGION=eu-west-1 \
-  uv run python manage.py public_media_publish --dry-run
+  uv run --frozen python scripts/prod/sync_public_media_publish.py --dry-run
 
 # 3. Publish.
 PUBLIC_MEDIA_STORE_BACKEND=s3 \
 PUBLIC_MEDIA_S3_BUCKET=dtc-website-media \
 PUBLIC_MEDIA_S3_REGION=eu-west-1 \
-  uv run python manage.py public_media_publish
+  uv run --frozen python scripts/prod/sync_public_media_publish.py
 
 # 4. Prove 1253/1253 checksums against the bucket.
 PUBLIC_MEDIA_STORE_BACKEND=s3 \
 PUBLIC_MEDIA_S3_BUCKET=dtc-website-media \
 PUBLIC_MEDIA_S3_REGION=eu-west-1 \
-  uv run python manage.py public_media_verify
+  uv run --frozen python scripts/prod/sync_public_media_verify.py
 ```
 
 Run these from a checkout whose `content/public_projection/media/` is hydrated — that tree is the
-publish source. `public_media_verify` exits non-zero unless every one of the 1,253 records is
+publish source. `sync_public_media_verify.py` exits non-zero unless every one of the 1,253 records is
 present with a matching checksum and the store holds no unrecorded object.
 
 `publish` uploads exactly the recorded objects with the recorded `ContentType` and
@@ -137,7 +137,7 @@ closed with a `502` for that one path rather than serving wrong bytes.
 PUBLIC_MEDIA_STORE_BACKEND=s3 \
 PUBLIC_MEDIA_S3_BUCKET=dtc-website-media \
 PUBLIC_MEDIA_S3_REGION=eu-west-1 \
-  uv run python manage.py public_media_verify
+  uv run --frozen python scripts/prod/sync_public_media_verify.py
 ```
 
 `verify` compares the configured store against `media.json` and exits non-zero when any recorded
@@ -214,7 +214,7 @@ onto a prior task exactly once. It refuses to overwrite a *different* value for 
 source task that names another bucket is a hard `ReleaseContractError`, not something the normalizer
 silently repoints.
 
-Do not deploy the media-free image before `public_media_verify` reports 1253/1253 against the
+Do not deploy the media-free image before `sync_public_media_verify.py` reports 1253/1253 against the
 bucket. A record whose object is absent fails closed with a `502` for that one path.
 
 ### Why Django reads S3 directly and not the CDN

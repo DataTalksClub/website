@@ -5,7 +5,7 @@ Status: **proposed, Stage 1 (design) only.** Nothing below is implemented.
 > **Partly overtaken by events, 2026-09-03.** The course-repository leg is done and did
 > not land the way this plan assumed. There is one course path,
 > `content_sync/course_repository_ingest.py`, reached by the signed push webhook and by
-> `manage.py pull_course_repositories`. `scripts/build_course_modules_manifest.py`,
+> `scripts/prod/sync_course_repositories.py`. `scripts/build_course_modules_manifest.py`,
 > `courses/services/local_course_modules.py`, the snapshot manifest with its per-file
 > SHA-256 table, the `homework_slug_overrides` hook, `TARGET_COHORTS` and
 > `PRODUCTION_PREP_COURSE_REPOSITORIES` are all gone; registered `ContentSource` rows say

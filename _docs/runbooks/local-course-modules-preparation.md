@@ -8,7 +8,7 @@ importer and must not be run against a production database.
 ## Course content comes in through the one course path
 
 There is no separate local importer any more. The dataset pulls course repositories through
-`manage.py pull_course_repositories`, which is the same
+`scripts/prod/sync_course_repositories.py`, which is the same
 `content_sync.course_repository_ingest.ingest_course_repository` the signed GitHub push webhook
 drives. `_docs/runbooks/course-content-push-and-pull.md` describes it; the only difference here
 is the transport and two options:

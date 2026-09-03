@@ -14,6 +14,38 @@ script yet; those are listed too, so the gap is visible rather than silent.
 
 Verified against the real code and a real end-to-end dry run on 2026-09-03.
 
+## The main design principle
+
+**Import machinery is disposable. Only the data it produces is permanent.**
+
+- Every source is ingested by a plain script in `scripts/prod/` — never a
+  Django management command, never a Makefile wrapper around one. A script
+  is something with a defined beginning and end; a management command reads
+  as permanent application surface even when it isn't.
+- Whatever an import needs to be idempotent, resumable, or safe to run
+  concurrently — a progress watermark, a claim-tracking table, a run
+  receipt with a uniqueness guarantee — is owned by the script, not the
+  production model it writes into. `CustomUser`, `Event`, and every other
+  live model carry only the fields the running application actually reads.
+  A source-system id, a "have I already claimed this row" flag, an
+  idempotency checksum: none of that belongs on a permanent model just
+  because the importer that populates it needed it once.
+- Production code has no special case for "this record came from an
+  import." An imported account, event, or record is indistinguishable
+  from any other once it exists — no `if account.is_legacy_imported`
+  anywhere in a live request path. If a live code path needs to branch on
+  something, that something is a real, general property of the record
+  (verification state, lifecycle), never its provenance.
+- **Once the real migration has run in production and the data is in,
+  the scripts — and everything they needed only to run safely — are
+  deleted entirely.** Nothing about how the data got here is meant to
+  outlive the import. The result is permanent; the machinery is not.
+
+Where an existing source violates this (an import-only field or table
+still living on a permanent model), it's called out explicitly in that
+source's entry below rather than left implicit, so it doesn't get
+mistaken for how things are supposed to stay.
+
 ---
 
 # 1. Course repositories
@@ -24,8 +56,8 @@ needed).
 
 ## 1.1 Register sources
 
-`manage.py seed_course_repository_sources` (`make content-sources`) — command
-defined in [`content_sync/management/commands/seed_course_repository_sources.py`](../../content_sync/management/commands/seed_course_repository_sources.py)
+[`scripts/prod/sync_course_repository_sources.py`](../../scripts/prod/sync_course_repository_sources.py)
+(`make content-sources`)
 
 Source: [`content_sync/course_repository_sources.json`](../../content_sync/course_repository_sources.json),
 a pinned, checked-in registration input — not a list in code.
@@ -35,9 +67,9 @@ Destination: `content_sync.ContentSource`.
 
 ## 1.2 Checkout
 
-`make content-checkouts` (wraps `manage.py pull_course_repositories
---checkout-plan` and `git clone`/`fetch` per source) — Makefile target, and
-[`content_sync/management/commands/pull_course_repositories.py`](../../content_sync/management/commands/pull_course_repositories.py)
+`make content-checkouts` (wraps
+[`scripts/prod/sync_course_repositories.py`](../../scripts/prod/sync_course_repositories.py)
+`--checkout-plan` and `git clone`/`fetch` per source) — Makefile target
 
 Source: GitHub, live network — the only network step in this journey.
 Transform: clones a fresh repository or fast-forwards an existing one to the
@@ -49,39 +81,174 @@ Destination: a local git checkout per source, on disk only — not the database.
 [`content_sync/course_repository_ingest.py`](../../content_sync/course_repository_ingest.py),
 driven by either the signed GitHub push webhook
 ([`content_sync/course_repository_webhook.py`](../../content_sync/course_repository_webhook.py))
-or `manage.py pull_course_repositories --from-disk <checkout-root>`
+or `scripts/prod/sync_course_repositories.py --from-disk <checkout-root>`
 
 Source: the checkout from 1.2 (pull path), or a webhook push payload's commit
 archive fetched directly (webhook path — skips 1.2).
-Transform: parses `course.yaml`, modules, units, homework, projects. Snapshot
-transport and draft-detection are shared via
-[`content_sync/snapshot.py`](../../content_sync/snapshot.py) /
-[`content_sync/drafts.py`](../../content_sync/drafts.py), not reimplemented
-per source.
+Transform, exactly two files at the repository root plus the module/homework
+tree:
+
+- **`course.yaml`** — structural metadata: `slug`, `title`, `outcome` (a
+  one-line summary), `repository_url`, `docs_url`, `faq_url`, `hashtag`,
+  `published`, and `description_path`. That last field may **only** ever be
+  the literal string `SITE.md` —
+  [`content_sync/course_repository.py`](../../content_sync/course_repository.py)
+  fails closed (`course_description_path_not_site_md`) on anything else, so
+  a repository cannot silently point its description at some other file.
+- **`SITE.md`** — the actual website copy: the longer description a course
+  page renders (the "What you'll build"-style prose). Read only because
+  `course.yaml` names it; a repository with no `SITE.md` yields no
+  description at all rather than an error.
+- Modules, units, homework, and projects, parsed from the repository's own
+  directory structure (`cohorts/<year>/`, per-module folders). Snapshot
+  transport and draft-detection are shared via
+  [`content_sync/snapshot.py`](../../content_sync/snapshot.py) /
+  [`content_sync/drafts.py`](../../content_sync/drafts.py), not reimplemented
+  per source.
+
 Destination: [`courses/models/`](../../courses/models) (`Cohort`, `Module`,
-`Unit`, `Homework`, `Project`).
+`Unit`, `Homework`, `Project`), plus the course's description fields.
+
+**A repository without `course.yaml` at its root cannot be ingested by
+either route at all** — confirmed live 2026-09-03:
+`mlops-zoomcamp` and `stock-markets-analytics-zoomcamp` both 404 on
+`course.yaml` despite each already having a real `SITE.md` with real
+description copy already written. The content exists; only the small
+structured file pointing at it is missing. See 1.4.
+
+## 1.4 Add the missing `course.yaml` — mlops-zoomcamp, stock-markets-analytics-zoomcamp
+
+Not a script — a one-time fix to the two upstream repositories themselves,
+each needing a `course.yaml` authored against the same schema
+`ai-dev-tools-zoomcamp`/`llm-zoomcamp`/`ml-zoomcamp`/`de-zoomcamp` already
+use, pointing `description_path` at the `SITE.md` each repository already
+has. Once added, both become registerable in 1.1 and ingestible by 1.2/1.3
+exactly like the other four — no code change needed here, since the ingest
+already refuses cleanly on a missing file and needs nothing special to
+accept one that exists.
+
+**Check after landing**: confirm the data actually pulled, not just that
+the file exists — register the source (1.1), check it out (1.2), run the
+ingest (1.3), then query `Cohort`/`Module`/`Homework` for that `stable_id`
+and confirm non-zero rows, the same verification done today for
+`de-zoomcamp` (924 files, 7 modules, 7 homework, 88 units, landing on real
+cohort rows) rather than trusting a clean exit code alone.
 
 ---
 
 # 2. Pre-2023 Zoomcamp history
 
-Single stage — the raw source is a git repository maintained outside this
-project, not a file that needs preparing first.
+One raw source — a local checkout of the `zoomcamp-scoring` repository (e.g.
+`~/git/zoomcamp-scoring`, outside this repository) — but six real internal
+stages, not one script. The orchestrator
+([`scripts/prod/import_legacy_zoomcamp.py`](../../scripts/prod/import_legacy_zoomcamp.py))
+runs 2.5 then 2.6 per edition; 2.5 and 2.6 each call down into 2.1–2.4 as
+needed. Listed in the order data actually flows, not file order.
 
-## 2.1 Import
+## 2.1 Locate each edition's files
+
+[`scripts/prod/legacy_zoomcamp/editions.py`](../../scripts/prod/legacy_zoomcamp/editions.py)
+
+Source: the `zoomcamp-scoring` checkout's directory layout. 2022/2023
+cohorts share one shape — `old/<course>-<year>/data/processed/hw-<slug>.csv`
+(one row per learner, keyed by an upstream `sha1(email)` hash), the matching
+`data/answers/answers-<slug>.json` (question text/points), a
+`processed/project-<slug>.csv`, a `project/assignment-<slug>.csv`, a
+`graduates*.csv`, and a `courses/<repo-slug>-<year>/graduates.json` for
+hosted certificate URLs. 2021 ML Zoomcamp predates that shape and uses a
+flatter, per-week layout with no per-cohort subdirectory, described as a
+special case (`ML_ZOOMCAMP_2021`).
+Transform: none — this module only resolves *where* each edition's files
+are, not their contents.
+Destination: none; an in-memory map consumed by 2.5 and 2.6.
+
+## 2.2 Recover the real email behind the scoring hash
+
+[`scripts/prod/legacy_zoomcamp/email_recovery.py`](../../scripts/prod/legacy_zoomcamp/email_recovery.py)
+
+Source: the same checkout's **raw** (not processed) weekly Google Form
+exports, graduate lists, and — for a few editions — a leaderboard email
+reveal. The graded/processed exports 2.5 reads only ever carry the hash,
+never the plaintext address.
+Transform: joins the hash back to a real email, once per cohort, entirely
+in memory.
+Destination: none. The plaintext values are never written to disk by this
+module — only handed to 2.3, which decides what to do with them.
+
+## 2.3 Resolve or create the learner's account
+
+[`scripts/prod/legacy_zoomcamp/identity.py`](../../scripts/prod/legacy_zoomcamp/identity.py)
+
+Source: the recovered email from 2.2 (or its absence).
+Transform, exactly: the **account** uses the real, recovered email — so a
+learner who already has, or later creates, a real DataTalks.Club account
+with that same address gets their historical cohorts, scores and
+certificates attached to it, not to an orphaned duplicate. The learner's
+**displayed** identity (leaderboard name, certificate name) is always a
+freshly generated placeholder, never their real name — deliberately: we
+don't have their real chosen leaderboard name from back then, and a real
+name doesn't belong on a public leaderboard by default anyway, which is
+already how every current, non-historical enrollment on this platform
+behaves. When no email can be recovered at all (rare), the learner falls
+back to a synthetic, clearly-marked local account keyed only by the
+upstream scoring hash.
+Destination: `accounts_customuser`, password left unusable (fixed today,
+commit `1427ff3` — this call site previously left the password field blank
+rather than explicitly unusable).
+
+## 2.4 Enrich homework with real module content — optional
+
+[`scripts/prod/legacy_zoomcamp/homework_content.py`](../../scripts/prod/legacy_zoomcamp/homework_content.py)
+
+Source: a local checkout of the matching `DataTalksClub/<course>-zoomcamp`
+repository (e.g. `~/git/data-engineering-zoomcamp`), if present —
+`cohorts/<year>/`. Entirely public course content; no learner data
+involved.
+Transform: matches each imported homework to its real week/module folder by
+**leading number, not position** (some editions skip a week), and returns
+the real title and `homework.md` content in place of the generic
+Google-Form-style label the graded export alone provides.
+Destination: none; feeds into 2.5's `Homework`/`Question` writes. If no
+local checkout is available, 2.5 falls back to the generic label — this
+stage is a quality improvement, not a requirement.
+
+## 2.5 Import scores
+
+[`scripts/prod/legacy_zoomcamp/scoring_import.py`](../../scripts/prod/legacy_zoomcamp/scoring_import.py)
+
+Source: the **processed/graded** exports located by 2.1 — never `raw/`,
+which still carries GitHub links and free-text feedback alongside plaintext
+email; that file is 2.2's job, not this module's.
+Transform: parses homework and project scores per cohort, resolving each
+learner through 2.3 and enriching titles/content through 2.4 when available.
+Destination: `Cohort`, `Homework`, `Question`, `Answer`, `Submission`,
+`ProjectSubmission`.
+
+## 2.6 Import certificates
+
+[`scripts/prod/legacy_zoomcamp/certificate_import.py`](../../scripts/prod/legacy_zoomcamp/certificate_import.py)
+
+Source: the plaintext `email,name` graduate exports from 2.1, joined where
+possible to the hosted certificate PDF URL in the current-format
+`graduates.json` — matched by name, the only field both files share.
+Transform: resolves the same real-email-backed account 2.3 uses; the stored
+certificate name is always the freshly generated placeholder, never the
+real one, same rule as 2.3.
+Destination: certificate fields on `Enrollment`/`Cohort`.
+
+## 2.7 Orchestrate — the actual entry point
 
 [`scripts/prod/import_legacy_zoomcamp.py`](../../scripts/prod/import_legacy_zoomcamp.py)
-(+ [`scripts/prod/legacy_zoomcamp/`](../../scripts/prod/legacy_zoomcamp))
 
-Source: a local checkout of the `zoomcamp-scoring` repository (e.g.
-`~/git/zoomcamp-scoring`, outside this repository), one edition at a time.
-Transform: parses homework/project scoring and certificate data per edition.
-Destination: `accounts_customuser` (password left unusable), `Enrollment`,
-`Submission`, `ProjectSubmission`.
+Runs 2.5 then 2.6 for one edition at a time (`--list` to see what's
+discoverable, `--cohort` to select one). Recalculates cohort-level totals
+after scoring. Certificates run independently of scoring — a cohort with no
+certificate source is reported (`"source": false`), not treated as an
+error.
 
-Notes: the only importer that bootstraps an entirely empty database. Verified
-today against all 7 real editions — 1,207s total wall time, idempotent on
-replay.
+Notes: the only importer in this whole inventory that bootstraps an
+entirely empty database. Verified today against all 7 real editions —
+1,207s total wall time, idempotent on replay.
 
 ---
 
@@ -207,8 +374,11 @@ this entire inventory.**
 
 ## 5.1 Import
 
-[`scripts/prod/import_events.py`](../../scripts/prod/import_events.py) (also
-`manage.py import_event_identities`)
+[`scripts/prod/import_events.py`](../../scripts/prod/import_events.py) —
+`import_identities()`. The former standalone `manage.py import_event_identities`
+command (and its `import_event_identity_manifest` alias) are retired: they
+wrapped this exact call, and had no caller once
+`scripts/prepare_local_data.py` was repointed at the function directly.
 
 Source: the checked-in, human-reviewed
 [`events/event_identity_manifest.json`](../../events/event_identity_manifest.json)
@@ -262,11 +432,19 @@ aggregated yet.
 
 Source: the prepared intermediate from 6.1. Default path
 `.local/migration-data/events/luma-aggregate-v1`
-(`LUMA_RELATIVE_SOURCE` in `import_events.py:86`) — **currently missing from
-this worktree** despite working earlier today; unexplained, flagged, not yet
-chased down. A cached copy from an earlier run exists at
-`.tmp/luma-prepared-20260831/luma-aggregate-v1/` (dated Aug 31, so itself
-already behind — see 6.3's note on the September gap).
+(`LUMA_RELATIVE_SOURCE` in `import_events.py:86`) — gitignored and
+worktree-local by design, so it is normal for it to be absent from any given
+worktree, this one included.
+
+**The durable copy — the one a real migration run should point at — lives
+outside any worktree, at `/data/tmp/luma-eventbrite-export/luma-aggregate-v1/`**
+(`chmod 700` directory, `600` files, the same protected-export handling as
+`/data/tmp/rds-export/` and `/data/tmp/mailchimp-export/`). It was moved there
+from the now-unreliable worktree-scratch copy at
+`.tmp/luma-prepared-20260831/luma-aggregate-v1/` and verified byte-for-byte
+identical first (332 files, sha256 diff clean). Point `--luma-source` at it
+directly, or symlink/copy it to `.local/migration-data/events/luma-aggregate-v1`
+if a given worktree should resolve the default path automatically.
 Transform: aggregates to counts only — the module's own docstring states "no
 attendee value crosses this module boundary" — and proposes canonical event
 mappings.
@@ -301,11 +479,16 @@ Destination: `Testimonial` (homepage and per-course placement).
 
 ---
 
-# 8. Content — wiki, podcast, articles, people, books
+# 8. Content — podcast, articles, people, books
 
-Two entirely separate journeys exist for the same upstream repository: the
-database pipeline (built, not yet serving) and what actually serves the site
-today (a static build, not a database importer at all).
+One repository, `DataTalksClub/content`. **Not wiki, FAQ, or docs** — those
+are separate repositories with their own entries (14, 12, 13) even though
+8.2's build script happens to read all of them in one run; if you came here
+looking for how wiki/FAQ/docs are ingested, that's the wrong section.
+
+Two entirely separate journeys exist for this one repository: the database
+pipeline (built, not yet serving) and what actually serves the site today
+(a static build, not a database importer at all).
 
 ## 8.1 Database sync — built, deferred
 
@@ -340,26 +523,62 @@ checked into git, served directly by
 
 ---
 
-# 9. Event registrants (attendee-level) — being designed, not yet built
+# 9. Event registrants (attendee-level)
 
-## 9.1 Planned journey
+## 9.1 Import
 
-Source: the same prepared intermediate as 6.1 (attendee-level data already
-present there, currently discarded at 6.2).
-Transform: per event, once 5.2 has ensured that event has an identity, parse
-its registrant rows. Consolidate each one against `accounts_customuser` by
-`normalized_email` — the same table and matching logic that fixed source #4's
-879 collisions — so someone who both took a course and registered for an
-event resolves to one account, never two. An unmatched registrant gets a new
-registrant-only identity in the same identity space (no login capability),
-so a later match merges rather than duplicates.
-Destination: a new registrant-identity model plus a per-event registration
-fact table — not yet written. Admin-only visibility, matching the existing
-member-email rule. Public event pages are unaffected — they keep showing 6's
-aggregate counts.
+[`scripts/prod/import_event_registrants.py`](../../scripts/prod/import_event_registrants.py),
+via [`events/registrant_import.py`](../../events/registrant_import.py).
 
-Notes: backfill scope is every event from the first one onward, not just new
-events going forward. Sequenced behind 5.2 landing.
+Source: the same prepared Luma export directory as 6.1/6.2 (attendee-level
+rows already present there, discarded by 6.2's aggregate-only adapters). The
+durable copy is `/data/tmp/luma-eventbrite-export/luma-aggregate-v1/`. Reads
+it independently of [`events/importers.py`](../../events/importers.py), whose
+own adapters (`derive_luma`, `derive_eventbrite`, used by 6.2) have a hard
+"no attendee value crosses this module boundary" contract that this journey
+must not violate; `events/registrant_import.py` is the one module that does
+cross it, deliberately kept separate.
+
+Transform: per event, once 5.2 has ensured that event has an identity
+(`events.identity.resolve_source_identity`), parse its registrant rows —
+an event with no identity yet is reported under `awaiting_identity_events`
+and skipped, never created here. Each row is consolidated against
+`accounts_customuser` by `normalized_email` first — the same table and field
+that fixed source #4's 879 collisions, and the same lookup shape as
+`accounts.services.cmp_learner_import`'s `_find_cross_source_match` — so
+someone who both took a course and registered for an event resolves to one
+account, never two. If nothing matches there, a previously-seen
+registrant-only identity from earlier in the same run (or an earlier run) is
+reused before anything new is created; only then is a brand-new,
+login-incapable registrant-only identity minted. Consolidation lookups are
+global across the run — a person on event 3 is recognised again on event 300
+— but processing itself is sequenced one event at a time, per the owner's
+stated design, each inside its own transaction.
+
+Destination: [`events/models.py`](../../events/models.py) —
+`EventRegistrantIdentity` (the consolidated person: either `account` set to
+an existing `CustomUser`, or `normalized_email` set on a registrant-only row,
+never both), `EventRegistration` (one provider registration fact per
+identity: event, provider, status, `registered_at`, and the provider's opaque
+per-event attendee token for idempotent replay — never a name, email, or
+phone number), and `EventRegistrantImportProgress` (per-`(provider,
+external_event_identifier)` completion marker; an event's rows are only
+written once, inside one transaction, and a completed event is skipped
+without reopening its file on replay). Admin-only: **no Studio surface reads
+either table in this first pass** — a deliberate, conservative default, not
+an oversight. Public event pages are unaffected — they keep showing 6's
+aggregate counts; a later pass may derive that aggregate from these rows
+instead, but this journey does not change how a public page gets its count.
+
+Notes: Eventbrite is not read yet — the durable export currently holds only
+the Luma side, and this codebase's own Eventbrite adapter never needed that
+provider's attendee-level column names (it only ever counted rows), so there
+is no verified real schema to build or test an Eventbrite reader against yet.
+`EventRegistration.Provider` and the matching logic are already
+provider-generic; adding Eventbrite is a second `discover_*`/`read_*` pair,
+not a model or matching-logic change. Backfill scope is every event from the
+first one onward, not just new events going forward. Sequenced behind 5.2,
+which has landed.
 
 ---
 
@@ -504,7 +723,7 @@ here for completeness.
 
 ## 15.1 Hydrate
 
-`manage.py public_media_hydrate`
+[`scripts/prod/sync_public_media_hydrate.py`](../../scripts/prod/sync_public_media_hydrate.py)
 
 Source: the pinned upstream content checkouts (same ones 8.2 reads).
 Transform: content-sniffs every file (JPEG/PNG/GIF magic bytes checked, not
@@ -517,7 +736,8 @@ the incoming filename.
 
 ## 15.2 Publish
 
-`manage.py public_media_publish` (S3 backend only — refuses under `local`)
+[`scripts/prod/sync_public_media_publish.py`](../../scripts/prod/sync_public_media_publish.py)
+(S3 backend only — refuses under `local`)
 
 Source: the hydrated local store from 15.1.
 Transform: uploads to the configured bucket.
@@ -527,7 +747,7 @@ former `public-projection/` prefix.
 
 ## 15.3 Verify
 
-`manage.py public_media_verify`
+[`scripts/prod/sync_public_media_verify.py`](../../scripts/prod/sync_public_media_verify.py)
 
 Source: the live bucket, compared against `media.json`'s records.
 Transform: none — a reconciliation report only (`matched`/`missing`/`extra`/

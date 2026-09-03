@@ -101,7 +101,7 @@ content from it **in the interim is fine**; depending on it at the end is not.
 right now no visitor would see a change — every editorial page is served from
 JSON committed into this repository. The six reads are all at *projection-build*
 time. That changes the urgency: this is a rebuild risk and a one-off-export risk,
-not a live-site risk. The single exception is `public_media_hydrate`, below.
+not a live-site risk. The single exception is `sync_public_media_hydrate.py`, below.
 
 Copied to `DataTalksClub/content`, then push-synchronised from there:
 
@@ -232,7 +232,7 @@ That matters because of `sma-zoomcamp`, which had no other way in:
 | Family | Created by |
 | --- | --- |
 | `de-zoomcamp`, `ml-zoomcamp`, `mlops-zoomcamp` | `import_legacy_zoomcamp` |
-| `ai-dev-tools`, `llm-zoomcamp`, `ml-zoomcamp` | `pull_course_repositories` |
+| `ai-dev-tools`, `llm-zoomcamp`, `ml-zoomcamp` | `scripts/prod/sync_course_repositories.py` (was `pull_course_repositories`) |
 | `sma-zoomcamp` | **`import_cmp_content`** — nothing else has it |
 
 `sma-zoomcamp` has no course repository (no `course.yaml`, so neither transport can
@@ -259,7 +259,7 @@ diagnosis, because the obvious one is wrong:
 **CMP still runs last**, and for the reason in §3.1 rather than for bootstrapping:
 it reconciles homework against what the repositories wrote. `COURSE_CATALOGUE_ORDER`
 in `scripts/prod/__init__.py` states the order as data —
-`import_legacy_zoomcamp`, `pull_course_repositories`, `import_cmp_content` — so it
+`import_legacy_zoomcamp`, `sync_course_repositories`, `import_cmp_content` — so it
 is checkable rather than remembered.
 
 ### 3.3 The consequence for ordering
@@ -827,6 +827,61 @@ certainly the longest step and the one that sizes the maintenance window.
 
 ### Step 5 — Events
 
+**First, sync new events against the current export — before anything else in
+this step runs.** The reviewed identity manifest (`events/event_identity_manifest.json`)
+is frozen at the moment it was built; Luma keeps moving. Confirmed today: four
+real events dated 2026-09-08 through 2026-09-15 exist on Luma but were in
+neither the prepared export available at the time nor the manifest — not a
+bug, the normal gap between a periodic export and Luma's live state, but one
+this playbook must close explicitly on migration day rather than leave to
+chance. Owner's instruction, verbatim: "first import new events, make sure
+they are up to date, then start the imports."
+
+```
+$TARGET uv run --frozen python scripts/prod/import_events.py \
+    --database <target> \
+    --luma-source /data/tmp/luma-eventbrite-export/luma-aggregate-v1 \
+    --discover-new-events-only
+```
+
+Point `--luma-source` at whatever export is current on migration day — the
+durable copy today lives at `/data/tmp/luma-eventbrite-export/luma-aggregate-v1/`
+(`chmod 700`/`600`, the same protected-export handling as `/data/tmp/rds-export/`
+and `/data/tmp/mailchimp-export/`), not the gitignored, worktree-local default
+path. `--discover-new-events-only` deliberately does not require the export to
+match the pinned checksum in `event-registration-sources.json` — that pin
+protects registration *counts* from drift, and this leg writes no count — so it
+is safe to run against an export newer than the one the rest of this step's
+numbers below were measured against.
+
+This runs the reviewed-manifest import first (replayed, as always), then
+`discover_new_luma_event_identities()`: any Luma event with no existing
+identity — checked against both this database's own `Event` rows and every
+`HistoricalEventMapping`, in any state, so an event already sitting in the
+380-event mapping-review backlog under a different source key is never
+double-created — gets a real `Event` row via `create_event_identity()`. Title
+and canonical path only; this never creates or activates a
+`HistoricalEventMapping`, so it cannot manufacture a registration count.
+Report shape: `new_event_identities.luma.created_total` and
+`.created_events` (each with `title`, `start_at`, `eligible_count`,
+`public_id`, `canonical_path`), `.already_tracked_total`, and
+`.no_metadata_total` for a zero-registration Luma event this export cannot
+even name. `--discover-new-events-only` deliberately stops at identity —
+mapping activation is a separate concern and runs later, when the main import
+below runs without the flag: it now also calls `activate_unambiguous_mappings()`
+automatically (reported under `mapping_auto_activation` in that run's report),
+which activates a `review_required` mapping only when exactly one canonical
+`Event` shares its provider event's date and normalized title — no fuzzy or
+ranked match. Everything else, including every mapping this sync step's new
+identities have not yet been reconciled into, stays `review_required` and
+renders no registration count, exactly as gated as it is today (§16/17 below).
+
+**Done** when `created_total` accounts for every genuinely new event an
+operator expected (cross-check against Luma directly if in doubt) and nothing
+unexpected shows up in `no_metadata_events`. Re-run is safe and idempotent —
+a second pass against the same export reports everything under
+`already_tracked_total` and creates nothing.
+
 Identity manifest first, then the two registration sources. Counts only — **no
 attendee row is ever written.**
 
@@ -1002,7 +1057,7 @@ The mechanism exists and is landed under
 [#301](https://github.com/DataTalksClub/website/issues/301):
 `content/media_store.py` provides `local`, `s3` and `memory` backends selected by
 `PUBLIC_MEDIA_STORE_BACKEND` (**production runs `s3`**), driven by
-`public_media_hydrate`, `public_media_publish` and `public_media_verify`. What is
+`sync_public_media_hydrate.py`, `sync_public_media_publish.py` and `sync_public_media_verify.py`. What is
 *not* built is the key assignment and the site-asset half — §11 B12 and B13.
 
 **Destination.** The `dtc-website-media` bucket, `eu-west-1`, already provisioned
@@ -1464,21 +1519,21 @@ publish media first and content second — never content first.
 
 ```
 # Materialise the tree. NOT --source github; see above.
-$TARGET uv run --frozen python manage.py public_media_hydrate \
+$TARGET uv run --frozen python scripts/prod/sync_public_media_hydrate.py \
     --source checkout --checkout DataTalksClub/content=<path> \
                       --checkout DataTalksClub/datatalksclub.github.io=<path>
 
 # Upload. Incremental: an object whose recorded checksum already matches is skipped.
 PUBLIC_MEDIA_STORE_BACKEND=s3 $TARGET \
-    uv run --frozen python manage.py public_media_publish
+    uv run --frozen python scripts/prod/sync_public_media_publish.py
 
 PUBLIC_MEDIA_STORE_BACKEND=s3 $TARGET \
-    uv run --frozen python manage.py public_media_verify
+    uv run --frozen python scripts/prod/sync_public_media_verify.py
 ```
 
 #### Checkpoint
 
-`public_media_verify` is the only true bidirectional set-diff in the codebase —
+`sync_public_media_verify.py` is the only true bidirectional set-diff in the codebase —
 `missing` / `unreadable` / `mismatched` from the record side and `extra` from the
 store side, non-zero exit. It is the shape every other drift check should copy.
 
@@ -1639,7 +1694,7 @@ media records yet — until B13 lands this is by hand:
 
 **A re-run uploads only what changed.** `publish_media` compares each object's
 stored checksum against the record's and skips a match, so this is a property to
-*confirm*, not to build: run `public_media_publish` twice and read the report —
+*confirm*, not to build: run `sync_public_media_publish.py` twice and read the report —
 `added: 0`, `changed: 0`, `skipped` equal to `total`. If a second run re-uploads
 147 MB, something is rewriting checksums and that is a stop.
 
@@ -1729,7 +1784,7 @@ reported, and the two directions fail very differently:
 
 | Case | What happens |
 | --- | --- |
-| File present, no record declares it | It becomes a media object with no consumer. `public_media_verify` reports it as `extra` — the same detector that found the stale podcast file |
+| File present, no record declares it | It becomes a media object with no consumer. `sync_public_media_verify.py` reports it as `extra` — the same detector that found the stale podcast file |
 | Record declares an image, file absent — **primary/listing image** | Soft: `image_path: ""` and `media_available: false`. The page degrades as designed |
 | Record declares an image, file absent — **inline body image** | **Hard: the build fails** with `article image is missing from the pinned source` (`build_public_projection.py:1029`) |
 
@@ -2266,9 +2321,9 @@ registration**, **1 wrapped-statistics row** and **1 certificate**.
       `-light`/`-dark` names; homepage and `/sponsors` render every image in both
       themes; a `?v=` change reaches a browser holding the old bytes
 - [ ] **No asset tracked in git** outside `core/static/core/vendor/` — B12 and B13
-- [ ] A second `public_media_publish` reports `added: 0, changed: 0` — it does not
+- [ ] A second `sync_public_media_publish.py` reports `added: 0, changed: 0` — it does not
       re-upload 147 MB
-- [ ] `public_media_hydrate` succeeds on a fresh clone with no access to the legacy
+- [ ] `sync_public_media_hydrate.py` succeeds on a fresh clone with no access to the legacy
       repository — §11 B7
 - [ ] **The public ID allocator sits above the highest imported event ID** — step 5
 - [ ] **Testimonials imported** — `migrate` no longer seeds them
@@ -2285,9 +2340,11 @@ registration**, **1 wrapped-statistics row** and **1 certificate**.
 thing to a rehearsal that exists. Where it differs from this plan, **the plan is
 the decision and the difference is a work item.**
 
-What it actually does, in order: `migrate` → `import_event_identities` →
-`seed_local_courses` → `seed_course_repository_sources` → `pull_course_repositories`
-→ CMP content import → derive/stage/activate registration aggregates.
+What it actually does, in order: `migrate` → event identity import (`import_events.py`'s
+`import_identities()`) → `seed_local_courses` → course-repository source registration
+(`scripts/prod/sync_course_repository_sources.py`) → course-repository pull
+(`scripts/prod/sync_course_repositories.py`) → CMP content import → derive/stage/activate
+registration aggregates.
 
 | # | Difference | Consequence |
 | --- | --- | --- |
@@ -2358,8 +2415,8 @@ cheapest thing in this document and the most useful at 2am.
 | 3 | `$TARGET uv run … scripts/prod/import_cmp_content.py --database $REHEARSAL --source $EXPORT` | none — the real export, read in place | No |
 | 4 | **does not exist** — §11 A3 | — | The rehearsal cannot run at all until this exists |
 | 5 | `$TARGET make import-events IMPORT_DATABASE=$REHEARSAL` | Luma/Eventbrite archives from `.local/migration-data` | No — **verified end to end**: 421 events, allocator at 422 |
-| 6 | `manage.py public_media_verify`, `manage.py check`, `python -m ci.content_update` | the committed projection instead of a rebuild | **Yes.** A full rebuild needs three pinned checkouts and is not reproducible today (#253). The rehearsal checks the artifacts, not the build. |
-| 7 | `manage.py public_media_hydrate` → `public_media_publish` → `public_media_verify` | a `local` store instead of `s3` | **Yes.** The rehearsal proves the counts and the incrementality, not the bucket |
+| 6 | `scripts/prod/sync_public_media_verify.py`, `manage.py check`, `python -m ci.content_update` | the committed projection instead of a rebuild | **Yes.** A full rebuild needs three pinned checkouts and is not reproducible today (#253). The rehearsal checks the artifacts, not the build. |
+| 7 | `scripts/prod/sync_public_media_hydrate.py` → `sync_public_media_publish.py` → `sync_public_media_verify.py` | a `local` store instead of `s3` | **Yes.** The rehearsal proves the counts and the incrementality, not the bucket |
 | 8 | `$TARGET uv run … scripts/prod/import_testimonials.py --database $REHEARSAL` (sponsors: §11 B9) | none — the reviewed set is in this repository | No for testimonials; sponsors cannot be rehearsed yet |
 | OAuth | §5.2 | real Google and GitHub, local callback | No — this is the real thing |
 
@@ -2613,13 +2670,13 @@ into the database or into the content repository. **Done looks like:** the
 projection build no longer needs `--legacy-main-root` for events. Independent;
 blocks §12 decision 1.
 
-**B7. Close the `public_media_hydrate` legacy default.** *Small (hours).*
+**B7. Close the `sync_public_media_hydrate.py` legacy default.** *Small (hours).*
 **A separate Codex run is fixing this now — do not duplicate it; check whether it
 has landed before starting.* `--source github` is the default, and a fresh clone
 or a bucket re-hydration therefore fetches 438 author images from the legacy
 repository and reports `failed: 438` once it is gone. Production on `s3` and CI on
 `memory` are unaffected, which is why it survived this long. **Done looks like:**
-`public_media_hydrate` on a fresh clone succeeds with no network access to the
+`sync_public_media_hydrate.py` on a fresh clone succeeds with no network access to the
 legacy repository. Independent.
 
 Note the ruling makes this more than a default. `--source github` reads media
@@ -2764,7 +2821,7 @@ article emits an `og:image` pointing at a deleted object.
 **C1. A content drift check.** *Medium.* Nothing answers "is what we serve what
 upstream says?" for `DataTalksClub/content`. All the parts exist:
 `parity.py` is ~90% of it but is pinned to `ACCEPTED_CONTENT_COMMIT` and only
-iterates projection → bundle; `public_media_verify` is the right report shape;
+iterates projection → bundle; `sync_public_media_verify.py` is the right report shape;
 `ContentSource.last_reconciled_at`, `pending_follow_up` and
 `freshness_target_minutes` are declared with zero readers and zero writers. §6's
 "content sync verifiable" checkbox cannot be ticked without it.

@@ -150,8 +150,8 @@ noted.
 | `audit_datamailer_recipient_lists` | courses | Live | `studio_courses/views/datamailer_operations.py:51` |
 | `datamailer_campaign` / `datamailer_status` | courses | Live | Studio operations + tests |
 | `import_development_course_content` | courses | **Live, keep** | `courses/tests/test_development_content_import.py:310-320`; §0.2. Imports *real* course content, not placeholders |
-| `pull_course_repositories` | content_sync | Live | `scripts/prepare_local_data.py`; `Makefile` `content-pull`. The one route into the curriculum tables, shared with the signed GitHub push webhook |
-| `register_course_repository` / `seed_course_repository_sources` | content_sync | Live | `Makefile` `content-sources`; `_docs/runbooks/course-content-push-and-pull.md` |
+| `scripts/prod/sync_course_repositories.py` (was `pull_course_repositories`) | content_sync | Live | `scripts/prepare_local_data.py`; `Makefile` `content-pull`. The one route into the curriculum tables, shared with the signed GitHub push webhook |
+| `register_course_repository` / `scripts/prod/sync_course_repository_sources.py` (was `seed_course_repository_sources`) | content_sync | Live | `Makefile` `content-sources`; `_docs/runbooks/course-content-push-and-pull.md` |
 | `preview_peer_review_email` | courses | Live | `courses/tests/test_datamailer_peer_review.py:283` |
 | `seed_local_courses` | courses | **Live, keep** | `README.md:47`; `scripts/prepare_local_data.py:290`. Source of the "Practice assignment" text (§0.3) |
 | `seed_local_project_review` | courses | Live | `README.md:65`; `courses/tests/test_local_project_review_seed.py:101` |
@@ -163,13 +163,12 @@ noted.
 | `datamailer_callback_status` / `datamailer_outbox_status` / `datamailer_send_status` | data | Live | `data/management/commands/monitoring_datamailer_health.py:5,9,13` |
 | `monitoring_datamailer_health` | data | Live (production probe) | `_docs/runbooks/production-hosting-and-dns-migration.md:1452,2131` |
 | `process_datamailer_outbox` | data | Live | `courses/tests/test_datamailer_outbox_memberships.py:62` |
-| `public_media_hydrate` / `public_media_publish` / `public_media_verify` | content | Live (runbook) | `_docs/runbooks/public-media-objects.md:105,111,117` |
+| `scripts/prod/sync_public_media_hydrate.py` / `sync_public_media_publish.py` / `sync_public_media_verify.py` (was `public_media_hydrate` / `public_media_publish` / `public_media_verify`) | content | Live (runbook) | `_docs/runbooks/public-media-objects.md:105,111,117` |
 | `register_course_repository` | content_sync | Test-only | `content_sync/tests/test_course_repository_registration.py:11` |
 | `verify_dtc_content` | content_sync | Live (CI gate) | `Makefile:124` |
 | `compatibility_gate` | core | Live (CI gate) | `Makefile:319` |
 | `sync_studio_roles` | core | Test-only | `accounts/tests/test_studio_foundation.py:68` |
-| `import_event_identities` | events | Live | `scripts/prepare_local_data.py:275` |
-| `import_event_identity_manifest` | events | **Superseded alias** | One line: `from .import_event_identities import Command` (`events/management/commands/import_event_identity_manifest.py:1`). A rename mid-flight; only doc ref is `_docs/runbooks/session-handoff-20260902.md:153` |
+| `import_event_identities` | events | **Retired** | Redundant with `scripts/prod/import_events.py`'s `import_identities()`, which calls the same `events.identity.import_identity_manifest`. `scripts/prepare_local_data.py` now calls that function directly; the command and its `import_event_identity_manifest` alias are deleted |
 | `backfill_event_qna` | events | **Dead** | Zero references repo-wide |
 | `retry_event_qna` | events | Superseded | The service it wraps is reachable from Studio (`events/qna/studio_views.py:121`) and the admin API (`management_api/views.py:1091`); the CLI itself has no caller |
 | `run_job_worker` | jobs | Live (production) | `entrypoint.sh:11`; `Makefile:480` |
@@ -228,7 +227,7 @@ executable record of how a checked-in artifact was produced:
 - Add to that list: `build_article_faq.py` → `content/article_faq.py:10` and
   `build_event_description_bridge.py` → the checked bridge. The course-module snapshot
   manifest and its builder are gone: course content now comes in through
-  `pull_course_repositories`, the same ingestion the push webhook drives.
+  `scripts/prod/sync_course_repositories.py`, the same ingestion the push webhook drives.
 
 ---
 
@@ -241,7 +240,7 @@ files with no reference, no ledger pin, and no registry pin at `fbab381`.
 | --- | --- | --- | --- |
 | 1 | `events/management/commands/backfill_event_qna.py` | Repo-wide grep for `backfill_event_qna` (excluding `.venv`, `.git`, `.tmp`) returns only the file itself. Not in `SOURCE_COMMAND_APPS`, so not in `EXPECTED_COMMANDS`. No `deploy/`, Terraform, `entrypoint.sh` or workflow reference | A one-time Q&A backfill an operator was going to run by hand becomes unavailable; `events/qna/services.ensure_event_qna` stays reachable from Studio, so nothing automated breaks |
 | 2 | `jobs/management/commands/run_job_scheduler.py` | Zero references. Superseded: `run_job_worker` imports the same `q2_scheduler` and lease helpers (`jobs/management/commands/run_job_worker.py:11,18-25`) and is the only command in `entrypoint.sh:11` | If a future deployment topology wants a scheduler container separate from workers, this is the file that provided it. Confirm the deploy plan first |
-| 3 | `events/management/commands/import_event_identity_manifest.py` | Single line: `from .import_event_identities import Command  # noqa: F401`. Only external mention is prose in `_docs/runbooks/session-handoff-20260902.md:153` | A runbook step someone types by its old name fails with "Unknown command". Fix the runbook in the same change |
+| 3 | `events/management/commands/import_event_identity_manifest.py` | **Done.** Deleted along with `import_event_identities.py` itself: `scripts/prepare_local_data.py` now calls `scripts/prod/import_events.py`'s `import_identities()` directly, the same function the alias's target ultimately called | n/a |
 | 4 | `events/management/commands/retry_event_qna.py` | Zero references to the command. Its service `retry_event_qna_provision` remains reachable from `events/qna/studio_views.py:121`, `management_api/views.py:1091` and `events/qna/capabilities.py:151` | Loses the CLI escape hatch for retrying a blocked provisioning when Studio is down. Lower priority than 1-3 for that reason |
 | 5 | `scripts/capture_screenshots.py` | No invocation anywhere. `Makefile:48` and `Makefile:83` list it only in the mypy/lint file sets, never in a recipe. No reference in `_docs/`, `.claude/`, or any workflow | This is the tester role's screenshot tool per `AGENTS.md`. If testers actually run it ad hoc, deleting it removes their tool. **Ask before deleting.** Also requires removing both `Makefile` lint entries |
 | 6 | `jobs/management/commands/relay_durable_jobs.py` | Zero references. Wraps `relay_due_jobs`, `sweep_expired_jobs`, `prune_stale_heartbeats` | **Weakest candidate.** This looks like a cron entry point for durable-job recovery that was never wired. If durable jobs rely on an external sweep, deleting it silently strands expired jobs. Confirm against the jobs spec before touching |

@@ -94,7 +94,7 @@ questions — authored in the course repositories themselves.
 | **Repository list** | Registered `ContentSource` rows. `content_sync/course_repository_sources.json` is only how a fresh database gets its first rows |
 | **Ingest** | `content_sync/course_repository_ingest.py` — one implementation, two transports |
 | **Transport A** | Signed GitHub push webhook → `api/views/course_repository_webhooks.py` → durable job `content_sync.course_repository_sync.import_commit` |
-| **Transport B** | `manage.py pull_course_repositories` (`--from-disk` for offline) |
+| **Transport B** | `scripts/prod/sync_course_repositories.py` (`--from-disk` for offline) |
 | **Writes** | `courses` app: `Course`, `Cohort`, `Module`, `Unit`, `Homework`, `Question`, plus `CourseCurriculumImportRun` bookkeeping, via `courses/services/curriculum_import.py` |
 | **Volume** | 20 modules / 181 units across the three repositories |
 | **Idempotency** | Safe. Transactional projection keyed on `source_content_id`; an import run is recorded |
@@ -268,7 +268,7 @@ Reads that **take content** (fate required):
 | a5 | `content/media_tooling.py:154-157`, `:230` | `raw.githubusercontent.com/.../images/authors/*` over HTTPS | 438 author images | **This one genuinely breaks.** See below |
 | a6 | `build_public_projection.py:1385, 1541, 1556, 1641, 3078` | `_posts`, `_podcast`, `_books`, `images/**` | articles, podcasts, books, media — **`--mode fallback` only** | Nothing. Fallback is not accepted |
 
-**a5 is the only live defect.** `content/management/commands/public_media_hydrate.py:41-45`
+**a5 is the only live defect.** `scripts/prod/sync_public_media_hydrate.py:60-64`
 defaults to `--source github`, and `content/public_projection/media/` is gitignored
 (`.gitignore:23`, `git ls-files` returns 0 files). 438 of the 1,253 media records
 carry `"repository": "DataTalksClub/datatalksclub.github.io"` in their provenance,
@@ -508,8 +508,9 @@ and reads the object through a pluggable store selected by
 | `memory` | Deterministic offline fixture derived from `media.json`. CI. Refuses to activate under production settings |
 | `s3` | Published objects from the bucket, via the ambient credential chain. No static key in the repo |
 
-Commands: `manage.py public_media_hydrate` (materialise), `public_media_publish`
-(upload), `public_media_verify` (check store against `media.json`).
+Commands: `scripts/prod/sync_public_media_hydrate.py` (materialise),
+`sync_public_media_publish.py` (upload), `sync_public_media_verify.py` (check store
+against `media.json`).
 
 Bucket: `dtc-website-media`, 1,253 objects, ~154 MB, named in
 `main/website-static/terraform.tfvars.example` in `aws-infra`. Object keys are
@@ -653,12 +654,16 @@ uv run --frozen python scripts/prod/import_legacy_zoomcamp.py \
 ### 14 — Event identity manifest
 
 `events/event_identity_manifest.json` — schema version 2, **421 events / 1,684
-aliases**. Imported by `manage.py import_event_identities` (`--dry-run` is the
-default; atomic). Also seeded by migrations `events/0005_seed_event_identity_manifest.py`
-and `0008_align_public_event_ids_to_manifest.py`.
+aliases**. Imported by `scripts/prod/import_events.py`'s `import_identities()`
+(dry-run by default when called with `apply=False`; atomic). Also seeded by
+migrations `events/0005_seed_event_identity_manifest.py` and
+`0008_align_public_event_ids_to_manifest.py`.
 
-`import_event_identity_manifest` is a **superseded one-line alias** for the same
-command. Do not add a third name.
+The former `manage.py import_event_identities` command (and its
+`import_event_identity_manifest` alias) are retired: they wrapped the exact
+same `events.identity.import_identity_manifest` call `import_events.py` already
+made, so once `scripts/prepare_local_data.py` was repointed at that function
+directly, nothing called the command anymore.
 
 This assigns the stable public event IDs. **Everything about events depends on it** —
 run it before any event registration import.
@@ -836,7 +841,7 @@ starting position.
 `ContentDocument`, `ContentRelation`, `ContentAsset`. Of these:
 
 - **`ContentSource` is live** — written by `content_sync/course_repository_registration.py`,
-  read by `pull_course_repositories`, `course_repository_sync.py` and the webhook view.
+  read by `scripts/prod/sync_course_repositories.py`, `course_repository_sync.py` and the webhook view.
   But it is a **repository registry**, not a content store.
 - **Everything else is written by nothing outside tests and migrations.**
   `prepare_dtc_content_candidate` (`content_sync/dtc_content/preparation.py:207`) is
@@ -869,14 +874,14 @@ Five mechanisms, each solving part of the problem for a different source.
 | `manage.py verify_dtc_content` | a **checkout** against pinned contract constants | CI / by hand | wrong repo, wrong commit, dirty tree, content that fails the adapter |
 | `content_sync/dtc_content/parity.py` | adapter bundle against the committed projection | inside `verify_dtc_content`, **only at one frozen commit** | projection and content repo disagreeing |
 | `content/public_data.py:640` | committed projection against itself | **every Django boot** | any local mutation of the projection tree |
-| `manage.py public_media_verify` | `media.json` against the object store, **both directions** | by hand / ops | missing, unreadable, mismatched and **orphaned** objects |
+| `scripts/prod/sync_public_media_verify.py` | `media.json` against the object store, **both directions** | by hand / ops | missing, unreadable, mismatched and **orphaned** objects |
 | `ci/content_update.py` | on-disk artifact digests against `manifest.json`, per family | CI | a hand-edited projection artifact |
 
 Detail worth knowing at 2am:
 
 **`replayed`** (`courses/services/curriculum_import.py:876`) means *this exact commit
 and parser version was already applied; nothing was written*. It is reported by
-`pull_course_repositories` as `" (replayed)"` and in the JSON summary. It also
+`scripts/prod/sync_course_repositories.py` as `" (replayed)"` and in the JSON summary. It also
 re-asserts the projection still exists — a missing Course or Cohort raises
 `idempotent_projection_missing` (`:833, :841`). Guards `source_commit_checksum_conflict`
 and `source_import_identity_conflict` (`:882, :885`) fire when the same commit
@@ -900,7 +905,7 @@ two canonical digests. Its two limits: it is **pinned to `ACCEPTED_CONTENT_COMMI
 acceptance* rather than today's upstream; and it only iterates projection → bundle
 (`:410-415`, `projection_document_missing`), never bundle → projection.
 
-**`public_media_verify`** (`content/media_tooling.py:311-353`) is **the only true
+**`sync_public_media_verify.py`** (`content/media_tooling.py:311-353`) is **the only true
 bidirectional set-diff in the codebase** — `missing` / `unreadable` / `mismatched`
 from the record side, `extra` from the store side, `clean` overall, non-zero exit.
 Copy its report shape.
@@ -925,8 +930,8 @@ pipeline — the course-repository route never sets it.
 
 The check that invents nothing, reusing the pieces above in order:
 
-1. **Enumerate** sources exactly as `pull_course_repositories._sources` does
-   (`:113-118`) — `ContentSource.objects.filter(enabled=True, adapter_type=…)`.
+1. **Enumerate** sources exactly as `sync_course_repositories.select_sources` does
+   (`:77-111`) — `ContentSource.objects.filter(enabled=True, adapter_type=…)`.
 2. **Resolve upstream HEAD** with the same offline git primitives as
    `course_repository_checkout._git`, plus `git rev-parse <remote>/<branch>`; reuse
    `commit_is_public` for ancestry. Compare to the ingested commit → **(d)**.
@@ -938,8 +943,8 @@ The check that invents nothing, reusing the pieces above in order:
 5. **Diff** against the served side by stable identity (absent-in-served → **a**,
    absent-in-upstream → **b**) and by digest (→ **c**).
 6. **Emit** one line of sorted JSON; exit non-zero unless clean — the house style of
-   `verify_dtc_content.py:59`, `public_media_verify.py:32-34`,
-   `pull_course_repositories.py:336-340`.
+   `verify_dtc_content.py:59`, `sync_public_media_verify.py:52-53`,
+   `sync_course_repositories.py:449`.
 7. **Record** the outcome in `last_reconciled_at` and `pending_follow_up`, using
    `freshness_target_minutes` as the staleness threshold for (d).
 
@@ -953,8 +958,8 @@ database — and `parity.py` already does most of it, needing only to be un-pinn
 **Yes, and it is not a close call.**
 
 The course-repository ingest already solves exactly this problem: one implementation
-(`content_sync/course_repository_ingest.py`) shared by a signed push webhook and a
-`pull_course_repositories` command, with the repository list coming from registered
+(`content_sync/course_repository_ingest.py`) shared by a signed push webhook and
+`scripts/prod/sync_course_repositories.py`, with the repository list coming from registered
 `ContentSource` rows rather than a hardcoded list. The owner was explicit when that
 was built that the two transports must use the same code, and the reason holds here:
 a second entry point is a second set of bugs and a second answer to "what is
@@ -998,7 +1003,7 @@ What genuinely differs, and needs care rather than a separate pipeline:
 5. `make content-pull` — offline curriculum ingest.
 6. Course catalogue seed, then `scripts/prod/import_cmp_content.py` (it needs the
    placeholder rows to reconcile against).
-7. `manage.py import_event_identities` — before anything else event-related.
+7. `scripts/prod/import_events.py`'s identity import — before anything else event-related.
 8. Event registration aggregates (currently `mapping_review_required`).
 
 `make production-prep-dataset` runs stages 1–5 plus `scripts/prepare_local_data.py`
@@ -1029,7 +1034,7 @@ Ordered by how much they will hurt.
    throughout, no script, no plan. `scripts/load_rds_export.py` is disabled.
 2. **The content database pipeline is dead at both ends** (§9). Models, services and
    a preparation function exist; nothing writes them and nothing reads them.
-3. **`public_media_hydrate` defaults to fetching 438 images from the legacy repo over
+3. **`sync_public_media_hydrate.py` defaults to fetching 438 images from the legacy repo over
    the network**, and the media tree is gitignored (§5.2 a5). This is the only live
    legacy dependency.
 4. **A full projection rebuild is not reproducible** — issue #253. Contract digests
@@ -1099,11 +1104,11 @@ Ordered by how much they will hurt.
 | Import pre-2024 Zoomcamp history | `make import-legacy-zoomcamp` |
 | Import events | `make import-events` — **broken, script missing** |
 | Import CMP course content | `uv run --frozen python scripts/prod/import_cmp_content.py --database … --source …` |
-| Import event identities | `manage.py import_event_identities` (dry-run by default) |
+| Import event identities | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --eventbrite-source …` (identity import is always the first step) |
 | Create identities for new events in a fresh Luma export (§14.1) | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --discover-new-events-only` |
-| Materialise media | `manage.py public_media_hydrate` |
-| Publish media to the store | `manage.py public_media_publish` |
-| Verify media against `media.json` | `manage.py public_media_verify` |
+| Materialise media | `uv run --frozen python scripts/prod/sync_public_media_hydrate.py` |
+| Publish media to the store | `uv run --frozen python scripts/prod/sync_public_media_publish.py` |
+| Verify media against `media.json` | `uv run --frozen python scripts/prod/sync_public_media_verify.py` |
 
 ### Never do these
 
