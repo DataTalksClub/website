@@ -363,17 +363,76 @@ events going forward. Sequenced behind 5.2 landing.
 
 ---
 
-# 10. Mailchimp newsletter subscriptions — not yet built
+# 10. Mailchimp newsletter subscriptions
 
-## 10.1 Planned journey
+## 10.1 Import
 
-Source: a Mailchimp export, to be fetched by the owner and read in place —
-same handling as the CMP and RDS exports, never copied into the worktree,
-never committed.
-Transform: matched by email against the same consolidated identity 9.1
-resolves.
-Destination: a subscription-status fact on that identity — not a third,
-disconnected table.
+[`scripts/prod/import_mailchimp_subscriptions.py`](../../scripts/prod/import_mailchimp_subscriptions.py)
+(+ [`accounts/services/mailchimp_subscription_import.py`](../../accounts/services/mailchimp_subscription_import.py))
+
+Source: a Mailchimp audience export, fetched by the owner and read in place —
+same handling as the CMP and RDS exports: `--export-dir` is a required
+argument, no default location, never copied into the worktree, never
+committed. The export actually carries three CSVs (subscribed, unsubscribed,
+cleaned), but this importer opens exactly one of them — matched by filename
+prefix so the export's own per-export hash suffix doesn't need to be typed
+exactly: `subscribed_email_audience_export_*.csv`. The unsubscribed and
+cleaned files sit in the same directory and are never globbed for, opened,
+or parsed — not merely unused; an earlier draft of this importer read all
+three and wrote `False` for an unsubscribed/cleaned match, but the owner
+narrowed scope before that shipped (quoted verbatim: "when we import we set
+subscribed only to those who are subscribed in mailchimp"). For context only
+— no database write is tied to either number — the real export's
+unsubscribed and cleaned files carry 7,247 and 1,354 rows respectively.
+Transform, exactly:
+
+**Read from every row:** only the `Email Address` column
+(`EMAIL_COLUMN` in the service module), matched against
+`accounts_customuser.normalized_email` — the same field and case-insensitive
+matching discipline used throughout this migration (source #4's CMP/legacy
+dedup, source #9's planned registrant consolidation). This importer does
+**not** wait on 9.1's registrant-identity model landing — it matches straight
+against `accounts_customuser`, the identity that already exists today.
+**Never read, from any row:** `OPTIN_IP`, `CONFIRM_IP`, `NOTES`. A structural
+check of the real export (all three files, 130,854 / 7,247 / 1,354 rows)
+found `NOTES` empty on every single row in every file, and `OPTIN_IP`/
+`CONFIRM_IP` are real signup-IP PII nothing else this migration imports
+carries — minimizing what gets stored is the safer default absent an
+identified use. `TAGS` was inspected the same way while building this
+importer (about 70% of subscribed rows carry it, average ~1.7
+comma-separated values drawn from a small fixed vocabulary — not free text,
+not sensitive) but is likewise never stored: no importer-facing use for it
+exists today, so the same minimization default applies.
+**A row in the subscribed file, matched to an existing account:** that
+account's `newsletter_subscribed` is set `True`, explicitly — even though
+this is usually a no-op against the field's own default, Mailchimp's
+subscribed file is treated as the authoritative confirmation, not just an
+absence of contrary evidence.
+**A row with no matching account:** never creates one. Counted and reported
+(`unmatched_rows`) for the caller to relay — out of scope by design, the
+same "person we know about but isn't a member yet" class of row source #9's
+planned registrant-identity model exists to hold; building a second,
+parallel version of that model here would conflict with that design.
+**An account with no match in the subscribed file** (including one that
+*would* match Mailchimp's unsubscribed or cleaned file, since those are
+never read): left completely untouched, at whatever value it already holds —
+the model default (`True`) for an account no earlier run has touched.
+Destination: [`accounts/models.py`](../../accounts/models.py)
+(`CustomUser.newsletter_subscribed`, default `True` for every account
+regardless of how it was created — a new signup, the legacy zoomcamp
+importer, or the CMP learner importer all get it for free, none of them need
+to know this field exists).
+
+Notes: not resumable like source #4's importer — the matching step is a
+fast, idempotent point lookup against an already-indexed column, so batching
+(CSV streamed in fixed-size chunks, one `normalized_email__in` query plus one
+`bulk_update` per chunk) is enough; a full re-run from row zero is cheap
+(measured: ~2.7s for the real 130,854-row subscribed file against a database
+of 20,239 real CMP-imported accounts — 12,723 matched, 118,131 unmatched, 0
+accounts created) and idempotent (a second run's `accounts_changed` is 0). If
+more than one existing account shares a `normalized_email` (a
+pre-reconciliation duplicate), every one of them is updated, not just one
+arbitrarily chosen row.
 
 ---
 
