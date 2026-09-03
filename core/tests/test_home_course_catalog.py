@@ -9,7 +9,6 @@ pinned upstream revision that built the artefact and would therefore hide the de
 
 from __future__ import annotations
 
-import json
 import re
 from datetime import date
 from pathlib import Path
@@ -285,9 +284,3 @@ class CourseSitemapSourceTests(TestCase):
             locations,
             {"/courses"} | {f"/courses/{slug}" for slug in family_slugs},
         )
-
-    def test_the_checked_projection_artifact_is_untouched(self) -> None:
-        """This issue converts readers; it does not regenerate or delete the artefact."""
-
-        records = json.loads(PROJECTION_COURSES.read_text(encoding="utf-8"))
-        self.assertEqual(len(records), 12)

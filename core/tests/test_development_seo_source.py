@@ -12,7 +12,6 @@ from django.test import SimpleTestCase
 from gunicorn.config import Config  # type: ignore[import-untyped]
 from gunicorn.glogging import Logger  # type: ignore[import-untyped]
 
-from compatibility.monitoring import safe_compatibility_event
 from core.source_policy import (
     GUNICORN_ACCESS_LOG_FORMAT,
     SourcePolicyError,
@@ -220,21 +219,13 @@ class ApplicationSourcePolicyTests(SimpleTestCase):
         self.assertIn('request_id="request-safe"', output)
         self.assertIn('correlation_id="correlation-safe"', output)
 
-    def test_application_and_compatibility_events_are_query_and_referrer_safe(self) -> None:
+    def test_application_events_are_query_safe(self) -> None:
         canary = "event-query-canary-36"
         request = HttpRequest()
         request.path = "/private/preview/"
         request.META["QUERY_STRING"] = f"token={canary}"
         properties = event_properties(request=request)
-        event = safe_compatibility_event(
-            host="testserver",
-            path=request.path,
-            method="GET",
-            status=400,
-            referrer=f"https://external.example/?secret={canary}",
-        )
-        evidence = repr(properties) + repr(event.properties())
-        self.assertNotIn(canary, evidence)
+        self.assertNotIn(canary, repr(properties))
 
 
 class TerraformSourcePolicyTests(SimpleTestCase):

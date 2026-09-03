@@ -84,7 +84,7 @@ decision.
 | `build_local_review_db.py` | 19-line shim into `review_import.cli.main()` | Live | `Makefile:485,492,499` |
 | `build_pinned_legacy_sources.py` | Creates clean pinned legacy checkouts and deterministic generated-site inputs | Live | `Makefile:296`; `ci/tests/test_workflows.py:171` |
 | `build_public_projection.py` | Sole builder of the checked, network-free public content projection | Live | `.github/workflows/content-update.yml:18,43` |
-| `build_synthetic_design_review_db.py` | Builds a wholly synthetic issue-#237 design-review SQLite DB + manifest under `.tmp/` | Live (design contract) | `_docs/design/issue-237-review-state-matrix.md:18` |
+| `build_synthetic_design_review_db.py` | Builds a wholly synthetic issue-#237 design-review SQLite DB + manifest under `.tmp/` | Live (design contract) | `_docs/testing/issue-237-review-state-matrix.md:18` |
 | `capture_screenshots.py` | Playwright screenshotter for local pages, for the tester role | **Uncertain** — see §4 | lint/typecheck lists only (`Makefile:48,83`) |
 | `check_database_portability.py` | Fails when app code, CI or specs regain backend-specific behavior | Live (CI gate) | `Makefile:119`; `ci/tests/test_database_portability.py:8` |
 | `create_local_admin.py` | Seeds the documented local admin + placeholder social providers (`website.settings.local`) | Live | `README.md:29` |
@@ -99,9 +99,6 @@ decision.
 | `security_canary_artifact.py` | Writes the deterministic redacted canary artifact | Live (CI gate) | `Makefile:103` |
 | `security_vulnerability_scan.py` | Locked-environment `pip-audit` advisory scan | Live (CI gate) | `Makefile:102` |
 | `sync_course_platform.py` | Reports/applies a reviewed CMP upstream commit into this repo | Live | `Makefile:170,177`; `.github/workflows/content-update.yml:20,45` |
-| `validate_course_platform_schema_inventory.py` | Fail-closed validator of the phase-1 schema/data inventory Markdown | Test/CI-only | `scripts/tests/test_course_platform_schema_inventory.py:7` |
-| `validate_github_editorial_source_projection_inventory.py` | Fail-closed validator of the editorial source/projection evidence slice | Test/CI-only | `scripts/tests/test_github_editorial_source_projection_inventory.py:7` |
-| `validate_milestone_0_readiness.py` | Validates the point-in-time Milestone-0 readiness matrix | Test/CI-only | `scripts/tests/test_milestone_0_readiness.py:8` |
 | `verify_course_platform_adoption.py` | Verifies the 768-row CMP copy ledger and cadmin allowlist | Live | `scripts/sync_course_platform.py:37`; `_docs/adoption/course-platform/README.md:17` |
 | `verify_course_platform_vendor_assets.py` | Verifies locally served CMP vendor assets and their provenance | Test-only import | `core/tests/test_course_platform_vendor_assets.py:17` |
 | `verify_development_seo_terraform.py` | Verifies the trusted Terraform source for development SEO policy | Live | `Makefile:132` |
@@ -272,7 +269,7 @@ where the volume is, and it is one issue, not nine.
 | `scripts/production_like_course_specs.json` | Looks like fixture junk; source of "Project Attempt N" | SHA-256-pinned; read by `courses/services/local_course_seed.py:68` **and** `scripts/build_public_projection.py:2918`; asserted by `content/tests/test_public_projection_builder.py:26` |
 | `courses/.../seed_local_courses.py`, `seed_local_questions.py`, `import_development_course_content.py` | Named as placeholder generators | All three are pinned by `EXPECTED_COMMANDS` (§0.2) and covered by tests; `seed_local_courses` is a step in `make production-prep-*`. `import_development_course_content` imports real content, not placeholders |
 | `scripts/generate_production_like_leaderboard_data.py` | Looks like a fixture generator | `README.md:59` names it the supported path, and `courses/services/local_course_seed.py:31` defers to it for participants. Ledger-pinned |
-| `scripts/build_synthetic_design_review_db.py` | Produces synthetic data | It is the durable build contract for the issue-#237 sitewide design review (`_docs/design/issue-237-review-state-matrix.md:18`), and deliberately reads no production or pinned catalogue data |
+| `scripts/build_synthetic_design_review_db.py` | Produces synthetic data | It is the durable build contract for the issue-#237 sitewide design review (`_docs/testing/issue-237-review-state-matrix.md:18`), and deliberately reads no production or pinned catalogue data |
 | `scripts/build_local_review_db.py` | 19-line shim | Three `Makefile` recipes call it (`485,492,499`), and `review_import/tests/test_workflow.py:2426` asserts the disabled loader points at it by name |
 | `scripts/verify_course_platform_vendor_assets.py` | No CLI caller | `core/tests/test_course_platform_vendor_assets.py:17` imports it — the import *is* the dependency |
 | `scripts/validate_*.py` (three files) | Validate frozen historical audits | Each is the fail-closed contract for its audit and is exercised by a test under `scripts/tests/`. `_docs/adoption/course-platform/cadmin-reference-allowlist.tsv:41` names one explicitly as retained |

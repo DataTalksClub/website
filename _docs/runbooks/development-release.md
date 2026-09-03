@@ -168,7 +168,7 @@ The missing Secrets Manager and ECS sentinels are not live calls. Their replacem
 three-part proof: website tests assert the calls are absent; `DataTalksClub/aws-infra` tests assert
 the exact Terraform policy allowlists and deny-by-omission contract; and the operator performs a
 canonical deployed-policy readback plus an IAM simulator matrix before the live probe. The audit
-in `_docs/audits/2026-08-07-oidc-denial-sentinels.md` is normative for those dispositions.
+recorded with the OIDC denial-sentinel work is normative for those dispositions.
 
 For each exact role name `website-sandbox-github-publisher` and
 `website-sandbox-github-deployer`, capture sorted output from `list-role-policies`,
@@ -721,7 +721,7 @@ duplicate-delete batch; dry-run CreateGrant on the existing KMS key; and request
 proven-absent all-zero digest from the exact existing ECR repository. Foreign ECR reads and
 mutation-shaped IAM, CloudFront, ELB, RDS, Secrets Manager, and ECS sentinels are removed and
 replaced by exact Terraform/IAM policy contracts plus the simulator matrix above. The full review
-and dispositions are recorded in `_docs/audits/2026-08-07-oidc-denial-sentinels.md`.
+and dispositions were recorded with the OIDC denial-sentinel work.
 Route 53 is the single narrow real-zone exception: the probe passes the
 exact non-secret `Z05963572WVWFHDQZH5NE` ID without listing or selecting zones, then submits one
 transactional request with exactly two byte-for-byte identical `DELETE` changes for the synthetic

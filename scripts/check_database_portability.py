@@ -33,7 +33,10 @@ AUTHORITATIVE_SPECIFICATIONS = (
     "10-verification-strategy.md",
     "open-decisions.md",
 )
-COMPATIBILITY_SPECIFICATIONS = (FORMER_AWS_SPEC_NAME,)
+# The former AWS sandbox specification was deleted with its stack.  Nothing is
+# expected to exist for it any more; only the stale-link check below still
+# names it, so a surviving link to the deleted page is still reported.
+COMPATIBILITY_SPECIFICATIONS: tuple[str, ...] = ()
 EXPECTED_SPECIFICATIONS = AUTHORITATIVE_SPECIFICATIONS + COMPATIBILITY_SPECIFICATIONS
 ORDINARY_JOBS = ("quality", "django", "playwright", "container")
 FULL_DJANGO_COMMANDS = ("make test", "make test-django-full")

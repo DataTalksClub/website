@@ -209,7 +209,7 @@ condition:
 | `_docs/specs/08-aws-development-terraform.md` | Development stack, cache/WAF/invalidation design, production promotion (line 279), redirect-Lambda stack (293–305) | Mostly sound; three defects noted in 1.2 |
 | `_docs/migration-checklist.md` | Data migration per source (CMP DB, editorial, accounts, events, email) | Sound, current (Luma/Eventbrite evidence updated 2026-08-31). Data only — no hosting/DNS |
 | `_docs/compatibility/README.md` | Pinned sources, 2,937-row baseline, crawler/compare harness, `/slack.html` exception | Sound and precise; the harness is reused by this runbook (section 15) |
-| `_docs/audits/2026-08-14-github-editorial-source-projection-inventory.md` + `scripts/validate_github_editorial_source_projection_inventory.py` | Editorial source/projection evidence | **Historical snapshot only** — see 1.2 item 1 |
+| The editorial source/projection inventory (since deleted) | Editorial source/projection evidence | **Historical snapshot only** — see 1.2 item 1 |
 | `aws-infra/docs/inventory.md` | Account/root inventory | Dated 2026-06-24 (line 3); predates `sandbox/website`, `main/dtc-website`, `main/maintenance-page`; one DNS claim is imprecise (1.2 item 4) |
 | `aws-infra/docs/state-boundaries.md` | State-root layout rules | Sound; used for the zone-placement decision D6 |
 | `aws-infra/main/common/MIGRATION.md` | Completed 2026-06-24 shared-network adoption | Done; historical record |
@@ -220,13 +220,11 @@ this runbook is the missing piece and defers to spec 02/09 wherever they already
 
 ### 1.2 Soundness findings (verify-don't-trust results)
 
-1. **Stale audit evidence, frozen deliberately but easy to misread.**
-   `scripts/validate_github_editorial_source_projection_inventory.py:84-107` pins
-   `media.json = 6b6670d0…` and `podcasts: 205`; the live projection manifest has
-   `media.json = 199c7860…` and `podcasts: 203` (`content/public_projection/manifest.json`,
-   `artifacts`/`counts`). This is *intentional* — the validator checks the audit document against
-   frozen snapshot `539bd8c6…` (script line 26) — but anyone treating the 2026-08-14 audit as a
-   current inventory will act on wrong counts. Treat that audit as historical only.
+1. **Stale audit evidence, since deleted.** The 2026-08-14 editorial source/projection
+   inventory and its validator pinned `media.json = 6b6670d0…` and `podcasts: 205` against a
+   frozen snapshot, while the live projection manifest carries different values
+   (`content/public_projection/manifest.json`, `artifacts`/`counts`). Both the audit and its
+   validator have been removed; read counts from the live manifest.
 2. **Sibling-repo doc contradicts its own Terraform.** AISL's
    `~/git/ai-shipping-labs/_docs/integrations/s3_content.md` describes the content bucket as
    "public-read by design"; the actual Terraform blocks all public access and uses OAC
@@ -387,7 +385,7 @@ State-root ownership when the dust settles:
   `/courses/<family>/<year>/modules/…` row at all. Migration mechanics, the nine `homework.md`
   collisions, and the 103 `](../)` back-links that change meaning with depth are specified in
   `unit-content-pipeline.md` §5.
-  **⚠️ This reverses an earlier recommendation.** `_docs/runbooks/session-handoff-20260902.md:53-55`
+  **⚠️ This reverses an earlier recommendation.** The 2026-09-02 session handoff (since deleted)
   advises reverting `llm-zoomcamp@c04db93` because it contradicts
   `llm-zoomcamp/cohorts/README.md`. Under D18 `c04db93` is **correct**; the README is what is
   wrong and must be rewritten. That handoff line is superseded by this entry. Verified 2026-09-02:
@@ -2004,7 +2002,7 @@ DNS/apex rollback windows expired.
 | `DataTalksClub/faq` | `c8da1dee…` (README:38) | `/faq` (152 files, 1,401 anchors) | small | Checked FAQ projection; adapter = #293 |
 | `DataTalksClub/podwiki` | `988b79d0…` (README:39) | `/wiki` family (282 wiki records, graph/search projections) | 310 files | Projection; typed normalization = #294 |
 | `DataTalksClub/course-management-platform` | code adopted at `98a23528…` (open-decisions §2); course specs same revision (`manifest.json` `sources.courses`) | 12-course public catalog projection + the live service | live DB | **Service migration, not content sync — 13.6** |
-| Course repositories (e.g. `llm-zoomcamp`) | per-repo branch config | Course/Cohort curriculum | per course | Already webhook-shaped: `content_sync/course_repository_webhook.py` + sync (#218, `_docs/planning/2026-08-20-course-repository-curriculum-sync.md`) |
+| Course repositories (e.g. `llm-zoomcamp`) | per-repo branch config | Course/Cohort curriculum | per course | Already webhook-shaped: `content_sync/course_repository_webhook.py` + sync (#218, the 2026-08-20 curriculum-sync note (since deleted)) |
 | Datamailer | inventory pin = #290 (P0, groomed) | read-only email history/reconciliation input, never a sender (spec role reaffirmed by D13's Relay resolution) | TBD by #290 | send-disabled import only (spec 09:141-143); live sending is Relay's (Phase E) |
 | Luma / Eventbrite exports | protected local snapshots, checksummed (`migration-checklist.md:62-124`; contract `_docs/migration-data/event-registration-sources.json`) | new-website events + registration aggregates — **see §13.8**, incl. the mandatory pre-cutover freshness gate | Luma 166 events / 51,873 accepted rows; Eventbrite 209 / 24,001 | operator-gated aggregate import; exporter re-run for fresh events (§13.8) |
 | `DataTalksClub/zoomcamp-scoring`, Mailchimp, CMP SQLite snapshot | per `migration-checklist.md:14, :135-140` and spec 09:300-315 | historical course/email data | TBD | one-time gated imports |
