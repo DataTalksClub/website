@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import wraps
 from typing import Any
 
+from allauth.account.adapter import DefaultAccountAdapter
 from allauth.account.models import EmailAddress
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
@@ -304,6 +305,24 @@ def _provider_uid_conflicts(sociallogin: object, user: Any) -> bool:
         user_id=user.pk,
     ).exclude(uid=uid)
     return different_uid_for_provider.exists()
+
+
+class ClosedAccountAdapter(DefaultAccountAdapter):
+    """Fail-closed plain email/password signup, matching the social adapter.
+
+    ``ConsolidatingSocialAccountAdapter`` below closes OAuth-based signup by
+    always answering ``is_open_for_signup`` with ``False``.  allauth's
+    ``DefaultAccountAdapter`` — used for the plain ``/accounts/signup/``
+    email/password path unless a site registers ``ACCOUNT_ADAPTER`` — does not
+    override that method, so it defaults to ``True`` and lets anyone create an
+    account through that route.  This adapter closes the same door for the
+    same reason: every account on this site is either imported from the CMP
+    export or provisioned by an operator, never self-registered.
+    """
+
+    def is_open_for_signup(self, request):
+        del request
+        return False
 
 
 class ConsolidatingSocialAccountAdapter(DefaultSocialAccountAdapter):

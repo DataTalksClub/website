@@ -191,7 +191,10 @@ ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USER_MODEL_EMAIL_FIELD = "email"
-ACCOUNT_ALLOW_REGISTRATION = False
+# `ACCOUNT_ALLOW_REGISTRATION` is not a real allauth setting name — allauth
+# gates signup entirely through the adapter's `is_open_for_signup()`. The
+# actual gate for the plain email/password path is `ACCOUNT_ADAPTER` below;
+# see `ClosedAccountAdapter` in `accounts/auth.py`.
 
 # Course registration is account-owned (`_docs/specs/open-decisions.md` §6,
 # `_docs/specs/04-courses-and-cohorts.md`), and the signed-in-home spec §8.3
@@ -200,6 +203,7 @@ ACCOUNT_ALLOW_REGISTRATION = False
 # owner can turn it off on evidence rather than on argument, without a code
 # change.  Default on.
 REGISTRATION_REQUIRES_ACCOUNT = env_flag("REGISTRATION_REQUIRES_ACCOUNT", default=True)
+ACCOUNT_ADAPTER = "accounts.auth.ClosedAccountAdapter"
 SOCIALACCOUNT_ADAPTER = "accounts.auth.ConsolidatingSocialAccountAdapter"
 SOCIALACCOUNT_LOGIN_ON_GET = True
 # `user:email` is what makes GitHub return the address list with its own

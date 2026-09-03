@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from allauth.account.adapter import get_adapter as get_account_adapter
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -218,7 +219,11 @@ def account_inventory() -> dict[str, Any]:
         "user_table": User._meta.db_table,
         "authentication_backends": list(settings.AUTHENTICATION_BACKENDS),
         "account_login_methods": sorted(settings.ACCOUNT_LOGIN_METHODS),
-        "account_registration_enabled": settings.ACCOUNT_ALLOW_REGISTRATION,
+        # Read the adapter's actual gate rather than a setting nobody
+        # enforces, so this report cannot drift from what `/accounts/signup/`
+        # really does.  No request is in play here; `ClosedAccountAdapter`
+        # (and allauth's own `DefaultAccountAdapter`) ignore it.
+        "account_registration_enabled": get_account_adapter().is_open_for_signup(None),
         "account_fields": fields,
         "dependent_relations": relations,
         "many_to_many_relations": list(ACCOUNT_MANY_TO_MANY_RELATIONS),
