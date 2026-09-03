@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -30,9 +31,11 @@ from deploy.legacy_development_compatibility import (
     validate_environment,
     validate_release_record,
 )
-from scripts.check_development_terminology import FORMER_NAME, check
+from scripts.check_development_terminology import FORMER_NAME, FORMER_NAME_RE, check
 
 ROOT = Path(__file__).resolve().parents[2]
+RUNBOOK_PATH = Path("_docs/runbooks/production-hosting-and-dns-migration.md")
+RUNBOOK_SHA256 = "3cbcd1b2836c13e14740cb4bc1d88ae3ea59c5fc58162504cc1ca6a09413790a"
 
 
 class DevelopmentCompatibilityBoundaryTests(SimpleTestCase):
@@ -112,6 +115,88 @@ class DevelopmentTerminologyInventoryTests(SimpleTestCase):
                 Path("_docs/compatibility/development-terminology-allowlist.json"),
             ),
             [],
+        )
+
+    def test_production_runbook_rules_are_digest_bound_and_exactly_once(self) -> None:
+        policy = json.loads(
+            (ROOT / "_docs/compatibility/development-terminology-allowlist.json").read_text()
+        )
+        ledger = policy["runbook_ledger"]
+        self.assertEqual(ledger["path"], RUNBOOK_PATH.as_posix())
+        self.assertEqual(ledger["sha256"], RUNBOOK_SHA256)
+        self.assertRegex(ledger["occurrence_ledger_sha256"], r"^[0-9a-f]{64}$")
+
+        runbook = ROOT / RUNBOOK_PATH
+        text = runbook.read_text()
+        self.assertEqual(hashlib.sha256(runbook.read_bytes()).hexdigest(), RUNBOOK_SHA256)
+        occurrences = tuple(FORMER_NAME_RE.finditer(text))
+        self.assertEqual(len(occurrences), ledger["expected_count"])
+
+        rules = tuple(rule for rule in policy["rules"] if rule["path"] == RUNBOOK_PATH.as_posix())
+        self.assertEqual(len(rules), ledger["expected_rule_count"])
+        self.assertTrue(all(rule["expected_count"] > 0 for rule in rules))
+        self.assertTrue(all(rule["path"] == RUNBOOK_PATH.as_posix() for rule in rules))
+        self.assertNotIn(
+            RUNBOOK_PATH.as_posix(),
+            {entry["path"] for entry in policy["whole_files"]},
+        )
+
+        coverage = [0] * len(occurrences)
+        assignments: list[tuple[str, str] | None] = [None] * len(occurrences)
+        probe_values = (
+            FORMER_NAME,
+            f"{FORMER_NAME} Relay",
+            f"{FORMER_NAME} Datamailer",
+            f"{FORMER_NAME}/website",
+            f"prefix {FORMER_NAME} suffix",
+        )
+        kind_totals: dict[str, int] = {}
+        for rule in rules:
+            self.assertIn(rule["kind"], {"physical", "contextual"})
+            self.assertEqual(rule["follow_up"], "#94")
+            expression = re.compile(rule["pattern"], re.IGNORECASE)
+            self.assertFalse(
+                all(expression.search(value) is not None for value in probe_values),
+                msg=f"rule is a whole-term catch-all: {rule['pattern']!r}",
+            )
+            matches = tuple(expression.finditer(text))
+            self.assertEqual(len(matches), rule["expected_count"], rule["pattern"])
+            kind_totals[rule["kind"]] = kind_totals.get(rule["kind"], 0) + len(matches)
+            for match in matches:
+                covered = [
+                    index
+                    for index, occurrence in enumerate(occurrences)
+                    if match.start() <= occurrence.start() and occurrence.end() <= match.end()
+                ]
+                self.assertEqual(
+                    len(covered),
+                    1,
+                    msg=f"rule coverage is ambiguous: {rule['pattern']!r}",
+                )
+                occurrence_index = covered[0]
+                coverage[occurrence_index] += 1
+                assignments[occurrence_index] = (rule["kind"], rule["pattern"])
+
+        self.assertEqual(kind_totals["physical"], ledger["expected_physical_count"])
+        self.assertEqual(kind_totals["contextual"], ledger["expected_contextual_count"])
+        self.assertEqual(coverage, [1] * len(occurrences))
+        occurrence_ledger = []
+        for ordinal, assignment in enumerate(assignments, start=1):
+            self.assertIsNotNone(assignment)
+            if assignment is None:
+                continue
+            kind, pattern = assignment
+            occurrence_ledger.append({"ordinal": ordinal, "kind": kind, "pattern": pattern})
+        ledger_material = {
+            "path": ledger["path"],
+            "sha256": ledger["sha256"],
+            "occurrences": occurrence_ledger,
+        }
+        self.assertEqual(
+            hashlib.sha256(
+                json.dumps(ledger_material, sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest(),
+            ledger["occurrence_ledger_sha256"],
         )
 
     def test_unclassified_mixed_case_source_fails(self) -> None:
