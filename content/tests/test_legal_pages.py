@@ -85,7 +85,7 @@ class LegalRouteTests(TestCase):
                     1,
                 )
                 self.assertEqual(response.headers["X-Robots-Tag"], "noindex, nofollow")
-                self.assertContains(response, "Last updated: 11 August 2026")
+                self.assertContains(response, "Last updated: 3 September 2026")
                 self.assertEqual(self.client.head(path).status_code, 200)
                 self.assertEqual(self.client.post(path).status_code, 405)
 
