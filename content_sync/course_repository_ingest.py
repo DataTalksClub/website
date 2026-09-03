@@ -36,19 +36,16 @@ one set of numbers rather than two.
 
 from __future__ import annotations
 
-import io
-import os
 import re
-import subprocess
-import tarfile
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from types import MappingProxyType
 
 import requests
 
 from content.models import ContentSource
+from content_sync import snapshot
 from content_sync.course_repository import (
     DEFAULT_LIMITS,
     CourseRepositoryLimits,
@@ -135,37 +132,17 @@ def course_repository_limits(source: ContentSource) -> CourseRepositoryLimits:
 
 
 def validate_commit_sha(commit_sha: object) -> str:
-    if not isinstance(commit_sha, str) or COMMIT_PATTERN.fullmatch(commit_sha) is None:
-        raise CourseRepositoryIngestError("course_repository_commit_invalid")
-    return commit_sha
+    """Validate a full, lower-case 40-character commit SHA.
 
-
-def _snapshot_relative_path(name: object, *, strip_root: bool) -> str | None:
-    """Normalise one transport entry name to a repository-relative POSIX path.
-
-    ``strip_root`` drops the single wrapper directory GitHub's archive adds.
-    ``None`` means "not a file of this repository" -- the archive root itself,
-    or a directory entry.
+    Delegates the pattern check to :mod:`content_sync.snapshot`, the generic
+    snapshot-transport module, and re-raises with this module's own
+    ``course_repository_`` code so behaviour is unchanged for every caller.
     """
 
-    if not isinstance(name, str) or not name or "\\" in name or "\x00" in name:
-        raise CourseRepositoryFetchError(
-            "course_repository_archive_path_invalid", detail=repr(name)
-        )
-    pure = PurePosixPath(name)
-    if pure.is_absolute() or any(part in {"", ".", ".."} for part in pure.parts):
-        raise CourseRepositoryFetchError("course_repository_archive_path_invalid", detail=name)
-    parts = pure.parts
-    if strip_root:
-        if len(parts) < 2:
-            return None
-        parts = parts[1:]
-    if not parts:
-        return None
-    relative = PurePosixPath(*parts).as_posix()
-    if relative == ".":
-        return None
-    return relative
+    try:
+        return snapshot.validate_commit_sha(commit_sha)
+    except snapshot.SnapshotError as error:
+        raise CourseRepositoryIngestError(f"course_repository_{error.code}") from error
 
 
 def _admit_file(
@@ -263,50 +240,34 @@ def read_course_repository_archive(
     A locally produced ``git archive`` has no prefix, so the pull passes
     ``False``; that is the only knob, and it concerns the tar's shape rather
     than what may be in it.
+
+    The tar-walking, path-safety and admission mechanics are
+    :mod:`content_sync.snapshot`'s ``read_snapshot_archive``; this wrapper
+    supplies the course-repository admission refusal (``_admit_file``, with
+    its exact existing messages) through the ``admit`` callback and translates
+    every other refusal to this module's own exception type and codes, so
+    behaviour is unchanged for every existing caller.
     """
 
-    snapshot: dict[str, bytes] = {}
-    total_bytes = 0
+    def admit(path: str, size: int, admitted_files: int, admitted_bytes: int) -> None:
+        _admit_file(
+            path=path,
+            size=size,
+            admitted_files=admitted_files,
+            admitted_bytes=admitted_bytes,
+            limits=limits,
+        )
+
     try:
-        # ``r:*`` accepts codeload's gzip and a local uncompressed tar alike, so
-        # the compression the transport happened to use is not a second rule.
-        archive = tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:*")
-    except (tarfile.TarError, OSError) as error:
-        raise CourseRepositoryFetchError("course_repository_archive_invalid") from error
-    with archive:
-        for member in archive:
-            path = _snapshot_relative_path(member.name, strip_root=strip_root)
-            if path is None or member.isdir():
-                continue
-            if not member.isreg() or member.issym() or member.islnk():
-                raise CourseRepositoryFetchError(
-                    "course_repository_archive_entry_invalid",
-                    detail=f"{path} is not a regular file",
-                )
-            _admit_file(
-                path=path,
-                size=member.size,
-                admitted_files=len(snapshot),
-                admitted_bytes=total_bytes,
-                limits=limits,
-            )
-            if path in snapshot:
-                raise CourseRepositoryFetchError("course_repository_duplicate_path", detail=path)
-            extracted = archive.extractfile(member)
-            if extracted is None:
-                raise CourseRepositoryFetchError(
-                    "course_repository_archive_entry_invalid",
-                    detail=f"{path} has no readable content",
-                )
-            content = extracted.read(member.size + 1)
-            if len(content) != member.size:
-                raise CourseRepositoryFetchError(
-                    "course_repository_archive_entry_invalid",
-                    detail=f"{path} is {len(content)} bytes but declares {member.size}",
-                )
-            snapshot[path] = content
-            total_bytes += len(content)
-    return snapshot
+        return snapshot.read_snapshot_archive(
+            archive_bytes, limits=limits, strip_root=strip_root, admit=admit
+        )
+    except CourseRepositoryFetchError:
+        raise
+    except snapshot.SnapshotError as error:
+        raise CourseRepositoryFetchError(
+            f"course_repository_{error.code}", retryable=error.retryable, detail=error.detail
+        ) from error
 
 
 def fetch_course_repository_snapshot(
@@ -348,64 +309,6 @@ def fetch_course_repository_snapshot(
     return read_course_repository_archive(archive_bytes, limits=limits, strip_root=True)
 
 
-def _git_archive_bytes(root: Path, commit_sha: str) -> bytes:
-    """Return ``git archive <commit>`` for a checkout, without touching a remote.
-
-    ``git archive`` on a local tree-ish is an offline operation: no remote is
-    named, and the environment below disables the operator's global and system
-    git configuration and any terminal prompt so the tar depends on the
-    repository and the commit rather than on the machine.
-    """
-
-    try:
-        completed = subprocess.run(
-            [
-                "git",
-                "-C",
-                str(root),
-                "archive",
-                "--format=tar",
-                commit_sha,
-            ],
-            check=False,
-            capture_output=True,
-            timeout=GIT_ARCHIVE_TIMEOUT_SECONDS,
-            env={
-                "PATH": os.environ.get("PATH", ""),
-                "HOME": os.environ.get("HOME", ""),
-                "GIT_CONFIG_GLOBAL": os.devnull,
-                "GIT_CONFIG_SYSTEM": os.devnull,
-                "GIT_TERMINAL_PROMPT": "0",
-                "GIT_ASKPASS": "",
-            },
-        )
-    except subprocess.TimeoutExpired as error:
-        raise CourseRepositoryFetchError(
-            "course_repository_checkout_archive_failed",
-            detail=f"git archive timed out after {GIT_ARCHIVE_TIMEOUT_SECONDS}s in {root}",
-        ) from error
-    except (OSError, subprocess.SubprocessError) as error:
-        raise CourseRepositoryFetchError(
-            "course_repository_checkout_archive_failed",
-            detail=f"git is unavailable for {root}",
-        ) from error
-    if completed.returncode != 0:
-        reason = completed.stderr.decode("utf-8", "replace").strip().splitlines()
-        raise CourseRepositoryFetchError(
-            "course_repository_checkout_archive_failed",
-            detail=(
-                f"git archive {commit_sha} failed in {root}: "
-                f"{reason[0][:200] if reason else completed.returncode}"
-            ),
-        )
-    if len(completed.stdout) > MAX_ARCHIVE_BYTES:
-        raise CourseRepositoryFetchError(
-            "course_repository_archive_too_large",
-            detail=f"the archive exceeds {MAX_ARCHIVE_BYTES} bytes",
-        )
-    return completed.stdout
-
-
 def read_course_repository_checkout(
     root: Path,
     *,
@@ -420,13 +323,28 @@ def read_course_repository_checkout(
     That is what makes the two transports agree by construction: uncommitted
     edits, untracked files and ``export-ignore``d paths cannot enter here
     because they cannot enter there.
+
+    The subprocess invocation is :mod:`content_sync.snapshot`'s
+    ``run_git_archive``; the checkout-existence check stays here, ahead of
+    commit-sha validation, to keep the original refusal order when both are
+    invalid at once.
     """
 
     root = Path(root)
     if not root.is_dir() or root.is_symlink():
         raise CourseRepositoryFetchError("course_repository_checkout_unavailable", detail=str(root))
     commit_sha = validate_commit_sha(commit_sha)
-    archive_bytes = _git_archive_bytes(root, commit_sha)
+    try:
+        archive_bytes = snapshot.run_git_archive(
+            root,
+            commit_sha,
+            timeout_seconds=GIT_ARCHIVE_TIMEOUT_SECONDS,
+            max_bytes=MAX_ARCHIVE_BYTES,
+        )
+    except snapshot.SnapshotError as error:
+        raise CourseRepositoryFetchError(
+            f"course_repository_{error.code}", retryable=error.retryable, detail=error.detail
+        ) from error
     return read_course_repository_archive(archive_bytes, limits=limits, strip_root=False)
 
 
