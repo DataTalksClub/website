@@ -300,6 +300,23 @@ class CmpLearnerImportProgress(models.Model):
     no table of its own (``account_emailaddress_synthesized``, for the
     verified address synthesised onto an account the export carried no email
     row for). Either way it is one countable, resumable unit of this import.
+
+    Import-provenance state that once lived on a *live* model
+    (``CustomUser.cmp_source_user_id``, a column every future query against
+    the permanent account table would have carried) moved to this importer's
+    own script-owned claims file
+    (``accounts.services.cmp_learner_import.CmpClaimsStore``) rather than a
+    database table -- see that module's docstring. This table stays a
+    database row instead, deliberately: its whole value is that
+    ``last_source_id`` advances *inside the same database transaction* as
+    the batch of rows it counts, so a killed process leaves nothing for the
+    watermark and the data to disagree about. A JSON file cannot join that
+    transaction -- moving this table to one would trade a property no file
+    can replicate (perfect crash-atomicity with the writes it tracks) for
+    consistency with a design that does not need it. It is not a field on
+    ``CustomUser`` or any other live domain model, so the principle that
+    moved the source id off ``CustomUser`` does not ask this table to move
+    either.
     """
 
     table = models.CharField(max_length=64, unique=True)
