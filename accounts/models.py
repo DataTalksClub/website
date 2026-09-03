@@ -107,6 +107,20 @@ class CustomUser(AbstractUser):
         db_index=True,
     )
 
+    # Set only by ``scripts/prod/import_cmp_learners.py``, from the CMP export's
+    # ``accounts_customuser.id``. It is not an identity key -- nothing outside that
+    # importer resolves an account by it -- it exists so the import can tell, on
+    # resume, which source rows already landed (instead of re-scanning 20,009
+    # accounts), and so the export's ``account_emailaddress.user_id`` can be
+    # resolved to the account it belongs to.
+    cmp_source_user_id = models.BigIntegerField(
+        verbose_name="CMP source user ID",
+        null=True,
+        blank=True,
+        editable=False,
+        db_index=True,
+    )
+
     class Meta(AbstractUser.Meta):
         constraints = [
             models.UniqueConstraint(
@@ -116,7 +130,12 @@ class CustomUser(AbstractUser):
                     & Q(normalized_email__isnull=False)
                 ),
                 name="accounts_active_normalized_email_unique",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=("cmp_source_user_id",),
+                condition=Q(cmp_source_user_id__isnull=False),
+                name="accounts_cmp_source_user_id_unique",
+            ),
         ]
 
     def save(self, *args, **kwargs):
@@ -251,3 +270,37 @@ class AccountReconciliationRun(models.Model):
 
     def __str__(self):
         return f"account-reconciliation:{self.id}"
+
+
+class CmpLearnerImportProgress(models.Model):
+    """Per-table high-water mark for the resumable CMP learner-account import.
+
+    ``scripts/prod/import_cmp_learners.py`` walks a source table in ascending
+    source-id order, in fixed-size batches. Each batch's writes and the advance
+    of ``last_source_id`` happen inside one database transaction, so a process
+    killed mid-batch leaves that batch fully rolled back rather than partially
+    written -- there is nothing for the stored watermark to disagree with. A
+    re-run resumes with ``select id > last_source_id order by id``, so it never
+    re-scans rows it already committed, and ``rows_written`` /
+    ``last_source_id`` are enough to report "imported N of 20,009, last
+    committed batch was X" without touching the source export again.
+
+    ``table`` names either a literal source table (``accounts_customuser``,
+    ``account_emailaddress``) or a derived phase of the same import that has
+    no table of its own (``account_emailaddress_synthesized``, for the
+    verified address synthesised onto an account the export carried no email
+    row for). Either way it is one countable, resumable unit of this import.
+    """
+
+    table = models.CharField(max_length=64, unique=True)
+    last_source_id = models.BigIntegerField(default=0)
+    rows_written = models.PositiveBigIntegerField(default=0)
+    rows_skipped = models.PositiveBigIntegerField(default=0)
+    completed = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("table",)
+
+    def __str__(self):
+        return f"cmp-learner-import-progress:{self.table}"
