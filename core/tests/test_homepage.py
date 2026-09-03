@@ -6,8 +6,10 @@ from pathlib import Path
 from unittest import mock
 
 from django.contrib.auth import get_user_model
-from django.db import OperationalError
+from django.contrib.staticfiles.storage import staticfiles_storage
+from django.db import OperationalError, connection
 from django.test import Client, TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import resolve, reverse
 from django.utils import timezone
 from django.utils.html import escape
@@ -19,10 +21,11 @@ from core.home_content import (
     FEATURED_BUILD_ITEMS,
     FEATURED_COHORT_SUMMARY,
     FEATURED_FAMILY,
-    MEMBER_STORIES,
     course_catalog,
 )
-from courses.models.cohort import Cohort
+from courses.models.cohort import Cohort, Course
+from courses.models.testimonial import Testimonial, TestimonialPlacement
+from courses.services.testimonials import homepage_testimonials
 from courses.views.course import course_view
 from courses.views.course_aliases import legacy_course_redirect
 from courses.views.course_list import course_list
@@ -262,8 +265,11 @@ class CatalogCardTests(TestCase):
 
 class MainHomepageRoutingTests(TestCase):
     def test_member_stories_keep_titles_country_only_and_requested_order(self) -> None:
+        """The six seeded rows still read exactly as the retired Python tuple did."""
+
+        stories = homepage_testimonials()
         self.assertEqual(
-            [(story.name, story.context) for story in MEMBER_STORIES],
+            [(story.name, story.attribution) for story in stories],
             [
                 ("Nevenka Lukic", "Data Engineer · Spain"),
                 ("Alexander Daniel Rios", "DS & ML Engineer · Argentina"),
@@ -275,10 +281,10 @@ class MainHomepageRoutingTests(TestCase):
         )
 
         response = self.client.get(reverse("home"))
-        for name, context in [(story.name, story.context) for story in MEMBER_STORIES]:
+        for name, attribution in [(story.name, story.attribution) for story in stories]:
             with self.subTest(name=name):
                 self.assertContains(response, name)
-                self.assertContains(response, escape(context))
+                self.assertContains(response, escape(attribution))
 
     def test_root_uses_the_shared_course_platform_shell(self) -> None:
         # The catalogue and featured panel read ``courses.Course`` / ``courses.Cohort``,
@@ -287,6 +293,10 @@ class MainHomepageRoutingTests(TestCase):
         build_reviewed_catalog()
         self.assertEqual(reverse("home"), "/")
         self.assertIs(resolve("/").func, core_views.home)
+        # /unified/ is the deployment's rendered-page probe and serves the same
+        # view, so production robots keeps it out of the index (core.views).
+        self.assertIs(resolve("/unified/").func, core_views.home)
+        self.assertIn("Disallow: /unified/\n", core_views.PRODUCTION_ROBOTS_BODY)
 
         response = self.client.get(reverse("home"))
 
@@ -327,7 +337,7 @@ class MainHomepageRoutingTests(TestCase):
         self.assertNotContains(response, "/static/core/site.css")
 
     def test_homepage_carries_its_own_stylesheet_and_loads_no_legacy_css(self) -> None:
-        """Design 5a (issue #179) replaced the adopted shell with one inline stylesheet."""
+        """Design system (issue #179) replaced the adopted shell with one inline stylesheet."""
 
         body = self.client.get(reverse("home")).content.decode()
 
@@ -396,12 +406,20 @@ class MainHomepageRoutingTests(TestCase):
                 "courses.services.public_course_catalog.visible_course_list_queryset",
                 side_effect=OperationalError("unable to open database file"),
             ),
+            mock.patch.object(
+                Testimonial.objects,
+                "filter",
+                side_effect=OperationalError("unable to open database file"),
+            ),
         ):
             response = self.client.get(reverse("home"))
             unified = self.client.get("/unified/")
 
         for rendered in (response, unified):
             self.assertEqual(rendered.status_code, 200)
+            # The testimonial band is a database read too, so it drops out whole
+            # rather than leaving an empty band behind.
+            self.assertNotContains(rendered, 'id="stories-heading"')
             self.assertContains(
                 rendered,
                 "Learn the fundamentals. Build real projects. Share your work.",
@@ -522,7 +540,7 @@ class MainHomepageRoutingTests(TestCase):
         )
 
     def test_course_index_carries_its_own_stylesheet_and_loads_no_legacy_css(self) -> None:
-        """Design 5a (issue #179) rebuilt /courses onto one inline stylesheet."""
+        """Design system (issue #179) rebuilt /courses onto one inline stylesheet."""
 
         body = self.client.get(reverse("course_list")).content.decode()
 
@@ -730,12 +748,11 @@ class MemberStoriesCarouselTests(TestCase):
     """
 
     def test_all_six_stories_render_in_the_alternating_order(self) -> None:
-        from core.home_content import MEMBER_STORIES
-
         response = self.client.get(reverse("home"))
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
-        expected_order = tuple(story.name for story in MEMBER_STORIES)
+        expected_order = tuple(story.name for story in homepage_testimonials())
+        self.assertEqual(len(expected_order), 6)
         positions = [body.index(name) for name in expected_order]
         self.assertEqual(positions, sorted(positions))
 
@@ -782,24 +799,26 @@ class MemberStoriesCarouselTests(TestCase):
         self.assertIn('data-scroll-target="catalog-scroller"', body)
 
     def test_a_story_without_a_photo_falls_back_to_the_decorative_avatar(self) -> None:
-        from core.home_content import MemberStory
-
-        synthetic_stories = (
-            MemberStory(
-                quote="Real quote from a member with a photo.",
-                name="Has Photo",
-                context="Role · City",
-                photo_static_path="core/testimonials/tim-claytor.jpg",
-            ),
-            MemberStory(
-                quote="Real quote from a member without a photo yet.",
-                name="No Photo Yet",
-                context="Role · City",
-            ),
+        Testimonial.objects.filter(placement=TestimonialPlacement.HOMEPAGE).delete()
+        Testimonial.objects.create(
+            placement=TestimonialPlacement.HOMEPAGE,
+            quote="Real quote from a member with a photo.",
+            name="Has Photo",
+            attribution="Role · City",
+            portrait_asset_key="testimonials/tim-claytor.jpg",
+            position=0,
+            published=True,
+        )
+        Testimonial.objects.create(
+            placement=TestimonialPlacement.HOMEPAGE,
+            quote="Real quote from a member without a photo yet.",
+            name="No Photo Yet",
+            attribution="Role · City",
+            position=1,
+            published=True,
         )
 
-        with mock.patch("core.views.MEMBER_STORIES", synthetic_stories):
-            response = self.client.get(reverse("home"))
+        response = self.client.get(reverse("home"))
 
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
@@ -813,6 +832,115 @@ class MemberStoriesCarouselTests(TestCase):
         )
         self.assertNotIn('<img class="avatar"', without_photo)
         self.assertIn('<span class="avatar" aria-hidden="true"></span>', without_photo)
+
+    def test_one_unresolvable_portrait_costs_one_photo_not_the_whole_page(self) -> None:
+        """A row must never be able to 500 the homepage.
+
+        Manifest static storage raises on an unknown reference instead of
+        serving a 404, and the portrait is read inside the story loop, so an
+        unguarded lookup would abandon the render for every reader.  The bad row
+        keeps its card and falls back to the avatar mark; the good row is
+        untouched.
+        """
+
+        Testimonial.objects.filter(placement=TestimonialPlacement.HOMEPAGE).delete()
+        Testimonial.objects.create(
+            placement=TestimonialPlacement.HOMEPAGE,
+            quote="A quote from the member whose portrait resolves.",
+            name="Good Portrait",
+            attribution="Role · City",
+            portrait_asset_key="testimonials/tim-claytor.jpg",
+            position=0,
+            published=True,
+        )
+        stale = Testimonial(
+            placement=TestimonialPlacement.HOMEPAGE,
+            quote="A quote from the member whose portrait went missing.",
+            name="Stale Portrait",
+            attribution="Role · City",
+            portrait_asset_key="testimonials/removed-after-the-manifest-was-built.jpg",
+            position=1,
+            published=True,
+        )
+        # The key was valid when it was stored; the asset is what went away, so
+        # this bypasses validation the way a real stale row reaches production.
+        stale.save()
+
+        real_url = staticfiles_storage.url
+
+        def manifest_url(name: str) -> str:
+            if "removed-after-the-manifest-was-built" in name:
+                raise ValueError(f"Missing staticfiles manifest entry for '{name}'")
+            return real_url(name)
+
+        with mock.patch.object(staticfiles_storage, "url", side_effect=manifest_url):
+            response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+
+        self.assertIn("Good Portrait", body)
+        self.assertIn("Stale Portrait", body)
+        self.assertIn('<img class="avatar" src="/static/core/testimonials/tim-claytor.jpg"', body)
+        self.assertNotIn("removed-after-the-manifest-was-built", body)
+        stale_card = body[body.index("Stale Portrait") - 600 : body.index("Stale Portrait")]
+        self.assertNotIn('<img class="avatar"', stale_card)
+        self.assertIn('<span class="avatar" aria-hidden="true"></span>', stale_card)
+
+    def test_the_band_disappears_whole_when_no_testimonial_is_published(self) -> None:
+        """No empty band, no orphan heading, no dangling scroller."""
+
+        Testimonial.objects.filter(placement=TestimonialPlacement.HOMEPAGE).delete()
+
+        body = self.client.get(reverse("home")).content.decode()
+
+        for absent in (
+            'id="stories-heading"',
+            "What people say",
+            'class="stories-scroller"',
+            'id="stories-scroller"',
+            'aria-label="Member stories"',
+            'aria-labelledby="stories-heading"',
+            'data-scroll-target="stories-scroller"',
+            "/static/core/testimonials/",
+        ):
+            with self.subTest(absent=absent):
+                self.assertNotIn(absent, body)
+
+    def test_unpublished_and_course_scoped_testimonials_stay_off_the_homepage(self) -> None:
+        course = Course.objects.create(slug="unlisted-family", title="Unlisted Family")
+        Testimonial.objects.create(
+            placement=TestimonialPlacement.HOMEPAGE,
+            name="Draft Only Person",
+            attribution="Role · City",
+            quote="A draft quote that is not live yet.",
+            published=False,
+        )
+        Testimonial.objects.create(
+            placement=TestimonialPlacement.COURSE,
+            course=course,
+            name="Course Only Person",
+            attribution="Role · City",
+            quote="A quote that belongs to one course page.",
+            published=True,
+        )
+
+        body = self.client.get(reverse("home")).content.decode()
+
+        self.assertNotIn("Draft Only Person", body)
+        self.assertNotIn("Course Only Person", body)
+        self.assertIn("What people say", body)
+
+    def test_the_band_costs_the_anonymous_homepage_exactly_one_query(self) -> None:
+        with CaptureQueriesContext(connection) as captured:
+            self.client.get(reverse("home"))
+
+        testimonial_queries = [
+            query["sql"]
+            for query in captured.captured_queries
+            if "courses_testimonial" in query["sql"]
+        ]
+        self.assertEqual(len(testimonial_queries), 1)
 
 
 class HomepageWikiGraphTests(TestCase):

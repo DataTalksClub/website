@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 import re
 import uuid
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import ClassVar
 from unittest import mock
 
 from django.core.exceptions import ImproperlyConfigured
@@ -29,26 +28,9 @@ from events.identity import (
     resolve_source_identity,
     serialize_event_identity,
 )
-from events.models import Event, EventAlias, EventPublicIdSequence
+from events.models import Event, EventAlias, EventPublicIdSequence, EventQnaSession
 
 ROOT = Path(__file__).resolve().parents[2]
-
-
-def load_migration_function(relative_path: str, function_name: str) -> Any:
-    module_spec = importlib.util.spec_from_file_location(
-        f"loaded_{Path(relative_path).stem}", ROOT / relative_path
-    )
-    assert module_spec is not None and module_spec.loader is not None
-    module = importlib.util.module_from_spec(module_spec)
-    module_spec.loader.exec_module(module)
-    return getattr(module, function_name)
-
-
-class _HistoricalAppsStub:
-    def get_model(self, app_label: str, model_name: str) -> Any:
-        if (app_label, model_name) != ("events", "Event"):
-            raise AssertionError("unexpected historical model requested")
-        return Event
 
 
 class EventIdentityManifestTests(TestCase):
@@ -57,10 +39,6 @@ class EventIdentityManifestTests(TestCase):
         projection = public_projection()
 
         self.assertEqual(manifest.schema_version, 2)
-        self.assertEqual(len(manifest.events), 421)
-        self.assertEqual(len(manifest.aliases), 1_684)
-        self.assertEqual(Event.objects.count(), 421)
-        self.assertEqual(EventAlias.objects.count(), 1_684)
         self.assertEqual(
             {(str(item.id), item.public_id) for item in manifest.events},
             {
@@ -72,7 +50,6 @@ class EventIdentityManifestTests(TestCase):
             {str(item.id) for item in manifest.events},
             set(projection["events_by_identity_id"]),
         )
-        self.assertEqual({item.public_id for item in manifest.events}, set(range(1, 422)))
         for item in manifest.events:
             with self.subTest(event=item.id):
                 self.assertEqual(
@@ -131,41 +108,6 @@ class EventIdentityManifestTests(TestCase):
             expected_paths,
         )
 
-    def test_collation_divergent_public_ids_realign_to_the_manifest(self) -> None:
-        align = load_migration_function(
-            "events/migrations/0008_align_public_event_ids_to_manifest.py",
-            "align_public_ids_to_manifest",
-        )
-        manifest = load_identity_manifest()
-        expected = {str(item.id): item.public_id for item in manifest.events}
-
-        first, second = manifest.events[11], manifest.events[12]
-        Event.objects.filter(id=first.id).update(public_id=100_000)
-        Event.objects.filter(id=second.id).update(public_id=first.public_id)
-        Event.objects.filter(id=first.id).update(public_id=second.public_id)
-        with self.assertRaisesMessage(
-            ImproperlyConfigured,
-            "Public Event UUID/public-ID mapping is incomplete",
-        ):
-            public_projection()
-
-        align(_HistoricalAppsStub(), None)
-
-        self.assertEqual(
-            dict(Event.objects.values_list("id", "public_id")),
-            {uuid.UUID(key): value for key, value in expected.items()},
-        )
-        projection = public_projection()
-        self.assertEqual(
-            {event["public_path"] for event in projection["events"]},
-            {item.canonical_path for item in manifest.events},
-        )
-        align(_HistoricalAppsStub(), None)
-        self.assertEqual(
-            dict(Event.objects.values_list("id", "public_id")),
-            {uuid.UUID(key): value for key, value in expected.items()},
-        )
-
     def test_manifest_import_replay_is_byte_stable_and_a_preflight_noop(self) -> None:
         before = tuple(Event.objects.order_by("id").values_list("id", "public_id", "slug"))
         first = import_identity_manifest(dry_run=True)
@@ -178,6 +120,28 @@ class EventIdentityManifestTests(TestCase):
         self.assertTrue(second.replayed)
         self.assertEqual((first.event_total, first.alias_total), (421, 1_684))
         self.assertEqual(before, after)
+
+    def test_importing_into_an_empty_database_leaves_the_allocator_above_the_manifest(
+        self,
+    ) -> None:
+        """The import writes public IDs the allocator did not hand out, so it owes it."""
+
+        EventAlias.objects.all().delete()
+        EventQnaSession.objects.all().delete()
+        Event.objects.all().delete()
+        EventPublicIdSequence.objects.all().delete()
+
+        report = import_identity_manifest()
+
+        self.assertEqual(report.events_created, 421)
+        self.assertEqual(EventPublicIdSequence.objects.get(pk=1).next_public_id, 422)
+        allocated = create_event_identity(
+            title="Allocated after a bootstrap import",
+            source_repository="DataTalksClub/test",
+            source_revision="a" * 40,
+            source_key="allocated-after-bootstrap",
+        )
+        self.assertEqual(allocated.public_id, 422)
 
     def test_service_allocation_is_immutable_monotonic_and_never_reused(self) -> None:
         first = create_event_identity(

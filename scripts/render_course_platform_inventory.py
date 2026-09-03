@@ -127,11 +127,6 @@ def command_entries() -> list[CommandEntry]:
     return entries
 
 
-def migration_names(app_label: str) -> list[str]:
-    migration_dir = REPO_ROOT / app_label / "migrations"
-    return sorted(path.stem for path in migration_dir.glob("[0-9]*.py"))
-
-
 def _table_value(value: str) -> str:
     escaped = value.replace("|", "\\|")
     return f"`{escaped}`" if escaped else "—"
@@ -147,11 +142,11 @@ def render_inventory() -> str:
     lines = [
         "# Adopted course-platform behavior inventory",
         "",
-        "This file is generated from the pinned URLconfs, Django app registry, migration files,",
-        "and management-command registry by `scripts/render_course_platform_inventory.py`.",
+        "This file is generated from the pinned URLconfs, Django app registry, and",
+        "management-command registry by `scripts/render_course_platform_inventory.py`.",
         "`core.tests.test_course_platform_adoption` smoke-resolves every listed route through the",
-        "unified root URLconf, loads every listed command, checks the original app/migration",
-        "identities, and verifies all copied destination checksums.",
+        "unified root URLconf, loads every listed command, checks the original app identities,",
+        "and verifies all copied destination checksums.",
         "",
         "## Surface summary",
         "",
@@ -206,31 +201,16 @@ def render_inventory() -> str:
     lines.extend(
         [
             "",
-            "## Preserved app and migration identities",
+            "## Preserved app identities",
             "",
-            "| App label | App module | Original numbered migrations |",
-            "| --- | --- | --- |",
+            "| App label | App module |",
+            "| --- | --- |",
         ]
     )
     for app_label in SOURCE_APP_LABELS:
         app_config = apps.get_app_config(app_label)
-        migrations = migration_names(app_label)
-        migration_text = ", ".join(migrations) if migrations else "none"
-        lines.append(
-            f"| {_table_value(app_label)} | {_table_value(app_config.name)} | "
-            f"{_table_value(migration_text)} |"
-        )
-    lines.extend(
-        [
-            "",
-            "The deployed numbered `courses` graph through `0041` is retained as migration",
-            "provenance. Fresh databases use `0001_squashed_0029` for the main legacy branch,",
-            "run the separate `0027` branch before its `0031` merge, and cross the schema",
-            "boundary at `0042_course_schema_bridge`; current product migrations continue",
-            "through `0051_unitreadstate` as documented in `migration-squash-gate.md`.",
-            "",
-        ]
-    )
+        lines.append(f"| {_table_value(app_label)} | {_table_value(app_config.name)} |")
+    lines.append("")
     return "\n".join(lines)
 
 

@@ -9,6 +9,7 @@ from django.test.runner import DiscoverRunner
 
 from .email_backend import SYNTHETIC_EMAIL_BACKEND, reset_capture_mailbox
 from .network import NetworkGuard
+from .reference_data import load_reviewed_reference_data
 from .runtime import TestRuntime, TestRuntimeSafetyError
 
 
@@ -56,7 +57,26 @@ class IsolatedDiscoverRunner(DiscoverRunner):
         self._validate_connections()
         for connection in connections.all():
             connection.creation.__class__ = IsolatedSQLiteCreation
-        return super().setup_databases(**kwargs)
+        old_config = super().setup_databases(**kwargs)
+        # A run whose selected tests need no database gets no database: Django
+        # reports "Skipping setup of unused database(s)" and returns nothing.
+        # Only the aliases it actually built can be written to.
+        built = {connection.alias for connection, _old_name, _destroy in old_config}
+        for connection in connections.all():
+            if connection.alias not in built:
+                continue
+            load_reviewed_reference_data()
+            # ``create_test_db`` snapshots the database for ``serialized_rollback``
+            # before this runs, so a test that restores from that snapshot would
+            # otherwise come back without the reference rows.  The attribute is
+            # Django-private and untyped, hence the dynamic read/write.
+            if getattr(connection, "_test_serialized_contents", None) is not None:
+                setattr(  # noqa: B010
+                    connection,
+                    "_test_serialized_contents",
+                    connection.creation.serialize_db_to_string(),
+                )
+        return old_config
 
     @staticmethod
     def _validate_connections() -> None:

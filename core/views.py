@@ -20,7 +20,6 @@ from core.home_content import (
     FEATURED_COHORT_FORMAT,
     FEATURED_COHORT_SUMMARY,
     FEATURED_FAMILY,
-    MEMBER_STORIES,
     course_catalog,
     event_time_display,
     published_display,
@@ -31,8 +30,15 @@ from core.home_content import (
 )
 from core.sponsor_history import PAST_SUPPORTERS, featured_supporters
 from courses.services.member_home import build_member_home_context
+from courses.services.testimonials import homepage_testimonials
 
 DEVELOPMENT_ROBOTS_BODY = "User-agent: *\nDisallow: /\n"
+# ``/unified/`` renders the same view as ``/``.  It is not editorial: it is the
+# deployment's rendered-page probe (``deploy.smoke`` and ``ci.container_check``
+# both need a full template render, which ``/health/live`` deliberately is not),
+# so it stays a route and is kept out of the index instead.  Without this line it
+# becomes a byte-identical duplicate competing with the homepage the moment
+# ``NOINDEX`` flips at the apex swap.
 PRODUCTION_ROBOTS_BODY = (
     "User-agent: *\n"
     "Disallow: /admin/\n"
@@ -41,6 +47,7 @@ PRODUCTION_ROBOTS_BODY = (
     "Disallow: /config/\n"
     "Disallow: /scripts/\n"
     "Disallow: /styles/\n"
+    "Disallow: /unified/\n"
     "Sitemap: https://datatalks.club/sitemap.xml\n"
     "Sitemap: https://datatalks.club/sitemaps/wiki.xml\n"
 )
@@ -103,7 +110,7 @@ def home(request: HttpRequest):
             "catalog_courses": tuple(entry for entry in catalog if entry.family != FEATURED_FAMILY),
             "course_family_count": len(catalog),
             "course_family_word": spelled_count(len(catalog)),
-            "member_stories": MEMBER_STORIES,
+            "member_stories": homepage_testimonials(),
             "article": article,
             "article_published": published_display(article["published"]),
             "article_minutes": reading_minutes(article),

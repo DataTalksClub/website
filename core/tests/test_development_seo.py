@@ -113,7 +113,7 @@ class DevelopmentResponsePolicyTests(TestCase):
             with self.subTest(headers=headers):
                 # Any real served static file exercises the WhiteNoise short circuit.
                 # This used to be `core/site_shell.css`, the old shell's stylesheet,
-                # which issue #179 deleted once every page carried design 5a inline.
+                # which issue #179 deleted once every page carried design system inline.
                 response = Client().get("/static/core/accessibility.css", headers=headers)
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.headers["X-Robots-Tag"], ROBOTS_VALUE)
@@ -181,6 +181,10 @@ class DevelopmentRobotsAndSitemapTests(TestCase):
         self.assertNotIn("X-Robots-Tag", robots.headers)
         self.assertNotIn("/podwiki/", robots.content.decode())
         self.assertNotIn("web.dtcdev.click", robots.content.decode())
+        # /unified/ renders the same view as /, and exists only as the deployment's
+        # rendered-page probe. Without this line it competes with the real homepage
+        # as a duplicate the moment NOINDEX flips at the apex swap.
+        self.assertIn("Disallow: /unified/\n", robots.content.decode())
 
         head = self.client.head("/robots.txt")
         self.assertEqual(head.status_code, 200)

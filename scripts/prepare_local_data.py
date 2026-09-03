@@ -197,6 +197,11 @@ def run(
         "import_event_identities", apply=True, manifest=identity_manifest
     )
     catalog = _json_management_command("seed_local_courses")
+    # Real reviewed content, so it comes from the production importer rather than a
+    # seeder: the same six rows a production database gets.
+    from scripts.prod.import_testimonials import run as import_testimonials
+
+    testimonials = import_testimonials()
     # Which repositories exist is registered data, so the rehearsal registers the
     # pinned sources and then runs the one ingestion the signed push webhook runs.
     course_sources = _json_management_command("seed_course_repository_sources")
@@ -249,6 +254,7 @@ def run(
             "migrations": {"completed": True, "report": migrations},
             "event_identities": identities,
             "course_catalog": catalog,
+            "homepage_testimonials": testimonials,
             "course_repository_sources": course_sources,
             "course_modules": modules,
             "cmp_content": cmp_content,

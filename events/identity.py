@@ -287,7 +287,35 @@ def canonical_detail_url(event_id: uuid.UUID | str) -> str:
     return f"{get_str_setting('site.origin.canonical')}{canonical_detail_path(event_id)}"
 
 
+def ensure_public_id_sequence() -> int:
+    """Park the singleton allocator above every public ID that already exists.
+
+    The allocator is a one-row table, so something has to put the row there and
+    keep it ahead of the rows an import wrote.  That belongs with the code that
+    writes events, not in a migration: a migration runs once at a fixed point in
+    the schema history, and on an empty database that point is *before* the
+    manifest import, which would leave the allocator handing out an ID the
+    import had already used.
+
+    Returns the ``next_public_id`` the allocator will hand out.
+    """
+
+    latest = Event.objects.aggregate(value=Max("public_id"))["value"] or 0
+    row, created = EventPublicIdSequence.objects.get_or_create(
+        pk=1,
+        defaults={"next_public_id": latest + 1},
+    )
+    if not created and row.next_public_id <= latest:
+        EventPublicIdSequence.objects.filter(pk=1, next_public_id=row.next_public_id).update(
+            next_public_id=latest + 1,
+            updated_at=timezone.now(),
+        )
+        return latest + 1
+    return row.next_public_id
+
+
 def _allocate_public_id() -> int:
+    ensure_public_id_sequence()
     while True:
         public_id = EventPublicIdSequence.objects.values_list("next_public_id", flat=True).get(pk=1)
         latest = Event.objects.aggregate(value=Max("public_id"))["value"] or 0
@@ -664,6 +692,9 @@ def import_identity_manifest(
             created == 0 and updated == 0,
             True,
         )
+    # An import writes public IDs the allocator did not hand out, so it owes the
+    # allocator the new high-water mark before the next service-created event.
+    ensure_public_id_sequence()
     return IdentityImportReport(
         len(manifest.events),
         len(manifest.aliases),

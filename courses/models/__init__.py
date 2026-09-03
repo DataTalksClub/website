@@ -1,6 +1,14 @@
 from django.contrib.auth import get_user_model
 
-from . import cohort, curriculum, curriculum_import, homework, project, wrapped  # noqa: F401
+from . import (  # noqa: F401
+    cohort,
+    curriculum,
+    curriculum_import,
+    homework,
+    project,
+    testimonial,
+    wrapped,
+)
 from .cohort import (
     Cohort,
     Course,
@@ -50,6 +58,7 @@ from .registration_counts import (
     CourseRegistrationCountSlot,
     CourseRegistrationCountSourceRun,
 )
+from .testimonial import Testimonial, TestimonialPlacement
 from .wrapped import UserWrappedStatistics, WrappedStatistics
 
 User = get_user_model()
@@ -94,6 +103,8 @@ __all__ = (
     "UnitReadState",
     "criteria_for_project",
     "Submission",
+    "Testimonial",
+    "TestimonialPlacement",
     "User",
     "UserWrappedStatistics",
     "WrappedStatistics",

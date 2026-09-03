@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "testimonials": [
+    {
+      "name": "Nevenka Lukic",
+      "attribution": "Data Engineer · Spain",
+      "quote": "The final project was the real challenge, where we applied everything we learned to build an end-to-end data pipeline. This was really hard. But the feeling of accomplishment made it all worthwhile. I would do it again!",
+      "source_url": "https://www.linkedin.com/posts/nevenka-lukic_data-engineering-zoomcamp-final-project-activity-7181985646033461248-Lc1O",
+      "portrait_asset_key": "testimonials/nevenka-lukic.jpg"
+    },
+    {
+      "name": "Alexander Daniel Rios",
+      "attribution": "DS & ML Engineer · Argentina",
+      "quote": "This course gave me hands-on experience in building LLM-powered applications, including prompt engineering, retrieval-augmented generation (RAG), pipeline orchestration, and vector search optimization.",
+      "source_url": "https://www.linkedin.com/posts/alexander-daniel-rios_llmzoomcamp-ai-llm-activity-7391098999820406784-ByF1",
+      "portrait_asset_key": "testimonials/alexander-daniel-rios.jpg"
+    },
+    {
+      "name": "Jocelyn Dumlao",
+      "attribution": "Data Scientist · Philippines",
+      "quote": "This course project strengthened my understanding of modern LLM applications, vector databases, prompt engineering, and production-ready AI workflows. A big thanks to the DataTalksClub community for providing such an excellent learning experience.",
+      "source_url": "https://www.linkedin.com/feed/update/urn:li:activity:7486622652921430016/",
+      "portrait_asset_key": "testimonials/jocelyn-dumlao.jpg"
+    },
+    {
+      "name": "Zachary Keller",
+      "attribution": "Data & Analytics · United States",
+      "quote": "No other course I've taken or explored took such a comprehensive approach to what it means to develop ML models, all while maintaining a level of accessibility that opens the doors to folks from all different backgrounds.",
+      "source_url": "https://www.linkedin.com/posts/zrkeller_course-report-datatalksclub-ml-zoomcamp-activity-7013629465083707392-RbZV",
+      "portrait_asset_key": "testimonials/zachary-keller.jpg"
+    },
+    {
+      "name": "Hanaa Hammad",
+      "attribution": "Senior Data Engineer · Egypt",
+      "quote": "The LLM Zoomcamp 2026 by DataTalksClub is an excellent course. If you're interested in GenAI, RAG, and LLM engineering, I highly recommend checking it out.",
+      "source_url": "https://www.linkedin.com/feed/update/urn:li:activity:7489957731135651840/",
+      "portrait_asset_key": "testimonials/hanaa-hammad.jpg"
+    },
+    {
+      "name": "Tim Claytor",
+      "attribution": "Data Science · United States",
+      "quote": "The Data Engineering Zoomcamp gave me skills that helped me land my first tech job.",
+      "source_url": "https://www.linkedin.com/feed/update/urn:li:activity:7396882073308938240/?dashCommentUrn=urn%3Ali%3Afsd_comment%3A%287396889959711793152%2Curn%3Ali%3Aactivity%3A7396882073308938240%29",
+      "portrait_asset_key": "testimonials/tim-claytor.jpg"
+    }
+  ]
+}
