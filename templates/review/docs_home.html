@@ -30,96 +30,140 @@
 {% block page_header %}
   <div class="docs-home-header">
     <p class="mono-label mono-label-indigo">
-      docs · {{ docs_navigation|length }} sections
+      docs · {{ docs_total_guides }} guide{{ docs_total_guides|pluralize }}
     </p>
     <h1 id="{{ docs_heading_id }}">{{ docs_heading_title }}</h1>
     <div class="prose docs-home-intro">
       {{ docs_html|safe }}
     </div>
+    <form class="search-row docs-search" action="{% url 'docs-home' %}" method="get">
+      <label class="sr-only" for="docs-query">Search documentation</label>
+      <input
+        id="docs-query"
+        class="field-input"
+        name="q"
+        type="search"
+        value="{{ docs_query|default:'' }}"
+        required
+      >
+      {% include "core/_button.html" with tag="button" type="submit" label="Search" variant="primary" compact=True %}
+    </form>
   </div>
 {% endblock %}
 
 {% block page_content %}
-  <section class="docs-section" aria-labelledby="docs-courses-heading">
-    <div class="docs-section-head">
-      <h2 id="docs-courses-heading">Choose a course guide</h2>
-      <p>Start with the notes, setup, curriculum, projects, and resources for your Zoomcamp.</p>
-      {% if docs_courses_root %}
+  {% if docs_query %}
+    <section class="docs-section" aria-labelledby="docs-search-heading">
+      <div class="docs-section-head">
+        <h2 id="docs-search-heading" class="search-count">
+          {{ docs_results|length }} result{{ docs_results|length|pluralize }} for &ldquo;{{ docs_query }}&rdquo;
+        </h2>
         <p>
-          <a href="{{ docs_courses_root.public_path }}">Browse all course documentation</a>
+          <a href="{% url 'docs-home' %}">Back to all documentation</a>
         </p>
+      </div>
+      {% if docs_results %}
+        <div class="row-list">
+          {% for result in docs_results %}
+            <article class="list-row docs-row">
+              <div class="docs-row-body">
+                <h3 class="docs-row-title">
+                  <a href="{{ result.public_path }}">{{ result.title }}</a>
+                </h3>
+                {% if result.description %}
+                  <p class="docs-row-meta">{{ result.description }}</p>
+                {% endif %}
+              </div>
+              {% include "core/_button.html" with href=result.public_path label="Read guide" variant="secondary" compact=True classes="docs-row-action" %}
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="docs-empty">No matching documentation pages were found. Try a broader term.</p>
       {% endif %}
-    </div>
-    {% if docs_course_families %}
-      <div class="docs-course-grid">
-        {% for course in docs_course_families %}
-          <a class="docs-course-card interactive-card interactive-lift" href="{{ course.public_path }}">
-            <span class="mono-label docs-card-kicker">Course guide</span>
-            <span class="docs-card-title">{{ course.title }}</span>
-            {% if course.description %}
-              <span class="docs-card-description">{{ course.description }}</span>
-            {% endif %}
-            <span class="docs-card-footer">
-              <span>{{ course.children|length }} guide{{ course.children|length|pluralize }}</span>
-            </span>
-          </a>
-        {% endfor %}
-      </div>
-    {% endif %}
-  </section>
-
-  {% if docs_course_support %}
-    <section class="docs-section" aria-labelledby="docs-shared-heading">
+    </section>
+  {% else %}
+    <section class="docs-section" aria-labelledby="docs-courses-heading">
       <div class="docs-section-head">
-        <h2 id="docs-shared-heading">Shared course guides</h2>
-        <p>How cohorts work, how to use the learning platform, and where to find course answers.</p>
+        <h2 id="docs-courses-heading">Choose a course guide</h2>
+        <p>Start with the notes, setup, curriculum, projects, and resources for your Zoomcamp.</p>
       </div>
-      <nav class="docs-support-list" aria-label="Shared course guides">
-        {% for item in docs_course_support %}
-          <a class="docs-support-link" href="{{ item.public_path }}">
-            <span>
-              <span class="docs-row-title">{{ item.title }}</span>
-              {% if item.description %}
-                <span class="docs-row-meta">{{ item.description }}</span>
-              {% elif item.children %}
-                <span class="docs-row-meta">{{ item.children|length }} topic{{ item.children|length|pluralize }}</span>
+      {% if docs_course_families %}
+        <div class="row-list">
+          {% for course in docs_course_families %}
+            <a class="list-row docs-row docs-course-row interactive-card interactive-lift" href="{{ course.public_path }}">
+              <span class="docs-row-body">
+                <span class="docs-row-title">{{ course.title }}</span>
+                {% if course.description %}
+                  <span class="docs-row-meta">{{ course.description }}</span>
+                {% endif %}
+              </span>
+              <span class="mono-note docs-row-count">
+                {{ course.children|length }} guide{{ course.children|length|pluralize }}
+              </span>
+            </a>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </section>
+
+    {% if docs_course_support %}
+      <section class="docs-section" aria-labelledby="docs-shared-heading">
+        <div class="docs-section-head">
+          <h2 id="docs-shared-heading">Shared course guides</h2>
+          <p>How cohorts work, how to use the learning platform, and where to find course answers.</p>
+        </div>
+        <div class="row-list">
+          {% for item in docs_course_support %}
+            <a class="list-row docs-row docs-support-row interactive-card interactive-lift" href="{{ item.public_path }}">
+              <span class="docs-row-body">
+                <span class="docs-row-title">{{ item.title }}</span>
+                {% if item.description %}
+                  <span class="docs-row-meta">{{ item.description }}</span>
+                {% endif %}
+              </span>
+              {% if item.children %}
+                <span class="mono-note docs-row-count">
+                  {{ item.children|length }} topic{{ item.children|length|pluralize }}
+                </span>
               {% endif %}
-            </span>
-            <span class="docs-arrow" aria-hidden="true">→</span>
-          </a>
-        {% endfor %}
-      </nav>
-    </section>
-  {% endif %}
+            </a>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
 
-  {% if docs_areas %}
-    <section class="docs-section" aria-labelledby="docs-more-heading">
-      <div class="docs-section-head">
-        <h2 id="docs-more-heading">Community and activities</h2>
-        <p>Find community guidelines, Slack help, jobs, events, workshops, and other ways to learn together.</p>
-      </div>
-      <div class="docs-area-grid">
-        {% for area in docs_areas %}
-          <article class="docs-area-card">
-            <div class="docs-area-head">
-              <a class="docs-area-title" href="{{ area.public_path }}">{{ area.title }}</a>
-            </div>
-            {% if area.children %}
-              <ul class="docs-area-links">
-                {% for item in area.children %}
-                  <li>
-                    <a href="{{ item.public_path }}">{{ item.title }}</a>
-                  </li>
-                {% endfor %}
-              </ul>
-            {% endif %}
-          </article>
-        {% endfor %}
-      </div>
-    </section>
-  {% endif %}
+    {% if docs_areas %}
+      <section class="docs-section" aria-labelledby="docs-more-heading">
+        <div class="docs-section-head">
+          <h2 id="docs-more-heading">Community and activities</h2>
+          <p>Find community guidelines, Slack help, jobs, events, workshops, and other ways to learn together.</p>
+        </div>
+        <div class="row-list">
+          {% for area in docs_areas %}
+            <article class="list-row docs-row docs-area-row">
+              <span class="docs-row-body">
+                <span class="docs-row-title">
+                  <a href="{{ area.public_path }}">{{ area.title }}</a>
+                </span>
+                {% if area.children %}
+                  <span class="docs-row-meta docs-row-links">
+                    {% spaceless %}
+                      {% for item in area.children %}
+                        <a href="{{ item.public_path }}">{{ item.title }}</a>
+                      {% endfor %}
+                    {% endspaceless %}
+                  </span>
+                {% endif %}
+              </span>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
 
-  {% if not docs_course_families and not docs_course_support and not docs_areas %}
-    <p class="docs-empty">No documentation sections are available yet.</p>
+    {% if not docs_course_families and not docs_course_support and not docs_areas %}
+      <p class="docs-empty">No documentation sections are available yet.</p>
+    {% endif %}
   {% endif %}
 {% endblock %}

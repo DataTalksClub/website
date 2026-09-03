@@ -61,11 +61,6 @@ urlpatterns = [
     path("unified/", core_views.home, name="unified-home"),
     path("docs/", review_views.docs_home, name="docs-home"),
     path("docs", public_views.permanent_public_redirect, {"target": "/docs/"}),
-    path(
-        "docs/courses/ai-dev-tools-zoomcamp/getting-started/",
-        review_views.docs_getting_started,
-        name="docs-ai-dev-tools-getting-started",
-    ),
     path("docs/assets/<path:asset>", review_views.docs_asset, name="docs-asset"),
     path("docs/<path:doc_path>", review_views.docs_page, name="docs-page"),
     path("faq/", review_views.faq_home, name="faq-home"),

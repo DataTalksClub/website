@@ -25,6 +25,7 @@ from .docs_presentation import (
     docs_home_areas,
     docs_home_course_groups,
     docs_local_sequence,
+    docs_search_results,
 )
 from .docs_projection import (
     DOCS_ROOT_PATH,
@@ -87,7 +88,31 @@ def docs_home(request: HttpRequest) -> HttpResponse:
     rendered, headings = render_docs_markdown(document)
     navigation = docs_navigation_tree()
     heading_id, rendered_body = docs_body_without_primary_heading(rendered)
-    course_families, course_support = docs_home_course_groups(navigation)
+    # `q` is the search mode switch, the same contract the wiki hub uses: a query
+    # replaces the catalogue with in-process search results on the same `/docs/`
+    # path rather than a separate route.
+    query = request.GET.get("q", "").strip()[:200]
+    context: dict[str, Any] = {
+        "docs": document,
+        "docs_heading_id": heading_id,
+        "docs_heading_title": headings[0]["title"] if headings else document["title"],
+        "docs_html": rendered_body,
+        "docs_headings": headings,
+        "docs_total_guides": len(navigation.documents),
+        "docs_query": query,
+        "primary_navigation_current": "docs",
+    }
+    if "q" in request.GET:
+        context["docs_results"] = docs_search_results(query)
+    else:
+        course_families, course_support = docs_home_course_groups(navigation)
+        context.update(
+            {
+                "docs_course_families": course_families,
+                "docs_course_support": course_support,
+                "docs_areas": docs_home_areas(navigation),
+            }
+        )
     return _render(
         request,
         "review/docs_home.html",
@@ -95,19 +120,7 @@ def docs_home(request: HttpRequest) -> HttpResponse:
         title="Documentation — DataTalks.Club",
         description=document.get("description")
         or "Guides for DataTalks.Club courses and community learning.",
-        context={
-            "docs": document,
-            "docs_heading_id": heading_id,
-            "docs_heading_title": headings[0]["title"] if headings else document["title"],
-            "docs_html": rendered_body,
-            "docs_headings": headings,
-            "docs_navigation": navigation.root.children,
-            "docs_courses_root": navigation.by_path.get("/docs/courses/"),
-            "docs_course_families": course_families,
-            "docs_course_support": course_support,
-            "docs_areas": docs_home_areas(navigation),
-            "primary_navigation_current": "docs",
-        },
+        context=context,
     )
 
 
@@ -151,22 +164,6 @@ def _docs_detail_context(
         "docs_local_next": local_following,
         "primary_navigation_current": "docs",
     }
-
-
-@require_safe
-def docs_getting_started(request: HttpRequest) -> HttpResponse:
-    document = projected_docs_page("/docs/courses/ai-dev-tools-zoomcamp/getting-started/")
-    if document is None:
-        raise Http404("Documentation page is unavailable.")
-    rendered, headings = render_docs_markdown(document)
-    return _render(
-        request,
-        "review/docs_detail.html",
-        path=document["public_path"],
-        title=f"{document['title']} — AI Dev Tools Zoomcamp Docs",
-        description=document.get("description") or "AI Dev Tools Zoomcamp documentation.",
-        context=_docs_detail_context(document, rendered, headings),
-    )
 
 
 @require_safe

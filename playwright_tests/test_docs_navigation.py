@@ -111,7 +111,7 @@ def test_docs_system_hierarchy_and_responsive_evidence(
             page.get_by_role("heading", name="DataTalks.Club Zoomcamps Notes and Resources")
         ).to_be_visible()
         expect(page.locator("main h1")).to_have_count(1)
-        expect(page.locator(".docs-course-card")).to_have_count(6)
+        expect(page.locator(".docs-course-row")).to_have_count(6)
         for title in (
             "Machine Learning Zoomcamp",
             "Data Engineering Zoomcamp",
@@ -250,12 +250,12 @@ def test_docs_cards_use_whole_surface_interactions_and_reduced_motion(
     page.goto(f"{origin}/docs/", wait_until="domcontentloaded")
     _dismiss_analytics_preferences(page)
 
-    course = page.locator("a.docs-course-card").first
+    course = page.locator("a.docs-course-row").first
     assert "interactive-card" in (course.get_attribute("class") or "")
     assert "interactive-lift" in (course.get_attribute("class") or "")
     assert _interactive_state(course)["cueOpacity"] == "0"
     assert (
-        course.locator(".docs-card-title").evaluate(
+        course.locator(".docs-row-title").evaluate(
             "node => getComputedStyle(node).textDecorationLine"
         )
         == "none"
@@ -309,7 +309,7 @@ def test_docs_cards_use_whole_surface_interactions_and_reduced_motion(
     )
     reduced_page = reduced_context.new_page()
     reduced_page.goto(f"{origin}/docs/", wait_until="domcontentloaded")
-    reduced_course = reduced_page.locator("a.docs-course-card").first
+    reduced_course = reduced_page.locator("a.docs-course-row").first
     reduced_course.hover()
     reduced_course.focus()
     reduced_course_state = _interactive_state(reduced_course)
