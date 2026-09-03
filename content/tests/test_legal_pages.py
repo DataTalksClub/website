@@ -214,6 +214,27 @@ class LegalContentTests(TestCase):
         # screen reader does not read it in the wrong voice.
         self.assertIn('<h2 lang="de">Angaben gemäß § 5 TMG</h2>', body)
 
+    def test_impressum_sends_nobody_to_a_dispute_service_that_closed(self) -> None:
+        """The ODR platform this text used to link to no longer exists.
+
+        The European Commission's online dispute resolution platform ceased
+        operation on 20 July 2025 under Regulation (EU) 2024/3228, so the referral
+        that copied Impressum boilerplate still carries sends a visitor to nothing.
+        The § 36 VSBG declaration underneath it is the part the statute still asks
+        for, and it stays.
+        """
+
+        collapsed = " ".join(_main_landmark(self.client.get("/impressum").content.decode()).split())
+        for closed in ("ec.europa.eu/consumers/odr", "Online-Streitbeilegung"):
+            with self.subTest(closed=closed):
+                self.assertNotIn(closed, collapsed)
+        self.assertIn('<h2 lang="de">Streitschlichtung</h2>', collapsed)
+        self.assertIn(
+            "Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren "
+            "vor einer Verbraucherschlichtungsstelle teilzunehmen.",
+            collapsed,
+        )
+
     def test_no_legal_page_shows_a_visitor_a_placeholder_or_our_own_review_words(self) -> None:
         """A visitor must never read a sentence that was written for us.
 
