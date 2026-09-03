@@ -1,8 +1,12 @@
 from django.urls import reverse
 
-from courses.models import Cohort
+from courses.models import Cohort, Enrollment
 from courses.models.wrapped import UserWrappedStatistics, WrappedStatistics
 from courses.views.url_utils import cohort_url_kwargs
+
+# The label a Wrapped page falls back to when no pseudonym is available.  It
+# must stay free of anything that identifies the account.
+WRAPPED_FALLBACK_DISPLAY_NAME = "Member"
 
 
 def _wrapped_course_records(records: list[dict]) -> list[dict]:
@@ -69,6 +73,48 @@ def _wrapped_course_records(records: list[dict]) -> list[dict]:
             record["leaderboard_url"] = ""
 
     return normalized
+
+
+def wrapped_page_display_name(user, stored_name: str = "") -> str:
+    """The name a Wrapped page is allowed to show for `user`.
+
+    A member's email address is visible to admins in Studio and nowhere else,
+    and this value reaches the heading, the breadcrumb, `<title>`, `og:title`
+    and `twitter:title`.  Only a generated enrollment pseudonym qualifies, so a
+    stored name is rejected when it is the account's own username or email — as
+    it was for every account whose username is its address — or when it merely
+    looks like an address.  Rows written before that rule existed are therefore
+    cleaned at render time rather than trusted.
+    """
+
+    candidate = (stored_name or "").strip()
+    if not _is_safe_wrapped_display_name(user, candidate):
+        candidate = ""
+    if not candidate:
+        enrollment = (
+            Enrollment.objects.filter(student=user)
+            .exclude(display_name="")
+            .order_by("-id")
+            .first()
+        )
+        if enrollment is not None:
+            enrollment_name = enrollment.display_name.strip()
+            if _is_safe_wrapped_display_name(user, enrollment_name):
+                candidate = enrollment_name
+    return candidate or WRAPPED_FALLBACK_DISPLAY_NAME
+
+
+def _is_safe_wrapped_display_name(user, candidate: str) -> bool:
+    if not candidate:
+        return False
+    if "@" in candidate:
+        return False
+    identifiers = {
+        (user.get_username() or "").strip().casefold(),
+        (user.email or "").strip().casefold(),
+    }
+    identifiers.discard("")
+    return candidate.casefold() not in identifiers
 
 
 def visible_wrapped_statistics(year: int) -> WrappedStatistics | None:
@@ -192,10 +238,14 @@ def shareable_user_wrapped_context(
 ) -> dict:
     user_stats = shareable_user_stats_context(user_wrapped)
     twitter_text = wrapped_twitter_text(year, user_wrapped)
+    # The viewed member is deliberately absent from the context.  Handing the
+    # template a user object is how the address reached the page: `user` is
+    # supplied by the auth context processor and the shared shell renders it,
+    # so a viewed member placed under that key — or reachable from any other
+    # key — becomes the identity the whole site shell shows.
     return {
         "year": year,
-        "viewed_user": user,
-        "display_name": user_wrapped.display_name,
+        "display_name": wrapped_page_display_name(user, user_wrapped.display_name),
         "user_stats": user_stats,
         "user_rank": user_wrapped.rank,
         "twitter_text": twitter_text,

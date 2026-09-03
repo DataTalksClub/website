@@ -5,6 +5,10 @@ from django.db.models import F
 from django.utils import timezone
 
 from course_management.observability import record_event
+from course_management.datamailer.sync.audit_redaction import (
+    audit_error_text,
+    audit_response_payload,
+)
 from course_management.datamailer_outbox import RETRYABLE_STATUSES
 from course_management.datamailer_outbox_senders import send_event
 from course_management.datamailer_outbox_retry import (
@@ -87,7 +91,12 @@ def handle_outbox_send_error(event, config, exc):
 
 def mark_acked(event, response_payload):
     now = timezone.now()
-    response_data = json_response_payload(response_payload)
+    # The Relay response is stored under the same rule as a send-audit row:
+    # redacted, because it carries the recipient and, on a render, the body.
+    response_data = audit_response_payload(
+        event.payload,
+        json_response_payload(response_payload),
+    )
     updated = (
         DatamailerOutboxEvent.objects.filter(
             id=event.id,
@@ -118,7 +127,9 @@ def mark_retry_or_failed(event, exc):
     event.refresh_from_db()
     status = status_for_error(exc, event)
     now = timezone.now()
-    last_error = str(exc)
+    # `str(exc)` on a request failure embeds the request URL, so it is masked
+    # rather than frozen into a column Django admin renders.
+    last_error = audit_error_text(str(exc))
     updates = {
         "status": status,
         "last_error": last_error,

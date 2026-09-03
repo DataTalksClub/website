@@ -49,7 +49,10 @@ class DatamailerTransactionalTest(DatamailerContactBase):
         self.assertEqual(audit.send_type, DatamailerSendAuditType.TRANSACTIONAL)
         self.assertEqual(audit.status, DatamailerSendAuditStatus.FAILED)
         self.assertEqual(audit.idempotency_key, "welcome:student")
-        self.assertEqual(audit.error, "network error")
+        # The failure is still diagnosable, and it now carries a fingerprint so
+        # two rows for the same failure can be recognised as the same failure.
+        self.assertIn("network error", audit.error)
+        self.assertIn("error_fingerprint=", audit.error)
 
     @override_settings(
         **DATAMAILER_SETTINGS,
