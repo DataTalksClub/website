@@ -49,6 +49,10 @@ from review_import.workflow import (
 
 FORBIDDEN_COURSE_SLUGS = frozenset({"fake-course", "fake-course-2"})
 
+# Scratch data belongs in the project-local, gitignored .tmp/, never a shared
+# system temporary directory: this staging copy is a whole CMP snapshot.
+STAGING_ROOT = Path(__file__).resolve().parents[2] / ".tmp"
+
 
 class LocalCmpContentImportError(RuntimeError):
     """A fail-closed refusal that never renders source values."""
@@ -197,7 +201,8 @@ def _copy_source(source_db: Path) -> tuple[Path, str]:
         _refuse("source-unavailable")
     if not resolved.is_file() or resolved.is_symlink():
         _refuse("source-not-regular-file")
-    work = Path(tempfile.mkdtemp(prefix="dtc-cmp-import-", dir="/tmp"))
+    STAGING_ROOT.mkdir(parents=True, exist_ok=True)
+    work = Path(tempfile.mkdtemp(prefix="dtc-cmp-import-", dir=STAGING_ROOT))
     os.chmod(work, 0o700)
     copied = work / "source.sqlite3"
     shutil.copy2(resolved, copied)
