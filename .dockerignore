@@ -2,9 +2,13 @@
 .github
 .tmp
 .venv
-.env
-*.sqlite3
-*.sqlite3-*
+# Recursive, not root-only.  A bare `.env` excludes only the one at the root,
+# so `e2e/.env` — which e2e/.env.example tells developers to create, holding an
+# API token and an admin password — was copied into the image by the Dockerfile's
+# whole-context COPY.  The same applies to a database file in any subdirectory.
+**/.env
+**/*.sqlite3
+**/*.sqlite3-*
 __pycache__
 .pytest_cache
 .mypy_cache
