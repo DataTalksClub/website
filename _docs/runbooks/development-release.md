@@ -780,8 +780,12 @@ Leave `failure_injection=none` for every normal promotion and rollback. Controll
 choices are dispatch-only and promotion-only; the controller rejects them without a valid prior
 release record, so they can never run during release-A bootstrap or rollback.
 
-The build path builds once for `linux/amd64`, proves the sealed OCI version/revision/created labels
-and runtime user `10001:10001`, and preserves that tested image as a short-lived artifact. The
+The build path builds once for the deployment target's declared `task_cpu_architecture`, proves the
+sealed OCI version/revision/created labels and runtime user `10001:10001`, and preserves that tested
+image as a short-lived artifact. The platform and the expected image architecture are resolved from
+`deploy.deployment_targets`, and the container job runs on that architecture's native runner because
+it also runs the image it builds. ECS starts an image built for the other architecture and the task
+then dies with nothing useful in its log, so nothing in the pipeline pins an architecture literal. The
 publisher applies both the VERSION and full-SHA aliases to one immutable digest (or proves both
 already resolve there), verifies the remote config digest and labels, then uploads the strict
 non-secret schema-2 published-image record. This artifact is produced before deployment and is **not** a successful or rollback-eligible release record.

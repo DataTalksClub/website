@@ -13,6 +13,12 @@ concurrency:
   cancel-in-progress: false
   queue: max
 
+env:
+  # The container job builds and runs the production image, so it runs on the
+  # deployment target's architecture. Keep this equal to the selected deployment
+  # target's runner_machine and the container job's runs-on label.
+  VERIFICATION_CONTAINER_ARCHITECTURE: aarch64
+
 jobs:
   selector:
     runs-on: ubuntu-latest
@@ -370,7 +376,9 @@ jobs:
   container:
     if: needs.selector.outputs.decision == 'run_full'
     needs: selector
-    runs-on: ubuntu-latest
+    # Native runner for the deployment target's architecture: this job also runs
+    # the image it builds, and emulating it is far too slow to finish.
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
         with:
@@ -393,8 +401,9 @@ jobs:
           RELEASE_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
+          build_platform="$(uv run --frozen python -m deploy.deployment_targets architecture --field build_platform)"
           docker buildx build \
-            --platform linux/amd64 \
+            --platform "$build_platform" \
             --provenance=false \
             --label "org.opencontainers.image.revision=$RELEASE_SHA" \
             --tag "dtc-website:$RELEASE_SHA" \
@@ -406,13 +415,15 @@ jobs:
         run: |
           set -euo pipefail
           image="dtc-website:$RELEASE_SHA"
-          test "$(docker image inspect --format '{{.Architecture}}' "$image")" = "amd64"
+          image_architecture="$(uv run --frozen python -m deploy.deployment_targets architecture --field image_architecture)"
+          test "$(docker image inspect --format '{{.Architecture}}' "$image")" = "$image_architecture"
           test "$(docker image inspect --format '{{.Config.User}}' "$image")" = "10001:10001"
           test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$image")" = "$RELEASE_SHA"
           test "$(docker run --rm --entrypoint id "$image" -u)" = "10001"
           test "$(docker run --rm --entrypoint id "$image" -g)" = "10001"
           mkdir -p .tmp/evidence
-          printf '%s\n' image_architecture_amd64 image_revision_label_matches_source \
+          printf '%s\n' image_architecture_matches_deployment_target \
+            image_revision_label_matches_source \
             image_runtime_user_configured_non_root runtime_uid_10001 runtime_gid_10001 >> \
             .tmp/evidence/container-assertions.txt
       - name: Verify the built runtime static manifest

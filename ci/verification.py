@@ -67,6 +67,13 @@ COMPONENT_REQUIRED_CONFIG = {
         "DJANGO_SETTINGS_MODULE": "website.settings.test",
     },
 }
+# The container component builds and runs the exact release image, so the job
+# that executes it runs on the deployment target's architecture instead of the
+# planner's runner.  The workflow declares that machine here; every other
+# component is bound to the host that plans it.
+COMPONENT_ARCHITECTURE_VARIABLE = {"container": "VERIFICATION_CONTAINER_ARCHITECTURE"}
+#: ``platform.machine()`` names a component may be authorized to execute on.
+REVIEWED_ARCHITECTURES = frozenset({"aarch64", "x86_64"})
 DEFAULT_FULL_DJANGO_COMMAND = "make test-django-full"
 FULL_DJANGO_COMMANDS = ("make test", DEFAULT_FULL_DJANGO_COMMAND)
 FULL_RISK_FLAGS = frozenset(
@@ -111,6 +118,27 @@ class VerificationError(ValueError):
     """A verification plan, component, or report failed closed validation."""
 
 
+def component_architecture(component: str, environ: Mapping[str, str] | None = None) -> str | None:
+    """Return the machine a component is authorized to execute on, if declared.
+
+    The container component builds and runs the release image, so it executes on
+    the deployment target's architecture rather than on the planner's runner.
+    The workflow declares that machine; nothing else may, and an undeclared or
+    unreviewed value leaves the component bound to this host.
+    """
+
+    variable = COMPONENT_ARCHITECTURE_VARIABLE.get(component)
+    if variable is None:
+        return None
+    values = os.environ if environ is None else environ
+    declared = values.get(variable, "").strip()
+    if not declared:
+        return None
+    if declared not in REVIEWED_ARCHITECTURES:
+        raise VerificationError(f"{variable} declares an unreviewed execution architecture")
+    return declared
+
+
 def component_environment_fingerprint(
     component: str, environ: Mapping[str, str] | None = None
 ) -> dict[str, Any]:
@@ -119,7 +147,9 @@ def component_environment_fingerprint(
         raise VerificationError("unknown verification component")
     resolved = dict(os.environ if environ is None else environ)
     resolved.update(COMPONENT_REQUIRED_CONFIG.get(component, {}))
-    return environment_fingerprint(resolved)
+    return environment_fingerprint(
+        resolved, architecture=component_architecture(component, resolved)
+    )
 
 
 def read_change_records(repository: str | Path, base: str, head: str) -> tuple[ChangeRecord, ...]:

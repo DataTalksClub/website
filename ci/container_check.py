@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import platform
 import subprocess
 import time
 import urllib.error
@@ -10,9 +11,30 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from deploy.deployment_targets import CPU_ARCHITECTURES, CpuArchitecture
+
 
 class ContainerCheckError(RuntimeError):
     """The production container failed its local verification contract."""
+
+
+def host_cpu_architecture(machine: str | None = None) -> CpuArchitecture:
+    """Return the reviewed architecture this host builds and runs natively.
+
+    Local verification proves the Dockerfile and runtime contract on the
+    developer's own machine.  It deliberately does not build the deployment
+    target's architecture: doing that off-target needs emulation, under which
+    the in-container checks take tens of minutes and the liveness smoke does not
+    come up inside its budget, so the evidence would be slow and untrustworthy.
+    The release image's architecture is proved natively by the CI container job,
+    which runs on the target architecture's runner.
+    """
+
+    resolved = platform.machine() if machine is None else machine
+    for architecture in CPU_ARCHITECTURES.values():
+        if resolved in {architecture.runner_machine, architecture.image_architecture}:
+            return architecture
+    raise ContainerCheckError(f"no reviewed container architecture for host {resolved!r}")
 
 
 def _run(
@@ -37,13 +59,14 @@ def _run(
 def verify_container(repository: Path, revision: str) -> dict[str, Any]:
     image = f"dtc-website-verification:{revision}"
     container = f"dtc-website-verification-{revision[:12]}-{os.getpid()}"
+    architecture = host_cpu_architecture()
     _run(
         [
             "docker",
             "buildx",
             "build",
             "--platform",
-            "linux/amd64",
+            architecture.build_platform,
             "--provenance=false",
             "--label",
             f"org.opencontainers.image.revision={revision}",
@@ -60,7 +83,7 @@ def verify_container(repository: Path, revision: str) -> dict[str, Any]:
     except (IndexError, KeyError, TypeError, json.JSONDecodeError) as exc:
         raise ContainerCheckError("Docker returned malformed image metadata") from exc
     if (
-        metadata.get("Architecture") != "amd64"
+        metadata.get("Architecture") != architecture.image_architecture
         or metadata.get("Config", {}).get("User") != "10001:10001"
         or metadata.get("Config", {}).get("Labels", {}).get("org.opencontainers.image.revision")
         != revision
@@ -199,7 +222,7 @@ def verify_container(repository: Path, revision: str) -> dict[str, Any]:
                         if response.status == 200:
                             return {
                                 "assertions": [
-                                    "image_architecture_amd64",
+                                    "image_architecture_matches_build_platform",
                                     "image_revision_label_matches_source",
                                     "image_runtime_user_configured_non_root",
                                     "runtime_uid_10001",

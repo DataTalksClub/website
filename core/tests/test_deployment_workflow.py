@@ -6,6 +6,8 @@ import re
 import subprocess
 import tempfile
 from argparse import Namespace
+from copy import deepcopy
+from dataclasses import replace
 from itertools import permutations
 from pathlib import Path
 from typing import Any, cast
@@ -43,11 +45,17 @@ from deploy.contracts import (
     ServiceTarget,
     ServiceUpdateReceipt,
 )
-from deploy.deployment_targets import SELECTED_TARGET
+from deploy.deployment_targets import (
+    CPU_ARCHITECTURES,
+    SELECTED_TARGET,
+    DeploymentTargetError,
+    architecture_fields,
+)
 from deploy.release import capture_current_service_pair, capture_recovery_context
 from deploy.task_definitions import (
     FIXED_NONSECRET_ENVIRONMENT,
     TaskDefinitionConfig,
+    assert_normalized_service_pair,
     build_task_definitions,
 )
 
@@ -1310,6 +1318,186 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertIn("Rollback requires reuse with no failure injection", workflow)
         self.assertIn("published-image record independently of deployment", workflow)
         self.assertNotIn("terraform apply", workflow)
+
+    def test_container_jobs_build_and_run_on_the_declared_target_architecture(self) -> None:
+        """The image, the runner, and the plan all follow one declared value.
+
+        ECS starts a task whose image was built for the other architecture and
+        it dies without a useful log, so the pipeline must not hold a literal
+        that can outlive ``task_cpu_architecture``.  The container jobs also
+        *run* the image they build, so their runner has to execute the target
+        architecture natively rather than under emulation.
+        """
+
+        for name in (".github/workflows/ci.yml", ".github/workflows/scheduled-full-regression.yml"):
+            with self.subTest(workflow=name):
+                text = (ROOT / name).read_text()
+                document = yaml.safe_load(text)
+                container = document["jobs"]["container"]
+
+                self.assertEqual(container["runs-on"], SELECTED_TARGET.runner_label)
+                self.assertEqual(
+                    document["env"]["VERIFICATION_CONTAINER_ARCHITECTURE"],
+                    SELECTED_TARGET.runner_machine,
+                )
+                steps = "\n".join(str(step.get("run", "")) for step in container["steps"])
+                self.assertIn(
+                    "deploy.deployment_targets architecture --field build_platform", steps
+                )
+                self.assertIn(
+                    "deploy.deployment_targets architecture --field image_architecture", steps
+                )
+                self.assertIn(
+                    "docker image inspect --format '{{.Architecture}}' "
+                    '"$image")" = "$image_architecture"',
+                    steps,
+                )
+                self.assertIn("image_architecture_matches_deployment_target", steps)
+                self.assertNotIn("image_architecture_amd64", text)
+                self.assertNotIn('= "amd64"', text)
+
+    def test_publish_records_the_declared_platform_of_the_image_it_pushes(self) -> None:
+        document = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        push = next(
+            step
+            for step in document["jobs"]["publish"]["steps"]
+            if step.get("name") == "Push once and write the non-release published-image record"
+        )["run"]
+
+        self.assertIn(
+            '--platform "$(uv run --frozen python -m deploy.deployment_targets '
+            'architecture --field build_platform)"',
+            push,
+        )
+        self.assertIn(
+            "docker image inspect --format '{{.Architecture}}' "
+            '"dtc-website:$RELEASE_SHA")" = "$image_architecture"',
+            push,
+        )
+
+    def test_reviewed_targets_map_their_architecture_to_one_set_of_names(self) -> None:
+        arm, intel = CPU_ARCHITECTURES["ARM64"], CPU_ARCHITECTURES["X86_64"]
+
+        self.assertEqual(arm.build_platform, "linux/arm64")
+        self.assertEqual(arm.image_architecture, "arm64")
+        self.assertEqual(arm.runner_machine, "aarch64")
+        self.assertEqual(intel.build_platform, "linux/amd64")
+        self.assertEqual(intel.image_architecture, "amd64")
+        self.assertEqual(intel.runner_machine, "x86_64")
+        self.assertEqual(
+            architecture_fields(),
+            {
+                "task_cpu_architecture": SELECTED_TARGET.task_cpu_architecture,
+                "build_platform": SELECTED_TARGET.build_platform,
+                "image_architecture": SELECTED_TARGET.image_architecture,
+                "runner_machine": SELECTED_TARGET.runner_machine,
+                "runner_label": SELECTED_TARGET.runner_label,
+            },
+        )
+        with self.assertRaises(DeploymentTargetError):
+            replace(SELECTED_TARGET, task_cpu_architecture="RISCV64")
+
+    def test_release_refuses_a_task_definition_of_another_architecture(self) -> None:
+        source_sha, image_digest = "a" * 40, "sha256:" + "b" * 64
+        identity = ReleaseIdentity(
+            source_sha,
+            image_digest,
+            SELECTED_TARGET.ecr_repository_uri,
+            f"20260809-143205-{source_sha[:7]}",
+        )
+        config = TaskDefinitionConfig(
+            families={
+                "web": SELECTED_TARGET.web_task_family,
+                "worker": SELECTED_TARGET.worker_task_family,
+                "migration": SELECTED_TARGET.migration_task_family,
+            },
+            container_names={"web": "web", "worker": "worker", "migration": "migration"},
+            task_role_arn=SELECTED_TARGET.task_role_arn,
+            execution_role_arn=SELECTED_TARGET.execution_role_arn,
+        )
+        base = {
+            "family": "web",
+            "taskRoleArn": SELECTED_TARGET.task_role_arn,
+            "executionRoleArn": SELECTED_TARGET.execution_role_arn,
+            "runtimePlatform": {
+                "cpuArchitecture": SELECTED_TARGET.task_cpu_architecture,
+                "operatingSystemFamily": "LINUX",
+            },
+            "containerDefinitions": [
+                {
+                    "name": "web",
+                    "image": identity.image,
+                    "user": "10001:10001",
+                    "essential": True,
+                    "command": ["web"],
+                    "environment": [
+                        {"name": name, "value": value}
+                        for name, value in sorted(
+                            {
+                                **SELECTED_TARGET.fixed_nonsecret_environment,
+                                "VERSION": identity.version,
+                                "SOURCE_SHA": identity.source_sha,
+                                "IMAGE_DIGEST": identity.image_digest,
+                            }.items()
+                        )
+                    ],
+                    "secrets": [
+                        {
+                            "name": "DATABASE_URL",
+                            "valueFrom": (
+                                f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:"
+                                f"{SELECTED_TARGET.aws_account_id}:secret:"
+                                f"{SELECTED_TARGET.resource_namespace}/database-url-AbCdEf"
+                            ),
+                        },
+                        {
+                            "name": "DJANGO_SECRET_KEY",
+                            "valueFrom": (
+                                f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:"
+                                f"{SELECTED_TARGET.aws_account_id}:secret:"
+                                f"{SELECTED_TARGET.resource_namespace}/django-secret-key-AbCdEf"
+                            ),
+                        },
+                    ],
+                }
+            ],
+        }
+
+        def as_worker(task: dict[str, Any]) -> dict[str, Any]:
+            worker = deepcopy(task)
+            worker["family"] = SELECTED_TARGET.worker_task_family
+            container = worker["containerDefinitions"][0]
+            container["name"] = "worker"
+            container["command"] = ["worker"]
+            return worker
+
+        base["family"] = SELECTED_TARGET.web_task_family
+        assert_normalized_service_pair(
+            {"web": deepcopy(base), "worker": as_worker(base)}, identity, config
+        )
+
+        for mutation in (
+            {"cpuArchitecture": "X86_64", "operatingSystemFamily": "LINUX"},
+            {"operatingSystemFamily": "LINUX"},
+            {
+                "cpuArchitecture": SELECTED_TARGET.task_cpu_architecture,
+                "operatingSystemFamily": "WINDOWS_SERVER_2019_CORE",
+            },
+        ):
+            with self.subTest(runtime_platform=mutation):
+                web = deepcopy(base)
+                web["runtimePlatform"] = mutation
+                with self.assertRaises(ReleaseContractError):
+                    assert_normalized_service_pair(
+                        {"web": web, "worker": as_worker(base)}, identity, config
+                    )
+
+        without_platform = deepcopy(base)
+        without_platform.pop("runtimePlatform")
+        with self.assertRaises(ReleaseContractError):
+            assert_normalized_service_pair(
+                {"web": without_platform, "worker": as_worker(base)}, identity, config
+            )
 
     def test_release_image_builds_and_verifies_the_runtime_static_manifest(self) -> None:
         dockerfile = (ROOT / "Dockerfile").read_text()

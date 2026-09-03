@@ -140,7 +140,22 @@ def parse_time(value: object, field: str) -> datetime:
     return parsed.astimezone(UTC)
 
 
-def environment_fingerprint(environ: Mapping[str, str] | None = None) -> dict[str, Any]:
+def environment_fingerprint(
+    environ: Mapping[str, str] | None = None,
+    *,
+    architecture: str | None = None,
+) -> dict[str, Any]:
+    """Fingerprint the environment an execution is bound to.
+
+    ``architecture`` names the machine a component is *authorized* to execute
+    on when that is not this host -- the container component builds and runs the
+    release image on the deployment target's architecture, so a planner on an
+    x86_64 runner still authorizes the aarch64 runner that job uses.  It is only
+    ever supplied while planning: an execution always fingerprints its real
+    host, so a wrong declared architecture fails the component closed instead of
+    passing it.
+    """
+
     environ = os.environ if environ is None else environ
     hosted_runner = "ImageOS" in environ or "RUNNER_OS" in environ
     runner_image = environ.get("ImageOS", environ.get("RUNNER_OS", "local"))
@@ -153,7 +168,7 @@ def environment_fingerprint(environ: Mapping[str, str] | None = None) -> dict[st
         "allowlisted_config": {
             key: environ[key] for key in ALLOWLISTED_CONFIG if key in environ and environ[key]
         },
-        "architecture": platform.machine() or "unknown",
+        "architecture": architecture or platform.machine() or "unknown",
         "browser": environ.get("VERIFICATION_BROWSER", "chromium"),
         "database": environ.get("VERIFICATION_DATABASE", "sqlite"),
         "django": _package_version("django"),
