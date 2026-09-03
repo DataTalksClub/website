@@ -1,4 +1,4 @@
-"""The learner project surfaces carry the design 5a shell (issue #179).
+"""The learner project surfaces carry the design system shell (issue #179).
 
 The project pages — the project itself, the two submission lists, the two
 peer-evaluation surfaces, the results and the statistics — are the same shape.
@@ -9,11 +9,13 @@ one inline stylesheet and no external CSS, the shared masthead/footer/script
 partials rather than a copy of them, the trail back to the course, and one h1
 per page.
 
-`projects/submissions.html` is the one project template not read here: its only
-route (`project_submissions`) redirects every caller — to the project page
+`projects/submissions.html` is not read here because it no longer exists: its
+only route (`project_submissions`) redirects every caller — to the project page
 without the course-operator role, and to the Studio Courses table with it — so
-no request renders it.  It is still carried, and still on the base, because the
-adoption manifest pins the file.
+no request ever rendered it.  The file and its homework sibling carried a member
+email column and a bulk "copy every address" button, which is Studio's to show
+and no one else's, so the dead templates were deleted rather than left one route
+change away from serving.
 
 A page rebuilt on the base later must keep passing this; a page that forks the
 shell, links a stylesheet or grows a second h1 fails here.
@@ -76,7 +78,7 @@ class ProjectDesignFiveAShellTests(TestCase):
         self.course = Cohort.objects.create(
             slug="shell-project-course",
             title="Shell Project Course",
-            description="Fixture for the project design 5a shell contract.",
+            description="Fixture for the project design system shell contract.",
         )
         self.project = Project.objects.create(
             course=self.course,

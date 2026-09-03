@@ -84,7 +84,6 @@ DESIGN_SYSTEM_TEMPLATES = (
     "courses/leaderboard_complaint.html",
     "homework/homework.html",
     "homework/stats.html",
-    "homework/submissions.html",
     # The account entrance family: the pages a visitor meets between deciding to
     # join and being signed in.  Sign in, sign out and the provider outcomes were
     # rebuilt with the rest of the system; sign up, its closed state, the four
@@ -181,7 +180,7 @@ class DesignFiveAShellTests(TestCase):
         cls.course = Cohort.objects.create(
             title="Shell parity course",
             slug="shell-parity-course",
-            description="Fixture for the design 5a shell comparison.",
+            description="Fixture for the design system shell comparison.",
             visible=True,
         )
         cls.episode = next(iter(public_projection()["podcasts_by_slug"].values()))
