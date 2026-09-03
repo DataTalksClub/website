@@ -48,11 +48,6 @@ urlpatterns = [
         name="historical-registration-list",
     ),
     path(
-        "events/historical-registration-totals/mappings/",
-        views.historical_registration_mappings,
-        name="historical-registration-mappings",
-    ),
-    path(
         "events/historical-registration-totals/<uuid:run_id>/",
         views.historical_registration_detail,
         name="historical-registration-detail",

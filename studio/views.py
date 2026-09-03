@@ -72,7 +72,7 @@ from events.importers import (
     registered_source_options,
     resolve_registered_source_reference,
 )
-from events.models import HistoricalEventMapping, HistoricalRegistrationSourceRun
+from events.models import HistoricalRegistrationSourceRun
 from events.services import (
     HistoricalRegistrationConflict,
     HistoricalRegistrationInvalid,
@@ -145,7 +145,6 @@ def _navigation(request: HttpRequest) -> tuple[dict[str, str], ...]:
                     "events.historical_registration_import.manage": (
                         "Historical registration totals"
                     ),
-                    "events.historical_registration_mapping.manage": "Historical mappings",
                     "events.historical_registration_total.read": "Registration total preview",
                     "events.identity.read": "Event identities",
                     "courses.registration_count_baseline.manage": ("Course registration totals"),
@@ -1595,104 +1594,6 @@ def historical_registration_action(
         )
     return HttpResponseRedirect(
         reverse("studio:historical-registration-detail", kwargs={"run_id": run_id})
-    )
-
-
-def historical_registration_mappings(request: HttpRequest) -> HttpResponse:
-    if request.method not in {"GET", "HEAD", "POST"}:
-        return HttpResponseNotAllowed(("GET", "HEAD", "POST"))
-    capability_key = (
-        "events.historical_registration_mapping.create"
-        if request.method == "POST"
-        else "events.historical_registration_mapping.manage"
-    )
-    selected = _event_actor(request, capability_key)
-    if isinstance(selected, HttpResponse):
-        return selected
-    error_message = ""
-    status = 200
-    if request.method == "POST":
-        try:
-            mapping_id_raw = request.POST.get("mapping_id", "")
-            mapping_id = uuid.UUID(mapping_id_raw) if mapping_id_raw else None
-            existing = (
-                HistoricalEventMapping.objects.get(pk=mapping_id)
-                if mapping_id is not None
-                else None
-            )
-            expected_revision: int | None = None
-            if existing is not None:
-                expected_revision = int(request.POST.get("expected_revision", "0"))
-                if expected_revision < 1:
-                    raise HistoricalRegistrationInvalid("expected_revision_invalid")
-            payload: JsonObject = {
-                "mapping_id": str(mapping_id) if mapping_id else None,
-                "provider": request.POST.get("provider") or None,
-                "external_event_identifier": (
-                    request.POST.get("external_event_identifier") or None
-                ),
-                "state": request.POST.get("state", ""),
-                "event_id": request.POST.get("event_id", ""),
-                "mapping_set_revision": int(request.POST.get("mapping_set_revision", "0")),
-                "expected_revision": expected_revision,
-                "reason_code": request.POST.get("reason_code", ""),
-                "reason": request.POST.get("reason", ""),
-                "coverage_boundary": request.POST.get("coverage_boundary", "historical"),
-                "combination_policy": request.POST.get("combination_policy", "replacement"),
-            }
-
-            def command() -> dict:
-                mapping = selected.capability.service(
-                    **payload,
-                    reviewer=selected.user,
-                    context=_studio_event_context(request),
-                )
-                return {"mapping_id": str(mapping.id)}
-
-            result = execute_idempotent(
-                scope=selected.capability.key,
-                key=request.POST.get("idempotency_key", ""),
-                request=payload,
-                command=command,
-            )
-            return HttpResponseRedirect(
-                f"{reverse('studio:historical-registration-mappings')}"
-                f"?updated={result.value['mapping_id']}"
-            )
-        except Exception as error:
-            error_message, status = _historical_studio_error(error)
-    listing = CAPABILITY_REGISTRY.require("events.historical_registration_mapping.manage").service(
-        page=1, page_size=100
-    )
-    identity_listing = list_event_identities(page=1, page_size=100)
-    event_identities = list(identity_listing["items"])
-    while len(event_identities) < identity_listing["total_count"]:
-        identity_listing = list_event_identities(
-            page=identity_listing["page"] + 1,
-            page_size=identity_listing["page_size"],
-        )
-        event_identities.extend(identity_listing["items"])
-    return render(
-        request,
-        "studio/historical_registration_mappings.html",
-        {
-            "mappings": listing["items"],
-            "event_identities": event_identities,
-            "mapping_states": (
-                HistoricalEventMapping.State.MAPPED,
-                HistoricalEventMapping.State.EXCLUDED,
-            ),
-            "combination_policies": (
-                "replacement",
-                "additive_disjoint",
-                "exclude",
-            ),
-            "providers": HistoricalRegistrationSourceRun.Provider.values,
-            "idempotency_key": uuid.uuid4(),
-            "error_message": error_message,
-            "studio_navigation": _navigation(request),
-        },
-        status=status,
     )
 
 
