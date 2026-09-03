@@ -1,14 +1,11 @@
 {% extends "studio/base.html" %}
+{% load breadcrumbs %}
 
 {% block title %}{{ event.title }} Q&amp;A · Studio · {{ brand_name }}{% endblock %}
 
 {% block breadcrumbs_nav %}
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <ol>
-      <li><a href="{% url 'studio:home' %}">Studio</a></li>
-      <li aria-current="page">Event Q&amp;A</li>
-    </ol>
-  </nav>
+  {% url 'studio:home' as studio_home_url %}
+  {% breadcrumbs "Studio" studio_home_url current="Event Q&A" %}
 {% endblock %}
 {% block page_head %}
   <div class="admin-head">

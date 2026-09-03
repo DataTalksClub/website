@@ -1,4 +1,4 @@
-{% load seo accessibility people public %}
+{% load breadcrumbs seo accessibility people public %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -210,16 +210,11 @@
     <main id="main-content" tabindex="-1">
       <article>
         <section class="band band-cream book-hero" aria-labelledby="book-heading">
-          <nav class="shell book-shell breadcrumbs" aria-label="Breadcrumb">
-            <ol>
-              <li>
-                <a href="{% url 'books' %}">Books</a>
-              </li>
-              <li aria-current="page">
-                {{ record.title }}
-              </li>
-            </ol>
-          </nav>
+          {% comment %}
+            The same trail the page publishes as BreadcrumbList JSON-LD: one
+            core.breadcrumbs.Trail built in the view and read twice.
+          {% endcomment %}
+          {% breadcrumbs breadcrumbs nav_class="shell book-shell" %}
           <div class="shell book-shell">
             <header>
               <p class="mono-label mono-label-indigo">book of the week</p>

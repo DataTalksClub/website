@@ -262,9 +262,14 @@ class SubmissionTemplateStructureTests(SimpleTestCase):
         course_source = read_template("courses/templates/courses/course.html")
 
         self.assertIn('{% extends "core/content_page.html" %}', source)
+        # The trail is drawn by the shared {% breadcrumbs %} tag rather than by
+        # nav markup this page writes for itself; the nav landmark lives once, in
+        # templates/core/_breadcrumbs.html.
+        self.assertIn("{% breadcrumbs ", source)
+        self.assertNotIn('<nav class="breadcrumbs"', source)
         self.assertIn(
-            '<nav class="breadcrumbs"',
-            source,
+            '<nav class="{{ nav_class }}" aria-label="{{ aria_label }}">',
+            read_template("templates/core/_breadcrumbs.html"),
         )
         self.assertIn('{% extends "core/content_page.html" %}', course_source)
         self.assertIn(

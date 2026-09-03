@@ -1,5 +1,5 @@
 {% extends "courses/_submission_page.html" %}
-{% load static custom_filters %}
+{% load breadcrumbs static custom_filters %}
 
 {% comment %}
   Project submission uses the same document and form shell as homework.  The
@@ -56,10 +56,8 @@
   }
 {% endblock %}
 
-{% block breadcrumbs %}
-  <li aria-current="page">
-    {{ project.title }}
-  </li>
+{% block breadcrumb_trail %}
+  {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url current=project.title %}
 {% endblock %}
 
 {% block hero_eyebrow %}

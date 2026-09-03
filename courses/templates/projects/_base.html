@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load seo %}
+{% load breadcrumbs seo %}
 {% comment %}
   The design 5a shell for the learner project pages (issue #179).
 
@@ -24,8 +24,9 @@
   .filter-pill, .field-*, .row-list, .stat-tile and .mono-* primitives, before
   writing anything in its own extra_styles block.
 
-  Blocks a page fills: document_title, meta_robots, extra_styles, breadcrumbs (the li
-  items after "Courses / <course>"), page_head, project_content and extra_js.
+  Blocks a page fills: document_title, meta_robots, extra_styles, breadcrumb_trail
+  (one {% breadcrumbs %} call naming the whole trail), page_head, project_content
+  and extra_js.
 
   Nothing here changes what a page does: forms, actions, field names, CSRF
   tokens, permission checks and redirects all stay in the pages themselves,
@@ -250,25 +251,17 @@
 
 {% block page_header %}
   {% comment %}
-    The trail the adopted shell used to draw, as the design system's own
-    primitive: every ancestor is a link and the page itself is plain text on
-    li[aria-current="page"], which each page supplies.
+    Every project surface sits under the same three levels, so the shell
+    reverses them once here and a page that adds its own levels re-declares the
+    whole trail in one {% breadcrumbs %} call rather than appending list items
+    to somebody else's markup.
   {% endcomment %}
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <ol>
-      <li>
-        <a href="{% url 'course_list' %}">Courses</a>
-      </li>
-      <li>
-        <a href="{% url 'course_family' course_family.slug %}">{{ course_family.title }}</a>
-      </li>
-      <li>
-        <a href="{% url 'course' course_family.slug course.identifier %}">{{ course.identifier }}</a>
-      </li>
-      {% block breadcrumbs %}
-      {% endblock %}
-    </ol>
-  </nav>
+  {% url 'course_list' as course_list_url %}
+  {% url 'course_family' course_family.slug as course_family_url %}
+  {% url 'course' course_family.slug course.identifier as cohort_url %}
+  {% block breadcrumb_trail %}
+    {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url %}
+  {% endblock %}
   {% block page_head %}
   {% endblock %}
 {% endblock %}

@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load seo %}
+{% load breadcrumbs seo %}
 
 {% block document_title %}{{ display_name }}'s DataTalks.Club Wrapped {{ year }}{% endblock %}
 
@@ -145,16 +145,8 @@
         The trail back to the year this page belongs to, as the design 5a
         primitive: the ancestor is a link and the current page is plain text.
       {% endcomment %}
-      <nav class="breadcrumbs" aria-label="Breadcrumb">
-        <ol>
-          <li>
-            <a href="{% url 'wrapped' year %}">{{ year }} Wrapped</a>
-          </li>
-          <li aria-current="page">
-            {{ display_name|default:viewed_user.username }}'s Wrapped
-          </li>
-        </ol>
-      </nav>
+      {% url 'wrapped' year as wrapped_url %}
+      {% breadcrumbs year|stringformat:"s"|add:" Wrapped" wrapped_url current=display_name|default:viewed_user.username|add:"'s Wrapped" %}
       <p class="mono-label mono-label-indigo">Year in review</p>
       {% if no_activity %}
         <h1 id="user-wrapped-heading">DataTalks.Club Wrapped {{ year }}</h1>

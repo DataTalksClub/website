@@ -1,4 +1,5 @@
 {% extends "core/content_page.html" %}
+{% load breadcrumbs %}
 
 {% block document_title %}{{ enrollment.display_name }} — {{ enrollment.course.title }} — DataTalks.Club{% endblock %}
 
@@ -210,25 +211,11 @@
 {% block header_attributes %}aria-labelledby="record-heading"{% endblock %}
 
 {% block page_header %}
-        <nav class="breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'course_list' %}">Courses</a>
-            </li>
-            <li>
-              <a href="{% url 'course_family' enrollment.course.course.slug %}">{{ enrollment.course.course.title }}</a>
-            </li>
-            <li>
-              <a href="{% url 'course' enrollment.course.course.slug enrollment.course.identifier %}">{{ enrollment.course.identifier }}</a>
-            </li>
-            <li>
-              <a href="{% url 'leaderboard' enrollment.course.course.slug enrollment.course.identifier %}">Leaderboard</a>
-            </li>
-            <li aria-current="page">
-              {{ enrollment.display_name }}
-            </li>
-          </ol>
-        </nav>
+        {% url 'course_list' as course_list_url %}
+        {% url 'course_family' enrollment.course.course.slug as course_family_url %}
+        {% url 'course' enrollment.course.course.slug enrollment.course.identifier as cohort_url %}
+        {% url 'leaderboard' enrollment.course.course.slug enrollment.course.identifier as leaderboard_url %}
+        {% breadcrumbs "Courses" course_list_url enrollment.course.course.title course_family_url enrollment.course.identifier cohort_url "Leaderboard" leaderboard_url current=enrollment.display_name %}
         <div class="record-hero-inner">
           <p class="mono-label mono-label-indigo">{{ enrollment.course.title }}</p>
           <h1 id="record-heading">{{ enrollment.display_name }}</h1>

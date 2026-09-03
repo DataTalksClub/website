@@ -74,6 +74,15 @@ def _levels(arguments: Sequence[object]) -> tuple[list[Crumb], str]:
             crumbs.append(argument)
             index += 1
             continue
+        if argument is None or argument == "":
+            # A level with no label is dropped below anyway, and a view that
+            # renders a template without its trail resolves the variable to the
+            # empty string.  Reading that as "no trail" is the only honest
+            # answer: the alternative is a page that raises rather than draws
+            # one fewer crumb.  Pairs with an empty label are still pairs, so
+            # this only skips a lone value.
+            index += 1
+            continue
         if isinstance(argument, Sequence) and not isinstance(argument, str | bytes):
             if len(argument) != 2:
                 raise template.TemplateSyntaxError(
@@ -109,6 +118,11 @@ def breadcrumbs(
 
     ancestors, trail_current = _levels(levels)
     label = str(current or "") or trail_current
+    if not ancestors and not label:
+        # Nothing to draw. An empty nav landmark is worse than no landmark: a
+        # screen reader announces "Breadcrumb navigation" and then finds it
+        # holds nothing.
+        return mark_safe("")  # noqa: S308 - the empty string is not markup
     return mark_safe(  # noqa: S308 - the partial escapes every value it draws
         render_to_string(
             _TEMPLATE,

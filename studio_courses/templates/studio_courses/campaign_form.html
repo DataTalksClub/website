@@ -1,5 +1,5 @@
 {% extends 'studio_courses/base.html' %}
-{% load accessibility %}
+{% load breadcrumbs accessibility %}
 {% comment %}
   The registration landing-page builder, on design 5a (issue #179).
 
@@ -52,23 +52,16 @@
      old 1.1rem while the shared control moved to 1.25rem. */
 {% endblock %}
 
-{% block breadcrumbs %}
-  <li>
-    <a href="{% url 'studio_courses_course_list' %}">Courses</a>
-  </li>
-  {% if course %}
-    <li>
-      <a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a>
-    </li>
-  {% endif %}
+{% block breadcrumb_trail %}
+  {% comment %}
+    A campaign that is not attached to a course yet names no course crumb: the
+    empty title drops the level rather than drawing one that says nothing.
+  {% endcomment %}
+  {% url 'studio_courses_course' course.slug as studio_course_url %}
   {% if campaign %}
-    <li aria-current="page">
-      {{ campaign.title }}
-    </li>
+    {% breadcrumbs "Studio" studio_home_url "Courses" studio_courses_url course.title studio_course_url current=campaign.title %}
   {% else %}
-    <li aria-current="page">
-      Create registration landing page
-    </li>
+    {% breadcrumbs "Studio" studio_home_url "Courses" studio_courses_url course.title studio_course_url current="Create registration landing page" %}
   {% endif %}
 {% endblock %}
 

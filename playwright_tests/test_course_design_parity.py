@@ -193,8 +193,8 @@ def _assert_local_page_assets(page: Page, origin: str) -> None:
     assert all(asset.startswith(f"{origin}/static/") for asset in assets), assets
 
 
-def _assert_design_breadcrumb_trail(page: Page) -> None:
-    """The design 5a trail: two levels, a real target on the way back, text where you are.
+def _assert_design_breadcrumb_trail(page: Page, *, levels: int) -> None:
+    """The design 5a trail: linked ancestors, a real target on each, text where you are.
 
     The adopted shell drew a compact crumb row and made the current page a link too.
     Design 5a (issue #179) states the opposite contract: every ancestor is a link with a
@@ -206,6 +206,10 @@ def _assert_design_breadcrumb_trail(page: Page) -> None:
     AA target-size floor.  The trail is allowed to wrap onto a second row on a phone, so
     this asserts the levels, the link/text split and the target floor rather than a
     single-line geometry.
+
+    ``levels`` is how many crumbs the page names, so a trail that gains a level — the
+    registration page split "<course> registration" into the course and the page — is
+    read as the new shape rather than silently satisfying a two-level assertion.
     """
 
     geometry = page.locator(".breadcrumbs li").evaluate_all(
@@ -219,10 +223,11 @@ def _assert_design_breadcrumb_trail(page: Page) -> None:
           };
         })"""
     )
-    assert len(geometry) == 2, geometry
-    ancestor, current = geometry
-    assert ancestor["isLink"] and ancestor["current"] is None, geometry
-    assert ancestor["linkHeight"] + 0.5 >= 32, geometry
+    assert len(geometry) == levels, geometry
+    *ancestors, current = geometry
+    for ancestor in ancestors:
+        assert ancestor["isLink"] and ancestor["current"] is None, geometry
+        assert ancestor["linkHeight"] + 0.5 >= 32, geometry
     assert not current["isLink"] and current["current"] == "page", geometry
     assert current["text"], geometry
 
@@ -485,7 +490,13 @@ def test_registration_breadcrumb_matches_cmp_without_losing_target_spacing(
     ).to_be_visible()
     breadcrumb = page.get_by_role("navigation", name="Breadcrumb")
     expect(breadcrumb.get_by_role("link", name="Courses", exact=True)).to_be_visible()
-    # Design 5a leaves the page you are on as text, so the second level is read, not linked.
+    # One level per crumb.  "<title> registration" used to be a single crumb, which wrote
+    # the course this form registers for into the trail as text instead of as the link
+    # back to it.  The course is its own level now, and "registration" — the one thing
+    # the heading below does not say — is the page.
+    expect(
+        breadcrumb.get_by_role("link", name="Machine Learning Zoomcamp", exact=True)
+    ).to_be_visible()
     expect(
         breadcrumb.get_by_role(
             "link",
@@ -495,9 +506,11 @@ def test_registration_breadcrumb_matches_cmp_without_losing_target_spacing(
     ).to_have_count(0)
     current = page.locator(".breadcrumbs li[aria-current='page']")
     expect(current).to_have_count(1)
-    expect(current).to_have_text(f"{cmp_registration_campaign.title} registration")
+    # Design 5a leaves the page you are on as text, so the last level is read, not linked.
+    expect(current).to_have_text("registration")
+    expect(current.get_by_role("link")).to_have_count(0)
     expect(page.get_by_text("1 already registered for 2026 cohort", exact=True)).to_be_visible()
-    _assert_design_breadcrumb_trail(page)
+    _assert_design_breadcrumb_trail(page, levels=3)
     assert target_size_issues(page, f"registration-{suffix}") == []
     _assert_local_page_assets(page, live_server.url)
     _assert_no_horizontal_overflow(page)
@@ -514,7 +527,7 @@ def test_registration_breadcrumb_matches_cmp_without_losing_target_spacing(
     cdp = page.context.new_cdp_session(page)
     cdp.send("Emulation.setPageScaleFactor", {"pageScaleFactor": 2})
     assert page.evaluate("visualViewport.scale") == 2
-    _assert_design_breadcrumb_trail(page)
+    _assert_design_breadcrumb_trail(page, levels=3)
     _assert_no_horizontal_overflow(page)
     page.screenshot(
         path=SCREENSHOTS / f"registration-cmp-zoom-{suffix}.png",

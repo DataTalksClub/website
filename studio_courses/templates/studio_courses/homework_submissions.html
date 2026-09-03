@@ -1,5 +1,5 @@
 {% extends 'studio_courses/base.html' %}
-{% load custom_filters %}
+{% load breadcrumbs custom_filters %}
 {% comment %}
   Design 5a (issue #179): the homework submissions grading surface.
 
@@ -34,16 +34,14 @@
   }
 {% endblock %}
 
-{% block breadcrumbs %}
-  <li>
-    <a href="{% url 'studio_courses_course_list' %}">Courses</a>
-  </li>
-  <li>
-    <a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a>
-  </li>
-  <li aria-current="page">
-    {{ homework.title }} Submissions
-  </li>
+{% block breadcrumb_trail %}
+  {% comment %}
+    "<homework> Submissions" used to be one crumb.  The homework is its own level
+    now; Studio has no page of its own for a homework, so that level names it
+    without linking rather than pointing at this list or off to the public page.
+  {% endcomment %}
+  {% url 'studio_courses_course' course.slug as studio_course_url %}
+  {% breadcrumbs "Studio" studio_home_url "Courses" studio_courses_url course.title studio_course_url homework.title "" current="Submissions" %}
 {% endblock %}
 
 {% block page_head %}

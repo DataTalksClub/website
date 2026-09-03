@@ -1,4 +1,4 @@
-{% load seo people %}
+{% load breadcrumbs seo people %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -384,16 +384,12 @@
     <main id="main-content" tabindex="-1">
       <article>
         <section class="band band-cream article-hero" aria-labelledby="article-heading">
-          <nav class="shell article-shell breadcrumbs" aria-label="Breadcrumb">
-            <ol>
-              <li>
-                <a href="{% url 'articles' %}">Blog</a>
-              </li>
-              <li aria-current="page">
-                {{ article.title }}
-              </li>
-            </ol>
-          </nav>
+          {% comment %}
+            The same trail the page publishes as BreadcrumbList JSON-LD: one
+            core.breadcrumbs.Trail built in the view and read twice, so the
+            crumbs and the structured data cannot drift apart.
+          {% endcomment %}
+          {% breadcrumbs breadcrumbs nav_class="shell article-shell" %}
           <div class="shell article-shell">
             <header class="article-head">
               <h1 id="article-heading">{{ article.title }}</h1>

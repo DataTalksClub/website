@@ -1,5 +1,5 @@
 {% extends "courses/_submission_page.html" %}
-{% load static custom_filters %}
+{% load breadcrumbs static custom_filters %}
 
 {% comment %}
   Peer-review feedback shares the submission shell with homework and project
@@ -76,25 +76,22 @@
   }
 {% endblock %}
 
-{% block breadcrumbs %}
-  <li>
-    {% if course.course %}
-      <a href="{% url 'project' course_slug=course.course.slug cohort_year=course.identifier project_slug=project.slug %}">{{ project.title }}</a>
-    {% else %}
-      <a href="{% url 'project' course_slug=course.slug project_slug=project.slug %}">{{ project.title }}</a>
-    {% endif %}
-  </li>
-  <li>
-    {% if course.course %}
-      <a href="{% url 'projects_eval' course.course.slug course.identifier project.slug %}">Evaluations</a>
-    {% else %}
-      <a href="{% url 'projects_eval' course.slug project.slug %}">Evaluations</a>
-    {% endif %}
-  </li>
-  </li>
-  <li aria-current="page">
-    Evaluate submission
-  </li>
+{% block breadcrumb_trail %}
+  {% comment %}
+    A pre-cohort course reverses the project routes without an edition segment,
+    so each destination is resolved in its own branch and the trail itself is
+    declared once.  The stray closing list item this block used to carry — an
+    unopened </li> between "Evaluations" and the current page — went with the
+    hand-written markup.
+  {% endcomment %}
+  {% if course.course %}
+    {% url 'project' course_slug=course.course.slug cohort_year=course.identifier project_slug=project.slug as project_url %}
+    {% url 'projects_eval' course.course.slug course.identifier project.slug as projects_eval_url %}
+  {% else %}
+    {% url 'project' course_slug=course.slug project_slug=project.slug as project_url %}
+    {% url 'projects_eval' course.slug project.slug as projects_eval_url %}
+  {% endif %}
+  {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url project.title project_url "Evaluations" projects_eval_url current="Evaluate submission" %}
 {% endblock %}
 
 {% block hero_eyebrow %}

@@ -1,4 +1,4 @@
-{% load seo static %}
+{% load breadcrumbs seo static %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -103,16 +103,8 @@
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream wiki-hero" aria-labelledby="search-heading">
-        <nav class="shell shell-reading breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'wiki-home' %}">Wiki</a>
-            </li>
-            <li aria-current="page">
-              Search
-            </li>
-          </ol>
-        </nav>
+        {% url 'wiki-home' as wiki_home_url %}
+        {% breadcrumbs "Wiki" wiki_home_url current="Search" nav_class="shell shell-reading" %}
         <div class="shell shell-reading">
           <h1 id="search-heading">Search the Wiki</h1>
           {% include "public/_wiki_search_form.html" with search_label="Search term" %}

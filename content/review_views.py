@@ -15,6 +15,8 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_safe
 
+from core.breadcrumbs import trail
+
 from .docs_presentation import (
     docs_body_without_primary_heading,
     docs_context_items,
@@ -124,7 +126,18 @@ def _docs_detail_context(
         "docs_heading_title": headings[0]["title"] if headings else document["title"],
         "docs_html": rendered_body,
         "docs_headings": headings,
-        "docs_breadcrumbs": docs_breadcrumbs(document),
+        # The projection answers in its own dict shape; the page draws the site's
+        # one trail, so the levels are turned into a core.breadcrumbs.Trail here
+        # rather than the template hand-writing nav/ol/li markup of its own.  The
+        # document itself is the last level: a Docs page's h1 is the heading the
+        # source file wrote, which is not always the navigation title.
+        "docs_trail": trail(
+            *(
+                (str(item["title"]), str(item["public_path"]))
+                for item in docs_breadcrumbs(document)
+            ),
+            (str(document["title"]), public_path),
+        ),
         "docs_children": docs_children(public_path),
         "docs_context_root": context_root,
         "docs_context_items": docs_context_items(navigation, public_path),

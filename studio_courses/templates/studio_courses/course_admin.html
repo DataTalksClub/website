@@ -1,5 +1,5 @@
 {% extends 'studio_courses/base.html' %}
-{% load custom_filters %}
+{% load breadcrumbs custom_filters %}
 {% comment %}
   The Studio Courses workspace for one course, on design 5a (issue #179).
 
@@ -38,13 +38,8 @@
   }
 {% endblock %}
 
-{% block breadcrumbs %}
-  <li>
-    <a href="{% url 'studio_courses_course_list' %}">Courses</a>
-  </li>
-  <li aria-current="page">
-    {{ course.title }}
-  </li>
+{% block breadcrumb_trail %}
+  {% breadcrumbs "Studio" studio_home_url "Courses" studio_courses_url current=course.title %}
 {% endblock %}
 
 {% block page_head %}

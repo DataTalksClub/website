@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load seo static %}
+{% load breadcrumbs seo static %}
 
 {% comment %}
   Shared learner mutation shell. Homework, project submission, and peer review
@@ -157,21 +157,18 @@
 {% block header_attributes %}aria-labelledby="submission-heading"{% endblock %}
 
 {% block page_header %}
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <ol>
-      <li>
-        <a href="{% url 'course_list' %}">Courses</a>
-      </li>
-      <li>
-        <a href="{% url 'course_family' course_family.slug %}">{{ course_family.title }}</a>
-      </li>
-      <li>
-        <a href="{% url 'course' course_family.slug course.identifier %}">{{ course.identifier }}</a>
-      </li>
-      {% block breadcrumbs %}
-      {% endblock %}
-    </ol>
-  </nav>
+  {% comment %}
+    Every learner mutation surface sits under the same three levels, so the shell
+    reverses them once and a page that adds its own levels re-declares the whole
+    trail in one {% breadcrumbs %} call rather than appending list items to
+    somebody else's markup.
+  {% endcomment %}
+  {% url 'course_list' as course_list_url %}
+  {% url 'course_family' course_family.slug as course_family_url %}
+  {% url 'course' course_family.slug course.identifier as cohort_url %}
+  {% block breadcrumb_trail %}
+    {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url %}
+  {% endblock %}
   <div class="submission-hero-inner">
     {% block hero_eyebrow %}
     {% endblock %}

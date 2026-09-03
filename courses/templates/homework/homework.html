@@ -1,5 +1,5 @@
 {% extends "courses/_submission_page.html" %}
-{% load static custom_filters %}
+{% load breadcrumbs static custom_filters %}
 
 {% comment %}
   Homework uses the shared submission document.  The course remains in the
@@ -26,19 +26,17 @@
   <meta name="twitter:title" content="{{ homework.title }} — {{ course.title }} — DataTalks.Club">
 {% endblock %}
 
-{% block breadcrumbs %}
+{% block breadcrumb_trail %}
   {% comment %}
     The module crumb, restored.  A learner reaches this page from a module rail
     that names "Homework 1: Agentic RAG"; without the module the trail forgot
     the only step that was theirs.  The trail still stops at the parent — the
     homework title is the h1 directly beneath it — and it keeps the quiet
-    shared treatment the course, module and unit trails now use.
+    shared treatment the course, module and unit trails now use.  A homework
+    with no module of its own names none, and the trail is the shell's three.
   {% endcomment %}
-  {% if homework_module and course.course %}
-    <li>
-      <a href="{% url 'module' course.course.slug course.identifier homework_module.slug %}">{{ homework_module.title }}</a>
-    </li>
-  {% endif %}
+  {% url 'module' course.course.slug course.identifier homework_module.slug as homework_module_url %}
+  {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url homework_module.title homework_module_url %}
 {% endblock %}
 
 {% block hero_heading %}

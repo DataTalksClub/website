@@ -25,6 +25,8 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_safe
 
+from core.breadcrumbs import Trail, trail
+from core.runtime_endpoints import canonical_origin
 from core.sponsors import public_events_hub_sponsors
 from course_management.observability import record_event
 from courses.models import Cohort
@@ -98,18 +100,26 @@ EVENT_FILTER_SELECTORS = frozenset({"filter", "page"})
 
 
 def _canonical(path: str) -> str:
-    return f"{settings.CANONICAL_ORIGIN.rstrip('/')}{path}"
+    return f"{canonical_origin().rstrip('/')}{path}"
 
 
 def _json_ld(
     entity: dict,
-    breadcrumbs: tuple[tuple[str, str], ...] = (),
+    breadcrumbs: Trail | None = None,
     *,
     extra: tuple[dict, ...] = (),
 ) -> str:
+    """Serialise one page's entity graph, and its trail when it has one.
+
+    The trail is the same ``core.breadcrumbs.Trail`` the page draws with
+    ``{% breadcrumbs %}``, so the published ``BreadcrumbList`` and the visible
+    crumbs cannot say different things: the levels are declared once, in the
+    view, and the site root is added here and only here.
+    """
+
     graph = [{"@id": entity["url"], **entity}]
     graph.extend(extra)
-    if breadcrumbs:
+    if breadcrumbs is not None:
         graph.append(
             {
                 "@type": "BreadcrumbList",
@@ -120,7 +130,7 @@ def _json_ld(
                         "name": name,
                         "item": _canonical(path),
                     }
-                    for position, (name, path) in enumerate(breadcrumbs, start=1)
+                    for position, (name, path) in enumerate(breadcrumbs.published_items(), start=1)
                 ],
             }
         )
@@ -439,7 +449,7 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
             "og_type": "event",
             "structured_data": _json_ld(
                 entity,
-                (("Home", "/"), ("Events", "/events"), (event["title"], event["public_path"])),
+                trail(("Events", "/events"), (event["title"], event["public_path"])),
             ),
         },
     )
@@ -680,6 +690,7 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
     # body never carried; `content.article_faq` holds that recovered half.  An
     # article without one gets `None`, and the page then draws no FAQ region.
     faq = article_faq(slug)
+    article_trail = trail(("Blog", "/blog"), (article["title"], article["public_path"]))
     return _render(
         request,
         "public/article_detail.html",
@@ -688,6 +699,7 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
         description=article["description"],
         context={
             "record": article,
+            "breadcrumbs": article_trail,
             # The design 5a reading page (issue #179) renders this composed value:
             # the byline joined to the people records, the publication date and
             # reading estimate the design writes, and the body as prose sections.
@@ -716,7 +728,7 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
                         else {}
                     ),
                 },
-                (("Home", "/"), ("Blog", "/blog"), (article["title"], article["public_path"])),
+                article_trail,
                 # The legacy accordion published FAQPage data with every one of
                 # these ten sections, and the course FAQ pages publish the same
                 # node today (`review_views._faq_structured_data`).  Restoring it
@@ -792,11 +804,7 @@ def _render_podcast_detail(
             "published_time": episode["published"] or "",
             "structured_data": _json_ld(
                 episode_entity,
-                (
-                    ("Home", "/"),
-                    ("Podcast", "/podcast"),
-                    (episode["title"], episode["public_path"]),
-                ),
+                trail(("Podcast", "/podcast"), (episode["title"], episode["public_path"])),
             ),
         },
     )
@@ -889,6 +897,7 @@ def book_detail(request: HttpRequest, slug: str) -> HttpResponse:
     summary_html, summary_is_block = (
         render_body_markdown(book["summary"]) if book["summary"] else ("", False)
     )
+    book_trail = trail(("Books", "/books"), (book["title"], book["public_path"]))
     return _render(
         request,
         "public/book_detail.html",
@@ -897,6 +906,7 @@ def book_detail(request: HttpRequest, slug: str) -> HttpResponse:
         description=book["description"],
         context={
             "record": book,
+            "breadcrumbs": book_trail,
             "summary_html": summary_html,
             "summary_is_block": summary_is_block,
             "og_type": "book",
@@ -924,7 +934,7 @@ def book_detail(request: HttpRequest, slug: str) -> HttpResponse:
                     ],
                     **({"image": _canonical(book["image_path"])} if book["image_path"] else {}),
                 },
-                (("Home", "/"), ("Books", "/books"), (book["title"], book["public_path"])),
+                book_trail,
             ),
         },
     )
@@ -954,7 +964,7 @@ def person_detail(request: HttpRequest, slug: str) -> HttpResponse:
                     "sameAs": [link["url"] for link in person["links"]],
                     **({"image": _canonical(person["image_path"])} if person["image_path"] else {}),
                 },
-                (("Home", "/"), (person["title"], person["public_path"])),
+                trail((person["title"], person["public_path"])),
             ),
         },
     )
@@ -1001,6 +1011,7 @@ def wiki_detail(request: HttpRequest, slug: str) -> HttpResponse:
     page = public_projection()["wiki_by_slug"].get(slug)
     if page is None:
         raise Http404
+    wiki_trail = trail(("Wiki", "/wiki"), (page["title"], page["public_path"]))
     return _render(
         request,
         "public/wiki_detail.html",
@@ -1009,6 +1020,7 @@ def wiki_detail(request: HttpRequest, slug: str) -> HttpResponse:
         description=page["summary"],
         context={
             "record": page,
+            "breadcrumbs": wiki_trail,
             "og_type": "article",
             "structured_data": _json_ld(
                 {
@@ -1017,7 +1029,7 @@ def wiki_detail(request: HttpRequest, slug: str) -> HttpResponse:
                     "headline": page["title"],
                     "description": page["summary"],
                 },
-                (("Home", "/"), ("Wiki", "/wiki"), (page["title"], page["public_path"])),
+                wiki_trail,
             ),
         },
     )

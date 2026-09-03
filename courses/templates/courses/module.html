@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load seo static curriculum_titles %}
+{% load breadcrumbs seo static curriculum_titles %}
 
 {% block document_title %}{{ module.title }} — {{ cohort.title }} — DataTalks.Club{% endblock %}
 
@@ -150,20 +150,15 @@
 {% block header_attributes %}aria-labelledby="module-heading"{% endblock %}
 
 {% block page_header %}
-        <nav class="breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li><a href="{% url 'course_list' %}">Courses</a></li>
-            <li><a href="{% url 'course_family' course_family.slug %}">{{ course_family.title }}</a></li>
-            {% comment %}
-              The edition, not the course name again: the crumb before it is the
-              course family, and every other course trail shows the identifier.
-            {% endcomment %}
-            <li><a href="{% url 'course' course_family.slug cohort.identifier %}">{{ cohort.identifier }}</a></li>
-            {% comment %}
-              The trail stops at the edition: this module is the heading below.
-            {% endcomment %}
-          </ol>
-        </nav>
+        {% comment %}
+          The edition, not the course name again: the crumb before it is the
+          course family, and every other course trail shows the identifier.  The
+          trail then stops at the edition, because this module is the heading below.
+        {% endcomment %}
+        {% url 'course_list' as course_list_url %}
+        {% url 'course_family' course_family.slug as course_family_url %}
+        {% url 'course' course_family.slug cohort.identifier as cohort_url %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url cohort.identifier cohort_url %}
         <div class="module-hero-inner">
           <h1 id="module-heading">{{ module.title }}</h1>
         </div>

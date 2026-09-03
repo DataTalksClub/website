@@ -1,4 +1,5 @@
 {% extends "core/content_page.html" %}
+{% load breadcrumbs %}
 
 {% block document_title %}{{ homework.title }} submissions — {{ course.title }} — DataTalks.Club{% endblock %}
 
@@ -152,25 +153,11 @@
 {% block header_attributes %}aria-labelledby="submissions-heading"{% endblock %}
 
 {% block page_header %}
-        <nav class="breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'course_list' %}">Courses</a>
-            </li>
-            <li>
-              <a href="{% url 'course_family' course_family.slug %}">{{ course_family.title }}</a>
-            </li>
-            <li>
-              <a href="{% url 'course' course_family.slug course.identifier %}">{{ course.identifier }}</a>
-            </li>
-            <li>
-              <a href="{% url 'homework' course_family.slug course.identifier homework.slug %}">{{ homework.title }}</a>
-            </li>
-            <li aria-current="page">
-              Submissions
-            </li>
-          </ol>
-        </nav>
+        {% url 'course_list' as course_list_url %}
+        {% url 'course_family' course_family.slug as course_family_url %}
+        {% url 'course' course_family.slug course.identifier as cohort_url %}
+        {% url 'homework' course_family.slug course.identifier homework.slug as homework_url %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url homework.title homework_url current="Submissions" %}
         <div class="submissions-hero-inner">
           <p class="mono-label mono-label-indigo">{{ course.title }}</p>
           <h1 id="submissions-heading">{{ homework.title }} Submissions</h1>

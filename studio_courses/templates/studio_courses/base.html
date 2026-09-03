@@ -1,5 +1,5 @@
 {% extends "studio/base.html" %}
-{% load static %}
+{% load breadcrumbs static %}
 {% comment %}
   The design 5a shell for the Studio Courses pages (issue #179).
 
@@ -13,14 +13,15 @@
   partials) and adds only what is its own: the breadcrumb trail back to Studio, the
   local-date script its deadline columns use, and its content block.
 
-  Blocks a page fills here: title, breadcrumbs (the li items after "Studio"),
-  studio_courses_content, and everything studio/base.html exposes (head_meta,
-  extra_styles, page_head, extra_js).
+  Blocks a page fills here: title, breadcrumb_trail (one {% breadcrumbs %} call
+  naming the whole trail), studio_courses_content, and everything studio/base.html
+  exposes (head_meta, extra_styles, page_head, extra_js).
 
-  The trail is the design system's .breadcrumbs primitive: a nav holding an ol, one
-  li per level, every ancestor a link, and the page itself as plain text on
-  li[aria-current="page"] — a page's own breadcrumbs block supplies its levels and
-  marks its last one.
+  The trail is drawn by the shared {% breadcrumbs %} tag, so no page here writes
+  breadcrumb markup: it names its levels and the tag owns the nav landmark, the
+  ordered list, the link rule and the aria-current spelling.  The Studio root is
+  reversed once below, and is drawn as plain text on the deployments where that
+  route is not installed rather than as a link that goes nowhere.
 {% endcomment %}
 
 {% block title %}
@@ -28,23 +29,11 @@
 {% endblock %}
 
 {% block breadcrumbs_nav %}
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <ol>
-      {% url 'studio:home' as studio_home_url %}
-      <li>
-        {% if studio_home_url %}
-          <a href="{{ studio_home_url }}">Studio</a>
-        {% else %}
-          <span>Studio</span>
-        {% endif %}
-      </li>
-      {% block breadcrumbs %}
-        <li aria-current="page">
-          Courses
-        </li>
-      {% endblock %}
-    </ol>
-  </nav>
+  {% url 'studio:home' as studio_home_url %}
+  {% url 'studio_courses_course_list' as studio_courses_url %}
+  {% block breadcrumb_trail %}
+    {% breadcrumbs "Studio" studio_home_url current="Courses" %}
+  {% endblock %}
 {% endblock %}
 
 {% block content %}
