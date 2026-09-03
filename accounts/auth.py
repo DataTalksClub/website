@@ -262,6 +262,29 @@ class ConsolidatingSocialAccountAdapter(DefaultSocialAccountAdapter):
         del request, sociallogin
         return False
 
+    def is_email_verified(self, provider, email) -> bool:
+        """This site never assumes an address is verified.  The provider says.
+
+        allauth calls this from ``Provider.cleanup_email_addresses`` and, when
+        it answers ``True``, overwrites the provider's own ``verified`` flag on
+        every address before any of the code below runs — including addresses
+        GitHub reports as ``verified: false`` and the public profile address,
+        which anyone may set to anyone else's.  It answers ``True`` whenever a
+        ``VERIFIED_EMAIL`` entry exists in ``SOCIALACCOUNT_PROVIDERS`` or a
+        ``verified_email`` key is stored on the ``SocialApp`` row, so leaving
+        the base implementation in place would make the linking rule below
+        revertible by configuration.
+
+        Roughly 20,000 imported accounts are matched to their enrollments,
+        submissions, scores and certificates by email address, and the
+        provider's assertion is the only evidence that an address belongs to
+        the person presenting it.  Refusing here closes that door structurally
+        rather than by settings hygiene.
+        """
+
+        del provider, email
+        return False
+
     def pre_social_login(self, request, sociallogin):
         if sociallogin.is_existing:
             self._validate_existing_connection(request, sociallogin)
