@@ -400,6 +400,58 @@ def create_event_identity(
     raise AssertionError("public ID allocation retry loop exhausted without returning")
 
 
+# Provenance recorded for an identity minted from a live provider export rather
+# than the reviewed legacy-site manifest.  Distinct per provider so a Luma event
+# id and an Eventbrite event id can never collide on the same source identity.
+PROVIDER_SOURCE_REPOSITORY = {
+    "luma": "dtc-historical-source/luma",
+    "eventbrite": "dtc-historical-source/eventbrite",
+}
+PROVIDER_SOURCE_REVISION = {
+    "luma": "luma-aggregate-v1",
+    "eventbrite": "eventbrite-aggregate-v1",
+}
+
+
+def provider_source_identity(*, provider: str, external_event_identifier: str) -> SourceIdentity:
+    """The source identity a provider-discovered event is created and looked up under."""
+
+    if provider not in PROVIDER_SOURCE_REPOSITORY:
+        raise EventIdentityError("unsupported_provider")
+    return SourceIdentity(
+        repository=PROVIDER_SOURCE_REPOSITORY[provider],
+        revision=PROVIDER_SOURCE_REVISION[provider],
+        source_key=external_event_identifier,
+    )
+
+
+def create_provider_event_identity(
+    *, provider: str, external_event_identifier: str, title: str
+) -> Event:
+    """Mint an Event identity for one provider event, using the shared allocator.
+
+    This is plumbing, not editorial review: title and a canonical
+    ``/events/<public_id>/<slug>`` path, nothing that renders a registration
+    count or a legacy redirect.  It calls :func:`create_event_identity` --
+    the same atomic, allocator-safe machinery the reviewed manifest import
+    uses -- rather than re-deriving a public ID or canonical path here.
+
+    Callers own idempotency: check :func:`resolve_source_identity` with
+    :func:`provider_source_identity` first, and skip creation if it already
+    resolves. This function always inserts.
+    """
+
+    source = provider_source_identity(
+        provider=provider, external_event_identifier=external_event_identifier
+    )
+    return create_event_identity(
+        title=title,
+        source_repository=source.repository,
+        source_revision=source.revision,
+        source_key=source.source_key,
+    )
+
+
 def current_slug(event_id: uuid.UUID | str) -> str:
     return resolve_uuid(event_id).slug
 

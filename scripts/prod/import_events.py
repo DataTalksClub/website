@@ -30,6 +30,16 @@ the backlog.  Every run reports ``activation_coverage`` so an operator sees
 "3 of 383 provider events activated, 380 awaiting mapping review" rather than a
 silent success.  Unmapped events render no registration count at all.
 
+**New event identities** (``new_event_identities`` in the report): a genuinely
+new event -- one a fresh Luma export names that neither the reviewed manifest
+nor any prior provider-registration run has ever seen -- gets a real
+``Event`` row here, via ``events.identity.create_event_identity``.  This is
+title and a canonical path only; it never activates a registration count, and
+it never touches ``events/event_identity_manifest.json``.  See
+``discover_new_luma_event_identities`` and ``discover_new_provider_events``.
+Run with ``--discover-new-events-only`` to do just this against a fresh export
+that has not yet been reconciled into ``event-registration-sources.json``.
+
 What does not land yet
 ----------------------
 
@@ -148,6 +158,156 @@ def import_identities(*, manifest: Path | None = None, apply: bool = True) -> di
         "replayed": report.replayed,
         "applied": apply,
     }
+
+
+# --------------------------------------------------------------------------
+# New-event identity discovery
+# --------------------------------------------------------------------------
+#
+# The reviewed manifest (above) is frozen and hand-checked; it never grows on
+# its own.  A genuinely new event -- one a fresh Luma/Eventbrite export names
+# that neither the manifest nor any prior provider-registration run has ever
+# seen -- previously had no path to becoming a real ``Event`` row at all:
+# ``events.identity.create_event_identity`` had zero callers anywhere outside
+# tests.  This section is that path.
+#
+# It is deliberately kept separate from ``activation_coverage`` below.  Minting
+# an identity is safe, reviewable plumbing -- title and a canonical path,
+# nothing a visitor's registration count depends on -- so it is fine to
+# automate.  Activating that event's registration *count* is a different,
+# already-gated decision (``mapping_review_required``, s.8/16/17 of the
+# data-ingest runbook) and stays exactly as gated as it is today: this section
+# never creates or activates a ``HistoricalEventMapping``.
+
+
+def discover_new_provider_events(
+    *, provider: str, discovered: tuple[Any, ...], apply: bool = True
+) -> dict[str, Any]:
+    """Create identities for provider events this database has never tracked.
+
+    ``discovered`` items only need ``external_event_identifier``, ``title``,
+    ``start_at`` and ``eligible_count`` attributes -- shaped for
+    ``events.importers.DiscoveredLumaEvent`` today, provider-agnostic by
+    contract for whenever an Eventbrite export carries its own title source.
+
+    An event is skipped, not created, when any of these is true:
+
+    - This database already holds an ``Event`` under our own provider source
+      identity (idempotent replay -- a second run creates nothing new).
+    - A ``HistoricalEventMapping`` row already exists for
+      ``(provider, external_event_identifier)`` in *any* state, including
+      ``review_required``.  This is what keeps the step from racing ahead of
+      the existing, separately tracked mapping-review backlog: an event
+      already staged there was very likely described by the legacy manifest
+      under a different (date/title-derived) source key, and creating a
+      second identity for it would be a silent duplicate, not a fix.
+    - The export carries no title for it (``item.title == ""`` -- a Luma event
+      with zero registrations has no row to read one from).  Reported
+      separately as ``no_metadata_total`` rather than silently dropped, since
+      an operator needs to know an event exists that this step could not name.
+    """
+
+    from events.identity import (
+        EventIdentityError,
+        EventIdentityNotFound,
+        canonical_detail_path,
+        create_provider_event_identity,
+        provider_source_identity,
+        resolve_source_identity,
+    )
+    from events.models import HistoricalEventMapping
+
+    created: list[dict[str, Any]] = []
+    no_metadata: list[dict[str, Any]] = []
+    already_tracked = 0
+    for item in discovered:
+        already_mapped = HistoricalEventMapping.objects.filter(
+            provider=provider,
+            external_event_identifier=item.external_event_identifier,
+        ).exists()
+        source = provider_source_identity(
+            provider=provider, external_event_identifier=item.external_event_identifier
+        )
+        try:
+            existing = resolve_source_identity(
+                repository=source.repository,
+                revision=source.revision,
+                source_key=source.source_key,
+            )
+        except EventIdentityNotFound:
+            existing = None
+        if already_mapped or existing is not None:
+            already_tracked += 1
+            continue
+        if not item.title:
+            # The provider event id is public (it is part of the event's public
+            # Luma/Eventbrite URL), not attendee PII, so it is safe to report.
+            no_metadata.append(
+                {
+                    "external_event_identifier": item.external_event_identifier,
+                    "eligible_count": item.eligible_count,
+                }
+            )
+            continue
+        entry: dict[str, Any] = {
+            "title": item.title,
+            "start_at": item.start_at,
+            "eligible_count": item.eligible_count,
+        }
+        if not apply:
+            created.append({**entry, "public_id": None, "canonical_path": None, "dry_run": True})
+            continue
+        try:
+            event = create_provider_event_identity(
+                provider=provider,
+                external_event_identifier=item.external_event_identifier,
+                title=item.title,
+            )
+        except EventIdentityError as error:
+            raise EventImportError("provider_event_identity_invalid") from error
+        created.append(
+            {
+                **entry,
+                "public_id": event.public_id,
+                "canonical_path": canonical_detail_path(event.id),
+                "reason": (
+                    "Auto-created: no reviewed identity-manifest entry and no "
+                    "HistoricalEventMapping row existed for this provider event "
+                    "at run time -- title and canonical path only, no "
+                    "registration count was activated."
+                ),
+            }
+        )
+    return {
+        "provider": provider,
+        "mechanism": "auto_created_event_identity",
+        "candidate_total": len(discovered),
+        "already_tracked_total": already_tracked,
+        "no_metadata_total": len(no_metadata),
+        "no_metadata_events": no_metadata,
+        "created_total": len(created),
+        "created_events": created,
+        "applied": apply,
+    }
+
+
+def discover_new_luma_event_identities(*, luma_source: Path, apply: bool = True) -> dict[str, Any]:
+    """Read a Luma export directory directly and create identities for new events.
+
+    Unlike ``derive_luma`` (below), this never requires the export to match a
+    previously pinned whole-tree checksum -- that pin exists to protect
+    registration *counts* from silent drift, and identity creation writes no
+    count.  See ``events.importers.discover_luma_events`` for the read and
+    ``discover_new_provider_events`` for the create-or-skip decision.
+    """
+
+    from events.importers import ProtectedSourceError, discover_luma_events
+
+    try:
+        discovered = discover_luma_events(luma_source)
+    except ProtectedSourceError as error:
+        raise EventImportError("luma_discovery_failed") from error
+    return discover_new_provider_events(provider="luma", discovered=discovered, apply=apply)
 
 
 # --------------------------------------------------------------------------
@@ -407,6 +567,13 @@ def run(
         raise EventImportError("registration_source_unavailable")
 
     identities = import_identities(manifest=identity_manifest, apply=True)
+    # Distinct top-level key, deliberately never merged into `identities` (the
+    # reviewed-manifest replay) or `activation_coverage` (the registration-count
+    # gate) -- an operator reading the report must not mistake an automatic
+    # creation for either the reviewed manifest changing or a count activating.
+    new_event_identities = {
+        "luma": discover_new_luma_event_identities(luma_source=luma_source, apply=True),
+    }
     current_input = load_current_registration_input(current_registration_input)
     source_report, derived_sources = derive_registration_sources(
         luma_source=luma_source,
@@ -421,6 +588,7 @@ def run(
     )
     return {
         "identities": identities,
+        "new_event_identities": new_event_identities,
         "registration_sources": source_report,
         "registration_import": staged,
         "activation_coverage": activation_coverage(
@@ -449,6 +617,18 @@ def _parser() -> argparse.ArgumentParser:
             "review-required and renders no count."
         ),
     )
+    parser.add_argument(
+        "--discover-new-events-only",
+        action="store_true",
+        help=(
+            "Import identities, then discover and create identities for new Luma "
+            "events only. Skips registration-aggregate derivation entirely, so it "
+            "does not require --eventbrite-source and does not require "
+            "--luma-source to match the pinned checksum in "
+            "event-registration-sources.json -- use this to land a fresh export "
+            "the registration pipeline has not been reconciled against yet."
+        ),
+    )
     return parser
 
 
@@ -456,16 +636,30 @@ def main(argv: list[str] | None = None) -> int:
     try:
         args = _parser().parse_args(argv)
         _configure(args.database.resolve())
-        report = run(
-            identity_manifest=args.identity_manifest.resolve(),
-            luma_source=args.luma_source.resolve(),
-            eventbrite_source=args.eventbrite_source.resolve(),
-            current_registration_input=(
-                args.current_registration_input.resolve()
-                if args.current_registration_input is not None
-                else None
-            ),
-        )
+        if args.discover_new_events_only:
+            if not args.luma_source.resolve().is_dir():
+                raise EventImportError("registration_source_unavailable")
+            report = {
+                "identities": import_identities(
+                    manifest=args.identity_manifest.resolve(), apply=True
+                ),
+                "new_event_identities": {
+                    "luma": discover_new_luma_event_identities(
+                        luma_source=args.luma_source.resolve(), apply=True
+                    ),
+                },
+            }
+        else:
+            report = run(
+                identity_manifest=args.identity_manifest.resolve(),
+                luma_source=args.luma_source.resolve(),
+                eventbrite_source=args.eventbrite_source.resolve(),
+                current_registration_input=(
+                    args.current_registration_input.resolve()
+                    if args.current_registration_input is not None
+                    else None
+                ),
+            )
     except EventImportError as error:
         # The error carries a condition code, never a source value.
         print(json.dumps({"error": str(error)}, indent=2))
