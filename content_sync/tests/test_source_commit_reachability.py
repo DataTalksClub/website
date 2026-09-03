@@ -4,25 +4,30 @@ A unit records its provenance as a repository plus a commit SHA, and every
 public affordance built from that provenance -- the "Edit on GitHub" link, the
 raw image URL, a source path a reader follows -- assumes the commit is on the
 public repository.  Importing a commit that only exists on a local clone
-publishes pages whose source links can only 404, so ``pull_course_repositories
+publishes pages whose source links can only 404, so ``sync_course_repositories.py
 --require-public-commit`` refuses it.
 """
 
 from __future__ import annotations
 
-import io
 import subprocess
 import tempfile
 import uuid
 from pathlib import Path
 
 from django.conf import settings
-from django.core.management import CommandError, call_command
 from django.test import SimpleTestCase, TestCase
 
 from content.models import ContentSource
 from content_sync.course_repository_checkout import commit_is_public, public_repository_urls
 from content_sync.course_repository_webhook import COURSE_REPOSITORY_ADAPTER_TYPE
+from scripts.prod.sync_course_repositories import (
+    SyncCourseRepositoriesError,
+    select_sources,
+)
+from scripts.prod.sync_course_repositories import (
+    pull as pull_sources,
+)
 
 PUBLIC_URL = "https://github.com/DataTalksClub/llm-zoomcamp.git"
 
@@ -140,22 +145,19 @@ class RequirePublicCommitOptionTests(TestCase):
             max_bytes=100_000_000,
         )
 
-    def pull(self, *arguments: str) -> None:
-        call_command(
-            "pull_course_repositories",
-            "--checkout",
-            f"llm-zoomcamp={self.root}",
-            *arguments,
-            stdout=io.StringIO(),
-            stderr=io.StringIO(),
+    def pull(self, *, require_public_commit: bool = False) -> None:
+        checkouts = {"llm-zoomcamp": self.root}
+        sources = select_sources((), explicit=checkouts, root=None)
+        pull_sources(
+            sources=sources, checkouts=checkouts, require_public_commit=require_public_commit
         )
 
     def test_an_unpublished_commit_is_refused_when_the_guard_is_asked_for(self) -> None:
-        with self.assertRaisesRegex(CommandError, "is not on a branch of"):
-            self.pull("--require-public-commit")
+        with self.assertRaisesRegex(SyncCourseRepositoriesError, "is not on a branch of"):
+            self.pull(require_public_commit=True)
 
     def test_the_guard_is_off_by_default(self) -> None:
-        # The checkout is unpublished, so reaching the parser at all proves the
+        # The checkout is unpublished, so reaching selection at all proves the
         # reachability guard did not fire.
-        with self.assertRaisesRegex(CommandError, "course repository pull refused"):
+        with self.assertRaisesRegex(SyncCourseRepositoriesError, "course repository pull refused"):
             self.pull()

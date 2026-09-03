@@ -23,7 +23,7 @@ class LocalPreparationOrderTests(TestCase):
         source = (PROD_ROOT.parents[1] / "scripts" / "prepare_local_data.py").read_text(
             encoding="utf-8"
         )
-        pull = source.index('"pull_course_repositories"')
+        pull = source.index("pull_course_repositories(")
         cmp_import = source.index("import_cmp_course_content(cmp_source_db")
         self.assertLess(
             pull,

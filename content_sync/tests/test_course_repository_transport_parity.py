@@ -9,7 +9,6 @@ change that teaches one route something the other does not know fails here.
 
 from __future__ import annotations
 
-import io
 import shutil
 import socket
 import subprocess
@@ -20,7 +19,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
-from django.core.management import call_command
 from django.db import transaction
 from django.test import TestCase
 from django.utils import timezone
@@ -235,16 +233,12 @@ class _TransportParityContract(_ContractBase):
                 },
             )
 
-    def run_pull(self) -> str:
-        out = io.StringIO()
-        call_command(
-            "pull_course_repositories",
-            "--checkout",
-            f"{STABLE_ID}={self.checkout}",
-            stdout=out,
-            stderr=io.StringIO(),
-        )
-        return out.getvalue()
+    def run_pull(self) -> dict:
+        from scripts.prod.sync_course_repositories import pull, select_sources
+
+        checkouts = {STABLE_ID: self.checkout}
+        sources = select_sources((), explicit=checkouts, root=None)
+        return pull(sources=sources, checkouts=checkouts)
 
     def projection(self) -> dict[str, list]:
         """Every row the import owns, in a stable, comparable shape."""

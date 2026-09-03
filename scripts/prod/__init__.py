@@ -23,11 +23,13 @@ ever run twice.  Each module also declares ``SYNC_MODEL`` and
 ``scripts/tests/test_prod_scripts.py`` checks that the declaration and the
 filename agree, so the convention cannot quietly rot.
 
-The course-repository curriculum is deliberately *not* here.  It is git-synchronized
-and already has exactly one path, ``content_sync.course_repository_ingest``, shared by
-the signed push webhook and ``manage.py pull_course_repositories``.  Registered
-``ContentSource`` rows say which repositories exist.  That is the shape the rest of
-this package is being gathered into; adding a second entry point for it would undo it.
+The course-repository curriculum is git-synchronized and has exactly one ingestion
+path, ``content_sync.course_repository_ingest``, shared by the signed push webhook and
+``sync_course_repositories`` below.  Registration (``sync_course_repository_sources``)
+and pulling (``sync_course_repositories``) are the only entry points here for it --
+neither invents a second way in; both call the same registration and ingestion
+functions the webhook path calls.  Registered ``ContentSource`` rows say which
+repositories exist.
 
 Bootstrapping, and why the order matters
 ----------------------------------------
@@ -53,8 +55,8 @@ Course catalogue order
 Three sources write cohorts, and they are not interchangeable:
 
 1. ``import_legacy_zoomcamp`` -- the frozen pre-2024 editions.  Nothing else has them.
-2. ``manage.py pull_course_repositories`` -- the git-synchronized upstream.  It owns
-   module and unit curricula.
+2. ``sync_course_repositories`` -- the git-synchronized upstream.  It owns module and
+   unit curricula.
 3. ``import_cmp_content`` -- reconciles CMP's titles, homework, questions, projects
    and criteria against what the first two wrote.
 
@@ -75,13 +77,15 @@ BOOTSTRAPPING_ENTRY_POINTS = frozenset(
         "import_legacy_zoomcamp",
         "import_testimonials",
         "sync_content",
+        "sync_course_repositories",
+        "sync_course_repository_sources",
     }
 )
 
 # The declared course-catalogue order. The reconciler goes last.
 COURSE_CATALOGUE_ORDER = (
     "import_legacy_zoomcamp",
-    "pull_course_repositories",
+    "sync_course_repositories",
     "import_cmp_content",
 )
 

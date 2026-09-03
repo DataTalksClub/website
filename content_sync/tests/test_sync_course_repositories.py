@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import io
 import shutil
 import uuid
 from datetime import timedelta
 from pathlib import Path
 
-from django.core.management import CommandError, call_command
 from django.test import TestCase
 from django.utils import timezone
 
@@ -19,6 +17,14 @@ from content_sync.tests.test_course_repository_transport_parity import (
     build_checkout,
 )
 from courses.models import Cohort, Course, Homework, Module, Project
+from scripts.prod.sync_course_repositories import (
+    SyncCourseRepositoriesError,
+    checkout_plan,
+    select_sources,
+)
+from scripts.prod.sync_course_repositories import (
+    pull as pull_sources,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SCRATCH_ROOT = PROJECT_ROOT / ".tmp" / "pull-course-repositories-command"
@@ -60,18 +66,11 @@ class PullCourseRepositoriesCommandTests(TestCase):
     def tearDown(self) -> None:
         _git(self.checkout, "checkout", "--", ".")
 
-    def pull(self, *arguments: str, **options: object) -> str:
-        out = io.StringIO()
-        call_command(
-            "pull_course_repositories",
-            "--checkout",
-            f"llm-zoomcamp={self.checkout}",
-            *arguments,
-            stdout=out,
-            stderr=io.StringIO(),
-            **options,
-        )
-        return out.getvalue()
+    def pull(self, *, stable_ids: tuple[str, ...] = (), **kwargs: object) -> dict:
+        checkouts = kwargs.pop("checkouts", {"llm-zoomcamp": self.checkout})
+        root = kwargs.pop("root", None)
+        sources = select_sources(stable_ids, explicit=checkouts, root=root)
+        return pull_sources(sources=sources, checkouts=checkouts, root=root, **kwargs)  # type: ignore[arg-type]
 
     def seed_project_shell(self) -> None:
         course = Course.objects.create(slug="llm-zoomcamp", title="LLM Zoomcamp")
@@ -107,22 +106,24 @@ class PullCourseRepositoriesCommandTests(TestCase):
             repository_name="disabled-zoomcamp",
             enabled=False,
         )
-        out = io.StringIO()
 
-        call_command("pull_course_repositories", "--checkout-plan", "--from-disk", "/x", stdout=out)
+        sources = select_sources((), explicit={}, root=Path("/x"))
+        plan = checkout_plan(sources, root=Path("/x"), explicit={})
 
-        lines = [line.split("\t")[0] for line in out.getvalue().splitlines()]
+        lines = [stable_id for stable_id, _repository, _branch, _target in plan]
         self.assertEqual(lines, ["data-engineering-zoomcamp", "llm-zoomcamp"])
 
     def test_no_registered_source_names_the_registration_command(self) -> None:
-        with self.assertRaisesRegex(CommandError, "register_course_repository"):
-            call_command("pull_course_repositories", "--checkout-plan")
+        with self.assertRaisesRegex(SyncCourseRepositoriesError, "register_course_repository"):
+            select_sources((), explicit={}, root=None)
 
     def test_unknown_stable_id_is_refused(self) -> None:
         make_source()
 
-        with self.assertRaisesRegex(CommandError, "not registered or not enabled: nope"):
-            call_command("pull_course_repositories", "--checkout-plan", "--stable-id", "nope")
+        with self.assertRaisesRegex(
+            SyncCourseRepositoriesError, "not registered or not enabled: nope"
+        ):
+            select_sources(("nope",), explicit={}, root=None)
 
     def test_pull_projects_the_checkout_without_any_network_call(self) -> None:
         make_source()
@@ -130,7 +131,7 @@ class PullCourseRepositoriesCommandTests(TestCase):
 
         output = self.pull()
 
-        self.assertIn('"transport": "checkout"', output)
+        self.assertEqual(output["sources"][0]["transport"], "checkout")
         self.assertTrue(Module.objects.exists())
 
     def test_naming_one_checkout_names_the_run(self) -> None:
@@ -147,11 +148,11 @@ class PullCourseRepositoriesCommandTests(TestCase):
 
         output = self.pull()
 
-        self.assertIn('"source_stable_id": "llm-zoomcamp"', output)
-        self.assertNotIn("data-engineering-zoomcamp", output)
+        self.assertEqual(len(output["sources"]), 1)
+        self.assertEqual(output["sources"][0]["source_stable_id"], "llm-zoomcamp")
 
     def test_from_disk_keeps_an_explicit_checkout_as_an_override(self) -> None:
-        """With a root there are many sources, and --checkout overrides one."""
+        """With a root there are many sources, and an explicit checkout overrides one."""
 
         make_source()
         make_source(
@@ -160,32 +161,15 @@ class PullCourseRepositoriesCommandTests(TestCase):
             display_name="Data Engineering Zoomcamp",
             repository_name="data-engineering-zoomcamp",
         )
-        out = io.StringIO()
+        checkouts = {"llm-zoomcamp": self.checkout}
 
-        call_command(
-            "pull_course_repositories",
-            "--checkout-plan",
-            "--from-disk",
-            str(SCRATCH_ROOT),
-            "--checkout",
-            f"llm-zoomcamp={self.checkout}",
-            stdout=out,
-        )
+        sources = select_sources((), explicit=checkouts, root=SCRATCH_ROOT)
+        plan = checkout_plan(sources, root=SCRATCH_ROOT, explicit=checkouts)
 
         self.assertEqual(
-            [line.split("\t")[0] for line in out.getvalue().splitlines()],
+            [stable_id for stable_id, _repository, _branch, _target in plan],
             ["data-engineering-zoomcamp", "llm-zoomcamp"],
         )
-
-    def test_verbosity_zero_prints_only_the_machine_readable_summary(self) -> None:
-        make_source()
-        self.seed_project_shell()
-
-        quiet = self.pull(verbosity=0)
-
-        self.assertEqual(len(quiet.strip().splitlines()), 1)
-        self.assertIn('"transport": "checkout"', quiet)
-        self.assertNotIn("Pulling llm-zoomcamp", quiet)
 
     def test_a_waived_dirty_checkout_still_imports_the_commit(self) -> None:
         """The snapshot is `git archive HEAD`, so working-tree edits stay out."""
@@ -198,18 +182,11 @@ class PullCourseRepositoriesCommandTests(TestCase):
             .replace("title: LLM Zoomcamp 2026", "title: Tampered In The Working Tree"),
             encoding="utf-8",
         )
-        errors = io.StringIO()
+        warnings: list[str] = []
 
-        call_command(
-            "pull_course_repositories",
-            "--checkout",
-            f"llm-zoomcamp={self.checkout}",
-            "--allow-modified-checkout",
-            stdout=io.StringIO(),
-            stderr=errors,
-        )
+        self.pull(allow_modified_checkout=True, warn=warnings.append)
 
-        self.assertIn("NOT imported", errors.getvalue())
+        self.assertTrue(any("NOT imported" in message for message in warnings))
         self.assertEqual(
             Cohort.objects.get(identifier="2026").title,
             "LLM Zoomcamp 2026",
@@ -219,25 +196,21 @@ class PullCourseRepositoriesCommandTests(TestCase):
         make_source()
         (self.checkout / "course.yaml").write_text("slug: tampered\n", encoding="utf-8")
 
-        with self.assertRaisesRegex(CommandError, "uncommitted changes"):
+        with self.assertRaisesRegex(SyncCourseRepositoriesError, "uncommitted changes"):
             self.pull()
 
     def test_a_branch_mismatch_is_refused(self) -> None:
         make_source(branch="release")
 
-        with self.assertRaisesRegex(CommandError, "registered for 'release'"):
+        with self.assertRaisesRegex(SyncCourseRepositoriesError, "registered for 'release'"):
             self.pull()
 
     def test_a_missing_checkout_names_the_paths_it_looked_for(self) -> None:
         make_source()
 
-        with self.assertRaisesRegex(CommandError, "no checkout for llm-zoomcamp"):
-            call_command(
-                "pull_course_repositories",
-                "--from-disk",
-                str(SCRATCH_ROOT / "absent"),
-                stdout=io.StringIO(),
-            )
+        with self.assertRaisesRegex(SyncCourseRepositoriesError, "no checkout for llm-zoomcamp"):
+            sources = select_sources((), explicit={}, root=SCRATCH_ROOT / "absent")
+            pull_sources(sources=sources, root=SCRATCH_ROOT / "absent")
 
     def test_an_unowned_row_holding_the_repository_slug_is_refused(self) -> None:
         """One path means one adoption rule, and this is what it currently is.
@@ -263,15 +236,11 @@ class PullCourseRepositoriesCommandTests(TestCase):
             due_date=timezone.now() + timedelta(days=3),
         )
 
-        errors = io.StringIO()
-        with self.assertRaises(CommandError):
-            call_command(
-                "pull_course_repositories",
-                "--checkout",
-                f"llm-zoomcamp={self.checkout}",
-                stdout=io.StringIO(),
-                stderr=errors,
-            )
+        errors: list[str] = []
+        with self.assertRaises(SyncCourseRepositoriesError):
+            self.pull(warn=errors.append)
 
-        self.assertIn("course_repository_homework_slug_collision", errors.getvalue())
+        self.assertTrue(
+            any("course_repository_homework_slug_collision" in message for message in errors)
+        )
         self.assertEqual(Homework.objects.get(slug="hw1").source_content_id, None)

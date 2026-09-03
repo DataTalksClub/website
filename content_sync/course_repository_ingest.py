@@ -3,7 +3,7 @@
 Content reaches this site two ways.  CI/CD *pushes*: a course repository's
 GitHub Action posts a signed push event, ``api.views.course_repository_webhooks``
 fences the delivery and enqueues a durable job, and the job downloads that exact
-commit's archive.  A developer *pulls*: ``manage.py pull_course_repositories``
+commit's archive.  A developer *pulls*: ``scripts/prod/sync_course_repositories.py``
 reads a checkout that is already on disk, with no network at all.
 
 The two differ only in *where the tar comes from*.  Both read a ``git archive``

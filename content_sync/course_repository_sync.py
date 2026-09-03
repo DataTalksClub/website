@@ -4,7 +4,7 @@ This module is deliberately thin.  It resolves the registered source, hands the
 commit to :func:`content_sync.course_repository_ingest.ingest_course_repository`,
 and translates that service's refusals into durable-job outcomes.  Every rule
 about what a course repository may contain lives in the shared service, which
-the offline pull entry point (``manage.py pull_course_repositories``) calls too.
+the offline pull entry point (``scripts/prod/sync_course_repositories.py``) calls too.
 
 The archive download is a network side effect and stays where it belongs: inside
 the durable job the webhook enqueues after commit, never in the request.

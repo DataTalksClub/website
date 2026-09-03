@@ -351,15 +351,21 @@ CONTENT_CHECKOUT_ROOT ?= .tmp/course-checkouts
 # about which repositories exist, so a source registered under a different owner is
 # cloned from that owner rather than silently from DataTalksClub.
 CONTENT_GIT_HOST ?= https://github.com
+# These targets, like every scripts/prod entry point, take the database
+# explicitly rather than reading it from the ambient environment. Overridden by
+# the production-prep-* targets below, which point it at the dataset database.
+CONTENT_DATABASE ?= .tmp/local.sqlite3
 
 # Register the pinned course-repository sources. Which repositories exist is
 # registered ContentSource data; this is only how a fresh database gets its rows.
 content-sources:
-	uv run --frozen python manage.py seed_course_repository_sources
+	uv run --frozen python scripts/prod/sync_course_repository_sources.py \
+		--database "$(CONTENT_DATABASE)"
 
 # Print the registered sources and the checkout each would be read from.
 content-pull-plan:
-	@uv run --frozen python manage.py pull_course_repositories \
+	@uv run --frozen python scripts/prod/sync_course_repositories.py \
+		--database "$(CONTENT_DATABASE)" \
 		--checkout-plan --from-disk "$(CONTENT_CHECKOUT_ROOT)"
 
 # Clone or refresh a checkout per registered source. This is the only step that
@@ -367,7 +373,8 @@ content-pull-plan:
 content-checkouts:
 	@set -eu; \
 	mkdir -p "$(CONTENT_CHECKOUT_ROOT)"; \
-	plan="$$(uv run --frozen python manage.py pull_course_repositories \
+	plan="$$(uv run --frozen python scripts/prod/sync_course_repositories.py \
+		--database "$(CONTENT_DATABASE)" \
 		--checkout-plan --from-disk "$(CONTENT_CHECKOUT_ROOT)")"; \
 	printf '%s\n' "$$plan" \
 	| while IFS="$$(printf '\t')" read -r stable repository branch checkout; do \
@@ -385,7 +392,8 @@ content-checkouts:
 
 # Ingest every registered source from its local checkout. Offline.
 content-pull:
-	uv run --frozen python manage.py pull_course_repositories \
+	uv run --frozen python scripts/prod/sync_course_repositories.py \
+		--database "$(CONTENT_DATABASE)" \
 		--from-disk "$(CONTENT_CHECKOUT_ROOT)" $(CONTENT_PULL_ARGS)
 
 production-prep-local:
@@ -422,14 +430,15 @@ production-prep-course-registry:
 		(echo "$(PRODUCTION_PREP_DATASET_DATABASE) already exists; remove it to rebuild" >&2; exit 2)
 	@mkdir -p "$(PRODUCTION_PREP_DATASET_ROOT)"
 	$(PRODUCTION_PREP_DATASET_ENV) uv run --frozen python manage.py migrate --no-input
-	$(PRODUCTION_PREP_DATASET_ENV) $(MAKE) content-sources
+	$(MAKE) content-sources CONTENT_DATABASE="$(PRODUCTION_PREP_DATASET_DATABASE)"
 
 # Stage 2. The only step that touches the network. It clones or refreshes one
 # checkout per registered source, exactly as `make content-checkouts` does for a
 # developer, because it is that target.
 production-prep-course-sources: production-prep-course-registry
-	$(PRODUCTION_PREP_DATASET_ENV) $(MAKE) content-checkouts \
-		CONTENT_CHECKOUT_ROOT="$(PRODUCTION_PREP_COURSE_SOURCE_DIR)"
+	$(MAKE) content-checkouts \
+		CONTENT_CHECKOUT_ROOT="$(PRODUCTION_PREP_COURSE_SOURCE_DIR)" \
+		CONTENT_DATABASE="$(PRODUCTION_PREP_DATASET_DATABASE)"
 
 # Stage 3. Build the dataset offline from those checkouts.
 production-prep-dataset:
