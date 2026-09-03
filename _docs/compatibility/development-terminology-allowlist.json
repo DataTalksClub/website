@@ -389,12 +389,12 @@
   ],
   "runbook_ledger": {
     "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
-    "sha256": "3cbcd1b2836c13e14740cb4bc1d88ae3ea59c5fc58162504cc1ca6a09413790a",
+    "sha256": "cc090e3e13995bed69524f6b795d9bc6ba555efa72a4420d492cfd9c1b6da4fe",
     "expected_count": 102,
     "expected_physical_count": 34,
     "expected_contextual_count": 68,
     "expected_rule_count": 52,
-    "occurrence_ledger_sha256": "21b474c92d4e0a2ccaed7a246aa00d58051714a07ff6480886c002bbc77cd012"
+    "occurrence_ledger_sha256": "da0702f9ab88a5051ba99a0cf7d580cacfb9f1eb45a74bb60be6893f7f6e5990"
   },
   "rules": [
     {

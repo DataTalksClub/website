@@ -35,7 +35,7 @@ from scripts.check_development_terminology import FORMER_NAME, FORMER_NAME_RE, c
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNBOOK_PATH = Path("_docs/runbooks/production-hosting-and-dns-migration.md")
-RUNBOOK_SHA256 = "3cbcd1b2836c13e14740cb4bc1d88ae3ea59c5fc58162504cc1ca6a09413790a"
+RUNBOOK_SHA256 = "cc090e3e13995bed69524f6b795d9bc6ba555efa72a4420d492cfd9c1b6da4fe"
 
 
 class DevelopmentCompatibilityBoundaryTests(SimpleTestCase):
