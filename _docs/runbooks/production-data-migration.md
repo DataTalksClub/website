@@ -467,14 +467,14 @@ EXPECTED = {"ml-zoomcamp-2026": (9, 105), "llm-zoomcamp-2026": (7, 72),
 bad = False
 for slug, (m, u) in EXPECTED.items():
     got = Cohort.objects.filter(slug=slug).aggregate(
-        modules=Count("module", distinct=True), units=Count("module__unit", distinct=True))
-    ok = (got["modules"], got["units"]) == (m, u)
+        m_count=Count("modules", distinct=True), u_count=Count("modules__units", distinct=True))
+    ok = (got["m_count"], got["u_count"]) == (m, u)
     bad |= not ok
     print(("ok " if ok else "BAD"), slug, got, "expected", (m, u))
-total = Cohort.objects.aggregate(m=Count("module", distinct=True),
-                                 u=Count("module__unit", distinct=True))
+total = Cohort.objects.aggregate(m_count=Count("modules", distinct=True),
+                                 u_count=Count("modules__units", distinct=True))
 print("total", total)
-bad |= (total["m"], total["u"]) != (20, 181)
+bad |= (total["m_count"], total["u_count"]) != (20, 181)
 sys.exit(1 if bad else 0)'
 ```
 
