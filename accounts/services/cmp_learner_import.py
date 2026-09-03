@@ -25,6 +25,9 @@ Every imported account arrives:
   ``accounts.auth.ConsolidatingSocialAccountAdapter``, never at import time;
 * with ``identity_state`` left at its model default, ``legacy``.
 
+``CustomUser`` itself carries no trace of any of this -- see "Claim tracking"
+below for where the CMP source id actually lives.
+
 Never import (hard security boundary, not a style preference)
 ----------------------------------------------------------------
 
@@ -65,6 +68,48 @@ So this importer does two things for email addresses:
    this importer does not merge accounts, it imports both and reports the
    collision by source id so the existing reconciliation mechanism can find it.
 
+Claim tracking -- script-owned, not a field on ``CustomUser``
+----------------------------------------------------------------
+
+Every function below that needs "which ``CustomUser`` did this importer already
+create or attach for CMP source id N" answers it through :class:`CmpClaimsStore`,
+never through a column on ``CustomUser``. The live model carries only what the
+running application actually reads; a source-system row id is provenance, and
+provenance belongs to the one-time import, not the permanent schema -- the same
+principle ``_docs/runbooks/ingest-script-inventory.md`` states for every source in
+this migration. (An earlier revision of this importer *did* carry the id as
+``CustomUser.cmp_source_user_id``, with a ``UniqueConstraint``; that field is gone,
+along with the migration that added it, once every caller here moved to the claims
+store below.)
+
+The store is a flat ``{"<cmp_source_id>": <user_pk>, ...}`` JSON object, held in
+memory during a run and rewritten to disk -- atomically, a temp file plus
+``os.replace`` -- immediately after each committed batch in :func:`_import_accounts`,
+the only phase that adds claims. It is not scratch: it is this importer's own
+durable resumability state, the same role ``CmpLearnerImportProgress`` plays for
+the per-table watermark, just script-owned file state instead of a database row
+(see ``accounts.models.CmpLearnerImportProgress`` -- that table is unaffected by
+this change; it is not a field on a live domain model, so the same principle that
+moved the source id off ``CustomUser`` does not ask it to move).
+
+Writing the claims file happens *after* the database transaction that created the
+claim commits, never before and never as part of it -- a JSON file cannot join a
+database transaction. A process killed in the narrow window between the two is the
+one case this design does not make byte-for-byte atomic with the database. It is
+still safe: the watermark (committed atomically with the row, inside the same
+transaction) has already advanced past that source id, so an ordinary resume never
+revisits it. Only a *second*, independent fault -- the watermark itself lost or
+reset -- would cause this importer to reconsider that source id, and even then the
+outcome is a safe idempotent re-attach (:func:`_attach_existing_account` onto the
+row this importer already created, matched by its own ``normalized_email`), not a
+duplicate account -- unless that exact source id is also the one CMP row half of
+the export's one known same-address collision (ids 2/15515), in which case a
+reconciliation-worthy misattribution becomes possible instead of impossible. Given
+how narrow that compound window is -- a kill in a few milliseconds of file I/O,
+on a watermark that has already independently failed, on the one specific already-
+flagged row pair -- this is the accepted trade-off of keeping claim tracking as
+ingestion-scoped script state rather than a permanent column, not an oversight.
+
 Cross-source deduplication
 ---------------------------
 
@@ -72,33 +117,32 @@ This importer runs after ``import_legacy_zoomcamp.py`` (step 1 of the
 migration), which also writes ``accounts_customuser`` -- for the pre-2024
 Zoomcamp editions, keyed by the learner's recovered real email, with just a
 ``username`` and ``email`` set. Neither importer's own natural-key check (this
-one's ``cmp_source_user_id``, that one's ``normalized_email`` lookup against
-*existing* rows) sees the other importer's writes on a first pass in
-migration order, because the legacy importer runs first: it has nothing to
-find yet, and when this importer runs second it never looked. Left alone,
-that is a duplicate account per person migrated by both -- and a duplicate
-address is exactly what
+one's claims store, that one's ``normalized_email`` lookup against *existing*
+rows) sees the other importer's writes on a first pass in migration order,
+because the legacy importer runs first: it has nothing to find yet, and when
+this importer runs second it never looked. Left alone, that is a duplicate
+account per person migrated by both -- and a duplicate address is exactly what
 ``accounts.auth.ConsolidatingSocialAccountAdapter`` refuses to sign in
 (``verified_owner_ambiguous``, see the migration runbook §5).
 
 So before creating a new row, this importer checks for an existing account
-sharing the same ``normalized_email`` that carries no ``cmp_source_user_id``
-of its own -- i.e. one written by a different importer, not a duplicate
-within the CMP export itself. If one exists, this importer attaches its data
-(profile fields, ``cmp_source_user_id``, an unusable password) onto that
-*existing* row instead of creating a second one. It never touches the
-existing account's ``username`` or ``email`` -- those already identify it,
-and the account's primary key never changes, so everything that already
-references it (enrollments, submissions, certificates) keeps working
-unchanged. This is a plain merge, not the reviewed reconciliation flow in
-``scripts.prod.account_reconciliation``: both sides are the same real person, written
-once each by two importers that do not know about each other, with no
+sharing the same ``normalized_email`` that the claims store has no entry for --
+i.e. one written by a different importer, not a duplicate within the CMP
+export itself. If one exists, this importer attaches its data (profile
+fields, an unusable password) onto that *existing* row instead of creating a
+second one, and records the claim. It never touches the existing account's
+``username`` or ``email`` -- those already identify it, and the account's
+primary key never changes, so everything that already references it
+(enrollments, submissions, certificates) keeps working unchanged. This is a
+plain merge, not the reviewed reconciliation flow in
+``scripts.prod.account_reconciliation``: both sides are the same real person,
+written once each by two importers that do not know about each other, with no
 conflicting history to adjudicate -- unlike the one address the CMP export
 shares with itself (ids 2/15515 in the real export), which two CMP rows both
 claim and which stays exactly as before, reported by
 ``synthesis_skipped_collisions`` for the reviewed reconciliation flow to
-handle, because the ``cmp_source_user_id__isnull=True`` guard above never
-matches a row the CMP import itself already claimed.
+handle, because a row the claims store already has an entry for never counts
+as a cross-source match candidate.
 
 Resumability
 ------------
@@ -108,16 +152,18 @@ in fixed-size batches, tracked in ``accounts.models.CmpLearnerImportProgress``.
 Each batch's writes and its watermark advance happen inside one transaction, so a
 process killed mid-batch leaves nothing partially written for the next run to
 double-count; a re-run's first query is ``id > last_source_id``, so it does not
-re-scan rows it already committed. ``CustomUser.cmp_source_user_id`` is the
-belt-and-braces check within a batch: a row already carrying the source id being
-processed is skipped and counted, not re-created, regardless of what the watermark
-says.
+re-scan rows it already committed. The claims store (above) is this importer's
+belt-and-braces check within a batch: a row already carrying a claimed source id
+is skipped and counted, not re-created, regardless of what the watermark says.
 """
 
 from __future__ import annotations
 
+import json
+import os
 import re
 import sqlite3
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, NoReturn
@@ -130,8 +176,10 @@ from accounts.identity_values import normalize_account_email
 from accounts.models import CmpLearnerImportProgress, CustomUser
 
 __all__ = [
+    "CmpClaimsStore",
     "CmpLearnerImportError",
     "DEFAULT_BATCH_SIZE",
+    "DEFAULT_CLAIMS_PATH",
     "FORBIDDEN_TABLES",
     "LearnerImportPhaseReport",
     "LearnerImportResult",
@@ -197,6 +245,8 @@ _NULLABLE_TEXT_FIELDS = frozenset(
 _USERNAME_SANITIZE_RE = re.compile(r"[^\w.@+-]")
 _MAX_USERNAME_LENGTH = 150
 
+DEFAULT_CLAIMS_PATH = Path(".tmp/cmp_learner_import_claims.json")
+
 
 class CmpLearnerImportError(RuntimeError):
     """A fail-closed refusal that never renders a source value (an email, a name)."""
@@ -204,6 +254,93 @@ class CmpLearnerImportError(RuntimeError):
 
 def _refuse(code: str) -> NoReturn:
     raise CmpLearnerImportError(code)
+
+
+@dataclass(slots=True)
+class CmpClaimsStore:
+    """This importer's own durable "CMP source id -> CustomUser pk" record.
+
+    See the module docstring's "Claim tracking" section for why this exists as
+    script-owned file state instead of a field on ``CustomUser``, and for the
+    exact durability reasoning. Not thread- or process-safe for concurrent
+    writers -- this importer is a single-threaded, one-time script, the same
+    assumption ``CmpLearnerImportProgress`` already makes.
+    """
+
+    path: Path
+    _by_source: dict[int, int] = field(default_factory=dict)
+    _by_user: dict[int, int] = field(default_factory=dict)
+
+    @classmethod
+    def load(cls, path: Path) -> CmpClaimsStore:
+        try:
+            raw_text = path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            return cls(path=path)
+        except OSError:
+            _refuse("claims-file-unreadable")
+        try:
+            raw = json.loads(raw_text)
+        except json.JSONDecodeError:
+            _refuse("claims-file-malformed")
+        if not isinstance(raw, dict):
+            _refuse("claims-file-malformed")
+        by_source: dict[int, int] = {}
+        for key, value in raw.items():
+            try:
+                by_source[int(key)] = int(value)
+            except (TypeError, ValueError):
+                _refuse("claims-file-malformed")
+        store = cls(path=path, _by_source=by_source)
+        store._by_user = {user_id: source_id for source_id, user_id in by_source.items()}
+        return store
+
+    def is_claimed(self, source_id: int) -> bool:
+        return source_id in self._by_source
+
+    def is_claimed_user(self, user_id: int) -> bool:
+        return user_id in self._by_user
+
+    def user_id_for_source(self, source_id: int) -> int | None:
+        return self._by_source.get(source_id)
+
+    def source_id_for_user(self, user_id: int) -> int | None:
+        return self._by_user.get(user_id)
+
+    def claimed_user_ids(self) -> frozenset[int]:
+        return frozenset(self._by_user)
+
+    def sorted_claims(self) -> list[tuple[int, int]]:
+        return sorted(self._by_source.items())
+
+    def record(self, *, source_id: int, user_id: int) -> None:
+        self._by_source[source_id] = user_id
+        self._by_user[user_id] = source_id
+
+    def flush(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        payload = json.dumps(
+            {str(source_id): user_id for source_id, user_id in self._by_source.items()},
+            sort_keys=True,
+        )
+        descriptor, tmp_name = tempfile.mkstemp(
+            dir=self.path.parent,
+            prefix=".cmp-learner-claims-",
+            suffix=".tmp",
+        )
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                handle.write(payload)
+            os.replace(tmp_name, self.path)
+        except BaseException:
+            try:
+                os.unlink(tmp_name)
+            except OSError:
+                pass
+            raise
+
+    def __len__(self) -> int:
+        return len(self._by_source)
 
 
 def _readonly(source_db: Path) -> sqlite3.Connection:
@@ -326,8 +463,9 @@ def _populate_profile_fields(user: CustomUser, row: sqlite3.Row) -> None:
     """Copy the export's profile columns onto ``user``. Shared by a brand-new
     account and one attached from a different importer -- see
     ``_attach_existing_account``. Never touches ``username``, ``email``,
-    ``is_staff``, ``is_superuser``, ``cmp_source_user_id`` or the password;
-    callers own those explicitly."""
+    ``is_staff``, ``is_superuser`` or the password; callers own those
+    explicitly. The CMP source id is never a field on ``user`` at all -- see
+    the module docstring's "Claim tracking" section."""
 
     columns = row.keys()
     for name in _ACCOUNT_FIELDS:
@@ -358,34 +496,32 @@ def _build_account(row: sqlite3.Row) -> CustomUser:
         email=email,
         is_staff=False,
         is_superuser=False,
-        cmp_source_user_id=row["id"],
     )
     _populate_profile_fields(user, row)
     user.set_unusable_password()
     return user
 
 
-def _find_cross_source_match(email: str) -> CustomUser | None:
+def _find_cross_source_match(email: str, *, claims: CmpClaimsStore) -> CustomUser | None:
     """An account another importer already created for ``email``, if any.
 
-    Deliberately excludes any account this importer itself already claimed
-    (``cmp_source_user_id__isnull=True``) -- a match there would be a
-    duplicate *within* the CMP export (the one known case, ids 2/15515),
-    which is a different, harder problem this importer does not resolve; see
-    the module docstring's "Cross-source deduplication" section.
+    Deliberately excludes any account the claims store already has an entry
+    for -- a match there would be a duplicate *within* the CMP export (the one
+    known case, ids 2/15515), which is a different, harder problem this
+    importer does not resolve; see the module docstring's "Cross-source
+    deduplication" section. Accounts sharing one email address are always a
+    small set (typically one), so this walks them in Python rather than
+    building a large ``exclude(pk__in=...)`` clause against a store that can
+    hold up to 20,009 entries.
     """
 
     normalized = normalize_account_email(email)
     if not normalized:
         return None
-    return (
-        CustomUser.objects.filter(
-            normalized_email=normalized,
-            cmp_source_user_id__isnull=True,
-        )
-        .order_by("pk")
-        .first()
-    )
+    for candidate in CustomUser.objects.filter(normalized_email=normalized).order_by("pk"):
+        if not claims.is_claimed_user(candidate.pk):
+            return candidate
+    return None
 
 
 def _attach_existing_account(user: CustomUser, row: sqlite3.Row) -> CustomUser:
@@ -394,28 +530,28 @@ def _attach_existing_account(user: CustomUser, row: sqlite3.Row) -> CustomUser:
     ``username`` and ``email`` untouched -- those already identify the
     account, and its primary key never changes, so every existing reference
     to it (enrollments, submissions, certificates) keeps working unchanged.
+    The caller records the claim once this returns.
     """
 
     _populate_profile_fields(user, row)
     user.is_staff = False
     user.is_superuser = False
-    user.cmp_source_user_id = row["id"]
     user.set_unusable_password()
     user.save()
     return user
 
 
 def _import_accounts(
-    connection: sqlite3.Connection, *, batch_size: int
+    connection: sqlite3.Connection, *, batch_size: int, claims: CmpClaimsStore
 ) -> tuple[LearnerImportPhaseReport, tuple[int, ...]]:
     source_total = _count(connection, ACCOUNTS_TABLE)
     progress = _get_progress(ACCOUNTS_TABLE)
     # Source ids attached onto an account a different importer already
     # created, this call only -- see the module docstring's "Cross-source
     # deduplication" section. Not cumulative across a killed-and-resumed run:
-    # a row already attached in an earlier call is caught by the
-    # cmp_source_user_id check below and counted as skipped, same as any
-    # other already-imported row.
+    # a row already attached in an earlier call is caught by the claims-store
+    # check below and counted as skipped, same as any other already-imported
+    # row.
     cross_source_matches: list[int] = []
     while not progress.completed:
         rows = connection.execute(
@@ -425,32 +561,52 @@ def _import_accounts(
         if not rows:
             progress.completed = True
             _save_progress(progress)
+            claims.flush()
             break
+        batch_had_new_claims = False
         with transaction.atomic():
             written = 0
             skipped = 0
             max_id = progress.last_source_id
             for row in rows:
                 max_id = max(max_id, row["id"])
-                if CustomUser.objects.filter(cmp_source_user_id=row["id"]).exists():
+                if claims.is_claimed(row["id"]):
                     skipped += 1
                     continue
-                existing = _find_cross_source_match((row["email"] or "").strip())
+                existing = _find_cross_source_match((row["email"] or "").strip(), claims=claims)
                 if existing is not None:
-                    _attach_existing_account(existing, row)
+                    account = _attach_existing_account(existing, row)
                     cross_source_matches.append(row["id"])
                 else:
-                    _build_account(row).save()
+                    account = _build_account(row)
+                    account.save()
+                # Recorded in memory immediately -- a later row in this same
+                # batch sharing this row's email (the export's one known
+                # same-address pair, ids 2/15515) must see this claim to
+                # correctly treat it as CMP-claimed, not as an unclaimed
+                # cross-source match to attach onto. If this transaction
+                # rolls back (the batch fails), this in-memory update is
+                # discarded along with it -- the exception propagates out of
+                # this whole function uncaught, so execution never reaches
+                # the claims-file flush below for this batch.
+                claims.record(source_id=row["id"], user_id=account.pk)
+                batch_had_new_claims = True
                 written += 1
             progress.last_source_id = max_id
             progress.rows_written += written
             progress.rows_skipped += skipped
             _save_progress(progress)
+        # The claims file is written only after the database transaction
+        # above has really committed -- see the module docstring's "Claim
+        # tracking" section for why the order matters and what a crash in
+        # between costs.
+        if batch_had_new_claims:
+            claims.flush()
     return _phase_report(progress, source_total), tuple(cross_source_matches)
 
 
 def _import_email_addresses(
-    connection: sqlite3.Connection, *, batch_size: int
+    connection: sqlite3.Connection, *, batch_size: int, claims: CmpClaimsStore
 ) -> LearnerImportPhaseReport:
     source_total = _count(connection, EMAIL_ADDRESS_TABLE)
     progress = _get_progress(EMAIL_ADDRESS_TABLE)
@@ -473,8 +629,12 @@ def _import_email_addresses(
                 if not email:
                     skipped += 1
                     continue
+                user_id = claims.user_id_for_source(row["user_id"])
+                if user_id is None:
+                    skipped += 1
+                    continue
                 try:
-                    user = CustomUser.objects.get(cmp_source_user_id=row["user_id"])
+                    user = CustomUser.objects.get(pk=user_id)
                 except CustomUser.DoesNotExist:
                     skipped += 1
                     continue
@@ -508,28 +668,33 @@ def _import_email_addresses(
 
 
 def _synthesize_missing_email_addresses(
-    *, batch_size: int
+    *, batch_size: int, claims: CmpClaimsStore
 ) -> tuple[LearnerImportPhaseReport, tuple[int, ...]]:
     progress = _get_progress(SYNTHESIZED_EMAIL_ADDRESS_TABLE)
-    source_total = (
-        CustomUser.objects.filter(
-            cmp_source_user_id__isnull=False,
-        )
+    # A snapshot, not a per-batch requery: every claimed user is visited by
+    # this function at most once (the watermark below guarantees that), and
+    # nothing outside this single-threaded run can give a user an email row
+    # between the snapshot and its turn, so this is equivalent to the
+    # original per-iteration DB query, not an approximation of it.
+    emailless_user_ids = set(
+        CustomUser.objects.filter(pk__in=claims.claimed_user_ids())
         .exclude(pk__in=EmailAddress.objects.values("user_id"))
         .exclude(email="")
-        .count()
+        .values_list("pk", flat=True)
     )
+    ordered_candidates = [
+        (source_id, user_id)
+        for source_id, user_id in claims.sorted_claims()
+        if user_id in emailless_user_ids
+    ]
+    source_total = len(ordered_candidates)
     collisions: list[int] = []
     while not progress.completed:
-        batch = list(
-            CustomUser.objects.filter(
-                cmp_source_user_id__isnull=False,
-                cmp_source_user_id__gt=progress.last_source_id,
-            )
-            .exclude(pk__in=EmailAddress.objects.values("user_id"))
-            .exclude(email="")
-            .order_by("cmp_source_user_id")[:batch_size]
-        )
+        batch = [
+            (source_id, user_id)
+            for source_id, user_id in ordered_candidates
+            if source_id > progress.last_source_id
+        ][:batch_size]
         if not batch:
             progress.completed = True
             _save_progress(progress)
@@ -538,8 +703,9 @@ def _synthesize_missing_email_addresses(
             written = 0
             skipped = 0
             max_id = progress.last_source_id
-            for user in batch:
-                max_id = max(max_id, user.cmp_source_user_id)
+            for source_id, user_id in batch:
+                max_id = max(max_id, source_id)
+                user = CustomUser.objects.get(pk=user_id)
                 email = user.email.strip()
                 try:
                     with transaction.atomic():
@@ -553,7 +719,7 @@ def _synthesize_missing_email_addresses(
                     # the known same-address pair's shape: reported, not forced
                     # -- see the module docstring.
                     skipped += 1
-                    collisions.append(user.cmp_source_user_id)
+                    collisions.append(source_id)
             progress.last_source_id = max_id
             progress.rows_written += written
             progress.rows_skipped += skipped
@@ -561,7 +727,7 @@ def _synthesize_missing_email_addresses(
     return _phase_report(progress, source_total), tuple(collisions)
 
 
-def dry_run_counts(source: Path) -> dict[str, Any]:
+def dry_run_counts(source: Path, *, claims_path: Path = DEFAULT_CLAIMS_PATH) -> dict[str, Any]:
     """Report counts without writing anything."""
 
     _assert_forbidden_tables_untouched()
@@ -571,9 +737,10 @@ def dry_run_counts(source: Path) -> dict[str, Any]:
         emails_total = _count(connection, EMAIL_ADDRESS_TABLE)
     finally:
         connection.close()
-    already_imported = CustomUser.objects.filter(cmp_source_user_id__isnull=False).count()
+    claims = CmpClaimsStore.load(claims_path)
+    already_imported = len(claims)
     already_imported_emails = EmailAddress.objects.filter(
-        user__cmp_source_user_id__isnull=False
+        user_id__in=claims.claimed_user_ids()
     ).count()
     return {
         "accounts_in_source": accounts_total,
@@ -584,7 +751,7 @@ def dry_run_counts(source: Path) -> dict[str, Any]:
     }
 
 
-def progress_status() -> dict[str, Any]:
+def progress_status(*, claims_path: Path = DEFAULT_CLAIMS_PATH) -> dict[str, Any]:
     """Report accumulated progress without touching the source export."""
 
     rows = {
@@ -599,22 +766,30 @@ def progress_status() -> dict[str, Any]:
             table__in=(ACCOUNTS_TABLE, EMAIL_ADDRESS_TABLE, SYNTHESIZED_EMAIL_ADDRESS_TABLE)
         )
     }
-    return {"progress": rows}
+    return {"progress": rows, "claims_recorded": len(CmpClaimsStore.load(claims_path))}
 
 
 def import_cmp_learners(
-    source: Path, *, batch_size: int = DEFAULT_BATCH_SIZE
+    source: Path,
+    *,
+    batch_size: int = DEFAULT_BATCH_SIZE,
+    claims_path: Path = DEFAULT_CLAIMS_PATH,
 ) -> LearnerImportResult:
     """Import the CMP export's learner accounts. Safe to kill and re-run."""
 
     _assert_forbidden_tables_untouched()
+    claims = CmpClaimsStore.load(claims_path)
     connection = _readonly(source)
     try:
-        accounts_report, cross_source_matches = _import_accounts(connection, batch_size=batch_size)
-        email_report = _import_email_addresses(connection, batch_size=batch_size)
+        accounts_report, cross_source_matches = _import_accounts(
+            connection, batch_size=batch_size, claims=claims
+        )
+        email_report = _import_email_addresses(connection, batch_size=batch_size, claims=claims)
     finally:
         connection.close()
-    synthesized_report, collisions = _synthesize_missing_email_addresses(batch_size=batch_size)
+    synthesized_report, collisions = _synthesize_missing_email_addresses(
+        batch_size=batch_size, claims=claims
+    )
     return LearnerImportResult(
         accounts=accounts_report,
         email_addresses=email_report,

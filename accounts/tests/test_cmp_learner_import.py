@@ -21,6 +21,7 @@ from accounts.models import CmpLearnerImportProgress, CustomUser
 from accounts.services.cmp_learner_import import (
     FORBIDDEN_TABLES,
     READ_TABLES,
+    CmpClaimsStore,
     CmpLearnerImportError,
     dry_run_counts,
     import_cmp_learners,
@@ -93,7 +94,31 @@ def _build_source(path: Path, accounts: list[tuple], emails: list[tuple]) -> Non
     connection.close()
 
 
-class CmpLearnerImportBasicsTests(TestCase):
+class _ClaimsFixtureMixin:
+    """Every test gets its own claims file -- the default path is shared,
+    real resumability state, so a test using it would leak into siblings and
+    into a real ``.tmp/cmp_learner_import_claims.json`` left by an actual run.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        tmp = tempfile.NamedTemporaryFile(suffix="-claims.json", delete=False)
+        tmp.close()
+        self.claims_path = Path(tmp.name)
+        self.claims_path.unlink()  # CmpClaimsStore.load tolerates "missing"
+        self.addCleanup(self.claims_path.unlink, missing_ok=True)
+
+    def _user_for_source(self, source_id: int) -> CustomUser:
+        store = CmpClaimsStore.load(self.claims_path)
+        user_id = store.user_id_for_source(source_id)
+        self.assertIsNotNone(user_id, f"source id {source_id} was never claimed")
+        return CustomUser.objects.get(pk=user_id)
+
+    def _import(self, source: Path, *, batch_size: int = 10):
+        return import_cmp_learners(source, batch_size=batch_size, claims_path=self.claims_path)
+
+
+class CmpLearnerImportBasicsTests(_ClaimsFixtureMixin, TestCase):
     def _source(self, accounts, emails) -> Path:
         tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
         tmp.close()
@@ -132,7 +157,7 @@ class CmpLearnerImportBasicsTests(TestCase):
             [_account_row(1, email="one@example.com")],
             [(1, "one@example.com", 1, 1, 1)],
         )
-        result = import_cmp_learners(source, batch_size=10)
+        result = self._import(source)
         self.assertEqual(result.accounts.written, 1)
 
     def test_account_shape(self):
@@ -140,9 +165,9 @@ class CmpLearnerImportBasicsTests(TestCase):
             [_account_row(1, email="admin@example.com", is_staff=True, is_superuser=True)],
             [],
         )
-        import_cmp_learners(source, batch_size=10)
+        self._import(source)
 
-        user = CustomUser.objects.get(cmp_source_user_id=1)
+        user = self._user_for_source(1)
         self.assertFalse(user.has_usable_password())
         self.assertFalse(user.is_staff)
         self.assertFalse(user.is_superuser)
@@ -156,9 +181,9 @@ class CmpLearnerImportBasicsTests(TestCase):
             [_account_row(1, email="one@example.com")],
             [(1, "one@example.com", 0, 1, 1)],  # unverified, like the export's one row
         )
-        import_cmp_learners(source, batch_size=10)
+        self._import(source)
 
-        user = CustomUser.objects.get(cmp_source_user_id=1)
+        user = self._user_for_source(1)
         row = EmailAddress.objects.get(user=user)
         self.assertEqual(row.email, "one@example.com")
         self.assertFalse(row.verified)
@@ -169,9 +194,9 @@ class CmpLearnerImportBasicsTests(TestCase):
             [_account_row(1, email="one@example.com")],
             [],  # the export's shape for 4 of 20,009 accounts
         )
-        result = import_cmp_learners(source, batch_size=10)
+        result = self._import(source)
 
-        user = CustomUser.objects.get(cmp_source_user_id=1)
+        user = self._user_for_source(1)
         row = EmailAddress.objects.get(user=user)
         self.assertEqual(row.email, "one@example.com")
         self.assertTrue(row.verified)
@@ -196,11 +221,11 @@ class CmpLearnerImportBasicsTests(TestCase):
             ],
             [(1, "shared@example.com", 1, 1, 15515)],
         )
-        result = import_cmp_learners(source, batch_size=10)
+        result = self._import(source)
 
         self.assertEqual(CustomUser.objects.count(), 2)
-        u2 = CustomUser.objects.get(cmp_source_user_id=2)
-        u15515 = CustomUser.objects.get(cmp_source_user_id=15515)
+        u2 = self._user_for_source(2)
+        u15515 = self._user_for_source(15515)
         self.assertFalse(EmailAddress.objects.filter(user=u2).exists())
         self.assertTrue(EmailAddress.objects.filter(user=u15515, verified=True).exists())
         self.assertEqual(result.synthesis_skipped_collisions, (2,))
@@ -210,12 +235,12 @@ class CmpLearnerImportBasicsTests(TestCase):
 
     def test_an_account_a_different_importer_already_created_is_attached_not_duplicated(self):
         """The exact shape ``import_legacy_zoomcamp.py`` leaves behind: an
-        account with just a username and a real email, no ``cmp_source_user_id``,
-        created before this importer ever runs (legacy history imports first,
-        per the migration runbook's step order). This importer must attach its
-        row onto that account, not create a second one for the same address --
-        that second row is exactly what left 879 real members
-        ``verified_owner_ambiguous`` and locked out.
+        account with just a username and a real email, unclaimed by this
+        importer, created before this importer ever runs (legacy history
+        imports first, per the migration runbook's step order). This importer
+        must attach its row onto that account, not create a second one for
+        the same address -- that second row is exactly what left 879 real
+        members ``verified_owner_ambiguous`` and locked out.
         """
 
         legacy_user = CustomUser(username="zc-hist-deadbeef", email="shared-learner@example.invalid")
@@ -233,7 +258,7 @@ class CmpLearnerImportBasicsTests(TestCase):
             ],
             [(1, "shared-learner@example.invalid", 1, 1, 1)],
         )
-        result = import_cmp_learners(source, batch_size=10)
+        result = self._import(source)
 
         # Still one account, at the same primary key -- so every existing
         # reference to it (enrollments, submissions, certificates) is
@@ -246,7 +271,7 @@ class CmpLearnerImportBasicsTests(TestCase):
         # The importer's own username choice never overwrites the identity
         # the first importer already established.
         self.assertEqual(merged.username, "zc-hist-deadbeef")
-        self.assertEqual(merged.cmp_source_user_id, 1)
+        self.assertEqual(self._user_for_source(1).pk, legacy_pk)
         self.assertFalse(merged.has_usable_password())
         self.assertEqual(merged.first_name, "First1")
         self.assertEqual(merged.country, "US")
@@ -269,7 +294,7 @@ class CmpLearnerImportBasicsTests(TestCase):
             ],
             [(1, "shared@example.com", 1, 1, 15515)],
         )
-        result = import_cmp_learners(source, batch_size=10)
+        result = self._import(source)
 
         self.assertEqual(CustomUser.objects.count(), 2)
         self.assertEqual(result.cross_source_matches, ())
@@ -281,9 +306,9 @@ class CmpLearnerImportBasicsTests(TestCase):
             [_account_row(1, username="popular", email="one@example.com")],
             [],
         )
-        import_cmp_learners(source, batch_size=10)
+        self._import(source)
 
-        imported = CustomUser.objects.get(cmp_source_user_id=1)
+        imported = self._user_for_source(1)
         self.assertNotEqual(imported.username, "popular")
         self.assertTrue(imported.username.startswith("popular"))
 
@@ -292,9 +317,9 @@ class CmpLearnerImportBasicsTests(TestCase):
             [_account_row(1, username="", email="jane.doe@example.com")],
             [],
         )
-        import_cmp_learners(source, batch_size=10)
+        self._import(source)
 
-        imported = CustomUser.objects.get(cmp_source_user_id=1)
+        imported = self._user_for_source(1)
         self.assertTrue(imported.username)
         self.assertTrue(imported.username.startswith("jane.doe"))
 
@@ -303,7 +328,7 @@ class CmpLearnerImportBasicsTests(TestCase):
             [_account_row(1, email="one@example.com"), _account_row(2, email="two@example.com")],
             [(1, "one@example.com", 1, 1, 1)],
         )
-        report = dry_run_counts(source)
+        report = dry_run_counts(source, claims_path=self.claims_path)
         self.assertEqual(report["accounts_in_source"], 2)
         self.assertEqual(report["account_emailaddress_in_source"], 1)
         self.assertEqual(report["accounts_already_imported"], 0)
@@ -312,14 +337,15 @@ class CmpLearnerImportBasicsTests(TestCase):
 
     def test_status_reports_progress_without_a_source(self):
         source = self._source([_account_row(1, email="one@example.com")], [])
-        import_cmp_learners(source, batch_size=10)
+        self._import(source)
 
-        status = progress_status()
+        status = progress_status(claims_path=self.claims_path)
         self.assertTrue(status["progress"]["accounts_customuser"]["completed"])
         self.assertEqual(status["progress"]["accounts_customuser"]["rows_written"], 1)
+        self.assertEqual(status["claims_recorded"], 1)
 
 
-class CmpLearnerImportResumabilityTests(TestCase):
+class CmpLearnerImportResumabilityTests(_ClaimsFixtureMixin, TestCase):
     """Kill-and-resume, proven without a real process kill.
 
     A batch's writes and its watermark advance happen in one transaction
@@ -328,7 +354,12 @@ class CmpLearnerImportResumabilityTests(TestCase):
     rolls the whole block back, exactly as a SIGKILL would leave nothing for
     SQLite to have committed. What matters for this test is the state after
     that failure and after a normal re-run, not the mechanism used to
-    interrupt it.
+    interrupt it. The claims file, unlike the database, cannot roll back --
+    but a killed batch never reaches the claims-file write at all (it happens
+    only after the batch's transaction commits, see
+    ``accounts.services.cmp_learner_import``'s module docstring), so a
+    simulated kill leaves the claims file exactly as consistent as the
+    database.
     """
 
     def _source(self, n: int) -> Path:
@@ -358,25 +389,30 @@ class CmpLearnerImportResumabilityTests(TestCase):
         mod._save_progress = _fail_on_third_batch
         try:
             with self.assertRaises(RuntimeError):
-                import_cmp_learners(source, batch_size=5)
+                self._import(source, batch_size=5)
         finally:
             mod._save_progress = real_save
 
         # Two batches of 5 committed; the third's writes and watermark both
-        # rolled back together -- nothing for the DB and the progress row to
-        # disagree about.
+        # rolled back together -- nothing for the DB, the progress row, and
+        # the claims file to disagree about (the claims file was never
+        # touched for the third batch: it writes only after _save_progress
+        # returns, which is exactly where this simulated kill happens).
         progress = CmpLearnerImportProgress.objects.get(table="accounts_customuser")
         self.assertEqual(progress.last_source_id, 10)
         self.assertEqual(progress.rows_written, 10)
         self.assertFalse(progress.completed)
         self.assertEqual(CustomUser.objects.count(), 10)
+        self.assertEqual(len(CmpClaimsStore.load(self.claims_path)), 10)
 
         # A normal resume: no --edition-style flag, just run it again.
-        result = import_cmp_learners(source, batch_size=5)
+        result = self._import(source, batch_size=5)
 
         self.assertEqual(CustomUser.objects.count(), 25)
+        claims = CmpClaimsStore.load(self.claims_path)
+        self.assertEqual(len(claims), 25)
         self.assertEqual(
-            sorted(CustomUser.objects.values_list("cmp_source_user_id", flat=True)),
+            sorted(source_id for source_id, _user_id in claims.sorted_claims()),
             list(range(1, 26)),
         )
         self.assertEqual(result.accounts.written, 25)
@@ -385,33 +421,69 @@ class CmpLearnerImportResumabilityTests(TestCase):
 
     def test_re_running_a_completed_import_creates_no_duplicates(self):
         source = self._source(12)
-        first = import_cmp_learners(source, batch_size=4)
-        second = import_cmp_learners(source, batch_size=4)
+        first = self._import(source, batch_size=4)
+        second = self._import(source, batch_size=4)
 
         self.assertEqual(first.accounts.written, 12)
         self.assertEqual(second.accounts.written, 12)  # cumulative, not "12 more"
         self.assertEqual(CustomUser.objects.count(), 12)
         self.assertEqual(EmailAddress.objects.count(), 12)
 
-    def test_a_row_already_carrying_its_source_id_is_skipped_even_off_the_watermark(self):
+    def test_a_row_already_claimed_is_skipped_even_off_the_watermark(self):
         """Belt-and-braces: correctness does not depend on the watermark alone."""
 
         source = self._source(5)
-        import_cmp_learners(source, batch_size=100)
+        self._import(source, batch_size=100)
 
         # Force the watermark backwards, as if progress bookkeeping were lost
-        # but the rows themselves were not.
+        # but the rows themselves (and the claims file) were not.
         progress = CmpLearnerImportProgress.objects.get(table="accounts_customuser")
         progress.last_source_id = 0
         progress.completed = False
         progress.save()
 
-        result = import_cmp_learners(source, batch_size=100)
+        result = self._import(source, batch_size=100)
         self.assertEqual(CustomUser.objects.count(), 5)
         self.assertEqual(result.accounts.skipped, 5)
 
+    def test_a_lost_claims_file_recovers_by_idempotent_reattachment_not_duplication(self):
+        """The one residual risk the module docstring calls out: a claims
+        file that forgot an already-imported row (the narrow crash window
+        between a batch's commit and its claims-file write, or -- as here --
+        a claims file lost outright) never creates a second CustomUser row
+        for the same source id. ``_find_cross_source_match`` finds the
+        importer's own earlier row (by ``normalized_email``, unclaimed from
+        the store's point of view) and safely re-attaches onto it instead.
+        """
 
-class CmpLearnerImportSourceErrorsTests(TestCase):
+        source = self._source(3)
+        self._import(source, batch_size=100)
+        self.assertEqual(CustomUser.objects.count(), 3)
+
+        # Simulate the claims file being lost while the database (and its
+        # watermark) is intact -- a stronger fault than the narrow crash
+        # window the module docstring accepts as a residual risk.
+        self.claims_path.unlink()
+        progress = CmpLearnerImportProgress.objects.get(table="accounts_customuser")
+        progress.last_source_id = 0
+        progress.completed = False
+        progress.save()
+
+        result = self._import(source, batch_size=100)
+
+        # No duplicate accounts -- every row re-attached onto the account
+        # this importer already created for it. `written` is cumulative
+        # across resumed runs against the same progress row (see
+        # CmpLearnerImportProgress), so this is 3 (first run) + 3 (this
+        # run's re-attachments), not "3 more" restated as a bare 3.
+        self.assertEqual(CustomUser.objects.count(), 3)
+        self.assertEqual(result.accounts.written, 6)
+        self.assertEqual(result.cross_source_matches, (1, 2, 3))
+        claims = CmpClaimsStore.load(self.claims_path)
+        self.assertEqual(len(claims), 3)
+
+
+class CmpLearnerImportSourceErrorsTests(_ClaimsFixtureMixin, TestCase):
     def test_a_missing_source_file_is_a_safe_refusal(self):
         with self.assertRaises(CmpLearnerImportError):
-            import_cmp_learners(Path("/nonexistent/no-such-export.db"), batch_size=10)
+            self._import(Path("/nonexistent/no-such-export.db"))

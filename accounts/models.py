@@ -120,20 +120,6 @@ class CustomUser(AbstractUser):
         db_index=True,
     )
 
-    # Set only by ``scripts/prod/import_cmp_learners.py``, from the CMP export's
-    # ``accounts_customuser.id``. It is not an identity key -- nothing outside that
-    # importer resolves an account by it -- it exists so the import can tell, on
-    # resume, which source rows already landed (instead of re-scanning 20,009
-    # accounts), and so the export's ``account_emailaddress.user_id`` can be
-    # resolved to the account it belongs to.
-    cmp_source_user_id = models.BigIntegerField(
-        verbose_name="CMP source user ID",
-        null=True,
-        blank=True,
-        editable=False,
-        db_index=True,
-    )
-
     class Meta(AbstractUser.Meta):
         constraints = [
             models.UniqueConstraint(
@@ -143,11 +129,6 @@ class CustomUser(AbstractUser):
                     & Q(normalized_email__isnull=False)
                 ),
                 name="accounts_active_normalized_email_unique",
-            ),
-            models.UniqueConstraint(
-                fields=("cmp_source_user_id",),
-                condition=Q(cmp_source_user_id__isnull=False),
-                name="accounts_cmp_source_user_id_unique",
             ),
         ]
 

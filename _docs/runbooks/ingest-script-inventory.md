@@ -358,7 +358,13 @@ Six tables are explicitly never read at all: `django_session`,
 `accounts_token`. Deduplicates against source #2's rows by
 `normalized_email`. Resumable via a persisted per-table high-water mark
 ([`accounts/migrations/0002_cmp_learner_import_progress.py`](../../accounts/migrations/0002_cmp_learner_import_progress.py)) —
-proven with a real `kill -9` mid-run and clean resume.
+proven with a real `kill -9` mid-run and clean resume. Which `CustomUser`
+this importer already created or attached for a given CMP source id is
+tracked by `CmpClaimsStore`, a `--claims-file` JSON file this importer owns
+(default: project-local `.tmp/`) — not a column on `CustomUser`. An earlier
+revision carried that id as `CustomUser.cmp_source_user_id`; it is gone,
+along with the migration that added it, following this inventory's own main
+design principle above.
 Destination: `accounts_customuser`, `account_emailaddress`.
 
 ## 4.2 Learner activity — not built

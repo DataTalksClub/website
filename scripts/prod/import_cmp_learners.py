@@ -17,6 +17,10 @@ Resumable.  Progress is tracked per table in ``CmpLearnerImportProgress``, in
 batches whose writes and watermark advance share one transaction, so a process
 killed mid-run can be re-run and picks up where it left off -- see
 ``--status`` to check how far a run got without touching the source export.
+Which ``CustomUser`` this importer already created or attached for a given CMP
+source id is tracked the same way every other source-system id in this
+migration is: script-owned state, not a column on the live model -- see
+``--claims-file`` and ``accounts.services.cmp_learner_import.CmpClaimsStore``.
 
     uv run --frozen python scripts/prod/import_cmp_learners.py \\
         --database .tmp/production-prep-current.sqlite3 \\
@@ -82,6 +86,18 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Report accumulated progress. Does not open --source at all.",
     )
+    parser.add_argument(
+        "--claims-file",
+        type=Path,
+        default=None,
+        help=(
+            "Where this importer records which CustomUser it already created "
+            "or attached for a given CMP source id (default: the service's "
+            "own default, project-local .tmp/). Durable resumability state -- "
+            "keep it alongside --database across a kill-and-resume, never "
+            "delete it between runs of the same import."
+        ),
+    )
     return parser
 
 
@@ -91,24 +107,34 @@ def main(argv: list[str] | None = None) -> int:
 
     from accounts.services.cmp_learner_import import (
         DEFAULT_BATCH_SIZE,
+        DEFAULT_CLAIMS_PATH,
         CmpLearnerImportError,
         dry_run_counts,
         import_cmp_learners,
         progress_status,
     )
 
+    claims_path = (
+        args.claims_file.resolve()
+        if args.claims_file is not None
+        else (PROJECT_ROOT / DEFAULT_CLAIMS_PATH).resolve()
+    )
     try:
         if args.status:
-            report = progress_status()
+            report = progress_status(claims_path=claims_path)
         elif args.dry_run:
             if args.source is None:
                 _parser().error("--dry-run requires --source")
-            report = dry_run_counts(args.source.resolve())
+            report = dry_run_counts(args.source.resolve(), claims_path=claims_path)
         else:
             if args.source is None:
                 _parser().error("--source is required unless --status is given")
             batch_size = args.batch_size or DEFAULT_BATCH_SIZE
-            result = import_cmp_learners(args.source.resolve(), batch_size=batch_size)
+            result = import_cmp_learners(
+                args.source.resolve(),
+                batch_size=batch_size,
+                claims_path=claims_path,
+            )
             report = result.summary()
     except CmpLearnerImportError as error:
         # The error carries a condition code, never a source value.
