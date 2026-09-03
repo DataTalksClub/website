@@ -192,7 +192,7 @@ class LegalContentTests(TestCase):
         for published_detail in (
             # § 5 TMG: the operator, its address, and its representative.
             "DataTalks.Club",
-            "Schönensche Str. 13",
+            "Schonensche Straße 13",
             "10439 Berlin",
             "Deutschland",
             "Alexey Grigorev",
