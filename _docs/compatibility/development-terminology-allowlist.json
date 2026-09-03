@@ -387,6 +387,15 @@
       "expected_count": 2
     }
   ],
+  "runbook_ledger": {
+    "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+    "sha256": "3cbcd1b2836c13e14740cb4bc1d88ae3ea59c5fc58162504cc1ca6a09413790a",
+    "expected_count": 102,
+    "expected_physical_count": 34,
+    "expected_contextual_count": 68,
+    "expected_rule_count": 52,
+    "occurrence_ledger_sha256": "21b474c92d4e0a2ccaed7a246aa00d58051714a07ff6480886c002bbc77cd012"
+  },
   "rules": [
     {
       "path": "content/faq_projection.json",
@@ -491,6 +500,474 @@
       "reason": "Decision 14 uses \"sandbox\" as ordinary English for a possible future, separately costed AWS network tier, not a reference to this project's former development-environment name.",
       "follow_up": "#94",
       "expected_count": 2
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w./-])sandbox/website(?![\\w./-])",
+      "kind": "physical",
+      "class": "legacy_physical_identifier",
+      "reason": "The migration runbook records the exact retained Terraform website root; #94 owns its later state-safe rename.",
+      "follow_up": "#94",
+      "expected_count": 14
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w./-])sandbox/website/terraform\\.tfvars\\.example(?![\\w./-])",
+      "kind": "physical",
+      "class": "legacy_physical_identifier",
+      "reason": "The migration runbook records the exact retained website Terraform fixture path; #94 owns its later state-safe rename.",
+      "follow_up": "#94",
+      "expected_count": 2
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w./-])sandbox/relay/README\\.md(?![\\w./-])",
+      "kind": "physical",
+      "class": "legacy_physical_identifier",
+      "reason": "The migration runbook records exact retained Relay repository paths used by the compatibility boundary; #94 owns their later state-safe rename.",
+      "follow_up": "#94",
+      "expected_count": 3
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w./-])sandbox/relay(?![\\w./-])",
+      "kind": "physical",
+      "class": "legacy_physical_identifier",
+      "reason": "The migration runbook records the exact retained Relay Terraform root; #94 owns its later state-safe rename.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w./-])sandbox/relay/terraform\\.tfvars\\.example(?![\\w./-])",
+      "kind": "physical",
+      "class": "legacy_physical_identifier",
+      "reason": "The migration runbook records the exact retained Relay Terraform fixture path; #94 owns its later state-safe rename.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w./-])sandbox/relay/main\\.tf(?![\\w./-])",
+      "kind": "physical",
+      "class": "legacy_physical_identifier",
+      "reason": "The migration runbook records the exact retained Relay Terraform source path; #94 owns its later state-safe rename.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w./-])sandbox/relay/monitoring\\.tf(?![\\w./-])",
+      "kind": "physical",
+      "class": "legacy_physical_identifier",
+      "reason": "The migration runbook records the exact retained Relay monitoring path; #94 owns its later state-safe rename.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w./-])sandbox/datamailer/terraform\\.tfvars\\.example(?![\\w./-])",
+      "kind": "physical",
+      "class": "legacy_physical_identifier",
+      "reason": "The migration runbook records the exact retained Datamailer Terraform fixture path; #94 owns its later state-safe rename.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w./-])sandbox/datamailer/variables\\.tf(?![\\w./-])",
+      "kind": "physical",
+      "class": "legacy_physical_identifier",
+      "reason": "The migration runbook records the exact retained Datamailer Terraform source path; #94 owns its later state-safe rename.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w./-])datamailer-sandbox(?![\\w./-])",
+      "kind": "physical",
+      "class": "legacy_physical_identifier",
+      "reason": "The migration runbook records the exact retained Datamailer configuration-set name; #94 owns its later state-safe rename.",
+      "follow_up": "#94",
+      "expected_count": 3
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w./-])scripts/deploy_relay_sandbox\\.sh(?![\\w./-])",
+      "kind": "physical",
+      "class": "legacy_physical_identifier",
+      "reason": "The migration runbook records the exact retained Relay deployment script path; #94 owns its later state-safe rename.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w./-])sandbox infra(?![\\w./-])",
+      "kind": "physical",
+      "class": "legacy_physical_identifier",
+      "reason": "The migration runbook names the retained sandbox infrastructure scope that is decommissioned only through the reviewed #94 boundary.",
+      "follow_up": "#94",
+      "expected_count": 3
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w./-])sandbox root(?![\\w./-])",
+      "kind": "physical",
+      "class": "legacy_physical_identifier",
+      "reason": "The migration runbook names the retained Terraform policy/root scope; #94 owns its later state-safe rename.",
+      "follow_up": "#94",
+      "expected_count": 2
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox retired(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration decision phrase distinguishes the retained former development deployment from current operator terminology.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])Relay sandbox data(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration-boundary phrase identifies the disposable Relay data side of the retained development stack.",
+      "follow_up": "#94",
+      "expected_count": 2
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])Sandbox Django stack(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration-boundary phrase identifies the former development Django stack without changing its physical identifier.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox Relay(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration-boundary phrase distinguishes the retained development Relay from its production counterpart.",
+      "follow_up": "#94",
+      "expected_count": 17
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox Datamailer(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration-boundary phrase distinguishes the retained development Datamailer from its production counterpart.",
+      "follow_up": "#94",
+      "expected_count": 7
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])Sandbox preconditions(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This teardown phrase marks the retained development stack's migration preconditions.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox→main(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This transition notation records the retained Relay development-to-production boundary.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])Relay sandbox → main(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration diagram phrase records the retained Relay development-to-production boundary.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox EBS data(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration-boundary phrase identifies the retained development Relay data volume.",
+      "follow_up": "#94",
+      "expected_count": 2
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "precisely because sandbox data",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration rationale identifies disposable retained development data without changing its handling.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "fine for sandbox data",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration rationale distinguishes development data from the production backup boundary.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "today's sandbox gives",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration comparison describes the retained development account-isolation boundary.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox decommission(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration-boundary phrase names the reviewed decommission sequence for the former development deployment.",
+      "follow_up": "#94",
+      "expected_count": 2
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])Sandbox-account(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This captured migration evidence phrase identifies the former development account context.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "\\*sandbox\\*",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This captured migration evidence retains the former development environment label in emphasized prose.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox mode(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This SES migration-boundary phrase retains the provider's development-mode comparison.",
+      "follow_up": "#94",
+      "expected_count": 2
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox-mode(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This SES migration-boundary phrase retains the provider's development-mode comparison.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox credentials(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration evidence phrase records that only retained development credentials were available for the comparison.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "The sandbox(?=\\n)",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration comparison phrase identifies the retained development environment without changing its physical values.",
+      "follow_up": "#94",
+      "expected_count": 2
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox stacks(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration-boundary phrase distinguishes the retained development stack family from production resources.",
+      "follow_up": "#94",
+      "expected_count": 2
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox it sends(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration-boundary phrase retains the development email-routing comparison.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "drain sandbox before",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This teardown instruction describes the retained development Relay data lifecycle.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox stack stays(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration sequencing phrase identifies the retained development Relay stack during the transition.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox teardown(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration sequencing phrase identifies the retained development teardown boundary.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox role(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration evidence phrase records the retained development operator-role comparison without changing its physical value.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox-teardown(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration heading labels the reviewed teardown boundary for the former development deployment.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox host(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration sequencing phrase identifies the retained development host boundary.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox account(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration cost and teardown phrase identifies the retained development account boundary.",
+      "follow_up": "#94",
+      "expected_count": 2
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox workload(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration sequencing phrase identifies workloads retained in the development environment.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox policy-suite(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration sequencing phrase identifies the retained development policy boundary.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "Other sandbox(?=\\n)",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration scope phrase distinguishes unrelated retained development stacks from the website teardown.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox website stack(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration cost phrase identifies the retained development website stack.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox harvest(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration cost phrase identifies the retained development resource harvest boundary.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox profile(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration cost phrase identifies the retained development sizing profile.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox-Relay(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration cost phrase distinguishes the retained development Relay from production Relay.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": ", and sandbox(?=\\n)",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration cost phrase identifies the retained development Datamailer boundary after the website stack.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox runs(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration security comparison identifies the retained development CloudFront behavior.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "(?<![\\w/-])sandbox-style(?![\\w/-])",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration security comparison explicitly labels the retained development-style fixture as non-production.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/runbooks/production-hosting-and-dns-migration.md",
+      "pattern": "sandbox\\n  Datamailer",
+      "kind": "contextual",
+      "class": "compatibility_note",
+      "reason": "This migration cost phrase carries the retained development Datamailer label across the table line break.",
+      "follow_up": "#94",
+      "expected_count": 1
     }
   ]
 }
