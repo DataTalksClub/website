@@ -145,7 +145,7 @@ noted.
 | --- | --- | --- | --- |
 | `account_identity_inventory` | accounts | Live (runbook) | `_docs/runbooks/account-reconciliation.md:37` |
 | `bootstrap_development_owner` | accounts | Live | `_docs/runbooks/development-owner-bootstrap.md`; `playwright_tests/test_development_owner_credentials.py:113` |
-| `reconcile_accounts` | accounts | Live (runbook) | `_docs/runbooks/account-reconciliation.md:52,97,168` |
+| `scripts/prod/import_account_reconciliation.py` (was `reconcile_accounts`) | accounts | Live (runbook) | `_docs/runbooks/account-reconciliation.md`; merge logic in `scripts/prod/account_reconciliation` |
 | `seed_local_social_providers` | accounts | Live | `accounts/tests/test_local_provider_seed.py:85` + §0.2 |
 | `audit_datamailer_recipient_lists` | courses | Live | `studio_courses/views/datamailer_operations.py:51` |
 | `datamailer_campaign` / `datamailer_status` | courses | Live | Studio operations + tests |

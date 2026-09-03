@@ -42,7 +42,7 @@ It is not load-bearing for sign-in: ``ConsolidatingSocialAccountAdapter`` matche
 provider-verified address against a verified ``EmailAddress`` row *or* the
 account's own ``email`` column, precisely because the export has four accounts with
 no email row at all. But it **is** load-bearing for reconciliation --
-``accounts/reconciliation.py`` reads verified ``EmailAddress`` rows in several
+``scripts.prod.account_reconciliation`` reads verified ``EmailAddress`` rows in several
 places, including a hard gate in ``_mapping_conflicts``: a merge is refused outright
 if either side of a proposed pair holds no verified row at all
 (``verified_email_evidence_missing``). ``sociallogin.connect()`` never creates one on
@@ -91,7 +91,7 @@ existing account's ``username`` or ``email`` -- those already identify it,
 and the account's primary key never changes, so everything that already
 references it (enrollments, submissions, certificates) keeps working
 unchanged. This is a plain merge, not the reviewed reconciliation flow in
-``accounts/reconciliation.py``: both sides are the same real person, written
+``scripts.prod.account_reconciliation``: both sides are the same real person, written
 once each by two importers that do not know about each other, with no
 conflicting history to adjudicate -- unlike the one address the CMP export
 shares with itself (ids 2/15515 in the real export), which two CMP rows both

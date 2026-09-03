@@ -255,6 +255,22 @@ class AccountIdentityQuarantine(models.Model):
 
 
 class AccountReconciliationRun(models.Model):
+    """Idempotency/concurrency record for the one-time account-merge apply.
+
+    Nothing at request time ever reads this table -- it exists only for
+    ``scripts/prod/import_account_reconciliation.py`` (via
+    ``scripts.prod.account_reconciliation``), which owns every line of logic
+    that reads or writes it. It stays a real model registered under
+    ``accounts`` because a Django model needs an installed app to get a
+    migration and cheap lookups against ``CustomUser``, and ``scripts/prod``
+    is plain scripts, not an app -- not because this is a live application
+    feature. See that package's module docstring for why this specifically
+    stays a database row (its ``UniqueConstraint`` below is the compare-and-
+    swap that makes two simultaneous applies of the same mapping resolve to
+    exactly one merge) rather than becoming script-owned file/dict state the
+    way the CMP learner import's claim-tracking does.
+    """
+
     class Mode(models.TextChoices):
         APPLY = "apply", "Apply"
         ROLLBACK_CHECK = "rollback_check", "Rollback check"

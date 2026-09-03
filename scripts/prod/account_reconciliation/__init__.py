@@ -1,11 +1,76 @@
+"""One-time account-merge reconciliation: dry-run, apply, rollback-check.
+
+Relocated out of ``accounts/`` (was ``accounts/reconciliation.py``, wrapped by
+the now-retired ``accounts.management.commands.reconcile_accounts``).  Nothing
+in the live application imports this package -- it exists only for
+``scripts/prod/import_account_reconciliation.py`` to call once, against a
+reviewed mapping document, during the production data migration.  See
+``_docs/runbooks/production-data-migration.md`` and
+``_docs/runbooks/ingest-script-inventory.md`` (CMP learner accounts, 4.3) for
+the full journey.
+
+What stays permanent, in ``accounts/``, and why this package does not own it
+------------------------------------------------------------------------------
+
+``accounts.models.CustomUser.IdentityState.ABSORBED``, ``AccountIdentityAlias``
+and ``AccountIdentityQuarantine`` are not reconciliation-only bookkeeping: an
+absorbed account's session is resolved to its survivor on every request for
+the life of the application (``accounts.identity_resolution``,
+``accounts.middleware.DurableAccountSessionMiddleware``), and
+``AccountIdentityQuarantine`` is also written outside this package entirely,
+by ``accounts.auth.ConsolidatingSocialAccountAdapter`` when a live sign-in
+hits an unresolved identity collision.  Those stay exactly where they are.
+
+``accounts.models.AccountReconciliationRun`` is different from those in that
+nothing at request time ever reads it -- but it still has to be a real Django
+model living in an installed app, because that is the only way for it to get
+a migration and cheap FK-free lookups against ``CustomUser``.  ``scripts/prod``
+is plain scripts, not a Django app, so it cannot host a model at all.  Moving
+the *table* out of ``accounts`` is not possible without inventing a second
+app for one table; what *does* move, and does here, is every line of
+*business logic* that reads or writes it -- dry-run, apply, rollback-check,
+and every conflict/quarantine helper they use.  ``accounts/models.py`` keeps
+only the column and constraint definitions, documented there as import
+tooling nothing at request time touches.
+
+Why ``AccountReconciliationRun`` stays a database row rather than becoming
+ingestion-scoped script state (a JSON file, an in-memory dict)
+------------------------------------------------------------------------------
+
+This package needs two properties from the same record, at once, for the
+same irreversible operation (the migration runbook's own words: "account
+reconciliation is the step in this whole migration with no rollback"):
+
+1. **Idempotency** -- replaying the same ``(snapshot_id, mapping_checksum,
+   mode=apply)`` returns the first run's cached result rather than
+   re-merging.  A JSON file could do this alone.
+2. **Concurrency safety** -- two simultaneous applies of the same mapping
+   must result in exactly one merge, with the loser safely receiving the
+   winner's cached result, never a double merge and never an unhandled
+   ``IntegrityError``.  A JSON file cannot honestly give this.  Two processes
+   racing a read-then-write against the same file cannot be made atomic
+   without inventing cross-process file locking -- and that locking would
+   itself need to be exactly as correct as a database's own compare-and-swap
+   to be worth trusting for a merge that cannot be undone.  A database
+   ``UniqueConstraint`` gives that compare-and-swap for free, enforced by the
+   engine, not by this package's own care.
+
+Given both properties have to come from the same record for an operation
+this brief explicitly calls out as having no rollback, this package keeps
+``AccountReconciliationRun`` as the real table it already was, and relies on
+``apply_reviewed_mapping``'s existing ``IntegrityError`` handling (below) --
+proven by a real two-thread test, not by reading the code -- rather than
+rebuild a weaker version of the same guarantee in a file.
+"""
+
 from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any
 
-from allauth.account.models import EmailAddress
-from allauth.socialaccount.models import SocialAccount
+from allauth.account.models import EmailAddress  # type: ignore[import-untyped]
+from allauth.socialaccount.models import SocialAccount  # type: ignore[import-untyped]
 from django.apps import apps
 from django.db import IntegrityError, transaction
 from django.db.models import F
@@ -831,7 +896,7 @@ def apply_reviewed_mapping(plan: MappingPlan) -> dict[str, Any]:
                 )
             after_counts, after_checksums = relationship_evidence()
 
-            report = {
+            report: dict[str, Any] = {
                 "schema_version": "account-reconciliation-apply-v1",
                 "snapshot_id": plan.snapshot_id,
                 "mapping_checksum": plan.checksum,
@@ -876,6 +941,12 @@ def apply_reviewed_mapping(plan: MappingPlan) -> dict[str, Any]:
         )
         raise ReconciliationBlocked(error.conflicts) from None
     except IntegrityError:
+        # Either a real concurrent apply of this exact mapping won the race
+        # (the AccountReconciliationRun unique constraint is the compare-
+        # and-swap) or a genuine data-integrity refusal happened inside the
+        # transaction above.  Distinguish by re-querying: if a run for this
+        # snapshot/checksum/mode now exists, this was the race's loser and
+        # gets the winner's cached result -- never a second merge attempt.
         concurrent_run = AccountReconciliationRun.objects.filter(
             source_snapshot_id=plan.snapshot_id,
             mapping_checksum=plan.checksum,

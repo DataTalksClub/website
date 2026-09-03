@@ -185,7 +185,6 @@ Mounted from `courses.urls`.
 | `monitoring_datamailer_health` | `data` | Emit compact Datamailer health observability events. |
 | `preview_peer_review_email` | `courses` | Preview the peer-review-assignment email for a project. |
 | `process_datamailer_outbox` | `data` | Dispatch pending/retrying Datamailer outbox events. |
-| `reconcile_accounts` | `accounts` | Dry-run, apply, or rollback-check reviewed account mappings. |
 | `seed_local_courses` | `courses` | Seed the local development database with the pinned public course catalog so / and /courses show the same real courses. |
 | `seed_local_project_review` | `courses` | Seed a synthetic DE Zoomcamp Project 1 scenario and assign peer reviews in local/test SQLite only. |
 | `seed_local_questions` | `courses` | Seed representative homework questions for a local development form. |

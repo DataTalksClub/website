@@ -368,6 +368,51 @@ responses, peer reviews, project evaluation scores, wrapped statistics —
 roughly 470,000 of the export's ~510,000 learner rows. **Largest open gap in
 this entire inventory.**
 
+## 4.3 Reconciliation
+
+[`scripts/prod/import_account_reconciliation.py`](../../scripts/prod/import_account_reconciliation.py)
+(+ [`scripts/prod/account_reconciliation/`](../../scripts/prod/account_reconciliation/))
+
+Not part of 4.1's journey — it runs after every account-writing source (1, 2,
+and 4.1) has landed, over whatever accounts exist by then, merging real
+duplicate people the sources above wrote independently (the pre-2024 legacy
+importer and the CMP importer see each other's writes only through 4.1's own
+cross-source `normalized_email` match; everything else — the same person on
+two *different* verified addresses, a username/email collision, an
+authority-signature difference — is this step's job). Source: no export, no
+network; it reads and writes only the database it's pointed at. Three modes,
+never destination tables directly written by hand: dry-run (report-only,
+finds candidate duplicate groups by shared normalized email, verified email,
+username, or provider UID — never auto-merges), apply (writes, against one
+reviewed mapping document a human produced from the dry-run's candidates),
+rollback-check (proves the apply's evidence — aliases, unchanged relationship
+checksums — is still intact; does not reverse anything). Full walkthrough:
+[`account-reconciliation.md`](account-reconciliation.md).
+
+Destination, on apply: `identity_state` flips (`absorbed` on the source row,
+`active` on the survivor), every reparentable relation (enrollments,
+submissions, project votes, wrapped statistics, and more — see
+`accounts/identity_inventory.py`'s `ACCOUNT_RELATIONS`) moves to the
+survivor, and one durable `accounts_accountidentityalias` row records the
+mapping so a request that ever lands on the absorbed id resolves to the
+survivor for the life of the application
+(`accounts/identity_resolution.py`, `accounts/middleware.py`).
+
+**This is the one entry in this whole inventory whose accompanying model —
+`accounts_accountreconciliationrun`, the idempotency/concurrency record for
+apply — is a real database table rather than script-owned file/dict state.**
+Two simultaneous real applies of the same mapping must resolve to exactly
+one merge, with the loser safely receiving the winner's cached result — a
+real database `UniqueConstraint` gives that compare-and-swap atomically,
+engine-enforced; a JSON file cannot, without reinventing cross-process
+locking to guard an operation the migration runbook calls out by name as
+having **no rollback**. See
+[`scripts/prod/account_reconciliation/__init__.py`](../../scripts/prod/account_reconciliation/__init__.py)'s
+module docstring for the full reasoning, and
+[`accounts/tests/test_account_reconciliation.py`](../../accounts/tests/test_account_reconciliation.py)
+for both properties proven against a real database, not asserted by reading
+the code.
+
 ---
 
 # 5. Event identity manifest
