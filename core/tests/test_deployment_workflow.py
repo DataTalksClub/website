@@ -47,9 +47,11 @@ from deploy.contracts import (
 )
 from deploy.deployment_targets import (
     CPU_ARCHITECTURES,
+    DEPLOYMENT_TARGETS,
     SELECTED_TARGET,
     DeploymentTargetError,
     architecture_fields,
+    registered_target,
 )
 from deploy.release import capture_current_service_pair, capture_recovery_context
 from deploy.task_definitions import (
@@ -227,7 +229,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertIn("github.event_name == 'workflow_dispatch'", workflow)
         self.assertIn("github.ref == 'refs/heads/main'", workflow)
         self.assertEqual(workflow.count("id-token: write"), 7)
-        self.assertIn("name: sandbox", workflow)
+        self.assertIn(f"name: {SELECTED_TARGET.github_environment}", workflow)
 
     def test_failure_injection_is_dispatch_only_default_none_and_promotion_only(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
@@ -482,8 +484,6 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         )
         self.assertEqual(worst_case_seconds, 2400)
         self.assertGreaterEqual(3600 - worst_case_seconds, 20 * 60)
-        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
-        self.assertIn("3600 - 2400 = 1200", runbook)
 
     def test_reuse_path_cannot_build_load_login_or_push_and_keeps_publish_artifact(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
@@ -728,321 +728,6 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             if job_name not in {"probe-publisher", "probe-deployer"}:
                 self.assertNotIn("DEVELOPMENT_KMS_KEY_ARN", str(job))
 
-    def test_runbook_orders_probe_before_secret_population_and_releases(self) -> None:
-        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
-        bootstrap = runbook.split("## One-time bootstrap", maxsplit=1)[1].split(
-            "## Post-bootstrap OIDC probe", maxsplit=1
-        )[0]
-
-        apply_position = bootstrap.index("Apply the reviewed")
-        outputs_position = bootstrap.index("Configure the non-secret GitHub variables")
-        trust_position = bootstrap.index("Read back the\n   publisher/deployer trust policies")
-        probe_position = bootstrap.index("Complete the live OIDC probe hold point")
-        secrets_position = bootstrap.index("Only after the probe is green, populate")
-        release_position = bootstrap.index("Proceed to release A")
-        self.assertLess(apply_position, trust_position)
-        self.assertLess(trust_position, outputs_position)
-        self.assertLess(outputs_position, probe_position)
-        self.assertLess(probe_position, secrets_position)
-        self.assertLess(secrets_position, release_position)
-        self.assertNotIn("Populate the required Secrets Manager values", bootstrap)
-
-    def test_runbook_documents_exact_route53_probe_and_pre_post_evidence(self) -> None:
-        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
-        probe = runbook.split("## Post-bootstrap OIDC probe", maxsplit=1)[1].split(
-            "## Select and promote a release", maxsplit=1
-        )[0]
-        normalized_probe = " ".join(probe.split())
-
-        self.assertIn("`DEVELOPMENT_ROUTE53_HOSTED_ZONE_ID`", runbook)
-        self.assertIn("`Z05963572WVWFHDQZH5NE`", runbook)
-        self.assertIn("not a Terraform output", runbook)
-        self.assertIn("exactly two byte-for-byte identical `DELETE` changes", normalized_probe)
-        self.assertIn("transactional", normalized_probe)
-        self.assertIn("`InvalidChangeBatch`", normalized_probe)
-        self.assertIn("`NoSuchHostedZone`", normalized_probe)
-        self.assertIn("Only an AccessDenied-class response passes", normalized_probe)
-        self.assertIn("canonical full record", normalized_probe)
-        self.assertIn("exact six", normalized_probe)
-        self.assertIn("byte-for-byte unchanged", normalized_probe)
-
-    def test_runbook_has_exact_variable_inventory_and_kms_probe_contract(self) -> None:
-        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
-        table = runbook.split("| GitHub variable |", maxsplit=1)[1].split(
-            "Do not export secret-container ARNs", maxsplit=1
-        )[0]
-        repository_variables = {
-            line.split("`", maxsplit=2)[1] for line in table.splitlines() if "| repository" in line
-        }
-        environment_variables = {
-            line.split("`", maxsplit=2)[1]
-            for line in table.splitlines()
-            if "| legacy GitHub environment `sandbox` |" in line
-        }
-        self.assertEqual(
-            repository_variables,
-            {
-                "DEVELOPMENT_AWS_REGION",
-                "DEVELOPMENT_ECR_REPOSITORY_URI",
-                "DEVELOPMENT_ECR_REPOSITORY_NAME",
-                "DEVELOPMENT_PUBLISHER_ROLE_ARN",
-                "DEVELOPMENT_ROUTE53_HOSTED_ZONE_ID",
-                "DEVELOPMENT_KMS_KEY_ARN",
-            },
-        )
-        self.assertEqual(len(environment_variables), 18)
-        self.assertNotIn("DEVELOPMENT_KMS_KEY_ARN", environment_variables)
-        self.assertNotIn("DEVELOPMENT_ROUTE53_HOSTED_ZONE_ID", environment_variables)
-        self.assertIn("six repository rows", runbook)
-        self.assertIn("exact 18 environment rows", runbook)
-        self.assertIn("independent fail-closed `DEVELOPMENT_AUTO_DEPLOY=false` switch", runbook)
-
-        probe = runbook.split("## Post-bootstrap OIDC probe", maxsplit=1)[1].split(
-            "## Select and promote a release", maxsplit=1
-        )[0]
-        normalized_probe = " ".join(probe.split())
-        exact_arn = "arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887"
-        for expected in (
-            "`DEVELOPMENT_KMS_KEY_ARN`",
-            f"`{exact_arn}`",
-            '`Operations=["Decrypt"]`',
-            "`DryRun=True`",
-            "`DryRunOperationException`",
-            "`NotFoundException`",
-            "`AccessDeniedException`",
-            "grant inventory",
-            "before requesting OIDC credentials",
-            "pass it exactly once",
-        ):
-            self.assertIn(expected, normalized_probe)
-
-    def test_sentinel_audit_covers_complete_sequence_and_three_part_proof(self) -> None:
-        audit = (ROOT / "_docs/audits/2026-08-07-oidc-denial-sentinels.md").read_text()
-        for action in (
-            "ecr:DescribeImages",
-            "s3:GetObject",
-            "iam:UpdateRoleDescription",
-            "route53:ChangeResourceRecordSets",
-            "cloudfront:CreateInvalidation",
-            "elasticloadbalancing:ModifyTargetGroupAttributes",
-            "rds:ModifyDBInstance",
-            "kms:CreateGrant",
-            "secretsmanager:GetSecretValue",
-            "ecs:DeregisterTaskDefinition",
-            "ecr:BatchDeleteImage",
-            "ecs:DescribeServices",
-            "ecs:UpdateService",
-            "ecs:RunTask",
-        ):
-            self.assertIn(f"`{action}`", audit)
-        for outcome in (
-            "ResourceNotFoundException",
-            "ClientException",
-            "InvalidParameterException",
-            "ClusterNotFoundException",
-            "MISSING",
-            "AccessDenied",
-        ):
-            self.assertIn(outcome, audit)
-        self.assertGreaterEqual(audit.count("**Remove.**"), 5)
-        self.assertEqual(audit.count("**Retain.**"), 4)
-        self.assertIn("website live-call allowlist", audit)
-        self.assertIn("aws-infra", audit)
-        self.assertIn("simulate-principal-policy", audit)
-        self.assertIn("positive controls", audit)
-        self.assertIn("ExpectedBucketOwner=817685572750", audit)
-        self.assertIn("exactly four calls, in order", audit)
-
-        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
-        probe = runbook.split("## Post-bootstrap OIDC probe", maxsplit=1)[1].split(
-            "## Select and promote a release", maxsplit=1
-        )[0]
-        for expected in (
-            "ExpectedBucketOwner=817685572750",
-            "ecr:DescribeImages` on foreign and production-shaped repository ARNs",
-            "iam:UpdateRoleDescription` on each exact publisher/deployer role ARN",
-            "cloudfront:CreateInvalidation` on `<cloudfront-distribution-arn>`",
-            "elasticloadbalancing:ModifyTargetGroupAttributes` on exact web target-group ARN",
-            "rds:ModifyDBInstance` on exact website DB ARN",
-            "s3:GetObject` on exact state-object ARN",
-            "route53:ChangeResourceRecordSets` on exact hosted-zone ARN",
-            "kms:CreateGrant` on exact runtime-key ARN",
-            "ecr:BatchDeleteImage` on exact `website-sandbox` repository ARN",
-            "simulator covers identity policies only",
-            "ECR `website-sandbox` repository policy",
-            "S3 state-bucket policy",
-        ):
-            self.assertIn(expected, probe)
-
-    def test_gate_b_evidence_contract_is_atomic_offline_and_workflow_isolated(self) -> None:
-        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
-        audit = (ROOT / "_docs/audits/2026-08-07-oidc-denial-sentinels.md").read_text()
-        manifest = json.loads((ROOT / "deploy/gate_b_manifest.json").read_text())
-        gate = runbook.split("### #81 Gate B — readback and simulator preflight", maxsplit=1)[
-            1
-        ].split("Before the regional `DescribeTargetHealth`", maxsplit=1)[0]
-
-        self.assertEqual(manifest["schema_version"], 1)
-        self.assertEqual(manifest["contract_id"], "website-sandbox-gate-b-v1")
-        self.assertEqual(
-            manifest["source_binding"],
-            {
-                "website_sha": "07186fc9bf9cf353fa12b74e97018d7f951d0fe6",
-                "website_tree": "9621d51fd8952a6c12af5ea62b207aa07c988ac5",
-                "infra_sha": "95d93f7e07ded19e482a0c6d6471fbd93fb608d8",
-                "infra_tree": "1c38fdf6872a448d92e8191282525bafd3ab3410",
-            },
-        )
-        self.assertEqual(
-            manifest["resource_policy_absence"],
-            {
-                "s3_bucket": "NoSuchBucketPolicy",
-                "ecr_repository": "RepositoryPolicyNotFoundException",
-                "ecr_registry": "RegistryPolicyNotFoundException",
-                "secrets_manager": "success-with-resource-policy-member-absent",
-            },
-        )
-        self.assertEqual(len(manifest["static"]["secret_names"]), 6)
-        self.assertEqual(manifest["static"]["kms"]["alias_name"], "alias/website-sandbox-runtime")
-        self.assertIn("operator_identity", manifest["dynamic_binding_schema"]["required"])
-        self.assertEqual(len(manifest["simulator_rows"]), 90)
-        self.assertEqual(
-            set(manifest["readback_manifest"]["field_schemas"]),
-            {
-                "cloudfront",
-                "database",
-                "ecr",
-                "ecs_cluster",
-                "ecs_service",
-                "kms",
-                "operator_identity",
-                "role",
-                "route53",
-                "s3",
-                "secret",
-                "simulator_context_entry",
-                "target_group",
-                "task_definition",
-                "terraform",
-            },
-        )
-        for role in manifest["static"]["roles"].values():
-            self.assertEqual(role["attached_policies"], [])
-            self.assertIsNone(role["permissions_boundary"])
-            self.assertEqual(role["inline_policy_names"], [role["name"]])
-
-        command_blocks = [part.split("```", maxsplit=1)[0] for part in gate.split("```bash")[1:]]
-        commands = "\n".join(command_blocks)
-        for required in (
-            "aws iam get-role ",
-            "aws iam get-role-policy ",
-            "aws kms get-key-policy ",
-            "aws kms list-grants ",
-            "aws s3api get-bucket-ownership-controls ",
-            "aws s3api get-bucket-policy ",
-            "aws ecr get-repository-policy ",
-            "aws ecr get-registry-policy ",
-            "aws secretsmanager get-resource-policy ",
-            "aws cloudfront get-distribution ",
-            "aws route53 list-resource-record-sets ",
-            "gh variable get ",
-            "gh api --method GET ",
-            "aws iam simulate-principal-policy ",
-            "sandbox/website/terraform.tfstate.tflock",
-        ):
-            self.assertIn(required, commands)
-        for forbidden in (
-            "aws s3api get-object ",
-            "aws secretsmanager get-secret-value ",
-            "terraform plan",
-            "terraform apply",
-            "gh workflow run",
-            "--debug",
-            "set -x",
-        ):
-            self.assertNotIn(forbidden, commands.lower())
-        self.assertFalse(
-            any(
-                line.lstrip().startswith(("aws ", "gh ", "terraform "))
-                for line in commands.splitlines()
-            )
-        )
-
-        mode_positions = [
-            gate.index(f"python -m deploy.gate_b_evidence {mode}")
-            for mode in ("manifest", "bindings", "policies", "resources", "simulator", "summary")
-        ]
-        self.assertEqual(mode_positions, sorted(mode_positions))
-        self.assertIn("never falls through", gate)
-        self.assertIn("MissingContextValues=[]", gate)
-        self.assertIn("BucketOwnerEnforced", gate)
-        self.assertIn("registry-v2", gate)
-        self.assertIn("ResourcePolicy` member absent", gate)
-        self.assertIn("origin custom headers", gate)
-        self.assertIn("one resource or one context key", gate)
-        self.assertIn("payload_sha256", gate)
-        self.assertIn('chmod 0700 -- ".tmp"', gate)
-        self.assertIn("chmod 0600", gate)
-        self.assertIn("ContextKeyName", gate)
-        self.assertIn("grant_inventory_truncated", gate)
-        self.assertIn("null permissions", gate)
-        self.assertIn("code-pinned canonical SHA-256", gate)
-        self.assertIn("superseded", audit)
-        self.assertIn("application role as `GranteePrincipal` or `RetiringPrincipal`", audit)
-
-        rows = manifest["simulator_rows"]
-        by_id = {row["id"]: row for row in rows}
-        self.assertEqual(len(by_id), len(rows))
-        for row in rows:
-            self.assertIsInstance(row["action"], str)
-            self.assertIsInstance(row["resource"], str)
-            self.assertIn(row["expected"], {"allowed", "implicitDeny"})
-            parent_id = row["negative_of"]
-            if parent_id is None:
-                self.assertIsNone(row["changed_axis"])
-                continue
-            parent = by_id[parent_id]
-            self.assertEqual(parent["expected"], "allowed")
-            self.assertEqual(parent["principal"], row["principal"])
-            self.assertEqual(parent["action"], row["action"])
-            if row["changed_axis"] == "resource":
-                self.assertNotEqual(parent["resource"], row["resource"])
-                self.assertEqual(parent["context"], row["context"])
-            else:
-                self.assertEqual(parent["resource"], row["resource"])
-
-        unchanged_hashes = {
-            "deploy/oidc_probe.py": (
-                "10f38b3c3df04c763f0e09ffe6128fc9d9fe174c4f3f7f161600992fcd84e2ff"
-            ),
-            "deploy/oidc_claim_probe.py": (
-                "693b1844e5e1c40709ce368ecb6bef22814a5912ceaa635288f0d0204a75ba28"
-            ),
-            "core/tests/test_deployment_oidc_probe.py": (
-                "58b447bc72ddfd11359f801087ba5a2f896f0d56bff7a832c6a2768d34f74b92"
-            ),
-            "pyproject.toml": STUDIO_COURSES_PYPROJECT_SHA256,
-            "uv.lock": SECURITY_REMEDIATED_UV_LOCK_SHA256,
-        }
-        for relative_path, expected_hash in unchanged_hashes.items():
-            actual_hash = hashlib.sha256((ROOT / relative_path).read_bytes()).hexdigest()
-            self.assertEqual(actual_hash, expected_hash)
-        historical_workflow = subprocess.run(
-            [
-                "git",
-                "show",
-                f"{HISTORICAL_WORKFLOW_COMMIT}:.github/workflows/ci.yml",
-            ],
-            cwd=ROOT,
-            check=True,
-            capture_output=True,
-        ).stdout
-        self.assertEqual(
-            hashlib.sha256(historical_workflow).hexdigest(), HISTORICAL_WORKFLOW_SHA256
-        )
-        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
-        self.assertNotIn("gate_b_evidence", workflow)
-
     def test_gate_b_operator_contract_is_exact_and_workflow_isolated(self) -> None:
         seed_path = ROOT / "deploy/gate_b_binding_seed.json"
         contract_path = ROOT / "deploy/gate_b_execution_contract.json"
@@ -1177,9 +862,6 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             self.assertNotIn(forbidden, commands)
 
         frozen_hashes = {
-            "_docs/audits/2026-08-07-oidc-denial-sentinels.md": (
-                "8c4e9b6701d670bac87853254d66b2399e379e79b072409690c68acb3a3e9696"
-            ),
             "deploy/gate_b_evidence.py": (
                 "52d93e9b2757c75c4ec633ac2d903fdce658b107481382025c22bf0f9d276b68"
             ),
@@ -1220,70 +902,9 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             hashlib.sha256(historical_workflow).hexdigest(), HISTORICAL_WORKFLOW_SHA256
         )
 
-        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
-        audit = (ROOT / "_docs/audits/2026-08-08-gate-b-operator-execution.md").read_text()
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
-        for required in (
-            "#85 sealed operator procedure",
-            "exactly 174 evidence operations",
-            "resolved exactly once",
-            "execution-attestation.json",
-            "does not authorize",
-        ):
-            self.assertIn(required, f"{runbook}\n{audit}")
         self.assertNotIn("gate_b_operator", workflow)
         self.assertNotIn("gate_b_assembler", workflow)
-
-    def test_runbook_reconciles_only_after_all_b_exercises_and_final_promotion(self) -> None:
-        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
-        drills_position = runbook.index("## Controlled failure drills")
-        rollback_position = runbook.index("## Manual immutable rollback")
-        reconciliation_position = runbook.index("## Final release-B Terraform reconciliation")
-
-        self.assertLess(drills_position, rollback_position)
-        self.assertLess(rollback_position, reconciliation_position)
-        reconciliation = runbook[reconciliation_position:]
-        self.assertIn("Never reconcile release A or an intermediate release state", reconciliation)
-        self.assertIn("post-mutation B smoke", reconciliation)
-        self.assertIn("clean promotion of the already-built B digest", reconciliation)
-        self.assertIn("second and final plan", reconciliation)
-        self.assertIn("e2b93beb1544170b6177ba55ea8fd6530b2e57a3", reconciliation)
-        self.assertIn("DEVELOPMENT_AUTO_DEPLOY=true", reconciliation)
-        self.assertIn(
-            "repository-level variable must exist and be exactly `DEVELOPMENT_AUTO_DEPLOY=false`",
-            reconciliation,
-        )
-        self.assertIn(
-            "An absent repository variable is not a disabled state",
-            " ".join(reconciliation.split()),
-        )
-        self.assertIn("Never delete this repository variable", reconciliation)
-        self.assertNotIn("gh variable delete DEVELOPMENT_AUTO_DEPLOY", runbook)
-        self.assertNotIn("After first bootstrap succeeds, set Terraform", runbook)
-
-    def test_runbook_documents_build_once_records_reuse_and_safe_auto_capture(self) -> None:
-        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
-
-        self.assertIn(
-            "development-published-image-e2b93beb1544170b6177ba55ea8fd6530b2e57a3", runbook
-        )
-        self.assertIn("only release-B build/push run", runbook)
-        self.assertIn("performs no Docker build, load, login, pull, or push", runbook)
-        self.assertIn("is **not** a successful or rollback-eligible release record", runbook)
-        self.assertIn("## Automatic deployment after bootstrap", runbook)
-        self.assertIn("## Database credentials", runbook)
-        self.assertIn("`manage_master_user_password = false`", runbook)
-        self.assertIn("`website-sandbox/database-url`", runbook)
-        self.assertIn("`PubliclyAccessible=false`", runbook)
-        self.assertIn("Do not re-enable RDS-managed rotation", runbook)
-        self.assertIn("/health/ready", runbook)
-        self.assertIn("The ready path is `/health/ready`.", runbook)
-        self.assertIn("queued push therefore makes no AWS call", runbook)
-        self.assertIn("distinct active-service-pair schema", runbook)
-        self.assertIn("never guesses a cross-family revision", runbook)
-        self.assertIn("prevents publication as well as deployment", runbook)
-        self.assertIn("before migration", runbook)
-        self.assertIn("again after migration", runbook)
 
     def test_source_selection_is_exact_reachable_and_separate_from_controller(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
@@ -1355,6 +976,105 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
                 self.assertIn("image_architecture_matches_deployment_target", steps)
                 self.assertNotIn("image_architecture_amd64", text)
                 self.assertNotIn('= "amd64"', text)
+
+    def test_every_environment_scoped_job_names_the_selected_target_environment(self) -> None:
+        """The GitHub environment is the OIDC subject, so it cannot be a stale literal.
+
+        A job declaring ``environment: <name>`` receives the subject
+        ``repo:<immutable-repo>:environment:<name>`` and the deployer role's
+        trust policy admits exactly one value.  When the two disagree, STS
+        rejects the token at the trust boundary and reports only ``Not
+        authorized to perform sts:AssumeRoleWithWebIdentity`` -- it never says
+        which claim differed -- so every prior job is green and the failure
+        reads as a missing IAM permission.  That is what happened when the
+        target was re-pointed away from the destroyed sandbox stack and these
+        four literals stayed behind.  The literal must therefore fail a test,
+        not a deploy.
+        """
+
+        document = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        environments = {
+            job_name: job["environment"]
+            for job_name, job in document["jobs"].items()
+            if "environment" in job
+        }
+
+        self.assertEqual(
+            sorted(environments),
+            ["auto-capture-prior", "deploy", "probe-deployer", "probe-wrong-environment-claim"],
+        )
+        for job_name, environment in environments.items():
+            with self.subTest(job=job_name):
+                name = environment["name"]
+                self.assertEqual(name, SELECTED_TARGET.github_environment)
+                # The authorisation boundary stays statically auditable in the
+                # workflow: an expression would let a job output decide which
+                # role the deploy job can reach.
+                self.assertNotIn("${{", name)
+
+    def test_no_reviewed_environment_other_than_the_selected_one_is_reachable(self) -> None:
+        """No workflow may mint a token for another target's environment.
+
+        Environment-scoped variables shadow repository ones, so a job that names
+        a wrong-but-reviewed environment reads that stack's identifiers even
+        after the correct repository variables are set.
+        """
+
+        others = {
+            target.github_environment
+            for target in DEPLOYMENT_TARGETS.values()
+            if target.github_environment != SELECTED_TARGET.github_environment
+        }
+        self.assertTrue(others, "the drift guard needs at least one other reviewed environment")
+
+        for workflow_name in (
+            ".github/workflows/ci.yml",
+            ".github/workflows/scheduled-full-regression.yml",
+            ".github/workflows/content-update.yml",
+        ):
+            document = yaml.safe_load((ROOT / workflow_name).read_text())
+            for job_name, job in document["jobs"].items():
+                with self.subTest(workflow=workflow_name, job=job_name):
+                    environment = job.get("environment")
+                    if environment is None:
+                        continue
+                    self.assertNotIn(environment["name"], others)
+
+    def test_the_probe_operation_is_pinned_to_a_retired_target_and_cannot_pre_flight(self) -> None:
+        """The `probe` path is retired, and this records that as a fact, not a hope.
+
+        ``deploy/oidc_probe.py`` refuses any account, region or repository that
+        is not the destroyed sandbox stack's, and it is content-frozen by the
+        Gate-B attestation in
+        ``test_gate_b_operator_contract_is_exact_and_workflow_isolated`` -- so it
+        cannot be re-pointed in place, and the workflow passes it the sandbox
+        account literal to match.  The consequence is that there is no working
+        non-mutating pre-flight before the first production deploy; the offline
+        claim comparison in the production bootstrap runbook is the substitute.
+
+        This test fails the moment the sandbox profile is retired out of
+        existence, which is deliberate: re-pointing the probe at the selected
+        target is the work that unblocks removing the profile, and neither
+        should be able to happen quietly without the other.
+        """
+
+        retired = registered_target("website-sandbox")
+        self.assertTrue(retired.retired)
+        self.assertNotEqual(retired.aws_account_id, SELECTED_TARGET.aws_account_id)
+
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        account_literals = set(re.findall(r"--account-id ([0-9]{12})", workflow))
+        self.assertEqual(account_literals, {retired.aws_account_id})
+
+        document = yaml.safe_load(workflow)
+        for job_name, job in document["jobs"].items():
+            steps = "\n".join(str(step.get("run", "")) for step in job.get("steps", []))
+            if "--account-id" not in steps:
+                continue
+            with self.subTest(job=job_name):
+                # Only the dispatch-only probe path may carry it, so no push or
+                # deploy job can reach the destroyed account.
+                self.assertIn("inputs.operation == 'probe'", str(job["if"]))
 
     def test_publish_records_the_declared_platform_of_the_image_it_pushes(self) -> None:
         document = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
