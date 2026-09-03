@@ -1,5 +1,23 @@
 # Production data migration
 
+> ### Read this before anything else
+>
+> **`/accounts/signup/` is open on this site today.** It is allauth's own view, it
+> is not shadowed the way `accounts/login/`, `accounts/email/` and
+> `accounts/password/reset/` are, and `ACCOUNT_ALLOW_REGISTRATION = False` does
+> **not** close it — that is not an allauth setting and nothing reads it.
+>
+> **Measured**, in the production configuration: `POST /accounts/signup/` creates
+> an account with a usable password and signs it in.
+>
+> It **cannot** take over an imported account — also measured: a signup against an
+> address that already exists is refused and changes nothing, because
+> `ACCOUNT_UNIQUE_EMAIL` holds. So this is unwanted local password accounts on a
+> site whose sign-in is meant to be provider-only, not stolen member history.
+>
+> **This is live now, before any migration.** It should be closed before 20,009
+> accounts and 5 privileged rows land — §11 A5, with the evidence in §5.4.
+
 How every source of data reaches the production database, in what order, how we
 know each step worked, and what to do when one does not.
 
@@ -59,9 +77,9 @@ where the answer is "we deliberately do nothing", it says so.
 | 15 | Event description bridge | one-time | committed capture; `scripts/build_event_description_bridge.py` | 7 |
 | 16 | Luma aggregates | one-time | `scripts/prod/import_events.py` → `events/importers.py` | 6 |
 | 17 | Eventbrite aggregates | one-time | as above | 6 |
-| 18 | Public media objects (1,253 / ~154 MB) | hydrate/publish | `manage.py public_media_*` → `dtc-website-media` | 7 |
-| 19 | **Sponsors** | one-time then Studio | **owner ruling: give it an import script** — to build, §11 B9 | 8 |
-| 20 | **Testimonials** | one-time then Studio | **owner ruling: same script** — to build, §11 B9 | 8 |
+| 18 | Public media objects (1,253 / 154 MB) | one-time publish, then CDN-resident | **owner ruling: to the CDN and out of git** — `manage.py public_media_*` → `dtc-website-media`, §11 B11 | **8** |
+| 19 | **Sponsors** | one-time then Studio | **owner ruling: give it an import script** — to build, §11 B9 | 9 |
+| 20 | **Testimonials** | one-time then Studio | **owner ruling: same script** — to build, §11 B9 | 9 |
 | 21 | `rds-aisl_prod` | — | **explicitly out of scope** — §14 | — |
 
 The owner's original list had ten sources. `DataTalksClub/podwiki`, `faq`,
@@ -114,20 +132,20 @@ once the sync works** (§11 B10).
 > do not, and there is no sync, no webhook and no `ContentSource` row for either
 > repository. It is a build item (§11 B8), not a done item.
 
-Goes to the CDN, not to a git repository:
+Goes to the CDN, **and out of every git repository** — owner ruling, both halves.
+This is **step 8**, with its own checkpoint; the summary here is so the fate is
+visible from the content section too.
 
 - `images/` and `assets/` → the `dtc-website-media` bucket (1,253 objects,
   ~154 MB today). See [#301](https://github.com/DataTalksClub/website/issues/301).
+- **This repository already keeps no images.** The work the "no images in a
+  repository" ruling implies is in `DataTalksClub/content`, which tracks **815**
+  of them. §11 B11.
 - **Consequence:** moving an article to the content repository while its images
   move to the CDN means something has to rewrite the image references. Today that
   job is done at build time inside `scripts/build_public_projection.py`
   (`_article_blocks`, `_copy_media`). There is **no equivalent on the database
-  ingest path**. §11 B3 owns it.
-- **Live defect.** `manage.py public_media_hydrate` defaults to `--source github`
-  and `content/public_projection/media/` is gitignored, so a fresh clone or a
-  bucket re-hydration fetches 438 author images from the legacy repository and
-  loses them if it is gone. Production on `s3` and CI on `memory` are unaffected.
-  `--source checkout` and `--source store` are the existing escape hatches.
+  ingest path**. §11 B3 owns it; step 8 says why it is easy to miss.
 
 Stays behind — build machinery, not content: `_includes` (22), `_layouts` (6),
 `_site` (2,318), `_tools` (2), `assets/` (4) and the Jekyll index pages.
@@ -885,9 +903,9 @@ parse rows at all.
 
 ### Step 7 — Content
 
-Today this step is: rebuild the committed projection and hydrate media. It is
-**not** a database import, and pretending otherwise is the biggest single
-misreading available in this plan.
+Today this step is: rebuild the committed projection. It is **not** a database
+import, and pretending otherwise is the biggest single misreading available in
+this plan. The *objects* the projection points at are step 8.
 
 ```
 uv run --frozen python scripts/build_public_projection.py \
@@ -895,15 +913,15 @@ uv run --frozen python scripts/build_public_projection.py \
     --legacy-main-root <datatalksclub.github.io @ pin> \
     --wiki-root <DataTalksClub/podwiki @ pin> \
     --output content/public_projection
-
-$TARGET uv run --frozen python manage.py public_media_publish   # to the bucket
-$TARGET uv run --frozen python manage.py public_media_verify
 ```
 
 Expected: wiki 282 · podcasts 203 (201 transcripts) · articles 55 · people 438 ·
-books 98 · events 421 · media 1,253. Plus the two hand-reviewed projections this
-build does not produce: FAQ (6 courses / 70 sections / 1,401 questions / 99
-assets) and docs (106 pages / 39 assets).
+books 98 · events 421 · media **index** 1,253. Plus the two hand-reviewed
+projections this build does not produce: FAQ (6 courses / 70 sections / 1,401
+questions / 99 assets) and docs (106 pages / 39 assets).
+
+`media.json` is an *index*, not the bytes. This step produces it; step 8 makes the
+1,253 objects it names actually exist in the CDN.
 
 **Once §11 B3 and B8 land, this step changes shape entirely.** It becomes: push to
 `DataTalksClub/content`, `DataTalksClub/faq` and `DataTalksClub/docs`, and let the
@@ -925,7 +943,6 @@ three pinned checkouts and is not reproducible (#253).
 
 ```
 uv run --frozen python -m ci.content_update          # committed artifacts vs manifest
-$TARGET uv run --frozen python manage.py public_media_verify
 $TARGET uv run --frozen python manage.py check       # content.E002 digest canary
 ```
 
@@ -934,20 +951,231 @@ $TARGET uv run --frozen python manage.py check       # content.E002 digest canar
 digest, source revision or count canary drifts, wired in as system check
 `content.E002`. **You cannot hand-edit a projection file and have the site boot.**
 
-`public_media_verify` is the only true bidirectional set-diff in the codebase —
-`missing` / `unreadable` / `mismatched` from the record side and `extra` from the
-store side, non-zero exit. It is the shape every other drift check should copy.
-
 **Failure and recovery.** **Recoverable, but not by re-run.** A full projection
 rebuild is currently *not reproducible* (issue #253) and requires three pinned
 checkouts simultaneously; if the build fails, the committed projection is still
-what is served, so the site is unaffected. Do not partially publish media: run
-`public_media_publish` to completion, then `public_media_verify`, and treat a
-non-empty `missing` as a stop.
+what is served, so the site is unaffected.
 
-**Duration.** Minutes for the build; media publish is 1,253 objects / ~154 MB.
+**Duration.** Minutes.
 
-### Step 8 — Sponsors and testimonials
+### Step 8 — Media to the CDN
+
+**Owner ruling, two parts.** Images go to the CDN, and **we do not keep images in
+a repository**. This step is where the first happens; the second is an end state
+that this step starts and §11 B11 finishes.
+
+The mechanism already exists and is landed under
+[#301](https://github.com/DataTalksClub/website/issues/301). This step is about
+running it deliberately and proving the result, not building anything:
+`content/media_store.py` provides `local`, `s3` and `memory` backends selected by
+`PUBLIC_MEDIA_STORE_BACKEND` (**production runs `s3`**), and three commands drive
+it — `public_media_hydrate` (materialise the tree), `public_media_publish` (upload
+it), `public_media_verify` (compare store against `media.json`, both directions).
+
+**Destination.** The `dtc-website-media` bucket, already provisioned. Object keys
+are `<PUBLIC_MEDIA_S3_PREFIX>/<record_key>` and are derived from the **matched
+record only**, never from the request path.
+
+Today, **measured** by running the checkpoint below against the local store:
+**1,253 objects, 154,115,635 bytes** — that is ~154 MB decimal, **147.0 MiB**. The
+two figures are the same number and both are quoted in different places; do not
+spend time at 2am reconciling "154" against "147".
+
+#### Where the images actually are right now
+
+"The media tree is gitignored" is not the same as "images are not in a
+repository", and the difference is the whole of the second ruling. Measured with
+`git ls-files`:
+
+| Repository | Image files tracked | Note |
+| --- | ---: | --- |
+| **This repository** | **0** | `content/public_projection/media/` is gitignored (`.gitignore:23`). Already compliant |
+| `DataTalksClub/content` | **815** | `images/{posts,podcast,books}` — exactly the 815 records whose provenance names the content repo |
+| `DataTalksClub/datatalksclub.github.io` | 1,290 | includes 444 under `images/authors` at HEAD; the build consumes **438** at the pin |
+
+So the work the second ruling implies is **not here**. This repository already
+keeps no images. The 815 in `DataTalksClub/content` are the ones that have to
+leave, and the legacy repository's copies stop mattering when that repository
+stops being a source at all. §11 B11.
+
+That also settles what `--source github` is for. It fetches media **from a git
+repository**, which is precisely the arrangement being ended. Its honest remaining
+purpose is the **one-time seeding of the bucket** from wherever the bytes live
+today; once the bucket is the origin of record it should not be the default, and
+once images leave the content repository it should not exist. Until then, use
+`--source checkout` against a local clone, or `--source store` from an
+already-hydrated peer.
+
+#### The one-file gap, resolved
+
+The local tree holds **1,254** files against `media.json`'s **1,253** records.
+Measured: nothing is missing — the extra file is
+`media/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.jpg`, and
+it is **stale local residue from an episode renumbering**. The projection's real
+records are `s24e06-ai-adoption-in-enterprise-beyond-writing-code.jpg` and
+`s24e07-how-to-build-ai-that-actually-ships-in-production.jpg`; that episode moved
+from e06 to e07 and a developer's hydrated tree kept the old filename.
+
+`media.json` is correct and the bucket is unaffected. **Delete the file**; do not
+publish it. `public_media_verify` reports exactly this class as `extra`, which is
+how it was found, so the resolution is "run the checkpoint and act on `extra`",
+not a one-off cleanup to remember.
+
+#### Ordering: media before content is public
+
+**Media must land before content is public, and after the projection build.** The
+projection build (step 7) produces `media.json`; the objects it names must exist
+before anyone can look at a page.
+
+The dependency is real and one-directional: Django resolves `/images/<path>`
+against `media.json` and then reads the object from the store. **If content
+arrives and its media has not, every page renders and every image is broken** — a
+missing object is a failed read, not a fallback. On `/people/*` that is every
+avatar; on `/blog/*`, `/podcast/*` and `/events/*` it is every author chip and
+every hero image. The text is fine, which is what makes it easy to ship by
+accident.
+
+It is otherwise independent: nothing in steps 0–6 reads media, and step 9 does not
+either. If step 8 must slip, the honest options are to delay the site going public
+or to publish media first and content second — never content first.
+
+```
+# Materialise the tree. NOT --source github; see above.
+$TARGET uv run --frozen python manage.py public_media_hydrate \
+    --source checkout --checkout DataTalksClub/content=<path> \
+                      --checkout DataTalksClub/datatalksclub.github.io=<path>
+
+# Upload. Incremental: an object whose recorded checksum already matches is skipped.
+PUBLIC_MEDIA_STORE_BACKEND=s3 $TARGET \
+    uv run --frozen python manage.py public_media_publish
+
+PUBLIC_MEDIA_STORE_BACKEND=s3 $TARGET \
+    uv run --frozen python manage.py public_media_verify
+```
+
+#### Checkpoint
+
+`public_media_verify` is the only true bidirectional set-diff in the codebase —
+`missing` / `unreadable` / `mismatched` from the record side and `extra` from the
+store side, non-zero exit. It is the shape every other drift check should copy.
+Five things have to be true, and four of them it already answers:
+
+```
+$TARGET uv run --frozen python manage.py shell -v 0 <<'PY'
+import subprocess, sys
+from content.media_store import media_records, media_store
+from content.media_tooling import verify_media
+
+records = tuple(media_records())
+store = media_store()
+report = verify_media(store=store, records=records)
+fail = []
+
+# 1. Every record resolves to an object that exists, with the right bytes,
+#    and the store holds nothing the index does not name.
+print("total", report.total, "matched", report.matched,
+      "missing", len(report.missing), "mismatched", len(report.mismatched),
+      "unreadable", len(report.unreadable), "extra", len(report.extra))
+if report.extra[:5]:
+    print("  extra:", report.extra[:5])
+for name in ("missing", "mismatched", "unreadable", "extra"):
+    if getattr(report, name):
+        fail.append(f"{name}={len(getattr(report, name))}")
+if report.matched != report.total:
+    fail.append("matched != total")
+
+# 2. Object count and total bytes.
+size = 0
+for record in records:
+    try:
+        size += store.stat(record).size
+    except Exception:
+        pass
+print("objects", report.total, "bytes", size, f"({size / 1024 / 1024:.1f} MiB)")
+
+# 3. The 438 author images specifically.
+authors = [r for r in records if r["record_key"].startswith("images/authors/")]
+missing_authors = [r["record_key"] for r in authors if r["record_key"] in set(report.missing)]
+print("author images", len(authors), "missing", len(missing_authors))
+if len(authors) != 438 or missing_authors:
+    fail.append(f"author images {len(authors)}, {len(missing_authors)} missing")
+
+# 4. No image is tracked in git, in this repository.
+tracked = subprocess.run(
+    ["git", "ls-files", "content/public_projection/media"],
+    capture_output=True, text=True).stdout.split()
+print("media files tracked in git:", len(tracked))
+if tracked:
+    fail.append(f"{len(tracked)} media files tracked in git")
+
+print("FAIL" if fail else "OK", fail)
+sys.exit(1 if fail else 0)
+PY
+```
+
+**5. A re-run uploads only what changed.** `publish_media` already compares each
+object's stored checksum against the record's `provenance.checksum` and skips a
+match, so this is a property to *confirm*, not to build. Run
+`public_media_publish` a second time and read its report: `added` and `changed`
+must both be **0** and `skipped` must equal `total` (1,253). If a second run
+re-uploads 154 MB, something is rewriting checksums and that is a stop.
+
+The first run's report should account for everything: `added + changed + skipped
+== total`, `failed == 0`, and `orphan` naming anything in the store the index does
+not — which on the first run, after deleting the stale file above, should be empty.
+
+**Failure and recovery.** **Recoverable by re-run, and safe to re-run**, because
+both hydrate and publish are idempotent and resumable: an object already present
+with the recorded checksum is skipped. A partial publish leaves the bucket with a
+subset, which is exactly the state a re-run completes. The one rule: **do not
+declare the step done on a partial publish.** Run publish to completion, then
+verify, and treat a non-empty `missing` as a stop rather than something to fix
+later.
+
+**Measured against the local store today**, so you know what a pass looks like
+before you ever point it at `s3`:
+
+```
+total 1253 matched 1253 missing 0 mismatched 0 unreadable 0 extra 1
+  extra: ['images/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.jpg']
+objects 1253 bytes 154115635 (147.0 MiB)
+author images 438 missing 0
+media files tracked in git: 0
+FAIL ['extra=1']
+```
+
+Everything passes except the stale file above. Delete it and this is clean.
+
+**Duration.** 1,253 objects / ~154 MB on the first run; seconds on any re-run.
+
+#### The reference-rewriting problem, and who owns it
+
+This is the part most likely to be missed, and it is not solved by this step.
+
+An article moving to `DataTalksClub/content` while its images move to the CDN
+means **something must rewrite the image references**. Today that job is done at
+projection-build time inside `scripts/build_public_projection.py` —
+`_article_blocks(body, media_root=...)` rewrites the references and `_copy_media`
+records provenance per asset. **There is no equivalent on the database ingest
+path.** So the moment §11 B3 lands and content arrives through a sync rather than
+through the builder, the rewriting stops happening and nothing notices until an
+image 404s.
+
+**Owner: §11 B3**, the content push-sync, and it is called out there as the real
+new work rather than left implicit. AI Shipping Labs does exactly this inside its
+sync (`github_sync/media.py`, `upload_images_to_s3`), which is the fourth thing
+§11.1 says to copy. The thread is
+[#301](https://github.com/DataTalksClub/website/issues/301); this step is its
+migration-time half, B3 is its steady-state half, and B11 is what finally takes
+the bytes out of git.
+
+Two constraints anyone doing that work inherits, both already enforced at build
+time and both easy to lose: `_copy_media` **content-sniffs every file** — JPEG,
+PNG and GIF magic, and an SVG sanitizer that rejects `<script>`, `<style>`, event
+handlers and remote `href`/`src`/`url()` — and every object is verified against
+`provenance.checksum`, so **any move must preserve byte identity**.
+
+### Step 9 — Sponsors and testimonials
 
 **Owner ruling: both get an import script.** Both are database-backed surfaces
 with no ingest path today, and both are edited in Studio afterwards — so this is a
@@ -1343,9 +1571,14 @@ registration**, **1 wrapped-statistics row** and **1 certificate**.
       digests, and detection of both a document that never arrived and one we still
       serve that upstream deleted. **None of this exists** — §11 C1
 - [ ] Sponsors and testimonials imported and visible on the pages that show them —
-      step 8
+      step 9
 - [ ] `/faq/` and `/docs/` served by this application, and their CloudFront 302s
       retired — §11 B8, B10. Retire the redirects **after** the sync works
+- [ ] **Media published and verified** — step 8's checkpoint exits 0: 1,253 objects
+      matched, nothing missing/mismatched/extra, the 438 author images present, and
+      no image tracked in git in this repository
+- [ ] A second `public_media_publish` reports `added: 0, changed: 0` — it does not
+      re-upload 154 MB
 - [ ] `public_media_hydrate` succeeds on a fresh clone with no access to the legacy
       repository — §11 B7
 - [ ] Row counts recorded per table, so the next run has a baseline to diff against
@@ -1369,7 +1602,7 @@ What it actually does, in order: `migrate` → `import_event_identities` →
 | 2 | It does **not** run `import_legacy_zoomcamp` at all. | The rehearsal, as it stands, never exercises step 2 or the user-matching in step 5. `make import-legacy-zoomcamp` exists and is run separately. |
 | 3 | It imports event identities **before** the course steps; the plan puts events at step 6. | Harmless — events depend on nothing else — but the rehearsal will not detect an ordering error the plan cares about. Either is safe. |
 | 4 | It uses `courses/services/local_cmp_content_import.py` (copies the protected snapshot, sanitizes, learner tables never read) rather than `scripts/prod/import_cmp_content.py` directly. | Two entry points onto one service. The plan uses the `scripts/prod/` one. |
-| 5 | It has no step 5, no step 7 and no step 8. | The largest step and both content steps are unrehearsed. |
+| 5 | It has no step 5, no step 7, no step 8 and no step 9. | The largest step, both content steps and media are unrehearsed. |
 
 **The one difference that is no longer a difference.** The premise that
 `prepare_local_data.py` runs the CMP copy *before* the course-repository pull is
@@ -1428,7 +1661,8 @@ cheapest thing in this document and the most useful at 2am.
 | 5 | **does not exist** — §11 A3 | — | The rehearsal cannot run at all until this exists |
 | 6 | `$TARGET make import-events IMPORT_DATABASE=$REHEARSAL` | Luma/Eventbrite archives from `.local/migration-data` | No |
 | 7 | `manage.py public_media_verify`, `manage.py check`, `python -m ci.content_update` | the committed projection instead of a rebuild | **Yes.** A full rebuild needs three pinned checkouts and is not reproducible today (#253). The rehearsal checks the artifacts, not the build. |
-| 8 | **does not exist** — §11 B9 | — | Rehearse without it; do not ship without it |
+| 8 | `manage.py public_media_hydrate` → `public_media_publish` → `public_media_verify` | a `local` store instead of `s3` | **Yes.** The rehearsal proves the counts and the incrementality, not the bucket |
+| 9 | **does not exist** — §11 B9 | — | Rehearse without it; do not ship without it |
 | OAuth | §5.2 | real Google and GitHub, local callback | No — this is the real thing |
 
 Run each step's checkpoint from §4 immediately after the step, with `$TARGET` and
@@ -1447,7 +1681,8 @@ The rehearsal is the only place some of them can be obtained. Leave them here.
 | Step 5, per-table written/skipped | _ | the baseline for every future diff |
 | Step 5, consolidation groups found | _ | expected **1**; a second one means the export moved — §5.5 |
 | Step 6, wall time | _ | |
-| Step 7, media publish wall time | _ | 1,253 objects, ~154 MB |
+| Step 8, first media publish wall time | _ | 1,253 objects, ~154 MB |
+| Step 8, second publish `added`/`changed` | _ | must be **0/0**, `skipped` 1,253 |
 | **Total** | _ | this is the maintenance window |
 
 ### 8.5 A number worth pre-computing
@@ -1478,6 +1713,9 @@ Say these out loud rather than letting a green rehearsal imply them.
 - **The 380 unreviewed event mappings.** A rehearsal shows 3 activated, which is
   correct and is not success.
 - **Step 7 as a rebuild.** See §8.3.
+- **Step 8 against the real bucket.** The rehearsal publishes to a `local` store,
+  which proves the counts, the 438 author images and the incrementality, but not
+  S3 credentials, bucket policy or upload time for 154 MB.
 - **Everything downstream of the content view cutover**, because it has not been
   built.
 
@@ -1494,8 +1732,9 @@ Say these out loud rather than letting a green rehearsal imply them.
 | 4 CMP content | **per cohort** | earlier cohorts complete | Re-run; no-op on the done ones |
 | 5 CMP learners | **to be decided — §11 A3** | unknown | Must be resumable per table. If it cannot be, a failure costs a full rebuild |
 | 6 Events | atomic (identity); staged revisions (aggregates) | nothing half-written | Re-run |
-| 7 Content | build writes files, publish writes objects | committed projection unchanged; bucket possibly partial | Re-run publish, then `public_media_verify` |
-| 8 Sponsors/testimonials | per service call (revisioned) | some rows written, history still valid | Re-run; must be keyed on a natural key |
+| 7 Content | build writes files | committed projection unchanged, so the site is unaffected | Re-run the build; it needs three pinned checkouts and is not reproducible (#253) |
+| 8 Media | per object | bucket holds a subset; every unpublished image is broken on the page | Re-run. Publish is incremental and skips a matching checksum, so a re-run completes rather than re-uploads |
+| 9 Sponsors/testimonials | per service call (revisioned) | some rows written, history still valid | Re-run; must be keyed on a natural key |
 
 **The step with no rollback that should have one is step 5.** Everything else is
 either re-runnable in place or leaves the previous state serving. A half-imported
@@ -1527,7 +1766,9 @@ it, this plan's checkpoints give:
 | Step 6 — 421 events / 1,684 aliases | **PASS** | exactly |
 | Step 6 — activation coverage | **PASS as designed** | 383 mapping rows: **3 mapped, 380 review_required** |
 | Step 7 — projection | **PASS** | the database boots, so `content.E002` is satisfied |
-| Step 8 — sponsors and testimonials | **FAIL** | 0 sponsors. `courses_testimonial` does not even exist in that database — it predates migrations `0055`/`0056`, which on a freshly migrated database seed 6 testimonials and 0 sponsors |
+| Step 8 — media | **FAIL, by one file** | The local tree holds 1,254 files against 1,253 records; `verify` reports one `extra`, `media/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.jpg`, stale residue from an episode renumbering. Nothing is missing. Delete it |
+| Step 8 — no image tracked in git | **PASS** | `git ls-files content/public_projection/media` returns 0. The 815 in `DataTalksClub/content` are B11's problem, not this repository's |
+| Step 9 — sponsors and testimonials | **FAIL** | 0 sponsors. `courses_testimonial` does not even exist in that database — it predates migrations `0055`/`0056`, which on a freshly migrated database seed 6 testimonials and 0 sponsors |
 | §5.4 — password path | **FAIL** | `/accounts/password/reset/` and `/accounts/email/` are correctly 403, but `/accounts/signup/` creates an account with a usable password and signs it in (measured). §11 A5 |
 | §5.5 — no shared addresses | **PASS, vacuously** | 1 account. It proves nothing; the check only becomes meaningful once step 5 exists |
 
@@ -1669,13 +1910,20 @@ into the database or into the content repository. **Done looks like:** the
 projection build no longer needs `--legacy-main-root` for events. Independent;
 blocks §12 decision 1.
 
-**B7. Close the `public_media_hydrate` legacy default.** *Small (hours).* Default
-to `--source store`, or make the bucket the origin of record for the 438 author
-images. Today a fresh clone or a bucket re-hydration fetches them from the legacy
-repository and reports `failed: 438` when it is gone. Production on `s3` and CI on
-`memory` are unaffected, which is why this has survived. **Done looks like:**
+**B7. Close the `public_media_hydrate` legacy default.** *Small (hours).*
+**A separate Codex run is fixing this now — do not duplicate it; check whether it
+has landed before starting.* `--source github` is the default, and a fresh clone
+or a bucket re-hydration therefore fetches 438 author images from the legacy
+repository and reports `failed: 438` once it is gone. Production on `s3` and CI on
+`memory` are unaffected, which is why it survived this long. **Done looks like:**
 `public_media_hydrate` on a fresh clone succeeds with no network access to the
 legacy repository. Independent.
+
+Note the ruling makes this more than a default. `--source github` reads media
+*from a git repository*, which is the arrangement being ended: once the bucket is
+the origin of record the source has no steady-state purpose beyond the one-time
+seeding in step 8, and once B11 lands it has none at all. Whether it survives that
+is worth deciding rather than leaving as an unused branch.
 
 **B8. FAQ and docs content sync.** *Medium (3–5 days), and it may collapse into
 B3.* Per the owner's ruling, `DataTalksClub/faq` and `DataTalksClub/docs` are
@@ -1687,14 +1935,14 @@ a push to either repository updates `/faq/` or `/docs/` without a hand-reviewed
 projection file, and a re-push replays. Depends on B4 for the read side; the write
 side can start alongside B3.
 
-**B9. The sponsor and testimonial import script.** *Small (1–2 days).* Step 8. One
+**B9. The sponsor and testimonial import script.** *Small (1–2 days).* Step 9. One
 `scripts/prod/import_*` entry point writing sponsors through `core/sponsors.py`'s
 services and testimonials into `courses.models.Testimonial`, keyed on a natural key
 so a re-run is a no-op and the six migration-seeded testimonials are matched rather
 than duplicated. The input format is an owner decision — the obvious candidates are
 the legacy `_data/sponsors.yaml` (currently read by nothing) and the existing
 `export_sponsor_directory` output, which would make the script its exact inverse.
-**Done looks like:** step 8's checkpoint exits 0 and a second run changes no
+**Done looks like:** step 9's checkpoint exits 0 and a second run changes no
 counts. Independent of everything else.
 
 **B10. Retire the `/faq/` and `/docs/` CloudFront 302s.** *Small, but it is a
@@ -1702,6 +1950,18 @@ change in `DataTalksClub/aws-infra`, not here.* Once B8 works, the redirects are
 shadowing pages we own. Leave `/podwiki/` and `/mediakit/` alone — those are still
 deliberately not hosted. **Done looks like:** `/faq/` and `/docs/` resolve to this
 application in production. Depends on B8. Do this *after*, never before.
+
+**B11. Take the images out of `DataTalksClub/content`.** *Medium (2–3 days), and
+it is the second half of the owner's ruling.* Measured: this repository tracks
+**0** image files, `DataTalksClub/content` tracks **815**, and the legacy
+repository tracks 1,290. Step 8 puts the bytes in the CDN; this removes them from
+git, which is a separate act with a real ordering constraint — **the bucket must
+be verified complete before anything is deleted**, because after deletion the
+bucket is the only copy. Sequence: step 8 → its checkpoint exits 0 → B3's sync
+resolves references against the CDN (not against repository paths) → only then
+delete. **Done looks like:** `git ls-files "images/*"` in `DataTalksClub/content`
+returns nothing, and every article still renders its images. Depends on step 8 and
+on B3.
 
 ### C. Wanted, not blocking
 
@@ -1824,8 +2084,10 @@ Recorded so they are not reopened.
 | Where does `sma-zoomcamp` come from? | **CMP.** It is not skipped and needs no special case; it only ever lacked a family row, which step 1 writes — §3.2 |
 | Are 20,009 usable password hashes an emergency? | **No.** Members signed in through a provider; passwords were for admins. The enforcement was URL shadowing and it travelled — §5.4. Every account still imports unprivileged with an unusable password |
 | The two accounts sharing one address | **Consolidate them**, as a general mechanism with one known instance — §5.5, §11 A6 |
+| Public media objects had no fate (`data-ingest.md` §2 row 18) | **Step 8.** Images go to the `dtc-website-media` bucket **and out of every git repository** — §11 B11 |
+| The one-file gap between the tree (1,254) and `media.json` (1,253) | **Stale local residue** from an episode renumbering. Nothing is missing; delete it. `public_media_verify` reports the class as `extra` |
 | Do FAQ and docs stay at the legacy site, or come to us? | **They come to us via content sync.** The CloudFront 302s are transitional — §11 B8, B10 |
-| Sponsors and testimonials have no source | **They get an import script** — step 8, §11 B9 |
+| Sponsors and testimonials have no source | **They get an import script** — step 9, §11 B9 |
 | Is `rds-aisl_prod` in scope? | **No.** §14 |
 | Do books and people exist in two repositories? | **No dual ownership.** podwiki's `_people`, `_books` and `_podcast_summaries` are never opened by the builder — all four `wiki_root` joins read `_wiki/`, `graph/`, `search/` and one asset. Nothing to reconcile |
 | Are the projection count deltas silent drops? | **No.** Every one is pin drift (additions after the pin; zero deletions), a `_template.md` scaffold, or 2 podcast episodes removed under a signed manifest (`content/migration/podcast-removals.yaml`) |
