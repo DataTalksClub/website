@@ -23,14 +23,22 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from django.db import transaction
+
+from core.audit import AuditWriteContext, record_audit_event
+from core.models import AuditEvent
+from core.services import ServiceContext, validate_actor_ref
 from courses.models.cohort import Cohort, Course, RegistrationCampaign
 
 __all__ = [
     "FamilyRegistration",
+    "RegistrationCampaignStateError",
     "active_campaign_for_cohort",
     "campaign_slug_in_registration_url",
     "family_registration",
     "next_edition_campaign_for_cohort",
+    "open_new_cohort",
+    "stop_registration",
 ]
 
 # CMP's own public registration path.  The host is deliberately unconstrained: what is
@@ -106,3 +114,121 @@ def family_registration(family: Course) -> FamilyRegistration:
         if campaign is not None:
             return FamilyRegistration(campaign=campaign)
     return FamilyRegistration()
+
+
+class RegistrationCampaignStateError(ValueError):
+    """The campaign's ``current_course`` state does not allow this transition.
+
+    A campaign is either promoting one cohort (``current_course`` set) or
+    promoting nothing while it waits for the next edition ("future/none",
+    ``current_course`` is ``None``).  Both write operations below fail closed
+    rather than silently clobbering whichever state the campaign is actually
+    in.
+    """
+
+
+def _campaign_write_context(
+    context: ServiceContext | None,
+    *,
+    actor_ref: str,
+    actor_id: object | None,
+) -> AuditWriteContext:
+    validate_actor_ref(actor_ref)
+    service_context = context or ServiceContext.from_current(actor_ref=actor_ref)
+    return AuditWriteContext.from_service_context(
+        service_context,
+        actor_id=actor_id,
+    )
+
+
+def stop_registration(
+    campaign: RegistrationCampaign,
+    *,
+    actor_ref: str,
+    actor_id: object | None = None,
+    context: ServiceContext | None = None,
+    using: str = "default",
+) -> RegistrationCampaign:
+    """Close registration for the cohort ``campaign`` currently promotes.
+
+    Sets ``current_course`` to ``None`` -- the campaign's "future/none" state,
+    from which :func:`open_new_cohort` can later open the next edition.  Fails
+    closed when the campaign has nothing open to stop, rather than treating a
+    repeated click as a harmless no-op.
+    """
+
+    audit_context = _campaign_write_context(context, actor_ref=actor_ref, actor_id=actor_id)
+    with transaction.atomic(using=using):
+        locked = RegistrationCampaign.objects.using(using).get(pk=campaign.pk)
+        previous_cohort = locked.current_course
+        if previous_cohort is None:
+            raise RegistrationCampaignStateError(
+                "This campaign has no open cohort to stop registration for."
+            )
+        locked.current_course = None
+        locked.save(using=using, update_fields=("current_course", "updated_at"))
+        record_audit_event(
+            action="courses.registration_campaign.registration_stopped",
+            target_type="courses.registration_campaign",
+            target_label=locked.slug,
+            outcome=AuditEvent.Outcome.SUCCEEDED,
+            context=audit_context,
+            changes={
+                "current_course_id": {"before": previous_cohort.pk, "after": None},
+            },
+            metadata={
+                "campaign_id": locked.pk,
+                "previous_cohort_slug": previous_cohort.slug,
+            },
+            using=using,
+        )
+        return locked
+
+
+def open_new_cohort(
+    campaign: RegistrationCampaign,
+    cohort: Cohort,
+    *,
+    actor_ref: str,
+    actor_id: object | None = None,
+    context: ServiceContext | None = None,
+    using: str = "default",
+) -> RegistrationCampaign:
+    """Open registration for ``cohort`` through ``campaign``.
+
+    Only valid while the campaign is in the "future/none" state.  A campaign
+    that is still promoting a cohort must be stopped first via
+    :func:`stop_registration` -- this never silently repoints an open
+    campaign out from under whoever is currently registering.
+    """
+
+    if not isinstance(cohort, Cohort) or cohort.pk is None:
+        raise RegistrationCampaignStateError(
+            "Choose an existing cohort to open registration for."
+        )
+
+    audit_context = _campaign_write_context(context, actor_ref=actor_ref, actor_id=actor_id)
+    with transaction.atomic(using=using):
+        locked = RegistrationCampaign.objects.using(using).get(pk=campaign.pk)
+        if locked.current_course_id is not None:
+            raise RegistrationCampaignStateError(
+                "Stop registration for the current cohort before opening a new one."
+            )
+        locked.current_course = cohort
+        locked.save(using=using, update_fields=("current_course", "updated_at"))
+        record_audit_event(
+            action="courses.registration_campaign.cohort_opened",
+            target_type="courses.registration_campaign",
+            target_label=locked.slug,
+            outcome=AuditEvent.Outcome.SUCCEEDED,
+            context=audit_context,
+            changes={
+                "current_course_id": {"before": None, "after": cohort.pk},
+            },
+            metadata={
+                "campaign_id": locked.pk,
+                "cohort_slug": cohort.slug,
+            },
+            using=using,
+        )
+        return locked
