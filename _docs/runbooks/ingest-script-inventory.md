@@ -736,33 +736,81 @@ more than one existing account shares a `normalized_email` (a
 pre-reconciliation duplicate), every one of them is updated, not just one
 arbitrarily chosen row.
 
-## 10.2 Tag-derived registration signal — runs after 10.1
+## 10.2 Event-category tags — runs independently of 10.1, after source #9
 
-The same Mailchimp export's `TAGS` column (read but never stored by 10.1)
-carries per-member category labels driven by real registration history. This
-step re-reads that column and turns a fixed, reviewed subset of it into
-registration signal. It runs **after** 10.1 completes, in the same ingest
-flow — 10.1 establishes `newsletter_subscribed` and the account match first;
-this step only ever attaches signal to an identity 10.1 (or source #9) has
-already resolved, never a bare email row of its own.
+[`scripts/prod/import_mailchimp_event_tags.py`](../../scripts/prod/import_mailchimp_event_tags.py)
+(+ [`events/mailchimp_tag_import.py`](../../events/mailchimp_tag_import.py),
+mapping in [`events/mailchimp_event_tag_categories.py`](../../events/mailchimp_event_tag_categories.py))
 
-32 distinct `TAGS` values exist across the real export. Three are dropped
-outright, never imported under any circumstance: `registered-in-slack`,
-`Berlin DataTalks Club Group`, `ai-bootcamp-free-email-course` — none maps to
-a real Course or Event, owner decision.
+Source: the same Mailchimp **subscribed** export CSV as 10.1, read in place,
+same `--export-dir` convention — but this script re-opens it independently
+and reads its own single column pair (`Email Address`, `TAGS`); it does not
+depend on 10.1 having run first. It reads *after* source #9 conceptually,
+though not by file dependency: an identity this importer resolves is drawn
+from the exact same pool source #9 (Luma/Eventbrite registrants) already
+populates, via the shared, now-public
+[`events.registrant_import.resolve_registrant_identity`](../../events/registrant_import.py)
+(renamed from a module-private helper specifically so this importer could
+reuse it rather than reinvent it).
 
-The remaining values split into two families with different status:
+32 distinct `TAGS` values exist across the real export (structural count
+confirmed by 10.1; re-verified directly by this importer's own real-export
+run below). Three are dropped outright, never imported under any
+circumstance: `registered-in-slack`, `Berlin DataTalks Club Group`,
+`ai-bootcamp-free-email-course` — none maps to a real Course or Event, owner
+decision, listed in `DROPPED_MAILCHIMP_TAGS` so a reader can tell "considered
+and rejected" apart from "not yet reviewed." The remaining values split into
+two families with different status:
 
-**Event-category tags — in flight, not blocked.** Eight tags
-(`event`, `event-conference`, `event-podcast`, `event-production`,
-`event-analytics`, `event-data`, `events-soft`, `events-data-science`) map to
-a hardcoded, reviewed category vocabulary — a Mailchimp tag isn't a specific
-event the way a real Luma/Eventbrite row from source #9 is, so this is
-attached as a category/interest signal on `EventRegistrantIdentity`, not a
-new `EventRegistration`. Matching reuses source #9's exact
-account-first/registrant-identity-second/create-new-third discipline.
+**Event-category tags — this entry.** Eight tags (`event`,
+`event-conference`, `event-podcast`, `event-production`, `event-analytics`,
+`event-data`, `events-soft`, `events-data-science`) map, through the
+hardcoded, reviewed `MAILCHIMP_EVENT_TAG_CATEGORIES` table, onto
+`events.models.EventRegistrantInterestSignal.Category` (`general`,
+`conference`, `podcast`, `production`, `analytics`, `data`, `soft_skills`,
+`data_science`). A Mailchimp tag is never a specific event the way a real
+Luma/Eventbrite row from source #9 is — it names a broad, self-selected or
+campaign-applied interest with no event identified anywhere in the source
+data — so this lands as a category/interest signal on
+`EventRegistrantIdentity`, in a dedicated table
+(`EventRegistrantInterestSignal`: `identity`, `category`, `source`), never as
+a new `EventRegistration` row. Folding it into `EventRegistration` would
+either fabricate an `event` FK that does not exist in the source or blur two
+different kinds of fact (a real per-event attendance record vs. a broad
+tag-derived interest) in one table; see that model's own docstring for the
+full reasoning.
+Transform, exactly: a row carrying none of the 8 event tags is skipped before
+any identity lookup happens — no identity created, no signal written, nothing
+about it stored. A row carrying at least one is consolidated by
+`normalized_email` through source #9's exact discipline (existing account
+wins, then an existing registrant-only identity, then a brand-new
+registrant-only identity — never a second, parallel identity space for
+Mailchimp-tag people), then gets one `EventRegistrantInterestSignal` row per
+matched category, written through `get_or_create` against a
+`(identity, category, source)` unique constraint — the idempotency guarantee:
+a replayed row finds the same identity and the same already-present signals,
+writing nothing new.
+Destination: [`events/models.py`](../../events/models.py) —
+`EventRegistrantInterestSignal` only. Never `CustomUser`, never
+`EventRegistration`.
 
-**Course tags — blocked on [#286](https://github.com/DataTalksClub/website/issues/286).**
+Notes: real-export run against a rehearsal database seeded with 20,239 real
+CMP-imported accounts (source #4) and 28,722 real Luma-derived
+registrant-only identities (source #9, 164 auto-created event identities,
+51,924 registration rows) — of the export's 130,854 subscribed rows, 8,606
+carry at least one of the 8 event tags (`rows_by_tag` per-tag counts:
+`event` 8,513, `event-conference` 719, `event-podcast` 712,
+`event-production` 409, `event-analytics` 127, `event-data` 42,
+`events-soft` 34, `events-data-science` 31 — exactly the counts found while
+scoping this importer), producing 10,587 interest-signal rows: 2,069 rows
+matched an existing account, 3,538 matched an existing registrant-only
+identity, 2,999 created a brand-new one. A second run changed nothing
+(`signals_created_total` 0, all 10,587 already present). `--dry-run` computes
+every count through read-only queries only (a would-be-new identity is never
+inserted to compute it), confirmed to agree with a real run on the same
+input.
+
+**Course tags — blocked on [#286](https://github.com/DataTalksClub/website/issues/286), completely out of scope for this entry.**
 The remaining tags are per-course, per-launch labels (`de-zoomcamp-1`,
 `de-zoomcamp-2`, `de-zoomcamp-2024`, `de-zoomcamp-2025`, `de-zoomcamp-2026`,
 `ml-zoomcamp-1`, `ml-zoomcamp-2`, `ml-zoomcamp-2023`, `ml-zoomcamp-2024`,

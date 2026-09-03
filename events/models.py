@@ -881,8 +881,12 @@ class HistoricalRegistrationTotalState(RevisionedModel):
 # ---------------------------------------------------------------------------
 # Event registrants (attendee-level) -- see events/registrant_import.py for the
 # matching service and scripts/prod/import_event_registrants.py for the entry
-# point.  Two things, not one: an identity (the consolidated real person) and a
-# fact (one provider registration, pointing at that identity).
+# point.  Three things, not two: an identity (the consolidated real person), a
+# fact (one provider registration, pointing at that identity, always naming a
+# specific event), and -- below, EventRegistrantInterestSignal -- a broader,
+# non-event-specific signal sourced from Mailchimp's own event-category tags.
+# See events/mailchimp_tag_import.py and
+# scripts/prod/import_mailchimp_event_tags.py for that importer.
 # ---------------------------------------------------------------------------
 
 
@@ -997,6 +1001,75 @@ class EventRegistration(models.Model):
 
     def __str__(self) -> str:
         return f"event-registration:{self.id}"
+
+
+class EventRegistrantInterestSignal(models.Model):
+    """A broad, non-event-specific interest signal, distinct from a real registration.
+
+    ``EventRegistration`` above states a fact a provider actually recorded:
+    "this identity registered for event X" -- it always carries a specific
+    ``event`` FK. A Mailchimp audience-export tag like ``event-podcast``
+    states something weaker: "this identity is broadly associated with
+    podcast-related events", with no specific event named anywhere in the
+    source data. Folding that into ``EventRegistration`` would either force a
+    fabricated ``event`` value (there isn't one) or silently blur two
+    different kinds of fact for a future reader -- one row that means
+    "attended" sitting next to one that only ever meant "self-tagged
+    interest, sourced from an email platform, no event identified". This
+    model exists so that distinction stays visible in the schema itself, not
+    just in a docstring: a query against ``EventRegistration`` can never
+    accidentally pick up a tag-derived signal, and vice versa.
+
+    ``category`` is populated only from the reviewed, hardcoded mapping in
+    :mod:`events.mailchimp_event_tag_categories` -- never inferred from a raw
+    tag string at read time. ``source`` records where the signal came from;
+    it is deliberately only ``mailchimp_tag`` today (the one producer that
+    exists), kept as a field rather than assumed so a second producer, if one
+    is ever built, does not require a schema change to be told apart from
+    the first.
+
+    One row per (identity, category, source): a subscriber tagged with both
+    ``event-podcast`` and ``event-conference`` gets two rows, not one row
+    with two values crammed in -- the same one-fact-per-row discipline
+    ``EventRegistration`` already uses. The unique constraint below is also
+    what makes importing idempotent: a replay's ``get_or_create`` finds the
+    row instead of duplicating it.
+    """
+
+    class Category(models.TextChoices):
+        GENERAL = "general", "General"
+        CONFERENCE = "conference", "Conference"
+        PODCAST = "podcast", "Podcast"
+        PRODUCTION = "production", "Production"
+        ANALYTICS = "analytics", "Analytics"
+        DATA = "data", "Data"
+        SOFT_SKILLS = "soft_skills", "Soft skills"
+        DATA_SCIENCE = "data_science", "Data science"
+
+    class Source(models.TextChoices):
+        MAILCHIMP_TAG = "mailchimp_tag", "Mailchimp tag"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    identity = models.ForeignKey(
+        EventRegistrantIdentity, on_delete=models.PROTECT, related_name="interest_signals"
+    )
+    category = models.CharField(max_length=32, choices=Category.choices)
+    source = models.CharField(
+        max_length=16, choices=Source.choices, default=Source.MAILCHIMP_TAG
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("identity_id", "category", "source")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("identity", "category", "source"),
+                name="events_registrant_interest_signal_unique",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"event-registrant-interest-signal:{self.id}"
 
 
 class EventRegistrantImportProgress(models.Model):

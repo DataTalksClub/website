@@ -78,6 +78,7 @@ __all__ = [
     "discover_luma_registrant_files",
     "read_luma_registrant_rows",
     "import_luma_registrants",
+    "resolve_registrant_identity",
 ]
 
 # Required for identity-consolidation reads only -- a narrower set than
@@ -236,7 +237,7 @@ def _parse_registered_at(raw: str) -> Any:
         return None
 
 
-def _resolve_identity(normalized_email: str) -> tuple[EventRegistrantIdentity, str]:
+def resolve_registrant_identity(normalized_email: str) -> tuple[EventRegistrantIdentity, str]:
     """Return ``(identity, match_kind)``, consolidating against accounts first.
 
     ``match_kind`` is one of ``"matched_account"``, ``"matched_prior_identity"``,
@@ -245,6 +246,12 @@ def _resolve_identity(normalized_email: str) -> tuple[EventRegistrantIdentity, s
     registrant-only identity is reused before anything new is created, and a
     genuinely new identity is only ever created for an address neither lookup
     found.
+
+    Public (not module-private) because it is the exact consolidation
+    discipline :mod:`events.mailchimp_tag_import` reuses rather than
+    reinventing -- see that module's docstring. Both callers hand it an
+    already-normalized email; this function does no normalization of its
+    own.
     """
 
     account = (
@@ -337,7 +344,7 @@ def _import_one_event(
             if row.normalized_email is None:
                 skipped += 1
                 continue
-            identity, match_kind = _resolve_identity(row.normalized_email)
+            identity, match_kind = resolve_registrant_identity(row.normalized_email)
             if match_kind == "matched_account":
                 matched_account += 1
             elif match_kind == "matched_prior_identity":
