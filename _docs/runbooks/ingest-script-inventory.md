@@ -736,6 +736,68 @@ more than one existing account shares a `normalized_email` (a
 pre-reconciliation duplicate), every one of them is updated, not just one
 arbitrarily chosen row.
 
+## 10.2 Tag-derived registration signal — runs after 10.1
+
+The same Mailchimp export's `TAGS` column (read but never stored by 10.1)
+carries per-member category labels driven by real registration history. This
+step re-reads that column and turns a fixed, reviewed subset of it into
+registration signal. It runs **after** 10.1 completes, in the same ingest
+flow — 10.1 establishes `newsletter_subscribed` and the account match first;
+this step only ever attaches signal to an identity 10.1 (or source #9) has
+already resolved, never a bare email row of its own.
+
+32 distinct `TAGS` values exist across the real export. Three are dropped
+outright, never imported under any circumstance: `registered-in-slack`,
+`Berlin DataTalks Club Group`, `ai-bootcamp-free-email-course` — none maps to
+a real Course or Event, owner decision.
+
+The remaining values split into two families with different status:
+
+**Event-category tags — in flight, not blocked.** Eight tags
+(`event`, `event-conference`, `event-podcast`, `event-production`,
+`event-analytics`, `event-data`, `events-soft`, `events-data-science`) map to
+a hardcoded, reviewed category vocabulary — a Mailchimp tag isn't a specific
+event the way a real Luma/Eventbrite row from source #9 is, so this is
+attached as a category/interest signal on `EventRegistrantIdentity`, not a
+new `EventRegistration`. Matching reuses source #9's exact
+account-first/registrant-identity-second/create-new-third discipline.
+
+**Course tags — blocked on [#286](https://github.com/DataTalksClub/website/issues/286).**
+The remaining tags are per-course, per-launch labels (`de-zoomcamp-1`,
+`de-zoomcamp-2`, `de-zoomcamp-2024`, `de-zoomcamp-2025`, `de-zoomcamp-2026`,
+`ml-zoomcamp-1`, `ml-zoomcamp-2`, `ml-zoomcamp-2023`, `ml-zoomcamp-2024`,
+`ml-zoomcamp-2025`, `mlops-zoomcamp-1`, `mlops-zoomcamp-2023`,
+`mlops-zoomcamp-2024`, `mlops-zoomcamp-2025`, `llm-zoomcamp-2024`,
+`llm-zoomcamp-2025`, `llm-zoomcamp-2026`, `ai-dev-tools-zoomcamp-2025`). The
+ordinal tags (`-1`, `-2`) predate each course's switch to year-named tags;
+the owner resolved the exact year each one means, cross-checked against the
+real pre-2023 editions [`scripts/prod/legacy_zoomcamp/editions.py`](../../scripts/prod/legacy_zoomcamp/editions.py)
+actually imported (source #2) — not a guess:
+
+| Tag | Cohort year |
+| --- | --- |
+| `de-zoomcamp-1` / `de-zoomcamp` | 2022 |
+| `de-zoomcamp-2` | 2023 |
+| `ml-zoomcamp-1` / `ml-zoomcamp` | 2021 |
+| `ml-zoomcamp-2` | 2022 |
+| `ml-zoomcamp-2023` | 2023 (already year-named) |
+| `mlops-zoomcamp-1` / `mlops-zoomcamp` | 2022 |
+| `mlops-zoomcamp-2023` | 2023 (already year-named, no `-2`) |
+| `llm-zoomcamp-2024`/`-2025`/`-2026` | year-named throughout, no ordinal tags — first launch was 2024 |
+| `ai-dev-tools-zoomcamp-2025` | year-named, single launch year |
+
+This table is settled and ready to use, but storing or assigning anything
+from it is still blocked: [#286](https://github.com/DataTalksClub/website/issues/286)
+is an explicit decision gate on `CourseInterest` identity, dedupe key, and
+retention ("Engineering must not infer those choices... A PM recommendation,
+silence, code convenience... must not start engineering"). No course-tag row
+is imported, no `CourseInterest` is created, until the owner answers `I1`,
+`I2`, `I3`, or an equally exact replacement on that issue.
+
+sma-zoomcamp carries no tags in the export by design, not a gap — it was
+never imported here and its registrations live on an external form (owner
+confirmed).
+
 ---
 
 # 11. Sponsors
