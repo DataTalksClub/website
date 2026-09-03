@@ -333,20 +333,11 @@ reports. The real protected reconciliation is an authorized HUMAN gate under #64
 disposal rules. Failures preserve the last accepted total and create no email/newsletter/sponsor,
 consent, or provider work.
 
-### Protected course registration-count source
+### Course registration-count aggregate
 
-The course baseline adapter accepts only an opaque reference from the code/configuration-owned
-`COURSE_REGISTRATION_COUNT_SOURCES` registry. Each entry pins the fixed SQLite adapter, exact whole
-file checksum and byte size, schema version and schema-contract checksum, capture/freeze/cutoff
-times, and native start. It rejects symlinks, non-regular or oversized files, checksum/size/schema
-drift, mutable or inconsistent timing, duplicate campaign/course identities, missing or changed
-current targets, mixed/null timestamps, post-cutoff rows, and incomplete aggregates before any
-pointer changes.
-
-SQLite is opened read-only with bounded execution and trusted schema disabled. Derivation selects
-only campaign/course identity, registration count, and minimum/maximum creation time; source PII
-columns are schema-checked but never selected. The database, logs, audit, Studio/API, screenshots,
-and reports retain only safe aggregate/provenance facts. Public reads never reopen the protected
-file and fail closed when its registered checksum, size, adapter, schema, or schema-contract fact
-changes. Real-source validation remains an authorized HUMAN gate; repository and browser tests use
-synthetic SQLite sources under project-local `.tmp/` only.
+The public course registration count is a plain current-state aggregate, not a protected-source
+import pipeline: `RegistrationCampaign.registration_baseline_count` records, at most, a fixed
+historical figure captured once (for example from a legacy CMP export, before this database held
+`CourseRegistration` rows for that campaign); everything else is a live count of native rows. No
+raw source file, checksum registry, or attendee-level data is read at request time -- there is
+nothing left to protect beyond the ordinary `CourseRegistration` fields already covered above.

@@ -357,21 +357,13 @@ history, and screenshots. Real source reconciliation remains the separately auth
 
 ## Course registration-count verification
 
-Repository tests use synthetic SQLite snapshots under project-local `.tmp/` only. Adapter tests
-cover exact and changed checksum/size/schema, null/mixed/future timestamps, duplicate or changed
-campaign/cohort identity, zero/one/many counts, exact replay, conflicting reuse, activation,
-quarantine/omission, rollback, and database-error propagation. Tests inspect retained models,
-responses, audits, and logs for source paths, filenames, identifiers/digests, emails, names, answers,
-tokens, and payloads.
-
-Domain tests prove baseline-plus-native boundary arithmetic, campaign repoint fail-closed behavior,
-missing/stale source omission, row-level replacement reconciliation, no double counting, and
-replacement rollback with the same public total. Management tests prove the exact Studio/admin API
-routes, shared service, permission, idempotency, expected-revision conflict, private response,
-OpenAPI, safe preview, and audit redaction contracts.
+Domain tests (`courses/tests/test_registration_counts.py`) prove `public_course_registration_count`
+directly: no current cohort returns `None`; a campaign with no recorded baseline shows a plain live
+row count; the count is specific to one campaign and cohort, not conflated with another campaign's
+rows; a recorded baseline combines with native rows created on or after the recorded boundary
+without double-counting a pre-boundary row; and a baseline recorded for a previous cohort does not
+carry onto a campaign that has since rotated to a new one.
 
 Browser acceptance at approximately 1440×900 and 390×844 covers copied registration-page zero,
-singular and plural output in light/dark mode, JavaScript disabled rendering, focus/overflow,
-console/network failures, and protected-value absence. The copied template checksum must remain
-unchanged. Real protected-source reconciliation and disposal remain a separately authorized HUMAN
-gate.
+singular and plural output in light/dark mode, JavaScript disabled rendering, focus/overflow, and
+console/network failures. The copied template checksum must remain unchanged.
