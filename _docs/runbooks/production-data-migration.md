@@ -42,26 +42,26 @@ where the answer is "we deliberately do nothing", it says so.
 
 | # | Source | Model | Fate and owner | Step |
 | --- | --- | --- | --- | --- |
-| 1 | Course repositories (3) | git-synchronised | `content_sync/course_repository_ingest.py` | 2 |
-| 2 | `DataTalksClub/content` — articles, podcasts, books | git-synchronised after migration | push-sync — **to build**, §11 B3 | 6 |
-| 3 | `DataTalksClub/podwiki` — wiki, graph, search | pinned build → git-synchronised | source stays at podwiki; **we serve `/wiki`** | 6 |
-| 4 | `DataTalksClub/faq` (6 courses / 70 sections / 1,401 questions) | **git-synchronised** | **owner ruling: comes into our database via content sync** — to build, §11 B8 | 6 |
-| 5 | `DataTalksClub/docs` (106 pages) | **git-synchronised** | **owner ruling: same as FAQ** — to build, §11 B8 | 6 |
+| 1 | Course repositories (3) | git-synchronised | `content_sync/course_repository_ingest.py` | 3 |
+| 2 | `DataTalksClub/content` — articles, podcasts, books | git-synchronised after migration | push-sync — **to build**, §11 B3 | 7 |
+| 3 | `DataTalksClub/podwiki` — wiki, graph, search | pinned build → git-synchronised | source stays at podwiki; **we serve `/wiki`** | 7 |
+| 4 | `DataTalksClub/faq` (6 courses / 70 sections / 1,401 questions) | **git-synchronised** | **owner ruling: comes into our database via content sync** — to build, §11 B8 | 7 |
+| 5 | `DataTalksClub/docs` (106 pages) | **git-synchronised** | **owner ruling: same as FAQ** — to build, §11 B8 | 7 |
 | 6 | CMP repo `production_like_course_specs.json` | pinned build | local seeding only; produces the unused `courses.json`. **Not migrated** — §14 | — |
-| 7 | Legacy `_people` (443) | pinned build | push-sync — move to `DataTalksClub/content`, §11 B5 | 6 |
-| 8 | Legacy `_data/events.yaml` (421) | pinned build | one-off export — **no home yet**, §11 B6 | 6 |
-| 9 | Legacy `images/authors/` (438) | pinned build | one-off export → CDN; **live defect**, §11 B7 | 6 |
+| 7 | Legacy `_people` (443) | pinned build | push-sync — move to `DataTalksClub/content`, §11 B5 | 7 |
+| 8 | Legacy `_data/events.yaml` (421) | pinned build | one-off export — **no home yet**, §11 B6 | 7 |
+| 9 | Legacy `images/authors/` (438) | pinned build | one-off export → CDN; **live defect**, §11 B7 | 7 |
 | 10 | Legacy `_data/faqs/` article FAQ (159 pairs) | pinned build | one-off export — **already done and committed** | — |
-| 11 | CMP export — course content (991 rows) | one-time | `scripts/prod/import_cmp_content.py` | 3 |
-| 12 | CMP export — learner data (510,519 rows) | one-time | **to build**, §11 A3 | 4 |
-| 13 | `zoomcamp-scoring` — pre-2024 history | one-time | `scripts/prod/import_legacy_zoomcamp.py` | 1 |
-| 14 | Event identity manifest (421 / 1,684) | one-time | `scripts/prod/import_events.py` | 5 |
-| 15 | Event description bridge | one-time | committed capture; `scripts/build_event_description_bridge.py` | 6 |
-| 16 | Luma aggregates | one-time | `scripts/prod/import_events.py` → `events/importers.py` | 5 |
-| 17 | Eventbrite aggregates | one-time | as above | 5 |
-| 18 | Public media objects (1,253 / ~154 MB) | hydrate/publish | `manage.py public_media_*` → `dtc-website-media` | 6 |
-| 19 | **Sponsors** | one-time then Studio | **owner ruling: give it an import script** — to build, §11 B9 | 7 |
-| 20 | **Testimonials** | one-time then Studio | **owner ruling: same script** — to build, §11 B9 | 7 |
+| 11 | CMP export — course content (991 rows) | one-time | `scripts/prod/import_cmp_content.py` | 4 |
+| 12 | CMP export — learner data (510,519 rows) | one-time | **to build**, §11 A3 | 5 |
+| 13 | `zoomcamp-scoring` — pre-2024 history | one-time | `scripts/prod/import_legacy_zoomcamp.py` | 2 |
+| 14 | Event identity manifest (421 / 1,684) | one-time | `scripts/prod/import_events.py` | 6 |
+| 15 | Event description bridge | one-time | committed capture; `scripts/build_event_description_bridge.py` | 7 |
+| 16 | Luma aggregates | one-time | `scripts/prod/import_events.py` → `events/importers.py` | 6 |
+| 17 | Eventbrite aggregates | one-time | as above | 6 |
+| 18 | Public media objects (1,253 / ~154 MB) | hydrate/publish | `manage.py public_media_*` → `dtc-website-media` | 7 |
+| 19 | **Sponsors** | one-time then Studio | **owner ruling: give it an import script** — to build, §11 B9 | 8 |
+| 20 | **Testimonials** | one-time then Studio | **owner ruling: same script** — to build, §11 B9 | 8 |
 | 21 | `rds-aisl_prod` | — | **explicitly out of scope** — §14 | — |
 
 The owner's original list had ten sources. `DataTalksClub/podwiki`, `faq`,
@@ -168,7 +168,7 @@ That produces the hard constraint:
 If submissions attach first and homework rows are renamed or merged afterwards,
 those submissions point at rows that no longer mean what they meant.
 
-### 3.2 Only one importer bootstraps, and it does not cover everything
+### 3.2 Only one importer bootstraps, which is why structure is seeded first
 
 `scripts/prod/__init__.py` declares `BOOTSTRAP_FIRST = "import_legacy_zoomcamp"`,
 and `scripts/tests/test_prod_imports.py` checks the declaration against each
@@ -188,8 +188,9 @@ cohort when the slug is named in the reviewed `COHORT_FAMILY_IDENTITIES` mapping
 exists, so it imports nothing and reports every cohort under
 `skipped_not_in_local_catalogue`. A silent no-op, not an error.
 
-**The gap this opens, which nothing in the plan previously covered.** After the
-legacy import and the repository pull, the families that exist are:
+**The gap that behaviour opened, and how it is closed.** Left to the importers
+alone, the families that would exist after the legacy import and the repository
+pull are:
 
 | Family | Created by |
 | --- | --- |
@@ -197,17 +198,42 @@ legacy import and the repository pull, the families that exist are:
 | `ai-dev-tools`, `llm-zoomcamp`, `ml-zoomcamp` | `pull_course_repositories` |
 | **`sma-zoomcamp`** | **nothing** |
 
-`sma-zoomcamp` has no course repository (no `course.yaml`, so neither transport
-can ingest it) and no pre-2024 edition. In the local rehearsal the family comes
-from `manage.py seed_local_courses`, which **refuses to run against anything but
-local SQLite** (`local_course_seed.assert_local_database`). So on production,
-`sma-zoomcamp-2024`, `-2025` and `-2026` are never created, and the **1,081
-enrollments** CMP holds against them have nowhere to land. §11 A1 owns this.
+`sma-zoomcamp` has no course repository — no `course.yaml`, so neither transport
+can ingest it — and no pre-2024 edition. Locally the family comes from
+`manage.py seed_local_courses`, which **refuses to run against anything but local
+SQLite**. So on production nothing would create it, and the **1,081 enrollments**
+CMP holds against `sma-zoomcamp-2024`, `-2025` and `-2026` would have nowhere to
+land.
+
+**Owner ruling: `sma-zoomcamp` comes from CMP.** That is now what happens, and
+step 1 is what makes it possible. Worth being precise about why it was ever
+missing, because the obvious diagnosis is wrong:
+
+- It is **not** one of the five owner-skipped cohorts. `SKIPPED_COHORTS` is
+  `ai-bootcamp-2025`, `ai-hero-2025`, `ai-hero-2026`, `ai-buildcamp-2`,
+  `ai-buildcamp-3`. **No skip has to be lifted.** `sma-zoomcamp-2026` used to be
+  on that list and was already removed, with the reason recorded in the service:
+  it is visible and active in CMP and its family is already reviewed.
+- All three editions are already in `COHORT_FAMILY_IDENTITIES`, so the CMP
+  importer is already willing to create them.
+- The **only** thing missing was the family row, which is exactly and only what
+  step 1 writes.
+
+So CMP is the source of truth for the `sma-zoomcamp` cohorts, their content and
+their 1,081 enrollments, and step 1 supplies the one structural row CMP's importer
+will not mint for itself.
+
+The same ruling dissolves the general form of the problem. `import_cmp_content`
+being a silent no-op against an empty database stops mattering once structure
+exists before it runs. The behaviour is unchanged and is still worth knowing —
+it is why an import can report success having written nothing — but it is no
+longer a hazard in this sequence.
 
 ### 3.3 The consequence for ordering
 
-CMP is split into two phases with the repository pull between them. Users still
-come from CMP — just at step 4 rather than step 1, and nothing before then needs
+Structure first, then the one importer that bootstraps, then the repositories,
+then CMP in two phases with the repository pull between them. Users still come
+from CMP — just at step 5 rather than step 2, and nothing before then needs
 them.
 
 ---
@@ -267,12 +293,83 @@ than migrating forward from an unknown point.
 
 **Duration.** Under a minute.
 
-### Step 1 — Bootstrap: pre-2024 Zoomcamp history
+### Step 1 — Structural seed
 
-`DataTalksClub/zoomcamp-scoring`, 7 editions. **This must run first**, because it
-is the only importer that populates an empty database, and because it is what
-creates the `de-zoomcamp`, `ml-zoomcamp` and `mlops-zoomcamp` families that later
-steps reconcile against.
+**No script exists yet.** §11 A1. This step is an owner decision recorded here as
+a specification.
+
+Every importer after this one *reconciles*: it matches upstream rows against rows
+that are already present, and against an empty database it writes nothing and
+reports success. Rather than working around that with import ordering, this step
+puts the structure in place first, so each import lands against something.
+
+> **What it is.** A migration-only script that creates the **course-family rows**
+> the later steps write against, from the reviewed identity data already in this
+> repository. **Structure only. No content.** It invents no title beyond the
+> reviewed one, no description, no date, no homework, no cohort copy. Everything
+> a learner reads still comes from CMP or a course repository.
+
+**Its input is already reviewed and already in the tree.** Do not invent a new
+file: `courses/course_family_catalog.py` holds `COURSE_FAMILY_TITLES` — the six
+published families (`de-zoomcamp`, `ml-zoomcamp`, `llm-zoomcamp`,
+`mlops-zoomcamp`, `sma-zoomcamp`, `ai-dev-tools`) with their reviewed titles — and
+`COHORT_FAMILY_IDENTITIES`, the thirteen cohort slugs that map to a family and a
+year. The first is what this step writes. The second is what step 4 uses to decide
+which CMP cohorts it may create, and it is why this step only needs to write
+families.
+
+**It is not `seed_local_courses`.** That command reads
+`scripts/production_like_course_specs.json`, invents copy ("Practice assignment
+for …", "Production-like generated"), and refuses to run outside local SQLite
+(`local_course_seed.assert_local_database`). It is a development convenience.
+This step is production-capable and writes six rows.
+
+```
+$TARGET uv run --frozen python scripts/prod/seed_course_structure.py \
+    --database <target>          # name to be settled by §11 A1
+```
+
+**Why it goes here, before the imports rather than after.** The pre-2024 importer
+derives a family from a cohort slug through `canonical_family_slug` and
+`get_or_create`, so if the family already exists it attaches to the reviewed row
+instead of minting one from a slug and a stripped title. The course-repository
+ingest does the same. And step 4 can then create every reviewed CMP cohort,
+because the only thing it ever lacked was the family row.
+
+**Checkpoint** — every family that later steps write against exists, and nothing
+else was created:
+
+```
+$TARGET uv run --frozen python manage.py shell -v 0 -c '
+import sys
+from courses.models import Cohort, Course
+from courses.course_family_catalog import COURSE_FAMILY_TITLES
+have = dict(Course.objects.values_list("slug", "title"))
+missing = sorted(set(COURSE_FAMILY_TITLES) - set(have))
+extra = sorted(set(have) - set(COURSE_FAMILY_TITLES))
+wrong = sorted(s for s, t in COURSE_FAMILY_TITLES.items() if s in have and have[s] != t)
+cohorts = Cohort.objects.count()
+print("families", len(have), "missing", missing, "extra", extra, "wrong_title", wrong)
+print("cohorts (must be 0 — this step writes structure, not content):", cohorts)
+sys.exit(1 if (missing or extra or wrong or cohorts) else 0)'
+```
+
+A second run must change nothing: the write is keyed on the family slug.
+
+**Failure and recovery.** **Recoverable by re-run**, and it is the cheapest step
+in the plan — six rows, no source outside this repository, nothing downstream of
+it yet. If it half-runs, run it again.
+
+**Duration.** Seconds.
+
+### Step 2 — Bootstrap: pre-2024 Zoomcamp history
+
+`DataTalksClub/zoomcamp-scoring`, 7 editions. This is the first step that reads an
+upstream source, and it is **the only importer that can populate an empty
+database** — `Cohort.save()` resolves a cohort's family from its slug, so it needs
+no catalogue. With step 1 in place it attaches its cohorts to the reviewed
+`de-zoomcamp`, `ml-zoomcamp` and `mlops-zoomcamp` families rather than deriving
+them.
 
 ```
 git clone https://github.com/DataTalksClub/zoomcamp-scoring ~/git/zoomcamp-scoring
@@ -348,7 +445,7 @@ development machine. It is the second-smallest edition. Budget roughly 5 minutes
 per edition and **30–45 minutes for all seven**; record the real per-edition
 numbers during the rehearsal in §8.4.
 
-### Step 2 — Course repositories
+### Step 3 — Course repositories
 
 ```
 $TARGET make content-sources        # register ContentSource rows
@@ -410,14 +507,14 @@ investigate*, not *re-run*.
 **Duration.** Minutes. `make content-checkouts` is the only step that touches the
 network and its time is git clone time.
 
-### Step 3 — CMP course content
+### Step 4 — CMP course content
 
 ```
 $TARGET uv run --frozen python scripts/prod/import_cmp_content.py \
     --database <target> --source $EXPORT
 ```
 
-Reconciles homework onto step 2's rows, adds the CMP cohorts whose family already
+Reconciles homework onto step 3's rows, adds the CMP cohorts whose family already
 exists, and copies registration campaign definitions.
 
 **Expected counts, and why they are not the source totals.** The export holds 21
@@ -438,10 +535,14 @@ expectation:
 | review criteria | 169 | **117** |
 | registration campaigns | 5 | **5** |
 
-Plus, until §11 A1 lands, subtract `sma-zoomcamp-2024/-2025/-2026` — 3 cohorts,
-13 homework, 47 questions — because their family does not exist on production.
-Read the run's own `skipped_not_in_local_catalogue` list; if it contains anything
-other than the five owner-skipped slugs, stop.
+Those 16 include all three `sma-zoomcamp` editions, which this step creates
+because step 1 put their family row there. If they are absent, step 1 did not run
+or did not write `sma-zoomcamp` — do not work around it here.
+
+Read the run's own `skipped_not_in_local_catalogue` list. It should be **empty**.
+If it contains anything, a reviewed cohort found no family, which means step 1 is
+incomplete. The five owner-skipped slugs appear under `skipped_by_owner`, which is
+a different list and is expected to hold exactly those five.
 
 **Checkpoint — counts**
 
@@ -510,7 +611,7 @@ PY
 homework row the reconciler could not pair to a CMP row by slug or by exact title,
 and it is **reported, not guessed at**: the run's summary lists it under
 `unpaired_repository_homework`. Each one must be resolved by a decision before
-step 4, because after step 4 a submission may be attached to it.
+step 5, because after step 5 a submission may be attached to it.
 
 **Checkpoint — inventory**
 
@@ -540,7 +641,7 @@ exists to prevent).
 
 **Duration.** Under a minute against the current 16 cohorts.
 
-### Step 4 — CMP learner data
+### Step 5 — CMP learner data
 
 **No importer for this exists.** §11 A3. Everything below is the specification it
 has to satisfy, and the checkpoints it has to pass.
@@ -582,7 +683,7 @@ must be named anyway, so a future export cannot introduce it quietly.
 > `courses_answer`, `courses_criteriaresponse`, `courses_peerreview`,
 > `courses_projectsubmission`, `courses_courseregistration`,
 > `courses_userwrappedstatistics` and `account_emailaddress` — the entire payload
-> of this step. Reusing it here would import nothing and report success. Step 4
+> of this step. Reusing it here would import nothing and report success. Step 5
 > needs its own explicit never-import set, and it is the five tables above.
 
 **Do not import (16 tables, 60,432 rows)**
@@ -597,7 +698,7 @@ must be named anyway, so a future export cannot introduce it quietly.
 | `courses_homeworkstatistics` (110), `courses_projectstatistics` (43) | 153 | derived — recompute, never copy |
 | `courses_projectvote` (250), `courses_systemevaluationcriteriaresponse` (11), `courses_emailcampaign` (1), `courses_leaderboardcomplaint` (1), `courses_systemprojectevaluation` (1), `courses_wrappedstatistics` (1) | 265 | **undecided** — §12 decision 4 |
 
-That accounts for every table and every row: 6 content (step 3) + 11 import +
+That accounts for every table and every row: 6 content (step 4) + 11 import +
 5 never-import + 16 do-not-import = **38 tables**, and
 991 + 510,519 + 92,864 + 60,432 = **664,806 rows**. If a future export does not
 add up, a table has appeared and needs a fate before the run.
@@ -606,23 +707,25 @@ add up, a table has appeared and needs a fate before the run.
 are things the source will not do for you:
 
 1. **Neutralise every password.** All **20,009** rows arrive with a usable hash.
-   The importer must write an unusable password; it must not rely on the export.
-2. **Decide `is_staff` and `is_superuser` explicitly.** The export contains **5
-   superusers and 5 staff accounts**. Copying those columns verbatim grants
-   production administrator rights to five accounts by import. Nothing in an
-   earlier draft mentioned this. The default must be "neither", with any exception
-   named.
+   Write an unusable password; do not rely on the export. See §5.4 for why this
+   is a tidy-up rather than an emergency, and for the one route that is genuinely
+   open.
+2. **Decide `is_staff` and `is_superuser` explicitly, for ten named rows.** The
+   export contains **5 superusers and 5 staff accounts** (the same five). Copying
+   those columns verbatim grants production administrator rights by import, and
+   copying them *together with* a usable password hash is the one combination that
+   matters — an admin is precisely the account CMP let sign in with a password.
+   **The rule this plan sets:** import every account with `is_staff=False`,
+   `is_superuser=False` and an unusable password, with **no exception**, and grant
+   staff access afterwards through Studio to named people. That converts an
+   invisible default into a deliberate, auditable act. Two of those five rows are
+   the duplicate pair in transform 4, so this and that decision are the same
+   person's problem.
 3. **Recompute, never copy, statistics and leaderboards** — the same
    `calculate_homework_statistics` / `calculate_project_statistics` /
    `update_leaderboard` path the legacy importer uses.
-4. **Resolve the email collision first.** The export has 20,009 accounts and
-   **20,008 distinct lower-cased email addresses**: two accounts claim one
-   address. On import that person becomes `verified_owner_ambiguous` at sign-in
-   and is locked out of both. This must be decided before the run, not after.
-   (`account_emailaddress` is clean: 20,005 rows, all distinct, **20,004
-   verified** — so 4 accounts carry no row and 1 is unverified. That matches
-   exactly what `accounts/auth.py` documents, and is why the matcher reads the
-   account's `email` column as well as verified `EmailAddress` rows.)
+4. **Consolidate accounts that share an address.** See §5.5 — it is a step of the
+   import with its own checkpoint, not a footnote.
 5. **Certificates ride on enrollments.** There is no certificate table:
    `courses_enrollment.certificate_url` is non-empty on **2,636** rows. If
    enrollments import and that column does not, 2,636 certificates disappear.
@@ -650,15 +753,15 @@ bad = False
 for table, model in PAIRS.items():
     want = src.execute("select count(*) from %s" % table).fetchone()[0]
     got = apps.get_model(model).objects.count()
-    ok = got >= want            # >= : step 1 added pre-2024 rows of its own
+    ok = got >= want            # >= : step 2 added pre-2024 rows of its own
     bad |= not ok
     print(("ok " if ok else "BAD"), table, "source=%s target=%s" % (want, got))
 sys.exit(1 if bad else 0)
 PY
 ```
 
-`>=` rather than `==` is deliberate: step 1 already put pre-2024 users,
-enrollments and submissions in the database. Record the step-1 totals before this
+`>=` rather than `==` is deliberate: step 2 already put pre-2024 users,
+enrollments and submissions in the database. Record the step-2 totals before this
 step and assert the exact delta instead — that is a stronger check and the
 rehearsal is where you obtain the numbers.
 
@@ -732,7 +835,7 @@ restarting from step 0, which given the duration is the difference between a
 **Duration.** Unknown; 510,519 rows. Measure it in the rehearsal. This is almost
 certainly the longest step and the one that sizes the maintenance window.
 
-### Step 5 — Events
+### Step 6 — Events
 
 Identity manifest first, then the two registration sources. Counts only — **no
 attendee row is ever written.**
@@ -780,7 +883,7 @@ parse rows at all.
 
 **Duration.** Minutes.
 
-### Step 6 — Content
+### Step 7 — Content
 
 Today this step is: rebuild the committed projection and hydrate media. It is
 **not** a database import, and pretending otherwise is the biggest single
@@ -844,7 +947,7 @@ non-empty `missing` as a stop.
 
 **Duration.** Minutes for the build; media publish is 1,253 objects / ~154 MB.
 
-### Step 7 — Sponsors and testimonials
+### Step 8 — Sponsors and testimonials
 
 **Owner ruling: both get an import script.** Both are database-backed surfaces
 with no ingest path today, and both are edited in Studio afterwards — so this is a
@@ -944,7 +1047,7 @@ they hold the real Google and GitHub accounts on the other side.
    client secret is write-only. On the provider side, register the local redirect
    URI — `http://web.dtcdev.click:<port>/accounts/google/login/callback/` and the
    GitHub equivalent — before trying.
-2. **Run the forbidden-tables checkpoint first** (step 4), because configuring
+2. **Run the forbidden-tables checkpoint first** (step 5), because configuring
    providers legitimately writes `socialaccount_socialapp` rows.
 3. **Sign in with Google. Then sign in with GitHub**, from a separate browser
    profile. Both, not one: Google always asserts verification, GitHub reports the
@@ -969,14 +1072,252 @@ It proves the mechanism end to end, for an account shaped like the owner's. It
 does not prove it for 20,009 accounts with the variations they will contain: a
 different-cased address, a plus-tagged address, a provider that returns no email,
 a member with two verified addresses at one provider, an account already linked to
-another provider, and the **one pair of accounts that share an address** (§4 step 4,
-transform 4) — that person is `verified_owner_ambiguous` by construction and
-cannot sign in at all until it is resolved.
+another provider, and the **one pair of accounts that share an address** (§5.5) —
+that person is `verified_owner_ambiguous` by construction and cannot sign in at
+all until they are consolidated.
 
 Those shapes are covered by the automated tests in `accounts/tests_auth.py`. Both
 are needed and neither substitutes for the other: the tests cover the shapes, the
 owner's sign-in covers the real provider round trip, real credentials, real
 callback and real session.
+
+### 5.4 The password hashes: what CMP enforced, and what travelled
+
+Owner: members could only sign in through a provider; passwords were for admins.
+That is right, and it makes 20,009 usable hashes much less alarming than a bare
+count suggests. But "was unreachable in CMP" is a property of CMP's *routing*, not
+of the data, so it has to be re-established here rather than assumed to travel
+with the rows.
+
+**What enforced it in CMP.** URL shadowing, not a flag.
+`course_management/urls.py` includes CMP's own `accounts.urls` **before**
+`allauth.urls`, and that module replaces three paths: `accounts/login/` with a
+social-only `social_login_view`, and `accounts/email/` and
+`accounts/password/reset/` with a view that returns **403**. allauth's password
+login form was never reachable, so the hashes were never reachable. Nothing
+disabled password *authentication*; there was simply no form pointed at it.
+
+**What travelled.** All three, identically — this site's `accounts/urls.py` is the
+adopted descendant of that module and `website/urls.py` includes it before
+`allauth.urls`, so it still wins. **Measured** against a migrated database with
+the development-owner login disabled, which is the production shape:
+
+| Route | Result | Why |
+| --- | --- | --- |
+| `GET /accounts/login/` | 200, social buttons only | shadowed by `social_login_view` |
+| `GET /accounts/password/reset/` | **403** | shadowed by `accounts/views/disabled.py` |
+| `GET /accounts/email/` | **403** | same |
+
+This site adds two defences CMP did not have. `accounts/backends.py`
+`DurableAccountBackend._checked_candidate` **refuses password authentication for
+any `is_staff` account** unless `DEVELOPMENT_OWNER_LOGIN_ENABLED` — and it still
+calls `check_password` first, so it does not leak a timing oracle. And that flag
+is `RUNTIME_ENVIRONMENT is RuntimeEnvironment.DEVELOPMENT`, i.e. **False in
+production**, asserted by
+`accounts/tests/test_auth_configuration.py::test_owner_login_is_local_and_development_only`.
+Even when it is on, `social_login_view` authenticates only an account that is
+staff *and* the exact development-owner `APIPrincipal` *and* holds
+`MANAGE_API_CREDENTIALS`.
+
+**What did not travel, and it is a real hole.** `/accounts/signup/` is allauth's
+own view, unshadowed, and it is **open**. `ACCOUNT_ALLOW_REGISTRATION = False` in
+`website/settings/base.py:194` **is not an allauth setting** — allauth's
+`DefaultAccountAdapter.is_open_for_signup` returns `True` unconditionally, this
+site configures no `ACCOUNT_ADAPTER`, and the only thing that reads that constant
+is an inventory report in `accounts/identity_inventory.py`. With
+`ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]`, that is a live
+password form.
+
+**Measured, in the production shape:** `POST /accounts/signup/` with a new address
+returned 302, created an account with a **usable password**, and **signed it in**.
+
+The blast radius is bounded, and the bound was also measured rather than assumed:
+`POST /accounts/signup/` with an address that already belongs to an imported
+account returned 200 with the form redisplayed, created nothing, signed nobody in,
+and left the existing account's password unusable. `ACCOUNT_UNIQUE_EMAIL = True`
+holds. So this is **not** account takeover and no imported member's history is
+reachable through it. It is unwanted local password accounts on a site whose
+sign-in is meant to be provider-only — which is worth closing before 20,009
+accounts and 5 admin rows land, not after. §11 A5.
+
+Note also that a member who signs in through a provider can still reach
+`/accounts/password/change/` (200 for a signed-in user; allauth redirects to
+`password/set/` when the account has no usable password). Whether a member may set
+a local password at all is a product decision that this plan does not make — it
+just says it is currently possible, so it should be a choice.
+
+**Checkpoint — the password path behaves as intended after import.** Run this with
+the target configured as production, after step 5 and before the site is public:
+
+```
+$TARGET uv run --frozen python manage.py shell -v 0 <<'PY'
+import sys
+from django.conf import settings
+from django.test import Client
+from accounts.models import CustomUser
+
+fail = []
+if settings.DEVELOPMENT_OWNER_LOGIN_ENABLED:
+    fail.append("DEVELOPMENT_OWNER_LOGIN_ENABLED is on")
+
+usable = CustomUser.objects.exclude(password="").exclude(password__startswith="!").count()
+if usable:
+    fail.append(f"{usable} accounts carry a usable password")
+privileged = CustomUser.objects.filter(is_staff=True).count() + \
+             CustomUser.objects.filter(is_superuser=True).count()
+print("accounts", CustomUser.objects.count(), "usable_passwords", usable,
+      "staff+superuser", privileged)
+
+c = Client()
+for path, expected in (("/accounts/password/reset/", 403), ("/accounts/email/", 403)):
+    got = c.get(path).status_code
+    print(f"GET {path} -> {got} (expect {expected})")
+    if got != expected:
+        fail.append(f"{path} returned {got}")
+
+# A normal member: the password form must not authenticate anyone.
+member = CustomUser.objects.filter(is_staff=False, is_superuser=False).first()
+if member is not None:
+    r = c.post("/accounts/login/", {"email": member.email, "password": "not-the-password"})
+    print("member password POST ->", r.status_code, "authenticated",
+          "_auth_user_id" in c.session)
+    if "_auth_user_id" in c.session:
+        fail.append("a member authenticated by password")
+
+# An admin: same answer. Password sign-in is not how anyone gets in here.
+admin = CustomUser.objects.filter(is_staff=True).first()
+if admin is not None:
+    c2 = Client()
+    r = c2.post("/accounts/login/", {"email": admin.email, "password": "not-the-password"})
+    print("admin password POST ->", r.status_code, "authenticated",
+          "_auth_user_id" in c2.session)
+    if "_auth_user_id" in c2.session:
+        fail.append("an admin authenticated by password")
+else:
+    print("no staff account present — expected, per transform 2")
+
+# A fresh address every run, so a second run does not collide with the first.
+import uuid
+probe = f"migration-probe-{uuid.uuid4().hex}@example.invalid"
+c3 = Client()
+before = CustomUser.objects.count()
+try:
+    c3.post("/accounts/signup/", {"email": probe,
+                                  "password1": "Sup3r-Str0ng-Passphrase!x",
+                                  "password2": "Sup3r-Str0ng-Passphrase!x"})
+except Exception as error:                      # a refusal is a pass, not a crash
+    print("signup raised", type(error).__name__)
+after = CustomUser.objects.count()
+created = CustomUser.objects.filter(email__iexact=probe)
+print("signup created an account:", created.exists(), "accounts", before, "->", after)
+if created.exists():
+    fail.append("/accounts/signup/ is open (see A5)")
+    created.delete()                            # leave the target as it was found
+
+print("FAIL" if fail else "OK", fail)
+sys.exit(1 if fail else 0)
+PY
+```
+
+It uses a deliberately wrong password, so it proves the *route* is closed without
+anyone typing a real credential into a shell, and it deletes the probe account it
+creates so the target is left as it was found. Run it on the rehearsal database
+first anyway.
+
+### 5.5 Consolidating accounts that share an address
+
+**Owner ruling: consolidate.** The export has 20,009 accounts and **20,008
+distinct lower-cased addresses**, so exactly one address is claimed by two rows.
+Left alone, that person matches two candidates at sign-in, is denied
+`verified_owner_ambiguous`, and cannot get in at all. Consolidation is therefore
+**a prerequisite for them signing in**, not a tidy-up afterwards.
+
+**Build it as a general mechanism, not a fix for two ids.** The export is re-taken
+before the real run and may contain a second collision; a script that hard-codes a
+pair would silently miss it. The mechanism: group accounts by lower-cased trimmed
+address, and for every group of more than one, pick a survivor and repoint
+everything else. If a group cannot be resolved by the rule below, **refuse the
+import** rather than guessing — an unresolved group is a person who cannot sign
+in, and finding that out during the run is much cheaper than after it.
+
+**What consolidation has to move.** Every learner-bearing reference to the
+discarded account, or the person signs in successfully and sees half their
+history, which is worse than being locked out because nobody notices:
+`courses_enrollment` (and the certificate on it), `courses_courseregistration`,
+`courses_submission`, `courses_answer` (reached through its submission),
+`courses_criteriaresponse`, `courses_peerreview` — **both sides**, reviewer and
+reviewee — `courses_projectsubmission`, `courses_projectevaluationscore`,
+`courses_userwrappedstatistics`, and `account_emailaddress`.
+
+**Survivor rule.** Prefer the account that carries history; if both do, prefer the
+one with the more recent `last_login`, keep the earlier `date_joined` on the
+survivor, and record both ids in the run log. Then recompute statistics and
+leaderboards for every affected cohort — the merged enrollment's position is stale
+by construction.
+
+**Enrollment is `unique_together = ["student", "course"]`**, so a naive repoint
+raises `IntegrityError` wherever both accounts were enrolled in the same cohort.
+The mechanism must collapse such a pair into one row, keeping the higher
+`total_score` and any non-empty `certificate_url`, and must not silently drop the
+loser.
+
+**The one instance in this export, by id — expected blast radius is one person.**
+
+| | id 2 | id 15515 |
+| --- | ---: | ---: |
+| joined | 2024-01-18 | 2026-02-06 |
+| last login | 2026-01-29 | **2026-08-28** |
+| `is_staff` / `is_superuser` | yes / yes | yes / yes |
+| `account_emailaddress` rows | **0** | 1 |
+| enrollments | **15** | 8 |
+| submissions | **11** | 2 |
+| answers | **62** | 12 |
+| project submissions | **5** | 1 |
+| course registrations | 0 | 1 |
+| wrapped statistics | 1 | 0 |
+| certificates | **1** | 0 |
+
+**Both carry history, so this is the harder case, and the owner should see it
+before the run.** It is not an empty shell beside a real account. Three cohorts
+overlap — `ai-bootcamp-2025`, `ai-buildcamp-2` and `de-zoomcamp-2026` — so three
+enrollment pairs collide on the unique constraint; all six of those rows have
+`total_score` 0 and no certificate, so collapsing them loses nothing, but the
+mechanism has to handle it rather than crash. There is **no** homework-submission
+overlap, so submissions repoint cleanly.
+
+Two further things that make this pair the same problem as transform 2: **both are
+superusers**, so two of the five privileged rows are this one person, and neither
+survives as an admin under the "import everyone unprivileged" rule. And id 2 has
+no `EmailAddress` row at all, which is why the matcher reads the account's `email`
+column — see §5.1.
+
+**Checkpoint**
+
+```
+$TARGET uv run --frozen python manage.py shell -v 0 -c '
+import sys
+from django.db.models import Count
+from django.db.models.functions import Lower, Trim
+from accounts.models import CustomUser
+groups = (CustomUser.objects.exclude(email="")
+          .annotate(k=Lower(Trim("email"))).values("k")
+          .annotate(n=Count("id")).filter(n__gt=1))
+total = CustomUser.objects.count()
+distinct = (CustomUser.objects.exclude(email="")
+            .annotate(k=Lower(Trim("email"))).values("k").distinct().count())
+empty = CustomUser.objects.filter(email="").count()
+print("accounts", total, "distinct addresses", distinct, "blank", empty)
+print("collision groups", groups.count(),
+      "ids", sorted(u.pk for u in CustomUser.objects.annotate(k=Lower(Trim("email")))
+                    .filter(k__in=[g["k"] for g in groups])))
+sys.exit(1 if groups.count() or distinct + empty != total else 0)'
+```
+
+And the totals check, which is the one that catches a merge that left rows behind.
+Record the two source-side sums before the run and assert the survivor holds them:
+for ids 2 and 15515 that is **23 enrollments − 3 collapsed = 20**, **13
+submissions**, **74 answers**, **6 project submissions**, **1 course
+registration**, **1 wrapped-statistics row** and **1 certificate**.
 
 ---
 
@@ -986,6 +1327,14 @@ callback and real session.
 - [ ] **OAuth matching proven end to end** — §5, both providers, history checked
 - [ ] Zero rows in the five never-import tables, re-checked after providers are
       configured (the count should be exactly the SocialApps you created)
+- [ ] **The password path behaves as intended** — §5.4's checkpoint exits 0: no
+      account carries a usable password, `/accounts/password/reset/` and
+      `/accounts/email/` are 403, neither a member nor an admin can authenticate by
+      password, and `/accounts/signup/` creates nothing
+- [ ] **No two accounts share an address** — §5.5's checkpoint exits 0, and the
+      survivor of each consolidated group holds the group's whole history
+- [ ] Staff and superuser access granted deliberately through Studio after the
+      import, to named people, with **zero** privileged rows arriving by import
 - [ ] A member's email address is visible to admins in Studio and nowhere else.
       *Not currently mechanised* — §11 C3
 - [ ] In every log line, a person is identified by user id, never by email
@@ -994,7 +1343,7 @@ callback and real session.
       digests, and detection of both a document that never arrived and one we still
       serve that upstream deleted. **None of this exists** — §11 C1
 - [ ] Sponsors and testimonials imported and visible on the pages that show them —
-      step 7
+      step 8
 - [ ] `/faq/` and `/docs/` served by this application, and their CloudFront 302s
       retired — §11 B8, B10. Retire the redirects **after** the sync works
 - [ ] `public_media_hydrate` succeeds on a fresh clone with no access to the legacy
@@ -1016,11 +1365,11 @@ What it actually does, in order: `migrate` → `import_event_identities` →
 
 | # | Difference | Consequence |
 | --- | --- | --- |
-| 1 | It runs `manage.py seed_local_courses` as its bootstrap — a **placeholder seeder** reading `scripts/production_like_course_specs.json`, which invents copy ("Practice assignment for …"). The plan bootstraps from `import_legacy_zoomcamp`. | `seed_local_courses` refuses to run outside local SQLite, so it cannot be the production bootstrap. It is what creates the `sma-zoomcamp` family locally — §3.2, §11 A1. |
-| 2 | It does **not** run `import_legacy_zoomcamp` at all. | The rehearsal, as it stands, never exercises step 1 or the user-matching in step 4. `make import-legacy-zoomcamp` exists and is run separately. |
-| 3 | It imports event identities **before** the course steps; the plan puts events at step 5. | Harmless — events depend on nothing else — but the rehearsal will not detect an ordering error the plan cares about. Either is safe. |
+| 1 | It runs `manage.py seed_local_courses` as its bootstrap — a **placeholder seeder** reading `scripts/production_like_course_specs.json`, which invents copy ("Practice assignment for …") and writes 16 cohorts as well as the 6 families. The plan uses a structural seed that writes families only. | `seed_local_courses` refuses to run outside local SQLite, so it cannot be the production bootstrap. It is the right idea in the wrong place: step 1 is the production-capable, content-free version of it — §3.2, §11 A1. |
+| 2 | It does **not** run `import_legacy_zoomcamp` at all. | The rehearsal, as it stands, never exercises step 2 or the user-matching in step 5. `make import-legacy-zoomcamp` exists and is run separately. |
+| 3 | It imports event identities **before** the course steps; the plan puts events at step 6. | Harmless — events depend on nothing else — but the rehearsal will not detect an ordering error the plan cares about. Either is safe. |
 | 4 | It uses `courses/services/local_cmp_content_import.py` (copies the protected snapshot, sanitizes, learner tables never read) rather than `scripts/prod/import_cmp_content.py` directly. | Two entry points onto one service. The plan uses the `scripts/prod/` one. |
-| 5 | It has no step 4, no step 6 and no step 7. | The largest step and both content steps are unrehearsed. |
+| 5 | It has no step 5, no step 7 and no step 8. | The largest step and both content steps are unrehearsed. |
 
 **The one difference that is no longer a difference.** The premise that
 `prepare_local_data.py` runs the CMP copy *before* the course-repository pull is
@@ -1049,7 +1398,7 @@ production cannot use.
 `make import-legacy-zoomcamp` and `make import-events` are all shared; only the
 orchestrator differs, because the rehearsal must bootstrap the way production
 bootstraps. `scripts/verify_local_dataset.py` remains useful as an extra gate
-after step 3.
+after step 4.
 
 ### 8.2 A disposable target
 
@@ -1072,13 +1421,14 @@ cheapest thing in this document and the most useful at 2am.
 | Step | Rehearsal command | Source substitution | Does it weaken the rehearsal? |
 | --- | --- | --- | --- |
 | 0 | `$TARGET uv run --frozen python manage.py migrate --no-input` | SQLite instead of Postgres | **Yes, mildly.** SQLite will not catch a Postgres-only constraint or collation problem. The uniqueness and FK checks still run. |
-| 1 | `$TARGET make import-legacy-zoomcamp IMPORT_DATABASE=$REHEARSAL` | none — real `zoomcamp-scoring` clone | No |
-| 2 | `$TARGET make content-sources` → `content-checkouts` → `content-pull` | none — real repositories | No |
-| 3 | `$TARGET uv run … scripts/prod/import_cmp_content.py --database $REHEARSAL --source $EXPORT` | none — the real export, read in place | No |
-| 4 | **does not exist** — §11 A3 | — | The rehearsal cannot run at all until this exists |
-| 5 | `$TARGET make import-events IMPORT_DATABASE=$REHEARSAL` | Luma/Eventbrite archives from `.local/migration-data` | No |
-| 6 | `manage.py public_media_verify`, `manage.py check`, `python -m ci.content_update` | the committed projection instead of a rebuild | **Yes.** A full rebuild needs three pinned checkouts and is not reproducible today (#253). The rehearsal checks the artifacts, not the build. |
-| 7 | **does not exist** — §11 B9 | — | Rehearse without it; do not ship without it |
+| 1 | **does not exist** — §11 A1 | reviewed structure from `course_family_catalog.py` | No — the input is in this repository |
+| 2 | `$TARGET make import-legacy-zoomcamp IMPORT_DATABASE=$REHEARSAL` | none — real `zoomcamp-scoring` clone | No |
+| 3 | `$TARGET make content-sources` → `content-checkouts` → `content-pull` | none — real repositories | No |
+| 4 | `$TARGET uv run … scripts/prod/import_cmp_content.py --database $REHEARSAL --source $EXPORT` | none — the real export, read in place | No |
+| 5 | **does not exist** — §11 A3 | — | The rehearsal cannot run at all until this exists |
+| 6 | `$TARGET make import-events IMPORT_DATABASE=$REHEARSAL` | Luma/Eventbrite archives from `.local/migration-data` | No |
+| 7 | `manage.py public_media_verify`, `manage.py check`, `python -m ci.content_update` | the committed projection instead of a rebuild | **Yes.** A full rebuild needs three pinned checkouts and is not reproducible today (#253). The rehearsal checks the artifacts, not the build. |
+| 8 | **does not exist** — §11 B9 | — | Rehearse without it; do not ship without it |
 | OAuth | §5.2 | real Google and GitHub, local callback | No — this is the real thing |
 
 Run each step's checkpoint from §4 immediately after the step, with `$TARGET` and
@@ -1090,18 +1440,19 @@ The rehearsal is the only place some of them can be obtained. Leave them here.
 
 | Measurement | Rehearsal value | Notes |
 | --- | --- | --- |
-| Step 1, per edition, wall time | `mlops-zoomcamp-2022`: **244.5 s** (measured); other six: _ | 7 editions total |
-| Step 1, users created per edition | `mlops-zoomcamp-2022`: **569** (measured) | |
-| Step 3, wall time | _ | expected < 1 min |
-| Step 4, wall time | _ | 510,519 rows; sizes the maintenance window |
-| Step 4, per-table written/skipped | _ | the baseline for every future diff |
-| Step 5, wall time | _ | |
-| Step 6, media publish wall time | _ | 1,253 objects, ~154 MB |
+| Step 2, per edition, wall time | `mlops-zoomcamp-2022`: **244.5 s** (measured); other six: _ | 7 editions total |
+| Step 2, users created per edition | `mlops-zoomcamp-2022`: **569** (measured) | |
+| Step 4, wall time | _ | expected < 1 min |
+| Step 5, wall time | _ | 510,519 rows; sizes the maintenance window |
+| Step 5, per-table written/skipped | _ | the baseline for every future diff |
+| Step 5, consolidation groups found | _ | expected **1**; a second one means the export moved — §5.5 |
+| Step 6, wall time | _ | |
+| Step 7, media publish wall time | _ | 1,253 objects, ~154 MB |
 | **Total** | _ | this is the maintenance window |
 
 ### 8.5 A number worth pre-computing
 
-Step 4 then step 1 (or step 1 then step 4) must **match** learners by email rather
+Step 5 then step 2 (or step 2 then step 5) must **match** learners by email rather
 than duplicate them. The precise expectation is computable from the export, and it
 is far better than "the total rose by strictly fewer than the number of legacy
 users". **Measured** for `mlops-zoomcamp-2022`: 569 legacy users, of whom **120**
@@ -1126,7 +1477,7 @@ Say these out loud rather than letting a green rehearsal imply them.
   that much.
 - **The 380 unreviewed event mappings.** A rehearsal shows 3 activated, which is
   correct and is not success.
-- **Step 6 as a rebuild.** See §8.3.
+- **Step 7 as a rebuild.** See §8.3.
 - **Everything downstream of the content view cutover**, because it has not been
   built.
 
@@ -1137,19 +1488,20 @@ Say these out loud rather than letting a green rehearsal imply them.
 | Step | Transaction boundary | Partial state after a failure | Recovery |
 | --- | --- | --- | --- |
 | 0 Schema | per migration | possibly mid-migration | **Drop and restart.** The only step where that is the answer |
-| 1 Legacy | none (per row) | that edition partial, statistics stale | Re-run the edition. Import one edition at a time |
-| 2 Repositories | per repository | earlier repositories complete | Re-run; expect `replayed`. A checksum/identity conflict means stop |
-| 3 CMP content | **per cohort** | earlier cohorts complete | Re-run; no-op on the done ones |
-| 4 CMP learners | **to be decided — §11 A3** | unknown | Must be resumable per table. If it cannot be, a failure costs a full rebuild |
-| 5 Events | atomic (identity); staged revisions (aggregates) | nothing half-written | Re-run |
-| 6 Content | build writes files, publish writes objects | committed projection unchanged; bucket possibly partial | Re-run publish, then `public_media_verify` |
-| 7 Sponsors/testimonials | per service call (revisioned) | some rows written, history still valid | Re-run; must be keyed on a natural key |
+| 1 Structural seed | per row (six rows) | some families written | Re-run. Cheapest step in the plan |
+| 2 Legacy | none (per row) | that edition partial, statistics stale | Re-run the edition. Import one edition at a time |
+| 3 Repositories | per repository | earlier repositories complete | Re-run; expect `replayed`. A checksum/identity conflict means stop |
+| 4 CMP content | **per cohort** | earlier cohorts complete | Re-run; no-op on the done ones |
+| 5 CMP learners | **to be decided — §11 A3** | unknown | Must be resumable per table. If it cannot be, a failure costs a full rebuild |
+| 6 Events | atomic (identity); staged revisions (aggregates) | nothing half-written | Re-run |
+| 7 Content | build writes files, publish writes objects | committed projection unchanged; bucket possibly partial | Re-run publish, then `public_media_verify` |
+| 8 Sponsors/testimonials | per service call (revisioned) | some rows written, history still valid | Re-run; must be keyed on a natural key |
 
-**The step with no rollback that should have one is step 4.** Everything else is
+**The step with no rollback that should have one is step 5.** Everything else is
 either re-runnable in place or leaves the previous state serving. A half-imported
 learner set is the one condition from which the only certain exit is a rebuild
 from step 0 — which, at 510,519 rows, is the difference between a short recovery
-and a lost maintenance window. Design B1 for resumability, or accept that and
+and a lost maintenance window. Design A3 for resumability, or accept that and
 budget the window for two full runs.
 
 ---
@@ -1163,18 +1515,21 @@ it, this plan's checkpoints give:
 | Checkpoint | Result | Why |
 | --- | --- | --- |
 | Step 0 — empty target | **n/a** | It is a built database, not a fresh one |
-| Step 1 — 7 legacy editions | **FAIL** | 0 present. `prepare_local_data.py` never runs that importer (§7 #2) |
-| Step 2 — 20 modules / 181 units | **PASS** | `ai-dev-tools-2026` 4/4, `llm-zoomcamp-2026` 7/72, `ml-zoomcamp-2026` 9/105 |
-| Step 2 — family-name cohort slugs | **PASS** | `ai-dev-tools-2026`, not `ai-dev-tools-zoomcamp-2026` |
-| Step 3 — counts vs source | **FAIL, narrowly** | cohorts 16=16, projects 42=42, criteria 117=117, campaigns 5=5; **homework 107 vs 104**, **questions 500 vs 494** |
-| Step 3 — homework identity | **FAIL** | every CMP slug is present (`missing=[]`), but `llm-zoomcamp-2026` still carries `homework-03`, `homework-06`, `homework-07` — three repository rows the reconciler could not pair, plus their 6 questions. That is the entire count delta above |
-| Step 3 — inventory | **PASS** | no MLOps 2026 edition; `de-zoomcamp-2026` is `finished` |
-| Step 4 — learner counts | **FAIL** | 1 account, 0 enrollments, 0 submissions. No importer exists |
-| Step 4 — five forbidden tables | **PASS with a caveat** | `django_session` 6 and `socialaccount_socialapp` 3 are locally created, not imported. `socialaccount_socialaccount` and `accounts_token` are 0 |
-| Step 5 — 421 events / 1,684 aliases | **PASS** | exactly |
-| Step 5 — activation coverage | **PASS as designed** | 383 mapping rows: **3 mapped, 380 review_required** |
-| Step 6 — projection | **PASS** | the database boots, so `content.E002` is satisfied |
-| Step 7 — sponsors and testimonials | **FAIL** | 0 sponsors. `courses_testimonial` does not even exist in that database — it predates migrations `0055`/`0056`, which on a freshly migrated database seed 6 testimonials and 0 sponsors |
+| Step 1 — six reviewed families, no cohorts | **FAIL, and correctly** | All six families are present with the right titles — but they were written by `seed_local_courses` along with 16 cohorts and their invented copy, so the "structure only" half of the checkpoint fails. That is the difference the structural seed exists to remove |
+| Step 2 — 7 legacy editions | **FAIL** | 0 present. `prepare_local_data.py` never runs that importer (§7 #2) |
+| Step 3 — 20 modules / 181 units | **PASS** | `ai-dev-tools-2026` 4/4, `llm-zoomcamp-2026` 7/72, `ml-zoomcamp-2026` 9/105 |
+| Step 3 — family-name cohort slugs | **PASS** | `ai-dev-tools-2026`, not `ai-dev-tools-zoomcamp-2026` |
+| Step 4 — counts vs source | **FAIL, narrowly** | cohorts 16=16, projects 42=42, criteria 117=117, campaigns 5=5; **homework 107 vs 104**, **questions 500 vs 494** |
+| Step 4 — homework identity | **FAIL** | every CMP slug is present (`missing=[]`), but `llm-zoomcamp-2026` still carries `homework-03`, `homework-06`, `homework-07` — three repository rows the reconciler could not pair, plus their 6 questions. That is the entire count delta above |
+| Step 4 — inventory | **PASS** | no MLOps 2026 edition; `de-zoomcamp-2026` is `finished` |
+| Step 5 — learner counts | **FAIL** | 1 account, 0 enrollments, 0 submissions. No importer exists |
+| Step 5 — five forbidden tables | **PASS with a caveat** | `django_session` 6 and `socialaccount_socialapp` 3 are locally created, not imported. `socialaccount_socialaccount` and `accounts_token` are 0 |
+| Step 6 — 421 events / 1,684 aliases | **PASS** | exactly |
+| Step 6 — activation coverage | **PASS as designed** | 383 mapping rows: **3 mapped, 380 review_required** |
+| Step 7 — projection | **PASS** | the database boots, so `content.E002` is satisfied |
+| Step 8 — sponsors and testimonials | **FAIL** | 0 sponsors. `courses_testimonial` does not even exist in that database — it predates migrations `0055`/`0056`, which on a freshly migrated database seed 6 testimonials and 0 sponsors |
+| §5.4 — password path | **FAIL** | `/accounts/password/reset/` and `/accounts/email/` are correctly 403, but `/accounts/signup/` creates an account with a usable password and signs it in (measured). §11 A5 |
+| §5.5 — no shared addresses | **PASS, vacuously** | 1 account. It proves nothing; the check only becomes meaningful once step 5 exists |
 
 Two conclusions worth carrying forward. First, the three unreconciled
 `llm-zoomcamp-2026` homework rows are a **live defect in the current dataset**,
@@ -1190,50 +1545,81 @@ Ordered so someone can work down it. Sizes are honest estimates, not targets.
 
 ### A. Blocks the dry run — the rehearsal cannot start without these
 
-**A1. A production bootstrap for `sma-zoomcamp`.** *Blocks step 3. Small
-(hours).* `sma-zoomcamp` has no course repository and no pre-2024 edition, so its
-family row is created by nothing that can run on production, and CMP's 3 cohorts
-and **1,081 enrollments** have nowhere to land. The narrow fix is to let the
-reviewed identity mapping create a *family* as well as a cohort, or to add a
-`scripts/prod/` bootstrap that writes the reviewed families from
-`COURSE_FAMILY_TITLES`. **Done looks like:** step 3's inventory checkpoint lists
-16 cohorts including all three `sma-zoomcamp` editions, on a database seeded only
-by steps 1 and 2. Independent of everything else.
+**A1. The structural seed.** *Step 1. Blocks step 4. Small (hours), and it is the
+cheapest item on this list.* Owner ruling: a migration-only seed script that sets
+up the course structure before the imports, so the imports can be run safely. One
+`scripts/prod/` script writing the six rows of `COURSE_FAMILY_TITLES` — slug and
+reviewed title, nothing else. Not `seed_local_courses`, which invents content and
+refuses to run outside local SQLite. Keyed on the family slug so a re-run is a
+no-op. See step 1 for the full specification and the checkpoint.
+
+This is what makes `sma-zoomcamp` work, per the second owner ruling: **it comes
+from CMP.** It is not on the skip list, all three editions are already in
+`COHORT_FAMILY_IDENTITIES`, and the only thing it ever lacked was a family row —
+so no skip has to be lifted and no special case is needed. **Done looks like:**
+step 1's checkpoint exits 0, and then step 4's inventory checkpoint lists 16
+cohorts including all three `sma-zoomcamp` editions, on a database seeded only by
+steps 1 to 3. Independent of everything else; nothing else can be rehearsed until
+it exists.
 
 **A2. Resolve the three unreconciled `llm-zoomcamp-2026` homework rows.**
-*Blocks step 3's identity checkpoint. Small (hours), but it is a content
+*Blocks step 4's identity checkpoint. Small (hours), but it is a content
 decision.* `homework-03`, `homework-06`, `homework-07` pair to no CMP row by slug
 or exact title. Either CMP gains the matching rows, or the titles are aligned so
 the existing pairing rule matches, or they are deliberately deleted. **Done looks
-like:** the step 3 identity checkpoint exits 0. Must be settled **before** step 4
+like:** the step 4 identity checkpoint exits 0. Must be settled **before** step 5
 ever runs, because after it a submission may point at one.
 
-**A3. The CMP learner importer.** *Blocks step 4 — i.e. everything. **Large
-(1–2 weeks)**, and it is the single biggest item in this plan.* See §4 step 4 for
+**A3. The CMP learner importer.** *Blocks step 5 — i.e. everything. **Large
+(1–2 weeks)**, and it is the single biggest item in this plan.* See §4 step 5 for
 the full specification: 11 tables / 510,519 rows, 5 never-import tables, five
 mandatory transforms, resumable per table, per-table written/skipped reporting,
 PII-safe logging by user id. `scripts/load_rds_export.py` looks like a starting
 point but its `main()` is disabled and only its internals survive, in two test
-modules. **Done looks like:** all four step-4 checkpoints exit 0 against a
+modules. **Done looks like:** all four step-5 checkpoints exit 0 against a
 rehearsal database, and the run reports its own per-table counts. Depends on A1
 (cohorts must exist) and A2 (homework identity must be final).
 
 **A4. Decide the export-day questions the importer encodes.** *Blocks A3's
 design. Small (hours), but they are owner decisions and cannot be guessed.*
-(i) the two accounts sharing one lower-cased email; (ii) `is_staff` /
-`is_superuser` for the 5 staff and 5 superuser rows; (iii) the 58 users who exist
-only in the five owner-skipped cohorts, and the 171 enrollments and 227
-submissions there; (iv) the six small undecided tables in §12 decision 4. **Done looks
-like:** each written into this document as a rule the importer implements. Can be
-answered in parallel with A3 starting.
+Two of the four are now ruled and written into step 5's transforms: shared
+addresses are **consolidated** (§5.5), and every account imports **unprivileged
+with an unusable password**, staff being granted afterwards through Studio. Still
+open: (i) the 58 users who exist only in the five owner-skipped cohorts, and the
+171 enrollments and 227 submissions there; (ii) the six small undecided tables in
+§12 decision 4. **Done looks like:** each written into this document as a rule the
+importer implements. Can be answered in parallel with A3 starting.
+
+**A5. Close `/accounts/signup/`.** *Small (hours). Do it before step 5 runs, not
+after.* allauth's signup view is unshadowed and open;
+`ACCOUNT_ALLOW_REGISTRATION = False` is not an allauth setting and nothing reads
+it. **Measured**: in the production shape a signup POST creates an account with a
+usable password and signs it in. It cannot take over an imported account —
+`ACCOUNT_UNIQUE_EMAIL` refuses a duplicate address, also measured — so this is
+unwanted local accounts rather than stolen history, which is why it is A5 and not
+A1. Two honest fixes: shadow `accounts/signup/` the way `accounts/login/`,
+`accounts/email/` and `accounts/password/reset/` already are, or configure an
+`ACCOUNT_ADAPTER` whose `is_open_for_signup` returns `False` and have it read the
+constant that already exists. **Done looks like:** the signup probe in §5.4's
+checkpoint creates nothing, and a test asserts it. Independent of everything else.
+
+**A6. The consolidation mechanism.** *Part of A3, named separately because it is
+the part most likely to be skipped. 1-2 days inside A3.* Group accounts by
+lower-cased trimmed address, pick a survivor, repoint every learner-bearing row,
+collapse enrollments that collide on `unique_together = ["student", "course"]`,
+recompute the affected cohorts, and refuse the import on any group the rule cannot
+resolve. General, not a hard-coded pair — the export is re-taken before the run
+and may carry a second collision. **Done looks like:** §5.5's checkpoint exits 0
+and the survivor's history totals equal the sum of what the group held. One known
+instance today, ids 2 and 15515, both carrying history.
 
 ### B. Blocks production — the rehearsal can run without these; the site cannot ship
 
 **B1. A rehearsal orchestrator that bootstraps the way production does.**
 *Medium (2–3 days).* `prepare_local_data.py` bootstraps with `seed_local_courses`,
 which refuses to run outside local SQLite (§7 #1). Either add a mode that skips
-the seeder and runs step 1 instead, or write a thin `scripts/prod/` orchestrator
-that runs steps 0-7 in this document's order. The manual sequence in §8.3 is
+the seeder and runs step 2 instead, or write a thin `scripts/prod/` orchestrator
+that runs steps 0-8 in this document's order. The manual sequence in §8.3 is
 the fallback and it works today, which is why this is not an A item. **Done looks
 like:** one command
 builds a rehearsal database with no placeholder rows in it —
@@ -1301,14 +1687,14 @@ a push to either repository updates `/faq/` or `/docs/` without a hand-reviewed
 projection file, and a re-push replays. Depends on B4 for the read side; the write
 side can start alongside B3.
 
-**B9. The sponsor and testimonial import script.** *Small (1–2 days).* Step 7. One
+**B9. The sponsor and testimonial import script.** *Small (1–2 days).* Step 8. One
 `scripts/prod/import_*` entry point writing sponsors through `core/sponsors.py`'s
 services and testimonials into `courses.models.Testimonial`, keyed on a natural key
 so a re-run is a no-op and the six migration-seeded testimonials are matched rather
 than duplicated. The input format is an owner decision — the obvious candidates are
 the legacy `_data/sponsors.yaml` (currently read by nothing) and the existing
 `export_sponsor_directory` output, which would make the script its exact inverse.
-**Done looks like:** step 7's checkpoint exits 0 and a second run changes no
+**Done looks like:** step 8's checkpoint exits 0 and a second run changes no
 counts. Independent of everything else.
 
 **B10. Retire the `/faq/` and `/docs/` CloudFront 302s.** *Small, but it is a
@@ -1434,8 +1820,12 @@ Recorded so they are not reopened.
 
 | Was open | Ruling |
 | --- | --- |
+| How do the importers land against an empty database? | **A migration-only structural seed runs first** — step 1, §11 A1 |
+| Where does `sma-zoomcamp` come from? | **CMP.** It is not skipped and needs no special case; it only ever lacked a family row, which step 1 writes — §3.2 |
+| Are 20,009 usable password hashes an emergency? | **No.** Members signed in through a provider; passwords were for admins. The enforcement was URL shadowing and it travelled — §5.4. Every account still imports unprivileged with an unusable password |
+| The two accounts sharing one address | **Consolidate them**, as a general mechanism with one known instance — §5.5, §11 A6 |
 | Do FAQ and docs stay at the legacy site, or come to us? | **They come to us via content sync.** The CloudFront 302s are transitional — §11 B8, B10 |
-| Sponsors and testimonials have no source | **They get an import script** — step 7, §11 B9 |
+| Sponsors and testimonials have no source | **They get an import script** — step 8, §11 B9 |
 | Is `rds-aisl_prod` in scope? | **No.** §14 |
 | Do books and people exist in two repositories? | **No dual ownership.** podwiki's `_people`, `_books` and `_podcast_summaries` are never opened by the builder — all four `wiki_root` joins read `_wiki/`, `graph/`, `search/` and one asset. Nothing to reconcile |
 | Are the projection count deltas silent drops? | **No.** Every one is pin drift (additions after the pin; zero deletions), a `_template.md` scaffold, or 2 podcast episodes removed under a signed manifest (`content/migration/podcast-removals.yaml`) |
@@ -1451,9 +1841,9 @@ Non-negotiable, and every one of these has a reason behind it.
 - **Never import** `django_session`, `socialaccount_socialaccount`,
   `socialaccount_socialapp`, `socialaccount_socialapp_sites`,
   `socialaccount_socialtoken`, `accounts_token`. Five of the six are present in
-  the export. Step 4 owns this list; **do not** reuse `review_import`'s
+  the export. Step 5 owns this list; **do not** reuse `review_import`'s
   `SENSITIVE_TABLES` for it — that list is the sanitized-review-database policy and
-  excludes the whole payload of step 4.
+  excludes the whole payload of step 5.
 - A member's email address is visible to admins in Studio and nowhere else.
 - In a log, identify a person by user id, never by email address.
 - Do not hand-edit anything in `content/public_projection/` — the startup digest
