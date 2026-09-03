@@ -325,10 +325,6 @@ RELAY_LINK_BRIDGE_UNSUBSCRIBE_TIMEOUT_SECONDS = float(
 )
 RELAY_LINK_BRIDGE_POOL_SIZE = int(os.getenv("RELAY_LINK_BRIDGE_POOL_SIZE", "16"))
 
-# Opaque keys are configured by deployment code.  Locators and protected source
-# metadata are never accepted from Studio/API or persisted in the application DB.
-COURSE_REGISTRATION_COUNT_SOURCES: dict[str, dict[str, object]] = {}
-
 Q_CLUSTER = {
     "name": "dtc-website",
     "workers": 2,

@@ -1365,11 +1365,7 @@ def _assert_final_database(path: Path, expected: AllowedDataset, create_admin: b
                 (SYNTHETIC_ADMIN_EMAIL,),
             ).fetchall()
             if [(row["group_name"], row["permission_name"]) for row in role_permissions] != [
-                ("course_operator", "core.access_studio"),
-                (
-                    "course_operator",
-                    "courses.registration_count_baseline_manage",
-                ),
+                ("course_operator", "core.access_studio")
             ]:
                 raise ImportFailure("target-account-boundary", table="auth_group")
         deny_counts = _sensitive_zero_counts(connection)
@@ -1377,7 +1373,7 @@ def _assert_final_database(path: Path, expected: AllowedDataset, create_admin: b
             "accounts_customuser": expected_users,
             "accounts_customuser_groups": expected_users,
             "auth_group": expected_users,
-            "auth_group_permissions": expected_users * 2,
+            "auth_group_permissions": expected_users,
         }
         for table, count in deny_counts.items():
             allowed_count = synthetic_role_counts.get(table, 0)

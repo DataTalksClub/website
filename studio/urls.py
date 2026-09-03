@@ -92,24 +92,4 @@ urlpatterns = [
         qna_views.event_qna_cohost_revoke,
         name="event-qna-cohost-revoke",
     ),
-    path(
-        "courses/registration-count-baselines/",
-        views.course_registration_count_list,
-        name="course-registration-count-list",
-    ),
-    path(
-        "courses/registration-count-baselines/<uuid:run_id>/",
-        views.course_registration_count_detail,
-        name="course-registration-count-detail",
-    ),
-    path(
-        "courses/registration-count-baselines/<uuid:run_id>/<str:action>/",
-        views.course_registration_count_action,
-        name="course-registration-count-action",
-    ),
-    path(
-        "courses/registration-campaigns/<slug:campaign_slug>/public-count/",
-        views.course_registration_count_total,
-        name="course-registration-count-total",
-    ),
 ]

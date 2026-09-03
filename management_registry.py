@@ -25,7 +25,6 @@ from core.navigation import SITE_NAVIGATION_CAPABILITIES
 from core.operational_settings_service import OPERATIONAL_SETTING_CAPABILITIES
 from core.site_settings import SITE_SETTING_CAPABILITIES
 from core.sponsors import SPONSOR_CAPABILITIES
-from courses.capabilities import COURSE_REGISTRATION_COUNT_CAPABILITIES
 from events.capabilities import EVENT_CAPABILITIES
 from management_auth.fixture_capabilities import CREDENTIAL_FIXTURE_CAPABILITIES
 from management_auth.policies import resolved_high_risk_policy_keys
@@ -141,7 +140,6 @@ CAPABILITY_REGISTRY = CapabilityRegistry(
         *SPONSOR_CAPABILITIES,
         *CREDENTIAL_RUNTIME_CAPABILITIES,
         *EVENT_CAPABILITIES,
-        *COURSE_REGISTRATION_COUNT_CAPABILITIES,
         *CREDENTIAL_FIXTURE_CAPABILITIES,
     ),
     resolved_high_risk_policies=resolved_high_risk_policy_keys(),
