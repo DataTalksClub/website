@@ -115,6 +115,17 @@ overlays:
 - `accounts/models.py`: issue #100 expands the adopted `CustomUser` in place with normalized
   identity state plus durable alias, quarantine, and reconciliation-run evidence; it does not
   replace or renumber the copied user table;
+- `accounts/identity_resolution.py`, `accounts/tests/test_identity_resolution.py`,
+  `api/views/enrollment_certificate_updates.py`, and
+  `data/tests/test_enrollment_certificates.py`: issue #234 selectively adapts CMP commit
+  `77906c7acdf9a68adb0180e0dd70443d9aa3220f` through the target-owned durable-account contract.
+  The accounts service normalizes with `normalize_account_email`, resolves reviewed absorbed aliases
+  in batches, and fails closed on collisions or unavailable identities; the compatibility
+  certificate endpoint then restricts enrollment lookup to the requested cohort. The upstream
+  email-column rewrite, `accounts/0011_lowercase_existing_emails.py`, `CustomUser.save()` rewrite,
+  and synchronous certificate-notify changes are explicitly rejected because target migrations,
+  identity state, and durable delivery own those concerns. This selective review does not advance
+  source pin `98a235283904b4ef9ad29e196298540756cf1bcc`;
 - `accounts/auth.py`, `accounts/tests_auth.py`: issue #100 replaces unsafe raw-provider email
   selection and social auto-link characterization with verified-claim-only, fail-closed linking
   through a portable compare-and-set account claim and redacted conflict evidence;
@@ -168,10 +179,10 @@ The two target-owned admin API shims and two-file legacy `/cadmin` route adapter
 classification, rationale, size, and SHA-256 in `target-owned-compatibility-shims.tsv`. The
 provenance verifier requires all four exact paths and validates their recorded bytes.
 
-No scoring, submission, peer-review, leaderboard, certificate, communication, API serializer, or
-other CMP business behavior is modified by this integration. The copied management presentation
-and route names change under issue #59; its operational logic remains characterized by the copied
-suite.
+Except for the reviewed issue #234 certificate identity-lookup adaptation above, no scoring,
+submission, peer-review, leaderboard, certificate, communication, API serializer, or other CMP
+business behavior is modified by this integration. The copied management presentation and route
+names change under issue #59; its operational logic remains characterized by the copied suite.
 
 ## Protected copied course templates
 
