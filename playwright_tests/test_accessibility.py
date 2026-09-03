@@ -35,7 +35,6 @@ from courses.models import Cohort, HomeworkState, ProjectState, RegistrationCamp
 from events.identity import canonical_detail_path
 from events.models import (
     Event,
-    HistoricalEventMapping,
     HistoricalRegistrationAggregateRevision,
     HistoricalRegistrationAggregateSlot,
     HistoricalRegistrationPointerDisplacement,
@@ -354,10 +353,6 @@ def accessibility_environment() -> AccessibilityEnvironment:
         "audit-detail": Surface(f"/studio/audit/{audit_id}/", actor="site-admin"),
         "historical-list": Surface(
             "/studio/events/historical-registration-totals/",
-            actor="site-admin",
-        ),
-        "historical-mappings": Surface(
-            "/studio/events/historical-registration-totals/mappings/",
             actor="site-admin",
         ),
         "registration": Surface(
@@ -1114,7 +1109,6 @@ def _historical_scenario(recorder: ScenarioRecorder) -> set[str]:
     HistoricalRegistrationAggregateSlot.objects.all().delete()
     HistoricalRegistrationTotalState.objects.all().delete()
     HistoricalRegistrationAggregateRevision.objects.all().delete()
-    HistoricalEventMapping.objects.all().delete()
     HistoricalRegistrationSourceRun.objects.all().delete()
     recorder.scan("historical.empty", "historical-list", text="No source runs")
     event = recorder.environment.objects["event"]
@@ -1134,44 +1128,6 @@ def _historical_scenario(recorder: ScenarioRecorder) -> set[str]:
     )
     recorder.scan("historical.list", "historical-list", text="Source runs")
     recorder.scan("historical.detail", "historical-detail", text="active")
-    recorder.scan("historical.mapping", "historical-mappings", text="luma · mapped")
-    recorder.scan(
-        "historical.source-missing",
-        "historical-mappings",
-        text="eventbrite · source_missing",
-    )
-
-    missing = historical["historical_event_totals.source_missing_quarantine"].value
-    _visit_surface(
-        recorder.page,
-        recorder.live_server,
-        recorder.environment,
-        "historical-mappings",
-    )
-    expect(
-        recorder.page.get_by_role("heading", name="eventbrite · source_missing", exact=True)
-    ).to_be_visible()
-    stale_card = recorder.page.locator("article[data-mapping-id]").filter(
-        has_text=missing.external_event_identifier
-    )
-    HistoricalEventMapping.objects.filter(pk=missing.pk).update(revision=missing.revision + 1)
-    stale_card.get_by_label("Decision").select_option("excluded")
-    stale_card.get_by_label("Combination policy").select_option("exclude")
-    stale_card.get_by_label("Reason code").fill("reviewed_exclusion")
-    stale_card.get_by_role("button", name="Save reviewed decision").click()
-    expect(recorder.page.get_by_role("alert")).to_be_visible()
-    recorder.scan_current("historical.stale-revision")
-
-    recorder.page.reload()
-    excluded_card = recorder.page.locator("article[data-mapping-id]").filter(
-        has_text=missing.external_event_identifier
-    )
-    excluded_card.get_by_label("Decision").select_option("excluded")
-    excluded_card.get_by_label("Combination policy").select_option("exclude")
-    excluded_card.get_by_label("Reason code").fill("reviewed_exclusion")
-    excluded_card.get_by_role("button", name="Save reviewed decision").click()
-    expect(recorder.page.get_by_text("eventbrite · excluded", exact=True)).to_be_visible()
-    recorder.scan_current("historical.exclusion")
 
     HistoricalRegistrationSourceRun.objects.filter(pk=run.pk).update(
         state=HistoricalRegistrationSourceRun.State.VALIDATED,

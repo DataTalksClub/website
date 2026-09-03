@@ -11,7 +11,6 @@ from zipfile import ZipFile
 
 import pytest
 from django.conf import settings
-from django.db.models import F
 from django.test import Client, override_settings
 from playwright.sync_api import Page, expect
 
@@ -19,7 +18,6 @@ from accounts.studio_sessions import SESSION_REFERENCE_KEY
 from accounts.studio_test_support import make_studio_user
 from content.public_data import event_groups, public_projection
 from events.models import (
-    HistoricalEventMapping,
     HistoricalRegistrationAggregateRevision,
     HistoricalRegistrationAggregateSlot,
     HistoricalRegistrationSourceRun,
@@ -108,22 +106,10 @@ def seed_total(event: dict, *, count: int, complete: bool) -> None:
         state=run_state,
         actor_ref="synthetic-browser-actor",
     )
-    mapping = HistoricalEventMapping.objects.create(
-        provider=HistoricalRegistrationSourceRun.Provider.LUMA,
-        external_event_identifier=f"{PUBLIC_CANARY}-{suffix[:12]}",
-        event_id=event["identity_id"],
-        canonical_repository=provenance["repository"],
-        canonical_revision=provenance["revision"],
-        canonical_source_key=provenance["source_key"],
-        canonical_slug_snapshot=event["slug"],
-        state=HistoricalEventMapping.State.MAPPED,
-        mapping_set_revision=1,
-        reviewer_ref="synthetic-browser-reviewer",
-        reason_code="synthetic_mapping",
-    )
     aggregate = HistoricalRegistrationAggregateRevision.objects.create(
         source_run=run,
-        mapping=mapping,
+        external_event_identifier=f"{PUBLIC_CANARY}-{suffix[:12]}",
+        event_id=event["identity_id"],
         eligible_count=count,
         excluded_count=0,
         quarantined_count=0 if complete else count,
@@ -154,7 +140,6 @@ def seed_total(event: dict, *, count: int, complete: bool) -> None:
 
 
 def seed_validated_overlap(event: dict, *, suffix: str) -> HistoricalRegistrationSourceRun:
-    provenance = event["provenance"]
     checksum = hashlib.sha256(f"overlap-{suffix}".encode()).hexdigest()
     run = HistoricalRegistrationSourceRun.objects.create(
         provider=HistoricalRegistrationSourceRun.Provider.EVENTBRITE,
@@ -176,22 +161,10 @@ def seed_validated_overlap(event: dict, *, suffix: str) -> HistoricalRegistratio
         state=HistoricalRegistrationSourceRun.State.VALIDATED,
         actor_ref="synthetic-browser-overlap-actor",
     )
-    mapping = HistoricalEventMapping.objects.create(
-        provider=HistoricalRegistrationSourceRun.Provider.EVENTBRITE,
-        external_event_identifier=f"synthetic-overlap-{suffix}",
-        event_id=event["identity_id"],
-        canonical_repository=provenance["repository"],
-        canonical_revision=provenance["revision"],
-        canonical_source_key=provenance["source_key"],
-        canonical_slug_snapshot=event["slug"],
-        state=HistoricalEventMapping.State.MAPPED,
-        mapping_set_revision=1,
-        reviewer_ref="synthetic-browser-overlap-reviewer",
-        reason_code="synthetic_mapping",
-    )
     HistoricalRegistrationAggregateRevision.objects.create(
         source_run=run,
-        mapping=mapping,
+        external_event_identifier=f"synthetic-overlap-{suffix}",
+        event_id=event["identity_id"],
         eligible_count=2,
         excluded_count=0,
         quarantined_count=0,
@@ -204,12 +177,6 @@ def seed_validated_overlap(event: dict, *, suffix: str) -> HistoricalRegistratio
         state=HistoricalRegistrationAggregateRevision.State.VALIDATED,
     )
     return run
-
-
-def mapping_card(page: Page, external_id: str):
-    # Design system (issue #179): a mapping proposal is a .list-row record carrying
-    # data-mapping-id, which is the stable hook rather than the old card class.
-    return page.locator("article[data-mapping-id]").filter(has_text=external_id)
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
@@ -283,7 +250,7 @@ def test_public_zero_one_plural_and_omitted_states_are_private_and_responsive(
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
-def test_studio_stage_replay_map_validate_activate_preview_rollback_and_denial(
+def test_studio_stage_replay_validate_activate_preview_rollback_and_denial(
     page: Page,
     live_server,
     viewport: dict[str, int],
@@ -299,9 +266,6 @@ def test_studio_stage_replay_map_validate_activate_preview_rollback_and_denial(
         source.mkdir()
         external_id = f"synthetic-studio-provider-{suffix}"
         external_url = f"https://example.test/{external_id}"
-        excluded_id = f"synthetic-studio-excluded-{suffix}"
-        excluded_url = f"https://example.test/{excluded_id}"
-        source_missing_id = f"synthetic-studio-source-missing-{suffix}"
         (source / "synthetic.json").write_text(
             json.dumps(
                 {
@@ -324,29 +288,6 @@ def test_studio_stage_replay_map_validate_activate_preview_rollback_and_denial(
                     "guest_id": "synthetic-browser-registration",
                     "approval_status": "approved",
                     "ignored_email": "synthetic-private-canary@example.test",
-                }
-            )
-        (source / "synthetic-excluded.json").write_text(
-            json.dumps(
-                {
-                    "schema_version": 1,
-                    "event_id": excluded_id,
-                    "event_url": excluded_url,
-                }
-            ),
-            encoding="utf-8",
-        )
-        with (source / "synthetic-excluded.csv").open("w", encoding="utf-8", newline="") as stream:
-            writer = csv.DictWriter(
-                stream,
-                fieldnames=("event_id", "guest_id", "approval_status"),
-            )
-            writer.writeheader()
-            writer.writerow(
-                {
-                    "event_id": excluded_id,
-                    "guest_id": "synthetic-browser-excluded-registration",
-                    "approval_status": "approved",
                 }
             )
         unsupported_csv = io.StringIO(newline="")
@@ -373,14 +314,6 @@ def test_studio_stage_replay_map_validate_activate_preview_rollback_and_denial(
                 "sha256": tree_checksum(source),
                 "mapping_bridge": {
                     external_url: {
-                        "repository": provenance["repository"],
-                        "revision": provenance["revision"],
-                        "source_key": provenance["source_key"],
-                        "slug": event["slug"],
-                    }
-                },
-                "source_missing": {
-                    source_missing_id: {
                         "repository": provenance["repository"],
                         "revision": provenance["revision"],
                         "source_key": provenance["source_key"],
@@ -422,13 +355,6 @@ def test_studio_stage_replay_map_validate_activate_preview_rollback_and_denial(
             assert external_id not in page.content()
             screenshot(page, "studio-import-detail-staged", suffix)
 
-            page.get_by_label("Confirm validate").check()
-            page.get_by_role("button", name="Validate", exact=True).click()
-            expect(page.get_by_role("alert")).to_contain_text(
-                "The aggregate state changed or is not ready for this action."
-            )
-            screenshot(page, "studio-validation-conflict", suffix)
-
             page.get_by_label("Confirm dry-run").check()
             page.get_by_role("button", name="Dry-Run", exact=True).click()
             expect(page).to_have_url(staged_url)
@@ -440,65 +366,16 @@ def test_studio_stage_replay_map_validate_activate_preview_rollback_and_denial(
             expect(page).to_have_url(staged_url)
             assert HistoricalRegistrationSourceRun.objects.count() == 1
 
-            response = page.goto(
-                f"{live_server.url}/studio/events/historical-registration-totals/mappings/"
-            )
-            assert_private(response)
-            expect(
-                page.get_by_role("heading", name="Historical event mappings", exact=True)
-            ).to_be_visible()
-            expect(page.get_by_text(external_id, exact=True)).to_be_visible()
-            source_missing_card = mapping_card(page, source_missing_id)
-            expect(
-                source_missing_card.get_by_role("heading", name="luma · source_missing", exact=True)
-            ).to_be_visible()
-            screenshot(page, "studio-source-missing", suffix)
-
-            mapping = HistoricalEventMapping.objects.get(
-                provider=HistoricalRegistrationSourceRun.Provider.LUMA,
+            # No separate mapping-review page or model: the registry's own
+            # `mapping_bridge` above names the exact provider-event-to-canonical-event
+            # pair, so staging already resolved the aggregate directly (see
+            # events.services._ensure_explicit_event). There is nothing left to
+            # review before validating.
+            aggregate = HistoricalRegistrationAggregateRevision.objects.get(
+                source_run__provider=HistoricalRegistrationSourceRun.Provider.LUMA,
                 external_event_identifier=external_id,
             )
-            HistoricalEventMapping.objects.filter(pk=mapping.pk).update(revision=F("revision") + 1)
-            main_card = mapping_card(page, external_id)
-            main_card.get_by_label("Decision").select_option("mapped")
-            main_card.get_by_label("Exact Event identity").select_option(event["identity_id"])
-            main_card.get_by_label("Combination policy").select_option("replacement")
-            main_card.get_by_label("Private review note").fill("Synthetic stale browser review.")
-            with page.expect_response(
-                lambda candidate: (
-                    candidate.url.endswith("/mappings/") and candidate.request.method == "POST"
-                )
-            ) as stale_response:
-                main_card.get_by_role("button", name="Save reviewed decision", exact=True).click()
-            assert stale_response.value.status == 409
-            expect(page.get_by_role("alert")).to_contain_text(
-                "The aggregate state changed or is not ready for this action."
-            )
-            mapping.refresh_from_db()
-            assert mapping.state == HistoricalEventMapping.State.REVIEW_REQUIRED
-            screenshot(page, "studio-stale-revision", suffix)
-
-            main_card = mapping_card(page, external_id)
-            main_card.get_by_label("Decision").select_option("mapped")
-            main_card.get_by_label("Exact Event identity").select_option(event["identity_id"])
-            main_card.get_by_label("Combination policy").select_option("replacement")
-            main_card.get_by_label("Private review note").fill("Synthetic exact browser review.")
-            screenshot(page, "studio-mapping-review", suffix)
-            main_card.get_by_role("button", name="Save reviewed decision", exact=True).click()
-            assert "/mappings/?updated=" in page.url
-
-            excluded_card = mapping_card(page, excluded_id)
-            excluded_card.get_by_label("Decision").select_option("excluded")
-            excluded_card.get_by_label("Combination policy").select_option("exclude")
-            excluded_card.get_by_label("Reason code").fill("reviewed_exclusion")
-            excluded_card.get_by_label("Private review note").fill("Synthetic browser exclusion.")
-            excluded_card.get_by_role("button", name="Save reviewed decision", exact=True).click()
-            assert "/mappings/?updated=" in page.url
-            excluded_card = mapping_card(page, excluded_id)
-            expect(
-                excluded_card.get_by_role("heading", name="luma · excluded", exact=True)
-            ).to_be_visible()
-            screenshot(page, "studio-exclusion-state", suffix)
+            assert str(aggregate.event_id) == event["identity_id"]
 
             response = page.goto(staged_url)
             assert_private(response)
