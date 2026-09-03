@@ -1,12 +1,19 @@
 {
   "schema_version": 1,
-  "comment": "Registration input for course-repository content sources. Registered ContentSource rows are what decides which repositories exist; this file is only how a fresh database gets its first rows, in the same way scripts/production_like_course_specs.json seeds the course catalogue. Adding a repository here does not import it -- it makes it registerable, and `manage.py pull_course_repositories` or the signed push webhook does the rest. A repository without a course.yaml at its root cannot be ingested by either route, which is why mlops-zoomcamp and stock-markets-analytics-zoomcamp are absent.",
+  "comment": "Registration input for course-repository content sources. Registered ContentSource rows are what decides which repositories exist; this file is only how a fresh database gets its first rows, in the same way scripts/production_like_course_specs.json seeds the course catalogue. Adding a repository here does not import it -- it makes it registerable, and the course-repository ingest (webhook or pull) does the rest. A repository without a course.yaml at its root cannot be ingested by either route, which is why mlops-zoomcamp and stock-markets-analytics-zoomcamp are absent -- confirmed 2026-09-03 by checking both repositories directly (404 on course.yaml). data-engineering-zoomcamp was missing from this list despite having a real course.yaml (confirmed 200) -- that was a gap, not a documented exclusion, fixed the same day.",
   "sources": [
     {
       "stable_id": "ai-dev-tools-zoomcamp",
       "display_name": "AI Dev Tools Zoomcamp",
       "repository_owner": "DataTalksClub",
       "repository_name": "ai-dev-tools-zoomcamp",
+      "branch": "main"
+    },
+    {
+      "stable_id": "de-zoomcamp",
+      "display_name": "Data Engineering Zoomcamp",
+      "repository_owner": "DataTalksClub",
+      "repository_name": "data-engineering-zoomcamp",
       "branch": "main"
     },
     {
