@@ -9,6 +9,7 @@ from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.models import SocialAccount
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 
@@ -188,24 +189,74 @@ def _deny_link(
     raise ImmediateHttpResponse(_conflict_response(request, reason))
 
 
+def _account_email(user: Any) -> str | None:
+    return user.normalized_email or normalize_account_email(user.email)
+
+
 def _candidate_users_for_verified_email(email: str) -> tuple[Any, ...]:
-    email_user_ids = set(
+    """Accounts that claim ``email``, however this site came to hold them.
+
+    Two kinds of evidence count, and they are both *claims*, never
+    verification — the provider's assertion, checked once in
+    ``verified_social_emails``, is the only thing that verifies anything.
+
+    A verified ``EmailAddress`` row is the first.  It is not sufficient on its
+    own for a bulk-imported account: the CMP export carries 20,005 rows for
+    20,009 accounts, so four accounts have no row at all and one has an
+    unverified row.  Matching only on that row would have locked those members
+    out of every enrollment, submission, score and certificate they own.
+
+    The account's own ``email`` column is the second.  CMP obtained it from a
+    provider at signup, ``/accounts/email/`` is disabled here so no member can
+    add an address to an account, and the account settings form does not
+    expose ``email`` — nobody can point an account at an address they do not
+    already hold.  Unverified ``EmailAddress`` rows are deliberately *not*
+    read: they would be a second, weaker claim surface for no gain, since
+    every such row in the export duplicates its account's ``email`` anyway.
+    """
+
+    verified_row_ids = set(
         EmailAddress.objects.filter(
             verified=True,
             email__iexact=email,
         ).values_list("user_id", flat=True)
     )
-    users = User.objects.filter(pk__in=email_user_ids).order_by("pk")
-    return tuple(users)
+    account_column_ids = set(
+        User.objects.filter(
+            Q(normalized_email=email) | Q(email__iexact=email),
+        )
+        .exclude(identity_state=User.IdentityState.ABSORBED)
+        .values_list("pk", flat=True)
+    )
+    users = User.objects.filter(pk__in=verified_row_ids | account_column_ids).order_by("pk")
+    # `email__iexact` is a superset of the normalized comparison the rest of
+    # this module makes, so the account-column hits are re-checked exactly.
+    return tuple(
+        user for user in users if user.pk in verified_row_ids or _account_email(user) == email
+    )
 
 
 def _has_unresolved_email_collision(*, email: str, user_id: int) -> bool:
+    """Would activating ``email`` on ``user_id`` collide with another account?
+
+    ``normalized_email`` is written by ``CustomUser.save()``, so for every
+    account this site created the indexed equality below is the whole answer.
+    A bulk import that writes rows without going through the model leaves the
+    column empty, so those rows — and only those — are still compared in
+    Python.  The scan this replaces read all ~20,000 account rows on every
+    first sign-in.
+    """
+
     candidates = User.objects.exclude(pk=user_id).exclude(
         identity_state=User.IdentityState.ABSORBED,
     )
-    for candidate in candidates.only("email", "normalized_email").iterator():
-        candidate_email = candidate.normalized_email or normalize_account_email(candidate.email)
-        if candidate_email == email:
+    if candidates.filter(normalized_email=email).exists():
+        return True
+    unnormalized = candidates.filter(
+        Q(normalized_email__isnull=True) | Q(normalized_email=""),
+    )
+    for candidate in unnormalized.only("email", "normalized_email").iterator():
+        if normalize_account_email(candidate.email) == email:
             return True
     return False
 
@@ -299,9 +350,11 @@ class ConsolidatingSocialAccountAdapter(DefaultSocialAccountAdapter):
             )
 
         candidates_by_id: dict[int, Any] = {}
+        matched_email_by_id: dict[int, str] = {}
         for email in emails:
             for candidate in _candidate_users_for_verified_email(email):
                 candidates_by_id[candidate.pk] = candidate
+                matched_email_by_id.setdefault(candidate.pk, email)
         candidate_ids = tuple(sorted(candidates_by_id))
         if len(candidate_ids) != 1:
             _deny_link(
@@ -330,16 +383,21 @@ class ConsolidatingSocialAccountAdapter(DefaultSocialAccountAdapter):
                 user_ids=(resolved_user.pk,),
             )
 
-        verified_email = emails[0]
-        if any(
-            verified_email
-            != (resolved_user.normalized_email or normalize_account_email(resolved_user.email))
-            for verified_email in emails
-        ):
+        # The address that selected this account, not whichever sorted first.
+        # A GitHub account routinely carries a work and a personal verified
+        # address; only one of them is known here, and it is the one that must
+        # be written onto the account.  Requiring *every* provider address to
+        # be this account's address instead locked out every member with more
+        # than one verified address at their provider.
+        verified_email = matched_email_by_id[candidate_ids[0]]
+        if _account_email(resolved_user) != verified_email:
+            # Reached when an alias resolved to a survivor that does not hold
+            # the matched address.  Fail closed rather than move a survivor's
+            # identity onto an absorbed account's address.
             _deny_link(
                 request=request,
                 sociallogin=sociallogin,
-                reason="multiple_verified_identity_claims",
+                reason="verified_owner_claim_mismatch",
                 user_ids=(resolved_user.pk,),
             )
         if _provider_uid_conflicts(sociallogin, resolved_user):
