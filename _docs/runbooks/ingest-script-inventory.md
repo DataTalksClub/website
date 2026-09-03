@@ -116,6 +116,14 @@ either route at all** — confirmed live 2026-09-03:
 description copy already written. The content exists; only the small
 structured file pointing at it is missing. See 1.4.
 
+Because both are registered in 1.1 (they're now registerable even though
+1.4's underlying fix hasn't landed), `make content-pull` with no filter
+refuses the whole batch with a non-zero exit — every other registered
+repository still ingests and commits successfully underneath a red exit
+code. Pass `--stable-id` (see `sync_course_repositories.py`) to exclude the
+two known-bad repositories explicitly, or read a non-zero exit here as
+"check which repository failed," not "nothing landed."
+
 ## 1.4 Add the missing `course.yaml` — mlops-zoomcamp, stock-markets-analytics-zoomcamp
 
 Not a script — a one-time fix to the two upstream repositories themselves,
@@ -438,14 +446,18 @@ Transform: allocates `public_id` via `EventPublicIdSequence`; writes aliases.
 Destination: [`events/models.py`](../../events/models.py) (`Event`,
 `EventAlias`).
 
-## 5.2 New-event identity creation — in flight
+## 5.2 New-event identity creation
 
-No dedicated stage yet. `create_event_identity()` in
-[`events/identity.py`](../../events/identity.py) exists and works but has zero
-callers anywhere — a fresh Luma/Eventbrite export's new events currently have
-no automatic path into the manifest at all. Being wired into this journey
-now: detect an event with no existing identity, call `create_event_identity()`
-directly (not the reviewed-manifest path), report what was created.
+`discover_new_luma_event_identities()` in
+[`scripts/prod/import_events.py`](../../scripts/prod/import_events.py), called
+from that module's own `run()` — live, not a gap. `create_event_identity()`
+in [`events/identity.py`](../../events/identity.py) is its one caller: for
+each event in the real Luma export with no existing manifest-reviewed or
+auto-created identity, it creates one directly (never the reviewed-manifest
+path), matched on exact case/whitespace-normalized title plus date, same
+discipline used throughout this migration. Verified against the real export
+2026-09-03: 166 candidates, 164 already-tracked, 0 newly created (idempotent
+re-run), 2 with no usable title/date metadata reported rather than guessed.
 Registration-count activation (6.3) stays a separate, human-gated step
 regardless.
 
