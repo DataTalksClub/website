@@ -55,8 +55,11 @@ run, the source is irrelevant. These must also be re-runnable — a migration ge
 rehearsed — but they are not part of steady-state operation.
 
 A source with no declared fate is a bug in this plan, not an omission. So here is
-every source `data-ingest.md` §2 enumerates, with its fate. Nothing is left out;
-where the answer is "we deliberately do nothing", it says so.
+every source `data-ingest.md` §2 enumerates, with its fate, plus one that document
+does not list at all — row 22, the site assets in `core/static/core/`, which were
+never treated as a migratable source because they travel the staticfiles pipeline
+rather than the media one. Nothing is left out; where the answer is "we
+deliberately do nothing", it says so.
 
 | # | Source | Model | Fate and owner | Step |
 | --- | --- | --- | --- | --- |
@@ -77,7 +80,8 @@ where the answer is "we deliberately do nothing", it says so.
 | 15 | Event description bridge | one-time | committed capture; `scripts/build_event_description_bridge.py` | 7 |
 | 16 | Luma aggregates | one-time | `scripts/prod/import_events.py` → `events/importers.py` | 6 |
 | 17 | Eventbrite aggregates | one-time | as above | 6 |
-| 18 | Public media objects (1,253 / 154 MB) | one-time publish, then CDN-resident | **owner ruling: to the CDN and out of git** — `manage.py public_media_*` → `dtc-website-media`, §11 B11 | **8** |
+| 18 | Public media objects (1,253 / 154 MB, measured) | already CDN-resident; verify only | **owner ruling: to the CDN and out of git**, renamed on ingest — §11 B11, B14 | **8** |
+| 22 | Site assets in `core/static/core/` (18 + 14 orphaned) | one-time publish, then per-release | **owner ruling: no assets in the repository** — §11 B12, B13 | **8** |
 | 19 | **Sponsors** | one-time then Studio | **owner ruling: give it an import script** — to build, §11 B9 | 9 |
 | 20 | **Testimonials** | one-time then Studio | **owner ruling: same script** — to build, §11 B9 | 9 |
 | 21 | `rds-aisl_prod` | — | **explicitly out of scope** — §14 | — |
@@ -136,11 +140,19 @@ Goes to the CDN, **and out of every git repository** — owner ruling, both halv
 This is **step 8**, with its own checkpoint; the summary here is so the fate is
 visible from the content section too.
 
-- `images/` and `assets/` → the `dtc-website-media` bucket (1,253 objects,
-  ~154 MB today). See [#301](https://github.com/DataTalksClub/website/issues/301).
-- **This repository already keeps no images.** The work the "no images in a
-  repository" ruling implies is in `DataTalksClub/content`, which tracks **815**
-  of them. §11 B11.
+- `images/` → the `dtc-website-media` bucket in `eu-west-1`. **Measured**: 1,253
+  objects, 154,115,635 bytes, all under one prefix `public-projection/`. A second
+  top-level prefix `site-assets/` is added for design assets. See
+  [#301](https://github.com/DataTalksClub/website/issues/301).
+- **No assets in the repository, not just no content images.** Beyond the content
+  media there are **18** design assets in `core/static/core/` that also move —
+  8 homepage illustrations, 4 sponsor logos, 6 testimonial portraits — plus 14
+  orphaned mediakit files to delete. §11 B12, B13.
+- **This repository keeps no *content* images already.** The remaining content work
+  is in `DataTalksClub/content`, which tracks **815**. §11 B11.
+- **We rename on ingest.** The CDN key is assigned by us, never inherited from an
+  upstream filename. Step 8 says why, and the homepage illustrations are the
+  clearest example.
 - **Consequence:** moving an article to the content repository while its images
   move to the CDN means something has to rewrite the image references. Today that
   job is done at build time inside `scripts/build_public_projection.py`
@@ -958,86 +970,363 @@ what is served, so the site is unaffected.
 
 **Duration.** Minutes.
 
-### Step 8 — Media to the CDN
+### Step 8 — Media and assets to the CDN
 
-**Owner ruling, two parts.** Images go to the CDN, and **we do not keep images in
-a repository**. This step is where the first happens; the second is an end state
-that this step starts and §11 B11 finishes.
+**Owner ruling, three parts.** Images go to the CDN; **we keep no assets in the
+repository**; and **we rename them on ingest** — the CDN key is ours to assign, not
+one we inherit from whatever the file happens to be called upstream.
 
-The mechanism already exists and is landed under
-[#301](https://github.com/DataTalksClub/website/issues/301). This step is about
-running it deliberately and proving the result, not building anything:
+The mechanism exists and is landed under
+[#301](https://github.com/DataTalksClub/website/issues/301):
 `content/media_store.py` provides `local`, `s3` and `memory` backends selected by
-`PUBLIC_MEDIA_STORE_BACKEND` (**production runs `s3`**), and three commands drive
-it — `public_media_hydrate` (materialise the tree), `public_media_publish` (upload
-it), `public_media_verify` (compare store against `media.json`, both directions).
+`PUBLIC_MEDIA_STORE_BACKEND` (**production runs `s3`**), driven by
+`public_media_hydrate`, `public_media_publish` and `public_media_verify`. What is
+*not* built is the key assignment and the site-asset half — §11 B12 and B13.
 
-**Destination.** The `dtc-website-media` bucket, already provisioned. Object keys
-are `<PUBLIC_MEDIA_S3_PREFIX>/<record_key>` and are derived from the **matched
-record only**, never from the request path.
+**Destination.** The `dtc-website-media` bucket, `eu-west-1`, already provisioned
+and already holding the content media. **Measured 2026-09-03** with
+`aws s3api list-objects-v2`, not inferred:
 
-Today, **measured** by running the checkpoint below against the local store:
-**1,253 objects, 154,115,635 bytes** — that is ~154 MB decimal, **147.0 MiB**. The
-two figures are the same number and both are quoted in different places; do not
-spend time at 2am reconciling "154" against "147".
+```
+objects: 1253        bytes: 154,115,635
+public-projection/images/authors/   438      2,108,878 B    2.0 MiB
+public-projection/images/books/     196      9,050,873 B    8.6 MiB
+public-projection/images/podcast/   212      7,390,915 B    7.0 MiB
+public-projection/images/posts/     407    135,564,969 B  129.3 MiB
+```
 
-#### Where the images actually are right now
+`public-projection/` is the only top-level prefix; nothing else exists. The bucket
+matches `media.json` exactly, object for object and byte for byte.
 
-"The media tree is gitignored" is not the same as "images are not in a
-repository", and the difference is the whole of the second ruling. Measured with
-`git ls-files`:
+**The AWS gate is open from the workstation**, so every claim in this step is
+measurable rather than assumed — `head-bucket` succeeds and a full recursive
+listing completes. Measure rather than infer, and re-measure on the day.
 
-| Repository | Image files tracked | Note |
-| --- | ---: | --- |
-| **This repository** | **0** | `content/public_projection/media/` is gitignored (`.gitignore:23`). Already compliant |
-| `DataTalksClub/content` | **815** | `images/{posts,podcast,books}` — exactly the 815 records whose provenance names the content repo |
-| `DataTalksClub/datatalksclub.github.io` | 1,290 | includes 444 under `images/authors` at HEAD; the build consumes **438** at the pin |
+#### What this step places, skips and deletes
 
-So the work the second ruling implies is **not here**. This repository already
-keeps no images. The 815 in `DataTalksClub/content` are the ones that have to
-leave, and the legacy repository's copies stop mattering when that repository
-stops being a source at all. §11 B11.
+| Group | Files | Bytes | Fate |
+| --- | ---: | ---: | --- |
+| `authors/` | 438 | 2.0 MiB | **carry** — people faces |
+| `posts/` | 407 | 129.3 MiB | **carry** — blog illustrations |
+| `books/` | 196 | 8.6 MiB | **carry** — book covers |
+| homepage illustrations | 8 | 1.9 MiB | **carry** — site asset |
+| sponsor logos | 4 | 26 KiB | **carry** — site asset |
+| testimonial portraits | 6 | 44 KiB | **carry** — site asset |
+| **Total to place** | **1,059** | **148,808,355 B** | 141.9 MiB / 148.8 MB |
+| `podcast/` | 212 in the bucket (213 on disk) | 7.0 MiB | **leave alone** — live now, replaced by §11 B14 |
+| `core/static/core/mediakit/` | 14 | 7.4 MiB | **delete** — orphaned, §11 B12 |
 
-That also settles what `--source github` is for. It fetches media **from a git
-repository**, which is precisely the arrangement being ended. Its honest remaining
-purpose is the **one-time seeding of the bucket** from wherever the bytes live
-today; once the bucket is the origin of record it should not be the default, and
-once images leave the content repository it should not exist. Until then, use
-`--source checkout` against a local clone, or `--source store` from an
-already-hydrated peer.
+**Measured** on 2026-09-03, against both the local tree and the bucket. The earlier
+figure of 1,253 objects / 154,115,635 bytes is the *current bucket total*, not this
+step's workload; the content media is already published, so what this step actually
+uploads is the **18 site assets**, and the 1,041 figure is what the content half
+must still *verify* to.
 
-#### The one-file gap, resolved
+After B14 replaces the podcast covers the content-media half settles at **1,041
+objects / 146,724,720 bytes**, which is today's 1,253 / 154,115,635 minus the 212
+podcast objects and their 7,390,915 bytes.
 
-The local tree holds **1,254** files against `media.json`'s **1,253** records.
-Measured: nothing is missing — the extra file is
-`media/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.jpg`, and
-it is **stale local residue from an episode renumbering**. The projection's real
-records are `s24e06-ai-adoption-in-enterprise-beyond-writing-code.jpg` and
-`s24e07-how-to-build-ai-that-actually-ships-in-production.jpg`; that episode moved
-from e06 to e07 and a developer's hydrated tree kept the old filename.
+**Podcast covers are out of scope, and that does not mean deleting them.** The
+owner is replacing them, so carrying them is wasted work — but **measured**, all
+212 are already in the bucket, `media.json` still names them, and podcast pages
+still render them. They are live, not stale. Deleting them now would break 212
+images on a public site for however long it takes the new covers to arrive.
 
-`media.json` is correct and the bucket is unaffected. **Delete the file**; do not
-publish it. `public_media_verify` reports exactly this class as `extra`, which is
-how it was found, so the resolution is "run the checkpoint and act on `extra`",
-not a one-off cleanup to remember.
+So step 8 **neither uploads nor deletes** the podcast objects: they are already
+published and unchanged. The sequence when the replacements exist is B14's, and it
+is the regenerated path in full — new covers generated, records rewritten with the
+new checksums, published, and only then the superseded objects swept. That is also
+why they are the *clearest* case for the rename ruling rather than an exception to
+it: their keys are assigned fresh, from record identity, with nothing inherited.
+
+It makes the stale local file moot as well. **Measured**: the bucket holds 212
+podcast objects and the local tree holds 213 files, so
+`s24e06-how-to-build-ai-that-actually-ships-in-production.jpg` **exists only on a
+developer's disk and was never published.** The one-file gap never reached the
+bucket and never affected a visitor.
+
+**The mediakit assets are dead.** `/mediakit/` is a 301 to `DataTalksClub/mediakit`,
+which hosts its own copies. **Measured**: all 14 files under
+`core/static/core/mediakit/` are referenced by nothing — no template, no view, no
+stylesheet. The only `mediakit` references in the tree are the redirect in
+`website/urls.py` and `core/tests/test_mediakit.py`. 7.4 MiB out of the container
+image and out of the staticfiles manifest.
+
+#### Two kinds of object, two prefixes
+
+The split is structural, not filing. **Content media** belongs to records, arrives
+through ingest, and changes when content changes. **Site assets** belong to the
+design, are deployed rather than ingested, and change when the site changes.
+
+The bucket gets **two top-level prefixes**. The site-asset tree is a **sibling of
+`public-projection/`, not a child of it** — burying design assets under a prefix
+named after the content-projection artifact would misdescribe them permanently,
+and the two halves have different owners, different triggers and different
+lifetimes.
+
+```
+dtc-website-media/                        eu-west-1
+  public-projection/                      content media — exists today, unchanged
+    images/authors/                       438
+    images/posts/                         407
+    images/books/                         196
+    images/podcast/                       212   live now, replaced by B14
+  site-assets/                            NEW — site assets, by surface
+    home/                                 8     homepage illustrations
+    courses/                              0     destination for #311; empty today
+    sponsors/                             4     logos
+    testimonials/                         6     portraits
+```
+
+**Why `site-assets/`.** `static/` would collide with Django's staticfiles, which is
+precisely the pipeline these are leaving, and would confuse the next reader.
+`assets/` is vague. `design/` is too narrow — a sponsor logo is not design. The
+existing prefix is named after what produces it, and `site-assets/` follows that
+convention: it says what the objects are, and it reads correctly beside
+`public-projection/`.
+
+**The content-media prefix does not move.** It is correct, it is live, and renaming
+1,041 objects to gain nothing is a risk with no upside. The rename ruling applies
+to keys *we assign from now on*; it is not a reason to re-key what is already
+right.
+
+**`site-assets/courses/` is empty today and that is expected.** Every file in
+`core/static/core/illustrations/` is `home-*`; there are no course illustrations in
+the tree. It is a prefix a generator will write into, not a migration of existing
+files. The procedure is `_docs/design/illustration-assets.md` and the missing
+half is [#311](https://github.com/DataTalksClub/website/issues/311).
+
+**Who publishes each folder, and when — the answers differ, which is why the
+subdivision is worth having:**
+
+| Prefix | Trigger | Publisher |
+| --- | --- | --- |
+| `content/*` | a content change upstream | the content sync (§11 B3), as part of ingest |
+| `site-assets/home/` | a site design change | the deployment pipeline, at release |
+| `site-assets/courses/` | a course is added or restyled | the generator (#311), then the same release path |
+| `site-assets/sponsors/` | a sponsor is added or changes | neither — Studio, when the sponsor record changes (§11 B13) |
+| `site-assets/testimonials/` | a testimonial is added | Studio, with the row (step 9) |
+
+Only `site-assets/home/` is genuinely deployment-shaped. Publishing site assets at deploy
+time is **a new step in the deployment pipeline, not in this migration** — this
+step performs the one-time upload; B13 owns making it repeatable. Until it is,
+a changed sponsor logo is a manual upload, and that must be written down where the
+person changing it will look, not only here.
+
+**Why sponsor logos and testimonial portraits get their own folders rather than
+living under `home/`.** Because neither is homepage-only, which is checkable and
+was checked:
+
+- Sponsor logos render on **two** surfaces — `templates/core/home.html:1387` and
+  `templates/core/sponsors.html:64`, from `core/views.py:121` and `:133`.
+- Testimonial portraits render from `templates/core/home.html:991`, but
+  `TestimonialPlacement` has **two** choices, `HOMEPAGE` and `COURSE`, so a course
+  testimonial renders on a course page by design.
+
+**Where testimonial portraits belong, and why site assets.** They back a database
+model, which argues content media. They are six fixed editorial images that shipped
+with the design and change when the design changes, which argues site assets. They
+go under `site-assets/testimonials/` — because the deciding question is *what triggers a
+change*, and it is an editor adding a testimonial through Studio, never a content
+sync. A `Testimonial` row referencing a `site-assets/` object is normal: the row owns
+*which* portrait, the CDN owns the bytes. `courses.models.Testimonial` is landing
+on this branch now, so its `photo_static_path` field should be settled with this
+decision rather than after it — see step 9.
+
+#### The key is ours: `<surface>/<name>-<theme>.<ext>`
+
+Owner ruling, and the naming is explicit rather than implied:
+
+```
+site-assets/home/home-hero-light.webp     site-assets/home/home-hero-dark.webp
+site-assets/home/home-step-1-light.webp   site-assets/home/home-step-1-dark.webp
+site-assets/home/home-step-2-light.webp   site-assets/home/home-step-2-dark.webp
+site-assets/home/home-step-3-light.webp   site-assets/home/home-step-3-dark.webp
+```
+
+Two renames in one, and both are only possible because the key is ours:
+`home-hero.webp` gains an explicit `-light`, and **`home-stuck` becomes
+`home-step-1`**.
+
+Today the tree holds `home-hero.webp` beside `home-hero-dark.webp`: the dark file
+announces its theme and the light one is inferred from the *absence* of a suffix.
+That asymmetry is invisible in code and obvious in a listing, and it is the
+clearest illustration in this document of why assigning keys beats inheriting
+them — **the CDN key can be the name the scheme wants instead of the name the file
+happens to have.** No file is renamed on disk to achieve it; the rename happens at
+ingest.
+
+**State it as a rule, not a list**, so `site-assets/courses/` and every future surface
+follows without another decision:
+
+> `site-assets/<surface>/<name>-<theme>.<ext>`, where `<theme>` is `light` or `dark`.
+> **The theme segment is mandatory for any asset a template selects by theme, and
+> absent for a theme-neutral one.** A sponsor logo is `site-assets/sponsors/dlthub.png`; a
+> homepage illustration is `site-assets/home/home-hero-light.webp`. If a themed asset ever
+> ships without a dark variant it is still `-light`, and the template falls back to
+> the light URL — that is a rendering decision, not a naming one, so the key scheme
+> never has to be guessed at.
+
+The pairing becomes a property of the key rather than an accident of it: `-light`
+and `-dark` are the same name in two themes, which is exactly what
+`_home_illustration.html` selects between.
+
+**`home-stuck` is the step 1 drawing, and the rename fixes a real inconsistency
+rather than inventing one.** The partial's own comment settles what it is: *"The
+climb cards use the issue's reworked step 1 drawing and its step 2 and step 3
+drawings."* The three climb cards are the `stuck`, `learning` and `shipping`
+variants, mapping to `home-stuck`, `home-step-2` and `home-step-3` — one named by
+role, two by position, which is exactly why a listing looked like it was missing
+its first step. Nothing was missing; the naming was inconsistent. Assigning keys is
+the moment that is free to fix, so `home-stuck` is published as `home-step-1`.
+
+The template's `variant` names (`hero`, `stuck`, `learning`, `shipping`) are a
+separate vocabulary and do not have to change with the asset names — but leaving
+`variant="stuck"` selecting `home-step-1-*` re-creates the same mismatch one layer
+up. Rename both, in the same edit as the `{% static %}` removal.
+
+**Content-media keys** follow the same principle, assigned at ingest from the
+record's **normalised** identity rather than its upstream filename: lowercased,
+trimmed, spaces to hyphens, one extension. That is not theoretical tidying — six
+records today carry names that would otherwise be permanent CDN keys *and*
+permanent public URLs:
+
+| Today's key | Problem |
+| --- | --- |
+| `images/authors/ aashishnair.jpg` | leading space |
+| `images/podcast/production-ml-...-hybrid search.jpg` | inner space |
+| `images/podcast/hiring-...-skills.md.jpg` | `.md.jpg`, from a Markdown filename |
+| `images/posts/2023-11-18-data-engineering-zoomcamp/Image7.jpg` | uppercase |
+
+**What changes when the thing the key derives from changes:**
+
+| Change | Effect |
+| --- | --- |
+| upstream filename changes | **nothing** — the key does not derive from it. This is the `s24e06` fix |
+| file moves between upstream directories | nothing |
+| bytes change (regeneration, re-encode) | same key, new `?v=` — see caching below |
+| identical bytes re-ingested | same key, same version; publish reports `skipped` |
+| the record's logical identity changes | **the key changes** — a re-key, and the old object becomes `extra` |
+
+That last row is the residual case and it is named rather than hidden: full
+immunity would need a persisted assignment ledger that survives rebuilds, which is
+real state and a real cost. §12 decision 8.
+
+#### Caching: a stable key needs an explicit version
+
+This is the one thing the move *loses*, and it must not be discovered in
+production. `CompressedManifestStaticFilesStorage` gives hashed filenames, so a
+changed asset gets a new URL for free and can be cached for a year. **A stable CDN
+key has no such property.** Replace `home-hero-light.webp` in place and every
+browser and edge cache that holds the old bytes keeps serving them until their TTL
+expires.
+
+**The rule:** the object key is stable and readable; **the emitted URL carries
+`?v=<sha256[:8]>` of the bytes.** The mapping record already holds the checksum —
+`provenance.checksum` for content media, the site-asset manifest for site assets —
+so the version is derived, never stored twice and never hand-maintained.
+
+Two consequences to configure rather than assume:
+
+- **The CDN cache key must include the query string.** On CloudFront that is not
+  the default; a distribution that strips query strings will serve stale bytes and
+  the `?v=` will do nothing at all. Verify it as part of B13.
+- **A stable key means an overwrite**, so the previous bytes are gone. That is the
+  deliberate trade for readable keys: rollback is restoring from source, not
+  pointing at an older object. Bucket versioning is the cheap mitigation if the
+  owner wants one — §12 decision 8.
+
+#### Two paths: carried across, and regenerated
+
+The constraint that any move must preserve byte identity applies to objects that
+are **moved**. Objects that are **regenerated** get new bytes and new checksums by
+definition, and the plan must not imply the old digests survive them.
+
+| | Carried across | Regenerated |
+| --- | --- | --- |
+| Bytes | unchanged | new |
+| `provenance.checksum` | the upstream digest, matched | **rewritten** to the new digest |
+| `provenance` origin | upstream repository + revision | the generator, its version, and its input |
+| Verify behaviour | store checksum equals record checksum | same — *because the record was rewritten first* |
+| Today | `authors/` 438, `posts/` 407, `books/` 196, the 18 site assets | `podcast/` covers, `site-assets/courses/` output |
+
+**How a re-run tells them apart: it does not have to.** `verify_media` compares
+the store against `store.expected_checksum(record)`, which reads the record. So the
+invariant is:
+
+> **Regeneration is a projection change first and an upload second.** The record is
+> the source of truth for what the bytes should be. Rewrite the record, then
+> publish.
+
+Upload regenerated bytes *without* rewriting the record and `verify` reports
+`mismatched` — and that is correct behaviour, not a false alarm to suppress. It is
+the check working.
+
+**The content sniffing applies to regenerated images too.** `_copy_media`
+content-sniffs every file — JPEG, PNG and GIF magic — and runs an SVG sanitizer
+that rejects `<script>`, `<style>`, event handlers and remote `href`/`src`/`url()`.
+That gate is on the **ingest boundary, not on the origin**: "we generated it" is
+not a reason to skip it, because a generator is software that can be wrong, and an
+image pipeline emitting an SVG with a script element is exactly the case the
+sanitizer exists for. Note that all five SVGs in the projection are podcast covers,
+so the carried set contains none — the sanitizer matters here purely for what
+comes *next*, which is the easiest kind of protection to drop by accident.
+
+#### Static assets are a third pipeline, and that is the hard part
+
+The 18 site assets are not media objects today. They are **static assets**, and
+they travel a completely different road: `collectstatic`,
+`whitenoise.storage.CompressedManifestStaticFilesStorage`
+(`website/settings/base.py:237`), hashed filenames, and templates resolving them
+through `{% static %}`. This is not "copy 18 files to a bucket".
+
+**The reference surface, measured — 10 call sites in 3 files:**
+
+| Asset group | Where referenced | Count |
+| --- | --- | ---: |
+| homepage illustrations | `templates/core/_home_illustration.html:20-30` | 8 `{% static %}` calls |
+| testimonial portraits | `templates/core/home.html:991`, `{% static story.photo_static_path %}` | 1, **driven by a database value** |
+| sponsor logos | `core/sponsor_history.py:92`, `static(f"core/sponsors/{...}")` | 1, from a hardcoded tuple |
+
+**The rename and the `{% static %}` removal are the same edit**, not two. Each of
+the eight illustration references moves to a CDN URL under its new `-light`/`-dark`
+name in one change; doing the rename first and the URL swap later means a window
+where the template asks the manifest for a file that is no longer there.
+
+**A stale reference under manifest storage is a hard failure, not a soft 404.**
+Once a file leaves `core/static/`, `collectstatic` no longer sees it and the
+manifest no longer carries it — which is the point — but `{% static 'core/…' %}`
+for a missing entry raises `ValueError: Missing staticfiles manifest entry`, i.e.
+a **500 on the page**, not a broken image. This project already knows that failure.
+
+The testimonial case is the sharpest: `{% static story.photo_static_path %}`
+applies the manifest lookup to a **database value**, so a single bad row takes the
+homepage down rather than rendering one missing portrait. Whatever replaces it must
+fail soft — resolve to a URL and let the image 404 — which is another reason those
+six belong on the CDN rather than in the manifest.
+
+**Do they become `ContentAsset` rows?** No, and B13 should resist it.
+`ContentAsset` is part of the content pipeline that nothing writes and nothing
+reads (§11 B4). Site assets need a URL resolver and a small manifest — name,
+surface, theme, checksum — not a content model. Testimonial portraits already have
+an owning record; sponsor logos and homepage illustrations have none and do not
+need one invented.
 
 #### Ordering: media before content is public
 
-**Media must land before content is public, and after the projection build.** The
-projection build (step 7) produces `media.json`; the objects it names must exist
-before anyone can look at a page.
+**After the projection build, before the site is public.** The build (step 7)
+produces `media.json`; the objects it names must exist before anyone looks at a
+page.
 
-The dependency is real and one-directional: Django resolves `/images/<path>`
-against `media.json` and then reads the object from the store. **If content
-arrives and its media has not, every page renders and every image is broken** — a
-missing object is a failed read, not a fallback. On `/people/*` that is every
-avatar; on `/blog/*`, `/podcast/*` and `/events/*` it is every author chip and
-every hero image. The text is fine, which is what makes it easy to ship by
-accident.
+The dependency is one-directional and unforgiving: Django resolves `/images/<path>`
+through `media.json` and then reads the object. **If content arrives and its media
+has not, every page renders and every image is broken** — a missing object is a
+failed read, not a fallback. The text is fine, which is what makes it easy to ship
+by accident. Site assets are worse: under manifest storage a missing one is a 500.
 
-It is otherwise independent: nothing in steps 0–6 reads media, and step 9 does not
-either. If step 8 must slip, the honest options are to delay the site going public
-or to publish media first and content second — never content first.
+Otherwise independent: nothing in steps 0–6 reads media, and step 9 needs only the
+testimonial portraits this step places. If step 8 must slip, delay going public or
+publish media first and content second — never content first.
 
 ```
 # Materialise the tree. NOT --source github; see above.
@@ -1058,7 +1347,6 @@ PUBLIC_MEDIA_STORE_BACKEND=s3 $TARGET \
 `public_media_verify` is the only true bidirectional set-diff in the codebase —
 `missing` / `unreadable` / `mismatched` from the record side and `extra` from the
 store side, non-zero exit. It is the shape every other drift check should copy.
-Five things have to be true, and four of them it already answers:
 
 ```
 $TARGET uv run --frozen python manage.py shell -v 0 <<'PY'
@@ -1066,114 +1354,150 @@ import subprocess, sys
 from content.media_store import media_records, media_store
 from content.media_tooling import verify_media
 
-records = tuple(media_records())
+CARRY = ("authors", "posts", "books")          # podcast/ is regenerated: B14
+records = tuple(r for r in media_records()
+                if r["record_key"].split("/")[1] in CARRY)
 store = media_store()
 report = verify_media(store=store, records=records)
 fail = []
 
-# 1. Every record resolves to an object that exists, with the right bytes,
-#    and the store holds nothing the index does not name.
-print("total", report.total, "matched", report.matched,
+print("carried", report.total, "matched", report.matched,
       "missing", len(report.missing), "mismatched", len(report.mismatched),
-      "unreadable", len(report.unreadable), "extra", len(report.extra))
-if report.extra[:5]:
-    print("  extra:", report.extra[:5])
-for name in ("missing", "mismatched", "unreadable", "extra"):
+      "unreadable", len(report.unreadable))
+for name in ("missing", "mismatched", "unreadable"):
     if getattr(report, name):
         fail.append(f"{name}={len(getattr(report, name))}")
-if report.matched != report.total:
-    fail.append("matched != total")
+if report.total != 1041:
+    fail.append(f"expected 1041 carried records, found {report.total}")
 
-# 2. Object count and total bytes.
 size = 0
 for record in records:
     try:
         size += store.stat(record).size
     except Exception:
         pass
-print("objects", report.total, "bytes", size, f"({size / 1024 / 1024:.1f} MiB)")
+print("bytes", size, f"({size / 1024 / 1024:.1f} MiB)")
+if size != 146724720:
+    print("  note: byte total moved; re-baseline deliberately, do not just edit this")
 
-# 3. The 438 author images specifically.
 authors = [r for r in records if r["record_key"].startswith("images/authors/")]
-missing_authors = [r["record_key"] for r in authors if r["record_key"] in set(report.missing)]
-print("author images", len(authors), "missing", len(missing_authors))
-if len(authors) != 438 or missing_authors:
-    fail.append(f"author images {len(authors)}, {len(missing_authors)} missing")
+print("author images", len(authors))
+if len(authors) != 438:
+    fail.append(f"author images {len(authors)}")
 
-# 4. No image is tracked in git, in this repository.
-tracked = subprocess.run(
-    ["git", "ls-files", "content/public_projection/media"],
-    capture_output=True, text=True).stdout.split()
-print("media files tracked in git:", len(tracked))
-if tracked:
-    fail.append(f"{len(tracked)} media files tracked in git")
+# `extra` is expected here: podcast covers are deliberately not carried.
+podcast_extra = [k for k in report.extra if "/podcast/" in k]
+other_extra = [k for k in report.extra if "/podcast/" not in k]
+print("extra:", len(report.extra), "of which podcast", len(podcast_extra))
+if other_extra:
+    print("  unexplained:", other_extra[:5])
+    fail.append(f"unexplained extra={len(other_extra)}")
+
+tracked = subprocess.run(["git", "ls-files",
+                          "content/public_projection/media", "core/static/core"],
+                         capture_output=True, text=True).stdout.split()
+# core/static/core/vendor holds FontAwesome webfonts, three of which are .svg.
+# They are font files, not assets, and they stay with the CSS that names them.
+images = [p for p in tracked
+          if p.rsplit(".", 1)[-1].lower() in ("jpg", "jpeg", "png", "gif", "svg", "webp")
+          and "/vendor/" not in p]
+print("image files tracked in git:", len(images))
+if images:
+    print("  e.g.", sorted(images)[:5])
+    fail.append(f"{len(images)} image files tracked in git")
 
 print("FAIL" if fail else "OK", fail)
 sys.exit(1 if fail else 0)
 PY
 ```
 
-**5. A re-run uploads only what changed.** `publish_media` already compares each
-object's stored checksum against the record's `provenance.checksum` and skips a
-match, so this is a property to *confirm*, not to build. Run
-`public_media_publish` a second time and read its report: `added` and `changed`
-must both be **0** and `skipped` must equal `total` (1,253). If a second run
-re-uploads 154 MB, something is rewriting checksums and that is a stop.
-
-The first run's report should account for everything: `added + changed + skipped
-== total`, `failed == 0`, and `orphan` naming anything in the store the index does
-not — which on the first run, after deleting the stale file above, should be empty.
-
-**Failure and recovery.** **Recoverable by re-run, and safe to re-run**, because
-both hydrate and publish are idempotent and resumable: an object already present
-with the recorded checksum is skipped. A partial publish leaves the bucket with a
-subset, which is exactly the state a re-run completes. The one rule: **do not
-declare the step done on a partial publish.** Run publish to completion, then
-verify, and treat a non-empty `missing` as a stop rather than something to fix
-later.
-
-**Measured against the local store today**, so you know what a pass looks like
-before you ever point it at `s3`:
+And the bucket itself, which is measurable now that the AWS gate is open:
 
 ```
-total 1253 matched 1253 missing 0 mismatched 0 unreadable 0 extra 1
-  extra: ['images/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.jpg']
-objects 1253 bytes 154115635 (147.0 MiB)
-author images 438 missing 0
-media files tracked in git: 0
-FAIL ['extra=1']
+aws s3api list-objects-v2 --bucket dtc-website-media \
+  --output json --query 'Contents[].{K:Key,S:Size}' \
+| python3 -c '
+import collections, json, sys
+d = json.load(sys.stdin)
+top = collections.Counter(x["K"].split("/")[0] for x in d)
+grp = collections.Counter(); size = collections.Counter()
+for x in d:
+    parts = x["K"].split("/")
+    g = "/".join(parts[:3]) if len(parts) > 3 else "/".join(parts[:-1])
+    grp[g] += 1; size[g] += x["S"]
+print("objects", len(d), "bytes", sum(x["S"] for x in d))
+print("top-level:", dict(top))
+for g in sorted(grp):
+    print(f"  {g:44} {grp[g]:>5}  {size[g]:>12,} B")
+'
 ```
 
-Everything passes except the stale file above. Delete it and this is clean.
+Expected while B14 is outstanding: two top-level prefixes — `public-projection`
+at 1,253 objects / 154,115,635 bytes, and `site-assets` at 18. After B14:
+`public-projection` at 1,041 / 146,724,720 plus the new podcast covers, and
+`site-assets` unchanged.
 
-**Duration.** 1,253 objects / ~154 MB on the first run; seconds on any re-run.
+Then the site assets, which the first command does not cover because they are not
+media records yet — until B13 lands this is by hand:
+
+- all 18 objects exist under `site-assets/`, at their assigned `-light`/`-dark` names;
+- no template contains `{% static 'core/illustrations/`, `core/sponsors/` or a
+  manifest lookup on `photo_static_path`;
+- `core/static/core/mediakit/` is gone;
+- the homepage and `/sponsors` render with every image, in **both** themes;
+- a `?v=` change on one asset reaches a browser holding the old bytes.
+
+**A re-run uploads only what changed.** `publish_media` compares each object's
+stored checksum against the record's and skips a match, so this is a property to
+*confirm*, not to build: run `public_media_publish` twice and read the report —
+`added: 0`, `changed: 0`, `skipped` equal to `total`. If a second run re-uploads
+147 MB, something is rewriting checksums and that is a stop.
+
+**Failure and recovery.** **Recoverable by re-run, and safe to re-run**: hydrate
+and publish are both idempotent and resumable, and an object already present with
+the recorded checksum is skipped. A partial publish leaves a subset, which a re-run
+completes. The one rule: **do not declare the step done on a partial publish.** Run
+publish to completion, then verify, and treat a non-empty `missing` as a stop.
+
+The site-asset half is *not* as forgiving, because it is a cutover rather than an
+upload: between removing a file from `core/static/` and the template pointing at
+the CDN, the page raises. Do those two together, per asset group, and keep the
+`core/static/` copies until the CDN objects verify.
+
+**Duration.** 1,059 objects / ~149 MB on the first run; seconds on any re-run.
 
 #### The reference-rewriting problem, and who owns it
 
-This is the part most likely to be missed, and it is not solved by this step.
+This is the part most likely to be missed, and this step does not solve it.
 
-An article moving to `DataTalksClub/content` while its images move to the CDN
-means **something must rewrite the image references**. Today that job is done at
+An article moving to `DataTalksClub/content` while its images move to the CDN means
+**something must rewrite the image references**. Today that happens at
 projection-build time inside `scripts/build_public_projection.py` —
-`_article_blocks(body, media_root=...)` rewrites the references and `_copy_media`
-records provenance per asset. **There is no equivalent on the database ingest
-path.** So the moment §11 B3 lands and content arrives through a sync rather than
-through the builder, the rewriting stops happening and nothing notices until an
-image 404s.
+`_article_blocks(body, media_root=...)` rewrites them and `_copy_media` records
+per-asset provenance. **There is no equivalent on the database ingest path.** The
+moment §11 B3 lands and content arrives through a sync instead of the builder, the
+rewriting stops and nothing notices until an image 404s.
 
-**Owner: §11 B3**, the content push-sync, and it is called out there as the real
-new work rather than left implicit. AI Shipping Labs does exactly this inside its
-sync (`github_sync/media.py`, `upload_images_to_s3`), which is the fourth thing
-§11.1 says to copy. The thread is
-[#301](https://github.com/DataTalksClub/website/issues/301); this step is its
-migration-time half, B3 is its steady-state half, and B11 is what finally takes
-the bytes out of git.
+**Assigning keys makes B3's job strictly larger**: it is no longer "point at the
+CDN" but "point at the CDN under a key we assign". How the two stay in step is a
+design property, not a discipline:
 
-Two constraints anyone doing that work inherits, both already enforced at build
-time and both easy to lose: `_copy_media` **content-sniffs every file** — JPEG,
-PNG and GIF magic, and an SVG sanitizer that rejects `<script>`, `<style>`, event
-handlers and remote `href`/`src`/`url()` — and every object is verified against
-`provenance.checksum`, so **any move must preserve byte identity**.
+> **Nothing outside the media layer may ever contain an object key.** Content
+> references a *public path* (`/images/posts/…`); the media layer maps that path to
+> a key and a version. Rename the key and no content changes, because no content
+> ever named it.
+
+That invariant holds today — **measured**: the object-key prefix appears in **zero**
+projection artifacts, and article bodies carry `/images/...` public paths only. It
+is what makes assigned keys safe, and it is exactly what a build step baking a CDN
+URL into HTML would destroy. B3 must rewrite references to the **public path**,
+never to the object key.
+
+This step is the migration-time half of
+[#301](https://github.com/DataTalksClub/website/issues/301); B3 is the steady-state
+half; B11 takes the bytes out of git. AI Shipping Labs does the ingest-time upload
+inside its sync (`github_sync/media.py`, `upload_images_to_s3`), which is the
+fourth thing §11.1 says to copy.
 
 ### Step 9 — Sponsors and testimonials
 
@@ -1202,6 +1526,26 @@ What it has to write into, read rather than invented:
   **6** rows, seeded by `courses/migrations/0056_seed_homepage_testimonials.py`.
   The importer must not duplicate those six.
 
+**The portraits are step 8's, and the field that names them has to change with
+them.** A testimonial row whose portrait 404s is the same failure as content
+without media, and today it is worse than a 404: `templates/core/home.html:991`
+renders `{% static story.photo_static_path %}`, so under manifest storage a row
+naming a file that has left `core/static/` raises `ValueError: Missing staticfiles
+manifest entry` and takes **the whole homepage** down, not one avatar.
+
+So `Testimonial.photo_static_path` — a `CharField` whose help text and docstring
+both say "static path", currently holding values like
+`core/testimonials/tim-claytor.jpg` — stops being a static path and becomes a
+reference to a `site-assets/testimonials/` object. That model is landing on this
+branch **now**, which makes this the cheap moment to settle it: changing the field's
+meaning before it has production rows is a migration; changing it after is a
+migration plus a backfill plus a window where the homepage can 500.
+
+Whoever lands B13 owns the field rename, the six objects and the template change as
+one edit. The rule is the same as everywhere else in step 8: **the row owns *which*
+portrait, the CDN owns the bytes**, and resolution must fail soft — a missing object
+renders a broken image, never an exception.
+
 **Checkpoint**
 
 ```
@@ -1212,8 +1556,13 @@ from courses.models import Testimonial
 s = Sponsor.objects.count()
 t = Testimonial.objects.count()
 tp = Testimonial.objects.filter(published=True).count()
-print("sponsors", s, "testimonials", t, "published", tp)
-sys.exit(1 if (s == 0 or t < 6) else 0)'
+# Every published testimonial must name a portrait that resolves. After B13 this
+# is a CDN reference; until then it is a static path.
+missing = [x.pk for x in Testimonial.objects.filter(published=True)
+           if not x.photo_static_path]
+print("sponsors", s, "testimonials", t, "published", tp,
+      "without a portrait", missing)
+sys.exit(1 if (s == 0 or t < 6 or missing) else 0)'
 ```
 
 Then re-run the import and confirm no count changes — in particular that the six
@@ -1574,11 +1923,15 @@ registration**, **1 wrapped-statistics row** and **1 certificate**.
       step 9
 - [ ] `/faq/` and `/docs/` served by this application, and their CloudFront 302s
       retired — §11 B8, B10. Retire the redirects **after** the sync works
-- [ ] **Media published and verified** — step 8's checkpoint exits 0: 1,253 objects
-      matched, nothing missing/mismatched/extra, the 438 author images present, and
-      no image tracked in git in this repository
+- [ ] **Content media verified** — step 8's checkpoint exits 0: 1,041 carried
+      records matched, nothing missing/mismatched/unreadable, 438 author images, and
+      the only `extra` are the podcast covers B14 replaces
+- [ ] **Site assets published** — 18 objects under `site-assets/`, at their assigned
+      `-light`/`-dark` names; homepage and `/sponsors` render every image in both
+      themes; a `?v=` change reaches a browser holding the old bytes
+- [ ] **No asset tracked in git** outside `core/static/core/vendor/` — B12 and B13
 - [ ] A second `public_media_publish` reports `added: 0, changed: 0` — it does not
-      re-upload 154 MB
+      re-upload 147 MB
 - [ ] `public_media_hydrate` succeeds on a fresh clone with no access to the legacy
       repository — §11 B7
 - [ ] Row counts recorded per table, so the next run has a baseline to diff against
@@ -1681,8 +2034,9 @@ The rehearsal is the only place some of them can be obtained. Leave them here.
 | Step 5, per-table written/skipped | _ | the baseline for every future diff |
 | Step 5, consolidation groups found | _ | expected **1**; a second one means the export moved — §5.5 |
 | Step 6, wall time | _ | |
-| Step 8, first media publish wall time | _ | 1,253 objects, ~154 MB |
-| Step 8, second publish `added`/`changed` | _ | must be **0/0**, `skipped` 1,253 |
+| Step 8, site-asset upload wall time | _ | 18 objects; the content media is already published |
+| Step 8, second publish `added`/`changed` | _ | must be **0/0**, `skipped` equal to `total` |
+| Step 8, bucket after the run | _ | two top-level prefixes; `site-assets` 18 |
 | **Total** | _ | this is the maintenance window |
 
 ### 8.5 A number worth pre-computing
@@ -1713,9 +2067,11 @@ Say these out loud rather than letting a green rehearsal imply them.
 - **The 380 unreviewed event mappings.** A rehearsal shows 3 activated, which is
   correct and is not success.
 - **Step 7 as a rebuild.** See §8.3.
-- **Step 8 against the real bucket.** The rehearsal publishes to a `local` store,
-  which proves the counts, the 438 author images and the incrementality, but not
-  S3 credentials, bucket policy or upload time for 154 MB.
+- **Step 8's site-asset half.** The rehearsal can verify the content media against
+  a `local` store, but the `{% static %}` cutover, the manifest failure mode and the
+  `?v=` cache behaviour are all release-shaped and only meaningful against a real
+  deployment. The bucket itself *is* measurable from the workstation — the AWS gate
+  is open — so bucket counts are evidence, not assumption; edge caching is not.
 - **Everything downstream of the content view cutover**, because it has not been
   built.
 
@@ -1734,6 +2090,7 @@ Say these out loud rather than letting a green rehearsal imply them.
 | 6 Events | atomic (identity); staged revisions (aggregates) | nothing half-written | Re-run |
 | 7 Content | build writes files | committed projection unchanged, so the site is unaffected | Re-run the build; it needs three pinned checkouts and is not reproducible (#253) |
 | 8 Media | per object | bucket holds a subset; every unpublished image is broken on the page | Re-run. Publish is incremental and skips a matching checksum, so a re-run completes rather than re-uploads |
+| 8 Site assets | per asset group | **worse — a page can 500**, because a template still asking the manifest for a removed file raises | Not a re-run: keep the `core/static/` copies until the CDN objects verify, and move each group's files and references together |
 | 9 Sponsors/testimonials | per service call (revisioned) | some rows written, history still valid | Re-run; must be keyed on a natural key |
 
 **The step with no rollback that should have one is step 5.** Everything else is
@@ -1766,8 +2123,9 @@ it, this plan's checkpoints give:
 | Step 6 — 421 events / 1,684 aliases | **PASS** | exactly |
 | Step 6 — activation coverage | **PASS as designed** | 383 mapping rows: **3 mapped, 380 review_required** |
 | Step 7 — projection | **PASS** | the database boots, so `content.E002` is satisfied |
-| Step 8 — media | **FAIL, by one file** | The local tree holds 1,254 files against 1,253 records; `verify` reports one `extra`, `media/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.jpg`, stale residue from an episode renumbering. Nothing is missing. Delete it |
-| Step 8 — no image tracked in git | **PASS** | `git ls-files content/public_projection/media` returns 0. The 815 in `DataTalksClub/content` are B11's problem, not this repository's |
+| Step 8 — content media carried | **PASS** | 1,041 carried records, 1,041 matched, 0 missing/mismatched/unreadable, 146,724,720 bytes, 438 author images. The 213 `extra` are podcast covers, deliberately not carried |
+| Step 8 — bucket | **PASS** | Measured: 1,253 objects / 154,115,635 bytes under one prefix, matching `media.json` exactly. `site-assets/` does not exist yet |
+| Step 8 — no asset tracked in git | **FAIL** | 32 image files tracked under `core/static/core` — 8 illustrations, 4 sponsor logos, 6 testimonial portraits, 14 orphaned mediakit. B12 and B13. The 3 `vendor/` SVGs are FontAwesome webfonts and are excluded by the checkpoint |
 | Step 9 — sponsors and testimonials | **FAIL** | 0 sponsors. `courses_testimonial` does not even exist in that database — it predates migrations `0055`/`0056`, which on a freshly migrated database seed 6 testimonials and 0 sponsors |
 | §5.4 — password path | **FAIL** | `/accounts/password/reset/` and `/accounts/email/` are correctly 403, but `/accounts/signup/` creates an account with a usable password and signs it in (measured). §11 A5 |
 | §5.5 — no shared addresses | **PASS, vacuously** | 1 account. It proves nothing; the check only becomes meaningful once step 5 exists |
@@ -1953,15 +2311,78 @@ application in production. Depends on B8. Do this *after*, never before.
 
 **B11. Take the images out of `DataTalksClub/content`.** *Medium (2–3 days), and
 it is the second half of the owner's ruling.* Measured: this repository tracks
-**0** image files, `DataTalksClub/content` tracks **815**, and the legacy
+**0** content image files, `DataTalksClub/content` tracks **815**, and the legacy
 repository tracks 1,290. Step 8 puts the bytes in the CDN; this removes them from
 git, which is a separate act with a real ordering constraint — **the bucket must
 be verified complete before anything is deleted**, because after deletion the
-bucket is the only copy. Sequence: step 8 → its checkpoint exits 0 → B3's sync
+bucket is the only copy.
+
+**That constraint applies to the carried set and not to the regenerated one**, and
+the distinction matters because "we are regenerating them anyway" is exactly the
+reasoning that loses data. For `authors/`, `posts/` and `books/` the upstream copy
+is the only fallback and the constraint holds in full. For the podcast covers the
+old bytes are being discarded, so the old *outputs* do not need protecting — but
+the **inputs to regeneration do**. If a cover is produced by re-encoding the
+upstream image, deleting upstream destroys the ability to regenerate; if it is
+produced from a source asset or a prompt, upstream can go. Establish which before
+deleting anything, and treat the regenerated set as protected until the
+regeneration is proven repeatable. Sequence: step 8 → its checkpoint exits 0 → B3's sync
 resolves references against the CDN (not against repository paths) → only then
 delete. **Done looks like:** `git ls-files "images/*"` in `DataTalksClub/content`
 returns nothing, and every article still renders its images. Depends on step 8 and
 on B3.
+
+**B12. Delete `core/static/core/mediakit/`.** *Small (minutes), zero risk,
+independent of everything.* 14 files, 7.4 MiB, orphaned when `/mediakit/` became a
+301 to `DataTalksClub/mediakit`, which hosts its own copies. **Measured**: no
+template, view or stylesheet references any of the 14; the only `mediakit` strings
+in the tree are the redirect in `website/urls.py` and `core/tests/test_mediakit.py`.
+**Done looks like:** the directory is gone, 7.4 MiB leaves the container image and
+the staticfiles manifest, and the mediakit redirect test still passes.
+
+**B13. Move the 18 site assets to `site-assets/`.** *Medium (3–5 days), and it is
+harder than it sounds because it crosses two pipelines.* 8 homepage illustrations,
+4 sponsor logos, 6 testimonial portraits leave `core/static/` for the CDN under
+`site-assets/<surface>/<name>-<theme>.<ext>`. What it has to carry, none of it
+optional:
+
+- **Rename on ingest, in the same edit as the URL change.** `home-hero.webp` →
+  `home-hero-light.webp`, `home-stuck` → `home-step-1`, and the template's
+  `variant="stuck"` with it. Ten `{% static %}` call sites in three files —
+  `templates/core/_home_illustration.html` (8), `templates/core/home.html:991`
+  (testimonials, from a database value), `core/sponsor_history.py:92` (sponsors).
+- **A URL resolver and a small manifest** — name, surface, theme, checksum. **Not**
+  `ContentAsset` rows: that model belongs to the content pipeline nothing writes and
+  nothing reads (B4), and site assets need a resolver, not a content model.
+- **`?v=<sha256[:8]>` on every emitted URL**, because a stable key does not
+  cache-bust the way a hashed static filename does. Verify the CloudFront cache key
+  includes the query string; if it strips query strings the version does nothing.
+- **`Testimonial.photo_static_path` changes meaning** — step 9. Do it before the
+  model has production rows.
+- **Fail soft.** A missing static entry is a 500 under manifest storage; a missing
+  CDN object must be a broken image. That is the point of moving them.
+- **Keep the `core/static/` copies until the CDN objects verify.** This is a
+  cutover, not an upload: between removing a file and repointing its template, the
+  page raises.
+
+**Done looks like:** step 8's site-asset checks pass, the homepage and `/sponsors`
+render every image in both themes, `git ls-files` finds no image under
+`core/static/core` outside `vendor/`, and a `?v=` change reaches a browser holding
+the old bytes. Depends on B12 only for tidiness. Connects to
+[#311](https://github.com/DataTalksClub/website/issues/311) and
+[#301](https://github.com/DataTalksClub/website/issues/301).
+
+**B14. Replace the podcast covers.** *Medium, and it is content work rather than
+engineering.* 212 objects live in the bucket and named by `media.json`; the owner
+is regenerating them. This is the regenerated path in full: generate, **rewrite the
+records with the new checksums and provenance**, publish, then sweep the superseded
+objects. Do not sweep first — they are live until their replacements exist.
+The generation procedure is `_docs/design/illustration-assets.md` and the gap is
+[#311](https://github.com/DataTalksClub/website/issues/311); the same procedure
+feeds `site-assets/courses/`, which is empty today by design. **Done looks like:**
+`public-projection/images/podcast/` holds the new covers, the bucket totals move to
+1,041 plus the new set, and `verify` is clean with no `extra`.
+
 
 ### C. Wanted, not blocking
 
@@ -2074,6 +2495,22 @@ These block nothing today but must be closed before the migration runs.
    `_data/sponsors.yaml`, the existing `export_sponsor_directory` output, or a
    hand-written file — an owner decision, not an engineering one.
 
+8. **Assigned keys have one residual case and one lost property.** *(a)* If a
+   record's **logical** identity changes — the podcast renumbering, not a filename
+   edit — the assigned key changes and the old object becomes `extra`. Full
+   immunity needs a persisted assignment ledger that survives rebuilds, which is
+   real state with a real cost. Accept the re-key, or fund the ledger. *(b)* A
+   stable key means regeneration **overwrites**, so the previous bytes are gone;
+   rollback becomes restore-from-source rather than point-at-the-old-object. S3
+   bucket versioning is the cheap mitigation if that is not acceptable.
+
+9. **Who publishes site assets, and when.** Step 8 does the one-time upload. After
+   that `site-assets/home/` changes with a release, `site-assets/courses/` with a
+   course, and `site-assets/sponsors/` when a sponsor changes — three different
+   triggers. Until B13 makes it repeatable, every one of them is a manual upload,
+   and *that* has to be written where the person making the change will look, not
+   only in this runbook.
+
 ### 12.1 Decisions that are now closed
 
 Recorded so they are not reopened.
@@ -2085,7 +2522,13 @@ Recorded so they are not reopened.
 | Are 20,009 usable password hashes an emergency? | **No.** Members signed in through a provider; passwords were for admins. The enforcement was URL shadowing and it travelled — §5.4. Every account still imports unprivileged with an unusable password |
 | The two accounts sharing one address | **Consolidate them**, as a general mechanism with one known instance — §5.5, §11 A6 |
 | Public media objects had no fate (`data-ingest.md` §2 row 18) | **Step 8.** Images go to the `dtc-website-media` bucket **and out of every git repository** — §11 B11 |
-| The one-file gap between the tree (1,254) and `media.json` (1,253) | **Stale local residue** from an episode renumbering. Nothing is missing; delete it. `public_media_verify` reports the class as `extra` |
+| The one-file gap between the tree (1,254) and `media.json` (1,253) | **Stale residue on one developer's disk**, from an episode renumbering. Measured: the bucket holds 212 podcast objects, so it never reached production. Delete the local file |
+| Do CDN keys come from upstream filenames? | **No — we assign them on ingest.** `site-assets/<surface>/<name>-<theme>.<ext>`, content media from normalised record identity |
+| Do sponsor logos and homepage illustrations stay as static assets because they are design? | **No.** No assets in the repository; all 18 go to the CDN — §11 B13 |
+| Where do site assets live in the bucket? | **`site-assets/`, a sibling of `public-projection/`**, subdivided by surface: `home/`, `courses/`, `sponsors/`, `testimonials/` |
+| Is the light variant implicit? | **No.** `-light` is explicit for any themed asset; theme-neutral assets carry no theme segment |
+| Is `home-step-1` missing? | **No.** `home-stuck` *is* the step 1 drawing, per the partial's own comment; it is published as `home-step-1` |
+| Are the podcast covers deleted now? | **No.** They are live and still referenced. B14 replaces them, then sweeps |
 | Do FAQ and docs stay at the legacy site, or come to us? | **They come to us via content sync.** The CloudFront 302s are transitional — §11 B8, B10 |
 | Sponsors and testimonials have no source | **They get an import script** — step 9, §11 B9 |
 | Is `rds-aisl_prod` in scope? | **No.** §14 |
