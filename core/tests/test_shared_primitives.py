@@ -36,7 +36,6 @@ from core.models import (
     RevisionConflict,
     Sponsor,
     SponsorPlacementAssignment,
-    SponsorRevision,
 )
 from core.operations import (
     InvalidOperationTransition,
@@ -594,11 +593,6 @@ class SchemaConstraintTests(TransactionTestCase):
                 "core_sponsor_placement_allowlist",
                 "core_sponsor_assignment_position_positive",
                 "core_sponsor_assignment_public",
-            },
-            SponsorRevision._meta.db_table: {
-                "core_sponsor_history_revision_unique",
-                "core_sponsor_history_revision_positive",
-                "core_sponsor_history_key",
             },
         }
         with connection.cursor() as cursor:

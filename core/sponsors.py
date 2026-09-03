@@ -54,7 +54,6 @@ from core.models import (
     RevisionConflict,
     Sponsor,
     SponsorPlacementAssignment,
-    SponsorRevision,
 )
 from core.security import UnsafeInputError, neutralize_csv_formula, validate_url
 from core.services import ServiceContext, validate_actor_ref
@@ -1067,31 +1066,6 @@ def _replace_assignments(
         )
 
 
-def _write_revision(
-    sponsor: Sponsor,
-    *,
-    audit_event: AuditEvent,
-    context: AuditWriteContext,
-    using: str,
-) -> None:
-    SponsorRevision.objects.using(using).create(
-        sponsor=sponsor,
-        key=sponsor.key,
-        name=sponsor.name,
-        url=sponsor.url,
-        tagline=sponsor.tagline,
-        description=sponsor.description,
-        logo_asset_key=sponsor.logo_asset_key,
-        lifecycle=sponsor.lifecycle,
-        source=sponsor.source,
-        revision=sponsor.revision,
-        assignments=_assignment_dicts(serialize_sponsor(sponsor)["assignments"]),
-        changed_by_id=context.actor_id,
-        changed_by_ref=context.actor_ref,
-        audit_event=audit_event,
-    )
-
-
 def _record_mutation(
     *,
     action: str,
@@ -1160,7 +1134,7 @@ def _apply_create(
         ) from error
     sponsor = _authorized_queryset(using=using).get(pk=sponsor.pk)
     _assert_stored_active_cap(sponsor, using=using)
-    audit_event = _record_mutation(
+    _record_mutation(
         action="core.sponsor.created",
         sponsor=sponsor,
         before_lifecycle=None,
@@ -1168,7 +1142,6 @@ def _apply_create(
         context=context,
         using=using,
     )
-    _write_revision(sponsor, audit_event=audit_event, context=context, using=using)
     return serialize_sponsor(sponsor)
 
 
@@ -1240,7 +1213,7 @@ def _apply_update(
         ) from error
     sponsor = _authorized_queryset(using=using).get(pk=sponsor.pk)
     _assert_stored_active_cap(sponsor, using=using)
-    audit_event = _record_mutation(
+    _record_mutation(
         action="core.sponsor.updated",
         sponsor=sponsor,
         before_lifecycle=before_lifecycle,
@@ -1248,7 +1221,6 @@ def _apply_update(
         context=context,
         using=using,
     )
-    _write_revision(sponsor, audit_event=audit_event, context=context, using=using)
     return serialize_sponsor(sponsor)
 
 
@@ -1315,7 +1287,7 @@ def _apply_lifecycle(
         ) from error
     sponsor = _authorized_queryset(using=using).get(pk=sponsor.pk)
     _assert_stored_active_cap(sponsor, using=using)
-    audit_event = _record_mutation(
+    _record_mutation(
         action=action,
         sponsor=sponsor,
         before_lifecycle=before_lifecycle,
@@ -1323,7 +1295,6 @@ def _apply_lifecycle(
         context=context,
         using=using,
     )
-    _write_revision(sponsor, audit_event=audit_event, context=context, using=using)
     return serialize_sponsor(sponsor)
 
 

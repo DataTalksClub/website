@@ -9,7 +9,7 @@ from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 
 from core.idempotency import IdempotencyConflict
-from core.models import AuditEvent, RevisionConflict, Sponsor, SponsorRevision
+from core.models import AuditEvent, RevisionConflict, Sponsor
 from core.sponsors import (
     InvalidSponsor,
     SponsorRevisionConflict,
@@ -52,14 +52,13 @@ def _payload(**overrides: object) -> dict[str, object]:
 
 
 class SponsorServiceTests(TestCase):
-    def test_create_validates_fields_and_writes_one_revision_and_audit(self) -> None:
+    def test_create_validates_fields_and_writes_audit(self) -> None:
         result = _create(_payload(name="  Acme Analytics  "))
         self.assertFalse(result.replayed)
         self.assertEqual(result.sponsor["name"], "Acme Analytics")
         self.assertEqual(result.sponsor["revision"], 1)
         self.assertEqual(result.sponsor["lifecycle"], "draft")
         self.assertEqual(Sponsor.objects.count(), 1)
-        self.assertEqual(SponsorRevision.objects.count(), 1)
         audit = AuditEvent.objects.get(action="core.sponsor.created")
         self.assertEqual(audit.target_label, "acme")
         serialized = str(audit.changes) + str(audit.metadata)
@@ -157,7 +156,6 @@ class SponsorServiceTests(TestCase):
         )
         self.assertEqual(archived.sponsor["lifecycle"], "archived")
         self.assertEqual(Sponsor.objects.count(), 1)
-        self.assertEqual(SponsorRevision.objects.count(), 2)
         with self.assertRaises(InvalidSponsor):
             archive_sponsor(
                 sponsor_id=created.sponsor["id"],
@@ -176,7 +174,6 @@ class SponsorServiceTests(TestCase):
             actor_ref="user:188",
         )
         self.assertEqual(reactivated.sponsor["lifecycle"], "active")
-        self.assertEqual(SponsorRevision.objects.count(), 3)
         self.assertEqual(
             set(AuditEvent.objects.values_list("action", flat=True)),
             {
@@ -449,7 +446,6 @@ class SponsorConcurrencyTests(TransactionTestCase):
         ]
         self.assertEqual(len(winners), 1, results)
         self.assertEqual(len(conflicts), 1, results)
-        self.assertEqual(SponsorRevision.objects.count(), 2)
         self.assertEqual(
             AuditEvent.objects.filter(action="core.sponsor.updated").count(),
             1,

@@ -30,7 +30,6 @@ class AppendOnlyQuerySet(models.QuerySet[Any]):
     def update(self, **kwargs: Any) -> int:
         retention_fields = {
             AuditEvent: frozenset({"actor", "api_principal"}),
-            SponsorRevision: frozenset({"changed_by"}),
         }.get(self.model, frozenset())
         supplied_field = next(iter(kwargs), "").removesuffix("_id")
         if (
@@ -462,70 +461,6 @@ class SponsorPlacementAssignment(models.Model):
 
     def __str__(self) -> str:
         return f"{self.sponsor_id}:{self.placement_key}"
-
-
-class SponsorRevision(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    sponsor = models.ForeignKey(
-        Sponsor,
-        on_delete=models.PROTECT,
-        related_name="history",
-    )
-    key = models.CharField(max_length=64)
-    name = models.CharField(max_length=120)
-    url = models.CharField(max_length=500, blank=True)
-    tagline = models.CharField(max_length=200, blank=True)
-    description = models.TextField(blank=True)
-    logo_asset_key = models.CharField(max_length=200, blank=True)
-    lifecycle = models.CharField(max_length=16, choices=Sponsor.Lifecycle.choices)
-    source = models.CharField(max_length=64)
-    revision = models.PositiveBigIntegerField()
-    assignments = models.JSONField(default=list)
-    changed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="sponsor_revisions",
-    )
-    changed_by_ref = models.CharField(max_length=128, blank=True)
-    audit_event = models.ForeignKey(
-        AuditEvent,
-        on_delete=models.PROTECT,
-        related_name="sponsor_revisions",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    objects = AppendOnlyManager()
-
-    class Meta:
-        base_manager_name = "objects"
-        default_manager_name = "objects"
-        ordering = ("sponsor_id", "revision")
-        constraints = [
-            models.UniqueConstraint(
-                fields=("sponsor", "revision"),
-                name="core_sponsor_history_revision_unique",
-            ),
-            models.CheckConstraint(
-                condition=Q(revision__gte=1),
-                name="core_sponsor_history_revision_positive",
-            ),
-        ]
-        indexes = [models.Index(fields=("key", "-revision"), name="core_sponsor_history_key")]
-
-    def __str__(self) -> str:
-        return f"{self.key}@{self.revision}"
-
-    def save(self, *args: Any, **kwargs: Any) -> None:
-        if not self._state.adding:
-            raise AppendOnlyViolation("sponsor history cannot be updated")
-        kwargs["force_insert"] = True
-        super().save(*args, **kwargs)
-
-    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
-        del args, kwargs
-        raise AppendOnlyViolation("sponsor history cannot be deleted")
 
 
 class SiteNavigationMenu(RevisionedModel):
