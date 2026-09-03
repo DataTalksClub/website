@@ -1,0 +1,38 @@
+{% comment %}
+  The site's one breadcrumb trail, drawn by {% breadcrumbs %}
+  (core/templatetags/breadcrumbs.py).  No page writes this markup itself.
+
+  The markup contract the .breadcrumbs primitive in core/_design_system.html is
+  styled against: a nav landmark labelled "Breadcrumb", holding an ordered list
+  because the levels are a sequence and not a set, one li per level, every
+  ancestor a link, and the page itself — where it is drawn at all — as plain text
+  on li[aria-current="page"] rather than a link back to the page the reader is
+  already on.
+
+  The separator is drawn by CSS on li:not(:last-child)::after with empty
+  alternative text, so no "/" is ever written into the markup or announced.
+
+  The whole trail is emitted without whitespace between its tags: the levels are
+  an inline row, and a newline between two li elements becomes a space that the
+  flex row and the CSS separator would both have to fight.
+{% endcomment %}
+{% spaceless %}
+  <nav class="{{ nav_class }}" aria-label="{{ aria_label }}">
+    <ol>
+      {% for crumb in crumbs %}
+        {% if crumb.url %}
+          <li>
+            <a href="{{ crumb.url }}">{{ crumb.label }}</a>
+          </li>
+        {% else %}
+          <li>
+            <span>{{ crumb.label }}</span>
+          </li>
+        {% endif %}
+      {% endfor %}
+      {% if current %}
+        <li aria-current="page">{{ current }}</li>
+      {% endif %}
+    </ol>
+  </nav>
+{% endspaceless %}
