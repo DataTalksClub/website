@@ -3,7 +3,7 @@
 Which repositories exist is a database question: the enabled ``ContentSource``
 rows with the course-repository adapter type are the answer, and both routes
 into the curriculum tables -- the signed push webhook and
-``manage.py pull_course_repositories`` -- read exactly those rows.
+``scripts/prod/sync_course_repositories.py`` -- read exactly those rows.
 
 A database that has never been registered has no rows, so this module also owns
 the pinned registration *input* at ``content_sync/course_repository_sources.json``.

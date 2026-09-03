@@ -15,7 +15,7 @@ import tempfile
 from pathlib import Path
 
 from django.conf import settings
-from django.core.management import CommandError, call_command
+from django.core.management import call_command
 from django.test import SimpleTestCase, TestCase
 
 from content.models import ContentSource
@@ -24,6 +24,13 @@ from content_sync.course_repository_registration import (
     load_registration_input,
 )
 from content_sync.course_repository_webhook import COURSE_REPOSITORY_ADAPTER_TYPE
+from scripts.prod.sync_course_repositories import checkout_plan, select_sources
+from scripts.prod.sync_course_repository_sources import (
+    SyncCourseRepositorySourcesError,
+)
+from scripts.prod.sync_course_repository_sources import (
+    sync as sync_course_repository_sources,
+)
 
 
 class RegistrationInputTests(SimpleTestCase):
@@ -109,10 +116,7 @@ class CourseRepositoryRegistrationTests(TestCase):
 
 class SeedCourseRepositorySourcesTests(TestCase):
     def seed(self) -> list[dict[str, object]]:
-        out = io.StringIO()
-        call_command("seed_course_repository_sources", stdout=out)
-        report: list[dict[str, object]] = json.loads(out.getvalue())["sources"]
-        return report
+        return sync_course_repository_sources()["sources"]  # type: ignore[return-value]
 
     def test_seeding_registers_every_pinned_source(self) -> None:
         report = self.seed()
@@ -154,20 +158,17 @@ class SeedCourseRepositorySourcesTests(TestCase):
 
     def test_the_seeded_rows_are_what_the_pull_plan_reads(self) -> None:
         self.seed()
-        out = io.StringIO()
 
-        call_command("pull_course_repositories", "--checkout-plan", "--from-disk", "/x", stdout=out)
+        sources = select_sources((), explicit={}, root=None)
+        plan = checkout_plan(sources, root=Path("/x"), explicit={})
 
         self.assertEqual(
-            [line.split("\t")[0] for line in out.getvalue().splitlines()],
+            [stable_id for stable_id, _repository, _branch, _target in plan],
             ["ai-dev-tools-zoomcamp", "llm-zoomcamp", "ml-zoomcamp"],
         )
 
     def test_an_unreadable_input_is_a_bounded_refusal(self) -> None:
-        with self.assertRaisesRegex(CommandError, "registration refused"):
-            call_command(
-                "seed_course_repository_sources",
-                "--input",
-                "nowhere/course_repository_sources.json",
-                stdout=io.StringIO(),
+        with self.assertRaises(SyncCourseRepositorySourcesError):
+            sync_course_repository_sources(
+                registration_input=Path("nowhere/course_repository_sources.json")
             )
