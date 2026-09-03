@@ -1,29 +1,32 @@
 """The account entrance family, rebuilt on the design system.
 
-`/accounts/signup/` is where the homepage's primary call to action lands, and it
-was the last page in the flow still rendering allauth's unstyled default
-document — a visitor who decided to join met a page that did not look like the
-site they came from.  These tests hold the rebuilt pages to the two things that
-can quietly break: the design system's own document contract (one inline
-stylesheet, the shared shell, the cream/lavender seam), and the authentication
-controls the redesign is not allowed to drop — every field, the CSRF token, the
-`next` redirect and the provider destinations.
+`/accounts/signup/` is where the homepage's primary call to action lands. It
+was once the last page in the flow still rendering allauth's unstyled default
+document, and `AccountEntranceDocumentTests` below still holds every entrance
+page — signup included — to the design system's own document contract (one
+inline stylesheet, the shared shell, the cream/lavender seam).
 
-They also hold the form's accessibility, because the error state is the one a
-redesign is most likely to get wrong and least likely to see by accident.
+Since `accounts.auth.ClosedAccountAdapter` closed plain email/password signup
+(see `accounts/tests/test_plain_signup_closed.py`, which pins that with real
+HTTP assertions), `/accounts/signup/` no longer renders an interactive form:
+every GET and POST renders `account/signup_closed.html` instead of
+`account/signup.html`. Most of what `SignupPageTests` and
+`SignupProviderChoiceTests` used to check — field labels, autocomplete,
+CSRF/`next` plumbing on the live form, provider buttons, the error-state
+accessibility wiring — checked controls that do not exist any more, and those
+tests were retired rather than bent to pass against a page that has neither a
+form nor providers. What is left in those two classes is what is still
+genuinely theirs: the one template-sharing assertion that survives as a
+login-only check, and the provider-partial test that never depended on the
+signup route being open in the first place.
 """
 
 from __future__ import annotations
 
 import re
 
-from allauth.socialaccount.models import SocialApp
-from django.conf import settings
-from django.contrib.sites.models import Site
-from django.core.cache import cache
 from django.template import Context, Template
 from django.test import TestCase
-from django.urls import reverse
 
 STYLE_ELEMENT = re.compile(r"<style\b")
 STYLESHEET_LINK = re.compile(r'<link[^>]+rel="stylesheet"')
@@ -82,164 +85,48 @@ class AccountEntranceDocumentTests(TestCase):
 
 
 class SignupPageTests(TestCase):
-    """The sign-up page keeps every control it had, and gains real labels."""
+    """What is still this class's to check, now that signup itself is closed.
 
-    def test_login_and_signup_extend_the_same_auth_document(self) -> None:
-        signup = self.client.get("/accounts/signup/")
+    Every other test that used to live here — the rebuilt-template check, field
+    labels and autocomplete, the CSRF token and `action` target, the `next`
+    hidden input, the legal-reassurance links, both error-state accessibility
+    tests — checked an interactive form (`account/signup.html`) that
+    `accounts.auth.ClosedAccountAdapter` no longer lets a signed-out visitor
+    reach. They were retired outright rather than pointed at
+    `account/signup_closed.html`, which has none of those controls to check;
+    `accounts/tests/test_plain_signup_closed.py` already pins what that page
+    renders instead.
+
+    One assertion survives, changed rather than deleted: `signup` and `login`
+    used to be shown extending the same `account/auth_page.html` template.
+    Signup no longer does — `signup_closed.html` is its own standalone
+    document — so only login's half of that claim is still true, and is kept
+    here as a login-only check rather than dropped along with the rest.
+    """
+
+    def test_login_still_extends_the_shared_auth_document(self) -> None:
         login = self.client.get("/accounts/login/")
 
-        self.assertTemplateUsed(signup, "account/auth_page.html")
         self.assertTemplateUsed(login, "account/auth_page.html")
-
-    def test_signup_renders_the_rebuilt_template(self) -> None:
-        response = self.client.get("/accounts/signup/")
-        body = response.content.decode()
-
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "account/signup.html")
-        self.assertIn("Choose how you sign up", body)
-        self.assertNotIn("Every route below creates the same account.", body)
-
-    def test_every_field_has_a_real_label_and_a_stated_required_mark(self) -> None:
-        body = self.client.get("/accounts/signup/").content.decode()
-
-        for field_id, label in (
-            ("id_email", "Email"),
-            ("id_password1", "Password"),
-            ("id_password2", "Password (again)"),
-        ):
-            with self.subTest(field=field_id):
-                self.assertRegex(
-                    body,
-                    rf'<label class="field-label" for="{field_id}">\s*{re.escape(label)}',
-                )
-        # Required is stated in text, never by the asterisk alone.
-        self.assertIn('<span class="sr-only">(required)</span>', body)
-        self.assertIn("are required.", body)
-
-    def test_the_password_fields_work_with_a_password_manager(self) -> None:
-        body = self.client.get("/accounts/signup/").content.decode()
-
-        self.assertIn('autocomplete="email"', body)
-        self.assertEqual(body.count('autocomplete="new-password"'), 2)
-        for field_id in ("id_password1", "id_password2"):
-            with self.subTest(field=field_id):
-                self.assertRegex(body, rf'<input type="password"[^>]*id="{field_id}"')
-
-    def test_the_csrf_token_and_the_post_target_survive_the_redesign(self) -> None:
-        body = self.client.get("/accounts/signup/").content.decode()
-
-        self.assertIn('name="csrfmiddlewaretoken"', body)
-        self.assertIn(f'action="{reverse("account_signup")}"', body)
-
-    def test_the_next_redirect_survives_in_both_the_form_and_the_sign_in_link(self) -> None:
-        body = self.client.get("/accounts/signup/?next=/courses/").content.decode()
-
-        self.assertIn('<input type="hidden" name="next" value="/courses/">', body)
-        self.assertIn("/accounts/login/?next=%2Fcourses%2F", body)
-
-    def test_the_signup_form_keeps_the_legal_reassurance_links(self) -> None:
-        body = self.client.get("/accounts/signup/").content.decode()
-
-        self.assertIn('href="/terms"', body)
-        self.assertIn('href="/privacy"', body)
-        self.assertIn("Terms of Service", body)
-        self.assertIn("Privacy Policy", body)
-
-    def test_an_invalid_submission_announces_what_to_fix_next_to_each_field(self) -> None:
-        response = self.client.post(
-            "/accounts/signup/",
-            {"email": "not-an-address", "password1": "one-password", "password2": "another"},
-        )
-        body = response.content.decode()
-
-        self.assertEqual(response.status_code, 200)
-        # The summary is reachable, announced and says what to fix.
-        self.assertIn('class="a11y-error-summary"', body)
-        self.assertIn('role="alert"', body)
-        self.assertIn("data-focus-error-summary", body)
-        self.assertIn('href="#id_email"', body)
-        # The field error sits beside its field and is linked to it.
-        self.assertIn('aria-invalid="true"', body)
-        self.assertIn('aria-errormessage="id_email-error"', body)
-        self.assertIn('id="id_email-error"', body)
-        # Colour never carries the message on its own.
-        self.assertIn('<span class="sr-only">Error:</span>', body)
-
-    def test_a_mismatched_password_pair_is_reported_on_the_field_it_belongs_to(self) -> None:
-        response = self.client.post(
-            "/accounts/signup/",
-            {
-                "email": "new-member@example.invalid",
-                "password1": "a-long-enough-password",
-                "password2": "a-different-password",
-            },
-        )
-        body = response.content.decode()
-
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('aria-errormessage="id_password2-error"', body)
-        self.assertIn("You must type the same password each time.", body)
 
 
 class SignupProviderChoiceTests(TestCase):
-    """The provider block is the page's primary path, so it has to be there."""
+    """What is still this class's to check, now that signup itself is closed.
 
-    @classmethod
-    def setUpTestData(cls) -> None:
-        site, _ = Site.objects.get_or_create(
-            pk=settings.SITE_ID,
-            defaults={"domain": "testserver", "name": "testserver"},
-        )
-        for provider, name in (("google", "Google"), ("github", "GitHub"), ("slack", "Slack")):
-            app = SocialApp.objects.create(
-                provider=provider,
-                name=name,
-                client_id=f"test-{provider}-client-id",
-                secret="test-not-a-secret",
-            )
-            app.sites.add(site)
+    This class used to prove the provider block actually rendered on
+    `/accounts/signup/`: named controls, correct destinations and `next`
+    propagation, decorative brand marks, ordering ahead of the email form.
+    None of that renders any more — `account/signup_closed.html` has no
+    provider block at all — so those four tests, and the `SocialApp`/`Site`
+    fixtures (`setUpTestData`/`setUp`) they alone needed, were retired
+    outright rather than pointed at a page with nothing left to find.
 
-    def setUp(self) -> None:
-        cache.delete("available_providers")
-
-    def test_each_configured_provider_is_a_named_control_not_a_bare_logo(self) -> None:
-        body = self.client.get("/accounts/signup/").content.decode()
-
-        for name in ("Google", "GitHub", "Slack"):
-            with self.subTest(provider=name):
-                self.assertIn(f"Continue with {name}", body)
-        self.assertIn('class="provider-choices"', body)
-
-    def test_each_provider_button_points_at_that_provider_and_keeps_next(self) -> None:
-        body = self.client.get("/accounts/signup/?next=/courses/").content.decode()
-
-        for provider in ("google", "github", "slack"):
-            with self.subTest(provider=provider):
-                self.assertIn(f"/accounts/{provider}/login/", body)
-        self.assertIn("next=%2Fcourses%2F", body)
-
-    def test_the_brand_marks_are_decoration_and_take_the_theme_with_them(self) -> None:
-        body = self.client.get("/accounts/signup/").content.decode()
-
-        marks = re.findall(r'<svg class="provider-mark"[^>]*>', body)
-        self.assertEqual(len(marks), 3)
-        for mark in marks:
-            with self.subTest(mark=mark):
-                self.assertIn('aria-hidden="true"', mark)
-                self.assertIn('focusable="false"', mark)
-        # currentColor, never a hex: the mark flips with the control it sits in.
-        self.assertEqual(body.count('<path fill="currentColor"'), 3)
-
-    def test_the_email_form_stays_the_named_alternative_beside_the_providers(self) -> None:
-        body = self.client.get("/accounts/signup/").content.decode()
-
-        providers_at = body.index('class="provider-choices"')
-        divider_at = body.index('class="entrance-or"')
-        form_at = body.index('class="entrance-form"')
-        self.assertLess(providers_at, divider_at)
-        self.assertLess(divider_at, form_at)
-        self.assertIn("Sign up with an email address", body)
+    `test_the_provider_partial_accepts_links_from_another_template` below
+    never depended on the signup route being open — it renders
+    `account/_social_provider_choices.html` directly from a template string
+    with a hand-built provider list, exercising the reusable partial on its
+    own terms. It is untouched.
+    """
 
     def test_the_provider_partial_accepts_links_from_another_template(self) -> None:
         body = Template(
