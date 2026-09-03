@@ -583,38 +583,6 @@ def resolve_source_identity(*, repository: str, revision: str, source_key: str) 
         raise EventIdentityError("source_identity_ambiguous") from exc
 
 
-@transaction.atomic
-def attach_historical_mapping(mapping: Any) -> Event:
-    """Attach #112's aggregate mapping by exact source identity, never slug/date matching."""
-
-    event = resolve_source_identity(
-        repository=mapping.canonical_repository,
-        revision=mapping.canonical_revision,
-        source_key=mapping.canonical_source_key,
-    )
-    current_event_id = getattr(mapping, "event_id", None)
-    if current_event_id is not None and current_event_id != event.id:
-        raise EventIdentityError("source_identity_retarget_forbidden")
-    # Keep the relation and immutable provenance snapshot synchronized even when a
-    # staged mapping carried an older/date-derived proposal slug.
-    mapping.event_id = event.id
-    mapping.canonical_repository = event.source_repository
-    mapping.canonical_revision = event.source_revision
-    mapping.canonical_source_key = event.source_key
-    mapping.canonical_slug_snapshot = event.slug
-    mapping.save(
-        update_fields=(
-            "event",
-            "canonical_repository",
-            "canonical_revision",
-            "canonical_source_key",
-            "canonical_slug_snapshot",
-            "updated_at",
-        )
-    )
-    return event
-
-
 def event_projection_record(event: Event) -> dict[str, Any]:
     """Return the checked public record for an Event using exact provenance only."""
 

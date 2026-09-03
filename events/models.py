@@ -585,106 +585,6 @@ class HistoricalRegistrationSourceRun(RevisionedModel):
         super().save(*args, **kwargs)
 
 
-class HistoricalEventMapping(RevisionedModel):
-    class State(models.TextChoices):
-        REVIEW_REQUIRED = "review_required", "Review required"
-        MAPPED = "mapped", "Mapped"
-        EXCLUDED = "excluded", "Excluded"
-        SOURCE_MISSING = "source_missing", "Source missing"
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    event = models.ForeignKey(
-        Event,
-        null=True,
-        blank=True,
-        on_delete=models.PROTECT,
-        related_name="historical_registration_mappings",
-    )
-    provider = models.CharField(
-        max_length=16, choices=HistoricalRegistrationSourceRun.Provider.choices
-    )
-    external_event_identifier = models.CharField(max_length=512)
-    canonical_repository = models.CharField(max_length=255, blank=True)
-    canonical_revision = models.CharField(max_length=64, blank=True)
-    canonical_source_key = models.CharField(max_length=512, blank=True)
-    canonical_slug_snapshot = models.SlugField(max_length=255, blank=True)
-    state = models.CharField(max_length=24, choices=State.choices)
-    mapping_set_revision = models.PositiveBigIntegerField()
-    reviewer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="reviewed_historical_event_mappings",
-    )
-    reviewer_ref = models.CharField(max_length=128, blank=True)
-    reason_code = models.CharField(max_length=64, blank=True)
-    reason = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ("provider", "id")
-        constraints = [
-            models.UniqueConstraint(
-                fields=("provider", "external_event_identifier"),
-                name="events_hist_mapping_provider_external_unique",
-            ),
-            models.CheckConstraint(
-                condition=Q(revision__gte=1), name="events_hist_mapping_revision_positive"
-            ),
-            models.CheckConstraint(
-                condition=Q(mapping_set_revision__gte=1),
-                name="events_hist_mapping_set_revision_positive",
-            ),
-            models.CheckConstraint(
-                condition=(
-                    Q(
-                        state="mapped",
-                        canonical_repository__gt="",
-                        canonical_revision__gt="",
-                        canonical_source_key__gt="",
-                        canonical_slug_snapshot__gt="",
-                        reviewer_ref__gt="",
-                    )
-                    | Q(
-                        state="excluded",
-                        reviewer_ref__gt="",
-                        reason_code__gt="",
-                    )
-                    | Q(state="review_required")
-                    | Q(state="source_missing")
-                ),
-                name="events_hist_mapping_state_evidence",
-            ),
-        ]
-        indexes = [
-            models.Index(fields=("provider", "state"), name="events_hist_mapping_state"),
-            models.Index(
-                fields=("canonical_repository", "canonical_revision", "canonical_source_key"),
-                name="events_hist_mapping_source",
-            ),
-        ]
-
-    def __str__(self) -> str:
-        return f"historical-mapping:{self.id}"
-
-    def save(self, *args: Any, **kwargs: Any) -> None:
-        if not self._state.adding:
-            original = (
-                type(self)
-                .objects.filter(pk=self.pk)
-                .values("provider", "external_event_identifier")
-                .first()
-            )
-            if original is not None and (
-                original["provider"] != self.provider
-                or original["external_event_identifier"] != self.external_event_identifier
-            ):
-                raise ValueError("provider mapping identity is immutable")
-        super().save(*args, **kwargs)
-
-
 class HistoricalRegistrationAggregateRevision(RevisionedModel):
     class State(models.TextChoices):
         STAGED = "staged", "Staged"
@@ -705,10 +605,24 @@ class HistoricalRegistrationAggregateRevision(RevisionedModel):
         on_delete=models.PROTECT,
         related_name="aggregate_revisions",
     )
-    mapping = models.ForeignKey(
-        HistoricalEventMapping,
+    # The provider's own event identifier -- protected data, only ever presented
+    # masked (see events.services._mask_identifier).  Identifies which of the
+    # source run's candidates this row is, the same role the removed
+    # HistoricalEventMapping row used to play.
+    external_event_identifier = models.CharField(max_length=512)
+    # Null until this provider event is resolved to a canonical Event: either
+    # automatically (exact case/whitespace-normalized title, unique date match)
+    # or by a human naming the exact pair in the current-registration-input
+    # JSON file.  Settable exactly once, from null -- never retargeted once
+    # resolved (see save() below).  Resolving this is a distinct, separate
+    # concern from activating the row's count for public display (`state`
+    # below): a resolved aggregate can still be `staged`.
+    event = models.ForeignKey(
+        Event,
+        null=True,
+        blank=True,
         on_delete=models.PROTECT,
-        related_name="aggregate_revisions",
+        related_name="historical_registration_aggregate_revisions",
     )
     eligible_count = models.PositiveBigIntegerField()
     excluded_count = models.PositiveBigIntegerField(default=0)
@@ -724,7 +638,7 @@ class HistoricalRegistrationAggregateRevision(RevisionedModel):
 
     _IMMUTABLE_FIELDS = (
         "source_run_id",
-        "mapping_id",
+        "external_event_identifier",
         "eligible_count",
         "excluded_count",
         "quarantined_count",
@@ -738,25 +652,41 @@ class HistoricalRegistrationAggregateRevision(RevisionedModel):
         ordering = ("source_run_id", "created_at", "id")
         constraints = [
             models.UniqueConstraint(
-                fields=("source_run", "mapping", "aggregate_checksum"),
+                fields=("source_run", "external_event_identifier", "aggregate_checksum"),
                 name="events_hist_aggregate_revision_unique",
             ),
             models.CheckConstraint(
                 condition=Q(revision__gte=1), name="events_hist_aggregate_revision_positive"
             ),
+            models.CheckConstraint(
+                condition=Q(external_event_identifier__gt=""),
+                name="events_hist_aggregate_external_id_nonempty",
+            ),
         ]
         indexes = [
-            models.Index(fields=("mapping", "state", "-created_at"), name="events_hist_agg_state"),
+            models.Index(fields=("event", "state", "-created_at"), name="events_hist_agg_state"),
             models.Index(fields=("aggregate_checksum",), name="events_hist_agg_checksum"),
+            models.Index(
+                fields=("source_run", "external_event_identifier"),
+                name="events_hist_agg_run_ext_id",
+            ),
         ]
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         if not self._state.adding:
-            original = type(self).objects.filter(pk=self.pk).values(*self._IMMUTABLE_FIELDS).first()
-            if original is not None and any(
-                original[field] != getattr(self, field) for field in self._IMMUTABLE_FIELDS
-            ):
-                raise ValueError("aggregate revision provenance and counts are immutable")
+            original = (
+                type(self)
+                .objects.filter(pk=self.pk)
+                .values(*self._IMMUTABLE_FIELDS, "event_id")
+                .first()
+            )
+            if original is not None:
+                if any(
+                    original[field] != getattr(self, field) for field in self._IMMUTABLE_FIELDS
+                ):
+                    raise ValueError("aggregate revision provenance and counts are immutable")
+                if original["event_id"] is not None and original["event_id"] != self.event_id:
+                    raise ValueError("aggregate revision event resolution is immutable once set")
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:
