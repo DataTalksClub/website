@@ -202,7 +202,8 @@ class LegalContentTests(TestCase):
             "DE343190995",
             "Angaben gemäß § 5 TMG",
             "Umsatzsteuer-Identifikationsnummer",
-            "Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV",
+            # § 18 Abs. 2 MStV, which replaced § 55 Abs. 2 RStV on 7 November 2020.
+            "Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV",
             "Streitschlichtung",
             "Haftung für Inhalte",
             "Haftung für Links",
@@ -234,6 +235,20 @@ class LegalContentTests(TestCase):
             "vor einer Verbraucherschlichtungsstelle teilzunehmen.",
             collapsed,
         )
+
+    def test_impressum_cites_no_repealed_broadcasting_statute(self) -> None:
+        """The Rundfunkstaatsvertrag is gone; only the Medienstaatsvertrag is cited.
+
+        The Medienstaatsvertrag replaced it on 7 November 2020, but § 55 Abs. 2
+        RStV still travels around in copied Impressum boilerplate.  The heading the
+        page does carry is pinned in the disclosure test above; this one pins out
+        the statute it must never go back to.
+        """
+
+        collapsed = " ".join(_main_landmark(self.client.get("/impressum").content.decode()).split())
+        for repealed in ("RStV", "Rundfunkstaatsvertrag"):
+            with self.subTest(repealed=repealed):
+                self.assertNotIn(repealed, collapsed)
 
     def test_no_legal_page_shows_a_visitor_a_placeholder_or_our_own_review_words(self) -> None:
         """A visitor must never read a sentence that was written for us.
