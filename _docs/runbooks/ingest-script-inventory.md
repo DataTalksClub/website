@@ -454,9 +454,9 @@ regardless.
 # 6. Luma + Eventbrite registration aggregates
 
 Three stages: clean the raw protected export, derive aggregates from it,
-activate a mapping for public display. The middle stage is where "attendee
-data exists but is deliberately not written to the database" — see 9 below
-for the plan to change that.
+resolve and activate each aggregate for public display. The middle stage is
+where "attendee data exists but is deliberately not written to the database"
+— see 9 below for the plan to change that.
 
 ## 6.1 Prepare
 
@@ -497,19 +497,48 @@ identical first (332 files, sha256 diff clean). Point `--luma-source` at it
 directly, or symlink/copy it to `.local/migration-data/events/luma-aggregate-v1`
 if a given worktree should resolve the default path automatically.
 Transform: aggregates to counts only — the module's own docstring states "no
-attendee value crosses this module boundary" — and proposes canonical event
-mappings.
+attendee value crosses this module boundary".
 Destination: `HistoricalRegistrationAggregateRevision`,
-`HistoricalRegistrationSourceRun`.
+`HistoricalRegistrationSourceRun`. There is no separate mapping model or
+review-state row: each aggregate revision either resolves directly to a
+canonical `Event` (its nullable `event` field, set once, never retargeted) or
+it does not.
 
-## 6.3 Activate
+## 6.3 Resolve and activate
 
-No script — a human reviews a proposed mapping and flips it from
-`mapping_review_required` to active.
+**Resolution** — does this provider event correspond to a canonical
+`Event` — happens two ways, both applied every run of
+[`scripts/prod/import_events.py`](../../scripts/prod/import_events.py), never
+as a persisted review queue or a Studio page:
 
-Notes: only 3 of 421 provider mappings are activated today; the other 380
-render no public count. Confirmed today: the newest available local snapshot
-of Luma data only covers events through August 2026, so four real events on
+- *Explicit*: staging an aggregate resolves it immediately when
+  `--current-registration-input` names its exact provider identity (see
+  [`_docs/migration-data/local-current-registration-input.json`](../migration-data/local-current-registration-input.json)),
+  and re-resolves an already-staged, still-unresolved aggregate on replay once
+  the file has been extended. A human edits this JSON file and re-runs the
+  script; there is no other way to name an exact pair.
+- *Automatic*: `events.services.resolve_unmatched_aggregates` resolves
+  whatever is still unresolved after staging, only when exactly one canonical
+  `Event` shares the provider event's date and that event's
+  case/whitespace-normalized title equals the provider event's normalized
+  title exactly — no fuzzy or ranked match. Eventbrite's export carries no
+  event-level title or date at all, so every unresolved Eventbrite row is
+  reported unmatched under that reason.
+
+Anything neither tier resolves is reported clearly (provider event
+identifier, date, and why it's ambiguous) and stays `event=null` until a
+human adds the right entry to the JSON input file.
+
+**Activation** — whether a *resolved* aggregate's count is actually live for
+public display — is a separate, still-gated step: Studio's
+dry-run/validate/activate flow (`events.services.activate_source`), or the
+narrower `activate_explicit_current_source` the import script calls for
+exactly the aggregates the current-registration-input file names. A resolved
+but not-yet-activated aggregate still renders no public count.
+
+Notes: only a minority of provider events are resolved today; the rest
+render no public count. Confirmed: the newest available local snapshot of
+Luma data only covers events through August 2026, so four real events on
 Luma dated September 8–15, 2026 aren't in this pipeline at all yet — not a
 bug, just the gap between a periodic export and Luma's live state.
 
