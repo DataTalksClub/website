@@ -38,8 +38,24 @@ from scripts.prod.import_events import (  # noqa: E402
     EventImportError,
     activation_coverage,
     derive_registration_sources,
+    import_identities,
     load_current_registration_input,
     stage_registration_aggregates,
+)
+from scripts.prod.sync_course_repositories import (  # noqa: E402
+    SyncCourseRepositoriesError,
+)
+from scripts.prod.sync_course_repositories import (  # noqa: E402
+    pull as pull_course_repositories,
+)
+from scripts.prod.sync_course_repositories import (  # noqa: E402
+    select_sources as select_course_repository_sources,
+)
+from scripts.prod.sync_course_repository_sources import (  # noqa: E402
+    SyncCourseRepositorySourcesError,
+)
+from scripts.prod.sync_course_repository_sources import (  # noqa: E402
+    sync as sync_course_repository_sources,
 )
 
 ORCHESTRATOR_SCHEMA_VERSION = 1
@@ -193,9 +209,10 @@ def run(
     current_input = _load_current_registration_input(current_registration_input)
 
     migrations = _json_management_command("migrate", interactive=False)
-    identities = _json_management_command(
-        "import_event_identities", apply=True, manifest=identity_manifest
-    )
+    # Same function `scripts/prod/import_events.py` calls for identity import: one
+    # implementation, not a management command wrapping a second copy of it.
+    with _event_import_refusals():
+        identities = import_identities(manifest=identity_manifest, apply=True)
     catalog = _json_management_command("seed_local_courses")
     # Real reviewed content, so it comes from the production importer rather than a
     # seeder: the same six rows a production database gets.
@@ -204,17 +221,29 @@ def run(
     testimonials = import_testimonials()
     # Which repositories exist is registered data, so the rehearsal registers the
     # pinned sources and then runs the one ingestion the signed push webhook runs.
-    course_sources = _json_management_command("seed_course_repository_sources")
+    # Same functions scripts/prod/sync_course_repository_sources.py and
+    # scripts/prod/sync_course_repositories.py call: one implementation, not a
+    # management command wrapping a second copy of it.
+    try:
+        course_sources = sync_course_repository_sources()
+    except SyncCourseRepositorySourcesError as error:
+        raise LocalPreparationError(f"sync_course_repository_sources_{error}") from error
     # Production order: the course repositories are pulled *first*, then CMP is
     # reconciled against what they wrote.  The reverse order happened to work only
     # while CMP had no cohort that a repository also owns; the first time both
     # describe one, the CMP-first rebuild refuses on a homework slug collision it
     # would not hit this way round.  The repository is the upstream, so it goes first.
-    modules = _json_management_command(
-        "pull_course_repositories",
-        from_disk=str(course_checkout_root),
-        require_public_commit=True,
-    )
+    try:
+        repository_sources = select_course_repository_sources(
+            (), explicit={}, root=course_checkout_root
+        )
+        modules = pull_course_repositories(
+            sources=repository_sources,
+            root=course_checkout_root,
+            require_public_commit=True,
+        )
+    except SyncCourseRepositoriesError as error:
+        raise LocalPreparationError(f"sync_course_repositories_{error}") from error
     cmp_content: dict[str, Any]
     if cmp_source_db is None:
         cmp_content = {"imported": False, "skipped": "source_not_supplied"}
