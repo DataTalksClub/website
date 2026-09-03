@@ -778,9 +778,9 @@ correction after the first import) reactivates it, applies the edit, and
 re-archives it — again, the same three Studio steps, never a direct write to
 an archived row.
 Destination: `Sponsor` (`public_directory` placement for the featured four,
-`archived` lifecycle with no placement for the rest) and
-`SponsorRevision`/`AuditEvent` (one append-only pair per write, same as every
-other `core.sponsors` mutation).
+`archived` lifecycle with no placement for the rest) and `AuditEvent` (one
+append-only audit record per write, same as every other `core.sponsors`
+mutation).
 
 Notes: `core/views.py`'s `home` and `sponsors` views both read
 `core.sponsors.public_sponsors()` (the `public_directory` placement) and

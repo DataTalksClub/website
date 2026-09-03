@@ -46,7 +46,6 @@ references:
 | `management_auth.APICredential.created_by` | Keep provenance and resolve through the alias. |
 | `core.AuditEvent.actor` | Keep provenance and resolve through the alias. |
 | `core.StaffSession.user` | Reparent to the reviewed survivor; the survivor's current capability still controls access. |
-| `core.OperationalSettingRevision.changed_by` | Keep provenance and resolve through the alias. |
 | `core.Operation.actor` | Keep provenance and resolve through the alias. |
 | `accounts.Token.user` | Keep the compatibility owner and resolve the request through the alias. Token hardening remains owned by #52. |
 | `courses.CourseRegistration.user` | Reparent without changing registration or newsletter fields. |

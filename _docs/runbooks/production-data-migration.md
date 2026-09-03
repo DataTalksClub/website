@@ -1874,11 +1874,11 @@ script**; §11 B9.
 What it has to write into, read rather than invented:
 
 - **Sponsors.** `core.models.Sponsor` is a `RevisionedModel` with
-  `SponsorPlacementAssignment` and an append-only `SponsorRevision` trail. Do
-  **not** write rows directly — go through `core/sponsors.py`
-  (`create_sponsor`, `update_sponsor`, `archive_sponsor`), which is where
-  validation, placement limits, revision conflict handling and the audit trail
-  live. `export_sponsor_directory` already exists; this is its missing inverse.
+  `SponsorPlacementAssignment`. Do **not** write rows directly — go through
+  `core/sponsors.py` (`create_sponsor`, `update_sponsor`, `archive_sponsor`),
+  which is where validation, placement limits, revision conflict handling and
+  the audit trail live. `export_sponsor_directory` already exists; this is
+  its missing inverse.
   Two other things claim to hold sponsors and must be reconciled by whoever writes
   this: `core/sponsor_history.py`'s hardcoded `FEATURED_SUPPORTERS` tuple, and the
   legacy `_data/sponsors.yaml`, which is read by nothing at all. **Measured**: a

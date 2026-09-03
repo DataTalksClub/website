@@ -1047,7 +1047,7 @@ Ordered by how much they will hurt.
 6. **`/faq/` and `/docs/` are both served by Django and 302'd away by CloudFront**
    (§5.3). Two mechanisms disagree; one should go.
 7. **Sponsors have no ingest at all.** `core.models.Sponsor` /
-   `SponsorRevision` / `SponsorPlacementAssignment` are populated only through Studio
+   `SponsorPlacementAssignment` are populated only through Studio
    capabilities (`core/sponsors.py`); the CSV path is **export-only**. Separately,
    `core/sponsor_history.py` holds a hardcoded `FEATURED_SUPPORTERS` tuple. The legacy
    repo's `_data/sponsors.yaml` is read by nothing. Two mechanisms, no importer.
