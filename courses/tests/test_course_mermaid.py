@@ -40,7 +40,10 @@ class CourseMermaidMarkdownTests(SimpleTestCase):
     def test_regular_fences_stay_code_blocks_and_mermaid_detection_is_exact(self):
         rendered = render_markdown("```python\nprint('hello')\n```")
 
-        self.assertIn("<pre><code>print('hello')\n</code></pre>", rendered)
+        self.assertIn(
+            "<pre><code class=\"language-python\">print('hello')\n</code></pre>",
+            rendered,
+        )
         self.assertFalse(markdown_has_mermaid(rendered))
 
 

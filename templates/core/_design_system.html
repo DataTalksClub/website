@@ -3431,45 +3431,108 @@ Rules for editing:
         font-weight: 800;
       }
 
-      /* JavaScript progressively wraps a code sample in this frame.  The extra
-         top padding reserves a quiet toolbar corner without covering the first
-         line; with JavaScript disabled the original `pre` keeps its compact
-         padding and remains the complete experience. */
+      /* JavaScript progressively wraps a code sample in this frame.  The frame
+         adds no padding of its own: a sample that reserved a toolbar strip read
+         as a code block with a hole in the top of it, and the reserved strip was
+         visible whether or not anyone ever wanted the control.  The `pre` keeps
+         the compact padding it has with JavaScript disabled, and the control
+         floats over the first line's right margin instead. */
       .prose .code-block {
         margin: 0;
         position: relative;
       }
 
-      .prose .code-block pre {
-        padding-top: 3.35rem;
+      /* The right margin the control floats over, made real.  Samples wrap
+         rather than scroll, so a long first line otherwise runs the full width
+         of the block and the control paints on top of it: hovering a sample hid
+         code characters, which is both a reading failure and WCAG 2.1 SC 1.4.13.
+         An empty float at the head of the `pre` shortens only the two line boxes
+         the control covers, so nothing above is reserved, the block never
+         reflows when the control appears, and a sample at rest still looks
+         exactly as it does with no JavaScript.  It is wide enough for the
+         longest label the control ever carries ("Try again") plus its offset. */
+      .code-block-gutter {
+        float: right;
+        height: 2.4rem;
+        pointer-events: none;
+        width: 5rem;
       }
 
+      /* At rest this is a fully transparent control sitting a little below the
+         block's top corner, so the sample looks exactly as it does with no
+         JavaScript at all.  `opacity` is the whole mechanism on purpose:
+         `display: none` or `visibility: hidden` would take the button out of the
+         tab order and out of the accessibility tree, which is what makes the
+         common "reveal on hover" pattern unusable from a keyboard.  It stays
+         2rem tall — comfortably past the 24px target-size floor — because being
+         quieter must not mean being harder to hit. */
       .code-block-copy {
         align-items: center;
         background: var(--card);
         border: 1.5px solid var(--line-soft);
-        border-radius: 0.55rem;
+        border-radius: 0.5rem;
         color: var(--ink);
         cursor: pointer;
         display: inline-flex;
         font-family: var(--font-sans);
-        font-size: 0.78rem;
-        font-weight: 800;
+        font-size: 0.72rem;
+        font-weight: 700;
         justify-content: center;
-        min-height: 2.75rem;
-        padding: 0.35rem 0.7rem;
+        min-height: 2rem;
+        min-width: 3rem;
+        opacity: 0;
+        padding: 0.2rem 0.55rem;
         position: absolute;
-        right: 0.65rem;
-        top: 0.65rem;
+        right: 0.6rem;
+        top: 0.9rem;
         transition: background-color 0.15s ease, border-color 0.15s ease,
           color 0.15s ease, opacity 0.15s ease;
         white-space: nowrap;
         z-index: 1;
       }
 
+      /* Pointing at the sample, or focusing anything inside the frame, is the
+         request for the control.  `:focus-within` is listed alongside
+         `:focus-visible` deliberately: `:focus-visible` is a browser heuristic,
+         and a control that is focused must be painted whichever way the focus
+         arrived.  The copied and failed states stay painted after the pointer
+         leaves, because they are the answer to a press. */
+      .prose .code-block:hover .code-block-copy,
+      .prose .code-block:focus-within .code-block-copy,
+      .code-block-copy:hover,
+      .code-block-copy:focus-visible,
       .code-block-copy.is-copied,
-      .code-block-copy.is-error {
+      .code-block-copy.is-error,
+      .code-block-copy[aria-busy="true"] {
         opacity: 1;
+      }
+
+      /* A touch screen never hovers, so there is no gesture that could reveal a
+         hover-only control.  Where the pointer is coarse the button is simply
+         always there — and because it cannot get out of the way, that is the one
+         place the sample still reserves a strip for it instead of letting it
+         cover the first line.  This is the whole reason the reserved strip is
+         written here and nowhere else; the inline gutter is dropped with it,
+         because a control sitting above the sample shortens no line. */
+      @media (hover: none) {
+        .code-block-copy {
+          opacity: 1;
+          top: 0.6rem;
+        }
+
+        .code-block-gutter {
+          display: none;
+        }
+
+        .prose .code-block pre {
+          padding-top: 2.9rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .code-block-copy {
+          transition: none;
+        }
       }
 
       .code-block-copy:hover,

@@ -46,6 +46,13 @@
         overflow-y: auto;
       }
 
+      .rail-heading-row {
+        align-items: center;
+        display: flex;
+        gap: 0.75rem;
+        justify-content: space-between;
+      }
+
       .rail-heading {
         color: var(--muted);
         font-family: var(--font-mono);
@@ -53,6 +60,80 @@
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
+      }
+
+      /* --- hide/show ------------------------------------------------------
+         The `.scroller-button` anatomy at rail density: the same circle, 2px
+         ink outline and stroked glyph, taken down from 2.75rem to 2.25rem
+         because it sits inside quiet navigation rather than under a carousel.
+         36px clears the 24px WCAG 2.2 target floor with room to spare, and the
+         shared `:focus-visible` ring applies untouched.
+
+         The control declares no transition of its own: the collapse itself is a
+         `display` change, which cannot animate, and the one piece of motion a
+         public control is allowed here is the shared `interactive-lift`
+         primitive both halves carry in the markup. */
+      .rail-toggle {
+        align-items: center;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: var(--drawn-circle);
+        color: var(--ink);
+        cursor: pointer;
+        display: none;
+        flex: none;
+        height: 2.25rem;
+        justify-content: center;
+        padding: 0;
+        width: 2.25rem;
+      }
+
+      .rail-toggle:hover {
+        background: var(--lavender);
+      }
+
+      .rail-toggle svg {
+        fill: none;
+        height: 1rem;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 2;
+        width: 1rem;
+      }
+
+      /* The restore stub takes the rail's own grid area and its own sticky
+         offset, so the control a reader clicks to bring the rail back sits
+         exactly where the rail's first row was.  Nothing is fixed to the
+         viewport: the stub scrolls with the page until it pins, so it can never
+         land on top of the masthead. */
+      .rail-restore {
+        grid-area: rail;
+        position: sticky;
+        top: 1rem;
+      }
+
+      /* `display: none`, not an offscreen or zero-width rail: a collapsed rail
+         has to leave the accessibility tree and the tab order, otherwise a
+         screen-reader or keyboard reader walks an invisible lesson list.  The
+         attribute is written on <html> before first paint (see the lesson
+         page's head script), so a reader who hid the rail never sees it appear
+         and vanish on the next lesson. */
+      :root[data-module-rail="collapsed"] .module-layout {
+        grid-template-columns: 2.25rem minmax(0, var(--content-width));
+        gap: 1.5rem;
+      }
+
+      :root[data-module-rail="collapsed"] .module-rail {
+        display: none;
+      }
+
+      /* Both halves need scripting to do anything, and the collapse half needs
+         it before it can be honest about what it controls, so neither is drawn
+         until `core/content_page.html` has marked the document as scripted. */
+      :root.js[data-module-rail="collapsed"] .rail-restore,
+      :root.js:not([data-module-rail="collapsed"]) .rail-collapse {
+        display: inline-flex;
       }
 
       .rail-progress {
@@ -173,7 +254,8 @@
       }
 
       @media (max-width: 52rem) {
-        .module-layout {
+        .module-layout,
+        :root[data-module-rail="collapsed"] .module-layout {
           gap: 2rem;
           grid-template-areas:
             "main"
@@ -183,6 +265,21 @@
 
         .module-sidebar {
           position: static;
+        }
+
+        /* Hiding is a desktop affordance only.  Here the lesson already runs
+           the full width of the phone with the rail stacked underneath it, so
+           collapsing reclaims no reading width -- it would only take away the
+           one in-page route to the module's other lessons.  A reader who hid
+           the rail on a laptop still gets it on their phone, and the stored
+           preference is untouched, so the laptop keeps its state. */
+        :root[data-module-rail="collapsed"] .module-rail {
+          display: grid;
+        }
+
+        :root.js[data-module-rail="collapsed"] .rail-restore,
+        :root.js:not([data-module-rail="collapsed"]) .rail-collapse {
+          display: none;
         }
 
         /* The list runs in full and the page carries one scroll.  With the

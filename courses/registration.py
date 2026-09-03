@@ -155,6 +155,14 @@ ALLOWED_MARKDOWN_TAGS = [
 ]
 ALLOWED_MARKDOWN_ATTRIBUTES = {
     "a": ["href", "title", "rel", "target"],
+    # A fenced block carries its language as ``class="language-<name>"`` on the
+    # ``code`` element.  That single class is the only thing the browser's code
+    # runtime reads out of a sanitized body, and without it every course sample
+    # renders as unhighlighted plain text.  The widening is therefore exactly
+    # one attribute, on exactly one tag, whose value must be one ``language-``
+    # token: no other element gains ``class``, and no other class value
+    # survives on ``code`` (see ``_allowed_markdown_attribute``).
+    "code": ["class"],
     "div": ["aria-label", "class", "role", "tabindex"],
     "img": ["alt", "height", "loading", "src", "title", "width"],
     "td": ["colspan", "rowspan"],
@@ -163,6 +171,7 @@ ALLOWED_MARKDOWN_ATTRIBUTES = {
 ALLOWED_MARKDOWN_PROTOCOLS = ["http", "https", "mailto"]
 
 _PUBLIC_IMAGE_SOURCE_RE = re.compile(r"\Ahttps?://[^\s]+\Z", re.IGNORECASE)
+_CODE_LANGUAGE_CLASS_RE = re.compile(r"\Alanguage-[a-z0-9][a-z0-9+#._-]{0,31}\Z", re.IGNORECASE)
 # Bleach can drop a rejected attribute but not the element that carried it.  An
 # ``<img>`` that lost its source would still paint an empty bordered box, so the
 # sanitized output drops the element itself.
@@ -174,6 +183,11 @@ def _allowed_markdown_attribute(tag: str, name: str, value: str) -> bool:
 
     if name not in ALLOWED_MARKDOWN_ATTRIBUTES.get(tag, ()):
         return False
+    if tag == "code" and name == "class":
+        # Only the fence's own language marker survives.  A course author who
+        # writes raw ``<code class="...">`` cannot borrow a site class, and a
+        # list of classes is rejected outright rather than filtered down.
+        return bool(_CODE_LANGUAGE_CLASS_RE.match(value.strip()))
     if tag == "img" and name == "src":
         # Repository-relative sources are resolved before rendering.  Anything
         # still relative here cannot be fetched from this site, and ``data:``

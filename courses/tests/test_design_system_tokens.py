@@ -58,6 +58,48 @@ def _palette(source: str, selector: str) -> set[str]:
     return set(DECLARED_TOKEN.findall(source[start:end]))
 
 
+def _palette_values(source: str, selector: str) -> dict[str, str]:
+    """Return the declared value of every custom property in one palette block."""
+
+    start = source.index(f"{selector} {{")
+    end = source.index("\n      }", start)
+    return {
+        name: value.strip()
+        for name, value in re.findall(r"(--[a-z0-9-]+):\s*([^;]+);", source[start:end])
+    }
+
+
+def _channels(colour: str) -> tuple[float, float, float]:
+    colour = colour.strip()
+    if colour.startswith("#"):
+        digits = colour[1:]
+        if len(digits) == 3:
+            digits = "".join(character * 2 for character in digits)
+        return (
+            float(int(digits[0:2], 16)),
+            float(int(digits[2:4], 16)),
+            float(int(digits[4:6], 16)),
+        )
+    numbers = re.findall(r"[\d.]+", colour)
+    return (float(numbers[0]), float(numbers[1]), float(numbers[2]))
+
+
+def _relative_luminance(colour: str) -> float:
+    weights = (0.2126, 0.7152, 0.0722)
+    total = 0.0
+    for weight, raw in zip(weights, _channels(colour), strict=True):
+        scaled = raw / 255
+        linear = scaled / 12.92 if scaled <= 0.04045 else ((scaled + 0.055) / 1.055) ** 2.4
+        total += weight * linear
+    return total
+
+
+def _contrast_ratio(foreground: str, background: str) -> float:
+    first = _relative_luminance(foreground)
+    second = _relative_luminance(background)
+    return (max(first, second) + 0.05) / (min(first, second) + 0.05)
+
+
 def _rule_body(source: str, selector: str) -> str:
     """Return the declarations of the first rule whose selector list ends in `selector`."""
 
@@ -182,6 +224,85 @@ class DesignSystemTokenTests(SimpleTestCase):
                 self.assertIn(token, light)
                 self.assertIn(token, dark)
 
+    def test_every_code_token_colour_clears_wcag_aa_on_the_block_ground(self):
+        """A colour nobody can read is not a highlight.
+
+        Both palettes paint tokens on `--card`, the code block's own ground, so
+        each token is measured against that ground rather than against the page.
+        """
+
+        stylesheet = DESIGN_SYSTEM.read_text(encoding="utf-8")
+
+        for theme, selector in (("light", ":root"), ("dark", "body.dark-mode")):
+            values = _palette_values(stylesheet, selector)
+            ground = values["--card"]
+            for token, colour in sorted(values.items()):
+                if not token.startswith("--code-"):
+                    continue
+                with self.subTest(theme=theme, token=token):
+                    self.assertGreaterEqual(
+                        round(_contrast_ratio(colour, ground), 2),
+                        4.5,
+                        f"{token} ({colour}) on --card ({ground}) in the {theme} theme",
+                    )
+
+    def test_the_copy_control_hides_at_rest_without_leaving_the_tab_order(self):
+        """At rest a code sample looks exactly as it does with no JavaScript."""
+
+        stylesheet = DESIGN_SYSTEM.read_text(encoding="utf-8")
+
+        copy_button = _rule_body(stylesheet, ".code-block-copy")
+        self.assertIn("opacity: 0;", copy_button)
+        # Opacity is the whole mechanism: either of these would take the control
+        # out of the tab order and out of the accessibility tree.
+        self.assertNotIn("display: none", copy_button)
+        self.assertNotIn("visibility: hidden", copy_button)
+        # WCAG 2.2 target size (24px).  Quieter must not mean harder to hit.
+        self.assertIn("min-height: 2rem;", copy_button)
+        self.assertIn("min-width: 3rem;", copy_button)
+
+        reveal_selector = ".prose .code-block:hover .code-block-copy"
+        reveal = _rule_body(stylesheet, reveal_selector)
+        self.assertIn("opacity: 1;", reveal)
+        reveal_start = stylesheet.index(reveal_selector)
+        selector_list = stylesheet[reveal_start : stylesheet.index(reveal, reveal_start)]
+        for selector in (
+            # `:focus-visible` alone is a browser heuristic; a focused control
+            # must be painted however the focus arrived.
+            ".prose .code-block:focus-within .code-block-copy",
+            ".code-block-copy:focus-visible",
+            # The answer to a press stays painted after the pointer leaves.
+            ".code-block-copy.is-copied",
+            ".code-block-copy.is-error",
+        ):
+            with self.subTest(selector=selector):
+                self.assertIn(selector, selector_list)
+
+        # Samples wrap rather than scroll, so the margin the control floats over
+        # has to be reserved or the revealed control paints on top of code
+        # characters (WCAG 2.1 SC 1.4.13).  The reservation is an empty float at
+        # the head of the sample, which shortens only the line boxes the control
+        # covers: no strip above the first line, and no reflow on reveal.
+        gutter = _rule_body(stylesheet, ".code-block-gutter")
+        self.assertIn("float: right;", gutter)
+        self.assertIn("width: 5rem;", gutter)
+        self.assertIn("height: 2.4rem;", gutter)
+        # It must never swallow a click meant for the sample underneath it.
+        self.assertIn("pointer-events: none;", gutter)
+
+        # A coarse pointer has no hover to enter, so the control is always
+        # there — and that is the only place a code sample still reserves a
+        # strip above its first line, because a permanent control has to sit
+        # somewhere.  A fine pointer keeps the sample's compact padding, and the
+        # inline gutter goes away with the overlay that needed it.
+        coarse_start = stylesheet.index("@media (hover: none) {")
+        coarse = stylesheet[coarse_start : stylesheet.index("\n      }", coarse_start)]
+        self.assertIn("opacity: 1;", coarse)
+        self.assertIn(".prose .code-block pre {", coarse)
+        self.assertIn("padding-top: 2.9rem;", coarse)
+        self.assertIn(".code-block-gutter {", coarse)
+        self.assertEqual(stylesheet.count(".prose .code-block pre {"), 1)
+
     def test_code_highlighting_contract_covers_published_languages(self):
         stylesheet = DESIGN_SYSTEM.read_text(encoding="utf-8")
         script = CODE_BLOCK_SCRIPT.read_text(encoding="utf-8")
@@ -220,7 +341,7 @@ class DesignSystemTokenTests(SimpleTestCase):
                 self.assertIn(f".prose pre code .code-token-{role} {{", stylesheet)
 
         self.assertIn('setAttribute("data-code-language", language)', script)
-        self.assertIn('document.createTextNode(token.text)', script)
+        self.assertIn("document.createTextNode(token.text)", script)
         self.assertNotIn("innerHTML", script)
         self.assertNotRegex(script, r"\beval\s*\(")
         self.assertNotIn("new Function", script)

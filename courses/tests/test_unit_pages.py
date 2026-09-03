@@ -92,7 +92,7 @@ class PublicUnitPageTests(TestCase):
         self.assertContains(response, "<code>Python</code>", html=True)
         self.assertContains(
             response,
-            '<pre><code>print("hello, agent")\n</code></pre>',
+            '<pre><code class="language-python">print("hello, agent")\n</code></pre>',
             html=True,
         )
         self.assertContains(response, 'src="/static/core/code_blocks.js"')
@@ -398,7 +398,9 @@ class PublicUnitPageTests(TestCase):
         rail_start = body.index('class="module-sidebar module-rail"')
         rail = body[rail_start : body.index("</nav>", rail_start)]
 
-        self.assertIn("<nav class=\"module-sidebar module-rail\"", body)
+        # The id is the collapse control's aria-controls target, so it precedes
+        # the class list on the landmark element itself.
+        self.assertIn('<nav id="module-rail" class="module-sidebar module-rail"', body)
         self.assertIn('aria-labelledby="module-navigation-heading"', rail)
         self.assertIn('<h2 class="rail-heading" id="module-navigation-heading">', rail)
         self.assertNotIn('class="card', rail)

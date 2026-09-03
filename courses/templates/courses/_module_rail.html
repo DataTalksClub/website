@@ -18,9 +18,48 @@
   toggle lives at the foot of the unit's own content column, where finishing a
   lesson actually happens, instead of repeating a full-width button under every
   row.
+
+  A caller that passes `module_rail_collapsible` also gets the hide/show pair.
+  The lesson page passes it; the module index does not, because there the rail
+  is a second view of the page's own subject rather than chrome beside a long
+  read.  The two buttons are one control in two positions -- exactly one of them
+  is ever displayed -- so each one's `aria-expanded` is a constant describing the
+  state the reader can actually see.
 {% endcomment %}
-<nav class="module-sidebar module-rail" aria-labelledby="module-navigation-heading">
-  <h2 class="rail-heading" id="module-navigation-heading">In this module</h2>
+{% if module_rail_collapsible %}
+  <button
+    class="rail-toggle rail-restore interactive-lift"
+    id="module-rail-restore"
+    type="button"
+    aria-controls="module-rail"
+    aria-expanded="false"
+    aria-label="Show the module lessons"
+    title="Show the module lessons"
+  >
+    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d="M3 4l4 4-4 4M9 4l4 4-4 4"/>
+    </svg>
+  </button>
+{% endif %}
+<nav id="module-rail" class="module-sidebar module-rail" aria-labelledby="module-navigation-heading">
+  <div class="rail-heading-row">
+    <h2 class="rail-heading" id="module-navigation-heading">In this module</h2>
+    {% if module_rail_collapsible %}
+      <button
+        class="rail-toggle rail-collapse interactive-lift"
+        id="module-rail-collapse"
+        type="button"
+        aria-controls="module-rail"
+        aria-expanded="true"
+        aria-label="Hide the module lessons"
+        title="Hide the module lessons"
+      >
+        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path d="M13 4L9 8l4 4M7 4L3 8l4 4"/>
+        </svg>
+      </button>
+    {% endif %}
+  </div>
   {% if user.is_authenticated %}
     <p class="rail-progress">{{ module_rail_read_count }} of {{ module_rail_units|length }} read</p>
   {% endif %}
