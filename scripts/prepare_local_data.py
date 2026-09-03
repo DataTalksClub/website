@@ -20,22 +20,43 @@ import logging
 import os
 import subprocess
 import sys
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-REGISTRATION_FACTS_PATH = (
-    PROJECT_ROOT / "_docs" / "migration-data" / "event-registration-sources.json"
+
+# The event legs live in scripts/prod/import_events.py, which is also their own
+# entry point. This orchestrator composes that module rather than keeping a
+# second copy of the same parsing, staging and activation code.
+from scripts.prod.import_events import (  # noqa: E402
+    EVENTBRITE_RELATIVE_SOURCE,
+    LUMA_RELATIVE_SOURCE,
+    EventImportError,
+    activation_coverage,
+    derive_registration_sources,
+    load_current_registration_input,
+    stage_registration_aggregates,
 )
-LUMA_RELATIVE_SOURCE = Path(".local/migration-data/events/luma-aggregate-v1")
-EVENTBRITE_RELATIVE_SOURCE = Path(".local/migration-data/events/eventbrite/aggregate-v1.zip")
+
 ORCHESTRATOR_SCHEMA_VERSION = 1
 
 
 class LocalPreparationError(RuntimeError):
     """A safe, bounded refusal to run the local rehearsal."""
+
+
+@contextmanager
+def _event_import_refusals() -> Iterator[None]:
+    """Re-raise the event importer's condition codes as this command's own."""
+
+    try:
+        yield
+    except EventImportError as error:
+        raise LocalPreparationError(str(error)) from error
 
 
 def _main_checkout_root() -> Path:
@@ -102,63 +123,9 @@ def _json_management_command(name: str, **options: Any) -> dict[str, Any]:
     return report
 
 
-def _load_registration_facts() -> dict[str, dict[str, Any]]:
-    try:
-        payload = json.loads(REGISTRATION_FACTS_PATH.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as error:
-        raise LocalPreparationError("registration_facts_unavailable") from error
-    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
-        raise LocalPreparationError("registration_facts_invalid")
-    facts = {name: payload.get(name) for name in ("luma", "eventbrite")}
-    if any(not isinstance(value, dict) for value in facts.values()):
-        raise LocalPreparationError("registration_facts_invalid")
-    return facts  # type: ignore[return-value]
-
-
 def _load_current_registration_input(path: Path | None):
-    if path is None:
-        return None
-    from events.current_registration import (
-        CurrentRegistrationInputError,
-        load_current_registration_input,
-    )
-
-    try:
+    with _event_import_refusals():
         return load_current_registration_input(path)
-    except CurrentRegistrationInputError as error:
-        raise LocalPreparationError(f"current_registration_input_{error.code}") from error
-
-
-def _current_mapping_bridges(current_input) -> tuple[dict[str, dict[str, dict[str, str]]], dict]:
-    """Resolve input targets by exact Event source identity and build adapter bridges."""
-
-    from events.identity import EventIdentityNotFound, resolve_source_identity
-
-    bridges: dict[str, dict[str, dict[str, str]]] = {
-        "luma": {},
-        "eventbrite": {},
-    }
-    target_events: dict[tuple[str, str, str], Any] = {}
-    for mapping in current_input.mappings:
-        try:
-            event = resolve_source_identity(
-                repository=mapping.canonical_repository,
-                revision=mapping.canonical_revision,
-                source_key=mapping.canonical_source_key,
-            )
-        except EventIdentityNotFound as error:
-            raise LocalPreparationError("current_registration_target_unavailable") from error
-        target_key = mapping.canonical_identity
-        if target_key in target_events and target_events[target_key].id != event.id:
-            raise LocalPreparationError("current_registration_target_ambiguous")
-        target_events[target_key] = event
-        bridges[mapping.provider][mapping.provider_event_identity] = {
-            "repository": event.source_repository,
-            "revision": event.source_revision,
-            "source_key": event.source_key,
-            "slug": event.slug,
-        }
-    return bridges, target_events
 
 
 def _registration_source_report(
@@ -181,59 +148,12 @@ def _registration_source_derivations(
     eventbrite_source: Path,
     current_input=None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    from events.importers import derive_eventbrite, derive_luma
-
-    facts = _load_registration_facts()
-    bridges = {"luma": {}, "eventbrite": {}}
-    if current_input is not None:
-        bridges, _target_events = _current_mapping_bridges(current_input)
-    try:
-        luma = derive_luma(
-            luma_source,
-            expected_checksum=facts["luma"]["tree_sha256"],
-            mapping_bridge=bridges["luma"],
-            allow_partial_mapping=current_input is not None,
+    with _event_import_refusals():
+        return derive_registration_sources(
+            luma_source=luma_source,
+            eventbrite_source=eventbrite_source,
+            current_input=current_input,
         )
-        eventbrite = derive_eventbrite(
-            eventbrite_source,
-            expected_checksum=facts["eventbrite"]["prepared_archive_sha256"],
-            mapping_bridge=bridges["eventbrite"],
-            allow_partial_mapping=current_input is not None,
-        )
-    except Exception as error:
-        # Never echo provider identifiers, paths, or protected parser diagnostics.
-        raise LocalPreparationError("registration_source_validation_failed") from error
-
-    sources = (("luma", luma, facts["luma"]), ("eventbrite", eventbrite, facts["eventbrite"]))
-    report: dict[str, Any] = {}
-    for name, derived, expected in sources:
-        observed = {
-            "events": derived.manifest_event_total,
-            "rows": derived.parsed_row_total,
-            "eligible": derived.eligible_row_total,
-            "excluded": derived.excluded_row_total,
-            "quarantined_events": derived.quarantined_event_total,
-        }
-        expected_values = {
-            "events": expected["event_total"],
-            "rows": expected["row_total"],
-            "eligible": expected["registration_total"],
-            "excluded": expected.get("excluded_registration_total", 0),
-            "quarantined_events": 0,
-        }
-        if observed != expected_values:
-            raise LocalPreparationError(f"{name}_registration_facts_mismatch")
-        report[name] = {
-            **observed,
-            "validated": True,
-            "database_written": True,
-            "activation_state": (
-                "explicit_current_event_pending"
-                if current_input is not None and bridges[name]
-                else "mapping_review_required"
-            ),
-        }
-    return report, {"luma": luma, "eventbrite": eventbrite}
 
 
 def run(
@@ -303,87 +223,15 @@ def run(
         eventbrite_source=eventbrite_source,
         current_input=current_input,
     )
-    from core.services import ServiceContext
-    from events.identity import event_projection_record
-    from events.importers import source_reference_digest
-    from events.services import (
-        activate_explicit_current_source,
-        public_registration_total,
-        stage_derived_source,
-    )
-
-    target_events: dict[tuple[str, str, str], Any] = {}
-    if current_input is not None:
-        _, target_events = _current_mapping_bridges(current_input)
-    mapping_set_revision = current_input.mapping_set_revision if current_input else 1
-    context = ServiceContext(
-        correlation_id="local-production-prep",
-        actor_ref="system:local-production-prep",
-    )
-    registration_import: dict[str, Any] = {
-        "input_supplied": current_input is not None,
-        "mapping_set_revision": mapping_set_revision,
-        "explicit_mapping_total": len(current_input.mappings) if current_input else 0,
-        "sources": {},
-    }
-    for provider in ("luma", "eventbrite"):
-        derived = derived_sources[provider]
-        run, created = stage_derived_source(
-            provider=provider,
-            derived=derived,
-            reference_digest=source_reference_digest(f"local-production-prep-{provider}"),
-            mapping_set_revision=mapping_set_revision,
-            actor=None,
-            context=context,
-            auto_map_explicit=current_input is not None,
+    with _event_import_refusals():
+        registration_import = stage_registration_aggregates(
+            derived_sources=derived_sources,
+            source_report=registration_sources,
+            current_input=current_input,
+            correlation_id="local-production-prep",
         )
-        selected_external_ids = tuple(
-            candidate.external_event_identifier
-            for candidate in derived.candidates
-            if candidate.proposal is not None
-        )
-        mapping_ids = tuple(
-            run.aggregate_revisions.filter(
-                mapping__external_event_identifier__in=selected_external_ids,
-            ).values_list("mapping_id", flat=True)
-        )
-        if len(mapping_ids) != len(selected_external_ids):
-            raise LocalPreparationError("current_registration_mapping_missing")
-        activated = False
-        if mapping_ids:
-            run = activate_explicit_current_source(
-                run.id,
-                mapping_ids=mapping_ids,
-                reason_code="current_event_activation",
-                actor=None,
-                context=context,
-            )
-            activated = True
-        registration_sources[provider]["activation_state"] = (
-            "active" if activated else "mapping_review_required"
-        )
-        registration_import["sources"][provider] = {
-            "run_created": created,
-            "run_state": run.state,
-            "explicit_mapping_total": len(mapping_ids),
-            "legacy_review_required_total": run.aggregate_revisions.filter(
-                mapping__state="review_required"
-            ).count(),
-            "activated": activated,
-        }
-    public_counts: list[int] = []
-    for event in target_events.values():
-        total = public_registration_total(event_projection_record(event))
-        if total is None:
-            raise LocalPreparationError("current_registration_total_unavailable")
-        public_counts.append(total.count)
-    registration_import["public_event_total"] = len(public_counts)
-    registration_import["public_count_total"] = sum(public_counts)
-    if current_input is None:
-        registration_import["activation_state"] = "mapping_review_required"
-    else:
-        registration_import["activation_state"] = (
-            "active" if public_counts else "mapping_review_required"
+        coverage = activation_coverage(
+            source_report=registration_sources, staged=registration_import
         )
     return {
         "schema_version": ORCHESTRATOR_SCHEMA_VERSION,
@@ -398,6 +246,7 @@ def run(
         },
         "registration_sources": registration_sources,
         "registration_import": registration_import,
+        "activation_coverage": coverage,
     }
 
 
