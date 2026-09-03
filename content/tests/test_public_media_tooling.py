@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import contextlib
 import hashlib
 import json
 import tempfile
@@ -11,7 +12,6 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import Mock, patch
 
-from django.core.management import CommandError, call_command
 from django.test import SimpleTestCase, override_settings
 
 from content.media_store import (
@@ -28,6 +28,9 @@ from content.media_tooling import (
     publish_media,
     verify_media,
 )
+from scripts.prod.sync_public_media_hydrate import main as hydrate_main
+from scripts.prod.sync_public_media_publish import main as publish_main
+from scripts.prod.sync_public_media_verify import main as verify_main
 
 CONTENT_REPOSITORY = "DataTalksClub/content"
 LEGACY_REPOSITORY = "DataTalksClub/datatalksclub.github.io"
@@ -158,29 +161,32 @@ class HydrateTests(SimpleTestCase):
                 "content.media_tooling.media_records",
                 return_value=(_record("images/a.jpg", b"one"),),
             ):
-                call_command(
-                    "public_media_hydrate",
-                    "--source",
-                    "checkout",
-                    "--checkout",
-                    f"{CONTENT_REPOSITORY}={self.checkout}",
-                    stdout=stream,
-                )
+                with contextlib.redirect_stdout(stream):
+                    exit_code = hydrate_main(
+                        [
+                            "--source",
+                            "checkout",
+                            "--checkout",
+                            f"{CONTENT_REPOSITORY}={self.checkout}",
+                        ]
+                    )
+        self.assertEqual(exit_code, 0)
         self.assertEqual(json.loads(stream.getvalue())["written"], 1)
         with override_settings(PUBLIC_MEDIA_LOCAL_ROOT=self.destination):
             with patch(
                 "content.media_tooling.media_records",
                 return_value=(_record("images/missing.jpg", b"one"),),
             ):
-                with self.assertRaises(CommandError):
-                    call_command(
-                        "public_media_hydrate",
-                        "--source",
-                        "checkout",
-                        "--checkout",
-                        f"{CONTENT_REPOSITORY}={self.checkout}",
-                        stdout=StringIO(),
+                with contextlib.redirect_stdout(StringIO()):
+                    exit_code = hydrate_main(
+                        [
+                            "--source",
+                            "checkout",
+                            "--checkout",
+                            f"{CONTENT_REPOSITORY}={self.checkout}",
+                        ]
                     )
+        self.assertEqual(exit_code, 1)
 
     def test_the_command_never_reaches_the_network_for_offline_sources(self) -> None:
         self._seed_checkout("images/a.jpg", b"one")
@@ -305,8 +311,9 @@ class PublishTests(SimpleTestCase):
 
     def test_the_command_refuses_a_non_object_store_backend(self) -> None:
         with override_settings(PUBLIC_MEDIA_STORE_BACKEND="local"):
-            with self.assertRaises(CommandError):
-                call_command("public_media_publish", stdout=StringIO())
+            with contextlib.redirect_stdout(StringIO()):
+                exit_code = publish_main([])
+        self.assertEqual(exit_code, 1)
 
 
 class VerifyTests(SimpleTestCase):
@@ -412,13 +419,16 @@ class VerifyTests(SimpleTestCase):
             with override_settings(
                 PUBLIC_MEDIA_STORE_BACKEND="local", PUBLIC_MEDIA_LOCAL_ROOT=Path(empty)
             ):
-                with self.assertRaises(CommandError):
-                    call_command("public_media_verify", stdout=StringIO())
+                with contextlib.redirect_stdout(StringIO()):
+                    exit_code = verify_main([])
+        self.assertEqual(exit_code, 1)
 
     def test_the_offline_store_verifies_the_whole_record_set(self) -> None:
         with override_settings(PUBLIC_MEDIA_STORE_BACKEND="memory"):
             stream = StringIO()
-            call_command("public_media_verify", stdout=stream)
+            with contextlib.redirect_stdout(stream):
+                exit_code = verify_main([])
+            self.assertEqual(exit_code, 0)
             report = json.loads(stream.getvalue())
         self.assertEqual(report["missing_count"], 0)
         self.assertEqual(report["mismatched_count"], 0)

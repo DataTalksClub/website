@@ -61,7 +61,7 @@ def _serving_real_bytes() -> bool:
 requires_hydrated_tree = unittest.skipUnless(
     _serving_real_bytes(),
     "the configured media store does not serve the real hydrated objects "
-    "(run manage.py public_media_hydrate with the local backend)",
+    "(run scripts/prod/sync_public_media_hydrate.py with the local backend)",
 )
 
 

@@ -64,7 +64,7 @@ SUPPORTED_BACKENDS = ("local", "memory", "s3")
 #: `local` is only a valid backend for a checkout that has the files on disk.
 DEPLOYED_ENVIRONMENTS = frozenset({"development", "production"})
 
-HYDRATE_COMMAND = "manage.py public_media_hydrate"
+HYDRATE_COMMAND = "scripts/prod/sync_public_media_hydrate.py"
 
 
 class MediaStoreError(RuntimeError):

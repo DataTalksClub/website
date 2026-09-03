@@ -1,7 +1,8 @@
-"""Operator tooling shared by the public media hydrate/publish/verify commands.
+"""Operator tooling shared by the public media hydrate/publish/verify scripts.
 
 None of this module is reachable from a public, Studio, or admin API request path: it is
-imported only by the three ``manage.py`` commands and their focused tests.
+imported only by the three ``scripts/prod/sync_public_media_*.py`` entry points and their
+focused tests.
 """
 
 from __future__ import annotations

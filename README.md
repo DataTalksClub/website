@@ -76,7 +76,7 @@ The 1,253 public projection images (`/images/...`, about 154 MB) are not tracked
 clone renders every page except the artwork, and `manage.py check` warns with the command to run:
 
 ```bash
-uv run python manage.py public_media_hydrate
+uv run --frozen python scripts/prod/sync_public_media_hydrate.py
 ```
 
 Hydration is idempotent, verifies every object against its recorded checksum, and needs no AWS
