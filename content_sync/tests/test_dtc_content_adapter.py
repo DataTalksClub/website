@@ -392,7 +392,7 @@ class DtcContentAdapterTests(SimpleTestCase):
         book = documents[("book", "20201214-ml-bookcamp")]
         self.assertIn("unknown_book_field", book.raw_structured_data)
         self.assertIn("Discussion archive", book.rendered_html)
-        self.assertIn("It teaches with projects", book.normalized_text)
+        self.assertIn("It teaches with projects", book.rendered_html)
         self.assertEqual(
             {asset.content_type for asset in first.assets},
             {"image/gif", "image/jpeg", "image/png", "image/svg+xml"},

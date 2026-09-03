@@ -317,16 +317,6 @@ class _UnsafeHtmlInspector(HTMLParser):
                     self._reject("unsafe_rendered_html")
 
 
-class _TextExtractor(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.parts: list[str] = []
-
-    def handle_data(self, data: str) -> None:
-        if data.strip():
-            self.parts.append(data.strip())
-
-
 def _fail(code: str, path: str | Path = ".") -> NoReturn:
     normalized = path.as_posix() if isinstance(path, Path) else path
     raise DtcContentValidationError(code, normalized)
@@ -700,12 +690,6 @@ def _render_markdown(raw: str, *, path: str) -> tuple[str, tuple[str, ...]]:
         _fail(inspector.diagnostic_code, path)
     sanitized = sanitize_rendered_html("article", rendered)
     return sanitized, tuple(extensions)
-
-
-def _normalized_text(rendered_html: str) -> str:
-    extractor = _TextExtractor()
-    extractor.feed(rendered_html)
-    return " ".join(" ".join(extractor.parts).split())
 
 
 def _render_text_fragment(value: str, *, path: str) -> str:
@@ -1391,7 +1375,6 @@ def adapt_dtc_content_checkout(
                 raw_frontmatter=metadata,
                 raw_body=raw_body,
                 rendered_html=rendered,
-                normalized_text=_normalized_text(rendered),
                 adapter_metadata=_document_metadata(
                     immutable_url=immutable_url,
                     legacy_path=public_path,
@@ -1517,7 +1500,6 @@ def adapt_dtc_content_checkout(
                     sort_keys=True,
                 ),
                 rendered_html=rendered,
-                normalized_text=_normalized_text(rendered),
                 adapter_metadata=_document_metadata(
                     immutable_url=immutable_url,
                     legacy_path=public_path,
@@ -1595,7 +1577,6 @@ def adapt_dtc_content_checkout(
                     sort_keys=True,
                 ),
                 rendered_html=rendered,
-                normalized_text=_normalized_text(rendered),
                 adapter_metadata=_document_metadata(
                     immutable_url=immutable_url,
                     legacy_path=None,
@@ -1681,7 +1662,6 @@ def adapt_dtc_content_checkout(
                     sort_keys=True,
                 ),
                 rendered_html=rendered,
-                normalized_text=_normalized_text(rendered),
                 adapter_metadata=_document_metadata(
                     immutable_url=immutable_url,
                     legacy_path=public_path,

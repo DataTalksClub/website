@@ -59,7 +59,6 @@ class CourseRepositoryRegistration:
     branch: str = "main"
     max_files: int = DEFAULT_MAX_FILES
     max_bytes: int = DEFAULT_MAX_BYTES
-    secret_reference: str = ""
     enabled: bool = True
 
 
@@ -111,7 +110,6 @@ def register_course_repository(registration: CourseRepositoryRegistration) -> Co
             enabled=registration.enabled,
             max_files=registration.max_files,
             max_bytes=registration.max_bytes,
-            secret_reference=registration.secret_reference,
         ),
         context=ServiceContext(
             correlation_id=new_context_id(),

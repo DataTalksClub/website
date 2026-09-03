@@ -104,7 +104,6 @@ class CourseRepositoryRegistrationTests(TestCase):
             display_name="LLM Zoomcamp repository",
             owner="DataTalksClub",
             repository="llm-zoomcamp",
-            secret_reference="secretref:llm-zoomcamp-hook",
             stdout=self.stdout,
         )
 

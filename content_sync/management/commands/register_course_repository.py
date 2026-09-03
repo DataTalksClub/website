@@ -21,7 +21,6 @@ class Command(BaseCommand):
         parser.add_argument("--owner", required=True)
         parser.add_argument("--repository", required=True)
         parser.add_argument("--branch", default="main")
-        parser.add_argument("--secret-reference", default="")
         parser.add_argument("--enabled", action="store_true")
         parser.add_argument("--max-files", type=int, default=5_000)
         parser.add_argument("--max-bytes", type=int, default=100_000_000)
@@ -33,7 +32,6 @@ class Command(BaseCommand):
         owner = cast(str, options["owner"])
         repository = cast(str, options["repository"])
         branch = cast(str, options["branch"])
-        secret_reference = cast(str, options["secret_reference"])
         enabled = cast(bool, options["enabled"])
         max_files = cast(int, options["max_files"])
         max_bytes = cast(int, options["max_bytes"])
@@ -47,7 +45,6 @@ class Command(BaseCommand):
                     branch=branch,
                     max_files=max_files,
                     max_bytes=max_bytes,
-                    secret_reference=secret_reference,
                     enabled=enabled,
                 )
             )

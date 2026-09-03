@@ -435,7 +435,6 @@ def _content(context: FactoryContext, state: str) -> dict[str, object]:
         adapter_type="fixture",
         mount_path="/",
         enabled=True,
-        last_successful_commit="a" * 40,
     )
     release_factory = f"{prefix}.content_release"
     release = Release.objects.create(
@@ -475,7 +474,6 @@ def _content(context: FactoryContext, state: str) -> dict[str, object]:
             exact_public_path=path,
             slug=f"synthetic-{_key(context, factory, state, length=12)}",
             title=f"Synthetic {leaf.replace('_', ' ')}",
-            normalized_text="[REDACTED]" if state == "privacy_redaction" else "Synthetic content",
             rendered_html="<p>Synthetic content</p>",
             is_published=True,
         )

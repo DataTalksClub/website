@@ -183,7 +183,6 @@ class CreateContentSource:
     max_files: int = 10_000
     max_bytes: int = 100_000_000
     freshness_target_minutes: int = 60
-    secret_reference: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -194,8 +193,6 @@ class CreateContentRelease:
     parser_version: str
     rendering_version: str
     request_provenance: Mapping[str, Any]
-    webhook_delivery_id: str = ""
-    sync_request_id: str = ""
     public_contracts_sha256: str = PUBLIC_CONTRACT_DIGEST
 
 
@@ -225,7 +222,6 @@ class PreparedDocument:
     raw_body: str = ""
     raw_structured_data: str = ""
     rendered_html: str = ""
-    normalized_text: str = ""
     adapter_metadata: Mapping[str, Any] | None = None
     is_published: bool = False
     noindex: bool = False
@@ -396,7 +392,6 @@ def create_content_source(
             max_files=command.max_files,
             max_bytes=command.max_bytes,
             freshness_target_minutes=command.freshness_target_minutes,
-            secret_reference=command.secret_reference,
         )
         source.full_clean()
         source.save(using=using)
@@ -452,10 +447,7 @@ def create_content_release(
             parser_version=command.parser_version,
             rendering_version=command.rendering_version,
             requested_at=timezone.now(),
-            initiator_ref=context.actor_ref or "",
             request_provenance=provenance,
-            webhook_delivery_id=command.webhook_delivery_id,
-            sync_request_id=command.sync_request_id,
             public_contracts_sha256=command.public_contracts_sha256,
         )
         release.full_clean()
@@ -1294,11 +1286,10 @@ def _activate_content_release_atomic(
         _save_release_lifecycle(candidate, using=using, fields_=("status", "activated_at"))
         previous_id = source.active_release_id
         source.active_release = candidate
-        source.last_successful_commit = candidate.commit_sha
         source.revision += 1
         source.save(
             using=using,
-            update_fields=("active_release", "last_successful_commit", "revision", "updated_at"),
+            update_fields=("active_release", "revision", "updated_at"),
         )
         record_audit_event(
             action="content.release.activate",
@@ -1411,11 +1402,10 @@ def _rollback_content_release_atomic(
         )
         previous_id = source.active_release_id
         source.active_release = retained
-        source.last_successful_commit = retained.commit_sha
         source.revision += 1
         source.save(
             using=using,
-            update_fields=("active_release", "last_successful_commit", "revision", "updated_at"),
+            update_fields=("active_release", "revision", "updated_at"),
         )
         record_audit_event(
             action="content.release.rollback",

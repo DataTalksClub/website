@@ -13,7 +13,6 @@ from django.db.models.functions import Lower
 
 from content.migration_validators import (
     validate_exact_public_path,
-    validate_secret_reference,
     validate_storage_key_shape,
 )
 from core.models import RevisionedModel
@@ -62,21 +61,11 @@ class ContentSource(RevisionedModel):
         on_delete=models.PROTECT,
         related_name="active_for_sources",
     )
-    last_successful_commit = models.CharField(
-        max_length=40,
-        blank=True,
-        validators=[sha1_validator],
-    )
     last_webhook_at = models.DateTimeField(null=True, blank=True)
     last_reconciled_at = models.DateTimeField(null=True, blank=True)
     sync_locked_at = models.DateTimeField(null=True, blank=True)
     pending_follow_up = models.BooleanField(default=False)
     freshness_target_minutes = models.PositiveIntegerField(default=60)
-    secret_reference = models.CharField(
-        max_length=255,
-        blank=True,
-        validators=[validate_secret_reference],
-    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -105,11 +94,6 @@ class ContentSource(RevisionedModel):
             models.CheckConstraint(
                 condition=Q(freshness_target_minutes__gte=1),
                 name="content_source_freshness_ck",
-            ),
-            models.CheckConstraint(
-                condition=Q(last_successful_commit="")
-                | Q(last_successful_commit__regex=SHA1_PATTERN),
-                name="content_source_success_sha_ck",
             ),
             models.CheckConstraint(
                 condition=Q(stable_id__regex=r"^[a-z0-9][a-z0-9._-]{0,127}$"),
@@ -194,10 +178,7 @@ class ContentRelease(RevisionedModel):
     activated_at = models.DateTimeField(null=True, blank=True)
     superseded_at = models.DateTimeField(null=True, blank=True)
     failed_at = models.DateTimeField(null=True, blank=True)
-    initiator_ref = models.CharField(max_length=128, blank=True)
     request_provenance = models.JSONField(default=dict, blank=True)
-    webhook_delivery_id = models.CharField(max_length=128, blank=True)
-    sync_request_id = models.CharField(max_length=128, blank=True)
     document_count = models.PositiveIntegerField(default=0)
     relation_count = models.PositiveIntegerField(default=0)
     asset_count = models.PositiveIntegerField(default=0)
@@ -227,10 +208,7 @@ class ContentRelease(RevisionedModel):
         "parser_version",
         "rendering_version",
         "requested_at",
-        "initiator_ref",
         "request_provenance",
-        "webhook_delivery_id",
-        "sync_request_id",
         "public_contracts_sha256",
     )
     PREPARATION_FIELDS = (
@@ -508,7 +486,6 @@ class ContentDocument(FrozenReleaseChild):
     raw_body = models.TextField(blank=True)
     raw_structured_data = models.TextField(blank=True)
     rendered_html = models.TextField(blank=True)
-    normalized_text = models.TextField(blank=True)
     adapter_metadata = models.JSONField(default=dict, blank=True)
     is_published = models.BooleanField(default=False)
     noindex = models.BooleanField(default=False)
