@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import hashlib
+import os
+import subprocess
+import sys
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -15,14 +19,6 @@ from test_support.migrations import (
 )
 
 ROOT = Path(__file__).resolve().parents[2]
-
-#: One module a migration loads that is *not* stable, recorded so it cannot
-#: spread while the fix is out of scope.  ``validate_url_200`` is attached to
-#: ``Homework``/``Project`` URL fields, so Django serializes a reference to it
-#: and every replay imports ``requests`` and ``core.security`` with it.  The
-#: entry is retired by moving the field-attached validators into a module that
-#: imports neither -- never by adding a second entry here.
-KNOWN_UNSTABLE_MIGRATION_MODULES = frozenset({"courses.validators.custom_url_validators"})
 
 
 class StableMigrationModuleTests(unittest.TestCase):
@@ -55,20 +51,68 @@ class StableMigrationModuleTests(unittest.TestCase):
                     unstable[module] = str(error)
 
         self.assertEqual(
-            set(unstable) - KNOWN_UNSTABLE_MIGRATION_MODULES,
-            set(),
+            unstable,
+            {},
             f"a migration loads mutable runtime code: {unstable}",
         )
 
-    def test_the_known_unstable_module_is_still_the_only_one(self) -> None:
-        """Retire the entry by fixing the module, not by deleting the record."""
+    def test_replaying_the_url_validator_migration_never_imports_requests(self) -> None:
+        """The concrete proof: loading the migration file, in a fresh
+        process, must not pull in ``requests`` or ``core.security`` --
+        regardless of what the static AST check above concludes.
 
-        for module in KNOWN_UNSTABLE_MIGRATION_MODULES:
-            with self.subTest(module=module):
-                with self.assertRaises(MigrationContractError):
-                    assert_stable_migration_module_isolation(
-                        ROOT / Path(*module.split(".")).with_suffix(".py")
-                    )
+        Runs in a subprocess, without ``django.setup()``/``apps.populate()``,
+        so unrelated app code (several apps legitimately import ``requests``
+        from their own ``AppConfig.ready()``/admin registration) cannot mask
+        an import that the migration itself triggers.
+        """
+
+        migration_path = ROOT / "courses" / "migrations" / "0001_initial.py"
+        script = textwrap.dedent(
+            f"""
+            import importlib.util
+            import sys
+
+            from django.conf import settings
+
+            # Force lazy settings configuration without populating the app
+            # registry -- ``django.db.migrations``/``django.db.models`` don't
+            # need it, and populating it would import unrelated apps that
+            # legitimately use ``requests`` for their own reasons.
+            _ = settings.INSTALLED_APPS
+
+            spec = importlib.util.spec_from_file_location(
+                "courses.migrations._isolated_0001_initial",
+                {str(migration_path)!r},
+            )
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
+            assert "requests" not in sys.modules, (
+                "loading the migration imported requests as a side effect"
+            )
+            assert "core.security" not in sys.modules, (
+                "loading the migration imported core.security as a side effect"
+            )
+            print("OK")
+            """
+        )
+        env = dict(os.environ)
+        env.setdefault("DJANGO_SETTINGS_MODULE", "website.settings.test")
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            cwd=ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        self.assertEqual(
+            result.returncode,
+            0,
+            f"isolated migration import failed:\nstdout={result.stdout}\nstderr={result.stderr}",
+        )
+        self.assertIn("OK", result.stdout)
 
     def test_the_boundary_rejects_a_transitive_current_app_import(self) -> None:
         layout = settings.TEST_RUNTIME.worker("migration-import-boundary")

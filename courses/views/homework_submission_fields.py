@@ -5,7 +5,7 @@ from django.http import HttpRequest
 
 from courses.models.cohort import Cohort, User
 from courses.models.homework import Homework, Submission
-from courses.validators.custom_url_validators import (
+from courses.validators.url_status_transport import (
     clean_faq_contribution_url,
 )
 from courses.views.homework_learning_links import (

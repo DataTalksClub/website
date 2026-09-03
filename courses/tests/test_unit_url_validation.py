@@ -2,11 +2,11 @@ from unittest import TestCase, mock
 
 from django.core.exceptions import ValidationError
 
-from courses.validators.custom_url_validators import (
+from courses.validators.custom_url_validators import validate_url_200
+from courses.validators.url_status_transport import (
     URL_VALIDATION_TIMEOUT,
     clean_faq_contribution_url,
     get_error_message,
-    validate_url_200,
 )
 
 
@@ -90,7 +90,7 @@ class FaqContributionUrlValidationTestCase(TestCase):
 
 
 class UrlStatusValidationTestCase(TestCase):
-    @mock.patch("courses.validators.custom_url_validators.requests.head")
+    @mock.patch("courses.validators.url_status_transport.requests.head")
     @mock.patch("core.security.socket.getaddrinfo")
     def test_default_validation_never_fetches_or_resolves_user_url(self, mock_dns, mock_head):
         validate_url_200("https://example.com/")
@@ -98,14 +98,14 @@ class UrlStatusValidationTestCase(TestCase):
         mock_dns.assert_not_called()
         mock_head.assert_not_called()
 
-    @mock.patch("courses.validators.custom_url_validators.requests.head")
+    @mock.patch("courses.validators.url_status_transport.requests.head")
     def test_private_destination_is_rejected_before_any_fetch(self, mock_head):
         with self.assertRaises(ValidationError):
             validate_url_200("https://127.0.0.1/")
 
         mock_head.assert_not_called()
 
-    @mock.patch("courses.validators.custom_url_validators.requests.head")
+    @mock.patch("courses.validators.url_status_transport.requests.head")
     def test_git_identifier_is_never_fetched_by_default(self, mock_head):
         validate_url_200("git://github.com/DataTalksClub/faq.git")
 
