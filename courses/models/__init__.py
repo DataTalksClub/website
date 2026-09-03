@@ -53,11 +53,6 @@ from .project import (
     ReviewCriteriaTypes,
     criteria_for_project,
 )
-from .registration_counts import (
-    CourseRegistrationCountRevision,
-    CourseRegistrationCountSlot,
-    CourseRegistrationCountSourceRun,
-)
 from .testimonial import Testimonial, TestimonialPlacement
 from .wrapped import UserWrappedStatistics, WrappedStatistics
 
@@ -71,9 +66,6 @@ __all__ = (
     "CurriculumFormat",
     "CourseRegistration",
     "CourseCurriculumImportRun",
-    "CourseRegistrationCountRevision",
-    "CourseRegistrationCountSlot",
-    "CourseRegistrationCountSourceRun",
     "Course",
     "CriteriaResponse",
     "Enrollment",

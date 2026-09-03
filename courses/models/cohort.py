@@ -284,6 +284,40 @@ class RegistrationCampaign(models.Model):
     )
     is_active = models.BooleanField(default=True)
 
+    registration_baseline_cohort = models.ForeignKey(
+        Cohort,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        help_text=(
+            "The cohort the baseline count below was recorded for. A "
+            "campaign that has rotated to promote a different cohort since "
+            "no longer applies it -- a baseline recorded for a finished "
+            "edition never carries onto whatever cohort registers next."
+        ),
+    )
+    registration_baseline_count = models.PositiveIntegerField(
+        default=0,
+        db_default=0,
+        help_text=(
+            "Registrations that happened before this campaign's Course"
+            "Registration rows existed (a one-time recorded historical "
+            "figure, e.g. from a legacy CMP export). Zero for a campaign "
+            "whose registrations are all native rows."
+        ),
+    )
+    registration_native_start_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=(
+            "When native CourseRegistration rows became the complete "
+            "record for this campaign. Only registrations at or after "
+            "this instant are added to the baseline above; unset when "
+            "there is no baseline to protect against double-counting."
+        ),
+    )
+
     marketing_markdown = models.TextField(blank=True)
     meta_description = models.TextField(blank=True)
     hero_image_url = models.URLField(
