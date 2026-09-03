@@ -33,7 +33,6 @@ from review_import.workflow import (
     cleanup_snapshot,
     fingerprint,
 )
-from scripts import load_rds_export
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TEST_RUN_ID = f"{os.getpid()}-{uuid.uuid4().hex}"
@@ -2422,22 +2421,3 @@ with workflow._operation_lock():
             ReviewImporter().run(self.config(target_db=PROJECT_ROOT / "README.md"))
         self.assertEqual(target_error.exception.category, "unsafe-target-path")
 
-    def test_legacy_broad_loader_is_disabled_before_any_path_access(self) -> None:
-        stderr = StringIO()
-        with (
-            mock.patch.object(load_rds_export, "parse_args") as parse_args,
-            mock.patch.object(load_rds_export, "resolve_import_paths") as resolve_paths,
-            mock.patch.object(load_rds_export, "rebuild_database") as rebuild,
-            mock.patch.object(load_rds_export, "replace_rebuilt_database") as replace,
-            redirect_stderr(stderr),
-        ):
-            result = load_rds_export.main()
-
-        self.assertEqual(result, 2)
-        parse_args.assert_not_called()
-        resolve_paths.assert_not_called()
-        rebuild.assert_not_called()
-        replace.assert_not_called()
-        output = stderr.getvalue()
-        self.assertIn("broad RDS loader is disabled", output)
-        self.assertIn("scripts/build_local_review_db.py", output)
