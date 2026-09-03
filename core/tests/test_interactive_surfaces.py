@@ -33,9 +33,6 @@ class InteractiveSurfaceContractTests(SimpleTestCase):
     def template_sources(self):
         for root in TEMPLATE_ROOTS:
             for path in root.rglob("*.html"):
-                # The media kit deliberately owns its landing-page interactions.
-                if path.name == "mediakit.html":
-                    continue
                 yield path, path.read_text(encoding="utf-8")
 
     def test_visual_control_families_use_the_single_lift_primitive(self) -> None:

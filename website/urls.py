@@ -6,11 +6,16 @@ from accounts import api as account_api
 from accounts.views.continuity import explicit_reauthentication
 from cadmin.legacy_urls import legacy_course_list_redirect
 from content import public_views, review_views
-from core import mediakit as mediakit_views
 from core import views as core_views
 from courses import urls as course_urls
 from courses.views import course_aliases, course_list
 from studio_courses import urls as studio_course_urls
+
+#: The media kit is published from its own repository, DataTalksClub/mediakit,
+#: as a GitHub Pages project site.  A project site is served independently of
+#: the legacy DataTalksClub/datatalksclub.github.io repository that shares the
+#: hostname, so retiring the legacy site does not take this target down.
+MEDIA_KIT_URL = "https://datatalksclub.github.io/mediakit/"
 
 course_patterns = [
     pattern
@@ -36,11 +41,20 @@ urlpatterns = [
     ),
     path("", core_views.home, name="home"),
     path("sponsors", core_views.sponsors, name="sponsors"),
-    path("mediakit/", mediakit_views.media_kit, name="media-kit"),
+    # The media kit is not a page of this site. Keeping a second copy here
+    # meant it drifted: it advertised a course start month the database
+    # contradicted, listed an edition that does not exist, and omitted a
+    # course entirely.
+    path(
+        "mediakit/",
+        public_views.permanent_public_redirect,
+        {"target": MEDIA_KIT_URL},
+        name="media-kit",
+    ),
     path(
         "mediakit",
         public_views.permanent_public_redirect,
-        {"target": "/mediakit/"},
+        {"target": MEDIA_KIT_URL},
         name="media-kit-slash-redirect",
     ),
     path("", include("content.public_urls")),
