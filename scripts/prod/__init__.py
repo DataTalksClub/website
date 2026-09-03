@@ -5,4 +5,83 @@ export, an event registration archive, a course repository.  Nothing that invent
 belongs here, and nothing here may import a seeder -- the split is by *what data a
 module touches*, so a reader can tell from the path whether a script is safe to point
 at a scratch database.
+
+Two sync models, said by the filename
+-------------------------------------
+
+``sync_*``
+    **Git-synchronized.** Upstream keeps changing and we re-run this whenever it
+    does.  Re-running is the normal case, not the exception.
+
+``import_*``
+    **One-time.** Frozen history, read once at migration.  Re-running is still
+    safe -- every write is keyed on a natural key -- but nothing upstream is
+    going to move.
+
+So a person opening this directory can tell at a glance which scripts they would
+ever run twice.  Each module also declares ``SYNC_MODEL`` and
+``scripts/tests/test_prod_scripts.py`` checks that the declaration and the
+filename agree, so the convention cannot quietly rot.
+
+The course-repository curriculum is deliberately *not* here.  It is git-synchronized
+and already has exactly one path, ``content_sync.course_repository_ingest``, shared by
+the signed push webhook and ``manage.py pull_course_repositories``.  Registered
+``ContentSource`` rows say which repositories exist.  That is the shape the rest of
+this package is being gathered into; adding a second entry point for it would undo it.
+
+Bootstrapping, and why the order matters
+----------------------------------------
+
+An importer either **bootstraps** -- it can populate a database that has no prior rows
+of its own domain -- or it **reconciles**: it matches upstream rows against rows that
+are already present and writes nothing where it finds no match.
+
+Running a reconciling importer first is not an error.  It is a *silent no-op*, and
+that is the trap: ``import_cmp_content`` reported success while writing nothing,
+because it only updated cohorts that already existed, so the only way to get data in
+was to run a placeholder seeder first and let the real import overwrite the invented
+copy.  A production ingest that depends on fake rows existing first is backwards, so
+that importer now creates the cohort and its family from the reviewed catalogue.
+
+:data:`BOOTSTRAPPING_ENTRY_POINTS` records which modules bootstrap.  It is checked by
+``scripts/tests/test_prod_imports.py``, so a module that gains or loses the ability is
+a deliberate edit rather than a surprise.
+
+Course catalogue order
+----------------------
+
+Three sources write cohorts, and they are not interchangeable:
+
+1. ``import_legacy_zoomcamp`` -- the frozen pre-2024 editions.  Nothing else has them.
+2. ``manage.py pull_course_repositories`` -- the git-synchronized upstream.  It owns
+   module and unit curricula.
+3. ``import_cmp_content`` -- reconciles CMP's titles, homework, questions, projects
+   and criteria against what the first two wrote.
+
+CMP runs **last** because it reconciles.  The reverse order happened to work only
+while no cohort was described by both CMP and a repository; the first time one is,
+a CMP-first rebuild refuses on a homework slug collision.
 """
+
+from __future__ import annotations
+
+SYNC_MODELS = ("git-synchronized", "one-time")
+
+# Modules that can populate a database with no prior rows of their own domain.
+BOOTSTRAPPING_ENTRY_POINTS = frozenset(
+    {
+        "import_cmp_content",
+        "import_legacy_zoomcamp",
+        "import_testimonials",
+        "sync_content",
+    }
+)
+
+# The declared course-catalogue order. The reconciler goes last.
+COURSE_CATALOGUE_ORDER = (
+    "import_legacy_zoomcamp",
+    "pull_course_repositories",
+    "import_cmp_content",
+)
+
+__all__ = ["BOOTSTRAPPING_ENTRY_POINTS", "COURSE_CATALOGUE_ORDER", "SYNC_MODELS"]

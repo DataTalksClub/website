@@ -21,10 +21,18 @@ from __future__ import annotations
 
 import hashlib
 import re
+from typing import TYPE_CHECKING
 
 from accounts.identity_values import normalize_account_email
 from courses.models import Cohort, Enrollment, User
 from courses.random_names import generate_random_name
+
+if TYPE_CHECKING:
+    # ``courses.models.User`` is ``get_user_model()`` -- a value, so it cannot
+    # annotate.  The configured model is what it resolves to at runtime.
+    from accounts.models import CustomUser as UserType
+else:
+    UserType = User
 
 USERNAME_PREFIX = "zc-hist-"
 _USERNAME_SANITIZE_RE = re.compile(r"[^\w.@+-]")
@@ -57,7 +65,7 @@ def _unique_username(email: str) -> str:
     return candidate
 
 
-def _get_or_create_by_real_email(real_email: str) -> tuple[User, bool]:
+def _get_or_create_by_real_email(real_email: str) -> tuple[UserType, bool]:
     normalized = normalize_account_email(real_email)
     if not normalized or "@" not in normalized:
         return _get_or_create_synthetic(sha1_hex(real_email))
@@ -70,7 +78,7 @@ def _get_or_create_by_real_email(real_email: str) -> tuple[User, bool]:
     return user, True
 
 
-def _get_or_create_synthetic(source_key: str) -> tuple[User, bool]:
+def _get_or_create_synthetic(source_key: str) -> tuple[UserType, bool]:
     username = username_for_key(source_key)
     return User.objects.get_or_create(
         username=username,
@@ -78,7 +86,7 @@ def _get_or_create_synthetic(source_key: str) -> tuple[User, bool]:
     )
 
 
-def get_or_create_learner(source_key: str, real_email: str | None = None) -> tuple[User, bool]:
+def get_or_create_learner(source_key: str, real_email: str | None = None) -> tuple[UserType, bool]:
     """Get or create the account behind one historical learner.
 
     ``source_key`` is a ``sha1_hex`` value, either copied verbatim from an
@@ -94,7 +102,7 @@ def get_or_create_learner(source_key: str, real_email: str | None = None) -> tup
     return _get_or_create_synthetic(source_key)
 
 
-def get_or_create_enrollment(user: User, cohort: Cohort) -> tuple[Enrollment, bool]:
+def get_or_create_enrollment(user: UserType, cohort: Cohort) -> tuple[Enrollment, bool]:
     return Enrollment.objects.get_or_create(student=user, course=cohort)
 
 

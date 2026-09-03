@@ -75,6 +75,14 @@ def _aware(day: date) -> datetime:
     return timezone.make_aware(datetime(day.year, day.month, day.day, 23, 59))
 
 
+def _cohort_start(cohort: Cohort) -> date:
+    """``ensure_cohort`` always sets a start date; every due date is relative to it."""
+
+    if cohort.start_date is None:
+        raise ValueError("historical cohort has no start date")
+    return cohort.start_date
+
+
 def ensure_cohort(edition: EditionSource) -> Cohort:
     start_date = date(edition.year, edition.start_month, 1)
     homework_span = len(edition.homeworks) * 7
@@ -134,7 +142,7 @@ def _import_homework(
     text_by_column, points_by_column = _load_answers_config(source.answers_json)
     question_columns = [name for name in fieldnames if name.startswith("question")]
 
-    due_date = cohort.start_date + position * _WEEK_SPACING
+    due_date = _cohort_start(cohort) + position * _WEEK_SPACING
     title = topic.title if topic else f"Homework {source.slug_part}"
     instructions_markdown = topic.instructions_markdown if topic else ""
     homework, _ = Homework.objects.update_or_create(
@@ -235,7 +243,7 @@ def _import_project(
     _fieldnames, rows = _read_rows(source.results_csv)
     assignment_lookup = _load_assignment_lookup(source.assignment_csv)
 
-    due_date = cohort.start_date + timedelta(days=60) + position * _PROJECT_SPACING
+    due_date = _cohort_start(cohort) + timedelta(days=60) + position * _PROJECT_SPACING
 
     project, _ = Project.objects.update_or_create(
         course=cohort,
@@ -314,8 +322,8 @@ def import_edition_scoring(edition: EditionSource, course_repos_dir: Path | None
 
     projects = []
     project_submissions = 0
-    for position, source in enumerate(edition.projects):
-        project, count = _import_project(cohort, source, position, hash_to_email)
+    for position, project_source in enumerate(edition.projects):
+        project, count = _import_project(cohort, project_source, position, hash_to_email)
         projects.append(project)
         project_submissions += count
 
