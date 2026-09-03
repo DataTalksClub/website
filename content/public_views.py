@@ -45,6 +45,7 @@ from events.services import public_registration_total
 from . import wiki_content
 from .article_content import article_view, render_body_markdown
 from .article_faq import ArticleFaq, article_faq
+from .event_banners import event_banner_url
 from .faq_data import faq_courses
 from .media_store import (
     MediaStore,
@@ -400,6 +401,7 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
         {**projected, "identity_id": str(identity.id)},
     )
     event["public_path"] = canonical_detail_path(identity.id)
+    event["banner_url"] = event_banner_url(event)
     # The page states whether the event has happened in a word, using the same split the
     # events index draws its rows from.  An event the grouped catalogue cannot place —
     # the projected fallback record above — reports no state rather than an invented one.
@@ -424,6 +426,8 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
             for speaker in event["speakers"]
         ],
     }
+    if event["banner_url"]:
+        entity["image"] = _canonical(event["banner_url"])
     if event["ends_at"]:
         entity["endDate"] = event["ends_at"]
     registration_total = public_registration_total(event)
@@ -442,11 +446,19 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
         description=f"{event['type'].title()} on {event['display_time']}.",
         context={
             "event": event,
+            "event_hero_class": (
+                "event-hero-grid"
+                if event["banner_url"]
+                else "event-hero-grid event-hero-grid-plain"
+            ),
             "event_state": event_state,
             "registration_total": registration_total,
             "registration_total_label": "registered",
             "qna_url": qna_url,
             "og_type": "event",
+            "og_image_url": (
+                _canonical(event["banner_url"]) if event["banner_url"] else ""
+            ),
             "structured_data": _json_ld(
                 entity,
                 trail(("Events", "/events"), (event["title"], event["public_path"])),

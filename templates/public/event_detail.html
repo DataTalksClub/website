@@ -26,6 +26,9 @@
     <meta name="twitter:description" content="{{ seo_description }}">
     {% if og_image_url %}
       <meta property="og:image" content="{{ og_image_url }}">
+      <meta property="og:image:width" content="1000">
+      <meta property="og:image:height" content="1000">
+      <meta property="og:image:alt" content="{{ event.title }}">
     {% endif %}
     {% if og_image_url %}
       <meta name="twitter:image" content="{{ og_image_url }}">
@@ -65,6 +68,35 @@
         display: grid;
         gap: 0.9rem;
         justify-items: start;
+      }
+
+      .event-hero-grid {
+        align-items: center;
+        display: grid;
+        gap: clamp(1.5rem, 4vw, 3.5rem);
+        grid-template-columns: minmax(12rem, 18rem) minmax(0, 1fr);
+      }
+
+      .event-hero-grid-plain {
+        display: block;
+      }
+
+      .event-banner {
+        margin: 0;
+        max-width: 18rem;
+      }
+
+      .event-banner img {
+        aspect-ratio: 1;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 1.2rem;
+        box-shadow: 0.35rem 0.35rem 0 var(--shadow-soft);
+        display: block;
+        height: auto;
+        max-width: 100%;
+        object-fit: cover;
+        width: 100%;
       }
 
       .event-head h1 {
@@ -171,6 +203,15 @@
           gap: 0.7rem;
         }
 
+        .event-hero-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .event-banner {
+          justify-self: center;
+          max-width: min(100%, 22rem);
+        }
+
         .event-links {
           align-items: stretch;
           flex-direction: column;
@@ -211,7 +252,21 @@
       <section class="band band-cream event-hero" aria-labelledby="event-heading">
         <div class="shell event-shell">
           <article>
-            <header class="event-head">
+            <div class="{{ event_hero_class }}">
+              {% if event.banner_url %}
+                <figure class="event-banner" data-testid="event-banner">
+                  <img
+                    src="{{ event.banner_url }}"
+                    alt="{{ event.title }} event artwork"
+                    width="1000"
+                    height="1000"
+                    loading="eager"
+                    decoding="async"
+                    fetchpriority="high"
+                  >
+                </figure>
+              {% endif %}
+              <header class="event-head">
               {% comment %}
                 The kind pill maps exactly as the index maps it — sand for anything
                 past, mint for a live podcast recording, lavender for every other
@@ -275,7 +330,8 @@
                   <a class="cta cta-compact cta-secondary interactive-lift" href="{{ qna_url }}">Event Q&amp;A</a>
                 </div>
               {% endif %}
-            </header>
+              </header>
+            </div>
           </article>
         </div>
       </section>
