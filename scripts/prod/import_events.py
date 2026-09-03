@@ -25,23 +25,55 @@ make an event addressable.  Replaying reports ``replayed`` and creates nothing.
 row is read into the database by any path here -- the adapters reduce each
 export to a per-event total, reconcile it against the recorded safe facts in
 ``_docs/migration-data/event-registration-sources.json``, and store a
-``HistoricalRegistrationAggregateRevision``.  A count only becomes public once
-its provider event is explicitly mapped to a canonical event.
+``HistoricalRegistrationAggregateRevision``.  There is no separate mapping
+model or review-state row: the aggregate revision either resolves directly to
+a canonical ``Event`` (its ``event`` field, set once) or it does not.  A count
+only becomes public once its aggregate is resolved *and* separately activated
+(``dry-run``/``validate``/``activate``, or ``activate_explicit_current_source``
+below) -- resolution and public-display activation are still two different
+gates, exactly as they were before.
 
-**Coverage is the interesting number.**  The adapters work; the mappings are
-the backlog.  Every run reports ``activation_coverage`` so an operator sees
-"3 of 383 provider events activated, 380 awaiting mapping review" rather than a
-silent success.  Unmapped events render no registration count at all.
+**Coverage is the interesting number.**  The adapters work; resolving each
+provider event to a canonical Event is the backlog.  Every run reports
+``activation_coverage`` so an operator sees "3 of 383 provider events
+resolved, 380 still unresolved" rather than a silent success.  An unresolved
+event renders no registration count at all.
 
 **New event identities** (``new_event_identities`` in the report): a genuinely
 new event -- one a fresh Luma export names that neither the reviewed manifest
 nor any prior provider-registration run has ever seen -- gets a real
 ``Event`` row here, via ``events.identity.create_event_identity``.  This is
-title and a canonical path only; it never activates a registration count, and
-it never touches ``events/event_identity_manifest.json``.  See
-``discover_new_luma_event_identities`` and ``discover_new_provider_events``.
+title and a canonical path only; it never resolves or activates a
+registration count, and it never touches ``events/event_identity_manifest.json``.
+See ``discover_new_luma_event_identities`` and ``discover_new_provider_events``.
 Run with ``--discover-new-events-only`` to do just this against a fresh export
 that has not yet been reconciled into ``event-registration-sources.json``.
+
+**Resolution** happens in two ways, both applied every run, neither a
+persistent review queue:
+
+1. *Explicit*: staging an aggregate (``stage_derived_source``, called below)
+   resolves it immediately when ``--current-registration-input`` names its
+   exact provider identity, and re-resolves an already-staged, still-null
+   aggregate on replay when the file has since been extended.  See
+   ``_docs/migration-data/local-current-registration-input.json``.
+2. *Automatic* (``aggregate_auto_resolution`` in the report): a narrower,
+   additional pass over whatever is still unresolved after staging.  For each
+   Luma provider event still unresolved, it resolves the aggregate -- via
+   ``events.services.resolve_unmatched_aggregates`` -- only when exactly one
+   canonical ``Event`` shares its date and that event's
+   case/whitespace-normalized title exactly equals the provider event's
+   normalized title.  No fuzzy or ranked matching: a date with zero or
+   several plausible canonical events, or a title that is merely similar, is
+   left unresolved and reported under its own reason.  Eventbrite exports
+   carry no event-level title or date at all, so every unresolved Eventbrite
+   row is reported unmatched for that reason.  See
+   ``activate_unambiguous_mappings`` and
+   ``events.services.resolve_unmatched_aggregates``.
+
+Neither tier is a Studio page or a separate model: a human resolves an
+ambiguous case by adding the exact pair to the current-registration-input
+JSON file and re-running this script.
 
 What does not land yet
 ----------------------
@@ -177,10 +209,11 @@ def import_identities(*, manifest: Path | None = None, apply: bool = True) -> di
 # It is deliberately kept separate from ``activation_coverage`` below.  Minting
 # an identity is safe, reviewable plumbing -- title and a canonical path,
 # nothing a visitor's registration count depends on -- so it is fine to
-# automate.  Activating that event's registration *count* is a different,
-# already-gated decision (``mapping_review_required``, s.8/16/17 of the
-# data-ingest runbook) and stays exactly as gated as it is today: this section
-# never creates or activates a ``HistoricalEventMapping``.
+# automate.  Resolving that event's registration *count* to a canonical Event,
+# and separately activating it for public display, are different,
+# already-gated decisions (see s.6 of the ingest inventory) and stay exactly
+# as gated as they are today: this section never resolves or activates a
+# ``HistoricalRegistrationAggregateRevision``.
 
 
 def discover_new_provider_events(
@@ -197,13 +230,13 @@ def discover_new_provider_events(
 
     - This database already holds an ``Event`` under our own provider source
       identity (idempotent replay -- a second run creates nothing new).
-    - A ``HistoricalEventMapping`` row already exists for
-      ``(provider, external_event_identifier)`` in *any* state, including
-      ``review_required``.  This is what keeps the step from racing ahead of
-      the existing, separately tracked mapping-review backlog: an event
-      already staged there was very likely described by the legacy manifest
-      under a different (date/title-derived) source key, and creating a
-      second identity for it would be a silent duplicate, not a fix.
+    - A ``HistoricalRegistrationAggregateRevision`` row already exists for
+      ``(provider, external_event_identifier)`` -- resolved or not.  This is
+      what keeps the step from racing ahead of the existing, separately
+      tracked resolution backlog: an event already staged there was very
+      likely described by the legacy manifest under a different
+      (date/title-derived) source key, and creating a second identity for it
+      would be a silent duplicate, not a fix.
     - The export carries no title for it (``item.title == ""`` -- a Luma event
       with zero registrations has no row to read one from).  Reported
       separately as ``no_metadata_total`` rather than silently dropped, since
@@ -218,14 +251,14 @@ def discover_new_provider_events(
         provider_source_identity,
         resolve_source_identity,
     )
-    from events.models import HistoricalEventMapping
+    from events.models import HistoricalRegistrationAggregateRevision
 
     created: list[dict[str, Any]] = []
     no_metadata: list[dict[str, Any]] = []
     already_tracked = 0
     for item in discovered:
-        already_mapped = HistoricalEventMapping.objects.filter(
-            provider=provider,
+        already_mapped = HistoricalRegistrationAggregateRevision.objects.filter(
+            source_run__provider=provider,
             external_event_identifier=item.external_event_identifier,
         ).exists()
         source = provider_source_identity(
@@ -275,9 +308,9 @@ def discover_new_provider_events(
                 "canonical_path": canonical_detail_path(event.id),
                 "reason": (
                     "Auto-created: no reviewed identity-manifest entry and no "
-                    "HistoricalEventMapping row existed for this provider event "
+                    "aggregate revision row existed for this provider event "
                     "at run time -- title and canonical path only, no "
-                    "registration count was activated."
+                    "registration count was resolved or activated."
                 ),
             }
         )
@@ -431,7 +464,7 @@ def derive_registration_sources(
             "activation_state": (
                 "explicit_current_event_pending"
                 if current_input is not None and bridges[name]
-                else "mapping_review_required"
+                else "unresolved"
             ),
         }
     return report, {"luma": luma, "eventbrite": eventbrite}
@@ -478,40 +511,28 @@ def stage_registration_aggregates(
             mapping_set_revision=mapping_set_revision,
             actor=None,
             context=context,
-            auto_map_explicit=current_input is not None,
         )
         selected_external_ids = tuple(
             candidate.external_event_identifier
             for candidate in derived.candidates
             if candidate.proposal is not None
         )
-        mapping_ids = tuple(
-            run.aggregate_revisions.filter(
-                mapping__external_event_identifier__in=selected_external_ids,
-            ).values_list("mapping_id", flat=True)
-        )
-        if len(mapping_ids) != len(selected_external_ids):
-            raise EventImportError("current_registration_mapping_missing")
         activated = False
-        if mapping_ids:
+        if selected_external_ids:
             run = activate_explicit_current_source(
                 run.id,
-                mapping_ids=mapping_ids,
+                external_event_identifiers=selected_external_ids,
                 reason_code="current_event_activation",
                 actor=None,
                 context=context,
             )
             activated = True
-        source_report[provider]["activation_state"] = (
-            "active" if activated else "mapping_review_required"
-        )
+        source_report[provider]["activation_state"] = "active" if activated else "unresolved"
         result["sources"][provider] = {
             "run_created": created,
             "run_state": run.state,
-            "explicit_mapping_total": len(mapping_ids),
-            "legacy_review_required_total": run.aggregate_revisions.filter(
-                mapping__state="review_required"
-            ).count(),
+            "explicit_mapping_total": len(selected_external_ids),
+            "unresolved_total": run.aggregate_revisions.filter(event__isnull=True).count(),
             "activated": activated,
         }
     public_counts: list[int] = []
@@ -523,9 +544,63 @@ def stage_registration_aggregates(
     result["public_event_total"] = len(public_counts)
     result["public_count_total"] = sum(public_counts)
     result["activation_state"] = (
-        "active" if current_input is not None and public_counts else "mapping_review_required"
+        "active" if current_input is not None and public_counts else "unresolved"
     )
     return result
+
+
+def activate_unambiguous_mappings(
+    *, luma_source: Path, correlation_id: str = "prod-import-events"
+) -> dict[str, Any]:
+    """Resolve only the still-unresolved aggregates an exact title+date proves.
+
+    This calls ``events.services.resolve_unmatched_aggregates`` -- a plain
+    resolution pass, not a state-machine transition; there is no separate
+    mapping model or review row to change.  It never touches the reviewed
+    identity manifest or
+    ``_docs/migration-data/local-current-registration-input.json``; both stay
+    exactly as they are.  A still-unresolved aggregate resolves only when
+    exactly one canonical ``Event`` shares its date and that event's
+    case/whitespace-normalized title equals the provider event's normalized
+    title exactly -- no fuzzy or ranked match.  Everything else stays
+    unresolved, reported here under the specific reason it did not qualify,
+    same as it would if this step did not exist.
+
+    Eventbrite's export carries no event-level title or date at all (only order- and
+    attendee-level columns), so every still-unresolved Eventbrite row is reported
+    as unmatched with ``provider_event_metadata_unavailable`` -- there is no evidence
+    to match on, not an unexamined gap.
+    """
+
+    from core.services import ServiceContext
+    from events.importers import ProtectedSourceError, discover_luma_events
+    from events.services import ProviderEventMetadata, resolve_unmatched_aggregates
+
+    try:
+        discovered = discover_luma_events(luma_source)
+    except ProtectedSourceError as error:
+        raise EventImportError("luma_discovery_failed") from error
+    luma_metadata = {
+        item.external_event_identifier: ProviderEventMetadata(
+            external_event_identifier=item.external_event_identifier,
+            title=item.title,
+            start_at=item.start_at,
+        )
+        for item in discovered
+    }
+    context = ServiceContext(
+        correlation_id=correlation_id,
+        actor_ref=f"system:{correlation_id}",
+    )
+    return {
+        provider: resolve_unmatched_aggregates(
+            provider=provider,
+            provider_metadata=luma_metadata if provider == "luma" else {},
+            actor=None,
+            context=context,
+        )
+        for provider in PROVIDERS
+    }
 
 
 def activation_coverage(
@@ -533,27 +608,26 @@ def activation_coverage(
 ) -> dict[str, Any]:
     """Say plainly how much of the registration history is actually public.
 
-    The adapters are not the gap -- the per-event mapping decisions are.  An
-    operator reading a run should see the ratio, not a bare success.
+    The adapters are not the gap -- resolving each provider event to a
+    canonical Event is.  An operator reading a run should see the ratio, not a
+    bare success.
     """
 
     from events.models import Event
 
     provider_events = sum(source_report[provider]["events"] for provider in PROVIDERS)
-    activated = sum(
+    resolved = sum(
         staged["sources"][provider]["explicit_mapping_total"] for provider in PROVIDERS
     )
-    review_required = sum(
-        staged["sources"][provider]["legacy_review_required_total"] for provider in PROVIDERS
-    )
+    unresolved = sum(staged["sources"][provider]["unresolved_total"] for provider in PROVIDERS)
     return {
         "canonical_events": Event.objects.count(),
         "provider_events": provider_events,
-        "activated": activated,
-        "review_required": review_required,
+        "resolved": resolved,
+        "unresolved": unresolved,
         "summary": (
-            f"{activated} of {provider_events} provider event mappings activated; "
-            f"{review_required} await mapping review and render no registration count"
+            f"{resolved} of {provider_events} provider events resolved to a canonical event; "
+            f"{unresolved} remain unresolved and render no registration count"
         ),
     }
 
@@ -589,11 +663,20 @@ def run(
         current_input=current_input,
         correlation_id=correlation_id,
     )
+    # A distinct top-level key, deliberately never merged into `registration_import`
+    # (what the explicit current-registration-input path resolved) or
+    # `activation_coverage` (which reports that same explicit-only ratio) -- an
+    # operator must be able to see exactly which additional aggregates this narrower,
+    # automatic pass resolved, and why every other one is still unresolved.
+    aggregate_auto_resolution = activate_unambiguous_mappings(
+        luma_source=luma_source, correlation_id=correlation_id
+    )
     return {
         "identities": identities,
         "new_event_identities": new_event_identities,
         "registration_sources": source_report,
         "registration_import": staged,
+        "aggregate_auto_resolution": aggregate_auto_resolution,
         "activation_coverage": activation_coverage(
             source_report=source_report, staged=staged
         ),
