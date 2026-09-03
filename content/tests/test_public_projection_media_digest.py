@@ -14,7 +14,7 @@ from django.test import SimpleTestCase
 
 from content import public_data
 from content.public_data import (
-    EXPECTED_MEDIA_STORAGE,
+    EXPECTED_MEDIA_STORAGE_FIELDS,
     EXPECTED_TREE_DIGEST_SCOPE,
     PROJECTION_ROOT,
     _tree_sha256,
@@ -45,7 +45,13 @@ class MediaFreeTreeDigestTests(SimpleTestCase):
         self.assertEqual(manifest["tree_sha256"], _tree_sha256(PROJECTION_ROOT))
         self.assertEqual(manifest["tree_sha256"], projection_builder._tree_sha256(PROJECTION_ROOT))
         self.assertEqual(manifest["tree_digest_scope"], EXPECTED_TREE_DIGEST_SCOPE)
-        self.assertEqual(manifest["media_storage"], EXPECTED_MEDIA_STORAGE)
+        self.assertEqual(
+            {key: manifest["media_storage"][key] for key in EXPECTED_MEDIA_STORAGE_FIELDS},
+            EXPECTED_MEDIA_STORAGE_FIELDS,
+        )
+        # The declared media count is not hand-typed either: it must match the
+        # manifest's own declared collection counts, whatever those currently are.
+        self.assertEqual(manifest["media_storage"]["count"], manifest["counts"]["media"])
 
     def test_the_repin_utility_is_idempotent_over_the_checked_projection(self) -> None:
         self.assertEqual(repin.main(["--check"]), 0)
