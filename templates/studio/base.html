@@ -1,5 +1,5 @@
 {% comment %}
-  The design 5a shell for the Studio admin surfaces (issue #179).
+  The design system shell for the Studio admin surfaces (issue #179).
 
   Every public page in the system is a complete standalone HTML document with no
   {% extends %}, because every public page is bespoke: the homepage, a course, an
@@ -9,7 +9,7 @@
   to drop a script, a meta robots tag or the
   theme-toggle data attributes, which is exactly the drift core/_site_shell_head.html
   was extracted to stop.  So this surface keeps one base template, and that base is a
-  design 5a document: it includes core/_design_system.html inside its own single
+  design system document: it includes core/_design_system.html inside its own single
   <style> element, includes the shared shell partials for the masthead and the script
   set, and leaves the page's own markup to blocks.  A Studio page therefore carries the
   same one inline stylesheet and zero <link rel="stylesheet"> the system requires,
@@ -19,7 +19,7 @@
   a data table, a filter bar, an actions menu, a fact list, a notice — built from the
   system's own tokens and primitives.  They live here, not in core/_design_system.html,
   because they are this surface's rules: the design system stays the public contract.
-  _docs/design/design-5a.md is still the authority for tokens, spacing and type.
+  _docs/design/design-system.md is still the authority for tokens, spacing and type.
 
   Blocks a child page fills: title, meta_robots, head_meta, extra_styles,
   breadcrumbs_nav, page_head, messages, content, extra_js.
@@ -375,7 +375,7 @@
 
       /* The shared accessible form primitives (core/templates/accessibility/)
          carry these two class names, and their stylesheet is one of the ones a
-         design 5a page deliberately does not load — so the summary and the
+         design system page deliberately does not load — so the summary and the
          field error are styled here instead.  The system has no danger colour:
          an error is carried by its words on the attention surface (--olive on
          --sand clears 4.5:1 in both themes), never by colour alone. */

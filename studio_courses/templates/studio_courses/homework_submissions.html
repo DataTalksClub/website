@@ -1,14 +1,14 @@
 {% extends 'studio_courses/base.html' %}
 {% load breadcrumbs custom_filters %}
 {% comment %}
-  Design 5a (issue #179): the homework submissions grading surface.
+  Design system (issue #179): the homework submissions grading surface.
 
   This is a grading surface, so the port is presentational only: every form
   action, hidden `next` value, CSRF token, confirm prompt, field name and
   query parameter is exactly as it was, and the sortable table keeps its id,
   its column order and its onclick handlers so sortTable() still addresses the
   same cells.  What changed is the classes: the Tailwind/courses.css utilities
-  and the icon-font glyphs are gone (a design 5a page loads neither), the
+  and the icon-font glyphs are gone (a design system page loads neither), the
   slabs are the Studio base's .admin-section, the table is .admin-table inside
   the keyboard-reachable .admin-scroll frame, and the phone-only duplicate of
   the submissions list was dropped because that frame is what a narrow screen

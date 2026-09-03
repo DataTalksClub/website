@@ -47,7 +47,7 @@ class StopImpersonatingStudioCoursesViewTests(ImpersonationStudioCoursesViewTest
         self.assertRedirects(response, studio_courses_course_list_url)
         response = self.client.get(course_list_url)
         self.assertEqual(response.wsgi_request.user, self.admin_user)
-        # The courses index carries its own stylesheet since the design 5a rebuild
+        # The courses index carries its own stylesheet since the design system rebuild
         # (issue #179), so the banner's class name is always in the page as a CSS
         # selector.  Only the banner's own markup says it is being shown.
         self.assertNotContains(response, 'id="impersonation-banner"')

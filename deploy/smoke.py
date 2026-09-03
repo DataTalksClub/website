@@ -26,7 +26,7 @@ from deploy.deployment_targets import SELECTED_TARGET
 ROBOTS_VALUE = "noindex, nofollow"
 ROBOTS_BODY = b"User-agent: *\nDisallow: /\n"
 _STATIC_REFERENCE = re.compile(r'(?:href|src)="(?P<path>/static/[^"?#]+)')
-# The public home identity, as design 5a renders it (issue #179).
+# The public home identity, as design system renders it (issue #179).
 HOME_IDENTITY_MARKER = "Learn the fundamentals. Build real projects. Share your work."
 # Every home content string run_http_smoke asserts against the live homepage: the
 # document title, the hero identity marker, and the hero lede (issue #198). The pins

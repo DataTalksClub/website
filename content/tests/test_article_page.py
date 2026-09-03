@@ -1,4 +1,4 @@
-"""The public blog article page, rebuilt in the design 5a system (issue #179).
+"""The public blog article page, rebuilt in the design system (issue #179).
 
 Two contracts are checked here.  The composition contract: every fact the page
 shows is read from the checked article record and the people it names, and a

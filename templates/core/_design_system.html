@@ -1,6 +1,6 @@
 {% load static %}
 {% comment %}
-Design 5a shared stylesheet (issue #179).
+Design system shared stylesheet (issue #179).
 
 This partial is the site's design system: tokens, reset, masthead, bands and the
 shared primitives every rebuilt public page uses.  It is CSS only — include it
@@ -20,11 +20,11 @@ Rules for editing:
   - every colour goes through a custom property defined in :root and mirrored
     in body.dark-mode; if a colour is missing, add a token — never an inline hex;
   - keep page-specific rules in the page template, shared primitives here;
-  - the system is documented in _docs/design/design-5a.md — update it together
+  - the system is documented in _docs/design/design-system.md — update it together
     with this file.
 {% endcomment %}
       /* ------------------------------------------------------------------ *
-       * Design 5a shared design system.  Tokens, reset, masthead, bands,
+       * Design system shared design system.  Tokens, reset, masthead, bands,
        * cards and the extended primitives shared by every rebuilt page.
        * ------------------------------------------------------------------ */
 
@@ -96,7 +96,7 @@ Rules for editing:
            detail, events, podcast).  The mono face carries machine-flavoured
            metadata: status pills, spec labels, timestamps and due dates.  The
            mockups set it in JetBrains Mono; the site keeps the system stack
-           (owner decision, _docs/design/mockups/README.md). */
+           (owner decision). */
         --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas,
           "Liberation Mono", monospace;
         --lavender-deep: #dfe2f7;
@@ -115,7 +115,7 @@ Rules for editing:
            .graph-svg-type-podcast).  Aliases --gold in light mode, but gets
            its own dark-mode value below: --gold is deliberately held flat
            across themes for the RSS platform dot, which carries no text of
-           its own (design-5a.md).  A ring node does — `.graph-svg-node text`
+           its own (design-system.md).  A ring node does — `.graph-svg-node text`
            always inks itself with --ink, which flips to a near-white in dark
            mode — so pairing that text with --gold's still-light dark-mode
            value read as a washed-out, unreadable pill. */
@@ -141,8 +141,7 @@ Rules for editing:
         --code-error: #a33f3a;
       }
 
-      /* The dark palette is the designer's own: the decoded mockup source
-         (_docs/design/mockups/datatalks-homepage.source.css) carries a
+      /* The dark palette is the designer's own: the mockup source carried a
          [data-dtc-theme="dark"] substitution table and these values follow it --
          navy grounds, periwinkle text, a deepened brand green under near-white
          labels.  Two deliberate departures, because the mockup darkens its
@@ -180,7 +179,7 @@ Rules for editing:
         /* The extended tokens the 6-series pages use.  Their dark values are the
            mockup's own substitutions (#dfe2f7 -> #2d3565, #f3f0e8 -> #2a2740,
            #6b6034 -> #cbb98a, #1f6b2c -> #93c7a5) and are documented in the
-           extended-token table of _docs/design/design-5a.md.  Without them a
+           extended-token table of _docs/design/design-system.md.  Without them a
            status pill kept its light surface while its text flipped to the dark
            ink, which is unreadable; --clay and --gold hold in both themes. */
         --lavender-deep: #2d3565;
@@ -1007,7 +1006,7 @@ Rules for editing:
       }
 
       /* Breadcrumb trail: the where-am-I line at the top of a detail page
-         (restored on the course page after the design 5a rebuild; the mockups
+         (restored on the course page after the design system rebuild; the mockups
          draw none, so the shape is this system's own).  Markup contract: a
          nav.breadcrumbs with aria-label="Breadcrumb" holding an ol, one li per
          level; every ancestor is a link.  A page whose h1 sits directly under
@@ -1838,7 +1837,7 @@ Rules for editing:
        * Extended primitives for the 6-series pages (courses index, course
        * detail, events index, podcast index and episode).  Defined once here
        * so the four pages do not each invent their own.  Markup shapes are
-       * documented in _docs/design/design-5a.md.
+       * documented in _docs/design/design-system.md.
        * ------------------------------------------------------------------ */
 
       /* Stat tiles: the courses-index hero facts (6 free courses, 130k+…). */
@@ -2702,7 +2701,7 @@ Rules for editing:
       /* The shared accessible form primitives.  `core/templates/accessibility/`
          renders these class names (the error summary partial and the field
          help/required/error marks a page writes beside `accessible_widget`),
-         and their stylesheet is one of the ones a design 5a page deliberately
+         and their stylesheet is one of the ones a design system page deliberately
          does not load — so the treatment lives here, once, rather than being
          re-invented by every page that owns a form.
 
@@ -2778,7 +2777,7 @@ Rules for editing:
       /* State and guidance callouts: a surface and a full border, kept
          visually separate from editable controls.  The system draws no
          coloured single-side accent rail anywhere (see "Borders" in
-         `_docs/design/design-5a.md`), so tone here is the surface tint plus
+         `_docs/design/design-system.md`), so tone here is the surface tint plus
          the words: a card for information, sand for attention, and a dashed
          plate when the notice is the quietest thing on the page. */
       .callout {

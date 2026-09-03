@@ -16,7 +16,7 @@ class LeaderboardScoreBreakdownAdminTestCase(LeaderboardTestBase):
         self.assertEqual(response.status_code, 200)
         admin_edit_url = self.admin_enrollment_edit_url(enrollment)
         self.assertContains(response, admin_edit_url)
-        # The design 5a page loads no icon font, so the repair control is
+        # The design system page loads no icon font, so the repair control is
         # named rather than marked with a glyph (issue #179).
         self.assertContains(response, "Admin: Edit Enrollment")
 

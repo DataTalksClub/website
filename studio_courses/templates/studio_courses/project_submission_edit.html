@@ -1,7 +1,7 @@
 {% extends 'studio_courses/base.html' %}
 {% load breadcrumbs custom_filters %}
 {% comment %}
-  Design 5a (issue #179): the project submission grading form.
+  Design system (issue #179): the project submission grading form.
 
   A grading surface, so the port is presentational only: the form still posts
   to its own URL with the same CSRF token and the same criteria_score_<id>,
@@ -10,7 +10,7 @@
   names, and the live-total script still finds .criteria-score,
   .additional-score, .peer-review-score, #project_score, #total_score and
   #passed, so the running total and the pass threshold behave identically.
-  The classes changed because a design 5a page loads no Tailwind, no
+  The classes changed because a design system page loads no Tailwind, no
   courses.css and no icon font: the slabs are the Studio base's
   .admin-section, the fields are the system's .field/.field-label/.field-input
   and the two flags are .admin-check.

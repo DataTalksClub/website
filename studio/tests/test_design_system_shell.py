@@ -71,7 +71,7 @@ class StudioDesignFiveAShellTests(TestCase):
         cls.course = Cohort.objects.create(
             slug="shell-contract-course",
             title="Shell Contract Course",
-            description="Fixture for the Studio design 5a shell contract.",
+            description="Fixture for the Studio design system shell contract.",
         )
         cls.audit_event = AuditEvent.objects.create(
             actor_ref="shell-contract-actor",
@@ -80,7 +80,7 @@ class StudioDesignFiveAShellTests(TestCase):
             target_label="shell contract fixture",
             outcome=AuditEvent.Outcome.SUCCEEDED,
             changes={},
-            metadata={"summary": "Fixture for the Studio design 5a shell contract."},
+            metadata={"summary": "Fixture for the Studio design system shell contract."},
         )
         cls.event = create_event_identity(
             title="Shell Contract Event",

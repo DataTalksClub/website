@@ -1,6 +1,6 @@
 """Editorial composition for the redesigned public course page.
 
-The course page renders the "6b" mockup of the design 5a system (DataTalksClub/website#179).
+The course page renders the "6b" mockup of the design system (DataTalksClub/website#179).
 Every fact it shows — title, description, dates, deadlines, module titles, submission state,
 and counts — is read from the cohort record and its homework and project rows.
 """

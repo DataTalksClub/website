@@ -34,10 +34,10 @@ page draws — they are the events date rail and the prose blockquote (below).
 
 ### Is the prohibition written down? No — and that is itself a defect
 
-I searched `_docs/design/design-5a.md`, `_docs/design/*`, `_docs/specs/*`, the
+I searched `_docs/design/design-system.md`, `_docs/design/*`, `_docs/specs/*`, the
 design system's own comments, git history, and GitHub issues. There is **no
 written rule forbidding accented borders.** The closest documented artifact is
-the border enumeration at `_docs/design/design-5a.md:197-199`:
+the border enumeration at `_docs/design/design-system.md`:
 
 > **Borders**: `2px solid var(--line)` on components; `1.5px` on chips, status
 > pills and inner dashed rules; `3px solid var(--ink)` only on the featured
@@ -46,17 +46,17 @@ the border enumeration at `_docs/design/design-5a.md:197-199`:
 That is a closed list, and a coloured single-side accent rail is not in it — so
 the treatment was always outside the sanctioned set. But the same document
 *endorses* two accent rails elsewhere: "a `--bubble`-ruled italic `blockquote`"
-(`design-5a.md:971`) and the events date rail "A `--bubble` left rule…"
-(`design-5a.md:1028`), and the mockup source itself draws the date rail
-(`_docs/design/mockups/datatalks-pages.source.html:705`). So the design system
+(`design-system.md`) and the events date rail "A `--bubble` left rule…"
+(`design-system.md`), and the mockup source itself draws the date rail
+(the mockup source, since deleted). So the design system
 is internally inconsistent: the border law excludes the treatment; two later
 sections bless it; the `.callout` rail is documented nowhere at all (the word
-"callout" does not appear in design-5a.md).
+"callout" does not appear in design-system.md).
 
 **Recommendation:** whatever the owner decides about scope (see §5), write the
-rule into `design-5a.md`'s border section explicitly — e.g. "No coloured
+rule into `design-system.md`'s border section explicitly — e.g. "No coloured
 single-side accent borders (tone rails, left rules). Tone is carried by surface
-tint and words, never by an accent stripe." — and update `design-5a.md:971` and
+tint and words, never by an accent stripe." — and update `design-system.md` and
 `:1028` in the same commit. An unwritten rule that three different primitives
 violated independently is a design-system defect, not three engineer errors.
 
@@ -84,7 +84,7 @@ language, listed so the implementer doesn't over-delete):
 
 Tone is carried by **surface tint + words**, which is already the system's own
 principle ("State is never colour-only — pills and dots always carry" words,
-`design-5a.md:1213`). New `.callout` (edit `_design_system.html:2761-2785`):
+`design-system.md`). New `.callout` (edit `_design_system.html:2761-2785`):
 
 ```css
 .callout {
@@ -308,7 +308,7 @@ family of styles and will need updating.
   `--green-ship` 5.83:1 and `--olive` 5.57:1 on lavender ✓) and the
   Correct/Incorrect `status-pill-mint`/`status-pill-wait` pills
   (`_submission_form.html:117-121`) — pills carry words, per
-  `design-5a.md:1213`. Keep `.no-answer-indicator` as is (`homework.html:216`).
+  `design-system.md`. Keep `.no-answer-indicator` as is (`homework.html:216`).
 - **Cleanup** — delete from `homework.html` every rule duplicated from the
   design system: `.form-check*` (:177-193), `.form-control*` (:225-250 —
   keeping the two `option-answer-*` border-color rules, which are page-specific
@@ -394,7 +394,7 @@ page; `time_left.js` needs no change.
 
 1. **Scope of the prohibition.** Does "no accented borders" cover the
    `--bubble` blockquote rule (`_design_system.html:3298`) and the events date
-   rail (`:2817`, mockup-derived, documented at `design-5a.md:1028`), and
+   rail (`:2817`, mockup-derived, documented at `design-system.md`), and
    `.book-replies`? If yes, each needs a replacement design and its own issue
    (blockquote could take the `.panel` tint treatment; the date rail is load-
    bearing layout on /events). If no, the written rule must name the sanctioned
@@ -413,7 +413,7 @@ page; `time_left.js` needs no change.
    (Courses / family / identifier / module) and on `_module_rail_styles.html:47`
    — their in-flight diff (uncommitted, this worktree) already matches the
    trail format proposed here; someone should own writing the shared decision
-   into `design-5a.md`.
+   into `design-system.md`.
 
 ## 6. Implementation notes (for the building agent)
 
@@ -430,7 +430,7 @@ Files to edit, in dependency order:
    support line, drop duplicate classes, drop `callout-quiet` usage.
 5. `courses/views/homework_context.py` — add `homework_module`
    (`homework.terminal_module`, None-safe) to both context builders.
-6. `_docs/design/design-5a.md` — write the border rule + callout primitive
+6. `_docs/design/design-system.md` — write the border rule + callout primitive
    documentation (with the owner's §5.1 answer).
 
 Tests that will notice: `courses/tests/test_submission_design.py`,

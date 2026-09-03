@@ -189,7 +189,7 @@ zero-TTL class. Under that architecture:
 A signed-in user who clicks the logo (`href="/"`) lands on **their** home.
 The marketing home's content — courses, events, blog, podcast, wiki, Slack —
 is all reachable from the identical nine-entry masthead
-(`_docs/design/design-5a.md:565-566`), which this design does not touch
+(`_docs/design/design-system.md`), which this design does not touch
 (`core/tests/test_design_system_shell.py` compares it across every page).
 The marketing *page itself* becomes unreachable while signed in; AISL made
 the same trade and nothing on it is member-relevant (its two CTAs are "sign
@@ -368,11 +368,11 @@ with placeholder text.
 > lede (two or more): Pick up where you left off, or see what's due next.
 
 Hero actions (actions belong to the title block —
-`_docs/design/design-5a.md:264-296`), only when **exactly one** active
+`_docs/design/design-system.md`), only when **exactly one** active
 cohort: primary `cta cta-ink interactive-lift` labelled per §4's Continue
 rules ("Continue" / "Start course" / "Open course") linking to the resume
 target — `cta-ink` is documented as the "Continue course" variant
-(`design-5a.md:493-501`); secondary `cta cta-secondary cta-compact`
+(`design-system.md`); secondary `cta cta-secondary cta-compact`
 "Course page". With multiple active cohorts the hero carries no CTAs; each
 card carries its own.
 
@@ -486,7 +486,7 @@ text-button must get explicit `min-height/min-width` to clear it).
 (`cta-ink`, `cta-primary`, `cta-secondary`, `cta-compact`,
 `interactive-lift`), `band-link`, `panel panel-lavender panel-outlined`
 (nudges), `time-left`. All are documented in
-`_docs/design/design-5a.md:357-716` and defined in
+`_docs/design/design-system.md` and defined in
 `templates/core/_design_system.html`. No new colours, no new tokens, no
 accent left-borders anywhere (`core/tests/test_design_accent_borders.py`
 would fail the build regardless).
@@ -557,7 +557,7 @@ can 503 when the mailer is unreachable
 first thing a new member completes must be small and cannot depend on a
 second system. New URL — additive, conflicts with nothing in the baseline.
 
-Auth-page family layout (`_docs/design/design-5a.md:1158-1210` — cream
+Auth-page family layout (`_docs/design/design-system.md` — cream
 hero, lavender decision area, `_entrance_styles.html`), since this is an
 account-entrance page in spirit. `@login_required`.
 
@@ -833,7 +833,7 @@ that can ship with it:
   otherwise.
 - **Structure:** one h1 per state; sections labelled by their h2 via
   `aria-labelledby`; progress bars use the documented
-  `role="progressbar"` + mono-note pairing (`design-5a.md:643-660`);
+  `role="progressbar"` + mono-note pairing (`design-system.md`);
   `row-fold` disclosures are native `<details>`; no breadcrumbs (§4).
 - **The masthead and nav are untouched** — `core/tests/test_design_system_shell.py`
   compares the nine entries and the user-menu copy across every page, and

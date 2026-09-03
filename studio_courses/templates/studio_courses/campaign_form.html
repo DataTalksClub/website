@@ -1,7 +1,7 @@
 {% extends 'studio_courses/base.html' %}
 {% load breadcrumbs accessibility %}
 {% comment %}
-  The registration landing-page builder, on design 5a (issue #179).
+  The registration landing-page builder, on the design system (issue #179).
 
   The form keeps its method, CSRF token, field names, accessible error
   summary and per-field help/error relationships; only its presentation
@@ -17,7 +17,7 @@
 {% block extra_styles %}
   /* The campaign fields are drawn by the shared field include and by the
      form's own widgets, which carry the copied platform's class names.  A
-     design 5a page loads no stylesheet that defines them, so they are given
+     design system page loads no stylesheet that defines them, so they are given
      the system's own field treatment here, on this page, rather than in the
      shared partial. */
   .settings-label {

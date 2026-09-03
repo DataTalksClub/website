@@ -144,7 +144,7 @@ def _public_rendered_states(
         PublicRenderedState("public.blog-hub", "blog", "Latest Articles"),
         PublicRenderedState("public.podcast-hub", "podcast", "Podcast"),
         PublicRenderedState("public.books-hub", "books", "Book of the Week"),
-        # The design 5a events index (issue #179, mockup 6c) leads with the mockup's
+        # The design system events index (issue #179, mockup 6c) leads with the mockup's
         # headline; "Events" survives only as the navigation label and the page title.
         PublicRenderedState("public.events-hub", "events", "Something happening every week"),
         PublicRenderedState("public.courses-hub", "courses", "Learn data skills"),
@@ -607,7 +607,7 @@ def test_homework_breadcrumb_target_spacing_ignores_closed_account_menu(
         # WCAG 2.2 AA target size (2.5.8) is 24x24 CSS px, and the trail meets it
         # outright, so the spacing exception never has to be invoked for a crumb.
         # Issue #128's remediation had asserted the opposite arrangement — crumbs
-        # under 24px relying on compensating space — and the design 5a rebuild
+        # under 24px relying on compensating space — and the design system rebuild
         # then over-corrected to a 44px row, which is the AAA (2.5.5) figure and
         # cost a whole row of the page.  The settled quiet trail draws a 2rem
         # crumb; measured on the homework route at both widths, the smallest is
@@ -998,7 +998,7 @@ def _account_scenario(recorder: ScenarioRecorder) -> set[str]:
     recorder.page.goto(f"{recorder.live_server.url}/accounts/logout/")
     recorder.page.get_by_role("button", name="Sign Out", exact=False).click()
     recorder.page.goto(f"{recorder.live_server.url}/accounts/login/")
-    # Exact match, same as the owner-credentials suite: the design 5a sign-in
+    # Exact match, same as the owner-credentials suite: the design system sign-in
     # page also carries an sr-visible "Sign in with your DataTalks.Club account"
     # panel heading, which a substring lookup resolves as a second heading.
     # Unreachable while the events-hub duplicate ids aborted this test earlier

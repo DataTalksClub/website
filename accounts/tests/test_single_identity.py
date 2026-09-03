@@ -1073,7 +1073,7 @@ class SharedAccountSurfaceTests(TestCase):
     def test_login_heading_matches_deployed_smoke_contract(self) -> None:
         """The one h1 the deployed smoke and every browser flow look for.
 
-        The page moved to design 5a (issue #179), so the heading no longer
+        The page moved to the design system (issue #179), so the heading no longer
         carries the adopted shell's utility classes or its icon.  What the
         smoke contract actually depends on is unchanged and is what this
         asserts: a single level-one heading whose whole accessible name is

@@ -2,7 +2,7 @@
 
 The rule had been applied by hand, page by page, three times, and each new page
 rediscovered it.  This test is the written-down version of the section "Which
-ground a band takes" in `_docs/design/design-5a.md`: it reads the band sequence
+ground a band takes" in `_docs/design/design-system.md`: it reads the band sequence
 straight out of every public page template and fails when a page invents its own
 alternation.
 """
@@ -108,7 +108,7 @@ class BandGroundTests(SimpleTestCase):
                     [ground for ground in bands[1:] if ground != "band-lavender"],
                     [],
                     "Lavender is the content ground: every band after the hero takes "
-                    'it.  See "Which ground a band takes" in _docs/design/design-5a.md.',
+                    'it.  See "Which ground a band takes" in _docs/design/design-system.md.',
                 )
 
     def test_no_public_page_draws_a_mint_or_ink_band(self) -> None:
@@ -153,7 +153,7 @@ class BandGroundTests(SimpleTestCase):
                     source.find(body),
                     seam,
                     "This page's body reads on the content ground, not in the warm "
-                    'hero.  See "Which ground a band takes" in _docs/design/design-5a.md.',
+                    'hero.  See "Which ground a band takes" in _docs/design/design-system.md.',
                 )
 
     def test_signup_uses_the_shared_auth_content_band(self) -> None:
@@ -188,7 +188,7 @@ class BandGroundTests(SimpleTestCase):
             len(set(bands)),
             3,
             "The homepage alternates grounds on purpose; see the band system section "
-            "of _docs/design/design-5a.md.",
+            "of _docs/design/design-system.md.",
         )
 
     def test_the_governed_set_and_the_exceptions_do_not_overlap(self) -> None:

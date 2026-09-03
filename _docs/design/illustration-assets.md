@@ -267,4 +267,4 @@ make test-playwright-core
 ```
 
 The full illustration convention and accessibility contract are documented in
-`_docs/design/design-5a.md`.
+`_docs/design/design-system.md`.

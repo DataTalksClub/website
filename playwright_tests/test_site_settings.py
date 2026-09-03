@@ -103,7 +103,7 @@ def test_operator_updates_public_announcement_without_restart(
     message.fill('Community office hours & "news"')
     page.get_by_role("button", name="Save site settings").click()
     expect(page).to_have_url(f"{live_server.url}/studio/settings?saved=1")
-    # The design 5a notice announces a "Saved" label and the sentence together
+    # The design system notice announces a "Saved" label and the sentence together
     # in one status region, so the sentence is asserted within it.
     expect(page.get_by_role("status")).to_contain_text("Site settings saved.")
 

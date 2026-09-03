@@ -22,7 +22,7 @@ class HomeworkSubmissionValidationTests(HomeworkSubmissionValidationBase):
             response,
             'value="https://gist.github.com/Sanjomwa/2dcb7a95baa01c07c10048fbac1a8461"',
         )
-        # The design 5a port dropped the utility class the field used to carry
+        # The design system port dropped the utility class the field used to carry
         # for its own spacing; the rejected-field marker is unchanged.
         self.assertContains(
             response,

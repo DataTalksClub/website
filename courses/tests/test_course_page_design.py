@@ -1,6 +1,6 @@
-"""Contracts for the design 5a course page (issue #179, mockup 6b).
+"""Contracts for the design system course page (issue #179, mockup 6b).
 
-The page's *arrangement* is the one it carried before the design 5a port and the
+The page's *arrangement* is the one it carried before the design system port and the
 one the reference course page still has: a left-aligned hero, one row of every
 action the course offers, then a Homework table and a Projects table whose
 deadlines and states are all readable at once.  Mockup 6b's centred hero and
@@ -102,7 +102,7 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
         self.assertNotIn("mono-label-indigo", hero)
 
     def test_course_page_carries_its_own_stylesheet_and_loads_no_legacy_css(self):
-        """Design 5a (issue #179) replaced the adopted shell with one inline stylesheet."""
+        """Design system (issue #179) replaced the adopted shell with one inline stylesheet."""
 
         body = self.client.get(self.course_url()).content.decode()
 
@@ -293,7 +293,7 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
 
 
 class CoursePageBreadcrumbTests(CourseDetailViewTestBase):
-    """The trail the adopted shell drew, restored as the design 5a primitive."""
+    """The trail the adopted shell drew, restored as the design system primitive."""
 
     def breadcrumb_nav(self):
         body = self.client.get(self.course_url()).content.decode()

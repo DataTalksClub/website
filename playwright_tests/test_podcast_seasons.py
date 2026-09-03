@@ -12,7 +12,7 @@ from content.public_data import ordered_podcasts, podcast_seasons
 from playwright_tests.accessibility_support import assert_accessible_page
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-132")
-# The design 5a rebuild (issue #179) gave the index the mockup's own headline; the
+# The design system rebuild (issue #179) gave the index the mockup's own headline; the
 # season heading it navigates by is unchanged.
 PODCAST_HEADING = "Conversations with people who ship data"
 
@@ -317,8 +317,8 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
         )
         assert focus["focusVisible"] is True, focus
         assert focus["style"] == "solid" and focus["width"] >= 3, focus
-        # Design 5a's global focus ring is 3px solid at a 2px offset
-        # (_docs/design/design-5a.md); the ring still clears the control it marks.
+        # The design system's global focus ring is 3px solid at a 2px offset
+        # (_docs/design/design-system.md); the ring still clears the control it marks.
         assert focus["offset"] >= 2, focus
         _screenshot(page, "podcast-season-12-mobile-focus.png")
 

@@ -1,4 +1,4 @@
-"""The account entrance family, rebuilt on design 5a.
+"""The account entrance family, rebuilt on the design system.
 
 `/accounts/signup/` is where the homepage's primary call to action lands, and it
 was the last page in the flow still rendering allauth's unstyled default
@@ -43,7 +43,7 @@ ENTRANCE_PATHS = {
 
 
 class AccountEntranceDocumentTests(TestCase):
-    """Every entrance page is a design 5a document, like the rest of the site."""
+    """Every entrance page is a design system document, like the rest of the site."""
 
     def rendered_pages(self) -> dict[str, str]:
         bodies = {}

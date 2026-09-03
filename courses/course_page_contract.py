@@ -39,7 +39,7 @@ COURSE_HOMEWORK_HEADING_ID = "homework-heading"
 COURSE_PROJECTS_HEADING = "Projects"
 COURSE_PROJECTS_HEADING_ID = "projects-heading"
 
-# The retired design-5a accordion surface (257680f), rejected by 846f367.  The
+# The retired design system accordion surface (257680f), rejected by 846f367.  The
 # deployed smoke resolves ``details.module`` as a CSS selector against the live
 # DOM and the heading by its accessible name; the shared design system still
 # documents the accordion in stylesheet commentary, so neither string is ever

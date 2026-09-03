@@ -51,7 +51,7 @@ class CourseDetailLinksTest(CourseDetailViewTestBase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        # Design 5a (issue #179) dropped the copied Font Awesome glyphs with the rest of
+        # Design system (issue #179) dropped the copied Font Awesome glyphs with the rest of
         # the adopted stylesheet, so the action is asserted by its own words and target.
         self.assertContains(response, "Course materials on GitHub")
         self.assertContains(

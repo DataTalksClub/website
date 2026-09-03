@@ -31,10 +31,9 @@ from playwright_tests.course_catalog_contract import assert_copied_course_catalo
 pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
 CMP_SOURCE_COMMIT = "98a235283904b4ef9ad29e196298540756cf1bcc"
-# The courses index left the byte-exact CMP copy with the design 5a rebuild (issue #179);
+# The courses index left the byte-exact CMP copy with the design system rebuild (issue #179);
 # its digest is now recorded in _docs/adoption/course-platform/integration-patched-files.tsv
 # and asserted by core/tests/test_course_platform_adoption.py.
-DESIGN_MOCKUP_SOURCE = "_docs/design/mockups/datatalks-pages.source.html"
 REPO_ROOT = Path(__file__).resolve().parents[1]
 COURSE_LIST_TEMPLATE = REPO_ROOT / "courses/templates/courses/course_list.html"
 ACTIVE_HEADING = "Active now — you can still join"
@@ -194,10 +193,10 @@ def _assert_local_page_assets(page: Page, origin: str) -> None:
 
 
 def _assert_design_breadcrumb_trail(page: Page, *, levels: int) -> None:
-    """The design 5a trail: linked ancestors, a real target on each, text where you are.
+    """The design system trail: linked ancestors, a real target on each, text where you are.
 
     The adopted shell drew a compact crumb row and made the current page a link too.
-    Design 5a (issue #179) states the opposite contract: every ancestor is a link with a
+    Design system (issue #179) states the opposite contract: every ancestor is a link with a
     real target, and the current page is plain text on ``li[aria-current="page"]``.
 
     The trail was later quietened, because at body size in saturated indigo it competed
@@ -237,7 +236,6 @@ def _write_attribution_evidence() -> None:
     evidence = {
         "cmp_source_commit": CMP_SOURCE_COMMIT,
         "course_list_sha256": hashlib.sha256(COURSE_LIST_TEMPLATE.read_bytes()).hexdigest(),
-        "design_source": DESIGN_MOCKUP_SOURCE,
         "fixture": [ACTIVE_COURSE, REGISTRATION_COURSE, ARCHIVED_COURSE],
         "template": "courses/templates/courses/course_list.html",
         "viewports": [viewport for viewport, _suffix in VIEWPORTS],
@@ -251,7 +249,7 @@ def _write_attribution_evidence() -> None:
 def _dark_mode_toggle(page: Page):
     """Return the page's theme control, whichever shell drew it.
 
-    The adopted catalogue shell labels it "Toggle dark mode"; the design 5a course page
+    The adopted catalogue shell labels it "Toggle dark mode"; the design system course page
     (issue #179) labels it by the mode it switches to.  Both are a single button with a
     pressed state, which is what the assertions below actually depend on.
     """
@@ -272,7 +270,7 @@ def _capture_dark_mode(page: Page, path: Path) -> None:
 
 
 def _capture_design_dark_mode(page: Page, path: Path) -> None:
-    """Design 5a pages carry their own compact "Dark"/"Light" masthead toggle."""
+    """Design system pages carry their own compact "Dark"/"Light" masthead toggle."""
 
     dark_mode = page.locator("#dark-mode-toggle")
     dark_mode.click()
@@ -285,7 +283,7 @@ def _capture_design_dark_mode(page: Page, path: Path) -> None:
 def _assert_registration_hero_is_contained(page: Page) -> dict[str, float]:
     """The campaign artwork stays inside its own column, whatever size it arrives at.
 
-    The image is taken from the page's main landmark: the design 5a rebuild (issue #179)
+    The image is taken from the page's main landmark: the design system rebuild (issue #179)
     puts the hero artwork in the hero band and the register card in a band of its own, so
     the two no longer share a parent element.  What is asserted is unchanged — the loaded
     image is bounded by the column it sits in and the page does not scroll sideways.
@@ -506,7 +504,7 @@ def test_registration_breadcrumb_matches_cmp_without_losing_target_spacing(
     ).to_have_count(0)
     current = page.locator(".breadcrumbs li[aria-current='page']")
     expect(current).to_have_count(1)
-    # Design 5a leaves the page you are on as text, so the last level is read, not linked.
+    # Design system leaves the page you are on as text, so the last level is read, not linked.
     expect(current).to_have_text("registration")
     expect(current.get_by_role("link")).to_have_count(0)
     expect(page.get_by_text("1 already registered for 2026 cohort", exact=True)).to_be_visible()
@@ -519,7 +517,7 @@ def test_registration_breadcrumb_matches_cmp_without_losing_target_spacing(
     page.screenshot(path=SCREENSHOTS / f"registration-cmp-{suffix}.png", full_page=True)
 
     _capture_dark_mode(page, SCREENSHOTS / f"registration-cmp-dark-{suffix}.png")
-    # The design 5a masthead labels the toggle by the mode it switches to, so the control
+    # The design system masthead labels the toggle by the mode it switches to, so the control
     # is taken by its stable id rather than by the copied shell's "Toggle dark mode" name.
     page.locator("#dark-mode-toggle").click()
     expect(page.locator("body.dark-mode")).to_have_count(0)

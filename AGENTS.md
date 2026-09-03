@@ -15,6 +15,6 @@ here.
 
 Where the rest went: app and service boundaries are in
 `_docs/architecture/app-boundaries.md`; the page shell is in
-`_docs/design/design-5a.md` and enforced by
+`_docs/design/design-system.md` and enforced by
 `courses/tests/test_content_page_shell.py`; the development host is in
 `deploy/development_target.py`.

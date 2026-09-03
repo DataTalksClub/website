@@ -1,7 +1,7 @@
 """Editorial composition for the redesigned public podcast surfaces.
 
 The podcast index and the episode page render the "6d" mockup from
-DataTalksClub/website#179 in the design 5a system.  Every fact those pages show
+DataTalksClub/website#179 in the design system.  Every fact those pages show
 (titles, paths, season and episode numbers, guests, publication dates, listening
 links) is read from the checked public catalogue here, and a record that cannot
 supply a fact fails loudly instead of rendering an invented one.

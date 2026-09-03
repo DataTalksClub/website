@@ -141,7 +141,7 @@ def test_consent_keyboard_allow_reopen_escape_withdraw_and_cookie_cleanup(
     assert page.evaluate("document.activeElement === document.body")
     page.keyboard.press("Tab")
     expect(page.locator(".skip-link")).to_be_focused()
-    # The legal pages joined design 5a with issue #179, so the navigation toggle
+    # The legal pages joined the design system with issue #179, so the navigation toggle
     # is the shell's "Menu" button rather than the older shell's "Explore".
     menu = page.get_by_role("button", name="Menu")
     menu.click()

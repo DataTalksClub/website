@@ -1,4 +1,4 @@
-"""The Slack landing page on design 5a (issue #179).
+"""The Slack landing page on the design system (issue #179).
 
 `/slack` is one of the nine primary navigation entries and the community's own
 front door, and it is the page the first shell copies quietly broke: five pages

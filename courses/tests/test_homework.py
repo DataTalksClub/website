@@ -133,7 +133,7 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Instructions")
         self.assertContains(response, self.homework.instructions_url)
-        # The design 5a page loads no icon font, so the GitHub instructions
+        # The design system page loads no icon font, so the GitHub instructions
         # link is named rather than marked with a glyph (issue #179).
         self.assertContains(response, "Instructions on GitHub")
 

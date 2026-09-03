@@ -1,4 +1,4 @@
-"""The page-not-found page on design 5a (issue #179).
+"""The page-not-found page on the design system (issue #179).
 
 `templates/404.html` is the one page in the system that renders while something
 has already gone wrong: `content.public_views._public_not_found` renders it with

@@ -163,7 +163,7 @@ def test_copied_registration_count_zero_one_many_light_and_dark(
         path=SCREENSHOTS / f"count-{count}-{viewport_name}-light.png",
         full_page=True,
     )
-    # The design 5a masthead labels the toggle by the mode it switches to, so
+    # The design system masthead labels the toggle by the mode it switches to, so
     # the control is taken by its stable id rather than the copied shell's
     # "Toggle dark mode" name (as test_course_design_parity already does).
     page.locator("#dark-mode-toggle").click()

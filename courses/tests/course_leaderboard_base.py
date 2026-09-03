@@ -326,7 +326,7 @@ class CourseLeaderboardViewTestBase(TestCase):
         )
 
     def assert_score_breakdown_links(self, response):
-        # Count inside <main>, not the document: the shared design 5a shell draws
+        # Count inside <main>, not the document: the shared design system shell draws
         # its own disclosures (the phone menu, the account menu), so a whole-page
         # count measures the masthead rather than this page's two breakdowns.
         body = response.content.decode()

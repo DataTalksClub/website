@@ -1,4 +1,4 @@
-"""The shared collection hub behind /blog and /books, rebuilt on design 5a (issue #179).
+"""The shared collection hub behind /blog and /books, rebuilt on the design system (issue #179).
 
 One template serves two navigation entries, so every check here runs against both
 collections.  The page carries its own inline stylesheet, includes the shared shell
@@ -55,7 +55,7 @@ class PublicationDayFilterTests(SimpleTestCase):
 
 class CollectionHubDesignTests(TestCase):
     def test_both_hubs_carry_one_inline_stylesheet_and_no_legacy_css(self) -> None:
-        """Design 5a pages ship one <style> and link no stylesheet at all."""
+        """Design system pages ship one <style> and link no stylesheet at all."""
 
         for path in ("/blog", "/books"):
             with self.subTest(path=path):

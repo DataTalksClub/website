@@ -10,7 +10,7 @@ class CourseListMetadataTest(CourseListViewTestBase):
 
         self.assertEqual(response.status_code, 200)
         self.assert_active_course_metadata(response)
-        # Design 5a writes a single-year run as one compressed range (issue #179).
+        # Design system writes a single-year run as one compressed range (issue #179).
         self.assertContains(response, "Jan 15 – Apr 15, 2026")
         self.assertContains(response, "13 weeks")
         self.assertContains(response, "Database-provided course summary.")

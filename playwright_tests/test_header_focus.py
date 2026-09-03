@@ -135,7 +135,7 @@ def test_account_menu_closes_on_escape_and_on_a_click_outside_it(
     """The account menu is a <details>, which only closes through its own summary.
 
     courses/static/user_menu.js gives it the two closes a disclosure menu is
-    expected to have.  The design 5a rebuild dropped that script from every
+    expected to have.  The design system rebuild dropped that script from every
     rebuilt page (issue #179), so the menu opened and would not close.
     """
 

@@ -317,7 +317,7 @@ renames, and deletes nothing under `scripts/`.**
 | `courses/services/local_question_seed.py` | question placeholders | Scaffolding; defanged |
 | `courses/management/commands/import_development_course_content.py` (82) | dev content bootstrap | **Keep** — load-bearing for `core/tests/test_course_platform_adoption.py` |
 | `scripts/generate_production_like_leaderboard_data.py` (917) | placeholder generator | Scaffolding. Keep for now — referenced by `README.md` and the adoption docs |
-| `scripts/build_synthetic_design_review_db.py` (147) | synthetic review DB | Scaffolding. Keep — referenced by `_docs/design/issue-237-review-state-matrix.md` |
+| `scripts/build_synthetic_design_review_db.py` (147) | synthetic review DB | Scaffolding. Keep — referenced by `_docs/testing/issue-237-review-state-matrix.md` |
 | `scripts/add_data.py` (476), `scripts/add_more_test_data.py` (447) | unreachable seeders | ⚠ **Keep.** Zero code references, but ledger-pinned (rows 747, 748). Contribute zero rows to the site. Deletion is a separate groomed ledger issue |
 | `scripts/production_like_course_specs.json` | pinned upstream catalogue | ⚠ **Keep, unedited.** SHA-256-pinned in three places (§3.4) |
 

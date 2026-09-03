@@ -1,12 +1,12 @@
 """The learner surfaces draw every colour from a token both themes define.
 
 This contract used to be read from `courses/static/courses.css`, the adopted
-course-platform stylesheet.  Issue #179 rebuilt every learner page on design 5a:
+course-platform stylesheet.  Issue #179 rebuilt every learner page on the design system:
 the pages carry their stylesheet inline and load no external CSS at all, so the
 old file had stopped describing anything the site serves and was acting as the
 source of truth for a design system it is not part of.  The same concerns are
 read here from `templates/core/_design_system.html`, the shared stylesheet
-partial every design 5a page inlines, and from the pages that own the deadline
+partial every design system page inlines, and from the pages that own the deadline
 countdown: control borders, the focus ring, the deadline states `time_left.js`
 writes, readonly controls, and the impersonation banner must each resolve
 through a custom property that the light and dark palettes both define, never

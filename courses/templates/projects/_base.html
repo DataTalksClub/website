@@ -1,7 +1,7 @@
 {% extends "core/content_page.html" %}
 {% load breadcrumbs seo %}
 {% comment %}
-  The design 5a shell for the learner project pages (issue #179).
+  The design system shell for the learner project pages (issue #179).
 
   The general project pages — submission lists, peer-evaluation index, results
   and statistics — share this document: a trail back to the course, a head,
@@ -11,12 +11,12 @@
   submission layout.
 
   Writing each general project page as a standalone document is how a family
-  drifts (the design 5a rebuild lost a navigation entry from five pages exactly
+  drifts (the design system rebuild lost a navigation entry from five pages exactly
   that way), so this base keeps their common document in one place, the way
   templates/studio/base.html does it for the Studio pages, and each page fills
   in its own blocks.
 
-  A page therefore inherits the whole design 5a document: one inline
+  A page therefore inherits the whole design system document: one inline
   stylesheet whose first content is the shared design system partial, no
   external CSS, and the shared masthead / footer / script partials.  The
   patterns below are composed from that system's tokens and primitives; a page

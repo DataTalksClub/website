@@ -1,6 +1,6 @@
 """Editorial composition for the public blog article page.
 
-The article page renders in the design 5a system (issue #179).  Every fact it
+The article page renders in the design system (issue #179).  Every fact it
 shows — title, subtitle, byline, author portraits, publication date, reading
 time and the body itself — is read from the checked article record and from the
 people records that article names.  A record that cannot supply a fact fails

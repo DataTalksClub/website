@@ -188,7 +188,7 @@ class AccountSettingsOverviewViewTestCase(AccountSettingsViewTestBase):
     def test_account_menu_uses_studio_for_authorized_course_operator(self):
         """Studio is the one management entry point the account menu offers.
 
-        The account page joined the design 5a shell with issue #179, and that
+        The account page joined the design system shell with issue #179, and that
         shell's account menu carries a single ``Studio`` destination instead of
         the adopted shell's deeper ``Studio Courses`` row.  The characterized
         rule is unchanged: an explicitly authorized course operator reaches

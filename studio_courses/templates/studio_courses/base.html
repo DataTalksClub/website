@@ -1,14 +1,14 @@
 {% extends "studio/base.html" %}
 {% load breadcrumbs static %}
 {% comment %}
-  The design 5a shell for the Studio Courses pages (issue #179).
+  The design system shell for the Studio Courses pages (issue #179).
 
   It extends studio/base.html rather than repeating it, for the reason that base
   gives: these are ~15 more near-identical staff pages, and the admin patterns they
   need — the data table, the filter bar, the actions menu, the fact list, the
   notice — are the same ones the rest of Studio needs.  Defining them once, in the
   Studio base's own style block, is what keeps the two sections one surface instead
-  of two that drift.  A Studio Courses page therefore inherits the whole design 5a
+  of two that drift.  A Studio Courses page therefore inherits the whole design system
   document (one inline stylesheet, no external CSS, the shared masthead/footer/script
   partials) and adds only what is its own: the breadcrumb trail back to Studio, the
   local-date script its deadline columns use, and its content block.
@@ -44,7 +44,7 @@
 {% block extra_js %}
   {% comment %}
     The deadline and submission columns render a server-side timestamp that
-    local_date.js rewrites into the reader's own timezone; the design 5a shell
+    local_date.js rewrites into the reader's own timezone; the design system shell
     carries only the site-wide script set, so this surface adds its own after it.
   {% endcomment %}
   <script src="{% static 'local_date.js' %}"></script>

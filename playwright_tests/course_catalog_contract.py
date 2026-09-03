@@ -11,7 +11,7 @@ def assert_copied_course_catalog_link(
 ) -> Locator:
     """Locate one course in the catalogue by its own route and heading.
 
-    Design 5a (issue #179) gives the courses index three differently shaped surfaces —
+    Design system (issue #179) gives the courses index three differently shaped surfaces —
     the active cohort card, the open-registration card and the finished-course row — so the
     contract is that the course is reachable at its own path and is announced by a
     heading carrying its title, not that a particular card nests the two a fixed way.

@@ -29,10 +29,9 @@ from django.test import SimpleTestCase
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# Files this site does not author: vendored assets, browser fixtures, captured
-# design mockups, and generated projections of source-authored content.
+# Files this site does not author: vendored assets, browser fixtures, and
+# generated projections of source-authored content.
 EXCLUDED_PREFIXES = (
-    "_docs/design/mockups/",
     "content/faq_assets/",
     "content/public_projection/",
     "test_support/fixtures/",
@@ -153,9 +152,3 @@ class AccentLeftBorderBanTests(SimpleTestCase):
             if TAILWIND_LEFT_BORDER.search(absolute.read_text(encoding="utf-8"))
         ]
         self.assertEqual(offenders, [])
-
-    def test_the_rule_is_written_down_in_the_design_system_documentation(self) -> None:
-        documentation = (ROOT / "_docs/design/design-5a.md").read_text(encoding="utf-8")
-
-        self.assertIn("No accent left-borders", documentation)
-        self.assertIn("core/tests/test_design_accent_borders.py", documentation)

@@ -1,4 +1,4 @@
-"""Design 5a parity for the public person profile (issue #179).
+"""Design system parity for the public person profile (issue #179).
 
 The profile carries its own inline stylesheet, so this checks what only a browser
 can: the shared palette actually paints, both themes hold, nothing overflows at
@@ -22,9 +22,9 @@ SCREENSHOTS = Path(".tmp/screenshots/issue-179/person")
 # The widest body of work in the catalogue, and a profile with none at all.
 RICH_SLUG = "alexeygrigorev"
 SPARSE_SLUG = "aaronwishnick"
-# The design 5a page ground: the warm band marks where the page starts, and a
+# The design system page ground: the warm band marks where the page starts, and a
 # profile's body of work is the cool lavender content ground that also ends the
-# page, so `--page` follows it (`_docs/design/design-5a.md`).  The dark theme
+# page, so `--page` follows it (`_docs/design/design-system.md`).  The dark theme
 # keeps the partial's own `--page` ground.
 LIGHT_BACKGROUND = "rgb(239, 241, 252)"
 DARK_BACKGROUND = "rgb(19, 22, 42)"

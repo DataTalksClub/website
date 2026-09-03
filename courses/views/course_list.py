@@ -272,7 +272,7 @@ def registered_learner_count(course):
 
 
 def add_course_index_info(course, today) -> None:
-    """Attach the facts the design 5a courses index shows for one course."""
+    """Attach the facts the design system courses index shows for one course."""
 
     course.index_dates = cohort_dates_display(
         course.start_date,

@@ -242,7 +242,7 @@ rather than referenced once. Two consequences to record:
   one Cohort. The platform projects the shared Unit source into each Cohort without
   duplicating the Markdown in this repository."* Every sentence of that becomes false.
 - **The migration runbook's recommendation is reversed.**
-  `_docs/runbooks/session-handoff-20260902.md:53-55` recommends reverting `c04db93` on the
+  The 2026-09-02 session handoff (since deleted) recommended reverting `c04db93` on the
   grounds that it contradicts that README. Under the owner's decision `c04db93` is
   **correct** and ships; the README is what is wrong. That runbook line needs correcting.
 

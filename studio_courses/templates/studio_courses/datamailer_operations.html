@@ -1,13 +1,13 @@
 {% extends 'studio_courses/base.html' %}
 {% load breadcrumbs %}
 {% comment %}
-  Design 5a (issue #179): the Datamailer delivery-health console.
+  Design system (issue #179): the Datamailer delivery-health console.
 
   This is an operational surface — the requeue button posts a real repair — so
   the port changes only presentation: the counts became the system's
   .stat-tiles, the run/error summaries and the operator commands became
   .admin-facts and .admin-code inside .admin-section slabs, and the icon-font
-  glyphs on the outbound links were dropped because a design 5a page loads no
+  glyphs on the outbound links were dropped because a design system page loads no
   icon font.  Every href, form method, hidden field, CSRF token and posted
   value is exactly as it was.
 {% endcomment %}

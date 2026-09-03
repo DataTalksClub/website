@@ -1,4 +1,4 @@
-"""Design 5a parity for the blog article page (issue #179).
+"""Design system parity for the blog article page (issue #179).
 
 The article page carries its own inline stylesheet and is the first page in the
 system built for reading, so this checks what only a browser can: the shared
@@ -21,9 +21,9 @@ from content.public_data import public_projection
 pytestmark = [pytest.mark.core]
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-179/article")
-# The design 5a page ground.  The article opens warm — masthead, trail, title —
+# The design system page ground.  The article opens warm — masthead, trail, title —
 # and hands the page to the cool lavender reading band, which is also the last
-# band, so `--page` follows it (`_docs/design/design-5a.md`, "the warm band marks
+# band, so `--page` follows it (`_docs/design/design-system.md`, "the warm band marks
 # where the page starts; it is not the page").  The dark theme keeps the
 # partial's own `--page` ground.
 LIGHT_BACKGROUND = "rgb(239, 241, 252)"
