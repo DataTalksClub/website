@@ -19,6 +19,12 @@ class LeaderboardEnrollmentData:
 
 class LeaderboardDataViewBase(TestCase):
     def setUp(self):
+        # The leaderboard response is cached under the cohort's primary key,
+        # and those keys repeat across test classes, so a warm entry left by an
+        # earlier test can answer for this one's course.  Clearing on the way in
+        # as well as on the way out makes these tests independent of whatever
+        # ran before them.
+        cache.clear()
         self.client = Client()
         self.course = self.create_course()
         self.url = self.course_leaderboard_url()
@@ -30,18 +36,14 @@ class LeaderboardDataViewBase(TestCase):
             total_score=100,
             position=1,
         )
-        self.enrollment1 = self.create_leaderboard_enrollment(
-            enrollment_data
-        )
+        self.enrollment1 = self.create_leaderboard_enrollment(enrollment_data)
         enrollment_data = LeaderboardEnrollmentData(
             user=self.user2,
             display_name="Bob",
             total_score=50,
             position=2,
         )
-        self.enrollment2 = self.create_leaderboard_enrollment(
-            enrollment_data
-        )
+        self.enrollment2 = self.create_leaderboard_enrollment(enrollment_data)
 
     def create_course(self):
         return Cohort.objects.create(

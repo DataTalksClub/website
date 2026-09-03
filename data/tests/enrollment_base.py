@@ -253,11 +253,17 @@ class EnrollmentDataAPIBase(TestCase):
             email="testuser@example.com",
             password="password",
         )
-        self.token = Token.objects.create(user=self.user)
-
-        self.course = Cohort.objects.create(
-            title="Test Course", slug="test-course"
+        # The caller is an operator, not the learner below: these exports and
+        # the certificate update are staff-token endpoints.
+        self.api_operator = CustomUser.objects.create(
+            username="api-operator",
+            email="api-operator@example.com",
+            password="password",
+            is_staff=True,
         )
+        self.token = Token.objects.create(user=self.api_operator)
+
+        self.course = Cohort.objects.create(title="Test Course", slug="test-course")
 
         self.enrollment = Enrollment.objects.create(
             student=self.user,
@@ -265,6 +271,4 @@ class EnrollmentDataAPIBase(TestCase):
         )
 
         self.client = Client()
-        self.client.defaults["HTTP_AUTHORIZATION"] = (
-            f"Token {self.token.key}"
-        )
+        self.client.defaults["HTTP_AUTHORIZATION"] = f"Token {self.token.key}"

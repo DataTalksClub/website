@@ -2,6 +2,8 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 
 from accounts.auth import token_required
+from api.safety import require_staff_token
+from course_management.datamailer.sync.audit_redaction import recipient_fingerprint
 from data.models import DatamailerSendAudit
 
 DEFAULT_LIMIT = 25
@@ -11,14 +13,22 @@ MAX_LIMIT = 100
 @require_GET
 @token_required
 def datamailer_send_audits_view(request):
+    # Recipient addresses, rendered message bodies and the raw send error, plus
+    # an `email` filter that answers "was this address mailed?" for any address
+    # asked about.  Operator data throughout.
+    staff_error = require_staff_token(request)
+    if staff_error:
+        return staff_error
+
     audits = DatamailerSendAudit.objects.all()
 
     email = request.GET.get("email")
     if email:
-        # The recipient is stored under response_payload["message"]["email"].
-        # It is persisted lowercased, so lowercase the query value to match.
+        # The recipient address is not stored; its fingerprint is.  Hashing the
+        # asked-about address the same way keeps "was this person mailed?"
+        # answerable without the row holding anyone's address.
         audits = audits.filter(
-            response_payload__message__email=email.strip().lower()
+            response_payload__message__email_fingerprint=recipient_fingerprint(email)
         )
 
     template_key = request.GET.get("template_key")

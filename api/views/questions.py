@@ -54,14 +54,18 @@ def questions_view(request, course_slug, homework_id):
     GET /api/courses/<slug>/homeworks/<id>/questions/ - List questions.
     POST /api/courses/<slug>/homeworks/<id>/questions/ - Add questions.
     """
+    # Read as well as write: a question record carries `correct_answer`, so
+    # listing the questions of a homework is handing out the answer key.  A
+    # `token_required` caller is only "some active account", which includes
+    # every learner sitting the homework.
+    staff_error = require_staff_token(request)
+    if staff_error:
+        return staff_error
+
     _, homework = _get_course_and_homework(course_slug, homework_id)
 
     if request.method == "GET":
         return _questions_list_response(homework)
-
-    staff_error = require_staff_token(request)
-    if staff_error:
-        return staff_error
 
     data, err = parse_json_body(request)
     if err:
@@ -79,6 +83,12 @@ def question_detail_view(request, course_slug, homework_id, question_id):
     PATCH /api/courses/<slug>/homeworks/<id>/questions/<id>/ - Update question.
     DELETE /api/courses/<slug>/homeworks/<id>/questions/<id>/ - Delete question.
     """
+    # `question_to_dict` includes `correct_answer`, so the read is as
+    # privileged as the writes below it.
+    staff_error = require_staff_token(request)
+    if staff_error:
+        return staff_error
+
     _, homework = _get_course_and_homework(course_slug, homework_id)
     question = get_object_or_404(Question, homework=homework, id=question_id)
 
@@ -86,10 +96,6 @@ def question_detail_view(request, course_slug, homework_id, question_id):
         question_record = question_to_dict(question)
         response = JsonResponse(question_record)
         return response
-
-    staff_error = require_staff_token(request)
-    if staff_error:
-        return staff_error
 
     if request.method == "DELETE":
         return question_delete_response(question)
