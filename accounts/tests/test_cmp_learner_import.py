@@ -208,6 +208,73 @@ class CmpLearnerImportBasicsTests(TestCase):
         self.assertEqual(u2.identity_state, CustomUser.IdentityState.LEGACY)
         self.assertEqual(u15515.identity_state, CustomUser.IdentityState.LEGACY)
 
+    def test_an_account_a_different_importer_already_created_is_attached_not_duplicated(self):
+        """The exact shape ``import_legacy_zoomcamp.py`` leaves behind: an
+        account with just a username and a real email, no ``cmp_source_user_id``,
+        created before this importer ever runs (legacy history imports first,
+        per the migration runbook's step order). This importer must attach its
+        row onto that account, not create a second one for the same address --
+        that second row is exactly what left 879 real members
+        ``verified_owner_ambiguous`` and locked out.
+        """
+
+        legacy_user = CustomUser(username="zc-hist-deadbeef", email="shared-learner@example.invalid")
+        legacy_user.set_unusable_password()
+        legacy_user.save()
+        legacy_pk = legacy_user.pk
+
+        source = self._source(
+            [
+                _account_row(
+                    1,
+                    username="shared-learner",
+                    email="shared-learner@example.invalid",
+                )
+            ],
+            [(1, "shared-learner@example.invalid", 1, 1, 1)],
+        )
+        result = import_cmp_learners(source, batch_size=10)
+
+        # Still one account, at the same primary key -- so every existing
+        # reference to it (enrollments, submissions, certificates) is
+        # untouched.
+        self.assertEqual(
+            CustomUser.objects.filter(email="shared-learner@example.invalid").count(), 1
+        )
+        merged = CustomUser.objects.get(email="shared-learner@example.invalid")
+        self.assertEqual(merged.pk, legacy_pk)
+        # The importer's own username choice never overwrites the identity
+        # the first importer already established.
+        self.assertEqual(merged.username, "zc-hist-deadbeef")
+        self.assertEqual(merged.cmp_source_user_id, 1)
+        self.assertFalse(merged.has_usable_password())
+        self.assertEqual(merged.first_name, "First1")
+        self.assertEqual(merged.country, "US")
+        # The CMP-sourced email row lands on the same, merged account.
+        email_row = EmailAddress.objects.get(user=merged)
+        self.assertEqual(email_row.email, "shared-learner@example.invalid")
+        self.assertTrue(email_row.verified)
+        self.assertEqual(result.cross_source_matches, (1,))
+
+    def test_a_second_cmp_row_never_attaches_onto_a_cmp_created_row(self):
+        """The one already-documented within-CMP collision (ids 2/15515 in the
+        real export) must keep surfacing for manual reconciliation -- it is
+        not the same shape as a cross-source duplicate, and must not be
+        silently auto-merged by the new cross-source matching."""
+
+        source = self._source(
+            [
+                _account_row(2, email="shared@example.com", username="admin"),
+                _account_row(15515, email="shared@example.com", username="shared@example.com"),
+            ],
+            [(1, "shared@example.com", 1, 1, 15515)],
+        )
+        result = import_cmp_learners(source, batch_size=10)
+
+        self.assertEqual(CustomUser.objects.count(), 2)
+        self.assertEqual(result.cross_source_matches, ())
+        self.assertEqual(result.synthesis_skipped_collisions, (2,))
+
     def test_a_taken_username_is_suffixed_not_collided(self):
         CustomUser.objects.create_user(username="popular", email="existing@example.com")
         source = self._source(

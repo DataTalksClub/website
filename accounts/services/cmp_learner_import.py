@@ -65,6 +65,41 @@ So this importer does two things for email addresses:
    this importer does not merge accounts, it imports both and reports the
    collision by source id so the existing reconciliation mechanism can find it.
 
+Cross-source deduplication
+---------------------------
+
+This importer runs after ``import_legacy_zoomcamp.py`` (step 1 of the
+migration), which also writes ``accounts_customuser`` -- for the pre-2024
+Zoomcamp editions, keyed by the learner's recovered real email, with just a
+``username`` and ``email`` set. Neither importer's own natural-key check (this
+one's ``cmp_source_user_id``, that one's ``normalized_email`` lookup against
+*existing* rows) sees the other importer's writes on a first pass in
+migration order, because the legacy importer runs first: it has nothing to
+find yet, and when this importer runs second it never looked. Left alone,
+that is a duplicate account per person migrated by both -- and a duplicate
+address is exactly what
+``accounts.auth.ConsolidatingSocialAccountAdapter`` refuses to sign in
+(``verified_owner_ambiguous``, see the migration runbook §5).
+
+So before creating a new row, this importer checks for an existing account
+sharing the same ``normalized_email`` that carries no ``cmp_source_user_id``
+of its own -- i.e. one written by a different importer, not a duplicate
+within the CMP export itself. If one exists, this importer attaches its data
+(profile fields, ``cmp_source_user_id``, an unusable password) onto that
+*existing* row instead of creating a second one. It never touches the
+existing account's ``username`` or ``email`` -- those already identify it,
+and the account's primary key never changes, so everything that already
+references it (enrollments, submissions, certificates) keeps working
+unchanged. This is a plain merge, not the reviewed reconciliation flow in
+``accounts/reconciliation.py``: both sides are the same real person, written
+once each by two importers that do not know about each other, with no
+conflicting history to adjudicate -- unlike the one address the CMP export
+shares with itself (ids 2/15515 in the real export), which two CMP rows both
+claim and which stays exactly as before, reported by
+``synthesis_skipped_collisions`` for the reviewed reconciliation flow to
+handle, because the ``cmp_source_user_id__isnull=True`` guard above never
+matches a row the CMP import itself already claimed.
+
 Resumability
 ------------
 
@@ -91,6 +126,7 @@ from allauth.account.models import EmailAddress
 from django.db import IntegrityError, transaction
 from django.utils.dateparse import parse_datetime
 
+from accounts.identity_values import normalize_account_email
 from accounts.models import CmpLearnerImportProgress, CustomUser
 
 __all__ = [
@@ -217,6 +253,7 @@ class LearnerImportResult:
     email_addresses: LearnerImportPhaseReport
     synthesized_email_addresses: LearnerImportPhaseReport
     synthesis_skipped_collisions: tuple[int, ...] = field(default_factory=tuple)
+    cross_source_matches: tuple[int, ...] = field(default_factory=tuple)
 
     def summary(self) -> dict[str, Any]:
         return {
@@ -228,6 +265,13 @@ class LearnerImportResult:
             # already claimed by another account's verified row; they stay
             # without one, for the existing reconciliation mechanism to find.
             "synthesis_skipped_collisions": list(self.synthesis_skipped_collisions),
+            # Source accounts_customuser ids only -- never an email. These
+            # rows were attached onto an account a different importer (today:
+            # import_legacy_zoomcamp) already created for the same address,
+            # rather than creating a duplicate. This call's matches only --
+            # not cumulative across a killed-and-resumed run, see
+            # _import_accounts.
+            "cross_source_matches": list(self.cross_source_matches),
             "applied": True,
         }
 
@@ -278,15 +322,13 @@ def _resolve_username(row: sqlite3.Row) -> str:
     return _unique_username(preferred)
 
 
-def _build_account(row: sqlite3.Row) -> CustomUser:
-    email = (row["email"] or "").strip()
-    user = CustomUser(
-        username=_resolve_username(row),
-        email=email,
-        is_staff=False,
-        is_superuser=False,
-        cmp_source_user_id=row["id"],
-    )
+def _populate_profile_fields(user: CustomUser, row: sqlite3.Row) -> None:
+    """Copy the export's profile columns onto ``user``. Shared by a brand-new
+    account and one attached from a different importer -- see
+    ``_attach_existing_account``. Never touches ``username``, ``email``,
+    ``is_staff``, ``is_superuser``, ``cmp_source_user_id`` or the password;
+    callers own those explicitly."""
+
     columns = row.keys()
     for name in _ACCOUNT_FIELDS:
         if name not in columns:
@@ -307,15 +349,74 @@ def _build_account(row: sqlite3.Row) -> CustomUser:
             continue
         raw = row[name]
         setattr(user, name, parse_datetime(raw) if raw else None)
+
+
+def _build_account(row: sqlite3.Row) -> CustomUser:
+    email = (row["email"] or "").strip()
+    user = CustomUser(
+        username=_resolve_username(row),
+        email=email,
+        is_staff=False,
+        is_superuser=False,
+        cmp_source_user_id=row["id"],
+    )
+    _populate_profile_fields(user, row)
     user.set_unusable_password()
+    return user
+
+
+def _find_cross_source_match(email: str) -> CustomUser | None:
+    """An account another importer already created for ``email``, if any.
+
+    Deliberately excludes any account this importer itself already claimed
+    (``cmp_source_user_id__isnull=True``) -- a match there would be a
+    duplicate *within* the CMP export (the one known case, ids 2/15515),
+    which is a different, harder problem this importer does not resolve; see
+    the module docstring's "Cross-source deduplication" section.
+    """
+
+    normalized = normalize_account_email(email)
+    if not normalized:
+        return None
+    return (
+        CustomUser.objects.filter(
+            normalized_email=normalized,
+            cmp_source_user_id__isnull=True,
+        )
+        .order_by("pk")
+        .first()
+    )
+
+
+def _attach_existing_account(user: CustomUser, row: sqlite3.Row) -> CustomUser:
+    """Attach this CMP row onto an account a different importer already
+    created for the same address, rather than creating a duplicate. Leaves
+    ``username`` and ``email`` untouched -- those already identify the
+    account, and its primary key never changes, so every existing reference
+    to it (enrollments, submissions, certificates) keeps working unchanged.
+    """
+
+    _populate_profile_fields(user, row)
+    user.is_staff = False
+    user.is_superuser = False
+    user.cmp_source_user_id = row["id"]
+    user.set_unusable_password()
+    user.save()
     return user
 
 
 def _import_accounts(
     connection: sqlite3.Connection, *, batch_size: int
-) -> LearnerImportPhaseReport:
+) -> tuple[LearnerImportPhaseReport, tuple[int, ...]]:
     source_total = _count(connection, ACCOUNTS_TABLE)
     progress = _get_progress(ACCOUNTS_TABLE)
+    # Source ids attached onto an account a different importer already
+    # created, this call only -- see the module docstring's "Cross-source
+    # deduplication" section. Not cumulative across a killed-and-resumed run:
+    # a row already attached in an earlier call is caught by the
+    # cmp_source_user_id check below and counted as skipped, same as any
+    # other already-imported row.
+    cross_source_matches: list[int] = []
     while not progress.completed:
         rows = connection.execute(
             "select * from accounts_customuser where id > ? order by id limit ?",
@@ -334,13 +435,18 @@ def _import_accounts(
                 if CustomUser.objects.filter(cmp_source_user_id=row["id"]).exists():
                     skipped += 1
                     continue
-                _build_account(row).save()
+                existing = _find_cross_source_match((row["email"] or "").strip())
+                if existing is not None:
+                    _attach_existing_account(existing, row)
+                    cross_source_matches.append(row["id"])
+                else:
+                    _build_account(row).save()
                 written += 1
             progress.last_source_id = max_id
             progress.rows_written += written
             progress.rows_skipped += skipped
             _save_progress(progress)
-    return _phase_report(progress, source_total)
+    return _phase_report(progress, source_total), tuple(cross_source_matches)
 
 
 def _import_email_addresses(
@@ -504,7 +610,7 @@ def import_cmp_learners(
     _assert_forbidden_tables_untouched()
     connection = _readonly(source)
     try:
-        accounts_report = _import_accounts(connection, batch_size=batch_size)
+        accounts_report, cross_source_matches = _import_accounts(connection, batch_size=batch_size)
         email_report = _import_email_addresses(connection, batch_size=batch_size)
     finally:
         connection.close()
@@ -514,4 +620,5 @@ def import_cmp_learners(
         email_addresses=email_report,
         synthesized_email_addresses=synthesized_report,
         synthesis_skipped_collisions=collisions,
+        cross_source_matches=cross_source_matches,
     )
