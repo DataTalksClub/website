@@ -29,7 +29,9 @@ from review_import.environment import disable_local_review_provider_environment
 from review_import.manifest import (
     ALLOWLIST,
     ALLOWLIST_SCHEMA_VERSION,
+    COHORT_ONLY_COLUMNS,
     COPY_ORDER,
+    TARGET_ONLY_COLUMNS,
     is_sensitive_table,
 )
 
@@ -1132,6 +1134,7 @@ def _insert_course_families(
         "social_media_hashtag",
         "visible",
     )
+    _assert_required_columns_filled(target, "courses_course_family", columns)
     column_sql = ", ".join(_quote_identifier(column) for column in columns)
     placeholders = ", ".join("?" for _column in columns)
     target.executemany(
@@ -1142,6 +1145,45 @@ def _insert_course_families(
     return {slug: str(family["id"]) for slug, family in families.items()}
 
 
+def _assert_required_columns_filled(
+    target: sqlite3.Connection,
+    table: str,
+    columns: Sequence[str],
+) -> None:
+    """Refuse before INSERT when the target needs a column this copy never writes.
+
+    A migration that adds a NOT NULL column leaves no database-level default behind, so
+    an INSERT that names every other column fails with an opaque
+    ``sqlite3.IntegrityError`` in the middle of a rebuild -- which is how migration
+    ``0054`` broke this path.  Checking the target schema first turns the next such
+    migration into a named refusal that says which table and column need a decision:
+    either the source carries the value and it belongs in ``ALLOWLIST``, or it does not
+    and it belongs in ``TARGET_ONLY_COLUMNS``.
+    """
+
+    written = set(columns)
+    for name, column in _columns(target, table).items():
+        if name in written or not int(column["notnull"]) or int(column["pk"]):
+            continue
+        if column["dflt_value"] is not None:
+            continue
+        raise ImportFailure("schema-unwritten-required-column", table=table, column=name)
+
+
+def target_columns(table: str) -> tuple[str, ...]:
+    """Every column the copy writes for one allowlisted table.
+
+    The allowlisted source columns, the cohort identity this schema splits out of a
+    legacy CMP course row, and the columns CMP has no value for at all.  A test asserts
+    this covers everything the migrated schema requires.
+    """
+
+    columns = ALLOWLIST[table]
+    if table == "courses_course":
+        columns = (*columns, *COHORT_ONLY_COLUMNS)
+    return (*columns, *TARGET_ONLY_COLUMNS.get(table, ()))
+
+
 def _insert_dataset(target: sqlite3.Connection, dataset: AllowedDataset) -> None:
     target.execute("PRAGMA foreign_keys=ON")
     with target:
@@ -1150,33 +1192,23 @@ def _insert_dataset(target: sqlite3.Connection, dataset: AllowedDataset) -> None
             dataset.rows["courses_course"],
         )
         for table in COPY_ORDER:
-            columns = ALLOWLIST[table]
-            target_columns = columns
+            written = target_columns(table)
+            local_only = TARGET_ONLY_COLUMNS.get(table, {})
+            source_columns = written[: len(written) - len(local_only)]
             target_rows = dataset.rows[table]
             if table == "courses_course":
-                target_columns = (
-                    *columns,
-                    "uuid",
-                    "year",
-                    "outcome",
-                    "course_id",
-                    "curriculum_format",
-                    "identifier",
-                )
                 cohort_rows = []
                 for row in target_rows:
                     family_slug = str(_legacy_course_family_values(row)["slug"])
                     cohort = _legacy_cohort_values(row, family_ids[family_slug])
-                    cohort_rows.append(tuple(cohort[column] for column in target_columns))
+                    cohort_rows.append(tuple(cohort[column] for column in source_columns))
                 target_rows = cohort_rows
-            elif table == "courses_homework":
-                target_columns = (*columns, "instructions_markdown")
-                target_rows = [(*row, "") for row in target_rows]
-            if table == "courses_wrappedstatistics":
-                target_columns = (*columns, "leaderboard")
-                target_rows = [(*row, "[]") for row in target_rows]
-            column_sql = ", ".join(_quote_identifier(column) for column in target_columns)
-            placeholders = ", ".join("?" for _column in target_columns)
+            if local_only:
+                empty = tuple(local_only.values())
+                target_rows = [(*row, *empty) for row in target_rows]
+            _assert_required_columns_filled(target, table, written)
+            column_sql = ", ".join(_quote_identifier(column) for column in written)
+            placeholders = ", ".join("?" for _column in written)
             query = f"INSERT INTO {_quote_identifier(table)} ({column_sql}) VALUES ({placeholders})"
             target.executemany(query, target_rows)
         _refresh_sequences(target, dataset.counts)

@@ -1,12 +1,23 @@
 from __future__ import annotations
 
+import sqlite3
 from unittest import TestCase
+
+from django.db import connection as django_connection
+from django.test import TestCase as DjangoTestCase
 
 from courses.services.local_cmp_content_import import (
     exclude_fixture_courses,
 )
 from review_import.manifest import ALLOWLIST, COPY_ORDER
-from review_import.workflow import AllowedDataset, _logical_checksum, _relationship_evidence
+from review_import.workflow import (
+    AllowedDataset,
+    ImportFailure,
+    _assert_required_columns_filled,
+    _logical_checksum,
+    _relationship_evidence,
+    target_columns,
+)
 
 
 def _row(table: str, values: dict[str, object]) -> tuple[object, ...]:
@@ -114,3 +125,43 @@ class ExcludeFixtureCourseTests(TestCase):
             zip(ALLOWLIST["courses_question"], filtered.rows["courses_question"][0], strict=True)
         )
         self.assertEqual(question["text"], "Real question")
+
+
+class CopiedColumnsCoverTheMigratedSchemaTests(DjangoTestCase):
+    """The copy writes explicit column lists, so a migration can silently outgrow it.
+
+    Migration ``0054`` added ``Homework.instructions_source_path`` as NOT NULL with no
+    database-level default. Every rebuild then died with an opaque
+    ``sqlite3.IntegrityError`` after the migrate step, which is a bad way to learn that a
+    column list needs updating.
+    """
+
+    def test_every_required_column_is_written_by_the_copy(self) -> None:
+        missing: list[str] = []
+        with django_connection.cursor() as cursor:
+            for table in COPY_ORDER:
+                written = set(target_columns(table))
+                cursor.execute(f'PRAGMA table_info("{table}")')
+                for _cid, name, _type, notnull, default, primary_key in cursor.fetchall():
+                    if name in written or not notnull or primary_key:
+                        continue
+                    if default is not None:
+                        continue
+                    missing.append(f"{table}.{name}")
+
+        self.assertEqual(missing, [])
+
+    def test_a_required_column_the_copy_never_writes_is_refused_before_insert(self) -> None:
+        connection = sqlite3.connect(":memory:")
+        self.addCleanup(connection.close)
+        connection.row_factory = sqlite3.Row
+        connection.execute(
+            'CREATE TABLE "courses_homework" '
+            "(id INTEGER PRIMARY KEY, slug TEXT NOT NULL, added_later TEXT NOT NULL)"
+        )
+
+        with self.assertRaises(ImportFailure) as refusal:
+            _assert_required_columns_filled(connection, "courses_homework", ("id", "slug"))
+
+        self.assertEqual(refusal.exception.category, "schema-unwritten-required-column")
+        self.assertEqual(refusal.exception.column, "added_later")

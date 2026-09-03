@@ -133,8 +133,23 @@ def _insert(connection: sqlite3.Connection, table: str, values: dict[str, object
     )
 
 
-def _minimal_value(column: sqlite3.Row) -> object:
+def _json_columns(connection: sqlite3.Connection, table: str) -> frozenset[str]:
+    """Columns the table guards with a ``JSON_VALID`` check.
+
+    A Django ``JSONField`` is a TEXT column on SQLite, so the type alone cannot say that
+    ``synthetic`` would violate the check the migration wrote.
+    """
+
+    row = connection.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?", (table,)
+    ).fetchone()
+    return frozenset(re.findall(r'JSON_VALID\("([^"]+)"\)', str(row[0] if row else "")))
+
+
+def _minimal_value(column: sqlite3.Row, json_columns: frozenset[str] = frozenset()) -> object:
     column_type = str(column["type"]).upper()
+    if str(column["name"]) in json_columns:
+        return "{}"
     if "INT" in column_type:
         return 0
     if any(numeric in column_type for numeric in ("REAL", "FLOA", "DOUB", "NUM")):
@@ -150,6 +165,7 @@ def _insert_forbidden_row(
     overrides: dict[str, object],
 ) -> None:
     connection.row_factory = sqlite3.Row
+    json_columns = _json_columns(connection, table)
     values: dict[str, object] = {}
     for column in connection.execute(f'PRAGMA table_info("{table}")').fetchall():
         name = str(column["name"])
@@ -158,7 +174,7 @@ def _insert_forbidden_row(
         elif column["pk"]:
             values[name] = 9001 if "INT" in str(column["type"]).upper() else "synthetic-key"
         elif column["notnull"] and column["dflt_value"] is None:
-            values[name] = _minimal_value(column)
+            values[name] = _minimal_value(column, json_columns)
     for name, value in overrides.items():
         values.setdefault(name, value)
     _insert(connection, table, values)
@@ -321,6 +337,7 @@ def seed_synthetic_snapshot(path: Path) -> None:
             "faq_contribution_field": 1,
             "state": "OP",
             "instructions_markdown": "Public homework instructions.",
+            "instructions_source_path": "cohorts/2026/01-intro/homework.md",
         },
     )
     _insert(

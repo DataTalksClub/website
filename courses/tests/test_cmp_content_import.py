@@ -12,16 +12,19 @@ import tempfile
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from courses.models import (
     Cohort,
     Course,
+    Enrollment,
     Homework,
     Module,
     Project,
     Question,
     ReviewCriteria,
+    Submission,
 )
 from courses.models.cohort import CourseRegistration, RegistrationCampaign
 from courses.services.cmp_content_import import (
@@ -70,6 +73,8 @@ CREATE TABLE courses_projectsubmission (id INTEGER, project_id INTEGER);
 """
 
 _DUE = "2026-01-15 12:00:00+00"
+# The content id a course repository's homework.yaml declares.
+CONTENT_ID = "85555555-5555-4555-8555-555555555555"
 
 
 def _build_source(
@@ -393,6 +398,103 @@ class CmpContentImportTests(TestCase):
         self.assertTrue(Homework.objects.filter(course=cohort, slug="homework-99").exists())
         self.assertEqual(result.summary()["unpaired_repository_homework"], ["homework-99"])
 
+    def _own(self, homework: Homework, *, content_id: str) -> Homework:
+        """Stamp the provenance a course-repository pull writes."""
+
+        homework.source_content_id = content_id
+        homework.source_path = "cohorts/2026/01-agentic-rag/homework.yaml"
+        homework.source_commit_sha = "a" * 40
+        homework.source_checksum = "b" * 64
+        homework.instructions_markdown = "# Homework 1\n\nRepository instructions."
+        homework.instructions_source_path = "cohorts/2026/01-agentic-rag/homework.md"
+        homework.save()
+        return homework
+
+    def test_the_reconciled_row_stays_the_one_the_repository_import_owns(self) -> None:
+        """Adopting CMP's slug must not orphan the row from its repository.
+
+        Replacing the row dropped ``source_content_id``, so the next repository pull saw
+        a homework no import owned holding the slug it declares and refused with
+        ``homework_slug_collision`` -- and the imported instructions Markdown and its
+        source path went with it.
+        """
+
+        cohort, modules = self._modules_cohort({"homework-01": "Homework 1: Real"})
+        owned = self._own(modules["homework-01"].terminal_homework, content_id=CONTENT_ID)
+        _build_source(self.source, cohort_slugs=("llm-zoomcamp-2026",))
+
+        import_cmp_course_content(self.source)
+
+        reconciled = Homework.objects.get(course=cohort, slug="hw1")
+        self.assertEqual(reconciled.pk, owned.pk)
+        self.assertEqual(str(reconciled.source_content_id), CONTENT_ID)
+        self.assertEqual(
+            reconciled.instructions_source_path,
+            "cohorts/2026/01-agentic-rag/homework.md",
+        )
+        self.assertEqual(reconciled.title, "Homework 1: Real")
+        self.assertEqual(reconciled.description, "Real homework copy")
+
+    def test_a_repository_pull_after_an_import_does_not_leave_two_rows(self) -> None:
+        """The pairing has to survive a replay, or the reconciliation undoes itself.
+
+        The pull re-creates its own row, and the local dataset copies CMP *before* it
+        pulls at all, so the CMP-slugged row is usually already there when the pairing
+        runs. Trying the title match only when the row is new left both identities in
+        place for the same assignment, permanently.
+        """
+
+        cohort, modules = self._modules_cohort({"homework-01": "Homework 1: Real"})
+        self._own(modules["homework-01"].terminal_homework, content_id=CONTENT_ID)
+        Homework.objects.create(
+            course=cohort,
+            slug="hw1",
+            title="Homework 1: Real",
+            due_date=datetime.now(timezone.utc) + timedelta(days=7),
+        )
+        _build_source(self.source, cohort_slugs=("llm-zoomcamp-2026",))
+
+        result = import_cmp_course_content(self.source)
+
+        self.assertEqual(
+            list(Homework.objects.filter(course=cohort).values_list("slug", flat=True)),
+            ["hw1"],
+        )
+        survivor = Homework.objects.get(course=cohort, slug="hw1")
+        self.assertEqual(str(survivor.source_content_id), CONTENT_ID)
+        module = modules["homework-01"]
+        module.refresh_from_db()
+        self.assertEqual(module.terminal_homework_id, survivor.pk)
+        self.assertEqual(survivor.question_set.count(), 1)
+        self.assertEqual(result.summary()["unpaired_repository_homework"], [])
+
+    def test_a_duplicate_carrying_submissions_is_reported_rather_than_folded(self) -> None:
+        """Folding discards a row, and a discarded row takes its submissions with it."""
+
+        cohort, modules = self._modules_cohort({"homework-01": "Homework 1: Real"})
+        self._own(modules["homework-01"].terminal_homework, content_id=CONTENT_ID)
+        submitted = Homework.objects.create(
+            course=cohort,
+            slug="hw1",
+            title="Homework 1: Real",
+            due_date=datetime.now(timezone.utc) + timedelta(days=7),
+        )
+        student = get_user_model().objects.create_user(
+            username="learner", email="learner@example.com", password="x"
+        )
+        enrollment = Enrollment.objects.create(student=student, course=cohort)
+        Submission.objects.create(homework=submitted, student=student, enrollment=enrollment)
+        _build_source(self.source, cohort_slugs=("llm-zoomcamp-2026",))
+
+        result = import_cmp_course_content(self.source)
+
+        self.assertEqual(
+            sorted(Homework.objects.filter(course=cohort).values_list("slug", flat=True)),
+            ["homework-01", "hw1"],
+        )
+        self.assertTrue(Submission.objects.filter(homework=submitted).exists())
+        self.assertEqual(result.summary()["unpaired_repository_homework"], ["homework-01"])
+
     def test_skips_a_cohort_the_local_catalogue_does_not_have(self) -> None:
         _build_source(self.source, cohort_slugs=("de-zoomcamp-2026",))
 
@@ -485,9 +587,12 @@ class CmpRegistrationCampaignImportTests(CmpContentImportTests):
         summary = result.summary()
         self.assertEqual(summary["campaigns_written"], 1)
         self.assertEqual(summary["campaigns_created"], 1)
-        self.assertEqual(summary["campaigns"], [
-            {"slug": "de-zoomcamp", "created": True, "promotes": "de-zoomcamp-2026"},
-        ])
+        self.assertEqual(
+            summary["campaigns"],
+            [
+                {"slug": "de-zoomcamp", "created": True, "promotes": "de-zoomcamp-2026"},
+            ],
+        )
 
     def test_a_campaign_promoting_no_cohort_arrives_unlinked_rather_than_refused(self) -> None:
         self._cohort("de-zoomcamp-2026")

@@ -32,6 +32,13 @@ Scope, deliberately narrow:
   and reported**.  Guessing by ordinal position would misattach CMP's ``dlt`` workshop
   to the sixth LLM module, which renders as a page that looks fine and is wrong.
 
+  A paired row is *renamed*, never replaced.  The row stays the repository's, keeping
+  ``source_content_id``, the imported instructions Markdown, its source path, its units
+  and its module binding; only the slug and CMP's own fields change.  Replacing it left
+  a homework no import owned, which is what the course-repository path refuses on its
+  next pull with ``homework_slug_collision``, and which re-created the repository row
+  beside it so the reconciliation undid itself on every replay.
+
 Running it twice is a no-op: every write is keyed on a natural key, and a homework's
 questions are replaced as a set.
 """
@@ -48,7 +55,15 @@ from typing import Any, NoReturn
 from django.db import transaction
 
 from courses.course_family_catalog import COHORT_FAMILY_IDENTITIES
-from courses.models import Cohort, Homework, Module, Project, Question, ReviewCriteria
+from courses.models import (
+    Cohort,
+    Homework,
+    Module,
+    Project,
+    Question,
+    ReviewCriteria,
+    Submission,
+)
 from courses.models.cohort import Course, RegistrationCampaign
 
 __all__ = [
@@ -545,6 +560,71 @@ def _dependent_row_total(connection: sqlite3.Connection, course_id: Any) -> int:
     return total
 
 
+def _repository_pair(
+    by_title: dict[str, Homework],
+    title: Any,
+    slug_match: Homework | None,
+) -> Homework | None:
+    """Return the repository row this CMP row is the same assignment as, if any.
+
+    The pairing is by exact title, and it is tried whether or not a row already carries
+    CMP's slug.  Trying it only on the create branch made the import order-dependent: an
+    assignment CMP and a repository both describe reconciled on a first run and stayed
+    permanently duplicated on every later one, because the CMP-slugged row from the
+    previous run matched first and the repository row was never looked at again.  The
+    local dataset copies CMP before it pulls a repository, so *every* pairing there hits
+    that branch.
+    """
+
+    paired = by_title.get(str(title))
+    if paired is None:
+        return None
+    if slug_match is None:
+        return by_title.pop(str(title))
+    if paired.pk == slug_match.pk:
+        return None
+    # Two rows for one assignment: the repository's, and one already carrying CMP's slug.
+    # Folding them discards a row, so it is done only when the surviving row is the one a
+    # repository import owns, and never when the discarded row has submissions attached.
+    if paired.source_content_id is None:
+        return None
+    if Submission.objects.filter(homework=slug_match).exists():
+        return None
+    return by_title.pop(str(title))
+
+
+def _adopt_repository_row(
+    paired: Homework,
+    slug_match: Homework | None,
+    slug: str,
+    values: Mapping[str, Any],
+    rebound: list[tuple[str, str, str]],
+    existing: dict[str, Homework],
+) -> Homework:
+    """Give the repository's row CMP's slug and content, in place.
+
+    CMP owns homework identity, so the slug becomes CMP's.  The row itself stays the
+    repository's: replacing it would drop ``source_content_id`` and leave a homework no
+    import owns, which the course-repository path refuses on its next pull with
+    ``homework_slug_collision`` -- and would drop the imported instructions Markdown, its
+    source path, and the unit links that resolve against it.  Renaming keeps the module
+    binding as well, because the foreign key never moves.
+    """
+
+    if slug_match is not None:
+        existing.pop(slug_match.slug, None)
+        slug_match.delete()
+    previous_slug = paired.slug
+    existing.pop(previous_slug, None)
+    paired.slug = slug
+    paired.save(update_fields=["slug"])
+    _apply(paired, values)
+    if previous_slug != slug:
+        for module in Module.objects.filter(terminal_homework=paired):
+            rebound.append((module.slug, previous_slug, slug))
+    return paired
+
+
 def _import_cohort(connection: sqlite3.Connection, row: Any, cohort: Cohort) -> CohortReport:
     _apply(cohort, _values(row, _COHORT_FIELDS))
     course_id = row["id"]
@@ -573,22 +653,16 @@ def _import_cohort(connection: sqlite3.Connection, row: Any, cohort: Cohort) -> 
         source_slugs.add(slug)
         values = _values(source, _HOMEWORK_FIELDS)
         homework = existing.get(slug)
-        if homework is not None:
+        paired = _repository_pair(by_title, values["title"], homework)
+        if paired is not None:
+            homework = _adopt_repository_row(paired, homework, slug, values, rebound, existing)
+        elif homework is not None:
             # Slugs already agree, so the module binding needs no repair.
             _apply(homework, values)
         else:
-            superseded = by_title.pop(values["title"], None)
             homework = Homework.objects.create(course=cohort, slug=slug, **values)
-            if superseded is None:
-                if is_modules:
-                    unpaired_cmp.append(slug)
-            else:
-                for module in Module.objects.filter(terminal_homework=superseded):
-                    module.terminal_homework = homework
-                    module.save(update_fields=["terminal_homework"])
-                    rebound.append((module.slug, superseded.slug, slug))
-                superseded.delete()
-                existing.pop(superseded.slug, None)
+            if is_modules:
+                unpaired_cmp.append(slug)
         existing[slug] = homework
         written += 1
         questions_written += _replace_questions(connection, source["id"], homework)
