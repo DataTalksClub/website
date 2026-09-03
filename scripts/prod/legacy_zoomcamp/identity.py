@@ -74,7 +74,9 @@ def _get_or_create_by_real_email(real_email: str) -> tuple[UserType, bool]:
     if existing is not None:
         return existing, False
 
-    user = User.objects.create(username=_unique_username(normalized), email=real_email.strip())
+    user = User(username=_unique_username(normalized), email=real_email.strip())
+    user.set_unusable_password()
+    user.save()
     return user, True
 
 

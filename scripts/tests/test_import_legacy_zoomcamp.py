@@ -172,6 +172,20 @@ class LegacyZoomcampImportTests(TestCase):
         for name in names:
             self.assertNotIn("@", name)
 
+    def test_created_accounts_carry_no_usable_password(self) -> None:
+        """The recovered-email account is a real learner identity, not a
+        password-authenticatable one -- it must be neutralised the same way
+        the CMP importer neutralises its own rows."""
+
+        self._run()
+
+        from courses.models import User
+
+        accounts = User.objects.filter(email="graduate@example.invalid")
+        self.assertTrue(accounts.exists())
+        for account in accounts:
+            self.assertFalse(account.has_usable_password())
+
     def test_replaying_writes_no_second_row(self) -> None:
         from django.contrib.auth import get_user_model
 
