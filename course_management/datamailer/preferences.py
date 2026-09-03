@@ -3,6 +3,7 @@ import logging
 import requests
 
 from .client import DatamailerClient, DatamailerConfig
+from .redacted_errors import redacted_contact_error
 from .preference_categories import (
     email_preference_category_tags,
     email_preference_payloads,
@@ -39,14 +40,20 @@ def _contact_preferences_response(user, email, config):
             email,
             category_tags=category_tags,
         )
-    except requests.RequestException:
-        logger.exception(
-            "Datamailer preference lookup failed for user_id=%s",
-            user.pk,
-        )
-        if config.strict:
-            raise
-        return None
+    except requests.RequestException as error:
+        # The member's address is a query parameter on this call, so it is in
+        # the original exception message and in its traceback.  Identifying the
+        # member by id only works exactly as intended here, and it is undone by
+        # attaching the original exception to the record — which is what
+        # `logger.exception` did.
+        failure = redacted_contact_error("preference lookup", error)
+        logger.error("%s for user_id=%s", failure, user.pk)
+        if not config.strict:
+            return None
+
+    # Outside the handler, so `__context__` does not inherit the original
+    # exception and its address-bearing URL.
+    raise failure
 
 
 def get_email_preferences_for_user(user) -> dict[str, bool] | None:

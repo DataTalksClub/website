@@ -10,6 +10,7 @@ from ..payloads.send import (
     datamailer_send_counts,
     datamailer_send_list_key,
 )
+from .audit_redaction import audit_error_text, audit_response_payload
 
 
 @dataclass(frozen=True)
@@ -97,12 +98,14 @@ def datamailer_send_audit_outcome_defaults(data) -> dict[str, Any]:
     status = datamailer_audit_status(data.error)
     source = data.metadata.get("source", "")
     event = data.metadata.get("event", "")
+    # Neither the error text nor the exchange is stored verbatim: see
+    # `audit_redaction` for what a row keeps and why.
     return {
         "status": status,
         "source": source,
         "event": event,
-        "error": data.error,
-        "response_payload": data.response,
+        "error": audit_error_text(data.error),
+        "response_payload": audit_response_payload(data.payload, data.response),
     }
 
 
