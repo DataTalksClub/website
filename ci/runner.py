@@ -27,8 +27,6 @@ RUN_ORDER = (
     "selector",
     "evidence_validation",
     "quality",
-    "compatibility",
-    "content_invariants",
     "django",
     "playwright",
     "container",
@@ -181,16 +179,6 @@ def command_for(plan: Mapping[str, Any], component: str) -> tuple[str, ...]:
             "--repository",
             ".",
         )
-    if component == "compatibility":
-        return (
-            "make",
-            "compatibility-source-artifacts-check",
-            "compatibility-artifacts-check",
-            "check-links",
-            "check-seo",
-        )
-    if component == "content_invariants":
-        return ("make", "verification-content-invariants")
     if component == "django":
         if plan["profile"] == "full":
             return ("make", "test-django-full")
@@ -214,7 +202,7 @@ def run_plan(
     plan: Mapping[str, Any],
     repository: str | Path,
     output_directory: str | Path,
-    issue: int,
+    issue: int | None,
     worktree: str,
     producer_role: str,
     component_timeout_seconds: float = DEFAULT_COMPONENT_TIMEOUT_SECONDS,
@@ -250,14 +238,6 @@ def run_plan(
         environment.update(item["environment"]["allowlisted_config"])
         if component == "django":
             environment["CI_SELECTION_PATH"] = os.fspath(selection_path)
-        invariant_path = output / "content-invariants.json"
-        if component == "content_invariants":
-            environment["VERIFY_PLAN"] = environment.get("VERIFY_PLAN", "")
-            if not environment["VERIFY_PLAN"]:
-                plan_path = output / "runner-plan.json"
-                dump_json(plan, plan_path)
-                environment["VERIFY_PLAN"] = os.fspath(plan_path)
-            environment["VERIFY_INVARIANT"] = os.fspath(invariant_path)
         container_path = output / "container-check.json"
         if component == "container":
             environment["VERIFY_CONTAINER_OUTPUT"] = os.fspath(container_path)
@@ -285,9 +265,7 @@ def run_plan(
                     f"{component_timeout_seconds:g}s wall-clock bound; terminated the "
                     "process group and recording a timed_out result",
                 )
-            if component == "content_invariants" and invariant_path.is_file():
-                execution = dataclasses.replace(execution, output_path=invariant_path)
-            elif component == "container" and container_path.is_file():
+            if component == "container" and container_path.is_file():
                 execution = dataclasses.replace(execution, output_path=container_path)
         finished = utc_now()
         result = execution.result
@@ -320,10 +298,10 @@ def run_plan(
             component=component,
             result=result,
             origin={
-                "issue": issue,
                 "kind": "local",
                 "producer_role": producer_role,
                 "worktree": worktree,
+                **({"issue": issue} if issue is not None else {}),
             },
             command=item["command"],
             execution_environment=execution_environment,
@@ -358,12 +336,6 @@ def main() -> None:
         ),
     )
     args = parser.parse_args()
-    if args.issue is None:
-        parser.error(
-            "--issue is required for local verification origins: refusing to attribute "
-            "verification evidence to a default issue number "
-            "(make verification-run VERIFY_ISSUE=<number>)"
-        )
     raise SystemExit(
         run_plan(
             plan=load_plan(args.plan),

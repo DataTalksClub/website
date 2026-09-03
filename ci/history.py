@@ -4,6 +4,7 @@ import argparse
 import io
 import json
 import math
+import os
 import re
 import shutil
 import stat
@@ -774,7 +775,10 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--api-url", default="https://api.github.com")
     parser.add_argument("--repository", required=True)
-    parser.add_argument("--token", required=True)
+    # The token is read from the environment, never from the command line: an
+    # argv value is world-readable through /proc/<pid>/cmdline for the life of
+    # the process.  ci/schedule.py already resolves it this way.
+    parser.add_argument("--token", default=None)
     parser.add_argument("--workflow", default="ci.yml")
     parser.add_argument("--current-run-id", type=int, required=True)
     parser.add_argument("--output-directory")
@@ -783,10 +787,13 @@ def main() -> None:
     parser.add_argument("--summary")
     parser.add_argument("--github-output")
     args = parser.parse_args()
+    token = args.token
+    if token is None:
+        token = os.environ.get("GITHUB_TOKEN", "")
     client = GitHubEvidenceClient(
         api_url=args.api_url,
         repository=args.repository,
-        token=args.token,
+        token=token,
     )
     if args.report:
         _report, reason = selection_report_fail_closed(

@@ -63,7 +63,6 @@ pinned identifier is rejected by name.
 The following classes retain their original bytes and wording. Readers may
 label them legacy evidence but must not rewrite or regenerate them:
 
-- timestamped reports in `_docs/audits/`;
 - captured inventories in `_docs/compatibility/*.jsonl`;
 - `deploy/gate_b_binding_seed.json`, `deploy/gate_b_execution_contract.json`,
   `deploy/gate_b_manifest.json`, and their hash-bound evidence reader/tests;
@@ -78,12 +77,10 @@ the retired development-terminology allowlist. With the allowlist gone,
 `frozen_hashes` alone still pins `deploy/gate_b_evidence.py`,
 `deploy/gate_b_manifest.json`, `core/tests/test_gate_b_evidence.py`,
 `deploy/oidc_probe.py`, `deploy/oidc_claim_probe.py`,
-`core/tests/test_deployment_oidc_probe.py`, and
-`_docs/audits/2026-08-07-oidc-denial-sentinels.md`. It does not pin
+and `core/tests/test_deployment_oidc_probe.py`. It does not pin
 `deploy/gate_b_binding_seed.json`, `deploy/gate_b_execution_contract.json`,
 `deploy/gate_b_assembler.py`, `deploy/gate_b_operator.py`,
-`core/tests/test_gate_b_operator.py`, or
-`_docs/audits/2026-08-08-gate-b-operator-execution.md`, which now carry only
+or `core/tests/test_gate_b_operator.py`, which now carry only
 this instruction. Retiring the Gate-B evidence set — each file together with its
 `frozen_hashes` entry — is its own reviewed change, not an incidental edit.
 

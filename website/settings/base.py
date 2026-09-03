@@ -153,7 +153,6 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
-    "compatibility.monitoring.CompatibilityMonitoringMiddleware",
 ]
 
 ROOT_URLCONF = "website.urls"
@@ -203,8 +202,21 @@ ACCOUNT_ALLOW_REGISTRATION = False
 REGISTRATION_REQUIRES_ACCOUNT = env_flag("REGISTRATION_REQUIRES_ACCOUNT", default=True)
 SOCIALACCOUNT_ADAPTER = "accounts.auth.ConsolidatingSocialAccountAdapter"
 SOCIALACCOUNT_LOGIN_ON_GET = True
+# `user:email` is what makes GitHub return the address list with its own
+# per-address `verified` flag, which is the only ownership evidence
+# `ConsolidatingSocialAccountAdapter` will act on.
+#
+# `VERIFIED_EMAIL` is deliberately absent.  Setting it makes allauth overwrite
+# every address a provider hands back with `verified=True` inside
+# `Provider.cleanup_email_addresses`, before any adapter runs — including
+# addresses GitHub reports as `verified: false` and the public profile address,
+# which anyone may set to anyone else's.  The migration matches roughly 20,000
+# imported accounts to their history by email, so that flag would turn "the
+# provider vouched for this address" into "the provider mentioned this address"
+# and hand one member another member's course record.  Pinned by
+# `accounts/tests/test_imported_account_social_matching.py`.
 SOCIALACCOUNT_PROVIDERS = {
-    "github": {"SCOPE": ["user:email"], "VERIFIED_EMAIL": True},
+    "github": {"SCOPE": ["user:email"]},
 }
 CAN_LOGIN_AS = can_login_as
 

@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-from ci.content_invariants import build_invariant_artifact
 from ci.evidence import build_envelope
 from ci.ownership import sha256_json
 from ci.selection import ChangeRecord, classify_records
@@ -252,7 +251,6 @@ def test_prose_only_docs_are_explicitly_not_applicable(tmp_path: Path) -> None:
     assert plan["reason"] == "documentation_only"
     assert plan["components"]["selector"]["disposition"] == "rerun"
     for component in (
-        "compatibility",
         "container",
         "django",
         "playwright",
@@ -341,7 +339,7 @@ def test_worktree_ci_records_keep_smoke_playwright_on_empty_committed_range(
     assert plan["reason"] == "test_infrastructure"
 
 
-def test_large_value_only_content_is_digest_exhaustive_without_visual_rerun(
+def test_large_value_only_content_selects_focused_digest_exhaustive_verification(
     tmp_path: Path,
 ) -> None:
     records = [
@@ -353,7 +351,6 @@ def test_large_value_only_content_is_digest_exhaustive_without_visual_rerun(
     assert plan["profile"] == "focused"
     assert plan["browser_profile"] == "smoke"
     assert plan["components"]["django"]["disposition"] == "rerun"
-    assert plan["components"]["content_invariants"]["disposition"] == "rerun"
     assert plan["components"]["screenshots"]["disposition"] == "not_applicable"
     manifest_entry = next(
         entry
@@ -361,11 +358,6 @@ def test_large_value_only_content_is_digest_exhaustive_without_visual_rerun(
         if entry["path"] == "data/catalog.json"
     )
     assert len(manifest_entry["object_id"]) == 40  # Exact Git blob identity covers the whole value.
-    artifact = build_invariant_artifact(repository=_repository, plan=plan)
-    assert artifact["record_count"] == 10_000
-    assert artifact["files"][0]["identity_unique"] is True
-    assert artifact["files"][0]["url_complete_count"] == 10_000
-    assert artifact["files"][0]["metadata_complete_count"] == 10_000
 
 
 def test_exact_evidence_reuses_only_unaffected_components(tmp_path: Path) -> None:

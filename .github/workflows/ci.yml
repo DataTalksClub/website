@@ -347,8 +347,6 @@ jobs:
       selection_sha256: ${{ steps.selection.outputs.selection_sha256 }}
       verification_profile: ${{ steps.plan.outputs.profile }}
       browser_profile: ${{ steps.plan.outputs.browser_profile }}
-      compatibility_mode: ${{ steps.plan.outputs.compatibility_mode }}
-      content_invariants_mode: ${{ steps.plan.outputs.content_invariants_mode }}
       container_mode: ${{ steps.plan.outputs.container_mode }}
       django_mode: ${{ steps.plan.outputs.django_mode }}
       playwright_mode: ${{ steps.plan.outputs.playwright_mode }}
@@ -409,7 +407,6 @@ jobs:
         run: |
           uv run --frozen python -m ci.history \
             --repository "$GITHUB_REPOSITORY" \
-            --token "$GITHUB_TOKEN" \
             --workflow ci.yml \
             --current-run-id "$GITHUB_RUN_ID" \
             --output-directory .tmp/prior-evidence \
@@ -522,32 +519,16 @@ jobs:
           set -euo pipefail
           mkdir -p .tmp/components-quality
           make test-ci 2>&1 | tee .tmp/components-quality/evidence-validation-output.log
-      - name: Build exact pinned compatibility source inputs
-        if: needs.classification.outputs.compatibility_mode == 'rerun'
-        run: |
-          set -euo pipefail
-          uv run --frozen python scripts/build_pinned_legacy_sources.py
-      - name: Run the compatibility contract when selected
-        if: needs.classification.outputs.compatibility_mode == 'rerun'
-        run: |
-          set -euo pipefail
-          make compatibility-source-artifacts-check compatibility-artifacts-check \
-            check-links check-seo 2>&1 | \
-            tee ../ci-controller/.tmp/components-quality/compatibility-output.log
       - name: Record quality-job evidence with its actual environment
         if: always() && needs.classification.result == 'success'
         working-directory: .tmp/ci-controller
         env:
           JOB_STATUS: ${{ job.status }}
-          COMPATIBILITY_MODE: ${{ needs.classification.outputs.compatibility_mode }}
-          CONTENT_INVARIANTS_MODE: ${{ needs.classification.outputs.content_invariants_mode }}
         run: |
           set -euo pipefail
           mkdir -p .tmp/components-quality
-          for component in quality compatibility content_invariants evidence_validation; do
+          for component in quality evidence_validation; do
             mode="rerun"
-            if [[ "$component" == "compatibility" ]]; then mode="$COMPATIBILITY_MODE"; fi
-            if [[ "$component" == "content_invariants" ]]; then mode="$CONTENT_INVARIANTS_MODE"; fi
             if [[ "$mode" != "rerun" ]]; then continue; fi
             command="$(jq -er --arg component "$component" \
               '.components[$component].command' .tmp/verification-input/verification-plan.json)"
@@ -555,14 +536,6 @@ jobs:
             machine_output=".tmp/components-quality/$component-output.log"
             if [[ "$component" == "evidence_validation" ]]; then
               machine_output=.tmp/components-quality/evidence-validation-output.log
-            fi
-            if [[ "$component" == "content_invariants" ]]; then
-              uv run --frozen python -m ci.content_invariants \
-                --repository ../release-source \
-                --plan .tmp/verification-input/verification-plan.json \
-                --output .tmp/components-quality/content-invariants.json
-              artifact_args=(--artifact .tmp/components-quality/content-invariants.json)
-              machine_output=.tmp/components-quality/content-invariants.json
             fi
             environment=.tmp/components-quality/$component-environment.json
             uv run --frozen python -m ci.verification environment \
@@ -1388,8 +1361,15 @@ jobs:
       github.ref == 'refs/heads/main'
     needs: [resolve-release, classification, quality, django, playwright, container, ci-gate]
     runs-on: ubuntu-latest
+    # The GitHub environment is the OIDC authorisation boundary, not a label:
+    # this job's token carries `...:environment:<name>` as its `sub` claim and
+    # the deployer role's trust policy admits exactly one value. It is written
+    # as a literal, like `runs-on`, so the boundary stays statically auditable
+    # in the workflow rather than being computed from a job output at run time.
+    # Keep it equal to the selected deployment target's github_environment; a
+    # workflow contract test fails if it drifts.
     environment:
-      name: sandbox
+      name: production
     permissions:
       contents: read
       id-token: write
@@ -1781,8 +1761,10 @@ jobs:
       github.ref == 'refs/heads/main'
     needs: [resolve-release, classification, quality, django, playwright, container, ci-gate, auto-capture-prior, publish]
     runs-on: ubuntu-latest
+    # The OIDC authorisation boundary. Keep equal to the selected deployment
+    # target's github_environment; a workflow contract test fails if it drifts.
     environment:
-      name: sandbox
+      name: production
       url: ${{ vars.DEVELOPMENT_BASE_URL }}
     permissions:
       contents: read
@@ -2393,8 +2375,10 @@ jobs:
       github.ref == 'refs/heads/main'
     needs: [resolve-release, probe-contract]
     runs-on: ubuntu-latest
+    # The OIDC authorisation boundary. Keep equal to the selected deployment
+    # target's github_environment; a workflow contract test fails if it drifts.
     environment:
-      name: sandbox
+      name: production
     permissions:
       contents: read
       id-token: write
@@ -2541,8 +2525,10 @@ jobs:
       github.ref == 'refs/heads/main'
     needs: [resolve-release, probe-contract]
     runs-on: ubuntu-latest
+    # The OIDC authorisation boundary. Keep equal to the selected deployment
+    # target's github_environment; a workflow contract test fails if it drifts.
     environment:
-      name: sandbox
+      name: production
     permissions:
       contents: read
       id-token: write

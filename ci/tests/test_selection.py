@@ -96,7 +96,6 @@ def test_documented_reverse_import_closures_select_importing_suites(
         (("pyproject.toml",), "configuration_or_dependency"),
         (("uv.lock",), "configuration_or_dependency"),
         (("_docs/contract.json",), "documentation_or_contract"),
-        (("compatibility/generated.json",), "documentation_or_contract"),
         (("brand_new/a.py",), "unknown_path"),
     ],
 )
@@ -259,6 +258,7 @@ def test_focused_runner_uses_parallel_noninteractive_command_and_only_validated_
             "content.tests",
             "content_sync",
             "core",
+            "courses",
         ],
         check=True,
     )

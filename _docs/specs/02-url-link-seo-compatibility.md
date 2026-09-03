@@ -4,19 +4,30 @@ Status: draft
 
 URL and link preservation is a release-blocking requirement, not a best-effort migration task.
 
-## Compatibility scope
+## What this document is now
 
-The baseline inventory covers:
+This is a specification of route behaviour this application owns, not a comparison against the
+old site. The frozen crawl of the old site, the crawler and differ that produced it, and the
+parity gate that compared this application against it were deleted: the old site is served from
+S3, and `/faq/`, `/docs/`, and `/podwiki/` redirect to GitHub Pages, so this application does not
+serve most of the paths that crawl pinned. Nothing mechanically checks this application against
+that capture any more.
 
-- all generated main-site pages and collection details;
-- all docs pages and headings beneath `/docs/`;
-- FAQ pages, ten-character question fragments, and JSON feeds beneath `/faq/`;
-- Wiki pages, search/filter URLs, generated graph assets, and hash deep links beneath the
-  canonical `/wiki` route family;
-- current course-platform HTML and API paths on `courses.datatalks.club`;
-- assets beneath `/images/`, `/assets/`, `/docs/assets/`, `/faq/assets/`, and `/wiki/assets/`;
+The rules below are ordinary product behaviour and are held by the tests that exercise the routes.
+
+## Route scope
+
+The routes this application owns and must keep exact:
+
+- all main-site pages and collection details it serves;
+- the canonical `/wiki` route family, including search/filter URLs and hash deep links;
+- the adopted course-platform HTML and API paths;
+- assets beneath `/images/` and `/assets/`;
 - canonical, alternate, Open Graph, Twitter, structured-data, sitemap, robots, and edit-on-GitHub links;
 - internal and external link destinations embedded in every rendered page.
+
+`/docs/` and `/faq/` are editorial routes that redirect to GitHub Pages rather than routes this
+application renders.
 
 ## Route rules that must remain exact
 
@@ -153,31 +164,6 @@ Existing `courses.datatalks.club` routes initially reach copied compatibility vi
 
 The redirect Lambda uses a generated explicit path map, preserves query strings, emits `301` for GET/HEAD HTML, and uses `308` for non-GET only after client tests prove method/body/auth behavior. Unknown paths are logged without PII and return a real `404`, not a homepage redirect.
 
-## URL and link manifest
-
-Before building replacement views, a deterministic crawler writes a versioned manifest containing, for every current URL:
-
-- source repository and source path;
-- public path and expected status;
-- redirect target when present;
-- canonical URL;
-- title, meta description, first heading, language, and robots directives;
-- structured-data types and identifiers;
-- all fragment IDs;
-- all internal links, external links, form actions, and asset URLs;
-- normalized main-content fingerprint;
-- last-modified/sitemap state where present.
-
-The manifest is built from both committed generated sites and a production crawl. Differences are reviewed because a generated tree can be stale while production can contain redirects or edge behavior absent from source.
-
-Every manifest row is classified as:
-
-- `preserve`: same path and equivalent response;
-- `redirect`: one approved permanent redirect to an equivalent canonical destination;
-- `retire`: an intentional `410 Gone`, requiring owner approval and evidence that no replacement exists.
-
-No catch-all redirect to the homepage is allowed.
-
 ## Route cache and canonical contract
 
 One versioned code-owned registry classifies every Django route. It generates or is consumed by
@@ -235,36 +221,16 @@ sitemap. Neither robots nor cache status is an authorization control.
   query preservation/removal rule. Preview/management tokens and private query variants are never
   redirected through or stored in a public object.
 
-## Link preservation checks
+## Link preservation
 
-For each rendered Django page, the compatibility test resolves:
+Rendered pages must keep their references resolvable: relative links against the current page,
+root-relative links against `datatalks.club`, heading fragments against the IDs the page emits,
+wiki chips and citations against wiki, podcast, book, and person targets, people references by
+stable `short` identifier, and assets against their stable public path. External destinations are
+never rewritten, including their query parameters.
 
-- relative links against the current page;
-- root-relative links against `datatalks.club`;
-- FAQ fragments against IDs in the target page;
-- docs and Markdown heading fragments using the existing slug algorithm;
-- Podwiki chips/citations against wiki, podcast, book, and person targets;
-- people references by stable `short` identifier;
-- assets against their stable public path;
-- external destinations without rewriting their query parameters.
-
-Broken references fail candidate content activation. Explicitly optional or historical external links may warn instead of fail, but the warning is visible in Studio.
-
-## SEO parity gate
-
-Cutover is blocked unless:
-
-- 100% of inventoried URLs resolve with the approved status and destination;
-- there are no unexplained `404`, soft-404, redirect loop, or redirect-chain results;
-- production canonicals are exact and self-consistent across main, docs, FAQ, Podwiki, and courses;
-- page titles, descriptions, primary headings, meaningful body content, and image metadata have no unexplained loss;
-- existing Event, BlogPosting, PodcastEpisode, FAQ, breadcrumb, Organization, WebSite/SearchAction, and other JSON-LD contracts validate where currently present;
-- sitemap output contains the correct canonical paths and source-derived `lastmod` values;
-- robots behavior does not accidentally block production content;
-- internal link and asset crawls have no regression from the accepted baseline;
-- response performance and rendered HTML remain crawlable without JavaScript.
-
-SEO enhancements, such as filling current FAQ metadata gaps, ship only after parity is measured. They must not obscure migration regressions.
+The dedicated cross-site link checker was part of the deleted compatibility machinery. Link
+behaviour is now held by the tests of the pages that render the links.
 
 ## Development and preview behavior
 
@@ -279,29 +245,25 @@ Every response from `web.dtcdev.click`, content previews, and unpublished course
 
 ## Cutover monitoring
 
-Monitor by path and referrer for:
+There is no compatibility monitoring middleware; the request-level canonical/contract event
+emitter was deleted with the rest of that machinery. Cutover monitoring is operational, from
+access logs and Search Console:
 
 - `404`, `410`, `5xx`, and redirect volume;
 - crawler traffic and sitemap fetches;
-- canonical mismatches and duplicate paths;
 - top landing-page response time;
 - Search Console coverage, crawl, indexing, and structured-data changes;
 - changes in organic entrances and ranking pages, interpreted separately from seasonal traffic.
 
-The legacy static build and URL manifest remain available throughout the rollback window.
-
 ## Acceptance criteria
 
-- A committed test fixture inventories every current route and public contract.
-- A Django crawl has zero unexplained compatibility differences.
-- Every intentional change has one explicit redirect/retirement record, owner, reason, and test.
-- A link checker validates targets and fragments across all site sections and course compatibility routes.
+- Every route rule above is exercised by a test that requests the route.
+- Every intentional change to a route has an owner, a reason, and a test.
 - Development and previews are demonstrably non-indexable.
 - The generated route registry agrees across Django, Terraform assertions, and smoke tests; an
   anonymous public miss/hit preserves the same canonical/robots/sitemap contract.
 - Query, header, cookie, encoding, redirect, 404, unsafe-method, and origin-error tests prove that
   only the exact public classes above create bounded cache objects.
-- DNS cutover is not approved until the complete SEO parity report passes.
 
 ## Historical registration-total representation
 

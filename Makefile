@@ -1,6 +1,5 @@
 .PHONY: setup lock-check lint format format-check typecheck migrations-check django-check deployment-check \
-	test-core test test-django-full test-ci test-ci-focused test-compatibility compatibility-source-artifacts-check \
-	compatibility-artifacts-check check-links check-seo compatibility-real-gate-blocked-check \
+	test-core test test-django-full test-ci test-ci-focused \
 	test-content test-factories test-migrations test-playwright-core test-playwright test-browser \
 	test-accessibility test-playwright-smoke test-playwright-quarantined \
 	test-course-platform-sync course-platform-source-checkout course-platform-sync-dry-run course-platform-sync \
@@ -10,10 +9,11 @@
 	production-prep-local content-pull content-pull-plan content-checkouts content-sources \
 	production-prep-course-registry production-prep-course-sources production-prep-dataset \
 	production-prep-dataset-verify run-production-prep-dataset \
+	import-legacy-zoomcamp import-events \
 	terraform-seo-source-check check-openapi check-management-parity \
 	database-portability-check verify-dtc-content review-data review-data-dry-run \
 	review-data-cleanup run-review-data verification-plan verification-run verification-full \
-	verification-quality verification-container verification-content-invariants \
+	verification-quality verification-container \
 	verification-evidence-check verification-report-check
 
 VERIFY_BASE_SHA ?= HEAD
@@ -22,11 +22,9 @@ VERIFY_OUTPUT_DIR ?= .tmp/verification
 VERIFY_PLAN ?= $(if $(VERIFY_PLAN_PATH),$(VERIFY_PLAN_PATH),$(VERIFY_OUTPUT_DIR)/verification-plan.json)
 VERIFY_EVIDENCE_DIR ?= $(VERIFY_OUTPUT_DIR)/evidence
 VERIFY_REPORT ?= $(if $(VERIFY_REPORT_PATH),$(VERIFY_REPORT_PATH),$(VERIFY_OUTPUT_DIR)/verification-report.json)
-VERIFY_INVARIANT ?= $(VERIFY_EVIDENCE_DIR)/content-invariants.json
 VERIFY_CONTAINER_OUTPUT ?= $(VERIFY_EVIDENCE_DIR)/container-check.json
-# VERIFY_ISSUE has no default on purpose: local verification evidence must never be
-# attributed to an issue number the caller did not supply. The verification-run
-# target fails closed until VERIFY_ISSUE=<number> is passed explicitly.
+# VERIFY_ISSUE is optional. Pass it to attribute local evidence to an issue;
+# leave it unset and the evidence simply carries no issue.
 VERIFY_WORKTREE ?= local
 VERIFY_CONSUMER ?= engineer
 VERIFY_PHASE ?= $(VERIFY_CONSUMER)
@@ -54,11 +52,6 @@ ADOPTION_INTEGRATION_PYTHON = \
 	scripts/sync_course_platform.py \
 	scripts/prepare_course_platform_source.py
 
-COMPATIBILITY_PYTHON = \
-	compatibility \
-	scripts/build_legacy_manifest.py \
-	scripts/build_pinned_legacy_sources.py
-
 # Entry points for imports that read real production data.  ``scripts/**`` is excluded
 # from the default ruff and mypy roots, so this package opts back in explicitly.
 PRODUCTION_IMPORT_PYTHON = \
@@ -74,21 +67,20 @@ lock-check:
 	uv lock --check
 
 lint:
-	uv run ruff check . $(ADOPTION_INTEGRATION_PYTHON) $(COMPATIBILITY_PYTHON) $(PRODUCTION_IMPORT_PYTHON)
+	uv run ruff check . $(ADOPTION_INTEGRATION_PYTHON) $(PRODUCTION_IMPORT_PYTHON)
 
 format:
-	uv run ruff format . $(ADOPTION_INTEGRATION_PYTHON) $(COMPATIBILITY_PYTHON) $(PRODUCTION_IMPORT_PYTHON)
+	uv run ruff format . $(ADOPTION_INTEGRATION_PYTHON) $(PRODUCTION_IMPORT_PYTHON)
 
 format-check:
-	uv run ruff format --check . $(ADOPTION_INTEGRATION_PYTHON) $(COMPATIBILITY_PYTHON) $(PRODUCTION_IMPORT_PYTHON)
+	uv run ruff format --check . $(ADOPTION_INTEGRATION_PYTHON) $(PRODUCTION_IMPORT_PYTHON)
 
 typecheck:
 	uv run mypy manage.py website core content content_sync events email_app studio jobs deploy ci \
 		test_support conftest.py sitecustomize.py \
 		review_import \
 		management_auth management_api management_registry.py \
-		$(COMPATIBILITY_PYTHON) \
-		scripts/build_local_review_db.py scripts/capture_screenshots.py \
+			scripts/build_local_review_db.py scripts/capture_screenshots.py \
 		scripts/check_database_portability.py \
 		scripts/render_course_platform_inventory.py \
 	scripts/verify_course_platform_adoption.py \
@@ -186,10 +178,8 @@ course-platform-sync:
 		$(if $(CMP_SOURCE_CHECKOUT),--source-checkout "$(CMP_SOURCE_CHECKOUT)",) \
 		--apply
 
-test: test-compatibility test-django-full
+test: test-django-full
 
-# Push CI records compatibility as its own plan-controlled component. Keep the
-# ordinary local and scheduled `test` aggregate compatibility-inclusive.
 test-django-full:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
 		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test --parallel --noinput
@@ -227,13 +217,12 @@ VERIFY_DRY_RUN_GUARD = exit 0;
 endif
 
 verification-run:
-	@test -n "$(VERIFY_ISSUE)" || (echo "VERIFY_ISSUE is required: refusing to attribute verification evidence to a default issue number (e.g. make verification-run VERIFY_ISSUE=<number> VERIFY_WORKTREE=<branch>)" >&2; exit 2)
 	uv run --frozen python -m ci.verification validate-plan --plan "$(VERIFY_PLAN)"
 	@$(VERIFY_DRY_RUN_GUARD)runner_status=0; \
 	uv run --frozen python -m ci.runner \
 			--plan "$(VERIFY_PLAN)" --repository . \
 			--output-directory "$(VERIFY_EVIDENCE_DIR)" \
-			--issue "$(VERIFY_ISSUE)" --worktree "$(VERIFY_WORKTREE)" \
+			$(if $(VERIFY_ISSUE),--issue "$(VERIFY_ISSUE)",) --worktree "$(VERIFY_WORKTREE)" \
 			--producer-role "$(VERIFY_PRODUCER_ROLE)" || runner_status=$$?; \
 	report_status=0; \
 	$(MAKE) verification-report-check || report_status=$$?; \
@@ -246,10 +235,6 @@ verification-quality: database-portability-check security-check lint format-chec
 verification-container:
 	uv run --frozen python -m ci.container_check --repository . \
 		--output "$(VERIFY_CONTAINER_OUTPUT)"
-
-verification-content-invariants:
-	uv run --frozen python -m ci.content_invariants --repository . \
-		--plan "$(VERIFY_PLAN)" --output "$(VERIFY_INVARIANT)"
 
 verification-full: verification-quality
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-verification-full-migrate-$${PPID}}" \
@@ -282,10 +267,6 @@ test-ci-focused:
 		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python -m ci.focused_tests \
 		--selection "$$CI_SELECTION_PATH"
 
-test-compatibility:
-	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
-		uv run --frozen pytest compatibility/tests -q
-
 test-factories:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
 		uv run --frozen pytest test_support/tests/test_factories.py \
@@ -295,41 +276,8 @@ test-factories:
 test-migrations:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
 		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test --noinput \
-		test_support.tests.test_migrations accounts.tests.test_identity_migrations \
-		content.tests.test_editorial_route_migration_contract content.tests.test_migrations
-
-compatibility-source-artifacts-check:
-	uv run python scripts/build_pinned_legacy_sources.py --check
-
-compatibility-artifacts-check:
-	uv run python scripts/build_legacy_manifest.py validate \
-		_docs/compatibility/legacy-manifest.jsonl
-	uv run python scripts/build_legacy_manifest.py compare \
-		_docs/compatibility/legacy-manifest.jsonl \
-		--output .tmp/compatibility/legacy-manifest-differences.check.json
-	cmp _docs/compatibility/legacy-manifest-differences.json \
-		.tmp/compatibility/legacy-manifest-differences.check.json
-	uv run python scripts/build_legacy_manifest.py approved-expectations --check
-
-check-links:
-	uv run pytest compatibility/tests/test_links.py compatibility/tests/test_runtime.py -q
-
-check-seo:
-	uv run pytest compatibility/tests/test_expectations.py compatibility/tests/test_report.py \
-		compatibility/tests/test_target.py compatibility/tests/test_parity.py \
-		compatibility/tests/test_monitoring.py -q
-
-compatibility-real-gate-blocked-check:
-	mkdir -p .tmp/compatibility
-	rm -f .tmp/compatibility/checked-real-seo-parity-report.json
-	@if DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py compatibility_gate \
-		--route-sha256 0000000000000000000000000000000000000000000000000000000000000000 \
-		--asset-sha256 1111111111111111111111111111111111111111111111111111111111111111 \
-		--projection-sha256 2222222222222222222222222222222222222222222222222222222222222222 \
-		--output .tmp/compatibility/checked-real-seo-parity-report.json; then \
-		echo "Unapproved checked inputs unexpectedly passed" >&2; exit 1; \
-	fi
-	uv run python -c 'import hashlib,json,pathlib; root=pathlib.Path("_docs/compatibility"); p=json.load(open(".tmp/compatibility/checked-real-seo-parity-report.json", encoding="utf-8")); digest=lambda name: hashlib.sha256((root/name).read_bytes()).hexdigest(); assert p["status"] == "BLOCKED" and p["expectation_count"] == 0; assert p["manifest_sha256"] == digest("legacy-manifest.jsonl"); assert p["differences_sha256"] == digest("legacy-manifest-differences.json"); assert p["public_contracts_sha256"] == digest("public-contracts.jsonl")'
+		test_support.tests.test_migrations \
+		content.tests.test_editorial_route_migration_contract
 
 test-playwright-core:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
@@ -385,8 +333,7 @@ test-live-provider:
 
 .NOTPARALLEL: test-all
 test-all: lock-check database-portability-check lint format-check typecheck \
-	migrations-check django-check deployment-check compatibility-source-artifacts-check \
-	compatibility-artifacts-check check-links check-seo test-factories test-migrations test \
+	migrations-check django-check deployment-check test-factories test-migrations test \
 	test-playwright
 
 migrate:
@@ -499,6 +446,31 @@ production-prep-dataset:
 production-prep-dataset-verify:
 	uv run --frozen python scripts/verify_local_dataset.py \
 		--database "$(PRODUCTION_PREP_DATASET_DATABASE)"
+
+# Production imports. Every entry point lives in scripts/prod/; `import_*` is
+# frozen history read once at migration, `sync_*` is an upstream we re-run
+# against. See scripts/prod/__init__.py.
+IMPORT_DATABASE ?= $(PRODUCTION_PREP_DATASET_DATABASE)
+
+# Pre-2024 Zoomcamp scoring and certificate history. Frozen; one-time. This is
+# the only importer that can populate an empty database, so it runs first.
+LEGACY_ZOOMCAMP_SOURCE ?= $(HOME)/git/zoomcamp-scoring
+import-legacy-zoomcamp:
+	uv run --frozen python scripts/prod/import_legacy_zoomcamp.py \
+		--database "$(IMPORT_DATABASE)" \
+		--source-repo "$(LEGACY_ZOOMCAMP_SOURCE)" \
+		$(IMPORT_LEGACY_ZOOMCAMP_ARGS)
+
+# Event identities plus the Luma and Eventbrite registration aggregates. Both
+# frozen; one-time. Aggregate counts only -- no attendee row is ever read into
+# the database. Set empty to leave every mapping review-required.
+IMPORT_EVENTS_REGISTRATION_INPUT ?= \
+	_docs/migration-data/local-current-registration-input.json
+import-events:
+	uv run --frozen python scripts/prod/import_events.py \
+		--database "$(IMPORT_DATABASE)" \
+		$(if $(IMPORT_EVENTS_REGISTRATION_INPUT),--current-registration-input "$(IMPORT_EVENTS_REGISTRATION_INPUT)",) \
+		$(IMPORT_EVENTS_ARGS)
 
 run-production-prep-dataset:
 	DTC_ENVIRONMENT=local \

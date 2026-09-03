@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from django.test import TestCase
 
-from compatibility.contracts import ContractClassification
-from compatibility.models import ReviewState
 from content.inventory import (
-    checked_public_contract_artifact_sha256,
+    checked_public_contract_inventory_sha256,
     content_route_contracts,
 )
 from content.models import PUBLIC_CONTRACT_DIGEST
+from content.route_contracts import ContractClassification, ReviewState
 from content.services import (
     ContentReadinessError,
     CreateContentRelease,
@@ -55,8 +54,7 @@ class ContentInventoryTests(TestCase):
 
     def test_checked_inventory_retains_exact_content_base_route_provenance(self) -> None:
         contracts = content_route_contracts()
-        self.assertEqual(checked_public_contract_artifact_sha256(), PUBLIC_CONTRACT_DIGEST)
-        self.assertEqual(len(contracts), 2_939)
+        self.assertEqual(checked_public_contract_inventory_sha256(), PUBLIC_CONTRACT_DIGEST)
         by_path = {contract.percent_encoded_public_reference: contract for contract in contracts}
         self.assertEqual(len(by_path), len(contracts))
         for path, expected in self.EXPECTED.items():

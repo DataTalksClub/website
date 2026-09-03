@@ -75,7 +75,6 @@ def validate_graph(payload: object) -> dict[str, Any]:
         raise OwnershipGraphError("ownership graph must be an object")
     expected = {
         "components",
-        "large_content",
         "nodes",
         "policy_version",
         "render_rules",
@@ -251,18 +250,6 @@ def validate_graph(payload: object) -> dict[str, Any]:
         raise OwnershipGraphError("risk rules have an invalid shape")
     for key, values in (*render_rules.items(), *risk_rules.items()):
         _string_list(values, f"rule {key}")
-    large_content = payload["large_content"]
-    if not isinstance(large_content, dict) or set(large_content) != {
-        "identity_fields",
-        "metadata_fields",
-        "patterns",
-        "structured_extensions",
-        "url_fields",
-    }:
-        raise OwnershipGraphError("large-content rules have an invalid shape")
-    for key, values in large_content.items():
-        if not _string_list(values, f"large-content rule {key}"):
-            raise OwnershipGraphError(f"large-content rule {key} cannot be empty")
     screenshot = payload["screenshot_contract"]
     if not isinstance(screenshot, dict) or set(screenshot) != {"routes", "viewports"}:
         raise OwnershipGraphError("screenshot contract has an invalid shape")

@@ -912,7 +912,7 @@ def test_catalog_is_exact_and_current() -> None:
         "10-verification-strategy.md",
         "open-decisions.md",
     )
-    assert COMPATIBILITY_SPECIFICATIONS == (FORMER_AWS_SPEC_NAME,)
+    assert COMPATIBILITY_SPECIFICATIONS == ()
 
 
 def test_complete_synthetic_catalog_passes(tmp_path: Path) -> None:

@@ -23,9 +23,10 @@ holds the reviewed development hostnames; the retired physical names are catalog
   links, synchronizes, or grants authority to the other automatically.
 - Existing public page paths, fragments, asset paths, machine-readable endpoints, internal links, external links, and canonical URLs are preserved unless an exception has an approved one-hop redirect.
 - The development site is never indexable and declares the production URL as canonical.
-- Production `robots.txt`, sitemap output, canonicals, structured data, and all existing
-  SEO-bearing editorial paths and content remain governed by the compatibility manifest. Positive
-  edge caching changes freshness and cost only; it does not change indexing or content contracts.
+- Production `robots.txt`, sitemap output, canonicals, structured data, and SEO-bearing editorial
+  paths are governed by [02 - URL, link, and SEO compatibility](02-url-link-seo-compatibility.md)
+  and the tests that exercise those routes. Positive edge caching changes freshness and cost only;
+  it does not change indexing or content contracts.
 - Events, registrations, website logical email intents/redacted Relay projections, Studio
   configuration, redirects, and audit records are database-owned.
 - The existing course platform is copied into this repository and evolved in place. Courses, cohorts, enrollments, assignments, submissions, peer review, scores, leaderboards, and certificates are database-owned and managed through Studio and the admin API.

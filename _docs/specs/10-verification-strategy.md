@@ -274,7 +274,6 @@ Recommended Make targets:
 - `make test-browser`: tagged local Playwright suite;
 - `make check-openapi`: generate and fail on schema drift/undocumented routes;
 - `make check-management-parity`;
-- `make check-links` and `make check-seo`;
 - generated route-cache registry/policy parity, poisoning/WAF fixtures, and redacted cost-model
   checks introduced with the owning implementation issue;
 - `make test-migrations`;

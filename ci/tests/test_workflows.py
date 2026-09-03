@@ -162,21 +162,6 @@ def test_selected_django_always_uses_fresh_sqlite_and_validated_closed_runner() 
         if step.get("name") == "Run CI orchestration contract tests from the workflow controller"
     )
     assert contract_step["working-directory"] == ".tmp/ci-controller"
-    build_step = next(
-        step
-        for step in quality["steps"]
-        if step.get("name") == "Build exact pinned compatibility source inputs"
-    )
-    assert build_step["if"] == "needs.classification.outputs.compatibility_mode == 'rerun'"
-    assert "build_pinned_legacy_sources.py" in build_step["run"]
-    assert "--prepare-only" not in build_step["run"]
-    compatibility_step = next(
-        step
-        for step in quality["steps"]
-        if step.get("name") == "Run the compatibility contract when selected"
-    )
-    assert compatibility_step["if"] == "needs.classification.outputs.compatibility_mode == 'rerun'"
-    assert "compatibility-source-artifacts-check" in compatibility_step["run"]
 
 
 def test_aggregate_gate_is_the_release_dependency() -> None:
@@ -311,7 +296,7 @@ def test_normal_workflow_uses_versioned_plan_and_trusted_evidence_artifact() -> 
     assert "--release-requires-image" in classifier_script
     assert "--component selector" in classifier_script
     assert "ci.verification environment" in classifier_script
-    assert "quality compatibility content_invariants evidence_validation" in runs(jobs["quality"])
+    assert "quality evidence_validation" in runs(jobs["quality"])
     assert "quality-contract-v2" in (ROOT / "ci" / "ownership.json").read_text(encoding="utf-8")
     workflow_text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     assert workflow_text.count("ci.verification record") == workflow_text.count("--machine-output")
