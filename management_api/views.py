@@ -25,7 +25,7 @@ from courses.services.registration_counts import (
 )
 from events.identity import EventIdentityNotFound
 from events.importers import ProtectedSourceError
-from events.models import HistoricalEventMapping, HistoricalRegistrationSourceRun
+from events.models import HistoricalRegistrationSourceRun
 from events.qna.errors import QnaError
 from events.qna.services import (
     admin_event_qna,
@@ -40,7 +40,6 @@ from events.qna.services import (
 from events.services import (
     HistoricalRegistrationConflict,
     HistoricalRegistrationInvalid,
-    serialize_mapping,
     serialize_run,
 )
 from management_auth.idempotency import (
@@ -154,13 +153,7 @@ def _historical_error(error: Exception) -> APIError:
         return APIError(400, error.code, "The registered protected source was rejected.")
     if isinstance(error, (HistoricalRegistrationInvalid, ValueError, TypeError)):
         return APIError(400, "invalid_request", "The historical aggregate request is invalid.")
-    if isinstance(
-        error,
-        (
-            HistoricalRegistrationSourceRun.DoesNotExist,
-            HistoricalEventMapping.DoesNotExist,
-        ),
-    ):
+    if isinstance(error, HistoricalRegistrationSourceRun.DoesNotExist):
         return APIError(404, "not_found", "The historical aggregate resource was not found.")
     return APIError(500, "internal_error", "The historical aggregate request failed safely.")
 
@@ -926,100 +919,6 @@ def historical_import_cancel(request: HttpRequest, run_id: str) -> JsonResponse:
 @admin_capability("events.historical_registration_import.rollback")
 def historical_import_rollback(request: HttpRequest, run_id: str) -> JsonResponse:
     return _historical_action(request, run_id)
-
-
-@admin_capability("events.historical_registration_mapping.manage")
-def historical_mapping_list(request: HttpRequest) -> JsonResponse:
-    capability = request.management_capability  # type: ignore[attr-defined]
-    try:
-        query = parse_page_query(request.GET, filter_fields=(), sort_fields=())
-        return JsonResponse(capability.service(page=query.page, page_size=query.page_size))
-    except Exception as error:
-        raise _historical_error(error) from error
-
-
-def _mapping_command_payload(request: HttpRequest, *, updating: bool) -> dict:
-    payload = parse_json_object(request)
-    required = {
-        "state",
-        "mapping_set_revision",
-        "reason_code",
-        "reason",
-        "coverage_boundary",
-        "combination_policy",
-    }
-    if not updating:
-        required.update({"provider", "external_event_identifier"})
-    _enforce_fields(
-        request, payload, required=frozenset(required), optional=frozenset({"event_id"})
-    )
-    return payload
-
-
-def _revise_mapping_api(
-    payload: dict,
-    request: HttpRequest,
-    *,
-    mapping_id: uuid.UUID | None,
-    expected_revision: int | None,
-) -> dict:
-    identity = request.api_identity  # type: ignore[attr-defined]
-    capability = request.management_capability  # type: ignore[attr-defined]
-    mapping = capability.service(
-        mapping_id=mapping_id,
-        provider=payload.get("provider"),
-        external_event_identifier=payload.get("external_event_identifier"),
-        state=payload["state"],
-        mapping_set_revision=payload["mapping_set_revision"],
-        expected_revision=expected_revision,
-        reason_code=payload["reason_code"],
-        reason=payload["reason"],
-        coverage_boundary=payload["coverage_boundary"],
-        combination_policy=payload["combination_policy"],
-        reviewer=identity.principal.user,
-        context=_historical_context(request),
-        event_id=payload.get("event_id"),
-    )
-    return serialize_mapping(mapping, reveal_identifier=True)
-
-
-@admin_capability("events.historical_registration_mapping.create")
-def historical_mapping_create(request: HttpRequest) -> JsonResponse:
-    payload = _mapping_command_payload(request, updating=False)
-    capability = request.management_capability  # type: ignore[attr-defined]
-    try:
-        result = execute_idempotent(
-            scope=capability.key,
-            key=_idempotency_key(request),
-            request=payload,
-            command=lambda: _revise_mapping_api(
-                payload,
-                request,
-                mapping_id=None,
-                expected_revision=None,
-            ),
-        )
-    except Exception as error:
-        raise _historical_error(error) from error
-    return JsonResponse({**result.value, "replayed": result.replayed}, status=201)
-
-
-@admin_capability("events.historical_registration_mapping.update")
-def historical_mapping_update(request: HttpRequest, mapping_id: str) -> JsonResponse:
-    payload = _mapping_command_payload(request, updating=True)
-    try:
-        return JsonResponse(
-            _revise_mapping_api(
-                payload,
-                request,
-                mapping_id=uuid.UUID(str(mapping_id)),
-                expected_revision=require_if_match(request),
-            )
-        )
-    except APIError:
-        raise
-    except Exception as error:
-        raise _historical_error(error) from error
 
 
 @admin_capability("events.historical_registration_total.read")

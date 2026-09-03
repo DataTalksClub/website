@@ -38,23 +38,6 @@ historical_import_collection.management_capability_views = {  # type: ignore[att
 }
 
 
-@csrf_exempt
-def historical_mapping_collection(request, *args, **kwargs):
-    if request.method in {"GET", "HEAD"}:
-        return views.historical_mapping_list(request, *args, **kwargs)
-    return views.historical_mapping_create(request, *args, **kwargs)
-
-
-historical_mapping_collection.management_capability_keys = (  # type: ignore[attr-defined]
-    "events.historical_registration_mapping.manage",
-    "events.historical_registration_mapping.create",
-)
-historical_mapping_collection.management_capability_views = {  # type: ignore[attr-defined]
-    "GET": views.historical_mapping_list,
-    "POST": views.historical_mapping_create,
-}
-
-
 event_identity_collection = csrf_exempt(views.event_identity_list)
 event_identity_collection.management_capability_keys = (  # type: ignore[attr-defined]
     "events.identity.read",
@@ -268,16 +251,6 @@ urlpatterns = [
         "historical-registration-imports/<uuid:run_id>/rollback",
         views.historical_import_rollback,
         name="historical-registration-import-rollback",
-    ),
-    path(
-        "historical-event-mappings",
-        historical_mapping_collection,
-        name="historical-event-mapping-list",
-    ),
-    path(
-        "historical-event-mappings/<uuid:mapping_id>",
-        views.historical_mapping_update,
-        name="historical-event-mapping-detail",
     ),
     path(
         "events/<uuid:event_id>/registration-total",
