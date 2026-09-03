@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.shortcuts import redirect
 
 from courses.models.cohort import Cohort
-from studio_courses.forms import RegistrationCampaignForm
+from studio_courses.forms import OpenNewCohortForm, RegistrationCampaignForm
 
 from .campaign_datamailer import (
     datamailer_campaign_context,
@@ -19,6 +19,11 @@ class CampaignEditPostResult:
     response: object
     form: object
     datamailer_preview: object
+    # Only set by a registration-status action that actually changed
+    # ``current_course`` -- ``None`` means the caller's own campaign object
+    # is still current.  See campaign_lifecycle.py.
+    campaign: object = None
+    open_new_cohort_form: object = None
 
 
 _TRAILING_YEAR_RE = re.compile(r"[\s_-]*(\d{4})\s*$")
@@ -137,7 +142,7 @@ def handle_campaign_form_post(request, campaign):
     )
 
 
-def campaign_edit_context(campaign, form, datamailer_preview):
+def campaign_edit_context(campaign, form, datamailer_preview, open_new_cohort_form=None):
     datamailer_context = datamailer_campaign_context(campaign)
     context = {
         "form": form,
@@ -146,6 +151,7 @@ def campaign_edit_context(campaign, form, datamailer_preview):
         "page_title": "Edit registration landing page",
         "submit_label": "Save changes",
         "datamailer_preview": datamailer_preview,
+        "open_new_cohort_form": open_new_cohort_form or OpenNewCohortForm(),
     }
     context.update(datamailer_context)
     return context

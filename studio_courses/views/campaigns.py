@@ -10,6 +10,7 @@ from .campaign_forms import (
     handle_campaign_datamailer_post,
     handle_campaign_form_post,
 )
+from .campaign_lifecycle import handle_campaign_lifecycle_post
 from .campaign_registration_list import (
     campaign_registrations_context,
     campaign_registrations_context_data,
@@ -49,6 +50,10 @@ def campaign_create(request):
 
 
 def campaign_edit_post_result(request, campaign):
+    if request.POST.get("campaign_action"):
+        post_result = handle_campaign_lifecycle_post(request, campaign)
+        return post_result
+
     if request.POST.get("datamailer_action"):
         post_result = handle_campaign_datamailer_post(
             request,
@@ -72,16 +77,20 @@ def campaign_edit(request, campaign_slug):
         post_result = campaign_edit_post_result(request, campaign)
         if post_result.response:
             return post_result.response
+        campaign = post_result.campaign or campaign
         form = post_result.form
         datamailer_preview = post_result.datamailer_preview
+        open_new_cohort_form = post_result.open_new_cohort_form
     else:
         form = RegistrationCampaignForm(instance=campaign)
         datamailer_preview = None
+        open_new_cohort_form = None
 
     context = campaign_edit_context(
         campaign,
         form,
         datamailer_preview,
+        open_new_cohort_form,
     )
     response = render(request, "studio_courses/campaign_form.html", context)
     return response

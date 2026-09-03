@@ -155,6 +155,44 @@
   </form>
 
   {% if campaign %}
+    {% comment %}
+      A campaign promotes exactly one cohort at a time, or none while it
+      waits for the next edition -- see courses/services/registration_campaigns.py.
+      These two actions are the only writer of ``current_course`` for an
+      existing campaign; the field above is disabled precisely so this is
+      the only path that can change it.
+    {% endcomment %}
+    <section class="admin-section" aria-labelledby="registration-status-heading">
+      <div class="admin-section-head">
+        <h2 id="registration-status-heading">Registration status</h2>
+      </div>
+      {% if campaign.current_course %}
+        <p>
+          Open for <strong>{{ campaign.current_course.title }}</strong>.
+          Stop registration before opening a new cohort.
+        </p>
+        <form method="post" class="admin-toolbar">
+          {% csrf_token %}
+          <input type="hidden" name="campaign_action" value="stop_registration">
+          <button type="submit" class="cta cta-secondary cta-compact">
+            Stop registration
+          </button>
+        </form>
+      {% else %}
+        <p>No cohort is currently open for registration.</p>
+        <form method="post" class="admin-form-actions">
+          {% csrf_token %}
+          <input type="hidden" name="campaign_action" value="open_new_cohort">
+          {% include 'studio_courses/include/campaign_field.html' with field=open_new_cohort_form.cohort %}
+          <button type="submit" class="cta cta-primary cta-compact">
+            Open new cohort
+          </button>
+        </form>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  {% if campaign %}
     <section class="admin-section" aria-labelledby="datamailer-heading">
       <div class="admin-section-head">
         <h2 id="datamailer-heading">Datamailer campaign</h2>
