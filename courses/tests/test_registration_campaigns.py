@@ -18,7 +18,7 @@ class RegistrationCampaignPublicTests(RegistrationCampaignBase):
         self.assertContains(response, "Register")
         self.assertContains(response, "Company name")
 
-    def test_registration_page_omits_unproven_row_count(self):
+    def test_registration_page_shows_signup_count_for_cohort(self):
         CourseRegistration.objects.create(
             campaign=self.campaign,
             course=self.course,
@@ -33,9 +33,9 @@ class RegistrationCampaignPublicTests(RegistrationCampaignBase):
         response = self.client.get(self.campaign_url())
 
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, "already registered")
+        self.assertContains(response, "2 already registered")
 
-    def test_registration_page_does_not_infer_total_from_other_rows(self):
+    def test_signup_count_is_specific_to_the_cohort(self):
         from courses.models import Cohort, RegistrationCampaign
 
         CourseRegistration.objects.create(
@@ -68,7 +68,7 @@ class RegistrationCampaignPublicTests(RegistrationCampaignBase):
 
         response = self.client.get(self.campaign_url())
 
-        self.assertNotContains(response, "1 already registered")
+        self.assertContains(response, "1 already registered")
         self.assertNotContains(response, "3 already registered")
 
     def test_registration_page_hides_count_when_no_signups(self):

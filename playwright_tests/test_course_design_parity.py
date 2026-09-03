@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -14,16 +13,7 @@ from accounts.models import CustomUser
 from courses.models import (
     Cohort,
     CourseRegistration,
-    CourseRegistrationCountRevision,
-    CourseRegistrationCountSlot,
-    CourseRegistrationCountSourceRun,
     RegistrationCampaign,
-)
-from courses.registration_count_importer import (
-    ADAPTER_VERSION,
-    COUNT_POLICY_VERSION,
-    aggregate_checksum,
-    source_reference_digest,
 )
 from playwright_tests.accessibility_support import target_size_issues
 from playwright_tests.course_catalog_contract import assert_copied_course_catalog_link
@@ -94,81 +84,18 @@ def cmp_course_catalog() -> dict[str, Cohort]:
 
 @pytest.fixture
 def cmp_registration_campaign(settings) -> RegistrationCampaign:
+    del settings  # No registered-source configuration to thread through any more.
     course = Cohort.objects.create(
         title="Machine Learning Zoomcamp 2026",
         slug="synthetic-cmp-registration-course-2026",
         description="A deterministic registration layout fixture.",
     )
-    campaign = RegistrationCampaign.objects.create(
+    return RegistrationCampaign.objects.create(
         current_course=course,
+        registration_baseline_cohort=course,
+        registration_baseline_count=1,
         **REGISTRATION_CAMPAIGN,
     )
-    source_reference = "synthetic-cmp-browser-count"
-    source_checksum = "a" * 64
-    schema_checksum = "b" * 64
-    cutoff = datetime(2026, 1, 1, tzinfo=UTC)
-    native_start = cutoff + timedelta(days=1)
-    source_created_at = cutoff - timedelta(days=1)
-    settings.COURSE_REGISTRATION_COUNT_SOURCES = {
-        source_reference: {
-            "adapter": ADAPTER_VERSION,
-            "path": "/not-read-by-public-query",
-            "sha256": source_checksum,
-            "byte_size": 1,
-            "schema_version": "synthetic-browser-v1",
-            "schema_contract_checksum": schema_checksum,
-            "captured_at": cutoff.isoformat(),
-            "source_frozen_at": cutoff.isoformat(),
-            "coverage_cutoff_at": cutoff.isoformat(),
-            "native_start_at": native_start.isoformat(),
-        }
-    }
-    run = CourseRegistrationCountSourceRun.objects.create(
-        adapter_version=ADAPTER_VERSION,
-        schema_version="synthetic-browser-v1",
-        count_policy_version=COUNT_POLICY_VERSION,
-        whole_source_checksum=source_checksum,
-        source_byte_size=1,
-        schema_contract_checksum=schema_checksum,
-        aggregate_manifest_checksum="c" * 64,
-        source_reference_digest=source_reference_digest(source_reference),
-        captured_at=cutoff,
-        source_frozen_at=cutoff,
-        campaign_total=1,
-        row_total=1,
-        state=CourseRegistrationCountSourceRun.State.ACTIVE,
-    )
-    revision = CourseRegistrationCountRevision.objects.create(
-        source_run=run,
-        campaign=campaign,
-        cohort=course,
-        campaign_slug_snapshot=campaign.slug,
-        cohort_slug_snapshot=course.slug,
-        baseline_count=1,
-        source_min_created_at=source_created_at,
-        source_max_created_at=source_created_at,
-        coverage_cutoff_at=cutoff,
-        proposed_native_start_at=native_start,
-        aggregate_checksum=aggregate_checksum(
-            campaign_slug=campaign.slug,
-            cohort_slug=course.slug,
-            count=1,
-            minimum=source_created_at,
-            maximum=source_created_at,
-            cutoff=cutoff,
-        ),
-        state=CourseRegistrationCountRevision.State.ACTIVE,
-    )
-    CourseRegistrationCountSlot.objects.create(
-        campaign=campaign,
-        cohort=course,
-        campaign_slug_snapshot=campaign.slug,
-        cohort_slug_snapshot=course.slug,
-        mode=CourseRegistrationCountSlot.Mode.BASELINE_PLUS_NATIVE,
-        active_baseline_revision=revision,
-        native_start_at=native_start,
-    )
-    return campaign
 
 
 def _assert_no_horizontal_overflow(page: Page) -> None:
