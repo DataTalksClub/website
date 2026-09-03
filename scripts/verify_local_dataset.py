@@ -26,8 +26,13 @@ if str(PROJECT_ROOT) not in sys.path:
 
 # The reviewed 2026 delivery. Legacy cohorts are checked separately: their presence is
 # expected but their exact set follows the pinned upstream catalogue, not this list.
+# The published family is `ai-dev-tools`, not the repository's own name. The
+# repository calls itself `ai-dev-tools-zoomcamp` and declares that as the
+# cohort's legacy_slug; `curriculum_import` rewrites the one prefix, and
+# migration 0052 repaired the rows that predate it. These literals were written
+# before that normalization landed and named the repository instead.
 EXPECTED_2026_COHORTS = (
-    "ai-dev-tools-zoomcamp-2026",
+    "ai-dev-tools-2026",
     "de-zoomcamp-2026",
     "llm-zoomcamp-2026",
     "ml-zoomcamp-2026",
@@ -35,7 +40,7 @@ EXPECTED_2026_COHORTS = (
 EXPECTED_MODULE_CURRICULA = {
     "ml-zoomcamp-2026": (9, 105),
     "llm-zoomcamp-2026": (7, 72),
-    "ai-dev-tools-zoomcamp-2026": (4, 4),
+    "ai-dev-tools-2026": (4, 4),
 }
 # Upstream test rows that must never reach a public catalogue.
 FORBIDDEN_COHORT_SLUGS = ("fake-course", "fake-course-2")
