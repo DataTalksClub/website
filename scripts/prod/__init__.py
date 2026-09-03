@@ -71,6 +71,7 @@ SYNC_MODELS = ("git-synchronized", "one-time")
 BOOTSTRAPPING_ENTRY_POINTS = frozenset(
     {
         "import_cmp_content",
+        "import_cmp_learners",
         "import_legacy_zoomcamp",
         "import_testimonials",
         "sync_content",
