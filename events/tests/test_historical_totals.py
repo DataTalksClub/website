@@ -17,7 +17,6 @@ from core.models import AuditEvent
 from core.services import ServiceContext
 from events.importers import source_reference_digest
 from events.models import (
-    HistoricalEventMapping,
     HistoricalRegistrationAggregateRevision,
     HistoricalRegistrationAggregateSlot,
     HistoricalRegistrationPointerDisplacement,
@@ -31,7 +30,6 @@ from events.services import (
     registration_total_preview,
     replace_aggregate_with_row_projection,
     restore_aggregate_from_row_projection,
-    revise_mapping,
     rollback_source,
     safe_source_facts,
     stage_registered_source,
@@ -81,7 +79,7 @@ class HistoricalRegistrationTotalTests(TestCase):
         ):
             registration_total_preview(self.event["slug"])
 
-    def _write_source(self, statuses: tuple[str, ...]) -> dict:
+    def _write_source(self, statuses: tuple[str, ...], *, include_bridge: bool = True) -> dict:
         event_id = "synthetic-provider-event"
         event_url = "https://example.test/synthetic-provider-event"
         (self.source / "synthetic.json").write_text(
@@ -110,25 +108,25 @@ class HistoricalRegistrationTotalTests(TestCase):
                     }
                 )
         provenance = self.event["provenance"]
-        return {
-            "synthetic-luma": {
-                "provider": "luma",
-                "reconciliation_profile": "synthetic",
-                "path": str(self.source),
-                "sha256": tree_checksum(self.source),
-                "mapping_bridge": {
-                    event_url: {
-                        "repository": provenance["repository"],
-                        "revision": provenance["revision"],
-                        "source_key": provenance["source_key"],
-                        "slug": self.event["slug"],
-                    }
-                },
-            }
+        config: dict = {
+            "provider": "luma",
+            "reconciliation_profile": "synthetic",
+            "path": str(self.source),
+            "sha256": tree_checksum(self.source),
         }
+        if include_bridge:
+            config["mapping_bridge"] = {
+                event_url: {
+                    "repository": provenance["repository"],
+                    "revision": provenance["revision"],
+                    "source_key": provenance["source_key"],
+                    "slug": self.event["slug"],
+                }
+            }
+        return {"synthetic-luma": config}
 
-    def _stage(self, statuses: tuple[str, ...] = ("approved",)):
-        registry = self._write_source(statuses)
+    def _stage(self, statuses: tuple[str, ...] = ("approved",), *, include_bridge: bool = True):
+        registry = self._write_source(statuses, include_bridge=include_bridge)
         with override_settings(HISTORICAL_REGISTRATION_SOURCES=registry):
             run, created = stage_registered_source(
                 provider="luma",
@@ -140,27 +138,14 @@ class HistoricalRegistrationTotalTests(TestCase):
         return run, created, registry
 
     def _map_validate_activate(self, statuses: tuple[str, ...] = ("approved",)):
+        # The registry's own `mapping_bridge` (see `_write_source`) names the exact
+        # provider-event-to-canonical-event pair, so staging resolves the aggregate
+        # directly -- there is no separate mapping row or review step to act on.
         run, _created, registry = self._stage(statuses)
-        mapping = run.aggregate_revisions.get(
+        aggregate = run.aggregate_revisions.get(
             state=HistoricalRegistrationAggregateRevision.State.STAGED
-        ).mapping
-        mapping = revise_mapping(
-            mapping_id=mapping.id,
-            provider=None,
-            external_event_identifier=None,
-            state=HistoricalEventMapping.State.MAPPED,
-            event_id=self.event["identity_id"],
-            mapping_set_revision=1,
-            expected_revision=mapping.revision,
-            reason_code="exact_review",
-            reason="Synthetic exact mapping.",
-            coverage_boundary="historical",
-            combination_policy=(
-                HistoricalRegistrationAggregateRevision.CombinationPolicy.REPLACEMENT
-            ),
-            reviewer=self.user,
-            context=self.context,
         )
+        self.assertIsNotNone(aggregate.event_id)
         validate_source(
             run.id,
             reason_code="validated_counts",
@@ -175,7 +160,8 @@ class HistoricalRegistrationTotalTests(TestCase):
                 context=self.context,
             )
         run.refresh_from_db()
-        return run, mapping, registry
+        aggregate.refresh_from_db()
+        return run, aggregate, registry
 
     def _validated_run(
         self,
@@ -185,7 +171,6 @@ class HistoricalRegistrationTotalTests(TestCase):
         combination_policy: str,
         suffix: str,
     ) -> HistoricalRegistrationSourceRun:
-        provenance = self.event["provenance"]
         run = HistoricalRegistrationSourceRun.objects.create(
             provider=provider,
             adapter_version="synthetic-v1",
@@ -207,23 +192,10 @@ class HistoricalRegistrationTotalTests(TestCase):
             actor=self.user,
             actor_ref=f"user:{self.user.pk}",
         )
-        mapping = HistoricalEventMapping.objects.create(
-            provider=provider,
-            external_event_identifier=f"synthetic-{suffix}",
-            event_id=self.event["identity_id"],
-            canonical_repository=provenance["repository"],
-            canonical_revision=provenance["revision"],
-            canonical_source_key=provenance["source_key"],
-            canonical_slug_snapshot=self.event["slug"],
-            state=HistoricalEventMapping.State.MAPPED,
-            mapping_set_revision=1,
-            reviewer=self.user,
-            reviewer_ref=f"user:{self.user.pk}",
-            reason_code="synthetic_mapping",
-        )
         HistoricalRegistrationAggregateRevision.objects.create(
             source_run=run,
-            mapping=mapping,
+            external_event_identifier=f"synthetic-{suffix}",
+            event_id=self.event["identity_id"],
             eligible_count=count,
             excluded_count=0,
             quarantined_count=0,
@@ -235,12 +207,20 @@ class HistoricalRegistrationTotalTests(TestCase):
         )
         return run
 
-    def test_models_store_no_attendee_registration_or_answer_fields(self) -> None:
+    def test_aggregate_models_store_no_attendee_registration_or_answer_fields(self) -> None:
+        """The *aggregate-only* provenance models never gain an attendee field.
+
+        Attendee-level rows now do land in the database (see
+        events.models.EventRegistrantIdentity / EventRegistration, and
+        _docs/runbooks/ingest-script-inventory.md section 9) -- but never in
+        these five models, whose whole contract is aggregate counts and
+        pointers, never an identity. That boundary is what this test locks in.
+        """
+
         field_names = {
             field.name
             for model in (
                 HistoricalRegistrationSourceRun,
-                HistoricalEventMapping,
                 HistoricalRegistrationAggregateRevision,
                 HistoricalRegistrationAggregateSlot,
                 HistoricalRegistrationPointerDisplacement,
@@ -258,12 +238,35 @@ class HistoricalRegistrationTotalTests(TestCase):
             "filename",
         }
         self.assertTrue(field_names.isdisjoint(prohibited))
-        self.assertFalse(hasattr(__import__("events.models", fromlist=["x"]), "EventRegistration"))
 
-    def test_source_mapping_identity_and_aggregate_values_are_immutable(self) -> None:
+    def test_registration_fact_model_stores_no_direct_identity_value(self) -> None:
+        """EventRegistration is the one model that does hold an attendee fact.
+
+        Even so, it never stores a name, email, or phone number directly --
+        only a status, a timestamp, and an opaque provider token used solely
+        for idempotent replay. The real identity value (an email) lives only
+        in EventRegistrantIdentity.normalized_email, guarded by
+        events.registrant_import's account-first matching.
+        """
+
+        from events.models import EventRegistration
+
+        field_names = {field.name for field in EventRegistration._meta.get_fields()}
+        prohibited = {
+            "email",
+            "name",
+            "first_name",
+            "last_name",
+            "phone_number",
+            "answer",
+            "consent",
+            "payload",
+        }
+        self.assertTrue(field_names.isdisjoint(prohibited))
+
+    def test_source_run_and_aggregate_provenance_are_immutable(self) -> None:
         run, _created, _registry = self._stage()
         aggregate = run.aggregate_revisions.get()
-        mapping = aggregate.mapping
 
         run.eligible_row_total += 1
         with self.assertRaisesMessage(ValueError, "source-run aggregate provenance"):
@@ -271,9 +274,14 @@ class HistoricalRegistrationTotalTests(TestCase):
         aggregate.eligible_count += 1
         with self.assertRaisesMessage(ValueError, "aggregate revision provenance"):
             aggregate.save()
-        mapping.external_event_identifier = "changed-protected-identity"
-        with self.assertRaisesMessage(ValueError, "provider mapping identity"):
-            mapping.save()
+
+    def test_aggregate_event_resolution_is_immutable_once_set(self) -> None:
+        run, aggregate, _registry = self._map_validate_activate()
+        other_event = public_projection()["events"][1]
+
+        aggregate.event_id = other_event["identity_id"]
+        with self.assertRaisesMessage(ValueError, "event resolution is immutable"):
+            aggregate.save()
 
     def test_replay_is_a_deterministic_noop_and_reference_is_stored_only_as_digest(self) -> None:
         run, created, registry = self._stage(("approved", "declined"))
@@ -295,9 +303,9 @@ class HistoricalRegistrationTotalTests(TestCase):
         )
         self.assertNotIn("synthetic-luma", repr(run.__dict__))
 
-    def test_review_required_mapping_blocks_validation_and_public_count(self) -> None:
-        run, _created, _registry = self._stage()
-        with self.assertRaisesMessage(HistoricalRegistrationConflict, "mapping_review_required"):
+    def test_unresolved_aggregate_blocks_validation_and_public_count(self) -> None:
+        run, _created, _registry = self._stage(include_bridge=False)
+        with self.assertRaisesMessage(HistoricalRegistrationConflict, "aggregate_not_resolved"):
             validate_source(
                 run.id,
                 reason_code="attempted_validation",
@@ -362,38 +370,6 @@ class HistoricalRegistrationTotalTests(TestCase):
 
         self.assertContains(response, "2 registered")
         self.assertNotContains(response, "2 came")
-
-    def test_mapping_revision_invalidates_active_pointer_and_public_revision(self) -> None:
-        run, mapping, _registry = self._map_validate_activate(("approved",))
-        first_total = public_registration_total(self.event)
-        self.assertIsNotNone(first_total)
-        mapping.refresh_from_db()
-        with patch("django_q.tasks.async_task"):
-            revise_mapping(
-                mapping_id=mapping.id,
-                provider=None,
-                external_event_identifier=None,
-                state=HistoricalEventMapping.State.EXCLUDED,
-                mapping_set_revision=2,
-                expected_revision=mapping.revision,
-                reason_code="reviewed_exclusion",
-                reason="Synthetic exclusion.",
-                coverage_boundary="historical",
-                combination_policy=(
-                    HistoricalRegistrationAggregateRevision.CombinationPolicy.EXCLUDE
-                ),
-                reviewer=self.user,
-                context=self.context,
-            )
-        self.assertIsNone(public_registration_total(self.event))
-        self.assertFalse(
-            HistoricalRegistrationAggregateSlot.objects.filter(
-                active_revision__isnull=False
-            ).exists()
-        )
-        self.assertEqual(DurableJob.objects.count(), 2)
-        run.refresh_from_db()
-        self.assertEqual(run.state, HistoricalRegistrationSourceRun.State.ACTIVE)
 
     def test_cross_provider_replacement_never_adds_and_rollback_restores_prior_pointer(
         self,
@@ -554,24 +530,10 @@ class HistoricalRegistrationTotalTests(TestCase):
             combination_policy="replacement",
             suffix="same-run-first-replacement",
         )
-        provenance = self.event["provenance"]
-        second_mapping = HistoricalEventMapping.objects.create(
-            provider="luma",
-            external_event_identifier="synthetic-same-run-second-replacement",
-            event_id=self.event["identity_id"],
-            canonical_repository=provenance["repository"],
-            canonical_revision=provenance["revision"],
-            canonical_source_key=provenance["source_key"],
-            canonical_slug_snapshot=self.event["slug"],
-            state=HistoricalEventMapping.State.MAPPED,
-            mapping_set_revision=1,
-            reviewer=self.user,
-            reviewer_ref=f"user:{self.user.pk}",
-            reason_code="synthetic_mapping",
-        )
         HistoricalRegistrationAggregateRevision.objects.create(
             source_run=replacement,
-            mapping=second_mapping,
+            external_event_identifier="synthetic-same-run-second-replacement",
+            event_id=self.event["identity_id"],
             eligible_count=9,
             excluded_count=0,
             quarantined_count=0,
@@ -834,9 +796,15 @@ class HistoricalRegistrationTotalTests(TestCase):
             },
             default=str,
         )
+        # Attendee-level values (an email, a guest id) never land here, at rest or in an
+        # audit event -- unlike the provider's own *event* identifier just below, which
+        # is not attendee PII (it is part of the event's public Luma/Eventbrite URL) and
+        # is legitimately stored at rest, same as it always was on the removed
+        # HistoricalEventMapping row; it is masked only at the API-serialization
+        # boundary (see events.services._mask_identifier / get_run_detail).
         self.assertNotIn("private-canary", evidence)
         self.assertNotIn("synthetic-guest", evidence)
-        self.assertNotIn("synthetic-provider-event", evidence)
+        self.assertIn("synthetic-provider-event", evidence)
 
     def test_safe_acceptance_facts_are_exact_aggregate_only_values(self) -> None:
         facts = safe_source_facts()

@@ -143,7 +143,6 @@ class StudioDesignFiveAShellTests(TestCase):
                 kwargs={"event_id": self.event.id},
             ),
             "historical registration totals": reverse("studio:historical-registration-list"),
-            "historical event mappings": reverse("studio:historical-registration-mappings"),
             "course registration totals": reverse("studio:course-registration-count-list"),
         }
 
