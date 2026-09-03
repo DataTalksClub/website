@@ -1,6 +1,8 @@
 from django.urls import reverse
+from django.utils import timezone
 
 from courses.models import (
+    Course,
     CriteriaResponse,
     PeerReviewState,
     Project,
@@ -226,6 +228,140 @@ class ProjectEvaluationSubmitPostTestCase(ProjectEvaluationTestBase):
 
         expected_links = self.learning_in_public_review_links()
         self.assert_learning_in_public_links_saved(expected_links)
+
+    def test_eval_submit_post_invalid_learning_in_public_link(self):
+        family = Course.objects.create(
+            slug="test-course-family",
+            title="Test Course Family",
+        )
+        self.course.course = family
+        self.course.identifier = "spring-2026"
+        self.course.save(update_fields=("course", "identifier"))
+        eval_submit_url = reverse(
+            "projects_eval_submit",
+            kwargs={
+                "course_slug": family.slug,
+                "cohort_year": self.course.identifier,
+                "project_slug": self.project.slug,
+                "review_id": self.peer_review.id,
+            },
+        )
+        post_data = self.review_post_data(
+            **{"learning_in_public_links[]": ["not-a-valid-url"]},
+        )
+
+        self.client.login(**credentials)
+        response = self.client.post(eval_submit_url, post_data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Learning in public links must be valid HTTP or HTTPS URLs.",
+            status_code=200,
+        )
+        self.assertEqual(response.request["PATH_INFO"], eval_submit_url)
+
+        self.peer_review = fetch_fresh(self.peer_review)
+        self.assertEqual(
+            self.peer_review.state,
+            PeerReviewState.TO_REVIEW.value,
+        )
+        self.assertIsNone(self.peer_review.submitted_at)
+        self.assertEqual(self.peer_review.note_to_peer, "")
+        self.assertIsNone(self.peer_review.learning_in_public_links)
+        self.assertFalse(
+            CriteriaResponse.objects.filter(review=self.peer_review).exists()
+        )
+
+    def test_invalid_learning_in_public_link_keeps_submitted_review_unchanged(
+        self,
+    ):
+        self.create_criteria_responses()
+        self.peer_review.state = PeerReviewState.SUBMITTED.value
+        self.peer_review.submitted_at = timezone.now()
+        self.peer_review.note_to_peer = "Original note"
+        self.peer_review.problems_comments = "Original comments"
+        self.peer_review.time_spent_reviewing = 4.0
+        self.peer_review.learning_in_public_links = [
+            "https://example.com/original",
+        ]
+        self.peer_review.save()
+
+        before_review = fetch_fresh(self.peer_review)
+        before_criteria_answers = {
+            criteria_id: answer
+            for criteria_id, answer in CriteriaResponse.objects.filter(
+                review=before_review,
+            ).values_list("criteria_id", "answer")
+        }
+
+        post_data = self.updated_review_post_data()
+        post_data["learning_in_public_links[]"] = ["not-a-valid-url"]
+        post_data["note_to_peer"] = "Changed note"
+        post_data["problems_comments"] = "Changed comments"
+        post_data["time_spent_reviewing"] = "9"
+
+        response = self.post_eval_submit(post_data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Learning in public links must be valid HTTP or HTTPS URLs.",
+            status_code=200,
+        )
+
+        after_review = fetch_fresh(self.peer_review)
+        self.assertEqual(after_review.state, before_review.state)
+        self.assertEqual(after_review.submitted_at, before_review.submitted_at)
+        self.assertEqual(after_review.note_to_peer, before_review.note_to_peer)
+        self.assertEqual(
+            after_review.problems_comments,
+            before_review.problems_comments,
+        )
+        self.assertEqual(
+            after_review.time_spent_reviewing,
+            before_review.time_spent_reviewing,
+        )
+        self.assertEqual(
+            after_review.learning_in_public_links,
+            before_review.learning_in_public_links,
+        )
+        after_criteria_answers = {
+            criteria_id: answer
+            for criteria_id, answer in CriteriaResponse.objects.filter(
+                review=after_review,
+            ).values_list("criteria_id", "answer")
+        }
+        self.assertEqual(after_criteria_answers, before_criteria_answers)
+
+    def test_forged_criteria_stays_bad_request_before_invalid_link_handling(
+        self,
+    ):
+        post_data = self.review_post_data(
+            **{
+                "answer_999999": "1",
+                "learning_in_public_links[]": ["not-a-valid-url"],
+            },
+        )
+
+        response = self.post_eval_submit(post_data)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.content,
+            b"The review criteria do not belong to this project.",
+        )
+        self.peer_review = fetch_fresh(self.peer_review)
+        self.assertEqual(
+            self.peer_review.state,
+            PeerReviewState.TO_REVIEW.value,
+        )
+        self.assertIsNone(self.peer_review.submitted_at)
+        self.assertEqual(self.peer_review.note_to_peer, "")
+        self.assertIsNone(self.peer_review.learning_in_public_links)
+        self.assertFalse(
+            CriteriaResponse.objects.filter(review=self.peer_review).exists()
+        )
 
     def test_eval_submit_post_already_submitted(self):
         criteria_response_map = self.create_criteria_responses()
