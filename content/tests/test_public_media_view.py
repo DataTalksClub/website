@@ -35,9 +35,6 @@ from content.media_store import (
 from content.public_data import public_projection
 
 SPACED_AUTHOR_PATH = "/images/authors/%20aashishnair.jpg"
-SPACED_PODCAST_PATH = (
-    "/images/podcast/production-ml-search-vector-search-embeddings-hybrid%20search.jpg"
-)
 LARGEST_OBJECT_PATH = (
     "/images/posts/2025-09-23-ai-dev-tools-zoomcamp-2025-free-course-to-master-coding-"
     "assistants-agents-and-automation/course-cover.png"
@@ -112,7 +109,6 @@ class MediaResponseContractTests(TestCase):
         store = media_store()
         sampled = (
             SPACED_AUTHOR_PATH,
-            SPACED_PODCAST_PATH,
             LARGEST_OBJECT_PATH,
             "/images/podcast/badges/spotify.svg",
         )
@@ -133,38 +129,27 @@ class MediaResponseContractTests(TestCase):
                 self.assertNotIn("Cache-Control", response.headers)
                 self.assertEqual(_body(response), payload)
 
-    def test_both_spaced_filenames_still_resolve_with_verified_bytes(self) -> None:
+    def test_the_spaced_filename_still_resolves_with_verified_bytes(self) -> None:
         store = media_store()
-        for path, filename in (
-            (SPACED_AUTHOR_PATH, " aashishnair.jpg"),
-            (
-                SPACED_PODCAST_PATH,
-                "production-ml-search-vector-search-embeddings-hybrid search.jpg",
-            ),
-        ):
-            with self.subTest(path=path):
-                response = self.client.get(path)
-                record = self.records[response.wsgi_request.path]
-                self.assertEqual(response.status_code, 200)
-                self.assertEqual(response.headers["Content-Type"], "image/jpeg")
-                self.assertEqual(
-                    response.headers["Content-Disposition"], f'inline; filename="{filename}"'
-                )
-                payload = _body(response)
-                self.assertEqual(
-                    hashlib.sha256(payload).hexdigest(), store.expected_checksum(record)
-                )
+        path, filename = SPACED_AUTHOR_PATH, " aashishnair.jpg"
+        response = self.client.get(path)
+        record = self.records[response.wsgi_request.path]
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["Content-Type"], "image/jpeg")
+        self.assertEqual(
+            response.headers["Content-Disposition"], f'inline; filename="{filename}"'
+        )
+        payload = _body(response)
+        self.assertEqual(hashlib.sha256(payload).hexdigest(), store.expected_checksum(record))
 
     @requires_hydrated_tree
-    def test_the_spaced_filenames_serve_the_exact_recorded_upstream_bytes(self) -> None:
-        for path in (SPACED_AUTHOR_PATH, SPACED_PODCAST_PATH):
-            with self.subTest(path=path):
-                response = self.client.get(path)
-                record = self.records[response.wsgi_request.path]
-                self.assertEqual(
-                    hashlib.sha256(_body(response)).hexdigest(),
-                    record["provenance"]["checksum"],
-                )
+    def test_the_spaced_filename_serves_the_exact_recorded_upstream_bytes(self) -> None:
+        response = self.client.get(SPACED_AUTHOR_PATH)
+        record = self.records[response.wsgi_request.path]
+        self.assertEqual(
+            hashlib.sha256(_body(response)).hexdigest(),
+            record["provenance"]["checksum"],
+        )
 
     def test_the_content_length_always_matches_the_served_body(self) -> None:
         response = self.client.get(LARGEST_OBJECT_PATH)
@@ -393,8 +378,8 @@ class ImageBearingPageTests(TestCase):
         ("/blog/ai-dev-tools-zoomcamp.html", "/images/posts/"),
         ("/people/aashishnair.html", "/images/authors/ aashishnair.jpg"),
         (
-            "/podcast/production-ml-search-vector-search-embeddings-hybrid-search.html",
-            "/images/podcast/production-ml-search-vector-search-embeddings-hybrid search.jpg",
+            "/books/20251006-software-development-at-rocket-speed.html",
+            "/images/books/20251006-software-development-at-rocket-speed/preview.jpg",
         ),
         ("/blog", "/images/"),
         ("/podcast", "/images/"),

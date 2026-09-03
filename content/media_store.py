@@ -15,7 +15,7 @@ reads the object through one of three interchangeable backends:
     the object store that owns the published release assets.
 
 The object key is derived from the *matched record only*, never from the raw request
-path, so request encoding, traversal, and the two historic filenames that contain a
+path, so request encoding, traversal, and the historic filename that contains a
 literal space can never reach the store as attacker-controlled input.
 
 Every served object is verified against the record's ``provenance.checksum`` before a
