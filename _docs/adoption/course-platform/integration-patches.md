@@ -56,6 +56,13 @@ overlays:
 - `courses/models/project.py`: issue #144 adds runtime human-readable project and peer-review state
   labels while preserving the stored enum values, workflow comparisons, and migration-stable
   choices;
+- `courses/views/project_eval_submit.py`, `courses/views/project_eval_submit_save.py`, and
+  `courses/tests/test_project_eval.py`: issue #230 selectively adapts CMP commit
+  `56cac9a8f15a1f183de35a5e18040c49e758ff4c` so a malformed peer-review
+  learning-in-public URL re-renders the cohort-aware evaluation form with the existing validation
+  message instead of returning HTTP 500. The target keeps its stricter pre-write project-criterion
+  validation and its existing atomic save boundary, so rejected input cannot persist criterion
+  responses or submitted review state;
 - `courses/static/time_left.js`, `courses/templates/homework/stats.html`,
   `courses/tests/test_homework_question_stats.py`, and `courses/tests/test_project_eval.py`: issue
   #144 replaces deadline palette utility classes with semantic theme-backed statuses, preserves
