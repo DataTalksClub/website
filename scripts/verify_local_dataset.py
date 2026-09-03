@@ -6,6 +6,17 @@ rather than prose: which cohorts exist, which of them carry module curricula and
 large those curricula are, how many course families back them, whether any upstream test
 course leaked in, and how many future-dated events the public site would render.
 
+**CMP owns homework identity.**  Its slugs are copied verbatim, so this gate does not
+assert which slugs a cohort ends up with -- an earlier version asserted the
+repository-authored spelling and the reviewed answer went the other way.  Nor does it
+pin a question total: the count follows whatever CMP has authored, and a threshold
+picked from one snapshot only fails later for being right.
+
+What it checks instead is that the CMP import did not silently do nothing, which is the
+failure mode this importer actually has.  A single cohort with no questions is normal --
+``ml-zoomcamp-2026`` has nine homework rows and no authored questions in the production
+export -- so that is reported rather than failed.  No questions anywhere is not normal.
+
 Every check is aggregate-only.  Nothing here reads or prints learner data.
 """
 
@@ -118,12 +129,16 @@ def _content_report() -> dict[str, Any]:
 
     from courses.models import Homework, Project, Question
 
-    homework_questions = {
-        f"{row['course__slug']}/{row['slug']}": row["question_total"]
-        for row in Homework.objects.values("course__slug", "slug")
-        .annotate(question_total=Count("question"))
-        .order_by("course__slug", "slug")
-    }
+    # CMP owns homework identity and its slugs are copied verbatim, so which slugs
+    # a cohort ends up with is not something to assert here.  What matters is that
+    # the CMP import ran at all: it is the only source of questions, so a cohort
+    # with homework and no question anywhere means the import silently did nothing.
+    cohorts_with_homework = set(Homework.objects.values_list("course__slug", flat=True).distinct())
+    cohorts_with_questions = set(
+        Homework.objects.filter(question__isnull=False)
+        .values_list("course__slug", flat=True)
+        .distinct()
+    )
     return {
         "question_total": Question.objects.count(),
         "homework_total": Homework.objects.count(),
@@ -134,19 +149,11 @@ def _content_report() -> dict[str, Any]:
         "generated_project_descriptions": Project.objects.filter(
             description__startswith="Production-like generated"
         ).count(),
-        "llm_zoomcamp_2026_homework_questions": {
-            slug: homework_questions.get(f"llm-zoomcamp-2026/{slug}", 0)
-            for slug in (
-                "homework-01",
-                "homework-02",
-                "homework-03",
-                "homework-04",
-                "homework-05",
-                "homework-06",
-                "homework-07",
-                "hw1",
-            )
-        },
+        "cohorts_with_homework": len(cohorts_with_homework),
+        "cohorts_without_any_question": sorted(cohorts_with_homework - cohorts_with_questions),
+        "homework_without_questions": Homework.objects.annotate(question_total=Count("question"))
+        .filter(question_total=0)
+        .count(),
     }
 
 
@@ -193,23 +200,20 @@ def _failures(report: dict[str, Any]) -> list[str]:
     content = report["content"]
     if content["practice_assignment_homeworks"]:
         failures.append(
-            "placeholder homework descriptions present: "
-            f"{content['practice_assignment_homeworks']}"
+            f"placeholder homework descriptions present: {content['practice_assignment_homeworks']}"
         )
     if content["generated_project_descriptions"]:
         failures.append(
-            "placeholder project descriptions present: "
-            f"{content['generated_project_descriptions']}"
+            f"placeholder project descriptions present: {content['generated_project_descriptions']}"
         )
-    if content["llm_zoomcamp_2026_homework_questions"].get("homework-01", 0) < 6:
+    # A cohort can legitimately hold homework with no questions yet -- ml-zoomcamp-2026
+    # is exactly that in the production export, nine homework rows and none authored --
+    # so an empty cohort is reported, not failed. The failure is the import writing no
+    # question at all, which is what a silent no-op looks like from here.
+    if content["homework_total"] and not content["question_total"]:
         failures.append(
-            "llm-zoomcamp-2026 homework-01 is missing imported questions: "
-            f"{content['llm_zoomcamp_2026_homework_questions']}"
+            "homework exists but no question was imported, so the CMP import wrote nothing"
         )
-    if content["llm_zoomcamp_2026_homework_questions"].get("hw1", 0):
-        failures.append("llm-zoomcamp-2026 still has unmapped CMP slug hw1")
-    if content["question_total"] < 500:
-        failures.append(f"question total too low for a CMP import: {content['question_total']}")
     return failures
 
 
