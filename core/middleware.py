@@ -40,6 +40,8 @@ PRIVATE_ROUTE_NAMES = frozenset(
         "projects_eval_submit",
         "registration_campaign",
         "update_enrollment_toggle",
+        # One member's year in review, readable by that member and by staff.
+        "user_wrapped",
     }
 )
 ALB_READINESS_PATH = "/health/ready"

@@ -22,7 +22,7 @@
 
 {% block page_styles %}
       /* ------------------------------------------------------------------ *
-       * One person's Wrapped, design 5a (issue #179).  The shareable half of
+       * One person's Wrapped, design system (issue #179).  The shareable half of
        * the year in review, and the sibling of courses/wrapped.html: it uses
        * the same devices in the same order — the title band, the big-number
        * tiles, the dashed course list, and the ink closing band — so the two
@@ -142,11 +142,16 @@
 
 {% block page_header %}
       {% comment %}
-        The trail back to the year this page belongs to, as the design 5a
+        The trail back to the year this page belongs to, as the design system
         primitive: the ancestor is a link and the current page is plain text.
       {% endcomment %}
       {% url 'wrapped' year as wrapped_url %}
-      {% breadcrumbs year|stringformat:"s"|add:" Wrapped" wrapped_url current=display_name|default:viewed_user.username|add:"'s Wrapped" %}
+      {% comment %}
+        `display_name` is the only identity this page carries, and the view
+        guarantees it is a pseudonym: there is deliberately no viewed-member
+        object in the context to fall back to.
+      {% endcomment %}
+      {% breadcrumbs year|stringformat:"s"|add:" Wrapped" wrapped_url current=display_name|add:"'s Wrapped" %}
       <p class="mono-label mono-label-indigo">Year in review</p>
       {% if no_activity %}
         <h1 id="user-wrapped-heading">DataTalks.Club Wrapped {{ year }}</h1>

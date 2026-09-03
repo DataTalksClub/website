@@ -9,7 +9,7 @@
 
 {% block page_styles %}
       /* ------------------------------------------------------------------ *
-       * DataTalks.Club Wrapped, design 5a (issue #179).  Wrapped is the
+       * DataTalks.Club Wrapped, design system (issue #179).  Wrapped is the
        * year-in-review page, so it keeps the celebratory shape it has always
        * had — a title band, big numbers, then the community's own totals —
        * built from the system's own devices: the .stat-tile is the design's
@@ -357,12 +357,21 @@
                       {{ entry.rank }}
                     </p>
                   {% endif %}
+                  {% comment %}
+                    Only the viewer's own row is a link.  One member's Wrapped
+                    is that member's and staff's, so linking every row both
+                    produced a page of links nobody could follow and published
+                    a ready-made index of member ids to walk.  Everyone else's
+                    pseudonym is plain text; the leaderboard reads the same.
+                  {% endcomment %}
                   <p class="wrapped-name">
-                    <a href="{% url 'user_wrapped' year entry.student_id %}">
-                      {{ entry.display_name }}
-                    </a>
-                    {% if user.is_authenticated and entry.student_id == user.id %}
+                    {% if request.user.is_authenticated and entry.student_id == request.user.id %}
+                      <a href="{% url 'user_wrapped' year entry.student_id %}">
+                        {{ entry.display_name }}
+                      </a>
                       <span class="status-pill status-pill-open">you</span>
+                    {% else %}
+                      {{ entry.display_name }}
                     {% endif %}
                   </p>
                   <p class="wrapped-score">

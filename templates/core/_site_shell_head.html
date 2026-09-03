@@ -1,5 +1,5 @@
 {% comment %}
-  Everything the design 5a shell puts before the page's own main landmark: the skip
+  Everything the design system shell puts before the page's own main landmark: the skip
   link, the pre-paint dark-mode bootstrap, the CSRF token, the impersonation banner,
   the masthead and the site announcement.
 
@@ -157,11 +157,17 @@
           <span class="sr-only">&nbsp;mode</span>
         </button>
       {% endif %}
-      {% if user.is_authenticated %}
+      {% if request.user.is_authenticated %}
         {% comment %}
           Same account-menu contract as the shared shell: the labelled summary and the
           .user-menu-panel links every identity test drives.  courses/static/user_menu.js
           (loaded by core/_site_shell_foot.html) closes it on Escape and on outside click.
+
+          The address below is read from `request.user`, never from the bare
+          `user` name.  `user` is only supplied by the auth context processor
+          until a view puts its own value under that key, and a view rendering
+          somebody else's member record then hands the whole shell that
+          person's address.  `request` cannot be shadowed the same way.
         {% endcomment %}
         <details class="account-nav user-menu">
           <summary
@@ -171,8 +177,8 @@
           >Account</summary>
           <div class="mobile-nav-panel user-menu-panel">
             <p class="user-menu-signed-in">Signed in as</p>
-            <p class="user-menu-identity" title="{{ user.email|default:user.username }}">
-              {{ user.email|default:user.username }}
+            <p class="user-menu-identity" title="{{ request.user.email|default:request.user.username }}">
+              {{ request.user.email|default:request.user.username }}
             </p>
             <div class="user-menu-actions">
               {% comment %}
