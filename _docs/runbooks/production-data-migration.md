@@ -63,28 +63,28 @@ deliberately do nothing", it says so.
 
 | # | Source | Model | Fate and owner | Step |
 | --- | --- | --- | --- | --- |
-| 1 | Course repositories (3) | git-synchronised | `content_sync/course_repository_ingest.py` | 3 |
-| 2 | `DataTalksClub/content` — articles, podcasts, books | git-synchronised after migration | push-sync — **to build**, §11 B3 | 7 |
-| 3 | `DataTalksClub/podwiki` — wiki, graph, search | pinned build → git-synchronised | source stays at podwiki; **we serve `/wiki`** | 7 |
-| 4 | `DataTalksClub/faq` (6 courses / 70 sections / 1,401 questions) | **git-synchronised** | **owner ruling: comes into our database via content sync** — to build, §11 B8 | 7 |
-| 5 | `DataTalksClub/docs` (106 pages) | **git-synchronised** | **owner ruling: same as FAQ** — to build, §11 B8 | 7 |
+| 1 | Course repositories (3) | git-synchronised | `content_sync/course_repository_ingest.py` | 2 |
+| 2 | `DataTalksClub/content` — articles, podcasts, books | git-synchronised after migration | push-sync — **to build**, §11 B3 | 6 |
+| 3 | `DataTalksClub/podwiki` — wiki, graph, search | pinned build → git-synchronised | source stays at podwiki; **we serve `/wiki`** | 6 |
+| 4 | `DataTalksClub/faq` (6 courses / 70 sections / 1,401 questions) | **git-synchronised** | **owner ruling: comes into our database via content sync** — to build, §11 B8 | 6 |
+| 5 | `DataTalksClub/docs` (106 pages) | **git-synchronised** | **owner ruling: same as FAQ** — to build, §11 B8 | 6 |
 | 6 | CMP repo `production_like_course_specs.json` | pinned build | local seeding only; produces the unused `courses.json`. **Not migrated** — §14 | — |
-| 7 | Legacy `_people` (443) | pinned build | push-sync — move to `DataTalksClub/content`, §11 B5 | 7 |
-| 8 | Legacy `_data/events.yaml` (421) | pinned build | one-off export — **no home yet**, §11 B6 | 7 |
-| 9 | Legacy `images/authors/` (438) | pinned build | one-off export → CDN; **live defect**, §11 B7 | 7 |
+| 7 | Legacy `_people` (443) | pinned build | push-sync — move to `DataTalksClub/content`, §11 B5 | 6 |
+| 8 | Legacy `_data/events.yaml` (421) | pinned build | one-off export — **no home yet**, §11 B6 | 6 |
+| 9 | Legacy `images/authors/` (438) | pinned build | one-off export → CDN; **live defect**, §11 B7 | 6 |
 | 10 | Legacy `_data/faqs/` article FAQ (159 pairs) | pinned build | one-off export — **already done and committed** | — |
-| 11 | CMP export — course content (991 rows) | one-time | `scripts/prod/import_cmp_content.py` | 4 |
-| 12 | CMP export — learner data (510,519 rows) | one-time | **to build**, §11 A3 | 5 |
-| 13 | `zoomcamp-scoring` — pre-2024 history | one-time | `scripts/prod/import_legacy_zoomcamp.py` | 2 |
-| 14 | Event identity manifest (421 / 1,684) | one-time | `scripts/prod/import_events.py` | 6 |
-| 15 | Event description bridge | one-time | committed capture; `scripts/build_event_description_bridge.py` | 7 |
-| 16 | Luma aggregates | one-time | `scripts/prod/import_events.py` → `events/importers.py` | 6 |
-| 17 | Eventbrite aggregates | one-time | as above | 6 |
-| 18 | Public media objects (1,253 → 997, measured) | already CDN-resident; verify, flatten, delete | **owner ruling: to the CDN and out of git**, renamed on ingest, cards and covers deleted — §11 B11, B14, B15 | **8** |
-| 22 | Site assets in `core/static/core/` (18 + 14 orphaned) | one-time publish, then per-release | **owner ruling: no assets in the repository** — §11 B12, B13 | **8** |
-| 19 | **Sponsors** | one-time then Studio | **owner ruling: give it an import script** — to build, §11 B9 | 9 |
-| 20 | **Testimonials** | one-time then Studio | **owner ruling: same script** — to build, §11 B9 | 9 |
+| 11 | CMP export — course content (991 rows) | one-time | `scripts/prod/import_cmp_content.py` | 3 |
+| 12 | CMP export — learner data (510,519 rows) | one-time | **to build**, §11 A3 | 4 |
+| 13 | `zoomcamp-scoring` — pre-2024 history | one-time | `scripts/prod/import_legacy_zoomcamp.py` | 1 |
+| 14 | Event identity manifest (421 / 1,684) | one-time | `scripts/prod/import_events.py` — **no longer a migration** | 5 |
+| 15 | Event description bridge | one-time | committed capture; `scripts/build_event_description_bridge.py` | 6 |
+| 16 | Luma aggregates | one-time | `scripts/prod/import_events.py` → `events/importers.py` | 5 |
+| 17 | Eventbrite aggregates | one-time | as above | 5 |
+| 18 | Public media objects (1,253 → 997, measured) | already CDN-resident; verify, flatten, delete | **owner ruling: to the CDN and out of git**, renamed on ingest, cards and covers deleted — §11 B11, B14, B15 | **7** |
+| 19 | **Sponsors** | one-time then Studio | **owner ruling: give it an import script** — to build, §11 B9 | 8 |
+| 20 | **Testimonials** | one-time then Studio | `scripts/prod/import_testimonials.py` — **no longer a migration** | 8 |
 | 21 | `rds-aisl_prod` | — | **explicitly out of scope** — §14 | — |
+| 22 | Site assets in `core/static/core/` (18 + 14 orphaned) | one-time publish, then per-release | **owner ruling: no assets in the repository** — §11 B12, B13 | **7** |
 
 The owner's original list had ten sources. `DataTalksClub/podwiki`, `faq`,
 `docs`, the CMP repository's course specs, public media, sponsors and testimonials
@@ -137,7 +137,7 @@ once the sync works** (§11 B10).
 > repository. It is a build item (§11 B8), not a done item.
 
 Goes to the CDN, **and out of every git repository** — owner ruling, both halves.
-This is **step 8**, with its own checkpoint; the summary here is so the fate is
+This is **step 7**, with its own checkpoint; the summary here is so the fate is
 visible from the content section too.
 
 - `images/` → the `dtc-website-media` bucket in `eu-west-1`. **Measured**: 1,253
@@ -152,13 +152,13 @@ visible from the content section too.
 - **This repository keeps no *content* images already.** The remaining content work
   is in `DataTalksClub/content`, which tracks **815**. §11 B11.
 - **We rename on ingest.** The CDN key is assigned by us, never inherited from an
-  upstream filename. Step 8 says why, and the homepage illustrations are the
+  upstream filename. Step 7 says why, and the homepage illustrations are the
   clearest example.
 - **Consequence:** moving an article to the content repository while its images
   move to the CDN means something has to rewrite the image references. Today that
   job is done at build time inside `scripts/build_public_projection.py`
   (`_article_blocks`, `_copy_media`). There is **no equivalent on the database
-  ingest path**. §11 B3 owns it; step 8 says why it is easy to miss.
+  ingest path**. §11 B3 owns it; step 7 says why it is easy to miss.
 
 Stays behind — build machinery, not content: `_includes` (22), `_layouts` (6),
 `_site` (2,318), `_tools` (2), `assets/` (4) and the Jekyll index pages.
@@ -199,73 +199,75 @@ That produces the hard constraint:
 If submissions attach first and homework rows are renamed or merged afterwards,
 those submissions point at rows that no longer mean what they meant.
 
-### 3.2 Only one importer bootstraps, which is why structure is seeded first
+### 3.2 Which importers bootstrap, and why CMP runs last
 
-`scripts/prod/__init__.py` declares `BOOTSTRAP_FIRST = "import_legacy_zoomcamp"`,
+An importer either **bootstraps** — it can populate a database with no prior rows
+of its own domain — or it **reconciles**, matching upstream rows against rows that
+are already there. Running a reconciler first is not an error; it is a *silent
+no-op*, which is the more dangerous failure because it reports success having
+written nothing.
+
+`scripts/prod/__init__.py` records which is which in `BOOTSTRAPPING_ENTRY_POINTS`,
 and `scripts/tests/test_prod_imports.py` checks the declaration against each
-module's `BOOTSTRAPS_EMPTY_DATABASE`. It is true: `Cohort.save()` resolves a
-cohort's course family from its slug through `canonical_family_slug`, so the
-legacy importer needs no catalogue. **Measured**: against a database that had
-only just been migrated, importing `mlops-zoomcamp-2022` created the
-`mlops-zoomcamp` family, the cohort, 6 homeworks, 2 projects, 569 users and 569
-enrollments.
+module's `BOOTSTRAPS_EMPTY_DATABASE`. Today four bootstrap —
+`import_legacy_zoomcamp`, `import_cmp_content`, `import_testimonials` and
+`sync_content` — and only `import_events` reconciles.
 
-`import_cmp_content` does **not** bootstrap, but the earlier statement of why was
-imprecise. It is not "only updates cohorts that already exist". It will *create* a
-cohort when the slug is named in the reviewed `COHORT_FAMILY_IDENTITIES` mapping
-**and the family row already exists**; it never mints a family
-(`cmp_content_import.py`: `family = Course.objects.filter(slug=family_slug).first()`
-… `if family is None: return None`). Against a genuinely empty database no family
-exists, so it imports nothing and reports every cohort under
-`skipped_not_in_local_catalogue`. A silent no-op, not an error.
+**Measured**: against a database that had only just been migrated, importing
+`mlops-zoomcamp-2022` created the `mlops-zoomcamp` family, the cohort, 6 homeworks,
+2 projects, 569 users and 569 enrollments. `Cohort.save()` resolves a cohort's
+family from its slug through `canonical_family_slug`, so that importer needs no
+catalogue at all.
 
-**The gap that behaviour opened, and how it is closed.** Left to the importers
-alone, the families that would exist after the legacy import and the repository
-pull are:
+**`import_cmp_content` now bootstraps too, and that closed a real gap.** It used to
+refuse to mint a course family — it would create a cohort named in the reviewed
+`COHORT_FAMILY_IDENTITIES` mapping only if the family row already existed — so
+against an empty database it wrote nothing and reported every cohort under
+`skipped_not_in_local_catalogue`. It now creates the family as well, taking the
+title from the reviewed `COURSE_FAMILY_TITLES` catalogue so the fact stays reviewed
+rather than derived from a source value.
+
+That matters because of `sma-zoomcamp`, which had no other way in:
 
 | Family | Created by |
 | --- | --- |
 | `de-zoomcamp`, `ml-zoomcamp`, `mlops-zoomcamp` | `import_legacy_zoomcamp` |
 | `ai-dev-tools`, `llm-zoomcamp`, `ml-zoomcamp` | `pull_course_repositories` |
-| **`sma-zoomcamp`** | **nothing** |
+| `sma-zoomcamp` | **`import_cmp_content`** — nothing else has it |
 
-`sma-zoomcamp` has no course repository — no `course.yaml`, so neither transport
-can ingest it — and no pre-2024 edition. Locally the family comes from
-`manage.py seed_local_courses`, which **refuses to run against anything but local
-SQLite**. So on production nothing would create it, and the **1,081 enrollments**
-CMP holds against `sma-zoomcamp-2024`, `-2025` and `-2026` would have nowhere to
-land.
+`sma-zoomcamp` has no course repository (no `course.yaml`, so neither transport can
+ingest it) and no pre-2024 edition. It was previously supplied locally by
+`manage.py seed_local_courses`, which **refuses to run outside local SQLite**, so
+on production nothing would have created it and the **1,081 enrollments** CMP holds
+against `sma-zoomcamp-2024`, `-2025` and `-2026` would have had nowhere to land.
 
-**Owner ruling: `sma-zoomcamp` comes from CMP.** That is now what happens, and
-step 1 is what makes it possible. Worth being precise about why it was ever
-missing, because the obvious diagnosis is wrong:
+**Owner ruling: `sma-zoomcamp` comes from CMP.** It now does, directly, with no
+intermediate step. An earlier revision of this plan specified a separate
+migration-only structural seed to write the six reviewed families before anything
+else ran; **that step is gone and is not needed** — the reconciler minting its own
+reviewed families is a smaller change in a better place. Worth keeping the
+diagnosis, because the obvious one is wrong:
 
 - It is **not** one of the five owner-skipped cohorts. `SKIPPED_COHORTS` is
   `ai-bootcamp-2025`, `ai-hero-2025`, `ai-hero-2026`, `ai-buildcamp-2`,
-  `ai-buildcamp-3`. **No skip has to be lifted.** `sma-zoomcamp-2026` used to be
-  on that list and was already removed, with the reason recorded in the service:
-  it is visible and active in CMP and its family is already reviewed.
-- All three editions are already in `COHORT_FAMILY_IDENTITIES`, so the CMP
-  importer is already willing to create them.
-- The **only** thing missing was the family row, which is exactly and only what
-  step 1 writes.
+  `ai-buildcamp-3`. **No skip has to be lifted.** `sma-zoomcamp-2026` was on that
+  list and was already removed, with the reason recorded in the service: it is
+  visible and active in CMP and its family is already reviewed.
+- All three editions are already in `COHORT_FAMILY_IDENTITIES`.
+- The **only** thing missing was the family row, and that is now minted.
 
-So CMP is the source of truth for the `sma-zoomcamp` cohorts, their content and
-their 1,081 enrollments, and step 1 supplies the one structural row CMP's importer
-will not mint for itself.
-
-The same ruling dissolves the general form of the problem. `import_cmp_content`
-being a silent no-op against an empty database stops mattering once structure
-exists before it runs. The behaviour is unchanged and is still worth knowing —
-it is why an import can report success having written nothing — but it is no
-longer a hazard in this sequence.
+**CMP still runs last**, and for the reason in §3.1 rather than for bootstrapping:
+it reconciles homework against what the repositories wrote. `COURSE_CATALOGUE_ORDER`
+in `scripts/prod/__init__.py` states the order as data —
+`import_legacy_zoomcamp`, `pull_course_repositories`, `import_cmp_content` — so it
+is checkable rather than remembered.
 
 ### 3.3 The consequence for ordering
 
-Structure first, then the one importer that bootstraps, then the repositories,
-then CMP in two phases with the repository pull between them. Users still come
-from CMP — just at step 5 rather than step 2, and nothing before then needs
-them.
+Legacy history first, because nothing else has the pre-2024 editions; then the
+repositories, which own module and unit curricula; then CMP, which reconciles
+against both. Users still come from CMP — just at step 4 rather than step 0, and
+nothing before then needs them.
 
 ---
 
@@ -296,9 +298,35 @@ Two conventions used throughout:
 $TARGET uv run --frozen python manage.py migrate --no-input
 ```
 
-Nothing else. Data-bearing migrations already seed the event identity manifest
-(`events/0005`), homepage testimonials (`courses/0056`), the sponsor directory
-schema (`core/0005`) and certificate-name backfills (`accounts/0005`, `0012`).
+**Schema only. `migrate` now produces no business rows at all.** That is a change,
+and it moves work into later steps rather than removing it: the event identity
+manifest and the homepage testimonials used to arrive as data-bearing migrations
+and are now explicit imports — step 5 and step 8. If you have run this migration
+before and remember 421 events appearing for free, they do not any more.
+
+> **Precondition: every existing local database must be rebuilt.** The migration
+> set has been collapsed from 93 files to 10 — one per app, except `core`, which
+> needs the standard two-part split for the `core ↔ management_auth ↔
+> AUTH_USER_MODEL` circular foreign key. The old chain was deleted and regenerated
+> rather than squashed with `replaces`, because `replaces` exists to let a
+> partially-migrated database catch up and no such database exists. So
+> `django_migrations` in any database built before the collapse no longer matches
+> the files on disk, and the only correct move is to delete it and re-run from
+> zero. For this plan that is a simplification, not a cost: the production target
+> is from-zero by definition, and the rehearsal in §8 is now the same shape as the
+> real thing rather than an approximation of it.
+
+Schema equivalence was proved rather than assumed — two databases built from the
+old and new chains and compared structurally across 100 tables (columns, types,
+nullability, defaults, primary keys, indexes, foreign keys with `on_delete`, named
+constraints and CHECK expressions), with zero differences.
+
+> **This document names no migration by number.** The owner has ruled that nothing
+> may pin a migration by number, and a runbook that says "migration such-and-such
+> seeds the testimonials" is a pin with extra steps — it goes stale silently and sends the
+> next reader looking for a file that is not there. Where a migration matters here,
+> it is described by what it does. Where a *behaviour* matters, it is named by the
+> code that owns it.
 
 **Checkpoint**
 
@@ -324,76 +352,7 @@ than migrating forward from an unknown point.
 
 **Duration.** Under a minute.
 
-### Step 1 — Structural seed
-
-**No script exists yet.** §11 A1. This step is an owner decision recorded here as
-a specification.
-
-Every importer after this one *reconciles*: it matches upstream rows against rows
-that are already present, and against an empty database it writes nothing and
-reports success. Rather than working around that with import ordering, this step
-puts the structure in place first, so each import lands against something.
-
-> **What it is.** A migration-only script that creates the **course-family rows**
-> the later steps write against, from the reviewed identity data already in this
-> repository. **Structure only. No content.** It invents no title beyond the
-> reviewed one, no description, no date, no homework, no cohort copy. Everything
-> a learner reads still comes from CMP or a course repository.
-
-**Its input is already reviewed and already in the tree.** Do not invent a new
-file: `courses/course_family_catalog.py` holds `COURSE_FAMILY_TITLES` — the six
-published families (`de-zoomcamp`, `ml-zoomcamp`, `llm-zoomcamp`,
-`mlops-zoomcamp`, `sma-zoomcamp`, `ai-dev-tools`) with their reviewed titles — and
-`COHORT_FAMILY_IDENTITIES`, the thirteen cohort slugs that map to a family and a
-year. The first is what this step writes. The second is what step 4 uses to decide
-which CMP cohorts it may create, and it is why this step only needs to write
-families.
-
-**It is not `seed_local_courses`.** That command reads
-`scripts/production_like_course_specs.json`, invents copy ("Practice assignment
-for …", "Production-like generated"), and refuses to run outside local SQLite
-(`local_course_seed.assert_local_database`). It is a development convenience.
-This step is production-capable and writes six rows.
-
-```
-$TARGET uv run --frozen python scripts/prod/seed_course_structure.py \
-    --database <target>          # name to be settled by §11 A1
-```
-
-**Why it goes here, before the imports rather than after.** The pre-2024 importer
-derives a family from a cohort slug through `canonical_family_slug` and
-`get_or_create`, so if the family already exists it attaches to the reviewed row
-instead of minting one from a slug and a stripped title. The course-repository
-ingest does the same. And step 4 can then create every reviewed CMP cohort,
-because the only thing it ever lacked was the family row.
-
-**Checkpoint** — every family that later steps write against exists, and nothing
-else was created:
-
-```
-$TARGET uv run --frozen python manage.py shell -v 0 -c '
-import sys
-from courses.models import Cohort, Course
-from courses.course_family_catalog import COURSE_FAMILY_TITLES
-have = dict(Course.objects.values_list("slug", "title"))
-missing = sorted(set(COURSE_FAMILY_TITLES) - set(have))
-extra = sorted(set(have) - set(COURSE_FAMILY_TITLES))
-wrong = sorted(s for s, t in COURSE_FAMILY_TITLES.items() if s in have and have[s] != t)
-cohorts = Cohort.objects.count()
-print("families", len(have), "missing", missing, "extra", extra, "wrong_title", wrong)
-print("cohorts (must be 0 — this step writes structure, not content):", cohorts)
-sys.exit(1 if (missing or extra or wrong or cohorts) else 0)'
-```
-
-A second run must change nothing: the write is keyed on the family slug.
-
-**Failure and recovery.** **Recoverable by re-run**, and it is the cheapest step
-in the plan — six rows, no source outside this repository, nothing downstream of
-it yet. If it half-runs, run it again.
-
-**Duration.** Seconds.
-
-### Step 2 — Bootstrap: pre-2024 Zoomcamp history
+### Step 1 — Bootstrap: pre-2024 Zoomcamp history
 
 `DataTalksClub/zoomcamp-scoring`, 7 editions. This is the first step that reads an
 upstream source, and it is **the only importer that can populate an empty
@@ -476,7 +435,7 @@ development machine. It is the second-smallest edition. Budget roughly 5 minutes
 per edition and **30–45 minutes for all seven**; record the real per-edition
 numbers during the rehearsal in §8.4.
 
-### Step 3 — Course repositories
+### Step 2 — Course repositories
 
 ```
 $TARGET make content-sources        # register ContentSource rows
@@ -538,14 +497,14 @@ investigate*, not *re-run*.
 **Duration.** Minutes. `make content-checkouts` is the only step that touches the
 network and its time is git clone time.
 
-### Step 4 — CMP course content
+### Step 3 — CMP course content
 
 ```
 $TARGET uv run --frozen python scripts/prod/import_cmp_content.py \
     --database <target> --source $EXPORT
 ```
 
-Reconciles homework onto step 3's rows, adds the CMP cohorts whose family already
+Reconciles homework onto step 2's rows, adds the CMP cohorts whose family already
 exists, and copies registration campaign definitions.
 
 **Expected counts, and why they are not the source totals.** The export holds 21
@@ -642,7 +601,7 @@ PY
 homework row the reconciler could not pair to a CMP row by slug or by exact title,
 and it is **reported, not guessed at**: the run's summary lists it under
 `unpaired_repository_homework`. Each one must be resolved by a decision before
-step 5, because after step 5 a submission may be attached to it.
+step 4, because after step 4 a submission may be attached to it.
 
 **Checkpoint — inventory**
 
@@ -672,7 +631,7 @@ exists to prevent).
 
 **Duration.** Under a minute against the current 16 cohorts.
 
-### Step 5 — CMP learner data
+### Step 4 — CMP learner data
 
 **No importer for this exists.** §11 A3. Everything below is the specification it
 has to satisfy, and the checkpoints it has to pass.
@@ -714,7 +673,7 @@ must be named anyway, so a future export cannot introduce it quietly.
 > `courses_answer`, `courses_criteriaresponse`, `courses_peerreview`,
 > `courses_projectsubmission`, `courses_courseregistration`,
 > `courses_userwrappedstatistics` and `account_emailaddress` — the entire payload
-> of this step. Reusing it here would import nothing and report success. Step 5
+> of this step. Reusing it here would import nothing and report success. Step 4
 > needs its own explicit never-import set, and it is the five tables above.
 
 **Do not import (16 tables, 60,432 rows)**
@@ -729,7 +688,7 @@ must be named anyway, so a future export cannot introduce it quietly.
 | `courses_homeworkstatistics` (110), `courses_projectstatistics` (43) | 153 | derived — recompute, never copy |
 | `courses_projectvote` (250), `courses_systemevaluationcriteriaresponse` (11), `courses_emailcampaign` (1), `courses_leaderboardcomplaint` (1), `courses_systemprojectevaluation` (1), `courses_wrappedstatistics` (1) | 265 | **undecided** — §12 decision 4 |
 
-That accounts for every table and every row: 6 content (step 4) + 11 import +
+That accounts for every table and every row: 6 content (step 3) + 11 import +
 5 never-import + 16 do-not-import = **38 tables**, and
 991 + 510,519 + 92,864 + 60,432 = **664,806 rows**. If a future export does not
 add up, a table has appeared and needs a fate before the run.
@@ -784,15 +743,15 @@ bad = False
 for table, model in PAIRS.items():
     want = src.execute("select count(*) from %s" % table).fetchone()[0]
     got = apps.get_model(model).objects.count()
-    ok = got >= want            # >= : step 2 added pre-2024 rows of its own
+    ok = got >= want            # >= : step 1 added pre-2024 rows of its own
     bad |= not ok
     print(("ok " if ok else "BAD"), table, "source=%s target=%s" % (want, got))
 sys.exit(1 if bad else 0)
 PY
 ```
 
-`>=` rather than `==` is deliberate: step 2 already put pre-2024 users,
-enrollments and submissions in the database. Record the step-2 totals before this
+`>=` rather than `==` is deliberate: step 1 already put pre-2024 users,
+enrollments and submissions in the database. Record the step-1 totals before this
 step and assert the exact delta instead — that is a stronger check and the
 rehearsal is where you obtain the numbers.
 
@@ -866,7 +825,7 @@ restarting from step 0, which given the duration is the difference between a
 **Duration.** Unknown; 510,519 rows. Measure it in the rehearsal. This is almost
 certainly the longest step and the one that sizes the maintenance window.
 
-### Step 6 — Events
+### Step 5 — Events
 
 Identity manifest first, then the two registration sources. Counts only — **no
 attendee row is ever written.**
@@ -879,6 +838,12 @@ which runs `scripts/prod/import_events.py`. (`data-ingest.md` §11 and §13 say 
 script does not exist; it landed on this branch on 2026-09-03 and
 `scripts/prepare_local_data.py` already composes it. The reference needs
 correcting, not the plan.)
+
+**This step is now load-bearing in a way it was not.** The 421 events and 1,684
+aliases used to be inserted by a data-bearing migration, so they appeared as a
+side effect of `migrate`. They do not any more: seeding has moved out of
+migrations entirely and this import is the only thing that puts them there. Skip
+it and the site has no events at all, rather than a subset.
 
 Expected: 421 events, 1,684 aliases; Luma 174 events / 52,467 rows / 52,415
 eligible / 52 excluded; Eventbrite 209 events / 24,001 rows / 1 unsupported
@@ -907,6 +872,62 @@ provider events (174 Luma + 209 Eventbrite) and therefore of mapping rows. The 3
 sit at `mapping_review_required` and render no registration count at all. **This
 is a decision backlog, not a script failure, and it must not read as success.**
 
+**Checkpoint — the public ID allocator is parked above the imported IDs**
+
+This one exists because of a real bug that the old migration-based seeding hid,
+and a from-zero production database is precisely the case that would have hit it.
+
+`import_identity_manifest` wrote `public_id` values the allocator never issued and
+never advanced `EventPublicIdSequence`. It worked only by accident of ordering:
+the singleton row happened to be created *after* the seeding migration ran, so
+`max + 1` came out at 422. On a database built from zero — the production case —
+the singleton would be created at 1, and the next event creation would raise
+`event_public_id_allocator_invalid`. Fixed by `ensure_public_id_sequence()`
+(`events/identity.py:290`), which parks the allocator above every ID that already
+exists and belongs with the code that writes events rather than in a migration.
+
+```
+$TARGET uv run --frozen python manage.py shell -v 0 -c '
+import sys
+from django.db.models import Max
+from events.models import Event, EventPublicIdSequence
+highest = Event.objects.aggregate(v=Max("public_id"))["v"] or 0
+row = EventPublicIdSequence.objects.filter(pk=1).first()
+nxt = row.next_public_id if row else None
+print("events", Event.objects.count(), "highest public_id", highest,
+      "allocator next", nxt)
+sys.exit(0 if row is not None and nxt > highest else 1)'
+```
+
+**Measured**, from a bare `migrate` through the import on a scratch database:
+
+```
+after migrate:   events 0    highest public_id 0    allocator next None   -> exit 1
+after import:    events 421  highest public_id 421  allocator next 422    -> exit 0
+```
+
+The first line is the new normal and is worth seeing once: `migrate` alone leaves
+no events and **no allocator row at all**. The second is a pass.
+
+**An allocator sitting at or below the highest imported ID is a stop**, not
+something to correct by hand: it means the import ran without the fix and the next
+event created on the site will fail.
+
+**A repair capability was lost here, and it is worth knowing before it is needed.**
+A migration used to repair PostgreSQL collation divergence in `public_id`; it no
+longer exists in any form. The reasoning is sound for the case at hand — on a
+from-zero database the IDs come from the manifest by construction, and the
+importer still refuses renumbering — but **production is PostgreSQL and the
+divergence was a real observed problem there**, so the mitigation is now "it
+cannot arise" rather than "it is repaired if it does".
+
+If divergence ever appears, the symptoms are ordering-dependent: events resolving
+to the wrong route, or the allocator's `max()` disagreeing with what a sorted
+listing shows. Do not hand-edit `public_id` values — they are public URLs. The
+recovery is to re-run the identity import, which is authoritative and refuses
+renumbering, and then re-run the checkpoint above. Record the occurrence; a second
+one would justify rebuilding the repair rather than relying on construction.
+
 **Failure and recovery.** **Recoverable by re-run.** The identity import is
 atomic and reports `replayed`. Registration aggregates are staged revisions; a
 failed parse writes nothing, because an unsupported schema fingerprint refuses to
@@ -914,11 +935,11 @@ parse rows at all.
 
 **Duration.** Minutes.
 
-### Step 7 — Content
+### Step 6 — Content
 
 Today this step is: rebuild the committed projection. It is **not** a database
 import, and pretending otherwise is the biggest single misreading available in
-this plan. The *objects* the projection points at are step 8.
+this plan. The *objects* the projection points at are step 7.
 
 ```
 uv run --frozen python scripts/build_public_projection.py \
@@ -933,7 +954,7 @@ books 98 · events 421 · media **index** 1,253. Plus the two hand-reviewed
 projections this build does not produce: FAQ (6 courses / 70 sections / 1,401
 questions / 99 assets) and docs (106 pages / 39 assets).
 
-`media.json` is an *index*, not the bytes. This step produces it; step 8 makes the
+`media.json` is an *index*, not the bytes. This step produces it; step 7 makes the
 1,253 objects it names actually exist in the CDN.
 
 **Once §11 B3 and B8 land, this step changes shape entirely.** It becomes: push to
@@ -971,7 +992,7 @@ what is served, so the site is unaffected.
 
 **Duration.** Minutes.
 
-### Step 8 — Media and assets to the CDN
+### Step 7 — Media and assets to the CDN
 
 **Owner ruling, three parts.** Images go to the CDN; **we keep no assets in the
 repository**; and **we rename them on ingest** — the CDN key is ours to assign, not
@@ -1179,9 +1200,11 @@ it does not perform the move.
 
 **`site-assets/courses/` is empty today and that is expected.** Every file in
 `core/static/core/illustrations/` is `home-*`; there are no course illustrations in
-the tree. It is a prefix a generator will write into, not a migration of existing
-files. The procedure is `_docs/design/illustration-assets.md` and the missing
-half is [#311](https://github.com/DataTalksClub/website/issues/311).
+the tree. It is a prefix that **artwork the owner supplies** will land in, not a
+migration of existing files. Per the owner's ruling, producing that artwork is not
+our work — [#311](https://github.com/DataTalksClub/website/issues/311) is therefore
+about *receiving* assets in the new style rather than generating them, and
+`_docs/design/illustration-assets.md` describes the style they arrive in.
 
 **Who publishes each folder, and when — the answers differ, which is why the
 subdivision is worth having:**
@@ -1190,9 +1213,9 @@ subdivision is worth having:**
 | --- | --- | --- |
 | `content/*` | a content change upstream | the content sync (§11 B3), as part of ingest |
 | `site-assets/home/` | a site design change | the deployment pipeline, at release |
-| `site-assets/courses/` | a course is added or restyled | the generator (#311), then the same release path |
+| `site-assets/courses/` | a course is added or restyled | **the owner supplies the artwork** (#311); we ingest and publish it |
 | `site-assets/sponsors/` | a sponsor is added or changes | neither — Studio, when the sponsor record changes (§11 B13) |
-| `site-assets/testimonials/` | a testimonial is added | Studio, with the row (step 9) |
+| `site-assets/testimonials/` | a testimonial is added | Studio, with the row (step 8) |
 
 Only `site-assets/home/` is genuinely deployment-shaped. Publishing site assets at deploy
 time is **a new step in the deployment pipeline, not in this migration** — this
@@ -1216,9 +1239,10 @@ with the design and change when the design changes, which argues site assets. Th
 go under `site-assets/testimonials/` — because the deciding question is *what triggers a
 change*, and it is an editor adding a testimonial through Studio, never a content
 sync. A `Testimonial` row referencing a `site-assets/` object is normal: the row owns
-*which* portrait, the CDN owns the bytes. `courses.models.Testimonial` is landing
-on this branch now, so its `photo_static_path` field should be settled with this
-decision rather than after it — see step 9.
+*which* portrait, the CDN owns the bytes. **That is already how the model works**:
+`Testimonial.portrait_asset_key` stores `testimonials/nevenka-lukic.jpg` — no
+`core/`, no `site-assets/`, no bucket, no scheme — with a `RegexValidator` refusing
+anything absolute, escaping or scheme-prefixed. See step 8.
 
 #### The key is ours: `<surface>/<name>-<theme>.<ext>`
 
@@ -1227,8 +1251,8 @@ Owner ruling, and the naming is explicit rather than implied:
 ```
 site-assets/home/home-hero-light.webp     site-assets/home/home-hero-dark.webp
 site-assets/home/home-step-1-light.webp   site-assets/home/home-step-1-dark.webp
+site-assets/home/home-step-1-light.webp   site-assets/home/home-step-1-dark.webp
 site-assets/home/home-step-2-light.webp   site-assets/home/home-step-2-dark.webp
-site-assets/home/home-step-3-light.webp   site-assets/home/home-step-3-dark.webp
 ```
 
 Two renames in one, and both are only possible because the key is ours:
@@ -1262,7 +1286,7 @@ and `-dark` are the same name in two themes, which is exactly what
 rather than inventing one.** The partial's own comment settles what it is: *"The
 climb cards use the issue's reworked step 1 drawing and its step 2 and step 3
 drawings."* The three climb cards are the `stuck`, `learning` and `shipping`
-variants, mapping to `home-stuck`, `home-step-2` and `home-step-3` — one named by
+variants, mapping to `home-stuck`, `home-step-1` and `home-step-2` — one named by
 role, two by position, which is exactly why a listing looked like it was missing
 its first step. Nothing was missing; the naming was inconsistent. Assigning keys is
 the moment that is free to fix, so `home-stuck` is published as `home-step-1`.
@@ -1323,19 +1347,27 @@ Two consequences to configure rather than assume:
   pointing at an older object. Bucket versioning is the cheap mitigation if the
   owner wants one — §12 decision 8.
 
-#### Two paths: carried across, and regenerated
+#### Two paths: carried across, and newly supplied
 
 The constraint that any move must preserve byte identity applies to objects that
-are **moved**. Objects that are **regenerated** get new bytes and new checksums by
-definition, and the plan must not imply the old digests survive them.
+are **moved**. Objects that arrive **new** — the owner's replacement artwork — have
+new bytes and new checksums by definition, and the plan must not imply the old
+digests survive them.
 
-| | Carried across | Regenerated |
+**The shape has changed since the deletions landed.** The new artwork is no longer
+part of the carried migration at all: the old covers and cards are deleted at
+cutover, and the replacements arrive afterwards as a **fresh ingest**. So the
+bucket is *deliberately short* those objects when the site goes live, and step 7's
+checkpoint asserts the short state rather than flagging it. Nothing is waiting on
+the artwork; the artwork is waiting on the owner.
+
+| | Carried across | Newly supplied |
 | --- | --- | --- |
 | Bytes | unchanged | new |
-| `provenance.checksum` | the upstream digest, matched | **rewritten** to the new digest |
-| `provenance` origin | upstream repository + revision | the generator, its version, and its input |
-| Verify behaviour | store checksum equals record checksum | same — *because the record was rewritten first* |
-| Today | `authors/` 438, `posts/` 407, `books/` 196, the 18 site assets | `podcast/` covers, `site-assets/courses/` output |
+| `provenance.checksum` | the upstream digest, matched | **written fresh** from the new bytes |
+| `provenance` origin | upstream repository + revision | who supplied it and when — the owner for the new artwork |
+| Verify behaviour | store checksum equals record checksum | same — *because the record is built from the file that exists* |
+| At cutover | `authors/` 438, `posts/` 357, `books/` 196, `podcast/badges/` 6, the 18 site assets | **nothing yet** — arrives after handover |
 
 **How a re-run tells them apart: it does not have to.** `verify_media` compares
 the store against `store.expected_checksum(record)`, which reads the record. So the
@@ -1355,7 +1387,9 @@ that rejects `<script>`, `<style>`, event handlers and remote `href`/`src`/`url(
 That gate is on the **ingest boundary, not on the origin**: "we generated it" is
 not a reason to skip it, because a generator is software that can be wrong, and an
 image pipeline emitting an SVG with a script element is exactly the case the
-sanitizer exists for. Note that all five SVGs in the projection are podcast covers,
+sanitizer exists for. **The same holds for artwork a person supplies** — a design
+tool exports whatever it exports — so owner-supplied files get no exemption
+either. Note that all five SVGs in the projection are podcast covers,
 so the carried set contains none — the sanitizer matters here purely for what
 comes *next*, which is the easiest kind of protection to drop by accident.
 
@@ -1372,7 +1406,7 @@ through `{% static %}`. This is not "copy 18 files to a bucket".
 | Asset group | Where referenced | Count |
 | --- | --- | ---: |
 | homepage illustrations | `templates/core/_home_illustration.html:20-30` | 8 `{% static %}` calls |
-| testimonial portraits | `templates/core/home.html:991`, `{% static story.photo_static_path %}` | 1, **driven by a database value** |
+| testimonial portraits | `templates/core/home.html:991`, `{{ story.portrait_url }}` | 1, resolved by the model — **no longer a raw manifest lookup** |
 | sponsor logos | `core/sponsor_history.py:92`, `static(f"core/sponsors/{...}")` | 1, from a hardcoded tuple |
 
 **The rename and the `{% static %}` removal are the same edit**, not two. Each of
@@ -1386,11 +1420,24 @@ manifest no longer carries it — which is the point — but `{% static 'core/�
 for a missing entry raises `ValueError: Missing staticfiles manifest entry`, i.e.
 a **500 on the page**, not a broken image. This project already knows that failure.
 
-The testimonial case is the sharpest: `{% static story.photo_static_path %}`
-applies the manifest lookup to a **database value**, so a single bad row takes the
-homepage down rather than rendering one missing portrait. Whatever replaces it must
-fail soft — resolve to a URL and let the image 404 — which is another reason those
-six belong on the CDN rather than in the manifest.
+The testimonial case used to be the sharpest — `{% static story.photo_static_path %}`
+applied the manifest lookup to a **database value**, so one bad row took the
+homepage down rather than losing one portrait. **That is now closed.** The field is
+`portrait_asset_key`, the template reads a `portrait_url` property that resolves
+through `staticfiles_storage.url()` and **returns `""` on any failure**, and the
+template falls through to the decorative-avatar branch — the same designed empty
+state a testimonial with no portrait already uses. It is verified against the real
+`whitenoise` class over a temporary manifest rather than a mock, and a full
+`client.get("/")` with one row's manifest entry missing returns **200 with the other
+five portraits intact**.
+
+The general rule stands and is what the other groups still need: **never apply a
+manifest lookup to a value that can change after the manifest was built.** An
+audit found one other non-literal site, `core/sponsor_history.py:92`
+(`static(f"core/sponsors/{supporter['logo']}")`), and it is **not** the same defect
+— every value comes from a module constant, so `collectstatic` checks it at build
+time. It matters here only because `core/sponsors/` relocates in this same move, so
+B13 has to carry it.
 
 **Do they become `ContentAsset` rows?** No, and B13 should resist it.
 `ContentAsset` is part of the content pipeline that nothing writes and nothing
@@ -1401,7 +1448,7 @@ need one invented.
 
 #### Ordering: media before content is public
 
-**After the projection build, before the site is public.** The build (step 7)
+**After the projection build, before the site is public.** The build (step 6)
 produces `media.json`; the objects it names must exist before anyone looks at a
 page.
 
@@ -1411,8 +1458,8 @@ has not, every page renders and every image is broken** — a missing object is 
 failed read, not a fallback. The text is fine, which is what makes it easy to ship
 by accident. Site assets are worse: under manifest storage a missing one is a 500.
 
-Otherwise independent: nothing in steps 0–6 reads media, and step 9 needs only the
-testimonial portraits this step places. If step 8 must slip, delay going public or
+Otherwise independent: nothing in steps 0-5 reads media, and step 8 needs only the
+testimonial portraits this step places. If step 7 must slip, delay going public or
 publish media first and content second — never content first.
 
 ```
@@ -1491,14 +1538,30 @@ print("social cards still in records:", len(cards),
 if cards or covers:
     fail.append(f"deleted objects still referenced: {len(cards)} cards, {len(covers)} covers")
 
-# site-assets/ shares the bucket root now that PUBLIC_MEDIA_S3_PREFIX is empty,
-# so it appears as `extra` until verify_media is scoped to RECORD_KEY_PREFIX.
+# Three kinds of `extra`, and only the third is a failure.
+#   site-assets/  -- shares the bucket root now that PUBLIC_MEDIA_S3_PREFIX is
+#                    empty; goes away when verify_media is scoped to
+#                    RECORD_KEY_PREFIX (prerequisite 3).
+#   swept         -- objects the deletions removed from the index but not yet
+#                    from the store. Expected between the rebuild and the sweep;
+#                    must be zero once the sweep has run.
+#   unexplained   -- anything else. Always a stop.
+def swept(key):
+    return (key.startswith("images/podcast/")
+            and not key.startswith("images/podcast/badges/")) or (
+        key.startswith("images/posts/") and key.rsplit("/", 1)[-1] == "cover.jpg")
+
 site = [k for k in report.extra if k.startswith("site-assets/")]
-other = [k for k in report.extra if not k.startswith("site-assets/")]
-print("extra:", len(report.extra), "of which site-assets", len(site))
+pending = [k for k in report.extra if swept(k)]
+other = [k for k in report.extra
+         if not k.startswith("site-assets/") and not swept(k)]
+print("extra:", len(report.extra), "site-assets", len(site),
+      "awaiting sweep", len(pending), "unexplained", len(other))
 if other:
     print("  unexplained:", other[:5])
     fail.append(f"unexplained extra={len(other)}")
+if pending:
+    print("  NOTE: the store still holds deleted objects. Sweep before cutover.")
 
 tracked = subprocess.run(["git", "ls-files",
                           "content/public_projection/media", "core/static/core"],
@@ -1543,31 +1606,33 @@ Expected when this step is complete: **two prefixes at the root**, `images` at 9
 objects / 144,380,949 bytes and `site-assets` at 18 — and **no `public-projection`
 prefix at all**. Its continued existence is itself a failure.
 
-**Run against today's state the checkpoint fails, correctly, and its output is the
-work list.** Verbatim:
+**Run against today's state**, with the record deletions already applied and the
+site-asset move still outstanding. Verbatim:
 
 ```
-records by group: {'authors': 438, 'books': 196, 'podcast': 212, 'posts': 407}
-total 1253 matched 1253 missing 0 mismatched 0 unreadable 0
-bytes 154115635 (147.0 MiB)
-social cards still in records: 50 podcast covers still in records: 206
-extra: 1 of which site-assets 0
-  unexplained: ['images/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.jpg']
+records by group: {'authors': 438, 'books': 196, 'posts': 357, 'podcast': 6}
+total 997 matched 997 missing 0 mismatched 0 unreadable 0
+bytes 144380949 (137.7 MiB)
+social cards still in records: 0 podcast covers still in records: 0
+extra: 257 site-assets 0 awaiting sweep 257 unexplained 0
+  NOTE: the store still holds deleted objects. Sweep before cutover.
 image files tracked in git: 32
-FAIL [group counts, 50 cards, 206 covers, unexplained extra=1, 32 tracked images]
+FAIL ['32 image files tracked in git']
 ```
 
-Every line is a pending item and none is a surprise: the deletions have not run,
-the site assets are still in git, and the one `extra` is the stale local podcast
-file — which needs no separate cleanup, because it disappears when the tree is
-re-hydrated after the covers go.
+The content half is **done and passing**: 997 records, the exact target byte total,
+no record naming a deleted card or cover. Two things remain and both are honest:
+the store still holds the 256 deleted objects plus the one stale podcast file
+(**257 awaiting sweep** — they disappear on the next hydrate, and the sweep must
+happen before cutover), and the **32 site assets are still in git**, which is B12
+and B13. Nothing is unexplained, which is the number that matters.
 
 Then the site assets, which the first command does not cover because they are not
 media records yet — until B13 lands this is by hand:
 
 - all 18 objects exist under `site-assets/`, at their assigned `-light`/`-dark` names;
 - no template contains `{% static 'core/illustrations/`, `core/sponsors/` or a
-  manifest lookup on `photo_static_path`;
+  a raw manifest lookup on a testimonial's `portrait_asset_key`;
 - `core/static/core/mediakit/` is gone;
 - the homepage and `/sponsors` render with every image, in **both** themes;
 - a `?v=` change on one asset reaches a browser holding the old bytes.
@@ -1592,6 +1657,118 @@ the CDN, the page raises. Do those two together, per asset group, and keep the
 **Duration.** The 18 site assets are the only upload; the deletions are 256 objects
 and the flattening is a move of 997. Seconds to minutes, not the hours a 147 MB
 upload would take — the content bytes are already in the bucket.
+
+#### Receiving the owner's artwork
+
+**Owner ruling: the owner produces the new banner and cover artwork — podcast
+episodes, articles and the rest. Generating it is not our work.** What is our work
+is receiving it, and that is now the deliverable rather than a follow-on.
+
+This section answers one question: *the owner has a folder of finished images, what
+happens next?*
+
+**The ingest matches on a declared path, not on a convention.** That is the fact
+everything else follows from, and it is worth stating because the tidy assumption
+is wrong. Each record's own source file names its image explicitly:
+
+| Record | Source file | Field |
+| --- | --- | --- |
+| Podcast episode | `podcasts/sNN/eNN.yaml` | `image: images/podcast/sNNeNN-<episode-slug>.jpg` |
+| Article | `articles/<year>/<file>.md` front matter | `image: images/posts/<post-directory>/cover.jpg` |
+
+**Measured**: all 55 articles carry an `image:` key; the episode YAML carries the
+same. Nothing is inferred from the filename, so there is no naming convention the
+ingest enforces — there is a *declaration* that has to agree with a *file*.
+
+**So the rule the owner can follow without reading any code:**
+
+> **Deliver each file at exactly the path its record already declares.** For a
+> replacement — which is what all of this is — that path already exists in the
+> source, so the filename is not a choice: it is `images/podcast/sNNeNN-<slug>.jpg`
+> for an episode and `images/posts/<post-directory>/cover.jpg` for an article. Put
+> the file there, commit it to `DataTalksClub/content`, and the record picks it up
+> with no source edit at all.
+
+If the owner would rather name files their own way, that is allowed but it is a
+second edit: the `image:` field in the episode YAML or the article front matter has
+to change to match. **Prefer the first.** A replacement that reuses the declared
+path is one change with nothing to keep in step; a rename is two changes that can
+disagree, and the disagreement is silent (below).
+
+**This does not conflict with keys being ours.** The delivered filename identifies
+*which record* the bytes belong to. The CDN key is still assigned at ingest from
+normalised record identity, so an awkward incoming filename never becomes a
+permanent CDN key or a public URL.
+
+**How records get repopulated: the same projection build, and nothing else.** This
+is the part that closes the loop on the deletions, and it is simpler than it looks
+because the state is *derived* rather than stored. `build_public_projection.py:2904`:
+
+```python
+record["image_path"] = candidate if candidate in public_paths else ""
+record["media_available"] = bool(record["image_path"])
+```
+
+The record declares an image; the projection records whichever one actually exists.
+So the same line does both halves of the job:
+
+| Event | What the build produces |
+| --- | --- |
+| Cards and covers deleted | `image_path: ""`, `media_available: false` — automatically |
+| Owner's artwork arrives at the declared path | `image_path` set, `media_available: true` — automatically |
+
+**No front-matter edit is needed for the deletion**, and none for the restoration.
+The dangling `image:` declaration is left in place deliberately: it records the
+intent, and the projection reflects reality. And because the value is derived from
+what exists rather than accumulated, **rebuilding is inherently replay-safe** —
+there is no state to reconcile and no "already imported" flag to get wrong. Run it
+as many times as you like.
+
+**A file that matches no record, and a record that gets no file.** Both are
+reported, and the two directions fail very differently:
+
+| Case | What happens |
+| --- | --- |
+| File present, no record declares it | It becomes a media object with no consumer. `public_media_verify` reports it as `extra` — the same detector that found the stale podcast file |
+| Record declares an image, file absent — **primary/listing image** | Soft: `image_path: ""` and `media_available: false`. The page degrades as designed |
+| Record declares an image, file absent — **inline body image** | **Hard: the build fails** with `article image is missing from the pinned source` (`build_public_projection.py:1029`) |
+
+That last row is why the `cover.jpg` / `cover.png` distinction mattered beyond
+tidiness: the three `cover.png` are embedded in article bodies, so deleting them
+would not have produced a blank image — **it would have broken the projection
+build outright**. Keeping them was not a nicety.
+
+**The interim is a deliberate state, not a defect.** Between the deletions and the
+owner's handover:
+
+- **44 articles emit no `og:image` and no `twitter:image` at all.** The template
+  guard omits the tags rather than pointing them at a 404. Correct behaviour.
+- **206 podcast episodes render "Artwork unavailable."** in the player frame, from
+  `_episode_artwork.html`'s existing `media_available` branch. Correct behaviour.
+
+Neither is to be "fixed" by restoring deleted objects. If someone reports either
+as a bug, the answer is that the artwork is pending, not that the deletion was
+wrong.
+
+**Owner-supplied files are validated exactly like everything else.** `_copy_media`
+content-sniffs every file — JPEG, PNG and GIF magic — and the SVG sanitizer rejects
+`<script>`, `<style>`, event handlers and remote `href`/`src`/`url()`. **There is
+no exemption for artwork the owner produced**, and the argument is the same one
+that applies to a generator: the gate is on the *ingest boundary*, not on the
+origin. A human exporting from a design tool can ship an SVG with an embedded
+script exactly as easily as a script can. Anything that fails the sniff is
+rejected at ingest and reported; it is not waved through on provenance.
+
+**One consequence of the deletions that will otherwise stop the build.** The
+builder asserts the content-repository media count:
+`EXPECTED_PREFERRED_CONTENT_MEDIA_COUNT = 815`
+(`build_public_projection.py:118`, asserted at `:2828`). **Measured**, the content
+repository tracks exactly 815 images — posts 407, podcast 212, books 196. Removing
+50 cards and 206 covers takes it to **559**, and the build will **refuse** until
+that constant is re-baselined. When the owner's artwork lands it moves again, by
+however many files arrive. Re-baseline deliberately, with the reason recorded —
+these canaries exist to make an unexplained change loud, and editing one without a
+note is exactly the silent drift they are there to prevent.
 
 #### The reference-rewriting problem, and who owns it
 
@@ -1626,12 +1803,18 @@ half; B11 takes the bytes out of git. AI Shipping Labs does the ingest-time uplo
 inside its sync (`github_sync/media.py`, `upload_images_to_s3`), which is the
 fourth thing §11.1 says to copy.
 
-### Step 9 — Sponsors and testimonials
+### Step 8 — Sponsors and testimonials
 
 **Owner ruling: both get an import script.** Both are database-backed surfaces
-with no ingest path today, and both are edited in Studio afterwards — so this is a
-one-time import that seeds what Studio then owns. **No script exists yet**;
-§11 B9.
+edited in Studio afterwards, so this is a one-time import that seeds what Studio
+then owns.
+
+**Testimonials now have theirs — `scripts/prod/import_testimonials.py`.** The six
+quotes used to be inserted by a data-bearing migration and are now an explicit
+import, reading the reviewed set from `courses/homepage_testimonials.json`. Every
+row is keyed on its `source_url`, so a replay reports `replayed`, creates nothing,
+and never touches a testimonial an editor added by hand. **Sponsors still have no
+script**; §11 B9.
 
 What it has to write into, read rather than invented:
 
@@ -1646,32 +1829,56 @@ What it has to write into, read rather than invented:
   legacy `_data/sponsors.yaml`, which is read by nothing at all. **Measured**: a
   freshly migrated database has **0** `core_sponsor` rows.
 - **Testimonials.** `courses.models.Testimonial` — placement, optional cohort,
-  name, attribution, quote, source URL, photo path, before/after role, elapsed
+  name, attribution, quote, source URL, `portrait_asset_key`, before/after role, elapsed
   time, position, published flag — read by `courses/services/testimonials.py`.
-  This model is landing on this branch right now (migrations `0055`/`0056`), so
-  read it rather than inventing a shape. **Measured**: `migrate` alone leaves
-  **6** rows, seeded by `courses/migrations/0056_seed_homepage_testimonials.py`.
-  The importer must not duplicate those six.
+  Read the model rather than inventing a shape. **`migrate` alone now leaves zero
+  testimonials**: seeding has moved out of migrations, so the six arrive only when
+  `import_testimonials` runs. If you remember them appearing for free, that has
+  changed.
 
-**The portraits are step 8's, and the field that names them has to change with
-them.** A testimonial row whose portrait 404s is the same failure as content
-without media, and today it is worse than a 404: `templates/core/home.html:991`
-renders `{% static story.photo_static_path %}`, so under manifest storage a row
-naming a file that has left `core/static/` raises `ValueError: Missing staticfiles
-manifest entry` and takes **the whole homepage** down, not one avatar.
+**The portraits are step 7's, and the field that names them is already ready for
+the move.** This was a hazard when the plan was first written and it has been
+closed since, so the argument is worth restating in its settled form rather than
+its alarming one.
 
-So `Testimonial.photo_static_path` — a `CharField` whose help text and docstring
-both say "static path", currently holding values like
-`core/testimonials/tim-claytor.jpg` — stops being a static path and becomes a
-reference to a `site-assets/testimonials/` object. That model is landing on this
-branch **now**, which makes this the cheap moment to settle it: changing the field's
-meaning before it has production rows is a migration; changing it after is a
-migration plus a backfill plus a window where the homepage can 500.
+`Testimonial.photo_static_path` is now **`Testimonial.portrait_asset_key`**, and
+the change is not just a name. The stored value is **origin-free and layout-free**:
+the six rows hold `testimonials/nevenka-lukic.jpg` and the like — **no `core/`, no
+`site-assets/`, no bucket, no scheme** — with a `RegexValidator` refusing anything
+absolute, containing `..`, backslashed or scheme-prefixed. Resolution happens
+outside the row: `INTERIM_SITE_ASSET_STATIC_PREFIX = "core/"` names where portraits
+live *today*, and the CDN move changes that one constant.
 
-Whoever lands B13 owns the field rename, the six objects and the template change as
-one edit. The rule is the same as everywhere else in step 8: **the row owns *which*
-portrait, the CDN owns the bytes**, and resolution must fail soft — a missing object
-renders a broken image, never an exception.
+> **This is the "nothing outside the media layer may ever contain an object key"
+> invariant, applied to a database column.** The key names *which* portrait; it
+> encodes no part of the old layout or the new one. So moving the six objects to
+> `site-assets/testimonials/` is a prefix-constant change that touches **zero
+> rows** — no data migration, no backfill, no window where a stale row can 500.
+
+The manifest hazard is closed too. The template reads `{{ story.portrait_url }}`, a
+model property that resolves through `staticfiles_storage.url()` and **returns `""`
+on any failure**, and the template falls through to the decorative-avatar branch —
+the designed empty state a testimonial with no portrait already uses. Verified
+against the real `whitenoise` class over a temporary manifest rather than a mock,
+and a full `client.get("/")` with one row's manifest entry deliberately missing
+returns **200 with the other five portraits intact**.
+
+So B13 owns the six objects and the prefix constant. It no longer owns a field
+rename or a risky cutover, which is the difference between this being a careful
+piece of work and a nervous one.
+
+**Measured**, from a bare `migrate` on a scratch database:
+
+```
+after migrate:              testimonials 0                        -> checkpoint exit 1
+after import_testimonials:  created 6, replayed false, total 6
+                            sample key: testimonials/nevenka-lukic.jpg
+                            keys carrying a layout prefix: []     -> checkpoint exit 0
+re-run:                     created 0, replayed true, total 6
+```
+
+Three things confirmed at once: `migrate` really does seed nothing now, no stored
+key carries `core/`, `site-assets/` or a leading `/`, and the import is replay-safe.
 
 **Checkpoint**
 
@@ -1686,7 +1893,7 @@ tp = Testimonial.objects.filter(published=True).count()
 # Every published testimonial must name a portrait that resolves. After B13 this
 # is a CDN reference; until then it is a static path.
 missing = [x.pk for x in Testimonial.objects.filter(published=True)
-           if not x.photo_static_path]
+           if not x.portrait_asset_key]
 print("sponsors", s, "testimonials", t, "published", tp,
       "without a portrait", missing)
 sys.exit(1 if (s == 0 or t < 6 or missing) else 0)'
@@ -1751,7 +1958,7 @@ they hold the real Google and GitHub accounts on the other side.
    client secret is write-only. On the provider side, register the local redirect
    URI — `http://web.dtcdev.click:<port>/accounts/google/login/callback/` and the
    GitHub equivalent — before trying.
-2. **Run the forbidden-tables checkpoint first** (step 5), because configuring
+2. **Run the forbidden-tables checkpoint first** (step 4), because configuring
    providers legitimately writes `socialaccount_socialapp` rows.
 3. **Sign in with Google. Then sign in with GitHub**, from a separate browser
    profile. Both, not one: Google always asserts verification, GitHub reports the
@@ -1851,7 +2058,7 @@ a local password at all is a product decision that this plan does not make — i
 just says it is currently possible, so it should be a choice.
 
 **Checkpoint — the password path behaves as intended after import.** Run this with
-the target configured as production, after step 5 and before the site is public:
+the target configured as production, after step 4 and before the site is public:
 
 ```
 $TARGET uv run --frozen python manage.py shell -v 0 <<'PY'
@@ -2047,10 +2254,10 @@ registration**, **1 wrapped-statistics row** and **1 certificate**.
       digests, and detection of both a document that never arrived and one we still
       serve that upstream deleted. **None of this exists** — §11 C1
 - [ ] Sponsors and testimonials imported and visible on the pages that show them —
-      step 9
+      step 8
 - [ ] `/faq/` and `/docs/` served by this application, and their CloudFront 302s
       retired — §11 B8, B10. Retire the redirects **after** the sync works
-- [ ] **Content media verified** — step 8's checkpoint exits 0: group counts
+- [ ] **Content media verified** — step 7's checkpoint exits 0: group counts
       `authors` 438, `books` 196, `posts` 357, `podcast` 6; nothing
       missing/mismatched/unreadable; no record naming a deleted card or cover
 - [ ] **The bucket has no `public-projection/` prefix** — `images/` and
@@ -2063,6 +2270,10 @@ registration**, **1 wrapped-statistics row** and **1 certificate**.
       re-upload 147 MB
 - [ ] `public_media_hydrate` succeeds on a fresh clone with no access to the legacy
       repository — §11 B7
+- [ ] **The public ID allocator sits above the highest imported event ID** — step 5
+- [ ] **Testimonials imported** — `migrate` no longer seeds them
+- [ ] Interim artwork state understood and accepted: 44 articles emit no `og:image`
+      and 206 episodes render "Artwork unavailable." until the owner's artwork lands
 - [ ] Row counts recorded per table, so the next run has a baseline to diff against
 - [ ] The chosen export filename recorded in the run log
 
@@ -2080,11 +2291,11 @@ What it actually does, in order: `migrate` → `import_event_identities` →
 
 | # | Difference | Consequence |
 | --- | --- | --- |
-| 1 | It runs `manage.py seed_local_courses` as its bootstrap — a **placeholder seeder** reading `scripts/production_like_course_specs.json`, which invents copy ("Practice assignment for …") and writes 16 cohorts as well as the 6 families. The plan uses a structural seed that writes families only. | `seed_local_courses` refuses to run outside local SQLite, so it cannot be the production bootstrap. It is the right idea in the wrong place: step 1 is the production-capable, content-free version of it — §3.2, §11 A1. |
-| 2 | It does **not** run `import_legacy_zoomcamp` at all. | The rehearsal, as it stands, never exercises step 2 or the user-matching in step 5. `make import-legacy-zoomcamp` exists and is run separately. |
-| 3 | It imports event identities **before** the course steps; the plan puts events at step 6. | Harmless — events depend on nothing else — but the rehearsal will not detect an ordering error the plan cares about. Either is safe. |
+| 1 | It runs `manage.py seed_local_courses` as its bootstrap — a **placeholder seeder** reading `scripts/production_like_course_specs.json`, which invents copy ("Practice assignment for …") and writes 16 cohorts as well as the 6 families. Production has no seeder at all. | `seed_local_courses` refuses to run outside local SQLite, so it never could be the production bootstrap. It is no longer needed anywhere: `import_cmp_content` mints its own reviewed families — §3.2. The rehearsal should stop using it so it exercises the production path. |
+| 2 | It does **not** run `import_legacy_zoomcamp` at all. | The rehearsal, as it stands, never exercises step 1 or the user-matching in step 4. `make import-legacy-zoomcamp` exists and is run separately. |
+| 3 | It imports event identities **before** the course steps; the plan puts events at step 5. | Harmless — events depend on nothing else — but the rehearsal will not detect an ordering error the plan cares about. Either is safe. |
 | 4 | It uses `courses/services/local_cmp_content_import.py` (copies the protected snapshot, sanitizes, learner tables never read) rather than `scripts/prod/import_cmp_content.py` directly. | Two entry points onto one service. The plan uses the `scripts/prod/` one. |
-| 5 | It has no step 5, no step 7, no step 8 and no step 9. | The largest step, both content steps and media are unrehearsed. |
+| 5 | It has no step 4, no step 6, no step 7 and no step 8. | The largest step, both content steps and media are unrehearsed. |
 
 **The one difference that is no longer a difference.** The premise that
 `prepare_local_data.py` runs the CMP copy *before* the course-repository pull is
@@ -2113,7 +2324,7 @@ production cannot use.
 `make import-legacy-zoomcamp` and `make import-events` are all shared; only the
 orchestrator differs, because the rehearsal must bootstrap the way production
 bootstraps. `scripts/verify_local_dataset.py` remains useful as an extra gate
-after step 4.
+after step 3.
 
 ### 8.2 A disposable target
 
@@ -2126,6 +2337,12 @@ export TARGET="DTC_ENVIRONMENT=local DJANGO_SETTINGS_MODULE=website.settings.loc
 rm -f "$REHEARSAL" "$REHEARSAL-shm" "$REHEARSAL-wal"
 ```
 
+**Any database built before the migration collapse must be deleted, not migrated
+forward.** `django_migrations` no longer matches the files on disk. That is not a
+cost here — the production target is from-zero by definition, so a from-zero
+rehearsal is now the same shape as the real run rather than an approximation of
+it.
+
 Everything lives under `.tmp/`. Tear-down is deleting those three files. Take a
 copy after each step — `cp "$REHEARSAL" "$REHEARSAL.after-step-N"` — so a failed
 step can be retried from the previous state instead of from zero. That is the
@@ -2136,15 +2353,14 @@ cheapest thing in this document and the most useful at 2am.
 | Step | Rehearsal command | Source substitution | Does it weaken the rehearsal? |
 | --- | --- | --- | --- |
 | 0 | `$TARGET uv run --frozen python manage.py migrate --no-input` | SQLite instead of Postgres | **Yes, mildly.** SQLite will not catch a Postgres-only constraint or collation problem. The uniqueness and FK checks still run. |
-| 1 | **does not exist** — §11 A1 | reviewed structure from `course_family_catalog.py` | No — the input is in this repository |
-| 2 | `$TARGET make import-legacy-zoomcamp IMPORT_DATABASE=$REHEARSAL` | none — real `zoomcamp-scoring` clone | No |
-| 3 | `$TARGET make content-sources` → `content-checkouts` → `content-pull` | none — real repositories | No |
-| 4 | `$TARGET uv run … scripts/prod/import_cmp_content.py --database $REHEARSAL --source $EXPORT` | none — the real export, read in place | No |
-| 5 | **does not exist** — §11 A3 | — | The rehearsal cannot run at all until this exists |
-| 6 | `$TARGET make import-events IMPORT_DATABASE=$REHEARSAL` | Luma/Eventbrite archives from `.local/migration-data` | No |
-| 7 | `manage.py public_media_verify`, `manage.py check`, `python -m ci.content_update` | the committed projection instead of a rebuild | **Yes.** A full rebuild needs three pinned checkouts and is not reproducible today (#253). The rehearsal checks the artifacts, not the build. |
-| 8 | `manage.py public_media_hydrate` → `public_media_publish` → `public_media_verify` | a `local` store instead of `s3` | **Yes.** The rehearsal proves the counts and the incrementality, not the bucket |
-| 9 | **does not exist** — §11 B9 | — | Rehearse without it; do not ship without it |
+| 1 | `$TARGET make import-legacy-zoomcamp IMPORT_DATABASE=$REHEARSAL` | none — real `zoomcamp-scoring` clone | No |
+| 2 | `$TARGET make content-sources` → `content-checkouts` → `content-pull` | none — real repositories | No |
+| 3 | `$TARGET uv run … scripts/prod/import_cmp_content.py --database $REHEARSAL --source $EXPORT` | none — the real export, read in place | No |
+| 4 | **does not exist** — §11 A3 | — | The rehearsal cannot run at all until this exists |
+| 5 | `$TARGET make import-events IMPORT_DATABASE=$REHEARSAL` | Luma/Eventbrite archives from `.local/migration-data` | No — **verified end to end**: 421 events, allocator at 422 |
+| 6 | `manage.py public_media_verify`, `manage.py check`, `python -m ci.content_update` | the committed projection instead of a rebuild | **Yes.** A full rebuild needs three pinned checkouts and is not reproducible today (#253). The rehearsal checks the artifacts, not the build. |
+| 7 | `manage.py public_media_hydrate` → `public_media_publish` → `public_media_verify` | a `local` store instead of `s3` | **Yes.** The rehearsal proves the counts and the incrementality, not the bucket |
+| 8 | `$TARGET uv run … scripts/prod/import_testimonials.py --database $REHEARSAL` (sponsors: §11 B9) | none — the reviewed set is in this repository | No for testimonials; sponsors cannot be rehearsed yet |
 | OAuth | §5.2 | real Google and GitHub, local callback | No — this is the real thing |
 
 Run each step's checkpoint from §4 immediately after the step, with `$TARGET` and
@@ -2156,22 +2372,22 @@ The rehearsal is the only place some of them can be obtained. Leave them here.
 
 | Measurement | Rehearsal value | Notes |
 | --- | --- | --- |
-| Step 2, per edition, wall time | `mlops-zoomcamp-2022`: **244.5 s** (measured); other six: _ | 7 editions total |
-| Step 2, users created per edition | `mlops-zoomcamp-2022`: **569** (measured) | |
-| Step 4, wall time | _ | expected < 1 min |
-| Step 5, wall time | _ | 510,519 rows; sizes the maintenance window |
-| Step 5, per-table written/skipped | _ | the baseline for every future diff |
-| Step 5, consolidation groups found | _ | expected **1**; a second one means the export moved — §5.5 |
-| Step 6, wall time | _ | |
-| Step 8, site-asset upload wall time | _ | 18 objects; the content media is already published |
-| Step 8, second publish `added`/`changed` | _ | must be **0/0**, `skipped` equal to `total` |
-| Step 8, bucket after the run | _ | `images` 997 / 144,380,949 B, `site-assets` 18, no `public-projection` |
-| Step 8, objects deleted | _ | 50 social cards + 206 podcast covers = **256** |
+| Step 1, per edition, wall time | `mlops-zoomcamp-2022`: **244.5 s** (measured); other six: _ | 7 editions total |
+| Step 1, users created per edition | `mlops-zoomcamp-2022`: **569** (measured) | |
+| Step 3, wall time | _ | expected < 1 min |
+| Step 4, wall time | _ | 510,519 rows; sizes the maintenance window |
+| Step 4, per-table written/skipped | _ | the baseline for every future diff |
+| Step 4, consolidation groups found | _ | expected **1**; a second one means the export moved — §5.5 |
+| Step 5, wall time | _ | |
+| Step 7, site-asset upload wall time | _ | 18 objects; the content media is already published |
+| Step 7, second publish `added`/`changed` | _ | must be **0/0**, `skipped` equal to `total` |
+| Step 7, bucket after the run | _ | `images` 997 / 144,380,949 B, `site-assets` 18, no `public-projection` |
+| Step 7, objects deleted | _ | 50 social cards + 206 podcast covers = **256** |
 | **Total** | _ | this is the maintenance window |
 
 ### 8.5 A number worth pre-computing
 
-Step 5 then step 2 (or step 2 then step 5) must **match** learners by email rather
+Step 4 then step 1 (or step 1 then step 4) must **match** learners by email rather
 than duplicate them. The precise expectation is computable from the export, and it
 is far better than "the total rose by strictly fewer than the number of legacy
 users". **Measured** for `mlops-zoomcamp-2022`: 569 legacy users, of whom **120**
@@ -2196,8 +2412,8 @@ Say these out loud rather than letting a green rehearsal imply them.
   that much.
 - **The 380 unreviewed event mappings.** A rehearsal shows 3 activated, which is
   correct and is not success.
-- **Step 7 as a rebuild.** See §8.3.
-- **Step 8's site-asset half.** The rehearsal can verify the content media against
+- **Step 6 as a rebuild.** See §8.3.
+- **Step 7's site-asset half.** The rehearsal can verify the content media against
   a `local` store, but the `{% static %}` cutover, the manifest failure mode and the
   `?v=` cache behaviour are all release-shaped and only meaningful against a real
   deployment. The bucket itself *is* measurable from the workstation — the AWS gate
@@ -2212,18 +2428,17 @@ Say these out loud rather than letting a green rehearsal imply them.
 | Step | Transaction boundary | Partial state after a failure | Recovery |
 | --- | --- | --- | --- |
 | 0 Schema | per migration | possibly mid-migration | **Drop and restart.** The only step where that is the answer |
-| 1 Structural seed | per row (six rows) | some families written | Re-run. Cheapest step in the plan |
-| 2 Legacy | none (per row) | that edition partial, statistics stale | Re-run the edition. Import one edition at a time |
-| 3 Repositories | per repository | earlier repositories complete | Re-run; expect `replayed`. A checksum/identity conflict means stop |
-| 4 CMP content | **per cohort** | earlier cohorts complete | Re-run; no-op on the done ones |
-| 5 CMP learners | **to be decided — §11 A3** | unknown | Must be resumable per table. If it cannot be, a failure costs a full rebuild |
-| 6 Events | atomic (identity); staged revisions (aggregates) | nothing half-written | Re-run |
-| 7 Content | build writes files | committed projection unchanged, so the site is unaffected | Re-run the build; it needs three pinned checkouts and is not reproducible (#253) |
-| 8 Media | per object | bucket holds a subset; every unpublished image is broken on the page | Re-run. Publish is incremental and skips a matching checksum, so a re-run completes rather than re-uploads |
-| 8 Site assets | per asset group | **worse — a page can 500**, because a template still asking the manifest for a removed file raises | Not a re-run: keep the `core/static/` copies until the CDN objects verify, and move each group's files and references together |
-| 9 Sponsors/testimonials | per service call (revisioned) | some rows written, history still valid | Re-run; must be keyed on a natural key |
+| 1 Legacy | none (per row) | that edition partial, statistics stale | Re-run the edition. Import one edition at a time |
+| 2 Repositories | per repository | earlier repositories complete | Re-run; expect `replayed`. A checksum/identity conflict means stop |
+| 3 CMP content | **per cohort** | earlier cohorts complete | Re-run; no-op on the done ones |
+| 4 CMP learners | **to be decided — §11 A3** | unknown | Must be resumable per table. If it cannot be, a failure costs a full rebuild |
+| 5 Events | atomic (identity); staged revisions (aggregates) | nothing half-written | Re-run |
+| 6 Content | build writes files | committed projection unchanged, so the site is unaffected | Re-run the build; it needs three pinned checkouts and is not reproducible (#253) |
+| 7 Media | per object | bucket holds a subset; every unpublished image is broken on the page | Re-run. Publish is incremental and skips a matching checksum, so a re-run completes rather than re-uploads |
+| 7 Site assets | per asset group | **worse — a page can 500**, because a template still asking the manifest for a removed file raises | Not a re-run: keep the `core/static/` copies until the CDN objects verify, and move each group's files and references together |
+| 8 Sponsors/testimonials | per service call (revisioned) | some rows written, history still valid | Re-run; must be keyed on a natural key |
 
-**The step with no rollback that should have one is step 5.** Everything else is
+**The step with no rollback that should have one is step 4.** Everything else is
 either re-runnable in place or leaves the previous state serving. A half-imported
 learner set is the one condition from which the only certain exit is a rebuild
 from step 0 — which, at 510,519 rows, is the difference between a short recovery
@@ -2241,25 +2456,26 @@ it, this plan's checkpoints give:
 | Checkpoint | Result | Why |
 | --- | --- | --- |
 | Step 0 — empty target | **n/a** | It is a built database, not a fresh one |
-| Step 1 — six reviewed families, no cohorts | **FAIL, and correctly** | All six families are present with the right titles — but they were written by `seed_local_courses` along with 16 cohorts and their invented copy, so the "structure only" half of the checkpoint fails. That is the difference the structural seed exists to remove |
-| Step 2 — 7 legacy editions | **FAIL** | 0 present. `prepare_local_data.py` never runs that importer (§7 #2) |
-| Step 3 — 20 modules / 181 units | **PASS** | `ai-dev-tools-2026` 4/4, `llm-zoomcamp-2026` 7/72, `ml-zoomcamp-2026` 9/105 |
-| Step 3 — family-name cohort slugs | **PASS** | `ai-dev-tools-2026`, not `ai-dev-tools-zoomcamp-2026` |
-| Step 4 — counts vs source | **FAIL, narrowly** | cohorts 16=16, projects 42=42, criteria 117=117, campaigns 5=5; **homework 107 vs 104**, **questions 500 vs 494** |
-| Step 4 — homework identity | **FAIL** | every CMP slug is present (`missing=[]`), but `llm-zoomcamp-2026` still carries `homework-03`, `homework-06`, `homework-07` — three repository rows the reconciler could not pair, plus their 6 questions. That is the entire count delta above |
-| Step 4 — inventory | **PASS** | no MLOps 2026 edition; `de-zoomcamp-2026` is `finished` |
-| Step 5 — learner counts | **FAIL** | 1 account, 0 enrollments, 0 submissions. No importer exists |
-| Step 5 — five forbidden tables | **PASS with a caveat** | `django_session` 6 and `socialaccount_socialapp` 3 are locally created, not imported. `socialaccount_socialaccount` and `accounts_token` are 0 |
-| Step 6 — 421 events / 1,684 aliases | **PASS** | exactly |
-| Step 6 — activation coverage | **PASS as designed** | 383 mapping rows: **3 mapped, 380 review_required** |
-| Step 7 — projection | **PASS** | the database boots, so `content.E002` is satisfied |
-| Step 8 — content media integrity | **PASS** | 1,253 records, 1,253 matched, 0 missing/mismatched/unreadable. The bytes are all there; what is wrong is which ones exist |
-| Step 8 — group counts | **FAIL** | `posts` 407 (want 357), `podcast` 212 (want 6). The 50 social cards and 206 covers have not been deleted |
-| Step 8 — bucket layout | **FAIL** | Measured: 1,253 objects / 154,115,635 bytes, all under `public-projection/`. The prefix is being removed and `site-assets/` does not exist yet |
-| Step 8 — no asset tracked in git | **FAIL** | 32 image files tracked under `core/static/core` — 8 illustrations, 4 sponsor logos, 6 testimonial portraits, 14 orphaned mediakit. B12 and B13. The 3 `vendor/` SVGs are FontAwesome webfonts and are excluded by the checkpoint |
-| Step 9 — sponsors and testimonials | **FAIL** | 0 sponsors. `courses_testimonial` does not even exist in that database — it predates migrations `0055`/`0056`, which on a freshly migrated database seed 6 testimonials and 0 sponsors |
+| Step 1 — 7 legacy editions | **FAIL** | 0 present. `prepare_local_data.py` never runs that importer (§7 #2) |
+| Step 2 — 20 modules / 181 units | **PASS** | `ai-dev-tools-2026` 4/4, `llm-zoomcamp-2026` 7/72, `ml-zoomcamp-2026` 9/105 |
+| Step 2 — family-name cohort slugs | **PASS** | `ai-dev-tools-2026`, not `ai-dev-tools-zoomcamp-2026` |
+| Step 3 — counts vs source | **FAIL, narrowly** | cohorts 16=16, projects 42=42, criteria 117=117, campaigns 5=5; **homework 107 vs 104**, **questions 500 vs 494** |
+| Step 3 — homework identity | **FAIL** | every CMP slug is present (`missing=[]`), but `llm-zoomcamp-2026` still carries `homework-03`, `homework-06`, `homework-07` — three repository rows the reconciler could not pair, plus their 6 questions. That is the entire count delta above |
+| Step 3 — inventory | **PASS** | no MLOps 2026 edition; `de-zoomcamp-2026` is `finished` |
+| Step 4 — learner counts | **FAIL** | 1 account, 0 enrollments, 0 submissions. No importer exists |
+| Step 4 — five forbidden tables | **PASS with a caveat** | `django_session` 6 and `socialaccount_socialapp` 3 are locally created, not imported. `socialaccount_socialaccount` and `accounts_token` are 0 |
+| Step 5 — 421 events / 1,684 aliases | **PASS** | exactly |
+| Step 5 — public ID allocator | **n/a here, PASS on a fresh build** | Measured on a from-zero database: `migrate` leaves 0 events and no allocator row; after the import, 421 events, highest `public_id` 421, allocator 422 |
+| Step 5 — activation coverage | **PASS as designed** | 383 mapping rows: **3 mapped, 380 review_required** |
+| Step 6 — projection | **PASS** | the database boots, so `content.E002` is satisfied |
+| Step 7 — content media integrity | **PASS** | 997 records, 997 matched, 0 missing/mismatched/unreadable, 144,380,949 bytes — the exact target |
+| Step 7 — group counts | **PASS** | `authors` 438, `books` 196, `posts` 357, `podcast` 6. The record deletions have been applied |
+| Step 7 — sweep | **PENDING** | The store still holds 257 objects the index no longer names — the 256 deleted plus the stale podcast file. Expected between rebuild and sweep; must be zero before cutover |
+| Step 7 — bucket layout | **FAIL** | Measured: 1,253 objects / 154,115,635 bytes, all under `public-projection/`. The prefix is being removed and `site-assets/` does not exist yet |
+| Step 7 — no asset tracked in git | **FAIL** | 32 image files tracked under `core/static/core` — 8 illustrations, 4 sponsor logos, 6 testimonial portraits, 14 orphaned mediakit. B12 and B13. The 3 `vendor/` SVGs are FontAwesome webfonts and are excluded by the checkpoint |
+| Step 8 — sponsors and testimonials | **FAIL** | 0 sponsors, and `courses_testimonial` does not exist in that database at all — it predates the model. On a freshly migrated database today both are **0**, because seeding has left migrations: the six testimonials now arrive from `scripts/prod/import_testimonials.py` |
 | §5.4 — password path | **FAIL** | `/accounts/password/reset/` and `/accounts/email/` are correctly 403, but `/accounts/signup/` creates an account with a usable password and signs it in (measured). §11 A5 |
-| §5.5 — no shared addresses | **PASS, vacuously** | 1 account. It proves nothing; the check only becomes meaningful once step 5 exists |
+| §5.5 — no shared addresses | **PASS, vacuously** | 1 account. It proves nothing; the check only becomes meaningful once step 4 exists |
 
 Two conclusions worth carrying forward. First, the three unreconciled
 `llm-zoomcamp-2026` homework rows are a **live defect in the current dataset**,
@@ -2275,44 +2491,42 @@ Ordered so someone can work down it. Sizes are honest estimates, not targets.
 
 ### A. Blocks the dry run — the rehearsal cannot start without these
 
-**A1. The structural seed.** *Step 1. Blocks step 4. Small (hours), and it is the
-cheapest item on this list.* Owner ruling: a migration-only seed script that sets
-up the course structure before the imports, so the imports can be run safely. One
-`scripts/prod/` script writing the six rows of `COURSE_FAMILY_TITLES` — slug and
-reviewed title, nothing else. Not `seed_local_courses`, which invents content and
-refuses to run outside local SQLite. Keyed on the family slug so a re-run is a
-no-op. See step 1 for the full specification and the checkpoint.
+**A1. The structural seed — DONE, and not the way this plan specified.** *No work
+remains; kept for provenance because earlier revisions pointed at it.* This item
+called for a migration-only script writing the six reviewed course families before
+any import ran, so that `import_cmp_content` had something to reconcile against.
+It has been solved better and smaller: **the CMP importer now mints the family
+itself**, taking the title from the reviewed `COURSE_FAMILY_TITLES` catalogue when
+a cohort named in `COHORT_FAMILY_IDENTITIES` has no family row. No new script, no
+new step, and the reviewed fact stays reviewed rather than derived.
 
-This is what makes `sma-zoomcamp` work, per the second owner ruling: **it comes
-from CMP.** It is not on the skip list, all three editions are already in
-`COHORT_FAMILY_IDENTITIES`, and the only thing it ever lacked was a family row —
-so no skip has to be lifted and no special case is needed. **Done looks like:**
-step 1's checkpoint exits 0, and then step 4's inventory checkpoint lists 16
-cohorts including all three `sma-zoomcamp` editions, on a database seeded only by
-steps 1 to 3. Independent of everything else; nothing else can be rehearsed until
-it exists.
+That closes `sma-zoomcamp` too, which was the reason the item existed: it is not on
+the skip list, all three editions were already in the identity mapping, and the
+only thing it ever lacked was a family row. **Verify by:** step 3's inventory
+checkpoint listing 16 cohorts including all three `sma-zoomcamp` editions, on a
+database built only by steps 0 to 2.
 
 **A2. Resolve the three unreconciled `llm-zoomcamp-2026` homework rows.**
-*Blocks step 4's identity checkpoint. Small (hours), but it is a content
+*Blocks step 3's identity checkpoint. Small (hours), but it is a content
 decision.* `homework-03`, `homework-06`, `homework-07` pair to no CMP row by slug
 or exact title. Either CMP gains the matching rows, or the titles are aligned so
 the existing pairing rule matches, or they are deliberately deleted. **Done looks
-like:** the step 4 identity checkpoint exits 0. Must be settled **before** step 5
+like:** the step 3 identity checkpoint exits 0. Must be settled **before** step 4
 ever runs, because after it a submission may point at one.
 
-**A3. The CMP learner importer.** *Blocks step 5 — i.e. everything. **Large
-(1–2 weeks)**, and it is the single biggest item in this plan.* See §4 step 5 for
+**A3. The CMP learner importer.** *Blocks step 4 — i.e. everything. **Large
+(1–2 weeks)**, and it is the single biggest item in this plan.* See §4 step 4 for
 the full specification: 11 tables / 510,519 rows, 5 never-import tables, five
 mandatory transforms, resumable per table, per-table written/skipped reporting,
 PII-safe logging by user id. `scripts/load_rds_export.py` looks like a starting
 point but its `main()` is disabled and only its internals survive, in two test
-modules. **Done looks like:** all four step-5 checkpoints exit 0 against a
+modules. **Done looks like:** all four step-4 checkpoints exit 0 against a
 rehearsal database, and the run reports its own per-table counts. Depends on A1
 (cohorts must exist) and A2 (homework identity must be final).
 
 **A4. Decide the export-day questions the importer encodes.** *Blocks A3's
 design. Small (hours), but they are owner decisions and cannot be guessed.*
-Two of the four are now ruled and written into step 5's transforms: shared
+Two of the four are now ruled and written into step 4's transforms: shared
 addresses are **consolidated** (§5.5), and every account imports **unprivileged
 with an unusable password**, staff being granted afterwards through Studio. Still
 open: (i) the 58 users who exist only in the five owner-skipped cohorts, and the
@@ -2320,7 +2534,7 @@ open: (i) the 58 users who exist only in the five owner-skipped cohorts, and the
 §12 decision 4. **Done looks like:** each written into this document as a rule the
 importer implements. Can be answered in parallel with A3 starting.
 
-**A5. Close `/accounts/signup/`.** *Small (hours). Do it before step 5 runs, not
+**A5. Close `/accounts/signup/`.** *Small (hours). Do it before step 4 runs, not
 after.* allauth's signup view is unshadowed and open;
 `ACCOUNT_ALLOW_REGISTRATION = False` is not an allauth setting and nothing reads
 it. **Measured**: in the production shape a signup POST creates an account with a
@@ -2348,8 +2562,8 @@ instance today, ids 2 and 15515, both carrying history.
 **B1. A rehearsal orchestrator that bootstraps the way production does.**
 *Medium (2–3 days).* `prepare_local_data.py` bootstraps with `seed_local_courses`,
 which refuses to run outside local SQLite (§7 #1). Either add a mode that skips
-the seeder and runs step 2 instead, or write a thin `scripts/prod/` orchestrator
-that runs steps 0-8 in this document's order. The manual sequence in §8.3 is
+the seeder and runs step 1 instead, or write a thin `scripts/prod/` orchestrator
+that runs steps 0-7 in this document's order. The manual sequence in §8.3 is
 the fallback and it works today, which is why this is not an A item. **Done looks
 like:** one command
 builds a rehearsal database with no placeholder rows in it —
@@ -2411,7 +2625,7 @@ legacy repository. Independent.
 Note the ruling makes this more than a default. `--source github` reads media
 *from a git repository*, which is the arrangement being ended: once the bucket is
 the origin of record the source has no steady-state purpose beyond the one-time
-seeding in step 8, and once B11 lands it has none at all. Whether it survives that
+seeding in step 7, and once B11 lands it has none at all. Whether it survives that
 is worth deciding rather than leaving as an unused branch.
 
 **B8. FAQ and docs content sync.** *Medium (3–5 days), and it may collapse into
@@ -2424,14 +2638,14 @@ a push to either repository updates `/faq/` or `/docs/` without a hand-reviewed
 projection file, and a re-push replays. Depends on B4 for the read side; the write
 side can start alongside B3.
 
-**B9. The sponsor and testimonial import script.** *Small (1–2 days).* Step 9. One
+**B9. The sponsor and testimonial import script.** *Small (1–2 days).* Step 8. One
 `scripts/prod/import_*` entry point writing sponsors through `core/sponsors.py`'s
 services and testimonials into `courses.models.Testimonial`, keyed on a natural key
 so a re-run is a no-op and the six migration-seeded testimonials are matched rather
 than duplicated. The input format is an owner decision — the obvious candidates are
 the legacy `_data/sponsors.yaml` (currently read by nothing) and the existing
 `export_sponsor_directory` output, which would make the script its exact inverse.
-**Done looks like:** step 9's checkpoint exits 0 and a second run changes no
+**Done looks like:** step 8's checkpoint exits 0 and a second run changes no
 counts. Independent of everything else.
 
 **B10. Retire the `/faq/` and `/docs/` CloudFront 302s.** *Small, but it is a
@@ -2443,7 +2657,7 @@ application in production. Depends on B8. Do this *after*, never before.
 **B11. Take the images out of `DataTalksClub/content`.** *Medium (2–3 days), and
 it is the second half of the owner's ruling.* Measured: this repository tracks
 **0** content image files, `DataTalksClub/content` tracks **815**, and the legacy
-repository tracks 1,290. Step 8 puts the bytes in the CDN; this removes them from
+repository tracks 1,290. Step 7 puts the bytes in the CDN; this removes them from
 git, which is a separate act with a real ordering constraint — **the bucket must
 be verified complete before anything is deleted**, because after deletion the
 bucket is the only copy.
@@ -2457,10 +2671,10 @@ the **inputs to regeneration do**. If a cover is produced by re-encoding the
 upstream image, deleting upstream destroys the ability to regenerate; if it is
 produced from a source asset or a prompt, upstream can go. Establish which before
 deleting anything, and treat the regenerated set as protected until the
-regeneration is proven repeatable. Sequence: step 8 → its checkpoint exits 0 → B3's sync
+regeneration is proven repeatable. Sequence: step 7 → its checkpoint exits 0 → B3's sync
 resolves references against the CDN (not against repository paths) → only then
 delete. **Done looks like:** `git ls-files "images/*"` in `DataTalksClub/content`
-returns nothing, and every article still renders its images. Depends on step 8 and
+returns nothing, and every article still renders its images. Depends on step 7 and
 on B3.
 
 **B12. Delete `core/static/core/mediakit/`.** *Small (minutes), zero risk,
@@ -2488,15 +2702,17 @@ optional:
 - **`?v=<sha256[:8]>` on every emitted URL**, because a stable key does not
   cache-bust the way a hashed static filename does. Verify the CloudFront cache key
   includes the query string; if it strips query strings the version does nothing.
-- **`Testimonial.photo_static_path` changes meaning** — step 9. Do it before the
-  model has production rows.
+- **Testimonial portraits move by changing one constant.**
+  `INTERIM_SITE_ASSET_STATIC_PREFIX` in `courses/models/testimonial.py` is where
+  portraits resolve from; `portrait_asset_key` already stores a layout-free key, so
+  **zero rows change**. Do not reintroduce a prefix into the column.
 - **Fail soft.** A missing static entry is a 500 under manifest storage; a missing
   CDN object must be a broken image. That is the point of moving them.
 - **Keep the `core/static/` copies until the CDN objects verify.** This is a
   cutover, not an upload: between removing a file and repointing its template, the
   page raises.
 
-**Done looks like:** step 8's site-asset checks pass, the homepage and `/sponsors`
+**Done looks like:** step 7's site-asset checks pass, the homepage and `/sponsors`
 render every image in both themes, `git ls-files` finds no image under
 `core/static/core` outside `vendor/`, and a `?v=` change reaches a browser holding
 the old bytes. Depends on B12 only for tidiness. Connects to
@@ -2511,22 +2727,34 @@ stay. Order, and it is not negotiable: **rewrite the records first**
 (`media_available: false`, drop the image reference), rebuild the projection, *then*
 delete the objects. In the interval `_episode_artwork.html` renders its designed
 "Artwork unavailable." note; delete first and the same page renders a broken
-`<img>`. Regeneration is then the regenerated path in full — generate, rewrite
-records with new checksums and provenance, publish. The procedure is
-`_docs/design/illustration-assets.md`, the gap is
-[#311](https://github.com/DataTalksClub/website/issues/311), and the same procedure
-feeds `site-assets/courses/`. **Done looks like:** `images/podcast/` holds badges
-plus the new covers and `verify` is clean.
+`<img>`.
+
+**The replacement artwork is the owner's, not ours to produce.** Our half is the
+ingest path in step 7 — the owner commits each cover at the path its episode YAML
+already declares, and the projection build repopulates `image_path` and
+`media_available` on its own. Nothing extra runs and there is no second importer.
+**Done looks like:** the covers are gone and every episode renders its
+"Artwork unavailable." note without a broken image; and later, when the artwork
+lands, `images/podcast/` holds badges plus the new covers with `verify` clean.
+
+Both this and B15 trip the same guard: `EXPECTED_PREFERRED_CONTENT_MEDIA_COUNT`
+(815, `build_public_projection.py:118`) is asserted at `:2828`, so the build
+**refuses** until it is re-baselined — 815 → 559 for the two deletions together.
+Re-baseline with the reason recorded; that canary exists to make an unexplained
+change loud.
 
 **B15. Delete the post social cards.** *Small, but the record rewrite is the whole
 job.* Owner ruling: keep the illustrations, remove the generated social card.
 **50 objects, 2,456,087 bytes** — stem exactly `cover`, **extension `.jpg` only**.
-The 3 `cover.png` are artwork embedded in article bodies and **stay**; see step 8
+The 3 `cover.png` are artwork embedded in article bodies and **stay**; see step 7
 for the three measurements that separate them. **44 of the 50 are an article's
 `image_path`**, which `content/public_views.py:708` turns into `og:image` and
 `twitter:image`, so the records must be rewritten first — clear `image_path`, and
 the existing `{% if og_image_url %}` guard omits the tag entirely rather than
-advertising a 404. Then delete. **Done looks like:** no record names a
+advertising a 404 — and because `image_path` is *derived* from what exists, the
+rewrite is the projection build itself, not a hand edit. New article artwork, when
+the owner supplies it, comes back the same way. Then delete. **Done looks like:**
+no record names a
 `posts/*/cover.jpg`, `images/posts/` is 357 objects / 133,108,882 bytes, and no
 article emits an `og:image` pointing at a deleted object.
 
@@ -2651,7 +2879,7 @@ These block nothing today but must be closed before the migration runs.
    rollback becomes restore-from-source rather than point-at-the-old-object. S3
    bucket versioning is the cheap mitigation if that is not acceptable.
 
-9. **Who publishes site assets, and when.** Step 8 does the one-time upload. After
+9. **Who publishes site assets, and when.** Step 7 does the one-time upload. After
    that `site-assets/home/` changes with a release, `site-assets/courses/` with a
    course, and `site-assets/sponsors/` when a sponsor changes — three different
    triggers. Until B13 makes it repeatable, every one of them is a manual upload,
@@ -2664,23 +2892,27 @@ Recorded so they are not reopened.
 
 | Was open | Ruling |
 | --- | --- |
-| How do the importers land against an empty database? | **A migration-only structural seed runs first** — step 1, §11 A1 |
-| Where does `sma-zoomcamp` come from? | **CMP.** It is not skipped and needs no special case; it only ever lacked a family row, which step 1 writes — §3.2 |
+| How do the importers land against an empty database? | **`import_cmp_content` mints its own reviewed families.** An earlier plan added a structural-seed step; it is not needed — §3.2, §11 A1 |
+| Where does `sma-zoomcamp` come from? | **CMP**, directly. Not skipped, no special case; it only ever lacked a family row, which the CMP importer now mints — §3.2 |
 | Are 20,009 usable password hashes an emergency? | **No.** Members signed in through a provider; passwords were for admins. The enforcement was URL shadowing and it travelled — §5.4. Every account still imports unprivileged with an unusable password |
 | The two accounts sharing one address | **Consolidate them**, as a general mechanism with one known instance — §5.5, §11 A6 |
-| Public media objects had no fate (`data-ingest.md` §2 row 18) | **Step 8.** Images go to the `dtc-website-media` bucket **and out of every git repository** — §11 B11 |
+| Public media objects had no fate (`data-ingest.md` §2 row 18) | **Step 7.** Images go to the `dtc-website-media` bucket **and out of every git repository** — §11 B11 |
 | The one-file gap between the tree (1,254) and `media.json` (1,253) | **Stale residue on one developer's disk**, from an episode renumbering. Measured: the bucket holds 212 podcast objects, so it never reached production. Moot once the covers go — it disappears on the next re-hydrate |
 | Do CDN keys come from upstream filenames? | **No — we assign them on ingest.** `site-assets/<surface>/<name>-<theme>.<ext>`, content media from normalised record identity |
 | Do sponsor logos and homepage illustrations stay as static assets because they are design? | **No.** No assets in the repository; all 18 go to the CDN — §11 B13 |
 | Where do site assets live in the bucket? | **`site-assets/`, a sibling of `images/` at the root**, subdivided by surface: `home/`, `courses/`, `sponsors/`, `testimonials/` |
 | Is the light variant implicit? | **No.** `-light` is explicit for any themed asset; theme-neutral assets carry no theme segment |
 | Is `home-step-1` missing? | **No.** `home-stuck` *is* the step 1 drawing, per the partial's own comment; it is published as `home-step-1` |
+| Is a testimonial portrait a static path or a CDN key? | **Neither is stored.** `portrait_asset_key` holds a layout-free key like `testimonials/nevenka-lukic.jpg`; the prefix lives in one constant, so the CDN move touches zero rows |
+| Does `migrate` still seed data? | **No.** Testimonials and the event identity manifest are explicit imports now — steps 8 and 5 |
+| May a runbook name a migration by number? | **No** — owner ruling. Describe what it does, or name the code that owns the behaviour |
+| Who produces the new banner and cover artwork? | **The owner.** Generation is off our plate; receiving and ingesting it is the deliverable — step 7 |
 | Are the podcast covers deleted now? | **Yes** — owner ruling. 206 covers go, the 6 `badges/` stay. Records first, objects second, so the player frame shows its "Artwork unavailable." note rather than a broken image — §11 B14 |
 | Are the post social cards deleted? | **Yes.** 50 `cover.jpg`, keeping the 3 `cover.png`, which are artwork. 44 are an article's `og:image`, so records are rewritten first — §11 B15 |
 | Is `public-projection/` kept as a prefix? | **No** — owner ruling, it names the producing artifact rather than the objects and disambiguates nothing. `images/` and `site-assets/` become siblings at the root |
 | Was "stem exactly `cover`" the right deletion rule? | **Not quite** — one file too broad. `.jpg` only: the 3 `.png` are 2 MB artwork embedded in article bodies, against 49 KB generated cards |
 | Do FAQ and docs stay at the legacy site, or come to us? | **They come to us via content sync.** The CloudFront 302s are transitional — §11 B8, B10 |
-| Sponsors and testimonials have no source | **They get an import script** — step 9, §11 B9 |
+| Sponsors and testimonials have no source | **They get an import script** — step 8, §11 B9 |
 | Is `rds-aisl_prod` in scope? | **No.** §14 |
 | Do books and people exist in two repositories? | **No dual ownership.** podwiki's `_people`, `_books` and `_podcast_summaries` are never opened by the builder — all four `wiki_root` joins read `_wiki/`, `graph/`, `search/` and one asset. Nothing to reconcile |
 | Are the projection count deltas silent drops? | **No.** Every one is pin drift (additions after the pin; zero deletions), a `_template.md` scaffold, or 2 podcast episodes removed under a signed manifest (`content/migration/podcast-removals.yaml`) |
@@ -2696,9 +2928,9 @@ Non-negotiable, and every one of these has a reason behind it.
 - **Never import** `django_session`, `socialaccount_socialaccount`,
   `socialaccount_socialapp`, `socialaccount_socialapp_sites`,
   `socialaccount_socialtoken`, `accounts_token`. Five of the six are present in
-  the export. Step 5 owns this list; **do not** reuse `review_import`'s
+  the export. Step 4 owns this list; **do not** reuse `review_import`'s
   `SENSITIVE_TABLES` for it — that list is the sanitized-review-database policy and
-  excludes the whole payload of step 5.
+  excludes the whole payload of step 4.
 - A member's email address is visible to admins in Studio and nowhere else.
 - In a log, identify a person by user id, never by email address.
 - Do not hand-edit anything in `content/public_projection/` — the startup digest
