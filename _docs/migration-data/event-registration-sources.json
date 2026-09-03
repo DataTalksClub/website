@@ -2,17 +2,17 @@
   "schema_version": 1,
   "luma": {
     "adapter": "historical-aggregate-v1",
-    "capture_completed_at": "2026-09-02T11:26:45.996567+00:00",
-    "event_total": 174,
-    "excluded_registration_total": 52,
-    "registration_total": 52415,
-    "row_total": 52467,
+    "capture_completed_at": "2026-08-29T20:46:15.172888+00:00",
+    "event_total": 166,
+    "excluded_registration_total": 51,
+    "registration_total": 51873,
+    "row_total": 51924,
     "status_policy": "historical-status-v1",
     "status_totals": {
-      "approved": 52415,
-      "declined": 52
+      "approved": 51873,
+      "declined": 51
     },
-    "tree_sha256": "2e18d18452ea695d47696ce422f87f011bef58e15908a27f9fa8e623e6e2e3c2",
+    "tree_sha256": "5362e8c2a0640d94dc112880ee8de058afbe2db754c599894032bafe247530e3",
     "activation_state": "mapping_review_required"
   },
   "eventbrite": {
