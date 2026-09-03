@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from course_management.observability.cloudwatch import METRIC_NAME
 from course_management.observability.events import observability_environment
+from core.runtime_config import get_str_setting
 
 
 DEFAULT_DASHBOARD_EVENTS = [
@@ -70,11 +71,7 @@ def cloudwatch_dashboard_context(
     environment = (environment or observability_environment()).strip()
     hours = normalized_hours(hours)
     period_seconds = 3600
-    namespace = getattr(
-        settings,
-        "CLOUDWATCH_APP_METRIC_NAMESPACE",
-        "CourseManagement/App",
-    )
+    namespace = get_str_setting("observability.cloudwatch_metric_namespace")
     events = cloudwatch_dashboard_events()
 
     try:
@@ -119,11 +116,7 @@ def cloudwatch_dashboard_error_context(
         "metric_series": [],
         "environment": (environment or observability_environment()).strip(),
         "hours": normalized_hours(hours),
-        "namespace": getattr(
-            settings,
-            "CLOUDWATCH_APP_METRIC_NAMESPACE",
-            "CourseManagement/App",
-        ),
+        "namespace": get_str_setting("observability.cloudwatch_metric_namespace"),
         "metric_name": METRIC_NAME,
         "period_label": "1 hour",
         "region": cloudwatch_region(),
@@ -157,8 +150,15 @@ def cloudwatch_client():
 
 
 def cloudwatch_region() -> str:
+    """The metric region.  The AWS fallbacks stay environment-only on purpose.
+
+    ``AWS_REGION`` and ``AWS_DEFAULT_REGION`` are read by every AWS client in
+    the process, including the one that would have to reach the database to read
+    a row, so they cannot live behind it.
+    """
+
     return (
-        getattr(settings, "CLOUDWATCH_APP_METRIC_REGION", "")
+        get_str_setting("observability.cloudwatch_metric_region")
         or getattr(settings, "AWS_REGION", "")
         or getattr(settings, "AWS_DEFAULT_REGION", "")
     ).strip()

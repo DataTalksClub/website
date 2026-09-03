@@ -19,6 +19,7 @@ from compatibility.models import loads_jsonl
 from compatibility.parity import evaluate_parity
 from compatibility.report import ParityStatus, TargetBinding, dumps_report
 from compatibility.schema import load_schema, validate_jsonl_records, validate_record
+from core.runtime_endpoints import canonical_origin
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 CONTRACT_ROOT = REPOSITORY_ROOT / "_docs" / "compatibility"
@@ -111,7 +112,7 @@ class Command(BaseCommand):
         parser.add_argument("--output", type=_scratch_output, default=DEFAULT_OUTPUT)
         parser.add_argument("--scope", action="append", default=[])
         parser.add_argument("--target-id", default="django-local")
-        parser.add_argument("--target-origin", default=settings.CANONICAL_ORIGIN)
+        parser.add_argument("--target-origin", default=canonical_origin())
         parser.add_argument("--release-id", default=settings.APP_VERSION)
         parser.add_argument("--parser-version", default="compatibility-parser-v1")
         parser.add_argument("--route-sha256", required=True)

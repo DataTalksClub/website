@@ -34,8 +34,10 @@ from enum import Enum
 from urllib.parse import quote, urlsplit
 
 import requests
-from django.conf import settings
 from requests.adapters import HTTPAdapter
+
+from core.runtime_config import get_int_setting
+from core.runtime_endpoints import relay_link_bridge_base_url
 
 # Relay mints raw tokens with ``secrets.token_urlsafe(32)``, which is 43
 # characters of URL-safe base64.  The bound is deliberately wider than that so a
@@ -123,9 +125,14 @@ def is_safe_click_destination(destination: object) -> bool:
 
 
 def bridge_base_url() -> str:
-    """The configured private Relay base, or an empty string when unconfigured."""
+    """The configured private Relay base, or an empty string when unconfigured.
 
-    configured = str(getattr(settings, "RELAY_LINK_BRIDGE_BASE_URL", "") or "").strip()
+    Resolved through ``core.runtime_config``, so an operator can move the relay
+    without replacing every running container; the value the process booted with
+    is still the answer until they do.
+    """
+
+    configured = relay_link_bridge_base_url().strip()
     if not configured:
         return ""
     parsed = urlsplit(configured)
@@ -148,7 +155,7 @@ def _pool() -> requests.Session:
     """
 
     global _session, _session_key
-    pool_size = max(1, int(getattr(settings, "RELAY_LINK_BRIDGE_POOL_SIZE", 16)))
+    pool_size = max(1, get_int_setting("relay.link_bridge.pool_size"))
     key = (bridge_base_url(), pool_size)
     with _session_lock:
         if _session is None or _session_key != key:
@@ -180,10 +187,12 @@ def reset_pool() -> None:
         _session_key = None
 
 
-def _timeout(name: str, fallback: float) -> float:
+def _timeout(key: str, fallback: float) -> float:
+    """One runtime-resolved timeout in seconds, never zero and never negative."""
+
     try:
-        value = float(getattr(settings, name, fallback))
-    except (TypeError, ValueError):
+        value = float(get_int_setting(key))
+    except (LookupError, TypeError, ValueError):
         return fallback
     return value if value > 0 else fallback
 
@@ -240,7 +249,7 @@ def record_open(token: str) -> BridgeResult:
     response = _call(
         "GET",
         f"/t/o/{quote(token, safe='')}.gif",
-        timeout=_timeout("RELAY_LINK_BRIDGE_OPEN_TIMEOUT_SECONDS", 2.0),
+        timeout=_timeout("relay.link_bridge.open_timeout_seconds", 2.0),
     )
     return _classify(response)
 
@@ -256,7 +265,7 @@ def record_click(token: str, destination: str) -> BridgeResult:
         "GET",
         f"/t/c/{quote(token, safe='')}",
         params={"u": destination},
-        timeout=_timeout("RELAY_LINK_BRIDGE_CLICK_TIMEOUT_SECONDS", 3.0),
+        timeout=_timeout("relay.link_bridge.click_timeout_seconds", 3.0),
     )
     return _classify(response)
 
@@ -276,7 +285,7 @@ def load_unsubscribe(token: str) -> BridgeResult:
     response = _call(
         "GET",
         f"/unsubscribe/{quote(token, safe='')}",
-        timeout=_timeout("RELAY_LINK_BRIDGE_UNSUBSCRIBE_TIMEOUT_SECONDS", 10.0),
+        timeout=_timeout("relay.link_bridge.unsubscribe_timeout_seconds", 10.0),
     )
     return _classify(response)
 
@@ -299,6 +308,6 @@ def submit_unsubscribe(token: str, scope: str) -> BridgeResult:
         "POST",
         f"/unsubscribe/{quote(token, safe='')}",
         data={"scope": scope},
-        timeout=_timeout("RELAY_LINK_BRIDGE_UNSUBSCRIBE_TIMEOUT_SECONDS", 10.0),
+        timeout=_timeout("relay.link_bridge.unsubscribe_timeout_seconds", 10.0),
     )
     return _classify(response)

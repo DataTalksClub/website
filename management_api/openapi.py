@@ -6,7 +6,10 @@ from typing import Any
 
 from django.conf import settings
 
+from accounts.services.oauth_providers import SUPPORTED_PROVIDERS
 from core.capabilities import ConcurrencyPolicy, IdempotencyPolicy
+from core.configuration import registered_operational_settings
+from core.operational_settings import OPERATIONAL_SETTING_KEYS
 from management_registry import CAPABILITY_REGISTRY
 
 SCHEMA_PATH = Path(settings.BASE_DIR) / "_docs/api/admin-openapi.json"
@@ -222,6 +225,156 @@ def _site_setting_update_schemas() -> list[dict[str, Any]]:
     ]
 
 
+_OPERATIONAL_VALUE_TYPES = ["boolean", "integer", "string"]
+_OPERATIONAL_JSON_TYPES = ["boolean", "integer", "string"]
+
+
+def _operational_setting_schema(*, include_changed: bool = False) -> dict[str, Any]:
+    """One operational setting, generated from the registry it documents.
+
+    The enums come from the registry rather than a hand-kept list, so a setting
+    added without a schema entry is impossible: the document simply grows the
+    key, and ``--check`` fails until the checked-in document is regenerated.
+    """
+
+    required = [
+        "key",
+        "group",
+        "label",
+        "description",
+        "value_type",
+        "default",
+        "validation",
+        "docs_reference",
+        "lifecycle",
+        "cache_policy",
+        "sensitivity",
+        "value",
+        "source",
+        "definition_version",
+        "revision",
+        "effective_value",
+        "effective_layer",
+        "env_var",
+        "settings_attr",
+    ]
+    groups = sorted(
+        {
+            definition.group
+            for definition in registered_operational_settings()
+            if definition.key in OPERATIONAL_SETTING_KEYS
+        }
+    )
+    properties: dict[str, Any] = {
+        "key": {"type": "string", "enum": list(OPERATIONAL_SETTING_KEYS)},
+        "group": {"type": "string", "enum": groups},
+        "label": {"type": "string", "minLength": 1},
+        "description": {"type": "string", "minLength": 1},
+        "value_type": {"type": "string", "enum": _OPERATIONAL_VALUE_TYPES},
+        "default": {"type": _OPERATIONAL_JSON_TYPES},
+        "validation": {"type": "object"},
+        "docs_reference": {"type": "string", "pattern": "^_docs/"},
+        "lifecycle": {"type": "string", "const": "active"},
+        "cache_policy": {"type": "string", "const": "stamped"},
+        "sensitivity": {"type": "string", "const": "operational"},
+        "value": {"type": _OPERATIONAL_JSON_TYPES},
+        "source": {"type": "string", "enum": ["code_default", "studio", "admin_api"]},
+        "definition_version": {"type": "integer", "minimum": 1},
+        "revision": {"type": "integer", "minimum": 0},
+        "effective_value": {
+            "type": _OPERATIONAL_JSON_TYPES,
+            "description": (
+                "The value the running processes resolve today, which is the stored row "
+                "only when one exists."
+            ),
+        },
+        "effective_layer": {
+            "type": "string",
+            "enum": ["database", "environment", "settings", "code_default"],
+        },
+        "env_var": {
+            "type": "string",
+            "description": "Environment variable consulted when no row is stored; may be empty.",
+        },
+        "settings_attr": {
+            "type": "string",
+            "description": "Settings attribute consulted after the environment; may be empty.",
+        },
+    }
+    if include_changed:
+        required.append("changed")
+        properties["changed"] = {"type": "boolean"}
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": required,
+        "properties": properties,
+    }
+
+
+def _operational_setting_result_schema() -> dict[str, Any]:
+    """A batch result item: the stored projection, without the runtime fields."""
+
+    schema = _operational_setting_schema(include_changed=True)
+    for field in ("effective_value", "effective_layer", "env_var", "settings_attr"):
+        schema["required"].remove(field)
+        del schema["properties"][field]
+    return schema
+
+
+def _operational_setting_update_schema() -> dict[str, Any]:
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["key", "value", "expected_revision"],
+        "properties": {
+            "key": {"type": "string", "enum": list(OPERATIONAL_SETTING_KEYS)},
+            "value": {"type": _OPERATIONAL_JSON_TYPES},
+            "expected_revision": {"type": "integer", "minimum": 0},
+        },
+    }
+
+
+def _oauth_provider_schema() -> dict[str, Any]:
+    """One OAuth provider.  There is no secret field: the secret is write-only."""
+
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "provider",
+            "name",
+            "label",
+            "configure_url",
+            "callback_path",
+            "callback_url",
+            "scopes",
+            "client_id",
+            "has_secret",
+            "is_configured",
+            "is_enabled",
+        ],
+        "properties": {
+            "provider": {"type": "string", "enum": list(SUPPORTED_PROVIDERS)},
+            "name": {"type": "string", "minLength": 1},
+            "label": {"type": "string", "minLength": 1},
+            "configure_url": {"type": "string", "minLength": 1},
+            "callback_path": {"type": "string", "pattern": "^/"},
+            "callback_url": {"type": "string", "minLength": 1},
+            "scopes": {"type": "array", "items": {"type": "string"}},
+            "client_id": {"type": "string", "maxLength": 191},
+            "has_secret": {
+                "type": "boolean",
+                "description": (
+                    "Whether a client secret is stored. The secret itself is never returned."
+                ),
+            },
+            "is_configured": {"type": "boolean"},
+            "is_enabled": {"type": "boolean"},
+        },
+    }
+
+
 def generate_document() -> dict[str, Any]:
     paths: dict[str, Any] = {}
     for capability in CAPABILITY_REGISTRY:
@@ -380,6 +533,79 @@ def generate_document() -> dict[str, Any]:
                             ],
                         },
                         "revision": {"type": "integer", "minimum": 0},
+                    },
+                },
+                "OperationalSetting": _operational_setting_schema(),
+                "OperationalSettingResult": _operational_setting_result_schema(),
+                "OperationalSettings": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["settings"],
+                    "properties": {
+                        "settings": {
+                            "type": "array",
+                            "minItems": len(OPERATIONAL_SETTING_KEYS),
+                            "maxItems": len(OPERATIONAL_SETTING_KEYS),
+                            "items": {"$ref": "#/components/schemas/OperationalSetting"},
+                        }
+                    },
+                },
+                "OperationalSettingsBatchRequest": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["updates"],
+                    "properties": {
+                        "updates": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": len(OPERATIONAL_SETTING_KEYS),
+                            "items": _operational_setting_update_schema(),
+                        }
+                    },
+                },
+                "OperationalSettingsBatchResult": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["settings", "replayed"],
+                    "properties": {
+                        "settings": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": len(OPERATIONAL_SETTING_KEYS),
+                            "items": {"$ref": "#/components/schemas/OperationalSettingResult"},
+                        },
+                        "replayed": {"type": "boolean"},
+                    },
+                },
+                "OAuthProvider": _oauth_provider_schema(),
+                "OAuthProviders": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["providers"],
+                    "properties": {
+                        "providers": {
+                            "type": "array",
+                            "minItems": len(SUPPORTED_PROVIDERS),
+                            "maxItems": len(SUPPORTED_PROVIDERS),
+                            "items": {"$ref": "#/components/schemas/OAuthProvider"},
+                        }
+                    },
+                },
+                "OAuthProviderUpdate": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["client_id"],
+                    "properties": {
+                        "client_id": {"type": "string", "maxLength": 191},
+                        "secret": {
+                            "type": "string",
+                            "maxLength": 191,
+                            "writeOnly": True,
+                            "description": (
+                                "Write-only. Omit to leave the stored secret unchanged; send an "
+                                "empty string to clear it. It is never returned by any read."
+                            ),
+                        },
                     },
                 },
                 "CredentialMetadata": _credential_schema(),

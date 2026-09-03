@@ -389,7 +389,7 @@ class SiteSettingsCommandTests(TestCase):
         self.assertEqual(IdempotencyRecord.objects.count(), 1)
 
         with mock.patch(
-            "core.site_settings.record_audit_event",
+            "core.settings_batch.record_audit_event",
             side_effect=RuntimeError("audit unavailable"),
         ):
             with self.assertRaisesRegex(RuntimeError, "audit unavailable"):

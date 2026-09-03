@@ -99,6 +99,41 @@ site_settings_collection.management_capability_views = {  # type: ignore[attr-de
 
 
 @csrf_exempt
+def operational_settings_collection(request, *args, **kwargs):
+    if request.method in {"GET", "HEAD"}:
+        return views.operational_settings_read(request, *args, **kwargs)
+    return views.operational_settings_write(request, *args, **kwargs)
+
+
+operational_settings_collection.management_capability_keys = (  # type: ignore[attr-defined]
+    "settings.operational.read",
+    "settings.operational.write",
+)
+operational_settings_collection.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": views.operational_settings_read,
+    "PATCH": views.operational_settings_write,
+}
+
+
+oauth_provider_collection = csrf_exempt(views.oauth_provider_list)
+oauth_provider_collection.management_capability_keys = (  # type: ignore[attr-defined]
+    "accounts.oauth_providers.read",
+)
+oauth_provider_collection.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": views.oauth_provider_list,
+}
+
+
+oauth_provider_item = csrf_exempt(views.oauth_provider_update)
+oauth_provider_item.management_capability_keys = (  # type: ignore[attr-defined]
+    "accounts.oauth_providers.write",
+)
+oauth_provider_item.management_capability_views = {  # type: ignore[attr-defined]
+    "PUT": views.oauth_provider_update,
+}
+
+
+@csrf_exempt
 def site_navigation_collection(request, *args, **kwargs):
     if request.method in {"GET", "HEAD"}:
         return views.site_navigation_read(request, *args, **kwargs)
@@ -169,6 +204,17 @@ event_qna_collection.management_capability_views = {  # type: ignore[attr-define
 urlpatterns = [
     path("health", views.admin_health, name="admin-health"),
     path("settings", site_settings_collection, name="admin-site-settings"),
+    path(
+        "settings/operational",
+        operational_settings_collection,
+        name="admin-operational-settings",
+    ),
+    path("auth/providers", oauth_provider_collection, name="admin-oauth-provider-list"),
+    path(
+        "auth/providers/<str:provider>",
+        oauth_provider_item,
+        name="admin-oauth-provider-detail",
+    ),
     path("navigation", site_navigation_collection, name="admin-site-navigation"),
     path("sponsors", sponsor_collection, name="admin-sponsor-list"),
     path("sponsors/<uuid:sponsor_id>", sponsor_item, name="admin-sponsor-detail"),

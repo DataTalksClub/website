@@ -5,6 +5,7 @@ from uuid import uuid4
 from django.conf import settings
 from django.utils import timezone
 
+from core.runtime_config import get_bool_setting
 from course_management.observability import record_event
 from data.models import (
     DatamailerOutboxEvent,
@@ -32,7 +33,7 @@ def enqueue_datamailer_outbox_event(
     should_dispatch = (
         data.dispatch_immediately
         if data.dispatch_immediately is not None
-        else getattr(settings, "DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY", False)
+        else get_bool_setting("datamailer.outbox_dispatch_immediately")
     )
     event_uuid = uuid4()
     event_id = f"cmp-datamailer-event:{event_uuid}"

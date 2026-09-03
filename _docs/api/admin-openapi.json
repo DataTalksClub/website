@@ -1222,6 +1222,517 @@
         ],
         "type": "object"
       },
+      "OAuthProvider": {
+        "additionalProperties": false,
+        "properties": {
+          "callback_path": {
+            "pattern": "^/",
+            "type": "string"
+          },
+          "callback_url": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "client_id": {
+            "maxLength": 191,
+            "type": "string"
+          },
+          "configure_url": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "has_secret": {
+            "description": "Whether a client secret is stored. The secret itself is never returned.",
+            "type": "boolean"
+          },
+          "is_configured": {
+            "type": "boolean"
+          },
+          "is_enabled": {
+            "type": "boolean"
+          },
+          "label": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "provider": {
+            "enum": [
+              "google",
+              "github",
+              "slack"
+            ],
+            "type": "string"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "provider",
+          "name",
+          "label",
+          "configure_url",
+          "callback_path",
+          "callback_url",
+          "scopes",
+          "client_id",
+          "has_secret",
+          "is_configured",
+          "is_enabled"
+        ],
+        "type": "object"
+      },
+      "OAuthProviderUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "client_id": {
+            "maxLength": 191,
+            "type": "string"
+          },
+          "secret": {
+            "description": "Write-only. Omit to leave the stored secret unchanged; send an empty string to clear it. It is never returned by any read.",
+            "maxLength": 191,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "client_id"
+        ],
+        "type": "object"
+      },
+      "OAuthProviders": {
+        "additionalProperties": false,
+        "properties": {
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/OAuthProvider"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          }
+        },
+        "required": [
+          "providers"
+        ],
+        "type": "object"
+      },
+      "OperationalSetting": {
+        "additionalProperties": false,
+        "properties": {
+          "cache_policy": {
+            "const": "stamped",
+            "type": "string"
+          },
+          "default": {
+            "type": [
+              "boolean",
+              "integer",
+              "string"
+            ]
+          },
+          "definition_version": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "description": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "docs_reference": {
+            "pattern": "^_docs/",
+            "type": "string"
+          },
+          "effective_layer": {
+            "enum": [
+              "database",
+              "environment",
+              "settings",
+              "code_default"
+            ],
+            "type": "string"
+          },
+          "effective_value": {
+            "description": "The value the running processes resolve today, which is the stored row only when one exists.",
+            "type": [
+              "boolean",
+              "integer",
+              "string"
+            ]
+          },
+          "env_var": {
+            "description": "Environment variable consulted when no row is stored; may be empty.",
+            "type": "string"
+          },
+          "group": {
+            "enum": [
+              "datamailer",
+              "observability",
+              "public_media",
+              "relay.link_bridge",
+              "site.origin"
+            ],
+            "type": "string"
+          },
+          "key": {
+            "enum": [
+              "site.origin.canonical_host",
+              "datamailer.audience",
+              "datamailer.client",
+              "datamailer.endpoint",
+              "datamailer.from_domain",
+              "datamailer.from_mailbox",
+              "datamailer.import_s3_bucket",
+              "datamailer.import_s3_prefix",
+              "datamailer.import_s3_region",
+              "datamailer.import_url_expires_seconds",
+              "datamailer.outbox_dispatch_immediately",
+              "datamailer.strict",
+              "datamailer.sync_on_user_create",
+              "datamailer.timeout_seconds",
+              "datamailer.transactional_dry_run",
+              "observability.cloudwatch_metric_namespace",
+              "observability.cloudwatch_metric_region",
+              "observability.event_schema_version",
+              "public_media.max_object_bytes",
+              "public_media.s3_bucket",
+              "public_media.s3_endpoint",
+              "public_media.s3_prefix",
+              "public_media.s3_region",
+              "public_media.s3_timeout_seconds",
+              "public_media.store_backend",
+              "relay.link_bridge.endpoint",
+              "relay.link_bridge.click_timeout_seconds",
+              "relay.link_bridge.open_timeout_seconds",
+              "relay.link_bridge.pool_size",
+              "relay.link_bridge.unsubscribe_timeout_seconds"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "lifecycle": {
+            "const": "active",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "sensitivity": {
+            "const": "operational",
+            "type": "string"
+          },
+          "settings_attr": {
+            "description": "Settings attribute consulted after the environment; may be empty.",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "code_default",
+              "studio",
+              "admin_api"
+            ],
+            "type": "string"
+          },
+          "validation": {
+            "type": "object"
+          },
+          "value": {
+            "type": [
+              "boolean",
+              "integer",
+              "string"
+            ]
+          },
+          "value_type": {
+            "enum": [
+              "boolean",
+              "integer",
+              "string"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "group",
+          "label",
+          "description",
+          "value_type",
+          "default",
+          "validation",
+          "docs_reference",
+          "lifecycle",
+          "cache_policy",
+          "sensitivity",
+          "value",
+          "source",
+          "definition_version",
+          "revision",
+          "effective_value",
+          "effective_layer",
+          "env_var",
+          "settings_attr"
+        ],
+        "type": "object"
+      },
+      "OperationalSettingResult": {
+        "additionalProperties": false,
+        "properties": {
+          "cache_policy": {
+            "const": "stamped",
+            "type": "string"
+          },
+          "changed": {
+            "type": "boolean"
+          },
+          "default": {
+            "type": [
+              "boolean",
+              "integer",
+              "string"
+            ]
+          },
+          "definition_version": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "description": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "docs_reference": {
+            "pattern": "^_docs/",
+            "type": "string"
+          },
+          "group": {
+            "enum": [
+              "datamailer",
+              "observability",
+              "public_media",
+              "relay.link_bridge",
+              "site.origin"
+            ],
+            "type": "string"
+          },
+          "key": {
+            "enum": [
+              "site.origin.canonical_host",
+              "datamailer.audience",
+              "datamailer.client",
+              "datamailer.endpoint",
+              "datamailer.from_domain",
+              "datamailer.from_mailbox",
+              "datamailer.import_s3_bucket",
+              "datamailer.import_s3_prefix",
+              "datamailer.import_s3_region",
+              "datamailer.import_url_expires_seconds",
+              "datamailer.outbox_dispatch_immediately",
+              "datamailer.strict",
+              "datamailer.sync_on_user_create",
+              "datamailer.timeout_seconds",
+              "datamailer.transactional_dry_run",
+              "observability.cloudwatch_metric_namespace",
+              "observability.cloudwatch_metric_region",
+              "observability.event_schema_version",
+              "public_media.max_object_bytes",
+              "public_media.s3_bucket",
+              "public_media.s3_endpoint",
+              "public_media.s3_prefix",
+              "public_media.s3_region",
+              "public_media.s3_timeout_seconds",
+              "public_media.store_backend",
+              "relay.link_bridge.endpoint",
+              "relay.link_bridge.click_timeout_seconds",
+              "relay.link_bridge.open_timeout_seconds",
+              "relay.link_bridge.pool_size",
+              "relay.link_bridge.unsubscribe_timeout_seconds"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "lifecycle": {
+            "const": "active",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "sensitivity": {
+            "const": "operational",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "code_default",
+              "studio",
+              "admin_api"
+            ],
+            "type": "string"
+          },
+          "validation": {
+            "type": "object"
+          },
+          "value": {
+            "type": [
+              "boolean",
+              "integer",
+              "string"
+            ]
+          },
+          "value_type": {
+            "enum": [
+              "boolean",
+              "integer",
+              "string"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "group",
+          "label",
+          "description",
+          "value_type",
+          "default",
+          "validation",
+          "docs_reference",
+          "lifecycle",
+          "cache_policy",
+          "sensitivity",
+          "value",
+          "source",
+          "definition_version",
+          "revision",
+          "changed"
+        ],
+        "type": "object"
+      },
+      "OperationalSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "settings": {
+            "items": {
+              "$ref": "#/components/schemas/OperationalSetting"
+            },
+            "maxItems": 30,
+            "minItems": 30,
+            "type": "array"
+          }
+        },
+        "required": [
+          "settings"
+        ],
+        "type": "object"
+      },
+      "OperationalSettingsBatchRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "updates": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "expected_revision": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "key": {
+                  "enum": [
+                    "site.origin.canonical_host",
+                    "datamailer.audience",
+                    "datamailer.client",
+                    "datamailer.endpoint",
+                    "datamailer.from_domain",
+                    "datamailer.from_mailbox",
+                    "datamailer.import_s3_bucket",
+                    "datamailer.import_s3_prefix",
+                    "datamailer.import_s3_region",
+                    "datamailer.import_url_expires_seconds",
+                    "datamailer.outbox_dispatch_immediately",
+                    "datamailer.strict",
+                    "datamailer.sync_on_user_create",
+                    "datamailer.timeout_seconds",
+                    "datamailer.transactional_dry_run",
+                    "observability.cloudwatch_metric_namespace",
+                    "observability.cloudwatch_metric_region",
+                    "observability.event_schema_version",
+                    "public_media.max_object_bytes",
+                    "public_media.s3_bucket",
+                    "public_media.s3_endpoint",
+                    "public_media.s3_prefix",
+                    "public_media.s3_region",
+                    "public_media.s3_timeout_seconds",
+                    "public_media.store_backend",
+                    "relay.link_bridge.endpoint",
+                    "relay.link_bridge.click_timeout_seconds",
+                    "relay.link_bridge.open_timeout_seconds",
+                    "relay.link_bridge.pool_size",
+                    "relay.link_bridge.unsubscribe_timeout_seconds"
+                  ],
+                  "type": "string"
+                },
+                "value": {
+                  "type": [
+                    "boolean",
+                    "integer",
+                    "string"
+                  ]
+                }
+              },
+              "required": [
+                "key",
+                "value",
+                "expected_revision"
+              ],
+              "type": "object"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "updates"
+        ],
+        "type": "object"
+      },
+      "OperationalSettingsBatchResult": {
+        "additionalProperties": false,
+        "properties": {
+          "replayed": {
+            "type": "boolean"
+          },
+          "settings": {
+            "items": {
+              "$ref": "#/components/schemas/OperationalSettingResult"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "settings",
+          "replayed"
+        ],
+        "type": "object"
+      },
       "SiteNavigation": {
         "additionalProperties": false,
         "properties": {
@@ -2188,6 +2699,300 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/auth/providers": {
+      "get": {
+        "operationId": "accounts.oauth_providers.read",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthProviders"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "accounts.oauth_providers.read"
+            ]
+          }
+        ],
+        "summary": "Read OAuth sign-in provider configuration without any client secret",
+        "x-audit-action": "accounts.oauth_provider.read",
+        "x-capability-key": "accounts.oauth_providers.read",
+        "x-concurrency": "none",
+        "x-django-permission": "core.read_operational_settings",
+        "x-idempotency": "none",
+        "x-rate-class": "read",
+        "x-rate-cost": 1
+      }
+    },
+    "/auth/providers/{provider}": {
+      "put": {
+        "operationId": "accounts.oauth_providers.write",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthProviderUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthProvider"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "accounts.oauth_providers.write"
+            ]
+          }
+        ],
+        "summary": "Set one OAuth sign-in provider's client credentials",
+        "x-audit-action": "accounts.oauth_provider.updated",
+        "x-capability-key": "accounts.oauth_providers.write",
+        "x-concurrency": "none",
+        "x-django-permission": "core.change_operational_settings",
+        "x-idempotency": "optional",
+        "x-rate-class": "write",
+        "x-rate-cost": 1
+      }
+    },
     "/course-registration-count-imports": {
       "get": {
         "operationId": "courses.registration_count_baseline.manage",
@@ -8171,6 +8976,310 @@
         "summary": "Update public-safe site settings",
         "x-audit-action": "core.operational_settings.batch_updated",
         "x-capability-key": "site.settings.write",
+        "x-concurrency": "revision",
+        "x-django-permission": "core.change_operational_settings",
+        "x-idempotency": "required",
+        "x-rate-class": "write",
+        "x-rate-cost": 1
+      }
+    },
+    "/settings/operational": {
+      "get": {
+        "operationId": "settings.operational.read",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalSettings"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "settings.operational.read"
+            ]
+          }
+        ],
+        "summary": "Read operator-tunable runtime settings and their effective values",
+        "x-audit-action": "core.runtime_settings.read",
+        "x-capability-key": "settings.operational.read",
+        "x-concurrency": "none",
+        "x-django-permission": "core.read_operational_settings",
+        "x-idempotency": "none",
+        "x-rate-class": "read",
+        "x-rate-cost": 1
+      },
+      "patch": {
+        "operationId": "settings.operational.write",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OperationalSettingsBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalSettingsBatchResult"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "settings.operational.write"
+            ]
+          }
+        ],
+        "summary": "Update operator-tunable runtime settings without a restart",
+        "x-audit-action": "core.runtime_settings.batch_updated",
+        "x-capability-key": "settings.operational.write",
         "x-concurrency": "revision",
         "x-django-permission": "core.change_operational_settings",
         "x-idempotency": "required",

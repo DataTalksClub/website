@@ -242,9 +242,7 @@ class TerraformSourcePolicyTests(SimpleTestCase):
         evidence = validate_terraform_seo_source(terraform_fixture(), commit=COMMIT)
         self.assertEqual(evidence.commit, COMMIT)
         self.assertEqual(evidence.cache_behavior_count, 1)
-        self.assertEqual(
-            evidence.task_cpu_architecture, SELECTED_TARGET.task_cpu_architecture
-        )
+        self.assertEqual(evidence.task_cpu_architecture, SELECTED_TARGET.task_cpu_architecture)
 
     def test_each_terraform_source_regression_fails_closed(self) -> None:
         cases = (

@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from django.http import HttpRequest, JsonResponse
 from django.utils import timezone
 
+from accounts.services.oauth_providers import InvalidOAuthProvider, OAuthProviderNotFound
 from core.audit import AuditWriteContext, record_audit_event
 from core.idempotency import IdempotencyConflict, IdempotencyInProgress, execute_idempotent
 from core.models import AuditEvent, RevisionConflict
@@ -315,6 +316,16 @@ def _site_settings_error(error: Exception) -> APIError:
     return APIError(500, "internal_error", "The site settings request failed safely.")
 
 
+def _oauth_provider_error(error: Exception) -> APIError:
+    if isinstance(error, APIError):
+        return error
+    if isinstance(error, OAuthProviderNotFound):
+        return APIError(404, "not_found", "The OAuth provider was not found.")
+    if isinstance(error, (InvalidOAuthProvider, TypeError, ValueError)):
+        return APIError(400, "invalid_request", "The OAuth provider request is invalid.")
+    return APIError(500, "internal_error", "The OAuth provider request failed safely.")
+
+
 def _historical_context(
     request: HttpRequest,
     *,
@@ -420,6 +431,78 @@ def site_settings_write(request: HttpRequest) -> JsonResponse:
     except Exception as error:
         raise _site_settings_error(error) from error
     return JsonResponse(result.as_dict())
+
+
+@admin_capability("settings.operational.read")
+def operational_settings_read(request: HttpRequest) -> JsonResponse:
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        result = capability.service(context=_historical_context(request))
+    except Exception as error:
+        raise _site_settings_error(error) from error
+    return JsonResponse(result)
+
+
+@admin_capability("settings.operational.write")
+def operational_settings_write(request: HttpRequest) -> JsonResponse:
+    identity = request.api_identity  # type: ignore[attr-defined]
+    read_capability = CAPABILITY_REGISTRY.require("settings.operational.read")
+    if not principal_has_permission(identity.principal, read_capability.django_permission):
+        raise permission_denied()
+    payload = parse_json_object(request)
+    _enforce_fields(request, payload, required=frozenset({"updates"}))
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        result = capability.service(
+            updates=payload["updates"],
+            source="admin_api",
+            idempotency_key=_idempotency_key(request),
+            actor_ref=f"api_principal:{identity.principal.id}",
+            actor_id=identity.principal.user_id,
+            api_principal_id=identity.principal.id,
+            context=_historical_context(request),
+        )
+    except Exception as error:
+        raise _site_settings_error(error) from error
+    return JsonResponse(result.as_dict())
+
+
+@admin_capability("accounts.oauth_providers.read")
+def oauth_provider_list(request: HttpRequest) -> JsonResponse:
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        result = capability.service(context=_historical_context(request))
+    except Exception as error:
+        raise _oauth_provider_error(error) from error
+    return JsonResponse(result)
+
+
+@admin_capability("accounts.oauth_providers.write")
+def oauth_provider_update(request: HttpRequest, provider: str) -> JsonResponse:
+    identity = request.api_identity  # type: ignore[attr-defined]
+    read_capability = CAPABILITY_REGISTRY.require("accounts.oauth_providers.read")
+    if not principal_has_permission(identity.principal, read_capability.django_permission):
+        raise permission_denied()
+    payload = parse_json_object(request)
+    _enforce_fields(
+        request,
+        payload,
+        required=frozenset({"client_id"}),
+        optional=frozenset({"secret"}),
+    )
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        result = capability.service(
+            provider=provider,
+            payload=payload,
+            actor_ref=f"api_principal:{identity.principal.id}",
+            actor_id=identity.principal.user_id,
+            api_principal_id=identity.principal.id,
+            context=_historical_context(request),
+        )
+    except Exception as error:
+        raise _oauth_provider_error(error) from error
+    return JsonResponse(result)
 
 
 @admin_capability("site.sponsors.read")

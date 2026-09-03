@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from accounts.capabilities import OAUTH_PROVIDER_CAPABILITIES
 from core.audit_queries import (
     audit_field_policy,
     audit_object_policy,
@@ -21,6 +22,7 @@ from core.capabilities import (
 )
 from core.management_health import management_health_factory, read_management_health
 from core.navigation import SITE_NAVIGATION_CAPABILITIES
+from core.operational_settings_service import OPERATIONAL_SETTING_CAPABILITIES
 from core.site_settings import SITE_SETTING_CAPABILITIES
 from core.sponsors import SPONSOR_CAPABILITIES
 from courses.capabilities import COURSE_REGISTRATION_COUNT_CAPABILITIES
@@ -133,6 +135,8 @@ CAPABILITY_REGISTRY = CapabilityRegistry(
         STUDIO_AUDIT,
         STUDIO_AUDIT_DETAIL,
         *SITE_SETTING_CAPABILITIES,
+        *OPERATIONAL_SETTING_CAPABILITIES,
+        *OAUTH_PROVIDER_CAPABILITIES,
         *SITE_NAVIGATION_CAPABILITIES,
         *SPONSOR_CAPABILITIES,
         *CREDENTIAL_RUNTIME_CAPABILITIES,

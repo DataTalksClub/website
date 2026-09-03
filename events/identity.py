@@ -16,10 +16,11 @@ from time import sleep
 from typing import Any
 from urllib.parse import urlsplit
 
-from django.conf import settings
 from django.db import OperationalError, transaction
 from django.db.models import Max
 from django.utils import timezone
+
+from core.runtime_endpoints import canonical_origin
 
 from .models import Event, EventAlias, EventPublicIdSequence
 from .slugs import event_title_slug
@@ -283,7 +284,7 @@ def canonical_detail_path(event_id: uuid.UUID | str) -> str:
 
 
 def canonical_detail_url(event_id: uuid.UUID | str) -> str:
-    return f"{settings.CANONICAL_ORIGIN.rstrip('/')}{canonical_detail_path(event_id)}"
+    return f"{canonical_origin().rstrip('/')}{canonical_detail_path(event_id)}"
 
 
 def _allocate_public_id() -> int:

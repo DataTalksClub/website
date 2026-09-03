@@ -41,6 +41,9 @@ from typing import Any
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
+from core.runtime_config import get_int_setting, get_str_setting
+from core.runtime_endpoints import public_media_s3_endpoint_url
+
 PROJECTION_ROOT = Path(__file__).with_name("public_projection")
 MEDIA_RECORDS_FILENAME = "media.json"
 #: Every projection media record key is path-mirrored below this segment, which is also
@@ -596,7 +599,27 @@ def _configured_path(value: Any, default: Path) -> Path:
 
 
 def media_store_config() -> MediaStoreConfig:
-    backend = str(getattr(settings, "PUBLIC_MEDIA_STORE_BACKEND", DEFAULT_BACKEND)).strip().lower()
+    """Resolve the media store from the runtime registry, not the environment.
+
+    ``memory`` is not a registered setting value: it is an offline test fixture
+    selected by a settings override, and ``_build_media_store`` refuses it in a
+    deployed environment.  So the registry answers for every real backend and
+    the settings attribute is still consulted for the fixture.
+    """
+
+    settings_backend = str(getattr(settings, "PUBLIC_MEDIA_STORE_BACKEND", "")).strip().lower()
+    if settings_backend and settings_backend not in SUPPORTED_BACKENDS:
+        # A process booted with a backend nobody implements is a configuration
+        # error, and the registry would quietly fall past it to the default.
+        # Refuse it here so the misconfiguration is still visible.
+        raise ImproperlyConfigured(
+            "PUBLIC_MEDIA_STORE_BACKEND must be one of: " + ", ".join(SUPPORTED_BACKENDS)
+        )
+    backend = (
+        settings_backend
+        if settings_backend == "memory"
+        else get_str_setting("public_media.store_backend").strip().lower()
+    )
     if backend not in SUPPORTED_BACKENDS:
         raise ImproperlyConfigured(
             "PUBLIC_MEDIA_STORE_BACKEND must be one of: " + ", ".join(SUPPORTED_BACKENDS)
@@ -606,16 +629,13 @@ def media_store_config() -> MediaStoreConfig:
         local_root=_configured_path(
             getattr(settings, "PUBLIC_MEDIA_LOCAL_ROOT", None), PROJECTION_ROOT / "media"
         ),
-        s3_bucket=str(getattr(settings, "PUBLIC_MEDIA_S3_BUCKET", "")).strip(),
-        s3_prefix=str(getattr(settings, "PUBLIC_MEDIA_S3_PREFIX", DEFAULT_S3_PREFIX)).strip("/"),
-        s3_region=str(getattr(settings, "PUBLIC_MEDIA_S3_REGION", "")).strip(),
-        s3_endpoint_url=str(getattr(settings, "PUBLIC_MEDIA_S3_ENDPOINT_URL", "")).strip(),
-        s3_timeout_seconds=float(
-            getattr(settings, "PUBLIC_MEDIA_S3_TIMEOUT_SECONDS", DEFAULT_S3_TIMEOUT_SECONDS)
-        ),
-        maximum_object_bytes=int(
-            getattr(settings, "PUBLIC_MEDIA_MAX_OBJECT_BYTES", DEFAULT_MAX_OBJECT_BYTES)
-        ),
+        s3_bucket=get_str_setting("public_media.s3_bucket").strip(),
+        s3_prefix=get_str_setting("public_media.s3_prefix").strip("/"),
+        s3_region=get_str_setting("public_media.s3_region").strip(),
+        s3_endpoint_url=public_media_s3_endpoint_url(),
+        # The registry types this as whole seconds; the store wants a float.
+        s3_timeout_seconds=float(get_int_setting("public_media.s3_timeout_seconds")),
+        maximum_object_bytes=get_int_setting("public_media.max_object_bytes"),
         environment=str(getattr(settings, "ENVIRONMENT", "")).strip().lower(),
     )
 

@@ -24,6 +24,7 @@ from django.utils.dateparse import parse_datetime
 
 from core.audit import AuditWriteContext, record_audit_event
 from core.models import RevisionConflict
+from core.runtime_endpoints import canonical_origin
 from jobs.clock import database_now
 from jobs.dispatch import best_effort_wake, dispatch_after_commit
 from jobs.models import DurableJob
@@ -1089,7 +1090,7 @@ def serialize_session(
             "answered_placement": session.answered_placement,
             "default_sort": session.default_sort,
         },
-        "share_url": f"{settings.CANONICAL_ORIGIN.rstrip('/')}{event_qna_path(event)}/",
+        "share_url": f"{canonical_origin().rstrip('/')}{event_qna_path(event)}/",
         "qr_url": f"{event_qna_path(event)}/qr.svg",
         "present_url": f"/events/{event.public_id}/{event.slug}/qna/present/",
         "expires_at": session.expires_at.isoformat().replace("+00:00", "Z")

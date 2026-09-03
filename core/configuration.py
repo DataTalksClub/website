@@ -53,8 +53,19 @@ SettingValidator = Callable[[JsonValue], JsonValue | None]
 _SETTING_GROUP = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
 _DOCS_REFERENCE = re.compile(r"^_docs/[A-Za-z0-9_./#-]{1,240}$")
 _SETTING_LIFECYCLES = frozenset({"active"})
-_SETTING_CACHE_POLICIES = frozenset({"uncached"})
-_SETTING_SENSITIVITIES = frozenset({"public"})
+# ``uncached`` settings are read straight from the database on every use, which
+# is what a page-rendering read wants.  ``stamped`` settings are resolved
+# through ``core.runtime_config``, which caches them per process and drops the
+# cache when the settings table's stamp moves, so an operator's write reaches
+# every running task without a restart.
+_SETTING_CACHE_POLICIES = frozenset({"uncached", "stamped"})
+# ``public`` values may be rendered on a page anyone can open.  ``operational``
+# values are not secret -- the registry still refuses secret-bearing keys and
+# values outright -- but they name our infrastructure (buckets, endpoints,
+# sender addresses), so only the settings read permission may see them.
+_SETTING_SENSITIVITIES = frozenset({"public", "operational"})
+_ENV_VAR = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
+_SETTINGS_ATTR = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,6 +83,14 @@ class OperationalSettingDefinition:
     sensitivity: str
     version: int = 1
     validator: SettingValidator | None = None
+    #: Environment variable consulted when the database holds no row.  Naming it
+    #: here is what lets a deployment keep booting from its task definition
+    #: while an operator moves the value into the database at runtime.
+    env_var: str = ""
+    #: ``django.conf.settings`` attribute consulted after the environment.  It
+    #: is the value the process started with, so it is the honest last stop
+    #: before the definition default.
+    settings_attr: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -201,6 +220,14 @@ def register_operational_setting(
         raise InvalidOperationalSetting("setting cache policy is unsupported")
     if definition.sensitivity not in _SETTING_SENSITIVITIES:
         raise InvalidOperationalSetting("setting sensitivity is unsupported")
+    if definition.env_var and not _ENV_VAR.fullmatch(definition.env_var):
+        raise InvalidOperationalSetting("setting env var must be a stable uppercase identifier")
+    if definition.env_var and _contains_secret_name(definition.env_var):
+        raise InvalidOperationalSetting("secret-bearing settings must remain in the secret store")
+    if definition.settings_attr and not _SETTINGS_ATTR.fullmatch(definition.settings_attr):
+        raise InvalidOperationalSetting("setting settings attr must be a stable uppercase name")
+    if definition.settings_attr and _contains_secret_name(definition.settings_attr):
+        raise InvalidOperationalSetting("secret-bearing settings must remain in the secret store")
     if definition.version < 1:
         raise InvalidOperationalSetting("setting definition version must be positive")
     try:
