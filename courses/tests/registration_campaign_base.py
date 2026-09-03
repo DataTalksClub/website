@@ -1,4 +1,4 @@
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -12,6 +12,13 @@ from courses.models import (
 )
 
 
+# These suites predate the §8.3 sign-in gate and describe the anonymous
+# registration contract the gate's revert lever restores: the newsletter
+# consent rulings in ``test_registration_campaigns`` are pinned against an
+# anonymous POST and must keep exercising exactly that path.  The gate's own
+# behaviour is covered by ``courses/tests/test_registration_account_gate.py``,
+# which turns the setting back on.
+@override_settings(REGISTRATION_REQUIRES_ACCOUNT=False)
 class RegistrationCampaignBase(TestCase):
     def setUp(self):
         self.client = Client()

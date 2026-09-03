@@ -7,9 +7,10 @@ offers nothing at all rather than a link to the platform this site replaces.
 
 from __future__ import annotations
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
-from courses.models.cohort import RegistrationCampaign
+from accounts.models import CustomUser
+from courses.models.cohort import CourseRegistration, RegistrationCampaign
 from courses.services.registration_campaigns import (
     active_campaign_for_cohort,
     campaign_slug_in_registration_url,
@@ -260,7 +261,7 @@ class NewsletterConsentDefaultTests(TestCase):
     correct form look like a pre-ticked one, so the rendered markup is asserted directly.
     """
 
-    def test_the_newsletter_consent_box_renders_unchecked(self) -> None:
+    def _campaign(self) -> None:
         family = make_family("ml-zoomcamp", "Machine Learning Zoomcamp")
         cohort = make_cohort(family, 2026, homework_count=1)
         RegistrationCampaign.objects.create(
@@ -269,10 +270,38 @@ class NewsletterConsentDefaultTests(TestCase):
             current_course=cohort,
         )
 
-        response = self.client.get("/courses/register/ml-zoomcamp/")
-
+    def _assert_consent_box_renders_unchecked(self, response) -> None:
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'name="accepted_newsletter"')
         body = response.content.decode()
         consent = body[body.index('name="accepted_newsletter"') - 40 :][:200]
         self.assertNotIn("checked", consent.split(">")[0])
+
+    def test_the_newsletter_consent_box_renders_unchecked(self) -> None:
+        # The signed-in "One final step" card is the ordinary path now (§8.2),
+        # and a member who has already consented once still has to tick it:
+        # consent is never carried over from the profile or a previous
+        # registration.
+        self._campaign()
+        user = CustomUser.objects.create_user(
+            username="consent-default",
+            email="consent-default@example.com",
+            password="test",
+            certificate_name="Consent Default",
+            country="Germany",
+            region="Europe",
+            registration_role=CourseRegistration.Role.DATA_ENGINEER,
+        )
+        self.client.force_login(user)
+
+        response = self.client.get("/courses/register/ml-zoomcamp/")
+
+        self._assert_consent_box_renders_unchecked(response)
+
+    @override_settings(REGISTRATION_REQUIRES_ACCOUNT=False)
+    def test_the_newsletter_consent_box_renders_unchecked_without_the_gate(self) -> None:
+        self._campaign()
+
+        response = self.client.get("/courses/register/ml-zoomcamp/")
+
+        self._assert_consent_box_renders_unchecked(response)

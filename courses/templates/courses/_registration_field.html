@@ -1,0 +1,41 @@
+{% load accessibility %}
+{% comment %}
+  One registration form field, drawn the same way everywhere it appears: the
+  signed-out form's loop, the signed-in card's "a couple of details we don't
+  have yet" list, and its "Edit these details" fold all include this file, so
+  the label, help text, error relationship and country-combobox hooks cannot
+  drift between the three places the same field is written.
+
+  Every hook is the one courses/views/registration_form.py already produced:
+  the widget class names, `data-country-combobox-input`,
+  `data-country-combobox-panel` and `country-options-json`.
+{% endcomment %}
+{% accessibility_help_id field as help_id %}
+{% accessibility_error_id field as error_id %}
+<div
+  {% if field.name == 'country' %}
+    class="country-combobox-field"
+  {% endif %}
+>
+  <label for="{{ field.id_for_label }}" class="registration-field-label">
+    {{ field.label }}
+    {% if field.field.required %}
+      <span class="a11y-required" aria-hidden="true">*</span>
+      <span class="sr-only">(required)</span>
+    {% endif %}
+  </label>
+  {% accessible_widget field %}
+  {% if field.name == 'country' %}
+    {{ country_options|json_script:"country-options-json" }}
+    <div class="country-combobox-panel" data-country-combobox-panel hidden></div>
+  {% endif %}
+  {% if field.help_text %}
+    <p id="{{ help_id }}" class="a11y-help">{{ field.help_text }}</p>
+  {% endif %}
+  {% if field.errors %}
+    <p id="{{ error_id }}" class="a11y-error">
+      <span class="sr-only">Error:</span>
+      {{ field.errors|join:" " }}
+    </p>
+  {% endif %}
+</div>

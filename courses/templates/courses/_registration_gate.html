@@ -1,0 +1,44 @@
+{% comment %}
+  The sign-in gate (`_docs/design/specs/signed-in-home.md` §8.3).
+
+  Registration is account-owned: `_docs/specs/open-decisions.md` §6 and
+  `_docs/specs/04-courses-and-cohorts.md` already rule that it "never creates an
+  anonymous CourseRegistration".  The account is not an extra cost but a moved
+  one — homework, the leaderboard and the certificate all need it anyway — so
+  the twenty seconds are spent at the moment of highest motivation, and the
+  registration comes back linked to a person.
+
+  Only the form is gated.  The campaign's marketing copy, video and
+  already-registered count above stay fully visible to an anonymous visitor.
+
+  The round trip is the existing `?next=` primitive: `safe_next_path`
+  (accounts/navigation.py) honours a local next and only forces "/" for
+  account-transition paths, so signing up or in returns here, where §8.2's
+  short final step is waiting.  The signup URL is resolved into a variable and
+  guarded, the way the shared masthead already resolves it, so a deployment
+  without the optional signup route renders the sign-in half instead of
+  failing (issue #296's class of failure).
+{% endcomment %}
+{% url 'account_signup' as account_signup_url %}
+<div class="card registration-panel">
+  <h2 id="registration-form-heading">Create your free account to register</h2>
+  <p class="registration-note">
+    One account covers everything: registering, homework, the leaderboard, and
+    your certificate. Takes about twenty seconds.
+  </p>
+  <div class="registration-gate-actions">
+    {% if account_signup_url %}
+      <a
+        class="cta cta-primary interactive-lift"
+        href="{{ account_signup_url }}?next={{ request.path|urlencode }}"
+      >Create account</a>
+    {% endif %}
+  </div>
+  <p class="registration-fineprint">
+    Already have one?
+    <a
+      class="band-link"
+      href="{% url 'login' %}?next={{ request.path|urlencode }}"
+    >Sign in</a>
+  </p>
+</div>

@@ -193,6 +193,14 @@ ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USER_MODEL_EMAIL_FIELD = "email"
 ACCOUNT_ALLOW_REGISTRATION = False
+
+# Course registration is account-owned (`_docs/specs/open-decisions.md` §6,
+# `_docs/specs/04-courses-and-cohorts.md`), and the signed-in-home spec §8.3
+# turns that decision into a sign-in gate on the campaign form.  The flag is the
+# revert lever the spec asks for: the gate is a conversion-path bet, and the
+# owner can turn it off on evidence rather than on argument, without a code
+# change.  Default on.
+REGISTRATION_REQUIRES_ACCOUNT = env_flag("REGISTRATION_REQUIRES_ACCOUNT", default=True)
 SOCIALACCOUNT_ADAPTER = "accounts.auth.ConsolidatingSocialAccountAdapter"
 SOCIALACCOUNT_LOGIN_ON_GET = True
 SOCIALACCOUNT_PROVIDERS = {

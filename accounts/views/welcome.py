@@ -11,7 +11,7 @@ from __future__ import annotations
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 
-from accounts.forms import AboutYouForm
+from accounts.forms import AboutYouForm, about_you_country_options
 from allauth.socialaccount.models import SocialAccount
 
 
@@ -52,4 +52,5 @@ def welcome(request):
     else:
         form = AboutYouForm(instance=request.user, initial=_social_prefill_initial(request.user))
 
-    return render(request, "account/welcome.html", {"form": form})
+    context = {"form": form, "country_options": about_you_country_options()}
+    return render(request, "account/welcome.html", context)

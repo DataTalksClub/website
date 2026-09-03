@@ -75,6 +75,9 @@ VIEWPORTS = (
     ({"width": 390, "height": 844}, "mobile"),
 )
 SCREENSHOTS = Path(".tmp/screenshots/issue-65")
+# The one value the invalid-registration state types, so the same string is
+# submitted and then asserted to have survived the error.
+INVALID_FORM_COMPANY = "Synthetic Valid Company"
 
 
 @pytest.fixture
@@ -331,6 +334,11 @@ def accessibility_environment() -> AccessibilityEnvironment:
         "login": Surface("/accounts/login/"),
         "login-error": Surface("/accounts/login/"),
         "account-settings": Surface("/accounts/settings/", actor="learner"),
+        # "/" branches on authentication (signed-in-home spec §3): the same URL
+        # answers with the marketing page for "home" and with the member home
+        # for a signed-in actor, so both branches are scanned.
+        "member-home": Surface("/", actor="learner"),
+        "account-welcome": Surface("/accounts/welcome/", actor="learner"),
         "identity-conflict": Surface(
             "/_accessibility/identity-conflict/",
             expected_status=409,
@@ -359,8 +367,12 @@ def accessibility_environment() -> AccessibilityEnvironment:
             reverse("registration_campaign", kwargs={"campaign_slug": campaign.slug}),
             actor="learner",
         ),
+        # Registration is account-owned (signed-in-home spec §8.3), so the form
+        # that can be submitted invalidly is the signed-in "One final step"
+        # card; the anonymous campaign carries the sign-in gate instead.
         "registration-error": Surface(
-            reverse("registration_campaign", kwargs={"campaign_slug": error_campaign.slug})
+            reverse("registration_campaign", kwargs={"campaign_slug": error_campaign.slug}),
+            actor="learner",
         ),
         "dashboard": Surface(
             reverse("dashboard", kwargs=course_route),
@@ -473,8 +485,12 @@ def _visit_surface(
         page.get_by_role("button", name="Create credential").click()
         expect(page.get_by_role("heading", name="Copy this credential now")).to_be_visible()
     elif name == "registration-error":
+        # A valid value the member typed, submitted without the required
+        # newsletter consent: the error summary appears and the typed value has
+        # to survive it.  The email is not a form field on this card any more —
+        # it is the account's, shown read-only (§8.2).
         form = page.locator("[data-registration-form]")
-        form.locator('[name="email"]').fill("synthetic-valid@example.invalid")
+        form.locator('[name="company_name"]').fill(INVALID_FORM_COMPANY)
         form.evaluate("element => element.submit()")
         expect(page.locator("[data-focus-error-summary]")).to_be_visible()
 
@@ -962,6 +978,12 @@ def _account_scenario(recorder: ScenarioRecorder) -> set[str]:
     ).to_have_count(0)
     recorder.scan_current("account.authenticated-navigation")
 
+    # "/" branches on authentication rather than redirecting (§3), so the same
+    # path that carries the marketing hero for "public.home" carries the member
+    # home here, and onboarding is the page it sends an incomplete profile to.
+    recorder.scan("account.member-home", "member-home", text="Getting started")
+    recorder.scan("account.welcome", "account-welcome", text="About you")
+
     recorder.scan(
         "account.identity-conflict",
         "identity-conflict",
@@ -1232,7 +1254,11 @@ def _historical_scenario(recorder: ScenarioRecorder) -> set[str]:
 
 def _learner_scenario(recorder: ScenarioRecorder) -> set[str]:
     simple_states = (
-        ("learner.signed-out-registration", "registration", "Register"),
+        (
+            "learner.signed-out-registration",
+            "registration",
+            "Create your free account to register",
+        ),
         ("learner.dashboard", "dashboard", None),
         ("learner.enrollment", "enrollment", "Edit Enrollment Details"),
         ("learner.homework", "homework", None),
@@ -1473,12 +1499,11 @@ def test_keyboard_focus_status_and_form_error_contracts(
     expect(page.locator("#copy-status")).to_contain_text("Credential copied")
 
     _visit_surface(page, live_server, accessibility_environment, "registration-error")
-    expected_email = "synthetic-valid@example.invalid"
     assert (
         preserved_value_issues(
             page,
             "learner.invalid-form",
-            {"email": expected_email},
+            {"company_name": INVALID_FORM_COMPANY},
         )
         == []
     )

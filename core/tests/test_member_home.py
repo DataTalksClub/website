@@ -122,6 +122,7 @@ class MemberHomeStateTests(TestCase):
             state=HomeworkState.CLOSED.value, due_date=due
         )
         homework = Homework.objects.filter(course=cohort).order_by("id").first()
+        assert homework is not None
         homework.state = HomeworkState.OPEN.value
         homework.save(update_fields=["state"])
 
@@ -149,6 +150,44 @@ class MemberHomeStateTests(TestCase):
 
         self.assertIn("Materials aren't published yet.", body)
         self.assertNotIn("Next deadline", body)
+
+    def _upcoming_cohort(self, slug: str, title: str, year: int, days: int) -> Cohort:
+        family = make_family(slug, title)
+        cohort = make_cohort(
+            family,
+            year,
+            start_date=timezone.localdate() + timedelta(days=days),
+        )
+        cohort.registration_url = "https://example.invalid/register"
+        cohort.save(update_fields=["registration_url"])
+        Enrollment.objects.create(student=self.member, course=cohort)
+        return cohort
+
+    def test_the_hero_never_claims_progress_a_member_could_not_have_made(self):
+        """§5: "pick up where you left off" is true only when something is running."""
+
+        self._upcoming_cohort("later-zoomcamp", "Later Zoomcamp", 2027, days=60)
+        self._upcoming_cohort("sooner-zoomcamp", "Sooner Zoomcamp", 2027, days=30)
+
+        body = self.client.get(reverse("home")).content.decode()
+
+        self.assertNotIn("Pick up where you left off", body)
+        # The lede names the cohort that opens first, and says what happens next.
+        self.assertIn("You're registered for Sooner Zoomcamp", body)
+        self.assertIn("we'll email you when materials open", body)
+
+    def test_an_upcoming_cohort_beside_a_finished_one_still_reads_honestly(self):
+        family = make_family("done-zoomcamp", "Done Zoomcamp")
+        finished = make_cohort(family, 2025, start_date=date(2025, 5, 5))
+        finished.finished = True
+        finished.save(update_fields=["finished"])
+        Enrollment.objects.create(student=self.member, course=finished)
+        self._upcoming_cohort("next-zoomcamp", "Next Zoomcamp", 2027, days=30)
+
+        body = self.client.get(reverse("home")).content.decode()
+
+        self.assertNotIn("Pick up where you left off", body)
+        self.assertIn("You're registered for Next Zoomcamp", body)
 
     def test_only_finished_cohorts_show_the_score_and_certificate(self):
         family = make_family("mlops-zoomcamp", "MLOps Zoomcamp")
@@ -232,6 +271,26 @@ class HomeDismissalTests(TestCase):
         self.member.refresh_from_db()
         self.assertEqual(self.member.home_dismissals, {})
 
+    def test_the_allowlist_holds_only_dismissals_a_member_can_actually_make(self):
+        """Every key has a control behind it; §9's event nudge has no surface yet."""
+
+        from accounts.home_dismissals import HOME_DISMISSAL_KEYS
+
+        self.assertEqual(
+            HOME_DISMISSAL_KEYS,
+            frozenset(
+                {
+                    "getting_started_skip_course",
+                    "getting_started_slack_done",
+                    "getting_started_skip_slack",
+                    "getting_started_skip_profile",
+                    "getting_started_checklist",
+                }
+            ),
+        )
+        refused = self.client.post(self.url, {"key": "profile_nudge"})
+        self.assertEqual(refused.status_code, 400)
+
     def test_a_dismissal_cannot_be_aimed_at_another_member(self):
         response = self.client.post(
             self.url,
@@ -288,6 +347,42 @@ class AboutYouPageTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertIn(reverse("login"), response.headers["Location"])
+
+    def test_country_and_role_use_the_widgets_registration_uses(self):
+        """§7.3 names both: a plain text pair would store what registration rejects."""
+
+        self.member.registration_role = "data_engineer"
+        self.member.save(update_fields=["registration_role"])
+
+        body = self.client.get(self.url).content.decode()
+
+        # Country is the registration form's combobox, hook for hook.
+        self.assertIn("data-country-combobox-input", body)
+        self.assertIn('id="country-options-json"', body)
+        self.assertIn("data-country-combobox-panel", body)
+        self.assertIn("country_combobox.js", body)
+        # Role is a select over the registration role vocabulary, so the page
+        # reads "Data Engineer" rather than the stored "data_engineer".
+        self.assertIn('<option value="data_engineer" selected>Data Engineer</option>', body)
+        self.assertIn('<option value="ml_engineer">ML Engineer</option>', body)
+
+    def test_a_country_registration_would_reject_is_refused_here_too(self):
+        response = self.client.post(
+            self.url,
+            {"certificate_name": "Ada Lovelace", "country": "Nowhere"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Select a valid country.")
+        self.member.refresh_from_db()
+        self.assertEqual(self.member.country, "")
+
+    def test_saving_a_country_derives_the_region_registration_would_derive(self):
+        self.client.post(self.url, {"country": "Germany"})
+
+        self.member.refresh_from_db()
+        self.assertEqual(self.member.country, "Germany")
+        self.assertEqual(self.member.region, "Europe")
 
     def test_saving_the_three_core_fields_completes_the_checklist_item(self):
         response = self.client.post(

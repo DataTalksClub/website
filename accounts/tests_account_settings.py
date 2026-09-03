@@ -100,6 +100,26 @@ class AccountSettingsOverviewViewTestCase(AccountSettingsViewTestBase):
         self.assertIn('<h1 id="account-settings-heading">Account settings</h1>', body)
         self.assertNotIn('class="mono-label mono-label-indigo">Account</p>', body)
 
+    def test_the_lede_names_every_section_the_page_actually_owns(self):
+        """The page absorbed the theme and sign-in methods; the lede said neither."""
+
+        self.client.force_login(self.user)
+
+        body = self.client.get(reverse("account_settings")).content.decode()
+
+        lede_start = body.index('class="settings-lede"')
+        lede = body[lede_start : body.index("</p>", lede_start)]
+        for section in (
+            "profile details",
+            "display preferences",
+            "sign-in methods",
+            "email subscriptions",
+            "course enrollments",
+        ):
+            with self.subTest(section=section):
+                self.assertIn(section, lede)
+        self.assertNotIn("certificate name, timezone, theme preference", body)
+
     def test_account_theme_toggle_updates_shared_state_and_persists_on_reload(self):
         self.client.force_login(self.user)
         account_settings_url = reverse("account_settings")

@@ -109,6 +109,12 @@ CRITICAL_STATES = (
         "account.authenticated-navigation", "account", "account-settings", IDENTITY_TEST, js=True
     ),
     _state("account.settings", "account", "account-settings", IDENTITY_TEST, js=True, core=True),
+    # The two surfaces a signed-in member meets first: "/" no longer renders the
+    # marketing page for them, and onboarding collects the profile registration
+    # used to ask for again every time.  Both are authored pages with their own
+    # headings, lists and form, so both answer to the same axe scan as the rest.
+    _state("account.member-home", "account", "member-home", IDENTITY_TEST, core=True),
+    _state("account.welcome", "account", "account-welcome", IDENTITY_TEST),
     _state("account.identity-conflict", "account", "identity-conflict", IDENTITY_TEST),
     _state("account.logout-return", "account", "login", IDENTITY_TEST),
     _state("account.revoked-session-return", "account", None, IDENTITY_TEST, contract=True),
@@ -237,6 +243,9 @@ ACCESSIBILITY_AUTHORED_TEMPLATES = (
     "courses/templates/courses/enrollment.html",
     "courses/templates/courses/register.html",
     "templates/management_api/credential_fixture.html",
+    # The one breadcrumb trail every page draws: a nav landmark, an ordered list
+    # and the aria-current rule, written once so no page can spell them its own way.
+    "templates/core/_breadcrumbs.html",
     "templates/core/_site_footer.html",
     "templates/public/_event_meta.html",
     "templates/public/article_detail.html",

@@ -725,6 +725,10 @@ class CourseRegistrationCountBaselineTests(TestCase):
         DATAMAILER_API_KEY="",
         DATAMAILER_CLIENT="",
         DATAMAILER_AUDIENCE="",
+        # What is measured here is the count a native registration adds, not
+        # who may register: the §8.3 sign-in gate is off so the assertion keeps
+        # exercising the one-POST path it was written for.
+        REGISTRATION_REQUIRES_ACCOUNT=False,
     )
     def test_successful_form_increments_once_and_duplicate_does_not(self) -> None:
         self._replace_source(((1, 1, 1, SOURCE_MINIMUM.isoformat(), "synthetic-baseline"),))

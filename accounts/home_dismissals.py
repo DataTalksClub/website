@@ -15,8 +15,14 @@ CHECKLIST_SLACK_DONE = "getting_started_slack_done"
 CHECKLIST_SKIP_SLACK = "getting_started_skip_slack"
 CHECKLIST_SKIP_PROFILE = "getting_started_skip_profile"
 CHECKLIST_DISMISSED = "getting_started_checklist"
-PROFILE_NUDGE_DISMISSED = "profile_nudge"
 
+# The allowlist is the list of dismissals the product can actually make, not a
+# wish list: every key here has a control behind it.  Spec §9's `profile_nudge`
+# is deliberately absent — the nudge belongs to internal event sign-up, which
+# does not exist yet (`events/current_registration.py` imports counts from
+# external providers), and an endpoint that accepts a key no surface writes and
+# no template reads is a dismissal nobody can make.  It comes back with the
+# nudge that owns it.
 HOME_DISMISSAL_KEYS = frozenset(
     {
         CHECKLIST_SKIP_COURSE,
@@ -24,6 +30,5 @@ HOME_DISMISSAL_KEYS = frozenset(
         CHECKLIST_SKIP_SLACK,
         CHECKLIST_SKIP_PROFILE,
         CHECKLIST_DISMISSED,
-        PROFILE_NUDGE_DISMISSED,
     }
 )

@@ -28,7 +28,6 @@ from accounts.home_dismissals import (
     CHECKLIST_SKIP_SLACK,
     CHECKLIST_SLACK_DONE,
     HOME_DISMISSAL_KEYS,
-    PROFILE_NUDGE_DISMISSED,
 )
 from content.public_data import event_groups
 from core.home_content import event_time_display
@@ -53,7 +52,6 @@ __all__ = [
     "CHECKLIST_SKIP_SLACK",
     "CHECKLIST_SKIP_PROFILE",
     "CHECKLIST_DISMISSED",
-    "PROFILE_NUDGE_DISMISSED",
     "build_member_home_context",
     "profile_is_complete",
 ]
@@ -436,13 +434,15 @@ def build_member_home_context(request) -> dict:
     checklist_complete = all(item.complete for item in checklist)
     checklist_dismissed = bool(dismissals.get(CHECKLIST_DISMISSED))
 
-    profile_nudge_visible = not profile_is_complete(user) and not dismissals.get(
-        PROFILE_NUDGE_DISMISSED
-    )
-
-    only_upcoming_cohort = None
-    if not active_cards and not finished_cards and len(upcoming_cards) == 1:
-        only_upcoming_cohort = upcoming_cards[0]
+    # The hero speaks for the cohorts the member actually has.  "Pick up where
+    # you left off" is only true when something is running: with no active
+    # cohort the hero names the next one that opens instead, which is §5's
+    # state-4 lede and is honest whether there is one upcoming cohort or five.
+    next_upcoming_cohort = None
+    if not active_cards and upcoming_cards:
+        next_upcoming_cohort = min(
+            upcoming_cards, key=lambda card: card.cohort.start_date
+        )
 
     your_courses_variant = "row_list" if len(active_cards) >= 4 else "cards"
 
@@ -465,7 +465,6 @@ def build_member_home_context(request) -> dict:
         "checklist_dismissed": checklist_dismissed,
         "checklist_done_count": sum(1 for item in checklist if item.complete),
         "single_active_cohort": active_cards[0] if len(active_cards) == 1 else None,
-        "only_upcoming_cohort": only_upcoming_cohort,
+        "next_upcoming_cohort": next_upcoming_cohort,
         "multi_active_cohorts": len(active_cards) > 1,
-        "profile_nudge_visible": profile_nudge_visible,
     }

@@ -176,10 +176,10 @@
           </p>
         {% elif member_home_state == "state_2" %}
           <h1 id="member-home-heading">Welcome back</h1>
-          {% if only_upcoming_cohort %}
+          {% if next_upcoming_cohort %}
             <p class="member-home-lede">
-              You're registered for {{ only_upcoming_cohort.cohort.title }}.
-              It starts {{ only_upcoming_cohort.cohort.start_date|date:"N j, Y" }}
+              You're registered for {{ next_upcoming_cohort.cohort.title }}.
+              It starts {{ next_upcoming_cohort.cohort.start_date|date:"N j, Y" }}
               — we'll email you when materials open.
             </p>
           {% elif single_active_cohort %}

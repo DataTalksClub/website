@@ -3,6 +3,17 @@ from django import forms
 from accounts.models import CustomUser
 from accounts.services.timezones import build_timezone_options, is_valid_timezone
 
+# ``country``/``registration_role`` are accounts-owned compatibility
+# projections of values the courses domain defines: the country list and the
+# role vocabulary both live in ``courses``, and course registration is the
+# surface that writes them back.  Onboarding must therefore offer exactly the
+# same choices, or it would store a country registration then rejects and a
+# role that renders as its raw stored value.  Importing them here follows the
+# precedent already set by ``accounts/views/account_settings.py``, which reads
+# ``courses.models.Enrollment`` for the same reason.
+from courses.models.cohort import CourseRegistration
+from courses.registration import ordered_countries, region_for_country
+
 
 class DevelopmentOwnerLoginForm(forms.Form):
     email = forms.EmailField(
@@ -46,6 +57,20 @@ REGISTRATION_ROLE_WIDGET = forms.TextInput(
         "placeholder": "Your role",
     }
 )
+# The registration form's own country combobox, hook for hook
+# (`courses/static/country_combobox.js`): a text input the script upgrades into
+# a filtered listbox, and which still accepts a typed country with JavaScript
+# off.  Spec §7.3 names this widget for the onboarding page.
+COUNTRY_COMBOBOX_WIDGET = forms.TextInput(
+    attrs={
+        "class": "form-control",
+        "autocomplete": "country-name",
+        "placeholder": "Start typing your country",
+        "data-country-combobox-input": "",
+    }
+)
+REGISTRATION_ROLE_SELECT_WIDGET = forms.Select(attrs={"class": "form-control"})
+REGISTRATION_ROLE_CHOICES = [("", "Select role"), *CourseRegistration.Role.choices]
 GITHUB_URL_WIDGET = forms.TextInput(attrs={"class": "form-control"})
 LINKEDIN_URL_WIDGET = forms.TextInput(attrs={"class": "form-control"})
 PERSONAL_WEBSITE_URL_WIDGET = forms.TextInput(attrs={"class": "form-control"})
@@ -134,6 +159,15 @@ class AboutYouForm(forms.ModelForm):
     page is safely skippable and trivially resumable.
     """
 
+    # Declared rather than left to ``Meta``, so it carries the registration role
+    # vocabulary; a declared field takes its own label, not ``Meta.labels``.
+    registration_role = forms.ChoiceField(
+        label="Role",
+        required=False,
+        choices=REGISTRATION_ROLE_CHOICES,
+        widget=REGISTRATION_ROLE_SELECT_WIDGET,
+    )
+
     class Meta:
         model = CustomUser
         fields = [
@@ -162,8 +196,7 @@ class AboutYouForm(forms.ModelForm):
         }
         widgets = {
             "certificate_name": CERTIFICATE_NAME_WIDGET,
-            "country": COUNTRY_WIDGET,
-            "registration_role": REGISTRATION_ROLE_WIDGET,
+            "country": COUNTRY_COMBOBOX_WIDGET,
             "github_url": GITHUB_URL_WIDGET,
             "linkedin_url": LINKEDIN_URL_WIDGET,
             "personal_website_url": PERSONAL_WEBSITE_URL_WIDGET,
@@ -174,3 +207,36 @@ class AboutYouForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field_name in self.fields:
             self.fields[field_name].required = False
+        # A role stored before a choice was renamed (or by an import) must not
+        # silently disappear from the select the person is looking at.
+        stored_role = self.initial.get("registration_role") or ""
+        known_roles = {value for value, _label in REGISTRATION_ROLE_CHOICES}
+        if stored_role and stored_role not in known_roles:
+            self.fields["registration_role"].choices = [
+                *REGISTRATION_ROLE_CHOICES,
+                (stored_role, stored_role),
+            ]
+
+    def clean_country(self):
+        # The same rule course registration applies, so onboarding cannot store
+        # a country that registration would then reject.
+        country = self.cleaned_data.get("country") or ""
+        if not country:
+            return ""
+        if not region_for_country(country):
+            raise forms.ValidationError("Select a valid country.")
+        return country
+
+    def save(self, commit=True):
+        # Region is derived, never asked (spec §7.5), exactly as the
+        # registration write-back derives it — so a profile completed through
+        # onboarding and a profile completed through registration hold the same
+        # record rather than one with a country and no region.
+        self.instance.region = region_for_country(self.instance.country or "")
+        return super().save(commit=commit)
+
+
+def about_you_country_options():
+    """The combobox's option list, in the order the registration form uses."""
+
+    return ordered_countries()
