@@ -8,9 +8,21 @@ from django.conf import settings
 from django.db import connections
 from django.db.migrations.executor import MigrationExecutor
 
-from test_support.migrations import assert_stable_migration_module_isolation
+from test_support.migrations import (
+    MigrationContractError,
+    assert_stable_migration_module_isolation,
+    migration_application_imports,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
+
+#: One module a migration loads that is *not* stable, recorded so it cannot
+#: spread while the fix is out of scope.  ``validate_url_200`` is attached to
+#: ``Homework``/``Project`` URL fields, so Django serializes a reference to it
+#: and every replay imports ``requests`` and ``core.security`` with it.  The
+#: entry is retired by moving the field-attached validators into a module that
+#: imports neither -- never by adding a second entry here.
+KNOWN_UNSTABLE_MIGRATION_MODULES = frozenset({"courses.validators.custom_url_validators"})
 
 
 class StableMigrationModuleTests(unittest.TestCase):
@@ -18,6 +30,45 @@ class StableMigrationModuleTests(unittest.TestCase):
 
     def test_content_migration_validators_import_nothing_mutable(self) -> None:
         assert_stable_migration_module_isolation(ROOT / "content" / "migration_validators.py")
+
+    def test_every_module_a_migration_imports_is_stable(self) -> None:
+        """The trap: a field validator that serializes as an import, not a value.
+
+        A named validator object in a models module makes the migration name
+        ``courses.models.<x>.<validator>``, which imports live model code on
+        every replay.  Building the validator inline from plain constants makes
+        Django serialize it by value instead.
+        """
+
+        unstable: dict[str, str] = {}
+        for path in sorted(ROOT.glob("*/migrations/[0-9]*.py")):
+            for module in migration_application_imports(path):
+                candidate = ROOT / Path(*module.split(".")).with_suffix(".py")
+                if not candidate.is_file():
+                    candidate = ROOT / Path(*module.split(".")) / "__init__.py"
+                if not candidate.is_file():
+                    unstable[module] = f"{module} is not resolvable to a file"
+                    continue
+                try:
+                    assert_stable_migration_module_isolation(candidate)
+                except MigrationContractError as error:
+                    unstable[module] = str(error)
+
+        self.assertEqual(
+            set(unstable) - KNOWN_UNSTABLE_MIGRATION_MODULES,
+            set(),
+            f"a migration loads mutable runtime code: {unstable}",
+        )
+
+    def test_the_known_unstable_module_is_still_the_only_one(self) -> None:
+        """Retire the entry by fixing the module, not by deleting the record."""
+
+        for module in KNOWN_UNSTABLE_MIGRATION_MODULES:
+            with self.subTest(module=module):
+                with self.assertRaises(MigrationContractError):
+                    assert_stable_migration_module_isolation(
+                        ROOT / Path(*module.split(".")).with_suffix(".py")
+                    )
 
     def test_the_boundary_rejects_a_transitive_current_app_import(self) -> None:
         layout = settings.TEST_RUNTIME.worker("migration-import-boundary")
