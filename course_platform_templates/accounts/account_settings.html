@@ -1,4 +1,4 @@
-{% load accessibility static %}
+{% load accessibility socialaccount static %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -213,6 +213,66 @@
         font-size: 0.85rem;
       }
 
+      /* One sign-in method per dashed row: the provider and the identity it
+         knows this member by on the left, its disconnect action on the right.
+         Secondary copy takes --body-text for the same reason .settings-note
+         does, rather than the --muted this page cannot rely on. */
+      .connection-name {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .connection-address {
+        color: var(--body-text);
+        font-size: 0.9rem;
+        overflow-wrap: anywhere;
+      }
+
+      .connection-form {
+        margin: 0;
+      }
+
+      .sign-in-methods-add {
+        font-size: 1.05rem;
+        margin-top: 1.5rem;
+      }
+
+      /* The provider stack, matching the entrance pages: one full-width
+         control per configured provider, so the set reads as one decision. */
+      .provider-choices {
+        display: grid;
+        gap: 0.75rem;
+        margin-top: 0.85rem;
+      }
+
+      .provider-choice {
+        gap: 0.6rem;
+        width: 100%;
+      }
+
+      .provider-mark {
+        flex: none;
+        height: 1.25rem;
+        width: 1.25rem;
+      }
+
+      /* The outcome of a disconnect, in the same sand/ink treatment the field
+         errors use: this system carries no red, and the words carry meaning. */
+      .settings-messages {
+        display: grid;
+        gap: 0.5rem;
+        margin-bottom: 1.25rem;
+      }
+
+      .settings-message {
+        background: var(--sand);
+        border: 2px solid var(--line);
+        border-radius: 0.5rem;
+        color: var(--ink);
+        font-size: 0.92rem;
+        padding: 0.6rem 0.8rem;
+      }
+
       @media (prefers-reduced-motion: reduce) {
         .toggle-row input[type="checkbox"]::before {
           transition: none;
@@ -227,6 +287,10 @@
         }
 
         .enrollment-action {
+          width: 100%;
+        }
+
+        .connection-form .cta {
           width: 100%;
         }
       }
@@ -291,6 +355,45 @@
                     <div class="settings-error" id="{{ form.certificate_name.id_for_label }}-error">
                       <span class="sr-only">Error:</span>
                       {{ form.certificate_name.errors|join:" " }}
+                    </div>
+                  {% endif %}
+                </div>
+                {% comment %}
+                  Country and role are onboarding-owned (`/accounts/welcome/`),
+                  and this is where that page promises they can be changed
+                  later. They are also fields of this form, so leaving them
+                  unrendered made one "Save changes" here blank whatever
+                  onboarding had just collected.
+                {% endcomment %}
+                <div class="field">
+                  <label class="field-label" for="{{ form.country.id_for_label }}">
+                    {{ form.country.label }}
+                    <span class="settings-optional">(optional)</span>
+                  </label>
+                  {% accessible_widget form.country %}
+                  <p class="field-hint" id="{{ form.country.id_for_label }}-help">
+                    {{ form.country.help_text }}
+                  </p>
+                  {% if form.country.errors %}
+                    <div class="settings-error" id="{{ form.country.id_for_label }}-error">
+                      <span class="sr-only">Error:</span>
+                      {{ form.country.errors|join:" " }}
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="field">
+                  <label class="field-label" for="{{ form.registration_role.id_for_label }}">
+                    {{ form.registration_role.label }}
+                    <span class="settings-optional">(optional)</span>
+                  </label>
+                  {% accessible_widget form.registration_role %}
+                  <p class="field-hint" id="{{ form.registration_role.id_for_label }}-help">
+                    {{ form.registration_role.help_text }}
+                  </p>
+                  {% if form.registration_role.errors %}
+                    <div class="settings-error" id="{{ form.registration_role.id_for_label }}-error">
+                      <span class="sr-only">Error:</span>
+                      {{ form.registration_role.errors|join:" " }}
                     </div>
                   {% endif %}
                 </div>
@@ -361,10 +464,35 @@
               <div class="band-head band-head-secondary">
                 <div>
                   <h2 id="display-preferences-heading">Display preferences</h2>
-                  <p>Deadlines and notification emails use this timezone.</p>
+                  <p>
+                    How the site looks while you are signed in, and the timezone
+                    deadlines and notification emails use.
+                  </p>
                 </div>
               </div>
               <div class="settings-group settings-fields">
+                {% comment %}
+                  Theme leads this section.  It is the first thing a signed-in
+                  member comes here for — the masthead pill is the signed-out
+                  control, so this row is where their theme lives — and it is a
+                  display preference, so it belongs beside the timezone rather
+                  than appended after it.
+                {% endcomment %}
+                <div
+                  class="toggle-row js-immediate-toggle-row"
+                  data-toggle-url="{% url 'update_account_toggle' %}"
+                >
+                  {% accessible_widget form.dark_mode %}
+                  <span class="toggle-copy">
+                    <label class="toggle-label" for="{{ form.dark_mode.id_for_label }}">
+                      {{ form.dark_mode.label }}
+                    </label>
+                    <span class="toggle-help">
+                      Saved as soon as you switch it, and applied to every page you
+                      open while signed in.
+                    </span>
+                  </span>
+                </div>
                 <div class="field">
                   <label class="field-label" for="{{ form.preferred_timezone.id_for_label }}">
                     {{ form.preferred_timezone.label }}
@@ -394,18 +522,6 @@
                     </div>
                   {% endif %}
                 </div>
-                <div
-                  class="toggle-row js-immediate-toggle-row"
-                  data-toggle-url="{% url 'update_account_toggle' %}"
-                >
-                  {% accessible_widget form.dark_mode %}
-                  <span class="toggle-copy">
-                    <label class="toggle-label" for="{{ form.dark_mode.id_for_label }}">
-                      {{ form.dark_mode.label }}
-                    </label>
-                    <span class="toggle-help">Choose the default theme for your account.</span>
-                  </span>
-                </div>
               </div>
             </section>
 
@@ -417,6 +533,73 @@
               >Save changes</button>
             </div>
           </form>
+        </div>
+      </section>
+
+      {% comment %}
+        Sign-in methods, moved here from the separate /accounts/3rdparty/ page.
+        It is a band of its own rather than a group inside the profile form:
+        identity is a different kind of thing from a display preference, each
+        disconnect is its own POST, and an HTML form cannot be nested inside
+        the profile form above.
+
+        The rule about disconnecting the last way in is not restated in this
+        template.  allauth's DisconnectForm still decides, and refuses with its
+        own wording, so this page cannot drift out of agreement with it.
+      {% endcomment %}
+      <section
+        class="band band-cream"
+        id="sign-in-methods"
+        aria-labelledby="sign-in-methods-heading"
+      >
+        <div class="shell settings-shell">
+          <div class="band-head">
+            <div>
+              <h2 id="sign-in-methods-heading">Sign-in methods</h2>
+              <p>The accounts you can use to sign in to DataTalks.Club.</p>
+            </div>
+          </div>
+          {% if messages %}
+            <div class="settings-messages" role="status" aria-live="polite">
+              {% for message in messages %}
+                <p class="settings-message">{{ message }}</p>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if social_connections %}
+            <div class="row-list">
+              {% for connection in social_connections %}
+                <div class="list-row">
+                  <div>
+                    <p class="connection-name">{{ connection.provider_name }}</p>
+                    <p class="connection-address">{{ connection.identifier }}</p>
+                  </div>
+                  <form
+                    class="connection-form"
+                    method="post"
+                    action="{% url 'disconnect_social_account' %}"
+                  >
+                    {% csrf_token %}
+                    <input type="hidden" name="account" value="{{ connection.pk }}">
+                    <button class="cta cta-compact cta-secondary" type="submit">
+                      Disconnect
+                      <span class="sr-only">&nbsp;{{ connection.provider_name }}</span>
+                    </button>
+                  </form>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="settings-note">
+              You sign in with your email address. Connecting a provider below
+              adds another way in; it does not replace the one you have.
+            </p>
+          {% endif %}
+          {% get_providers as socialaccount_providers %}
+          {% if socialaccount_providers %}
+            <h3 class="sign-in-methods-add">Add a sign-in method</h3>
+            {% include "account/_social_provider_choices.html" with provider_list=socialaccount_providers provider_url_mode="allauth" provider_process="connect" provider_action="Connect" %}
+          {% endif %}
         </div>
       </section>
 

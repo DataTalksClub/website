@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 
 from accounts.forms import AccountSettingsForm
+from accounts.services.social_connections import list_social_connections
 from accounts.services.timezones import browser_timezone_name, get_timezone_label
 from accounts.views.account_toggles import LOCAL_ACCOUNT_TOGGLE_FIELDS
 from course_management.datamailer.preference_categories import (
@@ -71,6 +72,8 @@ def _account_settings_context(request, user, form):
         "preferred_timezone_label": preferred_timezone_label,
         "browser_timezone_label": browser_timezone_label,
         "email_preference_categories": EMAIL_PREFERENCE_CATEGORIES,
+        # Sign-in methods moved here from the separate /accounts/3rdparty/ page.
+        "social_connections": list_social_connections(user),
     }
 
 

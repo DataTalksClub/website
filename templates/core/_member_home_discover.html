@@ -1,0 +1,27 @@
+{% comment %}
+  "Courses you can join today" (state 1) / "More free courses" (states 2, 3):
+  catalogue cards for families the learner has no cohort in (§5). Omitted
+  entirely when empty, per the hide-don't-explain rule (§2).
+{% endcomment %}
+{% if discover_cards %}
+  <section class="member-home-section" aria-labelledby="discover-courses-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="discover-courses-heading">{{ discover_heading }}</h2>
+      </div>
+      <a class="band-link" href="{% url 'course_list' %}">all courses →</a>
+    </div>
+    <div class="card-grid card-grid-2">
+      {% for card in discover_cards %}
+        <article class="card discover-course-card">
+          <p class="mono-label">{{ card.cohort_label }}</p>
+          <h3><a href="{{ card.url }}">{{ card.title }}</a></h3>
+          {% if card.start_display %}
+            <p class="mono-note">Starts {{ card.start_display }}</p>
+          {% endif %}
+          <a class="band-link" href="{{ card.url }}">View course</a>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}

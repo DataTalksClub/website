@@ -1,0 +1,235 @@
+{% extends "core/content_page.html" %}
+{% load static %}
+{% comment %}
+  The signed-in home (`_docs/design/specs/signed-in-home.md`).  An ordinary
+  content page, not a third top-level layout exception: cream header, lavender
+  content surface, normal content-shell width.  No breadcrumbs — a top-level
+  page has no ancestors.
+
+  One template, four data-driven states (§5), built by
+  courses.services.member_home.build_member_home_context.  Sections render
+  only when they have content; the checklist is the only designed empty-state
+  lead (state 1).
+{% endcomment %}
+
+{% block document_title %}Home — DataTalks.Club{% endblock %}
+
+{% block metadata %}{% endblock %}
+
+{% block page_styles %}
+      :root {
+        --page: var(--lavender);
+      }
+
+      .content-page-content > .content-shell > .member-home-section + .member-home-section {
+        border-top: 2px dashed var(--line-soft);
+        margin-top: 2.75rem;
+        padding-top: 2.75rem;
+      }
+
+      .member-home-hero h1 {
+        font-size: clamp(1.9rem, 4.2vw, 2.9rem);
+        letter-spacing: -0.025em;
+        margin-top: 0.6rem;
+      }
+
+      .member-home-lede {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 0.75rem;
+        max-width: 46rem;
+      }
+
+      .member-home-hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.25rem;
+      }
+
+      @media (max-width: 47.99rem) {
+        .member-home-hero-actions {
+          display: grid;
+        }
+      }
+
+      /* --- checklist ------------------------------------------------------ */
+
+      .checklist-ready-head,
+      .checklist-card > div:first-child {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .checklist-dismiss {
+        appearance: none;
+        background: transparent;
+        border: 0;
+        border-radius: 0.4rem;
+        color: var(--body-text);
+        cursor: pointer;
+        font-size: 1.1rem;
+        line-height: 1;
+        min-height: 1.5rem;
+        min-width: 1.5rem;
+        padding: 0;
+      }
+
+      .checklist-row {
+        --row-cols: minmax(0, 1fr) auto;
+      }
+
+      .checklist-item-title {
+        color: var(--ink);
+        font-weight: 700;
+        margin: 0;
+      }
+
+      .checklist-item-description {
+        color: var(--body-text);
+        font-size: 0.88rem;
+        margin: 0.15rem 0 0;
+      }
+
+      .checklist-row-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+      }
+
+      .checklist-skip {
+        appearance: none;
+        background: transparent;
+        border: 0;
+        color: var(--body-text);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.85rem;
+        min-height: 1.5rem;
+        min-width: 1.5rem;
+        padding: 0.2rem 0.3rem;
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      @media (max-width: 47.99rem) {
+        .checklist-row-actions {
+          justify-content: space-between;
+        }
+      }
+
+      /* --- your courses ---------------------------------------------------- */
+
+      .your-course-head {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+
+      .your-course-progress {
+        margin-top: 0.25rem;
+      }
+
+      /* A course card is half a content-shell wide, and the shared two-column
+         list-row cannot fit a mono label beside a full timestamp at that width:
+         the `minmax(0, 1fr)` label track collapses to zero and the label paints
+         on top of the date. Card rows therefore keep the stacked single-column
+         shape that the same row already uses below 48rem. */
+      .your-course-card .list-row {
+        --row-cols: minmax(0, 1fr);
+      }
+
+      .your-course-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 0.25rem;
+      }
+
+      .finished-course-row .finished-course-actions,
+      .finished-course-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      .discover-course-card h3 {
+        font-size: 1.1rem;
+      }
+{% endblock %}
+
+{% block header_band_class %}member-home-hero{% endblock %}
+{% block header_attributes %}aria-labelledby="member-home-heading"{% endblock %}
+
+{% block page_header %}
+        <p class="mono-label mono-label-indigo">Home</p>
+        {% if member_home_state == "state_1" %}
+          <h1 id="member-home-heading">Welcome to DataTalks.Club</h1>
+          <p class="member-home-lede">
+            You're signed in. Pick a course and you're in it — everything here
+            is free.
+          </p>
+        {% elif member_home_state == "state_2" %}
+          <h1 id="member-home-heading">Welcome back</h1>
+          {% if only_upcoming_cohort %}
+            <p class="member-home-lede">
+              You're registered for {{ only_upcoming_cohort.cohort.title }}.
+              It starts {{ only_upcoming_cohort.cohort.start_date|date:"N j, Y" }}
+              — we'll email you when materials open.
+            </p>
+          {% elif single_active_cohort %}
+            <p class="member-home-lede">
+              Pick up where you left off in {{ single_active_cohort.cohort.title }}.
+            </p>
+          {% else %}
+            <p class="member-home-lede">
+              Pick up where you left off, or see what's due next.
+            </p>
+          {% endif %}
+          {% if single_active_cohort %}
+            <div class="member-home-hero-actions">
+              <a class="cta cta-ink interactive-lift" href="{{ single_active_cohort.cta_url }}">
+                {{ single_active_cohort.cta_label }}
+              </a>
+              <a class="cta cta-secondary cta-compact interactive-lift" href="{{ single_active_cohort.course_url }}">
+                Course page
+              </a>
+            </div>
+          {% endif %}
+        {% else %}
+          <h1 id="member-home-heading">Welcome back</h1>
+          <p class="member-home-lede">
+            Your last cohort has finished. Your scores and certificates stay
+            right here — and the next editions are open.
+          </p>
+        {% endif %}
+{% endblock %}
+
+{% block page_content %}
+      {% if member_home_state == "state_1" %}
+        {% include "core/_member_home_checklist.html" %}
+        {% include "core/_member_home_discover.html" %}
+        {% include "core/_member_home_events.html" %}
+      {% elif member_home_state == "state_2" %}
+        {% include "core/_member_home_your_courses.html" %}
+        {% include "core/_member_home_due_soon.html" %}
+        {% include "core/_member_home_checklist.html" %}
+        {% include "core/_member_home_finished.html" %}
+        {% include "core/_member_home_discover.html" %}
+        {% include "core/_member_home_events.html" %}
+      {% else %}
+        {% include "core/_member_home_finished.html" %}
+        {% include "core/_member_home_checklist.html" %}
+        {% include "core/_member_home_discover.html" %}
+        {% include "core/_member_home_events.html" %}
+      {% endif %}
+{% endblock %}
+
+{% block page_scripts %}
+    <script src="{% static 'time_left.js' %}"></script>
+{% endblock %}

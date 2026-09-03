@@ -123,3 +123,54 @@ class AccountSettingsForm(forms.ModelForm):
             "about_me": ABOUT_ME_WIDGET,
             "dark_mode": DARK_MODE_WIDGET,
         }
+
+
+class AboutYouForm(forms.ModelForm):
+    """The slim ``/accounts/welcome/`` onboarding form (signed-in-home spec §7.3).
+
+    Owns the person-level fields, not the settings page: three core fields
+    (certificate name, country, role) plus a folded-by-default set of links
+    and a bio.  Every field saves if present; nothing here is required, so the
+    page is safely skippable and trivially resumable.
+    """
+
+    class Meta:
+        model = CustomUser
+        fields = [
+            "certificate_name",
+            "country",
+            "registration_role",
+            "github_url",
+            "linkedin_url",
+            "personal_website_url",
+            "about_me",
+        ]
+        labels = {
+            "certificate_name": "Certificate name",
+            "country": "Country",
+            "registration_role": "Role",
+            "github_url": "GitHub URL",
+            "linkedin_url": "LinkedIn URL",
+            "personal_website_url": "Website URL",
+            "about_me": "About me",
+        }
+        help_texts = {
+            "certificate_name": (
+                "Used on your certificates, across all your course enrollments."
+            ),
+            "country": "Used to prefill course registration.",
+        }
+        widgets = {
+            "certificate_name": CERTIFICATE_NAME_WIDGET,
+            "country": COUNTRY_WIDGET,
+            "registration_role": REGISTRATION_ROLE_WIDGET,
+            "github_url": GITHUB_URL_WIDGET,
+            "linkedin_url": LINKEDIN_URL_WIDGET,
+            "personal_website_url": PERSONAL_WEBSITE_URL_WIDGET,
+            "about_me": ABOUT_ME_WIDGET,
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name in self.fields:
+            self.fields[field_name].required = False

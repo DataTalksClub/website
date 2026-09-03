@@ -75,10 +75,13 @@ ACCOUNT_RELATIONS = (
     AccountRelationSpec("socialaccount.SocialAccount", "user", "verified_only"),
 )
 
+# What the account menu offers.  Sign-in methods are no longer one of its
+# entries: they are a section of account settings, and socialaccount_connections
+# redirects there.  The route itself stays in ACCOUNT_AUTHENTICATION_ROUTES
+# below, because it still exists and allauth still reverses it.
 ACCOUNT_NAVIGATION_ACTIONS = (
     ("signed_out_login", "login"),
     ("account_settings", "account_settings"),
-    ("social_connections", "socialaccount_connections"),
     ("course_discovery", "course_list"),
     ("studio", "studio:home"),
     ("logout", "account_logout"),

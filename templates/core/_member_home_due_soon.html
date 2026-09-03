@@ -1,0 +1,29 @@
+{% load custom_filters %}
+{% comment %}
+  "Due soon" (§5, state 2): every actionable deadline in the next 14 days
+  across active cohorts, only shown with two or more active cohorts —
+  with one, the card's own deadline row already says it.
+{% endcomment %}
+{% if show_due_soon and due_soon %}
+  <section class="member-home-section" aria-labelledby="due-soon-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="due-soon-heading">Due soon</h2>
+      </div>
+    </div>
+    <div class="row-list">
+      {% for item in due_soon %}
+        <div class="list-row">
+          <div>
+            <a class="course-row-title band-link" href="{{ item.url }}">{{ item.title }}</a>
+            <p class="mono-note">{{ item.cohort_title }}</p>
+          </div>
+          <div>
+            {{ item.due|user_datetime:request }}
+            <span class="time-left" data-deadline="{{ item.due|date:"c" }}" data-past-tone="muted"></span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}

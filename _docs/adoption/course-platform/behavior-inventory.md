@@ -10,11 +10,11 @@ identities, and verifies all copied destination checksums.
 
 | Surface | Mounted URLconf | Routes |
 | --- | --- | ---: |
-| Accounts | `accounts.urls` | 9 |
+| Accounts | `accounts.urls` | 13 |
 | Compatibility API | `api.urls` | 30 |
 | Studio Courses | `studio_courses.urls` | 26 |
 | Public courses | `courses.urls` | 50 |
-| **Total** |  | **115** |
+| **Total** |  | **119** |
 
 The compatibility API and Studio Courses rows below retain the complete adopted
 behavior. Issues #115 and #116 change the management mount, names, and package
@@ -29,6 +29,8 @@ Mounted from `accounts.urls`.
 | Route | Name | Callback |
 | --- | --- | --- |
 | `/accounts/settings/` | `account_settings` | `accounts.views.account_settings.account_settings` |
+| `/accounts/welcome/` | `account_welcome` | `accounts.views.welcome.welcome` |
+| `/accounts/home/dismiss/` | `dismiss_home_item` | `accounts.views.home_dismissals.dismiss_home_item` |
 | `/accounts/login/` | `login` | `accounts.views.login.social_login_view` |
 | `/accounts/email/` | — | `accounts.views.disabled.disabled` |
 | `/accounts/password/reset/` | — | `accounts.views.disabled.disabled` |
@@ -36,6 +38,8 @@ Mounted from `accounts.urls`.
 | `/accounts/settings/toggle/` | `update_account_toggle` | `accounts.views.account_toggles.update_account_toggle` |
 | `/accounts/settings/email-preferences/` | `account_email_preferences` | `accounts.views.email_preferences.account_email_preferences` |
 | `/accounts/settings/timezone/` | `update_timezone_preference` | `accounts.views.timezone.update_timezone_preference` |
+| `/accounts/settings/sign-in-methods/disconnect/` | `disconnect_social_account` | `accounts.views.social_connections.disconnect_social_account` |
+| `/accounts/3rdparty/` | — | `accounts.views.social_connections.social_connections_moved` |
 | `/accounts/stop-impersonating/` | `stop_impersonating` | `accounts.views.impersonation.stop_impersonating` |
 
 ### Compatibility API
@@ -179,7 +183,6 @@ Mounted from `courses.urls`.
 | `datamailer_status` | `courses` | Look up Datamailer contact sendability and recent send history. |
 | `import_development_course_content` | `courses` | Import the one approved sanitized CMP public-content artifact into development |
 | `monitoring_datamailer_health` | `data` | Emit compact Datamailer health observability events. |
-| `prepare_local_course_modules` | `courses` | Validate explicit course-repository snapshots and prepare the three reviewed 2026 cohorts as module curricula in local/test SQLite only. |
 | `preview_peer_review_email` | `courses` | Preview the peer-review-assignment email for a project. |
 | `process_datamailer_outbox` | `data` | Dispatch pending/retrying Datamailer outbox events. |
 | `reconcile_accounts` | `accounts` | Dry-run, apply, or rollback-check reviewed account mappings. |
@@ -197,7 +200,7 @@ Mounted from `courses.urls`.
 
 | App label | App module | Original numbered migrations |
 | --- | --- | --- |
-| `accounts` | `accounts` | `0001_initial, 0002_token, 0003_customuser_certificate_name, 0004_customuser_dark_mode, 0005_backfill_certificate_name_from_enrollment, 0006_customuser_country_customuser_region_and_more, 0007_customuser_email_deadline_reminders_and_more, 0008_customuser_email_course_updates, 0009_customuser_preferred_timezone, 0010_remove_customuser_email_course_updates_and_more, 0011_identity_expansion, 0012_backfill_normalized_identity` |
+| `accounts` | `accounts` | `0001_initial, 0002_token, 0003_customuser_certificate_name, 0004_customuser_dark_mode, 0005_backfill_certificate_name_from_enrollment, 0006_customuser_country_customuser_region_and_more, 0007_customuser_email_deadline_reminders_and_more, 0008_customuser_email_course_updates, 0009_customuser_preferred_timezone, 0010_remove_customuser_email_course_updates_and_more, 0011_identity_expansion, 0012_backfill_normalized_identity, 0013_home_dismissals` |
 | `api` | `api` | `none` |
 | `studio_courses` | `studio_courses` | `none` |
 | `courses` | `courses` | `0001_initial, 0001_squashed_0029, 0002_alter_enrollment_student, 0003_replace_commas_with_linebreaks_in_possible_answers, 0004_update_correct_answer_indexes, 0005_update_answers_with_indexes, 0006_course_first_homework_scored, 0007_enrollment_position_on_leaderboard, 0008_remove_answer_student, 0009_rename_comments_peerreview_problems_comments_and_more, 0010_remove_reviewcriteria_max_score, 0011_alter_enrollment_position_on_leaderboard, 0012_project_points_for_peer_review_and_more, 0013_remove_homework_is_scored_homework_state_and_more, 0014_alter_projectsubmission_github_link_and_more, 0015_enrollment_certificate_url, 0016_enrollment_about_me_enrollment_github_url_and_more, 0017_alter_projectsubmission_learning_in_public_links_and_more, 0018_course_finished, 0019_remove_homework_problems_comments_field_and_more, 0020_remove_project_points_to_pass_and_more, 0021_course_min_projects_to_pass, 0022_projectstatistics, 0023_course_visible, 0024_alter_question_question_type, 0025_add_wrapped_statistics, 0026_enrollment_disable_learning_in_public_and_more, 0027_homework_instructions_url_project_instructions_url_and_more, 0028_leaderboardcomplaint, 0029_enrollment_display_public_profile, 0030_remove_enrollment_profile_fields, 0031_merge_instruction_urls_and_profile_fields, 0032_course_end_date_course_registration_url_and_more, 0033_projectsubmission_faq_contribution_url_and_more, 0034_preserve_submission_timestamps, 0035_projectvote, 0036_projectsubmission_volunteer_review_only, 0037_registrationcampaign_courseregistration, 0038_alter_courseregistration_mailchimp_sync_status, 0039_remove_courseregistration_mailchimp_error_and_more, 0040_courseregistration_company_name, 0041_courseregistrationcountsourcerun_and_more, 0042_course_schema_bridge, 0043_curriculum_and_project_criteria, 0044_alter_module_link_alter_unit_link, 0045_alter_criteriaresponse_criteria_and_more, 0046_cohort_identifier_and_more, 0047_alter_cohort_identifier, 0048_coursecurriculumimportrun_cohort_source_checksum_and_more, 0049_question_source_option_ids, 0050_homework_instructions_markdown_unit_content_markdown_and_more, 0051_unitreadstate, 0052_merge_duplicate_course_families, 0053_unit_lesson_video_and_code_sources, 0054_homework_instructions_source_path` |

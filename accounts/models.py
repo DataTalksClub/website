@@ -79,6 +79,15 @@ class CustomUser(AbstractUser):
             "notification emails."
         ),
     )
+    home_dismissals = models.JSONField(
+        verbose_name="Home dismissals",
+        default=dict,
+        blank=True,
+        help_text=(
+            "Allowlisted signed-in-home checklist/nudge keys this member has "
+            "already skipped, completed, or dismissed."
+        ),
+    )
 
     # This is an expand-only identity key. The legacy ``email`` and
     # ``username`` columns remain available throughout the compatibility

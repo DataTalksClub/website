@@ -42,7 +42,6 @@ EXPECTED_COMMANDS = {
     "datamailer_status": "courses",
     "import_development_course_content": "courses",
     "monitoring_datamailer_health": "data",
-    "prepare_local_course_modules": "courses",
     "preview_peer_review_email": "courses",
     "process_datamailer_outbox": "data",
     "reconcile_accounts": "accounts",
@@ -63,7 +62,9 @@ EXPECTED_APP_MODULES = {
     "data": "data",
 }
 EXPECTED_MIGRATION_COUNTS = {
-    "accounts": 12,
+    # 12 adopted migrations plus 0013_home_dismissals, added by the signed-in
+    # home for CustomUser.home_dismissals.
+    "accounts": 13,
     "api": 0,
     "studio_courses": 0,
     "courses": 55,
@@ -292,7 +293,11 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
     def test_every_adopted_route_resolves_through_the_unified_urlconf(self):
         routes = route_entries()
 
-        self.assertEqual(len(routes), 115)
+        # 115 adopted routes plus the four the signed-in home and the moved
+        # sign-in methods add to ``accounts.urls``: /accounts/welcome/,
+        # /accounts/home/dismiss/, the disconnect POST, and the /accounts/3rdparty/
+        # redirect that keeps allauth's own reverse() target resolving.
+        self.assertEqual(len(routes), 119)
         for route in routes:
             with self.subTest(route=route.route, name=route.name):
                 example_path = route.example_path()
@@ -355,7 +360,7 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
         )
         self.assertEqual(
             migration_names("accounts")[-1],
-            "0012_backfill_normalized_identity",
+            "0013_home_dismissals",
         )
         self.assertEqual(tuple(migration_names("courses")), EXPECTED_COURSES_MIGRATIONS)
         self.assertEqual(migration_names("courses")[0], "0001_initial")

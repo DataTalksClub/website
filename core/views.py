@@ -30,6 +30,7 @@ from core.home_content import (
     wiki_topics,
 )
 from core.sponsor_history import PAST_SUPPORTERS, featured_supporters
+from courses.services.member_home import build_member_home_context
 
 DEVELOPMENT_ROBOTS_BODY = "User-agent: *\nDisallow: /\n"
 PRODUCTION_ROBOTS_BODY = (
@@ -61,6 +62,14 @@ def management_slash_redirect(request: HttpRequest) -> HttpResponse:
 
 @require_safe
 def home(request: HttpRequest):
+    if request.user.is_authenticated:
+        # The member home (`_docs/design/specs/signed-in-home.md`).  No
+        # redirect: `/` branches on authentication in one view, and the
+        # authenticated branch never touches the CDN's anonymous cache
+        # (`core.middleware.ResponsePolicyMiddleware` already forces
+        # `Cache-Control: private, no-store` on every credential-bearing
+        # request, `/` included).
+        return render(request, "core/member_home.html", build_member_home_context(request))
     projection = public_projection()
     events = event_groups()
     catalog = course_catalog()

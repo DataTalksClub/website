@@ -12,7 +12,9 @@ class AccountSettingsTimezoneViewTestCase(AccountSettingsViewTestBase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Display preferences")
-        self.assertContains(response, "Deadlines and notification emails")
+        # The band still says what the timezone is for; theme joined it, so the
+        # sentence now covers both and reads in that order.
+        self.assertContains(response, "deadlines and notification emails use")
         # The form has a single footer action, not a per-section save.
         self.assertContains(response, "Save changes")
         self.assertContains(response, "Europe/Berlin")

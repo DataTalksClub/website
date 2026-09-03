@@ -1,0 +1,21 @@
+{% comment %}
+  "Upcoming events" (§5): up to three, omitted entirely when there are none.
+{% endcomment %}
+{% if upcoming_events %}
+  <section class="member-home-section" aria-labelledby="member-home-events-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="member-home-events-heading">Upcoming events</h2>
+      </div>
+      <a class="band-link" href="{% url 'events' %}">see all events →</a>
+    </div>
+    <div class="row-list">
+      {% for event in upcoming_events %}
+        <div class="list-row">
+          <a class="course-row-title band-link" href="{{ event.public_path }}">{{ event.title }}</a>
+          <time class="mono-note" datetime="{{ event.starts_at }}">{{ event.home_time }}</time>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}

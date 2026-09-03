@@ -91,7 +91,15 @@ document.addEventListener('DOMContentLoaded', function() {
       })
       .then(function(data) {
         if (data.field === 'dark_mode') {
+          // The account is authoritative while signed in: the server already
+          // stored it, and this repaints the page the member changed it on so
+          // the theme does not wait for the next navigation.
           window.applyDarkModePreference?.(data.value);
+          // The signed-out mechanism (localStorage['darkMode'], read by the
+          // pre-paint bootstrap only when data-authenticated is not "true") is
+          // refreshed to the same value, so logging out does not flip the
+          // theme.  It can never fight the account: nothing reads this key
+          // while a session is signed in.
           localStorage.setItem('darkMode', data.value.toString());
         }
       })

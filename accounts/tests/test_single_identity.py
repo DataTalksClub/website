@@ -1125,7 +1125,9 @@ class SharedAccountSurfaceTests(TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertContains(response, f'data-account-id="{user.pk}"')
                 self.assertContains(response, "Account settings")
-                self.assertContains(response, "Login connections")
+                # One account destination: sign-in methods are a section of
+                # account settings, not a second menu entry to their own page.
+                self.assertNotContains(response, "Login connections")
                 self.assertIn("private", response["Cache-Control"])
                 self.assertIn("no-store", response["Cache-Control"])
         identity = self.client.get("/api/v1/account/identity/")

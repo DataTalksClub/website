@@ -48,7 +48,8 @@ ACCOUNT_EYEBROW_TEMPLATES = (
     "accounts/templates/account/signup_closed.html",
     "course_platform_templates/account/logout.html",
     "course_platform_templates/socialaccount/authentication_error.html",
-    "course_platform_templates/socialaccount/connections.html",
+    # socialaccount/connections.html is gone: sign-in methods are a section of
+    # account settings, and /accounts/3rdparty/ redirects into it.
     "course_platform_templates/socialaccount/login_cancelled.html",
     "course_platform_templates/socialaccount/signup.html",
 )

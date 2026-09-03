@@ -7,12 +7,16 @@
   `provided` when each record already carries `login_url` (the public login
   view adds the safe `next` value). The provider mark partial is the only
   source of the Google, GitHub and Slack drawings.
+
+  `provider_process` selects allauth's flow and defaults to `login`. Account
+  settings passes `connect`, which links the provider to the session's account
+  instead of starting a sign-in.
 {% endcomment %}
 {% if provider_list %}
   <div class="{{ provider_container_class|default:'provider-choices' }}">
     {% for provider in provider_list %}
       {% if provider_url_mode == "allauth" %}
-        {% provider_login_url provider process="login" as provider_url %}
+        {% provider_login_url provider process=provider_process|default:"login" as provider_url %}
         {% include "account/_social_provider_choice.html" %}
       {% else %}
         {% with provider_url=provider.login_url %}
