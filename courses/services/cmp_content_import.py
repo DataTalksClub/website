@@ -16,11 +16,12 @@ Scope, deliberately narrow:
   rows that hang off it live in ``courses_courseregistration`` and are never touched.
 * **Reviewed cohort identity only.**  A cohort is matched by slug against the rows the
   local database already has.  When the local catalogue is missing a cohort whose slug the
-  reviewed ``COHORT_FAMILY_IDENTITIES`` mapping already names, and whose family row
-  already exists, the cohort is created under that reviewed identity.  This service still
-  never mints a course *family*, invents a year, or derives a slug; deriving cohort
-  identity a second way is what split the AI Dev Tools family and needed migration
-  ``0052`` to repair.
+  reviewed ``COHORT_FAMILY_IDENTITIES`` mapping already names, the cohort is created under
+  that reviewed identity, and its family row with it when the reviewed
+  ``COURSE_FAMILY_TITLES`` catalogue names the title.  Both facts are read from the
+  reviewed catalogue: this service still never *derives* a family, invents a year, or
+  builds a slug, which is what split the AI Dev Tools family and needed migration ``0052``
+  to repair.  A cohort slug the reviewers have not ruled on stays missing and is reported.
 * **CMP owns homework identity.**  A homework's slug is whatever CMP says it is, copied
   verbatim, including on the modules-format cohorts whose repositories declare a
   different one.  Nothing is derived, mapped or rewritten.
@@ -54,7 +55,7 @@ from typing import Any, NoReturn
 
 from django.db import transaction
 
-from courses.course_family_catalog import COHORT_FAMILY_IDENTITIES
+from courses.course_family_catalog import COHORT_FAMILY_IDENTITIES, COURSE_FAMILY_TITLES
 from courses.models import (
     Cohort,
     Homework,
@@ -232,6 +233,7 @@ class CampaignReport:
 class CmpContentImportResult:
     imported: tuple[CohortReport, ...] = ()
     created_cohorts: tuple[str, ...] = ()
+    created_families: tuple[str, ...] = ()
     campaigns: tuple[CampaignReport, ...] = ()
     campaigns_without_a_local_cohort: tuple[str, ...] = ()
     skipped_by_owner: tuple[tuple[str, str], ...] = ()
@@ -243,6 +245,7 @@ class CmpContentImportResult:
         return {
             "cohorts_imported": len(self.imported),
             "cohorts_created": list(self.created_cohorts),
+            "families_created": list(self.created_families),
             "campaigns_written": len(self.campaigns),
             "campaigns_created": sum(1 for row in self.campaigns if row.created),
             "campaigns": [
@@ -414,6 +417,7 @@ def import_cmp_course_content(
 
         imported: list[CohortReport] = []
         created: list[str] = []
+        created_families: list[str] = []
         by_owner: list[tuple[str, str]] = []
         missing: list[str] = []
         fixture: list[str] = []
@@ -433,7 +437,7 @@ def import_cmp_course_content(
                 continue
             cohort = local.get(slug)
             if cohort is None:
-                cohort = _adopt_reviewed_cohort(slug, row)
+                cohort = _adopt_reviewed_cohort(slug, row, created_families=created_families)
                 if cohort is None:
                     missing.append(slug)
                     dependent[slug] = _dependent_row_total(connection, row["id"])
@@ -454,6 +458,7 @@ def import_cmp_course_content(
         return CmpContentImportResult(
             imported=tuple(imported),
             created_cohorts=tuple(created),
+            created_families=tuple(dict.fromkeys(created_families)),
             campaigns=campaigns,
             campaigns_without_a_local_cohort=unlinked,
             skipped_by_owner=tuple(by_owner),
@@ -465,14 +470,26 @@ def import_cmp_course_content(
         connection.close()
 
 
-def _adopt_reviewed_cohort(slug: str, row: Any) -> Cohort | None:
+def _adopt_reviewed_cohort(
+    slug: str,
+    row: Any,
+    *,
+    created_families: list[str] | None = None,
+) -> Cohort | None:
     """Create a local cohort CMP publishes and the local catalogue is missing.
 
     Only a slug the reviewed ``COHORT_FAMILY_IDENTITIES`` mapping already names can be
-    adopted, and only under a family row that already exists.  Nothing is derived: the
-    family and the year both come from the reviewed mapping, so this cannot mint the
-    second family for one course that migration ``0052`` had to repair.  A slug the
-    reviewers have not ruled on stays missing and is reported.
+    adopted.  Nothing is derived: the family slug, the family title and the year all
+    come from the reviewed catalogue, so this cannot mint the second family for one
+    course that migration ``0052`` had to repair.  A slug the reviewers have not ruled
+    on stays missing and is reported.
+
+    The family row is created when it is absent and the reviewed catalogue names its
+    title.  Requiring a pre-existing family made a production ingest impossible: on an
+    empty database no family exists, so every cohort was reported missing and the
+    import wrote nothing at all unless a placeholder seeder had run first.  Reading the
+    title from ``COURSE_FAMILY_TITLES`` keeps that a reviewed fact rather than one
+    derived from a source value.
     """
 
     identity = COHORT_FAMILY_IDENTITIES.get(slug)
@@ -481,7 +498,12 @@ def _adopt_reviewed_cohort(slug: str, row: Any) -> Cohort | None:
     family_slug, year = identity
     family = Course.objects.filter(slug=family_slug).first()
     if family is None:
-        return None
+        title = COURSE_FAMILY_TITLES.get(family_slug)
+        if title is None:
+            return None
+        family = Course.objects.create(slug=family_slug, title=title)
+        if created_families is not None:
+            created_families.append(family_slug)
     return Cohort.objects.create(
         course=family,
         slug=slug,

@@ -15,6 +15,7 @@ from pathlib import Path
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
+from courses.course_family_catalog import COURSE_FAMILY_TITLES
 from courses.models import (
     Cohort,
     Course,
@@ -495,12 +496,16 @@ class CmpContentImportTests(TestCase):
         self.assertTrue(Submission.objects.filter(homework=submitted).exists())
         self.assertEqual(result.summary()["unpaired_repository_homework"], ["homework-01"])
 
-    def test_skips_a_cohort_the_local_catalogue_does_not_have(self) -> None:
+    def test_adopts_a_reviewed_cohort_the_local_catalogue_does_not_have(self) -> None:
+        """A production ingest starts empty, so an absent cohort is created."""
+
         _build_source(self.source, cohort_slugs=("de-zoomcamp-2026",))
 
         result = import_cmp_course_content(self.source)
 
-        self.assertEqual(result.skipped_not_in_local_catalogue, ("de-zoomcamp-2026",))
+        self.assertEqual(result.skipped_not_in_local_catalogue, ())
+        self.assertEqual(result.created_cohorts, ("de-zoomcamp-2026",))
+        self.assertTrue(Cohort.objects.filter(slug="de-zoomcamp-2026").exists())
 
     def test_excludes_upstream_fixture_courses(self) -> None:
         _build_source(self.source, cohort_slugs=("fake-course", "fake-course-2"))
@@ -546,12 +551,30 @@ class CmpReviewedCohortAdoptionTests(CmpContentImportTests):
         self.assertEqual(Cohort.objects.filter(slug="sma-zoomcamp-2026").count(), 1)
         self.assertEqual(second.created_cohorts, ())
 
-    def test_never_mints_a_family_to_adopt_a_cohort(self) -> None:
+    def test_creates_the_reviewed_family_when_it_adopts_a_cohort(self) -> None:
+        """Slug, title and year all come from the reviewed catalogue; none is derived."""
+
         _build_source(self.source, cohort_slugs=("sma-zoomcamp-2026",))
 
         result = import_cmp_course_content(self.source)
 
-        self.assertEqual(result.skipped_not_in_local_catalogue, ("sma-zoomcamp-2026",))
+        self.assertEqual(result.skipped_not_in_local_catalogue, ())
+        self.assertEqual(result.created_families, ("sma-zoomcamp",))
+        self.assertEqual(result.created_cohorts, ("sma-zoomcamp-2026",))
+        family = Course.objects.get(slug="sma-zoomcamp")
+        self.assertEqual(family.title, COURSE_FAMILY_TITLES["sma-zoomcamp"])
+        cohort = Cohort.objects.get(slug="sma-zoomcamp-2026")
+        self.assertEqual(cohort.course_id, family.id)
+        self.assertEqual(cohort.year, 2026)
+
+    def test_never_mints_a_family_the_reviewers_have_not_named(self) -> None:
+        """An unreviewed family title would be a derived value, so nothing is written."""
+
+        _build_source(self.source, cohort_slugs=("unreviewed-2026",))
+
+        result = import_cmp_course_content(self.source)
+
+        self.assertEqual(result.skipped_not_in_local_catalogue, ("unreviewed-2026",))
         self.assertFalse(Course.objects.exists())
         self.assertFalse(Cohort.objects.exists())
 

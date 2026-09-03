@@ -196,28 +196,37 @@ def run(
     identities = _json_management_command(
         "import_event_identities", apply=True, manifest=identity_manifest
     )
-    cmp_content: dict[str, Any]
-    if cmp_source_db is None:
-        cmp_content = {"imported": False, "skipped": "source_not_supplied"}
-    else:
-        from courses.services.local_cmp_content_import import (
-            LocalCmpContentImportError,
-            import_local_cmp_content,
-        )
-
-        try:
-            cmp_content = import_local_cmp_content(cmp_source_db, database).summary()
-        except LocalCmpContentImportError as error:
-            raise LocalPreparationError(f"cmp_content_{error}") from error
     catalog = _json_management_command("seed_local_courses")
     # Which repositories exist is registered data, so the rehearsal registers the
     # pinned sources and then runs the one ingestion the signed push webhook runs.
     course_sources = _json_management_command("seed_course_repository_sources")
+    # Production order: the course repositories are pulled *first*, then CMP is
+    # reconciled against what they wrote.  The reverse order happened to work only
+    # while CMP had no cohort that a repository also owns; the first time both
+    # describe one, the CMP-first rebuild refuses on a homework slug collision it
+    # would not hit this way round.  The repository is the upstream, so it goes first.
     modules = _json_management_command(
         "pull_course_repositories",
         from_disk=str(course_checkout_root),
         require_public_commit=True,
     )
+    cmp_content: dict[str, Any]
+    if cmp_source_db is None:
+        cmp_content = {"imported": False, "skipped": "source_not_supplied"}
+    else:
+        # The *reconciling* CMP importer, the same one scripts/prod/import_cmp_content.py
+        # runs.  The bulk-copy path it replaced could only ever write into an empty
+        # catalogue, so it had to run before the repository pull and refused outright
+        # afterwards; a reconciler is what "repositories first, then CMP" needs.
+        from courses.services.cmp_content_import import (
+            CmpContentImportError,
+            import_cmp_course_content,
+        )
+
+        try:
+            cmp_content = import_cmp_course_content(cmp_source_db).summary()
+        except CmpContentImportError as error:
+            raise LocalPreparationError(f"cmp_content_{error}") from error
     registration_sources, derived_sources = _registration_source_derivations(
         luma_source=luma_source,
         eventbrite_source=eventbrite_source,
@@ -239,10 +248,10 @@ def run(
         "steps": {
             "migrations": {"completed": True, "report": migrations},
             "event_identities": identities,
-            "cmp_content": cmp_content,
             "course_catalog": catalog,
             "course_repository_sources": course_sources,
             "course_modules": modules,
+            "cmp_content": cmp_content,
         },
         "registration_sources": registration_sources,
         "registration_import": registration_import,

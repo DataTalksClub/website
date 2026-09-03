@@ -23,6 +23,13 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+SYNC_MODEL = "one-time"
+# It creates a cohort, and its family, from the reviewed catalogue when CMP
+# publishes one the database does not have, so it no longer needs a seeded
+# catalogue to write into. It still reconciles everything else against the rows
+# the course repositories wrote, which is why it runs last.
+BOOTSTRAPS_EMPTY_DATABASE = True
+
 
 def _configure(database: Path) -> None:
     os.environ["DTC_ENVIRONMENT"] = "local"
