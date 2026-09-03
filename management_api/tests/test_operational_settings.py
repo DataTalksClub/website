@@ -196,8 +196,8 @@ class AdminOperationalSettingsTests(TestCase):
             {
                 "updates": [
                     {
-                        "key": "site.origin.canonical_host",
-                        "value": "https://elsewhere.example",
+                        "key": "site.origin.canonical",
+                        "value": "https://elsewhere.example/with/a/path",
                         "expected_revision": 0,
                     },
                     {

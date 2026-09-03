@@ -36,8 +36,7 @@ from urllib.parse import quote, urlsplit
 import requests
 from requests.adapters import HTTPAdapter
 
-from core.runtime_config import get_int_setting
-from core.runtime_endpoints import relay_link_bridge_base_url
+from core.runtime_config import get_int_setting, get_str_setting
 
 # Relay mints raw tokens with ``secrets.token_urlsafe(32)``, which is 43
 # characters of URL-safe base64.  The bound is deliberately wider than that so a
@@ -132,7 +131,7 @@ def bridge_base_url() -> str:
     is still the answer until they do.
     """
 
-    configured = relay_link_bridge_base_url().strip()
+    configured = get_str_setting("relay.link_bridge.base_url").strip()
     if not configured:
         return ""
     parsed = urlsplit(configured)

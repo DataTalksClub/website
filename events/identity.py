@@ -20,7 +20,7 @@ from django.db import OperationalError, transaction
 from django.db.models import Max
 from django.utils import timezone
 
-from core.runtime_endpoints import canonical_origin
+from core.runtime_config import get_str_setting
 
 from .models import Event, EventAlias, EventPublicIdSequence
 from .slugs import event_title_slug
@@ -284,7 +284,7 @@ def canonical_detail_path(event_id: uuid.UUID | str) -> str:
 
 
 def canonical_detail_url(event_id: uuid.UUID | str) -> str:
-    return f"{canonical_origin().rstrip('/')}{canonical_detail_path(event_id)}"
+    return f"{get_str_setting('site.origin.canonical')}{canonical_detail_path(event_id)}"
 
 
 def _allocate_public_id() -> int:

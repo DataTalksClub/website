@@ -60,9 +60,10 @@ _SETTING_LIFECYCLES = frozenset({"active"})
 # every running task without a restart.
 _SETTING_CACHE_POLICIES = frozenset({"uncached", "stamped"})
 # ``public`` values may be rendered on a page anyone can open.  ``operational``
-# values are not secret -- the registry still refuses secret-bearing keys and
-# values outright -- but they name our infrastructure (buckets, endpoints,
-# sender addresses), so only the settings read permission may see them.
+# values are not secret -- the registry still refuses a secret-bearing key, env
+# var or settings attribute outright -- but they name our infrastructure
+# (buckets, endpoints, sender addresses), so only the settings read permission
+# may see them.
 _SETTING_SENSITIVITIES = frozenset({"public", "operational"})
 _ENV_VAR = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
 _SETTINGS_ATTR = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
@@ -128,21 +129,29 @@ def _contains_secret_name(value: str) -> bool:
     return any(fragment in normalized for fragment in _SECRET_KEY_FRAGMENTS)
 
 
-def _validate_no_sensitive_content(value: JsonValue, *, path: str) -> None:
+def _validate_no_secret_bearing_names(value: JsonValue, *, path: str) -> None:
+    """Refuse a value whose own field names announce a credential.
+
+    This checks *names*, not text.  A value is not refused for looking like a
+    URL or an address: those are the ordinary shapes of the things an operator
+    configures -- the canonical origin, the mailer endpoint, the sender address
+    -- and refusing them only pushed the same value into the table in a
+    mutilated shape.  What each setting may hold is the business of its own
+    validator in ``core.operational_settings``, which is strict about the shape
+    it declares.  Keeping secrets out of the logs is the logging boundary's job
+    and stays with ``core.redaction``.
+    """
+
     if isinstance(value, dict):
         for key, child in value.items():
             if _contains_secret_name(key):
                 raise InvalidOperationalSetting(
                     f"{path}.{key} looks secret-bearing and cannot be database-backed"
                 )
-            _validate_no_sensitive_content(child, path=f"{path}.{key}")
+            _validate_no_secret_bearing_names(child, path=f"{path}.{key}")
     elif isinstance(value, list):
         for index, child in enumerate(value):
-            _validate_no_sensitive_content(child, path=f"{path}[{index}]")
-    elif isinstance(value, str) and is_sensitive_text(value):
-        raise InvalidOperationalSetting(
-            f"{path} contains sensitive text and cannot be database-backed"
-        )
+            _validate_no_secret_bearing_names(child, path=f"{path}[{index}]")
 
 
 def _validated_value(
@@ -182,7 +191,7 @@ def _validated_value(
             )
 
     validate_shape(normalized)
-    _validate_no_sensitive_content(normalized, path=definition.key)
+    _validate_no_secret_bearing_names(normalized, path=definition.key)
     if definition.validator is not None:
         validated = definition.validator(normalized)
         if validated is not None:
@@ -193,7 +202,7 @@ def _validated_value(
                     f"setting {definition.key} normalized to an unsafe value"
                 ) from error
             validate_shape(normalized)
-            _validate_no_sensitive_content(normalized, path=definition.key)
+            _validate_no_secret_bearing_names(normalized, path=definition.key)
     return normalized
 
 
@@ -236,7 +245,7 @@ def register_operational_setting(
         raise InvalidOperationalSetting("setting validation metadata is unsafe") from error
     if not isinstance(validation, dict):
         raise InvalidOperationalSetting("setting validation metadata must be an object")
-    _validate_no_sensitive_content(validation, path=f"{definition.key}.validation")
+    _validate_no_secret_bearing_names(validation, path=f"{definition.key}.validation")
     normalized_default = _validated_value(definition, definition.default)
 
     registered = _registry.get(definition.key)

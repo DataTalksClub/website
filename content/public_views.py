@@ -26,7 +26,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_safe
 
 from core.breadcrumbs import Trail, trail
-from core.runtime_endpoints import canonical_origin
+from core.runtime_config import get_str_setting
 from core.sponsors import public_events_hub_sponsors
 from course_management.observability import record_event
 from courses.models import Cohort
@@ -100,7 +100,7 @@ EVENT_FILTER_SELECTORS = frozenset({"filter", "page"})
 
 
 def _canonical(path: str) -> str:
-    return f"{canonical_origin().rstrip('/')}{path}"
+    return f"{get_str_setting('site.origin.canonical')}{path}"
 
 
 def _json_ld(
@@ -700,7 +700,7 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
         context={
             "record": article,
             "breadcrumbs": article_trail,
-            # The design 5a reading page (issue #179) renders this composed value:
+            # The design system reading page (issue #179) renders this composed value:
             # the byline joined to the people records, the publication date and
             # reading estimate the design writes, and the body as prose sections.
             "article": article_view(article, projection["people_by_slug"], faq),

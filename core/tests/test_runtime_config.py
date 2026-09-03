@@ -11,13 +11,18 @@ from __future__ import annotations
 import os
 from unittest import mock
 
+from django.conf import settings as django_settings
 from django.test import TestCase, override_settings
 
 from core import runtime_config
-from core.configuration import UnknownOperationalSetting, registered_operational_settings
+from core.configuration import (
+    InvalidOperationalSetting,
+    UnknownOperationalSetting,
+    registered_operational_settings,
+    validate_operational_setting_value,
+)
 from core.models import OperationalSetting
 from core.operational_settings import OPERATIONAL_SETTING_KEYS
-from core.redaction import is_sensitive_text
 from core.runtime_config import (
     STAMP_TTL_SECONDS,
     get_setting,
@@ -78,12 +83,16 @@ class RuntimeSettingResolutionTests(TestCase):
         self.assertEqual(resolution.layer, runtime_config.SETTINGS_LAYER)
 
     def test_default_is_the_floor_for_a_key_no_layer_answers(self) -> None:
-        # Nothing declares an environment variable or a settings attribute for
-        # the scheme-less endpoints, so the definition default is the only
-        # answer until an operator writes a row.
-        reset_runtime_settings_cache()
-        resolution = resolve_runtime_setting("site.origin.canonical_host")
-        self.assertEqual(resolution.value, "")
+        # With no row, no environment variable and no settings attribute, the
+        # definition default answers -- and for the canonical origin that floor
+        # is the origin ``website.settings.base`` itself boots with.
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("CANONICAL_ORIGIN", None)
+            with override_settings():
+                del django_settings.CANONICAL_ORIGIN
+                reset_runtime_settings_cache()
+                resolution = resolve_runtime_setting("site.origin.canonical")
+        self.assertEqual(resolution.value, "https://datatalks.club")
         self.assertEqual(resolution.layer, runtime_config.DEFAULT_LAYER)
 
     def test_boolean_integer_and_string_values_are_read_in_their_declared_type(self) -> None:
@@ -241,7 +250,7 @@ class RuntimeSettingRegistryContractTests(TestCase):
         self.assertEqual(stamped, sorted(OPERATIONAL_SETTING_KEYS))
         self.assertEqual(len(set(OPERATIONAL_SETTING_KEYS)), len(OPERATIONAL_SETTING_KEYS))
 
-    def test_no_registered_setting_names_or_values_look_secret_bearing(self) -> None:
+    def test_no_registered_setting_name_looks_secret_bearing(self) -> None:
         fragments = ("secret", "token", "password", "apikey", "credential", "key")
         for definition in registered_operational_settings():
             with self.subTest(key=definition.key):
@@ -253,8 +262,6 @@ class RuntimeSettingRegistryContractTests(TestCase):
                         if fragment == "key" and definition.key.endswith("_key"):
                             continue
                         self.assertNotIn(fragment, normalized)
-                if isinstance(definition.default, str):
-                    self.assertFalse(is_sensitive_text(definition.default))
 
     def test_every_stamped_setting_is_operational_and_active(self) -> None:
         for definition in registered_operational_settings():
@@ -263,3 +270,106 @@ class RuntimeSettingRegistryContractTests(TestCase):
             with self.subTest(key=definition.key):
                 self.assertEqual(definition.sensitivity, "operational")
                 self.assertEqual(definition.lifecycle, "active")
+
+
+class EndpointSettingTests(TestCase):
+    """The five settings that are a URL or an address, stored as themselves.
+
+    They used to be stored in pieces -- a bare host, a scheme-less endpoint, a
+    mailbox and a domain -- because the write path refused anything the log
+    scrubber's patterns matched, which included the site's own public origin.
+    The refusal is gone; what stands in its place is each setting's own
+    validator, and what it refuses is what the pattern was aimed at.
+    """
+
+    def setUp(self) -> None:
+        reset_runtime_settings_cache()
+        self.addCleanup(reset_runtime_settings_cache)
+
+    def test_an_ordinary_url_and_address_are_stored_as_themselves(self) -> None:
+        accepted = {
+            "site.origin.canonical": "https://datatalks.club",
+            "datamailer.url": "https://mailer.example.com/api",
+            "datamailer.from_email": "noreply@datatalks.club",
+            "public_media.s3_endpoint_url": "https://storage.example.com",
+            # Relay has no public listener; in-VPC it is plain http.
+            "relay.link_bridge.base_url": "http://relay.internal:8000",
+        }
+        for key, value in accepted.items():
+            with self.subTest(key=key):
+                self.assertEqual(validate_operational_setting_value(key, value), value)
+                _store(key, OperationalSetting.ValueType.STRING, value)
+                reset_runtime_settings_cache()
+                self.assertEqual(get_setting(key), value)
+                self.assertEqual(
+                    resolve_runtime_setting(key).layer,
+                    runtime_config.DATABASE_LAYER,
+                )
+
+    def test_a_url_carrying_a_credential_or_a_query_string_is_refused(self) -> None:
+        refused = (
+            # The two shapes a token travels in.
+            ("site.origin.canonical", "https://operator:hunter2@datatalks.club"),
+            ("datamailer.url", "https://mailer.example.com/api?access=abc"),
+            ("relay.link_bridge.base_url", "http://relay.internal:8000/#abc"),
+            # An origin is a scheme and a host: a path here would be appended to
+            # every canonical link on the site.
+            ("site.origin.canonical", "https://datatalks.club/courses"),
+            ("site.origin.canonical", "http://datatalks.club"),
+            ("site.origin.canonical", "datatalks.club"),
+            # A list and a display name are not one sender.
+            ("datamailer.from_email", "noreply@datatalks.club, other@datatalks.club"),
+            ("datamailer.from_email", "DataTalks <noreply@datatalks.club>"),
+            ("datamailer.from_email", "noreply@datatalks.club\nBcc: other@example.test"),
+        )
+        for key, value in refused:
+            with self.subTest(key=key, value=value):
+                with self.assertRaises(InvalidOperationalSetting):
+                    validate_operational_setting_value(key, value)
+
+    def test_the_named_sender_the_mailer_resolves_is_still_a_sender(self) -> None:
+        """``courses`` is what this deployment configures, and it must survive.
+
+        The mailer resolves a named sender of its own.  A validator that
+        insisted on ``mailbox@domain`` would refuse it, and a refused
+        environment value falls through to the next layer -- so course mail
+        would go out with no sender at all rather than fail loudly.
+        """
+
+        self.assertEqual(
+            validate_operational_setting_value("datamailer.from_email", "courses"),
+            "courses",
+        )
+
+    def test_they_resolve_through_the_same_four_layers_as_any_other_key(self) -> None:
+        key = "site.origin.canonical"
+        with mock.patch.dict(os.environ, {"CANONICAL_ORIGIN": "https://from-environment.test"}):
+            with override_settings(CANONICAL_ORIGIN="https://from-settings.test"):
+                reset_runtime_settings_cache()
+                self.assertEqual(get_setting(key), "https://from-environment.test")
+
+                os.environ.pop("CANONICAL_ORIGIN")
+                reset_runtime_settings_cache()
+                self.assertEqual(get_setting(key), "https://from-settings.test")
+
+                _store(key, OperationalSetting.ValueType.STRING, "https://from-database.test")
+                reset_runtime_settings_cache()
+                self.assertEqual(get_setting(key), "https://from-database.test")
+
+    def test_an_operator_hands_a_value_back_by_clearing_it(self) -> None:
+        """Clearing the row returns the environment's answer, not an empty URL.
+
+        The composers used to give ``site.origin.canonical`` this behaviour by
+        hand, because an empty stored host meant "keep what the process booted
+        with".  The ordinary resolution order gives it for free.
+        """
+
+        key = "datamailer.url"
+        with mock.patch.dict(os.environ, {"DATAMAILER_URL": "https://booted.example"}):
+            row = _store(key, OperationalSetting.ValueType.STRING, "https://written.example")
+            reset_runtime_settings_cache()
+            self.assertEqual(get_setting(key), "https://written.example")
+
+            row.delete()
+            reset_runtime_settings_cache()
+            self.assertEqual(get_setting(key), "https://booted.example")

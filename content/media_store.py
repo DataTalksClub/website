@@ -42,7 +42,6 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
 from core.runtime_config import get_int_setting, get_str_setting
-from core.runtime_endpoints import public_media_s3_endpoint_url
 
 PROJECTION_ROOT = Path(__file__).with_name("public_projection")
 MEDIA_RECORDS_FILENAME = "media.json"
@@ -632,7 +631,7 @@ def media_store_config() -> MediaStoreConfig:
         s3_bucket=get_str_setting("public_media.s3_bucket").strip(),
         s3_prefix=get_str_setting("public_media.s3_prefix").strip("/"),
         s3_region=get_str_setting("public_media.s3_region").strip(),
-        s3_endpoint_url=public_media_s3_endpoint_url(),
+        s3_endpoint_url=get_str_setting("public_media.s3_endpoint_url"),
         # The registry types this as whole seconds; the store wants a float.
         s3_timeout_seconds=float(get_int_setting("public_media.s3_timeout_seconds")),
         maximum_object_bytes=get_int_setting("public_media.max_object_bytes"),

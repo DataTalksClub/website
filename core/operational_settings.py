@@ -15,15 +15,16 @@ to when no row, no environment variable and no settings attribute answers, and a
 floor that disagreed with the boot value would make "nothing is configured" mean
 two different things depending on which layer answered.
 
-Five values are shaped differently from the environment variable they override.
-A URL and an email address are exactly what ``core.redaction`` treats as
-sensitive, and ``core.configuration`` refuses to persist anything that policy
-rejects -- so the mailer endpoint, the relay endpoint, the media endpoint, the
-canonical host and the sender address are stored *scheme-less* and *split*, and
-``core.runtime_endpoints`` composes the URL or the address at the point of use.
-Those five name no ``env_var`` and no ``settings_attr``, because the
-environment holds the same value in the other shape; an empty stored value there
-means "keep the URL this process booted with", and the composer says so.
+A URL and an email address are stored here as themselves.  ``https://datatalks.club``
+is the most public string this site owns, and storing it as a bare host so that
+a scrubber's pattern would not match it bought nothing: the value reached the
+same table either way, in a shape no operator would have typed.  What does earn
+its keep is the per-setting validator: an origin is https with no path, an
+endpoint is an absolute URL with no userinfo and no query string, and a sender
+is exactly one sender.  That refuses the thing the pattern was aimed at -- a
+credential smuggled through a URL -- while letting the ordinary value through.
+Keeping secrets out of logs remains ``core.redaction``'s job at the logging
+boundary, where it is unchanged.
 
 What is deliberately *not* here:
 
@@ -45,6 +46,7 @@ What is deliberately *not* here:
 from __future__ import annotations
 
 import re
+from urllib.parse import SplitResult, urlsplit
 
 from core.configuration import (
     InvalidOperationalSetting,
@@ -97,58 +99,47 @@ def _trimmed(value: JsonValue) -> JsonValue:
 _HOST = re.compile(
     r"^(?:localhost|[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9-]+)+)(?::[0-9]{1,5})?$"
 )
-#: The local part of an address, on its own.  Never a whole address.
+#: The local part of an address, and equally the whole of a named sender.
 _MAILBOX = re.compile(r"^[A-Za-z0-9!#$%&'*+/=?^_`{|}~.-]{1,64}$")
+#: Exactly one ``mailbox@domain``.  One ``@``, no display name, no comma, no
+#: angle brackets -- a list of senders is not a sender.
+_EMAIL = re.compile(
+    r"^[A-Za-z0-9!#$%&'*+/=?^_`{|}~.-]{1,64}"
+    r"@(?:localhost|[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9-]+)+)$"
+)
 
 
-def _host(value: JsonValue) -> JsonValue:
-    """One bare host, optionally with a port.  Never a URL."""
+def _parsed_url(value: str, *, schemes: tuple[str, ...]) -> SplitResult:
+    """One absolute URL that carries nothing but a location.
 
-    if not isinstance(value, str):
-        raise InvalidOperationalSetting("value must be a string")
-    normalized = value.strip().casefold()
-    if not normalized:
-        return ""
-    if not _HOST.fullmatch(normalized):
-        raise InvalidOperationalSetting("value must be a bare host, with no scheme and no path")
-    return normalized
-
-
-def _endpoint(value: JsonValue) -> JsonValue:
-    """One scheme-less ``host[:port][/path]``, always read as https.
-
-    The settings table never holds a URL.  ``core.redaction`` treats any
-    ``http(s)://`` string as sensitive -- a URL is exactly the shape that
-    smuggles a token in a query string -- and ``core.configuration`` refuses to
-    persist anything that policy rejects.  Storing the authority and path
-    without the scheme keeps the value honest about what it is (a host we own)
-    and keeps the refusal intact; ``core.runtime_endpoints`` puts the ``https``
-    back when a caller needs a URL.
+    Userinfo and a query string are refused, and that refusal is the point: a
+    URL is the shape a credential travels in, so ``https://user:pass@host`` and
+    ``https://host/callback?token=...`` are exactly what must not become a
+    stored setting.  A plain endpoint is not sensitive and is stored as itself.
     """
 
-    if not isinstance(value, str):
-        raise InvalidOperationalSetting("value must be a string")
-    normalized = value.strip().strip("/")
-    if not normalized:
-        return ""
-    if "//" in normalized or ":/" in normalized:
-        raise InvalidOperationalSetting("endpoint must not carry a scheme")
-    if any(character in normalized for character in "@?# \t") or len(normalized) > 512:
-        raise InvalidOperationalSetting("endpoint must be a plain host and path")
-    host, _, path = normalized.partition("/")
-    if not _HOST.fullmatch(host.casefold()):
-        raise InvalidOperationalSetting("endpoint must start with a bare host")
-    if ".." in path:
-        raise InvalidOperationalSetting("endpoint path must not traverse")
-    return f"{host.casefold()}/{path}" if path else host.casefold()
+    try:
+        parsed = urlsplit(value)
+    except ValueError as error:
+        raise InvalidOperationalSetting("value must be a URL") from error
+    if parsed.scheme not in schemes:
+        raise InvalidOperationalSetting(f"value must be a {' or '.join(schemes)} URL")
+    if "@" in parsed.netloc:
+        raise InvalidOperationalSetting("value must not carry credentials")
+    if parsed.query or parsed.fragment:
+        raise InvalidOperationalSetting("value must not carry a query string or a fragment")
+    if not _HOST.fullmatch(parsed.netloc.casefold()):
+        raise InvalidOperationalSetting("value must name one host")
+    if ".." in parsed.path:
+        raise InvalidOperationalSetting("value path must not traverse")
+    return parsed
 
 
-def _mailbox(value: JsonValue) -> JsonValue:
-    """The local part of a sender address, on its own.
+def _origin(value: JsonValue) -> JsonValue:
+    """One bare https origin: scheme and host, and nothing else.
 
-    A whole address is refused by the same content policy that refuses a URL, so
-    the sender is two settings -- the mailbox and the domain -- and neither is an
-    address until ``core.runtime_endpoints`` joins them.
+    This is the value every canonical link, sitemap entry and absolute email
+    link is built from, so a path here would be appended to every one of them.
     """
 
     if not isinstance(value, str):
@@ -156,8 +147,56 @@ def _mailbox(value: JsonValue) -> JsonValue:
     normalized = value.strip()
     if not normalized:
         return ""
-    if not _MAILBOX.fullmatch(normalized) or ".." in normalized:
-        raise InvalidOperationalSetting("value must be one address local part")
+    parsed = _parsed_url(normalized, schemes=("https",))
+    if parsed.path.strip("/"):
+        raise InvalidOperationalSetting("origin must be a scheme and host, with no path")
+    return f"https://{parsed.netloc.casefold()}"
+
+
+def _url(*schemes: str) -> object:
+    """One absolute URL in the given schemes, or empty for "not configured"."""
+
+    def validate(value: JsonValue) -> JsonValue:
+        if not isinstance(value, str):
+            raise InvalidOperationalSetting("value must be a string")
+        normalized = value.strip()
+        if not normalized:
+            return ""
+        if len(normalized) > 512:
+            raise InvalidOperationalSetting("value must be one URL")
+        parsed = _parsed_url(normalized, schemes=schemes)
+        path = parsed.path.rstrip("/")
+        return f"{parsed.scheme}://{parsed.netloc.casefold()}{path}"
+
+    return validate
+
+
+def _sender(value: JsonValue) -> JsonValue:
+    """One sender: a whole ``mailbox@domain``, or a named sender, or empty.
+
+    ``noreply@datatalks.club`` is the obvious form and is now stored as itself.
+    The bare form is not a leftover of the old split shape: Datamailer resolves
+    a *named* sender of its own -- this deployment configures ``courses`` --
+    and refusing it here would silently drop the sender every course mail is
+    sent from, because an unreadable layer falls through to the next one.
+
+    What is refused is anything that is not *one* sender: whitespace, a comma,
+    a display name in angle brackets, a second ``@``.  A header built from a
+    list is how an injected recipient gets in.
+    """
+
+    if not isinstance(value, str):
+        raise InvalidOperationalSetting("value must be a string")
+    normalized = value.strip()
+    if not normalized:
+        return ""
+    if ".." in normalized:
+        raise InvalidOperationalSetting("value must be one sender")
+    if "@" in normalized:
+        if not _EMAIL.fullmatch(normalized):
+            raise InvalidOperationalSetting("value must be one email address")
+    elif not _MAILBOX.fullmatch(normalized):
+        raise InvalidOperationalSetting("value must be one address or one named sender")
     return normalized
 
 
@@ -206,20 +245,17 @@ STRING = OperationalSetting.ValueType.STRING
 # which audience a campaign lands in, which address it comes from, whether a
 # send is a dry run -- is here.
 
-DATAMAILER_ENDPOINT = _declare(
-    key="datamailer.endpoint",
+DATAMAILER_URL = _declare(
+    key="datamailer.url",
     group=DATAMAILER_GROUP,
-    label="Datamailer endpoint",
-    description=(
-        "Scheme-less host and path of the transactional mailer, read as https. "
-        "Empty means the endpoint the process booted with."
-    ),
+    label="Datamailer URL",
+    description="Base https URL of the transactional mailer. Empty means no mailer.",
     value_type=STRING,
     default="",
-    env_var="",
-    settings_attr="",
-    validation={"scheme_less_endpoint": True, "trim": True},
-    validator=_endpoint,
+    env_var="DATAMAILER_URL",
+    settings_attr="DATAMAILER_URL",
+    validation={"https_url": True, "trim": True},
+    validator=_url("https"),
 )
 
 DATAMAILER_CLIENT = _declare(
@@ -248,36 +284,20 @@ DATAMAILER_AUDIENCE = _declare(
     validator=_trimmed,
 )
 
-DATAMAILER_FROM_MAILBOX = _declare(
-    key="datamailer.from_mailbox",
+DATAMAILER_FROM_EMAIL = _declare(
+    key="datamailer.from_email",
     group=DATAMAILER_GROUP,
-    label="Sender mailbox",
+    label="Sender address",
     description=(
-        "Local part of the address course and event mail is sent from. "
-        "Both halves must be set before either is used."
+        "Address course and event mail is sent from, or the named sender the "
+        "mailer resolves. One sender, never a list."
     ),
     value_type=STRING,
     default="",
-    env_var="",
-    settings_attr="",
-    validation={"address_local_part": True, "trim": True},
-    validator=_mailbox,
-)
-
-DATAMAILER_FROM_DOMAIN = _declare(
-    key="datamailer.from_domain",
-    group=DATAMAILER_GROUP,
-    label="Sender domain",
-    description=(
-        "Domain of the address course and event mail is sent from. "
-        "Both halves must be set before either is used."
-    ),
-    value_type=STRING,
-    default="",
-    env_var="",
-    settings_attr="",
-    validation={"bare_host": True, "trim": True},
-    validator=_host,
+    env_var="DATAMAILER_FROM_EMAIL",
+    settings_attr="DATAMAILER_FROM_EMAIL",
+    validation={"sender": True, "trim": True},
+    validator=_sender,
 )
 
 DATAMAILER_STRICT = _declare(
@@ -444,20 +464,21 @@ PUBLIC_MEDIA_S3_REGION = _declare(
     validator=_trimmed,
 )
 
-PUBLIC_MEDIA_S3_ENDPOINT = _declare(
-    key="public_media.s3_endpoint",
+PUBLIC_MEDIA_S3_ENDPOINT_URL = _declare(
+    key="public_media.s3_endpoint_url",
     group=PUBLIC_MEDIA_GROUP,
-    label="Public media endpoint",
+    label="Public media endpoint URL",
     description=(
-        "Scheme-less alternate S3 endpoint, read as https, used when the store "
-        "is not AWS itself. Empty means the endpoint the process booted with."
+        "Alternate S3 endpoint, used when the store is not AWS itself. Empty "
+        "means AWS. It exists to point at a local or faked store, which is "
+        "reached over http, so http is allowed here."
     ),
     value_type=STRING,
     default="",
-    env_var="",
-    settings_attr="",
-    validation={"scheme_less_endpoint": True, "trim": True},
-    validator=_endpoint,
+    env_var="PUBLIC_MEDIA_S3_ENDPOINT_URL",
+    settings_attr="PUBLIC_MEDIA_S3_ENDPOINT_URL",
+    validation={"url": True, "schemes": ["https", "http"], "trim": True},
+    validator=_url("https", "http"),
 )
 
 PUBLIC_MEDIA_S3_TIMEOUT_SECONDS = _declare(
@@ -489,21 +510,21 @@ PUBLIC_MEDIA_MAX_OBJECT_BYTES = _declare(
 
 # -- the relay's link bridge -------------------------------------------------
 
-RELAY_LINK_BRIDGE_ENDPOINT = _declare(
-    key="relay.link_bridge.endpoint",
+RELAY_LINK_BRIDGE_BASE_URL = _declare(
+    key="relay.link_bridge.base_url",
     group=RELAY_LINK_BRIDGE_GROUP,
-    label="Relay link bridge endpoint",
+    label="Relay link bridge base URL",
     description=(
-        "Scheme-less host and path of the relay that resolves open, click and "
-        "unsubscribe links, read as https. Empty means the relay the process "
-        "booted with."
+        "Base URL of the relay that resolves open, click and unsubscribe links. "
+        "Relay has no public listener, so this is the private in-VPC address and "
+        "http is allowed. Empty means no relay, and the three public routes 404."
     ),
     value_type=STRING,
     default="",
-    env_var="",
-    settings_attr="",
-    validation={"scheme_less_endpoint": True, "trim": True},
-    validator=_endpoint,
+    env_var="RELAY_LINK_BRIDGE_BASE_URL",
+    settings_attr="RELAY_LINK_BRIDGE_BASE_URL",
+    validation={"url": True, "schemes": ["https", "http"], "trim": True},
+    validator=_url("https", "http"),
 )
 
 RELAY_LINK_BRIDGE_OPEN_TIMEOUT_SECONDS = _declare(
@@ -608,21 +629,20 @@ OBSERVABILITY_EVENT_SCHEMA_VERSION = _declare(
 # the value it expects.  It is here so a cutover can be finished without a
 # release, and the validator refuses anything that is not a bare https origin.
 
-CANONICAL_HOST = _declare(
-    key="site.origin.canonical_host",
+CANONICAL_ORIGIN = _declare(
+    key="site.origin.canonical",
     group=SITE_ORIGIN_GROUP,
-    label="Canonical host",
+    label="Canonical origin",
     description=(
-        "Bare host every canonical link, sitemap entry and absolute email link "
-        "is built from, always over https. Empty means the origin the process "
-        "booted with."
+        "https origin every canonical link, sitemap entry and absolute email "
+        "link is built from. Scheme and host only, with no path."
     ),
     value_type=STRING,
-    default="",
-    env_var="",
-    settings_attr="",
-    validation={"bare_host": True, "trim": True},
-    validator=_host,
+    default="https://datatalks.club",
+    env_var="CANONICAL_ORIGIN",
+    settings_attr="CANONICAL_ORIGIN",
+    validation={"https_origin": True, "trim": True},
+    validator=_origin,
 )
 
 
@@ -630,12 +650,10 @@ CANONICAL_HOST = _declare(
 #: admin API and the contract test both iterate this rather than rediscovering
 #: the registry, so adding a setting without listing it here fails a test.
 OPERATIONAL_SETTING_KEYS: tuple[str, ...] = (
-    CANONICAL_HOST.key,
+    CANONICAL_ORIGIN.key,
     DATAMAILER_AUDIENCE.key,
     DATAMAILER_CLIENT.key,
-    DATAMAILER_ENDPOINT.key,
-    DATAMAILER_FROM_DOMAIN.key,
-    DATAMAILER_FROM_MAILBOX.key,
+    DATAMAILER_FROM_EMAIL.key,
     DATAMAILER_IMPORT_S3_BUCKET.key,
     DATAMAILER_IMPORT_S3_PREFIX.key,
     DATAMAILER_IMPORT_S3_REGION.key,
@@ -645,17 +663,18 @@ OPERATIONAL_SETTING_KEYS: tuple[str, ...] = (
     DATAMAILER_SYNC_ON_USER_CREATE.key,
     DATAMAILER_TIMEOUT_SECONDS.key,
     DATAMAILER_TRANSACTIONAL_DRY_RUN.key,
+    DATAMAILER_URL.key,
     CLOUDWATCH_APP_METRIC_NAMESPACE.key,
     CLOUDWATCH_APP_METRIC_REGION.key,
     OBSERVABILITY_EVENT_SCHEMA_VERSION.key,
     PUBLIC_MEDIA_MAX_OBJECT_BYTES.key,
     PUBLIC_MEDIA_S3_BUCKET.key,
-    PUBLIC_MEDIA_S3_ENDPOINT.key,
+    PUBLIC_MEDIA_S3_ENDPOINT_URL.key,
     PUBLIC_MEDIA_S3_PREFIX.key,
     PUBLIC_MEDIA_S3_REGION.key,
     PUBLIC_MEDIA_S3_TIMEOUT_SECONDS.key,
     PUBLIC_MEDIA_STORE_BACKEND.key,
-    RELAY_LINK_BRIDGE_ENDPOINT.key,
+    RELAY_LINK_BRIDGE_BASE_URL.key,
     RELAY_LINK_BRIDGE_CLICK_TIMEOUT_SECONDS.key,
     RELAY_LINK_BRIDGE_OPEN_TIMEOUT_SECONDS.key,
     RELAY_LINK_BRIDGE_POOL_SIZE.key,

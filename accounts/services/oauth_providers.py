@@ -36,7 +36,7 @@ from django.db import transaction
 from core.audit import AuditWriteContext, record_audit_event
 from core.idempotency import JsonObject, JsonValue
 from core.models import AuditEvent
-from core.runtime_endpoints import canonical_origin
+from core.runtime_config import get_str_setting
 from core.services import ServiceContext, validate_actor_ref
 
 #: The three providers ``website.settings.base`` installs.  A provider that is
@@ -121,7 +121,7 @@ def _present(app: SocialApp | None, *, provider: str, site_id: int) -> JsonObjec
         "label": meta["label"],
         "configure_url": meta["configure_url"],
         "callback_path": meta["callback_path"],
-        "callback_url": f"{canonical_origin().rstrip('/')}{meta['callback_path']}",
+        "callback_url": f"{get_str_setting('site.origin.canonical')}{meta['callback_path']}",
         "scopes": _scopes(provider),
         "client_id": client_id,
         "has_secret": has_secret,

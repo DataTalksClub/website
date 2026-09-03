@@ -7,7 +7,6 @@ import requests
 from django.conf import settings
 
 from core.runtime_config import get_bool_setting, get_int_setting, get_str_setting
-from core.runtime_endpoints import datamailer_base_url, datamailer_from_email
 
 from .client_campaigns import DatamailerCampaignClient
 from .client_contacts import DatamailerContactClient
@@ -49,11 +48,11 @@ class DatamailerConfig:
         settings table is readable by anything that can read the database.
         """
 
-        url = datamailer_base_url()
+        url = get_str_setting("datamailer.url")
         api_key = getattr(settings, "DATAMAILER_API_KEY", "")
         client = get_str_setting("datamailer.client")
         audience = get_str_setting("datamailer.audience")
-        from_email = datamailer_from_email()
+        from_email = get_str_setting("datamailer.from_email")
 
         if not all([url, api_key, client, audience]):
             return None

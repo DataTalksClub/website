@@ -236,10 +236,14 @@ approved in #21 may be enabled.
   that made it on commit and every other process within `STAMP_TTL_SECONDS`, so changing one of
   these values never requires a restart or a release. A database that cannot answer demotes its own
   layer rather than failing the read.
-- The settings table never holds a URL, an email address, or anything the shared redaction policy
-  treats as sensitive: its values are written to an audit trail and a revision history in the clear.
-  Endpoint-shaped values are therefore stored scheme-less and a sender address is stored as its two
-  parts; `core.runtime_endpoints` composes them at the point of use.
+- The settings table holds no secret: `core.configuration` refuses to register a key, environment
+  variable or settings attribute that names a credential, and its values are written to an audit
+  trail and a revision history in the clear. A URL and an email address are stored as themselves,
+  because the canonical origin, the mailer endpoint and the sender address are exactly what an
+  operator has to change. Each such setting declares a validator that refuses userinfo, a query
+  string and a fragment, so a credential cannot ride into the table inside a URL. Keeping secrets
+  out of logs, audit records and error reports is the logging boundary's job and stays with
+  `core.redaction`.
 - Operators reach these values at `GET`/`PATCH /api/v1/admin/settings/operational`, under
   `core.read_operational_settings` and `core.change_operational_settings`, with the same
   compare-and-swap-on-`expected_revision` batch semantics as the public site settings.
