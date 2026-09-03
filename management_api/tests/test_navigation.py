@@ -16,7 +16,7 @@ from accounts.studio_sessions import SESSION_REFERENCE_KEY, revoke_staff_session
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
 from core.bootstrap import RuntimeEnvironment
 from core.idempotency import JsonObject
-from core.models import AuditEvent, SiteNavigationEntry, SiteNavigationMenu, SiteNavigationRevision
+from core.models import AuditEvent, SiteNavigationEntry, SiteNavigationMenu
 from core.navigation import default_navigation_entries
 from management_api.concurrency import navigation_revision_etag
 from management_api.openapi import generate_document
@@ -117,7 +117,6 @@ class AdminSiteNavigationTests(TestCase):
         self.assertTrue(changed.json()["changed"])
         self.assertEqual(changed.json()["source"], "admin_api")
         self.assertEqual(changed.json()["entries"][0]["label"], "API gatherings")
-        self.assertEqual(SiteNavigationRevision.objects.count(), 1)
         self.assertEqual(
             AuditEvent.objects.filter(action="core.site_navigation.updated").count(),
             1,
@@ -136,7 +135,6 @@ class AdminSiteNavigationTests(TestCase):
         self.assert_private_json(replay, 200)
         self.assertTrue(replay.json()["replayed"])
         self.assertEqual(replay.json()["entries"], changed.json()["entries"])
-        self.assertEqual(SiteNavigationRevision.objects.count(), 1)
 
     def test_strict_validation_stale_and_idempotency_conflicts_are_safe(self) -> None:
         invalid_cases: tuple[tuple[dict[str, Any], str], ...] = (

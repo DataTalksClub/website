@@ -34,7 +34,6 @@ from core.models import (
     RevisionConflict,
     SiteNavigationEntry,
     SiteNavigationMenu,
-    SiteNavigationRevision,
 )
 from core.services import ServiceContext, validate_actor_ref
 
@@ -639,7 +638,7 @@ def _apply_navigation(
         for item in entries
         if item.key in current_by_key and item.as_dict() != current_by_key[item.key].as_dict()
     )
-    audit_event = record_audit_event(
+    record_audit_event(
         action="core.site_navigation.updated",
         target_type="core.site_navigation",
         target_id=menu.id,
@@ -654,16 +653,6 @@ def _apply_navigation(
             "changed_keys": changed_keys + updated_keys,
         },
         using=using,
-    )
-    SiteNavigationRevision.objects.using(using).create(
-        menu=menu,
-        menu_key=PRIMARY_MENU_KEY,
-        source=menu.source,
-        revision=menu.revision,
-        entries=[item.identity_dict() for item in entries],
-        changed_by_id=context.actor_id,
-        changed_by_ref=context.actor_ref,
-        audit_event=audit_event,
     )
     return {
         "source": menu.source,

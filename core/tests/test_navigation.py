@@ -18,7 +18,6 @@ from core.models import (
     RevisionConflict,
     SiteNavigationEntry,
     SiteNavigationMenu,
-    SiteNavigationRevision,
 )
 from core.navigation import (
     DEFAULT_PRIMARY_NAVIGATION,
@@ -151,7 +150,6 @@ class SiteNavigationCommandTests(TestCase):
             SiteNavigationEntry.objects.count(),
             len(DEFAULT_PRIMARY_NAVIGATION),
         )
-        self.assertEqual(SiteNavigationRevision.objects.count(), 1)
         self.assertEqual(
             AuditEvent.objects.filter(action="core.site_navigation.updated").count(),
             1,
@@ -188,7 +186,6 @@ class SiteNavigationCommandTests(TestCase):
         self.assertEqual(caught.exception.actual, 1)
         self.assertEqual(SiteNavigationMenu.objects.get().revision, 1)
         self.assertEqual(SiteNavigationEntry.objects.get(key="events").label, "Kept")
-        self.assertEqual(SiteNavigationRevision.objects.count(), 1)
 
     def test_validation_boundaries_and_unsafe_targets_fail_before_mutation(self) -> None:
         valid = default_entries()
@@ -235,7 +232,6 @@ class SiteNavigationCommandTests(TestCase):
         no_op = replace_menu(default_entries())
         self.assertFalse(no_op.menu["changed"])
         self.assertFalse(SiteNavigationMenu.objects.exists())
-        self.assertFalse(SiteNavigationRevision.objects.exists())
         self.assertFalse(AuditEvent.objects.filter(action="core.site_navigation.updated").exists())
 
         with mock.patch(
@@ -245,7 +241,6 @@ class SiteNavigationCommandTests(TestCase):
             with self.assertRaisesRegex(RuntimeError, "audit unavailable"):
                 replace_menu([{**default_entries()[0], "label": "Changed"}] + default_entries()[1:])
         self.assertFalse(SiteNavigationMenu.objects.exists())
-        self.assertFalse(SiteNavigationRevision.objects.exists())
 
     def test_same_actor_key_conflicts_but_other_actor_has_an_independent_scope(self) -> None:
         shared_key = str(uuid.uuid4())
@@ -347,7 +342,6 @@ class SiteNavigationConcurrencyTests(TransactionTestCase):
         ]
         self.assertEqual(len(winners), 1, results)
         self.assertEqual(len(conflicts), 1, results)
-        self.assertEqual(SiteNavigationRevision.objects.count(), 2)
         self.assertEqual(
             AuditEvent.objects.filter(action="core.site_navigation.updated").count(),
             2,

@@ -10,7 +10,7 @@ from django.urls import Resolver404, resolve, reverse
 
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
 from core.idempotency import JsonObject
-from core.models import AuditEvent, SiteNavigationEntry, SiteNavigationMenu, SiteNavigationRevision
+from core.models import AuditEvent, SiteNavigationEntry, SiteNavigationMenu
 from core.navigation import default_navigation_entries
 
 
@@ -115,7 +115,6 @@ class StudioSiteNavigationTests(TestCase):
         self.assertEqual(SiteNavigationEntry.objects.get(key="events").label, "Gatherings")
         self.assertFalse(SiteNavigationEntry.objects.get(key="courses").visible)
         self.assertTrue(SiteNavigationEntry.objects.filter(key="home").exists())
-        self.assertEqual(SiteNavigationRevision.objects.count(), 1)
         self.assertEqual(
             AuditEvent.objects.filter(action="core.site_navigation.updated").count(),
             1,
@@ -126,7 +125,6 @@ class StudioSiteNavigationTests(TestCase):
         self.assertContains(success, "Site navigation saved.")
         refresh = self.client.get(response.headers["Location"])
         self.assert_private(refresh, 200)
-        self.assertEqual(SiteNavigationRevision.objects.count(), 1)
 
     def test_validation_and_stale_conflict_preserve_safe_form_state(self) -> None:
         entries = [entry.as_dict() for entry in default_navigation_entries()]
@@ -170,7 +168,6 @@ class StudioSiteNavigationTests(TestCase):
         self.assertContains(stale, "Studio", status_code=409)
         self.assertContains(stale, "Revision 1", status_code=409)
         self.assertEqual(SiteNavigationEntry.objects.get(key="events").label, "First save")
-        self.assertEqual(SiteNavigationRevision.objects.count(), 1)
 
     def test_csrf_method_anonymous_and_permission_removal_fail_before_mutation(self) -> None:
         entries = [entry.as_dict() for entry in default_navigation_entries()]

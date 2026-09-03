@@ -31,7 +31,6 @@ class AppendOnlyQuerySet(models.QuerySet[Any]):
         retention_fields = {
             AuditEvent: frozenset({"actor", "api_principal"}),
             OperationalSettingRevision: frozenset({"changed_by"}),
-            SiteNavigationRevision: frozenset({"changed_by"}),
             SponsorRevision: frozenset({"changed_by"}),
         }.get(self.model, frozenset())
         supplied_field = next(iter(kwargs), "").removesuffix("_id")
@@ -660,66 +659,6 @@ class SiteNavigationEntry(models.Model):
 
     def __str__(self) -> str:
         return f"{self.menu_id}:{self.key}"
-
-
-class SiteNavigationRevision(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    menu = models.ForeignKey(
-        SiteNavigationMenu,
-        on_delete=models.PROTECT,
-        related_name="history",
-    )
-    menu_key = models.CharField(max_length=32)
-    source = models.CharField(max_length=64)
-    revision = models.PositiveBigIntegerField()
-    entries = models.JSONField(default=list)
-    changed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="site_navigation_revisions",
-    )
-    changed_by_ref = models.CharField(max_length=128, blank=True)
-    audit_event = models.ForeignKey(
-        AuditEvent,
-        on_delete=models.PROTECT,
-        related_name="navigation_revisions",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    objects = AppendOnlyManager()
-
-    class Meta:
-        base_manager_name = "objects"
-        default_manager_name = "objects"
-        ordering = ("menu_id", "revision")
-        constraints = [
-            models.UniqueConstraint(
-                fields=("menu", "revision"),
-                name="core_navigation_history_revision_unique",
-            ),
-            models.CheckConstraint(
-                condition=Q(revision__gte=1),
-                name="core_navigation_history_revision_positive",
-            ),
-        ]
-        indexes = [
-            models.Index(fields=("menu_key", "-revision"), name="core_navigation_history_key")
-        ]
-
-    def __str__(self) -> str:
-        return f"{self.menu_key}@{self.revision}"
-
-    def save(self, *args: Any, **kwargs: Any) -> None:
-        if not self._state.adding:
-            raise AppendOnlyViolation("navigation history cannot be updated")
-        kwargs["force_insert"] = True
-        super().save(*args, **kwargs)
-
-    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
-        del args, kwargs
-        raise AppendOnlyViolation("navigation history cannot be deleted")
 
 
 class Operation(RevisionedModel):
