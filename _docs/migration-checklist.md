@@ -62,8 +62,8 @@ authoritative specifications under `_docs/specs/`.
 ### Located local Luma snapshot (verified 2026-08-31)
 
 The protected Luma export is present in the main checkout at
-`/home/alexey/git/dtc-website/.local/migration-data/events/luma/`. It is outside the
-`production-prep` worktree because the preparation script resolves protected migration data from
+`/home/alexey/git/dtc-website/.local/migration-data/events/luma/`. It is outside any linked
+worktree because the preparation script resolves protected migration data from
 the Git common checkout. The directory contains the raw per-event CSVs, matching event checkpoint
 JSON files, and descriptions.
 

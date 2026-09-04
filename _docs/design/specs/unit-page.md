@@ -3,7 +3,7 @@
 Designer pass for the course unit page (`courses/templates/courses/unit.html` and the
 shared partials `courses/templates/courses/_module_rail.html`,
 `courses/templates/courses/_module_rail_styles.html`). All paths below are relative to
-the worktree `/home/alexey/git/dtc-website/.tmp/production-prep/` unless absolute.
+the repository root (`/home/alexey/git/dtc-website/`) unless absolute.
 Verified against the live pages
 `http://localhost:8000/courses/ml-zoomcamp/2026/modules/01-intro/01-what-is-ml` and
 `http://localhost:8000/courses/llm-zoomcamp/2026/modules/01-agentic-rag/01-intro`;

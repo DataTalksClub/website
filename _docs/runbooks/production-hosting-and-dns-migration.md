@@ -1286,7 +1286,7 @@ is precisely when "there are updates".
 
 ### 10.5 Where the work lands, and when
 
-Product work ⇒ groomed issues (PROCESS), merged to `production-prep` (exists, tip `55f6743`) as
+Product work ⇒ groomed issues (PROCESS), merged to `main` as
 the owner directs. Recommended split: **(i)** [website] route-cache registry + headers + CSRF/no-
 Set-Cookie tests; **(ii)** [aws-infra] per-class edge policies + classifier function + guard;
 **(iii)** [aws-infra+website] the invalidation grant (option c). Sequencing: enable and *prove*
@@ -2114,8 +2114,7 @@ is documented below, and carries one prominent warning and one mandatory gate.
 `.local/migration-data/events/luma-aggregate-v1/` in the main checkout — 332 files, one
 `.csv` + `.json` pair per event, named `<date>_<slug>_<evt-id>`, captured
 `2026-08-29T20:46:15Z`. Siblings: `.local/migration-data/events/luma/` (raw per-event exports)
-and `.local/migration-data/events/eventbrite/` (archive). A working copy sits at
-`.tmp/production-prep/.tmp/luma-prepared-20260831/luma-aggregate-v1` (same 332 files). The
+and `.local/migration-data/events/eventbrite/` (archive). The
 `.local` events directory is **mode 700 and outside the git tree, deliberately** — this runbook
 documents where it lives and how to regenerate it
 (`scripts/prepare_event_registration_sources.py`, invocation in `migration-checklist.md:92-99`)
@@ -2370,7 +2369,7 @@ rewritten.
 `legacy` for 2026. `data-engineering-zoomcamp` is a candidate to assess. Neither it, `mlops-`
 nor `sma-` carries `module.yaml` or `course.yaml` today.
 
-**Content-pipeline fixes that have landed on `production-prep`.** Recorded because each one
+**Content-pipeline fixes that have landed on `main`.** Recorded because each one
 changes a number an earlier draft of this runbook or its companions quoted:
 
 | Fix | Commit | State |

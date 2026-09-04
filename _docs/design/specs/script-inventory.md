@@ -1,6 +1,6 @@
 # Script inventory and deletion candidates
 
-**As of commit `fbab381`** (branch `production-prep`). The worktree is shared with other
+**As of commit `fbab381`** on `main`. The worktree is shared with other
 agents; re-verify any `path:line` below before acting on it.
 
 This is an analysis document. Nothing was deleted or changed to produce it.
