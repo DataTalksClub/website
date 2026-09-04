@@ -1,0 +1,94 @@
+name: Deploy Dev
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test --noinput
+
+  # No `environment:` here, deliberately: this assumes main/website's existing
+  # production-image publisher role, whose trust is pinned to the "main"
+  # branch ref (repo:...:ref:refs/heads/main), not a GitHub environment. Dev
+  # has no publisher role of its own -- it deploys the same immutable image
+  # family production does, from the one shared ECR repository main/website
+  # owns (see main/dev/website_service.tf's own comment on this).
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      image: ${{ steps.push.outputs.image }}
+    env:
+      AWS_REGION: eu-west-1
+      REPO_URI: 387546586013.dkr.ecr.eu-west-1.amazonaws.com/website-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::387546586013:role/website-production-github-publisher
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: website-dev-publisher-${{ github.run_id }}
+      - run: aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.REPO_URI }}
+      - run: docker buildx build --platform linux/arm64 --provenance=false --tag dev-build:${{ github.sha }} --load .
+      - name: Push by digest and capture the exact reference
+        id: push
+        run: |
+          set -euo pipefail
+          docker tag dev-build:${{ github.sha }} ${{ env.REPO_URI }}:dev-${{ github.sha }}
+          docker push ${{ env.REPO_URI }}:dev-${{ github.sha }}
+          digest="$(docker inspect --format '{{index .RepoDigests 0}}' ${{ env.REPO_URI }}:dev-${{ github.sha }})"
+          echo "image=${digest}" >> "$GITHUB_OUTPUT"
+
+  # `environment: development` here, deliberately: this assumes the dev-only
+  # deployer role (main/dev/deployment_iam.tf), whose trust is pinned to the
+  # "development" GitHub environment, not a branch ref. Everything the
+  # deployer role needs to know -- cluster, service, and task-family names --
+  # is fixed in deploy/deploy_dev.sh, not configured here: this pipeline only
+  # ever deploys to the one reviewed dev environment, so there is nothing to
+  # select between. DEV_SUBNET_IDS / DEV_SECURITY_GROUP_IDS are the two
+  # values that can't be hardcoded, because AWS generates them -- see
+  # `terraform -chdir=main/dev output website_task_subnet_ids
+  # website_task_security_group_id` in DataTalksClub/aws-infra.
+  deploy:
+    needs: publish
+    runs-on: ubuntu-latest
+    environment:
+      name: development
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::387546586013:role/website-dev-github-deployer
+          aws-region: eu-west-1
+          role-session-name: website-dev-deployer-${{ github.run_id }}
+      - run: bash deploy/deploy_dev.sh "${{ needs.publish.outputs.image }}"
+        env:
+          # Two brand-new variables, deliberately not reusing the old
+          # DEVELOPMENT_ECS_SUBNET_IDS/_SECURITY_GROUP_IDS names or their
+          # JSON-array format: plain comma-separated ids, e.g.
+          # "subnet-0abc,subnet-0def" / "sg-0abc". Real values come from
+          # `terraform -chdir=main/dev output website_task_subnet_ids
+          # website_task_security_group_id` in DataTalksClub/aws-infra.
+          DEV_SUBNET_IDS: ${{ vars.DEV_SUBNET_IDS }}
+          DEV_SECURITY_GROUP_IDS: ${{ vars.DEV_SECURITY_GROUP_IDS }}
