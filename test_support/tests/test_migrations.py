@@ -97,7 +97,12 @@ class StableMigrationModuleTests(unittest.TestCase):
             print("OK")
             """
         )
-        env = dict(os.environ)
+        # Scrub every DTC_*/test-worker-specific variable before handing the
+        # environment to the child process: this test must prove the migration
+        # is import-clean regardless of what the parent test runner happens to
+        # have set (e.g. DTC_SQLITE_PATH, which website.settings.test refuses
+        # outright as an attempt to override the owned test worker database).
+        env = {key: value for key, value in os.environ.items() if not key.startswith("DTC_")}
         env.setdefault("DJANGO_SETTINGS_MODULE", "website.settings.test")
         result = subprocess.run(
             [sys.executable, "-c", script],

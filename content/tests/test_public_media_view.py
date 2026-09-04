@@ -187,8 +187,25 @@ class MediaResponseContractTests(TestCase):
 
     @requires_hydrated_tree
     def test_the_orphan_file_exists_on_disk_yet_is_never_served(self) -> None:
-        self.assertTrue((local_media_root() / ORPHAN_RELATIVE_PATH).is_file())
-        self.assertEqual(self.client.get(ORPHAN_PATH).status_code, 404)
+        """A file present on disk with no manifest record must still 404.
+
+        This writes its own synthetic orphan directly into the hydrated local
+        media tree rather than pinning to one specific real file: real podcast
+        cover images are legitimately deleted as content changes, which made a
+        fixed real-file fixture fragile to correct cleanup elsewhere, not to a
+        regression in how orphaned files are served.
+        """
+
+        orphan_relative_path = "podcast/_test-orphan-fixture.jpg"
+        orphan_path = f"/images/{orphan_relative_path}"
+        disk_path = local_media_root() / orphan_relative_path
+        self.assertNotIn(orphan_path, self.records)
+
+        disk_path.write_bytes(b"synthetic orphan fixture, not a manifest record")
+        self.addCleanup(disk_path.unlink, missing_ok=True)
+
+        self.assertTrue(disk_path.is_file())
+        self.assertEqual(self.client.get(orphan_path).status_code, 404)
 
 
 class MediaFailureContractTests(TestCase):

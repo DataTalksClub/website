@@ -39,7 +39,14 @@ class RegistrationInputTests(SimpleTestCase):
 
         self.assertEqual(
             sorted(registration.stable_id for registration in registrations),
-            ["ai-dev-tools-zoomcamp", "llm-zoomcamp", "ml-zoomcamp"],
+            [
+                "ai-dev-tools-zoomcamp",
+                "de-zoomcamp",
+                "llm-zoomcamp",
+                "ml-zoomcamp",
+                "mlops-zoomcamp",
+                "sma-zoomcamp",
+            ],
         )
         for registration in registrations:
             with self.subTest(stable_id=registration.stable_id):
@@ -123,11 +130,18 @@ class SeedCourseRepositorySourcesTests(TestCase):
         registered = ContentSource.objects.filter(
             adapter_type=COURSE_REPOSITORY_ADAPTER_TYPE, enabled=True
         )
-        self.assertEqual(registered.count(), 3)
+        self.assertEqual(registered.count(), 6)
         self.assertTrue(all(entry["created"] for entry in report))
         self.assertEqual(
             sorted(registered.values_list("repository_name", flat=True)),
-            ["ai-dev-tools-zoomcamp", "llm-zoomcamp", "machine-learning-zoomcamp"],
+            [
+                "ai-dev-tools-zoomcamp",
+                "data-engineering-zoomcamp",
+                "llm-zoomcamp",
+                "machine-learning-zoomcamp",
+                "mlops-zoomcamp",
+                "stock-markets-analytics-zoomcamp",
+            ],
         )
 
     def test_seeding_twice_changes_nothing(self) -> None:
@@ -163,7 +177,14 @@ class SeedCourseRepositorySourcesTests(TestCase):
 
         self.assertEqual(
             [stable_id for stable_id, _repository, _branch, _target in plan],
-            ["ai-dev-tools-zoomcamp", "llm-zoomcamp", "ml-zoomcamp"],
+            [
+                "ai-dev-tools-zoomcamp",
+                "de-zoomcamp",
+                "llm-zoomcamp",
+                "ml-zoomcamp",
+                "mlops-zoomcamp",
+                "sma-zoomcamp",
+            ],
         )
 
     def test_an_unreadable_input_is_a_bounded_refusal(self) -> None:

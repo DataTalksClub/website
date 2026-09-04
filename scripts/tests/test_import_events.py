@@ -62,20 +62,20 @@ class EventImportTests(TestCase):
             source_report={"luma": {"events": 174}, "eventbrite": {"events": 209}},
             staged={
                 "sources": {
-                    "luma": {"explicit_mapping_total": 3, "legacy_review_required_total": 171},
+                    "luma": {"explicit_mapping_total": 3, "unresolved_total": 171},
                     "eventbrite": {
                         "explicit_mapping_total": 0,
-                        "legacy_review_required_total": 209,
+                        "unresolved_total": 209,
                     },
                 }
             },
         )
 
         self.assertEqual(coverage["provider_events"], 383)
-        self.assertEqual(coverage["activated"], 3)
-        self.assertEqual(coverage["review_required"], 380)
+        self.assertEqual(coverage["resolved"], 3)
+        self.assertEqual(coverage["unresolved"], 380)
         self.assertIn("3 of 383", coverage["summary"])
-        self.assertIn("380 await mapping review", coverage["summary"])
+        self.assertIn("380 remain unresolved", coverage["summary"])
 
     def test_event_content_is_a_named_gap_rather_than_a_silent_omission(self) -> None:
         """Its only current source is the legacy site, which is not permitted."""
@@ -237,16 +237,61 @@ class NewEventIdentityDiscoveryTests(TestCase):
         self.assertEqual(Event.objects.count(), after_first)
 
     def test_an_event_already_staged_for_mapping_review_is_left_alone(self) -> None:
-        """The 380-of-421 mapping-review backlog is a different, already-tracked gap."""
+        """The 380-of-421 mapping-review backlog is a different, already-tracked gap.
 
-        from events.models import Event, HistoricalEventMapping
+        There is no separate mapping-review row any more (``HistoricalEventMapping``
+        was removed -- see commit 2263e4f "Remove HistoricalEventMapping and its
+        review-state machine").  A provider event now counts as already tracked
+        once a ``HistoricalRegistrationAggregateRevision`` row exists for its
+        ``(provider, external_event_identifier)`` pair, resolved or not -- exactly
+        the check ``discover_new_provider_events`` makes.  This constructs an
+        unresolved (``event=None``) aggregate revision to stand in for what used to
+        be a ``review_required`` mapping row.
+        """
+
+        import hashlib
+
+        from events.models import (
+            Event,
+            HistoricalRegistrationAggregateRevision,
+            HistoricalRegistrationSourceRun,
+        )
         from scripts.prod.import_events import discover_new_luma_event_identities
 
-        HistoricalEventMapping.objects.create(
+        run = HistoricalRegistrationSourceRun.objects.create(
             provider="luma",
-            external_event_identifier="evt-AlreadyStaged",
-            state=HistoricalEventMapping.State.REVIEW_REQUIRED,
+            adapter_version="synthetic-v1",
+            schema_version="synthetic-v1",
+            whole_source_checksum=hashlib.sha256(b"source-already-staged").hexdigest(),
+            source_reference_digest=hashlib.sha256(b"reference-already-staged").hexdigest(),
+            manifest_entry_total=1,
+            manifest_event_total=1,
+            parsed_row_total=1,
+            eligible_row_total=1,
+            excluded_row_total=0,
+            quarantined_event_total=0,
+            status_totals={"eligible": 1},
+            state_totals={"staged": 1},
+            reason_codes=[],
             mapping_set_revision=1,
+            policy_version="historical-registration-v1",
+            state=HistoricalRegistrationSourceRun.State.STAGED,
+            actor_ref="system:test-already-staged",
+        )
+        HistoricalRegistrationAggregateRevision.objects.create(
+            source_run=run,
+            external_event_identifier="evt-AlreadyStaged",
+            event=None,
+            eligible_count=1,
+            excluded_count=0,
+            quarantined_count=0,
+            coverage_boundary="historical",
+            status_policy_version="historical-status-v1",
+            combination_policy=(
+                HistoricalRegistrationAggregateRevision.CombinationPolicy.ADDITIVE_DISJOINT
+            ),
+            aggregate_checksum=hashlib.sha256(b"aggregate-already-staged").hexdigest(),
+            state=HistoricalRegistrationAggregateRevision.State.STAGED,
         )
         self._write_luma_event(
             "2026-09-08_an-already-staged-event_evt-alreadystaged",

@@ -78,7 +78,9 @@ class DesignSurfaceEyebrowSourceTests(SimpleTestCase):
             "accounts/templates/account/signup.html": GENERIC_ACCOUNT_EYEBROW,
             "course_platform_templates/socialaccount/identity_conflict.html": "Account safety",
             "templates/review/faq_home.html": "faq · {{ faq_courses|length }} course",
-            "templates/review/docs_home.html": "docs · {{ docs_navigation|length }} sections",
+            "templates/review/docs_home.html": (
+                "docs · {{ docs_total_guides }} guide{{ docs_total_guides|pluralize }}"
+            ),
             "studio_courses/templates/studio_courses/campaign_registrations.html": (
                 "Registration campaign"
             ),
