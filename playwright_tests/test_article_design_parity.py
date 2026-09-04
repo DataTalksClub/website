@@ -1,4 +1,4 @@
-"""Design 5a parity for the blog article page (issue #179).
+"""Design system parity for the blog article page (issue #179).
 
 The article page carries its own inline stylesheet and is the first page in the
 system built for reading, so this checks what only a browser can: the shared
@@ -21,9 +21,9 @@ from content.public_data import public_projection
 pytestmark = [pytest.mark.core]
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-179/article")
-# The design 5a page ground.  The article opens warm — masthead, trail, title —
+# The design system page ground.  The article opens warm — masthead, trail, title —
 # and hands the page to the cool lavender reading band, which is also the last
-# band, so `--page` follows it (`_docs/design/design-5a.md`, "the warm band marks
+# band, so `--page` follows it (`_docs/design/design-system.md`, "the warm band marks
 # where the page starts; it is not the page").  The dark theme keeps the
 # partial's own `--page` ground.
 LIGHT_BACKGROUND = "rgb(239, 241, 252)"
@@ -240,6 +240,151 @@ def test_a_code_sample_uses_language_tokens_in_both_themes(
     assert light_keyword != dark_keyword
 
 
+def test_the_copy_control_is_invisible_until_hover_or_keyboard_focus(
+    browser: Browser,
+    live_server,
+) -> None:
+    """At rest a sample must look as though the control is not there.
+
+    Hiding a control on hover is only acceptable when it stays reachable, so
+    this checks the two failure modes that make the pattern unusable: a control
+    dropped out of the tab order, and a control that never appears for a
+    keyboard.  It also pins the 24px target-size floor, because quieter must
+    not mean harder to hit.
+    """
+
+    context = browser.new_context(
+        permissions=["clipboard-read", "clipboard-write"],
+        viewport={"width": 1440, "height": 900},
+    )
+    page = context.new_page()
+    try:
+        response = page.goto(
+            f"{live_server.url}/blog/open-source-free-ai-agent-evaluation-tools.html",
+            wait_until="networkidle",
+        )
+        assert response is not None and response.status == 200
+        _settle_analytics_preferences(page)
+
+        frame = page.locator(".code-block").first
+        frame.scroll_into_view_if_needed()
+        page.mouse.move(1, 1)
+        button = frame.get_by_role("button", name="Copy code")
+
+        at_rest = button.evaluate(
+            """(node) => {
+              const style = getComputedStyle(node);
+              const rect = node.getBoundingClientRect();
+              return {
+                opacity: style.opacity,
+                display: style.display,
+                visibility: style.visibility,
+                width: rect.width,
+                height: rect.height,
+              };
+            }"""
+        )
+        assert at_rest["opacity"] == "0", at_rest
+        # Either of these would remove the control from the tab order and the
+        # accessibility tree; opacity is deliberately the whole mechanism.
+        assert at_rest["display"] != "none", at_rest
+        assert at_rest["visibility"] != "hidden", at_rest
+        # WCAG 2.2 target size.
+        assert at_rest["width"] >= 24 and at_rest["height"] >= 24, at_rest
+
+        # The block reserves no strip: the sample starts where its own padding
+        # puts it, exactly as it does with the runtime switched off.
+        padding = frame.locator("pre").evaluate("(node) => getComputedStyle(node).paddingTop")
+        assert padding == "16px", padding
+
+        box = frame.bounding_box()
+        assert box is not None
+        page.mouse.move(box["x"] + box["width"] / 2, box["y"] + 20)
+        expect(button).to_have_css("opacity", "1")
+        page.mouse.move(1, 1)
+        expect(button).to_have_css("opacity", "0")
+
+        # Real keyboard travel, not a programmatic focus call.
+        for _ in range(200):
+            page.keyboard.press("Tab")
+            if page.evaluate("() => document.activeElement?.classList.contains('code-block-copy')"):
+                break
+        else:  # pragma: no cover - the control is in the tab order
+            raise AssertionError("the copy control was never reached by keyboard")
+
+        assert page.evaluate(
+            "() => document.activeElement === document.querySelector('.code-block-copy')"
+        )
+        expect(button).to_have_css("opacity", "1")
+        focused = page.evaluate(
+            """() => {
+              const node = document.activeElement;
+              const style = getComputedStyle(node);
+              const rect = node.getBoundingClientRect();
+              const top = document.elementFromPoint(
+                rect.left + rect.width / 2, rect.top + rect.height / 2
+              );
+              return {
+                opacity: style.opacity,
+                outlineWidth: parseFloat(style.outlineWidth),
+                outlineStyle: style.outlineStyle,
+                obscured: Boolean(top && top !== node && !node.contains(top)),
+              };
+            }"""
+        )
+        assert focused["opacity"] == "1", focused
+        assert focused["outlineWidth"] >= 2 and focused["outlineStyle"] != "none", focused
+        assert not focused["obscured"], focused
+
+        # The answer to a press stays painted once the pointer and focus leave.
+        page.keyboard.press("Enter")
+        expect(button).to_have_text("Copied")
+        page.evaluate("() => document.activeElement.blur()")
+        page.mouse.move(1, 1)
+        expect(button).to_have_css("opacity", "1")
+    finally:
+        context.close()
+
+
+def test_a_touch_reader_always_sees_the_copy_control(
+    browser: Browser,
+    live_server,
+) -> None:
+    """A coarse pointer has no hover, so the control cannot hide behind one."""
+
+    context = browser.new_context(
+        viewport={"width": 390, "height": 844},
+        is_mobile=True,
+        has_touch=True,
+    )
+    page = context.new_page()
+    try:
+        response = page.goto(
+            f"{live_server.url}/blog/open-source-free-ai-agent-evaluation-tools.html",
+            wait_until="networkidle",
+        )
+        assert response is not None and response.status == 200
+        _settle_analytics_preferences(page)
+
+        assert page.evaluate("() => matchMedia('(hover: none)').matches")
+        frame = page.locator(".code-block").first
+        frame.scroll_into_view_if_needed()
+        button = frame.get_by_role("button", name="Copy code")
+        expect(button).to_have_css("opacity", "1")
+
+        # A control that cannot get out of the way gets room made for it.
+        padding = frame.locator("pre").evaluate(
+            "(node) => parseFloat(getComputedStyle(node).paddingTop)"
+        )
+        control = button.bounding_box()
+        sample = frame.locator("pre code").bounding_box()
+        assert control is not None and sample is not None
+        assert padding > 16, padding
+        assert control["y"] + control["height"] <= sample["y"], (control, sample)
+    finally:
+        context.close()
+
+
 def test_a_code_sample_stays_plain_when_javascript_is_disabled(
     browser: Browser,
     live_server,
@@ -284,10 +429,9 @@ def test_the_article_stays_usable_at_320px_without_javascript(
         expect(page.locator("main h1")).to_have_count(1)
         expect(page.get_by_role("navigation", name="Primary navigation")).to_be_visible()
         expect(page.get_by_role("navigation", name="Breadcrumb")).to_be_visible()
-        # The cover never outgrows its column.
-        cover = page.locator(".article-cover img")
-        if cover.count():
-            assert cover.evaluate("(node) => node.getBoundingClientRect().right") <= 320.5
+        # The artwork is a social card, published in the head, never in the body.
+        assert page.locator(".article-cover").count() == 0
+        assert page.locator('meta[property="og:image"]').count() == 1
         _assert_no_horizontal_overflow(page)
         SCREENSHOTS.mkdir(parents=True, exist_ok=True)
         page.screenshot(path=SCREENSHOTS / "article-320-no-js.png", full_page=True)

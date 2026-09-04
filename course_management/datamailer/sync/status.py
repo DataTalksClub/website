@@ -4,6 +4,7 @@ from typing import Any
 import requests
 
 from ..client import DatamailerClient, DatamailerConfig
+from ..redacted_errors import redacted_contact_error
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +18,20 @@ def get_contact_status(email: str) -> dict[str, Any] | None:
 
     try:
         return client.contacts.contact_status(email)
-    except requests.RequestException:
-        logger.exception("Datamailer contact status lookup failed")
-        if config.strict:
-            raise
-        return None
+    except requests.RequestException as error:
+        # The looked-up address is a query parameter on this call, so the
+        # original exception message and its traceback both contain it.  Log
+        # the restated failure without `exc_info`.
+        failure = redacted_contact_error("contact status lookup", error)
+        logger.error("%s", failure)
+        if not config.strict:
+            return None
+
+    # Raised after the handler has exited, not `from None` inside it: `from
+    # None` clears `__cause__` but leaves `__context__` pointing at the
+    # original exception, whose message is the URL with the address in it.
+    # Out here nothing is being handled, so there is no context to inherit.
+    raise failure
 
 
 def get_contact_history(

@@ -18,7 +18,7 @@ from events.importers import (
     resolve_registered_source_reference,
     source_reference_digest,
 )
-from events.models import HistoricalEventMapping, HistoricalRegistrationSourceRun
+from events.models import HistoricalRegistrationSourceRun
 from management_api.concurrency import revision_etag
 from management_auth.models import APICredential, APIPrincipal
 from management_auth.services import (
@@ -94,10 +94,7 @@ class HistoricalRegistrationManagementTests(TestCase):
         permissions = tuple(
             Permission.objects.filter(
                 content_type__app_label="events",
-                codename__in=(
-                    "historical_registration_import_manage",
-                    "historical_registration_mapping_manage",
-                ),
+                codename__in=("historical_registration_import_manage",),
             )
         )
         self.principal = create_principal(
@@ -115,9 +112,6 @@ class HistoricalRegistrationManagementTests(TestCase):
             "events.historical_registration_import.activate",
             "events.historical_registration_import.cancel",
             "events.historical_registration_import.rollback",
-            "events.historical_registration_mapping.manage",
-            "events.historical_registration_mapping.create",
-            "events.historical_registration_mapping.update",
             "events.historical_registration_total.read",
         )
         issued = issue_credential_once(
@@ -142,7 +136,7 @@ class HistoricalRegistrationManagementTests(TestCase):
             headers["HTTP_IF_MATCH"] = revision_etag(revision)
         return headers
 
-    def test_api_parity_stages_maps_validates_activates_and_reads_safe_total(self) -> None:
+    def test_api_parity_stages_resolves_validates_activates_and_reads_safe_total(self) -> None:
         capability = CAPABILITY_REGISTRY.require("events.historical_registration_import.create")
         self.assertIn(capability.key, self.credential.scopes)
         self.assertTrue(principal_has_permission(self.principal, capability.django_permission))
@@ -172,28 +166,17 @@ class HistoricalRegistrationManagementTests(TestCase):
         self.assertEqual(listing.status_code, 200)
         self.assertEqual(listing.json()["total_count"], 1)
 
-        mappings = self.client.get("/api/v1/admin/historical-event-mappings", **self._headers())
-        self.assertEqual(mappings.status_code, 200)
-        mapping_payload = mappings.json()["items"][0]
-        self.assertEqual(mapping_payload["external_event_identifier"], self.external_id)
-
-        updated = self.client.patch(
-            f"/api/v1/admin/historical-event-mappings/{mapping_payload['id']}",
-            data=json.dumps(
-                {
-                    "state": HistoricalEventMapping.State.MAPPED,
-                    "event_id": self.event["identity_id"],
-                    "mapping_set_revision": 1,
-                    "reason_code": "exact_review",
-                    "reason": "Synthetic exact mapping.",
-                    "coverage_boundary": "historical",
-                    "combination_policy": "replacement",
-                }
-            ),
-            content_type="application/json",
-            **self._headers(revision=mapping_payload["revision"]),
+        # The registry's own `mapping_bridge` names the exact provider-event-to-
+        # canonical-event pair, so staging resolves the aggregate directly --
+        # there is no separate mapping row or review step to act on afterward.
+        detail = self.client.get(
+            f"/api/v1/admin/historical-registration-imports/{run_id}", **self._headers()
         )
-        self.assertEqual(updated.status_code, 200, updated.content)
+        self.assertEqual(detail.status_code, 200)
+        aggregate_payload = detail.json()["aggregates"][0]
+        self.assertTrue(aggregate_payload["resolved"])
+        self.assertEqual(aggregate_payload["event_id"], self.event["identity_id"])
+        self.assertNotIn(self.external_id, json.dumps(detail.json()))
 
         for action in ("validate", "activate"):
             response = self.client.post(
@@ -223,7 +206,7 @@ class HistoricalRegistrationManagementTests(TestCase):
             HistoricalRegistrationSourceRun.State.ACTIVE,
         )
 
-    def test_api_denies_missing_scope_and_requires_idempotency_and_if_match(self) -> None:
+    def test_api_denies_missing_scope_and_requires_idempotency_key(self) -> None:
         anonymous = self.client.get("/api/v1/admin/historical-registration-imports")
         self.assertEqual(anonymous.status_code, 401)
 
@@ -242,42 +225,6 @@ class HistoricalRegistrationManagementTests(TestCase):
             )
         self.assertEqual(missing_key.status_code, 400)
         self.assertEqual(missing_key.json()["error"]["code"], "invalid_idempotency_key")
-
-        with override_settings(HISTORICAL_REGISTRATION_SOURCES=self.registry):
-            staged = self.client.post(
-                "/api/v1/admin/historical-registration-imports",
-                data=json.dumps(
-                    {
-                        "provider": "luma",
-                        "source_reference": "synthetic-management-luma",
-                        "mapping_set_revision": 1,
-                    }
-                ),
-                content_type="application/json",
-                **self._headers(key="precondition-stage"),
-            )
-        self.assertEqual(staged.status_code, 201)
-        mapping = self.client.get(
-            "/api/v1/admin/historical-event-mappings", **self._headers()
-        ).json()["items"][0]
-        precondition = self.client.patch(
-            f"/api/v1/admin/historical-event-mappings/{mapping['id']}",
-            data=json.dumps(
-                {
-                    "state": "mapped",
-                    "event_id": self.event["identity_id"],
-                    "mapping_set_revision": 1,
-                    "reason_code": "exact_review",
-                    "reason": "Synthetic exact mapping.",
-                    "coverage_boundary": "historical",
-                    "combination_policy": "replacement",
-                }
-            ),
-            content_type="application/json",
-            **self._headers(),
-        )
-        self.assertEqual(precondition.status_code, 428)
-        self.assertEqual(precondition.json()["error"]["code"], "precondition_required")
 
 
 class HistoricalRegistrationStudioAccessTests(TestCase):
@@ -403,10 +350,7 @@ class HistoricalRegistrationStudioAccessTests(TestCase):
             roles=("event_operator",),
         )
         client = authenticated_studio_client(event_operator)
-        for path in (
-            "/studio/events/historical-registration-totals/",
-            "/studio/events/historical-registration-totals/mappings/",
-        ):
+        for path in ("/studio/events/historical-registration-totals/",):
             response = client.get(path)
             self.assertEqual(response.status_code, 200)
             self.assertIn("private", response.headers["Cache-Control"])

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from functools import wraps
-from pathlib import Path
+from io import BytesIO
+from typing import Any
 from xml.sax.saxutils import escape as xml_escape
 
 from django.conf import settings
@@ -18,11 +20,15 @@ from django.http import (
     HttpResponsePermanentRedirect,
     JsonResponse,
 )
+from django.http.response import HttpResponseBase
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_safe
 
+from core.breadcrumbs import Trail, trail
+from core.runtime_config import get_str_setting
 from core.sponsors import public_events_hub_sponsors
+from course_management.observability import record_event
 from courses.models import Cohort
 from events.identity import (
     EventIdentityNotFound,
@@ -40,6 +46,14 @@ from . import wiki_content
 from .article_content import article_view, render_body_markdown
 from .article_faq import ArticleFaq, article_faq
 from .faq_data import faq_courses
+from .media_store import (
+    MediaStore,
+    MediaStoreError,
+    media_store,
+    read_media_object,
+    record_filename,
+    record_key,
+)
 from .pagination import (
     PublicPagination,
     paginate_public_request,
@@ -86,18 +100,26 @@ EVENT_FILTER_SELECTORS = frozenset({"filter", "page"})
 
 
 def _canonical(path: str) -> str:
-    return f"{settings.CANONICAL_ORIGIN.rstrip('/')}{path}"
+    return f"{get_str_setting('site.origin.canonical')}{path}"
 
 
 def _json_ld(
     entity: dict,
-    breadcrumbs: tuple[tuple[str, str], ...] = (),
+    breadcrumbs: Trail | None = None,
     *,
     extra: tuple[dict, ...] = (),
 ) -> str:
+    """Serialise one page's entity graph, and its trail when it has one.
+
+    The trail is the same ``core.breadcrumbs.Trail`` the page draws with
+    ``{% breadcrumbs %}``, so the published ``BreadcrumbList`` and the visible
+    crumbs cannot say different things: the levels are declared once, in the
+    view, and the site root is added here and only here.
+    """
+
     graph = [{"@id": entity["url"], **entity}]
     graph.extend(extra)
-    if breadcrumbs:
+    if breadcrumbs is not None:
         graph.append(
             {
                 "@type": "BreadcrumbList",
@@ -108,7 +130,7 @@ def _json_ld(
                         "name": name,
                         "item": _canonical(path),
                     }
-                    for position, (name, path) in enumerate(breadcrumbs, start=1)
+                    for position, (name, path) in enumerate(breadcrumbs.published_items(), start=1)
                 ],
             }
         )
@@ -427,7 +449,7 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
             "og_type": "event",
             "structured_data": _json_ld(
                 entity,
-                (("Home", "/"), ("Events", "/events"), (event["title"], event["public_path"])),
+                trail(("Events", "/events"), (event["title"], event["public_path"])),
             ),
         },
     )
@@ -668,6 +690,7 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
     # body never carried; `content.article_faq` holds that recovered half.  An
     # article without one gets `None`, and the page then draws no FAQ region.
     faq = article_faq(slug)
+    article_trail = trail(("Blog", "/blog"), (article["title"], article["public_path"]))
     return _render(
         request,
         "public/article_detail.html",
@@ -676,7 +699,8 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
         description=article["description"],
         context={
             "record": article,
-            # The design 5a reading page (issue #179) renders this composed value:
+            "breadcrumbs": article_trail,
+            # The design system reading page (issue #179) renders this composed value:
             # the byline joined to the people records, the publication date and
             # reading estimate the design writes, and the body as prose sections.
             "article": article_view(article, projection["people_by_slug"], faq),
@@ -704,7 +728,7 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
                         else {}
                     ),
                 },
-                (("Home", "/"), ("Blog", "/blog"), (article["title"], article["public_path"])),
+                article_trail,
                 # The legacy accordion published FAQPage data with every one of
                 # these ten sections, and the course FAQ pages publish the same
                 # node today (`review_views._faq_structured_data`).  Restoring it
@@ -780,11 +804,7 @@ def _render_podcast_detail(
             "published_time": episode["published"] or "",
             "structured_data": _json_ld(
                 episode_entity,
-                (
-                    ("Home", "/"),
-                    ("Podcast", "/podcast"),
-                    (episode["title"], episode["public_path"]),
-                ),
+                trail(("Podcast", "/podcast"), (episode["title"], episode["public_path"])),
             ),
         },
     )
@@ -877,6 +897,7 @@ def book_detail(request: HttpRequest, slug: str) -> HttpResponse:
     summary_html, summary_is_block = (
         render_body_markdown(book["summary"]) if book["summary"] else ("", False)
     )
+    book_trail = trail(("Books", "/books"), (book["title"], book["public_path"]))
     return _render(
         request,
         "public/book_detail.html",
@@ -885,6 +906,7 @@ def book_detail(request: HttpRequest, slug: str) -> HttpResponse:
         description=book["description"],
         context={
             "record": book,
+            "breadcrumbs": book_trail,
             "summary_html": summary_html,
             "summary_is_block": summary_is_block,
             "og_type": "book",
@@ -912,7 +934,7 @@ def book_detail(request: HttpRequest, slug: str) -> HttpResponse:
                     ],
                     **({"image": _canonical(book["image_path"])} if book["image_path"] else {}),
                 },
-                (("Home", "/"), ("Books", "/books"), (book["title"], book["public_path"])),
+                book_trail,
             ),
         },
     )
@@ -942,7 +964,7 @@ def person_detail(request: HttpRequest, slug: str) -> HttpResponse:
                     "sameAs": [link["url"] for link in person["links"]],
                     **({"image": _canonical(person["image_path"])} if person["image_path"] else {}),
                 },
-                (("Home", "/"), (person["title"], person["public_path"])),
+                trail((person["title"], person["public_path"])),
             ),
         },
     )
@@ -989,6 +1011,7 @@ def wiki_detail(request: HttpRequest, slug: str) -> HttpResponse:
     page = public_projection()["wiki_by_slug"].get(slug)
     if page is None:
         raise Http404
+    wiki_trail = trail(("Wiki", "/wiki"), (page["title"], page["public_path"]))
     return _render(
         request,
         "public/wiki_detail.html",
@@ -997,6 +1020,7 @@ def wiki_detail(request: HttpRequest, slug: str) -> HttpResponse:
         description=page["summary"],
         context={
             "record": page,
+            "breadcrumbs": wiki_trail,
             "og_type": "article",
             "structured_data": _json_ld(
                 {
@@ -1005,7 +1029,7 @@ def wiki_detail(request: HttpRequest, slug: str) -> HttpResponse:
                     "headline": page["title"],
                     "description": page["summary"],
                 },
-                (("Home", "/"), ("Wiki", "/wiki"), (page["title"], page["public_path"])),
+                wiki_trail,
             ),
         },
     )
@@ -1149,15 +1173,69 @@ def wiki_asset(request: HttpRequest, asset: str) -> FileResponse:
 
 
 @require_safe
-def media(request: HttpRequest, media_path: str) -> FileResponse:
+def media(request: HttpRequest, media_path: str) -> HttpResponseBase:
+    """Serve one recorded projection image through the configured media store.
+
+    The public URL, the response status, and the response header shape are unchanged
+    from the era when the bytes lived in the git working tree.  An unrecognised path is
+    still an ordinary ``404``; a *recorded* object that cannot be retrieved and verified
+    fails closed as an uncacheable ``502`` so an edge cache can never memorise an origin
+    outage as "not found".
+    """
+
     public_path = f"/images/{media_path}"
     record = public_projection()["media_by_path"].get(public_path)
     if record is None:
         raise Http404
-    path = PROJECTION_ROOT / "media" / Path(media_path)
-    if not path.is_file() or path.is_symlink():
-        raise Http404
-    return FileResponse(path.open("rb"), content_type=record["content_type"])
+    store = media_store()
+    try:
+        payload = read_media_object(store, record)
+    except MediaStoreError as error:
+        _record_media_failure(request, store=store, record=record, error=error)
+        return _media_unavailable()
+    return FileResponse(
+        BytesIO(payload),
+        content_type=record["content_type"],
+        filename=record_filename(record),
+    )
+
+
+def _media_unavailable() -> HttpResponse:
+    """Return the fail-closed media response: no bytes, no detail, no caching."""
+
+    response = HttpResponse(
+        "Image temporarily unavailable.\n",
+        status=502,
+        content_type="text/plain; charset=utf-8",
+    )
+    response["Cache-Control"] = "no-store"
+    return response
+
+
+def _record_media_failure(
+    request: HttpRequest,
+    *,
+    store: MediaStore,
+    record: dict[str, Any],
+    error: MediaStoreError,
+) -> None:
+    """Emit exactly one redacted structured event for a failed media read."""
+
+    try:
+        key = record_key(record)
+    except MediaStoreError:
+        key = ""
+    record_event(
+        "public_media_object_unavailable",
+        request=request,
+        properties={
+            "media_store_backend": store.name,
+            "media_failure_reason": error.reason,
+            # The record key is a public URL fragment, but it is still reduced to a
+            # digest so no filename, bucket, or key ever reaches the log stream.
+            "media_record_digest": hashlib.sha256(key.encode("utf-8")).hexdigest()[:16],
+        },
+    )
 
 
 def _section_records(section: str) -> tuple[tuple[str, str], ...]:
@@ -1207,7 +1285,6 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
                 .values_list("course__slug", flat=True)
                 .distinct()
             ),
-            ("/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026", ""),
         )
     if section == "wiki":
         discovery = (

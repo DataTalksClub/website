@@ -61,6 +61,15 @@ concurrency:
   group: website-development-release
   cancel-in-progress: false
 
+env:
+  # The container job builds and runs the exact release image, so it runs on the
+  # deployment target's architecture rather than on the planner's runner. The
+  # planner has to authorize that machine or the container job's evidence would
+  # not match its own plan. Keep this equal to the selected deployment target's
+  # runner_machine and the container job's runs-on label; a workflow contract
+  # test fails if either drifts.
+  VERIFICATION_CONTAINER_ARCHITECTURE: aarch64
+
 jobs:
   resolve-release:
     runs-on: ubuntu-latest
@@ -285,12 +294,14 @@ jobs:
                 --allow-legacy \
                 --record .tmp/release/input-published-image.json \
                 > .tmp/release/normalized-published-image.json
+              build_platform="$(uv run --frozen python -m deploy.deployment_targets architecture --field build_platform)"
               jq -e \
                 --arg source_sha "$candidate" \
-                --arg repository_uri "$DEVELOPMENT_REPOSITORY_URI" '
+                --arg repository_uri "$DEVELOPMENT_REPOSITORY_URI" \
+                --arg build_platform "$build_platform" '
                 .source_sha == $source_sha and
                 .repository_uri == $repository_uri and
-                .platform == "linux/amd64" and
+                .platform == $build_platform and
                 .user == "10001:10001" and
                 .image_digest != "sha256:1111111111111111111111111111111111111111111111111111111111111111" and
                 .image_digest != "sha256:0000000000000000000000000000000000000000000000000000000000000000"
@@ -336,8 +347,6 @@ jobs:
       selection_sha256: ${{ steps.selection.outputs.selection_sha256 }}
       verification_profile: ${{ steps.plan.outputs.profile }}
       browser_profile: ${{ steps.plan.outputs.browser_profile }}
-      compatibility_mode: ${{ steps.plan.outputs.compatibility_mode }}
-      content_invariants_mode: ${{ steps.plan.outputs.content_invariants_mode }}
       container_mode: ${{ steps.plan.outputs.container_mode }}
       django_mode: ${{ steps.plan.outputs.django_mode }}
       playwright_mode: ${{ steps.plan.outputs.playwright_mode }}
@@ -398,7 +407,6 @@ jobs:
         run: |
           uv run --frozen python -m ci.history \
             --repository "$GITHUB_REPOSITORY" \
-            --token "$GITHUB_TOKEN" \
             --workflow ci.yml \
             --current-run-id "$GITHUB_RUN_ID" \
             --output-directory .tmp/prior-evidence \
@@ -459,6 +467,10 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: [resolve-release, classification]
     runs-on: ubuntu-latest
+    env:
+      # The quality contract runs django-check and the CI contract tests against a
+      # checkout with no hydrated media tree.
+      PUBLIC_MEDIA_STORE_BACKEND: memory
     permissions:
       contents: read
       actions: write
@@ -507,32 +519,16 @@ jobs:
           set -euo pipefail
           mkdir -p .tmp/components-quality
           make test-ci 2>&1 | tee .tmp/components-quality/evidence-validation-output.log
-      - name: Build exact pinned compatibility source inputs
-        if: needs.classification.outputs.compatibility_mode == 'rerun'
-        run: |
-          set -euo pipefail
-          uv run --frozen python scripts/build_pinned_legacy_sources.py
-      - name: Run the compatibility contract when selected
-        if: needs.classification.outputs.compatibility_mode == 'rerun'
-        run: |
-          set -euo pipefail
-          make compatibility-source-artifacts-check compatibility-artifacts-check \
-            check-links check-seo 2>&1 | \
-            tee ../ci-controller/.tmp/components-quality/compatibility-output.log
       - name: Record quality-job evidence with its actual environment
         if: always() && needs.classification.result == 'success'
         working-directory: .tmp/ci-controller
         env:
           JOB_STATUS: ${{ job.status }}
-          COMPATIBILITY_MODE: ${{ needs.classification.outputs.compatibility_mode }}
-          CONTENT_INVARIANTS_MODE: ${{ needs.classification.outputs.content_invariants_mode }}
         run: |
           set -euo pipefail
           mkdir -p .tmp/components-quality
-          for component in quality compatibility content_invariants evidence_validation; do
+          for component in quality evidence_validation; do
             mode="rerun"
-            if [[ "$component" == "compatibility" ]]; then mode="$COMPATIBILITY_MODE"; fi
-            if [[ "$component" == "content_invariants" ]]; then mode="$CONTENT_INVARIANTS_MODE"; fi
             if [[ "$mode" != "rerun" ]]; then continue; fi
             command="$(jq -er --arg component "$component" \
               '.components[$component].command' .tmp/verification-input/verification-plan.json)"
@@ -540,14 +536,6 @@ jobs:
             machine_output=".tmp/components-quality/$component-output.log"
             if [[ "$component" == "evidence_validation" ]]; then
               machine_output=.tmp/components-quality/evidence-validation-output.log
-            fi
-            if [[ "$component" == "content_invariants" ]]; then
-              uv run --frozen python -m ci.content_invariants \
-                --repository ../release-source \
-                --plan .tmp/verification-input/verification-plan.json \
-                --output .tmp/components-quality/content-invariants.json
-              artifact_args=(--artifact .tmp/components-quality/content-invariants.json)
-              machine_output=.tmp/components-quality/content-invariants.json
             fi
             environment=.tmp/components-quality/$component-environment.json
             uv run --frozen python -m ci.verification environment \
@@ -586,6 +574,10 @@ jobs:
     timeout-minutes: 30
     env:
       DJANGO_SETTINGS_MODULE: website.settings.test
+      # The checkout no longer carries the projection media objects, so every test
+      # job reads them from the deterministic offline fixture store. A developer or
+      # tester keeps the default local backend and the real hydrated artwork.
+      PUBLIC_MEDIA_STORE_BACKEND: memory
     defaults:
       run:
         working-directory: .tmp/release-source
@@ -755,6 +747,7 @@ jobs:
     env:
       DJANGO_ALLOW_ASYNC_UNSAFE: "true"
       DJANGO_SETTINGS_MODULE: website.settings.test
+      PUBLIC_MEDIA_STORE_BACKEND: memory
     defaults:
       run:
         working-directory: .tmp/release-source
@@ -848,6 +841,7 @@ jobs:
     env:
       DJANGO_ALLOW_ASYNC_UNSAFE: "true"
       DJANGO_SETTINGS_MODULE: website.settings.test
+      PUBLIC_MEDIA_STORE_BACKEND: memory
     defaults:
       run:
         working-directory: .tmp/release-source
@@ -948,7 +942,16 @@ jobs:
   container:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: [resolve-release, classification]
-    runs-on: ubuntu-latest
+    # The deployment target runs Fargate tasks on Graviton. An image built for
+    # the other architecture is accepted by ECS and then dies on start with
+    # nothing useful in its log, so this job builds the release image for the
+    # target architecture -- and it also *runs* that image for the liveness
+    # smoke and the static-manifest checks, which needs a native runner.
+    # Emulating the target here was measured at roughly 11x for the build and
+    # 44x for each in-container check, and the liveness smoke did not complete
+    # inside its budget at all. Keep this label equal to the selected deployment
+    # target's runner_label; a workflow contract test fails if it drifts.
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
         with:
@@ -1001,7 +1004,7 @@ jobs:
         with:
           ref: ${{ needs.resolve-release.outputs.release_sha }}
           path: .tmp/release-source
-      - name: Build the production image once for development architecture
+      - name: Build the production image once for the deployment target architecture
         if: >-
           (github.event_name != 'workflow_dispatch' || inputs.reuse_existing_image == false) &&
           steps.image-cache.outputs.cache-hit != 'true'
@@ -1011,8 +1014,9 @@ jobs:
           CONSTRUCTED_AT: ${{ needs.resolve-release.outputs.constructed_at }}
         run: |
           set -euo pipefail
+          build_platform="$(uv run --directory .tmp/ci-controller --frozen python -m deploy.deployment_targets architecture --field build_platform)"
           docker buildx build \
-            --platform linux/amd64 \
+            --platform "$build_platform" \
             --provenance=false \
             --label "org.opencontainers.image.version=$VERSION" \
             --label "org.opencontainers.image.revision=$RELEASE_SHA" \
@@ -1034,7 +1038,11 @@ jobs:
         run: |
           set -euo pipefail
           image="dtc-website:$RELEASE_SHA"
-          test "$(docker image inspect --format '{{.Architecture}}' "$image")" = "amd64"
+          # The expected architecture is the deployment target's declared
+          # task_cpu_architecture, not a literal, so the image and the task
+          # definition cannot silently diverge.
+          image_architecture="$(uv run --directory .tmp/ci-controller --frozen python -m deploy.deployment_targets architecture --field image_architecture)"
+          test "$(docker image inspect --format '{{.Architecture}}' "$image")" = "$image_architecture"
           test "$(docker image inspect --format '{{.Config.User}}' "$image")" = "10001:10001"
           test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$image")" = "$RELEASE_SHA"
           test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.version" }}' "$image")" = "$VERSION"
@@ -1042,7 +1050,8 @@ jobs:
           test "$(docker run --rm --entrypoint id "$image" -u)" = "10001"
           test "$(docker run --rm --entrypoint id "$image" -g)" = "10001"
           mkdir -p .tmp/ci-controller/.tmp/components-container
-          printf '%s\n' image_architecture_amd64 image_revision_label_matches_source \
+          printf '%s\n' image_architecture_matches_deployment_target \
+            image_revision_label_matches_source \
             image_version_label_matches_release image_created_label_matches_release \
             image_runtime_user_configured_non_root runtime_uid_10001 runtime_gid_10001 >> \
             .tmp/ci-controller/.tmp/components-container/container-assertions.txt
@@ -1352,8 +1361,15 @@ jobs:
       github.ref == 'refs/heads/main'
     needs: [resolve-release, classification, quality, django, playwright, container, ci-gate]
     runs-on: ubuntu-latest
+    # The GitHub environment is the OIDC authorisation boundary, not a label:
+    # this job's token carries `...:environment:<name>` as its `sub` claim and
+    # the deployer role's trust policy admits exactly one value. It is written
+    # as a literal, like `runs-on`, so the boundary stays statically auditable
+    # in the workflow rather than being computed from a job output at run time.
+    # Keep it equal to the selected deployment target's github_environment; a
+    # workflow contract test fails if it drifts.
     environment:
-      name: sandbox
+      name: production
     permissions:
       contents: read
       id-token: write
@@ -1586,8 +1602,9 @@ jobs:
         run: |
           set -euo pipefail
           docker image load --input .tmp/release-image.tar
+          image_architecture="$(uv run --frozen python -m deploy.deployment_targets architecture --field image_architecture)"
           local_config_digest="$(docker image inspect --format '{{.Id}}' "dtc-website:$RELEASE_SHA")"
-          test "$(docker image inspect --format '{{.Architecture}}' "dtc-website:$RELEASE_SHA")" = "amd64"
+          test "$(docker image inspect --format '{{.Architecture}}' "dtc-website:$RELEASE_SHA")" = "$image_architecture"
           test "$(docker image inspect --format '{{.Config.User}}' "dtc-website:$RELEASE_SHA")" = "10001:10001"
           test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.version" }}' "dtc-website:$RELEASE_SHA")" = "$VERSION"
           test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "dtc-website:$RELEASE_SHA")" = "$RELEASE_SHA"
@@ -1664,7 +1681,7 @@ jobs:
             --repository-uri "$ECR_REPOSITORY_URI" \
             --image-digest "$image_digest" \
             --image-config-digest "$local_config_digest" \
-            --platform linux/amd64 \
+            --platform "$(uv run --frozen python -m deploy.deployment_targets architecture --field build_platform)" \
             --user 10001:10001 \
             --output .tmp/published-image.json
       - name: Verify and preserve the recorded immutable image without Docker
@@ -1744,9 +1761,11 @@ jobs:
       github.ref == 'refs/heads/main'
     needs: [resolve-release, classification, quality, django, playwright, container, ci-gate, auto-capture-prior, publish]
     runs-on: ubuntu-latest
+    # The OIDC authorisation boundary. Keep equal to the selected deployment
+    # target's github_environment; a workflow contract test fails if it drifts.
     environment:
-      name: sandbox
-      url: https://web.dtcdev.click
+      name: production
+      url: ${{ vars.DEVELOPMENT_BASE_URL }}
     permissions:
       contents: read
       id-token: write
@@ -1955,6 +1974,7 @@ jobs:
           WORKER_DESIRED_COUNT: ${{ vars.DEVELOPMENT_WORKER_RELEASE_DESIRED_COUNT }}
           PROJECT_TAG: ${{ vars.DEVELOPMENT_RESOURCE_PROJECT_TAG }}
           ENVIRONMENT_TAG: ${{ vars.DEVELOPMENT_RESOURCE_ENVIRONMENT_TAG }}
+          DEVELOPMENT_BASE_URL: ${{ vars.DEVELOPMENT_BASE_URL }}
           FAILURE_INJECTION: ${{ github.event_name == 'push' && 'none' || inputs.failure_injection }}
           DTC_TEST_SAFETY_COMMAND: remote_readonly
           DTC_TEST_TARGET_CLASS: isolated_development
@@ -1964,6 +1984,7 @@ jobs:
           mkdir -p .tmp/deployment .tmp/deployed-smoke
           mapfile -t subnet_ids < <(jq -er '.[]' <<< "$SUBNET_IDS")
           mapfile -t security_group_ids < <(jq -er '.[]' <<< "$SECURITY_GROUP_IDS")
+          base_url="${DEVELOPMENT_BASE_URL:-$(uv run --frozen python -c 'from deploy.development_target import DEVELOPMENT_ORIGIN; print(DEVELOPMENT_ORIGIN)')}"
           web_container="$(jq -er '.web' <<< "$CONTAINER_NAMES")"
           worker_container="$(jq -er '.worker' <<< "$CONTAINER_NAMES")"
           migration_container="$(jq -er '.migration' <<< "$CONTAINER_NAMES")"
@@ -1982,7 +2003,7 @@ jobs:
             --task-role-arn "$TASK_ROLE_ARN"
             --execution-role-arn "$EXECUTION_ROLE_ARN"
             --assign-public-ip "$ASSIGN_PUBLIC_IP"
-            --base-url https://web.dtcdev.click
+            --base-url "$base_url"
             --screenshot-directory .tmp/deployed-smoke
             --timeout-seconds 180
             --web-stabilization-timeout-seconds 240
@@ -2277,6 +2298,7 @@ jobs:
       - name: Verify probe and release-controller contracts
         env:
           DJANGO_SETTINGS_MODULE: website.settings.test
+          PUBLIC_MEDIA_STORE_BACKEND: memory
         run: >-
           uv run python manage.py test
           core.tests.test_deployment_oidc_probe
@@ -2353,8 +2375,10 @@ jobs:
       github.ref == 'refs/heads/main'
     needs: [resolve-release, probe-contract]
     runs-on: ubuntu-latest
+    # The OIDC authorisation boundary. Keep equal to the selected deployment
+    # target's github_environment; a workflow contract test fails if it drifts.
     environment:
-      name: sandbox
+      name: production
     permissions:
       contents: read
       id-token: write
@@ -2501,8 +2525,10 @@ jobs:
       github.ref == 'refs/heads/main'
     needs: [resolve-release, probe-contract]
     runs-on: ubuntu-latest
+    # The OIDC authorisation boundary. Keep equal to the selected deployment
+    # target's github_environment; a workflow contract test fails if it drifts.
     environment:
-      name: sandbox
+      name: production
     permissions:
       contents: read
       id-token: write

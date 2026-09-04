@@ -1,6 +1,7 @@
 {% extends 'projects/_base.html' %}
+{% load breadcrumbs %}
 {% comment %}
-  The peer evaluations a learner owes for one project, on design 5a
+  The peer evaluations a learner owes for one project, on the design system
   (issue #179).
 
   The page reads state and links into the evaluation form; it mutates nothing
@@ -40,13 +41,9 @@
   }
 {% endblock %}
 
-{% block breadcrumbs %}
-  <li>
-    <a href="{% url 'project' course_slug=course.course.slug cohort_year=course.identifier project_slug=project.slug %}">{{ project.title }}</a>
-  </li>
-  <li aria-current="page">
-    Evaluations
-  </li>
+{% block breadcrumb_trail %}
+  {% url 'project' course_slug=course.course.slug cohort_year=course.identifier project_slug=project.slug as project_url %}
+  {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url project.title project_url current="Evaluations" %}
 {% endblock %}
 
 {% block page_head %}

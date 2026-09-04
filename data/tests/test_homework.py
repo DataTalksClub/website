@@ -33,18 +33,22 @@ class HomeworkDataAPITestCase(TestCase):
             email="testuser@example.com",
             password="password",
         )
-        self.token = Token.objects.create(user=self.user)
-        self.course = Cohort.objects.create(
-            title="Test Course", slug="test-course"
+        # The caller is an operator, not the learner below: these exports and
+        # the certificate update are staff-token endpoints.
+        self.api_operator = CustomUser.objects.create(
+            username="api-operator",
+            email="api-operator@example.com",
+            password="password",
+            is_staff=True,
         )
+        self.token = Token.objects.create(user=self.api_operator)
+        self.course = Cohort.objects.create(title="Test Course", slug="test-course")
         self.enrollment = Enrollment.objects.create(
             student=self.user,
             course=self.course,
         )
         self.client = Client()
-        self.client.defaults["HTTP_AUTHORIZATION"] = (
-            f"Token {self.token.key}"
-        )
+        self.client.defaults["HTTP_AUTHORIZATION"] = f"Token {self.token.key}"
 
     def create_homework(self):
         due_date = timezone.now() + timezone.timedelta(days=7)
@@ -105,12 +109,8 @@ class HomeworkDataAPITestCase(TestCase):
             "description": homework.description,
             "learning_in_public_cap": homework.learning_in_public_cap,
             "homework_url_field": homework.homework_url_field,
-            "time_spent_lectures_field": (
-                homework.time_spent_lectures_field
-            ),
-            "time_spent_homework_field": (
-                homework.time_spent_homework_field
-            ),
+            "time_spent_lectures_field": (homework.time_spent_lectures_field),
+            "time_spent_homework_field": (homework.time_spent_homework_field),
             "faq_contribution_field": homework.faq_contribution_field,
             "state": homework.state,
         }
@@ -119,18 +119,14 @@ class HomeworkDataAPITestCase(TestCase):
         return {
             "student_id": self.user.id,
             "homework_link": submission.homework_link,
-            "learning_in_public_links": (
-                submission.learning_in_public_links
-            ),
+            "learning_in_public_links": (submission.learning_in_public_links),
             "time_spent_lectures": submission.time_spent_lectures,
             "time_spent_homework": submission.time_spent_homework,
             "problems_comments": submission.problems_comments,
             "faq_contribution_url": submission.faq_contribution_url,
             "questions_score": submission.questions_score,
             "faq_score": submission.faq_score,
-            "learning_in_public_score": (
-                submission.learning_in_public_score
-            ),
+            "learning_in_public_score": (submission.learning_in_public_score),
             "total_score": submission.total_score,
         }
 
@@ -151,9 +147,7 @@ class HomeworkDataAPITestCase(TestCase):
 
     def assert_homework_data(self, actual_result, homework):
         expected_homework = self.expected_homework_data(homework)
-        self.assert_fields(
-            actual_result["homework"], expected_homework
-        )
+        self.assert_fields(actual_result["homework"], expected_homework)
 
     def assert_submission_data(self, actual_result, submission):
         submission_count = len(actual_result["submissions"])

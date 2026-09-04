@@ -1,102 +1,75 @@
 from __future__ import annotations
 
-import re
-from pathlib import Path
+import importlib.util
 
-from django.test import TestCase, override_settings
+from django.template import TemplateDoesNotExist
+from django.template.loader import get_template
+from django.test import TestCase
 from django.urls import resolve, reverse
 
-from core import mediakit
+from content.public_views import permanent_public_redirect
+from website.urls import MEDIA_KIT_URL
+
+#: Pinned separately from the module under test.  Asserting only against the
+#: imported constant would pass for any value it happened to hold.
+PUBLISHED_MEDIA_KIT = "https://datatalksclub.github.io/mediakit/"
 
 
-class MediaKitPageTests(TestCase):
-    def test_canonical_route_renders_the_recovered_media_kit(self) -> None:
+class MediaKitRedirectTests(TestCase):
+    """The media kit is published from DataTalksClub/mediakit, not from here.
+
+    It used to be a page in this project, and it drifted: it advertised a course
+    start month the database contradicted, listed an edition that does not
+    exist, and omitted a course entirely.  That repository holds the one copy
+    now, so both spellings of the path lead there.
+    """
+
+    def test_the_constant_names_the_published_media_kit(self) -> None:
+        self.assertEqual(MEDIA_KIT_URL, PUBLISHED_MEDIA_KIT)
+
+    def test_the_canonical_path_redirects_to_the_published_media_kit(self) -> None:
         self.assertEqual(reverse("media-kit"), "/mediakit/")
-        self.assertIs(resolve("/mediakit/").func, mediakit.media_kit)
 
         response = self.client.get("/mediakit/")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "DataTalks.Club Media Kit")
-        self.assertContains(response, "120K+")
-        self.assertContains(response, "Sponsorship Formats")
-        self.assertContains(response, "Previous and Current Sponsors")
-        self.assertContains(response, "alexey@datatalks.club")
-        self.assertNotContains(response, "valeriia@datatalks.club")
-        self.assertContains(response, "<h1>Media kit</h1>", html=True)
-        self.assertNotContains(response, "core/mediakit/logo.svg")
-        self.assertContains(response, 'class="media-kit shell-breakout"')
-        self.assertTemplateUsed(response, "core/content_page.html")
-        self.assertTemplateUsed(response, "core/mediakit.html")
-
-    def test_slashless_legacy_route_redirects_permanently_to_canonical(self) -> None:
-        response = self.client.get("/mediakit?from=legacy")
 
         self.assertEqual(response.status_code, 301)
-        self.assertEqual(response.headers["Location"], "/mediakit/?from=legacy")
+        self.assertEqual(response["Location"], MEDIA_KIT_URL)
 
-    @override_settings(NOINDEX=False)
-    def test_share_by_link_page_stays_noindex_in_production(self) -> None:
+    def test_the_slashless_path_leads_to_the_same_place(self) -> None:
+        response = self.client.get("/mediakit")
+
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response["Location"], MEDIA_KIT_URL)
+
+    def test_a_query_string_is_preserved(self) -> None:
+        response = self.client.get("/mediakit/?utm_source=newsletter")
+
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response["Location"], f"{MEDIA_KIT_URL}?utm_source=newsletter")
+
+    def test_an_unsafe_method_is_refused_rather_than_redirected(self) -> None:
+        response = self.client.post("/mediakit/")
+
+        self.assertEqual(response.status_code, 405)
+
+    def test_no_media_kit_page_is_served_from_this_project(self) -> None:
+        """The figures that drifted cannot be rendered here any more.
+
+        The old page carried a sponsorship stat block and a course calendar that
+        the database contradicted.  An empty ``response.templates`` only says
+        this one request rendered nothing, so the page's absence is asserted
+        structurally as well: the route dispatches to the shared redirect view,
+        and neither the view module nor its template is still loadable.
+        """
+
+        match = resolve("/mediakit/")
+
+        self.assertIs(match.func, permanent_public_redirect)
+        self.assertEqual(match.kwargs, {"target": PUBLISHED_MEDIA_KIT})
+        self.assertIsNone(importlib.util.find_spec("core.mediakit"))
+        with self.assertRaises(TemplateDoesNotExist):
+            get_template("core/mediakit.html")
+
         response = self.client.get("/mediakit/")
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers["X-Robots-Tag"], "noindex, nofollow")
-        self.assertContains(response, '<meta name="robots" content="noindex,nofollow">')
-        self.assertContains(
-            response,
-            '<link rel="canonical" href="https://datatalks.club/mediakit/">',
-        )
-
-    def test_media_kit_is_absent_from_public_discovery_surfaces(self) -> None:
-        home = self.client.get("/").content.decode()
-        root_sitemap = self.client.get("/sitemap.xml").content.decode()
-
-        self.assertNotIn('href="/mediakit/', home)
-        self.assertNotIn("https://datatalks.club/mediakit/", root_sitemap)
-
-        for section in (
-            "main",
-            "blog",
-            "books",
-            "events",
-            "people",
-            "podcast",
-            "wiki",
-        ):
-            with self.subTest(section=section):
-                body = self.client.get(f"/sitemaps/{section}.xml").content.decode()
-                self.assertNotIn("https://datatalks.club/mediakit/", body)
-
-    def test_showcase_images_open_their_full_size_local_assets(self) -> None:
-        response = self.client.get("/mediakit/")
-        body = response.content.decode()
-        image_links = re.findall(
-            r'<a class="media-kit-image-link" href="([^"]+)"[^>]*>'
-            r'<img[^>]+src="([^"]+)"',
-            body,
-        )
-
-        self.assertContains(response, "/static/core/mediakit/newsletter-primary.png")
-        self.assertContains(response, "/static/core/mediakit/workshop-community.png")
-        self.assertContains(response, 'class="media-kit-image-link"', count=13)
-        self.assertEqual(len(image_links), 13)
-        for href, src in image_links:
-            with self.subTest(src=src):
-                self.assertEqual(href, src)
-                self.assertTrue(src.startswith("/static/core/mediakit/"))
-
-    def test_internal_links_are_root_relative_and_borders_use_neutral_tokens(self) -> None:
-        response = self.client.get("/mediakit/")
-        body = response.content.decode().split("<body", maxsplit=1)[1]
-        template = Path("templates/core/mediakit.html").read_text()
-
-        self.assertNotIn('href="https://datatalks.club/', body)
-        self.assertContains(response, 'href="/podcast/building-production-search-systems.html"')
-        self.assertContains(
-            response,
-            'href="/blog/open-source-free-ai-agent-evaluation-tools.html"',
-        )
-        self.assertIsNone(
-            re.search(r"border(?:-color)?\s*:[^;]*(?:indigo|green|clay|gold)", template)
-        )
-        self.assertContains(response, 'target="_blank" rel="noopener noreferrer"')
+        self.assertEqual(response.templates, [])

@@ -12,24 +12,24 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 PUBLIC_TEMPLATE_PATHS = (
     REPOSITORY_ROOT / "templates/404.html",
     REPOSITORY_ROOT / "accounts/templates/accounts/login.html",
-    # The rest of the account entrance family, rebuilt on design 5a: the sign-up
+    # The rest of the account entrance family, rebuilt on the design system: the sign-up
     # page the homepage's call to action lands on, its closed state, the password
     # reset request and its outcomes, and the inactive-account notice.  They are
     # public pages a signed-out visitor meets, so they read the same contract.
     *(sorted((REPOSITORY_ROOT / "accounts/templates/account").glob("*.html"))),
     # `templates/core/base.html` was read here until issue #179 finished porting the
-    # site to design 5a: it was the public shell every page extended.  Design 5a pages
+    # site to the design system: it was the public shell every page extended.  Design system pages
     # are complete documents that include the two shell partials below instead, so the
     # old base has been deleted and the markup it used to own is read from those.
     REPOSITORY_ROOT / "templates/core/home.html",
-    # The design 5a shell now lives in two partials that every rebuilt page includes
+    # The design system shell now lives in two partials that every rebuilt page includes
     # (issue #179), so the markup those pages used to carry answers here instead.
     REPOSITORY_ROOT / "templates/core/_site_shell_head.html",
     REPOSITORY_ROOT / "templates/core/_site_shell_foot.html",
-    # The courses index left the adopted shell with the design 5a rebuild (issue #179)
+    # The courses index left the adopted shell with the design system rebuild (issue #179)
     # and is now a public page in its own right.
     REPOSITORY_ROOT / "courses/templates/courses/course_list.html",
-    # The course page joined the design 5a system with issue #179 and now carries its
+    # The course page joined the design system with issue #179 and now carries its
     # own stylesheet and markup, so it answers to the same readability contract.
     REPOSITORY_ROOT / "courses/templates/courses/course.html",
     *(sorted((REPOSITORY_ROOT / "templates/public").glob("*.html"))),
@@ -85,7 +85,7 @@ class PublicTemplateSourceTests(SimpleTestCase):
 
     # `test_collection_surfaces_use_divided_rows_instead_of_column_grids` lived here
     # and asserted the adopted shell's `divide-y` on the collection surfaces.  Every
-    # surface it named has since been rebuilt on design 5a (issue #179) — the
+    # surface it named has since been rebuilt on the design system (issue #179) — the
     # homepage, the events and podcast indexes, then the wiki hub, and now the
     # blog/books hub — and each draws its dashed division from the shared
     # `.row-list`/`.list-row` primitives instead.  The contract it protected is the
@@ -98,7 +98,7 @@ class PublicTemplateSourceTests(SimpleTestCase):
     def test_collection_hub_rows_stay_a_divided_list(self) -> None:
         """The blog and books archives are one divided list, never a card grid.
 
-        The hub joined design 5a with issue #179, so the dashed division now
+        The hub joined the design system with issue #179, so the dashed division now
         comes from the shared `.row-list`/`.list-row` primitives instead of the
         adopted shell's `divide-y`.  The composition contract is unchanged: one
         record per divided row, in one column.

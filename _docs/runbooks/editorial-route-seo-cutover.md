@@ -18,6 +18,22 @@ preferred migration-manifest digest matches the policy, all 794 finals pass with
 self-canonical, and all 1,586 aliases pass with a one-hop query-preserving `301`. Any omission,
 duplicate, final/alias collision, chain, or loop stops the cutover.
 
+**Known gap — the pinned digest is stale and needs the SEO cutover commander's sign-off, not an
+engineering fix.** `editorial-route-seo-cutover-policy.json`'s `manifest.required_content_sha256` is
+currently `f5f52a799317393aa31beda6ed0550d7c1d25593ea439a42b9e9af88832f817b`, but the real, current
+`content_sha256` recorded inside
+[`content/public_projection/editorial_route_migration.json`](../../content/public_projection/editorial_route_migration.json)
+is `05137971ffae1859815195128c401c0b53cdda9ced0114448f3d81c0ba5d0c1c` — a legitimate content-projection
+refresh in commit `66ae75c` ("Refresh production content projection and sync guard", 2026-09-03) moved
+the real hash; the counts it covers did not change (794 finals, 1,586 aliases both still match). The
+pin is simply out of date. `content.tests.test_editorial_route_migration_contract
+.EditorialRouteMigrationContractTests.test_checked_manifest_is_bound_to_schema_projection_and_runtime`
+fails on this mismatch today and is **expected red** until the pin is updated. Per this policy's own
+`human_gate` and `owner.primary_role`, only the **production SEO cutover commander** may bump
+`required_content_sha256` — that is a deliberate content-identity gate, not something an engineer or
+agent should do unilaterally. Tracked in
+[issue #310](https://github.com/DataTalksClub/website/issues/310).
+
 Capture a UTC baseline no later than 24 hours before cutover. Use the preceding 28 complete days and
 compare each post-cutover day with the median of the same weekday in the four baseline weeks. Exclude
 only a documented full-site outage, analytics outage, or one-off campaign. Preserve both the raw

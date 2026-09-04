@@ -19,14 +19,15 @@ from courses.course_page_contract import (
     RETIRED_MODULES_HEADING,
 )
 from deploy.contracts import validate_image_digest, validate_source_sha, validate_version
-from deploy.smoke import DEVELOPMENT_ORIGIN, ROBOTS_VALUE
+from deploy.deployment_targets import SELECTED_TARGET
 from deploy.smoke import HOME_IDENTITY_MARKER as HOME_HEADING
+from deploy.smoke import ROBOTS_VALUE
 from playwright_tests.course_catalog_contract import assert_copied_course_catalog_link
 
 pytestmark = [pytest.mark.core, pytest.mark.remote_readonly]
 
 REPRESENTATIVE_COURSE_ARCHIVE_YEAR = "2026"
-# Design 5a (issue #179) renamed the courses index's own section heads.
+# Design system (issue #179) renamed the courses index's own section heads.
 COURSE_INDEX_ACTIVE_HEADING = "Active now — you can still join"
 COURSE_INDEX_FINISHED_HEADING = "Finished courses"
 
@@ -46,7 +47,7 @@ def deployed_config() -> tuple[str, str, str, str, Path]:
         and not screenshot_directory
     ):
         pytest.skip("deployed read-only smoke is enabled only by explicit safe configuration")
-    assert origin == DEVELOPMENT_ORIGIN
+    assert origin == SELECTED_TARGET.origin
     assert source_sha is not None
     validate_source_sha(source_sha)
     assert version is not None
@@ -114,7 +115,7 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     )
     expect(page.locator("body")).not_to_contain_text("Traceback")
     expect(page.locator("body")).not_to_contain_text("Page not found")
-    # Design 5a (issue #179) carries the homepage stylesheet inline, not as a link.
+    # Design system (issue #179) carries the homepage stylesheet inline, not as a link.
     assert page.locator('link[rel="stylesheet"]').count() == 0
     assert page.locator("head style").count() == 1
     dimensions = f"{viewport['width']}x{viewport['height']}"
@@ -171,7 +172,7 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     expect(page.locator("body")).not_to_contain_text("Traceback")
     expect(page.locator("body")).not_to_contain_text("Page not found")
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
-    # Design 5a (issue #179) carries the courses index stylesheet inline, not as a link;
+    # Design system (issue #179) carries the courses index stylesheet inline, not as a link;
     # what still has to come from /static/ is the page's own scripts.
     assert page.locator('link[rel="stylesheet"]').count() == 0
     assert page.locator("head style").count() == 1
@@ -245,7 +246,7 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     assert page.url == f"{origin}/accounts/login/?next=%2Fstudio%2F"
     assert login.headers["x-robots-tag"] == ROBOTS_VALUE
     assert_private_no_store(login.headers)
-    # Exact match: the design 5a sign-in page also renders a second h2 heading
+    # Exact match: the design system sign-in page also renders a second h2 heading
     # beginning with "Sign in", which makes the default substring lookup strict-mode ambiguous.
     expect(page.get_by_role("heading", name="Sign In", exact=True)).to_be_visible()
     expect(page.locator('link[rel="canonical"]')).to_have_count(0)

@@ -2,22 +2,14 @@ path	classification	owner	removal_gate
 _docs/adoption/course-platform/README.md	adoption provenance	courses	Retain while the pinned CMP adoption baseline is authoritative.
 _docs/adoption/course-platform/upstream-sync.md	adoption provenance	courses	Retain while the controlled CMP upstream procedure and namespace mapping remain authoritative.
 _docs/adoption/course-platform/cadmin-reference-allowlist.tsv	adoption provenance	courses	Remove only after every listed compatibility and provenance reference reaches its recorded gate.
-_docs/audits/2026-08-14-course-platform-schema-data-inventory.md	adoption provenance	courses	Retain while #152's static course-platform schema/data baseline is authoritative; remove when superseded by an approved inventory.
-_docs/audits/2026-08-20-ci-smart-test-selection-audit.md	CI selection audit	testing	Retain while the selective-CI recommendations and their issue traceability remain current.
-_docs/audits/2026-08-20-course-platform-schema-data-inventory-phase-1.md	adoption provenance	courses	Retain while the phase-1 course-platform schema and data inventory remains authoritative.
 _docs/ci/change-selective-ci.md	CI selection documentation	testing	Retain while the selective-CI ownership and selection policy remain authoritative.
 _docs/adoption/course-platform/copied-files.tsv	adoption provenance	courses	Retain while pinned source-to-destination checksum evidence is required.
 _docs/adoption/course-platform/integration-patches.md	adoption provenance	courses	Retain while the mechanical rename and legacy adapter remain part of adoption history.
 _docs/adoption/course-platform/target-owned-compatibility-shims.tsv	adoption provenance	courses	Remove adapter rows only after the legacy URL traffic gate is approved.
 _docs/adoption/course-platform/verification.md	adoption provenance	courses	Retain while namespace-move and legacy-adapter verification evidence remains authoritative.
-_docs/compatibility/README.md	legacy contract provenance	seo	Retain while pinned CMP routes remain an accepted source contract.
 _docs/compatibility/course-route-contracts.json	legacy contract provenance	seo	Regenerate only after the pinned CMP source contract or approved canonical mapping changes.
-_docs/compatibility/legacy-manifest-differences.json	legacy contract provenance	seo	Retain until the corresponding immutable compatibility capture is retired.
-_docs/compatibility/legacy-manifest.jsonl	legacy contract provenance	seo	Retain until the corresponding immutable compatibility capture is retired.
 _docs/compatibility/machine-contract-samples.json	legacy contract provenance	seo	Remove legacy samples only after observed traffic and the course-host cutover gate approve removal.
-_docs/compatibility/public-contracts.jsonl	legacy contract provenance	seo	Remove legacy contracts only after observed traffic and the course-host cutover gate approve removal.
-_docs/planning/guideline.md	historical specification	product	Retain until the planning source is superseded and its provenance is archived.
-_docs/planning/wiki/sources/dtc-course-platform.md	historical specification	product	Retain while the CMP planning source remains part of the evidence wiki.
+_docs/design/specs/script-inventory.md	tooling analysis provenance	testing	Retain while the script inventory documents the cadmin reference allowlist as a deletion blocker; remove when the analysis is superseded.
 _docs/specs/02-url-link-seo-compatibility.md	historical specification	seo	Remove legacy route language only after the approved compatibility retirement gate.
 _docs/specs/04-courses-and-cohorts.md	historical specification	courses	Retain source-workflow language and legacy route requirements until course migration completes.
 _docs/specs/06-studio-and-admin-api.md	historical specification	admin	Remove legacy route language only after Studio and admin API production parity and traffic gates pass.
@@ -26,19 +18,13 @@ cadmin/__init__.py	legacy URL adapter	courses	Delete with the adapter after the 
 cadmin/legacy_urls.py	legacy URL adapter	courses	Delete after observed legacy traffic is zero for the approved window and rollback no longer requires it.
 ci/ownership.json	verification policy	testing	Remove the legacy-shim input only when the cadmin compatibility adapter is deleted.
 ci/tests/test_selection.py	verification policy test	testing	Retain while the graph-owned selector contract tests the legacy compatibility mapping.
-compatibility/contracts.py	legacy contract adapter	seo	Remove legacy mapping only after pinned source contracts and observed traffic approve retirement.
-compatibility/source_config.py	legacy contract adapter	seo	Remove legacy source routes only after the course-host compatibility gate passes.
-compatibility/tests/test_baseline.py	legacy contract test	testing	Remove with the exact source-contract mapping after its retirement gate passes.
-compatibility/tests/test_crawler.py	legacy contract test	testing	Remove with the legacy redirect crawler scenario after its traffic gate passes.
+content/route_contracts.py	legacy contract adapter	seo	Remove legacy mapping only after pinned source contracts and observed traffic approve retirement.
 core/middleware.py	legacy URL adapter	courses	Remove the private-route classification only when the legacy route adapter is deleted.
 core/tests/test_course_platform_adoption.py	adoption provenance test	courses	Retain while the exact source-to-destination and reviewed-reference inventories are enforced.
 core/tests/test_development_seo.py	legacy contract test	seo	Remove the noindex/private assertions only when the legacy route adapter is deleted.
 course_management/urls.py	legacy URL adapter	courses	Remove the source-project compatibility mount when no characterization uses the wrapper and the traffic gate passes.
 playwright_tests/test_accessibility.py	legacy contract test	accessibility	Remove the redirect accessibility scenario only when the legacy route adapter is deleted.
 review_import/tests/test_workflow.py	legacy contract test	courses	Remove the offline legacy browsing probes only when the legacy route adapter is deleted.
-scripts/build_legacy_manifest.py	legacy contract tooling	seo	Remove legacy route generation only after its compatibility artifacts are retired.
-scripts/build_pinned_legacy_sources.py	adoption provenance	courses	Retain pinned source mapping while the CMP adoption ledger remains authoritative.
-scripts/validate_course_platform_schema_inventory.py	adoption provenance	testing	Retain while #152's fail-closed inventory contract is enforced; remove when the inventory and its drift tests are retired.
 scripts/sync_course_platform.py	adoption provenance	courses	Retain controlled upstream mapping and conflict detection while CMP is adopted by literal copy.
 scripts/tests/test_sync_course_platform.py	adoption provenance test	courses	Retain sync safety coverage while CMP is adopted by literal copy.
 scripts/verify_course_platform_adoption.py	adoption provenance	courses	Retain the source-root mapping while pinned CMP checksums are verified.

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from django.conf import settings
 
 from course_management.observability.events import AppEvent
+from core.runtime_config import get_str_setting
 
 logger = logging.getLogger(__name__)
 
@@ -26,11 +27,7 @@ class CloudWatchMetricsEventBackend:
 
 
 def cloudwatch_metrics_config() -> CloudWatchMetricsConfig:
-    namespace = getattr(
-        settings,
-        "CLOUDWATCH_APP_METRIC_NAMESPACE",
-        "CourseManagement/App",
-    )
+    namespace = get_str_setting("observability.cloudwatch_metric_namespace")
     return CloudWatchMetricsConfig(namespace=namespace)
 
 

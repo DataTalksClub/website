@@ -178,6 +178,7 @@ def test_home_events_and_detail_match_cmp_composition(
     page: Page,
     live_server,
     stable_public_event_clock,
+    homepage_course_catalog: None,
     viewport: dict[str, int],
     suffix: str,
 ) -> None:
@@ -210,6 +211,8 @@ def test_home_events_and_detail_match_cmp_composition(
 
         if path == "/":
             expect(page.locator("main .hero")).to_have_count(1)
+            # The featured panel renders from the database (issue #307), so the rows it
+            # composes are the ones ``homepage_course_catalog`` seeded for this test.
             expect(page.locator("[data-featured-course]")).to_have_css("display", "grid")
             expect(page.get_by_role("link", name="all courses")).to_have_attribute(
                 "href", "/courses"

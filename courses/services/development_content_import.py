@@ -32,6 +32,7 @@ from courses.models import (
     Question,
     RegistrationCampaign,
     ReviewCriteria,
+    Testimonial,
     WrappedStatistics,
 )
 from review_import.manifest import (
@@ -85,6 +86,12 @@ IDEMPOTENCY_SCOPE = "courses.development-content-import"
 RECEIPT_TABLE = "core_idempotencyrecord"
 COURSE_FAMILY_TABLE = Course._meta.db_table
 COHORT_TABLE = Cohort._meta.db_table
+# Tables that live in the ``courses`` app but hold no course activity, so a row in
+# one is not evidence that the target already carries learner work.  Testimonials
+# are site editorial content: they are imported by
+# ``scripts/prod/import_testimonials.py`` and curated in the admin, and this import
+# neither reads nor writes them.
+NON_ACTIVITY_COURSE_TABLES = frozenset({Testimonial._meta.db_table})
 EXPECTED_LIST_TEMPLATE_SHA256 = "26e391ffdd2c90b89a668c41118f4a8e43efd2b5dde015097f893aee707984ef"
 EXPECTED_DETAIL_TEMPLATE_SHA256 = "f6bae6c52f318df50a409432cd1b0e04af70ce14db5e173173f75a4c902fa3af"
 DATE_COLUMNS = frozenset({"start_date", "end_date"})
@@ -494,7 +501,11 @@ def _assert_course_activity_empty() -> None:
     schema = _target_schema()
     quote = connection.ops.quote_name
     protected_course_tables = sorted(
-        table for table in schema if table.startswith("courses_") and table not in ALLOWLIST
+        table
+        for table in schema
+        if table.startswith("courses_")
+        and table not in ALLOWLIST
+        and table not in NON_ACTIVITY_COURSE_TABLES
     )
     with connection.cursor() as cursor:
         for table in protected_course_tables:

@@ -17,7 +17,6 @@ class EventSpeakerRecordTests(SimpleTestCase):
         projection = public_projection()
         credits = [speaker for event in projection["events"] for speaker in event["speakers"]]
 
-        self.assertEqual(len(credits), 456)
         self.assertTrue(all("bio_blocks" in speaker for speaker in credits))
 
         event = next(

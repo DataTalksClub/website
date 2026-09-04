@@ -230,6 +230,27 @@ approved in #21 may be enabled.
   runtime secret channel and are never committed, stored in domain rows, or shown in Studio/API
   output or exports.
 - Safe operational settings may live in database-backed configuration with typed validation, audit history, and explicit defaults.
+- Every operator-tunable setting is declared once in `core/operational_settings.py` and resolved by
+  `core.runtime_config.get_setting`, which reads the database row first, then the environment
+  variable, then `django.conf.settings`, then the definition default. A write reaches the process
+  that made it on commit and every other process within `STAMP_TTL_SECONDS`, so changing one of
+  these values never requires a restart or a release. A database that cannot answer demotes its own
+  layer rather than failing the read.
+- The settings table holds no secret: `core.configuration` refuses to register a key, environment
+  variable or settings attribute that names a credential, and its values are written to an audit
+  trail and a revision history in the clear. A URL and an email address are stored as themselves,
+  because the canonical origin, the mailer endpoint and the sender address are exactly what an
+  operator has to change. Each such setting declares a validator that refuses userinfo, a query
+  string and a fragment, so a credential cannot ride into the table inside a URL. Keeping secrets
+  out of logs, audit records and error reports is the logging boundary's job and stays with
+  `core.redaction`.
+- Operators reach these values at `GET`/`PATCH /api/v1/admin/settings/operational`, under
+  `core.read_operational_settings` and `core.change_operational_settings`, with the same
+  compare-and-swap-on-`expected_revision` batch semantics as the public site settings.
+- OAuth sign-in client credentials are `allauth` `SocialApp` rows, not settings rows, and are
+  managed at `GET /api/v1/admin/auth/providers` and `PUT /api/v1/admin/auth/providers/{provider}`.
+  The client secret is write-only: it is never returned by a read, never rendered into a page, and
+  never written to the audit trail.
 - Production startup fails closed if security-critical values are absent or still use development defaults.
 
 ## Health and graceful degradation

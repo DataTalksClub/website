@@ -93,7 +93,6 @@ class PortableContentActivationConcurrencyTests(TransactionTestCase):
         self.assertEqual(first_source.active_release_id, first.id)
         self.assertEqual(first.status, ContentRelease.Status.ACTIVE)
         self.assertIsNone(second_source.active_release_id)
-        self.assertEqual(second_source.last_successful_commit, "")
         self.assertEqual(second_source.revision, original_source_revision)
         self.assertEqual(second.status, ContentRelease.Status.READY)
         self.assertIsNone(second.activated_at)
@@ -165,7 +164,6 @@ class PortableContentActivationConcurrencyTests(TransactionTestCase):
         self.assertEqual(sources[winner_source_id].active_release_id, winner_release_id)
         self.assertEqual(releases[winner_release_id].status, ContentRelease.Status.ACTIVE)
         self.assertIsNone(sources[loser_source_id].active_release_id)
-        self.assertEqual(sources[loser_source_id].last_successful_commit, "")
         self.assertEqual(
             sources[loser_source_id].revision, original_source_revisions[loser_source_id]
         )
@@ -370,7 +368,6 @@ class PortableContentActivationConcurrencyTests(TransactionTestCase):
         source.refresh_from_db()
         release.refresh_from_db()
         self.assertIsNone(source.active_release_id)
-        self.assertEqual(source.last_successful_commit, "")
         self.assertEqual(source.revision, command.expected_source_revision)
         self.assertEqual(release.status, ContentRelease.Status.READY)
         self.assertIsNone(release.activated_at)

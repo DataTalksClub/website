@@ -312,8 +312,8 @@ def test_no_javascript_320px_reflow_and_keyboard_focus(browser: Browser, live_se
             }"""
         )
         assert focus["focusVisible"] is True, focus
-        # Design 5a's global focus ring is 3px solid at a 2px offset
-        # (_docs/design/design-5a.md); the ring still clears the control it marks.
+        # The design system's global focus ring is 3px solid at a 2px offset
+        # (_docs/design/design-system.md); the ring still clears the control it marks.
         assert focus["style"] == "solid" and focus["width"] >= 3, focus
         assert focus["offset"] >= 2, focus
         _screenshot(page, "events-past-page-2-320-no-js.png")

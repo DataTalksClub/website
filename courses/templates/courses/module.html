@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load seo static %}
+{% load breadcrumbs seo static curriculum_titles %}
 
 {% block document_title %}{{ module.title }} — {{ cohort.title }} — DataTalks.Club{% endblock %}
 
@@ -41,8 +41,12 @@
         margin-bottom: 1rem;
       }
 
-      .module-section-heading h2,
-      .module-sidebar h2 {
+      {% comment %}
+        The rail's heading is no longer a section title at this size: it now
+        carries the mono metadata voice `.rail-heading` gives it, so this rule
+        stopped at the main column's own section headings.
+      {% endcomment %}
+      .module-section-heading h2 {
         font-size: 1.35rem;
       }
 
@@ -146,14 +150,15 @@
 {% block header_attributes %}aria-labelledby="module-heading"{% endblock %}
 
 {% block page_header %}
-        <nav class="breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li><a href="{% url 'course_list' %}">Courses</a></li>
-            <li><a href="{% url 'course_family' course_family.slug %}">{{ course_family.title }}</a></li>
-            <li><a href="{% url 'course' course_family.slug cohort.identifier %}">{{ cohort.title }}</a></li>
-            <li aria-current="page">{{ module.title }}</li>
-          </ol>
-        </nav>
+        {% comment %}
+          The edition, not the course name again: the crumb before it is the
+          course family, and every other course trail shows the identifier.  The
+          trail then stops at the edition, because this module is the heading below.
+        {% endcomment %}
+        {% url 'course_list' as course_list_url %}
+        {% url 'course_family' course_family.slug as course_family_url %}
+        {% url 'course' course_family.slug cohort.identifier as cohort_url %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url cohort.identifier cohort_url %}
         <div class="module-hero-inner">
           <h1 id="module-heading">{{ module.title }}</h1>
         </div>
@@ -173,7 +178,11 @@
                   {% for unit in units %}
                     <li class="lesson-row">
                       <span class="lesson-position" aria-hidden="true">{{ forloop.counter }}</span>
-                      <a class="lesson-link" href="{% url 'unit' course_family.slug cohort.identifier module.slug unit.slug %}">{{ unit.title }}</a>
+                      {% comment %}
+                        The position disc beside it already numbers the lesson,
+                        so the title does not number it a second time.
+                      {% endcomment %}
+                      <a class="lesson-link" href="{% url 'unit' course_family.slug cohort.identifier module.slug unit.slug %}">{{ unit.title|unit_display_title }}</a>
                       {% if user.is_authenticated %}
                         <span class="lesson-state">{% if unit.is_read %}Read{% else %}Unread{% endif %}</span>
                       {% endif %}

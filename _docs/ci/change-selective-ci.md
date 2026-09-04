@@ -118,7 +118,7 @@ safety net.
 | `html_changed` | No migration, `templates`, or `static` guard applies and a path has a `.htm`, `.html`, `.jinja`, `.jinja2`, `.tmpl`, or `.tpl` suffix. This includes `_docs/*.html`, which selects `html_changed` before documentation ownership. | Run the full browser profile and inspect the affected render surface. |
 | `shared_application` | No earlier path guard applies and an impacted graph owner is `shared.*` or carries the `auth_security_privacy` risk flag. | Keep shared-runtime and authentication/security/privacy owners on the full guard; update the graph, selector, and tests together if the boundary changes. |
 | `configuration_or_dependency` | No earlier path guard applies and a root-level path matches the graph's configuration rules, or the impacted graph includes a surface owner or a `test_infrastructure`, `dependency_toolchain`, or `deployment_runtime` risk flag after the shared and documentation branches. | Run the full control-plane and regression contracts; update the graph, selector precedence, and contract tests when the boundary changes. |
-| `documentation_or_contract` | No earlier migration, render, root-configuration, or shared guard applies and the impacted graph includes `surface.documentation` or a `compatibility_contract` risk flag. Thus cadmin and compatibility paths use this reason, but `_docs/*.html` and `_docs/templates/...` use their earlier render reasons. | Run the documentation/compatibility checks and retain the full classifier fallback; do not narrow a policy change. |
+| `documentation_or_contract` | No earlier migration, render, root-configuration, or shared guard applies and the impacted graph includes `surface.documentation` or a `compatibility_contract` risk flag. Thus cadmin and documentation paths use this reason, but `_docs/*.html` and `_docs/templates/...` use their earlier render reasons. | Run the documentation checks and retain the full classifier fallback; do not narrow a policy change. |
 
 The reason string is recorded in the selection artifact and Actions summary. If an artifact and the
 current graph disagree, evidence/reuse validation rejects it and requires fresh verification. The
@@ -189,9 +189,8 @@ until all checks below pass.
    closure, `make test-django-full` for the push full Django component,
    `make test-playwright-smoke` for backend-only browser impact, `make test-playwright-core` for
    ordinary render impact, or `make test-playwright` for template/browser-harness and full
-   backstop coverage. The local `make test` aggregate remains compatibility-inclusive; the scheduled
-   full-regression plan explicitly records and runs that aggregate so compatibility executes once
-   there. Use `make verification-quality` and `make verification-full` when the graph, policy,
+   backstop coverage. The local `make test` aggregate runs the complete Django suite; the scheduled
+   full-regression plan explicitly records and runs that aggregate. Use `make verification-quality` and `make verification-full` when the graph, policy,
    shared infrastructure, or new app boundary warrants the broader contract.
 
 7. Record evidence and keep the backstop. Validate the plan with
@@ -230,9 +229,9 @@ a digest-bound artifact. Recording never copies the classifier job's environment
 `ImageVersion`, settings module, or other allowlisted execution value blocks the envelope and
 aggregate gate and cannot be accepted during replay, report validation, or evidence reuse.
 
-Manual promotion and rollback apply `quality-contract-v1` from the trusted current workflow
+Manual promotion and rollback apply `quality-contract-v2` from the trusted current workflow
 controller to the exact selected release checkout. The contract invokes the explicit maintained
-quality targets (`terminology-check`, `database-portability-check`, `security-check`, lint, format,
+quality targets (`database-portability-check`, `security-check`, lint, format,
 type, migration, Django, deployment, and CI-policy checks) in that checkout. A pre-contract release such as
 `a220728` is valid when all primitive targets exist; it does not need the future aggregate
 `verification-quality` target. If an aggregate target is present, its declared prerequisites must
@@ -346,27 +345,24 @@ candidate changes:
 
 ```text
 make verification-plan
-make verification-run VERIFY_ISSUE=113 VERIFY_WORKTREE=issue-113-risk-evidence
+make verification-run
 make verification-evidence-check VERIFY_PLAN=.tmp/verification/verification-plan.json
 make verification-report-check VERIFY_PLAN=.tmp/verification/verification-plan.json \
   VERIFY_REPORT=.tmp/verification/verification-report.json
 make verification-plan VERIFY_CONSUMER=tester
 make verification-run VERIFY_CONSUMER=tester VERIFY_PRODUCER_ROLE=tester \
-  VERIFY_PHASE=tester VERIFY_ISSUE=113 VERIFY_WORKTREE=issue-113-risk-evidence
+  VERIFY_PHASE=tester
 ```
 
-`VERIFY_ISSUE` is required: `verification-run` has no default issue number and fails closed without
-one, because local evidence must never be silently attributed to an issue the caller did not name.
-Override `VERIFY_BASE_SHA`, `VERIFY_HEAD_SHA`, `VERIFY_OUTPUT_DIR`, or `VERIFY_EVIDENCE_DIR` only
+`VERIFY_ISSUE` is optional. Pass it to attribute local evidence to an issue; leave it unset and
+the evidence carries no issue. Override `VERIFY_BASE_SHA`, `VERIFY_HEAD_SHA`, `VERIFY_OUTPUT_DIR`, or `VERIFY_EVIDENCE_DIR` only
 with explicit reviewed paths/revisions. `verification-run` executes only allowlisted argument
 vectors and records each rerun result below `.tmp/verification/evidence/`.
 
 The full-profile Django command in a normal push plan is `make test-django-full`, which runs the
-complete Django suite without the compatibility prerequisite. Compatibility is a separate plan
-component and is owned by the quality job only when its disposition is `rerun`. `make test` remains
-the compatibility-inclusive local aggregate (`test-compatibility` followed by
-`test-django-full`); scheduled full regression passes `--full-django-command "make test"` to retain
-that explicit local/scheduled contract.
+complete Django suite. `make test` is the local aggregate and now resolves to the same suite;
+scheduled full regression passes `--full-django-command "make test"` to retain that explicit
+local/scheduled contract.
 
 Every component execution is bounded by an explicit per-component wall-clock timeout. The default
 is 3600 seconds (one hour), which exceeds the longest legitimate local suite: the full Django run,
@@ -390,7 +386,7 @@ make verification-full
 ```
 
 `verification-full` includes quality and CI contract checks, a fresh SQLite migration, the complete
-Django and Playwright suites, compatibility checks, and the exact production-container build,
+Django and Playwright suites, and the exact production-container build,
 static-manifest negative cases, runtime identity/provenance, and liveness checks. All dependencies
 run through uv-backed targets.
 

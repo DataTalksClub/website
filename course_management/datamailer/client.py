@@ -6,6 +6,8 @@ from urllib.parse import urljoin, urlparse
 import requests
 from django.conf import settings
 
+from core.runtime_config import get_bool_setting, get_int_setting, get_str_setting
+
 from .client_campaigns import DatamailerCampaignClient
 from .client_contacts import DatamailerContactClient
 from .client_recipient_lists import DatamailerRecipientListClients
@@ -37,24 +39,28 @@ class DatamailerConfig:
 
     @classmethod
     def from_settings(cls) -> "DatamailerConfig | None":
-        url = getattr(settings, "DATAMAILER_URL", "")
+        """Resolve the mailer from the runtime registry, keeping the key in the environment.
+
+        Everything an operator tunes -- which endpoint, which client, which
+        audience, which sender, whether a send is a dry run -- is resolved
+        through ``core.runtime_config``, so a change reaches every running task
+        without a restart.  ``DATAMAILER_API_KEY`` is not, and cannot be: the
+        settings table is readable by anything that can read the database.
+        """
+
+        url = get_str_setting("datamailer.url")
         api_key = getattr(settings, "DATAMAILER_API_KEY", "")
-        client = getattr(settings, "DATAMAILER_CLIENT", "")
-        audience = getattr(settings, "DATAMAILER_AUDIENCE", "")
-        from_email = getattr(settings, "DATAMAILER_FROM_EMAIL", "")
+        client = get_str_setting("datamailer.client")
+        audience = get_str_setting("datamailer.audience")
+        from_email = get_str_setting("datamailer.from_email")
 
         if not all([url, api_key, client, audience]):
             return None
 
-        strict = getattr(settings, "DATAMAILER_STRICT", False)
-        transactional_dry_run = getattr(
-            settings, "DATAMAILER_TRANSACTIONAL_DRY_RUN", False
-        )
-        timeout = getattr(
-            settings,
-            "DATAMAILER_TIMEOUT_SECONDS",
-            DEFAULT_TIMEOUT_SECONDS,
-        )
+        strict = get_bool_setting("datamailer.strict")
+        transactional_dry_run = get_bool_setting("datamailer.transactional_dry_run")
+        # The registry types the timeout as whole seconds; ``requests`` wants a float.
+        timeout = float(get_int_setting("datamailer.timeout_seconds"))
         normalized_url = url.rstrip("/")
         return cls(
             url=normalized_url,

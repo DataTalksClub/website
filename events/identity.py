@@ -16,10 +16,11 @@ from time import sleep
 from typing import Any
 from urllib.parse import urlsplit
 
-from django.conf import settings
 from django.db import OperationalError, transaction
 from django.db.models import Max
 from django.utils import timezone
+
+from core.runtime_config import get_str_setting
 
 from .models import Event, EventAlias, EventPublicIdSequence
 from .slugs import event_title_slug
@@ -283,10 +284,38 @@ def canonical_detail_path(event_id: uuid.UUID | str) -> str:
 
 
 def canonical_detail_url(event_id: uuid.UUID | str) -> str:
-    return f"{settings.CANONICAL_ORIGIN.rstrip('/')}{canonical_detail_path(event_id)}"
+    return f"{get_str_setting('site.origin.canonical')}{canonical_detail_path(event_id)}"
+
+
+def ensure_public_id_sequence() -> int:
+    """Park the singleton allocator above every public ID that already exists.
+
+    The allocator is a one-row table, so something has to put the row there and
+    keep it ahead of the rows an import wrote.  That belongs with the code that
+    writes events, not in a migration: a migration runs once at a fixed point in
+    the schema history, and on an empty database that point is *before* the
+    manifest import, which would leave the allocator handing out an ID the
+    import had already used.
+
+    Returns the ``next_public_id`` the allocator will hand out.
+    """
+
+    latest = Event.objects.aggregate(value=Max("public_id"))["value"] or 0
+    row, created = EventPublicIdSequence.objects.get_or_create(
+        pk=1,
+        defaults={"next_public_id": latest + 1},
+    )
+    if not created and row.next_public_id <= latest:
+        EventPublicIdSequence.objects.filter(pk=1, next_public_id=row.next_public_id).update(
+            next_public_id=latest + 1,
+            updated_at=timezone.now(),
+        )
+        return latest + 1
+    return row.next_public_id
 
 
 def _allocate_public_id() -> int:
+    ensure_public_id_sequence()
     while True:
         public_id = EventPublicIdSequence.objects.values_list("next_public_id", flat=True).get(pk=1)
         latest = Event.objects.aggregate(value=Max("public_id"))["value"] or 0
@@ -369,6 +398,58 @@ def create_event_identity(
                 raise
             sleep(0.01 * (2**attempt))
     raise AssertionError("public ID allocation retry loop exhausted without returning")
+
+
+# Provenance recorded for an identity minted from a live provider export rather
+# than the reviewed legacy-site manifest.  Distinct per provider so a Luma event
+# id and an Eventbrite event id can never collide on the same source identity.
+PROVIDER_SOURCE_REPOSITORY = {
+    "luma": "dtc-historical-source/luma",
+    "eventbrite": "dtc-historical-source/eventbrite",
+}
+PROVIDER_SOURCE_REVISION = {
+    "luma": "luma-aggregate-v1",
+    "eventbrite": "eventbrite-aggregate-v1",
+}
+
+
+def provider_source_identity(*, provider: str, external_event_identifier: str) -> SourceIdentity:
+    """The source identity a provider-discovered event is created and looked up under."""
+
+    if provider not in PROVIDER_SOURCE_REPOSITORY:
+        raise EventIdentityError("unsupported_provider")
+    return SourceIdentity(
+        repository=PROVIDER_SOURCE_REPOSITORY[provider],
+        revision=PROVIDER_SOURCE_REVISION[provider],
+        source_key=external_event_identifier,
+    )
+
+
+def create_provider_event_identity(
+    *, provider: str, external_event_identifier: str, title: str
+) -> Event:
+    """Mint an Event identity for one provider event, using the shared allocator.
+
+    This is plumbing, not editorial review: title and a canonical
+    ``/events/<public_id>/<slug>`` path, nothing that renders a registration
+    count or a legacy redirect.  It calls :func:`create_event_identity` --
+    the same atomic, allocator-safe machinery the reviewed manifest import
+    uses -- rather than re-deriving a public ID or canonical path here.
+
+    Callers own idempotency: check :func:`resolve_source_identity` with
+    :func:`provider_source_identity` first, and skip creation if it already
+    resolves. This function always inserts.
+    """
+
+    source = provider_source_identity(
+        provider=provider, external_event_identifier=external_event_identifier
+    )
+    return create_event_identity(
+        title=title,
+        source_repository=source.repository,
+        source_revision=source.revision,
+        source_key=source.source_key,
+    )
 
 
 def current_slug(event_id: uuid.UUID | str) -> str:
@@ -502,38 +583,6 @@ def resolve_source_identity(*, repository: str, revision: str, source_key: str) 
         raise EventIdentityError("source_identity_ambiguous") from exc
 
 
-@transaction.atomic
-def attach_historical_mapping(mapping: Any) -> Event:
-    """Attach #112's aggregate mapping by exact source identity, never slug/date matching."""
-
-    event = resolve_source_identity(
-        repository=mapping.canonical_repository,
-        revision=mapping.canonical_revision,
-        source_key=mapping.canonical_source_key,
-    )
-    current_event_id = getattr(mapping, "event_id", None)
-    if current_event_id is not None and current_event_id != event.id:
-        raise EventIdentityError("source_identity_retarget_forbidden")
-    # Keep the relation and immutable provenance snapshot synchronized even when a
-    # staged mapping carried an older/date-derived proposal slug.
-    mapping.event_id = event.id
-    mapping.canonical_repository = event.source_repository
-    mapping.canonical_revision = event.source_revision
-    mapping.canonical_source_key = event.source_key
-    mapping.canonical_slug_snapshot = event.slug
-    mapping.save(
-        update_fields=(
-            "event",
-            "canonical_repository",
-            "canonical_revision",
-            "canonical_source_key",
-            "canonical_slug_snapshot",
-            "updated_at",
-        )
-    )
-    return event
-
-
 def event_projection_record(event: Event) -> dict[str, Any]:
     """Return the checked public record for an Event using exact provenance only."""
 
@@ -663,6 +712,9 @@ def import_identity_manifest(
             created == 0 and updated == 0,
             True,
         )
+    # An import writes public IDs the allocator did not hand out, so it owes the
+    # allocator the new high-water mark before the next service-created event.
+    ensure_public_id_sequence()
     return IdentityImportReport(
         len(manifest.events),
         len(manifest.aliases),

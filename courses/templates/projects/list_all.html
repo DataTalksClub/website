@@ -1,6 +1,7 @@
 {% extends 'projects/_base.html' %}
+{% load breadcrumbs %}
 {% comment %}
-  Every project submission in the course, on design 5a (issue #179).
+  Every project submission in the course, on the design system (issue #179).
 
   A read-only catalogue: it carries no form and no mutation, and the port
   changes nothing about which submissions it lists, what it links to, or where
@@ -48,10 +49,8 @@
   }
 {% endblock %}
 
-{% block breadcrumbs %}
-  <li aria-current="page">
-    All project submissions
-  </li>
+{% block breadcrumb_trail %}
+  {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url current="All project submissions" %}
 {% endblock %}
 
 {% block page_head %}

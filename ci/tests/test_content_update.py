@@ -98,6 +98,14 @@ def test_each_content_family_uses_the_same_safe_report_contract(family: str) -> 
 
 
 def test_source_specific_counts_are_safe_aggregates() -> None:
+    """Cross-check every family's declared counts against the real projection files.
+
+    Pins internal consistency, not today's content volume: each number must agree with
+    what the loaded projection independently contains (slugs, ids, edges), not a literal
+    count restated in this test -- a literal is the weakest possible check (a zero-sum edit
+    keeps the totals) and it is the one that went stale when the podcast catalogue was
+    de-duplicated.
+    """
     reports = {family: build_report(repository=ROOT, family=family) for family in FAMILIES}
     counts = {family: _assert_safe_counts(report, family) for family, report in reports.items()}
 

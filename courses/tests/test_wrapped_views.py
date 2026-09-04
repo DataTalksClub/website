@@ -139,6 +139,8 @@ class WrappedViewTests(TestCase):
         self.assertTrue(response.context["no_data"])
 
     def test_user_wrapped_view_shows_shareable_user_stats(self):
+        self.client.force_login(self.user)
+
         user_wrapped_url = reverse("user_wrapped", args=[2025, self.user.id])
         response = self.client.get(user_wrapped_url)
 
@@ -176,6 +178,7 @@ class WrappedViewTests(TestCase):
             username="bob@example.com",
             email="bob@example.com",
         )
+        self.client.force_login(other_user)
 
         user_wrapped_url = reverse(
             "user_wrapped", args=[2025, other_user.id]
@@ -184,8 +187,8 @@ class WrappedViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context["no_activity"])
+        # No viewed-member object reaches the template, and the fallback name
+        # is not the account's username, which for this account is its address.
+        self.assertNotIn("viewed_user", response.context)
         self.assertEqual(response.context["user"], other_user)
-        self.assertEqual(response.context["viewed_user"], other_user)
-        self.assertEqual(
-            response.context["display_name"], "bob@example.com"
-        )
+        self.assertEqual(response.context["display_name"], "Member")

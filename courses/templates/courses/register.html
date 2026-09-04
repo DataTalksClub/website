@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load accessibility seo static %}
+{% load accessibility breadcrumbs seo static %}
 
 {% block document_title %}
   {{ campaign.title }} Registration - DataTalks.Club
@@ -11,7 +11,7 @@
 
 {% block page_styles %}
       /* ------------------------------------------------------------------ *
-       * Registration campaign page, design 5a (issue #179).  This is the one
+       * Registration campaign page, design system (issue #179).  This is the one
        * registration form the site owns — mockup 6b draws the same form on
        * the course page, and the rebuilt course page deliberately links here
        * instead of growing a second copy of a mutation surface.  Like every
@@ -207,10 +207,17 @@
         width: 0.3rem;
       }
 
+      /* The label's first line box is exactly as tall as the 1.5rem square beside
+         it, so the ``align-items: start`` row above aligns the box with the first
+         line of a consent sentence that wraps rather than with the top of the
+         wrapped block.  Pinning the line box here rather than nudging the input
+         with a margin keeps the alignment correct if the body line-height or this
+         label's size ever changes. */
       .checkbox-label {
         color: var(--ink);
         font-size: 0.92rem;
         font-weight: 600;
+        line-height: 1.5rem;
       }
 
       .checkbox-help {
@@ -268,7 +275,7 @@
 
       /* The shared accessible form primitives (core/templates/accessibility/)
          carry these class names, and their stylesheet is one of the ones a
-         design 5a page deliberately does not load — so the summary, the
+         design system page deliberately does not load — so the summary, the
          required mark and the field error are styled here instead.  The
          system has no danger colour: an error is carried by its words on the
          attention surface (--olive on --sand clears 4.5:1 in both themes),
@@ -323,6 +330,58 @@
         font-size: 0.85rem;
       }
 
+      /* ------------------------------------------------------------------ *
+       * The signed-in "One final step" card and the signed-out gate
+       * (`_docs/design/specs/signed-in-home.md` §8.2, §8.3).  Both are built
+       * out of the shared primitives — card, row-list/list-row, row-fold, cta,
+       * band-link — so the only rules here are the ones a *facts* list needs
+       * that an index list does not: a label rail and a description list whose
+       * values do not carry the browser's default indent.
+       * ------------------------------------------------------------------ */
+
+      .fact-rows {
+        margin: 0;
+      }
+
+      .fact-rows .list-row {
+        --row-cols: 6rem minmax(0, 1fr);
+      }
+
+      .fact-value {
+        color: var(--ink);
+        margin: 0;
+        /* An email address is one long unbreakable token: it wraps inside the
+           measure rather than pushing the card sideways, exactly as the
+           already-registered note does. */
+        overflow-wrap: anywhere;
+      }
+
+      .registration-missing,
+      .registration-about,
+      .registration-fold-fields {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .registration-fold-fields {
+        padding-bottom: 0.9rem;
+      }
+
+      .registration-gate-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      .registration-handoff {
+        align-items: center;
+        border-top: 2px dashed var(--line-soft);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        padding-top: 1.25rem;
+      }
+
       .registration-actions {
         border-top: 2px dashed var(--line-soft);
         padding-top: 1.25rem;
@@ -357,6 +416,10 @@
         .registration-actions .cta {
           width: 100%;
         }
+
+        .registration-gate-actions .cta {
+          width: 100%;
+        }
       }
 {% endblock %}
 
@@ -369,19 +432,17 @@
 
 {% block page_header %}
         {% comment %}
-          The trail the adopted shell used to draw, as the design 5a primitive:
-          the ancestor index is a link and the current page is plain text.
+          One level per crumb.  "Machine Learning Zoomcamp registration" used to be
+          a single crumb, so the course this form registers for was written into the
+          trail as text instead of being the link back to it that every other course
+          page's trail carries.  The course is now its own level, and "registration"
+          — the one thing the heading below does not say, because that heading is the
+          campaign's own title — is the page.  A campaign with no promoted edition
+          names no course and the trail is simply "Courses / registration".
         {% endcomment %}
-        <nav class="breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'course_list' %}">Courses</a>
-            </li>
-            <li aria-current="page">
-              {{ campaign.title }} registration
-            </li>
-          </ol>
-        </nav>
+        {% url 'course_list' as course_list_url %}
+        {% url 'course_family' course.course.slug as course_family_url %}
+        {% breadcrumbs "Courses" course_list_url course.course.title course_family_url current="registration" %}
         <div>
           {% if campaign.hero_image_url %}
             <div class="registration-hero-frame">
@@ -457,28 +518,24 @@
       <section class="registration-section" aria-labelledby="registration-form-heading">
         <div>
           {% if registration %}
-            <div class="card registration-panel">
-              <div class="registration-submitted">
-                {% if form.is_bound %}
-                  <h2 id="registration-form-heading">You are registered</h2>
-                {% else %}
-                  <h2 id="registration-form-heading">You are already registered</h2>
-                {% endif %}
-                <p class="registration-note">
-                  We will send course updates to {{ registration.email_normalized }}.
-                </p>
-              </div>
-            </div>
+            {% include "courses/_registration_done.html" %}
+          {% elif registration_gate %}
+            {% include "courses/_registration_gate.html" %}
+          {% elif user.is_authenticated %}
+            {% include "courses/_registration_final_step.html" %}
           {% else %}
             <div class="card registration-panel">
               <h2 id="registration-form-heading">Register</h2>
-              {% if not user.is_authenticated %}
-                <p>
-                  <a href="{% url 'login' %}?next={{ request.path }}">
-                    Log in to use your account email
-                  </a>
-                </p>
-              {% endif %}
+              {% comment %}
+                Reached only while REGISTRATION_REQUIRES_ACCOUNT is off — the
+                revert lever §8.3 asks for.  With the gate on, an anonymous
+                visitor is offered an account instead of this form.
+              {% endcomment %}
+              <p>
+                <a href="{% url 'login' %}?next={{ request.path }}">
+                  Log in to use your account email
+                </a>
+              </p>
               <form method="post" class="registration-form" data-registration-form>
                 {% csrf_token %}
                 <p class="registration-fineprint">
@@ -488,64 +545,10 @@
                 </p>
                 {% accessibility_error_summary form %}
                 {% for field in form %}
-                  {% accessibility_help_id field as help_id %}
-                  {% accessibility_error_id field as error_id %}
                   {% if field.field.widget.input_type == 'checkbox' %}
-                    <div>
-                      <div class="checkbox-row">
-                        {% accessible_widget field %}
-                        <label for="{{ field.id_for_label }}" class="checkbox-label">
-                          {{ field.label }}
-                          {% if field.field.required %}
-                            <span class="a11y-required" aria-hidden="true">*</span>
-                            <span class="sr-only">(required)</span>
-                          {% endif %}
-                        </label>
-                      </div>
-                      {% if field.help_text %}
-                        <p id="{{ help_id }}" class="checkbox-help">{{ field.help_text }}</p>
-                      {% endif %}
-                      {% if field.errors %}
-                        <p id="{{ error_id }}" class="a11y-error">
-                          <span class="sr-only">Error:</span>
-                          {{ field.errors|join:" " }}
-                        </p>
-                      {% endif %}
-                    </div>
+                    {% include "courses/_registration_consent.html" %}
                   {% else %}
-                    <div
-                      {% if field.name == 'country' %}
-                        class="country-combobox-field"
-                      {% endif %}
-                    >
-                      <label for="{{ field.id_for_label }}" class="registration-field-label">
-                        {{ field.label }}
-                        {% if field.field.required %}
-                          <span class="a11y-required" aria-hidden="true">*</span>
-                          <span class="sr-only">(required)</span>
-                        {% endif %}
-                      </label>
-                      {% accessible_widget field %}
-                      {% if field.name == 'country' %}
-                        {{ country_options|json_script:"country-options-json" }}
-                        <div class="country-combobox-panel" data-country-combobox-panel hidden></div>
-                      {% endif %}
-                      {% if field.help_text %}
-                        <p id="{{ help_id }}" class="a11y-help">{{ field.help_text }}</p>
-                      {% endif %}
-                      {% if field.name == 'email' and user.is_authenticated %}
-                        <p class="a11y-help">
-                          <a href="{% url 'account_logout' %}?next={{ request.path }}">Log out</a>
-                          to use a different email address.
-                        </p>
-                      {% endif %}
-                      {% if field.errors %}
-                        <p id="{{ error_id }}" class="a11y-error">
-                          <span class="sr-only">Error:</span>
-                          {{ field.errors|join:" " }}
-                        </p>
-                      {% endif %}
-                    </div>
+                    {% include "courses/_registration_field.html" %}
                   {% endif %}
                 {% endfor %}
                 <div class="registration-actions">

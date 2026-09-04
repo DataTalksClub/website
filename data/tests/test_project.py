@@ -21,18 +21,22 @@ class ProjectDataAPITestCase(TestCase):
             email="testuser@example.com",
             password="password",
         )
-        self.token = Token.objects.create(user=self.user)
-        self.course = Cohort.objects.create(
-            title="Test Course", slug="test-course"
+        # The caller is an operator, not the learner below: these exports and
+        # the certificate update are staff-token endpoints.
+        self.api_operator = CustomUser.objects.create(
+            username="api-operator",
+            email="api-operator@example.com",
+            password="password",
+            is_staff=True,
         )
+        self.token = Token.objects.create(user=self.api_operator)
+        self.course = Cohort.objects.create(title="Test Course", slug="test-course")
         self.enrollment = Enrollment.objects.create(
             student=self.user,
             course=self.course,
         )
         self.client = Client()
-        self.client.defaults["HTTP_AUTHORIZATION"] = (
-            f"Token {self.token.key}"
-        )
+        self.client.defaults["HTTP_AUTHORIZATION"] = f"Token {self.token.key}"
 
     def create_project(self):
         submission_due_date = timezone.now() + timezone.timedelta(days=7)
@@ -82,22 +86,14 @@ class ProjectDataAPITestCase(TestCase):
             "slug": project.slug,
             "title": project.title,
             "description": project.description,
-            "learning_in_public_cap_project": (
-                project.learning_in_public_cap_project
-            ),
+            "learning_in_public_cap_project": (project.learning_in_public_cap_project),
             "time_spent_project_field": project.time_spent_project_field,
             "problems_comments_field": project.problems_comments_field,
             "faq_contribution_field": project.faq_contribution_field,
-            "learning_in_public_cap_review": (
-                project.learning_in_public_cap_review
-            ),
-            "number_of_peers_to_evaluate": (
-                project.number_of_peers_to_evaluate
-            ),
+            "learning_in_public_cap_review": (project.learning_in_public_cap_review),
+            "number_of_peers_to_evaluate": (project.number_of_peers_to_evaluate),
             "points_for_peer_review": project.points_for_peer_review,
-            "time_spent_evaluation_field": (
-                project.time_spent_evaluation_field
-            ),
+            "time_spent_evaluation_field": (project.time_spent_evaluation_field),
             "points_to_pass": project.points_to_pass,
             "state": project.state,
         }
@@ -114,9 +110,7 @@ class ProjectDataAPITestCase(TestCase):
             "problems_comments": submission.problems_comments,
             "project_score": submission.project_score,
             "project_faq_score": submission.project_faq_score,
-            "project_learning_in_public_score": (
-                submission.project_learning_in_public_score
-            ),
+            "project_learning_in_public_score": (submission.project_learning_in_public_score),
             "peer_review_score": submission.peer_review_score,
             "peer_review_learning_in_public_score": (
                 submission.peer_review_learning_in_public_score

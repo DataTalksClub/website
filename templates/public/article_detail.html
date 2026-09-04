@@ -1,4 +1,4 @@
-{% load seo people %}
+{% load breadcrumbs seo people %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -40,7 +40,7 @@
     {% endif %}
     <style>
       /* ------------------------------------------------------------------ *
-       * Blog article, design 5a (issue #179).  One inline stylesheet: the
+       * Blog article, design system (issue #179).  One inline stylesheet: the
        * shared design system partial, then this page.  The reading treatment
        * itself — measure, rhythm, headings, lists, quotes, code, figures — is
        * the shared `.prose`/`.prose-reading` primitive the wiki pages started,
@@ -73,16 +73,9 @@
         padding-top: 1.6rem;
       }
 
-      /* The cover's letterbox plate stays off the ground it sits on, so a tall
-         or narrow image still reads as a framed picture rather than a floating
-         one. */
-      .article-cover img {
-        background: var(--card);
-      }
-
       /* One column at the system's reading measure, plus the shell's own
          inline padding, so the prose sits at the width `.prose-reading` sets
-         and the cover and byline line up with it. */
+         and the byline lines up with it. */
       .article-shell {
         max-width: calc(var(--measure) + 2.5rem);
       }
@@ -158,42 +151,6 @@
         gap: 0.35rem;
       }
 
-      /* The cover keeps the whole picture rather than cropping to a shape: an
-         article's artwork is often a wide banner, and a crop would cut its
-         words.  A tall image is bounded instead, on the tinted plate the
-         letterboxing then shows. */
-      .article-cover {
-        margin-top: 0.35rem;
-        width: 100%;
-      }
-
-      .article-cover img {
-        background: var(--lavender);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
-        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
-        display: block;
-        height: auto;
-        max-height: 24rem;
-        object-fit: contain;
-        width: 100%;
-      }
-
-      /* Said out loud rather than left as a gap: an article whose artwork is
-         missing says so, in the same place the picture would have been. */
-      .article-cover-missing {
-        border: 2px dashed var(--line-soft);
-        border-radius: 0.9rem;
-        display: block;
-        padding: 1.1rem 1.25rem;
-        text-align: center;
-        width: 100%;
-      }
-
-      .article-body {
-        margin-top: 2rem;
-      }
-
       /* The legacy page drew these plots directly on transparent canvases. */
       .article-body .prose-chart img {
         border: 0;
@@ -220,10 +177,6 @@
          in six of these articles — keeps the same rhythm. */
       .article-body-tail {
         margin-top: 1.6rem;
-      }
-
-      .article-body {
-        margin-top: 2rem;
       }
 
       /* ------------------------------------------------------------------ *
@@ -322,10 +275,6 @@
         padding-bottom: 1.1rem;
       }
 
-      .article-body {
-        margin-top: 2rem;
-      }
-
       /* ------------------------------------------------------------------ *
        * The recovered FAQ section, drawn with the course FAQ page's own marks
        * (templates/review/faq_detail.html) so the site keeps one way of
@@ -407,22 +356,14 @@
       }
 
       @media (max-width: 47.99rem) {
-        /* Narrow: the trail keeps its own line above a tighter head, and the
-           cover gives the opening screen to the title rather than the picture. */
+        /* Narrow: the trail keeps its own line above a tighter head, so the
+           opening screen belongs to the title. */
         .article-hero .breadcrumbs {
           margin-top: -0.5rem;
         }
 
         .article-head {
           gap: 0.7rem;
-        }
-
-        .article-cover img {
-          max-height: 15rem;
-        }
-
-        .article-body {
-          margin-top: 1.5rem;
         }
       }
     </style>
@@ -443,16 +384,12 @@
     <main id="main-content" tabindex="-1">
       <article>
         <section class="band band-cream article-hero" aria-labelledby="article-heading">
-          <nav class="shell article-shell breadcrumbs" aria-label="Breadcrumb">
-            <ol>
-              <li>
-                <a href="{% url 'articles' %}">Blog</a>
-              </li>
-              <li aria-current="page">
-                {{ article.title }}
-              </li>
-            </ol>
-          </nav>
+          {% comment %}
+            The same trail the page publishes as BreadcrumbList JSON-LD: one
+            core.breadcrumbs.Trail built in the view and read twice, so the
+            crumbs and the structured data cannot drift apart.
+          {% endcomment %}
+          {% breadcrumbs breadcrumbs nav_class="shell article-shell" %}
           <div class="shell article-shell">
             <header class="article-head">
               <h1 id="article-heading">{{ article.title }}</h1>
@@ -484,20 +421,12 @@
         <section class="band band-lavender article-read">
           <div class="shell article-shell">
             {% comment %}
-              The cover belongs to the article, not to its title block, so it
-              opens the reading band rather than closing the warm hero.
+              An article's artwork is a social card: it is composed and sized
+              for a link preview, so it is published through `og:image` and
+              `twitter:image` in the head and is not drawn in the reading band,
+              where it read as a low-resolution letterboxed plate above the
+              first paragraph.  The reading band therefore opens on the prose.
             {% endcomment %}
-            {% if article.media_available %}
-              <figure class="article-cover">
-                <img
-                  src="{{ article.image_path }}"
-                  alt="Artwork for {{ article.title }}"
-                  decoding="async"
-                >
-              </figure>
-            {% else %}
-              <span class="article-cover-missing mono-note">Artwork unavailable.</span>
-            {% endif %}
             <div class="prose prose-reading article-body">
               {% include "public/_prose_blocks.html" with sections=article.sections %}
             </div>

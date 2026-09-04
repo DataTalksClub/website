@@ -6,7 +6,10 @@ from typing import Any
 
 from django.conf import settings
 
+from accounts.services.oauth_providers import SUPPORTED_PROVIDERS
 from core.capabilities import ConcurrencyPolicy, IdempotencyPolicy
+from core.configuration import registered_operational_settings
+from core.operational_settings import OPERATIONAL_SETTING_KEYS
 from management_registry import CAPABILITY_REGISTRY
 
 SCHEMA_PATH = Path(settings.BASE_DIR) / "_docs/api/admin-openapi.json"
@@ -222,6 +225,156 @@ def _site_setting_update_schemas() -> list[dict[str, Any]]:
     ]
 
 
+_OPERATIONAL_VALUE_TYPES = ["boolean", "integer", "string"]
+_OPERATIONAL_JSON_TYPES = ["boolean", "integer", "string"]
+
+
+def _operational_setting_schema(*, include_changed: bool = False) -> dict[str, Any]:
+    """One operational setting, generated from the registry it documents.
+
+    The enums come from the registry rather than a hand-kept list, so a setting
+    added without a schema entry is impossible: the document simply grows the
+    key, and ``--check`` fails until the checked-in document is regenerated.
+    """
+
+    required = [
+        "key",
+        "group",
+        "label",
+        "description",
+        "value_type",
+        "default",
+        "validation",
+        "docs_reference",
+        "lifecycle",
+        "cache_policy",
+        "sensitivity",
+        "value",
+        "source",
+        "definition_version",
+        "revision",
+        "effective_value",
+        "effective_layer",
+        "env_var",
+        "settings_attr",
+    ]
+    groups = sorted(
+        {
+            definition.group
+            for definition in registered_operational_settings()
+            if definition.key in OPERATIONAL_SETTING_KEYS
+        }
+    )
+    properties: dict[str, Any] = {
+        "key": {"type": "string", "enum": list(OPERATIONAL_SETTING_KEYS)},
+        "group": {"type": "string", "enum": groups},
+        "label": {"type": "string", "minLength": 1},
+        "description": {"type": "string", "minLength": 1},
+        "value_type": {"type": "string", "enum": _OPERATIONAL_VALUE_TYPES},
+        "default": {"type": _OPERATIONAL_JSON_TYPES},
+        "validation": {"type": "object"},
+        "docs_reference": {"type": "string", "pattern": "^_docs/"},
+        "lifecycle": {"type": "string", "const": "active"},
+        "cache_policy": {"type": "string", "const": "stamped"},
+        "sensitivity": {"type": "string", "const": "operational"},
+        "value": {"type": _OPERATIONAL_JSON_TYPES},
+        "source": {"type": "string", "enum": ["code_default", "studio", "admin_api"]},
+        "definition_version": {"type": "integer", "minimum": 1},
+        "revision": {"type": "integer", "minimum": 0},
+        "effective_value": {
+            "type": _OPERATIONAL_JSON_TYPES,
+            "description": (
+                "The value the running processes resolve today, which is the stored row "
+                "only when one exists."
+            ),
+        },
+        "effective_layer": {
+            "type": "string",
+            "enum": ["database", "environment", "settings", "code_default"],
+        },
+        "env_var": {
+            "type": "string",
+            "description": "Environment variable consulted when no row is stored; may be empty.",
+        },
+        "settings_attr": {
+            "type": "string",
+            "description": "Settings attribute consulted after the environment; may be empty.",
+        },
+    }
+    if include_changed:
+        required.append("changed")
+        properties["changed"] = {"type": "boolean"}
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": required,
+        "properties": properties,
+    }
+
+
+def _operational_setting_result_schema() -> dict[str, Any]:
+    """A batch result item: the stored projection, without the runtime fields."""
+
+    schema = _operational_setting_schema(include_changed=True)
+    for field in ("effective_value", "effective_layer", "env_var", "settings_attr"):
+        schema["required"].remove(field)
+        del schema["properties"][field]
+    return schema
+
+
+def _operational_setting_update_schema() -> dict[str, Any]:
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["key", "value", "expected_revision"],
+        "properties": {
+            "key": {"type": "string", "enum": list(OPERATIONAL_SETTING_KEYS)},
+            "value": {"type": _OPERATIONAL_JSON_TYPES},
+            "expected_revision": {"type": "integer", "minimum": 0},
+        },
+    }
+
+
+def _oauth_provider_schema() -> dict[str, Any]:
+    """One OAuth provider.  There is no secret field: the secret is write-only."""
+
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "provider",
+            "name",
+            "label",
+            "configure_url",
+            "callback_path",
+            "callback_url",
+            "scopes",
+            "client_id",
+            "has_secret",
+            "is_configured",
+            "is_enabled",
+        ],
+        "properties": {
+            "provider": {"type": "string", "enum": list(SUPPORTED_PROVIDERS)},
+            "name": {"type": "string", "minLength": 1},
+            "label": {"type": "string", "minLength": 1},
+            "configure_url": {"type": "string", "minLength": 1},
+            "callback_path": {"type": "string", "pattern": "^/"},
+            "callback_url": {"type": "string", "minLength": 1},
+            "scopes": {"type": "array", "items": {"type": "string"}},
+            "client_id": {"type": "string", "maxLength": 191},
+            "has_secret": {
+                "type": "boolean",
+                "description": (
+                    "Whether a client secret is stored. The secret itself is never returned."
+                ),
+            },
+            "is_configured": {"type": "boolean"},
+            "is_enabled": {"type": "boolean"},
+        },
+    }
+
+
 def generate_document() -> dict[str, Any]:
     paths: dict[str, Any] = {}
     for capability in CAPABILITY_REGISTRY:
@@ -382,6 +535,79 @@ def generate_document() -> dict[str, Any]:
                         "revision": {"type": "integer", "minimum": 0},
                     },
                 },
+                "OperationalSetting": _operational_setting_schema(),
+                "OperationalSettingResult": _operational_setting_result_schema(),
+                "OperationalSettings": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["settings"],
+                    "properties": {
+                        "settings": {
+                            "type": "array",
+                            "minItems": len(OPERATIONAL_SETTING_KEYS),
+                            "maxItems": len(OPERATIONAL_SETTING_KEYS),
+                            "items": {"$ref": "#/components/schemas/OperationalSetting"},
+                        }
+                    },
+                },
+                "OperationalSettingsBatchRequest": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["updates"],
+                    "properties": {
+                        "updates": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": len(OPERATIONAL_SETTING_KEYS),
+                            "items": _operational_setting_update_schema(),
+                        }
+                    },
+                },
+                "OperationalSettingsBatchResult": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["settings", "replayed"],
+                    "properties": {
+                        "settings": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": len(OPERATIONAL_SETTING_KEYS),
+                            "items": {"$ref": "#/components/schemas/OperationalSettingResult"},
+                        },
+                        "replayed": {"type": "boolean"},
+                    },
+                },
+                "OAuthProvider": _oauth_provider_schema(),
+                "OAuthProviders": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["providers"],
+                    "properties": {
+                        "providers": {
+                            "type": "array",
+                            "minItems": len(SUPPORTED_PROVIDERS),
+                            "maxItems": len(SUPPORTED_PROVIDERS),
+                            "items": {"$ref": "#/components/schemas/OAuthProvider"},
+                        }
+                    },
+                },
+                "OAuthProviderUpdate": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["client_id"],
+                    "properties": {
+                        "client_id": {"type": "string", "maxLength": 191},
+                        "secret": {
+                            "type": "string",
+                            "maxLength": 191,
+                            "writeOnly": True,
+                            "description": (
+                                "Write-only. Omit to leave the stored secret unchanged; send an "
+                                "empty string to clear it. It is never returned by any read."
+                            ),
+                        },
+                    },
+                },
                 "CredentialMetadata": _credential_schema(),
                 "CredentialSecret": _credential_schema(include_token=True),
                 "CredentialList": {
@@ -533,100 +759,6 @@ def generate_document() -> dict[str, Any]:
                         "replayed": {"type": "boolean"},
                     },
                 },
-                "HistoricalEventMapping": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "required": [
-                        "id",
-                        "provider",
-                        "external_event_identifier",
-                        "state",
-                        "mapping_set_revision",
-                        "revision",
-                    ],
-                    "properties": {
-                        "id": {"type": "string", "format": "uuid"},
-                        "provider": {"type": "string", "enum": ["luma", "eventbrite"]},
-                        "external_event_identifier": {"type": "string"},
-                        "event_id": {"type": ["string", "null"], "format": "uuid"},
-                        "canonical_slug": {"type": "string"},
-                        "state": {
-                            "type": "string",
-                            "enum": ["review_required", "mapped", "excluded", "source_missing"],
-                        },
-                        "mapping_set_revision": {"type": "integer", "minimum": 1},
-                        "revision": {"type": "integer", "minimum": 1},
-                        "reason_code": {"type": "string"},
-                        "created_at": {"type": "string", "format": "date-time"},
-                        "updated_at": {"type": "string", "format": "date-time"},
-                    },
-                },
-                "HistoricalEventMappingList": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "required": ["items", "page", "page_size", "total_count"],
-                    "properties": {
-                        "items": {
-                            "type": "array",
-                            "items": {"$ref": "#/components/schemas/HistoricalEventMapping"},
-                        },
-                        "page": {"type": "integer", "minimum": 1},
-                        "page_size": {"type": "integer", "minimum": 1, "maximum": 100},
-                        "total_count": {"type": "integer", "minimum": 0},
-                    },
-                },
-                "HistoricalEventMappingCreateRequest": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "required": [
-                        "provider",
-                        "external_event_identifier",
-                        "state",
-                        "mapping_set_revision",
-                        "reason_code",
-                        "reason",
-                        "coverage_boundary",
-                        "combination_policy",
-                    ],
-                    "properties": {
-                        "provider": {"type": "string", "enum": ["luma", "eventbrite"]},
-                        "external_event_identifier": {"type": "string", "maxLength": 512},
-                        "state": {"type": "string", "enum": ["mapped", "excluded"]},
-                        "event_id": {"type": "string", "format": "uuid"},
-                        "mapping_set_revision": {"type": "integer", "minimum": 1},
-                        "reason_code": {"type": "string"},
-                        "reason": {"type": "string", "maxLength": 2000},
-                        "coverage_boundary": {"type": "string"},
-                        "combination_policy": {
-                            "type": "string",
-                            "enum": ["additive_disjoint", "replacement", "exclude"],
-                        },
-                    },
-                },
-                "HistoricalEventMappingUpdateRequest": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "required": [
-                        "state",
-                        "mapping_set_revision",
-                        "reason_code",
-                        "reason",
-                        "coverage_boundary",
-                        "combination_policy",
-                    ],
-                    "properties": {
-                        "state": {"type": "string", "enum": ["mapped", "excluded"]},
-                        "event_id": {"type": ["string", "null"], "format": "uuid"},
-                        "mapping_set_revision": {"type": "integer", "minimum": 1},
-                        "reason_code": {"type": "string"},
-                        "reason": {"type": "string", "maxLength": 2000},
-                        "coverage_boundary": {"type": "string"},
-                        "combination_policy": {
-                            "type": "string",
-                            "enum": ["additive_disjoint", "replacement", "exclude"],
-                        },
-                    },
-                },
                 "HistoricalRegistrationTotal": {
                     "type": "object",
                     "additionalProperties": False,
@@ -728,188 +860,6 @@ def generate_document() -> dict[str, Any]:
                         "page": {"type": "integer", "minimum": 1},
                         "page_size": {"type": "integer", "minimum": 1, "maximum": 100},
                         "total_count": {"type": "integer", "minimum": 0},
-                    },
-                },
-                "CourseRegistrationCountImport": {
-                    "type": "object",
-                    "additionalProperties": True,
-                    "required": [
-                        "id",
-                        "adapter_version",
-                        "schema_version",
-                        "count_policy_version",
-                        "source_checksum",
-                        "source_byte_size",
-                        "schema_checksum",
-                        "manifest_checksum",
-                        "captured_at",
-                        "source_frozen_at",
-                        "campaign_total",
-                        "row_total",
-                        "state",
-                        "revision",
-                    ],
-                    "properties": {
-                        "id": {"type": "string", "format": "uuid"},
-                        "adapter_version": {"type": "string"},
-                        "schema_version": {"type": "string"},
-                        "count_policy_version": {"type": "string"},
-                        "source_checksum": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-                        "source_byte_size": {"type": "integer", "minimum": 1},
-                        "schema_checksum": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-                        "manifest_checksum": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-                        "captured_at": {"type": "string", "format": "date-time"},
-                        "source_frozen_at": {"type": "string", "format": "date-time"},
-                        "campaign_total": {"type": "integer", "minimum": 0},
-                        "row_total": {"type": "integer", "minimum": 0},
-                        "state": {
-                            "type": "string",
-                            "enum": [
-                                "staged",
-                                "validated",
-                                "active",
-                                "cancelled",
-                                "rolled_back",
-                                "quarantined",
-                            ],
-                        },
-                        "revision": {"type": "integer", "minimum": 1},
-                        "reason_code": {"type": "string"},
-                        "created_at": {"type": "string", "format": "date-time"},
-                        "updated_at": {"type": "string", "format": "date-time"},
-                        "replayed": {"type": "boolean"},
-                    },
-                },
-                "CourseRegistrationCountImportDetail": {
-                    "allOf": [
-                        {"$ref": "#/components/schemas/CourseRegistrationCountImport"},
-                        {
-                            "type": "object",
-                            "required": ["counts"],
-                            "properties": {
-                                "counts": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "additionalProperties": False,
-                                        "required": [
-                                            "id",
-                                            "campaign_slug",
-                                            "cohort_slug",
-                                            "baseline_count",
-                                            "coverage_cutoff_at",
-                                            "native_start_at",
-                                            "aggregate_checksum",
-                                            "state",
-                                            "revision",
-                                            "reason_code",
-                                        ],
-                                        "properties": {
-                                            "id": {"type": "string", "format": "uuid"},
-                                            "campaign_slug": {"type": "string"},
-                                            "cohort_slug": {"type": "string"},
-                                            "baseline_count": {"type": "integer", "minimum": 0},
-                                            "coverage_cutoff_at": {
-                                                "type": "string",
-                                                "format": "date-time",
-                                            },
-                                            "native_start_at": {
-                                                "type": "string",
-                                                "format": "date-time",
-                                            },
-                                            "aggregate_checksum": {
-                                                "type": "string",
-                                                "pattern": "^[0-9a-f]{64}$",
-                                            },
-                                            "state": {"type": "string"},
-                                            "revision": {"type": "integer", "minimum": 1},
-                                            "reason_code": {"type": "string"},
-                                        },
-                                    },
-                                }
-                            },
-                        },
-                    ]
-                },
-                "CourseRegistrationCountImportList": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "required": ["items", "page", "page_size", "total_count"],
-                    "properties": {
-                        "items": {
-                            "type": "array",
-                            "items": {"$ref": "#/components/schemas/CourseRegistrationCountImport"},
-                        },
-                        "page": {"type": "integer", "minimum": 1},
-                        "page_size": {"type": "integer", "minimum": 1, "maximum": 100},
-                        "total_count": {"type": "integer", "minimum": 0},
-                    },
-                },
-                "CourseRegistrationCountImportCreateRequest": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "required": ["source_reference", "confirmed", "reason_code"],
-                    "properties": {
-                        "source_reference": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9_.:-]{0,127}$",
-                            "writeOnly": True,
-                        },
-                        "confirmed": {"type": "boolean", "const": True},
-                        "reason_code": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9_]{0,63}$",
-                        },
-                    },
-                },
-                "CourseRegistrationCountActionRequest": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "required": ["confirmed", "reason_code"],
-                    "properties": {
-                        "confirmed": {"type": "boolean", "const": True},
-                        "reason_code": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9_]{0,63}$",
-                        },
-                    },
-                },
-                "CourseRegistrationCountActionResult": {
-                    "type": "object",
-                    "additionalProperties": True,
-                    "required": ["run_id", "state", "revision", "replayed"],
-                    "properties": {
-                        "run_id": {"type": "string", "format": "uuid"},
-                        "state": {"type": "string"},
-                        "revision": {"type": "integer", "minimum": 1},
-                        "replayed": {"type": "boolean"},
-                    },
-                },
-                "CourseRegistrationPublicCount": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "required": [
-                        "campaign_slug",
-                        "cohort_slug",
-                        "complete",
-                        "count",
-                        "total_revision",
-                        "mode",
-                        "baseline_count",
-                        "native_count",
-                    ],
-                    "properties": {
-                        "campaign_slug": {"type": "string"},
-                        "cohort_slug": {"type": "string"},
-                        "complete": {"type": "boolean"},
-                        "count": {"type": ["integer", "null"], "minimum": 0},
-                        "total_revision": {"type": ["integer", "null"], "minimum": 1},
-                        "mode": {
-                            "type": "string",
-                            "enum": ["", "baseline_plus_native", "rows_only"],
-                        },
-                        "baseline_count": {"type": ["integer", "null"], "minimum": 0},
-                        "native_count": {"type": ["integer", "null"], "minimum": 0},
                     },
                 },
                 "SiteNavigationEntry": {
@@ -1015,7 +965,7 @@ def generate_document() -> dict[str, Any]:
                     "additionalProperties": False,
                     "required": ["placement", "position", "enabled"],
                     "properties": {
-                        "placement": {"type": "string", "enum": ["events_hub"]},
+                        "placement": {"type": "string", "enum": ["events_hub", "public_directory"]},
                         "position": {"type": "integer", "minimum": 1},
                         "enabled": {"type": "boolean"},
                     },
@@ -1049,7 +999,7 @@ def generate_document() -> dict[str, Any]:
                             "type": "string",
                             "enum": ["draft", "active", "archived"],
                         },
-                        "source": {"type": "string", "enum": ["studio", "admin_api"]},
+                        "source": {"type": "string", "enum": ["studio", "admin_api", "import"]},
                         "revision": {"type": "integer", "minimum": 1},
                         "assignments": {
                             "type": "array",
@@ -1146,7 +1096,7 @@ def generate_document() -> dict[str, Any]:
                                 },
                                 "placement": {
                                     "type": "string",
-                                    "enum": ["events_hub"],
+                                    "enum": ["events_hub", "public_directory"],
                                 },
                             },
                         },
@@ -1154,7 +1104,7 @@ def generate_document() -> dict[str, Any]:
                             "type": "string",
                             "enum": ["draft", "active", "archived"],
                         },
-                        "placement": {"type": "string", "enum": ["events_hub"]},
+                        "placement": {"type": "string", "enum": ["events_hub", "public_directory"]},
                     },
                 },
                 "SponsorDirectoryExport": {

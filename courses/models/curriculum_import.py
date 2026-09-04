@@ -3,13 +3,14 @@ from __future__ import annotations
 import json
 import re
 import uuid
-from pathlib import PurePosixPath
 from typing import Any
 
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models import Q
+
+from courses.curriculum_source_validators import validate_source_path
 
 SHA1_PATTERN = r"^[0-9a-f]{40}$"
 SHA256_PATTERN = r"^[0-9a-f]{64}$"
@@ -54,18 +55,6 @@ repository_branch_validator = RegexValidator(
     REPOSITORY_BRANCH_PATTERN,
     "Enter a canonical repository branch.",
 )
-
-
-def validate_source_path(value: str) -> None:
-    """Require a normalized repository-relative POSIX path."""
-
-    if not value or value.startswith("/") or "\\" in value:
-        raise ValidationError("Enter a repository-relative POSIX path.")
-    parts = value.split("/")
-    if any(part in {"", ".", ".."} for part in parts):
-        raise ValidationError("Enter a normalized repository-relative POSIX path.")
-    if PurePosixPath(value).as_posix() != value:
-        raise ValidationError("Enter a normalized repository-relative POSIX path.")
 
 
 def source_provenance_constraint(

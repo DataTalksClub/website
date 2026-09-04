@@ -14,23 +14,23 @@
         {% endif %}
       </div>
     </div>
+    {% comment %}
+      No "this form is only for submitting your answers" line here: the hero's
+      instructions button already owns that job, and repeating it beside the
+      heading cost a paragraph to say nothing new.
+    {% endcomment %}
     {% if homework.is_scored and not is_authenticated %}
       <p class="submission-support">Review the expected answers for this scored homework.</p>
-    {% elif instructions_url %}
-      <p class="submission-support">
-        This form is only for submitting your answers. For the homework instructions, check the
-        <a class="band-link" href="{{ instructions_url }}" target="_blank" rel="noopener noreferrer">instructions</a>.
-      </p>
     {% endif %}
-    <div class="submission-fields homework-fields cmp-form-fields">
+    <div class="submission-fields homework-fields homework-questions cmp-form-fields">
       {% for question, answer in question_answers %}
         <fieldset class="question">
           <legend class="question-text" id="question-label-{{ question.id }}">
             {{ forloop.counter }}. {{ question.text }}
             {% if question.scores_for_correct_answer != 0 %}
-              <span class="question-note">({{ question.scores_for_correct_answer }} {{ question.scores_for_correct_answer|pluralize:"point,points" }})</span>
+              <span class="question-note mono-label">{{ question.scores_for_correct_answer }} {{ question.scores_for_correct_answer|pluralize:"point,points" }}</span>
             {% else %}
-              <span class="question-note">(not graded)</span>
+              <span class="question-note mono-label">not graded</span>
             {% endif %}
           </legend>
           {% if is_authenticated and answer.no_answer_submitted %}
@@ -121,7 +121,7 @@
           {% endif %}
         </fieldset>
       {% empty %}
-        {% include "core/_callout.html" with tone="info" classes="callout-quiet" message="No public answers are available for this homework yet." %}
+        {% include "core/_callout.html" with tone="info" message="No public answers are available for this homework yet." %}
       {% endfor %}
     </div>
   </div>
@@ -194,22 +194,31 @@
           {% include 'include/faq_contribution_field.html' %}
         {% endif %}
       </div>
-      <div class="submission-status homework-status">
+      <div class="submission-status">
         {% if submission.pk %}
           <p>Status: Last saved at <span>{{ submission.submitted_at|user_datetime:request }}</span></p>
         {% else %}
           <p>Status: Not saved yet</p>
         {% endif %}
-        {% if not homework.is_scored and is_authenticated %}
-          {% if accepting_submissions and deadline_passed %}
+        {% comment %}
+          Saving guidance is only true while the homework accepts submissions.
+          On a closed one it used to promise updating "until the deadline"
+          directly beneath a notice saying the submission cannot be changed.
+        {% endcomment %}
+        {% if accepting_submissions and not homework.is_scored and is_authenticated %}
+          {% if deadline_passed %}
             <p>You can still save and update your answers until this homework is closed. Your latest saved version will be scored.</p>
           {% else %}
             <p>You can save partial answers and update them until the deadline. Your latest saved version will be scored.</p>
           {% endif %}
         {% endif %}
       </div>
-      {% if is_authenticated and not homework.is_scored %}
-        <div class="submission-form-actions homework-submit cmp-form-actions">
+      {% comment %}
+        No submit control on a homework that is not open: `handle_homework_post`
+        rejects the POST outright, so the button could only ever fail.
+      {% endcomment %}
+      {% if is_authenticated and accepting_submissions and not homework.is_scored %}
+        <div class="submission-form-actions cmp-form-actions">
           {% if not submission.pk %}
             {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Save submission" variant="primary" compact=True %}
           {% else %}

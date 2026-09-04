@@ -32,7 +32,7 @@ The ownership boundary is:
 
 ## Website-hosted routes and stable interface
 
-The route shape below is the website contract. All paths are relative to the configured website host, including `https://web.dtcdev.click` in development. There is no browser redirect to `qna.dtcdev.click` and no cross-origin participant API.
+The route shape below is the website contract. All paths are relative to the configured website host, including whichever development host `deploy/development_target.py` selects. There is no browser redirect to a separate Q&A host and no cross-origin participant API.
 
 ### Route shape
 

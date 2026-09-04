@@ -39,7 +39,9 @@ def test_parses_llm_zoomcamp_modules_and_legacy_cohorts_without_database() -> No
 
     assert source.commit_sha == COMMIT_SHA
     assert source.course.slug == "llm-zoomcamp"
-    assert source.course.description_source_path == "README.md"
+    assert source.course.description_source_path == "SITE.md"
+    assert source.course.description is not None
+    assert source.course.description.startswith("A free course about building")
     assert [cohort.identifier for cohort in source.cohorts] == ["2024", "2025", "2026"]
 
     implicit_legacy, explicit_legacy, modules_cohort = source.cohorts
@@ -181,15 +183,15 @@ def test_rejects_unknown_keys_with_a_bounded_pointer() -> None:
 @pytest.mark.parametrize(
     "yaml_payload",
     [
-        b"description: &shared copied\noutcome: *shared\n",
-        b"description: !unsafe copied\n",
-        b"description: !!str copied\n",
+        b"hashtag: &shared llmzoomcamp\noutcome: *shared\n",
+        b"hashtag: !unsafe llmzoomcamp\n",
+        b"hashtag: !!str llmzoomcamp\n",
     ],
 )
 def test_rejects_yaml_aliases_and_explicit_tags(yaml_payload: bytes) -> None:
     snapshot = fixture_snapshot()
     path = "course.yaml"
-    replace_bytes(snapshot, path, b"description_path: README.md\n", yaml_payload)
+    replace_bytes(snapshot, path, b"hashtag: llmzoomcamp\n", yaml_payload)
 
     with pytest.raises(CourseRepositoryValidationError) as raised:
         parse_course_repository(snapshot)
@@ -351,3 +353,111 @@ def test_rejects_invalid_optional_commit_sha() -> None:
         parse_course_repository(fixture_snapshot(), commit_sha="main")
 
     assert diagnostic_code(raised) == "source_commit_invalid"
+
+
+def test_reads_the_course_description_from_site_md() -> None:
+    snapshot = fixture_snapshot()
+    snapshot["SITE.md"] = b"  Catalogue copy the repository publishes for the website.  \n"
+
+    source = parse_course_repository(snapshot, commit_sha=COMMIT_SHA)
+
+    assert source.course.description == "Catalogue copy the repository publishes for the website."
+    assert source.course.description_source_path == "SITE.md"
+
+
+def test_leaves_the_description_unset_when_the_repository_publishes_no_site_md() -> None:
+    """A repository without ``SITE.md`` must not describe any website copy.
+
+    The importer reads ``None`` as "leave the stored description alone", which is what
+    protects the families whose catalogue text is curated rather than repository-authored.
+    """
+
+    snapshot = fixture_snapshot()
+    del snapshot["SITE.md"]
+
+    source = parse_course_repository(snapshot, commit_sha=COMMIT_SHA)
+
+    assert source.course.description is None
+    assert source.course.description_source_path is None
+
+
+def test_never_falls_back_to_the_readme_for_the_description() -> None:
+    snapshot = fixture_snapshot()
+    del snapshot["SITE.md"]
+    snapshot["README.md"] = b"# Banner\n\nReadme prose that must never reach the catalogue.\n"
+
+    source = parse_course_repository(snapshot, commit_sha=COMMIT_SHA)
+
+    assert source.course.description is None
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        b'<p align="center">\n  <img src="images/banner.png">\n</p>\n\nProse.\n',
+        b'# Course\n\n<img src="logo.png" width="120">\n',
+        b"[![Build](https://img.shields.io/badge/b.svg)](https://example.com)\n",
+        b"![badge](https://img.shields.io/badge/x.svg)\n",
+        b"Real copy.\n\n## Contributors\n\nThanks to everyone.\n",
+    ],
+)
+def test_rejects_readme_shaped_site_descriptions(payload: bytes) -> None:
+    snapshot = fixture_snapshot()
+    snapshot["SITE.md"] = payload
+
+    with pytest.raises(CourseRepositoryValidationError) as raised:
+        parse_course_repository(snapshot)
+
+    assert diagnostic_code(raised) == "site_description_readme_shaped"
+
+
+def test_rejects_a_site_description_longer_than_the_ceiling() -> None:
+    snapshot = fixture_snapshot()
+    snapshot["SITE.md"] = b"a" * 4_001
+
+    with pytest.raises(CourseRepositoryValidationError) as raised:
+        parse_course_repository(snapshot)
+
+    assert diagnostic_code(raised) == "site_description_too_long"
+
+
+def test_rejects_an_empty_site_description() -> None:
+    snapshot = fixture_snapshot()
+    snapshot["SITE.md"] = b"   \n\n"
+
+    with pytest.raises(CourseRepositoryValidationError) as raised:
+        parse_course_repository(snapshot)
+
+    assert diagnostic_code(raised) == "site_description_empty"
+
+
+def test_accepts_a_course_yaml_that_declares_description_path_site_md() -> None:
+    """Three repositories declare the pointer explicitly; it must stay valid.
+
+    The declaration is redundant with the default, not an alternative to it, so a
+    repository may keep or drop it without changing what is read.
+    """
+
+    snapshot = fixture_snapshot()
+    snapshot["course.yaml"] = snapshot["course.yaml"].replace(
+        b"title: LLM Zoomcamp\n",
+        b"title: LLM Zoomcamp\ndescription_path: SITE.md\n",
+    )
+
+    source = parse_course_repository(snapshot, commit_sha=COMMIT_SHA)
+
+    assert source.course.description_source_path == "SITE.md"
+    assert source.course.description is not None
+
+
+def test_refuses_a_description_path_that_names_anything_but_site_md() -> None:
+    snapshot = fixture_snapshot()
+    snapshot["course.yaml"] = snapshot["course.yaml"].replace(
+        b"title: LLM Zoomcamp\n",
+        b"title: LLM Zoomcamp\ndescription_path: README.md\n",
+    )
+
+    with pytest.raises(CourseRepositoryValidationError) as raised:
+        parse_course_repository(snapshot)
+
+    assert diagnostic_code(raised) == "course_description_path_not_site_md"

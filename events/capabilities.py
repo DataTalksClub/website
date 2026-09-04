@@ -21,10 +21,8 @@ from .services import (
     cancel_source,
     dry_run_source,
     get_run_detail,
-    list_mappings,
     list_runs,
     registration_total_preview,
-    revise_mapping,
     rollback_source,
     stage_registered_source,
     validate_source,
@@ -214,74 +212,6 @@ IMPORT_ACTIVATE = _action_capability("activate", activate_source)
 IMPORT_CANCEL = _action_capability("cancel", cancel_source)
 IMPORT_ROLLBACK = _action_capability("rollback", rollback_source)
 
-MAPPING_LIST = _capability(
-    key="events.historical_registration_mapping.manage",
-    description="Review exact protected historical event mappings",
-    service=list_mappings,
-    permission=MAPPING_PERMISSION,
-    studio_route="studio:historical-registration-mappings",
-    studio_method="GET",
-    api=_adapter(
-        route="/api/v1/admin/historical-event-mappings",
-        method="GET",
-        operation_id="events.historical_registration_mapping.manage",
-        schema="HistoricalEventMappingList",
-    ),
-    audit_action="events.historical_event_mapping.listed",
-)
-
-_MAPPING_FIELDS = (
-    "event_id",
-    "combination_policy",
-    "coverage_boundary",
-    "external_event_identifier",
-    "mapping_set_revision",
-    "provider",
-    "reason",
-    "reason_code",
-    "state",
-)
-MAPPING_CREATE = _capability(
-    key="events.historical_registration_mapping.create",
-    description="Create and review an exact historical event mapping",
-    service=revise_mapping,
-    permission=MAPPING_PERMISSION,
-    studio_route="studio:historical-registration-mappings",
-    studio_method="POST",
-    api=_adapter(
-        route="/api/v1/admin/historical-event-mappings",
-        method="POST",
-        operation_id="events.historical_registration_mapping.create",
-        schema="HistoricalEventMapping",
-        request_schema="HistoricalEventMappingCreateRequest",
-        fields=_MAPPING_FIELDS,
-        success_status=201,
-    ),
-    audit_action="events.historical_event_mapping.revised",
-    fields=_MAPPING_FIELDS,
-)
-
-MAPPING_UPDATE = _capability(
-    key="events.historical_registration_mapping.update",
-    description="Revision-guard an exact historical event mapping change",
-    service=revise_mapping,
-    permission=MAPPING_PERMISSION,
-    studio_route="/studio/events/historical-registration-totals/mappings/{mapping_id}/",
-    studio_method="PATCH",
-    api=_adapter(
-        route="/api/v1/admin/historical-event-mappings/{mapping_id}",
-        method="PATCH",
-        operation_id="events.historical_registration_mapping.update",
-        schema="HistoricalEventMapping",
-        request_schema="HistoricalEventMappingUpdateRequest",
-        fields=_MAPPING_FIELDS,
-    ),
-    audit_action="events.historical_event_mapping.revised",
-    fields=_MAPPING_FIELDS,
-    concurrency=ConcurrencyPolicy.IF_MATCH,
-    idempotency=IdempotencyPolicy.OPTIONAL,
-)
-
 TOTAL_PREVIEW = _capability(
     key="events.historical_registration_total.read",
     description="Read protected registration-total contributions and completeness",
@@ -343,9 +273,6 @@ EVENT_CAPABILITIES = (
     IMPORT_ACTIVATE,
     IMPORT_CANCEL,
     IMPORT_ROLLBACK,
-    MAPPING_LIST,
-    MAPPING_CREATE,
-    MAPPING_UPDATE,
     TOTAL_PREVIEW,
     IDENTITY_LIST,
     IDENTITY_DETAIL,

@@ -49,7 +49,6 @@ def make_source(*, stable_id: str | None = None, enabled: bool = True) -> Conten
             adapter_type="fixture",
             mount_path="/",
             enabled=enabled,
-            secret_reference=f"secretref:content-fixture-{number}",
         ),
         context=CONTEXT,
     )
@@ -77,7 +76,6 @@ def make_ready_release(
             parser_version=parser_version,
             rendering_version=rendering_version,
             request_provenance={"mode": "fixture"},
-            sync_request_id=f"fixture-{commit_character}",
         ),
         context=CONTEXT,
     )
@@ -105,7 +103,6 @@ def make_ready_release(
             f'<h1>{heading}</h1><p class="release-marker">{marker}</p>'
             f'<img src="{asset_path}" alt="Fixture logo">'
         ),
-        normalized_text=f"{heading} {marker}",
         adapter_metadata={"diagnostic": "not-public"},
         is_published=is_published,
         noindex=noindex,

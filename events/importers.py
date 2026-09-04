@@ -55,6 +55,9 @@ EVENTBRITE_REQUIRED_COLUMNS = (
     "Attendee Status",
 )
 LUMA_REQUIRED_COLUMNS = ("event_id", "guest_id", "approval_status")
+# Event-level fields (duplicated on every row of a Luma export) used only for
+# identity discovery -- never an attendee identity field.
+LUMA_DISCOVERY_REQUIRED_COLUMNS = (*LUMA_REQUIRED_COLUMNS, "event_name", "event_start_at")
 MAX_ARCHIVE_ENTRIES = 5_000
 MAX_COMPRESSED_BYTES = 512 * 1024 * 1024
 MAX_EXPANDED_BYTES = 2 * 1024 * 1024 * 1024
@@ -517,6 +520,141 @@ def derive_luma(
             (external_id, proposal) for external_id, proposal in sorted(missing.items())
         ),
     )
+
+
+@dataclass(frozen=True, slots=True)
+class DiscoveredLumaEvent:
+    """One Luma export event's public, event-level identity metadata.
+
+    Never carries a guest id, name, email, phone number, or any other
+    attendee-level value -- only fields duplicated on every row of the export
+    that describe the event itself.
+    """
+
+    external_event_identifier: str
+    event_url: str
+    title: str
+    start_at: str
+    eligible_count: int
+    excluded_count: int
+    quarantined_count: int
+    row_total: int
+
+
+def discover_luma_events(path: Path) -> tuple[DiscoveredLumaEvent, ...]:
+    """Read one Luma export directory for identity discovery, not registration counts.
+
+    This is deliberately not ``derive_luma``.  ``derive_luma`` exists to produce
+    registration *counts*, so it refuses to run unless the whole-tree checksum
+    matches a previously pinned, reviewed fact
+    (``_docs/migration-data/event-registration-sources.json``) -- a fresh export
+    a human has not yet reconciled will always fail that gate, by design.
+
+    Minting an event *identity* carries none of that risk: it is title and a
+    canonical path, nothing that could silently corrupt a public count.  So this
+    reader applies the same structural safety checks ``derive_luma`` does (safe,
+    non-symlink paths; hidden-entry and archive-shape rejection; required-column
+    and pair-shape validation) but never compares against a pinned checksum --
+    the caller decides what a "new" event is from the result, not this function.
+
+    Returns one :class:`DiscoveredLumaEvent` per CSV/JSON pair, sorted by file
+    stem, alongside eligible/excluded/quarantined counts computed with the same
+    status policy ``derive_luma`` uses (``approved`` eligible, ``declined``
+    excluded, anything else quarantined) so a caller can sanity-check a count
+    against the raw export without a second, divergent implementation of the
+    status rule.
+
+    A CSV with a header row and no data rows produces ``title == ""`` (there is
+    nowhere else in a Luma export to read a title from) rather than raising --
+    a real event can genuinely have zero registrations.  Callers must treat an
+    empty title as "cannot mint an identity yet", not as a malformed export.
+    """
+
+    root = _safe_path(path, expected_kind="directory")
+    files = _checked_files(root)
+    csv_by_stem = {file.stem: file for file in files if file.suffix.casefold() == ".csv"}
+    json_by_stem = {file.stem: file for file in files if file.suffix.casefold() == ".json"}
+    if set(csv_by_stem) != set(json_by_stem):
+        raise ProtectedSourceError("mismatched_luma_pair")
+
+    discovered: list[DiscoveredLumaEvent] = []
+    event_ids: set[str] = set()
+    for stem in sorted(csv_by_stem):
+        try:
+            document = json.loads(json_by_stem[stem].read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise ProtectedSourceError("malformed_json") from error
+        if not isinstance(document, dict) or document.get("schema_version") != 1:
+            raise ProtectedSourceError("unsupported_luma_schema")
+        event_id = document.get("event_id")
+        event_url = document.get("event_url")
+        if (
+            not isinstance(event_id, str)
+            or not event_id
+            or len(event_id) > 512
+            or not isinstance(event_url, str)
+            or not event_url.startswith("https://")
+            or len(event_url) > 2_048
+        ):
+            raise ProtectedSourceError("malformed_json")
+        if event_id in event_ids:
+            raise ProtectedSourceError("duplicate_event_identifier")
+        event_ids.add(event_id)
+
+        title = ""
+        start_at = ""
+        eligible = excluded = quarantined = 0
+        row_total = 0
+        try:
+            with csv_by_stem[stem].open("r", encoding="utf-8-sig", newline="") as stream:
+                reader = csv.DictReader(stream, strict=True)
+                headers = reader.fieldnames
+                if (
+                    headers is None
+                    or len(headers) != len(set(headers))
+                    or any(column not in headers for column in LUMA_DISCOVERY_REQUIRED_COLUMNS)
+                ):
+                    raise ProtectedSourceError("unsupported_luma_schema")
+                for row in reader:
+                    row_total += 1
+                    if row_total > MAX_ROWS:
+                        raise ProtectedSourceError("row_count_exceeded")
+                    if row.get("event_id") != event_id:
+                        raise ProtectedSourceError("mismatched_luma_pair")
+                    if not title:
+                        title = (row.get("event_name") or "").strip()
+                        start_at = (row.get("event_start_at") or "").strip()
+                    status_value = row.get("approval_status")
+                    if not status_value:
+                        raise ProtectedSourceError("malformed_csv")
+                    status_key = status_value.casefold()
+                    if status_key == "approved":
+                        eligible += 1
+                    elif status_key == "declined":
+                        excluded += 1
+                    else:
+                        quarantined += 1
+        except ProtectedSourceError:
+            raise
+        except (OSError, UnicodeDecodeError, csv.Error) as error:
+            raise ProtectedSourceError("malformed_csv") from error
+        # A zero-registration event has no row to read a title from at all -- an
+        # empty CSV body is valid (some real events genuinely have none), so this
+        # is reported with an empty title rather than aborting every other event
+        # in the export; the caller skips creating an identity without one.
+        discovered.append(
+            DiscoveredLumaEvent(
+                external_event_identifier=event_id,
+                event_url=event_url,
+                title=title,
+                start_at=start_at,
+                eligible_count=eligible,
+                excluded_count=excluded,
+                quarantined_count=quarantined,
+                row_total=row_total,
+            )
+        )
+    return tuple(discovered)
 
 
 def _validate_archive_member(name: str) -> PurePosixPath:

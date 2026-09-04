@@ -1,4 +1,4 @@
-"""Composition for the public wiki surfaces (design 5a rebuild, issue #179).
+"""Composition for the public wiki surfaces (design system rebuild, issue #179).
 
 The wiki pages read the same checked wiki data the rest of the site reads, and this
 module is where that data becomes the shapes the templates draw: the neighbourhood

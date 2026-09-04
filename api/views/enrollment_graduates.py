@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET
 
 from accounts.auth import token_required
+from api.safety import require_staff_token
 from courses.models.cohort import Cohort
 from courses.models.project import ProjectSubmission
 
@@ -12,6 +13,13 @@ from courses.models.project import ProjectSubmission
 @require_GET
 @token_required
 def graduates_data_view(request, course_slug: str):
+    # Every graduate's email address and certificate name.  `token_required`
+    # only proves the caller holds some active account's token, so without this
+    # any member could read the whole cohort's addresses.
+    staff_error = require_staff_token(request)
+    if staff_error:
+        return staff_error
+
     course = get_object_or_404(Cohort, slug=course_slug)
     passed_project_submissions = ProjectSubmission.objects.filter(
         project__course=course, passed=True

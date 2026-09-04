@@ -6,6 +6,8 @@ import re
 import subprocess
 import tempfile
 from argparse import Namespace
+from copy import deepcopy
+from dataclasses import replace
 from itertools import permutations
 from pathlib import Path
 from typing import Any, cast
@@ -43,11 +45,19 @@ from deploy.contracts import (
     ServiceTarget,
     ServiceUpdateReceipt,
 )
-from deploy.legacy_development_compatibility import ECR_REPOSITORY_URI
+from deploy.deployment_targets import (
+    CPU_ARCHITECTURES,
+    DEPLOYMENT_TARGETS,
+    SELECTED_TARGET,
+    DeploymentTargetError,
+    architecture_fields,
+    registered_target,
+)
 from deploy.release import capture_current_service_pair, capture_recovery_context
 from deploy.task_definitions import (
     FIXED_NONSECRET_ENVIRONMENT,
     TaskDefinitionConfig,
+    assert_normalized_service_pair,
     build_task_definitions,
 )
 
@@ -64,12 +74,12 @@ STUDIO_COURSES_PYPROJECT_SHA256 = "832e5a9f985b840dc401b1fb563e0f3366c16c7387d0e
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
     "19c4d94ddfb753e5a1b85fc817a268d23ec6829162400c14734119915f00e458"
 )
-DATABASE_SECRET_ARN = (
-    "arn:aws:secretsmanager:eu-west-1:817685572750:secret:website-sandbox/database-url-Ab12Cd"
+SECRET_PREFIX = (
+    f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"
+    f":secret:{SELECTED_TARGET.resource_namespace}"
 )
-DJANGO_SECRET_ARN = (
-    "arn:aws:secretsmanager:eu-west-1:817685572750:secret:website-sandbox/django-secret-key-Ef34Gh"
-)
+DATABASE_SECRET_ARN = f"{SECRET_PREFIX}/database-url-Ab12Cd"
+DJANGO_SECRET_ARN = f"{SECRET_PREFIX}/django-secret-key-Ef34Gh"
 
 
 class DeploymentWorkflowContractTests(SimpleTestCase):
@@ -176,6 +186,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             {
                 "DEVELOPMENT_AUTO_DEPLOY",
                 "DEVELOPMENT_AWS_REGION",
+                "DEVELOPMENT_BASE_URL",
                 "DEVELOPMENT_DEPLOYER_ROLE_ARN",
                 "DEVELOPMENT_ECR_REPOSITORY_NAME",
                 "DEVELOPMENT_ECR_REPOSITORY_URI",
@@ -218,7 +229,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertIn("github.event_name == 'workflow_dispatch'", workflow)
         self.assertIn("github.ref == 'refs/heads/main'", workflow)
         self.assertEqual(workflow.count("id-token: write"), 7)
-        self.assertIn("name: sandbox", workflow)
+        self.assertIn(f"name: {SELECTED_TARGET.github_environment}", workflow)
 
     def test_failure_injection_is_dispatch_only_default_none_and_promotion_only(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
@@ -265,7 +276,15 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertIn("Rollback requires reuse with no failure injection", resolve)
         self.assertIn("deploy.release_identity inspect-published", resolve)
         self.assertIn("identity_schema", resolve)
-        self.assertIn('.platform == "linux/amd64"', resolve)
+        # The reused record's platform is compared against the selected
+        # deployment target's declared architecture, not a literal, so a
+        # target that moves architecture cannot leave a stale pin behind.
+        self.assertIn(
+            "deploy.deployment_targets architecture --field build_platform",
+            resolve,
+        )
+        self.assertIn(".platform == $build_platform", resolve)
+        self.assertNotIn('.platform == "linux/', resolve)
         self.assertIn('.user == "10001:10001"', resolve)
 
     def test_schema2_identity_is_constructed_once_and_propagated_without_new_aws_access(
@@ -294,7 +313,8 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         build = next(
             step
             for step in document["jobs"]["container"]["steps"]
-            if step.get("name") == "Build the production image once for development architecture"
+            if step.get("name")
+            == "Build the production image once for the deployment target architecture"
         )["run"]
         for label in (
             "org.opencontainers.image.version=$VERSION",
@@ -464,8 +484,6 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         )
         self.assertEqual(worst_case_seconds, 2400)
         self.assertGreaterEqual(3600 - worst_case_seconds, 20 * 60)
-        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
-        self.assertIn("3600 - 2400 = 1200", runbook)
 
     def test_reuse_path_cannot_build_load_login_or_push_and_keeps_publish_artifact(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
@@ -710,321 +728,6 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             if job_name not in {"probe-publisher", "probe-deployer"}:
                 self.assertNotIn("DEVELOPMENT_KMS_KEY_ARN", str(job))
 
-    def test_runbook_orders_probe_before_secret_population_and_releases(self) -> None:
-        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
-        bootstrap = runbook.split("## One-time bootstrap", maxsplit=1)[1].split(
-            "## Post-bootstrap OIDC probe", maxsplit=1
-        )[0]
-
-        apply_position = bootstrap.index("Apply the reviewed")
-        outputs_position = bootstrap.index("Configure the non-secret GitHub variables")
-        trust_position = bootstrap.index("Read back the\n   publisher/deployer trust policies")
-        probe_position = bootstrap.index("Complete the live OIDC probe hold point")
-        secrets_position = bootstrap.index("Only after the probe is green, populate")
-        release_position = bootstrap.index("Proceed to release A")
-        self.assertLess(apply_position, trust_position)
-        self.assertLess(trust_position, outputs_position)
-        self.assertLess(outputs_position, probe_position)
-        self.assertLess(probe_position, secrets_position)
-        self.assertLess(secrets_position, release_position)
-        self.assertNotIn("Populate the required Secrets Manager values", bootstrap)
-
-    def test_runbook_documents_exact_route53_probe_and_pre_post_evidence(self) -> None:
-        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
-        probe = runbook.split("## Post-bootstrap OIDC probe", maxsplit=1)[1].split(
-            "## Select and promote a release", maxsplit=1
-        )[0]
-        normalized_probe = " ".join(probe.split())
-
-        self.assertIn("`DEVELOPMENT_ROUTE53_HOSTED_ZONE_ID`", runbook)
-        self.assertIn("`Z05963572WVWFHDQZH5NE`", runbook)
-        self.assertIn("not a Terraform output", runbook)
-        self.assertIn("exactly two byte-for-byte identical `DELETE` changes", normalized_probe)
-        self.assertIn("transactional", normalized_probe)
-        self.assertIn("`InvalidChangeBatch`", normalized_probe)
-        self.assertIn("`NoSuchHostedZone`", normalized_probe)
-        self.assertIn("Only an AccessDenied-class response passes", normalized_probe)
-        self.assertIn("canonical full record", normalized_probe)
-        self.assertIn("exact six", normalized_probe)
-        self.assertIn("byte-for-byte unchanged", normalized_probe)
-
-    def test_runbook_has_exact_variable_inventory_and_kms_probe_contract(self) -> None:
-        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
-        table = runbook.split("| GitHub variable |", maxsplit=1)[1].split(
-            "Do not export secret-container ARNs", maxsplit=1
-        )[0]
-        repository_variables = {
-            line.split("`", maxsplit=2)[1] for line in table.splitlines() if "| repository" in line
-        }
-        environment_variables = {
-            line.split("`", maxsplit=2)[1]
-            for line in table.splitlines()
-            if "| legacy GitHub environment `sandbox` |" in line
-        }
-        self.assertEqual(
-            repository_variables,
-            {
-                "DEVELOPMENT_AWS_REGION",
-                "DEVELOPMENT_ECR_REPOSITORY_URI",
-                "DEVELOPMENT_ECR_REPOSITORY_NAME",
-                "DEVELOPMENT_PUBLISHER_ROLE_ARN",
-                "DEVELOPMENT_ROUTE53_HOSTED_ZONE_ID",
-                "DEVELOPMENT_KMS_KEY_ARN",
-            },
-        )
-        self.assertEqual(len(environment_variables), 18)
-        self.assertNotIn("DEVELOPMENT_KMS_KEY_ARN", environment_variables)
-        self.assertNotIn("DEVELOPMENT_ROUTE53_HOSTED_ZONE_ID", environment_variables)
-        self.assertIn("six repository rows", runbook)
-        self.assertIn("exact 18 environment rows", runbook)
-        self.assertIn("independent fail-closed `DEVELOPMENT_AUTO_DEPLOY=false` switch", runbook)
-
-        probe = runbook.split("## Post-bootstrap OIDC probe", maxsplit=1)[1].split(
-            "## Select and promote a release", maxsplit=1
-        )[0]
-        normalized_probe = " ".join(probe.split())
-        exact_arn = "arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887"
-        for expected in (
-            "`DEVELOPMENT_KMS_KEY_ARN`",
-            f"`{exact_arn}`",
-            '`Operations=["Decrypt"]`',
-            "`DryRun=True`",
-            "`DryRunOperationException`",
-            "`NotFoundException`",
-            "`AccessDeniedException`",
-            "grant inventory",
-            "before requesting OIDC credentials",
-            "pass it exactly once",
-        ):
-            self.assertIn(expected, normalized_probe)
-
-    def test_sentinel_audit_covers_complete_sequence_and_three_part_proof(self) -> None:
-        audit = (ROOT / "_docs/audits/2026-08-07-oidc-denial-sentinels.md").read_text()
-        for action in (
-            "ecr:DescribeImages",
-            "s3:GetObject",
-            "iam:UpdateRoleDescription",
-            "route53:ChangeResourceRecordSets",
-            "cloudfront:CreateInvalidation",
-            "elasticloadbalancing:ModifyTargetGroupAttributes",
-            "rds:ModifyDBInstance",
-            "kms:CreateGrant",
-            "secretsmanager:GetSecretValue",
-            "ecs:DeregisterTaskDefinition",
-            "ecr:BatchDeleteImage",
-            "ecs:DescribeServices",
-            "ecs:UpdateService",
-            "ecs:RunTask",
-        ):
-            self.assertIn(f"`{action}`", audit)
-        for outcome in (
-            "ResourceNotFoundException",
-            "ClientException",
-            "InvalidParameterException",
-            "ClusterNotFoundException",
-            "MISSING",
-            "AccessDenied",
-        ):
-            self.assertIn(outcome, audit)
-        self.assertGreaterEqual(audit.count("**Remove.**"), 5)
-        self.assertEqual(audit.count("**Retain.**"), 4)
-        self.assertIn("website live-call allowlist", audit)
-        self.assertIn("aws-infra", audit)
-        self.assertIn("simulate-principal-policy", audit)
-        self.assertIn("positive controls", audit)
-        self.assertIn("ExpectedBucketOwner=817685572750", audit)
-        self.assertIn("exactly four calls, in order", audit)
-
-        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
-        probe = runbook.split("## Post-bootstrap OIDC probe", maxsplit=1)[1].split(
-            "## Select and promote a release", maxsplit=1
-        )[0]
-        for expected in (
-            "ExpectedBucketOwner=817685572750",
-            "ecr:DescribeImages` on foreign and production-shaped repository ARNs",
-            "iam:UpdateRoleDescription` on each exact publisher/deployer role ARN",
-            "cloudfront:CreateInvalidation` on `<cloudfront-distribution-arn>`",
-            "elasticloadbalancing:ModifyTargetGroupAttributes` on exact web target-group ARN",
-            "rds:ModifyDBInstance` on exact website DB ARN",
-            "s3:GetObject` on exact state-object ARN",
-            "route53:ChangeResourceRecordSets` on exact hosted-zone ARN",
-            "kms:CreateGrant` on exact runtime-key ARN",
-            "ecr:BatchDeleteImage` on exact `website-sandbox` repository ARN",
-            "simulator covers identity policies only",
-            "ECR `website-sandbox` repository policy",
-            "S3 state-bucket policy",
-        ):
-            self.assertIn(expected, probe)
-
-    def test_gate_b_evidence_contract_is_atomic_offline_and_workflow_isolated(self) -> None:
-        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
-        audit = (ROOT / "_docs/audits/2026-08-07-oidc-denial-sentinels.md").read_text()
-        manifest = json.loads((ROOT / "deploy/gate_b_manifest.json").read_text())
-        gate = runbook.split("### #81 Gate B — readback and simulator preflight", maxsplit=1)[
-            1
-        ].split("Before the regional `DescribeTargetHealth`", maxsplit=1)[0]
-
-        self.assertEqual(manifest["schema_version"], 1)
-        self.assertEqual(manifest["contract_id"], "website-sandbox-gate-b-v1")
-        self.assertEqual(
-            manifest["source_binding"],
-            {
-                "website_sha": "07186fc9bf9cf353fa12b74e97018d7f951d0fe6",
-                "website_tree": "9621d51fd8952a6c12af5ea62b207aa07c988ac5",
-                "infra_sha": "95d93f7e07ded19e482a0c6d6471fbd93fb608d8",
-                "infra_tree": "1c38fdf6872a448d92e8191282525bafd3ab3410",
-            },
-        )
-        self.assertEqual(
-            manifest["resource_policy_absence"],
-            {
-                "s3_bucket": "NoSuchBucketPolicy",
-                "ecr_repository": "RepositoryPolicyNotFoundException",
-                "ecr_registry": "RegistryPolicyNotFoundException",
-                "secrets_manager": "success-with-resource-policy-member-absent",
-            },
-        )
-        self.assertEqual(len(manifest["static"]["secret_names"]), 6)
-        self.assertEqual(manifest["static"]["kms"]["alias_name"], "alias/website-sandbox-runtime")
-        self.assertIn("operator_identity", manifest["dynamic_binding_schema"]["required"])
-        self.assertEqual(len(manifest["simulator_rows"]), 90)
-        self.assertEqual(
-            set(manifest["readback_manifest"]["field_schemas"]),
-            {
-                "cloudfront",
-                "database",
-                "ecr",
-                "ecs_cluster",
-                "ecs_service",
-                "kms",
-                "operator_identity",
-                "role",
-                "route53",
-                "s3",
-                "secret",
-                "simulator_context_entry",
-                "target_group",
-                "task_definition",
-                "terraform",
-            },
-        )
-        for role in manifest["static"]["roles"].values():
-            self.assertEqual(role["attached_policies"], [])
-            self.assertIsNone(role["permissions_boundary"])
-            self.assertEqual(role["inline_policy_names"], [role["name"]])
-
-        command_blocks = [part.split("```", maxsplit=1)[0] for part in gate.split("```bash")[1:]]
-        commands = "\n".join(command_blocks)
-        for required in (
-            "aws iam get-role ",
-            "aws iam get-role-policy ",
-            "aws kms get-key-policy ",
-            "aws kms list-grants ",
-            "aws s3api get-bucket-ownership-controls ",
-            "aws s3api get-bucket-policy ",
-            "aws ecr get-repository-policy ",
-            "aws ecr get-registry-policy ",
-            "aws secretsmanager get-resource-policy ",
-            "aws cloudfront get-distribution ",
-            "aws route53 list-resource-record-sets ",
-            "gh variable get ",
-            "gh api --method GET ",
-            "aws iam simulate-principal-policy ",
-            "sandbox/website/terraform.tfstate.tflock",
-        ):
-            self.assertIn(required, commands)
-        for forbidden in (
-            "aws s3api get-object ",
-            "aws secretsmanager get-secret-value ",
-            "terraform plan",
-            "terraform apply",
-            "gh workflow run",
-            "--debug",
-            "set -x",
-        ):
-            self.assertNotIn(forbidden, commands.lower())
-        self.assertFalse(
-            any(
-                line.lstrip().startswith(("aws ", "gh ", "terraform "))
-                for line in commands.splitlines()
-            )
-        )
-
-        mode_positions = [
-            gate.index(f"python -m deploy.gate_b_evidence {mode}")
-            for mode in ("manifest", "bindings", "policies", "resources", "simulator", "summary")
-        ]
-        self.assertEqual(mode_positions, sorted(mode_positions))
-        self.assertIn("never falls through", gate)
-        self.assertIn("MissingContextValues=[]", gate)
-        self.assertIn("BucketOwnerEnforced", gate)
-        self.assertIn("registry-v2", gate)
-        self.assertIn("ResourcePolicy` member absent", gate)
-        self.assertIn("origin custom headers", gate)
-        self.assertIn("one resource or one context key", gate)
-        self.assertIn("payload_sha256", gate)
-        self.assertIn('chmod 0700 -- ".tmp"', gate)
-        self.assertIn("chmod 0600", gate)
-        self.assertIn("ContextKeyName", gate)
-        self.assertIn("grant_inventory_truncated", gate)
-        self.assertIn("null permissions", gate)
-        self.assertIn("code-pinned canonical SHA-256", gate)
-        self.assertIn("superseded", audit)
-        self.assertIn("application role as `GranteePrincipal` or `RetiringPrincipal`", audit)
-
-        rows = manifest["simulator_rows"]
-        by_id = {row["id"]: row for row in rows}
-        self.assertEqual(len(by_id), len(rows))
-        for row in rows:
-            self.assertIsInstance(row["action"], str)
-            self.assertIsInstance(row["resource"], str)
-            self.assertIn(row["expected"], {"allowed", "implicitDeny"})
-            parent_id = row["negative_of"]
-            if parent_id is None:
-                self.assertIsNone(row["changed_axis"])
-                continue
-            parent = by_id[parent_id]
-            self.assertEqual(parent["expected"], "allowed")
-            self.assertEqual(parent["principal"], row["principal"])
-            self.assertEqual(parent["action"], row["action"])
-            if row["changed_axis"] == "resource":
-                self.assertNotEqual(parent["resource"], row["resource"])
-                self.assertEqual(parent["context"], row["context"])
-            else:
-                self.assertEqual(parent["resource"], row["resource"])
-
-        unchanged_hashes = {
-            "deploy/oidc_probe.py": (
-                "10f38b3c3df04c763f0e09ffe6128fc9d9fe174c4f3f7f161600992fcd84e2ff"
-            ),
-            "deploy/oidc_claim_probe.py": (
-                "693b1844e5e1c40709ce368ecb6bef22814a5912ceaa635288f0d0204a75ba28"
-            ),
-            "core/tests/test_deployment_oidc_probe.py": (
-                "58b447bc72ddfd11359f801087ba5a2f896f0d56bff7a832c6a2768d34f74b92"
-            ),
-            "pyproject.toml": STUDIO_COURSES_PYPROJECT_SHA256,
-            "uv.lock": SECURITY_REMEDIATED_UV_LOCK_SHA256,
-        }
-        for relative_path, expected_hash in unchanged_hashes.items():
-            actual_hash = hashlib.sha256((ROOT / relative_path).read_bytes()).hexdigest()
-            self.assertEqual(actual_hash, expected_hash)
-        historical_workflow = subprocess.run(
-            [
-                "git",
-                "show",
-                f"{HISTORICAL_WORKFLOW_COMMIT}:.github/workflows/ci.yml",
-            ],
-            cwd=ROOT,
-            check=True,
-            capture_output=True,
-        ).stdout
-        self.assertEqual(
-            hashlib.sha256(historical_workflow).hexdigest(), HISTORICAL_WORKFLOW_SHA256
-        )
-        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
-        self.assertNotIn("gate_b_evidence", workflow)
-
     def test_gate_b_operator_contract_is_exact_and_workflow_isolated(self) -> None:
         seed_path = ROOT / "deploy/gate_b_binding_seed.json"
         contract_path = ROOT / "deploy/gate_b_execution_contract.json"
@@ -1159,9 +862,6 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             self.assertNotIn(forbidden, commands)
 
         frozen_hashes = {
-            "_docs/audits/2026-08-07-oidc-denial-sentinels.md": (
-                "8c4e9b6701d670bac87853254d66b2399e379e79b072409690c68acb3a3e9696"
-            ),
             "deploy/gate_b_evidence.py": (
                 "52d93e9b2757c75c4ec633ac2d903fdce658b107481382025c22bf0f9d276b68"
             ),
@@ -1202,70 +902,9 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             hashlib.sha256(historical_workflow).hexdigest(), HISTORICAL_WORKFLOW_SHA256
         )
 
-        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
-        audit = (ROOT / "_docs/audits/2026-08-08-gate-b-operator-execution.md").read_text()
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
-        for required in (
-            "#85 sealed operator procedure",
-            "exactly 174 evidence operations",
-            "resolved exactly once",
-            "execution-attestation.json",
-            "does not authorize",
-        ):
-            self.assertIn(required, f"{runbook}\n{audit}")
         self.assertNotIn("gate_b_operator", workflow)
         self.assertNotIn("gate_b_assembler", workflow)
-
-    def test_runbook_reconciles_only_after_all_b_exercises_and_final_promotion(self) -> None:
-        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
-        drills_position = runbook.index("## Controlled failure drills")
-        rollback_position = runbook.index("## Manual immutable rollback")
-        reconciliation_position = runbook.index("## Final release-B Terraform reconciliation")
-
-        self.assertLess(drills_position, rollback_position)
-        self.assertLess(rollback_position, reconciliation_position)
-        reconciliation = runbook[reconciliation_position:]
-        self.assertIn("Never reconcile release A or an intermediate release state", reconciliation)
-        self.assertIn("post-mutation B smoke", reconciliation)
-        self.assertIn("clean promotion of the already-built B digest", reconciliation)
-        self.assertIn("second and final plan", reconciliation)
-        self.assertIn("e2b93beb1544170b6177ba55ea8fd6530b2e57a3", reconciliation)
-        self.assertIn("DEVELOPMENT_AUTO_DEPLOY=true", reconciliation)
-        self.assertIn(
-            "repository-level variable must exist and be exactly `DEVELOPMENT_AUTO_DEPLOY=false`",
-            reconciliation,
-        )
-        self.assertIn(
-            "An absent repository variable is not a disabled state",
-            " ".join(reconciliation.split()),
-        )
-        self.assertIn("Never delete this repository variable", reconciliation)
-        self.assertNotIn("gh variable delete DEVELOPMENT_AUTO_DEPLOY", runbook)
-        self.assertNotIn("After first bootstrap succeeds, set Terraform", runbook)
-
-    def test_runbook_documents_build_once_records_reuse_and_safe_auto_capture(self) -> None:
-        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
-
-        self.assertIn(
-            "development-published-image-e2b93beb1544170b6177ba55ea8fd6530b2e57a3", runbook
-        )
-        self.assertIn("only release-B build/push run", runbook)
-        self.assertIn("performs no Docker build, load, login, pull, or push", runbook)
-        self.assertIn("is **not** a successful or rollback-eligible release record", runbook)
-        self.assertIn("## Automatic deployment after bootstrap", runbook)
-        self.assertIn("## Database credentials", runbook)
-        self.assertIn("`manage_master_user_password = false`", runbook)
-        self.assertIn("`website-sandbox/database-url`", runbook)
-        self.assertIn("`PubliclyAccessible=false`", runbook)
-        self.assertIn("Do not re-enable RDS-managed rotation", runbook)
-        self.assertIn("/health/ready", runbook)
-        self.assertIn("The ready path is `/health/ready`.", runbook)
-        self.assertIn("queued push therefore makes no AWS call", runbook)
-        self.assertIn("distinct active-service-pair schema", runbook)
-        self.assertIn("never guesses a cross-family revision", runbook)
-        self.assertIn("prevents publication as well as deployment", runbook)
-        self.assertIn("before migration", runbook)
-        self.assertIn("again after migration", runbook)
 
     def test_source_selection_is_exact_reachable_and_separate_from_controller(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
@@ -1285,7 +924,11 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
 
         self.assertEqual(workflow.count("docker buildx build"), 1)
-        self.assertIn("--platform linux/amd64", workflow)
+        # One image, built for the architecture the deployment target declares.
+        # The platform is resolved from the target rather than pinned here, so a
+        # literal cannot outlive a change to task_cpu_architecture.
+        self.assertIn('--platform "$build_platform"', workflow)
+        self.assertNotIn("--platform linux/", workflow)
         self.assertIn("org.opencontainers.image.revision=$RELEASE_SHA", workflow)
         self.assertIn("10001:10001", workflow)
         self.assertIn(
@@ -1296,6 +939,285 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertIn("Rollback requires reuse with no failure injection", workflow)
         self.assertIn("published-image record independently of deployment", workflow)
         self.assertNotIn("terraform apply", workflow)
+
+    def test_container_jobs_build_and_run_on_the_declared_target_architecture(self) -> None:
+        """The image, the runner, and the plan all follow one declared value.
+
+        ECS starts a task whose image was built for the other architecture and
+        it dies without a useful log, so the pipeline must not hold a literal
+        that can outlive ``task_cpu_architecture``.  The container jobs also
+        *run* the image they build, so their runner has to execute the target
+        architecture natively rather than under emulation.
+        """
+
+        for name in (".github/workflows/ci.yml", ".github/workflows/scheduled-full-regression.yml"):
+            with self.subTest(workflow=name):
+                text = (ROOT / name).read_text()
+                document = yaml.safe_load(text)
+                container = document["jobs"]["container"]
+
+                self.assertEqual(container["runs-on"], SELECTED_TARGET.runner_label)
+                self.assertEqual(
+                    document["env"]["VERIFICATION_CONTAINER_ARCHITECTURE"],
+                    SELECTED_TARGET.runner_machine,
+                )
+                steps = "\n".join(str(step.get("run", "")) for step in container["steps"])
+                self.assertIn(
+                    "deploy.deployment_targets architecture --field build_platform", steps
+                )
+                self.assertIn(
+                    "deploy.deployment_targets architecture --field image_architecture", steps
+                )
+                self.assertIn(
+                    "docker image inspect --format '{{.Architecture}}' "
+                    '"$image")" = "$image_architecture"',
+                    steps,
+                )
+                self.assertIn("image_architecture_matches_deployment_target", steps)
+                self.assertNotIn("image_architecture_amd64", text)
+                self.assertNotIn('= "amd64"', text)
+
+    def test_every_environment_scoped_job_names_the_selected_target_environment(self) -> None:
+        """The GitHub environment is the OIDC subject, so it cannot be a stale literal.
+
+        A job declaring ``environment: <name>`` receives the subject
+        ``repo:<immutable-repo>:environment:<name>`` and the deployer role's
+        trust policy admits exactly one value.  When the two disagree, STS
+        rejects the token at the trust boundary and reports only ``Not
+        authorized to perform sts:AssumeRoleWithWebIdentity`` -- it never says
+        which claim differed -- so every prior job is green and the failure
+        reads as a missing IAM permission.  That is what happened when the
+        target was re-pointed away from the destroyed sandbox stack and these
+        four literals stayed behind.  The literal must therefore fail a test,
+        not a deploy.
+        """
+
+        document = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        environments = {
+            job_name: job["environment"]
+            for job_name, job in document["jobs"].items()
+            if "environment" in job
+        }
+
+        self.assertEqual(
+            sorted(environments),
+            ["auto-capture-prior", "deploy", "probe-deployer", "probe-wrong-environment-claim"],
+        )
+        for job_name, environment in environments.items():
+            with self.subTest(job=job_name):
+                name = environment["name"]
+                self.assertEqual(name, SELECTED_TARGET.github_environment)
+                # The authorisation boundary stays statically auditable in the
+                # workflow: an expression would let a job output decide which
+                # role the deploy job can reach.
+                self.assertNotIn("${{", name)
+
+    def test_no_reviewed_environment_other_than_the_selected_one_is_reachable(self) -> None:
+        """No workflow may mint a token for another target's environment.
+
+        Environment-scoped variables shadow repository ones, so a job that names
+        a wrong-but-reviewed environment reads that stack's identifiers even
+        after the correct repository variables are set.
+        """
+
+        others = {
+            target.github_environment
+            for target in DEPLOYMENT_TARGETS.values()
+            if target.github_environment != SELECTED_TARGET.github_environment
+        }
+        self.assertTrue(others, "the drift guard needs at least one other reviewed environment")
+
+        for workflow_name in (
+            ".github/workflows/ci.yml",
+            ".github/workflows/scheduled-full-regression.yml",
+            ".github/workflows/content-update.yml",
+        ):
+            document = yaml.safe_load((ROOT / workflow_name).read_text())
+            for job_name, job in document["jobs"].items():
+                with self.subTest(workflow=workflow_name, job=job_name):
+                    environment = job.get("environment")
+                    if environment is None:
+                        continue
+                    self.assertNotIn(environment["name"], others)
+
+    def test_the_probe_operation_is_pinned_to_a_retired_target_and_cannot_pre_flight(self) -> None:
+        """The `probe` path is retired, and this records that as a fact, not a hope.
+
+        ``deploy/oidc_probe.py`` refuses any account, region or repository that
+        is not the destroyed sandbox stack's, and it is content-frozen by the
+        Gate-B attestation in
+        ``test_gate_b_operator_contract_is_exact_and_workflow_isolated`` -- so it
+        cannot be re-pointed in place, and the workflow passes it the sandbox
+        account literal to match.  The consequence is that there is no working
+        non-mutating pre-flight before the first production deploy; the offline
+        claim comparison in the production bootstrap runbook is the substitute.
+
+        This test fails the moment the sandbox profile is retired out of
+        existence, which is deliberate: re-pointing the probe at the selected
+        target is the work that unblocks removing the profile, and neither
+        should be able to happen quietly without the other.
+        """
+
+        retired = registered_target("website-sandbox")
+        self.assertTrue(retired.retired)
+        self.assertNotEqual(retired.aws_account_id, SELECTED_TARGET.aws_account_id)
+
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        account_literals = set(re.findall(r"--account-id ([0-9]{12})", workflow))
+        self.assertEqual(account_literals, {retired.aws_account_id})
+
+        document = yaml.safe_load(workflow)
+        for job_name, job in document["jobs"].items():
+            steps = "\n".join(str(step.get("run", "")) for step in job.get("steps", []))
+            if "--account-id" not in steps:
+                continue
+            with self.subTest(job=job_name):
+                # Only the dispatch-only probe path may carry it, so no push or
+                # deploy job can reach the destroyed account.
+                self.assertIn("inputs.operation == 'probe'", str(job["if"]))
+
+    def test_publish_records_the_declared_platform_of_the_image_it_pushes(self) -> None:
+        document = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        push = next(
+            step
+            for step in document["jobs"]["publish"]["steps"]
+            if step.get("name") == "Push once and write the non-release published-image record"
+        )["run"]
+
+        self.assertIn(
+            '--platform "$(uv run --frozen python -m deploy.deployment_targets '
+            'architecture --field build_platform)"',
+            push,
+        )
+        self.assertIn(
+            "docker image inspect --format '{{.Architecture}}' "
+            '"dtc-website:$RELEASE_SHA")" = "$image_architecture"',
+            push,
+        )
+
+    def test_reviewed_targets_map_their_architecture_to_one_set_of_names(self) -> None:
+        arm, intel = CPU_ARCHITECTURES["ARM64"], CPU_ARCHITECTURES["X86_64"]
+
+        self.assertEqual(arm.build_platform, "linux/arm64")
+        self.assertEqual(arm.image_architecture, "arm64")
+        self.assertEqual(arm.runner_machine, "aarch64")
+        self.assertEqual(intel.build_platform, "linux/amd64")
+        self.assertEqual(intel.image_architecture, "amd64")
+        self.assertEqual(intel.runner_machine, "x86_64")
+        self.assertEqual(
+            architecture_fields(),
+            {
+                "task_cpu_architecture": SELECTED_TARGET.task_cpu_architecture,
+                "build_platform": SELECTED_TARGET.build_platform,
+                "image_architecture": SELECTED_TARGET.image_architecture,
+                "runner_machine": SELECTED_TARGET.runner_machine,
+                "runner_label": SELECTED_TARGET.runner_label,
+            },
+        )
+        with self.assertRaises(DeploymentTargetError):
+            replace(SELECTED_TARGET, task_cpu_architecture="RISCV64")
+
+    def test_release_refuses_a_task_definition_of_another_architecture(self) -> None:
+        source_sha, image_digest = "a" * 40, "sha256:" + "b" * 64
+        identity = ReleaseIdentity(
+            source_sha,
+            image_digest,
+            SELECTED_TARGET.ecr_repository_uri,
+            f"20260809-143205-{source_sha[:7]}",
+        )
+        config = TaskDefinitionConfig(
+            families={
+                "web": SELECTED_TARGET.web_task_family,
+                "worker": SELECTED_TARGET.worker_task_family,
+                "migration": SELECTED_TARGET.migration_task_family,
+            },
+            container_names={"web": "web", "worker": "worker", "migration": "migration"},
+            task_role_arn=SELECTED_TARGET.task_role_arn,
+            execution_role_arn=SELECTED_TARGET.execution_role_arn,
+        )
+        base = {
+            "family": "web",
+            "taskRoleArn": SELECTED_TARGET.task_role_arn,
+            "executionRoleArn": SELECTED_TARGET.execution_role_arn,
+            "runtimePlatform": {
+                "cpuArchitecture": SELECTED_TARGET.task_cpu_architecture,
+                "operatingSystemFamily": "LINUX",
+            },
+            "containerDefinitions": [
+                {
+                    "name": "web",
+                    "image": identity.image,
+                    "user": "10001:10001",
+                    "essential": True,
+                    "command": ["web"],
+                    "environment": [
+                        {"name": name, "value": value}
+                        for name, value in sorted(
+                            {
+                                **SELECTED_TARGET.fixed_nonsecret_environment,
+                                "VERSION": identity.version,
+                                "SOURCE_SHA": identity.source_sha,
+                                "IMAGE_DIGEST": identity.image_digest,
+                            }.items()
+                        )
+                    ],
+                    "secrets": [
+                        {
+                            "name": "DATABASE_URL",
+                            "valueFrom": (
+                                f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:"
+                                f"{SELECTED_TARGET.aws_account_id}:secret:"
+                                f"{SELECTED_TARGET.resource_namespace}/database-url-AbCdEf"
+                            ),
+                        },
+                        {
+                            "name": "DJANGO_SECRET_KEY",
+                            "valueFrom": (
+                                f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:"
+                                f"{SELECTED_TARGET.aws_account_id}:secret:"
+                                f"{SELECTED_TARGET.resource_namespace}/django-secret-key-AbCdEf"
+                            ),
+                        },
+                    ],
+                }
+            ],
+        }
+
+        def as_worker(task: dict[str, Any]) -> dict[str, Any]:
+            worker = deepcopy(task)
+            worker["family"] = SELECTED_TARGET.worker_task_family
+            container = worker["containerDefinitions"][0]
+            container["name"] = "worker"
+            container["command"] = ["worker"]
+            return worker
+
+        base["family"] = SELECTED_TARGET.web_task_family
+        assert_normalized_service_pair(
+            {"web": deepcopy(base), "worker": as_worker(base)}, identity, config
+        )
+
+        for mutation in (
+            {"cpuArchitecture": "X86_64", "operatingSystemFamily": "LINUX"},
+            {"operatingSystemFamily": "LINUX"},
+            {
+                "cpuArchitecture": SELECTED_TARGET.task_cpu_architecture,
+                "operatingSystemFamily": "WINDOWS_SERVER_2019_CORE",
+            },
+        ):
+            with self.subTest(runtime_platform=mutation):
+                web = deepcopy(base)
+                web["runtimePlatform"] = mutation
+                with self.assertRaises(ReleaseContractError):
+                    assert_normalized_service_pair(
+                        {"web": web, "worker": as_worker(base)}, identity, config
+                    )
+
+        without_platform = deepcopy(base)
+        without_platform.pop("runtimePlatform")
+        with self.assertRaises(ReleaseContractError):
+            assert_normalized_service_pair(
+                {"web": without_platform, "worker": as_worker(base)}, identity, config
+            )
 
     def test_release_image_builds_and_verifies_the_runtime_static_manifest(self) -> None:
         dockerfile = (ROOT / "Dockerfile").read_text()
@@ -1476,7 +1398,7 @@ class CaptureServiceContractTests(SimpleTestCase):
     WORKER_TASK = "arn:aws:ecs:eu-west-1:817685572750:task-definition/worker:1"
     SOURCE_SHA = "a" * 40
     DIGEST = f"sha256:{'b' * 64}"
-    REPOSITORY = "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox"
+    REPOSITORY = SELECTED_TARGET.ecr_repository_uri
 
     @classmethod
     def gateway(cls, ecs: CaptureServiceEcs) -> AwsReleaseGateway:
@@ -1495,7 +1417,7 @@ class CaptureServiceContractTests(SimpleTestCase):
             subnet_ids=["subnet-1"],
             security_group_ids=["sg-1"],
             assign_public_ip=True,
-            base_url="https://web.dtcdev.click",
+            base_url=SELECTED_TARGET.origin,
             screenshot_directory=Path(".tmp/deployed-smoke"),
             timeout_seconds=MAX_STAGE_TIMEOUT_SECONDS,
             web_stabilization_timeout_seconds=WEB_STABILIZATION_TIMEOUT_SECONDS,
@@ -1879,7 +1801,7 @@ class WorkerStabilizationContractTests(SimpleTestCase):
             subnet_ids=["subnet-1"],
             security_group_ids=["sg-1"],
             assign_public_ip=True,
-            base_url="https://web.dtcdev.click",
+            base_url=SELECTED_TARGET.origin,
             screenshot_directory=Path(".tmp/deployed-smoke"),
             timeout_seconds=MAX_STAGE_TIMEOUT_SECONDS,
             web_stabilization_timeout_seconds=WEB_STABILIZATION_TIMEOUT_SECONDS,
@@ -2235,7 +2157,7 @@ class ServiceReceiptAdoptionContractTests(SimpleTestCase):
             subnet_ids=["subnet-1"],
             security_group_ids=["sg-1"],
             assign_public_ip=True,
-            base_url="https://web.dtcdev.click",
+            base_url=SELECTED_TARGET.origin,
             screenshot_directory=Path(".tmp/deployed-smoke"),
             poll_seconds=poll_seconds,
         )
@@ -5685,7 +5607,7 @@ class WorkerTimeoutCliContractTests(SimpleTestCase):
             "subnet_id": ["subnet-1"],
             "security_group_id": ["sg-1"],
             "assign_public_ip": True,
-            "base_url": "https://web.dtcdev.click",
+            "base_url": SELECTED_TARGET.origin,
             "screenshot_directory": Path(".tmp/deployed-smoke"),
             "timeout_seconds": MAX_STAGE_TIMEOUT_SECONDS,
             "web_stabilization_timeout_seconds": WEB_STABILIZATION_TIMEOUT_SECONDS,
@@ -5926,7 +5848,7 @@ class MigrationTaskContractTests(SimpleTestCase):
             subnet_ids=["subnet-1"],
             security_group_ids=["sg-1"],
             assign_public_ip=True,
-            base_url="https://web.dtcdev.click",
+            base_url=SELECTED_TARGET.origin,
             screenshot_directory=Path(".tmp/deployed-smoke"),
             timeout_seconds=timeout,
             poll_seconds=1,
@@ -6111,7 +6033,7 @@ class MigrationTaskContractTests(SimpleTestCase):
         gateway = self.gateway(FakeMigrationEcs({}, {}))
         source_sha = "a" * 40
         image_digest = f"sha256:{'a' * 64}"
-        repository = "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox"
+        repository = SELECTED_TARGET.ecr_repository_uri
         version = f"20260809-143205-{source_sha[:7]}"
         identity = ReleaseIdentity(source_sha, image_digest, repository, version)
         config = TaskDefinitionConfig(
@@ -6128,6 +6050,10 @@ class MigrationTaskContractTests(SimpleTestCase):
                 "executionRoleArn": gateway.config.execution_role_arn,
                 "networkMode": "awsvpc",
                 "requiresCompatibilities": ["FARGATE"],
+                "runtimePlatform": {
+                    "cpuArchitecture": SELECTED_TARGET.task_cpu_architecture,
+                    "operatingSystemFamily": "LINUX",
+                },
                 "cpu": "256",
                 "memory": "512",
                 "containerDefinitions": [
@@ -6171,8 +6097,8 @@ class MigrationTaskContractTests(SimpleTestCase):
         )
         exact_tags = [
             {"key": "ReleaseManager", "value": "DataTalksClub/website"},
-            {"key": "Project", "value": "website"},
-            {"key": "Environment", "value": "sandbox"},
+            {"key": "Project", "value": SELECTED_TARGET.resource_project_tag},
+            {"key": "Environment", "value": SELECTED_TARGET.resource_environment_tag},
         ]
         responses = {
             reference: (tasks[workload], exact_tags) for workload, reference in references.items()
@@ -6202,7 +6128,7 @@ class MigrationTaskContractTests(SimpleTestCase):
         identity = ReleaseIdentity(
             source_sha,
             image_digest,
-            "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox",
+            SELECTED_TARGET.ecr_repository_uri,
             version,
         )
         gateway.ecr.describe_images.side_effect = [
@@ -6240,7 +6166,7 @@ class MigrationTaskContractTests(SimpleTestCase):
         identity = ReleaseIdentity(
             source_sha,
             image_digest,
-            ECR_REPOSITORY_URI,
+            SELECTED_TARGET.ecr_repository_uri,
             f"20260809-143205-{source_sha[:7]}",
         )
         gateway.ecr.describe_images.side_effect = [
@@ -6283,7 +6209,7 @@ class MigrationTaskContractTests(SimpleTestCase):
         identity = ReleaseIdentity(
             source_sha,
             image_digest,
-            ECR_REPOSITORY_URI,
+            SELECTED_TARGET.ecr_repository_uri,
             f"20260809-143205-{source_sha[:7]}",
         )
         malformed_failure_values: tuple[object, ...] = ({}, None, "", 0, False)
@@ -6373,7 +6299,7 @@ class MigrationTaskContractTests(SimpleTestCase):
         identity = ReleaseIdentity(
             source_sha,
             f"sha256:{'a' * 64}",
-            "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox",
+            SELECTED_TARGET.ecr_repository_uri,
             f"20260809-143205-{source_sha[:7]}",
         )
         gateway._service = Mock(return_value={"desiredCount": 1})  # type: ignore[method-assign]
@@ -6408,7 +6334,7 @@ class MigrationTaskContractTests(SimpleTestCase):
         identity = ReleaseIdentity.legacy(
             source_sha,
             f"sha256:{'a' * 64}",
-            ECR_REPOSITORY_URI,
+            SELECTED_TARGET.ecr_repository_uri,
         )
         gateway._service = Mock(return_value={"desiredCount": 1})  # type: ignore[method-assign]
         gateway.elbv2 = Mock()

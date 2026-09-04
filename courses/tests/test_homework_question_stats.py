@@ -175,7 +175,7 @@ class HomeworkQuestionStatsTestCase(TestCase):
     def test_stats_page_preserves_zero_min_and_max_scores(self):
         """A real zero is a score, not a missing value (issue #144).
 
-        The design 5a port (issue #179) writes each figure once, in the one
+        The design system port (issue #179) writes each figure once, in the one
         score-distribution table that reshapes, instead of the copied page's
         separate desktop and phone copies of the same numbers; the six zeros
         are the min and max of the three score rows.

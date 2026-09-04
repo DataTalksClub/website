@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load seo %}
+{% load breadcrumbs seo %}
 
 {% block document_title %}
   {{ seo_title }}
@@ -29,18 +29,13 @@
 
 {% block page_header %}
   <div class="docs-detail-header">
-    <nav class="breadcrumbs docs-breadcrumbs" aria-label="Breadcrumb">
-      <ol>
-        {% for crumb in docs_breadcrumbs %}
-          <li>
-            <a href="{{ crumb.public_path }}">{{ crumb.title }}</a>
-          </li>
-        {% endfor %}
-        <li aria-current="page">
-          {{ docs.title }}
-        </li>
-      </ol>
-    </nav>
+    {% comment %}
+      The site's one trail, built in the view from the Docs hierarchy: the
+      ancestors this page hangs under, and the page itself as the last level.
+      The page keeps its own crumb because the h1 beneath is the heading the
+      source file wrote, which is not always the navigation title.
+    {% endcomment %}
+    {% breadcrumbs docs_trail nav_class="docs-breadcrumbs" %}
     <p class="mono-label mono-label-indigo">{{ docs_context_root.title }}</p>
     <h1 id="{{ docs_heading_id }}">{{ docs_heading_title }}</h1>
     {% if docs.description %}

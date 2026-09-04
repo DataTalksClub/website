@@ -86,7 +86,10 @@ class ModulePageTests(TestCase):
         self.assertContains(response, self.module.title)
         self.assertContains(response, self.homework.title)
         self.assertContains(response, "Lessons")
-        self.assertContains(response, "Sign in to keep track of what you have read.")
+        # The rail states sign-in once, as a quiet link, and no longer opens
+        # with a preamble sentence above the list.
+        self.assertNotContains(response, "Sign in to keep track of what you have read.")
+        self.assertContains(response, "Sign in to track progress")
         self.assertContains(response, 'class="module-sidebar module-rail"')
         for unit in self.units:
             self.assertContains(response, unit.title)
@@ -107,6 +110,21 @@ class ModulePageTests(TestCase):
         self.assertIn('class="module-layout shell-breakout"', body)
         self.assertLess(body.index('class="module-main"'), body.index('class="module-sidebar'))
         self.assertNotIn("Shared module navigation contract", body)
+
+    def test_breadcrumb_stops_at_the_edition_and_names_it_once(self):
+        """Ancestors only, and the cohort crumb is the identifier, not the course again."""
+
+        body = self.client.get(self.module_url()).content.decode()
+        trail = body.split('<nav class="breadcrumbs"', 1)[1].split("</nav>", 1)[0]
+
+        self.assertIn(">Courses</a>", trail)
+        self.assertIn(f">{self.course.title}</a>", trail)
+        self.assertIn(f">{self.cohort.identifier}</a>", trail)
+        self.assertNotIn(self.cohort.title, trail)
+        # This module is the heading below, so it is not also a crumb.
+        self.assertNotIn(self.module.title, trail)
+        self.assertNotIn('aria-current="page"', trail)
+        self.assertEqual(trail.count("<li"), 3)
 
     def test_module_and_unit_links_keep_numeric_source_slugs(self):
         module_url = reverse(
@@ -153,9 +171,11 @@ class ModulePageTests(TestCase):
             1,
         )
         page = self.client.get(self.module_url())
-        self.assertContains(page, "1 of 3 lessons read")
-        self.assertContains(page, "Mark as unread")
+        self.assertContains(page, "1 of 3 read")
         self.assertContains(page, "Read")
+        # The rail shows read state; it never edits it.  The single toggle lives
+        # at the foot of the lesson the reader has just finished.
+        self.assertNotContains(page, "Mark as unread")
 
         response = self.client.post(self.read_state_url(self.units[0]), {"is_read": "0"})
         self.assertRedirects(response, self.module_url(), fetch_redirect_response=False)
@@ -163,8 +183,8 @@ class ModulePageTests(TestCase):
         self.assertRedirects(response, self.module_url(), fetch_redirect_response=False)
         self.assertFalse(UnitReadState.objects.filter(user=user, unit=self.units[0]).exists())
         page = self.client.get(self.module_url())
-        self.assertContains(page, "0 of 3 lessons read")
-        self.assertContains(page, "Mark as read")
+        self.assertContains(page, "0 of 3 read")
+        self.assertNotContains(page, "Mark as read")
 
     def test_anonymous_read_state_update_requires_authentication(self):
         response = self.client.post(self.read_state_url(), {"is_read": "1"})

@@ -1,6 +1,6 @@
 from django import forms
 
-from courses.models.cohort import RegistrationCampaign
+from courses.models.cohort import Cohort, RegistrationCampaign
 
 REGISTRATION_CAMPAIGN_TITLE_WIDGET = forms.TextInput(
     attrs={"class": "form-control"}
@@ -154,6 +154,18 @@ class RegistrationCampaignForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["current_course"].empty_label = "No current course"
+        if self.instance and self.instance.pk:
+            # The registration lifecycle actions (stop registration / open a
+            # new cohort) are the only writers of ``current_course`` for an
+            # existing campaign -- see studio_courses/views/campaign_lifecycle.py.
+            # Disabling the field here means Django ignores whatever value is
+            # submitted with the general "Save changes" button and keeps the
+            # stored value, so that guarded workflow cannot be bypassed by an
+            # ordinary edit.
+            self.fields["current_course"].disabled = True
+            self.fields["current_course"].help_text = (
+                "Use the registration status actions below to change this."
+            )
 
     def is_valid(self):
         valid = super().is_valid()
@@ -166,3 +178,14 @@ class RegistrationCampaignForm(forms.ModelForm):
                     if "is-invalid" not in class_name:
                         attrs["class"] = f"{class_name} is-invalid".strip()
         return valid
+
+
+class OpenNewCohortForm(forms.Form):
+    """Choose the cohort a campaign in the "future/none" state should open next."""
+
+    cohort = forms.ModelChoiceField(
+        queryset=Cohort.objects.order_by("-year", "title"),
+        widget=REGISTRATION_CAMPAIGN_COURSE_WIDGET,
+        label="Cohort to open",
+        help_text="Only valid while this campaign has no current cohort.",
+    )

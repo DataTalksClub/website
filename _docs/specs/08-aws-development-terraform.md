@@ -242,7 +242,10 @@ GitHub Actions in `DataTalksClub/website`:
 2. At the resolve boundary, construct exactly one sealed schema-2 record containing VERSION,
    lowercase full source SHA, and one-instant RFC3339 UTC construction time. Reruns and reuse read
    that record and never consult a clock or Git to rebuild it.
-3. Build one `linux/amd64` image with matching OCI version/revision/created labels and scan it.
+3. Build one image for the deployment target's declared `task_cpu_architecture`, with matching OCI
+   version/revision/created labels, and scan it. The build platform, the asserted image
+   architecture, and the container job's runner all derive from that one declared value; an image
+   whose architecture disagrees with the task definition starts and dies without a useful log.
 4. Authenticate through GitHub OIDC, not long-lived AWS access keys.
 5. Push immutable VERSION and full-SHA aliases to the same ECR digest, then require the remote
    manifest config digest to equal the locally inspected config carrying the sealed labels before

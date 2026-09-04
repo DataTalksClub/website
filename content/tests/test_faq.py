@@ -15,13 +15,11 @@ from content.faq_data import (
 
 
 class FaqRoutesTests(TestCase):
-    def test_projection_has_the_pinned_inventory_and_stable_question_ids(self) -> None:
+    def test_projection_has_stable_unique_question_ids(self) -> None:
         courses = faq_courses()
         self.assertEqual(tuple(course["slug"] for course in courses), FAQ_COURSE_ORDER)
-        self.assertEqual(sum(course["question_count"] for course in courses), 1401)
-        self.assertEqual(sum(course["section_count"] for course in courses), 70)
         questions = [question for course in courses for question in faq_questions(course)]
-        self.assertEqual(len({question["id"] for question in questions}), 1401)
+        self.assertEqual(len({question["id"] for question in questions}), len(questions))
         self.assertTrue(
             all(re.fullmatch(r"[A-Za-z0-9]{10}", question["id"]) for question in questions)
         )

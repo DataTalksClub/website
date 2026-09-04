@@ -12,7 +12,6 @@ from core.idempotency import JsonObject, JsonValue, UnsafeJsonValue, canonical_j
 from core.models import (
     AuditEvent,
     OperationalSetting,
-    OperationalSettingRevision,
     RevisionConflict,
 )
 from core.redaction import is_sensitive_text
@@ -53,8 +52,20 @@ SettingValidator = Callable[[JsonValue], JsonValue | None]
 _SETTING_GROUP = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
 _DOCS_REFERENCE = re.compile(r"^_docs/[A-Za-z0-9_./#-]{1,240}$")
 _SETTING_LIFECYCLES = frozenset({"active"})
-_SETTING_CACHE_POLICIES = frozenset({"uncached"})
-_SETTING_SENSITIVITIES = frozenset({"public"})
+# ``uncached`` settings are read straight from the database on every use, which
+# is what a page-rendering read wants.  ``stamped`` settings are resolved
+# through ``core.runtime_config``, which caches them per process and drops the
+# cache when the settings table's stamp moves, so an operator's write reaches
+# every running task without a restart.
+_SETTING_CACHE_POLICIES = frozenset({"uncached", "stamped"})
+# ``public`` values may be rendered on a page anyone can open.  ``operational``
+# values are not secret -- the registry still refuses a secret-bearing key, env
+# var or settings attribute outright -- but they name our infrastructure
+# (buckets, endpoints, sender addresses), so only the settings read permission
+# may see them.
+_SETTING_SENSITIVITIES = frozenset({"public", "operational"})
+_ENV_VAR = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
+_SETTINGS_ATTR = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,6 +83,14 @@ class OperationalSettingDefinition:
     sensitivity: str
     version: int = 1
     validator: SettingValidator | None = None
+    #: Environment variable consulted when the database holds no row.  Naming it
+    #: here is what lets a deployment keep booting from its task definition
+    #: while an operator moves the value into the database at runtime.
+    env_var: str = ""
+    #: ``django.conf.settings`` attribute consulted after the environment.  It
+    #: is the value the process started with, so it is the honest last stop
+    #: before the definition default.
+    settings_attr: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,21 +128,29 @@ def _contains_secret_name(value: str) -> bool:
     return any(fragment in normalized for fragment in _SECRET_KEY_FRAGMENTS)
 
 
-def _validate_no_sensitive_content(value: JsonValue, *, path: str) -> None:
+def _validate_no_secret_bearing_names(value: JsonValue, *, path: str) -> None:
+    """Refuse a value whose own field names announce a credential.
+
+    This checks *names*, not text.  A value is not refused for looking like a
+    URL or an address: those are the ordinary shapes of the things an operator
+    configures -- the canonical origin, the mailer endpoint, the sender address
+    -- and refusing them only pushed the same value into the table in a
+    mutilated shape.  What each setting may hold is the business of its own
+    validator in ``core.operational_settings``, which is strict about the shape
+    it declares.  Keeping secrets out of the logs is the logging boundary's job
+    and stays with ``core.redaction``.
+    """
+
     if isinstance(value, dict):
         for key, child in value.items():
             if _contains_secret_name(key):
                 raise InvalidOperationalSetting(
                     f"{path}.{key} looks secret-bearing and cannot be database-backed"
                 )
-            _validate_no_sensitive_content(child, path=f"{path}.{key}")
+            _validate_no_secret_bearing_names(child, path=f"{path}.{key}")
     elif isinstance(value, list):
         for index, child in enumerate(value):
-            _validate_no_sensitive_content(child, path=f"{path}[{index}]")
-    elif isinstance(value, str) and is_sensitive_text(value):
-        raise InvalidOperationalSetting(
-            f"{path} contains sensitive text and cannot be database-backed"
-        )
+            _validate_no_secret_bearing_names(child, path=f"{path}[{index}]")
 
 
 def _validated_value(
@@ -163,7 +190,7 @@ def _validated_value(
             )
 
     validate_shape(normalized)
-    _validate_no_sensitive_content(normalized, path=definition.key)
+    _validate_no_secret_bearing_names(normalized, path=definition.key)
     if definition.validator is not None:
         validated = definition.validator(normalized)
         if validated is not None:
@@ -174,7 +201,7 @@ def _validated_value(
                     f"setting {definition.key} normalized to an unsafe value"
                 ) from error
             validate_shape(normalized)
-            _validate_no_sensitive_content(normalized, path=definition.key)
+            _validate_no_secret_bearing_names(normalized, path=definition.key)
     return normalized
 
 
@@ -201,6 +228,14 @@ def register_operational_setting(
         raise InvalidOperationalSetting("setting cache policy is unsupported")
     if definition.sensitivity not in _SETTING_SENSITIVITIES:
         raise InvalidOperationalSetting("setting sensitivity is unsupported")
+    if definition.env_var and not _ENV_VAR.fullmatch(definition.env_var):
+        raise InvalidOperationalSetting("setting env var must be a stable uppercase identifier")
+    if definition.env_var and _contains_secret_name(definition.env_var):
+        raise InvalidOperationalSetting("secret-bearing settings must remain in the secret store")
+    if definition.settings_attr and not _SETTINGS_ATTR.fullmatch(definition.settings_attr):
+        raise InvalidOperationalSetting("setting settings attr must be a stable uppercase name")
+    if definition.settings_attr and _contains_secret_name(definition.settings_attr):
+        raise InvalidOperationalSetting("secret-bearing settings must remain in the secret store")
     if definition.version < 1:
         raise InvalidOperationalSetting("setting definition version must be positive")
     try:
@@ -209,7 +244,7 @@ def register_operational_setting(
         raise InvalidOperationalSetting("setting validation metadata is unsafe") from error
     if not isinstance(validation, dict):
         raise InvalidOperationalSetting("setting validation metadata must be an object")
-    _validate_no_sensitive_content(validation, path=f"{definition.key}.validation")
+    _validate_no_secret_bearing_names(validation, path=f"{definition.key}.validation")
     normalized_default = _validated_value(definition, definition.default)
 
     registered = _registry.get(definition.key)
@@ -336,7 +371,7 @@ def set_operational_setting(
                 ),
             )
 
-        audit_event = record_audit_event(
+        record_audit_event(
             action="core.operational_setting.set",
             target_type="core.operational_setting",
             target_id=setting.id,
@@ -350,18 +385,6 @@ def set_operational_setting(
             },
             metadata={"definition_version": definition.version},
             using=using,
-        )
-        OperationalSettingRevision.objects.using(using).create(
-            setting=setting,
-            key=setting.key,
-            value_type=setting.value_type,
-            value=validated_value,
-            source=source,
-            definition_version=definition.version,
-            revision=setting.revision,
-            changed_by_id=context.actor_id,
-            changed_by_ref=context.actor_ref,
-            audit_event=audit_event,
         )
 
         return ResolvedOperationalSetting(

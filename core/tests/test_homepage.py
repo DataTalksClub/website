@@ -1,32 +1,275 @@
+import hashlib
+import json
 import re
 from datetime import timedelta
 from pathlib import Path
 from unittest import mock
 
 from django.contrib.auth import get_user_model
-from django.db import OperationalError
+from django.contrib.staticfiles.storage import staticfiles_storage
+from django.db import OperationalError, connection
 from django.test import Client, TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import resolve, reverse
 from django.utils import timezone
 from django.utils.html import escape
 
+from content.docs_projection import docs_projection
 from core import views as core_views
-from core.home_content import MEMBER_STORIES
-from courses.models.cohort import Cohort
+from core.home_content import (
+    COURSE_FAMILIES,
+    FEATURED_BUILD_ITEMS,
+    FEATURED_COHORT_SUMMARY,
+    FEATURED_FAMILY,
+    course_catalog,
+)
+from courses.models.cohort import Cohort, Course
+from courses.models.testimonial import Testimonial, TestimonialPlacement
+from courses.services.testimonials import homepage_testimonials
 from courses.views.course import course_view
 from courses.views.course_aliases import legacy_course_redirect
 from courses.views.course_list import course_list
 from events.models import Event
+from test_support.course_catalog import build_reviewed_catalog
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ADOPTED_COURSE_LIST_TEMPLATE = (REPO_ROOT / "courses/templates/courses/course_list.html").resolve()
 ADOPTED_COURSE_DETAIL_TEMPLATE = (REPO_ROOT / "courses/templates/courses/course.html").resolve()
 
+CURRICULUM_2026 = REPO_ROOT / "core/tests/data/ai_dev_tools_zoomcamp_2026"
+
+
+class FeaturedBuildPanelTests(TestCase):
+    """The mint "What you'll build" panel may only claim what the featured cohort teaches.
+
+    Two generations of wrong copy have shipped here.  The first advertised a
+    multi-agent/RAG curriculum and "small groups of 6-8 people", which describes no
+    DataTalks.Club course.  The second described the 2025 edition -- "six modules", a
+    coding agent you build, n8n automation -- because it was anchored to the course-wide
+    docs page ``/docs/courses/ai-dev-tools-zoomcamp/curriculum/``, which still enumerates
+    the 2025 modules.
+
+    So the anchor is the featured cohort's own curriculum, not the course's: the four
+    module lessons of ``cohorts/2026/`` copied verbatim into ``core/tests/data/`` with
+    their revision and checksums.  Every clause the panel states is pinned to a phrase
+    those lessons contain, so copy that drifts back into marketing -- or back into a
+    previous edition -- fails here instead of shipping.
+    """
+
+    # The panel's sentence, and the phrases the 2026 lessons state it from.
+    SUMMARY_SOURCE_ANCHORS = (
+        ("01-ai-native-workflow", "AI-Native Development"),
+        (
+            "01-ai-native-workflow",
+            "we take a vague product idea through specification and context",
+        ),
+        ("02-development", "you build a working end-to-end application with AI assistance"),
+        ("03-deployment", "Test, Containerize, and Deploy an AI-Assisted App"),
+        ("04-devops", "DevOps and Observability for AI-Built Apps"),
+    )
+
+    # Each build item, the 2026 module it comes from, and phrases that module's lesson
+    # actually contains.  One item per module, in module order.
+    BUILD_ITEM_SOURCE_ANCHORS = (
+        (
+            "a Django app built from a specification, with the AI tool of your choice",
+            "01-ai-native-workflow",
+            (
+                "Build a Django app with the AI tool of your choice",
+                "we take a vague product idea through specification and context",
+            ),
+        ),
+        (
+            "a full-stack app with a frontend, a backend, an OpenAPI contract, "
+            "and data persisted in SQLite",
+            "02-development",
+            (
+                "a frontend and a backend that talk to each other over a defined contract, "
+                "with data persisted in SQLite",
+                "Define an OpenAPI contract as the source of truth between frontend and backend",
+            ),
+        ),
+        (
+            "the same app containerized, integration-tested, and deployed at a public URL",
+            "03-deployment",
+            (
+                "Containerize the app with a multi-stage Dockerfile and Docker Compose",
+                "Write integration tests that hit a real database",
+                "The app should be deployed at a public URL",
+            ),
+        ),
+        (
+            "an observability stack, an alert on real user impact, "
+            "and an agent as first line of support",
+            "04-devops",
+            (
+                "The concrete stack is OpenTelemetry into Prometheus, Loki, and Tempo, "
+                "with Grafana on top",
+                "Write one alert that represents real user impact",
+                "put an agent inside that loop as the first line of support",
+            ),
+        ),
+    )
+
+    # Claims that belong to the 2025 edition (cohorts/2025) and to the invented copy before
+    # it.  None of them may reappear in the panel.
+    RETIRED_CLAIMS = (
+        "6–8",
+        "6-8",
+        "small groups",
+        "RAG evaluation",
+        "multi-agent",
+        "Six modules",
+        "six modules",
+        "n8n",
+        "coding agent that scaffolds",
+        "low-code",
+    )
+
+    def setUp(self) -> None:
+        # The panel now renders from the database, so the cohort it describes must exist.
+        super().setUp()
+        build_reviewed_catalog()
+
+    def _module_lessons(self) -> dict[str, str]:
+        """Return each checked-in 2026 module lesson, whitespace-normalised for matching.
+
+        The lessons are prose wrapped at the source's own column, so a sentence is only a
+        contiguous string once its line breaks are collapsed.
+        """
+
+        manifest = json.loads((CURRICULUM_2026 / "SOURCE.json").read_text())
+        lessons: dict[str, str] = {}
+        for module in manifest["modules"]:
+            raw = (CURRICULUM_2026 / str(module["file"])).read_bytes()
+            self.assertEqual(
+                hashlib.sha256(raw).hexdigest(),
+                module["sha256"],
+                f"{module['source_path']} no longer matches its recorded checksum.",
+            )
+            lessons[str(module["slug"])] = " ".join(raw.decode().split())
+        return lessons
+
+    def test_the_checked_curriculum_copy_is_the_2026_cohort(self) -> None:
+        """The anchor source is the featured cohort's curriculum, pinned and identified."""
+
+        manifest = json.loads((CURRICULUM_2026 / "SOURCE.json").read_text())
+
+        self.assertEqual(
+            manifest["source"]["repository"],
+            "https://github.com/DataTalksClub/ai-dev-tools-zoomcamp",
+        )
+        self.assertEqual(manifest["source"]["cohort_path"], "cohorts/2026")
+        self.assertRegex(manifest["source"]["revision"], r"^[0-9a-f]{40}$")
+        self.assertEqual(
+            tuple(str(module["slug"]) for module in manifest["modules"]),
+            ("01-ai-native-workflow", "02-development", "03-deployment", "04-devops"),
+        )
+        lessons = self._module_lessons()
+        for module in manifest["modules"]:
+            with self.subTest(module=module["slug"]):
+                self.assertTrue(str(module["source_path"]).startswith("cohorts/2026/"))
+                self.assertIn(f"# {module['title']}", lessons[str(module["slug"])])
+
+    def test_the_featured_summary_is_grounded_in_the_2026_module_lessons(self) -> None:
+        """The panel's own sentence is held to the same standard as its bullets."""
+
+        lessons = self._module_lessons()
+        for module, anchor in self.SUMMARY_SOURCE_ANCHORS:
+            with self.subTest(anchor=anchor):
+                self.assertIn(anchor, lessons[module])
+        for retired in self.RETIRED_CLAIMS:
+            with self.subTest(retired=retired):
+                self.assertNotIn(retired, FEATURED_COHORT_SUMMARY)
+        # The module count is a database fact rendered beside the homework and project
+        # counts; a sentence that states its own count is what shipped the 2025 curriculum.
+        self.assertNotIn("module", FEATURED_COHORT_SUMMARY)
+
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, escape(FEATURED_COHORT_SUMMARY))
+
+    def test_every_build_item_is_grounded_in_its_2026_module_lesson(self) -> None:
+        lessons = self._module_lessons()
+        self.assertEqual(
+            FEATURED_BUILD_ITEMS,
+            tuple(item for item, _module, _anchors in self.BUILD_ITEM_SOURCE_ANCHORS),
+        )
+        for item, module, anchors in self.BUILD_ITEM_SOURCE_ANCHORS:
+            for anchor in anchors:
+                with self.subTest(item=item, anchor=anchor):
+                    self.assertIn(anchor, lessons[module])
+
+    def test_the_stale_course_docs_curriculum_is_not_the_panel_source(self) -> None:
+        """The docs page this panel used to read still describes the 2025 edition.
+
+        It is a course-wide page, not a cohort page, and DataTalksClub/docs has not
+        refreshed it for 2026.  Pin that here so the drift is visible rather than
+        rediscovered by copying from it again.
+        """
+
+        body = ""
+        for page in docs_projection()["pages"]:
+            if page["public_path"] == "/docs/courses/ai-dev-tools-zoomcamp/curriculum/":
+                body = str(page["body"])
+        self.assertIn("six modules plus a final project", body)
+        self.assertIn("Automate tasks with n8n", body)
+        for item in FEATURED_BUILD_ITEMS:
+            with self.subTest(item=item):
+                self.assertNotIn(item, body)
+
+    def test_the_panel_renders_the_build_items_and_no_retired_claim(self) -> None:
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        for item in FEATURED_BUILD_ITEMS:
+            with self.subTest(item=item):
+                self.assertContains(response, escape(item[0].upper() + item[1:]))
+
+        body = response.content.decode()
+        self.assertNotIn("build-note", body)
+        panel = body[body.index("data-featured-course") :]
+        panel = panel[: panel.index("catalog-scroller")]
+        for retired in self.RETIRED_CLAIMS:
+            with self.subTest(retired=retired):
+                self.assertNotIn(retired, panel)
+
+
+class CatalogCardTests(TestCase):
+    """The catalogue cards carry the course title, not an uppercase category pill."""
+
+    def setUp(self) -> None:
+        # The cards are database rows now, so the families have to exist to be shown.
+        super().setUp()
+        build_reviewed_catalog()
+
+    def test_catalog_cards_drop_the_category_pill_and_keep_the_new_cohort_chip(self) -> None:
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        scroller = body[body.index('id="catalog-scroller"') :]
+        scroller = scroller[: scroller.index("catalog-scroller-controls")]
+
+        self.assertNotIn("chip", scroller)
+        self.assertNotIn("featured-badges", body)
+        for family, title in COURSE_FAMILIES:
+            if family == FEATURED_FAMILY:
+                continue
+            with self.subTest(family=family):
+                self.assertIn(escape(title), scroller)
+
+        # The featured cohort keeps its own chip; only the category pills went.
+        self.assertIn('<span class="chip chip-ink">New cohort</span>', body)
+
 
 class MainHomepageRoutingTests(TestCase):
     def test_member_stories_keep_titles_country_only_and_requested_order(self) -> None:
+        """The six seeded rows still read exactly as the retired Python tuple did."""
+
+        stories = homepage_testimonials()
         self.assertEqual(
-            [(story.name, story.context) for story in MEMBER_STORIES],
+            [(story.name, story.attribution) for story in stories],
             [
                 ("Nevenka Lukic", "Data Engineer · Spain"),
                 ("Alexander Daniel Rios", "DS & ML Engineer · Argentina"),
@@ -38,14 +281,22 @@ class MainHomepageRoutingTests(TestCase):
         )
 
         response = self.client.get(reverse("home"))
-        for name, context in [(story.name, story.context) for story in MEMBER_STORIES]:
+        for name, attribution in [(story.name, story.attribution) for story in stories]:
             with self.subTest(name=name):
                 self.assertContains(response, name)
-                self.assertContains(response, escape(context))
+                self.assertContains(response, escape(attribution))
 
     def test_root_uses_the_shared_course_platform_shell(self) -> None:
+        # The catalogue and featured panel read ``courses.Course`` / ``courses.Cohort``,
+        # so the families this asserts are built here rather than taken from
+        # ``courses.services.local_course_seed``, whose rows are pinned to one revision.
+        build_reviewed_catalog()
         self.assertEqual(reverse("home"), "/")
         self.assertIs(resolve("/").func, core_views.home)
+        # /unified/ is the deployment's rendered-page probe and serves the same
+        # view, so production robots keeps it out of the index (core.views).
+        self.assertIs(resolve("/unified/").func, core_views.home)
+        self.assertIn("Disallow: /unified/\n", core_views.PRODUCTION_ROBOTS_BODY)
 
         response = self.client.get(reverse("home"))
 
@@ -71,10 +322,11 @@ class MainHomepageRoutingTests(TestCase):
         self.assertContains(response, "Courses")
         self.assertContains(response, "AI Dev Tools Zoomcamp")
         self.assertContains(response, "Starts August 31")
-        self.assertContains(
-            response,
-            f'href="{reverse("course-cohort-ai-dev-tools-2026")}"',
-        )
+        # The featured call to action goes to the cohort's own database-backed course
+        # page, the same route the catalogue cards use.  The hardcoded per-cohort
+        # landing route it used to point at has been removed.
+        featured = next(entry for entry in course_catalog() if entry.family == FEATURED_FAMILY)
+        self.assertContains(response, f'href="{featured.public_path}"')
         self.assertContains(response, "View the syllabus")
         self.assertContains(response, "all courses →")
         self.assertEqual(
@@ -85,7 +337,7 @@ class MainHomepageRoutingTests(TestCase):
         self.assertNotContains(response, "/static/core/site.css")
 
     def test_homepage_carries_its_own_stylesheet_and_loads_no_legacy_css(self) -> None:
-        """Design 5a (issue #179) replaced the adopted shell with one inline stylesheet."""
+        """Design system (issue #179) replaced the adopted shell with one inline stylesheet."""
 
         body = self.client.get(reverse("home")).content.decode()
 
@@ -102,6 +354,8 @@ class MainHomepageRoutingTests(TestCase):
         self.assertEqual(re.findall(r'<link[^>]+rel="stylesheet"', body), [])
 
     def test_single_destination_cards_stretch_their_existing_semantic_links(self) -> None:
+        # The course card is a database row now, so the catalogue has to hold one.
+        build_reviewed_catalog()
         body = self.client.get(reverse("home")).content.decode()
 
         self.assertIn(
@@ -135,23 +389,43 @@ class MainHomepageRoutingTests(TestCase):
                 self.assertNotIn(leak, body)
 
     def test_homepage_renders_when_the_database_is_unavailable(self) -> None:
-        """/unified/ is the container liveness gate, and that runtime has no database."""
+        """/unified/ is the container liveness gate, and that runtime has no database.
 
-        with mock.patch.object(
-            Event.objects,
-            "order_by",
-            side_effect=OperationalError("unable to open database file"),
+        The course catalogue is a database read now, so an unreachable database costs the
+        page its course cards and its featured panel.  It must still answer 200 with the
+        designed empty state rather than propagate the error.
+        """
+
+        with (
+            mock.patch.object(
+                Event.objects,
+                "order_by",
+                side_effect=OperationalError("unable to open database file"),
+            ),
+            mock.patch(
+                "courses.services.public_course_catalog.visible_course_list_queryset",
+                side_effect=OperationalError("unable to open database file"),
+            ),
+            mock.patch.object(
+                Testimonial.objects,
+                "filter",
+                side_effect=OperationalError("unable to open database file"),
+            ),
         ):
             response = self.client.get(reverse("home"))
             unified = self.client.get("/unified/")
 
         for rendered in (response, unified):
             self.assertEqual(rendered.status_code, 200)
+            # The testimonial band is a database read too, so it drops out whole
+            # rather than leaving an empty band behind.
+            self.assertNotContains(rendered, 'id="stories-heading"')
             self.assertContains(
                 rendered,
                 "Learn the fundamentals. Build real projects. Share your work.",
             )
-            self.assertContains(rendered, "AI Dev Tools Zoomcamp")
+            self.assertContains(rendered, "No active courses right now.")
+            self.assertNotContains(rendered, "data-featured-course")
             self.assertContains(rendered, "Community knowledgebase")
 
     def test_homepage_navigation_is_local_and_complete(self) -> None:
@@ -266,7 +540,7 @@ class MainHomepageRoutingTests(TestCase):
         )
 
     def test_course_index_carries_its_own_stylesheet_and_loads_no_legacy_css(self) -> None:
-        """Design 5a (issue #179) rebuilt /courses onto one inline stylesheet."""
+        """Design system (issue #179) rebuilt /courses onto one inline stylesheet."""
 
         body = self.client.get(reverse("course_list")).content.decode()
 
@@ -474,12 +748,11 @@ class MemberStoriesCarouselTests(TestCase):
     """
 
     def test_all_six_stories_render_in_the_alternating_order(self) -> None:
-        from core.home_content import MEMBER_STORIES
-
         response = self.client.get(reverse("home"))
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
-        expected_order = tuple(story.name for story in MEMBER_STORIES)
+        expected_order = tuple(story.name for story in homepage_testimonials())
+        self.assertEqual(len(expected_order), 6)
         positions = [body.index(name) for name in expected_order]
         self.assertEqual(positions, sorted(positions))
 
@@ -507,6 +780,8 @@ class MemberStoriesCarouselTests(TestCase):
     def test_carousel_controls_target_the_stories_scroller_and_reuse_the_shared_button(
         self,
     ) -> None:
+        # The catalogue scroller this reuses only renders when the database holds courses.
+        build_reviewed_catalog()
         response = self.client.get(reverse("home"))
         body = response.content.decode()
 
@@ -524,24 +799,26 @@ class MemberStoriesCarouselTests(TestCase):
         self.assertIn('data-scroll-target="catalog-scroller"', body)
 
     def test_a_story_without_a_photo_falls_back_to_the_decorative_avatar(self) -> None:
-        from core.home_content import MemberStory
-
-        synthetic_stories = (
-            MemberStory(
-                quote="Real quote from a member with a photo.",
-                name="Has Photo",
-                context="Role · City",
-                photo_static_path="core/testimonials/tim-claytor.jpg",
-            ),
-            MemberStory(
-                quote="Real quote from a member without a photo yet.",
-                name="No Photo Yet",
-                context="Role · City",
-            ),
+        Testimonial.objects.filter(placement=TestimonialPlacement.HOMEPAGE).delete()
+        Testimonial.objects.create(
+            placement=TestimonialPlacement.HOMEPAGE,
+            quote="Real quote from a member with a photo.",
+            name="Has Photo",
+            attribution="Role · City",
+            portrait_asset_key="testimonials/tim-claytor.jpg",
+            position=0,
+            published=True,
+        )
+        Testimonial.objects.create(
+            placement=TestimonialPlacement.HOMEPAGE,
+            quote="Real quote from a member without a photo yet.",
+            name="No Photo Yet",
+            attribution="Role · City",
+            position=1,
+            published=True,
         )
 
-        with mock.patch("core.views.MEMBER_STORIES", synthetic_stories):
-            response = self.client.get(reverse("home"))
+        response = self.client.get(reverse("home"))
 
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
@@ -555,6 +832,115 @@ class MemberStoriesCarouselTests(TestCase):
         )
         self.assertNotIn('<img class="avatar"', without_photo)
         self.assertIn('<span class="avatar" aria-hidden="true"></span>', without_photo)
+
+    def test_one_unresolvable_portrait_costs_one_photo_not_the_whole_page(self) -> None:
+        """A row must never be able to 500 the homepage.
+
+        Manifest static storage raises on an unknown reference instead of
+        serving a 404, and the portrait is read inside the story loop, so an
+        unguarded lookup would abandon the render for every reader.  The bad row
+        keeps its card and falls back to the avatar mark; the good row is
+        untouched.
+        """
+
+        Testimonial.objects.filter(placement=TestimonialPlacement.HOMEPAGE).delete()
+        Testimonial.objects.create(
+            placement=TestimonialPlacement.HOMEPAGE,
+            quote="A quote from the member whose portrait resolves.",
+            name="Good Portrait",
+            attribution="Role · City",
+            portrait_asset_key="testimonials/tim-claytor.jpg",
+            position=0,
+            published=True,
+        )
+        stale = Testimonial(
+            placement=TestimonialPlacement.HOMEPAGE,
+            quote="A quote from the member whose portrait went missing.",
+            name="Stale Portrait",
+            attribution="Role · City",
+            portrait_asset_key="testimonials/removed-after-the-manifest-was-built.jpg",
+            position=1,
+            published=True,
+        )
+        # The key was valid when it was stored; the asset is what went away, so
+        # this bypasses validation the way a real stale row reaches production.
+        stale.save()
+
+        real_url = staticfiles_storage.url
+
+        def manifest_url(name: str) -> str:
+            if "removed-after-the-manifest-was-built" in name:
+                raise ValueError(f"Missing staticfiles manifest entry for '{name}'")
+            return real_url(name)
+
+        with mock.patch.object(staticfiles_storage, "url", side_effect=manifest_url):
+            response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+
+        self.assertIn("Good Portrait", body)
+        self.assertIn("Stale Portrait", body)
+        self.assertIn('<img class="avatar" src="/static/core/testimonials/tim-claytor.jpg"', body)
+        self.assertNotIn("removed-after-the-manifest-was-built", body)
+        stale_card = body[body.index("Stale Portrait") - 600 : body.index("Stale Portrait")]
+        self.assertNotIn('<img class="avatar"', stale_card)
+        self.assertIn('<span class="avatar" aria-hidden="true"></span>', stale_card)
+
+    def test_the_band_disappears_whole_when_no_testimonial_is_published(self) -> None:
+        """No empty band, no orphan heading, no dangling scroller."""
+
+        Testimonial.objects.filter(placement=TestimonialPlacement.HOMEPAGE).delete()
+
+        body = self.client.get(reverse("home")).content.decode()
+
+        for absent in (
+            'id="stories-heading"',
+            "What people say",
+            'class="stories-scroller"',
+            'id="stories-scroller"',
+            'aria-label="Member stories"',
+            'aria-labelledby="stories-heading"',
+            'data-scroll-target="stories-scroller"',
+            "/static/core/testimonials/",
+        ):
+            with self.subTest(absent=absent):
+                self.assertNotIn(absent, body)
+
+    def test_unpublished_and_course_scoped_testimonials_stay_off_the_homepage(self) -> None:
+        course = Course.objects.create(slug="unlisted-family", title="Unlisted Family")
+        Testimonial.objects.create(
+            placement=TestimonialPlacement.HOMEPAGE,
+            name="Draft Only Person",
+            attribution="Role · City",
+            quote="A draft quote that is not live yet.",
+            published=False,
+        )
+        Testimonial.objects.create(
+            placement=TestimonialPlacement.COURSE,
+            course=course,
+            name="Course Only Person",
+            attribution="Role · City",
+            quote="A quote that belongs to one course page.",
+            published=True,
+        )
+
+        body = self.client.get(reverse("home")).content.decode()
+
+        self.assertNotIn("Draft Only Person", body)
+        self.assertNotIn("Course Only Person", body)
+        self.assertIn("What people say", body)
+
+    def test_the_band_costs_the_anonymous_homepage_exactly_one_query(self) -> None:
+        with CaptureQueriesContext(connection) as captured:
+            self.client.get(reverse("home"))
+
+        testimonial_queries = [
+            query["sql"]
+            for query in captured.captured_queries
+            if "courses_testimonial" in query["sql"]
+        ]
+        self.assertEqual(len(testimonial_queries), 1)
 
 
 class HomepageWikiGraphTests(TestCase):

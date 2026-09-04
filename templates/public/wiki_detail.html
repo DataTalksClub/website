@@ -1,4 +1,4 @@
-{% load seo static %}
+{% load breadcrumbs seo static %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -11,7 +11,7 @@
     {% include "public/_wiki_head_meta.html" %}
     <style>
       /* ------------------------------------------------------------------ *
-       * Wiki page, design 5a (issue #179).  One reading column: the trail
+       * Wiki page, design system (issue #179).  One reading column: the trail
        * back to the wiki, the topic, what it relates to, and then the page
        * itself in the system's shared `.prose` primitive.
        * ------------------------------------------------------------------ */
@@ -97,16 +97,11 @@
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream wiki-hero" aria-labelledby="wiki-page-heading">
-        <nav class="shell breadcrumbs wiki-shell" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'wiki-home' %}">Wiki</a>
-            </li>
-            <li aria-current="page">
-              {{ record.title }}
-            </li>
-          </ol>
-        </nav>
+        {% comment %}
+          The same trail the page publishes as BreadcrumbList JSON-LD: one
+          core.breadcrumbs.Trail built in the view and read twice.
+        {% endcomment %}
+        {% breadcrumbs breadcrumbs nav_class="shell wiki-shell" %}
         <div class="shell wiki-shell">
           <h1 id="wiki-page-heading">{{ record.title }}</h1>
           <p class="wiki-summary">{{ record.summary }}</p>

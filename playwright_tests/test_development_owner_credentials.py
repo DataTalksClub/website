@@ -153,7 +153,7 @@ def test_owner_login_distinct_surfaces_and_credential_lifecycle(
     login = page.goto(f"{live_server.url}/accounts/login/?next=%2Fstudio%2F")
     assert login is not None and login.status == 200
     assert_private(login)
-    # Exact match: the design 5a sign-in page also carries an sr-visible
+    # Exact match: the design system sign-in page also carries an sr-visible
     # "Sign in with your DataTalks.Club account" panel heading, which a
     # substring lookup would resolve as a second heading.
     expect(page.get_by_role("heading", name="Sign In", exact=True)).to_be_visible()
@@ -234,7 +234,7 @@ def test_owner_login_distinct_surfaces_and_credential_lifecycle(
     page.go_back()
     assert raw_token not in page.content()
 
-    # Design 5a (issue #179) dropped the old core/studio.css card classes from the
+    # Design system (issue #179) dropped the old core/studio.css card classes from the
     # Studio credentials page; the record is still the article the view stamps with
     # its credential id, which is the stable hook for scoping a row's controls.
     active = page.locator("article[data-credential-id]").filter(has_text="active").first

@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from django.http import HttpRequest, JsonResponse
 from django.utils import timezone
 
+from accounts.services.oauth_providers import InvalidOAuthProvider, OAuthProviderNotFound
 from core.audit import AuditWriteContext, record_audit_event
 from core.idempotency import IdempotencyConflict, IdempotencyInProgress, execute_idempotent
 from core.models import AuditEvent, RevisionConflict
@@ -13,18 +14,9 @@ from core.navigation import InvalidSiteNavigation, SiteNavigationRevisionConflic
 from core.services import ServiceContext
 from core.site_settings import InvalidSiteSettingsBatch, SiteSettingsRevisionConflict
 from core.sponsors import InvalidSponsor, SponsorNotFound, SponsorRevisionConflict
-from courses.models import CourseRegistrationCountSourceRun
-from courses.registration_count_importer import CourseCountSourceError
-from courses.services.registration_counts import (
-    CourseRegistrationCountConflict,
-    CourseRegistrationCountInvalid,
-)
-from courses.services.registration_counts import (
-    serialize_run as serialize_course_count_run,
-)
 from events.identity import EventIdentityNotFound
 from events.importers import ProtectedSourceError
-from events.models import HistoricalEventMapping, HistoricalRegistrationSourceRun
+from events.models import HistoricalRegistrationSourceRun
 from events.qna.errors import QnaError
 from events.qna.services import (
     admin_event_qna,
@@ -39,7 +31,6 @@ from events.qna.services import (
 from events.services import (
     HistoricalRegistrationConflict,
     HistoricalRegistrationInvalid,
-    serialize_mapping,
     serialize_run,
 )
 from management_auth.idempotency import (
@@ -153,13 +144,7 @@ def _historical_error(error: Exception) -> APIError:
         return APIError(400, error.code, "The registered protected source was rejected.")
     if isinstance(error, (HistoricalRegistrationInvalid, ValueError, TypeError)):
         return APIError(400, "invalid_request", "The historical aggregate request is invalid.")
-    if isinstance(
-        error,
-        (
-            HistoricalRegistrationSourceRun.DoesNotExist,
-            HistoricalEventMapping.DoesNotExist,
-        ),
-    ):
+    if isinstance(error, HistoricalRegistrationSourceRun.DoesNotExist):
         return APIError(404, "not_found", "The historical aggregate resource was not found.")
     return APIError(500, "internal_error", "The historical aggregate request failed safely.")
 
@@ -230,24 +215,6 @@ def _audit_identity_access(request: HttpRequest, *, event_id: uuid.UUID | None =
     )
 
 
-def _course_count_error(error: Exception) -> APIError:
-    if isinstance(error, APIError):
-        return error
-    if isinstance(error, (IdempotencyConflict, IdempotencyInProgress)):
-        return APIError(409, "idempotency_conflict", "The idempotency request conflicts.")
-    if isinstance(error, RevisionConflict):
-        return APIError(409, "revision_conflict", "The baseline revision changed.")
-    if isinstance(error, CourseRegistrationCountConflict):
-        return APIError(409, str(error), "The course registration count state conflicts.")
-    if isinstance(error, CourseCountSourceError):
-        return APIError(400, error.code, "The registered protected source was rejected.")
-    if isinstance(error, (CourseRegistrationCountInvalid, TypeError, ValueError)):
-        return APIError(400, "invalid_request", "The course count request is invalid.")
-    if isinstance(error, CourseRegistrationCountSourceRun.DoesNotExist):
-        return APIError(404, "not_found", "The course count resource was not found.")
-    return APIError(500, "internal_error", "The course count request failed safely.")
-
-
 def _sponsor_error(error: Exception) -> APIError:
     if isinstance(error, APIError):
         return error
@@ -313,6 +280,16 @@ def _site_settings_error(error: Exception) -> APIError:
     if isinstance(error, (InvalidSiteSettingsBatch, TypeError, ValueError)):
         return APIError(400, "invalid_request", "The site settings request is invalid.")
     return APIError(500, "internal_error", "The site settings request failed safely.")
+
+
+def _oauth_provider_error(error: Exception) -> APIError:
+    if isinstance(error, APIError):
+        return error
+    if isinstance(error, OAuthProviderNotFound):
+        return APIError(404, "not_found", "The OAuth provider was not found.")
+    if isinstance(error, (InvalidOAuthProvider, TypeError, ValueError)):
+        return APIError(400, "invalid_request", "The OAuth provider request is invalid.")
+    return APIError(500, "internal_error", "The OAuth provider request failed safely.")
 
 
 def _historical_context(
@@ -420,6 +397,78 @@ def site_settings_write(request: HttpRequest) -> JsonResponse:
     except Exception as error:
         raise _site_settings_error(error) from error
     return JsonResponse(result.as_dict())
+
+
+@admin_capability("settings.operational.read")
+def operational_settings_read(request: HttpRequest) -> JsonResponse:
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        result = capability.service(context=_historical_context(request))
+    except Exception as error:
+        raise _site_settings_error(error) from error
+    return JsonResponse(result)
+
+
+@admin_capability("settings.operational.write")
+def operational_settings_write(request: HttpRequest) -> JsonResponse:
+    identity = request.api_identity  # type: ignore[attr-defined]
+    read_capability = CAPABILITY_REGISTRY.require("settings.operational.read")
+    if not principal_has_permission(identity.principal, read_capability.django_permission):
+        raise permission_denied()
+    payload = parse_json_object(request)
+    _enforce_fields(request, payload, required=frozenset({"updates"}))
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        result = capability.service(
+            updates=payload["updates"],
+            source="admin_api",
+            idempotency_key=_idempotency_key(request),
+            actor_ref=f"api_principal:{identity.principal.id}",
+            actor_id=identity.principal.user_id,
+            api_principal_id=identity.principal.id,
+            context=_historical_context(request),
+        )
+    except Exception as error:
+        raise _site_settings_error(error) from error
+    return JsonResponse(result.as_dict())
+
+
+@admin_capability("accounts.oauth_providers.read")
+def oauth_provider_list(request: HttpRequest) -> JsonResponse:
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        result = capability.service(context=_historical_context(request))
+    except Exception as error:
+        raise _oauth_provider_error(error) from error
+    return JsonResponse(result)
+
+
+@admin_capability("accounts.oauth_providers.write")
+def oauth_provider_update(request: HttpRequest, provider: str) -> JsonResponse:
+    identity = request.api_identity  # type: ignore[attr-defined]
+    read_capability = CAPABILITY_REGISTRY.require("accounts.oauth_providers.read")
+    if not principal_has_permission(identity.principal, read_capability.django_permission):
+        raise permission_denied()
+    payload = parse_json_object(request)
+    _enforce_fields(
+        request,
+        payload,
+        required=frozenset({"client_id"}),
+        optional=frozenset({"secret"}),
+    )
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        result = capability.service(
+            provider=provider,
+            payload=payload,
+            actor_ref=f"api_principal:{identity.principal.id}",
+            actor_id=identity.principal.user_id,
+            api_principal_id=identity.principal.id,
+            context=_historical_context(request),
+        )
+    except Exception as error:
+        raise _oauth_provider_error(error) from error
+    return JsonResponse(result)
 
 
 @admin_capability("site.sponsors.read")
@@ -845,100 +894,6 @@ def historical_import_rollback(request: HttpRequest, run_id: str) -> JsonRespons
     return _historical_action(request, run_id)
 
 
-@admin_capability("events.historical_registration_mapping.manage")
-def historical_mapping_list(request: HttpRequest) -> JsonResponse:
-    capability = request.management_capability  # type: ignore[attr-defined]
-    try:
-        query = parse_page_query(request.GET, filter_fields=(), sort_fields=())
-        return JsonResponse(capability.service(page=query.page, page_size=query.page_size))
-    except Exception as error:
-        raise _historical_error(error) from error
-
-
-def _mapping_command_payload(request: HttpRequest, *, updating: bool) -> dict:
-    payload = parse_json_object(request)
-    required = {
-        "state",
-        "mapping_set_revision",
-        "reason_code",
-        "reason",
-        "coverage_boundary",
-        "combination_policy",
-    }
-    if not updating:
-        required.update({"provider", "external_event_identifier"})
-    _enforce_fields(
-        request, payload, required=frozenset(required), optional=frozenset({"event_id"})
-    )
-    return payload
-
-
-def _revise_mapping_api(
-    payload: dict,
-    request: HttpRequest,
-    *,
-    mapping_id: uuid.UUID | None,
-    expected_revision: int | None,
-) -> dict:
-    identity = request.api_identity  # type: ignore[attr-defined]
-    capability = request.management_capability  # type: ignore[attr-defined]
-    mapping = capability.service(
-        mapping_id=mapping_id,
-        provider=payload.get("provider"),
-        external_event_identifier=payload.get("external_event_identifier"),
-        state=payload["state"],
-        mapping_set_revision=payload["mapping_set_revision"],
-        expected_revision=expected_revision,
-        reason_code=payload["reason_code"],
-        reason=payload["reason"],
-        coverage_boundary=payload["coverage_boundary"],
-        combination_policy=payload["combination_policy"],
-        reviewer=identity.principal.user,
-        context=_historical_context(request),
-        event_id=payload.get("event_id"),
-    )
-    return serialize_mapping(mapping, reveal_identifier=True)
-
-
-@admin_capability("events.historical_registration_mapping.create")
-def historical_mapping_create(request: HttpRequest) -> JsonResponse:
-    payload = _mapping_command_payload(request, updating=False)
-    capability = request.management_capability  # type: ignore[attr-defined]
-    try:
-        result = execute_idempotent(
-            scope=capability.key,
-            key=_idempotency_key(request),
-            request=payload,
-            command=lambda: _revise_mapping_api(
-                payload,
-                request,
-                mapping_id=None,
-                expected_revision=None,
-            ),
-        )
-    except Exception as error:
-        raise _historical_error(error) from error
-    return JsonResponse({**result.value, "replayed": result.replayed}, status=201)
-
-
-@admin_capability("events.historical_registration_mapping.update")
-def historical_mapping_update(request: HttpRequest, mapping_id: str) -> JsonResponse:
-    payload = _mapping_command_payload(request, updating=True)
-    try:
-        return JsonResponse(
-            _revise_mapping_api(
-                payload,
-                request,
-                mapping_id=uuid.UUID(str(mapping_id)),
-                expected_revision=require_if_match(request),
-            )
-        )
-    except APIError:
-        raise
-    except Exception as error:
-        raise _historical_error(error) from error
-
-
 @admin_capability("events.historical_registration_total.read")
 def historical_registration_total(request: HttpRequest, event_id: str) -> JsonResponse:
     capability = request.management_capability  # type: ignore[attr-defined]
@@ -1171,125 +1126,6 @@ def _qna_revoke_result(request: HttpRequest, event_id: str, invite_id: str) -> d
         audit_context=_qna_audit_context(request),
     )
     return {"revoked": True}
-
-
-@admin_capability("courses.registration_count_baseline.manage")
-def course_count_import_list(request: HttpRequest) -> JsonResponse:
-    capability = request.management_capability  # type: ignore[attr-defined]
-    try:
-        query = parse_page_query(request.GET, filter_fields=(), sort_fields=())
-        return JsonResponse(capability.service(page=query.page, page_size=query.page_size))
-    except Exception as error:
-        raise _course_count_error(error) from error
-
-
-@admin_capability("courses.registration_count_baseline.create")
-def course_count_import_create(request: HttpRequest) -> JsonResponse:
-    payload = parse_json_object(request)
-    _enforce_fields(
-        request,
-        payload,
-        required=frozenset({"source_reference", "confirmed", "reason_code"}),
-    )
-    if payload["confirmed"] is not True or not isinstance(payload["reason_code"], str):
-        raise APIError(400, "confirmation_required", "Explicit confirmation is required.")
-    capability = request.management_capability  # type: ignore[attr-defined]
-    idempotency_key = _idempotency_key(request)
-
-    def command() -> dict:
-        identity = request.api_identity  # type: ignore[attr-defined]
-        run, replayed = capability.service(
-            source_reference=payload["source_reference"],
-            reason_code=payload["reason_code"],
-            actor=identity.principal.user,
-            context=_historical_context(request, idempotency_key=idempotency_key),
-        )
-        return {**serialize_course_count_run(run), "replayed": replayed}
-
-    try:
-        result = execute_idempotent(
-            scope=capability.key,
-            key=idempotency_key,
-            request=payload,
-            command=command,
-        )
-    except Exception as error:
-        raise _course_count_error(error) from error
-    return JsonResponse(
-        {**result.value, "replayed": bool(result.value["replayed"] or result.replayed)}, status=201
-    )
-
-
-@admin_capability("courses.registration_count_baseline.detail")
-def course_count_import_detail(request: HttpRequest, run_id: str) -> JsonResponse:
-    capability = request.management_capability  # type: ignore[attr-defined]
-    try:
-        return JsonResponse(capability.service(uuid.UUID(str(run_id))))
-    except Exception as error:
-        raise _course_count_error(error) from error
-
-
-def _course_count_action(request: HttpRequest, run_id: str) -> JsonResponse:
-    payload = _confirmed_action_payload(request)
-    capability = request.management_capability  # type: ignore[attr-defined]
-    expected_revision = require_if_match(request)
-    idempotency_key = _idempotency_key(request)
-
-    def command() -> dict:
-        identity = request.api_identity  # type: ignore[attr-defined]
-        kwargs = {
-            "expected_revision": expected_revision,
-            "actor": identity.principal.user,
-            "context": _historical_context(request, idempotency_key=idempotency_key),
-            "reason_code": payload["reason_code"],
-        }
-        value = capability.service(uuid.UUID(str(run_id)), **kwargs)
-        return value if isinstance(value, dict) else serialize_course_count_run(value)
-
-    try:
-        result = execute_idempotent(
-            scope=capability.key,
-            key=idempotency_key,
-            request={"run_id": str(run_id), "expected_revision": expected_revision, **payload},
-            command=command,
-        )
-    except Exception as error:
-        raise _course_count_error(error) from error
-    return JsonResponse({**result.value, "run_id": str(run_id), "replayed": result.replayed})
-
-
-@admin_capability("courses.registration_count_baseline.dry-run")
-def course_count_import_dry_run(request: HttpRequest, run_id: str) -> JsonResponse:
-    return _course_count_action(request, run_id)
-
-
-@admin_capability("courses.registration_count_baseline.validate")
-def course_count_import_validate(request: HttpRequest, run_id: str) -> JsonResponse:
-    return _course_count_action(request, run_id)
-
-
-@admin_capability("courses.registration_count_baseline.activate")
-def course_count_import_activate(request: HttpRequest, run_id: str) -> JsonResponse:
-    return _course_count_action(request, run_id)
-
-
-@admin_capability("courses.registration_count_baseline.cancel")
-def course_count_import_cancel(request: HttpRequest, run_id: str) -> JsonResponse:
-    return _course_count_action(request, run_id)
-
-
-@admin_capability("courses.registration_count_baseline.rollback")
-def course_count_import_rollback(request: HttpRequest, run_id: str) -> JsonResponse:
-    return _course_count_action(request, run_id)
-
-
-@admin_capability("courses.registration_count_baseline.total")
-def course_count_total(request: HttpRequest, campaign_slug: str) -> JsonResponse:
-    capability = request.management_capability  # type: ignore[attr-defined]
-    try:
-        return JsonResponse(capability.service(campaign_slug))
-    except Exception as error:
-        raise _course_count_error(error) from error
 
 
 def admin_not_found(request: HttpRequest, path: str = "") -> JsonResponse:

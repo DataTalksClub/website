@@ -34,7 +34,6 @@ from core.idempotency import (
     IdempotencyInProgress,
     JsonObject,
     execute_idempotent,
-    hash_idempotency_key,
 )
 from core.models import AuditEvent, RevisionConflict
 from core.navigation import (
@@ -57,22 +56,13 @@ from core.sponsors import (
     SponsorNotFound,
     SponsorRevisionConflict,
 )
-from courses.models import CourseRegistrationCountSourceRun
-from courses.registration_count_importer import CourseCountSourceError
-from courses.services.registration_counts import (
-    CourseRegistrationCountConflict,
-    CourseRegistrationCountInvalid,
-)
-from courses.services.registration_counts import (
-    serialize_run as serialize_course_count_run,
-)
 from events.identity import EventIdentityNotFound, get_event_identity, list_event_identities
 from events.importers import (
     ProtectedSourceError,
     registered_source_options,
     resolve_registered_source_reference,
 )
-from events.models import HistoricalEventMapping, HistoricalRegistrationSourceRun
+from events.models import HistoricalRegistrationSourceRun
 from events.services import (
     HistoricalRegistrationConflict,
     HistoricalRegistrationInvalid,
@@ -120,8 +110,6 @@ def _navigation(request: HttpRequest) -> tuple[dict[str, str], ...]:
                 "events.historical_registration_total.read",
                 "events.identity.detail",
                 "events.qna.read",
-                "courses.registration_count_baseline.detail",
-                "courses.registration_count_baseline.total",
                 "site.sponsors.detail",
             }
         ):
@@ -145,10 +133,8 @@ def _navigation(request: HttpRequest) -> tuple[dict[str, str], ...]:
                     "events.historical_registration_import.manage": (
                         "Historical registration totals"
                     ),
-                    "events.historical_registration_mapping.manage": "Historical mappings",
                     "events.historical_registration_total.read": "Registration total preview",
                     "events.identity.read": "Event identities",
-                    "courses.registration_count_baseline.manage": ("Course registration totals"),
                     "site.sponsors.read": "Sponsors",
                 }.get(capability.key, capability.description),
                 "route": capability.studio.route,
@@ -332,8 +318,6 @@ def _render_credentials(
 def _event_actor(
     request: HttpRequest,
     capability_key: str,
-    *,
-    target_id: uuid.UUID | None = None,
 ):
     capability = CAPABILITY_REGISTRY.require(capability_key)
     try:
@@ -345,37 +329,6 @@ def _event_actor(
     except StudioAuthenticationRequired:
         return HttpResponse("Studio authentication required", status=401)
     except StudioAuthorizationDenied:
-        actor_id = getattr(request.user, "pk", None)
-        if (
-            request.method == "POST"
-            and capability_key.startswith("courses.registration_count_baseline.")
-            and bool(getattr(request.user, "is_authenticated", False))
-            and actor_id is not None
-        ):
-            key_hash = ""
-            idempotency_key = request.POST.get("idempotency_key", "")
-            if idempotency_key:
-                try:
-                    key_hash = hash_idempotency_key(capability.key, idempotency_key)
-                except (TypeError, ValueError):
-                    pass
-            record_audit_event(
-                action=capability.audit_action,
-                target_type="courses.registration_count_source_run",
-                target_id=target_id,
-                target_label="course-registration-count-source",
-                outcome=AuditEvent.Outcome.DENIED,
-                context=AuditWriteContext.from_service_context(
-                    ServiceContext.from_current(actor_ref=f"user:{actor_id}"),
-                    actor_id=actor_id,
-                    idempotency_key_hash=key_hash,
-                ),
-                changes={
-                    "state": {"before": None, "after": None},
-                    "revision": {"before": None, "after": None},
-                },
-                metadata={"reason": "permission_denied", "state": "denied"},
-            )
         return HttpResponseForbidden("Studio access denied")
     return principal
 
@@ -397,16 +350,6 @@ def _historical_studio_error(error: Exception) -> tuple[str, int]:
     if isinstance(error, ProtectedSourceError):
         return (f"The registered source was rejected ({error.code}).", 400)
     return ("The historical aggregate request is invalid.", 400)
-
-
-def _course_count_studio_error(error: Exception) -> tuple[str, int]:
-    if isinstance(error, CourseRegistrationCountConflict | RevisionConflict):
-        return ("The course count state changed or is not ready for this action.", 409)
-    if isinstance(error, CourseCountSourceError):
-        return (f"The registered source was rejected ({error.code}).", 400)
-    if isinstance(error, CourseRegistrationCountSourceRun.DoesNotExist):
-        return ("The course count source is unavailable.", 404)
-    return ("The course count request is invalid.", 400)
 
 
 @staff_required
@@ -1598,104 +1541,6 @@ def historical_registration_action(
     )
 
 
-def historical_registration_mappings(request: HttpRequest) -> HttpResponse:
-    if request.method not in {"GET", "HEAD", "POST"}:
-        return HttpResponseNotAllowed(("GET", "HEAD", "POST"))
-    capability_key = (
-        "events.historical_registration_mapping.create"
-        if request.method == "POST"
-        else "events.historical_registration_mapping.manage"
-    )
-    selected = _event_actor(request, capability_key)
-    if isinstance(selected, HttpResponse):
-        return selected
-    error_message = ""
-    status = 200
-    if request.method == "POST":
-        try:
-            mapping_id_raw = request.POST.get("mapping_id", "")
-            mapping_id = uuid.UUID(mapping_id_raw) if mapping_id_raw else None
-            existing = (
-                HistoricalEventMapping.objects.get(pk=mapping_id)
-                if mapping_id is not None
-                else None
-            )
-            expected_revision: int | None = None
-            if existing is not None:
-                expected_revision = int(request.POST.get("expected_revision", "0"))
-                if expected_revision < 1:
-                    raise HistoricalRegistrationInvalid("expected_revision_invalid")
-            payload: JsonObject = {
-                "mapping_id": str(mapping_id) if mapping_id else None,
-                "provider": request.POST.get("provider") or None,
-                "external_event_identifier": (
-                    request.POST.get("external_event_identifier") or None
-                ),
-                "state": request.POST.get("state", ""),
-                "event_id": request.POST.get("event_id", ""),
-                "mapping_set_revision": int(request.POST.get("mapping_set_revision", "0")),
-                "expected_revision": expected_revision,
-                "reason_code": request.POST.get("reason_code", ""),
-                "reason": request.POST.get("reason", ""),
-                "coverage_boundary": request.POST.get("coverage_boundary", "historical"),
-                "combination_policy": request.POST.get("combination_policy", "replacement"),
-            }
-
-            def command() -> dict:
-                mapping = selected.capability.service(
-                    **payload,
-                    reviewer=selected.user,
-                    context=_studio_event_context(request),
-                )
-                return {"mapping_id": str(mapping.id)}
-
-            result = execute_idempotent(
-                scope=selected.capability.key,
-                key=request.POST.get("idempotency_key", ""),
-                request=payload,
-                command=command,
-            )
-            return HttpResponseRedirect(
-                f"{reverse('studio:historical-registration-mappings')}"
-                f"?updated={result.value['mapping_id']}"
-            )
-        except Exception as error:
-            error_message, status = _historical_studio_error(error)
-    listing = CAPABILITY_REGISTRY.require("events.historical_registration_mapping.manage").service(
-        page=1, page_size=100
-    )
-    identity_listing = list_event_identities(page=1, page_size=100)
-    event_identities = list(identity_listing["items"])
-    while len(event_identities) < identity_listing["total_count"]:
-        identity_listing = list_event_identities(
-            page=identity_listing["page"] + 1,
-            page_size=identity_listing["page_size"],
-        )
-        event_identities.extend(identity_listing["items"])
-    return render(
-        request,
-        "studio/historical_registration_mappings.html",
-        {
-            "mappings": listing["items"],
-            "event_identities": event_identities,
-            "mapping_states": (
-                HistoricalEventMapping.State.MAPPED,
-                HistoricalEventMapping.State.EXCLUDED,
-            ),
-            "combination_policies": (
-                "replacement",
-                "additive_disjoint",
-                "exclude",
-            ),
-            "providers": HistoricalRegistrationSourceRun.Provider.values,
-            "idempotency_key": uuid.uuid4(),
-            "error_message": error_message,
-            "studio_navigation": _navigation(request),
-        },
-        status=status,
-    )
-
-
 def historical_registration_total(
     request: HttpRequest,
     event_id: uuid.UUID,
@@ -1716,188 +1561,6 @@ def historical_registration_total(
             "total": preview,
             "studio_navigation": _navigation(request),
         },
-    )
-
-
-def course_registration_count_list(request: HttpRequest) -> HttpResponse:
-    if request.method not in {"GET", "HEAD", "POST"}:
-        return HttpResponseNotAllowed(("GET", "HEAD", "POST"))
-    capability_key = (
-        "courses.registration_count_baseline.create"
-        if request.method == "POST"
-        else "courses.registration_count_baseline.manage"
-    )
-    selected = _event_actor(request, capability_key)
-    if isinstance(selected, HttpResponse):
-        return selected
-    error_message = ""
-    status = 200
-    if request.method == "POST":
-        try:
-            if request.POST.get("confirmed") != "true":
-                raise CourseRegistrationCountInvalid("confirmation_required")
-            source_reference = request.POST.get("source_reference", "")
-            reason_code = request.POST.get("reason_code", "")
-            idempotency_key = request.POST.get("idempotency_key", "")
-
-            def command() -> dict:
-                run, replayed = selected.capability.service(
-                    source_reference=source_reference,
-                    reason_code=reason_code,
-                    actor=selected.user,
-                    context=_studio_event_context(
-                        request,
-                        idempotency_key=idempotency_key,
-                    ),
-                )
-                return {"run_id": str(run.id), "replayed": replayed}
-
-            result = execute_idempotent(
-                scope=selected.capability.key,
-                key=idempotency_key,
-                request={
-                    "source_reference": source_reference,
-                    "reason_code": reason_code,
-                    "confirmed": True,
-                },
-                command=command,
-            )
-            return HttpResponseRedirect(
-                reverse(
-                    "studio:course-registration-count-detail",
-                    kwargs={"run_id": result.value["run_id"]},
-                )
-            )
-        except Exception as error:
-            error_message, status = _course_count_studio_error(error)
-    listing = CAPABILITY_REGISTRY.require("courses.registration_count_baseline.manage").service(
-        page=1, page_size=100
-    )
-    return render(
-        request,
-        "studio/course_registration_count_list.html",
-        {
-            "runs": listing["items"],
-            "idempotency_key": uuid.uuid4(),
-            "error_message": error_message,
-            "studio_navigation": _navigation(request),
-        },
-        status=status,
-    )
-
-
-def course_registration_count_detail(request: HttpRequest, run_id: uuid.UUID) -> HttpResponse:
-    if request.method not in {"GET", "HEAD"}:
-        return HttpResponseNotAllowed(("GET", "HEAD"))
-    selected = _event_actor(request, "courses.registration_count_baseline.detail")
-    if isinstance(selected, HttpResponse):
-        return selected
-    try:
-        detail = selected.capability.service(run_id)
-    except CourseRegistrationCountSourceRun.DoesNotExist:
-        return HttpResponse("Course count source unavailable", status=404)
-    return render(
-        request,
-        "studio/course_registration_count_detail.html",
-        {
-            "run": detail,
-            "actions": ("dry-run", "validate", "activate", "cancel", "rollback"),
-            "idempotency_key": uuid.uuid4(),
-            "studio_navigation": _navigation(request),
-        },
-    )
-
-
-def course_registration_count_action(
-    request: HttpRequest,
-    run_id: uuid.UUID,
-    action: str,
-) -> HttpResponse:
-    if request.method != "POST":
-        return HttpResponseNotAllowed(("POST",))
-    if action not in {"dry-run", "validate", "activate", "cancel", "rollback"}:
-        return HttpResponse("Course count action unavailable", status=404)
-    selected = _event_actor(
-        request,
-        f"courses.registration_count_baseline.{action}",
-        target_id=run_id,
-    )
-    if isinstance(selected, HttpResponse):
-        return selected
-    try:
-        if request.POST.get("confirmed") != "true":
-            raise CourseRegistrationCountInvalid("confirmation_required")
-        expected_revision = int(request.POST.get("expected_revision", "0"))
-        reason_code = request.POST.get("reason_code", "")
-        idempotency_key = request.POST.get("idempotency_key", "")
-
-        def command() -> dict:
-            kwargs = {
-                "expected_revision": expected_revision,
-                "actor": selected.user,
-                "context": _studio_event_context(
-                    request,
-                    idempotency_key=idempotency_key,
-                ),
-                "reason_code": reason_code,
-            }
-            value = selected.capability.service(run_id, **kwargs)
-            return value if isinstance(value, dict) else serialize_course_count_run(value)
-
-        execute_idempotent(
-            scope=selected.capability.key,
-            key=idempotency_key,
-            request={
-                "run_id": str(run_id),
-                "action": action,
-                "confirmed": True,
-                "reason_code": reason_code,
-                "expected_revision": expected_revision,
-            },
-            command=command,
-        )
-    except Exception as error:
-        message, status = _course_count_studio_error(error)
-        try:
-            detail = CAPABILITY_REGISTRY.require(
-                "courses.registration_count_baseline.detail"
-            ).service(run_id)
-        except CourseRegistrationCountSourceRun.DoesNotExist:
-            return HttpResponse("Course count source unavailable", status=404)
-        return render(
-            request,
-            "studio/course_registration_count_detail.html",
-            {
-                "run": detail,
-                "actions": ("dry-run", "validate", "activate", "cancel", "rollback"),
-                "idempotency_key": uuid.uuid4(),
-                "error_message": message,
-                "studio_navigation": _navigation(request),
-            },
-            status=status,
-        )
-    return HttpResponseRedirect(
-        reverse("studio:course-registration-count-detail", kwargs={"run_id": run_id})
-    )
-
-
-def course_registration_count_total(
-    request: HttpRequest,
-    campaign_slug: str,
-) -> HttpResponse:
-    if request.method not in {"GET", "HEAD"}:
-        return HttpResponseNotAllowed(("GET", "HEAD"))
-    selected = _event_actor(request, "courses.registration_count_baseline.total")
-    if isinstance(selected, HttpResponse):
-        return selected
-    try:
-        preview = selected.capability.service(campaign_slug)
-    except CourseRegistrationCountInvalid:
-        return HttpResponse("Course registration total unavailable", status=404)
-    return render(
-        request,
-        "studio/course_registration_count_total.html",
-        {"total": preview, "studio_navigation": _navigation(request)},
     )
 
 

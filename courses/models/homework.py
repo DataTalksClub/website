@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from .cohort import Cohort, Enrollment
 from .stat_display import build_stat_fields, homework_stat_sections
+from courses.curriculum_source_validators import validate_source_path
 from courses.validators.custom_url_validators import validate_url_200
 from .curriculum_import import (
     SOURCE_STABLE_ID_PATTERN,
@@ -44,6 +45,15 @@ class Homework(SourceProvenanceModel):
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     instructions_markdown = models.TextField(blank=True)
+    instructions_source_path = models.CharField(
+        max_length=1024,
+        blank=True,
+        default="",
+        validators=[validate_source_path],  # stable module: see the migration
+        help_text=(
+            "Repository path of the Markdown file the instructions were imported from."
+        ),
+    )
     instructions_url = models.URLField(
         blank=True,
         null=True,

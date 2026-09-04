@@ -10,9 +10,15 @@ from __future__ import annotations
 import html
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Any
 
-from .docs_projection import DocsNavigationItem, DocsNavigationTree
+from .docs_projection import (
+    DocsNavigationItem,
+    DocsNavigationTree,
+    docs_pages,
+    render_docs_markdown,
+)
 
 _PRIMARY_HEADING = re.compile(
     r'^\s*<h1 id="(?P<id>[^"]+)">(?P<label>.*?)</h1>\s*',
@@ -135,22 +141,27 @@ def docs_context_root(
     tree: DocsNavigationTree,
     public_path: str,
 ) -> DocsNavigationItem:
-    """Return the smallest useful source-backed guide around one document."""
+    """Return the smallest useful source-backed guide around one document.
+
+    A document that already holds children is itself a guide hub, so its local
+    nav is its own children.  A leaf's guide is its actual parent directory,
+    so "In this guide" always lists the pages the reader is really among.
+    Earlier this stopped at a hardcoded depth under ``/docs/courses/`` and
+    ``/docs/general/``, which is right for the common two-level course case but
+    wrong once a source folder nests deeper -- a Zoomcamp Logistics leaf such
+    as Slack landed on Zoomcamp Logistics' section indexes (Communication,
+    Course Work, ...) instead of Communication's own pages (Telegram, Email,
+    ...).  Walking the real parent link instead of a fixed depth fixes every
+    nesting depth, not only the two the old heuristic knew about.
+    """
 
     current = tree.by_path[public_path]
-    chain = [current]
+    if current.children:
+        return current
     parent_path = current.page.get("parent_path")
-    while parent_path and parent_path != tree.root.public_path:
-        parent = tree.by_path[str(parent_path)]
-        chain.append(parent)
-        parent_path = parent.page.get("parent_path")
-    chain.reverse()
-    top_path = chain[0].public_path
-    if top_path == "/docs/courses/" and len(chain) > 1:
-        return chain[1]
-    if top_path == "/docs/general/" and len(chain) > 2:
-        return chain[1]
-    return chain[0]
+    if not parent_path or parent_path == tree.root.public_path:
+        return tree.root
+    return tree.by_path[str(parent_path)]
 
 
 def docs_context_items(
@@ -200,3 +211,71 @@ def docs_home_areas(tree: DocsNavigationTree) -> tuple[DocsNavigationItem, ...]:
 
     wanted = {"/docs/general/", "/docs/activities/"}
     return tuple(item for item in tree.root.children if item.public_path in wanted)
+
+
+@dataclass(frozen=True, slots=True)
+class DocsSearchResult:
+    """One documentation page matching a reader's search terms."""
+
+    title: str
+    description: str
+    public_path: str
+
+
+@dataclass(frozen=True, slots=True)
+class _DocsSearchDocument:
+    """A search corpus entry: the displayed result plus its match haystack."""
+
+    result: DocsSearchResult
+    haystack: str
+
+
+@lru_cache(maxsize=1)
+def _docs_search_corpus() -> tuple[_DocsSearchDocument, ...]:
+    """Build an in-process, title/description/body search corpus once per process.
+
+    Wiki search reads a checked ``wiki_search.json`` built ahead of time from the wiki
+    projection.  Docs has no such build step yet (Pass 0 is presentation-only, no source
+    or projection change), so this derives the same shape directly from the rendered
+    bodies the detail pages already produce, and caches it for the life of the process
+    rather than re-rendering 105 pages on every search request.
+    """
+
+    corpus: list[_DocsSearchDocument] = []
+    for page in docs_pages():
+        title = str(page["title"])
+        description = str(page.get("description") or "")
+        rendered, _headings = render_docs_markdown(page)
+        body_text = html.unescape(_TAGS.sub(" ", rendered))
+        haystack = " ".join((title, description, body_text)).casefold()
+        corpus.append(
+            _DocsSearchDocument(
+                result=DocsSearchResult(
+                    title=title,
+                    description=description,
+                    public_path=str(page["public_path"]),
+                ),
+                haystack=haystack,
+            )
+        )
+    return tuple(corpus)
+
+
+def docs_search_results(query: str) -> tuple[DocsSearchResult, ...]:
+    """Return documentation pages whose title, description, or body match every term.
+
+    Modeled on the wiki's ``_wiki_search_results``: terms are ANDed and matched
+    case-insensitively, and results are capped so a broad term cannot return the
+    whole corpus at once.
+    """
+
+    terms = query.casefold().split()
+    if not terms:
+        return ()
+    results: list[DocsSearchResult] = []
+    for document in _docs_search_corpus():
+        if all(term in document.haystack for term in terms):
+            results.append(document.result)
+            if len(results) == 100:
+                break
+    return tuple(results)

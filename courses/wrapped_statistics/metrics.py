@@ -177,9 +177,18 @@ def wrapped_total_points(enrollments):
 
 
 def wrapped_display_name(student, enrollments):
+    """The pseudonym stored on a Wrapped row.
+
+    Enrollment display names are generated pseudonyms, so they are safe to
+    persist and to render.  An account identifier is not: `username` is the
+    email address for every script-created account, and this value reaches the
+    Wrapped heading, `<title>` and the social-card meta tags.  A student with
+    no enrollment therefore gets no name rather than their username.
+    """
+
     if enrollments:
         return enrollments[0].display_name
-    return student.username
+    return ""
 
 
 def user_wrapped_submission_metrics(data: UserWrappedStatData):

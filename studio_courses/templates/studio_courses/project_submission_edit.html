@@ -1,7 +1,7 @@
 {% extends 'studio_courses/base.html' %}
-{% load custom_filters %}
+{% load breadcrumbs custom_filters %}
 {% comment %}
-  Design 5a (issue #179): the project submission grading form.
+  Design system (issue #179): the project submission grading form.
 
   A grading surface, so the port is presentational only: the form still posts
   to its own URL with the same CSRF token and the same criteria_score_<id>,
@@ -10,7 +10,7 @@
   names, and the live-total script still finds .criteria-score,
   .additional-score, .peer-review-score, #project_score, #total_score and
   #passed, so the running total and the pass threshold behave identically.
-  The classes changed because a design 5a page loads no Tailwind, no
+  The classes changed because a design system page loads no Tailwind, no
   courses.css and no icon font: the slabs are the Studio base's
   .admin-section, the fields are the system's .field/.field-label/.field-input
   and the two flags are .admin-check.
@@ -44,19 +44,10 @@
   }
 {% endblock %}
 
-{% block breadcrumbs %}
-  <li>
-    <a href="{% url 'studio_courses_course_list' %}">Courses</a>
-  </li>
-  <li>
-    <a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a>
-  </li>
-  <li>
-    <a href="{% url 'studio_courses_project_submissions' course.slug project.slug %}">{{ project.title }} Submissions</a>
-  </li>
-  <li aria-current="page">
-    Edit Submission
-  </li>
+{% block breadcrumb_trail %}
+  {% url 'studio_courses_course' course.slug as studio_course_url %}
+  {% url 'studio_courses_project_submissions' course.slug project.slug as studio_project_submissions_url %}
+  {% breadcrumbs "Studio" studio_home_url "Courses" studio_courses_url course.title studio_course_url project.title "" "Submissions" studio_project_submissions_url current="Edit Submission" %}
 {% endblock %}
 
 {% block page_head %}

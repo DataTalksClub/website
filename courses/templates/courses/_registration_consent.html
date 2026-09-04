@@ -1,0 +1,34 @@
+{% load accessibility %}
+{% comment %}
+  The newsletter-consent checkbox.
+
+  OWNER RULING, 2026-09-02 (`_docs/design/specs/signed-in-home.md` §8.4 and
+  §13-Q1): consent is the consideration for a free course, so the box is
+  required-to-tick for everyone, signed in or not.  Required is not the same as
+  pre-agreed: it is always rendered unticked and is never prefilled from the
+  profile or from a previous registration, so the tick stays an affirmative act
+  and each registration stores its own fresh answer.
+{% endcomment %}
+{% accessibility_help_id field as help_id %}
+{% accessibility_error_id field as error_id %}
+<div>
+  <div class="checkbox-row">
+    {% accessible_widget field %}
+    <label for="{{ field.id_for_label }}" class="checkbox-label">
+      {{ field.label }}
+      {% if field.field.required %}
+        <span class="a11y-required" aria-hidden="true">*</span>
+        <span class="sr-only">(required)</span>
+      {% endif %}
+    </label>
+  </div>
+  {% if field.help_text %}
+    <p id="{{ help_id }}" class="checkbox-help">{{ field.help_text }}</p>
+  {% endif %}
+  {% if field.errors %}
+    <p id="{{ error_id }}" class="a11y-error">
+      <span class="sr-only">Error:</span>
+      {{ field.errors|join:" " }}
+    </p>
+  {% endif %}
+</div>

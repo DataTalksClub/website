@@ -4,8 +4,9 @@ import json
 import re
 
 import boto3
-from django.conf import settings
 from django.core.management.base import CommandError
+
+from core.runtime_config import get_int_setting, get_str_setting
 
 
 @dataclass(frozen=True)
@@ -38,7 +39,7 @@ def safe_s3_key_part(value):
 
 
 def import_object_key(kind, config, list_key, content_sha256):
-    import_prefix = getattr(settings, "DATAMAILER_IMPORT_S3_PREFIX", "")
+    import_prefix = get_str_setting("datamailer.import_s3_prefix")
     safe_list_key = safe_s3_key_part(list_key)
     parts = [
         import_prefix,
@@ -58,7 +59,7 @@ def import_object_key(kind, config, list_key, content_sha256):
 
 
 def import_s3_bucket():
-    bucket = getattr(settings, "DATAMAILER_IMPORT_S3_BUCKET", "")
+    bucket = get_str_setting("datamailer.import_s3_bucket")
     if not bucket:
         raise CommandError(
             "DATAMAILER_IMPORT_S3_BUCKET must be set when using "
@@ -68,7 +69,7 @@ def import_s3_bucket():
 
 
 def import_s3_client():
-    region = getattr(settings, "DATAMAILER_IMPORT_S3_REGION", "")
+    region = get_str_setting("datamailer.import_s3_region")
     s3_kwargs = {}
     if region:
         s3_kwargs["region_name"] = region
@@ -98,9 +99,7 @@ def upload_import_body(upload_body):
 
 def presigned_import_url(s3, bucket, key):
     params = {"Bucket": bucket, "Key": key}
-    expires_in = getattr(
-        settings, "DATAMAILER_IMPORT_URL_EXPIRES_SECONDS", 3600
-    )
+    expires_in = get_int_setting("datamailer.import_url_expires_seconds")
     return s3.generate_presigned_url(
         "get_object",
         Params=params,

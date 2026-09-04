@@ -1,4 +1,13 @@
-"""Resolve repository-relative markdown links to curriculum URLs."""
+"""Resolve repository-relative markdown links to curriculum or upstream URLs.
+
+A lesson is imported verbatim, so its links are the repository's own filesystem
+paths.  Where the target is a page this site publishes -- another unit, a
+module, a homework -- the link becomes that page's canonical route.  Where it is
+anything else the repository holds -- a notebook, a script, a directory, a
+Markdown file that was never imported -- there is no page here, and leaving the
+path alone points the reader at a URL under this domain that cannot exist.  Such
+a target resolves to the file in the upstream repository instead.
+"""
 
 from __future__ import annotations
 
@@ -8,7 +17,8 @@ from collections.abc import Iterable
 
 from django.urls import reverse
 
-from courses.models import Unit
+from courses.models import Homework, Unit
+from courses.services.unit_assets import unit_repository
 
 _MARKDOWN_LINK_RE = re.compile(
     r'(?<!\!)'
@@ -51,6 +61,24 @@ def _module_url(module) -> str:
     )
 
 
+def _repository_root_relative(resolved_path: str) -> str:
+    """Return a normalized path relative to the repository root."""
+
+    return "" if resolved_path in {".", "/"} else resolved_path.lstrip("/")
+
+
+def _homework_url(homework) -> str:
+    cohort = homework.course
+    return reverse(
+        "homework",
+        kwargs={
+            "course_slug": cohort.course.slug,
+            "cohort_year": cohort.identifier,
+            "homework_slug": homework.slug,
+        },
+    )
+
+
 def rewrite_unit_markdown_links(markdown: str, unit: Unit) -> str:
     """Rewrite resolvable repository-relative ``.md`` links in unit content.
 
@@ -79,38 +107,85 @@ def rewrite_unit_markdown_links(markdown: str, unit: Unit) -> str:
     }
 
     modules = cohort.modules.filter(source_path__isnull=False).select_related(
-        "cohort", "cohort__course"
+        "cohort", "cohort__course", "terminal_homework"
     )
     modules_by_directory = {
         posixpath.dirname(module.source_path): module
         for module in modules
         if module.source_path
     }
+    # A lesson that links to ``homework.md`` means the page that publishes
+    # those instructions.  The homework record states the Markdown file it was
+    # imported from, which is the direct bridge; a repository that keeps the
+    # module's homework beside its ``module.yaml`` -- the ML curriculum does --
+    # is covered by the module's own directory, the same shape the README rule
+    # above already uses.
+    homework_by_instructions = {
+        homework.instructions_source_path: homework
+        for homework in Homework.objects.filter(course=cohort).select_related(
+            "course", "course__course"
+        )
+        if homework.instructions_source_path
+    }
+    homework_by_module_directory = {
+        directory: module.terminal_homework
+        for directory, module in modules_by_directory.items()
+        if module.terminal_homework_id
+    }
     current_directory = posixpath.dirname(unit.source_path)
+
+    repository = unit_repository(unit)
 
     def resolve_target(target: str) -> str | None:
         if not target or target.startswith("#") or _is_external(target):
             return None
 
         path_part, separator, fragment = target.partition("#")
-        if not path_part.lower().endswith(".md") or path_part.startswith("/"):
+        if not path_part or path_part.startswith("/"):
             return None
 
         resolved_path = posixpath.normpath(
             posixpath.join(current_directory, path_part)
         )
-        target_unit = units_by_path.get(resolved_path)
-        if target_unit is not None:
-            suffix = f"#{fragment}" if separator else ""
-            return f"{_unit_url(target_unit)}{suffix}"
+        # ``..`` that climbs out of the repository is not a link this site can
+        # honestly resolve in any direction.
+        if resolved_path.startswith(".."):
+            return None
+        suffix = f"#{fragment}" if separator else ""
 
-        if posixpath.basename(resolved_path).casefold() == "readme.md":
-            target_module = modules_by_directory.get(posixpath.dirname(resolved_path))
-            if target_module is not None:
-                suffix = f"#{fragment}" if separator else ""
-                return f"{_module_url(target_module)}{suffix}"
+        if path_part.lower().endswith(".md"):
+            target_unit = units_by_path.get(resolved_path)
+            if target_unit is not None:
+                return f"{_unit_url(target_unit)}{suffix}"
 
-        return None
+            basename = posixpath.basename(resolved_path).casefold()
+            if basename == "readme.md":
+                target_module = modules_by_directory.get(posixpath.dirname(resolved_path))
+                if target_module is not None:
+                    return f"{_module_url(target_module)}{suffix}"
+
+            target_homework = homework_by_instructions.get(resolved_path)
+            if target_homework is None and basename == "homework.md":
+                target_homework = homework_by_module_directory.get(
+                    posixpath.dirname(resolved_path)
+                )
+            if target_homework is not None:
+                return f"{_homework_url(target_homework)}{suffix}"
+
+        # Everything else the repository points at -- a notebook, a script, a
+        # dataset, a PDF, a whole ``code/`` directory, a Markdown file that was
+        # never imported as a unit -- has no page on this site.  Serving the
+        # source path unchanged makes it a link to a path under
+        # ``datatalks.club`` that cannot exist, so send the reader to the file
+        # where it does: the upstream repository.  Branch, not commit, for the
+        # same reason unit images resolve to the branch tip.
+        if repository is None or not repository.is_github:
+            return None
+        is_directory = path_part.rstrip().endswith(("/", "/.", "/..")) or path_part in {".", ".."}
+        return (
+            f"{repository.browse_url(_repository_root_relative(resolved_path), directory=is_directory)}"
+            f"{suffix}"
+        )
 
     def replace_link(match: re.Match[str]) -> str:
         rewritten = resolve_target(match.group("target"))

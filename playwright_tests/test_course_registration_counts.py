@@ -1,25 +1,12 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 from django.urls import reverse
 from playwright.sync_api import Browser, Page, ViewportSize, expect
 
-from courses.models import (
-    Cohort,
-    CourseRegistrationCountRevision,
-    CourseRegistrationCountSlot,
-    CourseRegistrationCountSourceRun,
-    RegistrationCampaign,
-)
-from courses.registration_count_importer import (
-    ADAPTER_VERSION,
-    COUNT_POLICY_VERSION,
-    aggregate_checksum,
-    source_reference_digest,
-)
+from courses.models import Cohort, RegistrationCampaign
 
 pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
 
@@ -31,84 +18,20 @@ VIEWPORTS = (
 
 
 def _campaign_with_count(settings, count: int) -> RegistrationCampaign:
+    del settings  # No registered-source configuration to thread through any more.
     course = Cohort.objects.create(
         slug=f"synthetic-count-cohort-{count}",
         title="Synthetic registration cohort",
         description="Deterministic browser fixture.",
     )
-    campaign = RegistrationCampaign.objects.create(
+    return RegistrationCampaign.objects.create(
         slug=f"synthetic-count-campaign-{count}",
         title="Synthetic registration campaign",
         edition_label="2026 cohort",
         current_course=course,
+        registration_baseline_cohort=course,
+        registration_baseline_count=count,
     )
-    reference = f"synthetic-browser-count-{count}"
-    source_checksum = f"{count + 1:x}" * 64
-    source_checksum = source_checksum[:64]
-    schema_checksum = "b" * 64
-    cutoff = datetime(2026, 1, 1, tzinfo=UTC)
-    native_start = cutoff + timedelta(days=1)
-    source_created_at = cutoff - timedelta(days=1) if count else None
-    settings.COURSE_REGISTRATION_COUNT_SOURCES = {
-        reference: {
-            "adapter": ADAPTER_VERSION,
-            "path": "/not-read-by-public-query",
-            "sha256": source_checksum,
-            "byte_size": 1,
-            "schema_version": "synthetic-browser-v1",
-            "schema_contract_checksum": schema_checksum,
-            "captured_at": cutoff.isoformat(),
-            "source_frozen_at": cutoff.isoformat(),
-            "coverage_cutoff_at": cutoff.isoformat(),
-            "native_start_at": native_start.isoformat(),
-        }
-    }
-    run = CourseRegistrationCountSourceRun.objects.create(
-        adapter_version=ADAPTER_VERSION,
-        schema_version="synthetic-browser-v1",
-        count_policy_version=COUNT_POLICY_VERSION,
-        whole_source_checksum=source_checksum,
-        source_byte_size=1,
-        schema_contract_checksum=schema_checksum,
-        aggregate_manifest_checksum="c" * 64,
-        source_reference_digest=source_reference_digest(reference),
-        captured_at=cutoff,
-        source_frozen_at=cutoff,
-        campaign_total=1,
-        row_total=count,
-        state=CourseRegistrationCountSourceRun.State.ACTIVE,
-    )
-    revision = CourseRegistrationCountRevision.objects.create(
-        source_run=run,
-        campaign=campaign,
-        cohort=course,
-        campaign_slug_snapshot=campaign.slug,
-        cohort_slug_snapshot=course.slug,
-        baseline_count=count,
-        source_min_created_at=source_created_at,
-        source_max_created_at=source_created_at,
-        coverage_cutoff_at=cutoff,
-        proposed_native_start_at=native_start,
-        aggregate_checksum=aggregate_checksum(
-            campaign_slug=campaign.slug,
-            cohort_slug=course.slug,
-            count=count,
-            minimum=source_created_at,
-            maximum=source_created_at,
-            cutoff=cutoff,
-        ),
-        state=CourseRegistrationCountRevision.State.ACTIVE,
-    )
-    CourseRegistrationCountSlot.objects.create(
-        campaign=campaign,
-        cohort=course,
-        campaign_slug_snapshot=campaign.slug,
-        cohort_slug_snapshot=course.slug,
-        mode=CourseRegistrationCountSlot.Mode.BASELINE_PLUS_NATIVE,
-        active_baseline_revision=revision,
-        native_start_at=native_start,
-    )
-    return campaign
 
 
 def _assert_no_overflow(page: Page) -> None:
@@ -163,7 +86,7 @@ def test_copied_registration_count_zero_one_many_light_and_dark(
         path=SCREENSHOTS / f"count-{count}-{viewport_name}-light.png",
         full_page=True,
     )
-    # The design 5a masthead labels the toggle by the mode it switches to, so
+    # The design system masthead labels the toggle by the mode it switches to, so
     # the control is taken by its stable id rather than the copied shell's
     # "Toggle dark mode" name (as test_course_design_parity already does).
     page.locator("#dark-mode-toggle").click()

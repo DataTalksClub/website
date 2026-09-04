@@ -165,7 +165,7 @@ class CourseStudioCoursesViewTests(TestCase):
         self.assertContains(response, 'title="View public course page"')
         self.assertContains(response, 'title="Edit in Django Admin"')
         # The per-row disclosure of the actions on a homework or a project is
-        # still there; design 5a (issue #179) renamed it to the Studio admin
+        # still there; design system (issue #179) renamed it to the Studio admin
         # menu the whole surface shares.
         self.assertContains(response, "admin-menu-toggle")
         self.assertNotContains(response, "Needs attention")

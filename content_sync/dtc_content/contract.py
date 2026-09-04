@@ -30,6 +30,15 @@ SOURCE_CI_RUN = "https://github.com/DataTalksClub/content/actions/runs/313653584
 # different artifact, and each move is a reviewed event: this pair was last
 # regenerated when the article bodies stopped being flattened to plain text and
 # started carrying their illustrations, tables, code samples and links.
+#
+# Digest scope changed in issue #301: ``tree_sha256`` no longer covers anything under
+# ``content/public_projection/media/``.  The media objects are served from an object
+# store and verified per record against ``provenance.checksum``, and the manifest now
+# declares that scope in ``tree_digest_scope``.  These two hex values were already stale
+# against the checked manifest before #301 and are deliberately left untouched here: the
+# parity gate is opt-in (``DTC_CONTENT_ACCEPTED_CHECKOUT``) and re-pinning them would
+# silently accept the drift that #253 exists to reconcile.  Whichever of #253/#301 lands
+# second must regenerate this pair under the media-free scope.
 PROJECTION_MANIFEST_SHA256 = "6e09a551385da046530144f409bf185c75847f82773eced41e4f98d861e92ecd"
 PROJECTION_TREE_SHA256 = "9baae60493e2ee891192e7cf01b5d8e2d8a5f0a71e1c6189b4dfb1ba0aa4e540"
 PROJECTION_PODCASTS_SHA256 = "f24454864a7c9fd7c66afa7aa533a5a853b70535cdcd33c86ca2e4ce6b0b3e34"
@@ -67,10 +76,31 @@ EDITORIAL_OVERLAY_TARGETS = (
     "podcasts/s24e06-how-to-build-ai-that-actually-ships-in-production.yaml",
 )
 
-ACCEPTED_COUNTS = {
+# Two different counts, because they answer two different questions.
+#
+# ACCEPTED_SOURCE_COUNTS is how many files the upstream repository holds.  The
+# repair manifest at the accepted commit declares exactly this under
+# ``current_counts`` and the manifest is digest-pinned, so this pair cannot drift
+# without the pin moving.
+#
+# ACCEPTED_COUNTS is how many documents the adapter ingests, which is what the
+# bundle and the projection are compared against.  The two differ by the accepted
+# commit's two underscore-prefixed drafts -- ``_s12e08.yaml`` and
+# ``_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.yaml`` -- and
+# their two transcripts.  A draft was never published, so it has no legacy route
+# contract and cannot acquire one; ingesting it made the whole checkout
+# unimportable.  See ``_is_draft`` in the adapter.
+ACCEPTED_SOURCE_COUNTS = {
     "articles": 55,
     "podcasts": 205,
     "podcast_transcripts": 203,
+    "books": 98,
+    "media": 815,
+}
+ACCEPTED_COUNTS = {
+    "articles": 55,
+    "podcasts": 203,
+    "podcast_transcripts": 201,
     "books": 98,
     "media": 815,
 }

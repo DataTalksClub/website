@@ -9,7 +9,7 @@ from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 
 from core.idempotency import IdempotencyConflict
-from core.models import AuditEvent, RevisionConflict, Sponsor, SponsorRevision
+from core.models import AuditEvent, RevisionConflict, Sponsor
 from core.sponsors import (
     InvalidSponsor,
     SponsorRevisionConflict,
@@ -17,6 +17,7 @@ from core.sponsors import (
     create_sponsor,
     export_sponsor_directory,
     get_sponsor,
+    import_public_sponsor_directory,
     list_sponsors,
     public_events_hub_sponsors,
     public_sponsors,
@@ -51,14 +52,13 @@ def _payload(**overrides: object) -> dict[str, object]:
 
 
 class SponsorServiceTests(TestCase):
-    def test_create_validates_fields_and_writes_one_revision_and_audit(self) -> None:
+    def test_create_validates_fields_and_writes_audit(self) -> None:
         result = _create(_payload(name="  Acme Analytics  "))
         self.assertFalse(result.replayed)
         self.assertEqual(result.sponsor["name"], "Acme Analytics")
         self.assertEqual(result.sponsor["revision"], 1)
         self.assertEqual(result.sponsor["lifecycle"], "draft")
         self.assertEqual(Sponsor.objects.count(), 1)
-        self.assertEqual(SponsorRevision.objects.count(), 1)
         audit = AuditEvent.objects.get(action="core.sponsor.created")
         self.assertEqual(audit.target_label, "acme")
         serialized = str(audit.changes) + str(audit.metadata)
@@ -156,7 +156,6 @@ class SponsorServiceTests(TestCase):
         )
         self.assertEqual(archived.sponsor["lifecycle"], "archived")
         self.assertEqual(Sponsor.objects.count(), 1)
-        self.assertEqual(SponsorRevision.objects.count(), 2)
         with self.assertRaises(InvalidSponsor):
             archive_sponsor(
                 sponsor_id=created.sponsor["id"],
@@ -175,7 +174,6 @@ class SponsorServiceTests(TestCase):
             actor_ref="user:188",
         )
         self.assertEqual(reactivated.sponsor["lifecycle"], "active")
-        self.assertEqual(SponsorRevision.objects.count(), 3)
         self.assertEqual(
             set(AuditEvent.objects.values_list("action", flat=True)),
             {
@@ -345,19 +343,38 @@ class SponsorServiceTests(TestCase):
 
 
 class SponsorPublicSurfaceTests(TestCase):
+    """The homepage and ``/sponsors`` render the ``public_directory`` placement.
+
+    ``setUp`` imports the reviewed set (``core/sponsor_directory.json``)
+    itself, the same way production does, rather than relying on
+    ``test_support.reference_data`` to have loaded it globally the way the
+    reviewed testimonials are -- this file already has an extensive suite
+    that assumes an empty ``Sponsor`` table at the start of a test, and
+    seeding it globally would silently change what every one of those tests
+    counts. A Studio- or API-created sponsor assigned to the same placement
+    (position 5, after the four reviewed ones) proves the page reads the
+    database and not a frozen set of four -- the same "not merely the old
+    hardcoded content by coincidence" proof the reviewed portraits get in
+    ``courses.tests.test_testimonials``.
+    """
+
     def setUp(self) -> None:
+        import_public_sponsor_directory()
         _create(
             _payload(
                 lifecycle="active",
                 name="Open Data Partner",
-                tagline="Keeping community learning free",
+                description="Keeping community learning free",
+                assignments=[
+                    {"placement": "public_directory", "position": 5, "enabled": True},
+                ],
             )
         )
 
     def test_homepage_and_directory_share_the_public_sponsor_source(self) -> None:
         self.assertEqual(
             [sponsor["name"] for sponsor in public_sponsors()],
-            ["Open Data Partner"],
+            ["dltHub", "Astronomer", "Kestra", "Snowplow", "Open Data Partner"],
         )
 
         home = self.client.get(reverse("home"))
@@ -365,7 +382,7 @@ class SponsorPublicSurfaceTests(TestCase):
 
         self.assertEqual(home.status_code, 200)
         self.assertContains(home, 'id="sponsors-heading"')
-        for name in ("dltHub", "Astronomer", "Kestra", "Snowplow"):
+        for name in ("dltHub", "Astronomer", "Kestra", "Snowplow", "Open Data Partner"):
             self.assertContains(home, f'alt="{name}"')
         self.assertContains(home, f'href="{reverse("sponsors")}"')
         self.assertEqual(directory.status_code, 200)
@@ -375,6 +392,8 @@ class SponsorPublicSurfaceTests(TestCase):
         self.assertContains(directory, "/static/core/sponsors/dlthub.png")
         self.assertContains(directory, "production-minded data ingestion")
         self.assertContains(directory, "LLM Zoomcamp")
+        self.assertContains(directory, "Open Data Partner")
+        self.assertContains(directory, "Keeping community learning free")
         self.assertNotContains(directory, "Community partners")
         self.assertContains(directory, "With thanks to every supporter")
         self.assertNotContains(directory, 'href="/mediakit/')
@@ -427,7 +446,6 @@ class SponsorConcurrencyTests(TransactionTestCase):
         ]
         self.assertEqual(len(winners), 1, results)
         self.assertEqual(len(conflicts), 1, results)
-        self.assertEqual(SponsorRevision.objects.count(), 2)
         self.assertEqual(
             AuditEvent.objects.filter(action="core.sponsor.updated").count(),
             1,

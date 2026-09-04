@@ -85,7 +85,7 @@ def test_target_present_executes_only_explicit_contract_targets(
                 f"{AGGREGATE_TARGET}: {' '.join(QUALITY_TARGETS)}",
                 f"{AGGREGATE_TARGET}: lint",
             ),
-            "does not match quality-contract-v1",
+            "does not match quality-contract-v2",
         ),
         (
             _target_definitions(include_aggregate=False) + "lint:\n\t@true\n",

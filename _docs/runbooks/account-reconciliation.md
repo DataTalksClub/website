@@ -48,13 +48,13 @@ sessions, host-only cookies, and explicit reauthentication.
 Replace the synthetic value below with the approved snapshot SHA-256:
 
 ```console
-DJANGO_SETTINGS_MODULE=website.settings.test \
-  uv run python manage.py reconcile_accounts \
+uv run --frozen python scripts/prod/import_account_reconciliation.py \
+  --database <target> \
   --snapshot-id aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
   --output .tmp/account-reconciliation-dry-run-1.json
 
-DJANGO_SETTINGS_MODULE=website.settings.test \
-  uv run python manage.py reconcile_accounts \
+uv run --frozen python scripts/prod/import_account_reconciliation.py \
+  --database <target> \
   --snapshot-id aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
   --output .tmp/account-reconciliation-dry-run-2.json
 
@@ -93,15 +93,15 @@ reviewed disposition.
 ## 4. Apply idempotently
 
 ```console
-DJANGO_SETTINGS_MODULE=website.settings.test \
-  uv run python manage.py reconcile_accounts \
+uv run --frozen python scripts/prod/import_account_reconciliation.py \
+  --database <target> \
   --snapshot-id aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
   --mapping .tmp/account-reconciliation-mapping.json \
   --apply \
   --output .tmp/account-reconciliation-apply-1.json
 
-DJANGO_SETTINGS_MODULE=website.settings.test \
-  uv run python manage.py reconcile_accounts \
+uv run --frozen python scripts/prod/import_account_reconciliation.py \
+  --database <target> \
   --snapshot-id aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
   --mapping .tmp/account-reconciliation-mapping.json \
   --apply \
@@ -123,7 +123,7 @@ change account authority.
 The quarantine row and denial audit are atomic. A stale or missing survivor
 uses the valid source account for audit attribution; when neither reviewed
 account is valid, the event uses `system:account-reconciliation` with no user
-foreign key. The command must return the controlled `quarantined` report and
+foreign key. The script must return the controlled `quarantined` report and
 must never print a raw database integrity error. An unexpected integrity
 failure during apply rolls back all merge writes and reports only
 `reconciliation_integrity_conflict`.
@@ -164,8 +164,8 @@ social UID, password, session, cookie, token, and credential values.
 Create a synthetic account-owned write after apply, then run:
 
 ```console
-DJANGO_SETTINGS_MODULE=website.settings.test \
-  uv run python manage.py reconcile_accounts \
+uv run --frozen python scripts/prod/import_account_reconciliation.py \
+  --database <target> \
   --snapshot-id aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
   --mapping .tmp/account-reconciliation-mapping.json \
   --rollback-check \

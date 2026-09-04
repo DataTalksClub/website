@@ -26,10 +26,10 @@ from yaml.events import (
     SequenceStartEvent,
 )
 
-from compatibility.contracts import PublicContract
 from content.inventory import content_route_contracts
 from content.podcast_routes import podcast_canonical_path
 from content.public_data import public_projection
+from content.route_contracts import PublicContract
 from content.services import PreparedDocument, sanitize_rendered_html
 
 from .contract import (
@@ -37,6 +37,7 @@ from .contract import (
     ACCEPTED_CONTENT_COMMIT,
     ACCEPTED_CONTENT_TREE,
     ACCEPTED_COUNTS,
+    ACCEPTED_SOURCE_COUNTS,
     DTC_CONTENT_CONTRACT,
     EDITORIAL_OVERLAY_CREATED,
     EDITORIAL_OVERLAY_ISSUE,
@@ -60,17 +61,22 @@ from .media import validate_media_batch
 
 _ARTICLE_NAME = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})-(?P<slug>[a-z0-9][a-z0-9-]*)\.md$")
 _SLUG = re.compile(r"^_?[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$")
-# Bounds are chosen from the observed distribution of shipped
-# `content/public_projection/{books,podcasts}.json` slugs and book titles: the
-# longest legitimate book slug/title is well under 70 characters and the
-# longest legitimate podcast slug is well under 100 characters, while the one
-# known offending record (a 138-character book slug and 143-character book
-# title) sits far past either bound. These limits are a forward-looking guard
-# against a future import silently accepting another slug/title that long;
-# they intentionally leave the already-synced outlier record untouched.
-_BOOK_SLUG_MAX_LENGTH = 80
-_BOOK_TITLE_MAX_LENGTH = 80
-_PODCAST_SLUG_MAX_LENGTH = 110
+# Bound by what the database can store, not by the current corpus.
+#
+# These were bounds read off the shipped projection -- 80 characters for a book
+# slug and title -- with a comment saying the one 138-character book slug and
+# 143-character title were deliberately excluded as illegitimate. That book is
+# published and live at /books/20241118-why-data-science-projects-fail-....html,
+# so the guard rejected real content and made the accepted commit unimportable:
+# the corpus this adapter exists to ingest cannot pass its own length check.
+#
+# Whether that title is too long is an editorial question, and the place to
+# settle it is the content repository. An importer's job is to refuse what it
+# cannot faithfully store, so the bound is ContentDocument.slug (255) and
+# ContentDocument.title (512). Anything the column accepts, this accepts.
+_BOOK_SLUG_MAX_LENGTH = 255
+_BOOK_TITLE_MAX_LENGTH = 512
+_PODCAST_SLUG_MAX_LENGTH = 255
 _LIQUID_TAG = re.compile(r"{%\s*(.*?)\s*%}")
 _INCLUDE = re.compile(r"^include\s+(?P<name>[A-Za-z0-9_./-]+)(?:\s+(?P<args>.*))?$")
 _MARKDOWN_URL = re.compile(r"!?\[[^\]]*\]\((?P<url>[^\s)]+)(?:\s+[^)]*)?\)")
@@ -311,16 +317,6 @@ class _UnsafeHtmlInspector(HTMLParser):
                     self._reject("unsafe_rendered_html")
 
 
-class _TextExtractor(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.parts: list[str] = []
-
-    def handle_data(self, data: str) -> None:
-        if data.strip():
-            self.parts.append(data.strip())
-
-
 def _fail(code: str, path: str | Path = ".") -> NoReturn:
     normalized = path.as_posix() if isinstance(path, Path) else path
     raise DtcContentValidationError(code, normalized)
@@ -508,6 +504,23 @@ def _walk_directory(root: Path, directory: Path) -> tuple[Path, ...]:
     return tuple(result)
 
 
+def _is_draft(path: Path) -> bool:
+    """A leading underscore marks an unpublished draft.
+
+    This is the source repository's own convention, inherited from the Jekyll site
+    that produced it: a file whose name starts with ``_`` is never rendered, so it
+    has no public URL and no legacy route contract -- and cannot acquire one, since
+    the crawler that built the route inventory only ever saw published pages.
+
+    ``scripts/build_public_projection.py`` already applies exactly this rule.  The
+    adapter used to ingest drafts anyway and then fail closed on the missing
+    contract, which is how ``podcasts/_s12e08.yaml`` made a whole checkout
+    unimportable.  One rule for drafts, in both builders.
+    """
+
+    return path.name.startswith("_")
+
+
 def _collect_paths(root: Path) -> dict[str, tuple[Path, ...]]:
     articles = _walk_directory(root, root / "articles")
     podcasts_all = _walk_directory(root, root / "podcasts")
@@ -516,11 +529,15 @@ def _collect_paths(root: Path) -> dict[str, tuple[Path, ...]]:
     for name in ("posts", "podcast", "books"):
         media.extend(_walk_directory(root, root / "images" / name))
 
+    # A draft is still validated for shape and safety -- it must sit where its kind
+    # belongs and carry the right suffix -- and is then dropped rather than ingested.
     article_files: list[Path] = []
     for path in articles:
         relative = _safe_relative(path, root)
         if path.parent != root / "articles" or path.suffix != ".md":
             _fail("unsupported_content_path", relative)
+        if _is_draft(path):
+            continue
         article_files.append(path)
 
     podcast_files: list[Path] = []
@@ -530,9 +547,11 @@ def _collect_paths(root: Path) -> dict[str, tuple[Path, ...]]:
         if path.suffix != ".yaml":
             _fail("unsupported_content_path", relative)
         if path.parent == root / "podcasts":
-            podcast_files.append(path)
+            if not _is_draft(path):
+                podcast_files.append(path)
         elif path.parent == root / "podcasts" / "transcripts":
-            transcript_files.append(path)
+            if not _is_draft(path):
+                transcript_files.append(path)
         else:
             _fail("unsupported_content_path", relative)
 
@@ -541,6 +560,8 @@ def _collect_paths(root: Path) -> dict[str, tuple[Path, ...]]:
         relative = _safe_relative(path, root)
         if path.parent != root / "books" or path.suffix != ".yaml":
             _fail("unsupported_content_path", relative)
+        if _is_draft(path):
+            continue
         book_files.append(path)
 
     for path in media:
@@ -568,11 +589,21 @@ def _checked_contracts() -> tuple[dict[str, PublicContract], str, frozenset[str]
         for collection in ("articles", "podcasts", "books")
         for record in projection[collection]
     }
+    # Adoption is a statement about the public path -- "the projection publishes
+    # this, so a missing legacy route contract means the crawl never saw it, not
+    # that we invented it". It is not a statement about which revision produced
+    # the bytes; those are verified per record against provenance.checksum.
+    #
+    # Pinning it to ACCEPTED_CONTENT_COMMIT coupled two pins that move
+    # independently, and they have moved: the checked projection was rebuilt
+    # against a later content revision, so this matched nothing and every
+    # projection-published asset the legacy crawl missed failed closed. There is
+    # one such asset today -- images/books/20241104-llm-engineer-s-handbook/preview.jpg,
+    # published and served, whose sibling cover.jpg was crawled and it was not.
     adopted_paths.update(
         quote(str(record["public_path"]), safe="/")
         for record in projection["media"]
         if record.get("provenance", {}).get("repository") == "DataTalksClub/content"
-        and record.get("provenance", {}).get("revision") == ACCEPTED_CONTENT_COMMIT
     )
     approved_person_keys = frozenset(str(key) for key in projection["people_by_slug"])
     return index, PUBLIC_CONTRACT_DIGEST, frozenset(adopted_paths), approved_person_keys
@@ -659,12 +690,6 @@ def _render_markdown(raw: str, *, path: str) -> tuple[str, tuple[str, ...]]:
         _fail(inspector.diagnostic_code, path)
     sanitized = sanitize_rendered_html("article", rendered)
     return sanitized, tuple(extensions)
-
-
-def _normalized_text(rendered_html: str) -> str:
-    extractor = _TextExtractor()
-    extractor.feed(rendered_html)
-    return " ".join(" ".join(extractor.parts).split())
 
 
 def _render_text_fragment(value: str, *, path: str) -> str:
@@ -1211,7 +1236,7 @@ def adapt_dtc_content_checkout(
                 "books": 0,
                 "media": 8,
             }
-            or repair_manifest.get("current_counts") != ACCEPTED_COUNTS
+            or repair_manifest.get("current_counts") != ACCEPTED_SOURCE_COUNTS
             or not isinstance(repair_rows, list)
             or any(not isinstance(item, dict) for item in repair_rows)
             or [item.get("ordinal") for item in repair_rows] != list(range(1, 11))
@@ -1350,7 +1375,6 @@ def adapt_dtc_content_checkout(
                 raw_frontmatter=metadata,
                 raw_body=raw_body,
                 rendered_html=rendered,
-                normalized_text=_normalized_text(rendered),
                 adapter_metadata=_document_metadata(
                     immutable_url=immutable_url,
                     legacy_path=public_path,
@@ -1476,7 +1500,6 @@ def adapt_dtc_content_checkout(
                     sort_keys=True,
                 ),
                 rendered_html=rendered,
-                normalized_text=_normalized_text(rendered),
                 adapter_metadata=_document_metadata(
                     immutable_url=immutable_url,
                     legacy_path=public_path,
@@ -1554,7 +1577,6 @@ def adapt_dtc_content_checkout(
                     sort_keys=True,
                 ),
                 rendered_html=rendered,
-                normalized_text=_normalized_text(rendered),
                 adapter_metadata=_document_metadata(
                     immutable_url=immutable_url,
                     legacy_path=None,
@@ -1640,7 +1662,6 @@ def adapt_dtc_content_checkout(
                     sort_keys=True,
                 ),
                 rendered_html=rendered,
-                normalized_text=_normalized_text(rendered),
                 adapter_metadata=_document_metadata(
                     immutable_url=immutable_url,
                     legacy_path=public_path,

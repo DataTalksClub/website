@@ -41,12 +41,18 @@ class DatamailerOutboxEventAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "event_type")
     search_fields = ("event_id", "idempotency_key", "ordering_key")
+    # `payload` is the delivery instruction, so it has to hold the recipient
+    # address for dispatch to work — it cannot be redacted in the column the
+    # way an audit row can.  It is therefore not rendered here: a member's
+    # address is shown to admins in Studio, and Django admin is not Studio.
+    # Everything an operator needs to work an event — status, attempts, the
+    # keys and the masked error — stays on the page.
+    exclude = ("payload",)
     readonly_fields = (
         "event_id",
         "event_type",
         "idempotency_key",
         "ordering_key",
-        "payload",
         "attempt_count",
         "last_attempt_at",
         "acked_at",

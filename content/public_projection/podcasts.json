@@ -12,14 +12,14 @@
     "guests": [
       "hugobowneanderson"
     ],
-    "image_path": "/images/podcast/practical-llm-engineering-and-rag.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/how-to-build-and-evaluate-ai-systems-in-the-age-of/id1541710331?i=1000733350691",
       "spotify": "https://open.spotify.com/episode/2RD2qXaYa2ZjKjuIE7Aj6O",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/How-to-Build-and-Evaluate-AI-systems-in-the-Age-of-LLMs---Hugo-Bowne-Anderson-e39vt24",
       "youtube": "https://www.youtube.com/watch?v=eC3RNuI6ow0"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "ee9ca061a37a444ad8d68bb0311e9174a333ca7bfb95f094821a42c5db420a5a",
       "repository": "DataTalksClub/content",
@@ -1304,14 +1304,14 @@
     "guests": [
       "sebastianayalaruano"
     ],
-    "image_path": "/images/podcast/bioinformatics-worflows-tools-and-data-science.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-biotechnology-to-bioinformatics-software-sebastian/id1541710331?i=1000733347636",
       "spotify": "https://open.spotify.com/episode/3CohNIXZdooLYoIyIbr6EF",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Biotechnology-to-Bioinformatics-Software---Sebastian-Ayala-RuanoFrom-Biotechnology-to-Bioinformatics-Software---Sebastian-Ayala-Ruano-e39vsv6",
       "youtube": "https://www.youtube.com/watch?v=ZFrcrTtnB1Q"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "7254d39aa537853e8686c892bb18ba53af9db153906b0aa613ee81d812a12b72",
       "repository": "DataTalksClub/content",
@@ -2458,14 +2458,14 @@
     "guests": [
       "dashelruizperez"
     ],
-    "image_path": "/images/podcast/from-semiconductor-data-to-applied-machine-learning.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-semiconductors-to-machine-learning-a-career-in/id1541710331?i=1000731197034",
       "spotify": "https://open.spotify.com/episode/1znRtNRf5IUYcBblJYH53r",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Semiconductors-to-Machine-Learning-A-Career-in-Data-and-Teaching-e395t53",
       "youtube": "https://www.youtube.com/watch?v=B2tzuUg5uZs"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "66ff4be443cbd8ca6ce48d1237b7af4b1f5a8aa4adec79db2ac21217453400ee",
       "repository": "DataTalksClub/content",
@@ -3573,14 +3573,14 @@
     "guests": [
       "aishwaryajadhav"
     ],
-    "image_path": "/images/podcast/from-computer-vision-research-to-autonomous-driving-ai.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/lessons-from-applied-ai-tesla-waymo-and-beyond/id1541710331?i=1000731200298",
       "spotify": "https://open.spotify.com/episode/0h9eX7m6H2TPqOjUwb3Jw6?si=I4rKrHXpQTmS7cJBMJbUMA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Lessons-from-Applied-AI-Tesla--Waymo--and-Beyond---Aishwarya-Jadhav-e39befu",
       "youtube": "https://www.youtube.com/watch?v=vK_SxyqIfwk"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "0040f510756a92f2a195e3eb997024b1af245b0c263f23fb4f701fac7bf5b526",
       "repository": "DataTalksClub/content",
@@ -4820,14 +4820,14 @@
     "guests": [
       "ranjithakulkarni"
     ],
-    "image_path": "/images/podcast/building-agentic-ai-engineering-tooling-retrieval-evaluation.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/building-reliable-ai-products-in-the-era-of-gen/id1541710331?i=1000731199709",
       "spotify": "https://open.spotify.com/episode/7c22vqYNuNLKKYEfYGOos8?si=NBFT2e80S6WErW_tDDrijA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Building-reliable-AI-products-in-the-era-of-Gen-AI-and-Agents---Ranjitha-Kulkarni-e396m2u",
       "youtube": "https://www.youtube.com/watch?v=x2AAjqz2XmM"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "72ccfcebf852be9a91d43978a1de6184e6fcc1b9be329b90550ac5b0a6e6428d",
       "repository": "DataTalksClub/content",
@@ -5734,14 +5734,14 @@
     "guests": [
       "micheallanham"
     ],
-    "image_path": "/images/podcast/from-game-ai-to-modern-ai-agents.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/lessons-from-two-decades-of-ai-micheal-lanham/id1541710331?i=1000728604349",
       "spotify": "https://open.spotify.com/episode/7uhe5ZysRi07S6mb14nnox",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Lessons-from-Two-Decades-of-AI---Micheal-Lanham-e38oarc",
       "youtube": "https://www.youtube.com/watch?v=DSxqUlumM3A"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "631aba1e27d7e8ab8fdda91c754ab61a954a7d9446595198b980efdabd1bca4f",
       "repository": "DataTalksClub/content",
@@ -6876,14 +6876,14 @@
     "guests": [
       "danielegbo"
     ],
-    "image_path": "/images/podcast/from-radio-astronomy-to-machine-learning-and-data-engineering.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-astronomy-to-applied-ml-daniel-egbo/id1541710331?i=1000728601772",
       "spotify": "https://open.spotify.com/episode/0hV7d1zSKO7ykGDZxjXyJ8",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Astronomy-to-Applied-ML---Daniel-Egbo-e38ha20",
       "youtube": "https://www.youtube.com/watch?v=b92gwrsVQtg"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "e8b3071b7620638e1b3e8d6dec35f57f22bfb0048d80b9385d9185d40eb8f185",
       "repository": "DataTalksClub/content",
@@ -8123,14 +8123,14 @@
     "guests": [
       "pastorsoto"
     ],
-    "image_path": "/images/podcast/nonlinear-path-to-machine-learning-freelancing-and-public-learning.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/how-to-rebuild-data-trust-mindful-data-strategy-and/id1541710331?i=1000722107501",
       "spotify": "https://open.spotify.com/episode/22Gc1bDecKA33KHAaSF9fx",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Medicine-to-Machine-Learning-How-Public-Learning-Turned-into-a-Career---Pastor-Soto-e376e66",
       "youtube": "https://www.youtube.com/watch?v=5km62e4nDaw"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "a6f1b54698c6a9badfceb49ef86ccdc5851558e3b2400c667ad76c092a0b80ff",
       "repository": "DataTalksClub/content",
@@ -9094,14 +9094,14 @@
     "guests": [
       "liorbarak"
     ],
-    "image_path": "/images/podcast/mindful-data-strategy-for-business-impact.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/how-to-rebuild-data-trust-mindful-data-strategy-and/id1541710331?i=1000722107501",
       "spotify": "https://open.spotify.com/episode/54B0xvUI1eQjXW0s1eqgbI",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/How-to-Rebuild-Data-Trust--Mindful-Data-Strategy-and-Maintenance-vs-Innovation---Lior-Barak-e36obcs",
       "youtube": "https://www.youtube.com/watch?v=B76J4QkZPWs"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "51a40cc80b4f83b96e332243245b361dd4196ed009ae92727f990c2b802b1dbb",
       "repository": "DataTalksClub/content",
@@ -10590,14 +10590,14 @@
     "guests": [
       "orellgarten"
     ],
-    "image_path": "/images/podcast/from-academic-research-to-data-engineering-freelancing.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-simulations-to-freelance-data-engineering-orells/id1541710331?i=1000720245457",
       "spotify": "https://open.spotify.com/episode/5HCSIO0mO8Pr5Yv9puZ72R",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Simulations-to-Freelance-Data-Engineering-Orells-Journey-Out-of-Academia-and-Into-Consulting---Orell-Garten-e369a6b",
       "youtube": "https://www.youtube.com/watch?v=pkcpH5N-GP8"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "5b3f8ff9851fa88be378a5645ea6d7b9f7b384aab7dad24a54c1e3403aa6dd49",
       "repository": "DataTalksClub/content",
@@ -11485,14 +11485,14 @@
     "guests": [
       "dimitrivisnadi"
     ],
-    "image_path": "/images/podcast/data-freelancing-career-strategy-market-demand-and-client-acquisition.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/can-you-quit-your-job-and-still-succeed-as-a-data-freelancer/id1541710331?i=1000718997257",
       "spotify": "https://open.spotify.com/episode/3BknrKqhLggx1G5ZbrfgFc",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Can-You-Quit-Your-Job-and-Still-Succeed-as-a-Data-Freelancer-e360j7e",
       "youtube": "https://www.youtube.com/watch?v=S93V8RgwBig"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "8bf9ab8d23209ea6a0f10823fb34436f7655da5f280ad9a9a9aba5bbb432ec2a",
       "repository": "DataTalksClub/content",
@@ -12160,14 +12160,14 @@
     "guests": [
       "willrussell"
     ],
-    "image_path": "/images/podcast/practical-devrel-demofirst-education-and-open-source.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-hackathons-to-developer-advocacy-will-russel/id1541710331?i=1000709634418",
       "spotify": "https://open.spotify.com/episode/4Lt785S38GuK0W2m7naRKt",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Hackathons-to-Developer-Advocacy---Will-Russel-e339a5f",
       "youtube": "https://www.youtube.com/watch?v=vXbMUfHE1OE"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "1a9ec9e3438edcdff18744eb8992cc9b721a509f959d95c188f9f2864b559980",
       "repository": "DataTalksClub/content",
@@ -13998,14 +13998,14 @@
     "guests": [
       "lavanyagupta"
     ],
-    "image_path": "/images/podcast/applied-llm-research-and-career-growth-in-practice.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/build-a-strong-career-in-data-lavanya-gupta/id1541710331?i=1000706988972",
       "spotify": "https://open.spotify.com/episode/2mJXd0lSZFPKJA0ZrG9iS2",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Build-a-Strong-Career-in-Data---Lavanya-Gupta-e32k61p",
       "youtube": "https://www.youtube.com/watch?v=ekG5zJioyFs"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "896805cc561fa282598b17ef8b503dba0a77f53cddc6bda1982d5d8916a6b494",
       "repository": "DataTalksClub/content",
@@ -15110,14 +15110,14 @@
     "guests": [
       "eddyzulkifly"
     ],
-    "image_path": "/images/podcast/finops-for-data-engineers.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-supply-chain-management-to-digital-warehousing/id1541710331?i=1000702233986",
       "spotify": "https://open.spotify.com/episode/33YZpX7zE6YcBGbQK9Iclp",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Supply-Chain-Management-to-Digital-Warehousing-and-FinOps---Eddy-Zulkifly-e313t7b",
       "youtube": "https://www.youtube.com/watch?v=7ePp6wuxM5s"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "f778105005cd1ee7194a037d25afaeebb2a6d44e27f0a712e148b03b422e6475",
       "repository": "DataTalksClub/content",
@@ -16108,14 +16108,14 @@
     "guests": [
       "bartoszmikulski"
     ],
-    "image_path": "/images/podcast/production-ready-ai-engineering.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/data-intensive-ai-bartosz-mikulski/id1541710331?i=1000700288876",
       "spotify": "https://open.spotify.com/episode/0nFSU92IQDbM4C9FLvdn4z",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Data-Intensive-AI---Bartosz-Mikulski-e30fhoi",
       "youtube": "https://www.youtube.com/watch?v=BP6w_vKySN0"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "33799d373d9ea44c309b47a8310f044e2f8890666a65d3eca6f42fb7e916d5b1",
       "repository": "DataTalksClub/content",
@@ -17411,14 +17411,14 @@
     "guests": [
       "nemanjaradojkovic"
     ],
-    "image_path": "/images/podcast/lean-mlops-for-startups.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/mlops-in-corporations-and-startups-nemanja-radojkovic/id1541710331?i=1000699195928",
       "spotify": "https://open.spotify.com/episode/6V8gkTSz7LuPjQYC4rO019",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/MLOps-in-Corporations-and-Startups---Nemanja-Radojkovic-e304g53",
       "youtube": "https://www.youtube.com/watch?v=DX9c__a4jzg"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "950ed2a73b28bf3c49c78d5ce0052a642e306330a34aacc2fe767aa62bda5acd",
       "repository": "DataTalksClub/content",
@@ -18869,14 +18869,14 @@
     "guests": [
       "adrianbrudaru"
     ],
-    "image_path": "/images/podcast/trends-in-modern-data-engineering.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/trends-in-data-engineering-adrian-brudaru/id1541710331?i=1000698294801",
       "spotify": "https://open.spotify.com/episode/35QbCW6Evqk1EPMKUDGGdv",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Trends-in-Data-Engineering--Adrian-Brudaru-e2ui9ae",
       "youtube": "https://www.youtube.com/watch?v=AlCFKbFIEM8"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "524e98d78c02d7533dd71b657b8b7ee526dda86e31836f1a178c1460c673e2f9",
       "repository": "DataTalksClub/content",
@@ -19604,14 +19604,14 @@
     "guests": [
       "alexanderguschin"
     ],
-    "image_path": "/images/podcast/kaggle-grandmaster-to-production-ml-and-education.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/competitive-machine-leaning-and-teaching-alexander/id1541710331?i=1000692309866",
       "spotify": "https://open.spotify.com/episode/6xsov9a1US8D8w5xKcjkNm",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Competitive-Machine-Leaning-And-Teaching--Alexander-Guschin-e2uslu8",
       "youtube": "https://www.youtube.com/watch?v=NfAJAr7FvyY&t"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "4d5274ef894c3c701c7fd71d7e42694232f4cc8fad305a6e90fd2b3ebba8d7e3",
       "repository": "DataTalksClub/content",
@@ -20501,14 +20501,14 @@
     "guests": [
       "andreycheptsov"
     ],
-    "image_path": "/images/podcast/ai-infrastructure-hybrid-cloud-on-prem-distributed-training.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/redefining-ai-infrastructure-open-source-chips-and/id1541710331?i=1000687565459",
       "spotify": "https://open.spotify.com/episode/5MIc1pAXPxVYSr0E4pndU4",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Redefining-AI-Infrastructure-Open-Source--Chips--and-the-Future-Beyond-Kubernetes--Andrey-Cheptsov-e2u7lc2",
       "youtube": "https://www.youtube.com/watch?v=1aMuynlLM3o"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "316660eb8db06c0d478e7729ed666bb21bda86041d996aee1cbf1340c4313c55",
       "repository": "DataTalksClub/content",
@@ -21400,14 +21400,14 @@
     "guests": [
       "tamaraatanasoska"
     ],
-    "image_path": "/images/podcast/fairness-in-ai-ml-engineering.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/linguistics-and-fairness-tamara-atanasoska/id1541710331?i=1000684411354",
       "spotify": "https://open.spotify.com/episode/6S4a85iiRzl7NU1HykXeKT?si=FNoDtj74T2ujQKzKdDWwzA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Linguistics-and-Fairness---Tamara-Atanasoska-e2thdk0",
       "youtube": "https://www.youtube.com/watch?v=sXU9vMDBjmk"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "82be1715bfeb0cf48e3f73f546d987dbbb1b139623ec61918fd2e43f1c9cfb29",
       "repository": "DataTalksClub/content",
@@ -22465,14 +22465,14 @@
     "guests": [
       "agitajaunzeme"
     ],
-    "image_path": "/images/podcast/from-devops-to-data-engineering-automation-open-source-volunteering.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/career-choices-transitions-and-promotions-in-and-out/id1541710331?i=1000683499310",
       "spotify": "https://open.spotify.com/episode/0UW7fLgm9fqMG64GQwvgIN?si=ZixbzDcZT2mNkVrJjZVbeA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Career-choices--transitions-and-promotions-in-and-out-of-tech---Agita-Jaunzeme-e2t05nv",
       "youtube": "https://www.youtube.com/watch?v=QKWu5-6_6TE"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "2f102025ff6c37c7037765bc4fab0e6874c7e910fa1ba70b73e538c9fd3a08a5",
       "repository": "DataTalksClub/content",
@@ -23667,14 +23667,14 @@
     "guests": [
       "mariasukhareva"
     ],
-    "image_path": "/images/podcast/generative-ai-chatbots-in-production-security.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/ai-in-industry-trust-return-on-investment-and-future/id1541710331?i=1000679505962",
       "spotify": "https://open.spotify.com/episode/5GOBabz65IRmiMow8FYbr5?si=a99463e34ffb48f1",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/AI-in-Industry-Trust--Return-on-Investment-and-Future---Maria-Sukhareva-e2rp9f8",
       "youtube": "https://www.youtube.com/watch?v=bT7-HRNCltk"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "0bb6ca831bccd3bfaf385719c4deb2d28a071a7fa4575c3107466de44fce8b94",
       "repository": "DataTalksClub/content",
@@ -24540,14 +24540,14 @@
     "guests": [
       "anastasiakaravdina"
     ],
-    "image_path": "/images/podcast/from-large-hadron-collider-to-data-science-research-software-engineering.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/large-hadron-collider-and-mentorship-anastasia-karavdina/id1541710331?i=1000677930293",
       "spotify": "https://open.spotify.com/episode/6AZ26Q8O4VBkC9YtUNzhab?si=75154323e14d4dca",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Large-Hadron-Collider-and-Mentorship--Anastasia-Karavdina-e2rc2bj/a-abl5fth",
       "youtube": "https://www.youtube.com/watch?v=kV0ZDy2UtJA"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "fb439e2e2969fb34463d54674e72990e3d65d50fc80be368c5c4f91707ecb30c",
       "repository": "DataTalksClub/content",
@@ -25418,14 +25418,14 @@
     "guests": [
       "isabellabicalho"
     ],
-    "image_path": "/images/podcast/from-biology-to-machine-learning-data-science-portfolio-open-source-computer-vision-transformers.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/career-advice-learning-and-featuring-women-in-ml-and/id1541710331?i=1000680294201",
       "spotify": "https://open.spotify.com/episode/5GOBabz65IRmiMow8FYbr5?si=rx69Xf98QZqGqgpEQgzX2w",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Career-advice--learning--and-featuring-women-in-ML-and-AI---Isabella-Bicalho-e2s3ura",
       "youtube": "https://www.youtube.com/watch?v=GifY8Zn-pnU"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "0c902305cf0554a9dfd2fef9fc4ea25d2b62b4332275c9fdb10fa2b8c74ca5a6",
       "repository": "DataTalksClub/content",
@@ -26476,14 +26476,14 @@
     "guests": [
       "raphaelhoogvliets"
     ],
-    "image_path": "/images/podcast/mlops-at-scale-reproducibility-adoption.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/mlops-as-a-team-rapha%C3%ABl-hoogvliets/id1541710331?i=1000676238840",
       "spotify": "https://open.spotify.com/episode/0Dl372MFGvN0zDa1YQx7oe?si=eCy-a4fkRtOaEe21-KDHXQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/MLOps-as-a-Team---Raphal-Hoogvliets-e2qnnu5/a-abkcdlr",
       "youtube": "https://youtube.com/watch?v=rMq63r3zi4c"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "07e299cdc2968986de209efaf07ee1bab9a506abdf5fbd276c0eca20189e78ba",
       "repository": "DataTalksClub/content",
@@ -27322,14 +27322,14 @@
     "guests": [
       "alexeygrigorev"
     ],
-    "image_path": "/images/podcast/datatalksclub-scaling-and-free-courses.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/datatalks-club-4th-anniversary-ama-podcast-alexey-grigorev/id1541710331?i=1000674473200",
       "spotify": "https://open.spotify.com/episode/50wIZxjq6goREu9pwXYITP?si=mPW0v5fBQxuBpg622CpCEA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/DataTalks-Club-4th-Anniversary-AMA-Podcast--Alexey-Grigorev-and-Johanna-Bayer-e2q3ch2",
       "youtube": "https://www.youtube.com/watch?v=GHbeXIKnkLQ"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "ba02fa8a5b6e23a7076b4c33703587ffa419c0e50bc51191746b94d6366d0df8",
       "repository": "DataTalksClub/content",
@@ -28495,14 +28495,14 @@
     "guests": [
       "rachellim"
     ],
-    "image_path": "/images/podcast/urban-data-science.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/using-data-to-create-liveable-cities-rachel-lim/id1541710331?i=1000675373908",
       "spotify": "https://open.spotify.com/episode/1z7jdogto8i4Zk6Zh1vDxE?si=KCg2Iq1US0SKwFCKasGqUg",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Using-Data-to-Create-Liveable-Cities---Rachel-Lim-e2qecup",
       "youtube": "https://www.youtube.com/watch?v=VXQIGHUWeL0"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "8402270436720b485709932edeedeacf549d4f384a945ab6b9780ae7a8d9d954",
       "repository": "DataTalksClub/content",
@@ -29358,14 +29358,14 @@
     "guests": [
       "katarzynaforemniak"
     ],
-    "image_path": "/images/podcast/human-centered-ai-automatic-speech-recognition.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/human-centered-ai-for-disordered-speech-recognition/id1541710331?i=1000671805368",
       "spotify": "https://open.spotify.com/show/0pck8zuiXdI0OrCg86DAPy?si=ac857db69d484277",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Human-Centered-AI-for-Disordered-Speech-Recognition---Katarzyna-Foremniak-e2p8360",
       "youtube": "https://www.youtube.com/watch?v=yTZ4cddD7DU"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "852c867eb346f18f3adb33cf9dabd6a874c3a0fe628550e90b8436f6c0084039",
       "repository": "DataTalksClub/content",
@@ -30269,14 +30269,14 @@
     "guests": [
       "christopherbergh"
     ],
-    "image_path": "/images/podcast/dataops-for-data-engineering.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/dataops-observability-and-the-cure-for-data-team/id1541710331?i=1000665429770",
       "spotify": "https://open.spotify.com/episode/02VoOk5UkMcvfq7VkSOegb",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/DataOps--Observability--and-The-Cure-for-Data-Team-Blues---Christopher-Bergh-e2n775f",
       "youtube": "https://www.youtube.com/watch?v=HzGpIxV8HtA"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "0c091b502cd18acc490e52fa8f9d619faaaa9ed8fd94902c03cb62925a9dc02a",
       "repository": "DataTalksClub/content",
@@ -30683,14 +30683,14 @@
     "guests": [
       "sabinafirtala"
     ],
-    "image_path": "/images/podcast/building-domestic-risk-assessment-tool.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/building-a-domestic-risk-assessment-tool-sabina-firtala/id1541710331?i=1000662124309",
       "spotify": "https://open.spotify.com/episode/7bjORhGzTQoxtbv60mMtzW?si=p6UaBdZJTnGvlwbGb6AsFQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Building-a-Domestic-Risk-Assessment-Tool---Sabina-Firtala-e2lr92i",
       "youtube": "https://www.youtube.com/watch?v=CpWlBAmD9ok"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "8b4d047e5c369f08aa9ab05d689922c6eabb944fad04cf710030ff84325f2f30",
       "repository": "DataTalksClub/content",
@@ -30762,14 +30762,14 @@
     "guests": [
       "erumafzal"
     ],
-    "image_path": "/images/podcast/community-building-and-teaching-in-ai-tech.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/community-building-and-teaching-in-ai-tech-erum-afzal/id1541710331?i=1000655187649",
       "spotify": "https://open.spotify.com/episode/4iAvz4Qu0l28fxXvaHdAPj?si=7MdKKu1fTrqxIGPQBT61Ag",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Community-Building-and-Teaching-in-AI--Tech---Erum-Afzal-e2jg61r",
       "youtube": "https://www.youtube.com/watch?v=7SLd5V7z3xQ"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "24e6f2a1d2489415fb6dac055dfc10ecaf9b1acadd42b3dd13ad1bc40d30e474",
       "repository": "DataTalksClub/content",
@@ -31527,14 +31527,14 @@
     "guests": [
       "vincentwarmerdam"
     ],
-    "image_path": "/images/podcast/open-source-ml-tools-strategy-and-business-models.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/working-in-open-source-probabl-ai-and-sklearn-vincent/id1541710331?i=1000654481795",
       "spotify": "https://open.spotify.com/episode/0HT3IQOaTXTMH0OdEBnw9s?si=HrLtx7QKT_amZyUbZuqRzQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Working-in-Open-Source---Probabl-ai-and-sklearn---Vincent-Warmerdam-e2j78fs",
       "youtube": "https://www.youtube.com/watch?v=UPlIETGwTg8"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "02cd9e076d7705199fc384a4d2b2f171c662542c537b1625c4ac8a7548b38606",
       "repository": "DataTalksClub/content",
@@ -32611,14 +32611,14 @@
     "guests": [
       "tanyabergerwolf"
     ],
-    "image_path": "/images/podcast/ai-for-ecology-biodiversity-and-conservation.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/ai-for-ecology-biodiversity-and-conservation-tanya/id1541710331?i=1000653709956",
       "spotify": "https://open.spotify.com/episode/3Hhz5N8ZDvsOPlPP3wxQxq?si=Oz7y_pBrTfeypfYZXubu-g",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/AI-for-Ecology--Biodiversity--and-Conservation---Tanya-Berger-Wolf-e2inadi",
       "youtube": "https://www.youtube.com/watch?v=30tTrozbAkg"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "f2fd6fba7ab88a9c87c0ed4e60e0b3f79ac2206050df4a9674d9dc0c31b38d74",
       "repository": "DataTalksClub/content",
@@ -32662,14 +32662,14 @@
     "guests": [
       "anahitapakiman"
     ],
-    "image_path": "/images/podcast/knowledge-graphs-and-llms-for-automotive-rnd.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/knowledge-graphs-and-llms-across-academia-and/id1541710331?i=1000651561079",
       "spotify": "https://open.spotify.com/episode/1yDgx6uNaSQxKTjGU1qtIj?si=g0xQjWmDTRinzxhoYV3sdA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Knowledge-Graphs-and-LLMs-Across-Academia-and-Industry---Anahita-Pakiman-e2hpo20",
       "youtube": "https://www.youtube.com/watch?v=YncdlUscUOo"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "d74a5d0abdf0db8eb95a5b5cc0b5bc08c49085c159281171d566eb8822abd93e",
       "repository": "DataTalksClub/content",
@@ -33552,13 +33552,13 @@
     "guests": [
       "terezaiofciu"
     ],
-    "image_path": "/images/podcast/data-leadership-coaching.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/inclusive-data-leadership-coaching-tereza-iofciu/id1541710331?i=1000650865043",
       "spotify": "https://open.spotify.com/episode/3zVzlQ0NmAVCtaFQXbqvHE?si=sSZhU-KXRamv2x5YZCDxAg",
       "youtube": "https://www.youtube.com/watch?v=Z4vOTgzLkJQ"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "dfb89de3b14f1654340a08b2031b786111f7a65502a9f4c29cd363ad0cc4ea64",
       "repository": "DataTalksClub/content",
@@ -34579,14 +34579,14 @@
     "guests": [
       "danielsvonava"
     ],
-    "image_path": "/images/podcast/building-production-search-systems.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/building-production-search-systems-daniel-svonava/id1541710331?i=1000650138905",
       "spotify": "https://open.spotify.com/episode/19R0rLA8hULTBZi9FhZuTs?si=xggb0OzfRHCFSmXtJWm7bA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Building-Production-Search-Systems---Daniel-Svonava-e2hccnh",
       "youtube": "https://www.youtube.com/watch?v=gEmSrknGKDE"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "d18081a510bdeeb7b02e5a725bb784748b76672ab6a605b37a59cdae4339fdd2",
       "repository": "DataTalksClub/content",
@@ -35428,14 +35428,14 @@
     "guests": [
       "reemmahmoud"
     ],
-    "image_path": "/images/podcast/production-ml-search-vector-search-embeddings-hybrid search.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/building-machine-learning-products-reem-mahmoud/id1541710331?i=1000649393833",
       "spotify": "https://open.spotify.com/episode/4jNredXndQ2b2evgfSmD2G?si=gU2kT-zXSX27hDPgLtwMgQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Building-Machine-Learning-Products---Reem-Mahmoud-e2gttcd",
       "youtube": "https://www.youtube.com/watch?v=m45tNY-8gY8"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "4d57e375307866db0f4592e425dc1205681c7ddb9a4509809b88e5437ccde0dd",
       "repository": "DataTalksClub/content",
@@ -36250,14 +36250,14 @@
     "guests": [
       "saraelateif"
     ],
-    "image_path": "/images/podcast/open-source-and-volunteering-in-ai-for-data-ml-career-growth.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/make-an-impact-through-volunteering-open-source-work/id1541710331?i=1000646627892",
       "spotify": "https://open.spotify.com/episode/7tZSSgv1yAlnoMyB4ggQmb?si=AqDaME2QS26usoZjOEWNtQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Make-an-Impact-Through-Volunteering-Open-Source-Work---Sara-EL-ATEIF-e2g4dan",
       "youtube": "https://www.youtube.com/watch?v=aHdaIwOEI8Q"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "e331f05b801d9cf4dd6ce790695fa989f9c891780f8f4148b55d942f5241746a",
       "repository": "DataTalksClub/content",
@@ -37419,14 +37419,14 @@
     "guests": [
       "sarahmestiri"
     ],
-    "image_path": "/images/podcast/job-search-strategy-in-tech-projects-skills-cv-networking.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/accelerating-the-job-hunt-for-the-perfect-job-in/id1541710331?i=1000643971899",
       "spotify": "https://open.spotify.com/episode/7giHGC86pjtIYrLOvwP7g4?si=NB9w6S6QTfCBHB_n93LkBQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Accelerating-The-Job-Hunt-for-The-Perfect-Job-in-Tech---Sarah-Mestiri-e2f93r6",
       "youtube": "https://www.youtube.com/watch?v=PchwbIs0tOg"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "e8b7ca1bebc87d3779308fbfbdd7a69d7b2e94f9f3f290f8b251d4c205209cb3",
       "repository": "DataTalksClub/content",
@@ -38349,14 +38349,14 @@
     "guests": [
       "nemanjaradojkovic"
     ],
-    "image_path": "/images/podcast/mlops-and-ml-engineering-in-finance.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/machine-learning-engineering-in-finance-nemanja-radojkovic/id1541710331?i=1000643322929",
       "spotify": "https://open.spotify.com/episode/3yQtA8EAndau1yhCFPfwtj?si=ZutO4mLlRfOz_Zgw4GujiQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Machine-Learning-Engineering-in-Finance---Nemanja-Radojkovic-e2evai8",
       "youtube": "https://www.youtube.com/watch?v=Nl4aibeFwiI"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "0bf1488e184e521042b48bf36a64c528a761075e8106b6db187fd96035eb790a",
       "repository": "DataTalksClub/content",
@@ -39305,14 +39305,14 @@
     "guests": [
       "ivanbrigida"
     ],
-    "image_path": "/images/podcast/algorithmic-trading-with-python-and-machine-learning.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/stock-market-analysis-with-python-and-machine/id1541710331?i=1000641465239",
       "spotify": "https://open.spotify.com/episode/1ZXAeGr4Kx7F6oLQUip8Cc?si=KJwpYL-3SvuX8nPdc2cyOg",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Stock-Market-Analysis-with-Python-and-Machine-Learning---Ivan-Brigida-e2e6ph2",
       "youtube": "https://www.youtube.com/watch?v=NThHAEIazFk"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "b053db37fbf9be22965918f91d8fcc3740ac69d14798cd5f719c6e02a3727aee",
       "repository": "DataTalksClub/content",
@@ -40220,14 +40220,14 @@
     "guests": [
       "robzinkov"
     ],
-    "image_path": "/images/podcast/bayesian-modeling-workflows-and-tools.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/bayesian-modeling-and-probabilistic-programming-rob/id1541710331?i=1000642253191",
       "spotify": "https://open.spotify.com/episode/5WUKDcTYv8ZvnqeHSQT7FF?si=K10siPBHQwmegCCXJ1VpIA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Bayesian-Modeling-and-Probabilistic-Programming---Rob-Zinkov-e2dokr5",
       "youtube": "https://www.youtube.com/watch?v=kcKvUSInm-M"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "dee26ea8d929b4e42629ab45c74c344948d832156cc211f76120ae74c242207e",
       "repository": "DataTalksClub/content",
@@ -41297,14 +41297,14 @@
     "guests": [
       "atitaarora"
     ],
-    "image_path": "/images/podcast/modern-search-systems-vector-databases-llms-semantic-retrieval.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/navigating-challenges-and-innovations-in-search/id1541710331?i=1000639476594",
       "spotify": "https://open.spotify.com/episode/7mUMvxP4Efyeh0lhF5CvT6?si=7qqKrsMfQxaZy435s3XIEA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Navigating-Challenges-and-Innovations-in-Search-Technologies---Atita-Arora-e2d7rps",
       "youtube": "https://www.youtube.com/watch?v=_fbe1QyJ1PY"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "3551bb3823a421a6b9e052e570253ac66717d5e325030d5afd90a2e1363b5263",
       "repository": "DataTalksClub/content",
@@ -42309,14 +42309,14 @@
     "guests": [
       "adrianbrudaru"
     ],
-    "image_path": "/images/podcast/from-data-freelancer-to-startup-open-source-products.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/the-entrepreneurship-journey-from-freelancing-to/id1541710331?i=1000638715212",
       "spotify": "https://open.spotify.com/episode/7wBmJHSXPHoW0mEIbNDgqr?si=z7klLtveT1ioGi6bg8hR7Q",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/The-Entrepreneurship-Journey-From-Freelancing-to-Starting-a-Company---Adrian-Brudaru-e2cut0k",
       "youtube": "https://www.youtube.com/watch?v=vOpEQiCsaLw"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "12d1562db3f23cab8b912fcd72e6ef74cf365e870549f9b6afd59556093189c2",
       "repository": "DataTalksClub/content",
@@ -43331,14 +43331,14 @@
     "guests": [
       "dimitrivisnadi"
     ],
-    "image_path": "/images/podcast/becoming-data-freelancer.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/become-a-data-freelancer-dimitri-visnadi/id1541710331?i=1000637962993",
       "spotify": "https://open.spotify.com/episode/5OJfRiQ64JtLUmIkvadohg?si=uUEdvZwARN2hVGEfz73URg",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Become-a-Data-Freelancer---Dimitri-Visnadi-e2cslo2",
       "youtube": "https://www.youtube.com/watch?v=R_EnSa9aZtE"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "8c75a14c59b1c87df07b2038abe642aa4b8b02cfe840814cc8ff53c0484a2919",
       "repository": "DataTalksClub/content",
@@ -44371,14 +44371,14 @@
     "guests": [
       "mariabruckert"
     ],
-    "image_path": "/images/podcast/building-ai-digital-health-startups.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/ai-for-digital-health-maria-bruckert/id1541710331?i=1000637212773",
       "spotify": "https://open.spotify.com/episode/2NE0vbiYwXxOuqychHIqBR?si=QdRyuJvSRE2V3bLwHaEv-Q",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/AI-for-Digital-Health---Maria-Bruckert-e2cejoc",
       "youtube": "https://www.youtube.com/watch?v=whpkDmVVGUE"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "0fe73af1d8f3a6ecfbfe635cd249355b281fdb5b254c3af98c1223c7647e9dc9",
       "repository": "DataTalksClub/content",
@@ -45264,14 +45264,14 @@
     "guests": [
       "christophmolnar"
     ],
-    "image_path": "/images/podcast/interpretable-machine-learning.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/cracking-the-code-machine-learning-made/id1541710331?i=1000636448000",
       "spotify": "https://open.spotify.com/episode/3SjDB0E2of9IS9TXn2Fof3?si=FwWH99FGTgmL1OGI3-sLAg",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Cracking-the-Code-Machine-Learning-Made-Understandable---Christoph-Molnar-e2c10n4",
       "youtube": "https://www.youtube.com/watch?v=LBuGzyOkx7c"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "621610e6190afc0cfc4d6428626592868bd4d612692bcfbcc4414e1e7722a94c",
       "repository": "DataTalksClub/content",
@@ -46430,14 +46430,14 @@
     "guests": [
       "jackblandin"
     ],
-    "image_path": "/images/podcast/from-software-engineering-to-vp-of-machine-learning-applied-ml-leadership.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/the-unwritten-rules-for-success-in-machine-learning/id1541710331?i=1000635206953",
       "spotify": "https://open.spotify.com/episode/2c8E0hZ02osih7ljEB6I6f?si=lSPp07r4TgmpGQey0cUjsA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/The-Unwritten-Rules-for-Success-in-Machine-Learning---Jack-Blandin-e2bojjk",
       "youtube": "https://www.youtube.com/watch?v=su2M058m3Lw"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "638b446725087647bddd7fc535465125a87c1c6cd081879c9d818884c46dfa69",
       "repository": "DataTalksClub/content",
@@ -47413,14 +47413,14 @@
     "guests": [
       "verenaweber"
     ],
-    "image_path": "/images/podcast/practical-generative-ai-consulting-from-expertise-to-impact.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-a-research-scientist-at-amazon-to-a/id1541710331?i=1000634411188",
       "spotify": "https://open.spotify.com/episode/7gJI3ds3k1vXd3m3W9iRj9?si=oG6A7BuTSjaEoH6FhvEVug",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-a-Research-Scientist-at-Amazon-to-a-Machine-learningAI-Consultant---Verena-Webber-e2bbmgr",
       "youtube": "https://www.youtube.com/watch?v=4RargY8iOaE"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "50aa474772dfbb7cb34bf874a3bd3e095bbe59221c8d5a4d0e791768e68cc556",
       "repository": "DataTalksClub/content",
@@ -48621,14 +48621,14 @@
     "guests": [
       "ioannismesionis"
     ],
-    "image_path": "/images/podcast/s16e03-collaborative-data-science-in-business.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/collaborative-data-science-in-business-ioannis-mesionis/id1541710331?i=1000632860980",
       "spotify": "https://open.spotify.com/episode/46DN6rAlufvvXaqdOomoTe?si=OMPDN8m5QZWsc5kJY8IcAA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Collaborative-Data-Science-in-Business---Ioannis-Mesionis-e2app0c",
       "youtube": "https://www.youtube.com/watch?v=1pExOVuCF8Q"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "782a574a15a5b43804300f591505ca25222690bff205bcb8a92c3a4352ed649d",
       "repository": "DataTalksClub/content",
@@ -49822,14 +49822,14 @@
     "guests": [
       "elenistamatelou"
     ],
-    "image_path": "/images/podcast/building-healthcare-machine-learning-systems.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/bridging-data-science-and-healthcare-eleni-stamatelou/id1541710331?i=1000632040444",
       "spotify": "https://open.spotify.com/episode/5W6lfZVhjIKEmVzBuexfzE?si=0nUHr66eQa6oPVJDb3d0rw",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Bridging-Data-Science-and-Healthcare---Eleni-Stamatelou-e2aegvc",
       "youtube": "https://www.youtube.com/watch?v=pDOwlulDh0c"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "951920686e514fff3be2a8c873f99ac8d04ed8384b92d994fb0230c1f5ad9b15",
       "repository": "DataTalksClub/content",
@@ -50719,14 +50719,14 @@
       "alexeygrigorev",
       "johannabayer"
     ],
-    "image_path": "/images/podcast/datatalksclub-building-sustainable-data-community-3-years-anniversary.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/datatalks-club-anniversary-interview-alexey-grigorev/id1541710331?i=1000631114088",
       "spotify": "https://open.spotify.com/episode/0j1eKj9NbK3oAXHXHyaNae?si=M7rw9WixTvWw-BfKPXPwVg",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/DataTalks-Club-Anniversary-Interview---Alexey-Grigorev--Johanna-Bayer-e2a5cqo",
       "youtube": "https://www.youtube.com/watch?v=nCqwZT9zA0M"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "3bab9510ff4bccf90c3ce3f0677609f9c725accdf4e9ee9fa6e3c72c2b7bc31a",
       "repository": "DataTalksClub/content",
@@ -51643,14 +51643,14 @@
     "guests": [
       "angelaramirez"
     ],
-    "image_path": "/images/podcast/building-and-scaling-data-engineering-systems-for-fraud-detection.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/data-engineering-for-fraud-prevention-angela-ramirez/id1541710331?i=1000630468398",
       "spotify": "https://open.spotify.com/episode/4wpYwS8XTlNdws39Zynakf?si=OFAHIkVsQlKvdTnlFNaLGg",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Data-Engineering-for-Fraud-Prevention---Angela-Ramirez-e29rkab",
       "youtube": "https://www.youtube.com/watch?v=ZXNKjrrKU_I"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "5ad33743c0a7bcac19f2b154e6ade271fb4153013ba2667b9caf61cf793037a4",
       "repository": "DataTalksClub/content",
@@ -52689,14 +52689,14 @@
     "guests": [
       "loicmagnien"
     ],
-    "image_path": "/images/podcast/from-iot-data-engineering-to-leading-data-architect.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-data-manager-to-data-architect-lo%C3%AFc-magnien/id1541710331?i=1000629678056",
       "spotify": "https://open.spotify.com/episode/7twXPni1q2RJQU2jjbCGty?si=KNCEy-0ZRrWDVchFsDCHjQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Data-Manager-to-Data-Architect---Loc-Magnien-e29rk73",
       "youtube": "https://www.youtube.com/watch?v=qWG--iYO2uc"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "510ad0d396c4640150a2845e8dc906af9909b7537dff09ac685f0faab2dcdc06",
       "repository": "DataTalksClub/content",
@@ -53393,14 +53393,14 @@
     "guests": [
       "mariavechtomova"
     ],
-    "image_path": "/images/podcast/pragmatic-and-standardized-mlops.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/pragmatic-and-standardized-mlops-maria-vechtomova/id1541710331?i=1000627227242",
       "spotify": "https://open.spotify.com/episode/5UZPZTDllam3RrbI9sOyqS?si=Ghm1oD8bSFS6l0ULDlatpQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Pragmatic-and-Standardized-MLOps---Maria-Vechtomova-e292ksv",
       "youtube": "https://www.youtube.com/watch?v=q3DTR3Od1MA"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "4f0b2f22bc35c8a89a82cec2013c3ffe73b05a2c3da43f7aeb130d9a5197a9a0",
       "repository": "DataTalksClub/content",
@@ -54452,14 +54452,14 @@
     "guests": [
       "aleksandermolak"
     ],
-    "image_path": "/images/podcast/causal-inference-for-machine-learning.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/democratizing-causality-aleksander-molak/id1541710331?i=1000625694605",
       "spotify": "https://open.spotify.com/episode/17U3RWz5BupRIwoBvGWqYQ?si=g6XypIZnSwG4hznNIOs7mw",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Democratizing-Causality---Aleksander-Molak-e28e0vh",
       "youtube": "https://www.youtube.com/watch?v=0I2FHH95Ofs"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "a4e75c682dc26bf1bc8a1f8c5f61d1a87e49a9ea71788c0b78c3a8c9a1397632",
       "repository": "DataTalksClub/content",
@@ -55502,14 +55502,14 @@
     "guests": [
       "josemaria"
     ],
-    "image_path": "/images/podcast/remote-data-engineering-work-and-building-iot-platforms.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/mastering-data-engineering-as-a-remote-worker-jos%C3%A9/id1541710331?i=1000624908396",
       "spotify": "https://open.spotify.com/episode/2RLxjkPbUO3FBfFpKPHzls?si=TVveHW7PQcW7yGbOyJsJpg",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Mastering-Data-Engineering-as-a-Remote-Worker---Jos-Mara-Snchez-Salas-e28716c",
       "youtube": "https://www.youtube.com/watch?v=UX7UShEioKc"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "259429cb08c84ae5df5ab9be791ed301cc71ccd34e20e4bfcb9bb66a647808f3",
       "repository": "DataTalksClub/content",
@@ -56667,14 +56667,14 @@
     "guests": [
       "sandrakublik"
     ],
-    "image_path": "/images/podcast/practical-llm-use-cases-and-product-patterns.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/the-good-the-bad-and-the-ugly-of-gpt-sandra-kublik/id1541710331?i=1000623464507",
       "spotify": "https://open.spotify.com/episode/5fZ89re1YLiVZ7QNxdoKVH?si=pD96Dv_tRvaHci5N8PZv9g",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/The-Good--the-Bad-and-the-Ugly-of-GPT---Sandra-Kublik-e27o8r4",
       "youtube": "https://www.youtube.com/watch?v=bM6AR4A-f98"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "c122657aee0fc5ef49f225776e28df1128d783325c896fe2c89612b0a978148e",
       "repository": "DataTalksClub/content",
@@ -57358,14 +57358,14 @@
     "guests": [
       "meryemarik"
     ],
-    "image_path": "/images/podcast/deploying-llms-in-production-fine-tuning-retrieval-open-source-api.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/llms-for-everyone-meryem-arik/id1541710331?i=1000622675129",
       "spotify": "https://open.spotify.com/episode/0tmi2ytNk1bEPldcbhkvhN?si=DtU2OM3RTFmPBdY8sFCv5g",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/LLMs-for-Everyone---Meryem-Arik-e27bouf",
       "youtube": "https://www.youtube.com/watch?v=6dn6uZFkk04"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "a8215049990ab12779d92a12a975b8ac882a1f4c9affc42e125e6fababa10423",
       "repository": "DataTalksClub/content",
@@ -58336,14 +58336,14 @@
     "guests": [
       "belawiertz"
     ],
-    "image_path": "/images/podcast/investing-in-open-source-developer-tools.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/investing-in-open-source-data-tools-bela-wiertz/id1541710331?i=1000621912675",
       "spotify": "https://open.spotify.com/episode/6mHnZ3IswczK46UP3MBp4d?si=KkrbjXmJSaiWbq3d9BzTUQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Investing-in-Open-Source-Data-Tools---Bela-Wiertz-e274dr8",
       "youtube": "https://www.youtube.com/watch?v=7Bg1JQLnCao"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "36bb5b92d093f9d0b4be2a0bac646075f64a555fb5617156704362634650a6ec",
       "repository": "DataTalksClub/content",
@@ -59234,14 +59234,14 @@
     "guests": [
       "valeriybabushkin"
     ],
-    "image_path": "/images/podcast/ml-system-design.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/why-machine-learning-design-is-broken-valerii-babushkin/id1541710331?i=1000621176183",
       "spotify": "https://open.spotify.com/episode/3KfKptkWIa1hW1hSOvBQaO",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Why-Machine-Learning-Design-is-Broken---Valerii-Babushkin-e26rv8o",
       "youtube": "https://www.youtube.com/watch?v=6YBMU6475KQ"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "4133db507f101a952efcfd0aa133718625d52d4526d3f458ebcd70504b26436a",
       "repository": "DataTalksClub/content",
@@ -59976,14 +59976,14 @@
     "guests": [
       "polinamosolova"
     ],
-    "image_path": "/images/podcast/building-explainable-and-actionable-ai-ml-systems.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/interpretable-ai-and-ml-polina-mosolova/id1541710331?i=1000619926085",
       "spotify": "https://open.spotify.com/episode/0p84r6bZmgKO514oC1HE2L?si=30L5gJoSS6Wtrghtdr3jYA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Interpretable-AI-and-ML---Polina-Mosolova-e26hffq",
       "youtube": "https://www.youtube.com/watch?v=EQcY83VA0Us"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "57beada0a3db337f832d1cc3d61aed59ac8d54b394f810cceff431c2ab4d1c88",
       "repository": "DataTalksClub/content",
@@ -60962,14 +60962,14 @@
     "guests": [
       "simonstiebellehner"
     ],
-    "image_path": "/images/podcast/building-production-ml-platform-and-mlops-team.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-scratch-to-success-building-an-mlops-team-and/id1541710331?i=1000618899065",
       "spotify": "https://open.spotify.com/episode/0raudIf9XsKdUfr5m2YlUE?si=x1PuaBqwTVyMlfNlGape2A",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Scratch-to-Success-Building-an-MLOps-Team-and-ML-Platform---Simon-Stiebellehner-e26d01c",
       "youtube": "https://www.youtube.com/watch?v=CB1YIsxQRtc"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "6fac5464d523104a8ea9b1b7f0b8b4a164897c4e655420597d58f2d8f730a286",
       "repository": "DataTalksClub/content",
@@ -61917,14 +61917,14 @@
     "guests": [
       "santonatuli"
     ],
-    "image_path": "/images/podcast/modern-data-pipelines-orchestration-ingestion-modeling.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-mlops-to-dataops-santona-tuli/id1541710331?i=1000618121008",
       "spotify": "https://open.spotify.com/episode/0inhE28kLI4T1AsSjgwnL8?si=WeFES7dXRxqSK_SKonBejw",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-MLOps-to-DataOps---Santona-Tuli-e25vb0q",
       "youtube": "https://www.youtube.com/watch?v=kSTfhQ_SZgc"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "ae3ca66cf995c42d38234f9699ebfdba3908f8faed06dcf5f04522adf0006d1c",
       "repository": "DataTalksClub/content",
@@ -62686,14 +62686,14 @@
     "guests": [
       "hugobowneanderson"
     ],
-    "image_path": "/images/podcast/devrel-open-source-machine-learning.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/data-developer-relations-hugo-bowne-anderson/id1541710331?i=1000617298688",
       "spotify": "https://open.spotify.com/episode/7bVCKqn9fLt6ETq8hxId5V?si=GZSC3NbvRuyXD85iOQo51Q",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Data-Developer-Relations---Hugo-Bowne-Anderson-e25q88q",
       "youtube": "https://www.youtube.com/watch?v=z7BvslwVRbQ"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "c30b701a58cc636aaeb06a50dc217aed666f37727a64e2f6a19fe00cb4c58227",
       "repository": "DataTalksClub/content",
@@ -63520,14 +63520,14 @@
     "guests": [
       "antonisstellas"
     ],
-    "image_path": "/images/podcast/from-startup-engineering-to-freelance-data-science.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/lessons-learned-from-freelancing-and-working-in-a/id1541710331?i=1000616311575",
       "spotify": "https://open.spotify.com/episode/4ehGduC0p734UtwPr5HANq?si=rEC_XP-4RSKYh0TtSQBtlw",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Lessons-Learned-from-Freelancing-and-Working-in-a-Start-up---Antonis-Stellas-e25g94r",
       "youtube": "https://www.youtube.com/watch?v=-Gj7SaI-QW4"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "5c2cfb7325386cd083e21dddae585af6823615be9c4b9570ee8a7b0cbdef22e7",
       "repository": "DataTalksClub/content",
@@ -64590,14 +64590,14 @@
     "guests": [
       "bartvandekerckhove"
     ],
-    "image_path": "/images/podcast/data-governance-data-access-management.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/data-access-management-bart-vandekerckhove/id1541710331?i=1000615456026",
       "spotify": "https://open.spotify.com/episode/5PDgK1FsGNtKAAyiXOppRs?si=QZDP8k38Q0e4LaZtl4lCMA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Data-Access-Management---Bart-Vandekerckhove-e253r4u",
       "youtube": "https://www.youtube.com/watch?v=IiPOIiUy5b4"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "da30af01e220e097ffb1c963bf669bb41f27a44ff5bcc05cccbdabf314241636",
       "repository": "DataTalksClub/content",
@@ -65545,14 +65545,14 @@
     "guests": [
       "boyanangelov"
     ],
-    "image_path": "/images/podcast/data-strategy-and-dataops-for-ai-powered-products.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/data-strategy-key-principles-and-best-practices-boyan/id1541710331?i=1000614629229",
       "spotify": "https://open.spotify.com/episode/7tITQ4nLypogRLUjjK75mx?si=722BlhoLSGuxZlE9ia7VhA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Data-Strategy-Key-Principles-and-Best-Practices---Boyan-Angelov-e24mete",
       "youtube": "https://www.youtube.com/watch?v=jGbfeYdlCiQ"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "f941e5a2931586e2f7475866a00fb44ca2da06056e0f254d8574696d89d8e9bb",
       "repository": "DataTalksClub/content",
@@ -66462,14 +66462,14 @@
     "guests": [
       "katharinejarmul"
     ],
-    "image_path": "/images/podcast/data-privacy-engineering-gdpr-machine-learning.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/practical-data-privacy-katharine-jarmul/id1541710331?i=1000613701646",
       "spotify": "https://open.spotify.com/episode/137H2M9qU5lFqb4hLyMBvg?si=b0KXeubVSpa3bfsuZaS6pQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Practical-Data-Privacy---Katharine-Jarmul-e23u551",
       "youtube": "https://www.youtube.com/watch?v=gbjoFfrm4iw"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "78cc840b19e2886698bfe6208c3b5e4235cd02dea9c5a806595c6c3a3b11f920",
       "repository": "DataTalksClub/content",
@@ -67596,14 +67596,14 @@
     "guests": [
       "arsenykravchenko"
     ],
-    "image_path": "/images/podcast/building-scalable-and-reliable-machine-learning-systems.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/building-scalable-and-reliable-machine-learning/id1541710331?i=1000612813133",
       "spotify": "https://open.spotify.com/episode/6iDyJuhfXibDB6kXFhvaqG?si=urjDGVl6RrWtjVXIAUgOvQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Building-Scalable-and-Reliable-Machine-Learning-Systems---Arseny-Kravchenko-e23m33q",
       "youtube": "https://www.youtube.com/watch?v=i-pIdekjUow"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "5ed79fc9f626da147cae75261c35ca7889430fed908e3c40a5f6ed4623bca413",
       "repository": "DataTalksClub/content",
@@ -68348,14 +68348,14 @@
     "guests": [
       "johanneshotter"
     ],
-    "image_path": "/images/podcast/building-open-source-nlp-tool.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/building-an-open-source-nlp-tool-johannes-h%C3%B6tter/id1541710331?i=1000610117894",
       "spotify": "https://open.spotify.com/episode/5SjY4vatlUYFCZUMV7dE7W?si=MC4ZZrKbSTKUEDVEfedGwA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Building-an-Open-Source-NLP-Tool---Johannes-Htter-e22lbn4",
       "youtube": "https://www.youtube.com/watch?v=WIpnyiHp4IE"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "0968329748ca04adaf8406dc43f59a488c57c71ce2277174d89c187f45acf9f4",
       "repository": "DataTalksClub/content",
@@ -69363,14 +69363,14 @@
     "guests": [
       "rosonaeldred"
     ],
-    "image_path": "/images/podcast/industrial-data-small-data-production-machine-learning.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/navigating-industrial-data-challenges-rosona-eldred/id1541710331?i=1000608992445",
       "spotify": "https://open.spotify.com/episode/1o6rtfFydBVoc0ER5ZUiRQ?si=rkgzEFquSfql4Za6cyjX2g",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Navigating-Industrial-Data-Challenges---Rosona-Eldred-e225aam",
       "youtube": "https://www.youtube.com/watch?v=rwuud5wr3J4"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "f3fd9d9654af6fa31798a406b50a5134d051668fae88f27d0683be85b3d8c8b1",
       "repository": "DataTalksClub/content",
@@ -70838,14 +70838,14 @@
     "guests": [
       "aaishamuhammad"
     ],
-    "image_path": "/images/podcast/learning-machine-learning-self-taught-bioinformatics.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/mastering-self-learning-in-machine-learning-aaisha/id1541710331?i=1000607892159",
       "spotify": "https://open.spotify.com/episode/2XdKHrmVuytXd5kzLVSbFn?si=ETbkUdT2Q1yJlKCI-d9Rcg",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Mastering-Self-Learning-in-Machine-Learning---Aaisha-Muhammad-e21ud62",
       "youtube": "https://www.youtube.com/watch?v=Kc3Puh3UCRQ"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "124e565525a5319ced99bbb6b28fc6c20a5050a09f3c1453db9947c058483993",
       "repository": "DataTalksClub/content",
@@ -72027,14 +72027,14 @@
     "guests": [
       "shirmeirlador"
     ],
-    "image_path": "/images/podcast/data-science-management-and-agile-machine-learning.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/the-secret-sauce-of-data-science-management-shir-meir-lador/id1541710331?i=1000606790142",
       "spotify": "https://open.spotify.com/episode/4kzcUCVPVN1Opq7XI1Dibd?si=f7GlEOs-TFiC9dxTJlXVyw",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/The-Secret-Sauce-of-Data-Science-Management---Shir-Meir-Lador-e21cu92",
       "youtube": "https://www.youtube.com/watch?v=gcxP0qRO-MY"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "2cf8dabbb2bd9fe238f2e145e2c76cf8d78214d49316c92e12cbf0d8393631e8",
       "repository": "DataTalksClub/content",
@@ -73087,14 +73087,14 @@
     "guests": [
       "nadianahar"
     ],
-    "image_path": "/images/podcast/software-engineering-for-machine-learning.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/se4ml-software-engineering-for-machine-learning-nadia/id1541710331?i=1000605782433",
       "spotify": "https://open.spotify.com/episode/6ElyurOyGfRiCwLGUWOG7f?si=6k0i3XNUSPWd31vsZv4pfA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/SE4ML---Software-Engineering-for-Machine-Learning---Nadia-Nahar-e20svmn",
       "youtube": "https://www.youtube.com/watch?v=35Ch8xL2SA8"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "8364f260c2101f3683fcb8705abd77487b9cf263c633c17b52259a9d7ef96387",
       "repository": "DataTalksClub/content",
@@ -73957,14 +73957,14 @@
     "guests": [
       "aleksanderkruszelnicki"
     ],
-    "image_path": "/images/podcast/data-consulting-business-pricing-and-client-acquisition.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/starting-a-consultancy-in-the-data-space/id1541710331?i=1000604682286",
       "spotify": "https://open.spotify.com/episode/2Y0mKRHq6wVfr25HJ5Ji3Y?si=kUkmMW2AT6-FeRd6SpXWlg",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Starting-a-Consultancy-in-the-Data-Space---Aleksander-Kruszelnicki-e203c8g",
       "youtube": "https://www.youtube.com/watch?v=rh_pE35m3vE"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "d38d61524b8c61d5dea24e2ffaf63611d913801139cef7704443d4a22567d29a",
       "repository": "DataTalksClub/content",
@@ -74935,14 +74935,14 @@
     "guests": [
       "ruslanshchuchkin"
     ],
-    "image_path": "/images/podcast/biohacking-productivity-for-data-scientists-and-ml-engineers.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/biohacking-for-data-scientists-and-ml-engineers/id1541710331?i=1000603633848",
       "spotify": "https://open.spotify.com/episode/6IuHKMK4CJdcVJNq9uQ9lm?si=PgXZHBCNSu21Nma1ToxGyQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Biohacking-for-Data-Scientists-and-ML-Engineers---Ruslan-Shchuchkin-e1vpm1i",
       "youtube": "https://www.youtube.com/watch?v=uyxUBADZYpU"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "70d40c185e444bea34d38639301bd759d788da450a7ae456e9738ad909e11eb0",
       "repository": "DataTalksClub/content",
@@ -76369,14 +76369,14 @@
     "guests": [
       "parvathykrishnan"
     ],
-    "image_path": "/images/podcast/data-science-and-analytics-for-nonprofits-tech-for-good.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/analytics-for-a-better-world-parvathy-krishnan/id1541710331?i=1000602678901",
       "spotify": "https://open.spotify.com/episode/5Xiuu4jMBCMuwkokXbwhE2?si=nGRQrMUaRNa5EINbtJadBA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Analytics-for-a-Better-World---Parvathy-Krishnan-e1vo27h",
       "youtube": "https://www.youtube.com/watch?v=b6x5zZ3C6sQ"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "1d65a76e99489c8bef42ba62813808bcbb4ecb14b444c74dc0f324a2a20cd019",
       "repository": "DataTalksClub/content",
@@ -77184,14 +77184,14 @@
     "guests": [
       "daniameira"
     ],
-    "image_path": "/images/podcast/building-ml-communities-diversity-and-career-growth.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/accelerating-the-adoption-of-ai-through-diversity/id1541710331?i=1000601491838",
       "spotify": "https://open.spotify.com/episode/6pRkAK9Zo2QrXZCAzh2veV?si=ixEmGK5-RemknBcHrChMNA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Accelerating-the-Adoption-of-AI-through-Diversity---Dnia-Meira-e1v9obp",
       "youtube": "https://www.youtube.com/watch?v=SRUwwvk_YCk"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "407eda92b4d6a6118573f4a241c5fe3d01fdab7fbb92a2dc135dba4740e4721e",
       "repository": "DataTalksClub/content",
@@ -78206,14 +78206,14 @@
     "guests": [
       "tatianagabruseva"
     ],
-    "image_path": "/images/podcast/from-academia-to-staff-ai-engineer-interviews-and-career-growth.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/staff-ai-engineer-tatiana-gabruseva/id1541710331?i=1000600246792",
       "spotify": "https://open.spotify.com/episode/4o52jMRR2cctCD8LuFFLdD?si=tBO_9KkiSWySHu7jaM-McQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Staff-AI-Engineer---Tatiana-Gabruseva-e1v3on7",
       "youtube": "https://www.youtube.com/watch?v=_xr1_xb736E"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "2d37ce5a36831db73edaf44752e9ae9e7b370f98014d5bddc3ed5866171e0b65",
       "repository": "DataTalksClub/content",
@@ -79107,14 +79107,14 @@
     "guests": [
       "krzysztofszafanek"
     ],
-    "image_path": "/images/podcast/how-to-grow-your-ml-engineering-career.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/navigating-career-changes-in-machine-learning-chris/id1541710331?i=1000597921745",
       "spotify": "https://open.spotify.com/episode/1mDlJi7vfLeJgIZStQ4G90?si=Spd04VwmSh2zZCgZzLIPbA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Navigating-Career-Changes-in-Machine-Learning---Chris-Szafranek-e1ucvn2",
       "youtube": "https://www.youtube.com/watch?v=cUxZBXQgZaU"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "eff8594675e05bea8e9416e2a7d8db26ba30ac36d77fcb8266e728d6557ef8c2",
       "repository": "DataTalksClub/content",
@@ -80276,14 +80276,14 @@
     "guests": [
       "lukewhipps"
     ],
-    "image_path": "/images/podcast/machine-learning-data-science-interview-prep.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/preparing-for-a-data-science-interview-luke-whipps/id1541710331?i=1000596975225",
       "spotify": "https://open.spotify.com/episode/3JAmnWie8pS58Kok9Sjr2V?si=FDpX4O74Qi2kqzMGumqMpw",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Preparing-for-a-Data-Science-Interview---Luke-Whipps-e1tsh5d",
       "youtube": "https://www.youtube.com/watch?v=NnZjlMowkWA"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "33538ddb6e514038dbaaba0c0439a42b0e727b50823ec843f888fdb068e988db",
       "repository": "DataTalksClub/content",
@@ -81353,14 +81353,14 @@
     "guests": [
       "paulineclavelloux"
     ],
-    "image_path": "/images/podcast/data-scientist-and-indie-hacker-bootstrapping-side-projects.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/indie-hacking-pauline-clavelloux/id1541710331?i=1000595787491",
       "spotify": "https://open.spotify.com/episode/2DlD756csrDFAxfuTjSKwY?si=_H2G3bJtQIuJMAe8daEIYg",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Doing-Software-Engineering-in-Academia---Johanna-Bayer-e1snqcb",
       "youtube": "https://www.youtube.com/watch?v=KsV_SVXlTo8"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "b3e5a8c6d417fb6b8eebaf33bebe455fc962224623f439ffc49ea50c5eec16e0",
       "repository": "DataTalksClub/content",
@@ -82735,14 +82735,14 @@
     "guests": [
       "johannabayer"
     ],
-    "image_path": "/images/podcast/teaching-reproducible-research-and-open-science-coding-practices-for-academia.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/doing-software-engineering-in-academia-johanna-bayer/id1541710331?i=1000594351759",
       "spotify": "https://open.spotify.com/episode/3ol91Xt0A6VBbPgFxGh5N6?si=QDcjMCJ7SOG6eJjjYbyEcg",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Doing-Software-Engineering-in-Academia---Johanna-Bayer-e1snqcb",
       "youtube": "https://www.youtube.com/watch?v=K0PdQITQzVQ"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "225538c8dcc509b2efc673993d9aeb51e5543b5758e7e4c7f75c50dcf11753fa",
       "repository": "DataTalksClub/content",
@@ -83867,14 +83867,14 @@
     "guests": [
       "marysiawinkels"
     ],
-    "image_path": "/images/podcast/data-centric.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/data-centric-ai-marysia-winkels/id1541710331?i=1000592911172",
       "spotify": "https://open.spotify.com/episode/6q1yago5iyMt8OmCX1abG3?si=-OaRAwjaRfOfyQ7_QZEbBw",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Data-Centric-AI---Marysia-Winkels-e1shctn",
       "youtube": "https://www.youtube.com/watch?v=t3HDdVWQzNM"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "d9c2c1c5cb25b5754ff5ff537f6633f8ef8963cf86c6a8334885d8b4533e087a",
       "repository": "DataTalksClub/content",
@@ -84946,14 +84946,14 @@
     "guests": [
       "lorismarini"
     ],
-    "image_path": "/images/podcast/data-professionals-business-skills-in-saas.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/business-skills-for-data-professionals-loris-marini/id1541710331?i=1000590422440",
       "spotify": "https://open.spotify.com/episode/5tw3qs1XHETDPYrxdEaVbK?si=QIclWOT_QhKhIGrcl-KQXg",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Business-Skills-for-Data-Professionals---Loris-Marini-e1s89hu",
       "youtube": "https://www.youtube.com/watch?v=xMYRUiTu960"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "84149bc62319c43b4f831f283518875fc6cd7d21b24c19cba49a0014f165b0b1",
       "repository": "DataTalksClub/content",
@@ -85877,14 +85877,14 @@
     "guests": [
       "sadatanwar"
     ],
-    "image_path": "/images/podcast/from-software-engineering-to-leading-data-science-teams.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-software-engineer-to-data-science-manager-sadat-anwar/id1541710331?i=1000589637838",
       "spotify": "https://open.spotify.com/episode/3vOUwe4WtNQFXHRgTcyMtg?si=87o3XW_EQZ-n68nhAeV8Xw",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Software-Engineer-to-Data-Science-Manager---Sadat-Anwar-e1rqkdf",
       "youtube": "https://www.youtube.com/watch?v=xyTfqIWeKf8"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "0b47d21de756329821f586b1ace56bc1485ceb3ca102db143e8acf5d5f0096f0",
       "repository": "DataTalksClub/content",
@@ -87233,14 +87233,14 @@
     "guests": [
       "irinabrudaru"
     ],
-    "image_path": "/images/podcast/teaching-mentoring-data-analytics-fintech.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/teaching-and-mentoring-in-data-analytics-irina-brudaru/id1541710331?i=1000588551445",
       "spotify": "https://open.spotify.com/episode/0ES2N4yIu61bUB3dY9oxgQ?si=_KFHPXOUQVap8oSBp6AJgA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Teaching-and-Mentoring-in-Data-Analytics---Irina-Brudaru-e1rihm1",
       "youtube": "https://www.youtube.com/watch?v=saaRRzgHsmE"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "1b240f35c888ad94d6dc5bf8341a616df91731053472cbe258514bdb4e420668",
       "repository": "DataTalksClub/content",
@@ -88699,14 +88699,14 @@
     "guests": [
       "angelicaloduca"
     ],
-    "image_path": "/images/podcast/data-journalism-python-visualization-storytelling.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/technical-writing-and-data-journalism-angelica-lo-duca/id1541710331?i=1000587507530",
       "spotify": "https://open.spotify.com/episode/38b2Y9KgxSFlIHPZ3jqheK?si=SPiURO1bTamVKrKV_laVDQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Technical-Writing-and-Data-Journalism---Angelica-Lo-Duca-e1r7j8k",
       "youtube": "https://www.youtube.com/watch?v=uO_lk12q02A"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "a86cc63890096275a9ced431d106fba65260771ec36beef6bf2749255adcebf7",
       "repository": "DataTalksClub/content",
@@ -89691,14 +89691,14 @@
     "guests": [
       "nikolamaksimovic"
     ],
-    "image_path": "/images/podcast/from-marketing-to-analytics-engineering-sql-dbt-career-switch.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-digital-marketing-to-analytics-engineering-nikola/id1541710331?i=1000586740912",
       "spotify": "https://open.spotify.com/episode/5VwS6ijaToirTzR7Xd5Phw?si=OsOVLOzBSt2sIgvbRS3krg",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Digital-Marketing-to-Analytics-Engineering---Nikola-Maksimovic-e1qr75s",
       "youtube": "https://www.youtube.com/watch?v=GawJ7mG5ElQ"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "24207735eeb7297d6187bea57327e6efc47f4ddbb95aedd1a82039c833e7aa9f",
       "repository": "DataTalksClub/content",
@@ -90545,14 +90545,14 @@
     "guests": [
       "annahannemann"
     ],
-    "image_path": "/images/podcast/building-data-products-product-owner-vs-product-manager.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/product-owners-in-data-science-anna-hannemann/id1541710331?i=1000585888321",
       "spotify": "https://open.spotify.com/episode/5deNrH5E6802ClwVt2Re4A?si=Xdg7qlT1TPCrH318MvS2RA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Product-Owners-in-Data-Science---Anna-Hannemann-e1q0ord",
       "youtube": "https://www.youtube.com/watch?v=rTRTjB6cGng"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "91d8204ea98cf5073a45d557ec11f7528bf2e9943e48b8bced9d36c94c663381",
       "repository": "DataTalksClub/content",
@@ -91415,14 +91415,14 @@
     "guests": [
       "andreyshtylenko"
     ],
-    "image_path": "/images/podcast/building-and-scaling-data-science-practice-industrial-ai-mlops.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/building-data-science-practice-andrey-shtylenko/id1541710331?i=1000585100407",
       "spotify": "https://open.spotify.com/episode/0M7Y77MFToxtKuyfdF5W22?si=jgWR6EchQnWe6nYWW44ZxQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Building-Data-Science-Practice---Andrey-Shtylenko-e1q2ka6",
       "youtube": "https://www.youtube.com/watch?v=XbDQv8FTA4U"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "4273effd20533441db9a7aac9b713db5cac060619499be79be53d48799688019",
       "repository": "DataTalksClub/content",
@@ -92149,14 +92149,14 @@
     "guests": [
       "sonalgoyal"
     ],
-    "image_path": "/images/podcast/building-open-source-data-product-for-identity-resolution.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/large-scale-entity-resolution-sonal-goyal/id1541710331?i=1000584270745",
       "spotify": "https://open.spotify.com/episode/54DufG1ZVj0GMSoWTbJsen?si=d7XNSW2_Tfa4qKJxmFQpIA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Large-Scale-Entity-Resolution---Sonal-Goyal-e1pibrh",
       "youtube": "https://www.youtube.com/watch?v=lpjffCOPxlY"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "74df64a323f48375b69af61cd0799afec1555c1abccd934cfdbea667ecaaafac",
       "repository": "DataTalksClub/content",
@@ -93140,14 +93140,14 @@
     "guests": [
       "tomaszhinc"
     ],
-    "image_path": "/images/podcast/dataops-and-gitops-best-practices-for-data-teams.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-data-science-to-dataops-tomasz-hinc/id1541710331?i=1000583457504",
       "spotify": "https://open.spotify.com/episode/6jLgdl59sVCdVNJezdIqJY?si=NXasnXtFQVO0KAcCFbvUtQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Data-Science-to-DataOps---Tomasz-Hinc-e1p7sjb",
       "youtube": "https://www.youtube.com/watch?v=lem7knxqNzg"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "71553f79197873fbed447ce4b5e53846e861cd8be9a9c098313e1b27738ee844",
       "repository": "DataTalksClub/content",
@@ -93966,14 +93966,14 @@
     "guests": [
       "katiebauer"
     ],
-    "image_path": "/images/podcast/hiring-and-managing-data-science-teams-in-b2b-saas.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/data-science-career-development-katie-bauer/id1541710331?i=1000582680396",
       "spotify": "https://open.spotify.com/episode/0sm5qB1Cj4EJlbQ2giLtHR",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Data-Science-Career-Development---Katie-Bauer-e1oq96g",
       "youtube": "https://www.youtube.com/watch?v=i1NHRroQClQ"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "78cab69d64126f1abe170c064e09fe5f5ca4bf29d228884b8c134f8503fc701d",
       "repository": "DataTalksClub/content",
@@ -94952,14 +94952,14 @@
     "guests": [
       "alvaronavaspeire"
     ],
-    "image_path": "/images/podcast/how-to-transition-into-ml-and-data-engineering-from-qa.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-testing-phones-to-managing-nlp-projects-alvaro/id1541710331?i=1000581943071",
       "spotify": "https://open.spotify.com/episode/1LMg70fGthIR2jF4JdmFkb?si=BmEfOtfgSEOpKvp5ENRA2g",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Testing-Phones-to-Managing-NLP-Projects---Alvaro-Navas-Peire-e1oj7n8",
       "youtube": "https://www.youtube.com/watch?v=-xumbiXOlA8"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "12e5a47f9cb5ba85d24fac76a554798e137501220e02477f69ba43cd0806cf89",
       "repository": "DataTalksClub/content",
@@ -96111,14 +96111,14 @@
     "guests": [
       "supreetkaur"
     ],
-    "image_path": "/images/podcast/responsible-explainable-ai-bias-detection.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/responsible-and-explainable-ai-supreet-kaur/id1541710331?i=1000581178150",
       "spotify": "https://open.spotify.com/episode/0xCSjSCG6tTiMSGfUJrMmO",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Responsible-and-Explainable-AI---Supreet-Kaur-e1o6mgj",
       "youtube": "https://www.youtube.com/watch?v=8Eb5mG-pC3o"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "f3a637247449407d9c8f955a8b445ffdbbcd2ad954001d7876c1c4a196c5ceac",
       "repository": "DataTalksClub/content",
@@ -97156,14 +97156,14 @@
     "guests": [
       "davidbader"
     ],
-    "image_path": "/images/podcast/building-data-science-programs-and-democratizing-high-performance-computing.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/leading-data-research-david-bader/id1541710331?i=1000579710785",
       "spotify": "https://open.spotify.com/episode/7DmFWFHUwxx4Wf0X6GbKBf?si=2DW0G2EMQ7ebB9K60LfJyQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Leading-Data-Research---David-Bader-e1nmt3r",
       "youtube": "https://www.youtube.com/watch?v=vZLlpsUlchQ"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "f719d0149275c38133b42d529ef3cf89ea713112922edf21a92a65cee5535c18",
       "repository": "DataTalksClub/content",
@@ -98109,14 +98109,14 @@
     "guests": [
       "christiannswart"
     ],
-    "image_path": "/images/podcast/nlp-dataset-creation-annotation-tools-workflows.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/dataset-creation-and-curation-christiaan-swart/id1541710331?i=1000578975804",
       "spotify": "https://open.spotify.com/episode/26K8JrQXKwLpQelo4n4Kdi?si=e2ad35c4941446c4",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Dataset-Creation-and-Curation---Christiaan-Swart-e1nd1f6",
       "youtube": "https://www.youtube.com/watch?v=QggWydGrWoo"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "f0509c5a966057f645baf10b48da6867d73a734fc6914271abc55b35897b9740",
       "repository": "DataTalksClub/content",
@@ -98841,14 +98841,14 @@
     "guests": [
       "zhamakdehghani"
     ],
-    "image_path": "/images/podcast/data-mesh-architecture-decentralized-data-products.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/data-mesh-101-zhamak-dehghani/id1541710331?i=1000578193372",
       "spotify": "https://open.spotify.com/episode/5uX5sfRPvC9WAXOM9fRCup?si=FQYB7cpuSOyzq7022xU3Tg",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Data-Mesh-101---Zhamak-Dehghani-e1n7vlk",
       "youtube": "https://www.youtube.com/watch?v=346N_pCtYZU"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "fce2830c5cc0269aaa3f4b87a75786455c2c75f2cc5bf24ba4b057e1a16d3b5d",
       "repository": "DataTalksClub/content",
@@ -99595,14 +99595,14 @@
     "guests": [
       "mehdiouazza"
     ],
-    "image_path": "/images/podcast/scaling-data-engineering-teams-self-service-platforms.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/growing-data-engineering-team-in-a-scale-up-mehdi-ouazza/id1541710331?i=1000577461365",
       "spotify": "https://open.spotify.com/episode/5DkuaYQpbJ13sU9bknFZnk?si=RtQnTHHYQb-ytMEw8J3e8g",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Growing-Data-Engineering-Team-in-a-Scale-Up---Mehdi-OUAZZA-e1mq8et",
       "youtube": "https://www.youtube.com/watch?v=acJ6sVqKOUk"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "fc312fb2c7c3e88dfeda17be33203da88d6184ea62f6585ac170da104db55c40",
       "repository": "DataTalksClub/content",
@@ -100563,14 +100563,14 @@
     "guests": [
       "alexanderhendorf"
     ],
-    "image_path": "/images/podcast/scaling-enterprise-ai-mlops-data-first-strategy.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/lessons-learned-about-data-ai-at-enterprises-alexander/id1541710331?i=1000576622709",
       "spotify": "https://open.spotify.com/episode/5t3SwzH17mFjxEoDUx9i5c?si=gaTfOoFnQ7muVkBiYuMxuA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Lessons-Learned-About-Data--AI-at-Enterprises---Alexander-Hendorf-e1milm0/a-a8d08ua",
       "youtube": "https://www.youtube.com/watch?v=Vms29u9xC3k"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "5df83acd9279854ecc374f1e8c93be366165b78751aa16cc5037ba976111e93b",
       "repository": "DataTalksClub/content",
@@ -101350,14 +101350,14 @@
     "guests": [
       "dannyleybzon"
     ],
-    "image_path": "/images/podcast/mlops-model-monitoring-data-observability.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/mlops-architect-danny-leybzon/id1541710331?i=1000575901051",
       "spotify": "https://open.spotify.com/episode/5gz5lnS7onwRUtbcmpOSuU?si=8cbe799f284c4623",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/MLOps-Architect---Danny-Leybzon-e1m81iu",
       "youtube": "https://www.youtube.com/watch?v=p1gVaS4Zx5M"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "960ff0cebf4aec01a418796e5e076a9762776f4e8b22db449d3b13971d827a70",
       "repository": "DataTalksClub/content",
@@ -102445,14 +102445,14 @@
     "guests": [
       "terezaiofciu"
     ],
-    "image_path": "/images/podcast/data-science-job-red-flags-and-mismatched-roles.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/decoding-data-science-job-descriptions-tereza-iofciu/id1541710331?i=1000575150345",
       "spotify": "https://open.spotify.com/episode/4v6h48B0c0Je8xLMo5zMs5?si=hcMUqpPPQYm2vrdi2py1UQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Decoding-Data-Science-Job-Descriptions---Tereza-Iofciu-e1m079l",
       "youtube": "https://www.youtube.com/watch?v=bqxBiIwtmX4"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "8697cc91afadd6b61d861a171c7293e961f0aa68c10bb22caf18b9de91c7dd84",
       "repository": "DataTalksClub/content",
@@ -103483,14 +103483,14 @@
     "guests": [
       "christinecepelak"
     ],
-    "image_path": "/images/podcast/data-science-for-public-policy-ethical-ai-social-impact.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/data-science-for-social-impact-christine-cepelak/id1541710331?i=1000571591865",
       "spotify": "https://open.spotify.com/episode/7fzBhDrfVfylnBLCJGwUHC?si=3b03d59083804346",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Data-Science-for-Social-Impact---Christine-Cepelak-e1li47e",
       "youtube": "https://www.youtube.com/watch?v=xWC1HAfekRk"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "b86834cdbbaefabb6a43d609ee0e682497669025f3842277e69a7856ee3cf0bb",
       "repository": "DataTalksClub/content",
@@ -104653,14 +104653,14 @@
     "guests": [
       "olgaivina"
     ],
-    "image_path": "/images/podcast/hiring-for-data-science-jobs-interview-questions-skills.md.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/hiring-data-science-talent-olga-ivina/id1541710331?i=1000570846380",
       "spotify": "https://open.spotify.com/episode/7ddvA9zNTip5Bt6EYnMNty?si=4fee84a6ad43465d",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Hiring-Data-Science-Talent---Olga-Ivina-e1l4aku",
       "youtube": "https://www.youtube.com/watch?v=Af9t9r2b0z0"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "d00ecd03c437abd0e7d52573b6f903296168611ce6c05eb52e98e91fb51de35b",
       "repository": "DataTalksClub/content",
@@ -105838,14 +105838,14 @@
     "guests": [
       "willmcgugan"
     ],
-    "image_path": "/images/podcast/open-source-turned-into-career-and-startup-creation.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/designing-a-data-science-organization-lisa-cohen/id1541710331?i=1000569172916",
       "spotify": "https://open.spotify.com/episode/4JAwU2jQuXu4MoMucsE899?si=6ed45b98dd4a415a",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Open-Source-Maintainer-to-Founder---Will-McGugan-e1kqtu5",
       "youtube": "https://www.youtube.com/watch?v=bwfR9dyxf1M"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "6d7d6cda8ff88240c0c332de5c5487c71ed789dd27e62ea389bc92206f09f60d",
       "repository": "DataTalksClub/content",
@@ -107105,14 +107105,14 @@
     "guests": [
       "lisacohen"
     ],
-    "image_path": "/images/podcast/data-science-team-structure-and-org-design.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/designing-a-data-science-organization-lisa-cohen/id1541710331?i=1000569172916",
       "spotify": "https://open.spotify.com/episode/62ZzHBEuOLbm6ft0u9dlh7?si=182bea5ac49243af",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Designing-a-Data-Science-Organization---Lisa-Cohen-e1kcm5e",
       "youtube": "https://www.youtube.com/watch?v=F_rJ4fg5ZEA"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "d66896d94fb376cd4a097d690572c1eb1e0474461cdecd72c132d04cd0edcd39",
       "repository": "DataTalksClub/content",
@@ -108043,14 +108043,14 @@
     "guests": [
       "mervenoyan"
     ],
-    "image_path": "/images/podcast/hugging-face-contributions-and-nlp-portfolio.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/developer-advocacy-engineer-for-open-source-merve-noyan/id1541710331?i=1000568463048",
       "spotify": "https://open.spotify.com/episode/5k60LWIwnMpvaIbTaryRv4?si=liHqmXVYT-uB1PO4uB65OQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Developer-Advocacy-Engineer-for-Open-Source---Merve-Noyan-e1kcm3u",
       "youtube": "https://www.youtube.com/watch?v=SnEYvF-Ztb8"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "89fe03288039c8bafd44df28daefee1caf3c91cc17a59e2bdd7dbd320bb27e24",
       "repository": "DataTalksClub/content",
@@ -109133,14 +109133,14 @@
     "guests": [
       "misraturp"
     ],
-    "image_path": "/images/podcast/how-to-break-into-data-science.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/data-scientists-at-work-m%C4%B1sra-turp/id1541710331?i=1000567625873",
       "spotify": "https://open.spotify.com/episode/1RSUsWDOBDD4sNDruEbnEY",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Data-Scientists-at-Work---Msra-Turp-e1k7pbn",
       "youtube": "https://www.youtube.com/watch?v=oUycqtMoYr8"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "c2f6d406cc9f082e20fca2f270668c5f440930a033bcc3071d3876dc71147dba",
       "repository": "DataTalksClub/content",
@@ -110187,14 +110187,14 @@
     "guests": [
       "adrianbrudaru"
     ],
-    "image_path": "/images/podcast/freelance-data-engineering-pricing-and-clients.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/freelancing-and-consulting-with-data-engineering/id1541710331?i=1000566841525",
       "spotify": "https://open.spotify.com/episode/5M9HFWt8xmqf5HyGu40RmJ?si=C95h0CMkRiazs_ft8Z_gRg",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Freelancing-and-Consulting-with-Data-Engineering---Adrian-Brudaru-e1jtkkg",
       "youtube": "https://www.youtube.com/watch?v=9DTTrN-khCk"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "39d9381d0cdc286c5ce91f6cd1efd560488513332c7c034e9471d285be87b1c7",
       "repository": "DataTalksClub/content",
@@ -111429,14 +111429,14 @@
     "guests": [
       "jeffkatz"
     ],
-    "image_path": "/images/podcast/get-data-engineering-job-prep-and-interview.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/getting-a-data-engineering-job-summary-and-q-a-jeff-katz/id1541710331?i=1000566005592",
       "spotify": "https://open.spotify.com/episode/1SaZ0QXAIhcdH1gfaNoN4Z?si=OvvNFdTpSu2MCCDOWdYgJQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Getting-a-Data-Engineering-Job-Summary-and-QA---Jeff-Katz-e1jljmd",
       "youtube": "https://www.youtube.com/watch?v=asnt7xlyZXQ"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "cc99e9ca8420ea33a18b635176b8ebe342d7bfb9d18e066d78ef5acccf21b573",
       "repository": "DataTalksClub/content",
@@ -112165,14 +112165,14 @@
     "guests": [
       "daynancrull"
     ],
-    "image_path": "/images/podcast/machine-learning-for-asteroid-mining-and-water-detection.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/machine-learning-in-marketing-juan-orduz/id1541710331?i=1000564219176",
       "spotify": "https://open.spotify.com/episode/7wjKCbCsD4ytuNrE8JrH2B?si=1WPAtw6PSZGVib0qSsoLvA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Using-Data-for-Asteroid-Mining---Daynan-Crull-e1jbhr0",
       "youtube": "https://www.youtube.com/watch?v=YxijEUoDCfw"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "fc401696d4518af9d098aee2e10ebd7933c8d25c0df277f752055f858fa7f1d4",
       "repository": "DataTalksClub/content",
@@ -112968,14 +112968,14 @@
     "guests": [
       "juanorduz"
     ],
-    "image_path": "/images/podcast/machine-learning-in-marketing-attribution-marketing-mix-modeling.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/machine-learning-in-marketing-juan-orduz/id1541710331?i=1000564219176",
       "spotify": "https://open.spotify.com/episode/0rc8zZjdxr5ncxqH9RDqBV?si=49feb89374554f65",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Machine-Learning-in-Marketing---Juan-Orduz-e1j1muj",
       "youtube": "https://www.youtube.com/watch?v=jsAxUd_bZpw"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "cd114a3389c235041fcfa8d73288fcb138a8253993c9a9b1927f2a89a02093a5",
       "repository": "DataTalksClub/content",
@@ -113921,14 +113921,14 @@
     "guests": [
       "gloriaquiceno"
     ],
-    "image_path": "/images/podcast/get-data-analytics-and-data-engineering-job.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-academia-to-data-analytics-and-engineering/id1541710331?i=1000562898040",
       "spotify": "https://open.spotify.com/episode/1kDpXugcmDdVJ6qUAiNnHQ?si=aa62cc4dce5f41b2",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Academia-to-Data-Analytics-and-Engineering---Gloria-Quiceno-e1ikrd8",
       "youtube": "https://www.youtube.com/watch?v=0wANfIvum4U"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "1ba32a69433d4a1fbf81a369565963e5702235e74301bbbae341beb7b24f442d",
       "repository": "DataTalksClub/content",
@@ -115070,14 +115070,14 @@
     "guests": [
       "jeffkatz"
     ],
-    "image_path": "/images/podcast/data-engineering-career-path-and-skills.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/teaching-data-engineers-jeff-katz/id1541710331?i=1000561145955",
       "spotify": "https://open.spotify.com/episode/0Fo6Y62xaWPy7C24eZKfJw?si=lnjgqHUiRdGiZNxE76QMYQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Teaching-Data-Engineers---Jeff-Katz-e1iaoru",
       "youtube": "https://www.youtube.com/watch?v=dFo10l8B6Go"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "99dafcaf7864329b1f546f614ee956579f42e54caf9b98de74f045543ad9ae97",
       "repository": "DataTalksClub/content",
@@ -116232,14 +116232,14 @@
     "guests": [
       "jessicagreene"
     ],
-    "image_path": "/images/podcast/how-to-switch-to-ml-tech-without-experience.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-roasting-coffee-to-backend-development-jessica/id1541710331?i=1000559856138",
       "spotify": "https://open.spotify.com/episode/3AnUc03nLbIYS6ichWIrRE?si=momJMlwdTpKFkI0FYQilag",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Roasting-Coffee-to-Backend-Development---Jessica-Greene-e1i1ten/a-a7s65oj",
       "youtube": "https://www.youtube.com/watch?v=BKqmNdxsBko"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "efcc80801d27ebcfd978feabcade4e3f28082f7fb6f52fb79394c2c56623f919",
       "repository": "DataTalksClub/content",
@@ -117264,14 +117264,14 @@
     "guests": [
       "nicolasrassam"
     ],
-    "image_path": "/images/podcast/hiring-for-data-engineering-jobs-in-europe.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/recruiting-data-engineers-nicolas-rassam/id1541710331?i=1000559128813",
       "spotify": "https://open.spotify.com/episode/5ldkzYiHFvJCKoEyfAlvDs?si=WFJzcZ7fRCi1dzwapNGfzA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Recruiting-Data-Engineers---Nicolas-Rassam-e1hnkl1",
       "youtube": "https://www.youtube.com/watch?v=hylxiu4VGTo"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "69cfbab6a671de9e5811f4500528c2f715415be764bce36a53a42b2f23bfc8ec",
       "repository": "DataTalksClub/content",
@@ -117955,14 +117955,14 @@
     "guests": [
       "christopherbergh"
     ],
-    "image_path": "/images/podcast/dataops-automation-and-reliable-data-pipelines.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/storytime-for-dataops-christopher-bergh/id1541710331?i=1000558399936",
       "spotify": "https://open.spotify.com/episode/2PcBsHslUVnjXFhC9hv6zk",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Storytime-for-DataOps---Christopher-Bergh-e1hgl0m",
       "youtube": "https://www.youtube.com/watch?v=0Fx5PCoLkf4"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "9f95503cfa15d08e8b95862dc2933f482479d0d14725cd788a06c06a6821f646",
       "repository": "DataTalksClub/content",
@@ -118848,14 +118848,14 @@
     "guests": [
       "stefangudmundsson"
     ],
-    "image_path": "/images/podcast/ai-in-healthcare-and-digital-therapeutics.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/machine-learning-and-personalization-in-healthcare/id1541710331?i=1000557726819",
       "spotify": "https://open.spotify.com/episode/3s78PtlbUmecuMOXwO8aD5?si=991e1811a5204305",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Machine-Learning-and-Personalization-in-Healthcare---Stefan-Gudmundsson-e1h5gdg",
       "youtube": "https://www.youtube.com/watch?v=IDzhmmKeNG4"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "f55471539569247ee3fc6c1c385a9610d2854ea63c986481d42bd71461720fa7",
       "repository": "DataTalksClub/content",
@@ -119880,14 +119880,14 @@
     "guests": [
       "liesbethdingemans"
     ],
-    "image_path": "/images/podcast/ai-ml-product-design-and-experimentation.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/innovation-and-design-for-machine-learning-liesbeth/id1541710331?i=1000556693861",
       "spotify": "https://open.spotify.com/episode/4vhTQJ6Aj9z5VHm9UsHspv",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Innovation-and-Design-for-Machine-Learning---Liesbeth-Dingemans-e1gq0en",
       "youtube": "https://www.youtube.com/watch?v=tcqBfZw41FM"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "3d70deb08ad2af6770db70fd454b4b9479e6b93eb1e55ac5e6966a5a09dc0333",
       "repository": "DataTalksClub/content",
@@ -120715,14 +120715,14 @@
     "guests": [
       "marijnmarkus"
     ],
-    "image_path": "/images/podcast/how-to-stand-out-in-data-science.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/hacking-your-data-career-marijn-markus/id1541710331?i=1000555977653",
       "spotify": "https://open.spotify.com/episode/6oJsS0vhvAQasLNv3IklQ6",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Hacking-Your-Data-Career---Marijn-Markus-e1gijep",
       "youtube": "https://www.youtube.com/watch?v=RhSg8ill1So"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "6b0e53843cb483046b0718d9d4f824b6a419bb90d06ecd444926e466ad342981",
       "repository": "DataTalksClub/content",
@@ -121726,14 +121726,14 @@
     "guests": [
       "meoramer"
     ],
-    "image_path": "/images/podcast/visualizing-machine-learning-concepts-to-explain-ml.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/visualising-machine-learning-meor-amer/id1541710331?i=1000555246590",
       "spotify": "https://open.spotify.com/episode/032NhEphm5QDdDFDUIypOL",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Visualising-Machine-Learning---Meor-Amer-e1g7iri",
       "youtube": "https://www.youtube.com/watch?v=OuCuk-7RHjM"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "6f7142fb0bbfd7346babfb47e6b580b2cd3f1ddd013f94b1af01ea711c032629",
       "repository": "DataTalksClub/content",
@@ -122505,14 +122505,14 @@
     "guests": [
       "juanpablo"
     ],
-    "image_path": "/images/podcast/from-math-graduate-to-data-analytics.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-math-teacher-to-analytics-engineer-juan-pablo/id1541710331?i=1000554506607",
       "spotify": "https://open.spotify.com/episode/153XI6DvtNWHYzSAv2UTqw",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Math-Teacher-to-Analytics-Engineer---Juan-Pablo-e1fplc1",
       "youtube": "https://www.youtube.com/watch?v=qh6-HDhw2xY"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "3b3ab9c05d0d90d20c51419365616cde2f8e13b36e2345431d9fefce27ab516d",
       "repository": "DataTalksClub/content",
@@ -123572,14 +123572,14 @@
     "guests": [
       "ellenkonig"
     ],
-    "image_path": "/images/podcast/from-software-engineering-data-science-to-data-engineering-leadership.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-data-science-to-data-engineering-ellen-k%C3%B6nig/id1541710331?i=1000553736781",
       "spotify": "https://open.spotify.com/episode/4R9F5B4f8vf5r5yQEmwYiu",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Data-Science-to-Data-Engineering---Ellen-Knig-e1fgfbm",
       "youtube": "https://www.youtube.com/watch?v=3TTu-hYzxeg"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "e7a584deb567ea4e2c5c8c645afc5f73e309d19c928f1f2d159b3c56b4347ffb",
       "repository": "DataTalksClub/content",
@@ -124736,14 +124736,14 @@
     "guests": [
       "16rahuljain"
     ],
-    "image_path": "/images/podcast/data-engineering-leadership-and-modern-data-platforms.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/becoming-a-data-engineering-manager-rahul-jain/id1541710331?i=1000552953646",
       "spotify": "https://open.spotify.com/episode/4nWP18woLTt4a7Wm0CQwhM",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Becoming-a-Data-Engineering-Manager---Rahul-Jain-e1f5nvf",
       "youtube": "https://www.youtube.com/watch?v=FljnbUQ796w"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "3909252580023dde5b400bfd5116d67869798c169baef261b489f36b53fc7187",
       "repository": "DataTalksClub/content",
@@ -125648,14 +125648,14 @@
     "guests": [
       "jakobgraff"
     ],
-    "image_path": "/images/podcast/ab-testing-and-product-experimentation.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/a-b-testing-jakob-graff/id1541710331?i=1000552243668",
       "spotify": "https://open.spotify.com/episode/3LhBOO1UANCGbOwkntZt4j",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/AB-Testing---Jakob-Graff-e1eq73v",
       "youtube": "https://www.youtube.com/watch?v=0Gqx1LtqRZU"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "d910a6d3434c8f061ab2e9ff2d384811f605d9b1c09cdb2acc7e1c5d47e01a13",
       "repository": "DataTalksClub/content",
@@ -126385,14 +126385,14 @@
     "guests": [
       "valeriybabushkin"
     ],
-    "image_path": "/images/podcast/machine-learning-system-design-interview.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/machine-learning-system-design-interview-valerii-babushkin/id1541710331?i=1000551566652",
       "spotify": "https://open.spotify.com/episode/5tSLFOh8PGe1NFFz1of9Xe",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Machine-Learning-System-Design-Interview---Valerii-Babushkin-e1ej65e",
       "youtube": "https://www.youtube.com/watch?v=0RsmRjar66E"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "b1e0cc03ad7a1d0a9fd57cf85ac9bd6294645dab3a752d64bdd6b4d78ec183a2",
       "repository": "DataTalksClub/content",
@@ -127638,14 +127638,14 @@
     "guests": [
       "lindsaymcquade"
     ],
-    "image_path": "/images/podcast/get-junior-data-job-and-transferable-skills.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/career-coaching-lindsay-mcquade/id1541710331?i=1000550822996",
       "spotify": "https://open.spotify.com/episode/3jMRuqU3ZEcSeoizuOU5q1",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Career-Coaching---Lindsay-McQuade-e1e8elk",
       "youtube": "https://www.youtube.com/watch?v=_U8GrYJvmJM"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "105adc76a114b8c926457ceccdea8a2b81227a3ff61305edc73f5f15d8cdddd5",
       "repository": "DataTalksClub/content",
@@ -128516,14 +128516,14 @@
     "guests": [
       "gregcoquillo"
     ],
-    "image_path": "/images/podcast/building-and-scaling-ai-data-products-with-mlops.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/product-management-essentials-for-data-professionals/id1541710331?i=1000550093434",
       "spotify": "https://open.spotify.com/episode/1Oh6ewUJ2c1jiVcKxWIwDU",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Product-Management-Essentials-for-Data-Professionals---Greg-Coquillo-e1dr8g5",
       "youtube": "https://www.youtube.com/watch?v=p4wg0Vd2uD4"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "c8f5870dba3e815eec55c5eb7454cec0a030e53699c4e1563d5d293e54421449",
       "repository": "DataTalksClub/content",
@@ -129193,14 +129193,14 @@
     "guests": [
       "alicjanotowska"
     ],
-    "image_path": "/images/podcast/hiring-data-scientists-and-analysts.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/recruiting-data-professionals-alicja-notowska/id1541710331?i=1000549307220",
       "spotify": "https://open.spotify.com/episode/4LFZX7IfpdYkQ6si4ed0OR",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Recruiting-Data-Professionals---Alicja-Notowska-e1dj2qn",
       "youtube": "https://www.youtube.com/watch?v=WSMDXsjKYx4"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "a553d50e1c4ee3f3aa9d10a121aafcb58e732cd3cb17c7a673735c739b575651",
       "repository": "DataTalksClub/content",
@@ -130129,14 +130129,14 @@
       "eugeneyan",
       "alexeygrigorev"
     ],
-    "image_path": "/images/podcast/datatalksclub-building-scaling-data-community.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/datatalks-club-behind-the-scenes-eugene-yan-alexey/id1541710331?i=1000548608967",
       "spotify": "https://open.spotify.com/episode/3ltAxUsCE8EAf0pRb9zxDK",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/DataTalks-Club-Behind-the-Scenes---Eugene-Yan--Alexey-Grigorev-e1d4567",
       "youtube": "https://www.youtube.com/watch?v=IxTyq96juVE"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "e9cdfe0262eaf1f7ac896634de3e247fadea06633ea3a63cb72b6a55ff6d71de",
       "repository": "DataTalksClub/content",
@@ -130815,14 +130815,14 @@
     "guests": [
       "marianosemelman"
     ],
-    "image_path": "/images/podcast/data-science-leadership-hiring-mlops.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/becoming-a-data-science-manager-mariano-semelman/id1541710331?i=1000547222296",
       "spotify": "https://open.spotify.com/episode/28Sy4owRwvSJRFTeKAamz2",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Becoming-a-Data-Science-Manager---Mariano-Semelman-e1cbrf7",
       "youtube": "https://www.youtube.com/watch?v=qOLR84-KHoY"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "d0a9839c9a408cc9b27005d62eb5aa64d1e9da1adf0a31b41e2911d9891ff4f2",
       "repository": "DataTalksClub/content",
@@ -131604,14 +131604,14 @@
     "guests": [
       "ivanbilan"
     ],
-    "image_path": "/images/podcast/nlp-team-hiring-and-production-mlops.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/leading-nlp-teams-ivan-bilan/id1541710331?i=1000546053682",
       "spotify": "https://open.spotify.com/episode/0jE1rpmLCYkD3GnUa2E7E3",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Leading-NLP-Teams---Ivan-Bilan-e1c4929",
       "youtube": "https://www.youtube.com/watch?v=RJEf6mzxh1w"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "e7cd3846da7d7c003d7fc06513afd057fdd92c556968420e7f4b09b6e549769c",
       "repository": "DataTalksClub/content",
@@ -132575,14 +132575,14 @@
     "guests": [
       "geojolly"
     ],
-    "image_path": "/images/podcast/ml-product-manager-and-mlops-platform-strategy.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/product-management-for-machine-learning-geo-jolly/id1541710331?i=1000545301034",
       "spotify": "https://open.spotify.com/episode/7zfH4hagZKwoIWmee0AXBd",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Product-Management-for-Machine-Learning---Geo-Jolly-e1brpvm",
       "youtube": "https://www.youtube.com/watch?v=PjqjPvHliqg"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "0fd0872e843ec0cad58837a071d4534b74e18d516a4b0fa3ccb41331f4b84129",
       "repository": "DataTalksClub/content",
@@ -133483,14 +133483,14 @@
     "guests": [
       "cjjenkins"
     ],
-    "image_path": "/images/podcast/postdoc-to-data-science-lead-career-transition.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/moving-from-academia-to-industry-cj-jenkins/id1541710331?i=1000544589971",
       "spotify": "https://open.spotify.com/episode/5Jvo53ibSoX6rfkfdGq5pJ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Moving-from-Academia-to-Industry---CJ-Jenkins-e1bh84o",
       "youtube": "https://www.youtube.com/watch?v=m4F651BpUFk"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "0a67ef2f645b44f4a06082cbb3ab484c47f20c33f753e5a03a08188c11a51e9d",
       "repository": "DataTalksClub/content",
@@ -134495,14 +134495,14 @@
     "guests": [
       "elenitziritazacharatou"
     ],
-    "image_path": "/images/podcast/big-data-analytics-and-postdoc-research.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/advancing-big-data-analytics-post-doctoral-research/id1541710331?i=1000543884294",
       "spotify": "https://open.spotify.com/episode/6rgBSTPRvgNcJ7ouFyZmbH",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Advancing-Big-Data-Analytics-Post-Doctoral-Research---Eleni-Tzirita-Zacharatou-e1b6f41",
       "youtube": "https://www.youtube.com/watch?v=7jgmIQGMhGE"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "34c5a7f083366f899f9f78803f6af3b9ca01951c1ac0ea31007cbaf0d79811e4",
       "repository": "DataTalksClub/content",
@@ -135316,14 +135316,14 @@
     "guests": [
       "saramenefee"
     ],
-    "image_path": "/images/podcast/product-designer-to-data-product-manager.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/becoming-a-data-product-manager-sara-menefee/id1541710331?i=1000543165093",
       "spotify": "https://open.spotify.com/episode/3NZhd5kgQFpGckyxTQH9bF",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Becoming-a-Data-Product-Manager---Sara-Menefee-e1arc4a",
       "youtube": "https://www.youtube.com/watch?v=nt__pVuuC-k"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "e30c04c5e9b6447762e6d304d65ed99069b58ac85a86cc063916f2f5c75e1ee3",
       "repository": "DataTalksClub/content",
@@ -136192,14 +136192,14 @@
     "guests": [
       "barbarasobkowiak"
     ],
-    "image_path": "/images/podcast/data-science-manager-vs-expert-hiring-guide.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/data-science-manager-vs-data-science-expert-barbara/id1541710331?i=1000542496818",
       "spotify": "https://open.spotify.com/episode/5Ug8YA3hKY9Kr5hVFDqZ77",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Data-Science-Manager-vs-Data-Science-Expert---Barbara-Sobkowiak-e1ah3od",
       "youtube": "https://www.youtube.com/watch?v=hFmIgaN-F8Y"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "fabc78ebb279ccd168456e581c2fcf5ef6fac6ca1cedfa95fde7c20b30cf942c",
       "repository": "DataTalksClub/content",
@@ -137059,14 +137059,14 @@
     "guests": [
       "nicksingh"
     ],
-    "image_path": "/images/podcast/data-interview-behavioral-and-portfolio-prep-guide.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/ace-non-technical-data-science-interviews-nick-singh/id1541710331?i=1000541631687",
       "spotify": "https://open.spotify.com/episode/7tO8GmqAcFUUk4fLqxEXy1",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Ace-Non-Technical-Data-Science-Interviews---Nick-Singh-e1a5qtd",
       "youtube": "https://www.youtube.com/watch?v=tRdLVUKU7Bo"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "b95501818a7a30a325c366252107ebd946c1acd6f0a957521d1f081fce76cad2",
       "repository": "DataTalksClub/content",
@@ -138102,14 +138102,14 @@
     "guests": [
       "noahgift"
     ],
-    "image_path": "/images/podcast/solopreneur-developer-and-data-professional.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/becoming-a-solopreneur-in-data-noah-gift/id1541710331?i=1000540908616",
       "spotify": "https://open.spotify.com/episode/264kr8rkSV71NwlU3kphHm",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Becoming-a-Solopreneur-in-Data---Noah-Gift-e19gqbr",
       "youtube": "https://www.youtube.com/watch?v=gCLUY37HGtw"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "8a61022e62b23337c9247d52994d06cef0bafc580163fab2285b189069ba4115",
       "repository": "DataTalksClub/content",
@@ -139200,14 +139200,14 @@
     "guests": [
       "thomives"
     ],
-    "image_path": "/images/podcast/feature-engineering-model-monitoring-and-data-governance.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/building-business-acumen-for-data-professionals-thom-ives/id1541710331?i=1000540181044",
       "spotify": "https://open.spotify.com/episode/4dFbkQI9pF4wUDueZFqxGY",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Building-Business-Acumen-for-Data-Professionals---Thom-Ives-e19gq91",
       "youtube": "https://www.youtube.com/watch?v=pImYf9ML95Q"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "eb99448eba980114d42fe0f86b99dad1bdc7f624621e4959e93715d1eadcd741",
       "repository": "DataTalksClub/content",
@@ -139971,14 +139971,14 @@
     "guests": [
       "caitlinmoorman"
     ],
-    "image_path": "/images/podcast/last-mile-data-delivery-and-data-product-adoption-modern-data-stack.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/conquering-the-last-mile-in-data-caitlin-moorman/id1541710331?i=1000539421886",
       "spotify": "https://open.spotify.com/episode/6SGjBev8koFDRpDvLV76ZQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Conquering-the-Last-Mile-in-Data---Caitlin-Moorman-e1958c1",
       "youtube": "https://www.youtube.com/watch?v=HfMpG2zpa2I"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "c0be7d737a29592590f81a3b597c1da0824e0a1fc9f4f2b73d860b550313e978",
       "repository": "DataTalksClub/content",
@@ -140705,14 +140705,14 @@
     "guests": [
       "rishabhbhargava"
     ],
-    "image_path": "/images/podcast/production-ml-mlops-and-data-team-building.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/similarities-and-differences-between-ml-and/id1541710331?i=1000538713607",
       "spotify": "https://open.spotify.com/episode/19fWdSuxTLwIdzVT45qF9x",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Similarities-and-Differences-between-ML-and-Analytics---Rishabh-Bhargava-e18rcam",
       "youtube": "https://www.youtube.com/watch?v=rMRUa8WxDz4"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "5ac4bf382adb985d888f376daacf4f42d8c0cfa091ba5d2b7cf64d1634975d9b",
       "repository": "DataTalksClub/content",
@@ -141427,14 +141427,14 @@
     "guests": [
       "tammyliang"
     ],
-    "image_path": "/images/podcast/building-and-scaling-data-team.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/building-and-leading-data-teams-tammy-liang/id1541710331?i=1000537994433",
       "spotify": "https://open.spotify.com/episode/3hlzKwORlOsCPKrawuW4YQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Building-and-Leading-Data-Teams---Tammy-Liang-e18efdl",
       "youtube": "https://www.youtube.com/watch?v=kI4V2iBbaH0"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "cb645c4cd12844bfb8a6da5200f43867164138afc05245ea29571347f55b1088",
       "repository": "DataTalksClub/content",
@@ -142495,14 +142495,14 @@
     "guests": [
       "mihaileric"
     ],
-    "image_path": "/images/podcast/research-to-production-ml-systems-roadmap.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/what-researchers-and-engineers-can-learn-from-each/id1541710331?i=1000537258362",
       "spotify": "https://open.spotify.com/episode/0cJJCjK7nX5p1PdeMvGrVL",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/What-Researchers-and-Engineers-Can-Learn-from-Each-Other---Mihail-Eric-e1854bj",
       "youtube": "https://www.youtube.com/watch?v=d9xVXqKq3sU"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "373f2c4c5075fb262d0b44cd091ac596bf1a64421d78bded070f574bc66de675",
       "repository": "DataTalksClub/content",
@@ -143292,14 +143292,14 @@
     "guests": [
       "mariannadiachuk"
     ],
-    "image_path": "/images/podcast/solopreneur-data-scientist.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/introducing-data-science-in-startups-marianna-diachuk/id1541710331?i=1000536525162",
       "spotify": "https://open.spotify.com/episode/0kGFYX12RgkmZC2lMml6S4",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Introducing-Data-Science-in-Startups---Marianna-Diachuk-e17rc4i",
       "youtube": "https://youtube.com/watch?v=KMSE9GkU2mE"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "d7b65ab1f177fec9406615f99ff5be6fa4020e99370f50c82dca718e336493d9",
       "repository": "DataTalksClub/content",
@@ -144086,14 +144086,14 @@
     "guests": [
       "adamsroka"
     ],
-    "image_path": "/images/podcast/ml-engineering-kpis-and-metrics-strategy.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/defining-success-metrics-and-kpis-adam-sroka/id1541710331?i=1000535667935",
       "spotify": "https://open.spotify.com/episode/5kTD7LjoXos1fm2LPD7nJc",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Defining-Success-Metrics-and-KPIs---Adam-Sroka-e17gfp0",
       "youtube": "https://www.youtube.com/watch?v=H4P2RfKvXGs"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "0265db1e3741c70ab4cd09707d42816148008ff67ec7b8308612d5d81322fd3e",
       "repository": "DataTalksClub/content",
@@ -144683,14 +144683,14 @@
     "guests": [
       "nataliekwong"
     ],
-    "image_path": "/images/podcast/data-engineering-tools-modern-data-stack.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/making-sense-of-data-engineering-acronyms-and/id1541710331?i=1000534990760",
       "spotify": "https://open.spotify.com/episode/1AvtwdcAXGGjdJ7fl0Hsuw",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Making-Sense-of-Data-Engineering-Acronyms-and-Buzzwords---Natalie-Kwong-e177303",
       "youtube": "https://www.youtube.com/watch?v=t9Z1S3OYnJU"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "36a075e44f62c13417547e42c5631716665b6b99432efeab07d0fc57ccfdea9b",
       "repository": "DataTalksClub/content",
@@ -145804,14 +145804,14 @@
     "guests": [
       "marcellolarocca"
     ],
-    "image_path": "/images/podcast/algorithms-data-structures-for-engineers.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/mastering-algorithms-and-data-structures-marcello-la/id1541710331?i=1000534241523",
       "spotify": "https://open.spotify.com/episode/5IM2Des1sjVIwrvB3dGoJN",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Mastering-Algorithms-and-Data-Structures---Marcello-La-Rocca-e16s7lf",
       "youtube": "https://www.youtube.com/watch?v=RiQa-9LguW8"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "403d3cbc242febd2750bb9d214b7e8a5c41e7ecfaf0011d558ce4a2ee10e1b80",
       "repository": "DataTalksClub/content",
@@ -146548,14 +146548,14 @@
     "guests": [
       "marcodesa"
     ],
-    "image_path": "/images/podcast/chief-data-officer-data-strategy-and-org-design.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/chief-data-officer-marco-de-sa/id1541710331?i=1000533326308",
       "spotify": "https://open.spotify.com/episode/64lEB0Wv0a6DfkDi672Ulk",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Chief-Data-Officer---Marco-De-Sa-e16hm4t",
       "youtube": "https://www.youtube.com/watch?v=IdaZOD46FEw"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "fafdaa816071fe1235bcabef503856996416dc19304d022c3097f47070ebb20d",
       "repository": "DataTalksClub/content",
@@ -147352,14 +147352,14 @@
     "guests": [
       "mikiobraun"
     ],
-    "image_path": "/images/podcast/freelancing-in-machine-learning.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/freelancing-in-machine-learning-mikio-braun/id1541710331?i=1000532612872",
       "spotify": "https://open.spotify.com/episode/2oE13mUEa9k4AO5qogYdqv",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Freelancing-in-Machine-Learning---Mikio-Braun-e166n7r",
       "youtube": "https://www.youtube.com/watch?v=HfF791e0HR8"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "0bc7a165cf7dfe56145d71836f860c02ad92430fb39f4781d6c7e26687f87ba5",
       "repository": "DataTalksClub/content",
@@ -148660,14 +148660,14 @@
     "guests": [
       "carminepaolino"
     ],
-    "image_path": "/images/podcast/launch-and-build-retail-startup.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/launching-a-startup-from-idea-to-first-hire-carmine-paolino/id1541710331?i=1000531945076",
       "spotify": "https://open.spotify.com/episode/2zlqwEOamFD8YVGkf4VsFW",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Launching-a-Startup-From-Idea-to-First-Hire---Carmine-Paolino-e15sk4i",
       "youtube": "https://www.youtube.com/watch?v=s-w8_GDgIlU"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "1a0a35af494fdfb36498687976e8f6de16c0522cc125ab4b834c863f5862b756",
       "repository": "DataTalksClub/content",
@@ -149654,14 +149654,14 @@
     "guests": [
       "linaweichbrodt"
     ],
-    "image_path": "/images/podcast/human-centered-mlops-and-model-monitoring.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/humans-in-the-loop-lina-weichbrodt/id1541710331?i=1000530535704",
       "spotify": "https://open.spotify.com/episode/23VxmAEkKUs1kjaludRQAR",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Humans-in-the-Loop---Lina-Weichbrodt-e14npgp",
       "youtube": "https://www.youtube.com/watch?v=o50j_Ndx2Hg"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "09449638d6c72a54b4efaac15bffab55db3f23b44b3c8685b2c2e596acf675de",
       "repository": "DataTalksClub/content",
@@ -150557,14 +150557,14 @@
     "guests": [
       "benwilson"
     ],
-    "image_path": "/images/podcast/machine-learning-engineering-production-best-practices.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/running-from-complexity-ben-wilson/id1541710331?i=1000529834651",
       "spotify": "https://open.spotify.com/episode/2TxcU3eF7hjkAEzAJcYMAg",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Running-from-Complexity---Ben-Wilson-e14np51",
       "youtube": "https://www.youtube.com/watch?v=sMy8NYZnsy8"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "1df05bcc60a41995569328c9ff9eadc8e999a497bb927037dc3c80451a43f198",
       "repository": "DataTalksClub/content",
@@ -151365,14 +151365,14 @@
     "guests": [
       "elenasamuylova"
     ],
-    "image_path": "/images/podcast/building-mlops-startup.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/i-want-to-build-a-machine-learning-startup-elena-samuylova/id1541710331?i=1000529106923",
       "spotify": "https://open.spotify.com/episode/7fwbqo5tDrtakuqWaIuEjc",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/I-Want-to-Build-a-Machine-Learning-Startup----Elena-Samuylova-e139ste",
       "youtube": "https://www.youtube.com/watch?v=DiDs5aMjEWg"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "0400bd69c0f102868493afc81e6ae55709d92544518f3e58149b0e2fbee256bc",
       "repository": "DataTalksClub/content",
@@ -152514,14 +152514,14 @@
     "guests": [
       "roksolanadiachuk"
     ],
-    "image_path": "/images/podcast/big-data-engineer-vs-data-scientist.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/big-data-engineer-vs-data-scientist-roksolana-diachuk/id1541710331?i=1000528386609",
       "spotify": "https://open.spotify.com/episode/08Mb5JOOo6sWOFgsXILVsj",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Big-Data-Engineer-vs-Data-Scientist---Roksolana-Diachuk-e139sl8",
       "youtube": "https://www.youtube.com/watch?v=yg3d1lFd7Uo"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "70567cff1625e74d993da85fcf2698d31583b1478d5d209f3f563f5a017a90dc",
       "repository": "DataTalksClub/content",
@@ -153765,14 +153765,14 @@
     "guests": [
       "andreaskretz"
     ],
-    "image_path": "/images/podcast/production-ml-pipelines-with-aws-and-kafka.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/build-your-own-data-pipeline-andreas-kretz/id1541710331?i=1000527643914",
       "spotify": "https://open.spotify.com/episode/0fFRCAYFCReMxEiq2RDVak",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Build-Your-Own-Data-Pipeline---Andreas-Kretz-e139se1",
       "youtube": "https://www.youtube.com/watch?v=IrZPAG6OBqo"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "689f72faa9a342b232d6ab8d469975fb38f7c607b7a5abd47fb81b6fd1c91acf",
       "repository": "DataTalksClub/content",
@@ -154648,14 +154648,14 @@
     "guests": [
       "svpino"
     ],
-    "image_path": "/images/podcast/from-software-engineer-to-machine-learning.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-software-engineering-to-machine-learning-santiago/id1541710331?i=1000526870384",
       "spotify": "https://open.spotify.com/episode/0PHDZPGyXgyDM9HH7QzVdZ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Software-Engineering-to-Machine-Learning---Santiago-Valdarrama-e139s63",
       "youtube": "https://www.youtube.com/watch?v=xVYOdRrN7hw"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "fcbb125de2e0baabe79c6bbde758c006f6d951cd41d1a5d8aad2b8bcc433a154",
       "repository": "DataTalksClub/content",
@@ -155579,14 +155579,14 @@
     "guests": [
       "victoriaperezmola"
     ],
-    "image_path": "/images/podcast/analytics-engineer-skills-tools.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/analytics-engineer-new-role-in-data-team-victoria-perez/id1541710331?i=1000526036141",
       "spotify": "https://open.spotify.com/episode/4rLQ5ulsYR9LqXxbFe2MlN",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Analytics-Engineer-New-Role-in-a-Data-Team---Victoria-Perez-Mola-e131e3n",
       "youtube": "https://www.youtube.com/watch?v=C5UcxBwdCEg"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "29df7d1de8c457c8d1c0b923f404e83a5a9019446133b1f1e7a7a58045bdbbe3",
       "repository": "DataTalksClub/content",
@@ -156344,14 +156344,14 @@
       "jessiashdown",
       "urigilad"
     ],
-    "image_path": "/images/podcast/cloud-data-governance.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/data-governance-jessi-ashdown-uri-gilad/id1541710331?i=1000525176805",
       "spotify": "https://open.spotify.com/episode/2zaLMrgbIgVkVEWY09b1Wn",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Data-Governance---Jessi-Ashdown--Uri-Gilad-e12jmoo",
       "youtube": "https://www.youtube.com/watch?v=tJ3v8h7A7RY"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "cafa5063a8ee9d42ede8f223aae2c37792d875e74cc96de86e0837090de29e36",
       "repository": "DataTalksClub/content",
@@ -157130,14 +157130,14 @@
     "guests": [
       "yurykashnitsky"
     ],
-    "image_path": "/images/podcast/data-science-failures-and-mlops-lessons.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/what-data-scientists-dont-mention-in-their-linkedin/id1541710331?i=1000524260842",
       "spotify": "https://open.spotify.com/episode/3KR6zErxqeDuQ2jo8NDvNx",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/What-Data-Scientists-Dont-Mention-in-Their-LinkedIn-Profiles---Yury-Kashnitsky-e125jjl",
       "youtube": "https://www.youtube.com/watch?v=c6dK1LWpv4g"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "5a38a626a360db8c5c7b0eb1364f87a157d2dff5f75c5afc4305e1ba816cb0cc",
       "repository": "DataTalksClub/content",
@@ -157847,14 +157847,14 @@
     "guests": [
       "arpitchoudhury"
     ],
-    "image_path": "/images/podcast/data-led-growth-event-tracking-and-reverse-etl.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/becoming-a-data-led-professional-arpit-choudhury/id1541710331?i=1000523422699",
       "spotify": "https://open.spotify.com/episode/2hg3Gi3h5OfdedXENwZwnU",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Becoming-a-Data-led-Professional---Arpit-Choudhury-e11mkgq",
       "youtube": "https://www.youtube.com/watch?v=8v5KpHWgyYw"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "09531a71d334e91a1b75cac601d795e638a26d41c9729162e75a37afe3ed8c6d",
       "repository": "DataTalksClub/content",
@@ -158612,14 +158612,14 @@
     "guests": [
       "swyx"
     ],
-    "image_path": "/images/podcast/developer-personal-brand-learn-in-public.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/how-to-market-yourself-without-being-celebrity-shawn/id1541710331?i=1000522670386",
       "spotify": "https://open.spotify.com/episode/6uLyKxpVZv0wItCNyGPdAN",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/How-to-Market-Yourself-without-Being-a-Celebrity---Shawn-Swyx-Wang-e11ai8t",
       "youtube": "https://www.youtube.com/watch?v=tkBCPqWKCL8"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "01bb48914299ac823d6590d7b46b77f49fc66700f9e84be7d44fe0275ae8051d",
       "repository": "DataTalksClub/content",
@@ -159907,14 +159907,14 @@
     "guests": [
       "tatianagabruseva"
     ],
-    "image_path": "/images/podcast/from-physics-to-computer-vision-career-transition.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-physics-to-machine-learning-tatiana-gabruseva/id1541710331?i=1000521740775",
       "spotify": "https://open.spotify.com/episode/4Kk7xXfD5t2VHnLDHpdW1y",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Physics-to-Machine-Learning---Tatiana-Gabruseva-e10r4pl",
       "youtube": "https://www.youtube.com/watch?v=wJPi6Ip9PX0"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "28c29202337422c3d04a6a2ec90390676d1ef52c7509c6ece8cd300652b1ba60",
       "repository": "DataTalksClub/content",
@@ -160990,14 +160990,14 @@
     "guests": [
       "olegnovikov"
     ],
-    "image_path": "/images/podcast/data-science-interview-and-cv-guide.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/what-i-learned-after-interviewing-300-data-scientists/id1541710331?i=1000520681105",
       "spotify": "https://open.spotify.com/episode/406wN6xDkYPyLS8i9fUJL5",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/What-I-Learned-After-Interviewing-300-Data-Scientists---Oleg-Novikov-e10ctbs",
       "youtube": "https://www.youtube.com/watch?v=AYi7b-8GPm4"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "a1288370fc43f35500fcbdf2d336be7ffa153cff216971c172b683b724e3ac48",
       "repository": "DataTalksClub/content",
@@ -161673,14 +161673,14 @@
     "guests": [
       "liorbarak"
     ],
-    "image_path": "/images/podcast/data-translator-role-and-data-strategy.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/effective-communication-business-for-data-professionals/id1541710331?i=1000519463715",
       "spotify": "https://open.spotify.com/episode/4RF592cRWxHgcXbx6pV0Ja",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Effective-Communication-with-Business-for-Data-Professionals---Lior-Barak-e1002rm",
       "youtube": "https://www.youtube.com/watch?v=gqroEsTyLD0"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "0cce1e75c3acfd774a8a1a5c9566d3041af5dbc2fc44ac8867c920abebd29edd",
       "repository": "DataTalksClub/content",
@@ -162392,14 +162392,14 @@
     "guests": [
       "barrmoses"
     ],
-    "image_path": "/images/podcast/data-quality-data-observability-data-reliability.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/data-observability-barr-moses/id1541710331?i=1000518351217",
       "spotify": "https://open.spotify.com/episode/48QcLAw2I1apC1jeo8e1sd",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Data-Observability---Barr-Moses-evghmh",
       "youtube": "https://www.youtube.com/watch?v=TrMG1SOqZkQ"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "9fbf8356d2af541dd3ae46d3d77d3907f023b7a5cac60687fb18a12d01e67934",
       "repository": "DataTalksClub/content",
@@ -163206,14 +163206,14 @@
     "guests": [
       "andradaolteanu"
     ],
-    "image_path": "/images/podcast/analytics-to-data-science-with-kaggle-portfolio.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/shifting-career-from-analytics-to-data-science-andrada/id1541710331?i=1000517426368",
       "spotify": "https://open.spotify.com/episode/1GVuHJzqbcf2BvaLBTgsAL",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Shifting-Career-from-Analytics-to-Data-Science---Andrada-Olteanu-ev19ma",
       "youtube": "https://www.youtube.com/watch?v=ixmTewD5Waw"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "ff8db13a1739582a8f6b180d0b30a8869ffd702ce2e39fce38939e1faafa28f2",
       "repository": "DataTalksClub/content",
@@ -163981,14 +163981,14 @@
     "guests": [
       "ksenialegostay"
     ],
-    "image_path": "/images/podcast/project-manager-to-data-scientist.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/transitioning-from-project-management-to-data-science/id1541710331?i=1000516467544",
       "spotify": "https://open.spotify.com/episode/3vF1B2mKwImsVC7h3NIDJW",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Transitioning-from-Project-Management-to-Data-Science---Ksenia-Legostay-euig2a",
       "youtube": "https://www.youtube.com/watch?v=rBKezdb9jEc"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "88557e308b38959479d6218bd44ecd42ff736a7e431c9d227a77b2dd3774826c",
       "repository": "DataTalksClub/content",
@@ -164678,14 +164678,14 @@
     "guests": [
       "demetriosbrinkmann"
     ],
-    "image_path": "/images/podcast/mlops-community-building-and-meetups.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/building-online-tech-communities-demetrios-brinkmann/id1541710331?i=1000515510103",
       "spotify": "https://open.spotify.com/episode/58Xe9PCfdz26CVuYKtZWUE",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Building-Online-Tech-Communities---Demetrios-Brinkmann-eu35fo",
       "youtube": "https://www.youtube.com/watch?v=ByCE1vSrIr8"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "de596ff14556716e54338769445741f64d6355506a6c9eec6803a434201d8d2a",
       "repository": "DataTalksClub/content",
@@ -165614,14 +165614,14 @@
     "guests": [
       "larsalbertsson"
     ],
-    "image_path": "/images/podcast/dataops-principles-and-scalable-data-platforms.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/dataops-101-lars-albertsson/id1541710331?i=1000514542438",
       "spotify": "https://open.spotify.com/episode/5c2m4FVq4KPCfSXndCAzNd",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/DataOps-101---Lars-Albertsson-ethsp1",
       "youtube": "https://www.youtube.com/watch?v=vyF3yGsF6UY"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "b14eeec6405524debe381d21f83b77310574e3d280c296a91bf48792823abc7a",
       "repository": "DataTalksClub/content",
@@ -166302,14 +166302,14 @@
     "guests": [
       "bentaylor"
     ],
-    "image_path": "/images/podcast/public-speaking-for-data-scientists.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/essentials-public-speaking-for-career-in-data-science/id1541710331?i=1000513669829",
       "spotify": "https://open.spotify.com/episode/4QWfObiuYmtOCtpSL5LZf9",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/The-Essentials-of-Public-Speaking-for-Career-in-Data-Science---Ben-Taylor-et0m4p",
       "youtube": "https://www.youtube.com/watch?v=wOFvlR9UBxI"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "30c8b9ec23e2053e0027ac30dcf1557ab9ba11710a7c0d882bbdb5ea33232a35",
       "repository": "DataTalksClub/content",
@@ -167037,14 +167037,14 @@
     "guests": [
       "vinvashishta"
     ],
-    "image_path": "/images/podcast/make-money-with-machine-learning-roles-skills.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/new-roles-key-skills-to-monetize-machine-learning-vin/id1541710331?i=1000512720281",
       "spotify": "https://open.spotify.com/episode/5u2WuUB8GBNE9qDsNR6mby",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/New-Roles-and-Key-Skills-to-Monetize-Machine-Learning---Vin-Vashishta-escer6",
       "youtube": "https://www.youtube.com/watch?v=xCjzA_8S4kI"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "dc132ca863376cd5f556c59c408306dc7b5f369676e0de6adcc7ccb802f98261",
       "repository": "DataTalksClub/content",
@@ -167973,14 +167973,14 @@
     "guests": [
       "admondleekinlim"
     ],
-    "image_path": "/images/podcast/personal-brand-for-data-professionals.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/personal-branding-admond-lee-kin-lim/id1541710331?i=1000511761026",
       "spotify": "https://open.spotify.com/episode/61Yv13MISTeP5nOVAZpY88",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Personal-Branding---Admond-Lee-Kin-Lim-ern77e",
       "youtube": "https://www.youtube.com/watch?v=tQRQnz_aHYQ"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "9edc6bce9a229c1d48ba4226ac72f8c13c0606f0b9cc81ec40d77681cb9d6fca",
       "repository": "DataTalksClub/content",
@@ -169231,14 +169231,14 @@
     "guests": [
       "dannyma"
     ],
-    "image_path": "/images/podcast/data-science-career-abc-framework.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/the-abcs-of-data-science-danny-ma/id1541710331?i=1000510794953",
       "spotify": "https://open.spotify.com/episode/5T1Nm3HvrS9oIMH6C2AWcf",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/The-ABCs-of-Data-Science---Danny-Ma-er33oa",
       "youtube": "https://www.youtube.com/watch?v=HVQ0DZOQcts"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "027c2322aadc5eb821965157870bcdf9120e53ff63c4a28215b14f19b43cf378",
       "repository": "DataTalksClub/content",
@@ -170251,12 +170251,12 @@
     "guests": [
       "eugeneyan"
     ],
-    "image_path": "/images/podcast/technical-writing-for-data-scientists.jpg",
+    "image_path": "",
     "links": {
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/The-Importance-of-Writing-in-a-Tech-Career---Eugene-Yan-ep17du",
       "youtube": "https://www.youtube.com/watch?v=vXWGd7olv3c"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "3f3135bb0fd6e8edd62e6e44f1398dfda7d420d71f8146d697c077261de81ccc",
       "repository": "DataTalksClub/content",
@@ -171032,14 +171032,14 @@
     "guests": [
       "vincentwarmerdam"
     ],
-    "image_path": "/images/podcast/open-source-ml-contributions.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/getting-started-with-open-source-vincent-warmerdam/id1541710331?i=1000507024598",
       "spotify": "https://open.spotify.com/episode/1dsbDeVncfsEg3m3cYB927",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Getting-Started-with-Open-Source---Vincent-Warmerdam-epk60j",
       "youtube": "https://www.youtube.com/watch?v=IxV9EH-tphQ"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "d67a5b0bde6934e8f854cebc85ebcc6f0f4f7bf97cfd6a3781acdea301007ec4",
       "repository": "DataTalksClub/content",
@@ -171851,14 +171851,14 @@
     "guests": [
       "theofilospapapanagiotou"
     ],
-    "image_path": "/images/podcast/mlops-kubeflow-model-monitoring.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/the-rise-of-mlops-theofilos-papapanagiotou/id1541710331?i=1000507907719",
       "spotify": "https://open.spotify.com/episode/3YPvzGQnfxl7Mo1VKE0l1K",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/The-Rise-of-MLOps---Theofilos-Papapanagiotou-ept67o",
       "youtube": "https://www.youtube.com/watch?v=-i0fVp0ntYA"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "536a5974ee8d3370563a11855e452adf25b2345b88dd260b5416752916d9e236",
       "repository": "DataTalksClub/content",
@@ -172781,14 +172781,14 @@
     "guests": [
       "willempienaar"
     ],
-    "image_path": "/images/podcast/mlops-feature-stores-feature-stores-feast-tecton.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/feature-stores-cutting-through-the-hype-willem-pienaar/id1541710331?i=1000508782957",
       "spotify": "https://open.spotify.com/episode/05YnfTWbplXwOwicR2doy3",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Feature-Stores-Cutting-through-the-Hype---Willem-Pienaar-ept6m8/a-a4hlg3r",
       "youtube": "https://www.youtube.com/watch?v=FQYTb4uWljQ"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "8fd6ff45e6673339cc892b7634fc063a3052d178d65f85f366b1496b585c6589",
       "repository": "DataTalksClub/content",
@@ -173636,12 +173636,12 @@
     "guests": [
       "rahuljain"
     ],
-    "image_path": "/images/podcast/mentoring-in-tech-how-to-find-and-become-a-mentor.md.jpg",
+    "image_path": "",
     "links": {
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Mentoring---Rahul-Jain-eo7cmu",
       "youtube": "https://www.youtube.com/watch?v=LQvwTNQbPg4"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "43c4561aa92a7927ade89a0bfce43a0b3518805d6e6892e187b87b75fbf40547",
       "repository": "DataTalksClub/content",
@@ -174321,14 +174321,14 @@
     "guests": [
       "danbecker"
     ],
-    "image_path": "/images/podcast/machine-learning-decision-optimization.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/translating-ml-predictions-into-better-real-world-results/id1541710331?i=1000509855317",
       "spotify": "https://open.spotify.com/episode/42eAhI6F31DZ96Mnq2I4bJ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Translating-ML-Predictions-Into-Better-Real-World-Results-with-Decision-Optimization---Dan-Becker-eqk0b1/a-a4maq87",
       "youtube": "https://www.youtube.com/watch?v=SJuzQ4bcU2c"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "3cae5f49e0cce4a2074ce4c0b6625351186c497ffdb0a375882ba26877ca5fff",
       "repository": "DataTalksClub/content",
@@ -174972,14 +174972,14 @@
     "guests": [
       "lukewhipps"
     ],
-    "image_path": "/images/podcast/get-data-scientist-job.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/standing-out-as-a-data-scientist-luke-whipps/id1541710331?i=1000502844994",
       "spotify": "https://open.spotify.com/episode/2Yxay9HJmd6dvk34MHJ0K2",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Standing-out-as-a-Data-Scientist---Luke-Whipps-envr7e",
       "youtube": "https://www.youtube.com/watch?v=Sb4CJlonB3c"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "8c825f18dabe1f78e749a36f4fcbce2244b0890285861fb74bdc6cd5d1790153",
       "repository": "DataTalksClub/content",
@@ -175806,14 +175806,14 @@
     "guests": [
       "elleobrien"
     ],
-    "image_path": "/images/podcast/devrel-data-science-open-source-tools.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/developer-advocacy-for-data-science-elle-obrien/id1541710331?i=1000506315396",
       "spotify": "https://open.spotify.com/episode/6Hq0ZGPTkDk1h8orfCU78I",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Developer-Advocacy-for-Data-Science---Elle-OBrien-epcbak",
       "youtube": "https://www.youtube.com/watch?v=jv5W4jXk4P4"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "7fc8c8957e4a1f7695cd814a20c68213994d1194744389857043afd7dba8cdb0",
       "repository": "DataTalksClub/content",
@@ -176574,12 +176574,12 @@
     "guests": [
       "alexeygrigorev"
     ],
-    "image_path": "/images/podcast/data-team-roles.jpg",
+    "image_path": "",
     "links": {
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Roles-in-a-data-team---Alexey-Grigorev-emqcft",
       "youtube": "https://www.youtube.com/watch?v=UukjwSIAnpw"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "05df1b322274b1883f0fac7f0a8cb557796e414857af7f1a28e00a03cdcb116a",
       "repository": "DataTalksClub/content",
@@ -177067,12 +177067,12 @@
     "guests": [
       "alexeygrigorev"
     ],
-    "image_path": "/images/podcast/crisp-dm.jpg",
+    "image_path": "",
     "links": {
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Processes-in-a-Data-Science-Project---Alexey-Grigorev-encdlg",
       "youtube": "https://www.youtube.com/watch?v=SesVTDklFYQ"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "3a876f01434210f2888cd75850d2c7c1fdf6320fdd165677caab7d136dd80a59",
       "repository": "DataTalksClub/content",
@@ -177482,14 +177482,14 @@
     "guests": [
       "dattran"
     ],
-    "image_path": "/images/podcast/building-data-team.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/building-a-data-science-team-dat-tran/id1541710331?i=1000502061864",
       "spotify": "https://open.spotify.com/episode/0daFpY1z2J4Uop1XdMNsnY",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Building-a-Data-Science-Team---Dat-Tran-enlmef",
       "youtube": "https://www.youtube.com/watch?v=ScDIB-3O77A"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "d609b80ffe40c8bffe74c002b4291cd6f14180d462fa3c3da5e5c652178fe977",
       "repository": "DataTalksClub/content",
@@ -178394,14 +178394,14 @@
     "guests": [
       "aleksandrkim"
     ],
-    "image_path": "/images/podcast/s24e07-how-to-build-ai-that-actually-ships-in-production.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/how-to-build-ai-that-actually-ships-in-production-aleksandr/id1541710331?i=1000775367989",
       "spotify": "https://open.spotify.com/episode/1kwtGLI6dOq2HgKzJmLMkw?si=e831b4b1072e4d78",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/How-to-Build-AI-that-actually-Ships-in-Production---Aleksandr-Kim-e3l6hme",
       "youtube": "https://www.youtube.com/watch?v=PosCx_4fwt0"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "43e28f62f0c1f19f47c5c8b1412d26cccf9e67e3663c1d7e31171940df727086",
       "repository": "DataTalksClub/content",
@@ -179366,14 +179366,14 @@
     "guests": [
       "ivanbilan"
     ],
-    "image_path": "/images/podcast/s24e06-ai-adoption-in-enterprise-beyond-writing-code.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/ai-adoption-in-enterprise-beyond-writing-code-ivan-bilan/id1541710331?i=1000774374230",
       "spotify": "https://open.spotify.com/episode/25Xe46kcP3dZsqjsOUFT4W?si=406add772ab24387",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/AI-Adoption-in-Enterprise-Beyond-Writing-Code---Ivan-Bilan-e3l6h0m/a-acnsato",
       "youtube": "https://www.youtube.com/watch?v=XzokRd_IPSc"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "f0d92a703282957650be623be1592fac96d65fc0a4c2f7c2d5d057f8fd1e5cf1",
       "repository": "DataTalksClub/content",
@@ -180478,14 +180478,14 @@
     "guests": [
       "nikitakozodoi"
     ],
-    "image_path": "/images/podcast/s24e04-from-genai-pilots-to-production.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-genai-pilots-to-production-nikita-kozodoi/id1541710331?i=1000771350776",
       "spotify": "https://open.spotify.com/episode/6PDxN20VMKvkwLyVyG5uvX?si=b75bd781f72c4098",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-GenAI-Pilots-to-Production---Nikita-Kozodoi-e3kc7uh",
       "youtube": "https://www.youtube.com/watch?v=1LhvqZvDT5w"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "776faed5425872bd5288e568aacd5074653eebb393bb20c748a9931d22b26fed",
       "repository": "DataTalksClub/content",
@@ -181844,14 +181844,14 @@
     "guests": [
       "marianosemelman"
     ],
-    "image_path": "/images/podcast/s24e03-from-notebook-to-production-building-end-to-end-ai-systems.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-notebook-to-production-building-end-to-end-ai/id1541710331?i=1000770208010",
       "spotify": "https://open.spotify.com/episode/6RJ1b1iUk595w1LScQIWR6?si=a6bb80971196466b",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Notebook-to-Production-Building-End-to-End-AI-Systems---Mariano-Semelman-e3k1um6",
       "youtube": "https://www.youtube.com/watch?v=nsekJOwU2tY"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "26f72b962fbcfdd3f06776c3d0473431c974baa1814c61550a143e349bb48489",
       "repository": "DataTalksClub/content",
@@ -183238,14 +183238,14 @@
     "guests": [
       "tatianagabruseva"
     ],
-    "image_path": "/images/podcast/s24e01-competitions-beyond-kaggle-leaderboard.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/competitions-beyond-the-kaggle-leaderboard-tatiana/id1541710331?i=1000765636887",
       "spotify": "https://open.spotify.com/episode/3IXYBgX5e9NHQ8nIZejiNy?si=0b5722c8a59841e7",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Competitions-Beyond-the-Kaggle-Leaderboard---Tatiana-Habruseva-e3ib29q/a-ack1822",
       "youtube": "https://www.youtube.com/watch?v=oRxT4AWkQVM"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "9111fdee52cdc8302cf003c71d9526563a0ef04eba96955e15cf0c5ac78139a3",
       "repository": "DataTalksClub/content",
@@ -183951,14 +183951,14 @@
     "guests": [
       "leonidkholkine"
     ],
-    "image_path": "/images/podcast/s23e09-starting-data-conference-data-makers-fest-story.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/starting-a-data-conference-the-data-makers-fest/id1541710331?i=1000762031992",
       "spotify": "https://open.spotify.com/episode/53hHdpoEFyJeMTfSVas595?si=mwk_BEoZS2O00nxqGjrNEA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Starting-a-Data-Conference-The-Data-Makers-Fest-Story---Leonid-Kholkine-e3hgoe9",
       "youtube": "https://www.youtube.com/watch?v=6Zx1jDQQScA"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "4c61fb3c9a8265112925ff02b041c3242a090e7a3ba3fc8bbf81e6da9fa509f3",
       "repository": "DataTalksClub/content",
@@ -185021,14 +185021,14 @@
     "guests": [
       "nasserqadri"
     ],
-    "image_path": "/images/podcast/s23e07-understanding-ai-engineer-role.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/understanding-the-ai-engineer-role-nasser-qadri/id1541710331?i=1000760703188",
       "spotify": "https://open.spotify.com/episode/1YIEpklIbwSQAS7EmmXsBr?si=4__wD7HjR8aq-KeWsuFkmg",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Understanding-the-AI-Engineer-Role---Nasser-Qadri-e3hgnvb",
       "youtube": "https://www.youtube.com/watch?v=5Xfbk_en8e8"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "ae3b27ddacc4c20a40284e6d4c29002c81a17f6048225ba7fa53b4bd0983ee2c",
       "repository": "DataTalksClub/content",
@@ -186208,14 +186208,14 @@
     "guests": [
       "slawomirtulski"
     ],
-    "image_path": "/images/podcast/s23e06-data-engineer-career-in-2026-roles-specializations-and-what-companies-look-for.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/data-engineer-career-in-2026-roles-specializations/id1541710331?i=1000757764073",
       "spotify": "https://open.spotify.com/episode/2aVzaqVuBzpf10LW9jWTCF?si=f7zy5l7ETlC8jIJ9WJAlPQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Data-Engineer-Career-in-2026-Roles--Specializations--and-What-Companies-Look-for---Slawomir-Tulski-e3glre1",
       "youtube": "https://www.youtube.com/watch?v=bTHhvKMursI"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "5c147968304ab242a5241c307c43b972f4ea0c220ed56a50bfade64893251a2e",
       "repository": "DataTalksClub/content",
@@ -187726,14 +187726,14 @@
     "guests": [
       "ruslanshchuchkin"
     ],
-    "image_path": "/images/podcast/s23e05-inside-ai-engineer-role-tools-skills-and-career-path.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/inside-the-ai-engineer-role-tools-skills-and-career/id1541710331?i=1000756374194",
       "spotify": "https://open.spotify.com/episode/5OdUp9K8TVJFzLCrPOwqzi?si=ooBDWTtQQNCu9eDyBrfGIQ",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Inside-the-AI-Engineer-Role-Tools--Skills--and-Career-Path---Ruslan-Shchuchkin-e3glpjs",
       "youtube": "https://www.youtube.com/watch?v=wIAqcdrKRWc"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "a2b0ccf0f3b4632fb93075d9867cc55a5791ab232be01b366364ea7c05d3b613",
       "repository": "DataTalksClub/content",
@@ -189244,14 +189244,14 @@
     "guests": [
       "revathyramalingam"
     ],
-    "image_path": "/images/podcast/s23e04-how-to-become-ai-engineer-after-career-break.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/how-to-become-an-ai-engineer-after-a-career/id1541710331?i=1000755145117",
       "spotify": "https://open.spotify.com/episode/3xC8PZjrrAtYCWspQpI8oT?si=4n7hbBgYS6SKbNYDiy7tvA",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/How-to-Become-an-AI-Engineer-After-a-Career-Break---Revathy-Ramalingam-e3g8pf7",
       "youtube": "https://www.youtube.com/watch?v=IwG_JaxC-Y8"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "8a3d75a5a0a51b5cf90a8d7accd5fd16158cc9f8839551b197d05484954dd8ca",
       "repository": "DataTalksClub/content",
@@ -190207,14 +190207,14 @@
     "guests": [
       "adityagautam"
     ],
-    "image_path": "/images/podcast/s22e03-future-of-ai-agents.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/the-future-of-ai-agents-aditya-gautam/id1541710331?i=1000753680241",
       "spotify": "https://open.spotify.com/episode/5EudjtdqzbIlXjeHoL0GUd",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/The-Future-of-AI-Agents---Aditya-Gautam-e3fmk3h",
       "youtube": "https://www.youtube.com/watch?v=vcm3gRjNY2I"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "330378d82568368abd84d3cba3d452c1034b2fb2306b3cb2451f2d71e3df8047",
       "repository": "DataTalksClub/content",
@@ -191295,14 +191295,14 @@
     "guests": [
       "juanmanuelperafan"
     ],
-    "image_path": "/images/podcast/s23e02-foundations-of-analytics-engineer-role-skills-scope-and-modern-practices.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/foundations-of-analytics-engineer-role-skills-scope/id1541710331?i=1000751963703",
       "spotify": "https://open.spotify.com/episode/43rmkdGOEXe166SUfz6ReT?si=e474faeb55204b2a",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Foundations-of-Analytics-Engineer-Role-Skills--Scope--and-Modern-Practices---Juan-Manuel-Perafan-e3fmiof/a-acgfg5h",
       "youtube": "https://www.youtube.com/watch?v=HxMIsPrIyGQ"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "8ce669ef36c686c14745af3e343602cad5692e155d348df06d053b748c58df2d",
       "repository": "DataTalksClub/content",
@@ -192429,14 +192429,14 @@
     "guests": [
       "pauliusztin"
     ],
-    "image_path": "/images/podcast/s23e01-ai-engineering-skill-stack-agents-llmops-and-how-to-ship-ai-products.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/ai-engineering-skill-stack-agents-llmops-and-how-to/id1541710331?i=1000748569537",
       "spotify": "https://open.spotify.com/episode/5MBy03EQj7gwwkSpbkx1N8",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/AI-Engineering-Skill-Stack--Agents--LLMOps--and-How-to-Ship-AI-Products---Paul-Iusztin-e3enonn",
       "youtube": "https://www.youtube.com/watch?v=6bUO43k2lVU"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "63b028b4d1b68efa8de240a81a058cfca5ea13a2cd11a178c5a1ad78268f627f",
       "repository": "DataTalksClub/content",
@@ -193053,14 +193053,14 @@
     "guests": [
       "sofyayulpatova"
     ],
-    "image_path": "/images/podcast/s22e08-building-pet-health-tech-ml-sensors-and-dog-behavior-data.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/building-pet-health-tech-ml-sensors-and-dog-behavior-data/id1541710331?i=1000741036961",
       "spotify": "https://open.spotify.com/episode/5Ku6cCDpGbtWJjJ2mGtg7O",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/Building-Pet-Health-Tech-ML--Sensors--and-Dog-Behavior-Data-e3c8lpk",
       "youtube": "https://www.youtube.com/watch?v=4bl2TSHD_Fc"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "ff08d931063f29c33ee0e68c44b8fd7f49b317d9b6caa3e7ff8cccd1f5c3d896",
       "repository": "DataTalksClub/content",
@@ -193713,14 +193713,14 @@
     "guests": [
       "xiahebleinagel"
     ],
-    "image_path": "/images/podcast/s22e07-reinventing-career-in-tech.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-full-time-mom-to-head-of-data-and-cloud-xia-he-bleinagel/id1541710331?i=1000738825348",
       "spotify": "https://open.spotify.com/episode/1tscHrL9qePgCbVGIhzqti",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Full-Time-Mom-to-Head-of-Data-and-Cloud---Xia-He-Bleinagel-e3bjlka",
       "youtube": "https://www.youtube.com/watch?v=D2rw52SOFfM"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "e190c7dd8b76d90eb30f2dc76ab9095fd0066a59764407aea83657b9f56675c4",
       "repository": "DataTalksClub/content",
@@ -194338,14 +194338,14 @@
     "guests": [
       "anushaakkina"
     ],
-    "image_path": "/images/podcast/s22e06-from-black-box-systems-to-augmented-decision-making.jpg",
+    "image_path": "",
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/from-black-box-systems-to-augmented-decision-making/id1541710331?i=1000738824318",
       "spotify": "https://open.spotify.com/episode/6gbIxF4HYK8NPC5Z3mOucU",
       "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/From-Black-Box-Systems-to-Augmented-Decision-Making---Anusha-Akkina-e3bjkib",
       "youtube": "https://www.youtube.com/watch?v=YZNaLm-_zwA"
     },
-    "media_available": true,
+    "media_available": false,
     "provenance": {
       "checksum": "8b6b6fd315a5d277f0442034df9d386fc14b2d41bc7a3c36dc71a35d6455f2f0",
       "repository": "DataTalksClub/content",

@@ -1,11 +1,11 @@
 {% extends "studio/base.html" %}
 
 {% comment %}
-  Design 5a (issue #179).  The h1 moved into the base's page_head block, the old
+  Design system (issue #179).  The h1 moved into the base's page_head block, the old
   page slab became .admin-section, the section links became the design system's
   .filter-pills, the saved state became an .admin-notice and the error summary
   the base's .a11y-error-summary (core/static/core/accessibility.css is one of
-  the stylesheets a design 5a page deliberately does not load).  The form itself
+  the stylesheets a design system page deliberately does not load).  The form itself
   is unchanged: same action, same CSRF token, same hidden revision and
   idempotency fields, same field names, ids and aria-describedby wiring, and the
   save control still appears only when the reader may write.

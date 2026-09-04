@@ -49,34 +49,23 @@ VALIDITY_SECONDS = {
     "volatile": 24 * 60 * 60,
 }
 ALLOWED_COMPONENT_COMMANDS = {
-    "compatibility": frozenset(
-        {
-            "make compatibility-source-artifacts-check compatibility-artifacts-check "
-            "check-links check-seo"
-        }
-    ),
     "container": frozenset({"make verification-container", "exact release image verification"}),
-    "content_invariants": frozenset({"make verification-content-invariants"}),
     # `make test` remains the explicit local/scheduled aggregate; push full
-    # profile CI records the compatibility-free Django target separately.
+    # profile CI records the Django target separately.
     "django": frozenset({"make test", "make test-django-full", "make test-ci-focused"}),
     "evidence_validation": frozenset({"make test-ci"}),
     "playwright": frozenset(
         {"make test-playwright-smoke", "make test-playwright-core", "make test-playwright"}
     ),
-    "quality": frozenset({"quality-contract-v1"}),
+    "quality": frozenset({"quality-contract-v2"}),
     "screenshots": frozenset({"independent tester desktop/mobile capture and inspection"}),
     "selector": frozenset(
         {"make verification-plan", "ci.classifier select and ci.verification plan"}
     ),
 }
-TEST_OUTPUT_COMPONENTS = frozenset(
-    {"compatibility", "django", "evidence_validation", "playwright", "quality"}
-)
+TEST_OUTPUT_COMPONENTS = frozenset({"django", "evidence_validation", "playwright", "quality"})
 OUTPUT_FORMATS = {
-    "compatibility": frozenset({"test-log-v1"}),
     "container": frozenset({"container-check-v1"}),
-    "content_invariants": frozenset({"content-invariants-v1"}),
     "django": frozenset({"test-log-v1"}),
     "evidence_validation": frozenset({"test-log-v1"}),
     "playwright": frozenset({"test-log-v1"}),
@@ -109,7 +98,7 @@ TRUSTED_CI_JOB_COMPONENTS = {
     "container": frozenset({"container"}),
     "django": frozenset({"django"}),
     "playwright": frozenset({"playwright"}),
-    "quality": frozenset({"compatibility", "content_invariants", "evidence_validation", "quality"}),
+    "quality": frozenset({"evidence_validation", "quality"}),
     "screenshots": frozenset({"screenshots"}),
 }
 MAX_EVIDENCE_FILES = 500
@@ -140,7 +129,22 @@ def parse_time(value: object, field: str) -> datetime:
     return parsed.astimezone(UTC)
 
 
-def environment_fingerprint(environ: Mapping[str, str] | None = None) -> dict[str, Any]:
+def environment_fingerprint(
+    environ: Mapping[str, str] | None = None,
+    *,
+    architecture: str | None = None,
+) -> dict[str, Any]:
+    """Fingerprint the environment an execution is bound to.
+
+    ``architecture`` names the machine a component is *authorized* to execute
+    on when that is not this host -- the container component builds and runs the
+    release image on the deployment target's architecture, so a planner on an
+    x86_64 runner still authorizes the aarch64 runner that job uses.  It is only
+    ever supplied while planning: an execution always fingerprints its real
+    host, so a wrong declared architecture fails the component closed instead of
+    passing it.
+    """
+
     environ = os.environ if environ is None else environ
     hosted_runner = "ImageOS" in environ or "RUNNER_OS" in environ
     runner_image = environ.get("ImageOS", environ.get("RUNNER_OS", "local"))
@@ -153,7 +157,7 @@ def environment_fingerprint(environ: Mapping[str, str] | None = None) -> dict[st
         "allowlisted_config": {
             key: environ[key] for key in ALLOWLISTED_CONFIG if key in environ and environ[key]
         },
-        "architecture": platform.machine() or "unknown",
+        "architecture": architecture or platform.machine() or "unknown",
         "browser": environ.get("VERIFICATION_BROWSER", "chromium"),
         "database": environ.get("VERIFICATION_DATABASE", "sqlite"),
         "django": _package_version("django"),
@@ -387,7 +391,7 @@ def input_group(path: str) -> str:
     if (
         "tests" in parts
         or "tests_ci" in parts
-        or path.startswith(("playwright_tests/", "ci/tests/", "compatibility/tests/"))
+        or path.startswith(("playwright_tests/", "ci/tests/"))
         or name.startswith("test_")
         or name == "conftest.py"
     ):
@@ -640,8 +644,6 @@ def _evidence_counts(
         }
     elif component == "django":
         counts["selected_test_labels"] = len(plan["test_labels"])
-    elif component == "content_invariants":
-        counts["structured_files"] = len(plan["large_content"]["paths"])
     elif component == "screenshots":
         captures = screenshot.get("captures", []) if isinstance(screenshot, Mapping) else []
         counts["assertions"] = len(captures)
@@ -668,9 +670,7 @@ def _validate_counts(
         "tests",
     }
     component_required = {
-        "compatibility": set(),
         "container": set(),
-        "content_invariants": {"records", "structured_files"},
         "django": {"selected_test_labels"},
         "evidence_validation": set(),
         "playwright": set(),
@@ -758,27 +758,6 @@ def machine_output_claim(
         if payload != plan:
             raise EvidenceError("selector machine output does not match the plan")
         counts = _zero_result_counts() | {"assertions": 1}
-    elif component == "content_invariants":
-        output_format = "content-invariants-v1"
-        try:
-            payload = json.loads(body.decode("utf-8"))
-        except (UnicodeError, json.JSONDecodeError) as exc:
-            raise EvidenceError("content invariant machine output is malformed") from exc
-        if (
-            not isinstance(payload, dict)
-            or payload.get("status") != "pass"
-            or payload.get("input_sha256") != plan["large_content"]["sha256"]
-            or not isinstance(payload.get("path_count"), int)
-            or not isinstance(payload.get("record_count"), int)
-            or payload["path_count"] <= 0
-            or payload["record_count"] <= 0
-        ):
-            raise EvidenceError("content invariant machine output is incomplete")
-        counts = _zero_result_counts() | {
-            "assertions": payload["record_count"] * 3 + payload["path_count"],
-            "records": payload["record_count"],
-            "structured_files": payload["path_count"],
-        }
     elif component == "container":
         output_format = "container-check-v1"
         try:
@@ -815,14 +794,6 @@ def validate_machine_output_files(
     output = envelope["output"]
     artifact = output["artifact"]
     path = _find_artifact(artifact, evidence_root=evidence_root, envelope_path=envelope_path)
-    if envelope["component"] == "content_invariants" and envelope["result"] == "success":
-        from ci.content_invariants import validate_invariant_artifact
-
-        try:
-            content_payload = json.loads(path.read_text(encoding="utf-8"))
-            validate_invariant_artifact(content_payload, plan=plan)
-        except (UnicodeError, json.JSONDecodeError, ValueError) as exc:
-            raise EvidenceError("machine_output_mismatch") from exc
     expected = machine_output_claim(
         path,
         root=path.parent,
@@ -1224,14 +1195,15 @@ def _validate_origin(value: object) -> None:
             if not isinstance(value[field], str) or not value[field]:
                 raise EvidenceError("GitHub Actions origin strings must be non-empty")
     else:
-        expected = {"issue", "kind", "producer_role", "worktree"}
+        required = {"kind", "producer_role", "worktree"}
         if (
-            set(value) != expected
+            not required <= set(value)
+            or not set(value) <= required | {"issue"}
             or not isinstance(value["producer_role"], str)
             or value["producer_role"] not in {"engineer", "tester"}
         ):
             raise EvidenceError("local evidence origin has an invalid shape")
-        if (
+        if "issue" in value and (
             not isinstance(value["issue"], int)
             or isinstance(value["issue"], bool)
             or value["issue"] <= 0

@@ -22,17 +22,15 @@ def _target_block(target: str) -> tuple[str, str]:
     raise AssertionError(f"Makefile target {target!r} is missing")
 
 
-def test_local_test_remains_compatibility_inclusive() -> None:
+def test_local_test_target_runs_the_full_django_suite() -> None:
     prerequisites, body = _target_block("test")
 
-    assert "test-compatibility" in prerequisites.split()
-    assert "test-django-full" in prerequisites.split()
+    assert prerequisites.split() == ["test-django-full"]
     assert body == ""
 
 
-def test_ci_full_django_target_has_no_compatibility_prerequisite() -> None:
+def test_ci_full_django_target_has_no_prerequisite() -> None:
     prerequisites, body = _target_block("test-django-full")
 
     assert prerequisites == ""
-    assert "test-compatibility" not in body
     assert "manage.py test --parallel --noinput" in body

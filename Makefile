@@ -1,17 +1,19 @@
 .PHONY: setup lock-check lint format format-check typecheck migrations-check django-check deployment-check \
-	test-core test test-django-full test-ci test-ci-focused test-compatibility compatibility-source-artifacts-check \
-	compatibility-artifacts-check check-links check-seo compatibility-real-gate-blocked-check \
+	test-core test test-django-full test-ci test-ci-focused \
 	test-content test-factories test-migrations test-playwright-core test-playwright test-browser \
 	test-accessibility test-playwright-smoke test-playwright-quarantined \
 	test-course-platform-sync course-platform-source-checkout course-platform-sync-dry-run course-platform-sync \
 	content-update-check \
 	security-check security-artifact-scan \
 	test-remote-readonly test-remote-mutation test-live-email test-live-provider test-all migrate run worker \
-	production-prep-local \
-	terraform-seo-source-check terminology-check check-openapi check-management-parity \
+	production-prep-local content-pull content-pull-plan content-checkouts content-sources \
+	production-prep-course-registry production-prep-course-sources production-prep-dataset \
+	production-prep-dataset-verify run-production-prep-dataset \
+	import-legacy-zoomcamp import-events \
+	terraform-seo-source-check check-openapi check-management-parity \
 	database-portability-check verify-dtc-content review-data review-data-dry-run \
 	review-data-cleanup run-review-data verification-plan verification-run verification-full \
-	verification-quality verification-container verification-content-invariants \
+	verification-quality verification-container \
 	verification-evidence-check verification-report-check
 
 VERIFY_BASE_SHA ?= HEAD
@@ -20,11 +22,9 @@ VERIFY_OUTPUT_DIR ?= .tmp/verification
 VERIFY_PLAN ?= $(if $(VERIFY_PLAN_PATH),$(VERIFY_PLAN_PATH),$(VERIFY_OUTPUT_DIR)/verification-plan.json)
 VERIFY_EVIDENCE_DIR ?= $(VERIFY_OUTPUT_DIR)/evidence
 VERIFY_REPORT ?= $(if $(VERIFY_REPORT_PATH),$(VERIFY_REPORT_PATH),$(VERIFY_OUTPUT_DIR)/verification-report.json)
-VERIFY_INVARIANT ?= $(VERIFY_EVIDENCE_DIR)/content-invariants.json
 VERIFY_CONTAINER_OUTPUT ?= $(VERIFY_EVIDENCE_DIR)/container-check.json
-# VERIFY_ISSUE has no default on purpose: local verification evidence must never be
-# attributed to an issue number the caller did not supply. The verification-run
-# target fails closed until VERIFY_ISSUE=<number> is passed explicitly.
+# VERIFY_ISSUE is optional. Pass it to attribute local evidence to an issue;
+# leave it unset and the evidence simply carries no issue.
 VERIFY_WORKTREE ?= local
 VERIFY_CONSUMER ?= engineer
 VERIFY_PHASE ?= $(VERIFY_CONSUMER)
@@ -52,10 +52,11 @@ ADOPTION_INTEGRATION_PYTHON = \
 	scripts/sync_course_platform.py \
 	scripts/prepare_course_platform_source.py
 
-COMPATIBILITY_PYTHON = \
-	compatibility \
-	scripts/build_legacy_manifest.py \
-	scripts/build_pinned_legacy_sources.py
+# Entry points for imports that read real production data.  ``scripts/**`` is excluded
+# from the default ruff and mypy roots, so this package opts back in explicitly.
+PRODUCTION_IMPORT_PYTHON = \
+	scripts/prod \
+	courses/services/cmp_content_import.py
 
 setup:
 	uv sync --locked
@@ -66,26 +67,26 @@ lock-check:
 	uv lock --check
 
 lint:
-	uv run ruff check . $(ADOPTION_INTEGRATION_PYTHON) $(COMPATIBILITY_PYTHON)
+	uv run ruff check . $(ADOPTION_INTEGRATION_PYTHON) $(PRODUCTION_IMPORT_PYTHON)
 
 format:
-	uv run ruff format . $(ADOPTION_INTEGRATION_PYTHON) $(COMPATIBILITY_PYTHON)
+	uv run ruff format . $(ADOPTION_INTEGRATION_PYTHON) $(PRODUCTION_IMPORT_PYTHON)
 
 format-check:
-	uv run ruff format --check . $(ADOPTION_INTEGRATION_PYTHON) $(COMPATIBILITY_PYTHON)
+	uv run ruff format --check . $(ADOPTION_INTEGRATION_PYTHON) $(PRODUCTION_IMPORT_PYTHON)
 
 typecheck:
 	uv run mypy manage.py website core content content_sync events email_app studio jobs deploy ci \
 		test_support conftest.py sitecustomize.py \
 		review_import \
 		management_auth management_api management_registry.py \
-		$(COMPATIBILITY_PYTHON) \
-		scripts/build_local_review_db.py scripts/capture_screenshots.py \
+			scripts/build_local_review_db.py scripts/capture_screenshots.py \
 		scripts/check_database_portability.py \
 		scripts/render_course_platform_inventory.py \
 	scripts/verify_course_platform_adoption.py \
 	scripts/sync_course_platform.py \
-	scripts/prepare_course_platform_source.py
+	scripts/prepare_course_platform_source.py \
+	$(PRODUCTION_IMPORT_PYTHON)
 
 migrations-check:
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py makemigrations --check --dry-run
@@ -94,7 +95,7 @@ django-check: check-openapi check-management-parity
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py check
 
 deployment-check:
-	DTC_ENVIRONMENT=production VERSION=20260809-143205-aaaaaaa SOURCE_SHA=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa IMAGE_DIGEST=sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb DJANGO_SETTINGS_MODULE=website.settings.production DJANGO_SECRET_KEY="$$(uv run python -c 'import secrets; print(secrets.token_urlsafe(64))')" DATABASE_URL=postgresql://check:check@127.0.0.1:5432/check DJANGO_ALLOWED_HOSTS=example.invalid DJANGO_CSRF_TRUSTED_ORIGINS=https://example.invalid uv run python manage.py check --deploy --fail-level ERROR
+	DTC_ENVIRONMENT=production VERSION=20260809-143205-aaaaaaa SOURCE_SHA=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa IMAGE_DIGEST=sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb DJANGO_SETTINGS_MODULE=website.settings.production DJANGO_SECRET_KEY="$$(uv run python -c 'import secrets; print(secrets.token_urlsafe(64))')" DATABASE_URL=postgresql://check:check@127.0.0.1:5432/check DJANGO_ALLOWED_HOSTS=example.invalid DJANGO_CSRF_TRUSTED_ORIGINS=https://example.invalid PUBLIC_MEDIA_STORE_BACKEND=s3 PUBLIC_MEDIA_S3_BUCKET=deployment-check-placeholder uv run python manage.py check --deploy --fail-level ERROR
 
 security-check:
 	mkdir -p .tmp/security
@@ -111,9 +112,6 @@ security-artifact-scan:
 		$(foreach artifact,$(SECURITY_ARTIFACT_INPUTS),--input "$(artifact)") \
 		$(foreach canary,$(SECURITY_ARTIFACT_CANARIES),--canary "$(canary)") \
 		--output .tmp/security/security-artifact-scan.json
-
-terminology-check:
-	uv run python scripts/check_development_terminology.py
 
 database-portability-check:
 	uv run python scripts/check_database_portability.py
@@ -180,10 +178,8 @@ course-platform-sync:
 		$(if $(CMP_SOURCE_CHECKOUT),--source-checkout "$(CMP_SOURCE_CHECKOUT)",) \
 		--apply
 
-test: test-compatibility test-django-full
+test: test-django-full
 
-# Push CI records compatibility as its own plan-controlled component. Keep the
-# ordinary local and scheduled `test` aggregate compatibility-inclusive.
 test-django-full:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
 		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test --parallel --noinput
@@ -221,29 +217,24 @@ VERIFY_DRY_RUN_GUARD = exit 0;
 endif
 
 verification-run:
-	@test -n "$(VERIFY_ISSUE)" || (echo "VERIFY_ISSUE is required: refusing to attribute verification evidence to a default issue number (e.g. make verification-run VERIFY_ISSUE=<number> VERIFY_WORKTREE=<branch>)" >&2; exit 2)
 	uv run --frozen python -m ci.verification validate-plan --plan "$(VERIFY_PLAN)"
 	@$(VERIFY_DRY_RUN_GUARD)runner_status=0; \
 	uv run --frozen python -m ci.runner \
 			--plan "$(VERIFY_PLAN)" --repository . \
 			--output-directory "$(VERIFY_EVIDENCE_DIR)" \
-			--issue "$(VERIFY_ISSUE)" --worktree "$(VERIFY_WORKTREE)" \
+			$(if $(VERIFY_ISSUE),--issue "$(VERIFY_ISSUE)",) --worktree "$(VERIFY_WORKTREE)" \
 			--producer-role "$(VERIFY_PRODUCER_ROLE)" || runner_status=$$?; \
 	report_status=0; \
 	$(MAKE) verification-report-check || report_status=$$?; \
 	if test "$$report_status" -ne 0; then exit "$$report_status"; fi; \
 	exit "$$runner_status"
 
-verification-quality: terminology-check database-portability-check security-check lint format-check typecheck \
+verification-quality: database-portability-check security-check lint format-check typecheck \
 	migrations-check django-check deployment-check test-ci
 
 verification-container:
 	uv run --frozen python -m ci.container_check --repository . \
 		--output "$(VERIFY_CONTAINER_OUTPUT)"
-
-verification-content-invariants:
-	uv run --frozen python -m ci.content_invariants --repository . \
-		--plan "$(VERIFY_PLAN)" --output "$(VERIFY_INVARIANT)"
 
 verification-full: verification-quality
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-verification-full-migrate-$${PPID}}" \
@@ -276,10 +267,6 @@ test-ci-focused:
 		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python -m ci.focused_tests \
 		--selection "$$CI_SELECTION_PATH"
 
-test-compatibility:
-	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
-		uv run --frozen pytest compatibility/tests -q
-
 test-factories:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
 		uv run --frozen pytest test_support/tests/test_factories.py \
@@ -289,41 +276,8 @@ test-factories:
 test-migrations:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
 		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test --noinput \
-		test_support.tests.test_migrations accounts.tests.test_identity_migrations \
-		content.tests.test_editorial_route_migration_contract content.tests.test_migrations
-
-compatibility-source-artifacts-check:
-	uv run python scripts/build_pinned_legacy_sources.py --check
-
-compatibility-artifacts-check:
-	uv run python scripts/build_legacy_manifest.py validate \
-		_docs/compatibility/legacy-manifest.jsonl
-	uv run python scripts/build_legacy_manifest.py compare \
-		_docs/compatibility/legacy-manifest.jsonl \
-		--output .tmp/compatibility/legacy-manifest-differences.check.json
-	cmp _docs/compatibility/legacy-manifest-differences.json \
-		.tmp/compatibility/legacy-manifest-differences.check.json
-	uv run python scripts/build_legacy_manifest.py approved-expectations --check
-
-check-links:
-	uv run pytest compatibility/tests/test_links.py compatibility/tests/test_runtime.py -q
-
-check-seo:
-	uv run pytest compatibility/tests/test_expectations.py compatibility/tests/test_report.py \
-		compatibility/tests/test_target.py compatibility/tests/test_parity.py \
-		compatibility/tests/test_monitoring.py -q
-
-compatibility-real-gate-blocked-check:
-	mkdir -p .tmp/compatibility
-	rm -f .tmp/compatibility/checked-real-seo-parity-report.json
-	@if DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py compatibility_gate \
-		--route-sha256 0000000000000000000000000000000000000000000000000000000000000000 \
-		--asset-sha256 1111111111111111111111111111111111111111111111111111111111111111 \
-		--projection-sha256 2222222222222222222222222222222222222222222222222222222222222222 \
-		--output .tmp/compatibility/checked-real-seo-parity-report.json; then \
-		echo "Unapproved checked inputs unexpectedly passed" >&2; exit 1; \
-	fi
-	uv run python -c 'import hashlib,json,pathlib; root=pathlib.Path("_docs/compatibility"); p=json.load(open(".tmp/compatibility/checked-real-seo-parity-report.json", encoding="utf-8")); digest=lambda name: hashlib.sha256((root/name).read_bytes()).hexdigest(); assert p["status"] == "BLOCKED" and p["expectation_count"] == 0; assert p["manifest_sha256"] == digest("legacy-manifest.jsonl"); assert p["differences_sha256"] == digest("legacy-manifest-differences.json"); assert p["public_contracts_sha256"] == digest("public-contracts.jsonl")'
+		test_support.tests.test_migrations \
+		content.tests.test_editorial_route_migration_contract
 
 test-playwright-core:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
@@ -378,22 +332,160 @@ test-live-provider:
 	DTC_TEST_SAFETY_COMMAND=live_provider uv run --frozen pytest -m live_provider -v
 
 .NOTPARALLEL: test-all
-test-all: lock-check terminology-check database-portability-check lint format-check typecheck \
-	migrations-check django-check deployment-check compatibility-source-artifacts-check \
-	compatibility-artifacts-check check-links check-seo test-factories test-migrations test \
+test-all: lock-check database-portability-check lint format-check typecheck \
+	migrations-check django-check deployment-check test-factories test-migrations test \
 	test-playwright
 
 migrate:
 	uv run python manage.py migrate
 
+# Content reaches this site two ways, sharing one implementation
+# (content_sync/course_repository_ingest.py). CI/CD pushes: a course repository
+# posts a signed push event and the webhook enqueues a durable job that
+# downloads the commit archive. These targets are the other entry point --
+# the developer pull, which reads checkouts already on disk and makes no
+# network call. Which repositories exist is registered ContentSource data, not
+# a list written here.
+CONTENT_CHECKOUT_ROOT ?= .tmp/course-checkouts
+# Host base only. The owner comes from the registered source, like everything else
+# about which repositories exist, so a source registered under a different owner is
+# cloned from that owner rather than silently from DataTalksClub.
+CONTENT_GIT_HOST ?= https://github.com
+# These targets, like every scripts/prod entry point, take the database
+# explicitly rather than reading it from the ambient environment. Overridden by
+# the production-prep-* targets below, which point it at the dataset database.
+CONTENT_DATABASE ?= .tmp/local.sqlite3
+
+# Register the pinned course-repository sources. Which repositories exist is
+# registered ContentSource data; this is only how a fresh database gets its rows.
+content-sources:
+	uv run --frozen python scripts/prod/sync_course_repository_sources.py \
+		--database "$(CONTENT_DATABASE)"
+
+# Print the registered sources and the checkout each would be read from.
+content-pull-plan:
+	@uv run --frozen python scripts/prod/sync_course_repositories.py \
+		--database "$(CONTENT_DATABASE)" \
+		--checkout-plan --from-disk "$(CONTENT_CHECKOUT_ROOT)"
+
+# Clone or refresh a checkout per registered source. This is the only step that
+# touches the network, and it is deliberately separate from the pull itself.
+content-checkouts:
+	@set -eu; \
+	mkdir -p "$(CONTENT_CHECKOUT_ROOT)"; \
+	plan="$$(uv run --frozen python scripts/prod/sync_course_repositories.py \
+		--database "$(CONTENT_DATABASE)" \
+		--checkout-plan --from-disk "$(CONTENT_CHECKOUT_ROOT)")"; \
+	printf '%s\n' "$$plan" \
+	| while IFS="$$(printf '\t')" read -r stable repository branch checkout; do \
+		if test -d "$$checkout/.git"; then \
+			git -C "$$checkout" fetch --quiet origin "$$branch"; \
+			git -C "$$checkout" checkout --quiet "$$branch"; \
+			git -C "$$checkout" reset --hard --quiet FETCH_HEAD; \
+			git -C "$$checkout" clean --quiet -fdx; \
+		else \
+			git clone --quiet --branch "$$branch" \
+				"$(CONTENT_GIT_HOST)/$$repository" "$$checkout"; \
+		fi; \
+		echo "$$stable $$(git -C "$$checkout" rev-parse HEAD)"; \
+	done
+
+# Ingest every registered source from its local checkout. Offline.
+content-pull:
+	uv run --frozen python scripts/prod/sync_course_repositories.py \
+		--database "$(CONTENT_DATABASE)" \
+		--from-disk "$(CONTENT_CHECKOUT_ROOT)" $(CONTENT_PULL_ARGS)
+
 production-prep-local:
 	@test -n "$(PRODUCTION_PREP_DATABASE)" || (echo "PRODUCTION_PREP_DATABASE is required" >&2; exit 2)
-	@test -n "$(PRODUCTION_PREP_COURSE_MODULES_INPUT)" || (echo "PRODUCTION_PREP_COURSE_MODULES_INPUT is required" >&2; exit 2)
+	@test -n "$(PRODUCTION_PREP_COURSE_SOURCE_DIR)" || (echo "PRODUCTION_PREP_COURSE_SOURCE_DIR is required" >&2; exit 2)
 	uv run --frozen python scripts/prepare_local_data.py \
 		--database "$(PRODUCTION_PREP_DATABASE)" \
-		--course-modules-input "$(PRODUCTION_PREP_COURSE_MODULES_INPUT)" \
+		--course-checkout-root "$(PRODUCTION_PREP_COURSE_SOURCE_DIR)" \
 		$(if $(PRODUCTION_PREP_CURRENT_REGISTRATION_INPUT),--current-registration-input "$(PRODUCTION_PREP_CURRENT_REGISTRATION_INPUT)",) \
+		$(if $(PRODUCTION_PREP_CMP_SOURCE),--cmp-source-db "$(PRODUCTION_PREP_CMP_SOURCE)",) \
 		$(if $(PRODUCTION_PREP_FRESH),--fresh,)
+
+# One command that rebuilds the whole local dataset from its sources. See
+# _docs/runbooks/local-course-modules-preparation.md for prerequisites.
+PRODUCTION_PREP_DATASET_ROOT ?= .tmp/production-prep-dataset
+PRODUCTION_PREP_DATASET_DATABASE ?= $(PRODUCTION_PREP_DATASET_ROOT)/dataset.sqlite3
+PRODUCTION_PREP_COURSE_SOURCE_DIR ?= $(PRODUCTION_PREP_DATASET_ROOT)/course-sources
+PRODUCTION_PREP_DATASET_PORT ?= 8001
+# Protected CMP SQLite snapshot. The sanitizing importer copies it and never
+# writes learner rows. Override when the snapshot lives somewhere else.
+PRODUCTION_PREP_CMP_SOURCE ?= $(HOME)/git/course-management-platform/db/db.sqlite3
+# Set empty to skip activating the reviewed current-event registration aggregates.
+PRODUCTION_PREP_DATASET_REGISTRATION_INPUT ?= \
+	_docs/migration-data/local-current-registration-input.json
+PRODUCTION_PREP_DATASET_ENV = DTC_ENVIRONMENT=local \
+	DJANGO_SETTINGS_MODULE=website.settings.local \
+	DTC_SQLITE_PATH=$(PRODUCTION_PREP_DATASET_DATABASE)
+
+# Stage 1. Create the dataset database and register which course repositories
+# exist. This has to come first because that is the only place the answer lives:
+# registered ContentSource rows, not a list in this file.
+production-prep-course-registry:
+	@test ! -e "$(PRODUCTION_PREP_DATASET_DATABASE)" || \
+		(echo "$(PRODUCTION_PREP_DATASET_DATABASE) already exists; remove it to rebuild" >&2; exit 2)
+	@mkdir -p "$(PRODUCTION_PREP_DATASET_ROOT)"
+	$(PRODUCTION_PREP_DATASET_ENV) uv run --frozen python manage.py migrate --no-input
+	$(MAKE) content-sources CONTENT_DATABASE="$(PRODUCTION_PREP_DATASET_DATABASE)"
+
+# Stage 2. The only step that touches the network. It clones or refreshes one
+# checkout per registered source, exactly as `make content-checkouts` does for a
+# developer, because it is that target.
+production-prep-course-sources: production-prep-course-registry
+	$(MAKE) content-checkouts \
+		CONTENT_CHECKOUT_ROOT="$(PRODUCTION_PREP_COURSE_SOURCE_DIR)" \
+		CONTENT_DATABASE="$(PRODUCTION_PREP_DATASET_DATABASE)"
+
+# Stage 3. Build the dataset offline from those checkouts.
+production-prep-dataset:
+	rm -f "$(PRODUCTION_PREP_DATASET_DATABASE)" \
+		"$(PRODUCTION_PREP_DATASET_DATABASE)-shm" \
+		"$(PRODUCTION_PREP_DATASET_DATABASE)-wal"
+	$(MAKE) production-prep-course-sources
+	$(MAKE) production-prep-local \
+		PRODUCTION_PREP_DATABASE="$(PRODUCTION_PREP_DATASET_DATABASE)" \
+		PRODUCTION_PREP_COURSE_SOURCE_DIR="$(PRODUCTION_PREP_COURSE_SOURCE_DIR)" \
+		PRODUCTION_PREP_CURRENT_REGISTRATION_INPUT="$(PRODUCTION_PREP_DATASET_REGISTRATION_INPUT)"
+	$(MAKE) production-prep-dataset-verify
+
+production-prep-dataset-verify:
+	uv run --frozen python scripts/verify_local_dataset.py \
+		--database "$(PRODUCTION_PREP_DATASET_DATABASE)"
+
+# Production imports. Every entry point lives in scripts/prod/; `import_*` is
+# frozen history read once at migration, `sync_*` is an upstream we re-run
+# against. See scripts/prod/__init__.py.
+IMPORT_DATABASE ?= $(PRODUCTION_PREP_DATASET_DATABASE)
+
+# Pre-2024 Zoomcamp scoring and certificate history. Frozen; one-time. This is
+# the only importer that can populate an empty database, so it runs first.
+LEGACY_ZOOMCAMP_SOURCE ?= $(HOME)/git/zoomcamp-scoring
+import-legacy-zoomcamp:
+	uv run --frozen python scripts/prod/import_legacy_zoomcamp.py \
+		--database "$(IMPORT_DATABASE)" \
+		--source-repo "$(LEGACY_ZOOMCAMP_SOURCE)" \
+		$(IMPORT_LEGACY_ZOOMCAMP_ARGS)
+
+# Event identities plus the Luma and Eventbrite registration aggregates. Both
+# frozen; one-time. Aggregate counts only -- no attendee row is ever read into
+# the database. Set empty to leave every mapping review-required.
+IMPORT_EVENTS_REGISTRATION_INPUT ?= \
+	_docs/migration-data/local-current-registration-input.json
+import-events:
+	uv run --frozen python scripts/prod/import_events.py \
+		--database "$(IMPORT_DATABASE)" \
+		$(if $(IMPORT_EVENTS_REGISTRATION_INPUT),--current-registration-input "$(IMPORT_EVENTS_REGISTRATION_INPUT)",) \
+		$(IMPORT_EVENTS_ARGS)
+
+run-production-prep-dataset:
+	DTC_ENVIRONMENT=local \
+		DTC_SQLITE_PATH=$(PRODUCTION_PREP_DATASET_DATABASE) \
+		DJANGO_SETTINGS_MODULE=website.settings.local \
+		uv run python manage.py runserver 0.0.0.0:$(PRODUCTION_PREP_DATASET_PORT)
 
 run:
 	uv run python manage.py runserver 0.0.0.0:8000

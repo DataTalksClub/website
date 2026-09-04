@@ -1,7 +1,8 @@
 {% extends "studio/base.html" %}
+{% load breadcrumbs %}
 
 {% comment %}
-  Design 5a (issue #179).  The h1 moved into the base's page_head block, the old
+  Design system (issue #179).  The h1 moved into the base's page_head block, the old
   page slab became .admin-section, the section links became the design system's
   .filter-pills, and the redacted field list became the base's .admin-facts —
   the JSON-shaped fields render in the .admin-code block literal and the rest as
@@ -14,19 +15,9 @@
 {% endblock %}
 
 {% block breadcrumbs_nav %}
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <ol>
-      <li>
-        <a href="{% url 'studio:home' %}">Studio</a>
-      </li>
-      <li>
-        <a href="{% url 'studio:audit-list' %}">Audit events</a>
-      </li>
-      <li aria-current="page">
-        Audit event
-      </li>
-    </ol>
-  </nav>
+  {% url 'studio:home' as studio_home_url %}
+  {% url 'studio:audit-list' as studio_audit_list_url %}
+  {% breadcrumbs "Studio" studio_home_url "Audit events" studio_audit_list_url current="Audit event" %}
 {% endblock %}
 
 {% block page_head %}

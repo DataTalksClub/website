@@ -71,6 +71,26 @@ class IntegrationPatchEntry:
         return f"{self.destination}\t{self.size}\t{self.sha256}\t{self.rationale}"
 
 
+# Copied paths the target has deliberately removed.  The manifest is derived from the
+# pinned upstream checkout, so a retired file stays recorded there; this is where the
+# target says the destination is gone on purpose rather than missing by accident.
+#
+# ``scripts/load_rds_export.py`` was the broad CMP-export loader.  Its ``main()`` was
+# already disabled, but its copy plan skipped only ``sqlite_sequence`` and
+# ``django_migrations``, so re-enabling it would have copied ``django_session``,
+# ``socialaccount_socialaccount``, ``socialaccount_socialapp`` and ``accounts_token``
+# straight out of a production export.  Leaving a loaded weapon in the drawer with the
+# safety on is not a safety measure; the production importers in ``scripts/prod/``
+# replace it and name their forbidden tables explicitly.
+RETIRED_ADOPTION_DESTINATIONS = frozenset(
+    {
+        "courses/models/course.py",
+        "courses/tests/test_load_rds_export_script.py",
+        "scripts/load_rds_export.py",
+    }
+)
+
+
 def retired_adoption_destinations(repo: Path, destinations: Iterable[str]) -> set[str]:
     """Return copied paths retired by the target's migration/model consolidation."""
 
@@ -80,7 +100,7 @@ def retired_adoption_destinations(repo: Path, destinations: Iterable[str]) -> se
         if not (repo / destination).is_file()
         and (
             destination.startswith("courses/migrations/")
-            or destination == "courses/models/course.py"
+            or destination in RETIRED_ADOPTION_DESTINATIONS
         )
     }
 

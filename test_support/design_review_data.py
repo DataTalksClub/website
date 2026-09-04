@@ -34,6 +34,7 @@ from courses.models import (
     Unit,
     UnitReadState,
 )
+from courses.services.local_course_seed import assert_local_database
 from events.identity import load_identity_manifest
 from events.models import (
     Event,
@@ -448,8 +449,15 @@ def _seed_module_cohort(
 
 @transaction.atomic
 def seed_design_review_data(*, execution_namespace: str = "local-review") -> DesignReviewData:
-    """Create the complete issue #237 course review graph in an empty database."""
+    """Create the complete issue #237 course review graph in an empty database.
 
+    Everything below is invented -- synthetic courses, cohorts, users and
+    submissions.  The guard is *inside* the function rather than only in the
+    caller: this module ships in the release image, so the refusal has to travel
+    with the code that writes the rows.
+    """
+
+    assert_local_database()
     context = FactoryContext(SEED, execution_namespace, FROZEN_AT)
     scenario = create_current_scenario(
         context,

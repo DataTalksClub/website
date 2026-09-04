@@ -1,5 +1,5 @@
 {% comment %}
-  Everything the design 5a shell puts before the page's own main landmark: the skip
+  Everything the design system shell puts before the page's own main landmark: the skip
   link, the pre-paint dark-mode bootstrap, the CSRF token, the impersonation banner,
   the masthead and the site announcement.
 
@@ -17,7 +17,6 @@
 {% url 'home' as site_home_url %}
 {% url 'studio:home' as studio_home_url %}
 {% url 'account_settings' as account_settings_url %}
-{% url 'socialaccount_connections' as account_connections_url %}
 {% url 'account_logout' as account_logout_url %}
 {% url 'account_signup' as account_signup_url %}
 <a class="skip-link" href="#main-content">Skip to content</a>
@@ -134,21 +133,41 @@
       </div>
     </div>
     <div class="masthead-actions">
-      <button
-        id="dark-mode-toggle"
-        class="pill-button interactive-lift"
-        type="button"
-        aria-pressed="{{ DARK_MODE|yesno:'true,false' }}"
-      >
-        <span class="dot" aria-hidden="true"></span>
-        <span id="dark-mode-label">{{ DARK_MODE|yesno:'Light,Dark' }}</span>
-        <span class="sr-only">&nbsp;mode</span>
-      </button>
-      {% if user.is_authenticated %}
+      {% if not user.is_authenticated %}
+        {% comment %}
+          The masthead pill is the *signed-out* theme control.  A visitor with no
+          account has nowhere else to keep the choice, so the pill stays here for
+          them and writes localStorage['darkMode'], which the pre-paint bootstrap
+          above reads back.
+
+          A signed-in member keeps the same preference on their account instead
+          (CustomUser.dark_mode, rendered into the body element server-side), and
+          changes it in Account settings › Display preferences.  One control per
+          visitor, one place the preference lives: the pill can never write a
+          browser value that disagrees with the account it is signed in to.
+        {% endcomment %}
+        <button
+          id="dark-mode-toggle"
+          class="pill-button interactive-lift"
+          type="button"
+          aria-pressed="{{ DARK_MODE|yesno:'true,false' }}"
+        >
+          <span class="dot" aria-hidden="true"></span>
+          <span id="dark-mode-label">{{ DARK_MODE|yesno:'Light,Dark' }}</span>
+          <span class="sr-only">&nbsp;mode</span>
+        </button>
+      {% endif %}
+      {% if request.user.is_authenticated %}
         {% comment %}
           Same account-menu contract as the shared shell: the labelled summary and the
           .user-menu-panel links every identity test drives.  courses/static/user_menu.js
           (loaded by core/_site_shell_foot.html) closes it on Escape and on outside click.
+
+          The address below is read from `request.user`, never from the bare
+          `user` name.  `user` is only supplied by the auth context processor
+          until a view puts its own value under that key, and a view rendering
+          somebody else's member record then hands the whole shell that
+          person's address.  `request` cannot be shadowed the same way.
         {% endcomment %}
         <details class="account-nav user-menu">
           <summary
@@ -158,15 +177,20 @@
           >Account</summary>
           <div class="mobile-nav-panel user-menu-panel">
             <p class="user-menu-signed-in">Signed in as</p>
-            <p class="user-menu-identity" title="{{ user.email|default:user.username }}">
-              {{ user.email|default:user.username }}
+            <p class="user-menu-identity" title="{{ request.user.email|default:request.user.username }}">
+              {{ request.user.email|default:request.user.username }}
             </p>
             <div class="user-menu-actions">
+              {% comment %}
+                One account destination.  Sign-in methods used to be a second
+                menu entry to their own page; they are a section of account
+                settings now, so the menu names the account once and the page
+                holds everything an account owns.  /accounts/3rdparty/ still
+                resolves — accounts/urls.py redirects it into that section —
+                so allauth's own post-connect redirect keeps working.
+              {% endcomment %}
               {% if account_settings_url %}
                 <a class="nav-link user-menu-item" href="{{ account_settings_url }}">Account settings</a>
-              {% endif %}
-              {% if account_connections_url %}
-                <a class="nav-link user-menu-item" href="{{ account_connections_url }}">Login connections</a>
               {% endif %}
               {% if can_access_studio and studio_home_url %}
                 <a class="nav-link user-menu-item" href="{{ studio_home_url }}">Studio</a>

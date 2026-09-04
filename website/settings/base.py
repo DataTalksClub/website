@@ -153,7 +153,6 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
-    "compatibility.monitoring.CompatibilityMonitoringMiddleware",
 ]
 
 ROOT_URLCONF = "website.urls"
@@ -192,11 +191,36 @@ ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USER_MODEL_EMAIL_FIELD = "email"
-ACCOUNT_ALLOW_REGISTRATION = False
+# `ACCOUNT_ALLOW_REGISTRATION` is not a real allauth setting name — allauth
+# gates signup entirely through the adapter's `is_open_for_signup()`. The
+# actual gate for the plain email/password path is `ACCOUNT_ADAPTER` below;
+# see `ClosedAccountAdapter` in `accounts/auth.py`.
+
+# Course registration is account-owned (`_docs/specs/open-decisions.md` §6,
+# `_docs/specs/04-courses-and-cohorts.md`), and the signed-in-home spec §8.3
+# turns that decision into a sign-in gate on the campaign form.  The flag is the
+# revert lever the spec asks for: the gate is a conversion-path bet, and the
+# owner can turn it off on evidence rather than on argument, without a code
+# change.  Default on.
+REGISTRATION_REQUIRES_ACCOUNT = env_flag("REGISTRATION_REQUIRES_ACCOUNT", default=True)
+ACCOUNT_ADAPTER = "accounts.auth.ClosedAccountAdapter"
 SOCIALACCOUNT_ADAPTER = "accounts.auth.ConsolidatingSocialAccountAdapter"
 SOCIALACCOUNT_LOGIN_ON_GET = True
+# `user:email` is what makes GitHub return the address list with its own
+# per-address `verified` flag, which is the only ownership evidence
+# `ConsolidatingSocialAccountAdapter` will act on.
+#
+# `VERIFIED_EMAIL` is deliberately absent.  Setting it makes allauth overwrite
+# every address a provider hands back with `verified=True` inside
+# `Provider.cleanup_email_addresses`, before any adapter runs — including
+# addresses GitHub reports as `verified: false` and the public profile address,
+# which anyone may set to anyone else's.  The migration matches roughly 20,000
+# imported accounts to their history by email, so that flag would turn "the
+# provider vouched for this address" into "the provider mentioned this address"
+# and hand one member another member's course record.  Pinned by
+# `accounts/tests/test_imported_account_social_matching.py`.
 SOCIALACCOUNT_PROVIDERS = {
-    "github": {"SCOPE": ["user:email"], "VERIFIED_EMAIL": True},
+    "github": {"SCOPE": ["user:email"]},
 }
 CAN_LOGIN_AS = can_login_as
 
@@ -234,6 +258,29 @@ CLOUDWATCH_APP_METRIC_REGION = os.getenv(
     "CLOUDWATCH_APP_METRIC_REGION", os.getenv("AWS_REGION", os.getenv("AWS_DEFAULT_REGION", ""))
 )
 
+# Public projection media objects are read through a pluggable store so the 1,253
+# release images do not have to be carried in the git working tree.  The default is the
+# credential-free, network-free local filesystem backend, so a developer, a tester, and
+# an offline checkout all behave the same.  CI test jobs select the deterministic
+# ``memory`` fixture backend in the workflow environment; a deployed environment selects
+# ``s3`` and is checked for it under production settings.
+PUBLIC_MEDIA_STORE_BACKEND = os.getenv("PUBLIC_MEDIA_STORE_BACKEND", "local").strip().lower()
+PUBLIC_MEDIA_LOCAL_ROOT = Path(
+    os.getenv("PUBLIC_MEDIA_LOCAL_ROOT") or (BASE_DIR / "content" / "public_projection" / "media")
+)
+PUBLIC_MEDIA_S3_BUCKET = os.getenv("PUBLIC_MEDIA_S3_BUCKET", "").strip()
+# The media objects sit at the bucket root under ``images/``, which is already the
+# leading segment of every projection record key, so no extra prefix is needed.
+PUBLIC_MEDIA_S3_PREFIX = os.getenv("PUBLIC_MEDIA_S3_PREFIX", "").strip("/")
+PUBLIC_MEDIA_S3_REGION = os.getenv("PUBLIC_MEDIA_S3_REGION", "").strip()
+# Optional. Lets a developer point the s3 backend at a local or faked endpoint.
+PUBLIC_MEDIA_S3_ENDPOINT_URL = os.getenv("PUBLIC_MEDIA_S3_ENDPOINT_URL", "").strip()
+PUBLIC_MEDIA_S3_TIMEOUT_SECONDS = float(os.getenv("PUBLIC_MEDIA_S3_TIMEOUT_SECONDS", "5"))
+# Fail-closed size bound. The largest known projection object is 3,022,797 bytes.
+PUBLIC_MEDIA_MAX_OBJECT_BYTES = int(
+    os.getenv("PUBLIC_MEDIA_MAX_OBJECT_BYTES", str(8 * 1024 * 1024))
+)
+
 DATAMAILER_URL = os.getenv("DATAMAILER_URL", "")
 DATAMAILER_API_KEY = os.getenv("DATAMAILER_API_KEY", "")
 DATAMAILER_CLIENT = os.getenv("DATAMAILER_CLIENT", "")
@@ -254,9 +301,29 @@ DATAMAILER_IMPORT_S3_REGION = os.getenv("DATAMAILER_IMPORT_S3_REGION", "")
 DATAMAILER_SYNC_ON_USER_CREATE = env_flag("DATAMAILER_SYNC_ON_USER_CREATE", True)
 DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY = env_flag("DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY")
 
-# Opaque keys are configured by deployment code.  Locators and protected source
-# metadata are never accepted from Studio/API or persisted in the application DB.
-COURSE_REGISTRATION_COUNT_SOURCES: dict[str, dict[str, object]] = {}
+# Relay recipient-link bridge.  Relay renders open, click and unsubscribe links
+# from its own ``PUBLIC_BASE_URL``; that value points at this site, so this site
+# has to answer ``/t/o/<token>.gif``, ``/t/c/<token>`` and ``/unsubscribe/<token>``
+# and hand each one to Relay in-VPC.  Relay has no public listener, so the base
+# below is the private ``http://relay.<zone>:8000`` address, never a public URL.
+#
+# Empty is the fail-closed default: with no configured Relay the three public
+# routes answer 404 and the click route never redirects, so an unconfigured
+# environment cannot become an open redirect.
+RELAY_LINK_BRIDGE_BASE_URL = os.getenv("RELAY_LINK_BRIDGE_BASE_URL", "").strip()
+# Distinct budgets, because the three endpoints have different stakes.  The open
+# pixel is the highest-volume route in the system and must never park a worker;
+# unsubscribe is low volume and prefers correctness over speed.
+RELAY_LINK_BRIDGE_OPEN_TIMEOUT_SECONDS = float(
+    os.getenv("RELAY_LINK_BRIDGE_OPEN_TIMEOUT_SECONDS", "2")
+)
+RELAY_LINK_BRIDGE_CLICK_TIMEOUT_SECONDS = float(
+    os.getenv("RELAY_LINK_BRIDGE_CLICK_TIMEOUT_SECONDS", "3")
+)
+RELAY_LINK_BRIDGE_UNSUBSCRIBE_TIMEOUT_SECONDS = float(
+    os.getenv("RELAY_LINK_BRIDGE_UNSUBSCRIBE_TIMEOUT_SECONDS", "10")
+)
+RELAY_LINK_BRIDGE_POOL_SIZE = int(os.getenv("RELAY_LINK_BRIDGE_POOL_SIZE", "16"))
 
 Q_CLUSTER = {
     "name": "dtc-website",

@@ -1,0 +1,26 @@
+{% load accessibility %}
+{% accessibility_help_id field as help_id %}
+{% accessibility_error_id field as error_id %}
+<div
+  {% if field.name == 'country' %}
+    class="country-combobox-field"
+  {% endif %}
+>
+  <label class="field-label" for="{{ field.id_for_label }}">
+    {{ field.label }}
+  </label>
+  {% accessible_widget field %}
+  {% if field.name == 'country' %}
+    {{ country_options|json_script:"country-options-json" }}
+    <div class="country-combobox-panel" data-country-combobox-panel hidden></div>
+  {% endif %}
+  {% if field.help_text %}
+    <p id="{{ help_id }}" class="a11y-help">{{ field.help_text }}</p>
+  {% endif %}
+  {% if field.errors %}
+    <p id="{{ error_id }}" class="a11y-error">
+      <span class="sr-only">Error:</span>
+      {{ field.errors|join:" " }}
+    </p>
+  {% endif %}
+</div>

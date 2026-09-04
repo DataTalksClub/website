@@ -1,5 +1,6 @@
 """Focused contracts for the shared learner submission design primitives."""
 
+import re
 from pathlib import Path
 
 from django.template.loader import get_template
@@ -92,9 +93,98 @@ class SharedSubmissionPrimitiveTests(SimpleTestCase):
         self.assertIn("var(--line-soft)", subtle_rule)
         self.assertIn("#learning-in-public-links-container .cta-secondary", design_system)
         self.assertIn(".project-toolbar .cta-secondary", design_system)
-        self.assertIn("border-inline-start: 0", quiet_rule)
-        self.assertIn("background: var(--card)", quiet_rule)
+        # The quiet callout is the dashed plate on whatever surface it sits on,
+        # not a second tone rail: the system draws no accent left border at all
+        # (see `core/tests/test_design_accent_borders.py`).
+        self.assertIn("background: transparent", quiet_rule)
+        self.assertIn("border-style: dashed", quiet_rule)
+        self.assertNotIn("border-inline-start", quiet_rule)
         self.assertIn("var(--focus)", design_system)
+
+    def test_cmp_form_is_a_measure_and_not_a_box(self) -> None:
+        """The form sits on the lavender band; it does not repaint it."""
+
+        design_system = read_template("templates/core/_design_system.html")
+        start = design_system.index(".cmp-form {")
+        rule = design_system[start : design_system.index("}", start)]
+
+        self.assertIn("display: grid", rule)
+        self.assertIn("gap: 1.25rem", rule)
+        self.assertIn("max-width: var(--form-measure)", rule)
+        self.assertIn("width: 100%", rule)
+        self.assertNotIn("background", rule)
+        self.assertNotIn("border", rule)
+        self.assertNotIn("padding", rule)
+
+    def test_disabled_controls_recede_while_readonly_keeps_its_border(self) -> None:
+        """WCAG 1.4.11 exempts inactive components, not focusable readonly ones."""
+
+        design_system = read_template("templates/core/_design_system.html")
+        start = design_system.index(
+            ".field-input[disabled],\n      .form-control[disabled] {"
+        )
+        rule = design_system[start : design_system.index("}", start)]
+
+        self.assertIn("border-color: var(--line-soft)", rule)
+        self.assertNotIn("[readonly]", rule)
+        # The shared surface/text treatment still covers both states.
+        shared_start = design_system.index(".field-input[readonly],")
+        shared_rule = design_system[shared_start : design_system.index("}", shared_start)]
+        self.assertIn("background: var(--sand)", shared_rule)
+        self.assertIn("color: var(--muted)", shared_rule)
+        self.assertNotIn("border-color", shared_rule)
+
+    def test_choice_controls_use_the_shared_size_without_page_overrides(self) -> None:
+        design_system = read_template("templates/core/_design_system.html")
+        start = design_system.index(".form-check-input {")
+        rule = design_system[start : design_system.index("}", start)]
+        row_start = design_system.index(".form-check {")
+        row_rule = design_system[row_start : design_system.index("}", row_start)]
+
+        self.assertIn("height: 1.25rem", rule)
+        self.assertIn("width: 1.25rem", rule)
+        # The 44px pointer target is the row, so the larger control does not
+        # change it.
+        self.assertIn("min-height: 2.75rem", row_rule)
+        # Page styles are emitted after the design system inside the same style
+        # element, so an equal-specificity restatement silently wins.  Every
+        # page that includes the design system and draws a checkbox is checked,
+        # Studio included: the size is the system's, not the page's.
+        choice_primitives = ("form-check", "form-check-input", "form-check-label")
+        for path, primitives in (
+            (
+                "courses/templates/homework/homework.html",
+                (*choice_primitives, "form-control", "cmp-form"),
+            ),
+            (
+                "courses/templates/homework/_submission_form.html",
+                (*choice_primitives, "form-control", "cmp-form"),
+            ),
+            (
+                "courses/templates/projects/eval_submit.html",
+                (*choice_primitives, "form-control", "cmp-form"),
+            ),
+            (
+                "courses/templates/projects/project.html",
+                (*choice_primitives, "form-control", "cmp-form"),
+            ),
+            # Studio still gives the copied widget names its own `.form-control`
+            # treatment, which is out of this change's scope; the checkbox size
+            # is not the page's to decide.
+            (
+                "studio_courses/templates/studio_courses/campaign_form.html",
+                choice_primitives,
+            ),
+        ):
+            with self.subTest(template=path):
+                source = read_template(path)
+                for primitive in primitives:
+                    # A bare restatement of the primitive, not the pages' own
+                    # qualified `.option-answer-* .form-check-input` marks.
+                    self.assertIsNone(
+                        re.search(rf"^\s*\.{primitive} \{{", source, re.MULTILINE),
+                        f"{path} restates the .{primitive} primitive",
+                    )
 
 
 class SubmissionTemplateStructureTests(SimpleTestCase):
@@ -121,15 +211,19 @@ class SubmissionTemplateStructureTests(SimpleTestCase):
         self.assertNotIn("homework-specs", source)
         self.assertIn('<h1 id="submission-heading">{{ homework.title }}</h1>', source)
         self.assertNotIn("Answer the questions below to complete your homework.", source)
-        self.assertIn('class="submission-support"', source)
         self.assertIn("border: 0", source)
         self.assertIn(
-            (
-                'classes="callout-quiet" message="No public answers are '
-                'available for this homework yet."'
-            ),
+            'message="No public answers are available for this homework yet."',
             form_source,
         )
+        # Two callout weights for the same kind of message are gone: the page
+        # carries one notice treatment, so `callout-quiet` has nothing to
+        # remove and is no longer used here.
+        self.assertNotIn("callout-quiet", source)
+        self.assertNotIn("callout-quiet", form_source)
+        # The boilerplate line beside the questions heading duplicated the
+        # hero's instructions button.
+        self.assertNotIn("This form is only for submitting your answers", form_source)
         for field in (
             "answer_{{ question.id }}",
             'name="homework_url"',
@@ -168,9 +262,14 @@ class SubmissionTemplateStructureTests(SimpleTestCase):
         course_source = read_template("courses/templates/courses/course.html")
 
         self.assertIn('{% extends "core/content_page.html" %}', source)
+        # The trail is drawn by the shared {% breadcrumbs %} tag rather than by
+        # nav markup this page writes for itself; the nav landmark lives once, in
+        # templates/core/_breadcrumbs.html.
+        self.assertIn("{% breadcrumbs ", source)
+        self.assertNotIn('<nav class="breadcrumbs"', source)
         self.assertIn(
-            '<nav class="breadcrumbs"',
-            source,
+            '<nav class="{{ nav_class }}" aria-label="{{ aria_label }}">',
+            read_template("templates/core/_breadcrumbs.html"),
         )
         self.assertIn('{% extends "core/content_page.html" %}', course_source)
         self.assertIn(

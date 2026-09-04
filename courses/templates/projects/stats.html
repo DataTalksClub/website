@@ -1,9 +1,10 @@
 {% extends 'projects/_base.html' %}
+{% load breadcrumbs %}
 {% comment %}
-  Aggregate statistics for one project, on design 5a (issue #179).
+  Aggregate statistics for one project, on the design system (issue #179).
 
   A read-only page of numbers.  The icons the copied page drew beside every
-  section and every row came from an icon font a design 5a page does not load,
+  section and every row came from an icon font a design system page does not load,
   and each of them only repeated the label beside it, so the labels now carry
   the meaning on their own.
 {% endcomment %}
@@ -52,13 +53,9 @@
   }
 {% endblock %}
 
-{% block breadcrumbs %}
-  <li>
-    <a href="{% url 'project' course.course.slug course.identifier project.slug %}">{{ project.title }}</a>
-  </li>
-  <li aria-current="page">
-    Statistics
-  </li>
+{% block breadcrumb_trail %}
+  {% url 'project' course.course.slug course.identifier project.slug as project_url %}
+  {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url project.title project_url current="Statistics" %}
 {% endblock %}
 
 {% block page_head %}

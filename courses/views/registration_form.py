@@ -65,6 +65,61 @@ def authenticated_registration_initial_values(user):
     }
 
 
+def registration_role_label(role_value):
+    """The human label behind a stored ``registration_role`` value.
+
+    ``CustomUser.registration_role`` is a plain ``CharField`` compatibility
+    projection, so it has no ``get_..._display``; a profile written before a
+    choice was renamed (or by an import) can hold a value the enum no longer
+    knows, and that is shown verbatim rather than hidden.
+    """
+
+    if not role_value:
+        return ""
+    try:
+        return CourseRegistration.Role(role_value).label
+    except ValueError:
+        return role_value
+
+
+def missing_profile_field_names(user):
+    """The person-level fields (spec §7.5) the account still has not supplied.
+
+    Signed-in-home spec §8.2 asks registration for exactly these and no more:
+    everything the profile already knows is shown read-only and correctable,
+    and only what is genuinely unknown is an open field.
+    """
+
+    if not has_authenticated_registration_user(user):
+        return ()
+
+    initial_values = authenticated_registration_initial_values(user)
+    missing = []
+    for field_name in ("name", "country", "role"):
+        if not initial_values.get(field_name):
+            missing.append(field_name)
+    return tuple(missing)
+
+
+def authenticated_registration_identity(user):
+    """The read-only identity block of the "One final step" card (§8.2).
+
+    A value the profile does not hold stays empty here, because §8.2 renders
+    exactly those as open fields above the fold instead of as a blank row.
+    """
+
+    if not has_authenticated_registration_user(user):
+        return {}
+
+    initial_values = authenticated_registration_initial_values(user)
+    return {
+        "name": initial_values.get("name") or "",
+        "email": user.email or "",
+        "country": initial_values.get("country") or "",
+        "role": registration_role_label(initial_values.get("role")),
+    }
+
+
 def configure_authenticated_registration_user(form, user):
     if not has_authenticated_registration_user(user):
         return

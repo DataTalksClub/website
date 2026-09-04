@@ -79,9 +79,25 @@ class CourseRepositoryLimits:
     max_mapping_items: int = 1_000
     max_path_chars: int = 512
     max_diagnostics: int = 25
+    max_site_description_chars: int = 4_000
 
 
 DEFAULT_LIMITS = CourseRepositoryLimits()
+
+# The website description a course repository publishes for itself.  Its only job is to
+# be this site's copy, which is why the README is never consulted.
+SITE_DESCRIPTION_PATH = "SITE.md"
+
+# A description that still looks like a README is a mistake worth refusing loudly: a
+# centred HTML banner, a badge block, or a contributors roll never belongs in catalogue
+# copy.  These are shapes, not wording, so they do not constrain what an author writes.
+_README_SHAPED_DESCRIPTION = (
+    re.compile(r"<p\s+align\s*=", re.IGNORECASE),
+    re.compile(r"<img\s", re.IGNORECASE),
+    re.compile(r"\[!\[[^\]]*\]\([^)]*\)\]\("),
+    re.compile(r"!\[[^\]]*\]\(https://img\.shields\.io"),
+    re.compile(r"^#{1,6}\s*contributors\b", re.IGNORECASE | re.MULTILINE),
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -701,7 +717,6 @@ class _Parser:
                     "content_id",
                     "slug",
                     "title",
-                    "description",
                     "description_path",
                     "outcome",
                     "repository_url",
@@ -727,27 +742,15 @@ class _Parser:
             ),
         )
         _schema(mapping, path=path)
-        if ("description" in mapping) == ("description_path" in mapping):
-            _fail("course_description_source_required", path)
+        # ``description_path`` survives only as a redundant declaration of the one path
+        # this parser reads.  Letting it name any file is what allowed ``README.md`` to
+        # become a course description; naming anything but ``SITE.md`` now fails closed.
+        declared = mapping.get("description_path")
+        if declared is not None and declared != SITE_DESCRIPTION_PATH:
+            _fail("course_description_path_not_site_md", path, "/description_path")
         content_id = _content_id(mapping["content_id"], path=path, pointer="/content_id")
         self._register_content_id(content_id, kind="course", path=path, pointer="/content_id")
-        description_source_path: str | None = None
-        if "description" in mapping:
-            description = _string(mapping["description"], path=path, pointer="/description")
-        else:
-            description_source_path = _referenced_path(
-                mapping["description_path"],
-                path=path,
-                pointer="/description_path",
-                snapshot=self.snapshot,
-                limits=self.limits,
-                suffix=".md",
-            )
-            description = _decode_utf8(
-                self.snapshot[description_source_path],
-                path=description_source_path,
-                limits=self.limits,
-            )
+        description, description_source_path = self._parse_site_description()
         hashtag = _string(mapping["hashtag"], path=path, pointer="/hashtag", maximum=100)
         if hashtag.startswith("#") or re.fullmatch(r"[A-Za-z0-9_]+", hashtag) is None:
             _fail("invalid_hashtag", path, "/hashtag")
@@ -767,6 +770,37 @@ class _Parser:
             published=_boolean(mapping["published"], path=path, pointer="/published"),
             source_path=path,
         )
+
+    def _parse_site_description(self) -> tuple[str | None, str | None]:
+        """Return the website description a repository publishes in ``SITE.md``.
+
+        ``SITE.md`` exists to be the website's copy, so it is the only source for a
+        course description.  ``README.md`` is deliberately not read, not even as a
+        fallback: the READMEs of these repositories open with centred HTML banners and
+        badge tables, and importing one wrote 13,000-19,000 characters of GitHub-shaped
+        markup over three families' curated text.
+
+        A repository without ``SITE.md`` yields ``None``, which the importer treats as
+        "leave the stored description alone".  That is the permanent behaviour for the
+        families whose copy is curated rather than repository-authored, not a
+        transitional fallback.
+        """
+
+        if SITE_DESCRIPTION_PATH not in self.snapshot:
+            return None, None
+        description = _decode_utf8(
+            self.snapshot[SITE_DESCRIPTION_PATH],
+            path=SITE_DESCRIPTION_PATH,
+            limits=self.limits,
+        ).strip()
+        if not description:
+            _fail("site_description_empty", SITE_DESCRIPTION_PATH)
+        if len(description) > self.limits.max_site_description_chars:
+            _fail("site_description_too_long", SITE_DESCRIPTION_PATH)
+        for pattern in _README_SHAPED_DESCRIPTION:
+            if pattern.search(description):
+                _fail("site_description_readme_shaped", SITE_DESCRIPTION_PATH)
+        return description, SITE_DESCRIPTION_PATH
 
     def _parse_module(self, path: str) -> ModuleSource:
         mapping = _strict_mapping(

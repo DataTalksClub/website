@@ -1,4 +1,4 @@
-{% load seo %}
+{% load breadcrumbs seo %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -27,7 +27,7 @@
     {% endif %}
     <style>
       /* ------------------------------------------------------------------ *
-       * Course FAQ, design 5a (issue #179).  One long question-and-answer
+       * Course FAQ, design system (issue #179).  One long question-and-answer
        * document in a single reading column: the trail back to the hub, the
        * contents, and then one band per section.  The answers arrive as
        * rendered HTML, so they render in the system's shared `.prose`
@@ -160,16 +160,13 @@
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream faq-hero" aria-labelledby="faq-heading">
-        <nav class="shell breadcrumbs faq-shell" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'faq-home' %}">FAQ</a>
-            </li>
-            <li aria-current="page">
-              {{ faq_course.name }}
-            </li>
-          </ol>
-        </nav>
+        {% comment %}
+          The site's one trail on this page's own shell.  The course keeps its
+          own crumb: the h1 beneath says "<course> FAQ", so the last level is
+          not a word-for-word repeat of the heading.
+        {% endcomment %}
+        {% url 'faq-home' as faq_home_url %}
+        {% breadcrumbs "FAQ" faq_home_url current=faq_course.name nav_class="shell faq-shell" %}
         <div class="shell faq-shell">
           <h1 id="faq-heading">{{ faq_course.name }} FAQ</h1>
           <p class="faq-lede">

@@ -48,11 +48,6 @@ urlpatterns = [
         name="historical-registration-list",
     ),
     path(
-        "events/historical-registration-totals/mappings/",
-        views.historical_registration_mappings,
-        name="historical-registration-mappings",
-    ),
-    path(
         "events/historical-registration-totals/<uuid:run_id>/",
         views.historical_registration_detail,
         name="historical-registration-detail",
@@ -96,25 +91,5 @@ urlpatterns = [
         "events/<uuid:event_id>/qna/cohosts/<str:invite_id>/revoke/",
         qna_views.event_qna_cohost_revoke,
         name="event-qna-cohost-revoke",
-    ),
-    path(
-        "courses/registration-count-baselines/",
-        views.course_registration_count_list,
-        name="course-registration-count-list",
-    ),
-    path(
-        "courses/registration-count-baselines/<uuid:run_id>/",
-        views.course_registration_count_detail,
-        name="course-registration-count-detail",
-    ),
-    path(
-        "courses/registration-count-baselines/<uuid:run_id>/<str:action>/",
-        views.course_registration_count_action,
-        name="course-registration-count-action",
-    ),
-    path(
-        "courses/registration-campaigns/<slug:campaign_slug>/public-count/",
-        views.course_registration_count_total,
-        name="course-registration-count-total",
     ),
 ]

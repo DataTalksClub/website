@@ -6,11 +6,16 @@ from accounts import api as account_api
 from accounts.views.continuity import explicit_reauthentication
 from cadmin.legacy_urls import legacy_course_list_redirect
 from content import public_views, review_views
-from core import mediakit as mediakit_views
 from core import views as core_views
 from courses import urls as course_urls
 from courses.views import course_aliases, course_list
 from studio_courses import urls as studio_course_urls
+
+#: The media kit is published from its own repository, DataTalksClub/mediakit,
+#: as a GitHub Pages project site.  A project site is served independently of
+#: the legacy DataTalksClub/datatalksclub.github.io repository that shares the
+#: hostname, so retiring the legacy site does not take this target down.
+MEDIA_KIT_URL = "https://datatalksclub.github.io/mediakit/"
 
 course_patterns = [
     pattern
@@ -36,22 +41,26 @@ urlpatterns = [
     ),
     path("", core_views.home, name="home"),
     path("sponsors", core_views.sponsors, name="sponsors"),
-    path("mediakit/", mediakit_views.media_kit, name="media-kit"),
+    # The media kit is not a page of this site. Keeping a second copy here
+    # meant it drifted: it advertised a course start month the database
+    # contradicted, listed an edition that does not exist, and omitted a
+    # course entirely.
+    path(
+        "mediakit/",
+        public_views.permanent_public_redirect,
+        {"target": MEDIA_KIT_URL},
+        name="media-kit",
+    ),
     path(
         "mediakit",
         public_views.permanent_public_redirect,
-        {"target": "/mediakit/"},
+        {"target": MEDIA_KIT_URL},
         name="media-kit-slash-redirect",
     ),
     path("", include("content.public_urls")),
     path("unified/", core_views.home, name="unified-home"),
     path("docs/", review_views.docs_home, name="docs-home"),
     path("docs", public_views.permanent_public_redirect, {"target": "/docs/"}),
-    path(
-        "docs/courses/ai-dev-tools-zoomcamp/getting-started/",
-        review_views.docs_getting_started,
-        name="docs-ai-dev-tools-getting-started",
-    ),
     path("docs/assets/<path:asset>", review_views.docs_asset, name="docs-asset"),
     path("docs/<path:doc_path>", review_views.docs_page, name="docs-page"),
     path("faq/", review_views.faq_home, name="faq-home"),
@@ -72,11 +81,6 @@ urlpatterns = [
         review_views.faq_asset,
         name="faq-asset",
     ),
-    path(
-        "faq/ai-dev-tools-zoomcamp.html",
-        review_views.faq_ai_dev_tools,
-        name="faq-ai-dev-tools",
-    ),
     path("faq/<slug:course_slug>.html", review_views.faq_course, name="faq-course"),
     path("slack", review_views.slack, name="slack"),
     path("slack.html", public_views.permanent_public_redirect, {"target": "/slack"}),
@@ -85,6 +89,10 @@ urlpatterns = [
         public_views.permanent_public_redirect,
         {"target": "/slack"},
     ),
+    # Relay renders these three paths into every message it sends, from its own
+    # PUBLIC_BASE_URL. They are declared before the course aliases so a legacy
+    # slug can never shadow a live unsubscribe link.
+    path("", include("email_app.urls")),
     path("health/live", core_views.liveness, name="health-live"),
     path("health/ready", core_views.readiness, name="health-ready"),
     path("studio", core_views.management_slash_redirect, name="studio-slash-redirect"),
@@ -128,16 +136,6 @@ urlpatterns = [
         name="legacy-studio-courses-root",
     ),
     path("cadmin/", include("cadmin.legacy_urls")),
-    path(
-        "courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026",
-        review_views.course_cohort,
-        name="course-cohort-ai-dev-tools-2026",
-    ),
-    path(
-        "courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026/registration-preview/",
-        review_views.registration_preview,
-        name="course-registration-preview-ai-dev-tools-2026",
-    ),
     path("courses", course_list.course_list, name="course_list"),
     path(
         "courses/",

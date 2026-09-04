@@ -1,51 +1,124 @@
-<aside class="module-sidebar module-rail" aria-labelledby="module-navigation-heading">
-  <div class="card module-rail-card">
-    <h2 id="module-navigation-heading">In this module</h2>
-    {% if user.is_authenticated %}
-      <p class="sidebar-progress">{{ module_rail_read_count }} of {{ module_rail_units|length }} lessons read</p>
-    {% else %}
-      <p class="sidebar-progress">Sign in to keep track of what you have read.</p>
-    {% endif %}
+{% load curriculum_titles %}
+{% comment %}
+  Shared module rail, included by the module and unit pages.
 
-    {% if module_rail_units %}
-      <ol class="sidebar-unit-list">
-        {% for rail_unit in module_rail_units %}
-          <li class="sidebar-unit{% if module_rail_current_unit and module_rail_current_unit.pk == rail_unit.pk %} is-current{% endif %}">
-            <div class="sidebar-unit-heading">
-              <span
-                class="read-indicator{% if rail_unit.is_read %} is-read{% endif %}{% if module_rail_current_unit and module_rail_current_unit.pk == rail_unit.pk %} is-current{% endif %}"
-                aria-hidden="true"
-              >{% if module_rail_current_unit and module_rail_current_unit.pk == rail_unit.pk %}→{% elif rail_unit.is_read %}✓{% else %}{{ forloop.counter }}{% endif %}</span>
-              <a
-                href="{% url 'unit' course_family.slug cohort.identifier module.slug rail_unit.slug %}"
-                {% if module_rail_current_unit and module_rail_current_unit.pk == rail_unit.pk %}aria-current="page"{% endif %}
-              >{{ rail_unit.title }}</a>
-            </div>
-            {% if user.is_authenticated %}
-              <form class="read-state-form" method="post" action="{% url 'unit_read_state' course_family.slug cohort.identifier module.slug rail_unit.slug %}">
-                {% csrf_token %}
-                {% if rail_unit.is_read %}
-                  <input type="hidden" name="is_read" value="0">
-                  {% include "core/_button.html" with tag="button" type="submit" label="Mark as unread" variant="subtle" compact=True aria_label="Mark lesson as unread" %}
-                {% else %}
-                  <input type="hidden" name="is_read" value="1">
-                  {% include "core/_button.html" with tag="button" type="submit" label="Mark as read" variant="subtle" compact=True aria_label="Mark lesson as read" %}
-                {% endif %}
-              </form>
-            {% endif %}
-          </li>
-        {% endfor %}
-      </ol>
-    {% endif %}
+  The rail is wayfinding, not content, so it is a <nav> landmark and it draws
+  no card: on the unit page the framed elements are the video and the code
+  blocks, which are the lesson.  A page carrying this partial ends up with
+  three distinctly named nav landmarks -- Breadcrumb, In this module, Unit
+  navigation -- so a rotor can tell them apart.
 
-    {% if not user.is_authenticated %}
-      {% url 'login' as login_url %}
-      {% include "core/_button.html" with href=login_url|add:"?next="|add:module_url label="Sign in to track progress" variant="secondary" compact=True %}
-    {% endif %}
+  The whole row is the link, indicator included, so there is one focus stop and
+  one target per lesson instead of a dead circle beside a small text link.  The
+  <ol> is deliberate: list semantics announce "3 of 10", which is the
+  accessible counterpart of the visible ordinals.  Homework sits outside the
+  list because it is not one of the N lessons -- it is the step after them.
 
-    <div class="sidebar-homework">
-      <span>Homework</span>
-      <a href="{% url 'homework' course_family.slug cohort.identifier module.terminal_homework.slug %}">{{ module.terminal_homework.title }}</a>
-    </div>
+  The rail shows read state; it does not edit it.  The single "Mark as read"
+  toggle lives at the foot of the unit's own content column, where finishing a
+  lesson actually happens, instead of repeating a full-width button under every
+  row.
+
+  A caller that passes `module_rail_collapsible` also gets the hide/show pair.
+  The lesson page passes it; the module index does not, because there the rail
+  is a second view of the page's own subject rather than chrome beside a long
+  read.  The two buttons are one control in two positions -- exactly one of them
+  is ever displayed -- so each one's `aria-expanded` is a constant describing the
+  state the reader can actually see.
+{% endcomment %}
+{% if module_rail_collapsible %}
+  <button
+    class="rail-toggle rail-restore interactive-lift"
+    id="module-rail-restore"
+    type="button"
+    aria-controls="module-rail"
+    aria-expanded="false"
+    aria-label="Show the module lessons"
+    title="Show the module lessons"
+  >
+    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d="M3 4l4 4-4 4M9 4l4 4-4 4"/>
+    </svg>
+  </button>
+{% endif %}
+<nav id="module-rail" class="module-sidebar module-rail" aria-labelledby="module-navigation-heading">
+  <div class="rail-heading-row">
+    <h2 class="rail-heading" id="module-navigation-heading">In this module</h2>
+    {% if module_rail_collapsible %}
+      <button
+        class="rail-toggle rail-collapse interactive-lift"
+        id="module-rail-collapse"
+        type="button"
+        aria-controls="module-rail"
+        aria-expanded="true"
+        aria-label="Hide the module lessons"
+        title="Hide the module lessons"
+      >
+        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path d="M13 4L9 8l4 4M7 4L3 8l4 4"/>
+        </svg>
+      </button>
+    {% endif %}
   </div>
-</aside>
+  {% if user.is_authenticated %}
+    <p class="rail-progress">{{ module_rail_read_count }} of {{ module_rail_units|length }} read</p>
+  {% endif %}
+
+  {% if module_rail_units %}
+    <ol class="rail-units">
+      {% for rail_unit in module_rail_units %}
+        <li class="rail-unit{% if rail_unit.is_current %} is-current{% endif %}{% if rail_unit.is_read %} is-read{% endif %}">
+          <a
+            class="rail-unit-link"
+            href="{% url 'unit' course_family.slug cohort.identifier module.slug rail_unit.slug %}"
+            {% if rail_unit.is_current %}aria-current="page"{% endif %}
+          >
+            {% comment %}
+              The current row keeps its ordinal rather than swapping in an
+              arrow: the tint and the filled disc already say "you are here",
+              and the arrow was the one row whose position you could not read.
+            {% endcomment %}
+            <span
+              class="read-indicator{% if rail_unit.is_read %} is-read{% endif %}{% if rail_unit.is_current %} is-current{% endif %}"
+              aria-hidden="true"
+            >{% if rail_unit.is_read and not rail_unit.is_current %}✓{% else %}{{ forloop.counter }}{% endif %}</span>
+            <span class="rail-unit-title">{{ rail_unit.title|unit_display_title }}</span>
+            {% if rail_unit.is_read %}<span class="sr-only">(read)</span>{% endif %}
+          </a>
+        </li>
+      {% endfor %}
+    </ol>
+  {% endif %}
+
+  {% if module.terminal_homework %}
+    <a
+      class="rail-unit-link rail-homework"
+      href="{% url 'homework' course_family.slug cohort.identifier module.terminal_homework.slug %}"
+    >
+      {% comment %}
+        The syllabus accordion's drawn bubble mark, reused, so the same mark
+        language carries course -> module -> unit.  The row's own title says
+        "Homework 1: ...", so it needs no uppercase label above it.
+      {% endcomment %}
+      <span class="read-indicator rail-homework-mark" aria-hidden="true">HW</span>
+      <span class="rail-unit-title">{{ module.terminal_homework.title|unit_display_title }}</span>
+    </a>
+  {% endif %}
+
+  {% if not user.is_authenticated %}
+    {% comment %}
+      One quiet line, not a bordered control and not a second sentence at the
+      top of the rail.  The masthead already offers "Log in" and "Sign up free"
+      on every page; this stays only because it explains something visibly
+      absent here -- the read marks -- and reading itself is not gated, so it
+      does not get the framed treatment the homework page reserves for an
+      action that genuinely requires an account.
+
+      `next` is this page, not the module: signing in from a lesson used to
+      return the reader to the module index they had already left.
+    {% endcomment %}
+    <p class="rail-signin">
+      <a class="band-link" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Sign in to track progress</a>
+    </p>
+  {% endif %}
+</nav>

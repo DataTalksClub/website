@@ -26,6 +26,7 @@ def main() -> int:
                 "cache_behavior_count": evidence.cache_behavior_count,
                 "commit": evidence.commit,
                 "status": "PASS",
+                "task_cpu_architecture": evidence.task_cpu_architecture,
             },
             separators=(",", ":"),
             sort_keys=True,

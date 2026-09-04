@@ -1,4 +1,4 @@
-"""Design 5a parity for the podcast index and episode page (mockup 6d, issue #179).
+"""Design system parity for the podcast index and episode page (mockup 6d, issue #179).
 
 The two surfaces carry their own inline stylesheet, so this checks what only a
 browser can: the shared palette actually paints, both themes hold, nothing
@@ -19,9 +19,9 @@ pytestmark = [pytest.mark.core]
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-179/podcast")
 PODCAST_HEADING = "Conversations with people who ship data"
-# The design 5a page ground: both the season index and an episode page open warm
+# The design system page ground: both the season index and an episode page open warm
 # and end on the cool lavender content ground, so `--page` follows it
-# (`_docs/design/design-5a.md`).  The dark theme keeps the partial's own `--page`
+# (`_docs/design/design-system.md`).  The dark theme keeps the partial's own `--page`
 # ground.
 LIGHT_BACKGROUND = "rgb(239, 241, 252)"
 DARK_BACKGROUND = "rgb(19, 22, 42)"

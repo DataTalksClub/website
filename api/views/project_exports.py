@@ -10,6 +10,7 @@ from django.forms.models import model_to_dict
 from django.views.decorators.http import require_GET
 
 from accounts.auth import token_required
+from api.safety import require_staff_token
 
 from courses.models.cohort import Cohort
 from courses.models.project import (
@@ -70,6 +71,12 @@ def project_export_payload(course, project, submissions):
 @token_required
 def project_data_view(request, course_slug: str, project_slug: str):
     """Get project data including course info, project details, and all submissions with scores."""
+    # Each record carries `student_email`, so this is an operator export and
+    # not something any account's token may read.
+    staff_error = require_staff_token(request)
+    if staff_error:
+        return staff_error
+
     course = get_object_or_404(Cohort, slug=course_slug)
     project = get_object_or_404(
         Project, course=course, slug=project_slug

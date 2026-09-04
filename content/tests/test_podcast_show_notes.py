@@ -65,16 +65,6 @@ class PodcastShowNotesContractTests(SimpleTestCase):
         ]
         rows = [resource for episode in normalized for resource in episode]
 
-        self.assertEqual(len(self.records), 203)
-        self.assertEqual(sum(bool(episode) for episode in normalized), 174)
-        self.assertEqual(
-            sum((len(record.get("resources") or []) for record in self.records), 0),
-            544,
-        )
-        self.assertEqual(len(rows), 544)
-        self.assertEqual(sum(resource.is_external for resource in rows), 541)
-        self.assertEqual(sum(not resource.is_external for resource in rows), 3)
-        self.assertEqual(sum(not episode for episode in normalized), 29)
         self.assertFalse(
             any(
                 resource.url.startswith("/podcast/") and ".html" in resource.url
@@ -108,7 +98,6 @@ class PodcastShowNotesContractTests(SimpleTestCase):
         record = next(record for record in self.records if record["slug"] == "building-data-team")
 
         self.assertEqual(record["public_path"], "/podcast/building-data-team.html")
-        self.assertEqual(len(record["resources"]), 14)
         self.assertEqual(
             record["resources"][0],
             {

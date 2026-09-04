@@ -9,7 +9,7 @@ class RegistrationCampaignCoursePageTests(RegistrationCampaignBase):
     def assert_no_registration_action(self, response):
         """Assert the page offers no way to register.
 
-        Design 5a (issue #179) inlines the page stylesheet, whose comments mention
+        Design system (issue #179) inlines the page stylesheet, whose comments mention
         "Register buttons in list rows", so the absence of the action is asserted
         against the action itself: its words and its campaign target.
         """

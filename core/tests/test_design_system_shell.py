@@ -84,7 +84,6 @@ DESIGN_SYSTEM_TEMPLATES = (
     "courses/leaderboard_complaint.html",
     "homework/homework.html",
     "homework/stats.html",
-    "homework/submissions.html",
     # The account entrance family: the pages a visitor meets between deciding to
     # join and being signed in.  Sign in, sign out and the provider outcomes were
     # rebuilt with the rest of the system; sign up, its closed state, the four
@@ -181,7 +180,7 @@ class DesignFiveAShellTests(TestCase):
         cls.course = Cohort.objects.create(
             title="Shell parity course",
             slug="shell-parity-course",
-            description="Fixture for the design 5a shell comparison.",
+            description="Fixture for the design system shell comparison.",
             visible=True,
         )
         cls.episode = next(iter(public_projection()["podcasts_by_slug"].values()))
@@ -273,6 +272,54 @@ class DesignFiveAShellTests(TestCase):
             with self.subTest(page=name):
                 entries = navigation_entries(body)
                 self.assertEqual([(label, href) for label, href, _ in entries], expected)
+
+    def test_the_masthead_theme_pill_is_the_signed_out_control_only(self) -> None:
+        """A signed-in member keeps their theme in account settings, not the masthead.
+
+        The pill writes ``localStorage['darkMode']``, which is the only place a
+        visitor without an account can keep a theme, so it stays for them.  A
+        signed-in member's theme is ``CustomUser.dark_mode``, rendered into the
+        body server-side and changed in Account settings, so the pill would be a
+        second control over the same preference and a second place to store it.
+        """
+
+        for name, body in self.rendered_pages().items():
+            with self.subTest(page=name, session="signed out"):
+                self.assertIn('id="dark-mode-toggle"', body)
+
+        user = get_user_model().objects.create_user(
+            username="theme-reader@example.invalid",
+            email="theme-reader@example.invalid",
+        )
+        self.client.force_login(user)
+
+        for name, body in self.rendered_pages().items():
+            with self.subTest(page=name, session="signed in"):
+                self.assertNotIn('id="dark-mode-toggle"', body)
+                self.assertNotIn('id="dark-mode-label"', body)
+                # The account menu is still the route to the preference.
+                self.assertIn(f'href="{reverse("account_settings")}"', body)
+
+    def test_a_signed_in_theme_is_rendered_before_any_script_runs(self) -> None:
+        """No flash: the theme is in the markup, not applied after paint.
+
+        The pre-paint bootstrap only ever reads the browser key for a signed-out
+        visitor, so a stale ``darkMode`` value left by an earlier signed-out
+        session cannot fight the account after login.
+        """
+
+        user = get_user_model().objects.create_user(
+            username="dark-reader@example.invalid",
+            email="dark-reader@example.invalid",
+            dark_mode=True,
+        )
+        self.client.force_login(user)
+
+        for name, body in self.rendered_pages().items():
+            with self.subTest(page=name):
+                self.assertIn('data-dark-mode="true"', body)
+                self.assertIn("dark dark-mode", body)
+                self.assertIn("body.getAttribute('data-authenticated') !== 'true'", body)
 
     def test_every_design_system_page_reaches_the_community_slack(self) -> None:
         """The regression that started this: four pages had no Slack link at all."""

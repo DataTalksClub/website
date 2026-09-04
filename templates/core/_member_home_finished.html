@@ -1,0 +1,39 @@
+{% comment %}
+  "Your finished courses" (§5, states 2 and 3): newest cohort first, with the
+  total score when scored, the certificate link when present, and a
+  "Register for the next edition" action when the family offers one.
+{% endcomment %}
+{% if finished_cards %}
+  <section class="member-home-section" aria-labelledby="finished-courses-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="finished-courses-heading">Your finished courses</h2>
+      </div>
+    </div>
+    <div class="row-list">
+      {% for card in finished_cards %}
+        <div class="list-row finished-course-row">
+          <div>
+            <a class="course-row-title band-link" href="{{ card.course_url }}">{{ card.cohort.title }}</a>
+            {% if card.total_score is not None %}
+              <p class="mono-note">
+                <span class="mono-label">Total score</span>
+                {{ card.total_score }}
+              </p>
+            {% endif %}
+          </div>
+          <div class="finished-course-actions">
+            {% if card.certificate_url %}
+              <a class="band-link" href="{{ card.certificate_url }}" target="_blank" rel="noopener noreferrer">Certificate →</a>
+            {% endif %}
+            {% if card.next_edition_campaign %}
+              <a class="cta cta-compact cta-primary interactive-lift" href="{% url 'registration_campaign' card.next_edition_campaign.slug %}">
+                Register for the next edition
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}

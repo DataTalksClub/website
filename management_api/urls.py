@@ -38,46 +38,12 @@ historical_import_collection.management_capability_views = {  # type: ignore[att
 }
 
 
-@csrf_exempt
-def historical_mapping_collection(request, *args, **kwargs):
-    if request.method in {"GET", "HEAD"}:
-        return views.historical_mapping_list(request, *args, **kwargs)
-    return views.historical_mapping_create(request, *args, **kwargs)
-
-
-historical_mapping_collection.management_capability_keys = (  # type: ignore[attr-defined]
-    "events.historical_registration_mapping.manage",
-    "events.historical_registration_mapping.create",
-)
-historical_mapping_collection.management_capability_views = {  # type: ignore[attr-defined]
-    "GET": views.historical_mapping_list,
-    "POST": views.historical_mapping_create,
-}
-
-
 event_identity_collection = csrf_exempt(views.event_identity_list)
 event_identity_collection.management_capability_keys = (  # type: ignore[attr-defined]
     "events.identity.read",
 )
 event_identity_collection.management_capability_views = {  # type: ignore[attr-defined]
     "GET": views.event_identity_list,
-}
-
-
-@csrf_exempt
-def course_count_import_collection(request, *args, **kwargs):
-    if request.method in {"GET", "HEAD"}:
-        return views.course_count_import_list(request, *args, **kwargs)
-    return views.course_count_import_create(request, *args, **kwargs)
-
-
-course_count_import_collection.management_capability_keys = (  # type: ignore[attr-defined]
-    "courses.registration_count_baseline.manage",
-    "courses.registration_count_baseline.create",
-)
-course_count_import_collection.management_capability_views = {  # type: ignore[attr-defined]
-    "GET": views.course_count_import_list,
-    "POST": views.course_count_import_create,
 }
 
 
@@ -95,6 +61,41 @@ site_settings_collection.management_capability_keys = (  # type: ignore[attr-def
 site_settings_collection.management_capability_views = {  # type: ignore[attr-defined]
     "GET": views.site_settings_read,
     "POST": views.site_settings_write,
+}
+
+
+@csrf_exempt
+def operational_settings_collection(request, *args, **kwargs):
+    if request.method in {"GET", "HEAD"}:
+        return views.operational_settings_read(request, *args, **kwargs)
+    return views.operational_settings_write(request, *args, **kwargs)
+
+
+operational_settings_collection.management_capability_keys = (  # type: ignore[attr-defined]
+    "settings.operational.read",
+    "settings.operational.write",
+)
+operational_settings_collection.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": views.operational_settings_read,
+    "PATCH": views.operational_settings_write,
+}
+
+
+oauth_provider_collection = csrf_exempt(views.oauth_provider_list)
+oauth_provider_collection.management_capability_keys = (  # type: ignore[attr-defined]
+    "accounts.oauth_providers.read",
+)
+oauth_provider_collection.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": views.oauth_provider_list,
+}
+
+
+oauth_provider_item = csrf_exempt(views.oauth_provider_update)
+oauth_provider_item.management_capability_keys = (  # type: ignore[attr-defined]
+    "accounts.oauth_providers.write",
+)
+oauth_provider_item.management_capability_views = {  # type: ignore[attr-defined]
+    "PUT": views.oauth_provider_update,
 }
 
 
@@ -169,6 +170,17 @@ event_qna_collection.management_capability_views = {  # type: ignore[attr-define
 urlpatterns = [
     path("health", views.admin_health, name="admin-health"),
     path("settings", site_settings_collection, name="admin-site-settings"),
+    path(
+        "settings/operational",
+        operational_settings_collection,
+        name="admin-operational-settings",
+    ),
+    path("auth/providers", oauth_provider_collection, name="admin-oauth-provider-list"),
+    path(
+        "auth/providers/<str:provider>",
+        oauth_provider_item,
+        name="admin-oauth-provider-detail",
+    ),
     path("navigation", site_navigation_collection, name="admin-site-navigation"),
     path("sponsors", sponsor_collection, name="admin-sponsor-list"),
     path("sponsors/<uuid:sponsor_id>", sponsor_item, name="admin-sponsor-detail"),
@@ -224,16 +236,6 @@ urlpatterns = [
         name="historical-registration-import-rollback",
     ),
     path(
-        "historical-event-mappings",
-        historical_mapping_collection,
-        name="historical-event-mapping-list",
-    ),
-    path(
-        "historical-event-mappings/<uuid:mapping_id>",
-        views.historical_mapping_update,
-        name="historical-event-mapping-detail",
-    ),
-    path(
         "events/<uuid:event_id>/registration-total",
         views.historical_registration_total,
         name="historical-registration-total",
@@ -272,46 +274,6 @@ urlpatterns = [
         "events/<uuid:event_id>/qna/cohosts/<str:invite_id>",
         views.event_qna_cohost_revoke,
         name="admin-event-qna-cohost-revoke",
-    ),
-    path(
-        "course-registration-count-imports",
-        course_count_import_collection,
-        name="course-registration-count-import-list",
-    ),
-    path(
-        "course-registration-count-imports/<uuid:run_id>",
-        views.course_count_import_detail,
-        name="course-registration-count-import-detail",
-    ),
-    path(
-        "course-registration-count-imports/<uuid:run_id>/dry-run",
-        views.course_count_import_dry_run,
-        name="course-registration-count-import-dry-run",
-    ),
-    path(
-        "course-registration-count-imports/<uuid:run_id>/validate",
-        views.course_count_import_validate,
-        name="course-registration-count-import-validate",
-    ),
-    path(
-        "course-registration-count-imports/<uuid:run_id>/activate",
-        views.course_count_import_activate,
-        name="course-registration-count-import-activate",
-    ),
-    path(
-        "course-registration-count-imports/<uuid:run_id>/cancel",
-        views.course_count_import_cancel,
-        name="course-registration-count-import-cancel",
-    ),
-    path(
-        "course-registration-count-imports/<uuid:run_id>/rollback",
-        views.course_count_import_rollback,
-        name="course-registration-count-import-rollback",
-    ),
-    path(
-        "registration-campaigns/<slug:campaign_slug>/public-count",
-        views.course_count_total,
-        name="course-registration-public-count",
     ),
     path(
         "credentials/<uuid:credential_id>/rotate",

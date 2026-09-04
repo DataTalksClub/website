@@ -1,19 +1,35 @@
-"""Database-owned sponsor directory shared by Studio, the admin API, and public pages."""
+"""Database-owned sponsor directory shared by Studio, the admin API, and public pages.
+
+``description`` and ``logo_asset_key`` are the two fields behind the public
+sponsor directory (the homepage teaser and ``/sponsors``).  They arrive only
+through :func:`import_public_sponsor_directory`, from the reviewed
+``core/sponsor_directory.json`` -- never through Studio or the admin API today,
+so neither is in ``SPONSOR_CREATE``/``SPONSOR_UPDATE``'s ``writable_fields`` or
+the OpenAPI ``Sponsor`` schema.  That is a deliberate, narrower scope than the
+rest of this module: Studio- and API-driven editing of a public-directory
+sponsor's name, URL, tagline, lifecycle and placement all work exactly as they
+do for an events_hub sponsor; only the description and logo stay
+import-managed for now, the same way ``courses.homepage_testimonials.json``
+owns a testimonial's portrait rather than a self-service form.
+"""
 
 from __future__ import annotations
 
 import csv
 import io
+import json
 import logging
 import re
 import unicodedata
 import uuid
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from django.db import DatabaseError, IntegrityError
+from django.db import DatabaseError, IntegrityError, transaction
 from django.db.models import Prefetch
+from django.db.models.functions import Lower
 from django.utils.dateparse import parse_datetime
 
 from core.audit import AuditWriteContext, record_audit_event
@@ -32,11 +48,12 @@ from core.idempotency import (
     hash_idempotency_key,
 )
 from core.models import (
+    SPONSOR_LOGO_ASSET_KEY_MESSAGE,
+    SPONSOR_LOGO_ASSET_KEY_PATTERN,
     AuditEvent,
     RevisionConflict,
     Sponsor,
     SponsorPlacementAssignment,
-    SponsorRevision,
 )
 from core.security import UnsafeInputError, neutralize_csv_formula, validate_url
 from core.services import ServiceContext, validate_actor_ref
@@ -44,12 +61,18 @@ from core.services import ServiceContext, validate_actor_ref
 logger = logging.getLogger(__name__)
 
 SPONSOR_PLACEMENT_EVENTS_HUB = "events_hub"
-SPONSOR_PLACEMENTS = (SPONSOR_PLACEMENT_EVENTS_HUB,)
-SPONSOR_SOURCES = frozenset({"studio", "admin_api"})
+#: The public sponsor directory: the homepage teaser and ``/sponsors`` render
+#: identical data -- same sponsors, same order -- so it is one placement key
+#: rather than two, unlike events_hub which curates its own set.
+SPONSOR_PLACEMENT_PUBLIC_DIRECTORY = "public_directory"
+SPONSOR_PLACEMENTS = (SPONSOR_PLACEMENT_EVENTS_HUB, SPONSOR_PLACEMENT_PUBLIC_DIRECTORY)
+SPONSOR_SOURCES = frozenset({"studio", "admin_api", "import"})
 SPONSOR_LIFECYCLES = frozenset(Sponsor.Lifecycle.values)
 SPONSOR_KEY_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
+_LOGO_ASSET_KEY_PATTERN = re.compile(SPONSOR_LOGO_ASSET_KEY_PATTERN)
 SPONSOR_NAME_MAX = 120
 SPONSOR_TAGLINE_MAX = 200
+SPONSOR_DESCRIPTION_MAX = 600
 SPONSOR_URL_MAX = 500
 SPONSOR_REASON_MAX = 200
 SPONSOR_ACTIVE_PER_PLACEMENT = 24
@@ -141,6 +164,13 @@ class NormalizedSponsorPayload:
     name: str
     url: str
     tagline: str
+    #: ``None`` means "not supplied": create treats it as empty, update leaves
+    #: the stored value alone.  Studio and the admin API never supply either
+    #: field today, so an ordinary edit through either surface cannot wipe a
+    #: sponsor's description or logo -- only :func:`import_public_sponsor_directory`
+    #: (which always supplies both) sets them.
+    description: str | None
+    logo_asset_key: str | None
     lifecycle: str
     assignments: tuple[NormalizedAssignment, ...]
 
@@ -248,6 +278,33 @@ def _normalize_url(value: object) -> str:
     return validated
 
 
+def _normalize_optional_description(value: object) -> str | None:
+    if value is None:
+        return None
+    return _normalize_plain_text(
+        value, field="description", minimum=0, maximum=SPONSOR_DESCRIPTION_MAX
+    )
+
+
+def _normalize_optional_logo_asset_key(value: object) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise InvalidSponsor(
+            "sponsor logo key is invalid",
+            fields={"logo_asset_key": "Enter a valid logo key."},
+        )
+    trimmed = value.strip()
+    if not trimmed:
+        return ""
+    if len(trimmed) > 200 or _LOGO_ASSET_KEY_PATTERN.fullmatch(trimmed) is None:
+        raise InvalidSponsor(
+            "sponsor logo key is invalid",
+            fields={"logo_asset_key": SPONSOR_LOGO_ASSET_KEY_MESSAGE},
+        )
+    return trimmed
+
+
 def _normalize_lifecycle(value: object, *, allowed: frozenset[str]) -> str:
     if not isinstance(value, str) or value not in allowed:
         raise InvalidSponsor(
@@ -339,6 +396,8 @@ def _normalize_payload(
             minimum=0,
             maximum=SPONSOR_TAGLINE_MAX,
         ),
+        description=_normalize_optional_description(payload.get("description")),
+        logo_asset_key=_normalize_optional_logo_asset_key(payload.get("logo_asset_key")),
         lifecycle=_normalize_lifecycle(
             payload.get("lifecycle"),
             allowed=allowed_lifecycles,
@@ -603,6 +662,13 @@ def resolve_public_sponsors(
                 "name": stored["name"],
                 "url": stored["url"],
                 "tagline": stored["tagline"],
+                # Read through the model, not the validated/serialized round
+                # trip above: description is plain text (nothing to guard),
+                # and logo_url is already the guarded, never-raising property
+                # -- resolving it again here would just be a second, unguarded
+                # path to the same hazard ``Sponsor.logo_url`` exists to close.
+                "description": assignment.sponsor.description,
+                "logo_url": assignment.sponsor.logo_url,
             }
         )
     return tuple(resolved)
@@ -622,9 +688,263 @@ def public_events_hub_sponsors(*, using: str = "default") -> tuple[JsonObject, .
 
 
 def public_sponsors(*, using: str = "default") -> tuple[JsonObject, ...]:
-    """Return the public directory shared by the homepage and sponsor page."""
+    """Return the public directory shared by the homepage and ``/sponsors``.
 
-    return public_events_hub_sponsors(using=using)
+    Homepage and directory render the identical set from the identical
+    placement -- there is no separate "homepage" curation -- so this is the
+    one function both ``core.views.home`` and ``core.views.sponsors`` call.
+    """
+
+    try:
+        return resolve_public_sponsors(SPONSOR_PLACEMENT_PUBLIC_DIRECTORY, using=using)
+    except (DatabaseError, InvalidSponsor) as error:
+        logger.warning(
+            "Public sponsor directory is unavailable (%s).",
+            type(error).__name__,
+        )
+        return ()
+
+
+def public_supporter_history(*, using: str = "default") -> tuple[str, ...]:
+    """Every organization ever thanked publicly, active or archived, by name.
+
+    ``/sponsors`` carries a second band beneath the featured directory: "With
+    thanks to every supporter."  The retired hardcoded list
+    (``PAST_SUPPORTERS``) named every company DataTalks.Club has ever been
+    sponsored by -- including the ones still featured today, Astronomer,
+    dltHub, Kestra and Snowplow appeared in both bands at once.  A sponsor's
+    ``key`` is unique, so that overlap cannot be modeled as two rows for one
+    company; it is modeled as one lifecycle axis instead.  A currently
+    featured company is ``active``; a company no longer sponsoring is
+    ``archived`` once its support ends.  This band is simply "every company
+    with either lifecycle," which reproduces the original overlap exactly
+    without inventing a second identity for the four that are both.
+
+    Draft sponsors (created but never activated) are excluded -- they are not
+    yet, and may never be, a real public fact.
+    """
+
+    try:
+        return tuple(
+            Sponsor.objects.using(using)
+            .filter(lifecycle__in=(Sponsor.Lifecycle.ACTIVE, Sponsor.Lifecycle.ARCHIVED))
+            .order_by(Lower("name"))
+            .values_list("name", flat=True)
+        )
+    except DatabaseError:
+        logger.warning("Public supporter history is unavailable; rendering nothing.")
+        return ()
+
+
+#: The reviewed public sponsor directory: the four currently featured
+#: sponsors (``FEATURED_SUPPORTERS`` before this moved to the database) and
+#: every other organization DataTalks.Club has publicly thanked
+#: (``PAST_SUPPORTERS``).  See :func:`import_public_sponsor_directory`.
+REVIEWED_SPONSOR_DIRECTORY_PATH = Path(__file__).resolve().parent / "sponsor_directory.json"
+
+_DIRECTORY_REQUIRED_FIELDS = (
+    "key",
+    "name",
+    "url",
+    "lifecycle",
+    "description",
+    "logo_asset_key",
+)
+_DIRECTORY_PUBLIC_LIFECYCLES = (Sponsor.Lifecycle.ACTIVE, Sponsor.Lifecycle.ARCHIVED)
+
+
+class SponsorDirectoryImportError(ValueError):
+    """The reviewed sponsor directory file is missing, malformed, or ambiguous."""
+
+
+@dataclass(frozen=True, slots=True)
+class SponsorDirectoryImportReport:
+    total: int
+    created: int
+    updated: int
+
+    @property
+    def replayed(self) -> bool:
+        return self.created == 0 and self.updated == 0
+
+
+def load_reviewed_sponsor_directory(path: Path | None = None) -> tuple[JsonObject, ...]:
+    """Parse and validate the checked reviewed directory without touching the database."""
+
+    source = path or REVIEWED_SPONSOR_DIRECTORY_PATH
+    try:
+        payload = json.loads(source.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise SponsorDirectoryImportError("reviewed_sponsor_directory_unavailable") from error
+    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
+        raise SponsorDirectoryImportError("reviewed_sponsor_directory_schema_invalid")
+    entries = payload.get("sponsors")
+    if not isinstance(entries, list) or not entries:
+        raise SponsorDirectoryImportError("reviewed_sponsor_directory_empty")
+    parsed: list[JsonObject] = []
+    for entry in entries:
+        if not isinstance(entry, dict) or any(
+            not isinstance(entry.get(field), str) for field in _DIRECTORY_REQUIRED_FIELDS
+        ):
+            raise SponsorDirectoryImportError("reviewed_sponsor_entry_shape_invalid")
+        if entry["lifecycle"] not in _DIRECTORY_PUBLIC_LIFECYCLES:
+            raise SponsorDirectoryImportError("reviewed_sponsor_entry_lifecycle_invalid")
+        position = entry.get("position")
+        if position is not None and (isinstance(position, bool) or not isinstance(position, int)):
+            raise SponsorDirectoryImportError("reviewed_sponsor_entry_position_invalid")
+        is_active = entry["lifecycle"] == Sponsor.Lifecycle.ACTIVE
+        if is_active and (position is None or position < 1):
+            raise SponsorDirectoryImportError("reviewed_sponsor_entry_active_needs_position")
+        if not is_active and position is not None:
+            raise SponsorDirectoryImportError("reviewed_sponsor_entry_archived_has_position")
+        parsed.append(
+            {field: entry[field] for field in _DIRECTORY_REQUIRED_FIELDS} | {"position": position}
+        )
+    keys = [entry["key"] for entry in parsed]
+    if len(set(keys)) != len(keys):
+        raise SponsorDirectoryImportError("reviewed_sponsor_entry_key_duplicated")
+    positions = [entry["position"] for entry in parsed if entry["position"] is not None]
+    if len(set(positions)) != len(positions):
+        raise SponsorDirectoryImportError("reviewed_sponsor_entry_position_duplicated")
+    return tuple(parsed)
+
+
+def _directory_entry_payload(entry: JsonObject) -> JsonObject:
+    assignments: list[JsonObject] = []
+    if entry["position"] is not None:
+        assignments.append(
+            {
+                "placement": SPONSOR_PLACEMENT_PUBLIC_DIRECTORY,
+                "position": entry["position"],
+                "enabled": True,
+            }
+        )
+    return {
+        "name": entry["name"],
+        "url": entry["url"],
+        "tagline": "",
+        "description": entry["description"],
+        "logo_asset_key": entry["logo_asset_key"],
+        "assignments": assignments,
+    }
+
+
+def _directory_entry_matches(sponsor: Sponsor, entry: JsonObject) -> bool:
+    current_assignments = {
+        (assignment.placement_key, assignment.position, assignment.enabled)
+        for assignment in sponsor.assignments.all()
+    }
+    target_assignments = {
+        (item["placement"], item["position"], item["enabled"])
+        for item in _directory_entry_payload(entry)["assignments"]
+    }
+    return (
+        sponsor.name == entry["name"]
+        and sponsor.url == entry["url"]
+        and sponsor.description == entry["description"]
+        and sponsor.logo_asset_key == entry["logo_asset_key"]
+        and sponsor.lifecycle == entry["lifecycle"]
+        and current_assignments == target_assignments
+    )
+
+
+_IMPORT_ACTOR_REF = "system:import_sponsors"
+_IMPORT_SOURCE = "import"
+
+
+def _import_reconcile(entry: JsonObject, sponsor: Sponsor) -> bool:
+    """Bring one existing row to match its reviewed entry. Returns whether it changed."""
+
+    if _directory_entry_matches(sponsor, entry):
+        return False
+    working_lifecycle = sponsor.lifecycle
+    if working_lifecycle == Sponsor.Lifecycle.ARCHIVED:
+        reactivate_sponsor(
+            sponsor_id=sponsor.id,
+            confirmed=True,
+            expected_revision=sponsor.revision,
+            source=_IMPORT_SOURCE,
+            idempotency_key=str(uuid.uuid4()),
+            actor_ref=_IMPORT_ACTOR_REF,
+        )
+        sponsor.refresh_from_db()
+    payload = _directory_entry_payload(entry)
+    update_sponsor(
+        sponsor_id=sponsor.id,
+        payload={**payload, "lifecycle": Sponsor.Lifecycle.ACTIVE},
+        expected_revision=sponsor.revision,
+        source=_IMPORT_SOURCE,
+        idempotency_key=str(uuid.uuid4()),
+        actor_ref=_IMPORT_ACTOR_REF,
+    )
+    sponsor.refresh_from_db()
+    if entry["lifecycle"] == Sponsor.Lifecycle.ARCHIVED:
+        archive_sponsor(
+            sponsor_id=sponsor.id,
+            confirmed=True,
+            expected_revision=sponsor.revision,
+            source=_IMPORT_SOURCE,
+            idempotency_key=str(uuid.uuid4()),
+            actor_ref=_IMPORT_ACTOR_REF,
+        )
+    return True
+
+
+@transaction.atomic
+def import_public_sponsor_directory(path: Path | None = None) -> SponsorDirectoryImportReport:
+    """Apply the reviewed sponsor directory, keyed on each sponsor's ``key``.
+
+    Every write goes through :func:`create_sponsor`, :func:`update_sponsor`,
+    :func:`archive_sponsor` and :func:`reactivate_sponsor` -- the same shared
+    service Studio and the admin API use -- so an import gets the same
+    revisioning and audit trail a Studio edit does, never a bypassed write.
+
+    A featured entry (``position`` set) is created ``active`` with one
+    ``public_directory`` assignment.  An archived-only entry (``position``
+    null) is created ``draft`` and archived in the same run -- ``create_sponsor``
+    never accepts ``archived`` directly, so reaching it is always create-then-
+    archive, the same two steps a Studio editor would take.
+
+    Replaying is safe: a sponsor whose stored fields, lifecycle and assignment
+    already match its entry is left untouched, and a sponsor an editor added
+    by hand (a ``key`` this file never names) is never touched.
+    """
+
+    entries = load_reviewed_sponsor_directory(path)
+    created = updated = 0
+    reviewed_keys = [entry["key"] for entry in entries]
+    existing_by_key = {
+        sponsor.key: sponsor for sponsor in Sponsor.objects.filter(key__in=reviewed_keys)
+    }
+    for entry in entries:
+        sponsor = existing_by_key.get(entry["key"])
+        if sponsor is None:
+            payload = _directory_entry_payload(entry)
+            is_active = entry["lifecycle"] == Sponsor.Lifecycle.ACTIVE
+            result = create_sponsor(
+                payload={
+                    "key": entry["key"],
+                    "lifecycle": Sponsor.Lifecycle.ACTIVE if is_active else Sponsor.Lifecycle.DRAFT,
+                    **payload,
+                },
+                source=_IMPORT_SOURCE,
+                idempotency_key=str(uuid.uuid4()),
+                actor_ref=_IMPORT_ACTOR_REF,
+            )
+            if not is_active:
+                archive_sponsor(
+                    sponsor_id=result.sponsor["id"],
+                    confirmed=True,
+                    expected_revision=result.sponsor["revision"],
+                    source=_IMPORT_SOURCE,
+                    idempotency_key=str(uuid.uuid4()),
+                    actor_ref=_IMPORT_ACTOR_REF,
+                )
+            created += 1
+            continue
+        if _import_reconcile(entry, sponsor):
+            updated += 1
+    return SponsorDirectoryImportReport(total=len(entries), created=created, updated=updated)
 
 
 def _idempotency_scope(capability_key: str, actor_ref: str) -> str:
@@ -746,29 +1066,6 @@ def _replace_assignments(
         )
 
 
-def _write_revision(
-    sponsor: Sponsor,
-    *,
-    audit_event: AuditEvent,
-    context: AuditWriteContext,
-    using: str,
-) -> None:
-    SponsorRevision.objects.using(using).create(
-        sponsor=sponsor,
-        key=sponsor.key,
-        name=sponsor.name,
-        url=sponsor.url,
-        tagline=sponsor.tagline,
-        lifecycle=sponsor.lifecycle,
-        source=sponsor.source,
-        revision=sponsor.revision,
-        assignments=_assignment_dicts(serialize_sponsor(sponsor)["assignments"]),
-        changed_by_id=context.actor_id,
-        changed_by_ref=context.actor_ref,
-        audit_event=audit_event,
-    )
-
-
 def _record_mutation(
     *,
     action: str,
@@ -817,6 +1114,8 @@ def _apply_create(
             name=payload.name,
             url=payload.url,
             tagline=payload.tagline,
+            description=payload.description or "",
+            logo_asset_key=payload.logo_asset_key or "",
             lifecycle=payload.lifecycle,
             source=source,
             revision=1,
@@ -835,7 +1134,7 @@ def _apply_create(
         ) from error
     sponsor = _authorized_queryset(using=using).get(pk=sponsor.pk)
     _assert_stored_active_cap(sponsor, using=using)
-    audit_event = _record_mutation(
+    _record_mutation(
         action="core.sponsor.created",
         sponsor=sponsor,
         before_lifecycle=None,
@@ -843,7 +1142,6 @@ def _apply_create(
         context=context,
         using=using,
     )
-    _write_revision(sponsor, audit_event=audit_event, context=context, using=using)
     return serialize_sponsor(sponsor)
 
 
@@ -889,19 +1187,18 @@ def _apply_update(
     sponsor.lifecycle = payload.lifecycle
     sponsor.source = source
     sponsor.revision += 1
+    update_fields = ["name", "url", "tagline", "lifecycle", "source", "revision", "updated_at"]
+    # ``None`` means the caller (Studio, the admin API) never supplied the
+    # field: leave the stored value exactly where it is rather than blanking
+    # it out.  Only the import path supplies these explicitly.
+    if payload.description is not None:
+        sponsor.description = payload.description
+        update_fields.append("description")
+    if payload.logo_asset_key is not None:
+        sponsor.logo_asset_key = payload.logo_asset_key
+        update_fields.append("logo_asset_key")
     try:
-        sponsor.save(
-            using=using,
-            update_fields=(
-                "name",
-                "url",
-                "tagline",
-                "lifecycle",
-                "source",
-                "revision",
-                "updated_at",
-            ),
-        )
+        sponsor.save(using=using, update_fields=tuple(update_fields))
         _replace_assignments(sponsor, payload.assignments, using=using)
     except RevisionConflict as error:
         raise SponsorRevisionConflict(
@@ -916,7 +1213,7 @@ def _apply_update(
         ) from error
     sponsor = _authorized_queryset(using=using).get(pk=sponsor.pk)
     _assert_stored_active_cap(sponsor, using=using)
-    audit_event = _record_mutation(
+    _record_mutation(
         action="core.sponsor.updated",
         sponsor=sponsor,
         before_lifecycle=before_lifecycle,
@@ -924,7 +1221,6 @@ def _apply_update(
         context=context,
         using=using,
     )
-    _write_revision(sponsor, audit_event=audit_event, context=context, using=using)
     return serialize_sponsor(sponsor)
 
 
@@ -991,7 +1287,7 @@ def _apply_lifecycle(
         ) from error
     sponsor = _authorized_queryset(using=using).get(pk=sponsor.pk)
     _assert_stored_active_cap(sponsor, using=using)
-    audit_event = _record_mutation(
+    _record_mutation(
         action=action,
         sponsor=sponsor,
         before_lifecycle=before_lifecycle,
@@ -999,7 +1295,6 @@ def _apply_lifecycle(
         context=context,
         using=using,
     )
-    _write_revision(sponsor, audit_event=audit_event, context=context, using=using)
     return serialize_sponsor(sponsor)
 
 

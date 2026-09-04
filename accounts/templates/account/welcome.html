@@ -1,0 +1,118 @@
+{% extends "account/auth_page.html" %}
+{% load accessibility static %}
+
+{% block title %}
+  <title>About you · DataTalks.Club</title>
+{% endblock %}
+
+{% block auth_styles %}
+  /* The optional-fields disclosure holds form fields, not `.row-list` rows,
+     so it keeps the fold's summary treatment without the list-row grid
+     rules `.row-fold > .list-row` would otherwise impose. */
+  .welcome-fold {
+    margin-top: 0.5rem;
+  }
+
+  .welcome-fold-fields {
+    display: grid;
+    gap: 1rem;
+    padding-top: 0.75rem;
+  }
+
+  /* The country field is the registration form's combobox (§7.3): the same
+     `country_combobox.js`, the same hooks, and the same panel treatment, given
+     here because an auth page loads no external stylesheet either.  The field
+     is the positioning context; the options are the script's own elements. */
+  .country-combobox-field {
+    position: relative;
+  }
+
+  .country-combobox-panel {
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: 0.7rem;
+    box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+    max-height: 16rem;
+    overflow-y: auto;
+    padding: 0.3rem;
+    position: absolute;
+    width: 100%;
+    z-index: 30;
+  }
+
+  .country-combobox-option,
+  .country-combobox-empty {
+    background: transparent;
+    border: 0;
+    border-radius: 0.5rem;
+    color: var(--ink);
+    display: block;
+    font: inherit;
+    min-height: 2.75rem;
+    padding: 0.55rem 0.7rem;
+    text-align: left;
+    width: 100%;
+  }
+
+  .country-combobox-option {
+    cursor: pointer;
+  }
+
+  .country-combobox-option:hover,
+  .country-combobox-option[aria-selected="true"] {
+    background: var(--lavender);
+  }
+
+  .country-combobox-empty {
+    color: var(--body-text);
+  }
+{% endblock %}
+
+{% block auth_header %}
+  <p class="mono-label mono-label-indigo">Account</p>
+  <h1 id="auth-heading">About you</h1>
+  <p class="entrance-lede">
+    Three details that follow you into every course — and a few optional
+    ones. Everything here can be changed later in account settings.
+  </p>
+{% endblock %}
+
+{% block auth_content %}
+  <div class="card entrance-panel">
+    <form
+      class="entrance-form"
+      method="post"
+      action="{% url 'account_welcome' %}"
+      aria-labelledby="auth-heading"
+    >
+      {% csrf_token %}
+      {% accessibility_error_summary form %}
+      {% include "account/_welcome_field.html" with field=form.certificate_name %}
+      {% include "account/_welcome_field.html" with field=form.country %}
+      {% include "account/_welcome_field.html" with field=form.registration_role %}
+      <details class="row-fold welcome-fold">
+        <summary class="row-fold-summary">
+          <span class="row-fold-open">Add links and a bio (optional)</span>
+          <span class="row-fold-close">Hide links and bio</span>
+          <span class="row-fold-marker" aria-hidden="true"></span>
+        </summary>
+        <div class="welcome-fold-fields">
+          {% include "account/_welcome_field.html" with field=form.github_url %}
+          {% include "account/_welcome_field.html" with field=form.linkedin_url %}
+          {% include "account/_welcome_field.html" with field=form.personal_website_url %}
+          {% include "account/_welcome_field.html" with field=form.about_me %}
+        </div>
+      </details>
+      <div class="entrance-actions">
+        <button class="cta cta-primary interactive-lift" type="submit">Save</button>
+      </div>
+    </form>
+    <p class="entrance-alternative">
+      <a class="band-link" href="{% url 'home' %}">Skip for now</a>
+    </p>
+  </div>
+{% endblock %}
+
+{% block auth_scripts %}
+  <script src="{% static 'country_combobox.js' %}"></script>
+{% endblock %}

@@ -8,13 +8,7 @@ from django.conf import settings
 from django.test import SimpleTestCase
 
 REMOVED_PAGE_EYEBROWS = {
-    "templates/review/course_cohort.html": (
-        '<p class="mono-label mono-label-indigo">2026 cohort</p>'
-    ),
     "templates/review/faq_detail.html": ('<p class="mono-label mono-label-indigo">Course FAQ</p>'),
-    "templates/review/registration_preview.html": (
-        '<p class="mono-label mono-label-indigo">Course registration</p>'
-    ),
     "templates/studio/event_identity_detail.html": "Studio · Event identity",
     "studio_courses/templates/studio_courses/course_list.html": (
         '<p class="mono-label mono-label-indigo">Studio</p>'
@@ -54,7 +48,8 @@ ACCOUNT_EYEBROW_TEMPLATES = (
     "accounts/templates/account/signup_closed.html",
     "course_platform_templates/account/logout.html",
     "course_platform_templates/socialaccount/authentication_error.html",
-    "course_platform_templates/socialaccount/connections.html",
+    # socialaccount/connections.html is gone: sign-in methods are a section of
+    # account settings, and /accounts/3rdparty/ redirects into it.
     "course_platform_templates/socialaccount/login_cancelled.html",
     "course_platform_templates/socialaccount/signup.html",
 )

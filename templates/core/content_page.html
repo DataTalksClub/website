@@ -39,11 +39,18 @@
   <body
     class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
     data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
-    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    {% comment %}
+      These attributes describe the signed-in viewer, so they read
+      `request.user`.  The bare `user` name is only the viewer until some view
+      puts its own object under that key, and these values are then the wrong
+      person's — an account id in a data attribute on a page about somebody
+      else.  `request` is not shadowable by a view context.
+    {% endcomment %}
+    data-authenticated="{{ request.user.is_authenticated|yesno:'true,false' }}"
     data-toggle-url="{{ dark_mode_toggle_url }}"
-    {% if user.is_authenticated %}
-      data-account-id="{{ user.pk }}"
-      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+    {% if request.user.is_authenticated %}
+      data-account-id="{{ request.user.pk }}"
+      data-preferred-timezone="{{ request.user.preferred_timezone|default:'' }}"
       data-timezone-update-url="{{ timezone_update_url }}"
     {% endif %}
     {% block body_attributes %}

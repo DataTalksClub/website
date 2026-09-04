@@ -29,7 +29,9 @@ from review_import.environment import disable_local_review_provider_environment
 from review_import.manifest import (
     ALLOWLIST,
     ALLOWLIST_SCHEMA_VERSION,
+    COHORT_ONLY_COLUMNS,
     COPY_ORDER,
+    TARGET_ONLY_COLUMNS,
     is_sensitive_table,
 )
 
@@ -719,19 +721,32 @@ def _scrub_sensitive_rows(connection: sqlite3.Connection) -> None:
     _assert_sqlite_integrity(connection)
 
 
+def _unknown_table_row_count(connection: sqlite3.Connection, table: str) -> int:
+    return int(connection.execute(f"SELECT COUNT(*) FROM {_quote_identifier(table)}").fetchone()[0])
+
+
 def _validate_source_schema(
     source: sqlite3.Connection,
     target: sqlite3.Connection,
-) -> None:
+) -> tuple[str, ...]:
     source_tables = _table_names(source)
     target_tables = _table_names(target)
     unknown_tables = sorted(source_tables - target_tables)
-    if unknown_tables:
+    skipped_empty_unknown_tables = tuple(
+        table for table in unknown_tables if _unknown_table_row_count(source, table) == 0
+    )
+    nonempty_unknown_tables = [
+        table for table in unknown_tables if table not in skipped_empty_unknown_tables
+    ]
+    if nonempty_unknown_tables:
         raise ImportFailure(
-            "schema-unknown-table", table=unknown_tables[0], count=len(unknown_tables)
+            "schema-unknown-table",
+            table=nonempty_unknown_tables[0],
+            count=len(nonempty_unknown_tables),
         )
 
-    for table in sorted(source_tables):
+    comparable_tables = source_tables - set(skipped_empty_unknown_tables)
+    for table in sorted(comparable_tables):
         source_columns = set(_columns(source, table))
         target_columns = set(_columns(target, table))
         unknown_columns = sorted(source_columns - target_columns)
@@ -754,6 +769,7 @@ def _validate_source_schema(
                 column=missing_columns[0],
                 count=len(missing_columns),
             )
+    return skipped_empty_unknown_tables
 
 
 def _is_integer_column(column: str) -> bool:
@@ -1118,6 +1134,7 @@ def _insert_course_families(
         "social_media_hashtag",
         "visible",
     )
+    _assert_required_columns_filled(target, "courses_course_family", columns)
     column_sql = ", ".join(_quote_identifier(column) for column in columns)
     placeholders = ", ".join("?" for _column in columns)
     target.executemany(
@@ -1128,6 +1145,45 @@ def _insert_course_families(
     return {slug: str(family["id"]) for slug, family in families.items()}
 
 
+def _assert_required_columns_filled(
+    target: sqlite3.Connection,
+    table: str,
+    columns: Sequence[str],
+) -> None:
+    """Refuse before INSERT when the target needs a column this copy never writes.
+
+    A migration that adds a NOT NULL column leaves no database-level default behind, so
+    an INSERT that names every other column fails with an opaque
+    ``sqlite3.IntegrityError`` in the middle of a rebuild -- which is how migration
+    ``0054`` broke this path.  Checking the target schema first turns the next such
+    migration into a named refusal that says which table and column need a decision:
+    either the source carries the value and it belongs in ``ALLOWLIST``, or it does not
+    and it belongs in ``TARGET_ONLY_COLUMNS``.
+    """
+
+    written = set(columns)
+    for name, column in _columns(target, table).items():
+        if name in written or not int(column["notnull"]) or int(column["pk"]):
+            continue
+        if column["dflt_value"] is not None:
+            continue
+        raise ImportFailure("schema-unwritten-required-column", table=table, column=name)
+
+
+def target_columns(table: str) -> tuple[str, ...]:
+    """Every column the copy writes for one allowlisted table.
+
+    The allowlisted source columns, the cohort identity this schema splits out of a
+    legacy CMP course row, and the columns CMP has no value for at all.  A test asserts
+    this covers everything the migrated schema requires.
+    """
+
+    columns = ALLOWLIST[table]
+    if table == "courses_course":
+        columns = (*columns, *COHORT_ONLY_COLUMNS)
+    return (*columns, *TARGET_ONLY_COLUMNS.get(table, ()))
+
+
 def _insert_dataset(target: sqlite3.Connection, dataset: AllowedDataset) -> None:
     target.execute("PRAGMA foreign_keys=ON")
     with target:
@@ -1136,33 +1192,23 @@ def _insert_dataset(target: sqlite3.Connection, dataset: AllowedDataset) -> None
             dataset.rows["courses_course"],
         )
         for table in COPY_ORDER:
-            columns = ALLOWLIST[table]
-            target_columns = columns
+            written = target_columns(table)
+            local_only = TARGET_ONLY_COLUMNS.get(table, {})
+            source_columns = written[: len(written) - len(local_only)]
             target_rows = dataset.rows[table]
             if table == "courses_course":
-                target_columns = (
-                    *columns,
-                    "uuid",
-                    "year",
-                    "outcome",
-                    "course_id",
-                    "curriculum_format",
-                    "identifier",
-                )
                 cohort_rows = []
                 for row in target_rows:
                     family_slug = str(_legacy_course_family_values(row)["slug"])
                     cohort = _legacy_cohort_values(row, family_ids[family_slug])
-                    cohort_rows.append(tuple(cohort[column] for column in target_columns))
+                    cohort_rows.append(tuple(cohort[column] for column in source_columns))
                 target_rows = cohort_rows
-            elif table == "courses_homework":
-                target_columns = (*columns, "instructions_markdown")
-                target_rows = [(*row, "") for row in target_rows]
-            if table == "courses_wrappedstatistics":
-                target_columns = (*columns, "leaderboard")
-                target_rows = [(*row, "[]") for row in target_rows]
-            column_sql = ", ".join(_quote_identifier(column) for column in target_columns)
-            placeholders = ", ".join("?" for _column in target_columns)
+            if local_only:
+                empty = tuple(local_only.values())
+                target_rows = [(*row, *empty) for row in target_rows]
+            _assert_required_columns_filled(target, table, written)
+            column_sql = ", ".join(_quote_identifier(column) for column in written)
+            placeholders = ", ".join("?" for _column in written)
             query = f"INSERT INTO {_quote_identifier(table)} ({column_sql}) VALUES ({placeholders})"
             target.executemany(query, target_rows)
         _refresh_sequences(target, dataset.counts)
@@ -1319,11 +1365,7 @@ def _assert_final_database(path: Path, expected: AllowedDataset, create_admin: b
                 (SYNTHETIC_ADMIN_EMAIL,),
             ).fetchall()
             if [(row["group_name"], row["permission_name"]) for row in role_permissions] != [
-                ("course_operator", "core.access_studio"),
-                (
-                    "course_operator",
-                    "courses.registration_count_baseline_manage",
-                ),
+                ("course_operator", "core.access_studio")
             ]:
                 raise ImportFailure("target-account-boundary", table="auth_group")
         deny_counts = _sensitive_zero_counts(connection)
@@ -1331,7 +1373,7 @@ def _assert_final_database(path: Path, expected: AllowedDataset, create_admin: b
             "accounts_customuser": expected_users,
             "accounts_customuser_groups": expected_users,
             "auth_group": expected_users,
-            "auth_group_permissions": expected_users * 2,
+            "auth_group_permissions": expected_users,
         }
         for table, count in deny_counts.items():
             allowed_count = synthetic_role_counts.get(table, 0)
@@ -1410,17 +1452,17 @@ def _build_sanitized_database(
     source_path: Path,
     destination: Path,
     fault_hook: FaultHook,
-) -> tuple[AllowedDataset, dict[str, int]]:
+) -> tuple[AllowedDataset, dict[str, int], tuple[str, ...]]:
     _migrate_fresh_database(destination)
     with _readonly_connection(source_path) as source, _writable_connection(destination) as target:
         _assert_source_integrity(source)
-        _validate_source_schema(source, target)
+        skipped_empty_unknown_tables = _validate_source_schema(source, target)
         dataset = _read_allowed_dataset(source)
         fault_hook("during-validation")
         _insert_dataset(target, dataset)
     fault_hook("after-build")
     deny_counts = _assert_sanitized_database(destination, dataset)
-    return dataset, deny_counts
+    return dataset, deny_counts, skipped_empty_unknown_tables
 
 
 def _repo_relative(path: Path) -> str:
@@ -1433,6 +1475,7 @@ def _report(
     source: SnapshotFingerprint,
     dataset: AllowedDataset,
     deny_counts: Mapping[str, int],
+    skipped_empty_unknown_tables: Sequence[str] = (),
 ) -> dict[str, Any]:
     return {
         "snapshot_id": config.snapshot_id,
@@ -1441,6 +1484,7 @@ def _report(
         "allowlist_schema_version": ALLOWLIST_SCHEMA_VERSION,
         "table_counts": dataset.counts,
         "relationship_counts": dataset.relationships,
+        "skipped_empty_unknown_tables": list(skipped_empty_unknown_tables),
         "source_origin_denylist_zero_counts": {table: 0 for table in deny_counts},
         "logical_checksum": dataset.logical_checksum,
         "validation_results": {
@@ -1565,14 +1609,21 @@ class ReviewImporter:
 
         try:
             with _private_umask():
-                dataset, deny_counts = _build_sanitized_database(
+                dataset, deny_counts, skipped_empty_unknown_tables = _build_sanitized_database(
                     paths.source,
                     staged_artifact,
                     self.fault_hook,
                 )
                 _assert_public_review_pages(staged_artifact, dataset)
                 _assert_source_unchanged(paths.source, before)
-                report = _report(config, paths, before, dataset, deny_counts)
+                report = _report(
+                    config,
+                    paths,
+                    before,
+                    dataset,
+                    deny_counts,
+                    skipped_empty_unknown_tables,
+                )
                 if config.dry_run:
                     self.fault_hook("before-publish")
                     _assert_source_unchanged(paths.source, before)

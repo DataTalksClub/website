@@ -11,7 +11,22 @@ from urllib.parse import urlsplit
 
 SAFETY_MARKERS = frozenset({"remote_readonly", "remote_mutation", "live_email", "live_provider"})
 LOCAL_MARKERS = frozenset({"smoke", "core", "full"})
-DEVELOPMENT_HOSTS = frozenset({"web.dtcdev.click"})
+# Closed allowlist of hosts an opt-in remote test may address.  It is pinned here
+# as literals rather than read from the environment, or derived from the selected
+# deployment target, so that the value under test cannot also be the value that
+# authorises it.  It must stay equal to the union of
+# deploy.development_target.PERMITTED_DEVELOPMENT_HOSTNAMES and the hostname of
+# every deployable target in deploy.deployment_targets; core.tests
+# .test_development_target enforces that.
+REMOTE_HOSTS = frozenset(
+    {
+        "web.dtcdev.click",
+        "dev.datatalks.club",
+        "prod.datatalks.club",
+    }
+)
+#: Retained name for the same allowlist.
+DEVELOPMENT_HOSTS = REMOTE_HOSTS
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 _NAMESPACE_RE = re.compile(r"^[a-z0-9][a-z0-9-]{7,63}$")
 _RECIPIENT_REFERENCE_RE = re.compile(r"^[A-Z][A-Z0-9_]{7,63}$")
@@ -61,7 +76,7 @@ class SafetyAuthorization:
     recipient_reference: str | None = None
 
     def authorize_request(self, method: str, url: str) -> None:
-        target = _parse_development_url(url)
+        target = _parse_remote_url(url)
         base = urlsplit(self.base_url)
         if (target.scheme, target.hostname, target.port) != (
             base.scheme,
@@ -85,7 +100,7 @@ def authorize_from_environment(marker: str) -> SafetyAuthorization:
     if not _NAMESPACE_RE.fullmatch(namespace):
         raise TestSafetyError("remote tests require a bounded synthetic namespace")
     base_url = os.environ.get("DTC_TEST_BASE_URL", "")
-    parsed = _parse_development_url(base_url)
+    parsed = _parse_remote_url(base_url)
     if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
         raise TestSafetyError("remote base URL must be one exact origin")
 
@@ -106,7 +121,7 @@ def authorize_from_environment(marker: str) -> SafetyAuthorization:
     )
 
 
-def _parse_development_url(value: str):
+def _parse_remote_url(value: str):
     try:
         parsed = urlsplit(value)
         port = parsed.port
@@ -116,12 +131,12 @@ def _parse_development_url(value: str):
     if (
         parsed.scheme != "https"
         or not hostname
-        or hostname not in DEVELOPMENT_HOSTS
+        or hostname not in REMOTE_HOSTS
         or parsed.username is not None
         or parsed.password is not None
         or port not in {None, 443}
     ):
-        raise TestSafetyError("remote URL is not on the closed development allowlist")
+        raise TestSafetyError("remote URL is not on the closed remote-host allowlist")
     try:
         ipaddress.ip_address(hostname)
     except ValueError:

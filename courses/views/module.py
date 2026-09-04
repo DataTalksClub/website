@@ -3,6 +3,7 @@ from django.db.models import BooleanField, Exists, OuterRef, Value
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from courses.models import CurriculumFormat, Module, Unit, UnitReadState
@@ -42,10 +43,20 @@ def module_rail_context(
     else:
         read_state = Value(False, output_field=BooleanField())
     rail_units = list(module.units.annotate(is_read=read_state))
+    current_unit_is_read = False
+    for rail_unit in rail_units:
+        # The rail renders "you are here" three ways (tint, filled disc,
+        # aria-current), so the comparison is made once here instead of three
+        # times per row in the template.
+        rail_unit.is_current = current_unit is not None and rail_unit.pk == current_unit.pk
+        if rail_unit.is_current:
+            current_unit_is_read = bool(rail_unit.is_read)
     return {
         "module_rail_units": rail_units,
         "module_rail_read_count": sum(unit.is_read for unit in rail_units),
-        "module_rail_current_unit": current_unit,
+        # The unit page's read toggle needs the current lesson's state, and only
+        # the rail query has annotated it.
+        "module_rail_current_unit_is_read": current_unit_is_read,
         "module_url": module_url(module),
     }
 
@@ -122,4 +133,27 @@ def update_unit_read_state(
         unit=unit,
         is_read=raw_state == "1",
     )
-    return redirect("module", course_slug, cohort.identifier, module.slug)
+    return redirect(_read_state_return_path(request, module))
+
+
+def _read_state_return_path(request: HttpRequest, module: Module) -> str:
+    """Return the safe local path the read-state toggle should come back to.
+
+    The toggle now lives at the foot of the lesson a reader has just finished,
+    so it has to return them to that lesson rather than to the module index they
+    left.  The submitted path is honoured only when it is a plain local path on
+    this host; anything else falls back to the module page.
+    """
+
+    submitted = request.POST.get("next", "")
+    if (
+        submitted.startswith("/")
+        and not submitted.startswith("//")
+        and url_has_allowed_host_and_scheme(
+            submitted,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        )
+    ):
+        return submitted
+    return module_url(module)

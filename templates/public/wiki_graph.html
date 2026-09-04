@@ -1,4 +1,4 @@
-{% load seo static %}
+{% load breadcrumbs seo static %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -11,7 +11,7 @@
     {% include "public/_wiki_head_meta.html" %}
     <style>
       /* ------------------------------------------------------------------ *
-       * Podcast graph, design 5a (issue #179).  The page answers one
+       * Podcast graph, design system (issue #179).  The page answers one
        * question - what is connected to what - so it leads with the drawing
        * and then gives each node type the nodes the graph itself makes
        * busiest, with the complete list folded behind them.  The A-Z
@@ -97,16 +97,8 @@
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream wiki-hero" aria-labelledby="graph-heading">
-        <nav class="shell shell-reading breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'wiki-home' %}">Wiki</a>
-            </li>
-            <li aria-current="page">
-              Knowledge graph
-            </li>
-          </ol>
-        </nav>
+        {% url 'wiki-home' as wiki_home_url %}
+        {% breadcrumbs "Wiki" wiki_home_url current="Knowledge graph" nav_class="shell shell-reading" %}
         <div class="shell shell-reading">
           <h1 id="graph-heading">Podcast Graph</h1>
           <p class="graph-lede">

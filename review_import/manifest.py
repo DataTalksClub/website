@@ -141,6 +141,39 @@ ALLOWLIST: dict[str, tuple[str, ...]] = {
 
 COPY_ORDER = tuple(ALLOWLIST)
 
+# Columns this schema requires that a CMP snapshot has no value for, with the empty
+# value the copy writes instead.  These are not allowlist omissions: CMP's tables do not
+# have these columns at all.
+#
+# ``instructions_markdown`` and ``instructions_source_path`` are course-repository
+# provenance.  ``courses/services/curriculum_import.py`` fills them from a pulled
+# repository -- the Markdown body of an assignment and the repository path of the file it
+# came from -- and CMP has no repository files, so the honest copied value is the empty
+# default the model declares.  A path invented here would be a link to a file that does
+# not exist; ``courses/services/unit_links.py`` reads the column as "no source file"
+# when it is empty, which is exactly what a CMP-copied row means.  ``leaderboard`` is a
+# derived local column with the same story.
+#
+# Anything not listed here and not in ``ALLOWLIST`` is refused before the INSERT runs,
+# so a later migration that adds a required column asks for a decision instead of
+# failing mid-rebuild on a NOT NULL constraint.
+TARGET_ONLY_COLUMNS: dict[str, dict[str, object]] = {
+    "courses_homework": {"instructions_markdown": "", "instructions_source_path": ""},
+    "courses_wrappedstatistics": {"leaderboard": "[]"},
+}
+
+# This schema splits a CMP course row into a course family and a cohort. These are the
+# cohort's own identity columns; the copy derives them from the source row rather than
+# reading them, so they are written but never allowlisted.
+COHORT_ONLY_COLUMNS = (
+    "uuid",
+    "year",
+    "outcome",
+    "course_id",
+    "curriculum_format",
+    "identifier",
+)
+
 # These tables may contain identity, learner activity, communication data,
 # credentials, operational payloads, or user-authored free text. They must be
 # empty in a sanitized artifact. A final review DB may contain only the one

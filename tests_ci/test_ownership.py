@@ -106,7 +106,7 @@ def test_graph_is_valid_deterministic_and_preserves_reviewed_closures() -> None:
     assert application_test_labels(graph) == {
         "api": ("api",),
         "studio_courses": ("studio_courses",),
-        "content": ("accounts", "api", "content.tests", "content_sync", "core"),
+        "content": ("accounts", "api", "content.tests", "content_sync", "core", "courses"),
         "courses": (
             "accounts",
             "api",

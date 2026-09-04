@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from allauth.account.adapter import get_adapter as get_account_adapter
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -51,16 +52,6 @@ ACCOUNT_RELATIONS = (
     ),
     AccountRelationSpec("core.AuditEvent", "actor", "provenance_alias"),
     AccountRelationSpec("core.StaffSession", "user", "reparent"),
-    AccountRelationSpec(
-        "core.OperationalSettingRevision",
-        "changed_by",
-        "provenance_alias",
-    ),
-    AccountRelationSpec(
-        "core.SponsorRevision",
-        "changed_by",
-        "provenance_alias",
-    ),
     AccountRelationSpec("core.Operation", "actor", "provenance_alias"),
     AccountRelationSpec("accounts.Token", "user", "compatibility_alias"),
     AccountRelationSpec("courses.CourseRegistration", "user", "reparent"),
@@ -75,10 +66,13 @@ ACCOUNT_RELATIONS = (
     AccountRelationSpec("socialaccount.SocialAccount", "user", "verified_only"),
 )
 
+# What the account menu offers.  Sign-in methods are no longer one of its
+# entries: they are a section of account settings, and socialaccount_connections
+# redirects there.  The route itself stays in ACCOUNT_AUTHENTICATION_ROUTES
+# below, because it still exists and allauth still reverses it.
 ACCOUNT_NAVIGATION_ACTIONS = (
     ("signed_out_login", "login"),
     ("account_settings", "account_settings"),
-    ("social_connections", "socialaccount_connections"),
     ("course_discovery", "course_list"),
     ("studio", "studio:home"),
     ("logout", "account_logout"),
@@ -215,7 +209,11 @@ def account_inventory() -> dict[str, Any]:
         "user_table": User._meta.db_table,
         "authentication_backends": list(settings.AUTHENTICATION_BACKENDS),
         "account_login_methods": sorted(settings.ACCOUNT_LOGIN_METHODS),
-        "account_registration_enabled": settings.ACCOUNT_ALLOW_REGISTRATION,
+        # Read the adapter's actual gate rather than a setting nobody
+        # enforces, so this report cannot drift from what `/accounts/signup/`
+        # really does.  No request is in play here; `ClosedAccountAdapter`
+        # (and allauth's own `DefaultAccountAdapter`) ignore it.
+        "account_registration_enabled": get_account_adapter().is_open_for_signup(None),
         "account_fields": fields,
         "dependent_relations": relations,
         "many_to_many_relations": list(ACCOUNT_MANY_TO_MANY_RELATIONS),

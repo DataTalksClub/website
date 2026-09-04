@@ -612,6 +612,30 @@ def stable_public_event_clock() -> Generator[None]:
 
 
 @pytest.fixture
+def homepage_course_catalog(transactional_db: None) -> None:
+    """Give the homepage the course rows its catalogue band renders from.
+
+    Issue #307 moved the homepage from the checked projection to ``courses.Course`` /
+    ``courses.Cohort``, so the featured panel and the catalogue cards exist only when the
+    database holds visible cohorts.  A browser test must therefore own the rows it
+    measures instead of standing on whatever a developer database happens to contain.
+
+    This lives here rather than beside one browser test because three separate browser
+    modules need the same rows, and they must all measure one shape: six families, the
+    featured one shown by the panel and the other five as cards.  It is the same helper
+    the Django homepage suites use, so the browser and Django assertions cannot drift.
+
+    ``courses`` models are imported inside the fixture: this conftest is loaded before
+    Django's application registry is ready.
+    """
+
+    del transactional_db
+    from test_support.course_catalog import build_reviewed_catalog
+
+    build_reviewed_catalog()
+
+
+@pytest.fixture
 def browser_context_args() -> dict[str, object]:
     return {
         "accept_downloads": False,

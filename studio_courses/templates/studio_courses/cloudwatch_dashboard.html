@@ -1,6 +1,7 @@
 {% extends 'studio_courses/base.html' %}
+{% load breadcrumbs %}
 {% comment %}
-  Design 5a (issue #179): the CloudWatch app-event dashboard.
+  Design system (issue #179): the CloudWatch app-event dashboard.
 
   The sparkline is drawn by the page itself from the view's precomputed
   polyline points, so nothing is embedded from or linked to an external
@@ -75,13 +76,8 @@
   }
 {% endblock %}
 
-{% block breadcrumbs %}
-  <li>
-    <a href="{% url 'studio_courses_course_list' %}">Courses</a>
-  </li>
-  <li aria-current="page">
-    CloudWatch metrics
-  </li>
+{% block breadcrumb_trail %}
+  {% breadcrumbs "Studio" studio_home_url "Courses" studio_courses_url current="CloudWatch metrics" %}
 {% endblock %}
 
 {% block page_head %}

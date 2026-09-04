@@ -33,7 +33,6 @@ from review_import.workflow import (
     cleanup_snapshot,
     fingerprint,
 )
-from scripts import load_rds_export
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TEST_RUN_ID = f"{os.getpid()}-{uuid.uuid4().hex}"
@@ -133,8 +132,23 @@ def _insert(connection: sqlite3.Connection, table: str, values: dict[str, object
     )
 
 
-def _minimal_value(column: sqlite3.Row) -> object:
+def _json_columns(connection: sqlite3.Connection, table: str) -> frozenset[str]:
+    """Columns the table guards with a ``JSON_VALID`` check.
+
+    A Django ``JSONField`` is a TEXT column on SQLite, so the type alone cannot say that
+    ``synthetic`` would violate the check the migration wrote.
+    """
+
+    row = connection.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?", (table,)
+    ).fetchone()
+    return frozenset(re.findall(r'JSON_VALID\("([^"]+)"\)', str(row[0] if row else "")))
+
+
+def _minimal_value(column: sqlite3.Row, json_columns: frozenset[str] = frozenset()) -> object:
     column_type = str(column["type"]).upper()
+    if str(column["name"]) in json_columns:
+        return "{}"
     if "INT" in column_type:
         return 0
     if any(numeric in column_type for numeric in ("REAL", "FLOA", "DOUB", "NUM")):
@@ -150,6 +164,7 @@ def _insert_forbidden_row(
     overrides: dict[str, object],
 ) -> None:
     connection.row_factory = sqlite3.Row
+    json_columns = _json_columns(connection, table)
     values: dict[str, object] = {}
     for column in connection.execute(f'PRAGMA table_info("{table}")').fetchall():
         name = str(column["name"])
@@ -158,7 +173,7 @@ def _insert_forbidden_row(
         elif column["pk"]:
             values[name] = 9001 if "INT" in str(column["type"]).upper() else "synthetic-key"
         elif column["notnull"] and column["dflt_value"] is None:
-            values[name] = _minimal_value(column)
+            values[name] = _minimal_value(column, json_columns)
     for name, value in overrides.items():
         values.setdefault(name, value)
     _insert(connection, table, values)
@@ -321,6 +336,7 @@ def seed_synthetic_snapshot(path: Path) -> None:
             "faq_contribution_field": 1,
             "state": "OP",
             "instructions_markdown": "Public homework instructions.",
+            "instructions_source_path": "cohorts/2026/01-intro/homework.md",
         },
     )
     _insert(
@@ -1167,8 +1183,9 @@ if any(
         mutations = (
             (
                 "unknown-table",
-                lambda connection: connection.execute(
-                    "CREATE TABLE unexpected_private_data (id INTEGER)"
+                lambda connection: connection.executescript(
+                    "CREATE TABLE unexpected_private_data (id INTEGER);"
+                    "INSERT INTO unexpected_private_data(id) VALUES (1);"
                 ),
                 "schema-unknown-table",
             ),
@@ -1275,6 +1292,30 @@ if any(
                 )
                 self.assertEqual(fingerprint(source), source_before)
                 cleanup_snapshot(f"{self.snapshot_id}-{label}")
+
+    def test_empty_unknown_source_tables_are_skipped(self) -> None:
+        with closing(sqlite3.connect(self.source)) as connection:
+            connection.executescript(
+                """
+                CREATE TABLE courses_emailcampaign (id INTEGER PRIMARY KEY);
+                CREATE TABLE courses_systemprojectevaluation (id INTEGER PRIMARY KEY);
+                CREATE TABLE courses_systemevaluationcriteriaresponse (id INTEGER PRIMARY KEY);
+                """
+            )
+            connection.commit()
+
+        report = self.run_from_migrated_baseline(self.config())
+
+        self.assertEqual(
+            report["skipped_empty_unknown_tables"],
+            [
+                "courses_emailcampaign",
+                "courses_systemevaluationcriteriaresponse",
+                "courses_systemprojectevaluation",
+            ],
+        )
+        self.assertEqual(report["table_counts"]["courses_course"], 2)
+        self.assertEqual(report["validation_results"]["source_schema"], "passed")
 
     def test_failure_at_each_stage_preserves_previous_target_and_outputs(self) -> None:
         self.run_from_migrated_baseline(self.config())
@@ -2380,22 +2421,3 @@ with workflow._operation_lock():
             ReviewImporter().run(self.config(target_db=PROJECT_ROOT / "README.md"))
         self.assertEqual(target_error.exception.category, "unsafe-target-path")
 
-    def test_legacy_broad_loader_is_disabled_before_any_path_access(self) -> None:
-        stderr = StringIO()
-        with (
-            mock.patch.object(load_rds_export, "parse_args") as parse_args,
-            mock.patch.object(load_rds_export, "resolve_import_paths") as resolve_paths,
-            mock.patch.object(load_rds_export, "rebuild_database") as rebuild,
-            mock.patch.object(load_rds_export, "replace_rebuilt_database") as replace,
-            redirect_stderr(stderr),
-        ):
-            result = load_rds_export.main()
-
-        self.assertEqual(result, 2)
-        parse_args.assert_not_called()
-        resolve_paths.assert_not_called()
-        rebuild.assert_not_called()
-        replace.assert_not_called()
-        output = stderr.getvalue()
-        self.assertIn("broad RDS loader is disabled", output)
-        self.assertIn("scripts/build_local_review_db.py", output)

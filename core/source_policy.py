@@ -9,6 +9,10 @@ GUNICORN_ACCESS_LOG_FORMAT = (
     '%(t)s "%(m)s %(U)s %(H)s" %(s)s %(b)s %(D)s '
     'request_id="%({x-request-id}o)s" correlation_id="%({x-correlation-id}o)s"'
 )
+# The format keeps the request path, and Relay's recipient links carry an opaque
+# per-recipient token in the path.  The logger class below redacts that segment,
+# so the entrypoint must keep using it for the format above to stay safe.
+GUNICORN_LOGGER_CLASS = "core.gunicorn_logging.RecipientTokenSafeLogger"
 GUNICORN_WEB_TIMEOUT_SECONDS = 90
 ANALYTICS_HOSTS = ("googletagmanager.com", "google-analytics.com")
 ANALYTICS_COOKIE_PREFIXES = ("_ga", "_gid", "_gat", "_gcl_")
@@ -87,6 +91,15 @@ def validate_gunicorn_entrypoint(source: str) -> None:
         raise SourcePolicyError("gunicorn_access_log_format_mismatch")
     if any(atom in GUNICORN_ACCESS_LOG_FORMAT for atom in ("%(r)s", "%(q)s", "%(h)s")):
         raise SourcePolicyError("gunicorn_access_log_format_contains_unsafe_atom")
+    expected_logger_assignment = f"GUNICORN_LOGGER_CLASS='{GUNICORN_LOGGER_CLASS}'"
+    expected_logger_argument = '--logger-class "$GUNICORN_LOGGER_CLASS"'
+    if (
+        source.count(expected_logger_assignment) != 1
+        or source.count("GUNICORN_LOGGER_CLASS=") != 1
+        or source.count(expected_logger_argument) != 1
+        or source.count("--logger-class") != 1
+    ):
+        raise SourcePolicyError("gunicorn_logger_class_mismatch")
     parse_gunicorn_timeout(source)
 
 

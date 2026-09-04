@@ -249,26 +249,21 @@ same events services and expose only safe counts, checksums, policy/mapping revi
 bounded reason codes. Map/exclude/validate/activate/replace/rollback audit evidence contains no
 attendee value, provider payload, source path/filename, token, or secret.
 
-## Course registration-count baseline management
+## Course registration-count aggregate
 
-The course-owned aggregate workflow uses the explicit permission
-`courses.registration_count_baseline_manage` and capability family
-`courses.registration_count_baseline.manage`. Every response is private/no-store/noindex, and the
-opaque source key accepted at creation is never returned.
+The public course registration count has no Studio or admin API surface, no dedicated
+permission, and no versioned import pipeline. It is a plain current-state aggregate read
+directly off `RegistrationCampaign`:
 
-Studio owns `GET/POST /studio/courses/registration-count-baselines/`, `GET` detail at
-`/studio/courses/registration-count-baselines/<uuid>/`, confirmed revision-guarded `dry-run`,
-`validate`, `activate`, `cancel`, and `rollback` actions, and the safe total preview at
-`/studio/courses/registration-campaigns/<slug>/public-count/`. Admin API parity uses
-`GET/POST /api/v1/admin/course-registration-count-imports`, `GET` detail and the same action names at
-`/api/v1/admin/course-registration-count-imports/<uuid>/...`, plus
-`GET /api/v1/admin/registration-campaigns/<slug>/public-count`.
-
-Studio and admin API are adapters over the same `courses` services. POST requires an idempotency
-key, explicit confirmation and a bounded reason; state-changing detail actions also require the
-expected revision (`If-Match` in the API). Exact replay is a no-op. Safe responses and audits expose
-only UUIDs, states, counts, bounded timestamps, checksums, versions, safe target slugs, actor class,
-and reason codes. They never expose source paths/filenames, registration identifiers/digests,
-emails, names, answers, tokens, or payloads. Unauthorized high-risk attempts, conflicts, validation,
-activation, cancellation, replacement, and rollback use the normal redacted management audit
-policy.
+- `registration_baseline_cohort`, `registration_baseline_count`, and
+  `registration_native_start_at` -- an optional, once-recorded historical figure (for example
+  a legacy CMP export captured before this database had `CourseRegistration` rows for a
+  campaign) plus the instant native rows became the complete record. The baseline only applies
+  while `registration_baseline_cohort` still names the campaign's current cohort; it does not
+  carry onto whatever edition registers next.
+- `courses.services.registration_counts.public_course_registration_count(campaign)` returns the
+  baseline plus a live count of native `CourseRegistration` rows for the campaign's current
+  cohort (`None` when the campaign has no current cohort). `courses/views/course_page_context.py`,
+  `courses/views/course_list.py`, and `courses/views/registration.py` all read this one function,
+  so the course page, the courses index, and the registration page can never quote different
+  numbers for one cohort.

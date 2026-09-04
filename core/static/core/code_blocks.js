@@ -16,6 +16,7 @@
     docker: "docker",
     dockerfile: "docker",
     dotenv: "bash",
+    env: "bash",
     html: "markup",
     "html+django": "markup",
     ini: "ini",
@@ -148,12 +149,21 @@
   var NUMBER_PATTERN = /^(?:0[xX][0-9a-fA-F]+|0[bB][01]+|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?)/;
   var IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*/;
 
+  /* The language token comes from a course body written in a public repository,
+     so it is untrusted text.  Reading it with a plain lookup answered inherited
+     names -- a fence marked ```constructor resolved to `Object` and the block
+     ended up labelled "function Object() { [native code] }" -- so both maps are
+     read by own property only and an unknown name stays the word it was. */
+  function ownProperty(map, key) {
+    return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : undefined;
+  }
+
   function normalizedLanguage(code) {
     var classes = String(code.className || "").split(/\s+/);
     for (var i = 0; i < classes.length; i += 1) {
       if (classes[i].indexOf("language-") !== 0) continue;
       var raw = classes[i].slice("language-".length).toLowerCase();
-      return LANGUAGE_ALIASES[raw] || raw;
+      return ownProperty(LANGUAGE_ALIASES, raw) || raw;
     }
     return "plaintext";
   }
@@ -399,7 +409,7 @@
   }
 
   function appendHighlightedCode(code, language) {
-    var config = LANGUAGE_CONFIG[language];
+    var config = ownProperty(LANGUAGE_CONFIG, language);
     if (!config || language === "plaintext") return;
 
     var source = code.textContent || "";
@@ -479,6 +489,18 @@
     var language = normalizedLanguage(code);
     appendHighlightedCode(code, language);
     pre.setAttribute("data-code-language", language);
+
+    /* Samples wrap rather than scroll, so a long first line runs the full width
+       of the block and the floating copy control would sit on top of it.  An
+       empty float at the head of the `pre` shortens exactly the line boxes the
+       control covers and nothing else: the sample keeps its own padding, the
+       block never reflows when the control appears, and no reserved strip is
+       drawn above the first line.  It lives outside `code`, so the copied text
+       and the language runtime never see it. */
+    var gutter = document.createElement("span");
+    gutter.className = "code-block-gutter";
+    gutter.setAttribute("aria-hidden", "true");
+    pre.insertBefore(gutter, pre.firstChild);
 
     var frame = document.createElement("div");
     frame.className = "code-block";

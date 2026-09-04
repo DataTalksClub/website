@@ -6,9 +6,11 @@ Status: draft for owner review
 
 Rebuild DataTalks.Club as one Django application without losing the URLs, links, content behavior, or search equity of the current sites. Integrate the existing course-management platform with an explicit `Course -> Cohort` model. Add accountless event registration, a private account-owned member profile shared by Slack onboarding and course registration, transactional email, a custom staff workspace called Studio, and an admin-only API covering every management operation.
 
-The development environment runs at `web.dtcdev.click` in AWS account `817685572750`.
-Infrastructure is Terraform-managed in `DataTalksClub/aws-infra` and structured for later
-instantiation in a separate production account. Live physical names are catalogued in the
+No development environment is deployed at the moment: the `web.dtcdev.click` stack in AWS
+account `817685572750` was destroyed on 2026-09-02 and its replacement `dev.datatalks.club`
+is not built yet. Infrastructure is Terraform-managed in `DataTalksClub/aws-infra` and
+structured for later instantiation in a separate production account. `deploy/development_target.py`
+holds the reviewed development hostnames; the retired physical names are catalogued in the
 [development compatibility boundary](../compatibility/development-legacy-identifiers.md).
 
 ## Fixed requirements
@@ -21,9 +23,10 @@ instantiation in a separate production account. Live physical names are catalogu
   links, synchronizes, or grants authority to the other automatically.
 - Existing public page paths, fragments, asset paths, machine-readable endpoints, internal links, external links, and canonical URLs are preserved unless an exception has an approved one-hop redirect.
 - The development site is never indexable and declares the production URL as canonical.
-- Production `robots.txt`, sitemap output, canonicals, structured data, and all existing
-  SEO-bearing editorial paths and content remain governed by the compatibility manifest. Positive
-  edge caching changes freshness and cost only; it does not change indexing or content contracts.
+- Production `robots.txt`, sitemap output, canonicals, structured data, and SEO-bearing editorial
+  paths are governed by [02 - URL, link, and SEO compatibility](02-url-link-seo-compatibility.md)
+  and the tests that exercise those routes. Positive edge caching changes freshness and cost only;
+  it does not change indexing or content contracts.
 - Events, registrations, website logical email intents/redacted Relay projections, Studio
   configuration, redirects, and audit records are database-owned.
 - The existing course platform is copied into this repository and evolved in place. Courses, cohorts, enrollments, assignments, submissions, peer review, scores, leaderboards, and certificates are database-owned and managed through Studio and the admin API.

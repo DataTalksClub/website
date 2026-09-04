@@ -10,7 +10,7 @@ from course_management.datamailer.sync.memberships import (
 from course_management.observability import record_event
 from courses.models.cohort import Enrollment, User
 from courses.models.project import Project, ProjectSubmission
-from courses.validators.custom_url_validators import (
+from courses.validators.url_status_transport import (
     clean_faq_contribution_url,
 )
 from courses.views.homework_learning_links import (

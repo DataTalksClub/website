@@ -49,6 +49,7 @@ from content.podcast_routes import (  # noqa: E402
     podcast_canonical_path,
 )
 from content.public_text import strip_target_attributes_from_links  # noqa: E402
+from courses.course_family_catalog import cohort_family_identity  # noqa: E402
 from events.slugs import event_title_slug  # noqa: E402
 
 DEFAULT_OUTPUT = REPOSITORY_ROOT / "content" / "public_projection"
@@ -81,16 +82,6 @@ LEGACY_MAIN_REPOSITORY = "https://github.com/DataTalksClub/datatalksclub.github.
 WIKI_REPOSITORY = "https://github.com/DataTalksClub/podwiki"
 COURSES_REPOSITORY = "https://github.com/DataTalksClub/course-management-platform"
 
-EXPECTED_COUNTS = {
-    "articles": 55,
-    "podcasts": 203,
-    "transcripts": 201,
-    "books": 98,
-    "people": 438,
-    "events": 421,
-    "wiki": 282,
-    "courses": 12,
-}
 # A book's `authors` list is not homogeneous in the source: most entries are the stable key of a
 # person record, but a co-author the community never hosted is written out as a plain display
 # name.  Those names are the whole inventory of book credits that cannot become a profile link, so
@@ -114,11 +105,11 @@ BOOK_AUTHORS_WITHOUT_PROFILE = (
     "Trey Grainger",
     "Valliappa Lakshmanan",
 )
-EXPECTED_PREFERRED_CONTENT_MEDIA_COUNT = 815
-EXPECTED_FALLBACK_CONTENT_MEDIA_COUNT = 807
-EXPECTED_PEOPLE_MEDIA_COUNT = 438
-EXPECTED_PREFERRED_MEDIA_COUNT = 1_253
-EXPECTED_FALLBACK_MEDIA_COUNT = 1_245
+# Media objects are published to an object store, so the complete-tree digest covers the
+# JSON artifacts and wiki assets only.  The manifest declares the scope in
+# machine-readable form; the runtime rejects a manifest that does not declare it.
+MEDIA_TREE_PREFIX = "media/"
+TREE_DIGEST_SCOPE = "projection artifacts and wiki assets; excludes manifest.json and media/"
 COURSE_SPECS_SHA256 = "34077cd485265ffcae96e9acdb06351ee5b6b3b6a5b370639525cc111f1019a7"
 EVENT_SOURCE_TIMEZONE = ZoneInfo("Europe/Berlin")
 MAX_SOURCE_FILE_BYTES = 2 * 1024 * 1024
@@ -142,8 +133,6 @@ EDITORIAL_ROUTE_COLLECTIONS = {
     "books": "/books",
     "people": "/people",
 }
-EXPECTED_EDITORIAL_FINALS = sum(EXPECTED_COUNTS[name] for name in EDITORIAL_ROUTE_COLLECTIONS)
-EXPECTED_EDITORIAL_ALIASES = 2 * (EXPECTED_EDITORIAL_FINALS - len(PODCAST_HIERARCHICAL_ONLY_SLUGS))
 RECORDING_LINK_LABELS = frozenset({"Watch recording", "Listen to recording"})
 
 
@@ -2429,10 +2418,14 @@ def _courses(course_specs: Path) -> list[dict[str, Any]]:
             for assignment in homeworks + projects
         ):
             raise ProjectionBuildError("course catalog assignment fields are invalid")
+        # The public catalog serves a cohort at `/courses/<family>/<year>`, not at the flat
+        # source slug.  Deriving it here keeps a rebuild byte-identical to the checked artifact;
+        # emitting `/courses/<slug>` would silently move all twelve cohort URLs.
+        family_slug, family_year = cohort_family_identity(slug)
         courses.append(
             {
                 "slug": slug,
-                "public_path": f"/courses/{slug}",
+                "public_path": f"/courses/{family_slug}/{family_year}",
                 "title": _string(item.get("title"), field="course title", maximum=500),
                 "finished": bool(item.get("finished")),
                 "homework_count": len(homeworks),
@@ -2457,8 +2450,12 @@ def _courses(course_specs: Path) -> list[dict[str, Any]]:
 
 
 def _validate_collection(name: str, records: list[dict[str, Any]]) -> None:
-    if len(records) != EXPECTED_COUNTS[name]:
-        raise ProjectionBuildError(f"{name}: checked count mismatch")
+    # The exact size of a collection changes every time normal content is published or
+    # retired, so it is not pinned here.  What must always hold, regardless of size, is
+    # that the build actually produced something and that every record has a unique,
+    # well-formed stable key and provenance.
+    if not records:
+        raise ProjectionBuildError(f"{name}: collection is empty")
     keys = [record["slug"] for record in records]
     paths = [record["public_path"] for record in records]
     if (name != "events" and len(keys) != len(set(keys))) or len(paths) != len(set(paths)):
@@ -2535,6 +2532,26 @@ def _expected_editorial_routes(
     return finals, aliases
 
 
+def _editorial_route_counts(collections: dict[str, list[dict[str, Any]]]) -> tuple[int, int]:
+    """Return the (finals, aliases) counts the current collections imply.
+
+    One final route per editorial record and two alias routes per final except the
+    podcast slugs that only ever had a hierarchical route.  Deriving this from the
+    collections that were actually built keeps the check honest as content is
+    published or retired, instead of pinning a literal that has to be hand-edited
+    every time the corpus size moves.
+    """
+
+    finals_count = sum(len(collections[name]) for name in EDITORIAL_ROUTE_COLLECTIONS)
+    hierarchical_only = sum(
+        1
+        for record in collections.get("podcasts", ())
+        if record["slug"] in PODCAST_HIERARCHICAL_ONLY_SLUGS
+    )
+    aliases_count = 2 * (finals_count - hierarchical_only)
+    return finals_count, aliases_count
+
+
 def _validate_editorial_route_manifest(
     manifest: dict[str, Any],
     collections: dict[str, list[dict[str, Any]]],
@@ -2584,17 +2601,18 @@ def _validate_editorial_route_manifest(
     }
     if manifest["provenance"] != expected_provenance:
         raise ProjectionBuildError("editorial route manifest provenance binding mismatch")
+    expected_finals_count, expected_aliases_count = _editorial_route_counts(collections)
     if manifest["counts"] != {
-        "finals": EXPECTED_EDITORIAL_FINALS,
-        "aliases": EXPECTED_EDITORIAL_ALIASES,
+        "finals": expected_finals_count,
+        "aliases": expected_aliases_count,
     }:
         raise ProjectionBuildError("editorial route manifest count canary mismatch")
 
     finals = manifest["finals"]
     aliases = manifest["aliases"]
-    if not isinstance(finals, list) or len(finals) != EXPECTED_EDITORIAL_FINALS:
+    if not isinstance(finals, list) or len(finals) != expected_finals_count:
         raise ProjectionBuildError("editorial route manifest final count mismatch")
-    if not isinstance(aliases, list) or len(aliases) != EXPECTED_EDITORIAL_ALIASES:
+    if not isinstance(aliases, list) or len(aliases) != expected_aliases_count:
         raise ProjectionBuildError("editorial route manifest alias count mismatch")
     try:
         final_paths = [item["final_path"] for item in finals]
@@ -2664,8 +2682,8 @@ def _build_editorial_route_manifest(
             ],
         },
         "counts": {
-            "finals": EXPECTED_EDITORIAL_FINALS,
-            "aliases": EXPECTED_EDITORIAL_ALIASES,
+            "finals": len(finals),
+            "aliases": len(aliases),
         },
         "finals": finals,
         "aliases": aliases,
@@ -2688,13 +2706,22 @@ def _write_json(path: Path, payload: Any) -> str:
 
 
 def _tree_sha256(root: Path) -> str:
+    """Digest the projection artifacts and wiki assets, excluding the media objects.
+
+    This must stay byte-for-byte equivalent to ``content.public_data._tree_sha256``:
+    the media objects are served from an object store and verified per record against
+    ``provenance.checksum``, while a symlink anywhere below the root — including under
+    ``media/`` — is still a hard failure.
+    """
+
     digest = hashlib.sha256()
     for path in sorted(item for item in root.rglob("*") if item.is_file()):
-        if path.is_symlink() or path.name == "manifest.json":
-            if path.is_symlink():
-                raise ProjectionBuildError("projection tree contains a symlink")
+        if path.is_symlink():
+            raise ProjectionBuildError("projection tree contains a symlink")
+        relative_path = path.relative_to(root).as_posix()
+        if path.name == "manifest.json" or relative_path.startswith(MEDIA_TREE_PREFIX):
             continue
-        relative = path.relative_to(root).as_posix().encode()
+        relative = relative_path.encode()
         payload = path.read_bytes()
         digest.update(len(relative).to_bytes(8, "big"))
         digest.update(relative)
@@ -2805,13 +2832,13 @@ def _copy_media(
                 ),
             }
         )
-    expected = (
-        EXPECTED_PREFERRED_CONTENT_MEDIA_COUNT
-        if mode == "preferred"
-        else EXPECTED_FALLBACK_CONTENT_MEDIA_COUNT
-    )
-    if len(records) != expected or len(public_paths) != expected:
-        raise ProjectionBuildError("media: checked count mismatch")
+    # How many media objects exist changes with every article, podcast or book that is
+    # published or retired, so no fixed total is pinned here.  What must always hold is
+    # that every copied object landed at a unique public path.
+    if not records:
+        raise ProjectionBuildError("media: no source media found")
+    if len(records) != len(public_paths):
+        raise ProjectionBuildError("media: duplicate public path")
     return records, public_paths
 
 
@@ -2860,14 +2887,18 @@ def _copy_people_media(
                 ),
             }
         )
-    if len(records) != EXPECTED_PEOPLE_MEDIA_COUNT or len(public_paths) != len(records):
-        raise ProjectionBuildError("people media: checked count mismatch")
+    # One media object per person is copied above, so records always tracks len(people);
+    # the count is not pinned separately.  What must always hold is that every copied
+    # object landed at a unique public path.
+    if len(public_paths) != len(records):
+        raise ProjectionBuildError("people media: duplicate public path")
     return records, public_paths
 
 
 def _attach_primary_media(
     collections: dict[str, list[dict[str, Any]]], public_paths: set[str]
 ) -> None:
+    referenced_paths: set[str] = set()
     for name in ("articles", "podcasts", "books", "people"):
         for record in collections[name]:
             source = record.pop("image_source")
@@ -2880,10 +2911,34 @@ def _attach_primary_media(
                     or urlsplit(candidate).fragment
                 ):
                     raise ProjectionBuildError(f"{name}: unsafe primary media path")
+                # A declared primary image that does not resolve to a copied media
+                # object is a broken reference, not an absent one: fail closed
+                # instead of silently dropping the record's cover image.
+                if candidate not in public_paths:
+                    raise ProjectionBuildError(
+                        f"{name}: primary media reference does not resolve: {candidate[:200]}"
+                    )
             else:
                 candidate = ""
-            record["image_path"] = candidate if candidate in public_paths else ""
-            record["media_available"] = bool(record["image_path"])
+            record["image_path"] = candidate
+            record["media_available"] = bool(candidate)
+            if candidate:
+                referenced_paths.add(candidate)
+            for block in record.get("blocks", ()) or ():
+                if isinstance(block, dict) and block.get("kind") == "image":
+                    referenced_paths.add(block.get("src", ""))
+    referenced_paths.discard("")
+    orphaned = sorted(public_paths - referenced_paths)
+    if orphaned:
+        # Not a build failure: some media (podcast/book covers shared across
+        # records, legacy assets kept for redirects) is legitimately unreferenced
+        # by any single primary or body reference.  Reported so an owner-directed
+        # cleanup, like the one that prompted this check, can see the inventory
+        # instead of guessing at it.
+        print(
+            json.dumps({"orphaned_media_count": len(orphaned), "orphaned_media": orphaned[:20]}),
+            file=sys.stderr,
+        )
 
 
 def build(args: argparse.Namespace) -> None:
@@ -3051,9 +3106,10 @@ def build(args: argparse.Namespace) -> None:
     }
     for name, records in collections.items():
         _validate_collection(name, records)
+    # How many podcasts carry a transcript changes as episodes are published and
+    # transcribed, so it is not pinned; every transcript that is present was already
+    # validated record-by-record above when it was parsed.
     transcript_count = sum(bool(record["transcript"]) for record in podcasts)
-    if transcript_count != EXPECTED_COUNTS["transcripts"]:
-        raise ProjectionBuildError("transcripts: checked count mismatch")
 
     output.mkdir(parents=True, exist_ok=True)
     media_root = content_root if args.mode == "preferred" else legacy_main_root
@@ -3088,15 +3144,15 @@ def build(args: argparse.Namespace) -> None:
         editorial_route_manifest,
     )
     asset_digests = _write_wiki_assets(wiki_root, output)
-    expected_media_count = (
-        EXPECTED_PREFERRED_MEDIA_COUNT
-        if args.mode == "preferred"
-        else EXPECTED_FALLBACK_MEDIA_COUNT
-    )
+    # The manifest's declared counts describe what this run actually built, not a pinned
+    # expectation: they change whenever content is legitimately published or removed.
+    built_counts = {name: len(records) for name, records in collections.items()}
+    built_counts["transcripts"] = transcript_count
+    built_counts["media"] = len(media)
     manifest = {
         "schema_version": 1,
         "selection_mode": args.mode,
-        "counts": {**EXPECTED_COUNTS, "media": expected_media_count},
+        "counts": built_counts,
         "sources": {
             "preferred_content": {
                 "repository": "DataTalksClub/content",
@@ -3127,6 +3183,13 @@ def build(args: argparse.Namespace) -> None:
         },
         "artifacts": artifact_digests,
         "tree_sha256": _tree_sha256(output),
+        "tree_digest_scope": TREE_DIGEST_SCOPE,
+        "media_storage": {
+            "location": "object-store",
+            "records": "media.json",
+            "count": built_counts["media"],
+            "integrity": "per-record provenance.checksum",
+        },
         "wiki_assets": asset_digests,
         "selection_rule": {
             "preferred": "exact accepted revision with pinned green CI evidence",

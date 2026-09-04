@@ -23,7 +23,6 @@ DIRECT_CHILDREN = (
     "courses/templates/courses/wrapped.html",
     "courses/templates/courses/user_wrapped.html",
     "courses/templates/homework/stats.html",
-    "courses/templates/homework/submissions.html",
     "courses/templates/courses/_submission_page.html",
     "courses/templates/projects/_base.html",
 )
@@ -34,7 +33,6 @@ PROJECT_CHILDREN = (
     "courses/templates/projects/list_all.html",
     "courses/templates/projects/results.html",
     "courses/templates/projects/stats.html",
-    "courses/templates/projects/submissions.html",
 )
 
 SUBMISSION_PROJECT_CHILDREN = (

@@ -18,6 +18,12 @@ from courses.models.cohort import (
 )
 from courses.models.project import ProjectState
 from courses.services.curriculum_flow import build_curriculum_flow
+from courses.services.registration_campaigns import (
+    FamilyRegistration,
+    active_campaign_for_cohort,
+    family_registration,
+    next_edition_campaign_for_cohort,
+)
 from courses.services.registration_counts import public_course_registration_count
 from courses.views.course_homepage import add_course_homepage_info
 from courses.views.course_homeworks import get_homeworks_for_course
@@ -32,6 +38,7 @@ class CoursePageData:
     homeworks: list
     projects: list
     registration_campaign: object
+    next_edition_campaign: object = None
 
 
 @dataclass(frozen=True)
@@ -45,14 +52,9 @@ class CourseFamilyEdition:
 def active_registration_campaign_for_course(
     course: Cohort,
 ) -> RegistrationCampaign | None:
-    return (
-        RegistrationCampaign.objects.filter(
-            current_course=course,
-            is_active=True,
-        )
-        .order_by("id")
-        .first()
-    )
+    """The campaign promoting this exact edition. One definition, owned by the service."""
+
+    return active_campaign_for_cohort(course)
 
 
 def should_redirect_to_registration_campaign(
@@ -194,6 +196,7 @@ def course_page_context(data: CoursePageData) -> dict:
         "has_completed_projects": has_completed_course_projects,
         "is_authenticated": data.user.is_authenticated,
         "registration_campaign": data.registration_campaign,
+        "next_edition_campaign": data.next_edition_campaign,
     }
     course_editions = visible_course_editions(data.course)
     context["course_editions"] = course_editions
@@ -231,12 +234,21 @@ def course_page_data(
     registration_campaign = active_registration_campaign_for_course(
         course
     )
+    # Only a closed edition offers the next one, so this is never a second Register
+    # button beside the first: the template reaches it only when no campaign promotes
+    # this edition.
+    next_edition_campaign = (
+        None
+        if registration_campaign is not None
+        else next_edition_campaign_for_cohort(course)
+    )
     return CoursePageData(
         course=course,
         user=user,
         homeworks=homeworks,
         projects=projects,
         registration_campaign=registration_campaign,
+        next_edition_campaign=next_edition_campaign,
     )
 
 
@@ -259,6 +271,31 @@ def visible_course_editions(course: Cohort) -> list[Cohort]:
     )
 
 
+def family_lede(family: Course) -> str:
+    """Return the family's one-line lede, or nothing when it would repeat the heading.
+
+    ``Course.outcome`` is the written promise and is preferred whenever it exists.
+    ``Course.description`` is a fallback that is only sometimes prose: a family whose
+    repository has no ``SITE.md`` pointer still carries the placeholder description CMP
+    seeded, which is the title again -- and a family that does have one carries raw
+    README markdown, heading marker and all.  Neither belongs under an ``h1`` that
+    already says the same thing, so the comparison is on normalised text rather than on
+    a list of named courses: every course whose description was never written is covered,
+    not the three that happen to be unwritten today.
+    """
+
+    if family.outcome.strip():
+        return family.outcome.strip()
+    description = family.description.strip()
+    if not description or "\n" in description or description.startswith("#"):
+        # Multi-line or heading-prefixed text is raw README markdown, not a lede; the
+        # template renders plain text, so it would leak the markers verbatim.
+        return ""
+    if description.casefold() == family.title.strip().casefold():
+        return ""
+    return description
+
+
 def course_family_page_context(family: Course, user) -> dict:
     """Build the family landing context without changing cohort view logic."""
 
@@ -269,10 +306,13 @@ def course_family_page_context(family: Course, user) -> dict:
         )
         for cohort in visible_course_editions_for_family(family)
     ]
+    registration: FamilyRegistration = family_registration(family)
     return {
         "course_family": family,
         "cohorts": [edition.cohort for edition in editions],
         "cohort_editions": editions,
+        "family_registration": registration,
+        "family_lede": family_lede(family),
     }
 
 

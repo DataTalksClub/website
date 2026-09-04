@@ -23,6 +23,22 @@ FORBIDDEN_COPIED_PRODUCT_COPY = (
     "Amazon SES",
     "Datamailer",
 )
+FORBIDDEN_UNRELEASED_COPY = (
+    "contact@aishippinglabs.com",
+    "data-legal-review-required",
+    "owner/legal",
+    "owner/privacy",
+    "source candidate",
+    "this candidate",
+    "pending explicit",
+    "pending legal review",
+    "verification required",
+    "production acceptance",
+    "acceptance gate",
+    "review gate",
+    "must be confirmed",
+    "provisional schedule",
+)
 SITEMAP_NAMESPACE = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 MAIN_LANDMARK = re.compile(r"<main\b.*?</main>", re.DOTALL)
 
@@ -69,7 +85,7 @@ class LegalRouteTests(TestCase):
                     1,
                 )
                 self.assertEqual(response.headers["X-Robots-Tag"], "noindex, nofollow")
-                self.assertContains(response, "Last updated: 11 August 2026")
+                self.assertContains(response, "Last updated: 3 September 2026")
                 self.assertEqual(self.client.head(path).status_code, 200)
                 self.assertEqual(self.client.post(path).status_code, 405)
 
@@ -153,7 +169,7 @@ class LegalContentTests(TestCase):
                 self.assertIn(value.casefold(), privacy.casefold())
         # The contract is about the documents' own words, so the scan reads the
         # main landmark rather than the whole response: since the legal pages
-        # joined design 5a (issue #179) each one carries the shared stylesheet
+        # joined the design system (issue #179) each one carries the shared stylesheet
         # inline, and that stylesheet talks about striped avatars and player
         # stripes without either being copied product copy.
         combined = f"{_main_landmark(terms)}\n{_main_landmark(privacy)}"
@@ -161,18 +177,92 @@ class LegalContentTests(TestCase):
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden.casefold(), combined.casefold())
 
-    def test_impressum_keeps_unverified_identity_at_an_explicit_human_gate(self) -> None:
+    def test_impressum_publishes_the_operator_identity_the_owner_supplied(self) -> None:
+        """The gate this test used to hold is now the other way round.
+
+        While the operator identity was unconfirmed, this test pinned the page at
+        placeholders so nothing could be invented into it.  The owner has since
+        supplied the details, so the same gate now runs in the opposite direction:
+        the page has to carry each disclosure German law requires, and must not be
+        able to fall back to a placeholder without failing here.
+        """
+
         response = self.client.get("/impressum")
-        self.assertContains(response, "data-legal-review-required", count=1)
-        self.assertContains(response, "Owner/legal verification required")
-        self.assertContains(response, "Pending explicit owner/legal confirmation.", count=3)
         body = response.content.decode()
-        for unverified_reference_value in (
-            "Schönensche Str.",
+        for published_detail in (
+            # § 5 TMG: the operator, its address, and its representative.
+            "DataTalks.Club",
+            "Schonensche Straße 13",
+            "10439 Berlin",
+            "Deutschland",
+            "Alexey Grigorev",
+            # The contact this site publishes, never the other site's address.
+            "mailto:alexey@datatalks.club",
+            # § 27a UStG, and the person responsible for the content.
             "DE343190995",
-            "contact@aishippinglabs.com",
+            "Angaben gemäß § 5 TMG",
+            "Umsatzsteuer-Identifikationsnummer",
+            # § 18 Abs. 2 MStV, which replaced § 55 Abs. 2 RStV on 7 November 2020.
+            "Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV",
+            "Streitschlichtung",
+            "Haftung für Inhalte",
+            "Haftung für Links",
+            "Urheberrecht",
         ):
-            self.assertNotIn(unverified_reference_value, body)
+            with self.subTest(published=published_detail):
+                self.assertIn(published_detail, body)
+        # The German disclosure is marked as German on an English page, so a
+        # screen reader does not read it in the wrong voice.
+        self.assertIn('<h2 lang="de">Angaben gemäß § 5 TMG</h2>', body)
+
+    def test_impressum_sends_nobody_to_a_dispute_service_that_closed(self) -> None:
+        """The ODR platform this text used to link to no longer exists.
+
+        The European Commission's online dispute resolution platform ceased
+        operation on 20 July 2025 under Regulation (EU) 2024/3228, so the referral
+        that copied Impressum boilerplate still carries sends a visitor to nothing.
+        The § 36 VSBG declaration underneath it is the part the statute still asks
+        for, and it stays.
+        """
+
+        collapsed = " ".join(_main_landmark(self.client.get("/impressum").content.decode()).split())
+        for closed in ("ec.europa.eu/consumers/odr", "Online-Streitbeilegung"):
+            with self.subTest(closed=closed):
+                self.assertNotIn(closed, collapsed)
+        self.assertIn('<h2 lang="de">Streitschlichtung</h2>', collapsed)
+        self.assertIn(
+            "Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren "
+            "vor einer Verbraucherschlichtungsstelle teilzunehmen.",
+            collapsed,
+        )
+
+    def test_impressum_cites_no_repealed_broadcasting_statute(self) -> None:
+        """The Rundfunkstaatsvertrag is gone; only the Medienstaatsvertrag is cited.
+
+        The Medienstaatsvertrag replaced it on 7 November 2020, but § 55 Abs. 2
+        RStV still travels around in copied Impressum boilerplate.  The heading the
+        page does carry is pinned in the disclosure test above; this one pins out
+        the statute it must never go back to.
+        """
+
+        collapsed = " ".join(_main_landmark(self.client.get("/impressum").content.decode()).split())
+        for repealed in ("RStV", "Rundfunkstaatsvertrag"):
+            with self.subTest(repealed=repealed):
+                self.assertNotIn(repealed, collapsed)
+
+    def test_no_legal_page_shows_a_visitor_a_placeholder_or_our_own_review_words(self) -> None:
+        """A visitor must never read a sentence that was written for us.
+
+        These are the exact phrasings the three documents used to carry while the
+        operator identity was unconfirmed, plus the address that belongs to the
+        other site the same operator runs.  None of them may come back.
+        """
+
+        for route_name in LEGAL_ROUTES:
+            body = _main_landmark(self.client.get(f"/{route_name}").content.decode())
+            for forbidden in FORBIDDEN_UNRELEASED_COPY:
+                with self.subTest(route=route_name, forbidden=forbidden):
+                    self.assertNotIn(forbidden.casefold(), body.casefold())
 
     def test_legal_templates_are_source_reviewed_readable_html(self) -> None:
         for relative in (
@@ -189,7 +279,7 @@ class LegalContentTests(TestCase):
                 scripts = re.findall(r"<script[^>]*>.*?</script>", source, re.DOTALL)
                 if relative == "templates/public/text_page.html":
                     # A legal page still runs no behaviour of its own.  The shared
-                    # design 5a text page (issue #179) opens with the no-JavaScript
+                    # design system text page (issue #179) opens with the no-JavaScript
                     # class swap every page in the system carries, and that is the
                     # only script in it: everything else — the dark-mode bootstrap,
                     # the navigation and the footer scripts — comes from the shared
@@ -225,7 +315,7 @@ class SharedLegalFooterTests(TestCase):
         """One shell renders the footer, and no page keeps a second copy of it.
 
         The owner used to be `templates/site_base.html`; issue #179 finished porting
-        the site to design 5a, whose pages are complete documents that include
+        the site to the design system, whose pages are complete documents that include
         `core/_site_shell_foot.html` rather than extending a base, so that partial is
         the single include site now.  The contract is unchanged: exactly one shell
         includes the partial, and no page template restates the footer's own markup.
@@ -252,7 +342,7 @@ class SharedLegalFooterTests(TestCase):
         """The footer's icon link is undecorated; its word links stay underlined.
 
         These rules lived in `core/static/core/site_shell.css` while the site had an
-        external shell stylesheet.  Design 5a pages load no stylesheet at all, so the
+        external shell stylesheet.  Design system pages load no stylesheet at all, so the
         footer's styling now comes from the shared `core/_design_system.html` block
         every page inlines, and the rules are read from there.  They no longer need
         `!important`, because there is no utility framework left to override.

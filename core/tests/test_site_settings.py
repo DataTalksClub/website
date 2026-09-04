@@ -22,7 +22,6 @@ from core.models import (
     AuditEvent,
     IdempotencyRecord,
     OperationalSetting,
-    OperationalSettingRevision,
 )
 from core.site_settings import (
     ANNOUNCEMENT_ENABLED,
@@ -116,8 +115,10 @@ class SiteSettingsRegistryTests(TestCase):
             replace(base, cache_policy="memoized"),
             replace(base, sensitivity="secret"),
             replace(base, validation={"api_token": "never"}),
-            replace(base, validation={"example": ["Bearer metadata-secret"]}),
-            replace(base, default="Bearer default-secret"),
+            replace(base, validation={"nested": {"authorization": "never"}}),
+            replace(base, env_var="datamailer-api-key"),
+            replace(base, env_var="DATAMAILER_API_KEY"),
+            replace(base, settings_attr="DATAMAILER_WEBHOOK_TOKEN"),
             replace(base, default=False),
             replace(base, value_type="unsupported"),
             replace(base, validator=lambda _value: False),
@@ -280,12 +281,9 @@ class SiteSettingsCommandTests(TestCase):
         )
         self.assertTrue(all(item["changed"] is True for item in first.settings))
         self.assertEqual(OperationalSetting.objects.count(), 2)
-        self.assertEqual(OperationalSettingRevision.objects.count(), 2)
         self.assertEqual(AuditEvent.objects.count(), 1)
         self.assertEqual(IdempotencyRecord.objects.count(), 1)
         event = AuditEvent.objects.get()
-        revisions = tuple(OperationalSettingRevision.objects.order_by("key"))
-        self.assertEqual({revision.audit_event_id for revision in revisions}, {event.id})
         evidence = json.dumps(
             {
                 "changes": event.changes,
@@ -326,7 +324,6 @@ class SiteSettingsCommandTests(TestCase):
         self.assertIs(enabled.value, True)
         self.assertEqual(enabled.revision, 1)
         self.assertFalse(OperationalSetting.objects.filter(key=ANNOUNCEMENT_MESSAGE_KEY).exists())
-        self.assertEqual(OperationalSettingRevision.objects.count(), 1)
         self.assertEqual(AuditEvent.objects.count(), 1)
 
     def test_validation_boundaries_and_exact_shapes_fail_before_mutation(self) -> None:
@@ -384,18 +381,16 @@ class SiteSettingsCommandTests(TestCase):
         )
         self.assertTrue(all(item["changed"] is False for item in no_op.settings))
         self.assertFalse(OperationalSetting.objects.exists())
-        self.assertFalse(OperationalSettingRevision.objects.exists())
         self.assertFalse(AuditEvent.objects.exists())
         self.assertEqual(IdempotencyRecord.objects.count(), 1)
 
         with mock.patch(
-            "core.site_settings.record_audit_event",
+            "core.settings_batch.record_audit_event",
             side_effect=RuntimeError("audit unavailable"),
         ):
             with self.assertRaisesRegex(RuntimeError, "audit unavailable"):
                 update_settings([setting_update(ANNOUNCEMENT_ENABLED_KEY, True, 0)])
         self.assertFalse(OperationalSetting.objects.exists())
-        self.assertFalse(OperationalSettingRevision.objects.exists())
         self.assertFalse(AuditEvent.objects.exists())
         self.assertEqual(IdempotencyRecord.objects.count(), 1)
 

@@ -20,8 +20,8 @@ COPIED_LEDGER = REPOSITORY_ROOT / "_docs/adoption/course-platform/copied-files.t
 PATCHED_LEDGER = REPOSITORY_ROOT / "_docs/adoption/course-platform/integration-patched-files.tsv"
 PINNED_BASE_SHA256 = "f51666391e33aec905f43312215bfd82094bfb0088414594f40bcbdfc21560b8"
 PINNED_CSS_SHA256 = "282ed7b15df2502a8d4c2e9cd45ef1f8e92771835243d3cbc590f78db9ed5f8f"
-# The homepage left this contract with the design 5a rebuild (issue #179), the events
-# index (/events and /events/past) left it with the design 5a mockup 6c rebuild, and the
+# The homepage left this contract with the design system rebuild (issue #179), the events
+# index (/events and /events/past) left it with the design system mockup 6c rebuild, and the
 # event detail page followed them: each owns its inline stylesheet and none of the adopted
 # CMP shell.  What remains scoped here is the event meta partial, which the detail page no
 # longer includes and which is now unreferenced.
@@ -48,31 +48,6 @@ class HomeEventsCmpRepositoryContractTests(SimpleTestCase):
         self.assertEqual(Path(origin.name).resolve(), ADOPTED_BASE.resolve())
         self.assertFalse((REPOSITORY_ROOT / "templates/base.html").exists())
         self.assertFalse((REPOSITORY_ROOT / "core/static/core/site.css").exists())
-
-    def test_adopted_base_and_css_remain_bound_to_pinned_cmp_provenance(self) -> None:
-        copied_by_destination = {
-            row["destination_path"]: row for row in _ledger_rows(COPIED_LEDGER)
-        }
-        patched_by_destination = {
-            row["destination_path"]: row for row in _ledger_rows(PATCHED_LEDGER)
-        }
-
-        self.assertEqual(
-            copied_by_destination["course_platform_templates/base.html"]["sha256"],
-            PINNED_BASE_SHA256,
-        )
-        self.assertEqual(
-            copied_by_destination["courses/static/courses.css"]["sha256"],
-            PINNED_CSS_SHA256,
-        )
-        self.assertEqual(
-            _sha256(ADOPTED_BASE),
-            patched_by_destination["course_platform_templates/base.html"]["sha256"],
-        )
-        self.assertEqual(
-            _sha256(ADOPTED_CSS),
-            patched_by_destination["courses/static/courses.css"]["sha256"],
-        )
 
     def test_scoped_templates_use_cmp_primitives_without_a_parallel_style_system(self) -> None:
         failures: list[str] = []

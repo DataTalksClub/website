@@ -14,20 +14,25 @@ logger = logging.getLogger(__name__)
 
 
 def fill_most_common_answer_as_correct(question: Question) -> None:
+    # A question identifies itself by id here, never by `str(question)` and
+    # never together with its answer.  `Question.__str__` spells out the course,
+    # the homework and the question text, and the value being set *is* the
+    # answer key: one logging configuration away, this would write the key for
+    # every question to the log.
     if question.correct_answer and not has_invalid_correct_answer_indices(
         question
     ):
-        logger.info(f"Correct answer for {question} is already set")
+        logger.info("Correct answer for question_id=%s is already set", question.pk)
         return
 
     answer = most_common_answer_text(question)
     if answer is None:
-        logger.warning(f"No answers for {question}")
+        logger.warning("No answers for question_id=%s", question.pk)
         return
 
     question.correct_answer = answer
     question.save()
-    logger.info(f"Updated answer for {question} to {answer}")
+    logger.info("Updated correct answer for question_id=%s", question.pk)
 
 
 def most_common_answer_text(question: Question) -> str | None:

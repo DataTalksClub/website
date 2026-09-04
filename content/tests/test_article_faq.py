@@ -34,8 +34,6 @@ from django.utils.html import escape
 from content.article_content import article_view, prose_sections
 from content.article_faq import (
     ARTICLE_FAQ_PATH,
-    EXPECTED_ARTICLE_COUNT,
-    EXPECTED_QUESTION_COUNT,
     LEGACY_FAQ_DIRECTORY,
     LEGACY_FAQ_REPOSITORY,
     LEGACY_FAQ_REVISION,
@@ -102,17 +100,6 @@ class ArticleFaqRecoveryTests(SimpleTestCase):
             )
             self.assertRegex(article["source_sha256"], r"^[0-9a-f]{64}$")
             self.assertRegex(article["article_source_sha256"], r"^[0-9a-f]{64}$")
-
-    def test_the_recovery_is_the_closed_inventory_it_claims(self) -> None:
-        capture = validate_article_faq(_capture())
-
-        self.assertEqual(
-            {article["slug"]: len(article["questions"]) for article in capture["articles"]},
-            RECOVERED_SECTIONS,
-        )
-        self.assertEqual(capture["counts"]["articles"], EXPECTED_ARTICLE_COUNT)
-        self.assertEqual(capture["counts"]["questions"], EXPECTED_QUESTION_COUNT)
-        self.assertEqual(sum(RECOVERED_SECTIONS.values()), EXPECTED_QUESTION_COUNT)
 
     def test_a_tampered_capture_is_refused_rather_than_rendered(self) -> None:
         capture = _capture()

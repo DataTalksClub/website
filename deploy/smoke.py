@@ -21,12 +21,12 @@ from deploy.contracts import (
     validate_source_sha,
     validate_version,
 )
-from deploy.legacy_development_compatibility import ORIGIN as DEVELOPMENT_ORIGIN
+from deploy.deployment_targets import SELECTED_TARGET
 
 ROBOTS_VALUE = "noindex, nofollow"
 ROBOTS_BODY = b"User-agent: *\nDisallow: /\n"
 _STATIC_REFERENCE = re.compile(r'(?:href|src)="(?P<path>/static/[^"?#]+)')
-# The public home identity, as design 5a renders it (issue #179).
+# The public home identity, as design system renders it (issue #179).
 HOME_IDENTITY_MARKER = "Learn the fundamentals. Build real projects. Share your work."
 # Every home content string run_http_smoke asserts against the live homepage: the
 # document title, the hero identity marker, and the hero lede (issue #198). The pins
@@ -196,9 +196,11 @@ def _assert_status(response: Response, expected: int, path: str) -> None:
 
 
 def validate_origin(origin: str) -> str:
+    """Restrict the deployed smoke to the selected deployment target's own origin."""
+
     normalized = origin.rstrip("/")
-    if normalized != DEVELOPMENT_ORIGIN:
-        raise ReleaseContractError(f"deployed smoke is restricted to {DEVELOPMENT_ORIGIN}")
+    if normalized != SELECTED_TARGET.origin:
+        raise ReleaseContractError(f"deployed smoke is restricted to {SELECTED_TARGET.origin}")
     return normalized
 
 
@@ -324,7 +326,7 @@ def run_http_smoke(
     location = studio.headers.get("location", "")
     parsed = urllib.parse.urlparse(location)
     if parsed.netloc and f"{parsed.scheme}://{parsed.netloc}" != origin:
-        raise ReleaseContractError("/studio/ redirected away from the development origin")
+        raise ReleaseContractError("/studio/ redirected away from the deployment origin")
     if parsed.path != "/accounts/login/" or parsed.query != "next=%2Fstudio%2F":
         raise ReleaseContractError("/studio/ redirect target is not the exact sign-in route")
 
@@ -482,8 +484,8 @@ def run_http_smoke(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run the read-only development HTTP smoke")
-    parser.add_argument("--base-url", default=DEVELOPMENT_ORIGIN)
+    parser = argparse.ArgumentParser(description="Run the read-only deployed HTTP smoke")
+    parser.add_argument("--base-url", default=SELECTED_TARGET.origin)
     parser.add_argument("--source-sha", required=True)
     parser.add_argument("--version", required=True)
     parser.add_argument("--image-digest", required=True)

@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import Any
 
 from django.conf import settings
+from django.contrib.staticfiles.storage import staticfiles_storage
+from django.core.validators import RegexValidator
 from django.db import models, router
 from django.db.models import F, Q
+
+logger = logging.getLogger(__name__)
 
 
 class AppendOnlyViolation(RuntimeError):
@@ -25,9 +30,6 @@ class AppendOnlyQuerySet(models.QuerySet[Any]):
     def update(self, **kwargs: Any) -> int:
         retention_fields = {
             AuditEvent: frozenset({"actor", "api_principal"}),
-            OperationalSettingRevision: frozenset({"changed_by"}),
-            SiteNavigationRevision: frozenset({"changed_by"}),
-            SponsorRevision: frozenset({"changed_by"}),
         }.get(self.model, frozenset())
         supplied_field = next(iter(kwargs), "").removesuffix("_id")
         if (
@@ -255,66 +257,6 @@ class OperationalSetting(RevisionedModel):
         return self.key
 
 
-class OperationalSettingRevision(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    setting = models.ForeignKey(
-        OperationalSetting,
-        on_delete=models.PROTECT,
-        related_name="history",
-    )
-    key = models.CharField(max_length=128)
-    value_type = models.CharField(max_length=16, choices=OperationalSetting.ValueType.choices)
-    value = models.JSONField()
-    source = models.CharField(max_length=64)
-    definition_version = models.PositiveIntegerField()
-    revision = models.PositiveBigIntegerField()
-    changed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="operational_setting_revisions",
-    )
-    changed_by_ref = models.CharField(max_length=128, blank=True)
-    audit_event = models.ForeignKey(
-        AuditEvent,
-        on_delete=models.PROTECT,
-        related_name="setting_revisions",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    objects = AppendOnlyManager()
-
-    class Meta:
-        base_manager_name = "objects"
-        default_manager_name = "objects"
-        ordering = ("setting_id", "revision")
-        constraints = [
-            models.UniqueConstraint(
-                fields=("setting", "revision"),
-                name="core_setting_history_revision_unique",
-            ),
-            models.CheckConstraint(
-                condition=Q(revision__gte=1),
-                name="core_setting_history_revision_positive",
-            ),
-        ]
-        indexes = [models.Index(fields=("key", "-revision"), name="core_setting_history_key")]
-
-    def __str__(self) -> str:
-        return f"{self.key}@{self.revision}"
-
-    def save(self, *args: Any, **kwargs: Any) -> None:
-        if not self._state.adding:
-            raise AppendOnlyViolation("setting history cannot be updated")
-        kwargs["force_insert"] = True
-        super().save(*args, **kwargs)
-
-    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
-        del args, kwargs
-        raise AppendOnlyViolation("setting history cannot be deleted")
-
-
 class IdempotencyRecord(models.Model):
     class Status(models.TextChoices):
         IN_PROGRESS = "in_progress", "In progress"
@@ -361,7 +303,38 @@ class IdempotencyRecord(models.Model):
         return f"{self.scope}:{self.id}"
 
 
+#: A key names a location inside one configured prefix and nothing else: no
+#: scheme, no host, no leading slash, no traversal, no backslash.  See
+#: ``courses.models.testimonial.ASSET_KEY_PATTERN`` for the full rationale;
+#: the pattern is duplicated here rather than imported so a migration
+#: serializes it *by value* and never imports another app's module.
+SPONSOR_LOGO_ASSET_KEY_PATTERN = r"^(?!/)(?!.*\.\.)(?!.*\\)(?!\w+:)[\w.-]+(?:/[\w.-]+)*$"
+SPONSOR_LOGO_ASSET_KEY_MESSAGE = (
+    "Enter a key relative to the site-assets prefix, e.g. 'sponsors/example.png'."
+)
+
+#: Where a ``site-assets/`` key still resolves while the CDN move is in flight.
+#: See ``courses.models.testimonial.INTERIM_SITE_ASSET_STATIC_PREFIX`` -- the
+#: same interim layout, duplicated for the same self-containment reason.
+SPONSOR_INTERIM_SITE_ASSET_STATIC_PREFIX = "core/"
+
+
 class Sponsor(RevisionedModel):
+    """One organization in the sponsor directory, public or Studio-managed.
+
+    ``description`` and ``logo_asset_key`` back the public sponsor directory
+    (the homepage teaser and ``/sponsors``); today they arrive only through
+    :func:`core.sponsors.import_public_sponsor_directory` from the reviewed
+    ``core/sponsor_directory.json`` and are not yet Studio-writable fields --
+    a deliberate, narrower scope than the rest of this model, noted here so it
+    is not mistaken for an oversight.
+
+    Read the logo through :attr:`logo_url`, never by resolving
+    ``logo_asset_key`` directly; that property is what keeps a bad row from
+    taking the page down with it, the same guard
+    ``courses.models.Testimonial.portrait_url`` uses for portraits.
+    """
+
     class Lifecycle(models.TextChoices):
         DRAFT = "draft", "Draft"
         ACTIVE = "active", "Active"
@@ -372,6 +345,23 @@ class Sponsor(RevisionedModel):
     name = models.CharField(max_length=120)
     url = models.CharField(max_length=500, blank=True)
     tagline = models.CharField(max_length=200, blank=True)
+    description = models.TextField(
+        blank=True,
+        help_text=(
+            "Longer copy shown on the public sponsor directory. Short-line "
+            "placements such as events_hub use tagline instead and can leave "
+            "this empty."
+        ),
+    )
+    logo_asset_key = models.CharField(
+        max_length=200,
+        blank=True,
+        validators=[RegexValidator(SPONSOR_LOGO_ASSET_KEY_PATTERN, SPONSOR_LOGO_ASSET_KEY_MESSAGE)],
+        help_text=(
+            "Logo key relative to the site-assets prefix, e.g. 'sponsors/example.png'. "
+            "Empty renders no logo."
+        ),
+    )
     lifecycle = models.CharField(max_length=16, choices=Lifecycle.choices)
     source = models.CharField(max_length=64)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -401,6 +391,34 @@ class Sponsor(RevisionedModel):
     def __str__(self) -> str:
         return self.key
 
+    @property
+    def logo_url(self) -> str:
+        """The logo's public URL, or ``""`` when it cannot be resolved.
+
+        **This never raises, and that is the whole point of it.**  See
+        ``courses.models.Testimonial.portrait_url`` for the full rationale:
+        under ``CompressedManifestStaticFilesStorage`` an unknown reference is
+        a ``ValueError``, not a missing file, and this is read inside the
+        homepage's and the sponsor directory's render loops, so one stale row
+        must not abandon the whole page.  The broad ``except`` is deliberate
+        for the same reason it is there -- no failure mode of asset
+        resolution, present or future, may reach the caller.
+        """
+
+        key = self.logo_asset_key.strip()
+        if not key:
+            return ""
+        try:
+            return staticfiles_storage.url(f"{SPONSOR_INTERIM_SITE_ASSET_STATIC_PREFIX}{key}")
+        except Exception:
+            # The key is editorial, not secret, and naming it is what makes the
+            # warning actionable; there is no request or person in it.
+            logger.warning(
+                "Sponsor logo could not be resolved; rendering without it.",
+                extra={"logo_asset_key": key},
+            )
+            return ""
+
 
 class SponsorPlacementAssignment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -426,7 +444,7 @@ class SponsorPlacementAssignment(models.Model):
                 name="core_sponsor_assignment_position_unique",
             ),
             models.CheckConstraint(
-                condition=Q(placement_key="events_hub"),
+                condition=Q(placement_key__in=("events_hub", "public_directory")),
                 name="core_sponsor_placement_allowlist",
             ),
             models.CheckConstraint(
@@ -443,68 +461,6 @@ class SponsorPlacementAssignment(models.Model):
 
     def __str__(self) -> str:
         return f"{self.sponsor_id}:{self.placement_key}"
-
-
-class SponsorRevision(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    sponsor = models.ForeignKey(
-        Sponsor,
-        on_delete=models.PROTECT,
-        related_name="history",
-    )
-    key = models.CharField(max_length=64)
-    name = models.CharField(max_length=120)
-    url = models.CharField(max_length=500, blank=True)
-    tagline = models.CharField(max_length=200, blank=True)
-    lifecycle = models.CharField(max_length=16, choices=Sponsor.Lifecycle.choices)
-    source = models.CharField(max_length=64)
-    revision = models.PositiveBigIntegerField()
-    assignments = models.JSONField(default=list)
-    changed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="sponsor_revisions",
-    )
-    changed_by_ref = models.CharField(max_length=128, blank=True)
-    audit_event = models.ForeignKey(
-        AuditEvent,
-        on_delete=models.PROTECT,
-        related_name="sponsor_revisions",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    objects = AppendOnlyManager()
-
-    class Meta:
-        base_manager_name = "objects"
-        default_manager_name = "objects"
-        ordering = ("sponsor_id", "revision")
-        constraints = [
-            models.UniqueConstraint(
-                fields=("sponsor", "revision"),
-                name="core_sponsor_history_revision_unique",
-            ),
-            models.CheckConstraint(
-                condition=Q(revision__gte=1),
-                name="core_sponsor_history_revision_positive",
-            ),
-        ]
-        indexes = [models.Index(fields=("key", "-revision"), name="core_sponsor_history_key")]
-
-    def __str__(self) -> str:
-        return f"{self.key}@{self.revision}"
-
-    def save(self, *args: Any, **kwargs: Any) -> None:
-        if not self._state.adding:
-            raise AppendOnlyViolation("sponsor history cannot be updated")
-        kwargs["force_insert"] = True
-        super().save(*args, **kwargs)
-
-    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
-        del args, kwargs
-        raise AppendOnlyViolation("sponsor history cannot be deleted")
 
 
 class SiteNavigationMenu(RevisionedModel):
@@ -577,66 +533,6 @@ class SiteNavigationEntry(models.Model):
 
     def __str__(self) -> str:
         return f"{self.menu_id}:{self.key}"
-
-
-class SiteNavigationRevision(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    menu = models.ForeignKey(
-        SiteNavigationMenu,
-        on_delete=models.PROTECT,
-        related_name="history",
-    )
-    menu_key = models.CharField(max_length=32)
-    source = models.CharField(max_length=64)
-    revision = models.PositiveBigIntegerField()
-    entries = models.JSONField(default=list)
-    changed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="site_navigation_revisions",
-    )
-    changed_by_ref = models.CharField(max_length=128, blank=True)
-    audit_event = models.ForeignKey(
-        AuditEvent,
-        on_delete=models.PROTECT,
-        related_name="navigation_revisions",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    objects = AppendOnlyManager()
-
-    class Meta:
-        base_manager_name = "objects"
-        default_manager_name = "objects"
-        ordering = ("menu_id", "revision")
-        constraints = [
-            models.UniqueConstraint(
-                fields=("menu", "revision"),
-                name="core_navigation_history_revision_unique",
-            ),
-            models.CheckConstraint(
-                condition=Q(revision__gte=1),
-                name="core_navigation_history_revision_positive",
-            ),
-        ]
-        indexes = [
-            models.Index(fields=("menu_key", "-revision"), name="core_navigation_history_key")
-        ]
-
-    def __str__(self) -> str:
-        return f"{self.menu_key}@{self.revision}"
-
-    def save(self, *args: Any, **kwargs: Any) -> None:
-        if not self._state.adding:
-            raise AppendOnlyViolation("navigation history cannot be updated")
-        kwargs["force_insert"] = True
-        super().save(*args, **kwargs)
-
-    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
-        del args, kwargs
-        raise AppendOnlyViolation("navigation history cannot be deleted")
 
 
 class Operation(RevisionedModel):

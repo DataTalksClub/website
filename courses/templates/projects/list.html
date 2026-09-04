@@ -1,7 +1,8 @@
 {% extends 'projects/_base.html' %}
+{% load breadcrumbs %}
 {% comment %}
   The project submission list a learner votes and picks reviews from, on
-  design 5a (issue #179).
+  design system (issue #179).
 
   Only the presentation moved.  Every vote form keeps its method, its CSRF
   token, its `submission_id` and `action` hidden inputs, its own-submission and
@@ -65,13 +66,9 @@
   }
 {% endblock %}
 
-{% block breadcrumbs %}
-  <li>
-    <a href="{% url 'project' course_slug=course.course.slug cohort_year=course.identifier project_slug=project.slug %}">{{ project.title }}</a>
-  </li>
-  <li aria-current="page">
-    Project submissions
-  </li>
+{% block breadcrumb_trail %}
+  {% url 'project' course_slug=course.course.slug cohort_year=course.identifier project_slug=project.slug as project_url %}
+  {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url project.title project_url current="Project submissions" %}
 {% endblock %}
 
 {% block page_head %}

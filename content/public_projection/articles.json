@@ -5712,8 +5712,8 @@
       }
     ],
     "description": "How sharing your learning publicly leads to feedback, visibility, and real opportunities",
-    "image_path": "/images/posts/2026-03-05-benefits-of-learning-in-public-and-why-it-works/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "30fc2743c99ad898375fe4bb809b387d78ead465a84a27e932570a57cba3c796",
       "repository": "DataTalksClub/content",
@@ -10787,8 +10787,8 @@
       }
     ],
     "description": "Learn what you can build after ML Zoomcamp based on a real project from one of the graduates",
-    "image_path": "/images/posts/2025-08-11-tab-1-how-to-build-blood-cell-classifier-for-cancer-prediction-case-study-from-ml-zoomcamp/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "bf2903e0c96c932811cfa58031c5ae1ce1c3a8128216e1267723afa1d6078ad1",
       "repository": "DataTalksClub/content",
@@ -11000,8 +11000,8 @@
       }
     ],
     "description": "A disciplined path to data prep, validation, and deployment, plus how public sharing accelerated my skills, connections, and offers.",
-    "image_path": "/images/posts/2025-08-11-tab-2-building-discipline-in-machine-learning-with-ml-zoomcamp/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "5f3080b0504ed2b8656021822558483ceb9eacf226310901b669855c79e85387",
       "repository": "DataTalksClub/content",
@@ -11375,8 +11375,8 @@
       }
     ],
     "description": "Learn how to build a successful data science team from scratch. Complete guide covering hiring data scientists, ML engineers, data engineers, specialists vs generalists, and project selection strategies.",
-    "image_path": "/images/posts/2022-07-12-building-data-science-team/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "d0d2b6e7f83e9dc891a0640238532f4e95bf5352eccaf5f36e2154b8ffa35431",
       "repository": "DataTalksClub/content",
@@ -11597,8 +11597,8 @@
       }
     ],
     "description": "What you learn in ML Zoomcamp, a free ML engineering course: graduate Serena Haidar on study rhythm, obstacles, and refining a deployment-focused workflow.",
-    "image_path": "/images/posts/2025-08-05-key-lessons-from-ml-zoomcamp-serena-haidar/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "b674d82eb57a1346d05356d0d35bb9c560cd112b30dc7938f5ac43d969b5b2eb",
       "repository": "DataTalksClub/content",
@@ -12117,8 +12117,8 @@
       }
     ],
     "description": "Learn what you can build after ML Zoomcamp, a free course on ML engineering, based on the final end-to-end ML engineering project from one of the graduates: Xception waste classifier on ~15k images, 93.3% accuracy, deployed with Flask and Docker.",
-    "image_path": "/images/posts/2025-08-05-how-to-build-waste-classifier-case-study-from-ml-zoomcamp/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "646047280080730363a581b94de77f596f671e1879b7e628278a57779b229f9b",
       "repository": "DataTalksClub/content",
@@ -12719,8 +12719,8 @@
       }
     ],
     "description": "Data team roles and responsibilities explained. Learn skills, workflows, and collaboration across PM, analysts, scientists, engineers, MLE/SRE. Discover proven tips.",
-    "image_path": "/images/posts/2020-12-14-data-roles/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "dd9f60bbadabc6315b7f830d2a9bf691c07e4052fa3c9d1256e013e33cc9f68b",
       "repository": "DataTalksClub/content",
@@ -13088,8 +13088,8 @@
       }
     ],
     "description": "Data Science Manager vs Expert: Compare skills, responsibilities, and when to hire each role. Learn key differences between management and technical expert positions, required skills, and which profile your company needs.",
-    "image_path": "/images/posts/2022-07-16-data-science-manager-vs-data-science-expert/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "cc2b8f14402381e154e7236169fb061d478de32515ee4496e7275b44d07d8dd6",
       "repository": "DataTalksClub/content",
@@ -13483,8 +13483,8 @@
       }
     ],
     "description": "Discover the global demographic profile of DataTalks.Club community, spanning 65+ countries across all continents. Insights on geographic distribution, career levels, job roles, organization sizes, and industries.",
-    "image_path": "/images/posts/2025-05-16-datatalks-club-community-demographics/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "8385d3a54ca45f8202cde062e2405924d794271c774e7884fa8a4599433c4d84",
       "repository": "DataTalksClub/content",
@@ -13890,8 +13890,8 @@
       }
     ],
     "description": "Discover how 200+ data professionals deploy, monitor, and manage ML models in production. Survey insights on MLOps tools, deployment practices, model versioning, CI/CD workflows, and team structures in 2024.",
-    "image_path": "/images/posts/2025-04-28-how-do-data-professionals-use-ml-and-mlops-tools-and-practices/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "9d3a5cabe774a300b1b828cd74fdc861d2b1fc698448b2e8c26fb5f5cde9e2f1",
       "repository": "DataTalksClub/content",
@@ -14464,8 +14464,8 @@
       }
     ],
     "description": "2024 Data Engineering Survey: 200+ professionals share insights on BigQuery vs Snowflake, Apache Airflow dominance (48%), dbt adoption (33%), and data governance gaps. Complete analysis of storage, orchestration, and cloud platform trends.",
-    "image_path": "/images/posts/2025-04-15-how-do-data-professionals-use-data-engineering-tools-and-practices/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "64508ac0ab825f08acbe15d11646cb73d0489a07b2f8cc3d9382b1f4dd1fde1f",
       "repository": "DataTalksClub/content",
@@ -14970,8 +14970,8 @@
       }
     ],
     "description": "2024 LLM Survey Results: 200+ professionals reveal OpenAI dominance (73%), self-hosting trends, fine-tuning practices, and production deployment strategies. Key insights on managed services, cloud infrastructure, and integration frameworks.",
-    "image_path": "/images/posts/2025-04-11-how-do-professionals-use-llm-tools-and-frameworks/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "fbc68f9d7550e30cd06b66d393ee960171e96dd8536c317143a4ed2ef2a4728f",
       "repository": "DataTalksClub/content",
@@ -15309,8 +15309,8 @@
       }
     ],
     "description": "2024 AI Productivity Survey: 300 technical professionals reveal 70% daily AI usage, ChatGPT dominance (92%), GitHub Copilot adoption (78%), and 10x productivity gains. Complete analysis of AI tools, use cases, and workflow integration trends.",
-    "image_path": "/images/posts/2025-04-10-ai-tools-for-personal-productivity/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "2af3b54e79a36fe1a32a8a12a84eed8f89ca9fb862787ff6c06bcda45f3a4c2b",
       "repository": "DataTalksClub/content",
@@ -15522,8 +15522,8 @@
       }
     ],
     "description": "A Guide to Development, Testing, and Monitoring",
-    "image_path": "/images/posts/2025-02-26-building-ai-agent-that-thrives-in-real-world/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "f7064f7353a88de23568b253af098382f898cbf2f2103d67fec5e1944c07079e",
       "repository": "DataTalksClub/content",
@@ -15842,8 +15842,8 @@
       }
     ],
     "description": "Solving High School Mathematics Problems with LLMs",
-    "image_path": "/images/posts/2024-10-21-winning-solutions-from-llm-zoomcamp-2024-competition/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "9aef9ee8066e34f5e27b8299126bbb212351391181ec0a1ad7a9e3d2732ca50b",
       "repository": "DataTalksClub/content",
@@ -16172,8 +16172,8 @@
       }
     ],
     "description": "Follow insights and trends with these publications",
-    "image_path": "/images/posts/2023-12-11-8-newsletters-for-data-science-ai-and-ml-enthusiasts/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "dbf8ae70fd6354466cfb0c4518ce778f40789e479608fefb0ae4dc2b6d50242c",
       "repository": "DataTalksClub/content",
@@ -16443,8 +16443,8 @@
       }
     ],
     "description": "Structured Data Extraction with OpenAI Function Calling",
-    "image_path": "/images/posts/2023-11-18-prepare-for-better-structured-data-extraction/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "8fc7713086cc0fb0afb5e7d58d4268f51c2efa95d6470efb63cdc1c45a2fb3a5",
       "repository": "DataTalksClub/content",
@@ -16888,8 +16888,8 @@
       }
     ],
     "description": "And an alternative with Docker Compose",
-    "image_path": "/images/posts/2023-03-07-how-to-run-postgresql-and-pgadmin-with-docker/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "99916626b36a351c52601eadb5fc7e8150a726e26c71346e0204031ca03062ac",
       "repository": "DataTalksClub/content",
@@ -17286,8 +17286,8 @@
       }
     ],
     "description": "A deep dive into the Kaggle Competition on Kitchenware Classification, focusing on the winning approach.",
-    "image_path": "/images/posts/2023-02-21-summary-of-kitchenware-competition/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "b9e3ed02e7405a4ca5f9ccb6bac08a632e8af455871aa1450569c4cb7c59611d",
       "repository": "DataTalksClub/content",
@@ -17663,8 +17663,8 @@
       }
     ],
     "description": "It worked for me",
-    "image_path": "/images/posts/2023-01-04-guidelines-to-get-data-engineer-job-against-odds/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "f8df1dad3c9f071273c7c1e51b5afa31c3611e79632c31a5e23567e0a32279cd",
       "repository": "DataTalksClub/content",
@@ -17872,8 +17872,8 @@
       }
     ],
     "description": "A comparison among the DataOps, Data Engineering, and Data Science roles.",
-    "image_path": "/images/posts/2022-12-23-dataops-similarities-and-differences-with-data-engineering-and-data-science/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "46660f85318ac54a6919a2526c77a3e1c707035679f925220e4c33900165900b",
       "repository": "DataTalksClub/content",
@@ -18277,8 +18277,8 @@
       }
     ],
     "description": "How this has several impacts",
-    "image_path": "/images/posts/2022-10-21-important-sql-fact-that-everyone-should-know/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "97a4e831ef4f6ec2b157d2818ddf909583ebdfb1f9f3b6a740a427189a72c0be",
       "repository": "DataTalksClub/content",
@@ -18534,8 +18534,8 @@
       }
     ],
     "description": "Why df is a bad name for a dataframe",
-    "image_path": "/images/posts/2022-10-02-naming-variables-in-machine-learning/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "c1c13c06e9ccf825bdcb0bf77d0dd32c5da234e19d0238ac1dc24848008c9e17",
       "repository": "DataTalksClub/content",
@@ -18826,8 +18826,8 @@
       }
     ],
     "description": "Valerii’s story about his work in property valuation, Machine Learning Zoomcamp, and his internship at delphai",
-    "image_path": "/images/posts/2022-09-29-interview-with-valerii-chetvertakov/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "dfaa251926c7a04ad9c940fbfb074cfa0710ea8c4104edd78056fc3b85f52831",
       "repository": "DataTalksClub/content",
@@ -19189,8 +19189,8 @@
       }
     ],
     "description": "With these, you will be a great professional",
-    "image_path": "/images/posts/2022-09-29-do-you-know-golden-rules-while-working-with-data/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "96aafae7b59f258e54f9bfa3b79c65d7642b1b9bac88b28c891513c08f009fd5",
       "repository": "DataTalksClub/content",
@@ -19395,8 +19395,8 @@
       }
     ],
     "description": "Remedy for numerical instability",
-    "image_path": "/images/posts/2022-09-22-regularization-in-regression/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "2c3fb4fc329a156a404ade668d64c6ad07755e03315e699e09ef046d9f2bd6d6",
       "repository": "DataTalksClub/content",
@@ -19795,8 +19795,8 @@
       }
     ],
     "description": "With Docker and Docker Compose",
-    "image_path": "/images/posts/2022-09-17-how-to-setup-lightweight-local-version-for-airflow/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "e9ea430e30a9fe412a6b5510b27923991d95273c68c7a94e447e203391305e7b",
       "repository": "DataTalksClub/content",
@@ -20120,8 +20120,8 @@
       }
     ],
     "description": "But almost identical to a less known profession",
-    "image_path": "/images/posts/2022-09-02-data-engineers-arent-plumbers/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "90f011f35428f2c19eb06393e594c5c91c71996b3da8becc0ec20a2649315ec6",
       "repository": "DataTalksClub/content",
@@ -20478,8 +20478,8 @@
       }
     ],
     "description": "Advice from a Recruiter",
-    "image_path": "/images/posts/2022-09-01-hiring-process-for-data-professionals/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "e46b48f8f0b7086e8cad1d3c33ab2937eed175c43f323eff7b2b5495cffcf10a",
       "repository": "DataTalksClub/content",
@@ -20649,8 +20649,8 @@
       }
     ],
     "description": "Ken’s story about his interest in machine learning, Machine Learning Zoomcamp and work on NLP during his internship at delphai",
-    "image_path": "/images/posts/2022-08-22-interview-with-ken-wu/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "da8579e0c4eb68584abc3a1a23f4c3cb4e0a8d95648b4f669c7eaefdb0d0cb02",
       "repository": "DataTalksClub/content",
@@ -21055,8 +21055,8 @@
       }
     ],
     "description": "Some tips on how to boost your public speaking skills as a data scientist",
-    "image_path": "/images/posts/2022-07-31-essentials-of-public-speaking-for-career-in-data-science/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "006cec5026ee6e6414eac7667241dbfff5d350c77f45553c55ca396bf99c7107",
       "repository": "DataTalksClub/content",
@@ -21409,8 +21409,8 @@
       }
     ],
     "description": "Discover the three main types of data scientists (Analyst, Builder, Consultant) and learn practical tips for starting your data science career",
-    "image_path": "/images/posts/2022-07-23-starting-career-as-data-scientist/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "0174bb496b648441af3b00c82179fe9124441100693ed6c578187372c6075c1a",
       "repository": "DataTalksClub/content",
@@ -21673,8 +21673,8 @@
       }
     ],
     "description": "From baby steps on GitHub to Developer Advocate Engineer hero",
-    "image_path": "/images/posts/2022-07-15-what-open-source-can-do-for-your-data-career/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "35e6bc36dd98b7361917518916f3eb27d95256c69875605f4cfac75d8a9b3002",
       "repository": "DataTalksClub/content",
@@ -22001,8 +22001,8 @@
       }
     ],
     "description": "An overview of DataOps and what makes it different from the other DevOps practices.",
-    "image_path": "/images/posts/2022-06-11-what-dataops-exactly/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "7d15a1cebe39f7525fbf8dcfa1f636de1b11f3b4619c0797ac29289501414809",
       "repository": "DataTalksClub/content",
@@ -22336,8 +22336,8 @@
       }
     ],
     "description": "From microbiologist to data scientist",
-    "image_path": "/images/posts/2022-05-20-starting-career-in-data-science-at-45/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "59c4bd5b977754ff6abf2eec1ea2a0550fb3eb21268e8d903b0a1c8670550273",
       "repository": "DataTalksClub/content",
@@ -22706,8 +22706,8 @@
       }
     ],
     "description": "DevOps vs MLOps: discover key differences, workflows, monitoring, and maturity models. Learn proven practices to build, maintain, and retrain ML systems.",
-    "image_path": "/images/posts/2022-05-15-devops-and-mlops-same-thing/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "b642d40bea18b27a6eb9a83e74a755a6af539274b16bb3ab816b10b5321974c5",
       "repository": "DataTalksClub/content",
@@ -23229,8 +23229,8 @@
       }
     ],
     "description": "MLOps essentials: Learn to streamline design, training, and operations with experiment tracking, pipelines, deployment, and monitoring. Get started today.",
-    "image_path": "/images/posts/2022-05-02-mlops-10-minutes/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "5ee94ed47832b5a73f9c6a1273ed1608a4e0599395725f793085807a47dc58de",
       "repository": "DataTalksClub/content",
@@ -23460,8 +23460,8 @@
       }
     ],
     "description": "An account of my job search in the field of analytics during Covid-19",
-    "image_path": "/images/posts/2021-02-01-landing-product-analyst-job/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "189aaa23b3c8cbde53ad6daa1b378f3a8ef3a68929eaca47ce7c6e8787a3b7a3",
       "repository": "DataTalksClub/content",
@@ -24354,8 +24354,8 @@
       }
     ],
     "description": "Learn containerized ML deployment on AWS Lambda: build, train, and serve with Docker, ECR, and SAM, plus CI/CD via GitHub Actions. Follow this proven guide.",
-    "image_path": "/images/posts/2021-01-01-ml-deployment-lambda/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "05852455578be7b6e2d82d4861578497c23402564c22b5aa797796034865804e",
       "repository": "DataTalksClub/content",
@@ -24600,8 +24600,8 @@
       }
     ],
     "description": "Data storytelling for analysts: Learn characters, conflict, and conclusion to turn insights into action, with a retail forecasting example. Master essential skills.",
-    "image_path": "/images/posts/2020-12-25-data-narrative/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "a66f79c11d0c5774d219fbf10a2693ff807d4726075b5477fe2cf2dc6a096cbf",
       "repository": "DataTalksClub/content",
@@ -24826,8 +24826,8 @@
       }
     ],
     "description": "Simplify technical concepts for non-technical audiences. Learn a proven 3-step framework with relatable examples and summaries. Master communication.",
-    "image_path": "/images/posts/2020-12-17-simplifying-concepts/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "7a794f7a0883e8878518d237952f6a26137d5eeb6dbea0a87b3c1c604e177386",
       "repository": "DataTalksClub/content",
@@ -25509,8 +25509,8 @@
       }
     ],
     "description": "Named Entity Recognition (NER) with Reformer in Trax. Learn core NER, implement and train on a Kaggle dataset with code, evaluation, and proven tips.",
-    "image_path": "/images/posts/2020-12-17-ner-reformers/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "1861a56f41ff84dad092296cef8c76b12e9c69b1dc2ace19e52da9d08af14853",
       "repository": "DataTalksClub/content",
@@ -26155,8 +26155,8 @@
       }
     ],
     "description": "Python CI/CD with GitHub Actions: Discover branch protection, pre-commit, black, isort, flake8, mypy, and pytest to enforce essential, tested code—start now.",
-    "image_path": "/images/posts/2020-12-07-practical-guide-better-code/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "cbb77e4c9b0bc6ce153b80899a11b590d51687872065e99583f8ca1f9ab60e5e",
       "repository": "DataTalksClub/content",
@@ -26516,8 +26516,8 @@
       }
     ],
     "description": "Customer segmentation with limited data. Learn a 5D RFM+ framework, engineer metrics, and use k-means to create 7 segments—apply insights now.",
-    "image_path": "/images/posts/2020-11-29-segmentation/cover.jpg",
-    "media_available": true,
+    "image_path": "",
+    "media_available": false,
     "provenance": {
       "checksum": "00944d23e8f5f6d4973cc839cd269541e11cc8ad42abe3e62a54c650485dc05d",
       "repository": "DataTalksClub/content",

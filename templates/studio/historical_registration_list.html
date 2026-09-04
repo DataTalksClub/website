@@ -1,7 +1,7 @@
 {% extends "studio/base.html" %}
 
 {% comment %}
-  Design 5a (issue #179).  The staging form is the shared .field primitives in
+  Design system (issue #179).  The staging form is the shared .field primitives in
   the base's .admin-form, and the run list is an .admin-table: every column but
   the run link is a count, so the figures take .admin-cell-numeric and line up
   in tabular numerals.  Every field name, hidden input, CSRF token and POST
@@ -20,11 +20,6 @@
       Stage aggregate-only counts from a code-registered protected source. Attendee rows and
       provider payloads are never stored.
     </p>
-    <nav class="admin-toolbar" aria-label="Historical registration sections">
-      <a class="cta cta-secondary cta-compact" href="{% url 'studio:historical-registration-mappings' %}">
-        Review mappings
-      </a>
-    </nav>
   </div>
 {% endblock %}
 

@@ -103,51 +103,48 @@ class LoginPageConfigurationTests(TestCase):
                 self.assertNotContains(response, "Back to courses")
                 self.assertNotContains(response, "Choose your preferred login method")
 
-    def test_seeded_cmp_providers_render_on_login_and_signup(self) -> None:
+    def test_seeded_cmp_providers_render_on_login(self) -> None:
+        # This used to check both `/accounts/login/` and `/accounts/signup/`.
+        # The signup half was retired: `/accounts/signup/` now renders
+        # `account/signup_closed.html` unconditionally (`ClosedAccountAdapter`,
+        # pinned with real HTTP assertions in
+        # `accounts/tests/test_plain_signup_closed.py`), so seeding providers
+        # has nothing left to show there — the closed page has no provider
+        # block regardless of what `seed_local_social_providers` seeds.
         seed_local_social_providers()
 
-        for path in ("/accounts/login/?next=/books", "/accounts/signup/?next=/books"):
-            with self.subTest(path=path):
-                response = self.client.get(path)
+        response = self.client.get("/accounts/login/?next=/books")
 
-                self.assertEqual(response.status_code, 200)
-                if "login" in path:
-                    self.assertContains(response, "Sign In")
-                    self.assertContains(response, "Choose your preferred login method")
-                self.assertNotContains(response, "Sign-in is temporarily unavailable")
-                for provider, name in PLACEHOLDER_PROVIDERS:
-                    with self.subTest(path=path, provider=provider):
-                        self.assertContains(response, f"Continue with {name}")
-                        self.assertContains(response, f"/accounts/{provider}/login/")
-                if "login" in path:
-                    self.assertContains(
-                        response,
-                        "Secure login — we never store your social media passwords",
-                    )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sign In")
+        self.assertContains(response, "Choose your preferred login method")
+        self.assertNotContains(response, "Sign-in is temporarily unavailable")
+        for provider, name in PLACEHOLDER_PROVIDERS:
+            with self.subTest(provider=provider):
+                self.assertContains(response, f"Continue with {name}")
+                self.assertContains(response, f"/accounts/{provider}/login/")
+        self.assertContains(
+            response,
+            "Secure login — we never store your social media passwords",
+        )
 
-    def test_social_methods_precede_the_email_method_on_both_entrance_pages(self) -> None:
+    def test_social_methods_precede_the_email_method_on_login(self) -> None:
+        # This used to check both login and signup ordering. The signup half
+        # was retired: `/accounts/signup/` now renders
+        # `account/signup_closed.html` unconditionally, which has neither a
+        # provider list nor an email form to order (`ClosedAccountAdapter`,
+        # pinned in `accounts/tests/test_plain_signup_closed.py`).
         seed_local_social_providers()
 
         with override_settings(DEVELOPMENT_OWNER_LOGIN_ENABLED=True):
-            login_body = self.client.get("/accounts/login/?next=/books").content.decode()
-        signup_body = self.client.get("/accounts/signup/?next=/books").content.decode()
+            body = self.client.get("/accounts/login/?next=/books").content.decode()
 
-        for page, body, divider, form in (
-            ("login", login_body, "auth-or", "auth-form"),
-            ("signup", signup_body, "entrance-or", "entrance-form"),
-        ):
-            with self.subTest(page=page):
-                provider_at = body.index(
-                    'class="auth-choices"' if page == "login" else 'class="provider-choices"'
-                )
-                divider_at = body.index(f'class="{divider}"')
-                form_at = body.index(f'class="{form}"')
-                self.assertLess(provider_at, divider_at)
-                self.assertLess(divider_at, form_at)
-                self.assertIn(
-                    "or sign in with email" if page == "login" else "or sign up with email",
-                    body,
-                )
+        provider_at = body.index('class="auth-choices"')
+        divider_at = body.index('class="auth-or"')
+        form_at = body.index('class="auth-form"')
+        self.assertLess(provider_at, divider_at)
+        self.assertLess(divider_at, form_at)
+        self.assertIn("or sign in with email", body)
 
     def test_site_bound_social_apps_render_cmp_provider_choices_and_next(self) -> None:
         site = Site.objects.get(pk=settings.SITE_ID)

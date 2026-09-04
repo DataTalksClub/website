@@ -1,5 +1,4 @@
 import re
-from urllib.parse import quote, urlsplit, urlunsplit
 
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
@@ -9,6 +8,11 @@ from django.utils.safestring import mark_safe
 
 from courses.models import CurriculumFormat, Unit
 from courses.registration import render_markdown, youtube_embed_url
+from courses.services.unit_assets import (
+    rewrite_unit_image_sources,
+    unit_code_links,
+    unit_repository,
+)
 from courses.services.unit_links import rewrite_unit_markdown_links
 from courses.views.module import module_rail_context
 from courses.views.url_utils import get_cohort_or_404
@@ -30,34 +34,10 @@ def _unit_url(unit: Unit) -> str:
 def unit_edit_on_github_url(unit: Unit) -> str:
     """Return the source edit URL for a unit when its provenance is public."""
 
-    cohort = unit.module.cohort
-    course_family = cohort.course
-    repository_url = (
-        getattr(cohort, "github_repo_url", "")
-        or getattr(course_family, "github_repo_url", "")
-    )
-    source_path = (unit.source_path or "").strip("/")
-    if not repository_url or not source_path:
+    repository = unit_repository(unit)
+    if repository is None:
         return ""
-
-    parsed = urlsplit(repository_url.strip())
-    repository_path = parsed.path.rstrip("/").removesuffix(".git")
-    if not parsed.scheme or not parsed.netloc or not repository_path:
-        return ""
-
-    repository_base = urlunsplit(
-        (parsed.scheme, parsed.netloc, repository_path, "", "")
-    )
-    branch = (
-        getattr(cohort, "repository_branch", "")
-        or getattr(course_family, "repository_branch", "")
-        or "main"
-    )
-    return (
-        f"{repository_base}/edit/"
-        f"{quote(str(branch), safe='/')}/"
-        f"{quote(source_path, safe='/')}"
-    )
+    return repository.edit_url()
 
 
 def _adjacent_units(unit: Unit) -> tuple[Unit | None, Unit | None]:
@@ -75,10 +55,13 @@ def _adjacent_units(unit: Unit) -> tuple[Unit | None, Unit | None]:
     return previous_unit, next_unit
 
 
-_VIDEO_LINE_RE = re.compile(
-    r"(?mi)^[ \t]*video:[ \t]*\[[^\]]+\]\((https?://[^)\s]+)\)[ \t]*(?:\n|$)"
-)
-_LEADING_H1_RE = re.compile(r"\A(?:\s*\n)*#[ \t]+([^\n]+?)[ \t]*#*[ \t]*(?:\n|$)")
+# The page already prints the unit title as its `h1`, so a body that opens by
+# repeating it says the same thing twice.  Repositories write that opening
+# heading at whichever level suits the file they came from: the LLM lessons use
+# `#`, the ML lessons use `## 1.1 Introduction to Machine Learning`.  Both are
+# the document's own title, so both are matched -- and only ever removed when
+# the heading text is the unit title, never when it introduces a real section.
+_LEADING_TITLE_HEADING_RE = re.compile(r"\A(?:\s*\n)*#{1,2}[ \t]+([^\n]+?)[ \t]*#*[ \t]*(?:\n|$)")
 
 
 def _same_title(left: str, right: str) -> bool:
@@ -88,24 +71,24 @@ def _same_title(left: str, right: str) -> bool:
     return normalize(left) == normalize(right)
 
 
-def _unit_content(markdown: str, title: str) -> tuple[str, str]:
-    """Return body Markdown and a safe YouTube embed URL for a unit."""
+def _unit_content(markdown: str, title: str) -> str:
+    """Return the unit's body Markdown without its redundant leading heading."""
 
     body = markdown or ""
-    video_match = _VIDEO_LINE_RE.search(body)
-    video_embed_url = ""
-    if video_match:
-        candidate_url = video_match.group(1)
-        candidate_embed_url = youtube_embed_url(candidate_url)
-        if candidate_embed_url.startswith("https://www.youtube.com/embed/"):
-            video_embed_url = candidate_embed_url
-            body = body[: video_match.start()] + body[video_match.end() :]
-
-    heading_match = _LEADING_H1_RE.match(body)
+    heading_match = _LEADING_TITLE_HEADING_RE.match(body)
     if heading_match and _same_title(heading_match.group(1), title):
         body = body[heading_match.end() :]
 
-    return body.lstrip("\n"), video_embed_url
+    return body.lstrip("\n")
+
+
+def unit_video_embed_url(unit: Unit) -> str:
+    """Return the safe YouTube embed URL for a unit's declared lesson video."""
+
+    embed_url = youtube_embed_url(unit.video_url)
+    if embed_url.startswith("https://www.youtube.com/embed/"):
+        return embed_url
+    return ""
 
 
 def unit_view(
@@ -133,11 +116,11 @@ def unit_view(
     )
     previous_unit, next_unit = _adjacent_units(unit)
     canonical_path = _unit_url(unit)
-    unit_body_markdown, video_embed_url = _unit_content(
-        unit.content_markdown,
-        unit.title,
-    )
+    unit_body_markdown = _unit_content(unit.content_markdown, unit.title)
     unit_body_markdown = rewrite_unit_markdown_links(unit_body_markdown, unit)
+    unit_body_markdown = rewrite_unit_image_sources(unit_body_markdown, unit)
+    # ``render_markdown`` applies the course allowlist, so the rendered body is
+    # already sanitized HTML rather than trusted source text.
     rendered_content = mark_safe(render_markdown(unit_body_markdown))
     rail_context = module_rail_context(
         request,
@@ -156,7 +139,8 @@ def unit_view(
             "unit_content_html": rendered_content,
             "previous_unit": previous_unit,
             "next_unit": next_unit,
-            "video_embed_url": video_embed_url,
+            "video_embed_url": unit_video_embed_url(unit),
+            "unit_code_links": unit_code_links(unit),
             "edit_on_github_url": unit_edit_on_github_url(unit),
             "canonical_url": f"https://datatalks.club{canonical_path}",
             **rail_context,

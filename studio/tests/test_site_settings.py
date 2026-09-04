@@ -9,7 +9,7 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import Resolver404, resolve, reverse
 
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
-from core.models import AuditEvent, OperationalSetting, OperationalSettingRevision
+from core.models import AuditEvent, OperationalSetting
 from core.site_settings import ANNOUNCEMENT_ENABLED_KEY, ANNOUNCEMENT_MESSAGE_KEY
 
 
@@ -118,7 +118,6 @@ class StudioSiteSettingsTests(TestCase):
             OperationalSetting.objects.get(key=ANNOUNCEMENT_ENABLED_KEY).value,
             True,
         )
-        self.assertEqual(OperationalSettingRevision.objects.count(), 2)
         self.assertEqual(
             AuditEvent.objects.filter(action="core.operational_settings.batch_updated").count(),
             1,
@@ -129,7 +128,6 @@ class StudioSiteSettingsTests(TestCase):
         self.assertContains(success, "Site settings saved.")
         refresh = self.client.get(response.headers["Location"])
         self.assert_private(refresh, 200)
-        self.assertEqual(OperationalSettingRevision.objects.count(), 2)
 
     def test_validation_and_stale_conflict_preserve_safe_form_state(self) -> None:
         invalid_checkbox = self.client.post(
@@ -208,7 +206,6 @@ class StudioSiteSettingsTests(TestCase):
             OperationalSetting.objects.get(key=ANNOUNCEMENT_MESSAGE_KEY).value,
             "First save",
         )
-        self.assertEqual(OperationalSettingRevision.objects.count(), 2)
 
     def test_csrf_method_anonymous_and_permission_removal_fail_before_mutation(self) -> None:
         csrf_client = Client(enforce_csrf_checks=True)

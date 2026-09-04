@@ -23,7 +23,7 @@
     {% include "public/_page_relations.html" %}
     <style>
       /* ------------------------------------------------------------------ *
-       * Events index, design 5a mockup 6c (issue #179).  Like the homepage
+       * Events index, design system mockup 6c (issue #179).  Like the homepage
        * this page carries its own complete stylesheet: the shared design
        * system partial first, then the few rules this page adds.  It loads
        * none of the older site CSS.
@@ -84,13 +84,14 @@
         margin-left: auto;
       }
 
-      /* One row per event, exactly as the export draws it: the date rail in a
-         fixed first column and the event card filling the rest. */
+      /* One row per event: the date in a fixed first column and the event card
+         filling the rest.  The date sits at the top of its row, beside the
+         card's first line, the way every other dated index sets it; the row no
+         longer stretches, because the only thing that needed the card's full
+         height was the accent rule the date block no longer draws. */
       .event-rows .list-row {
         --row-cols: 6.5rem minmax(0, 1fr);
-        /* The export runs the rail's bubble rule down the whole card, not just
-           beside the three lines of date it holds. */
-        align-items: stretch;
+        align-items: start;
       }
 
       .event-card {

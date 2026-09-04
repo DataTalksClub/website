@@ -1,6 +1,11 @@
 from django.test import Client, TestCase
 
 from accounts.models import CustomUser, Token
+from core.redaction import REDACTED
+from course_management.datamailer.sync.audit_redaction import (
+    audit_response_payload,
+    recipient_fingerprint,
+)
 from data.models import (
     DatamailerSendAudit,
     DatamailerSendAuditStatus,
@@ -33,7 +38,7 @@ class DatamailerSendAuditsAPITestCase(TestCase):
         text_body="link",
         would_deliver=True,
     ):
-        response_payload = {
+        exchange = {
             "message": {"email": email, "template_key": template_key},
             "rendered": {
                 "subject": "Saved",
@@ -42,6 +47,10 @@ class DatamailerSendAuditsAPITestCase(TestCase):
             },
             "would_deliver": would_deliver,
         }
+        # Store what the send path stores rather than the raw exchange: the
+        # recipient is kept as a fingerprint, and the rendered bodies survive
+        # only on a send that did not deliver.
+        response_payload = audit_response_payload({}, exchange)
         return DatamailerSendAudit.objects.create(
             send_type=DatamailerSendAuditType.TRANSACTIONAL,
             status=DatamailerSendAuditStatus.SUCCEEDED,
@@ -89,7 +98,12 @@ class DatamailerSendAuditsAPITestCase(TestCase):
         self.assertEqual(
             audit["template_key"], "homework-submission-confirmation"
         )
-        self.assertEqual(audit["message"]["email"], "student@example.com")
+        # The row matched the address without holding it.
+        self.assertNotIn("student@example.com", response.content.decode())
+        self.assertEqual(
+            audit["message"]["email_fingerprint"],
+            recipient_fingerprint("student@example.com"),
+        )
 
     def _create_failed_audit(self, *, idempotency_key, error, list_key=""):
         return DatamailerSendAudit.objects.create(
@@ -176,13 +190,18 @@ class DatamailerSendAuditsAPITestCase(TestCase):
             "deadline-reminder:project:72:24h",
         )
 
-    def test_surfaces_rendered_block(self):
+    def test_surfaces_rendered_block_for_a_send_that_did_not_deliver(self):
+        # `would_deliver=False` is Datamailer's dry run: it renders the mail
+        # and delivers nothing, which is how the e2e smoke suite verifies a
+        # rendered email over HTTP.  That is the only case where a row keeps
+        # the rendered bodies.
         self._create_audit(
             email="student@example.com",
             template_key="homework-submission-confirmation",
             idempotency_key="hw:1",
             html_body="<a href='/homework/hw-1'>Update</a>",
             text_body="Update: /homework/hw-1",
+            would_deliver=False,
         )
 
         response = self.client.get(
@@ -193,6 +212,27 @@ class DatamailerSendAuditsAPITestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         audit = response.json()["audits"][0]
-        self.assertEqual(audit["would_deliver"], True)
+        self.assertEqual(audit["would_deliver"], False)
         self.assertIn("/homework/", audit["rendered"]["html_body"])
         self.assertEqual(audit["rendered"]["text_body"], "Update: /homework/hw-1")
+
+    def test_a_delivering_send_keeps_no_rendered_body(self):
+        self._create_audit(
+            email="student@example.com",
+            template_key="homework-submission-confirmation",
+            idempotency_key="hw:2",
+            html_body="<a href='/homework/hw-1'>Update</a>",
+            text_body="Update: /homework/hw-1",
+            would_deliver=True,
+        )
+
+        response = self.client.get(
+            SEND_AUDITS_URL,
+            {"idempotency_key": "hw:2"},
+            **self._auth(),
+        )
+
+        audit = response.json()["audits"][0]
+        self.assertNotIn("/homework/hw-1", response.content.decode())
+        self.assertEqual(audit["rendered"]["html_body"], REDACTED)
+        self.assertEqual(audit["rendered"]["text_body"], REDACTED)

@@ -5,6 +5,7 @@ from typing import Any, Protocol
 from django.conf import settings
 
 from core.redaction import REDACTED, is_sensitive_field, redact
+from core.runtime_config import get_str_setting
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +72,7 @@ def observability_environment() -> str:
 
 
 def event_schema_version() -> str:
-    return getattr(settings, "OBSERVABILITY_EVENT_SCHEMA_VERSION", "1")
+    return get_str_setting("observability.event_schema_version")
 
 
 def record_event(

@@ -107,7 +107,7 @@ deploy only when separately authorized.
 ## Issue #237 reference implementation
 
 The durable route/state/data contract is
-`_docs/design/issue-237-review-state-matrix.md`. Scratch evidence is below
+`_docs/testing/issue-237-review-state-matrix.md`. Scratch evidence is below
 `.tmp/adversarial-design-review/`. The final independent gate checked legacy and module
 course states, docs, individual-event Q&A, Slack, representative public/auth regressions,
 desktop/mobile/dark/reflow/focus behavior, and explicit homepage and events-list

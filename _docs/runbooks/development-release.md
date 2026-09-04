@@ -1,13 +1,16 @@
 # Development immutable release runbook
 
-This runbook covers application release control for `https://web.dtcdev.click`. Issue #69
+This runbook covers application release control for a development deployment. Issue #69
 defines and tests the mechanism. Issue #70 owns the first authorized Terraform apply, secret
 population, image publication, ECS mutation, and live rollback evidence.
 
-The exact legacy physical identifiers used below are catalogued in the
-[development compatibility boundary](../compatibility/development-legacy-identifiers.md) and
-remain unchanged until #94. They name this development deployment; they do not define another
-environment.
+The deployment it was written against and executed on, `https://web.dtcdev.click`, was destroyed
+on 2026-09-02, and its replacement `dev.datatalks.club` is not built yet. The procedure and its
+recorded evidence are kept as written: they describe what was run and against what. The exact
+legacy physical identifiers used below are catalogued in the
+[development compatibility boundary](../compatibility/development-legacy-identifiers.md). They
+name that development deployment; they do not define another environment, and a future
+development host does not inherit them.
 
 Never paste secret values into a workflow input, command, release record, screenshot, issue,
 or log. A release record contains only identity-schema/version/source/digest/task-definition/count
@@ -165,7 +168,7 @@ The missing Secrets Manager and ECS sentinels are not live calls. Their replacem
 three-part proof: website tests assert the calls are absent; `DataTalksClub/aws-infra` tests assert
 the exact Terraform policy allowlists and deny-by-omission contract; and the operator performs a
 canonical deployed-policy readback plus an IAM simulator matrix before the live probe. The audit
-in `_docs/audits/2026-08-07-oidc-denial-sentinels.md` is normative for those dispositions.
+recorded with the OIDC denial-sentinel work is normative for those dispositions.
 
 For each exact role name `website-sandbox-github-publisher` and
 `website-sandbox-github-deployer`, capture sorted output from `list-role-policies`,
@@ -718,7 +721,7 @@ duplicate-delete batch; dry-run CreateGrant on the existing KMS key; and request
 proven-absent all-zero digest from the exact existing ECR repository. Foreign ECR reads and
 mutation-shaped IAM, CloudFront, ELB, RDS, Secrets Manager, and ECS sentinels are removed and
 replaced by exact Terraform/IAM policy contracts plus the simulator matrix above. The full review
-and dispositions are recorded in `_docs/audits/2026-08-07-oidc-denial-sentinels.md`.
+and dispositions were recorded with the OIDC denial-sentinel work.
 Route 53 is the single narrow real-zone exception: the probe passes the
 exact non-secret `Z05963572WVWFHDQZH5NE` ID without listing or selecting zones, then submits one
 transactional request with exactly two byte-for-byte identical `DELETE` changes for the synthetic
@@ -777,8 +780,12 @@ Leave `failure_injection=none` for every normal promotion and rollback. Controll
 choices are dispatch-only and promotion-only; the controller rejects them without a valid prior
 release record, so they can never run during release-A bootstrap or rollback.
 
-The build path builds once for `linux/amd64`, proves the sealed OCI version/revision/created labels
-and runtime user `10001:10001`, and preserves that tested image as a short-lived artifact. The
+The build path builds once for the deployment target's declared `task_cpu_architecture`, proves the
+sealed OCI version/revision/created labels and runtime user `10001:10001`, and preserves that tested
+image as a short-lived artifact. The platform and the expected image architecture are resolved from
+`deploy.deployment_targets`, and the container job runs on that architecture's native runner because
+it also runs the image it builds. ECS starts an image built for the other architecture and the task
+then dies with nothing useful in its log, so nothing in the pipeline pins an architecture literal. The
 publisher applies both the VERSION and full-SHA aliases to one immutable digest (or proves both
 already resolve there), verifies the remote config digest and labels, then uploads the strict
 non-secret schema-2 published-image record. This artifact is produced before deployment and is **not** a successful or rollback-eligible release record.

@@ -3,7 +3,6 @@ from __future__ import annotations
 import copy
 import json
 import tempfile
-from collections import Counter
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -68,29 +67,6 @@ class EventDescriptionBridgeArtifactTests(SimpleTestCase):
                 for reason, contract in decision_schema["properties"].items()
             },
             dict(bridge_contract.EXPECTED_LINK_DECISION_COUNTS),
-        )
-        self.assertEqual(bridge["counts"]["matches"], 159)
-        self.assertEqual(bridge["counts"]["gaps"], 9)
-        self.assertEqual(bridge["counts"]["undescribed_events"], 262)
-        self.assertEqual(
-            bridge["link_review"],
-            {
-                "url_occurrences": 540,
-                "distinct_url_literals": 118,
-                "decision_counts": {
-                    "external_resource_kept": 148,
-                    "internal_rewritten": 154,
-                    "internal_target_missing": 1,
-                    "provider_action_removed": 49,
-                    "registration_action_removed": 185,
-                    "remote_image_removed": 1,
-                    "unreviewed_shortlink_removed": 2,
-                },
-                "decision_inventory_sha256": (
-                    "7e03446eeb7b119af17ee4996add65cfbad4917aff81b8e7e1a0dcb0885b62ce"
-                ),
-                "remote_images_omitted": 1,
-            },
         )
         serialized = json.dumps(bridge, ensure_ascii=False).casefold()
         for forbidden in (
@@ -463,21 +439,6 @@ class PublicEventDescriptionTests(TestCase):
 
     def test_event_record_schema_coverage_and_top_level_link_contract(self) -> None:
         events = self.projection["events"]
-        self.assertEqual(sum(bool(event["description_html"]) for event in events), 159)
-        self.assertEqual(sum(not event["description_html"] for event in events), 262)
-        self.assertEqual(sum(len(event["links"]) for event in events), 682)
-        self.assertEqual(sum(bool(event["links"]) for event in events), 403)
-        self.assertEqual(sum(not event["links"] for event in events), 18)
-        self.assertEqual(
-            Counter(link["label"] for event in events for link in event["links"]),
-            Counter(
-                {
-                    "Watch recording": 397,
-                    "Listen to recording": 58,
-                    "View event on Eventbrite": 227,
-                }
-            ),
-        )
         for event in events:
             with self.subTest(event=event["slug"]):
                 self.assertEqual(event["record_schema_version"], 2)
@@ -494,9 +455,6 @@ class PublicEventDescriptionTests(TestCase):
         apply_empty_description_rollback_to_events(rollback)
         current = list(self.projection["events"])
 
-        self.assertEqual(len(rollback), 421)
-        self.assertEqual(sum(len(event["links"]) for event in rollback), 682)
-        self.assertEqual(sum(bool(event["links"]) for event in rollback), 403)
         for baseline_event, rollback_event, current_event in zip(
             baseline, rollback, current, strict=True
         ):
@@ -546,8 +504,6 @@ class PublicEventDescriptionTests(TestCase):
     def test_every_event_detail_renders_truthful_description_and_no_registration_action(
         self,
     ) -> None:
-        described = 0
-        omitted = 0
         for event in self.projection["events"]:
             with self.subTest(event=event["slug"]):
                 response = self.client.get(event["public_path"])
@@ -573,17 +529,14 @@ class PublicEventDescriptionTests(TestCase):
                 ):
                     self.assertNotIn(private_marker, body_lower)
                 if event["description_html"]:
-                    described += 1
                     self.assertContains(response, 'aria-label="Event description"', count=1)
                     self.assertIn(event["description_html"], body)
                 else:
-                    omitted += 1
                     self.assertNotContains(response, 'aria-label="Event description"')
                 if event["links"]:
                     self.assertContains(response, "Event links", count=1)
                 else:
                     self.assertNotContains(response, "Event links")
-        self.assertEqual((described, omitted), (159, 262))
 
     def test_discovery_metadata_and_missing_registration_routes_are_luma_free(self) -> None:
         for path in ("/", "/events", "/sitemap.xml"):

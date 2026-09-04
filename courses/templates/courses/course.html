@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load seo static custom_filters %}
+{% load breadcrumbs seo static custom_filters %}
 
 {% block document_title %}
   {{ course.title }} — DataTalks.Club
@@ -21,7 +21,7 @@
 
 {% block page_styles %}
       /* ------------------------------------------------------------------ *
-       * Course page, design 5a (issue #179).  Like the homepage, this page
+       * Course page, design system (issue #179).  Like the homepage, this page
        * carries its own complete stylesheet: the shared design system partial
        * first, then the rules that shape this page only.  It deliberately
        * loads none of the older site CSS.
@@ -29,7 +29,7 @@
        * The arrangement is the one this page had before the port — a
        * left-aligned hero, one row of actions, then a Homework table and a
        * Projects table whose deadlines and states are all visible at once —
-       * drawn entirely in the design 5a vocabulary.  Mockup 6b's centred hero
+       * drawn entirely in the design system vocabulary.  Mockup 6b's centred hero
        * and single module accordion hid the assignment list behind a click on
        * a page whose whole job is to show it.
        * ------------------------------------------------------------------ */
@@ -385,20 +385,13 @@
 
 {% block page_header %}
         {% comment %}
-          The trail the adopted shell used to draw, restored as a design 5a
-          primitive: the ancestor index is a link, the current page is text.
+          The trail the adopted shell used to draw, restored as a design system
+          primitive: every crumb is an ancestor index and a link.  It stops
+          before this cohort, which the heading underneath already names.
         {% endcomment %}
-        <nav class="breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'course_list' %}">Courses</a>
-            </li>
-            <li>
-              <a href="{% url 'course_family' course_family.slug %}">{{ course_family.title }}</a>
-            </li>
-            <li aria-current="page">{{ course.identifier }}</li>
-          </ol>
-        </nav>
+        {% url 'course_list' as course_list_url %}
+        {% url 'course_family' course_family.slug as course_family_url %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url %}
         <div class="course-hero-inner">
           <h1 id="course-heading">{{ course.title }}</h1>
           {% if course.home_outcome %}
@@ -414,8 +407,9 @@
             {% if registration_campaign and not has_enrollment and not has_registration %}
               {% url 'registration_campaign' registration_campaign.slug as registration_campaign_url %}
               {% include "core/_button.html" with href=registration_campaign_url label="Register for the cohort" variant="primary" compact=True %}
-            {% elif course.registration_url and not has_enrollment %}
-              {% include "core/_button.html" with href=course.registration_url label="Register" variant="primary" compact=True %}
+            {% elif next_edition_campaign and not has_enrollment %}
+              {% url 'registration_campaign' next_edition_campaign.slug as next_edition_campaign_url %}
+              {% include "core/_button.html" with href=next_edition_campaign_url label="Register for the next edition" variant="primary" compact=True %}
             {% endif %}
             {% if course.github_repo_url %}
               {% include "core/_button.html" with href=course.github_repo_url label="Course materials on GitHub" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
@@ -494,7 +488,7 @@
 {% block page_content %}
       {% comment %}
         The assignments, as two tables under one content band: Homework then
-        Projects, the arrangement the page carried before the design 5a port.
+        Projects, the arrangement the page carried before the design system port.
         Every deadline and every state is on the page at once, and the title is
         the link to the page work is handed in on — nothing has to be opened to
         find out when something is due.
@@ -764,6 +758,13 @@
           <section aria-labelledby="next-heading">
             <h2 id="next-heading" class="sr-only">Registration and deadlines</h2>
             <div class="course-closing">
+              {% comment %}
+                Three registration states, and only the first names this edition.  A
+                campaign that promotes this cohort means it is genuinely open; a closed
+                edition offers the course's next one rather than a call to action for a
+                cohort the reader is standing in the archive of; and a course with no
+                campaign offers nothing rather than a link off this site.
+              {% endcomment %}
               {% if registration_campaign and not has_enrollment and not has_registration %}
                 <div class="panel panel-lavender panel-outlined course-register-panel">
                   <h3>Register for {{ course.title }}</h3>
@@ -771,11 +772,12 @@
                   {% url 'registration_campaign' registration_campaign.slug as registration_campaign_url %}
                   {% include "core/_button.html" with href=registration_campaign_url label="Register for the cohort" variant="primary" compact=True %}
                 </div>
-              {% elif course.registration_url and not has_enrollment %}
+              {% elif next_edition_campaign and not has_enrollment %}
                 <div class="panel panel-lavender panel-outlined course-register-panel">
-                  <h3>Register for {{ course.title }}</h3>
-                  <p>Registration for this course is handled on its own page.</p>
-                  {% include "core/_button.html" with href=course.registration_url label="Register" variant="primary" compact=True %}
+                  <h3>Register for the next {{ course_family.title }} edition</h3>
+                  <p>This edition is closed. Register and we will let you know when the next cohort is announced.</p>
+                  {% url 'registration_campaign' next_edition_campaign.slug as next_edition_campaign_url %}
+                  {% include "core/_button.html" with href=next_edition_campaign_url label="Register for the next edition" variant="primary" compact=True %}
                 </div>
               {% elif has_registration and not has_enrollment %}
                 <div class="panel panel-lavender panel-outlined course-register-panel">

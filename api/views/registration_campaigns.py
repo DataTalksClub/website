@@ -17,6 +17,10 @@ from api.views.registration_campaign_serializers import campaign_to_dict
 from courses.models.cohort import RegistrationCampaign
 
 
+def _actor_ref(request):
+    return f"user:{request.user.pk}"
+
+
 def campaigns_list_response():
     campaigns = RegistrationCampaign.objects.select_related(
         "current_course"
@@ -36,7 +40,11 @@ def campaign_create_response(request):
     if err:
         return err
 
-    campaign, error = created_campaign(data)
+    campaign, error = created_campaign(
+        data,
+        actor_ref=_actor_ref(request),
+        actor_id=request.user.pk,
+    )
     if error:
         return error
 
@@ -64,7 +72,12 @@ def campaign_patch_response(request, campaign):
     if err:
         return err
 
-    err = apply_campaign_patch(campaign, data)
+    err = apply_campaign_patch(
+        campaign,
+        data,
+        actor_ref=_actor_ref(request),
+        actor_id=request.user.pk,
+    )
     if err:
         return err
 

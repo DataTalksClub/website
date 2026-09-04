@@ -363,9 +363,7 @@ def qna_qr(request: HttpRequest, event_id: str, slug: str, kind: str) -> HttpRes
         services._public_session(event.id)
         if kind == "svg":
             response = HttpResponse(
-                qr.svg(
-                    f"{services.settings.CANONICAL_ORIGIN.rstrip('/')}{services.event_qna_path(event)}/"
-                ),
+                qr.svg(services.event_qna_share_url(event)),
                 content_type="image/svg+xml",
             )
         elif kind == "png":
@@ -376,10 +374,7 @@ def qna_qr(request: HttpRequest, event_id: str, slug: str, kind: str) -> HttpRes
             if not 64 <= size <= 2048:
                 raise QnaError(400, "invalid_size", "The QR size must be between 64 and 2048.")
             response = HttpResponse(
-                qr.png(
-                    f"{services.settings.CANONICAL_ORIGIN.rstrip('/')}{services.event_qna_path(event)}/",
-                    size=size,
-                ),
+                qr.png(services.event_qna_share_url(event), size=size),
                 content_type="image/png",
             )
         else:

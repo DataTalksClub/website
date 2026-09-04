@@ -64,6 +64,20 @@ def fixture_source(*, commit_sha: str = FIRST_COMMIT) -> CourseRepositorySource:
     return parse_course_repository(snapshot, commit_sha=commit_sha)
 
 
+def source_without_site_description(
+    *, commit_sha: str = FIRST_COMMIT
+) -> CourseRepositorySource:
+    """Parse the fixture repository as if it published no ``SITE.md``."""
+
+    snapshot = {
+        path.relative_to(FIXTURE_ROOT).as_posix(): path.read_bytes()
+        for path in FIXTURE_ROOT.rglob("*")
+        if path.is_file()
+    }
+    del snapshot["SITE.md"]
+    return parse_course_repository(snapshot, commit_sha=commit_sha)
+
+
 def explicit_legacy_source() -> CourseRepositorySource:
     source = fixture_source()
     explicit_legacy = next(
@@ -131,6 +145,33 @@ class CurriculumImportServiceTests(TestCase):
         project.refresh_from_db()
         return result, course, cohort, project
 
+
+    def test_adopts_the_course_description_the_repository_publishes_in_site_md(self):
+        _, course, _, _ = self.import_fixture_with_project()
+
+        self.assertEqual(
+            course.description,
+            "A free course about building production-style applications with language models.",
+        )
+
+    def test_keeps_the_stored_description_when_the_repository_publishes_no_site_md(self):
+        """A repository with no ``SITE.md`` must not disturb curated catalogue copy.
+
+        Assigning the parsed description unconditionally is what replaced three families'
+        curated text with their README banners, so absence has to mean "leave it alone"
+        rather than "blank it" or "fall back to the README".
+        """
+
+        curated = "Free nine-week course on production LLM systems."
+        course, _, _ = self.create_adoption_target()
+        course.description = curated
+        course.save(update_fields=["description"])
+
+        import_course_repository_curriculum(import_command(source_without_site_description()))
+
+        course.refresh_from_db()
+        self.assertEqual(course.description, curated)
+
     def test_creates_new_course_and_explicit_cohort_from_source_metadata(self):
         result = import_course_repository_curriculum(import_command(explicit_legacy_source()))
 
@@ -196,9 +237,29 @@ class CurriculumImportServiceTests(TestCase):
         self.assertEqual([unit.slug for unit in units], ["01-intro", "02-environment"])
         self.assertIn("The first lesson in the Agentic RAG", units[0].content_markdown)
         self.assertIn("<", units[0].rendered_html)
+        # The lesson frontmatter never reaches ``content_markdown``, so the
+        # projection is the only place its video and code files survive.
+        self.assertEqual(units[0].video_url, "https://www.youtube.com/watch?v=fixture-intro")
+        self.assertEqual(
+            units[0].code_sources,
+            [
+                {
+                    "label": "notebook.ipynb",
+                    "source_path": "cohorts/2026/01-agentic-rag/code/notebook.ipynb",
+                }
+            ],
+        )
+        self.assertEqual(units[1].video_url, "")
+        self.assertEqual(units[1].code_sources, [])
 
         homework = module.terminal_homework
         self.assertIn("working through every unit", homework.instructions_markdown)
+        # The instructions path is the only bridge from a lesson's
+        # ``homework.md`` link to the page that publishes them.
+        self.assertEqual(
+            homework.instructions_source_path,
+            "cohorts/2026/01-agentic-rag/homework.md",
+        )
         self.assertEqual(homework.state, HomeworkState.OPEN.value)
         questions = list(Question.objects.filter(homework=homework).order_by("pk"))
         self.assertEqual(

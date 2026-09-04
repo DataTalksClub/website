@@ -4,12 +4,8 @@ from __future__ import annotations
 
 import unicodedata
 import uuid
-from dataclasses import dataclass
 from typing import Any
 
-from django.db import IntegrityError, transaction
-
-from core.audit import AuditWriteContext, record_audit_event
 from core.capabilities import (
     AdapterMetadata,
     Capability,
@@ -21,23 +17,27 @@ from core.configuration import (
     InvalidOperationalSetting,
     OperationalSettingDefinition,
     register_operational_setting,
-    registered_operational_settings,
-    validate_operational_setting_value,
 )
-from core.idempotency import (
-    IdempotencyResult,
-    JsonObject,
-    JsonValue,
-    execute_idempotent,
-    hash_idempotency_key,
+from core.idempotency import JsonObject, JsonValue
+from core.models import OperationalSetting
+from core.services import ServiceContext
+from core.settings_batch import (
+    SETTINGS_SOURCES,
+    InvalidSettingsBatch,
+    NormalizedSettingUpdate,
+    ResolvedSetting,
+    SettingsBatchResult,
+    SettingsRevisionConflict,
+    SettingsScope,
+    normalize_updates,
+    query_settings,
+    scope_definitions,
+    scope_settings_factory,
+    update_settings,
 )
-from core.models import (
-    AuditEvent,
-    OperationalSetting,
-    OperationalSettingRevision,
-    RevisionConflict,
-)
-from core.services import ServiceContext, validate_actor_ref
+
+#: Kept under its announcement-era name for the adapters that import it.
+SITE_SETTINGS_SOURCES = SETTINGS_SOURCES
 
 ANNOUNCEMENT_ENABLED_KEY = "site.announcement.enabled"
 ANNOUNCEMENT_MESSAGE_KEY = "site.announcement.message"
@@ -46,21 +46,16 @@ SITE_SETTINGS_DOCS_REFERENCE = "_docs/specs/01-platform-architecture.md"
 SITE_SETTINGS_READ_PERMISSION = "core.read_operational_settings"
 SITE_SETTINGS_WRITE_PERMISSION = "core.change_operational_settings"
 SITE_SETTINGS_KEYS = (ANNOUNCEMENT_ENABLED_KEY, ANNOUNCEMENT_MESSAGE_KEY)
-SITE_SETTINGS_SOURCES = frozenset({"studio", "admin_api"})
+SITE_SETTINGS_AUDIT_READ = "core.operational_settings.read"
+SITE_SETTINGS_AUDIT_WRITE = "core.operational_settings.batch_updated"
 
-
-class InvalidSiteSettingsBatch(ValueError):
-    """A complete settings batch failed before mutation."""
-
-
-class SiteSettingsRevisionConflict(RuntimeError):
-    """One submitted key no longer has the expected revision."""
-
-    def __init__(self, *, key: str, expected: int, actual: int) -> None:
-        self.key = key
-        self.expected = expected
-        self.actual = actual
-        super().__init__(f"setting {key} expected revision {expected}, found {actual}")
+#: The two batch errors keep their announcement-era names because Studio and the
+#: admin API import them; they are the shared errors from ``core.settings_batch``.
+InvalidSiteSettingsBatch = InvalidSettingsBatch
+SiteSettingsRevisionConflict = SettingsRevisionConflict
+ResolvedSiteSetting = ResolvedSetting
+NormalizedSiteSettingUpdate = NormalizedSettingUpdate
+SiteSettingsBatchResult = SettingsBatchResult
 
 
 def _normalize_announcement_message(value: JsonValue) -> JsonValue:
@@ -126,63 +121,21 @@ ANNOUNCEMENT_MESSAGE = register_operational_setting(
 )
 
 
-@dataclass(frozen=True, slots=True)
-class ResolvedSiteSetting:
-    definition: OperationalSettingDefinition
-    value: JsonValue
-    source: str
-    revision: int
-
-    def as_dict(self, *, changed: bool | None = None) -> JsonObject:
-        payload: JsonObject = {
-            "key": self.definition.key,
-            "group": self.definition.group,
-            "label": self.definition.label,
-            "description": self.definition.description,
-            "value_type": self.definition.value_type,
-            "default": self.definition.default,
-            "validation": self.definition.validation,
-            "docs_reference": self.definition.docs_reference,
-            "lifecycle": self.definition.lifecycle,
-            "cache_policy": self.definition.cache_policy,
-            "sensitivity": self.definition.sensitivity,
-            "value": self.value,
-            "source": self.source,
-            "definition_version": self.definition.version,
-            "revision": self.revision,
-        }
-        if changed is not None:
-            payload["changed"] = changed
-        return payload
-
-
-@dataclass(frozen=True, slots=True)
-class NormalizedSiteSettingUpdate:
-    key: str
-    value: JsonValue
-    expected_revision: int
-
-
-@dataclass(frozen=True, slots=True)
-class SiteSettingsBatchResult:
-    settings: tuple[JsonObject, ...]
-    replayed: bool
-
-    def as_dict(self) -> JsonObject:
-        return {"settings": list(self.settings), "replayed": self.replayed}
+SITE_SETTINGS_SCOPE = SettingsScope(
+    keys=SITE_SETTINGS_KEYS,
+    sensitivity="public",
+    audit_label="site.announcement",
+    audit_action_write=SITE_SETTINGS_AUDIT_WRITE,
+    idempotency_prefix="site.settings.write",
+)
 
 
 def _site_definitions() -> tuple[OperationalSettingDefinition, ...]:
-    definitions = tuple(
-        definition
-        for definition in registered_operational_settings()
-        if definition.key in SITE_SETTINGS_KEYS
-        and definition.lifecycle == "active"
-        and definition.sensitivity == "public"
-    )
-    if tuple(definition.key for definition in definitions) != SITE_SETTINGS_KEYS:
-        raise InvalidOperationalSetting("site setting definitions are incomplete")
-    return definitions
+    return scope_definitions(SITE_SETTINGS_SCOPE)
+
+
+def _normalize_updates(updates: object) -> tuple[NormalizedSettingUpdate, ...]:
+    return normalize_updates(SITE_SETTINGS_SCOPE, updates)
 
 
 def query_site_settings(
@@ -194,198 +147,7 @@ def query_site_settings(
     """Resolve all public site settings with one bounded database query."""
 
     del context
-    definitions = _site_definitions()
-    stored = {
-        setting.key: setting
-        for setting in OperationalSetting.objects.using(using).filter(
-            key__in=tuple(definition.key for definition in definitions)
-        )
-    }
-    resolved: list[JsonValue] = []
-    for definition in definitions:
-        setting = stored.get(definition.key)
-        if setting is None:
-            item = ResolvedSiteSetting(
-                definition=definition,
-                value=validate_operational_setting_value(definition.key, definition.default),
-                source="code_default",
-                revision=0,
-            )
-        else:
-            if setting.value_type != definition.value_type:
-                raise InvalidOperationalSetting(
-                    f"stored setting {definition.key} has an invalid type"
-                )
-            if setting.source not in SITE_SETTINGS_SOURCES:
-                raise InvalidOperationalSetting(
-                    f"stored setting {definition.key} has an invalid source"
-                )
-            item = ResolvedSiteSetting(
-                definition=definition,
-                value=validate_operational_setting_value(definition.key, setting.value),
-                source=setting.source,
-                revision=setting.revision,
-            )
-        resolved.append(item.as_dict())
-    return {"settings": [item for item in resolved]}
-
-
-def _normalize_updates(updates: object) -> tuple[NormalizedSiteSettingUpdate, ...]:
-    if not isinstance(updates, list) or not 1 <= len(updates) <= len(SITE_SETTINGS_KEYS):
-        raise InvalidSiteSettingsBatch("updates must contain one or two settings")
-    normalized: list[NormalizedSiteSettingUpdate] = []
-    seen: set[str] = set()
-    for item in updates:
-        if not isinstance(item, dict) or set(item) != {"key", "value", "expected_revision"}:
-            raise InvalidSiteSettingsBatch("each update must contain exact setting fields")
-        key = item.get("key")
-        revision = item.get("expected_revision")
-        if not isinstance(key, str) or key not in SITE_SETTINGS_KEYS or key in seen:
-            raise InvalidSiteSettingsBatch("setting keys must be unique and registered")
-        if isinstance(revision, bool) or not isinstance(revision, int) or revision < 0:
-            raise InvalidSiteSettingsBatch("expected revisions must be nonnegative integers")
-        try:
-            value = validate_operational_setting_value(key, item.get("value"))
-        except (InvalidOperationalSetting, TypeError, ValueError) as error:
-            raise InvalidSiteSettingsBatch("a setting value is invalid") from error
-        seen.add(key)
-        normalized.append(
-            NormalizedSiteSettingUpdate(
-                key=key,
-                value=value,
-                expected_revision=revision,
-            )
-        )
-    return tuple(sorted(normalized, key=lambda update: update.key))
-
-
-def _idempotency_scope(actor_ref: str) -> str:
-    scope = f"site.settings.write:{actor_ref}"
-    if len(scope) > 128:
-        raise InvalidSiteSettingsBatch("settings actor scope is invalid")
-    return scope
-
-
-def _apply_site_settings_batch(
-    updates: tuple[NormalizedSiteSettingUpdate, ...],
-    *,
-    source: str,
-    context: AuditWriteContext,
-    using: str,
-) -> JsonObject:
-    definitions = {definition.key: definition for definition in _site_definitions()}
-    keys = tuple(update.key for update in updates)
-    rows = {
-        setting.key: setting
-        for setting in OperationalSetting.objects.using(using).filter(key__in=keys)
-    }
-    for update in updates:
-        current = rows.get(update.key)
-        actual_revision = current.revision if current is not None else 0
-        if update.expected_revision != actual_revision:
-            raise SiteSettingsRevisionConflict(
-                key=update.key,
-                expected=update.expected_revision,
-                actual=actual_revision,
-            )
-
-    changed_rows: list[tuple[OperationalSetting, int, int]] = []
-    result_items: list[JsonValue] = []
-    for update in updates:
-        definition = definitions[update.key]
-        setting = rows.get(update.key)
-        previous_revision = setting.revision if setting is not None else 0
-        previous_value = (
-            validate_operational_setting_value(update.key, setting.value)
-            if setting is not None
-            else validate_operational_setting_value(update.key, definition.default)
-        )
-        changed = previous_value != update.value
-        if changed and setting is None:
-            try:
-                with transaction.atomic(using=using):
-                    setting = OperationalSetting.objects.using(using).create(
-                        key=update.key,
-                        value_type=definition.value_type,
-                        value=update.value,
-                        source=source,
-                        definition_version=definition.version,
-                        revision=1,
-                    )
-            except IntegrityError as error:
-                current = OperationalSetting.objects.using(using).get(key=update.key)
-                raise SiteSettingsRevisionConflict(
-                    key=update.key,
-                    expected=0,
-                    actual=current.revision,
-                ) from error
-            rows[update.key] = setting
-        elif changed and setting is not None:
-            setting.value = update.value
-            setting.source = source
-            setting.definition_version = definition.version
-            setting.revision += 1
-            try:
-                setting.save(
-                    using=using,
-                    update_fields=(
-                        "value",
-                        "source",
-                        "definition_version",
-                        "revision",
-                        "updated_at",
-                    ),
-                )
-            except RevisionConflict as error:
-                raise SiteSettingsRevisionConflict(
-                    key=update.key,
-                    expected=error.expected,
-                    actual=error.actual,
-                ) from error
-        if changed and setting is not None:
-            changed_rows.append((setting, previous_revision, setting.revision))
-        result_items.append(
-            {
-                "key": update.key,
-                "source": setting.source if setting is not None else "code_default",
-                "definition_version": definition.version,
-                "revision": setting.revision if setting is not None else 0,
-                "changed": changed,
-            }
-        )
-
-    audit_event = None
-    if changed_rows:
-        audit_event = record_audit_event(
-            action="core.operational_settings.batch_updated",
-            target_type="core.operational_settings",
-            target_label="site.announcement",
-            outcome=AuditEvent.Outcome.SUCCEEDED,
-            context=context,
-            changes={
-                setting.key: {"revision": {"before": before, "after": after}}
-                for setting, before, after in changed_rows
-            },
-            metadata={
-                "affected_keys": [setting.key for setting, _before, _after in changed_rows],
-                "source": source,
-            },
-            using=using,
-        )
-    for setting, _before, _after in changed_rows:
-        OperationalSettingRevision.objects.using(using).create(
-            setting=setting,
-            key=setting.key,
-            value_type=setting.value_type,
-            value=setting.value,
-            source=setting.source,
-            definition_version=setting.definition_version,
-            revision=setting.revision,
-            changed_by_id=context.actor_id,
-            changed_by_ref=context.actor_ref,
-            audit_event=audit_event,
-        )
-    return {"items": [item for item in result_items]}
+    return query_settings(SITE_SETTINGS_SCOPE, using=using)
 
 
 def update_site_settings(
@@ -398,91 +160,20 @@ def update_site_settings(
     api_principal_id: uuid.UUID | None = None,
     context: ServiceContext | None = None,
     using: str = "default",
-) -> SiteSettingsBatchResult:
+) -> SettingsBatchResult:
     """Normalize and atomically apply one actor-scoped idempotent batch."""
 
-    if source not in SITE_SETTINGS_SOURCES:
-        raise InvalidSiteSettingsBatch("settings source is invalid")
-    if not isinstance(actor_ref, str) or not actor_ref:
-        raise InvalidSiteSettingsBatch("settings actor is invalid")
-    try:
-        validate_actor_ref(actor_ref)
-    except ValueError as error:
-        raise InvalidSiteSettingsBatch("settings actor is invalid") from error
-    if context is not None and context.actor_ref != actor_ref:
-        raise InvalidSiteSettingsBatch("settings actor context is invalid")
-    normalized = _normalize_updates(updates)
-    scope = _idempotency_scope(actor_ref)
-    service_context = context or ServiceContext.from_current(actor_ref=actor_ref)
-    audit_context = AuditWriteContext.from_service_context(
-        service_context,
+    return update_settings(
+        SITE_SETTINGS_SCOPE,
+        updates=updates,
+        source=source,
+        idempotency_key=idempotency_key,
+        actor_ref=actor_ref,
         actor_id=actor_id,
         api_principal_id=api_principal_id,
-        idempotency_key_hash=hash_idempotency_key(scope, idempotency_key),
-    )
-    request_updates: list[JsonValue] = [
-        {
-            "key": update.key,
-            "value": update.value,
-            "expected_revision": update.expected_revision,
-        }
-        for update in normalized
-    ]
-    request: JsonObject = {
-        "updates": request_updates,
-    }
-    result: IdempotencyResult = execute_idempotent(
-        scope=scope,
-        key=idempotency_key,
-        request=request,
-        command=lambda: _apply_site_settings_batch(
-            normalized,
-            source=source,
-            context=audit_context,
-            using=using,
-        ),
+        context=context,
         using=using,
     )
-    persisted_items = result.value.get("items")
-    if not isinstance(persisted_items, list) or len(persisted_items) != len(normalized):
-        raise InvalidSiteSettingsBatch("settings replay result is invalid")
-    update_by_key = {update.key: update for update in normalized}
-    definitions = {definition.key: definition for definition in _site_definitions()}
-    response_items: list[JsonObject] = []
-    for item in persisted_items:
-        if not isinstance(item, dict):
-            raise InvalidSiteSettingsBatch("settings replay result is invalid")
-        key = item.get("key")
-        source_value = item.get("source")
-        revision_value = item.get("revision")
-        changed_value = item.get("changed")
-        definition_version_value = item.get("definition_version")
-        if (
-            not isinstance(key, str)
-            or source_value not in SITE_SETTINGS_SOURCES | {"code_default"}
-            or not isinstance(source_value, str)
-            or isinstance(revision_value, bool)
-            or not isinstance(revision_value, int)
-            or revision_value < 0
-            or not isinstance(changed_value, bool)
-            or isinstance(definition_version_value, bool)
-            or not isinstance(definition_version_value, int)
-            or definition_version_value < 1
-        ):
-            raise InvalidSiteSettingsBatch("settings replay result is invalid")
-        update = update_by_key.get(key)
-        definition = definitions.get(key)
-        if update is None or definition is None or definition.version != definition_version_value:
-            raise InvalidSiteSettingsBatch("settings replay result is invalid")
-        response_items.append(
-            ResolvedSiteSetting(
-                definition=definition,
-                value=update.value,
-                source=source_value,
-                revision=revision_value,
-            ).as_dict(changed=changed_value)
-        )
-    return SiteSettingsBatchResult(settings=tuple(response_items), replayed=result.replayed)
 
 
 def public_announcement(*, using: str = "default") -> JsonObject | None:
@@ -509,29 +200,7 @@ def public_announcement(*, using: str = "default") -> JsonObject | None:
 
 
 def _settings_factory() -> JsonObject:
-    settings: list[JsonValue] = [
-        {
-            "key": definition.key,
-            "group": definition.group,
-            "label": definition.label,
-            "description": definition.description,
-            "value_type": definition.value_type,
-            "default": definition.default,
-            "validation": definition.validation,
-            "docs_reference": definition.docs_reference,
-            "lifecycle": definition.lifecycle,
-            "cache_policy": definition.cache_policy,
-            "sensitivity": definition.sensitivity,
-            "value": definition.default,
-            "source": "code_default",
-            "definition_version": definition.version,
-            "revision": 0,
-        }
-        for definition in _site_definitions()
-    ]
-    return {
-        "settings": settings,
-    }
+    return scope_settings_factory(SITE_SETTINGS_SCOPE)
 
 
 def _settings_field_policy(_actor: object, field: str) -> bool:
@@ -560,7 +229,7 @@ SITE_SETTINGS_READ = Capability(
     ),
     idempotency=IdempotencyPolicy.NONE,
     concurrency=ConcurrencyPolicy.NONE,
-    audit_action="core.operational_settings.read",
+    audit_action=SITE_SETTINGS_AUDIT_READ,
     redacted_fields=("authorization", "cookie", "default", "token", "value"),
     test_factory=_settings_factory,
 )
@@ -590,7 +259,7 @@ SITE_SETTINGS_WRITE = Capability(
     ),
     idempotency=IdempotencyPolicy.REQUIRED,
     concurrency=ConcurrencyPolicy.REVISION,
-    audit_action="core.operational_settings.batch_updated",
+    audit_action=SITE_SETTINGS_AUDIT_WRITE,
     redacted_fields=(
         "authorization",
         "body",

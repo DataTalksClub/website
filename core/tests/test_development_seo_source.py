@@ -12,7 +12,6 @@ from django.test import SimpleTestCase
 from gunicorn.config import Config  # type: ignore[import-untyped]
 from gunicorn.glogging import Logger  # type: ignore[import-untyped]
 
-from compatibility.monitoring import safe_compatibility_event
 from content_sync.course_repository_sync import REQUEST_TIMEOUT_SECONDS
 from core.source_policy import (
     GUNICORN_ACCESS_LOG_FORMAT,
@@ -25,11 +24,12 @@ from core.source_policy import (
 )
 from course_management.datamailer.client import DEFAULT_TIMEOUT_SECONDS
 from course_management.observability.events import event_properties
-from courses.validators.custom_url_validators import URL_VALIDATION_TIMEOUT
+from courses.validators.url_status_transport import URL_VALIDATION_TIMEOUT
 from deploy.contracts import ReleaseContractError
+from deploy.deployment_targets import SELECTED_TARGET
 from deploy.development_seo_policy import (
-    DEVELOPMENT_TERRAFORM_VARS_PATH,
     REQUIRED_TERRAFORM_PATHS,
+    TARGET_TERRAFORM_VARS_PATH,
     validate_terraform_seo_source,
     validate_trusted_repository_identity,
 )
@@ -96,10 +96,24 @@ resource "aws_cloudfront_distribution" "this" {
   }
 }
 """
+    compute = "".join(
+        f"""
+resource "aws_ecs_task_definition" "{workload}" {{
+  runtime_platform {{
+    cpu_architecture        = var.task_cpu_architecture
+    operating_system_family = "LINUX"
+  }}
+}}
+"""
+        for workload in ("web", "worker", "migration")
+    )
     return {
+        "modules/django-website/compute.tf": compute,
         "modules/django-website/edge.tf": edge,
-        DEVELOPMENT_TERRAFORM_VARS_PATH: (
-            'hostname = "web.dtcdev.click"\nrobots_header_value = "noindex, nofollow"\n'
+        TARGET_TERRAFORM_VARS_PATH: (
+            f'hostname = "{SELECTED_TARGET.hostname}"\n'
+            + 'robots_header_value = "noindex, nofollow"\n'
+            + f'task_cpu_architecture = "{SELECTED_TARGET.task_cpu_architecture}"\n'
         ),
         "tests/fixtures/website-production/main.tf": "robots_header_value = null\n",
     }
@@ -244,21 +258,13 @@ class ApplicationSourcePolicyTests(SimpleTestCase):
         self.assertIn('request_id="request-safe"', output)
         self.assertIn('correlation_id="correlation-safe"', output)
 
-    def test_application_and_compatibility_events_are_query_and_referrer_safe(self) -> None:
+    def test_application_events_are_query_safe(self) -> None:
         canary = "event-query-canary-36"
         request = HttpRequest()
         request.path = "/private/preview/"
         request.META["QUERY_STRING"] = f"token={canary}"
         properties = event_properties(request=request)
-        event = safe_compatibility_event(
-            host="testserver",
-            path=request.path,
-            method="GET",
-            status=400,
-            referrer=f"https://external.example/?secret={canary}",
-        )
-        evidence = repr(properties) + repr(event.properties())
-        self.assertNotIn(canary, evidence)
+        self.assertNotIn(canary, repr(properties))
 
 
 class TerraformSourcePolicyTests(SimpleTestCase):
@@ -266,11 +272,12 @@ class TerraformSourcePolicyTests(SimpleTestCase):
         evidence = validate_terraform_seo_source(terraform_fixture(), commit=COMMIT)
         self.assertEqual(evidence.commit, COMMIT)
         self.assertEqual(evidence.cache_behavior_count, 1)
+        self.assertEqual(evidence.task_cpu_architecture, SELECTED_TARGET.task_cpu_architecture)
 
     def test_each_terraform_source_regression_fails_closed(self) -> None:
         cases = (
-            (DEVELOPMENT_TERRAFORM_VARS_PATH, "web.dtcdev.click", "other.invalid"),
-            (DEVELOPMENT_TERRAFORM_VARS_PATH, "noindex, nofollow", "index, follow"),
+            (TARGET_TERRAFORM_VARS_PATH, SELECTED_TARGET.hostname, "other.invalid"),
+            (TARGET_TERRAFORM_VARS_PATH, "noindex, nofollow", "index, follow"),
             ("modules/django-website/edge.tf", "override = true", "override = false"),
             (
                 "modules/django-website/edge.tf",
@@ -293,6 +300,27 @@ class TerraformSourcePolicyTests(SimpleTestCase):
                 "robots_header_value = null",
                 'robots_header_value = "noindex, nofollow"',
             ),
+            # An image built for the architecture the pipeline no longer targets
+            # starts on ECS and dies without a useful log, so the declared task
+            # CPU architecture and its binding into every task definition are
+            # part of the trusted-source contract.
+            (
+                TARGET_TERRAFORM_VARS_PATH,
+                f'task_cpu_architecture = "{SELECTED_TARGET.task_cpu_architecture}"',
+                'task_cpu_architecture = "X86_64"'
+                if SELECTED_TARGET.task_cpu_architecture != "X86_64"
+                else 'task_cpu_architecture = "ARM64"',
+            ),
+            (
+                "modules/django-website/compute.tf",
+                "cpu_architecture        = var.task_cpu_architecture",
+                'cpu_architecture        = "X86_64"',
+            ),
+            (
+                "modules/django-website/compute.tf",
+                'operating_system_family = "LINUX"',
+                'operating_system_family = "WINDOWS_SERVER_2019_CORE"',
+            ),
         )
         for path, original, replacement in cases:
             with self.subTest(path=path, replacement=replacement):
@@ -305,7 +333,7 @@ class TerraformSourcePolicyTests(SimpleTestCase):
         mutations = []
 
         duplicate = terraform_fixture()
-        duplicate[DEVELOPMENT_TERRAFORM_VARS_PATH] += 'hostname = "evil.invalid"\n'
+        duplicate[TARGET_TERRAFORM_VARS_PATH] += 'hostname = "evil.invalid"\n'
         mutations.append(duplicate)
 
         commented = terraform_fixture()
@@ -322,6 +350,15 @@ class TerraformSourcePolicyTests(SimpleTestCase):
             '\nresource "aws_cloudfront_distribution" "evil" {\n  aliases = ["evil.invalid"]\n}\n'
         )
         mutations.append(extra_distribution)
+
+        # A workload whose task definition declares no runtime platform silently
+        # takes the AWS default architecture, which is exactly the divergence
+        # this check exists to prevent.
+        undeclared_platform = terraform_fixture()
+        undeclared_platform["modules/django-website/compute.tf"] = undeclared_platform[
+            "modules/django-website/compute.tf"
+        ].replace("runtime_platform {", "other_block {", 1)
+        mutations.append(undeclared_platform)
 
         for sources in mutations:
             with self.subTest(source=sources["modules/django-website/edge.tf"]):

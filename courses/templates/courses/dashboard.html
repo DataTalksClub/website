@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load seo %}
+{% load breadcrumbs seo %}
 
 {% block document_title %}{{ course.title }} dashboard — DataTalks.Club{% endblock %}
 
@@ -9,7 +9,7 @@
 
 {% block page_styles %}
       /* ------------------------------------------------------------------ *
-       * Course dashboard, design 5a (issue #179).  The read-only companion
+       * Course dashboard, design system (issue #179).  The read-only companion
        * to the course page: how the whole cohort is doing, band by band.
        * Like every page in the system it carries its complete stylesheet
        * inline and loads no external CSS.
@@ -231,25 +231,13 @@
 
 {% block page_header %}
         {% comment %}
-          The trail the adopted shell used to draw, as the design 5a primitive:
+          The trail the adopted shell used to draw, as the design system primitive:
           every ancestor is a link and the current page is plain text.
         {% endcomment %}
-        <nav class="breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'course_list' %}">Courses</a>
-            </li>
-            <li>
-              <a href="{% url 'course_family' course_family.slug %}">{{ course_family.title }}</a>
-            </li>
-            <li>
-              <a href="{% url 'course' course_family.slug course.identifier %}">{{ course.identifier }}</a>
-            </li>
-            <li aria-current="page">
-              Dashboard
-            </li>
-          </ol>
-        </nav>
+        {% url 'course_list' as course_list_url %}
+        {% url 'course_family' course_family.slug as course_family_url %}
+        {% url 'course' course_family.slug course.identifier as cohort_url %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url current="Dashboard" %}
         <div>
           <p class="mono-label mono-label-indigo">{{ course.title }}</p>
           <h1 id="dashboard-heading">{{ course.title }} Dashboard</h1>

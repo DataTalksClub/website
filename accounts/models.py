@@ -79,6 +79,28 @@ class CustomUser(AbstractUser):
             "notification emails."
         ),
     )
+    # Every account starts subscribed, regardless of how it was created (a new
+    # signup, the legacy zoomcamp importer, the CMP learner importer -- none of
+    # those need to know this field exists). The only importer that writes this
+    # field at all, ``scripts/prod/import_mailchimp_subscriptions.py``, only
+    # ever confirms the default: a match in Mailchimp's subscribed export
+    # writes ``True`` explicitly (Mailchimp's own record is the authority, not
+    # the absence of contrary evidence). It does not read Mailchimp's separate
+    # unsubscribed/cleaned exports, so nothing today ever writes ``False``.
+    newsletter_subscribed = models.BooleanField(
+        verbose_name="Newsletter subscribed",
+        default=True,
+        help_text="Whether this account receives newsletter email.",
+    )
+    home_dismissals = models.JSONField(
+        verbose_name="Home dismissals",
+        default=dict,
+        blank=True,
+        help_text=(
+            "Allowlisted signed-in-home checklist/nudge keys this member has "
+            "already skipped, completed, or dismissed."
+        ),
+    )
 
     # This is an expand-only identity key. The legacy ``email`` and
     # ``username`` columns remain available throughout the compatibility
@@ -107,7 +129,7 @@ class CustomUser(AbstractUser):
                     & Q(normalized_email__isnull=False)
                 ),
                 name="accounts_active_normalized_email_unique",
-            )
+            ),
         ]
 
     def save(self, *args, **kwargs):
@@ -214,6 +236,22 @@ class AccountIdentityQuarantine(models.Model):
 
 
 class AccountReconciliationRun(models.Model):
+    """Idempotency/concurrency record for the one-time account-merge apply.
+
+    Nothing at request time ever reads this table -- it exists only for
+    ``scripts/prod/import_account_reconciliation.py`` (via
+    ``scripts.prod.account_reconciliation``), which owns every line of logic
+    that reads or writes it. It stays a real model registered under
+    ``accounts`` because a Django model needs an installed app to get a
+    migration and cheap lookups against ``CustomUser``, and ``scripts/prod``
+    is plain scripts, not an app -- not because this is a live application
+    feature. See that package's module docstring for why this specifically
+    stays a database row (its ``UniqueConstraint`` below is the compare-and-
+    swap that makes two simultaneous applies of the same mapping resolve to
+    exactly one merge) rather than becoming script-owned file/dict state the
+    way the CMP learner import's claim-tracking does.
+    """
+
     class Mode(models.TextChoices):
         APPLY = "apply", "Apply"
         ROLLBACK_CHECK = "rollback_check", "Rollback check"
@@ -242,3 +280,54 @@ class AccountReconciliationRun(models.Model):
 
     def __str__(self):
         return f"account-reconciliation:{self.id}"
+
+
+class CmpLearnerImportProgress(models.Model):
+    """Per-table high-water mark for the resumable CMP learner-account import.
+
+    ``scripts/prod/import_cmp_learners.py`` walks a source table in ascending
+    source-id order, in fixed-size batches. Each batch's writes and the advance
+    of ``last_source_id`` happen inside one database transaction, so a process
+    killed mid-batch leaves that batch fully rolled back rather than partially
+    written -- there is nothing for the stored watermark to disagree with. A
+    re-run resumes with ``select id > last_source_id order by id``, so it never
+    re-scans rows it already committed, and ``rows_written`` /
+    ``last_source_id`` are enough to report "imported N of 20,009, last
+    committed batch was X" without touching the source export again.
+
+    ``table`` names either a literal source table (``accounts_customuser``,
+    ``account_emailaddress``) or a derived phase of the same import that has
+    no table of its own (``account_emailaddress_synthesized``, for the
+    verified address synthesised onto an account the export carried no email
+    row for). Either way it is one countable, resumable unit of this import.
+
+    Import-provenance state that once lived on a *live* model
+    (``CustomUser.cmp_source_user_id``, a column every future query against
+    the permanent account table would have carried) moved to this importer's
+    own script-owned claims file
+    (``accounts.services.cmp_learner_import.CmpClaimsStore``) rather than a
+    database table -- see that module's docstring. This table stays a
+    database row instead, deliberately: its whole value is that
+    ``last_source_id`` advances *inside the same database transaction* as
+    the batch of rows it counts, so a killed process leaves nothing for the
+    watermark and the data to disagree about. A JSON file cannot join that
+    transaction -- moving this table to one would trade a property no file
+    can replicate (perfect crash-atomicity with the writes it tracks) for
+    consistency with a design that does not need it. It is not a field on
+    ``CustomUser`` or any other live domain model, so the principle that
+    moved the source id off ``CustomUser`` does not ask this table to move
+    either.
+    """
+
+    table = models.CharField(max_length=64, unique=True)
+    last_source_id = models.BigIntegerField(default=0)
+    rows_written = models.PositiveBigIntegerField(default=0)
+    rows_skipped = models.PositiveBigIntegerField(default=0)
+    completed = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("table",)
+
+    def __str__(self):
+        return f"cmp-learner-import-progress:{self.table}"

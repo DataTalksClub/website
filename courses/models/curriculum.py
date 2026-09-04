@@ -4,6 +4,8 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
+from courses.curriculum_source_validators import validate_unit_code_sources
+
 from .curriculum_import import SourceProvenanceModel, source_provenance_constraint
 
 
@@ -86,6 +88,16 @@ class Unit(SourceProvenanceModel):
     link = models.URLField(
         blank=True,
         help_text="Optional destination for the unit.",
+    )
+    video_url = models.URLField(
+        blank=True,
+        help_text="Lesson video declared by the course repository frontmatter.",
+    )
+    code_sources = models.JSONField(
+        default=list,
+        blank=True,
+        validators=[validate_unit_code_sources],  # stable module: see the migration
+        help_text="Companion code files declared by the course repository frontmatter.",
     )
 
     def clean(self):

@@ -1,19 +1,25 @@
 from functools import partial
 
-from django.conf import settings
 from django.db import transaction
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
 from accounts.models import CustomUser
+from core.runtime_config import get_bool_setting
 from course_management.datamailer.sync.contacts import (
     erase_contact_from_datamailer,
     sync_contact,
 )
 from course_management.datamailer.sync.membership_removals import (
     remove_enrollment_from_datamailer as remove_enrollment_recipient_list,
+)
+from course_management.datamailer.sync.membership_removals import (
     remove_homework_submission_from_datamailer as remove_homework_submission_recipient_list,
+)
+from course_management.datamailer.sync.membership_removals import (
     remove_project_submission_from_datamailer as remove_project_submission_recipient_list,
+)
+from course_management.datamailer.sync.membership_removals import (
     remove_registration_from_datamailer as remove_registration_recipient_list,
 )
 from course_management.datamailer.sync.memberships import (
@@ -29,7 +35,7 @@ def sync_user_to_datamailer(sender, instance, created, **kwargs):
     if not created:
         return
 
-    if not getattr(settings, "DATAMAILER_SYNC_ON_USER_CREATE", True):
+    if not get_bool_setting("datamailer.sync_on_user_create"):
         return
 
     callback = partial(sync_contact, instance)

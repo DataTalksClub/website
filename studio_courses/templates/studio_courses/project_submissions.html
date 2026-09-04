@@ -1,13 +1,13 @@
 {% extends 'studio_courses/base.html' %}
-{% load custom_filters %}
+{% load breadcrumbs custom_filters %}
 {% comment %}
-  Design 5a (issue #179): the project submissions grading surface.
+  Design system (issue #179): the project submissions grading surface.
 
   A grading surface, so the port is presentational only: every form action,
   hidden `next` value, CSRF token, confirm prompt, status query parameter and
   the copyEmails/sortTable scripts are exactly as they were, and the sortable
   table keeps its id and its column order so sortTable() still addresses the
-  same cells.  The classes changed because a design 5a page loads no Tailwind,
+  same cells.  The classes changed because a design system page loads no Tailwind,
   no courses.css and no icon font: the slabs are the Studio base's
   .admin-section, the status counts are .filter-pills carrying
   aria-current="page" for the selected one, and the table is .admin-table in
@@ -40,16 +40,14 @@
   }
 {% endblock %}
 
-{% block breadcrumbs %}
-  <li>
-    <a href="{% url 'studio_courses_course_list' %}">Courses</a>
-  </li>
-  <li>
-    <a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a>
-  </li>
-  <li aria-current="page">
-    {{ project.title }} Submissions
-  </li>
+{% block breadcrumb_trail %}
+  {% comment %}
+    "<project> Submissions" used to be one crumb.  The project is its own level
+    now; Studio has no page of its own for a project, so that level names it
+    without linking rather than pointing at this list or off to the public page.
+  {% endcomment %}
+  {% url 'studio_courses_course' course.slug as studio_course_url %}
+  {% breadcrumbs "Studio" studio_home_url "Courses" studio_courses_url course.title studio_course_url project.title "" current="Submissions" %}
 {% endblock %}
 
 {% block page_head %}

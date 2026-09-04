@@ -3,5 +3,6 @@
   href="{{ provider_url }}"
 >
   {% include "account/_provider_mark.html" with provider_id=provider.id only %}
-  Continue with {{ provider.name }}
+  {# "Continue with" on the way in; account settings passes "Connect". #}
+  {{ provider_action|default:"Continue with" }} {{ provider.name }}
 </a>

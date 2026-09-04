@@ -1,4 +1,36 @@
 {% extends "public/legal/base.html" %}
+{% comment %}
+  The Impressum: the operator disclosure German law requires of the person who
+  runs this site.  The site frame is English, like every other page here, and the
+  disclosure itself is German, because that is the language the statute and its
+  section headings are written in — "Angaben gemäß § 5 TMG" is the heading, not a
+  description of one, so it is not translated and not paraphrased.  Each German
+  block carries `lang="de"` so a screen reader on this English page reads it in
+  the right voice.
+
+  The details are the operator's own and are shared with the other site the same
+  operator runs; only the contact address differs, and this page publishes the
+  address this site publishes everywhere else, alexey@datatalks.club.
+
+  There is no telephone number, and that is not an omission.  § 5 Abs. 1 Nr. 2
+  TMG asks for details enabling "schnelle elektronische Kontaktaufnahme und
+  unmittelbare Kommunikation", and EuGH C-298/07 (Verbraucherzentrale
+  Bundesverband v deutsche internet versicherung) held that a telephone number is
+  not among them: an email address answered promptly satisfies the requirement.
+  The operator gave us no number, and a published number nobody answers would be
+  worse than none at all.
+
+  Streitschlichtung carries only the § 36 VSBG declaration.  The paragraph that
+  used to precede it pointed at the European Commission's ODR platform, which
+  ceased operation on 20 July 2025 under Regulation (EU) 2024/3228, so the link
+  sent visitors to a service that no longer exists.  The remaining sentence is
+  the one the statute still asks for.
+
+  The content-responsibility heading cites § 18 Abs. 2 MStV, not § 55 Abs. 2
+  RStV: the Rundfunkstaatsvertrag was replaced by the Medienstaatsvertrag on
+  7 November 2020.  Only the citation changed — the person and the address it
+  discloses are the same.
+{% endcomment %}
 
 {% block kicker %}
   Legal notice
@@ -9,39 +41,80 @@
 {% endblock %}
 
 {% block lede %}
-  This route is the source-owned location for the DataTalks.Club legal notice.
-{% endblock %}
-
-{% block notice %}
-  <aside class="panel panel-lavender panel-outlined text-page-notice" data-legal-review-required>
-    <h2>Owner/legal verification required</h2>
-    <p>
-      The exact public operator identity, address, authorized representative, contact details,
-      VAT or tax identifiers, and applicable German statutory and dispute-resolution wording have
-      not been confirmed in the authoritative repository. They are intentionally not inferred or
-      copied from another product. This source candidate must not receive production legal
-      acceptance until an authorized owner/legal reviewer supplies and approves those details.
-    </p>
-  </aside>
+  Operator information for DataTalks.Club under German law. The notice below is
+  given in German.
 {% endblock %}
 
 {% block content %}
-  <h2>Operator identity and address</h2>
-  <p>Pending explicit owner/legal confirmation.</p>
+  <h2 lang="de">Angaben gemäß § 5 TMG</h2>
+  <p lang="de">
+    DataTalks.Club
+    <br>
+    Schonensche Straße 13
+    <br>
+    10439 Berlin
+    <br>
+    Deutschland
+  </p>
 
-  <h2>Authorized representative</h2>
-  <p>Pending explicit owner/legal confirmation.</p>
+  <h2 lang="de">Vertreten durch</h2>
+  <p lang="de">Alexey Grigorev</p>
 
-  <h2>Contact</h2>
-  <p>Pending explicit owner/legal confirmation of the public email and any required telephone details.</p>
+  <h2 lang="de">Kontakt</h2>
+  <p lang="de">
+    E-Mail:
+    <a href="mailto:alexey@datatalks.club">alexey@datatalks.club</a>
+  </p>
 
-  <h2>VAT and tax identifiers</h2>
-  <p>Pending explicit owner/legal confirmation.</p>
+  <h2 lang="de">Umsatzsteuer-Identifikationsnummer</h2>
+  <p lang="de">
+    Umsatzsteuer-Identifikationsnummer gemäß § 27 a Umsatzsteuergesetz:
+    <br>
+    DE343190995
+  </p>
 
-  <h2>Applicable statutory and dispute-resolution notice</h2>
-  <p>
-    Pending legal review against the currently applicable German requirements. Outdated statutory
-    citations and discontinued dispute-resolution platform wording are deliberately omitted until
-    that review is complete.
+  <h2 lang="de">Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h2>
+  <p lang="de">
+    Alexey Grigorev
+    <br>
+    Schonensche Straße 13
+    <br>
+    10439 Berlin
+    <br>
+    Deutschland
+  </p>
+
+  <h2 lang="de">Streitschlichtung</h2>
+  <p lang="de">
+    Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor
+    einer Verbraucherschlichtungsstelle teilzunehmen.
+  </p>
+
+  <h2 lang="de">Haftung für Inhalte</h2>
+  <p lang="de">
+    Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte auf
+    diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10
+    TMG sind wir als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder
+    gespeicherte fremde Informationen zu überwachen oder nach Umständen zu
+    forschen, die auf eine rechtswidrige Tätigkeit hinweisen. Verpflichtungen zur
+    Entfernung oder Sperrung der Nutzung von Informationen nach den allgemeinen
+    Gesetzen bleiben hiervon unberührt.
+  </p>
+
+  <h2 lang="de">Haftung für Links</h2>
+  <p lang="de">
+    Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte
+    wir keinen Einfluss haben. Deshalb können wir für diese fremden Inhalte auch
+    keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist stets der
+    jeweilige Anbieter oder Betreiber der Seiten verantwortlich.
+  </p>
+
+  <h2 lang="de">Urheberrecht</h2>
+  <p lang="de">
+    Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten
+    unterliegen dem deutschen Urheberrecht. Beiträge Dritter sind als solche
+    gekennzeichnet. Vervielfältigung, Bearbeitung, Verbreitung und jede Art der
+    Verwertung außerhalb der Grenzen des Urheberrechtes bedürfen der
+    schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers.
   </p>
 {% endblock %}

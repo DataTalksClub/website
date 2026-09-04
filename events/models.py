@@ -1,8 +1,14 @@
-"""Aggregate-only historical registration provenance and active pointers.
+"""Event identity, Q&A, and historical registration provenance.
 
-No model in this module stores a registration or attendee identity.  Provider event
-identifiers are protected mapping data and must only be presented by the mapping
-management capability.
+The ``Historical*`` section below is aggregate-only: no model there stores a
+registration or attendee identity, and provider event identifiers are protected
+data that must only be presented masked, through the historical registration
+import capability.
+
+The ``EventRegistrant*`` section at the bottom of this file is the one place in
+this module that does store a per-person registration fact -- see its own
+docstrings for the identity-consolidation contract and why it is deliberately
+admin-only with no Studio surface in this first pass.
 """
 
 from __future__ import annotations
@@ -579,106 +585,6 @@ class HistoricalRegistrationSourceRun(RevisionedModel):
         super().save(*args, **kwargs)
 
 
-class HistoricalEventMapping(RevisionedModel):
-    class State(models.TextChoices):
-        REVIEW_REQUIRED = "review_required", "Review required"
-        MAPPED = "mapped", "Mapped"
-        EXCLUDED = "excluded", "Excluded"
-        SOURCE_MISSING = "source_missing", "Source missing"
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    event = models.ForeignKey(
-        Event,
-        null=True,
-        blank=True,
-        on_delete=models.PROTECT,
-        related_name="historical_registration_mappings",
-    )
-    provider = models.CharField(
-        max_length=16, choices=HistoricalRegistrationSourceRun.Provider.choices
-    )
-    external_event_identifier = models.CharField(max_length=512)
-    canonical_repository = models.CharField(max_length=255, blank=True)
-    canonical_revision = models.CharField(max_length=64, blank=True)
-    canonical_source_key = models.CharField(max_length=512, blank=True)
-    canonical_slug_snapshot = models.SlugField(max_length=255, blank=True)
-    state = models.CharField(max_length=24, choices=State.choices)
-    mapping_set_revision = models.PositiveBigIntegerField()
-    reviewer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="reviewed_historical_event_mappings",
-    )
-    reviewer_ref = models.CharField(max_length=128, blank=True)
-    reason_code = models.CharField(max_length=64, blank=True)
-    reason = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ("provider", "id")
-        constraints = [
-            models.UniqueConstraint(
-                fields=("provider", "external_event_identifier"),
-                name="events_hist_mapping_provider_external_unique",
-            ),
-            models.CheckConstraint(
-                condition=Q(revision__gte=1), name="events_hist_mapping_revision_positive"
-            ),
-            models.CheckConstraint(
-                condition=Q(mapping_set_revision__gte=1),
-                name="events_hist_mapping_set_revision_positive",
-            ),
-            models.CheckConstraint(
-                condition=(
-                    Q(
-                        state="mapped",
-                        canonical_repository__gt="",
-                        canonical_revision__gt="",
-                        canonical_source_key__gt="",
-                        canonical_slug_snapshot__gt="",
-                        reviewer_ref__gt="",
-                    )
-                    | Q(
-                        state="excluded",
-                        reviewer_ref__gt="",
-                        reason_code__gt="",
-                    )
-                    | Q(state="review_required")
-                    | Q(state="source_missing")
-                ),
-                name="events_hist_mapping_state_evidence",
-            ),
-        ]
-        indexes = [
-            models.Index(fields=("provider", "state"), name="events_hist_mapping_state"),
-            models.Index(
-                fields=("canonical_repository", "canonical_revision", "canonical_source_key"),
-                name="events_hist_mapping_source",
-            ),
-        ]
-
-    def __str__(self) -> str:
-        return f"historical-mapping:{self.id}"
-
-    def save(self, *args: Any, **kwargs: Any) -> None:
-        if not self._state.adding:
-            original = (
-                type(self)
-                .objects.filter(pk=self.pk)
-                .values("provider", "external_event_identifier")
-                .first()
-            )
-            if original is not None and (
-                original["provider"] != self.provider
-                or original["external_event_identifier"] != self.external_event_identifier
-            ):
-                raise ValueError("provider mapping identity is immutable")
-        super().save(*args, **kwargs)
-
-
 class HistoricalRegistrationAggregateRevision(RevisionedModel):
     class State(models.TextChoices):
         STAGED = "staged", "Staged"
@@ -699,10 +605,24 @@ class HistoricalRegistrationAggregateRevision(RevisionedModel):
         on_delete=models.PROTECT,
         related_name="aggregate_revisions",
     )
-    mapping = models.ForeignKey(
-        HistoricalEventMapping,
+    # The provider's own event identifier -- protected data, only ever presented
+    # masked (see events.services._mask_identifier).  Identifies which of the
+    # source run's candidates this row is, the same role the removed
+    # HistoricalEventMapping row used to play.
+    external_event_identifier = models.CharField(max_length=512)
+    # Null until this provider event is resolved to a canonical Event: either
+    # automatically (exact case/whitespace-normalized title, unique date match)
+    # or by a human naming the exact pair in the current-registration-input
+    # JSON file.  Settable exactly once, from null -- never retargeted once
+    # resolved (see save() below).  Resolving this is a distinct, separate
+    # concern from activating the row's count for public display (`state`
+    # below): a resolved aggregate can still be `staged`.
+    event = models.ForeignKey(
+        Event,
+        null=True,
+        blank=True,
         on_delete=models.PROTECT,
-        related_name="aggregate_revisions",
+        related_name="historical_registration_aggregate_revisions",
     )
     eligible_count = models.PositiveBigIntegerField()
     excluded_count = models.PositiveBigIntegerField(default=0)
@@ -718,7 +638,7 @@ class HistoricalRegistrationAggregateRevision(RevisionedModel):
 
     _IMMUTABLE_FIELDS = (
         "source_run_id",
-        "mapping_id",
+        "external_event_identifier",
         "eligible_count",
         "excluded_count",
         "quarantined_count",
@@ -732,25 +652,41 @@ class HistoricalRegistrationAggregateRevision(RevisionedModel):
         ordering = ("source_run_id", "created_at", "id")
         constraints = [
             models.UniqueConstraint(
-                fields=("source_run", "mapping", "aggregate_checksum"),
+                fields=("source_run", "external_event_identifier", "aggregate_checksum"),
                 name="events_hist_aggregate_revision_unique",
             ),
             models.CheckConstraint(
                 condition=Q(revision__gte=1), name="events_hist_aggregate_revision_positive"
             ),
+            models.CheckConstraint(
+                condition=Q(external_event_identifier__gt=""),
+                name="events_hist_aggregate_external_id_nonempty",
+            ),
         ]
         indexes = [
-            models.Index(fields=("mapping", "state", "-created_at"), name="events_hist_agg_state"),
+            models.Index(fields=("event", "state", "-created_at"), name="events_hist_agg_state"),
             models.Index(fields=("aggregate_checksum",), name="events_hist_agg_checksum"),
+            models.Index(
+                fields=("source_run", "external_event_identifier"),
+                name="events_hist_agg_run_ext_id",
+            ),
         ]
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         if not self._state.adding:
-            original = type(self).objects.filter(pk=self.pk).values(*self._IMMUTABLE_FIELDS).first()
-            if original is not None and any(
-                original[field] != getattr(self, field) for field in self._IMMUTABLE_FIELDS
-            ):
-                raise ValueError("aggregate revision provenance and counts are immutable")
+            original = (
+                type(self)
+                .objects.filter(pk=self.pk)
+                .values(*self._IMMUTABLE_FIELDS, "event_id")
+                .first()
+            )
+            if original is not None:
+                if any(
+                    original[field] != getattr(self, field) for field in self._IMMUTABLE_FIELDS
+                ):
+                    raise ValueError("aggregate revision provenance and counts are immutable")
+                if original["event_id"] is not None and original["event_id"] != self.event_id:
+                    raise ValueError("aggregate revision event resolution is immutable once set")
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:
@@ -940,3 +876,237 @@ class HistoricalRegistrationTotalState(RevisionedModel):
 
     def __str__(self) -> str:
         return f"historical-total:{self.id}"
+
+
+# ---------------------------------------------------------------------------
+# Event registrants (attendee-level) -- see events/registrant_import.py for the
+# matching service and scripts/prod/import_event_registrants.py for the entry
+# point.  Three things, not two: an identity (the consolidated real person), a
+# fact (one provider registration, pointing at that identity, always naming a
+# specific event), and -- below, EventRegistrantInterestSignal -- a broader,
+# non-event-specific signal sourced from Mailchimp's own event-category tags.
+# See events/mailchimp_tag_import.py and
+# scripts/prod/import_mailchimp_event_tags.py for that importer.
+# ---------------------------------------------------------------------------
+
+
+class EventRegistrantIdentity(models.Model):
+    """The consolidated real person behind one or more provider event registrations.
+
+    Matching happens in :mod:`events.registrant_import`, by ``normalized_email``,
+    against ``accounts_customuser`` first -- the same table and field
+    ``accounts.services.cmp_learner_import`` already uses for its own
+    cross-source deduplication (see ``_find_cross_source_match`` there). When
+    that lookup finds an account, ``account`` is set here and this row is a
+    pointer onto it, never a competing profile -- this is the case the owner
+    was explicit about: someone who both took a course and registered for an
+    event must resolve to that one account, never two. When it finds nothing,
+    and no prior registrant-only identity already claims the address, a new
+    row is created with ``normalized_email`` set and ``account`` left null --
+    a real identity in the same email-keyed space, but deliberately never a
+    login-capable ``CustomUser`` row (self-registration is closed, see
+    ``accounts.models.CustomUser`` / commit ``c237ef2``). A future import that
+    matches this address onto a real account attaches through the same
+    account-first lookup on its next run -- a plain merge, nothing special
+    needs to be built for that later.
+
+    No Studio surface reads this table in this first pass. That is a
+    deliberate, conservative default, not an oversight -- matching accounts
+    (the common case) already have full account handling via existing paths,
+    and an unmatched registrant-only identity is pure backend data until a
+    future pass decides it needs one. See the ingest inventory, section 9.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    account = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="event_registrant_identity",
+    )
+    # Only ever set when `account` is null -- an account-anchored identity's
+    # email is read from the account itself, never cached here where it could
+    # drift out of sync with it.
+    normalized_email = models.EmailField(max_length=254, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("id",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("normalized_email",),
+                condition=Q(account__isnull=True),
+                name="events_registrant_identity_email_unique_unmatched",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(account__isnull=False, normalized_email__isnull=True)
+                    | Q(account__isnull=True, normalized_email__isnull=False)
+                ),
+                name="events_registrant_identity_exactly_one_anchor",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"event-registrant-identity:{self.id}"
+
+
+class EventRegistration(models.Model):
+    """One provider registration fact, pointing at a consolidated identity.
+
+    Never carries a name, an email, a phone number, or any other directly
+    identifying attendee value -- those stay in the protected source export,
+    never copied into the database.  It also never stores the provider's own
+    per-attendee token (Luma ``guest_id``; Eventbrite order/attendee id):
+    replay safety does not come from a natural key on this table at all --
+    see :class:`EventRegistrantImportProgress` and
+    ``events.registrant_import``. One event's rows are read and written
+    inside a single transaction, gated on that event's progress row not
+    already being ``completed``; a killed run leaves nothing partially
+    written for a later run to duplicate against, so there is nothing this
+    table itself needs to deduplicate on, and no reason to keep a protected
+    per-attendee token around permanently to do it with.
+
+    Public event pages are unaffected by this table.  They keep showing
+    ``HistoricalRegistrationAggregateRevision``-derived counts through the
+    existing ``mapping_review_required``/activation flow; a later pass may
+    derive that aggregate from these rows instead, but this model does not
+    change how a public page gets its count.
+    """
+
+    class Provider(models.TextChoices):
+        LUMA = "luma", "Luma"
+        EVENTBRITE = "eventbrite", "Eventbrite"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    event = models.ForeignKey(
+        Event, on_delete=models.PROTECT, related_name="registrant_registrations"
+    )
+    identity = models.ForeignKey(
+        EventRegistrantIdentity, on_delete=models.PROTECT, related_name="registrations"
+    )
+    provider = models.CharField(max_length=16, choices=Provider.choices)
+    status = models.CharField(max_length=32)
+    registered_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("event_id", "provider", "id")
+        indexes = [
+            models.Index(fields=("identity",), name="events_registration_identity"),
+        ]
+
+    def __str__(self) -> str:
+        return f"event-registration:{self.id}"
+
+
+class EventRegistrantInterestSignal(models.Model):
+    """A broad, non-event-specific interest signal, distinct from a real registration.
+
+    ``EventRegistration`` above states a fact a provider actually recorded:
+    "this identity registered for event X" -- it always carries a specific
+    ``event`` FK. A Mailchimp audience-export tag like ``event-podcast``
+    states something weaker: "this identity is broadly associated with
+    podcast-related events", with no specific event named anywhere in the
+    source data. Folding that into ``EventRegistration`` would either force a
+    fabricated ``event`` value (there isn't one) or silently blur two
+    different kinds of fact for a future reader -- one row that means
+    "attended" sitting next to one that only ever meant "self-tagged
+    interest, sourced from an email platform, no event identified". This
+    model exists so that distinction stays visible in the schema itself, not
+    just in a docstring: a query against ``EventRegistration`` can never
+    accidentally pick up a tag-derived signal, and vice versa.
+
+    ``category`` is populated only from the reviewed, hardcoded mapping in
+    :mod:`events.mailchimp_event_tag_categories` -- never inferred from a raw
+    tag string at read time. ``source`` records where the signal came from;
+    it is deliberately only ``mailchimp_tag`` today (the one producer that
+    exists), kept as a field rather than assumed so a second producer, if one
+    is ever built, does not require a schema change to be told apart from
+    the first.
+
+    One row per (identity, category, source): a subscriber tagged with both
+    ``event-podcast`` and ``event-conference`` gets two rows, not one row
+    with two values crammed in -- the same one-fact-per-row discipline
+    ``EventRegistration`` already uses. The unique constraint below is also
+    what makes importing idempotent: a replay's ``get_or_create`` finds the
+    row instead of duplicating it.
+    """
+
+    class Category(models.TextChoices):
+        GENERAL = "general", "General"
+        CONFERENCE = "conference", "Conference"
+        PODCAST = "podcast", "Podcast"
+        PRODUCTION = "production", "Production"
+        ANALYTICS = "analytics", "Analytics"
+        DATA = "data", "Data"
+        SOFT_SKILLS = "soft_skills", "Soft skills"
+        DATA_SCIENCE = "data_science", "Data science"
+
+    class Source(models.TextChoices):
+        MAILCHIMP_TAG = "mailchimp_tag", "Mailchimp tag"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    identity = models.ForeignKey(
+        EventRegistrantIdentity, on_delete=models.PROTECT, related_name="interest_signals"
+    )
+    category = models.CharField(max_length=32, choices=Category.choices)
+    source = models.CharField(
+        max_length=16, choices=Source.choices, default=Source.MAILCHIMP_TAG
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("identity_id", "category", "source")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("identity", "category", "source"),
+                name="events_registrant_interest_signal_unique",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"event-registrant-interest-signal:{self.id}"
+
+
+class EventRegistrantImportProgress(models.Model):
+    """Per-(provider, event) completion marker for the resumable registrant import.
+
+    Unlike ``accounts.models.CmpLearnerImportProgress`` (one monotonic source
+    table, watermarked by row id), a Luma/Eventbrite export is one bounded file
+    per event -- the largest event file in the real export is a few thousand
+    rows.  So resumability here is at event granularity rather than row
+    granularity: one event's registrant rows are read and written inside a
+    single transaction, and this row is only flipped to ``completed`` once
+    that transaction commits.  A re-run skips a completed event without even
+    reopening its file.  An event interrupted mid-transaction is simply
+    retried whole on the next run -- cheap, because a single event's file is
+    small enough that redoing it in full is not the same problem CMP's 20,009
+    rows would have been.
+    """
+
+    provider = models.CharField(max_length=16, choices=EventRegistration.Provider.choices)
+    external_event_identifier = models.CharField(max_length=512)
+    completed = models.BooleanField(default=False)
+    rows_total = models.PositiveIntegerField(default=0)
+    rows_written = models.PositiveIntegerField(default=0)
+    rows_skipped = models.PositiveIntegerField(default=0)
+    matched_account_total = models.PositiveIntegerField(default=0)
+    matched_prior_identity_total = models.PositiveIntegerField(default=0)
+    new_identity_total = models.PositiveIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("provider", "external_event_identifier")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("provider", "external_event_identifier"),
+                name="events_registrant_import_progress_provider_external_unique",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"registrant-import-progress:{self.provider}:{self.external_event_identifier}"

@@ -30,10 +30,6 @@ def test_runner_uses_only_allowlisted_argument_vectors(tmp_path) -> None:
     focused = plan_for(tmp_path, {"api/service.py": "changed\n"})
     assert command_for(focused, "django") == ("make", "test-ci-focused")
     assert command_for(focused, "playwright") == ("make", "test-playwright-smoke")
-    assert command_for(focused, "content_invariants") == (
-        "make",
-        "verification-content-invariants",
-    )
 
 
 def test_runner_uses_complete_suites_for_full_plan(tmp_path) -> None:

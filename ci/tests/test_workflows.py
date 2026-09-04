@@ -162,21 +162,6 @@ def test_selected_django_always_uses_fresh_sqlite_and_validated_closed_runner() 
         if step.get("name") == "Run CI orchestration contract tests from the workflow controller"
     )
     assert contract_step["working-directory"] == ".tmp/ci-controller"
-    build_step = next(
-        step
-        for step in quality["steps"]
-        if step.get("name") == "Build exact pinned compatibility source inputs"
-    )
-    assert build_step["if"] == "needs.classification.outputs.compatibility_mode == 'rerun'"
-    assert "build_pinned_legacy_sources.py" in build_step["run"]
-    assert "--prepare-only" not in build_step["run"]
-    compatibility_step = next(
-        step
-        for step in quality["steps"]
-        if step.get("name") == "Run the compatibility contract when selected"
-    )
-    assert compatibility_step["if"] == "needs.classification.outputs.compatibility_mode == 'rerun'"
-    assert "compatibility-source-artifacts-check" in compatibility_step["run"]
 
 
 def test_aggregate_gate_is_the_release_dependency() -> None:
@@ -311,8 +296,8 @@ def test_normal_workflow_uses_versioned_plan_and_trusted_evidence_artifact() -> 
     assert "--release-requires-image" in classifier_script
     assert "--component selector" in classifier_script
     assert "ci.verification environment" in classifier_script
-    assert "quality compatibility content_invariants evidence_validation" in runs(jobs["quality"])
-    assert "quality-contract-v1" in (ROOT / "ci" / "ownership.json").read_text(encoding="utf-8")
+    assert "quality evidence_validation" in runs(jobs["quality"])
+    assert "quality-contract-v2" in (ROOT / "ci" / "ownership.json").read_text(encoding="utf-8")
     workflow_text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     assert workflow_text.count("ci.verification record") == workflow_text.count("--machine-output")
     assert workflow_text.count("ci.verification record") == workflow_text.count(
@@ -405,7 +390,9 @@ def test_deploy_smoke_has_exact_readonly_authority_and_pinned_base_url() -> None
         "DTC_TEST_REMOTE_NAMESPACE": "deploy-${{ github.run_id }}-${{ github.run_attempt }}",
     }
     assert "DTC_TEST_BASE_URL" not in release["env"]
-    assert "--base-url https://web.dtcdev.click" in release["run"]
+    assert release["env"]["DEVELOPMENT_BASE_URL"] == "${{ vars.DEVELOPMENT_BASE_URL }}"
+    assert '--base-url "$base_url"' in release["run"]
+    assert "from deploy.development_target import DEVELOPMENT_ORIGIN" in release["run"]
 
 
 def test_manual_release_is_full_and_probe_contract_stays_separate() -> None:

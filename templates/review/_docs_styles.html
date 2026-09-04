@@ -17,8 +17,12 @@
 }
 
 .docs-home-intro {
-  --measure: 46rem;
   margin-top: 0;
+}
+
+.docs-search {
+  margin-top: 1.25rem;
+  max-width: 34rem;
 }
 
 .docs-home-intro > p:first-child {
@@ -53,62 +57,33 @@
   margin-top: 0.35rem;
 }
 
-.docs-course-grid {
-  display: grid;
-  gap: 1rem;
-}
-
-.docs-course-card {
-  --interactive-card-bottom: 1.25rem;
-  --interactive-card-right: 1.25rem;
-  background: var(--card);
-  border: 2px solid var(--line);
-  border-radius: 0.9rem;
-  box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+/* One index row: the FAQ/wiki `.row-list`/`.list-row` primitives carry the divided
+   layout, so a docs row only adds its own text rhythm, the guide/topic count on the
+   trailing rail, and the whole-row link treatment the wiki `.explore-row` also uses. */
+.docs-row {
   color: var(--ink);
-  display: flex;
-  flex-direction: column;
-  min-height: 10.5rem;
-  min-width: 0;
-  padding: 1.25rem;
   text-decoration: none;
 }
 
-.docs-support-link:hover .docs-row-title,
+.docs-row:hover .docs-row-title,
 .docs-child-link:hover .docs-row-title {
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
 
-.docs-card-kicker {
-  color: var(--indigo);
+.docs-row-body {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
 }
 
-.docs-card-title {
-  font-size: 1.15rem;
-  font-weight: 800;
-  line-height: 1.25;
-  margin-top: 0.5rem;
-}
-
-.docs-card-description {
-  color: var(--body-text);
-  line-height: 1.55;
-  margin-top: 0.5rem;
-}
-
-.docs-card-footer {
-  align-items: center;
+.docs-row-count {
   color: var(--muted);
-  display: flex;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  gap: 0.5rem;
-  justify-content: space-between;
-  letter-spacing: 0.04em;
-  margin-top: auto;
-  padding-top: 1rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .docs-arrow {
@@ -118,13 +93,11 @@
   font-weight: 800;
 }
 
-.docs-support-list,
 .docs-child-list {
   border-bottom: 2px dashed var(--line-soft);
   border-top: 2px dashed var(--line-soft);
 }
 
-.docs-support-link,
 .docs-child-link {
   align-items: center;
   color: var(--ink);
@@ -136,7 +109,6 @@
   text-decoration: none;
 }
 
-.docs-support-link + .docs-support-link,
 .docs-child-link + .docs-child-link {
   border-top: 2px dashed var(--line-soft);
 }
@@ -154,58 +126,24 @@
   margin-top: 0.2rem;
 }
 
-.docs-area-grid {
-  display: grid;
-  gap: 1rem;
-}
-
-.docs-area-card {
-  background: var(--card);
-  border: 2px solid var(--line);
-  border-radius: 0.9rem;
-  box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
-  min-width: 0;
-  padding: 1.1rem;
-}
-
-.docs-area-head {
-  align-items: center;
-  display: flex;
-  gap: 0.75rem;
-  justify-content: space-between;
-}
-
-.docs-area-title {
-  color: var(--ink);
-  font-size: 1.15rem;
-  font-weight: 800;
-  min-height: 2.75rem;
+/* Community and activities rows keep the area itself as one row (title link),
+   with its pages as inline text links rather than a full row apiece -- the
+   hub stays a bounded catalogue of collections, not a flattened dump of every
+   page underneath them. */
+.docs-row-links a {
+  color: var(--indigo);
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
 
-.docs-area-links {
-  border-top: 2px dashed var(--line-soft);
-  display: grid;
-  list-style: none;
-  margin: 0.65rem 0 0;
-  padding: 0.45rem 0 0;
-}
-
-.docs-area-links a {
-  align-items: center;
-  color: var(--body-text);
-  display: flex;
-  min-height: 2.75rem;
-  overflow-wrap: anywhere;
-  padding: 0.35rem 0.25rem;
+.docs-row-links a:not(:first-child)::before {
+  color: var(--muted);
+  content: ", ";
   text-decoration: none;
 }
 
-.docs-area-links a:hover {
-  color: var(--ink);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
+.search-count {
+  overflow-wrap: anywhere;
 }
 
 .docs-breadcrumbs {
@@ -335,7 +273,6 @@
 }
 
 .docs-body {
-  --measure: 46rem;
   min-width: 0;
 }
 
@@ -524,11 +461,6 @@ a.docs-curriculum-card {
 }
 
 @media (min-width: 40rem) {
-  .docs-course-grid,
-  .docs-area-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .docs-context {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -542,10 +474,6 @@ a.docs-curriculum-card {
   .docs-section + .docs-section {
     margin-top: 2rem;
     padding-top: 2rem;
-  }
-
-  .docs-course-card {
-    min-height: 0;
   }
 
   .docs-on-page-list {

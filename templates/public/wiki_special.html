@@ -1,4 +1,4 @@
-{% load seo static %}
+{% load breadcrumbs seo static %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -11,7 +11,7 @@
     {% include "public/_wiki_head_meta.html" %}
     <style>
       /* ------------------------------------------------------------------ *
-       * Wiki special pages, design 5a (issue #179).  The categories are the
+       * Wiki special pages, design system (issue #179).  The categories are the
        * system's segmented control, rendered as links because each one is a
        * real route; the pages themselves are the same divided rows the wiki
        * hub uses, so a reader meets one catalogue shape, not two.
@@ -102,25 +102,13 @@
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream wiki-hero" aria-labelledby="special-heading">
-        <nav class="shell shell-reading breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'wiki-home' %}">Wiki</a>
-            </li>
-            {% if category == 'all' %}
-              <li aria-current="page">
-                Special pages
-              </li>
-            {% else %}
-              <li>
-                <a href="{% url 'wiki-special' %}">Special pages</a>
-              </li>
-              <li aria-current="page">
-                {{ category|title }}
-              </li>
-            {% endif %}
-          </ol>
-        </nav>
+        {% url 'wiki-home' as wiki_home_url %}
+        {% if category == 'all' %}
+          {% breadcrumbs "Wiki" wiki_home_url current="Special pages" nav_class="shell shell-reading" %}
+        {% else %}
+          {% url 'wiki-special' as wiki_special_url %}
+          {% breadcrumbs "Wiki" wiki_home_url "Special pages" wiki_special_url current=category|title nav_class="shell shell-reading" %}
+        {% endif %}
         <div class="shell shell-reading">
           <h1 id="special-heading">Special pages</h1>
           <p class="special-lede">

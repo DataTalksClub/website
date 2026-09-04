@@ -18,6 +18,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import F, Max
 from django.utils import timezone
 
+from courses.course_family_catalog import canonical_family_slug, family_slug_variants
 from courses.models import (
     AnswerTypes,
     Cohort,
@@ -275,6 +276,11 @@ class _CurriculumImporter:
 
     def _upsert_course(self) -> Course:
         source = self.command.source.course
+        # The repository names itself after its GitHub repository; the family row
+        # carries the published slug.  Normalizing here, rather than in the
+        # manifest, keeps the fix alive across a manifest regeneration and covers
+        # every future course whose repository name differs from its family slug.
+        family_slug = canonical_family_slug(source.slug)
         source_id = UUID(source.content_id)
         by_stable = Course.objects.filter(source_stable_id=self.command.source_stable_id).first()
         by_content = Course.objects.filter(source_content_id=source_id).first()
@@ -293,30 +299,48 @@ class _CurriculumImporter:
                     "course_source_ownership_conflict", source_path=source.source_path
                 )
         else:
-            slug_match = Course.objects.filter(slug=source.slug).first()
+            slug_match = Course.objects.filter(slug=family_slug).first()
             if slug_match is not None and slug_match.source_content_id is not None:
                 raise CurriculumImportError(
                     "course_slug_collision", source_path=source.source_path, pointer="/slug"
                 )
             course = slug_match or Course()
 
-        slug_collision = Course.objects.filter(slug=source.slug).exclude(pk=course.pk).exists()
+        slug_collision = Course.objects.filter(slug=family_slug).exclude(pk=course.pk).exists()
         if slug_collision:
             raise CurriculumImportError(
                 "course_slug_collision", source_path=source.source_path, pointer="/slug"
             )
+        # One course owns exactly one family row.  Refuse loudly instead of
+        # publishing a second catalogue entry whose slug differs only by the
+        # repository's ``-zoomcamp`` suffix.
+        identity_collision = (
+            Course.objects.filter(slug__in=family_slug_variants(family_slug))
+            .exclude(pk=course.pk)
+            .exists()
+        )
+        if identity_collision:
+            raise CurriculumImportError(
+                "course_family_identity_conflict",
+                source_path=source.source_path,
+                pointer="/slug",
+            )
         if (
             course.pk
-            and course.slug != source.slug
+            and course.slug != family_slug
             and Submission.objects.filter(homework__course__course=course).exists()
         ):
             raise CurriculumImportError(
                 "protected_course_slug_change", source_path=source.source_path, pointer="/slug"
             )
 
-        course.slug = source.slug
+        course.slug = family_slug
         course.title = source.title
-        course.description = source.description
+        if source.description is not None:
+            # A repository without ``SITE.md`` describes no website copy, so the stored
+            # description stands.  Assigning unconditionally is what overwrote three
+            # families' curated text with their README banners.
+            course.description = source.description
         course.outcome = source.outcome
         course.github_repo_url = source.repository_url
         course.docs_url = source.docs_url
@@ -330,15 +354,32 @@ class _CurriculumImporter:
         course.save()
         return course
 
+    def _cohort_slug(self, course: Course, source: CohortSource) -> str:
+        """Return the published cohort slug for one source cohort.
+
+        A repository whose course slug was normalized also states its cohort
+        ``legacy_slug`` with the repository prefix (``ai-dev-tools-zoomcamp-2026``
+        for the published ``ai-dev-tools-2026``).  Rewrite that one prefix so the
+        cohort stays addressable under its family, and leave every other legacy
+        slug byte-for-byte as the source states it.
+        """
+
+        if not source.legacy_slug:
+            return f"{course.slug}-{source.identifier}"
+        source_slug = self.command.source.course.slug
+        prefix = f"{source_slug}-"
+        if course.slug != source_slug and source.legacy_slug.startswith(prefix):
+            return f"{course.slug}-{source.legacy_slug.removeprefix(prefix)}"
+        return source.legacy_slug
+
     def _upsert_cohort(self, course: Course, source: CohortSource) -> Cohort:
         if source.content_id is None or source.source_path is None:
             raise CurriculumImportError("explicit_cohort_source_identity_missing")
         source_id = UUID(source.content_id)
+        target_slug = self._cohort_slug(course, source)
         by_content = Cohort.objects.filter(course=course, source_content_id=source_id).first()
         by_identifier = Cohort.objects.filter(course=course, identifier=source.identifier).first()
-        by_slug = (
-            Cohort.objects.filter(slug=source.legacy_slug).first() if source.legacy_slug else None
-        )
+        by_slug = Cohort.objects.filter(slug=target_slug).first()
         collisions = {row.pk for row in (by_content, by_identifier, by_slug) if row is not None}
         if len(collisions) > 1:
             raise CurriculumImportError("cohort_identity_collision", source_path=source.source_path)
@@ -351,7 +392,6 @@ class _CurriculumImporter:
                 )
             cohort = candidate or Cohort(course=course)
 
-        target_slug = source.legacy_slug or f"{course.slug}-{source.identifier}"
         if Cohort.objects.filter(slug=target_slug).exclude(pk=cohort.pk).exists():
             raise CurriculumImportError(
                 "cohort_slug_collision", source_path=source.source_path, pointer="/legacy_slug"
@@ -518,6 +558,9 @@ class _CurriculumImporter:
         homework.slug = source.slug
         homework.title = source.title
         homework.instructions_markdown = source.instructions_markdown
+        # The path is the only bridge between a lesson that links to
+        # ``homework.md`` and the page that publishes those instructions.
+        homework.instructions_source_path = source.instructions_source_path
         homework.due_date = source.due_at
         homework.learning_in_public_cap = source.form.learning_in_public_cap
         homework.homework_url_field = source.form.homework_url
@@ -681,6 +724,15 @@ class _CurriculumImporter:
         unit.title = source.title
         unit.content_markdown = source.markdown
         unit.rendered_html = render_markdown(source.markdown)
+        # The parser already lifts the lesson's video and companion code files
+        # out of the frontmatter.  Persist them instead of discarding them: the
+        # Markdown body no longer contains either, so a unit page that does not
+        # read these columns can only lose them.
+        unit.video_url = source.metadata.video_url or ""
+        unit.code_sources = [
+            {"label": code.label, "source_path": code.source_path}
+            for code in source.metadata.code
+        ]
         for field, value in self._provenance(source, source.source_path, source.content_id).items():
             setattr(unit, field, value)
         _validate_model(unit)

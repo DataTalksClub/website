@@ -15,7 +15,10 @@ from courses.services.development_content_import import (
 )
 
 
-_EPHEMERAL_STAGING_ROOT = Path("/tmp")
+# Scratch data belongs in the project-local, gitignored .tmp/, never a shared
+# system temporary directory. The private subdirectory is created 0700 so the
+# staging root carries no group or other write bit of its own.
+_EPHEMERAL_STAGING_ROOT = Path(__file__).resolve().parents[2] / ".tmp" / "course-content-transport"
 _STAGING_DIRECTORY_PREFIX = "dtc-course-content-"
 _STAGING_FILENAME = "artifact.sqlite3"
 
@@ -43,6 +46,10 @@ def _close_response_body(response: dict | None) -> None:
 
 def _validated_ephemeral_staging_root() -> Path:
     root = _EPHEMERAL_STAGING_ROOT
+    try:
+        root.mkdir(parents=True, mode=0o700, exist_ok=True)
+    except OSError:
+        raise DevelopmentContentImportError("transport-local-storage-failed") from None
     try:
         metadata = root.lstat()
     except OSError:

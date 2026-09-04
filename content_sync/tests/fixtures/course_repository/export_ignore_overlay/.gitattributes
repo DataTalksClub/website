@@ -1,0 +1,12 @@
+# Overlay applied on top of the llm_zoomcamp_2026 fixture to build a checkout
+# that really carries export attributes.
+#
+# `git archive` -- what codeload serves the push transport -- honours these.
+# A pull transport that reads the working tree, or the `git ls-files` list, does
+# not, so the two would project different rows from the same commit.
+#
+# The first entry removes a manifest the parser reads, so the divergence shows up
+# in the projected cohort rows and not only in the file list; the second removes
+# a file the parser ignores, so the file list diverges too.
+cohorts/2025/cohort.yaml export-ignore
+SITE.md export-ignore

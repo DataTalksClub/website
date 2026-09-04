@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-from ci.content_invariants import build_invariant_artifact
 from ci.evidence import build_envelope
 from ci.ownership import sha256_json
 from ci.selection import ChangeRecord, classify_records
@@ -252,7 +251,6 @@ def test_prose_only_docs_are_explicitly_not_applicable(tmp_path: Path) -> None:
     assert plan["reason"] == "documentation_only"
     assert plan["components"]["selector"]["disposition"] == "rerun"
     for component in (
-        "compatibility",
         "container",
         "django",
         "playwright",
@@ -341,7 +339,7 @@ def test_worktree_ci_records_keep_smoke_playwright_on_empty_committed_range(
     assert plan["reason"] == "test_infrastructure"
 
 
-def test_large_value_only_content_is_digest_exhaustive_without_visual_rerun(
+def test_large_value_only_content_selects_focused_digest_exhaustive_verification(
     tmp_path: Path,
 ) -> None:
     records = [
@@ -353,7 +351,6 @@ def test_large_value_only_content_is_digest_exhaustive_without_visual_rerun(
     assert plan["profile"] == "focused"
     assert plan["browser_profile"] == "smoke"
     assert plan["components"]["django"]["disposition"] == "rerun"
-    assert plan["components"]["content_invariants"]["disposition"] == "rerun"
     assert plan["components"]["screenshots"]["disposition"] == "not_applicable"
     manifest_entry = next(
         entry
@@ -361,11 +358,6 @@ def test_large_value_only_content_is_digest_exhaustive_without_visual_rerun(
         if entry["path"] == "data/catalog.json"
     )
     assert len(manifest_entry["object_id"]) == 40  # Exact Git blob identity covers the whole value.
-    artifact = build_invariant_artifact(repository=_repository, plan=plan)
-    assert artifact["record_count"] == 10_000
-    assert artifact["files"][0]["identity_unique"] is True
-    assert artifact["files"][0]["url_complete_count"] == 10_000
-    assert artifact["files"][0]["metadata_complete_count"] == 10_000
 
 
 def test_exact_evidence_reuses_only_unaffected_components(tmp_path: Path) -> None:
@@ -571,6 +563,62 @@ def test_report_and_actions_summary_bind_complete_plan_state_and_machine_evidenc
     wrong_policy["policy_version"] += 1
     with pytest.raises(VerificationError, match="metadata"):
         validate_report(wrong_policy, plan=plan, evidence_directory=evidence)
+
+
+def test_container_component_is_planned_for_its_declared_execution_architecture(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The container job runs the release image, so it runs on the target's arch.
+
+    Its evidence is still recorded from the real host, so the declaration only
+    authorizes that machine in the plan; every other component stays bound to
+    the planner's own host.
+    """
+
+    host = tmp_path / "host"
+    host.mkdir()
+    declared_root = tmp_path / "declared"
+    declared_root.mkdir()
+
+    monkeypatch.delenv("VERIFICATION_CONTAINER_ARCHITECTURE", raising=False)
+    _repository, host_plan = make_plan(host, {"courses/service.py": "changed\n"})
+    host_architecture = host_plan["environment"]["architecture"]
+    assert host_plan["components"]["container"]["environment"]["architecture"] == host_architecture
+
+    declared = "aarch64" if host_architecture != "aarch64" else "x86_64"
+    monkeypatch.setenv("VERIFICATION_CONTAINER_ARCHITECTURE", declared)
+    _repository, declared_plan = make_plan(declared_root, {"courses/service.py": "changed\n"})
+    assert declared_plan["components"]["container"]["environment"]["architecture"] == declared
+    assert declared_plan["environment"]["architecture"] == host_architecture
+    for component in ("django", "playwright", "quality", "screenshots"):
+        assert (
+            declared_plan["components"][component]["environment"]["architecture"]
+            == host_architecture
+        )
+
+
+def test_declared_container_architecture_must_be_reviewed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("VERIFICATION_CONTAINER_ARCHITECTURE", "riscv64")
+    with pytest.raises(VerificationError, match="unreviewed execution architecture"):
+        make_plan(tmp_path, {"courses/service.py": "changed\n"})
+
+
+def test_repository_state_declares_the_same_container_architecture_as_the_plan(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repository, _base, head = repository_with_change(tmp_path, {"api/service.py": "changed\n"})
+    monkeypatch.delenv("VERIFICATION_CONTAINER_ARCHITECTURE", raising=False)
+    host_state = repository_state(repository, head)
+    host_architecture = host_state["environment"]["architecture"]
+
+    declared = "aarch64" if host_architecture != "aarch64" else "x86_64"
+    monkeypatch.setenv("VERIFICATION_CONTAINER_ARCHITECTURE", declared)
+    state = repository_state(repository, head)
+    assert state["component_environment"]["container"]["architecture"] == declared
+    assert state["environment"]["architecture"] == host_architecture
+    assert state["component_environment"]["django"]["architecture"] == host_architecture
 
 
 def test_repository_state_changes_with_concrete_runner_image_version(

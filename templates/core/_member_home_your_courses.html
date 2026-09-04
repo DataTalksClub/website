@@ -1,0 +1,92 @@
+{% load custom_filters %}
+{% comment %}
+  "Your courses" (§5, state 2): one card per active cohort, plus the
+  read-only "upcoming" card variant (§5, state 4) for a cohort that has not
+  opened yet.  At four or more active cohorts the cards give way to a
+  row-list (§5, "Progressive disclosure at volume").
+{% endcomment %}
+{% if your_courses_cards %}
+  <section class="member-home-section" aria-labelledby="your-courses-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="your-courses-heading">Your courses</h2>
+      </div>
+    </div>
+    {% if your_courses_variant == "row_list" %}
+      <div class="row-list">
+        {% for card in your_courses_cards %}
+          <div class="list-row your-courses-row">
+            <div>
+              <a class="course-row-title band-link" href="{{ card.course_url }}">{{ card.cohort.title }}</a>
+              {% if card.progress %}
+                <p class="mono-note">{{ card.progress.submitted }} of {{ card.progress.total }} modules submitted</p>
+              {% endif %}
+            </div>
+            <div>
+              {% if card.next_deadline %}
+                <span class="mono-note">
+                  {{ card.next_deadline.due|user_datetime:request }}
+                  <span class="time-left" data-deadline="{{ card.next_deadline.due|date:"c" }}" data-past-tone="muted"></span>
+                </span>
+              {% endif %}
+            </div>
+            <div>
+              {% if card.kind == "active" %}
+                <a class="cta cta-compact interactive-lift" href="{{ card.cta_url }}">{{ card.cta_label }}</a>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="card-grid card-grid-2">
+        {% for card in your_courses_cards %}
+          <article class="card your-course-card">
+            <div class="your-course-head">
+              <h3><a href="{{ card.course_url }}">{{ card.cohort.title }}</a></h3>
+              <span class="status-pill {{ card.pill_class }}">{{ card.pill_label }}</span>
+            </div>
+            {% if card.kind == "upcoming" %}
+              <div class="list-row">
+                <span class="mono-label">Starts</span>
+                <span>{{ card.cohort.start_date|date }}</span>
+              </div>
+              <p class="dashboard-note">
+                Materials aren't published yet. We'll email you when the course opens.
+              </p>
+            {% else %}
+              {% if card.progress %}
+                <div class="your-course-progress">
+                  <div
+                    class="progress"
+                    role="progressbar"
+                    aria-valuemin="0"
+                    aria-valuemax="{{ card.progress.total }}"
+                    aria-valuenow="{{ card.progress.submitted }}"
+                    aria-label="Modules submitted in {{ card.cohort.title }}"
+                  >
+                    <div class="progress-fill" style="width: {{ card.progress.percent }}%"></div>
+                  </div>
+                  <p class="mono-note">{{ card.progress.submitted }} of {{ card.progress.total }} modules submitted</p>
+                </div>
+              {% endif %}
+              {% if card.next_deadline %}
+                <div class="list-row">
+                  <span class="mono-label">Next deadline</span>
+                  <span>
+                    {{ card.next_deadline.due|user_datetime:request }}
+                    <span class="time-left" data-deadline="{{ card.next_deadline.due|date:"c" }}" data-past-tone="muted"></span>
+                  </span>
+                </div>
+              {% endif %}
+              <div class="your-course-actions">
+                <a class="cta cta-compact cta-ink interactive-lift" href="{{ card.cta_url }}">{{ card.cta_label }}</a>
+                <a class="band-link" href="{{ card.course_url }}">Course page →</a>
+              </div>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+{% endif %}

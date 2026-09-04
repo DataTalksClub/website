@@ -1,64 +1,36 @@
-# Local reviewed course-module preparation
+# Local production-prep dataset
 
-This runbook prepares only the reviewed 2026 cohorts for LLM Zoomcamp, ML Zoomcamp, and AI Dev
-Tools Zoomcamp. It is a bounded local/test workflow; it is not a production importer and must not
-be run against a production database.
+This runbook builds the local rehearsal dataset: the real course curricula, the pinned course
+catalogue, the sanitized CMP content, and the reviewed event registration aggregates, in one
+SQLite database under `.tmp/`. It is a bounded local/test workflow; it is not a production
+importer and must not be run against a production database.
 
-## Source boundary
+## Course content comes in through the one course path
 
-The caller supplies one JSON manifest with exactly three `sources` records. Each record must
-include:
+There is no separate local importer any more. The dataset pulls course repositories through
+`scripts/prod/sync_course_repositories.py`, which is the same
+`content_sync.course_repository_ingest.ingest_course_repository` the signed GitHub push webhook
+drives. `_docs/runbooks/course-content-push-and-pull.md` describes it; the only difference here
+is the transport and two options:
 
-- `source_stable_id`: `llm-zoomcamp`, `ml-zoomcamp`, or `ai-dev-tools-zoomcamp`;
-- `cohort_identifier`: `2026`;
-- the repository owner/name, `main` branch, and full 40-character `commit_sha`;
-- an absolute checkout `root`;
-- a `files` map of repository-relative paths to their SHA-256 values; and
-- `snapshot_sha256`, the deterministic SHA-256 over sorted `path\0file-sha256\n` entries.
+- `--from-disk`, pointing at the checkouts `make content-checkouts` produced; and
+- `--require-public-commit`, which refuses a HEAD that is not on a branch of the public GitHub
+  repository, because every source-derived link the imported pages publish -- the edit link, the
+  raw image URL, a source path a reader follows -- can only 404 while the commit is private.
+  Reachability is read from the checkout's own remote-tracking branches, so the check needs no
+  network.
 
-The command checks the checkout revision, refuses symlinks and oversized snapshots, hashes every
-listed file, rejects sensitive path components (including `.env`, credentials, registrations,
-learners, and submissions), parses the snapshot, and filters out all implicit/legacy cohorts
-before any database write. `homework_slug_overrides` may explicitly map a source homework path to
-an existing local slug when adopting an already-operated homework row.
+Which repositories exist is registered `ContentSource` data. `make content-sources` writes the
+pinned registration input at `content_sync/course_repository_sources.json` into the database it
+is pointed at, and is idempotent.
 
-Generate this manifest from the reviewed checkouts, retain it under `.tmp`, and keep the exact
-source commit and file hashes with the preparation evidence. Do not put learner data, provider
-payloads, credentials, or raw production exports in the manifest.
-
-## Validate and apply
-
-Use the local SQLite settings and the same manifest for both commands:
-
-```bash
-DTC_ENVIRONMENT=local \
-DTC_SQLITE_PATH=.tmp/local.sqlite3 \
-DJANGO_SETTINGS_MODULE=website.settings.local \
-uv run python manage.py prepare_local_course_modules \
-  --input .tmp/course-modules-input.json --check
-
-DTC_ENVIRONMENT=local \
-DTC_SQLITE_PATH=.tmp/local.sqlite3 \
-DJANGO_SETTINGS_MODULE=website.settings.local \
-uv run python manage.py prepare_local_course_modules \
-  --input .tmp/course-modules-input.json
-```
-
-The command uses the existing transactional curriculum importer with an explicit preservation
-mode. It changes source-owned course/cohort provenance and the selected cohort's curriculum
-format/flow. Existing cohort dates, visibility, registration URL, completion/scoring settings,
-homework fields/questions, projects, campaigns, enrollments, submissions, and other operational
-records are not rewritten. Project flow entries are references only; missing projects are rejected
-rather than created.
-
-Re-running the apply command with the same manifest is an idempotent replay. The JSON output
-contains only source identities, commits/checksums, aggregate curriculum counts, replay state, and
-course format/status counts.
+Every cohort a repository publishes is imported, legacy and modules alike; the parser already
+models the format dimension and neither route filters cohorts.
 
 ## Combined local rehearsal
 
 The local-only orchestrator composes migrations, the reviewed event identity manifest, the
-baseline course catalog, and this three-course module preparation. It also validates the prepared
+baseline course catalog, and the course-repository pull. It also validates the prepared
 Eventbrite and Luma aggregate snapshots against the safe facts recorded in
 `_docs/migration-data/event-registration-sources.json`. It stages aggregate evidence for both
 providers, keeps legacy candidates review-required, and can activate only the exact current-event
@@ -123,13 +95,13 @@ Run it against a new SQLite database, then run the same command without `--fresh
 ```bash
 uv run --frozen python scripts/prepare_local_data.py \
   --database .tmp/production-prep-current.sqlite3 \
-  --course-modules-input .tmp/course-modules-input-fresh.json \
+  --course-checkout-root .tmp/production-prep-dataset/course-sources \
   --current-registration-input .tmp/current-registration-input.json \
   --fresh
 
 uv run --frozen python scripts/prepare_local_data.py \
   --database .tmp/production-prep-current.sqlite3 \
-  --course-modules-input .tmp/course-modules-input-fresh.json \
+  --course-checkout-root .tmp/production-prep-dataset/course-sources \
   --current-registration-input .tmp/current-registration-input.json
 ```
 
@@ -140,3 +112,63 @@ state; the event pages are the final check that the three counts render as `N re
 the input, the sources are still staged for review and no public registration total is activated.
 It is a rehearsal tool, not a production importer; provider credentials, live registrations, and
 unreviewed mapping decisions must be supplied through a separately approved operational flow.
+
+## One command: `make production-prep-dataset`
+
+The steps above compose into a single rebuild, in three stages:
+
+1. `production-prep-course-registry` creates the dataset database and registers the course
+   repositories. This has to come first, because registered `ContentSource` rows are the only
+   place the answer to "which repositories exist" lives.
+2. `production-prep-course-sources` clones or refreshes one checkout per registered source. It is
+   `make content-checkouts` pointed at the dataset root, and it is the only step that touches the
+   network.
+3. `production-prep-local` builds the database offline from those checkouts and gates the result.
+
+```bash
+make production-prep-dataset
+make run-production-prep-dataset      # serves it on :8001
+```
+
+Artifacts land under `.tmp/production-prep-dataset/`: `course-sources/` (one checkout per
+registered source) and `dataset.sqlite3` (the database). Neither is committed. The build always
+starts from an empty database -- stage 1 refuses to run against one that already exists -- so it
+is a rebuild rather than an update; re-run it whenever a source moves.
+
+Useful overrides: `PRODUCTION_PREP_DATASET_DATABASE` (build somewhere else, still under `.tmp/`),
+`CONTENT_GIT_HOST` (where the repositories are cloned from; the owner comes from the registered
+source), `PRODUCTION_PREP_DATASET_PORT`, and `PRODUCTION_PREP_DATASET_REGISTRATION_INPUT=`
+(empty) to skip activating the reviewed current-event registration aggregates.
+
+### Prerequisites, honestly
+
+- **The protected event exports.** `.local/migration-data/events/luma-aggregate-v1/` and
+  `.local/migration-data/events/eventbrite/aggregate-v1.zip` in the main checkout, regenerated by
+  `scripts/prepare_event_registration_sources.py`. Their checksums must match
+  `_docs/migration-data/event-registration-sources.json`, so a refreshed export needs that file
+  updated in the same change. These directories hold real registrations; they stay outside git.
+- **The registered course repositories.** Stage 2 clones them from `CONTENT_GIT_HOST`
+  (`https://github.com` by default) using the owner and repository each registered source names,
+  so no repository identity is written in the Makefile. The 2026 module curricula are published
+  upstream now, so a clean clone satisfies `--require-public-commit` on its own; a checkout that
+  has run ahead of its remote will be refused by name until it is pushed.
+- **The protected CMP snapshot.** `PRODUCTION_PREP_CMP_SOURCE` defaults to
+  `$(HOME)/git/course-management-platform/db/db.sqlite3`. `make production-prep-local` copies that
+  file and runs the sanitizing importer before the catalogue seed and the course pull, so
+  homework questions and project copy come from CMP rather than the placeholder seed. Learner
+  tables stay empty. `make review-data` remains the standalone review-database path.
+
+### What the gate checks
+
+`make production-prep-dataset-verify` re-runs the checks on their own and prints an aggregate-only
+JSON report: every expected 2026 cohort by slug, `curriculum_format = modules` for exactly the
+three converted cohorts with their module/unit counts, one family row per real course, the absence
+of the upstream `fake-course` rows, and the count of future-dated events the public site would
+render. A non-zero exit means one of those is wrong; the database is still written, so the report
+is a diagnosis rather than a rollback.
+
+Two known defects fail this gate today and are owned elsewhere: the duplicate AI Dev Tools course
+family (#308) and the absence of future-dated events (#307). The events count comes from the
+checked public projection, not from the database, so no amount of database preparation moves it —
+it moves when `content/public_projection/events.json` is rebuilt from a fresher
+`DataTalksClub/datatalksclub.github.io` revision.

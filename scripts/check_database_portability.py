@@ -33,7 +33,10 @@ AUTHORITATIVE_SPECIFICATIONS = (
     "10-verification-strategy.md",
     "open-decisions.md",
 )
-COMPATIBILITY_SPECIFICATIONS = (FORMER_AWS_SPEC_NAME,)
+# The former AWS sandbox specification was deleted with its stack.  Nothing is
+# expected to exist for it any more; only the stale-link check below still
+# names it, so a surviving link to the deleted page is still reported.
+COMPATIBILITY_SPECIFICATIONS: tuple[str, ...] = ()
 EXPECTED_SPECIFICATIONS = AUTHORITATIVE_SPECIFICATIONS + COMPATIBILITY_SPECIFICATIONS
 ORDINARY_JOBS = ("quality", "django", "playwright", "container")
 FULL_DJANGO_COMMANDS = ("make test", "make test-django-full")
@@ -70,12 +73,7 @@ BACKEND_TEST_PATTERNS = (
     "connection.vendor",
     "has_select_for_update",
 )
-# This adapter reads an external, immutable CMP SQLite snapshot. The exception is
-# limited to SQLite safety/schema statements; its target persistence still uses
-# portable Django models and services, and every other backend token remains banned.
-BACKEND_PATTERN_EXCEPTIONS = {
-    Path("courses/registration_count_importer.py"): frozenset({"pragma "}),
-}
+BACKEND_PATTERN_EXCEPTIONS: dict[Path, frozenset[str]] = {}
 DATABASE_REFERENCE = re.compile(
     r"\b(?:postgres(?:ql)?|psycopg|database_url)\b",
     re.IGNORECASE,

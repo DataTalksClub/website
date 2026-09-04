@@ -62,7 +62,7 @@
     {% endblock %}
     <style>
       /* ------------------------------------------------------------------ *
-       * Text pages, design 5a (issue #179).  These pages are prose, so almost
+       * Text pages, design system (issue #179).  These pages are prose, so almost
        * everything they need is the system's shared `.prose`/`.prose-reading`
        * primitive; the page adds only the column the document is read in, the
        * rhythm of its opening block, and the row its actions sit in.
@@ -99,8 +99,8 @@
         letter-spacing: -0.025em;
       }
 
-      /* A notice qualifying the document below it — the Impressum's unresolved
-         identity — as an outlined panel at the reading column's width. */
+      /* The optional notice a page uses to qualify the document below it, as an
+         outlined panel at the reading column's width. */
       .text-page-notice {
         margin-top: 2rem;
         max-width: var(--measure);

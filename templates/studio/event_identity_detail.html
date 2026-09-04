@@ -1,7 +1,8 @@
 {% extends "studio/base.html" %}
+{% load breadcrumbs %}
 
 {% comment %}
-  Design 5a (issue #179).  The record's h1 moved into the base's page_head, the
+  Design system (issue #179).  The record's h1 moved into the base's page_head, the
   page slab became .admin-section, the credential-metadata lists became the
   base's .admin-facts, and the bare alias list became .admin-list (the design
   system drops list markers by default).  The trail back to the identity index
@@ -14,19 +15,9 @@
 {% endblock %}
 
 {% block breadcrumbs_nav %}
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <ol>
-      <li>
-        <a href="{% url 'studio:home' %}">Studio</a>
-      </li>
-      <li>
-        <a href="{% url 'studio:event-identity-list' %}">Event identities</a>
-      </li>
-      <li aria-current="page">
-        {{ identity.title }}
-      </li>
-    </ol>
-  </nav>
+  {% url 'studio:home' as studio_home_url %}
+  {% url 'studio:event-identity-list' as studio_event_identity_list_url %}
+  {% breadcrumbs "Studio" studio_home_url "Event identities" studio_event_identity_list_url current=identity.title %}
 {% endblock %}
 
 {% block page_head %}

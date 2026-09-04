@@ -18,7 +18,7 @@ make migrate
 make run
 ```
 
-The local site is served at `http://localhost:8000`. Local development uses the gitignored `.tmp/local.sqlite3` database by default. Set `DTC_SQLITE_PATH` to use another SQLite file; relative paths resolve from the repository root. The deployed development hostname is `web.dtcdev.click` and is always marked `noindex, nofollow`.
+The local site is served at `http://localhost:8000`. Local development uses the gitignored `.tmp/local.sqlite3` database by default. Set `DTC_SQLITE_PATH` to use another SQLite file; relative paths resolve from the repository root. No development host is deployed at the moment: the `web.dtcdev.click` stack was decommissioned on 2026-09-02 and its replacement `dev.datatalks.club` is not built yet. `deploy/development_target.py` holds the reviewed development hostnames and selects one from `DTC_DEVELOPMENT_HOSTNAME`; a deployed development host is always marked `noindex, nofollow`.
 
 ### Local administrator
 
@@ -70,6 +70,20 @@ assigns peer reviews with the existing assignment service, and moves Project 1 i
 peer review. It is repeatable, reports counts and state only, and refuses to overwrite
 non-synthetic submissions or run outside local/test SQLite.
 
+### Public projection images
+
+The 1,253 public projection images (`/images/...`, about 154 MB) are not tracked in git. A fresh
+clone renders every page except the artwork, and `manage.py check` warns with the command to run:
+
+```bash
+uv run --frozen python scripts/prod/sync_public_media_hydrate.py
+```
+
+Hydration is idempotent, verifies every object against its recorded checksum, and needs no AWS
+credential. The default `local` backend then serves the real bytes at the unchanged URLs. See the
+[public media runbook](_docs/runbooks/public-media-objects.md) for the backends, the operator
+publish/verify flow, and what a `502` on an image means.
+
 Local development and ordinary CI require no PostgreSQL installation or service. Tests always use isolated SQLite and ignore an ambient `DATABASE_URL`. Deployed development and production continue to use PostgreSQL/RDS through their fail-closed settings and deployment migration/readiness/smoke path.
 
 ## Common commands
@@ -95,13 +109,16 @@ Settings modules are:
 
 - `website.settings.local`: local development with project-local SQLite.
 - `website.settings.test`: deterministic isolated SQLite for ordinary tests and checks.
-- `website.settings.development`: `web.dtcdev.click`; production-shaped and always non-indexable.
-- `website.settings.production`: production security settings and fail-closed bootstrap configuration.
+- `website.settings.development`: the hostname selected by `deploy/development_target.py`; production-shaped and always non-indexable.
+- `website.settings.production`: production security settings and fail-closed bootstrap configuration. `prod.datatalks.club` is staging for its whole life while the apex still serves the legacy corpus, so these settings are non-indexable and account links resolve on the served host while canonical links stay on the apex.
+
+`deploy/deployment_targets.py` holds the reviewed deployment targets — account, region, hostname, resource namespace, settings module, desired counts and secret shapes for each applied stack. `DTC_DEPLOYMENT_TARGET` selects one from that in-code allowlist; an unreviewed or retired name fails closed, and so does a stack whose real identifiers disagree with the reviewed profile.
 
 Deployed development and production require a non-placeholder secret, a PostgreSQL `DATABASE_URL`, allowed hosts, and trusted CSRF origins. Readiness checks the database, unapplied migrations, and these bootstrap settings without calling GitHub, AWS, email, or any other optional provider. The retained `psycopg` dependency is for these deployed processes only; application services and migrations use portable Django contracts exercised on SQLite.
 
 See [`_docs/architecture/app-boundaries.md`](_docs/architecture/app-boundaries.md) for dependency
 direction, [`_docs/architecture/database-portability.md`](_docs/architecture/database-portability.md)
 for the database boundary and remaining-term inventory, the
-[`content-update` runbook](_docs/runbooks/content-update.md) for the checked projection lane, and
+[`content-update` runbook](_docs/runbooks/content-update.md) for the checked projection lane, the
+[public media runbook](_docs/runbooks/public-media-objects.md) for the projection image objects, and
 [`_docs/contributing.md`](_docs/contributing.md) for the full contribution handoff.

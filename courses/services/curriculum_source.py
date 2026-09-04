@@ -13,7 +13,9 @@ class CourseSource:
     content_id: str
     slug: str
     title: str
-    description: str
+    # ``None`` means the repository published no ``SITE.md``.  The importer leaves
+    # the existing description untouched rather than blanking curated copy.
+    description: str | None
     description_source_path: str | None
     outcome: str
     repository_url: str

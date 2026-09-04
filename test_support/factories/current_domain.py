@@ -435,7 +435,6 @@ def _content(context: FactoryContext, state: str) -> dict[str, object]:
         adapter_type="fixture",
         mount_path="/",
         enabled=True,
-        last_successful_commit="a" * 40,
     )
     release_factory = f"{prefix}.content_release"
     release = Release.objects.create(
@@ -475,7 +474,6 @@ def _content(context: FactoryContext, state: str) -> dict[str, object]:
             exact_public_path=path,
             slug=f"synthetic-{_key(context, factory, state, length=12)}",
             title=f"Synthetic {leaf.replace('_', ' ')}",
-            normalized_text="[REDACTED]" if state == "privacy_redaction" else "Synthetic content",
             rendered_html="<p>Synthetic content</p>",
             is_published=True,
         )
@@ -838,7 +836,6 @@ def _courses(context: FactoryContext, state: str) -> dict[str, object]:
 
 def _events(context: FactoryContext, state: str) -> dict[str, object]:
     SourceRun = _model("events.HistoricalRegistrationSourceRun")
-    Mapping = _model("events.HistoricalEventMapping")
     Aggregate = _model("events.HistoricalRegistrationAggregateRevision")
     Slot = _model("events.HistoricalRegistrationAggregateSlot")
     Displacement = _model("events.HistoricalRegistrationPointerDisplacement")
@@ -868,45 +865,25 @@ def _events(context: FactoryContext, state: str) -> dict[str, object]:
         state="quarantined" if state == "stale_conflict" else "active",
         actor_ref="synthetic-actor",
     )
-    mapping_factory = f"{prefix}.historical_event_mapping"
-    mapping_key = _key(context, mapping_factory, state)
+    aggregate_factory = f"{prefix}.historical_aggregate_revision"
+    aggregate_key = _key(context, aggregate_factory, state)
     from events.identity import create_event_identity
 
     canonical_event = create_event_identity(
         event_id=_uuid(context, f"{prefix}.event", state),
-        title=f"Synthetic Historical Event {mapping_key}",
+        title=f"Synthetic Historical Event {aggregate_key}",
         source_repository="DataTalksClub/synthetic",
         source_revision="a" * 40,
-        source_key=f"synthetic/{mapping_key}.md",
-        source_path=f"synthetic/{mapping_key}.md",
-        source_checksum=canonical_sha256({"event": mapping_key}),
+        source_key=f"synthetic/{aggregate_key}.md",
+        source_path=f"synthetic/{aggregate_key}.md",
+        source_checksum=canonical_sha256({"event": aggregate_key}),
     )
-    mapping = Mapping.objects.create(
-        id=_uuid(context, f"{prefix}.historical_event_mapping", state),
-        provider="luma",
-        external_event_identifier=f"synthetic-{mapping_key}",
-        event=canonical_event,
-        canonical_repository=canonical_event.source_repository,
-        canonical_revision=canonical_event.source_revision,
-        canonical_source_key=canonical_event.source_key,
-        canonical_slug_snapshot=canonical_event.slug,
-        state="mapped",
-        mapping_set_revision=1,
-        reviewer_ref="synthetic-reviewer",
-    )
-    missing_factory = f"{prefix}.source_missing_quarantine"
-    source_missing = Mapping.objects.create(
-        id=_uuid(context, f"{prefix}.source_missing_quarantine", state),
-        provider="eventbrite",
-        external_event_identifier=f"synthetic-missing-{_key(context, missing_factory, state)}",
-        state="source_missing",
-        mapping_set_revision=1,
-        reason_code="synthetic_missing",
-    )
+    external_event_identifier = f"synthetic-{aggregate_key}"
     aggregate = Aggregate.objects.create(
         id=_uuid(context, f"{prefix}.historical_aggregate_revision", state),
         source_run=run,
-        mapping=mapping,
+        external_event_identifier=external_event_identifier,
+        event=canonical_event,
         eligible_count=3,
         coverage_boundary="synthetic-all",
         status_policy_version="synthetic-v1",
@@ -917,7 +894,8 @@ def _events(context: FactoryContext, state: str) -> dict[str, object]:
     replacement = Aggregate.objects.create(
         id=_uuid(context, f"{prefix}.aggregate_rollback", state),
         source_run=run,
-        mapping=mapping,
+        external_event_identifier=external_event_identifier,
+        event=canonical_event,
         eligible_count=2,
         coverage_boundary="synthetic-all",
         status_policy_version="synthetic-v1",
@@ -927,10 +905,10 @@ def _events(context: FactoryContext, state: str) -> dict[str, object]:
     )
     slot = Slot.objects.create(
         id=_uuid(context, f"{prefix}.historical_aggregate_slot", state),
-        canonical_repository=mapping.canonical_repository,
-        canonical_revision=mapping.canonical_revision,
-        canonical_source_key=mapping.canonical_source_key,
-        canonical_slug_snapshot=mapping.canonical_slug_snapshot,
+        canonical_repository=canonical_event.source_repository,
+        canonical_revision=canonical_event.source_revision,
+        canonical_source_key=canonical_event.source_key,
+        canonical_slug_snapshot=canonical_event.slug,
         provider="luma",
         coverage_boundary="synthetic-all",
         active_revision=aggregate,
@@ -943,19 +921,19 @@ def _events(context: FactoryContext, state: str) -> dict[str, object]:
     )
     total = Total.objects.create(
         id=_uuid(context, f"{prefix}.historical_total_state", state),
-        canonical_repository=mapping.canonical_repository,
-        canonical_revision=mapping.canonical_revision,
-        canonical_source_key=mapping.canonical_source_key,
-        canonical_slug_snapshot=mapping.canonical_slug_snapshot,
+        canonical_repository=canonical_event.source_repository,
+        canonical_revision=canonical_event.source_revision,
+        canonical_source_key=canonical_event.source_key,
+        canonical_slug_snapshot=canonical_event.slug,
         complete=state != "stale_conflict",
     )
     boundary_factory = f"{prefix}.aggregate_to_native_boundary"
     boundary = Slot.objects.create(
         id=_uuid(context, boundary_factory, state),
-        canonical_repository=mapping.canonical_repository,
-        canonical_revision=mapping.canonical_revision,
-        canonical_source_key=mapping.canonical_source_key,
-        canonical_slug_snapshot=mapping.canonical_slug_snapshot,
+        canonical_repository=canonical_event.source_repository,
+        canonical_revision=canonical_event.source_revision,
+        canonical_source_key=canonical_event.source_key,
+        canonical_slug_snapshot=canonical_event.slug,
         provider="luma",
         coverage_boundary="synthetic-native",
         active_revision=replacement,
@@ -1009,29 +987,33 @@ def _events(context: FactoryContext, state: str) -> dict[str, object]:
         )
     replacement.refresh_from_db()
     total.refresh_from_db()
-    mapping_value: object = mapping
+    aggregate_value: object = aggregate
     if state == "invalid_rejected":
-        invalid = Mapping(
-            provider="luma",
+        invalid = Aggregate(
+            source_run=run,
             external_event_identifier="",
-            state="mapped",
-            mapping_set_revision=0,
+            event=canonical_event,
+            eligible_count=0,
+            coverage_boundary="synthetic-all",
+            status_policy_version="synthetic-v1",
+            combination_policy="replacement",
+            aggregate_checksum="0" * 64,
         )
         try:
             invalid.full_clean()
         except ValidationError:
-            mapping_value = _rejected("events.historicaleventmapping", "missing_mapping_evidence")
+            aggregate_value = _rejected(
+                "events.historicalregistrationaggregaterevision",
+                "missing_external_event_identifier",
+            )
         else:
-            raise RuntimeError("invalid historical mapping state was not rejected")
+            raise RuntimeError("invalid historical aggregate revision was not rejected")
     return {
         f"{prefix}.historical_source_run": run,
-        f"{prefix}.historical_event_mapping": mapping_value,
-        f"{prefix}.historical_aggregate_revision": aggregate,
+        f"{prefix}.historical_aggregate_revision": aggregate_value,
         f"{prefix}.historical_aggregate_slot": slot,
         f"{prefix}.historical_pointer_displacement": displacement,
         f"{prefix}.historical_total_state": total,
-        f"{prefix}.mapping_conflict": source_missing,
-        f"{prefix}.source_missing_quarantine": source_missing,
         f"{prefix}.aggregate_activation": aggregate,
         f"{prefix}.aggregate_rollback": replacement,
         f"{prefix}.aggregate_to_native_boundary": boundary,
@@ -1041,7 +1023,6 @@ def _events(context: FactoryContext, state: str) -> dict[str, object]:
 def _operations(context: FactoryContext, state: str) -> dict[str, object]:
     AuditEvent = _model("core.AuditEvent")
     Setting = _model("core.OperationalSetting")
-    SettingRevision = _model("core.OperationalSettingRevision")
     Idempotency = _model("core.IdempotencyRecord")
     Operation = _model("core.Operation")
     DurableJob = _model("jobs.DurableJob")
@@ -1064,18 +1045,6 @@ def _operations(context: FactoryContext, state: str) -> dict[str, object]:
         value=True,
         source="synthetic-factory",
         definition_version=1,
-    )
-    setting_revision = SettingRevision.objects.create(
-        id=_uuid(context, f"{prefix}.operational_setting_revision", state),
-        setting=setting,
-        key=setting.key,
-        value_type=setting.value_type,
-        value=setting.value,
-        source=setting.source,
-        definition_version=1,
-        revision=1,
-        changed_by_ref="synthetic-actor",
-        audit_event=audit,
     )
     idempotency = Idempotency.objects.create(
         id=_uuid(context, f"{prefix}.idempotency_record", state),
@@ -1237,7 +1206,6 @@ def _operations(context: FactoryContext, state: str) -> dict[str, object]:
     return {
         f"{prefix}.audit_event": audit,
         f"{prefix}.operational_setting": setting,
-        f"{prefix}.operational_setting_revision": setting_revision,
         f"{prefix}.idempotency_record": idempotency,
         f"{prefix}.operation": operation_value,
         f"{prefix}.operation_revision_conflict": operation,

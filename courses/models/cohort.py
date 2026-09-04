@@ -8,6 +8,7 @@ from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
 from accounts.models import CustomUser
 
+from courses.course_family_catalog import canonical_family_slug
 from courses.random_names import generate_random_name
 
 from .curriculum_import import (
@@ -211,7 +212,10 @@ class Cohort(SourceProvenanceModel):
         # required Course -> Cohort relationship.  The production/local seed
         # uses the reviewed mapping in course_family_catalog.py explicitly.
         if self.course_id is None:
-            family_slug = re.sub(r"-\d{4}$", "", self.slug)
+            # Year stripping alone would mint ``ai-dev-tools-zoomcamp`` beside the
+            # published ``ai-dev-tools`` family.  Resolve the reviewed slug so no
+            # writer can create a second family for one course.
+            family_slug = canonical_family_slug(re.sub(r"-\d{4}$", "", self.slug))
             family_title = re.sub(r"\s+\d{4}$", "", self.title).strip()
             family, _ = Course.objects.get_or_create(
                 slug=family_slug,
@@ -279,6 +283,40 @@ class RegistrationCampaign(models.Model):
         help_text="Course edition currently promoted by this form.",
     )
     is_active = models.BooleanField(default=True)
+
+    registration_baseline_cohort = models.ForeignKey(
+        Cohort,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        help_text=(
+            "The cohort the baseline count below was recorded for. A "
+            "campaign that has rotated to promote a different cohort since "
+            "no longer applies it -- a baseline recorded for a finished "
+            "edition never carries onto whatever cohort registers next."
+        ),
+    )
+    registration_baseline_count = models.PositiveIntegerField(
+        default=0,
+        db_default=0,
+        help_text=(
+            "Registrations that happened before this campaign's Course"
+            "Registration rows existed (a one-time recorded historical "
+            "figure, e.g. from a legacy CMP export). Zero for a campaign "
+            "whose registrations are all native rows."
+        ),
+    )
+    registration_native_start_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=(
+            "When native CourseRegistration rows became the complete "
+            "record for this campaign. Only registrations at or after "
+            "this instant are added to the baseline above; unset when "
+            "there is no baseline to protect against double-counting."
+        ),
+    )
 
     marketing_markdown = models.TextField(blank=True)
     meta_description = models.TextField(blank=True)

@@ -2,7 +2,10 @@
 
 Issue: `#125`  
 Candidate base: `8c0239254ab690918e6930c2368614dcfc709cf5`  
-Inventory date: 11 August 2026
+Inventory date: 11 August 2026 — the flow tables below are as of that source review.
+The operator-identity section at the end was revised on 3 September 2026, when the legal pages
+began publishing the identity the owner supplied. Issue `#254` supersedes this file with a
+canonical register.
 
 This inventory bounds the source-reviewed legal pages and analytics preferences. The architecture
 and privacy authority remains `_docs/specs/07-security-privacy-operations.md`; the other cited specs
@@ -50,18 +53,34 @@ production setting, message purpose, data import, or external mutation.
 The educational-record schedule and any production exception remain subject to owner/privacy
 review, as required by specification 07 and open decision 12.
 
-## Explicit human acceptance gate
+## Operator identity the owner has supplied
 
-The authoritative repository does not contain confirmed DataTalks.Club operator identity, public
-address, authorized representative, legal/privacy contact, VAT or tax identifiers, final minors
-policy, or current German statutory/dispute-resolution wording. The candidate deliberately does not
-infer those values or copy them from AI Shipping Labs. An authorized owner/legal reviewer must:
+The owner has supplied the operator identity, and the legal pages publish it. As of
+3 September 2026 `/impressum` carries the entity, postal address, representative, published contact
+address, and VAT identification number as the owner gave them, together with the German statutory
+wording under the citations in force: § 5 TMG, § 27a UStG, § 18 Abs. 2 MStV, and the § 36 VSBG
+declaration. No page carries a placeholder or a marking that it awaits verification, and
+`content/tests/test_legal_pages.py` fails if one returns.
 
-1. supply and approve the exact Impressum identity, address, representative, contact, and tax data;
-2. approve current statutory and dispute-resolution wording;
-3. approve the Terms governing-law/contact wording and the Privacy controller/contact, transfer,
-   retention, rights, and minors wording; and
-4. confirm the displayed last-updated date before production legal acceptance.
+Two references arrived with the ported wording and were corrected rather than kept: § 55 Abs. 2
+RStV, because the Medienstaatsvertrag superseded the Rundfunkstaatsvertrag on 7 November 2020, and
+the European Commission's ODR-platform referral, because that platform ceased operation on
+20 July 2025 under Regulation (EU) 2024/3228. No telephone number is published: § 5 Abs. 1 Nr. 2
+TMG asks for means of fast electronic contact and direct communication, and EuGH C-298/07 held that
+a telephone number is not among them where an email address is answered promptly. The owner gave us
+no number, and we did not invent one.
 
-Until that review is recorded, `/impressum` remains visibly marked as requiring verification and
-issue #125 cannot receive production acceptance.
+## What remains open
+
+The identity facts above are settled. The legal-page work settled nothing else, and in particular
+these still need legal authority: the controller/processor/subprocessor roles and their regions,
+the international-transfer mechanism and its safeguards, the governing law and venue for the
+Terms, and the competent supervisory authority a complaint would go to. The pages describe those
+areas in general terms today and send a reader to the contact address for the specifics, which is
+not the same as an approved statement of them.
+
+The retention statements above predate the closure of decision 12 and are not reconciled here.
+
+Issue #254 owns that reconciliation: it defines the canonical privacy authority register, the
+structured `human_required` state each unresolved field carries, and the named owner and blocking
+authority behind it. Track every open item there rather than in this file.

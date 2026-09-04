@@ -31,14 +31,7 @@ from deploy.contracts import (
     validate_task_definition_arn,
     validate_version,
 )
-from deploy.legacy_development_compatibility import (
-    ECR_REPOSITORY_URI as DEVELOPMENT_REPOSITORY_URI,
-)
-from deploy.legacy_development_compatibility import (
-    WEB_TASK_FAMILY,
-    WORKER_TASK_FAMILY,
-    task_definition_arn_prefix,
-)
+from deploy.deployment_targets import SELECTED_TARGET
 from deploy.task_definitions import TaskDefinitionConfig, build_task_definitions
 
 FAILURE_INJECTIONS = {"none", "migration", "post_mutation_smoke"}
@@ -428,16 +421,17 @@ class RecoveryContext:
     identity_schema: int = 2
 
     def __post_init__(self) -> None:
-        if self.repository_uri != DEVELOPMENT_REPOSITORY_URI:
+        if self.repository_uri != SELECTED_TARGET.ecr_repository_uri:
             raise ReleaseContractError(
                 "recovery context repository is outside the development boundary"
             )
         validate_task_definition_arn(self.web_task_definition_arn)
         validate_task_definition_arn(self.worker_task_definition_arn)
-        if not self.web_task_definition_arn.startswith(task_definition_arn_prefix(WEB_TASK_FAMILY)):
+        web_prefix = SELECTED_TARGET.task_definition_arn_prefix(SELECTED_TARGET.web_task_family)
+        if not self.web_task_definition_arn.startswith(web_prefix):
             raise ReleaseContractError("recovery context web task family differs")
         if not self.worker_task_definition_arn.startswith(
-            task_definition_arn_prefix(WORKER_TASK_FAMILY)
+            SELECTED_TARGET.task_definition_arn_prefix(SELECTED_TARGET.worker_task_family)
         ):
             raise ReleaseContractError("recovery context worker task family differs")
         counts = (self.web_desired_count, self.worker_desired_count)

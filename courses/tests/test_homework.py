@@ -52,7 +52,38 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
         self.assertIn("padding: 0", question_rule.group(1))
         self.assertNotIn("border: 2px", question_rule.group(1))
         self.assertNotIn("border-radius", question_rule.group(1))
-        self.assertIn("border: 2px solid var(--line)", extra_styles)
+        # The page no longer re-declares the shared control primitives, so the
+        # drift that put --olive on a disabled control here and --muted in the
+        # design system cannot come back.
+        for duplicated in (
+            "form-check",
+            "form-check-input",
+            "form-check-label",
+            "form-control",
+            "invalid-feedback",
+            "readonly-value",
+            "homework-status",
+            "homework-submit",
+        ):
+            with self.subTest(rule=duplicated):
+                self.assertIsNone(
+                    re.search(rf"^\s*\.{duplicated} \{{", extra_styles, re.MULTILINE)
+                )
+        # The receding disabled edge, and the form that is a measure rather
+        # than a box, now come from the design system this page used to scope
+        # them out of, so the page states neither.
+        self.assertNotIn("border-color: var(--line-soft)", extra_styles)
+        self.assertNotIn(".submission-band .cmp-form", extra_styles)
+        design_system = (
+            Path(__file__).resolve().parents[2] / "templates/core/_design_system.html"
+        ).read_text(encoding="utf-8")
+        disabled_start = design_system.index(
+            ".field-input[disabled],\n      .form-control[disabled] {"
+        )
+        self.assertIn(
+            "border-color: var(--line-soft)",
+            design_system[disabled_start : design_system.index("}", disabled_start)],
+        )
         self.assertNotIn("Answer the questions below to complete your homework.", body)
         self.assertNotIn('<div class="submission-support">', body)
         self.assertContains(
@@ -102,7 +133,7 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Instructions")
         self.assertContains(response, self.homework.instructions_url)
-        # The design 5a page loads no icon font, so the GitHub instructions
+        # The design system page loads no icon font, so the GitHub instructions
         # link is named rather than marked with a glyph (issue #179).
         self.assertContains(response, "Instructions on GitHub")
 
@@ -149,7 +180,7 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
         self.assertContains(response, "Deadlines are shown in your timezone.")
         self.assertContains(response, "Instructions on GitHub")
         self.assertContains(response, instructions_url)
-        self.assertContains(response, "callout callout-info callout-quiet")
+        self.assertContains(response, "Log in to submit this homework.")
 
     def test_homework_detail_navigation_uses_canonical_cohort_homework_urls(self):
         previous_homework = self.create_adjacent_homework(

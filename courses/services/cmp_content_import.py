@@ -1,0 +1,771 @@
+"""Import genuine CMP course content into a local development database.
+
+The local catalogue is seeded from ``scripts/production_like_course_specs.json``, which
+carries CMP's *shapes* but invented copy: eighty homework rows reading "Practice
+assignment for ...", thirty-two projects described as "Production-like generated", and no
+questions at all.  This service replaces that copy with the real thing, read from a
+CMP production export.
+
+Scope, deliberately narrow:
+
+* **Content only.**  Courses, homework, questions, projects, review criteria and
+  registration *campaigns*.  No account, enrollment, submission, answer, review or
+  learner registration row is read, so no personal data can reach the local database
+  through this path at all.  A ``RegistrationCampaign`` is the marketing definition of an
+  open registration -- its slug, copy, dates and the cohort it promotes.  The learner
+  rows that hang off it live in ``courses_courseregistration`` and are never touched.
+* **Reviewed cohort identity only.**  A cohort is matched by slug against the rows the
+  local database already has.  When the local catalogue is missing a cohort whose slug the
+  reviewed ``COHORT_FAMILY_IDENTITIES`` mapping already names, the cohort is created under
+  that reviewed identity, and its family row with it when the reviewed
+  ``COURSE_FAMILY_TITLES`` catalogue names the title.  Both facts are read from the
+  reviewed catalogue: this service still never *derives* a family, invents a year, or
+  builds a slug, which is what split the AI Dev Tools family and needed migration ``0052``
+  to repair.  A cohort slug the reviewers have not ruled on stays missing and is reported.
+* **CMP owns homework identity.**  A homework's slug is whatever CMP says it is, copied
+  verbatim, including on the modules-format cohorts whose repositories declare a
+  different one.  Nothing is derived, mapped or rewritten.
+
+  A modules-format cohort binds its homework to repository-authored modules through
+  ``Module.terminal_homework``, so adopting CMP's slug means re-pointing that binding.
+  The pairing is read from data both sides already publish -- the slug when they agree,
+  otherwise an exact title match -- and anything that does not pair is **left unbound
+  and reported**.  Guessing by ordinal position would misattach CMP's ``dlt`` workshop
+  to the sixth LLM module, which renders as a page that looks fine and is wrong.
+
+  A paired row is *renamed*, never replaced.  The row stays the repository's, keeping
+  ``source_content_id``, the imported instructions Markdown, its source path, its units
+  and its module binding; only the slug and CMP's own fields change.  Replacing it left
+  a homework no import owned, which is what the course-repository path refuses on its
+  next pull with ``homework_slug_collision``, and which re-created the repository row
+  beside it so the reconciliation undid itself on every replay.
+
+Running it twice is a no-op: every write is keyed on a natural key, and a homework's
+questions are replaced as a set.
+"""
+
+from __future__ import annotations
+
+import sqlite3
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass, field
+from datetime import UTC, date, datetime
+from pathlib import Path
+from typing import Any, NoReturn
+
+from django.db import transaction
+
+from courses.course_family_catalog import COHORT_FAMILY_IDENTITIES, COURSE_FAMILY_TITLES
+from courses.models import (
+    Cohort,
+    Homework,
+    Module,
+    Project,
+    Question,
+    ReviewCriteria,
+    Submission,
+)
+from courses.models.cohort import Course, RegistrationCampaign
+
+__all__ = [
+    "CampaignReport",
+    "CmpContentImportError",
+    "CmpContentImportResult",
+    "SKIPPED_COHORTS",
+    "import_cmp_course_content",
+]
+
+
+class CmpContentImportError(RuntimeError):
+    """A fail-closed refusal that never renders a source value."""
+
+
+# Cohorts the owner has decided not to publish yet.  They are listed by name with the
+# reason attached, rather than left to fall through an unmatched branch: a cohort that
+# vanishes because no rule matched is indistinguishable from a bug, while a cohort on
+# this list is a decision someone can revisit.  Three of the five need only an entry in
+# ``COHORT_FAMILY_IDENTITIES`` to return.
+#
+# ``sma-zoomcamp-2026`` used to be here.  It is visible and active in CMP and its family
+# ``sma-zoomcamp`` is already reviewed, so the only thing it ever needed was the identity
+# entry it now has; deferring it left the local catalogue one edition short of CMP.
+SKIPPED_COHORTS: Mapping[str, str] = {
+    "ai-bootcamp-2025": "owner deferred; needs a reviewed family, title and publication state",
+    "ai-hero-2025": "owner deferred; needs a reviewed family, title and publication state",
+    "ai-hero-2026": "owner deferred; needs a reviewed family, title and publication state",
+    "ai-buildcamp-2": (
+        "owner deferred; '2' is an edition number, not a year, and the family+year model "
+        "cannot express it. Needs design, not a mapping entry"
+    ),
+    "ai-buildcamp-3": (
+        "owner deferred; '3' is an edition number, not a year, and the family+year model "
+        "cannot express it. Needs design, not a mapping entry"
+    ),
+}
+
+# Upstream fixture rows that must never reach a catalogue.
+FIXTURE_COHORTS = frozenset({"fake-course", "fake-course-2"})
+
+_COHORT_FIELDS = (
+    "title",
+    "description",
+    "start_date",
+    "end_date",
+    "registration_url",
+    "github_repo_url",
+    "social_media_hashtag",
+    "first_homework_scored",
+    "finished",
+    "faq_document_url",
+    "min_projects_to_pass",
+    "homework_problems_comments_field",
+    "project_passing_score",
+    "visible",
+)
+_HOMEWORK_FIELDS = (
+    "title",
+    "description",
+    "due_date",
+    "learning_in_public_cap",
+    "homework_url_field",
+    "time_spent_lectures_field",
+    "time_spent_homework_field",
+    "faq_contribution_field",
+    "state",
+    "instructions_url",
+)
+_QUESTION_FIELDS = (
+    "text",
+    "question_type",
+    "answer_type",
+    "possible_answers",
+    "correct_answer",
+    "scores_for_correct_answer",
+)
+_PROJECT_FIELDS = (
+    "title",
+    "description",
+    "submission_due_date",
+    "learning_in_public_cap_project",
+    "peer_review_due_date",
+    "time_spent_project_field",
+    "problems_comments_field",
+    "faq_contribution_field",
+    "learning_in_public_cap_review",
+    "number_of_peers_to_evaluate",
+    "time_spent_evaluation_field",
+    "state",
+    "points_for_peer_review",
+    "instructions_url",
+)
+_CRITERIA_FIELDS = ("description", "options", "review_criteria_type")
+# A campaign row is editorial: what is open, under which slug, with which copy.  The
+# learner rows that reference it are personal data and are never read.
+_CAMPAIGN_FIELDS = (
+    "title",
+    "edition_label",
+    "is_active",
+    "marketing_markdown",
+    "meta_description",
+    "hero_image_url",
+    "video_url",
+)
+
+_BOOLEAN_FIELDS = frozenset(
+    {
+        "first_homework_scored",
+        "finished",
+        "homework_problems_comments_field",
+        "visible",
+        "is_active",
+        "homework_url_field",
+        "time_spent_lectures_field",
+        "time_spent_homework_field",
+        "faq_contribution_field",
+        "time_spent_project_field",
+        "problems_comments_field",
+        "time_spent_evaluation_field",
+    }
+)
+_DATE_FIELDS = frozenset({"start_date", "end_date"})
+# Text columns CMP may leave NULL that this schema declares ``blank=True`` and NOT NULL.
+_NULLABLE_TEXT_FIELDS = frozenset(
+    {
+        "title",
+        "description",
+        "state",
+        "edition_label",
+        "marketing_markdown",
+        "meta_description",
+        "hero_image_url",
+        "video_url",
+    }
+)
+_DATETIME_FIELDS = frozenset({"due_date", "submission_due_date", "peer_review_due_date"})
+
+
+@dataclass(frozen=True, slots=True)
+class CohortReport:
+    """What one cohort contributed, in aggregate counts only."""
+
+    cohort_slug: str
+    homework_written: int = 0
+    homework_removed: int = 0
+    questions_written: int = 0
+    projects_written: int = 0
+    projects_removed: int = 0
+    criteria_written: int = 0
+    rebound_modules: tuple[tuple[str, str, str], ...] = ()
+    unpaired_cmp_homework: tuple[str, ...] = ()
+    unpaired_repository_homework: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class CampaignReport:
+    """What one registration campaign contributed. Definition only, never a learner."""
+
+    campaign_slug: str
+    created: bool
+    promoted_cohort: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class CmpContentImportResult:
+    imported: tuple[CohortReport, ...] = ()
+    created_cohorts: tuple[str, ...] = ()
+    created_families: tuple[str, ...] = ()
+    campaigns: tuple[CampaignReport, ...] = ()
+    campaigns_without_a_local_cohort: tuple[str, ...] = ()
+    skipped_by_owner: tuple[tuple[str, str], ...] = ()
+    skipped_not_in_local_catalogue: tuple[str, ...] = ()
+    skipped_fixture: tuple[str, ...] = ()
+    skipped_dependent_rows: Mapping[str, int] = field(default_factory=dict)
+
+    def summary(self) -> dict[str, Any]:
+        return {
+            "cohorts_imported": len(self.imported),
+            "cohorts_created": list(self.created_cohorts),
+            "families_created": list(self.created_families),
+            "campaigns_written": len(self.campaigns),
+            "campaigns_created": sum(1 for row in self.campaigns if row.created),
+            "campaigns": [
+                {
+                    "slug": row.campaign_slug,
+                    "created": row.created,
+                    "promotes": row.promoted_cohort,
+                }
+                for row in self.campaigns
+            ],
+            "campaigns_without_a_local_cohort": list(self.campaigns_without_a_local_cohort),
+            "homework_written": sum(row.homework_written for row in self.imported),
+            "homework_removed": sum(row.homework_removed for row in self.imported),
+            "questions_written": sum(row.questions_written for row in self.imported),
+            "projects_written": sum(row.projects_written for row in self.imported),
+            "projects_removed": sum(row.projects_removed for row in self.imported),
+            "criteria_written": sum(row.criteria_written for row in self.imported),
+            "modules_rebound": sum(len(row.rebound_modules) for row in self.imported),
+            "unpaired_cmp_homework": sorted(
+                slug for row in self.imported for slug in row.unpaired_cmp_homework
+            ),
+            "unpaired_repository_homework": sorted(
+                slug for row in self.imported for slug in row.unpaired_repository_homework
+            ),
+            "rebindings": [
+                {"cohort": row.cohort_slug, "module": module, "was": old, "now": new}
+                for row in self.imported
+                for module, old, new in row.rebound_modules
+            ],
+            "per_cohort": [
+                {
+                    "cohort": row.cohort_slug,
+                    "homework": row.homework_written,
+                    "homework_removed": row.homework_removed,
+                    "questions": row.questions_written,
+                    "projects": row.projects_written,
+                    "projects_removed": row.projects_removed,
+                    "criteria": row.criteria_written,
+                }
+                for row in self.imported
+            ],
+            "skipped": {
+                "by_owner": [
+                    {"cohort": slug, "reason": reason} for slug, reason in self.skipped_by_owner
+                ],
+                "not_in_local_catalogue": list(self.skipped_not_in_local_catalogue),
+                "fixture": list(self.skipped_fixture),
+                "dependent_rows": dict(self.skipped_dependent_rows),
+            },
+        }
+
+
+def _refuse(code: str) -> NoReturn:
+    raise CmpContentImportError(code)
+
+
+def _readonly(source_db: Path) -> sqlite3.Connection:
+    try:
+        resolved = source_db.expanduser().resolve(strict=True)
+    except OSError:
+        _refuse("source-unreadable")
+    connection = sqlite3.connect(f"file:{resolved}?mode=ro", uri=True)
+    connection.row_factory = sqlite3.Row
+    return connection
+
+
+def _assert_content_only(connection: sqlite3.Connection) -> None:
+    """Refuse a source whose learner tables would be read by this importer.
+
+    The importer never selects from them, so this is belt-and-braces: it makes the
+    content-only boundary a property of the code rather than of the SQL that happens to
+    be written below.
+    """
+
+    reads = {"courses_course", "courses_homework", "courses_question"}
+    reads |= {"courses_project", "courses_reviewcriteria", "courses_registrationcampaign"}
+    personal = {
+        "accounts_customuser",
+        "accounts_token",
+        "account_emailaddress",
+        "courses_enrollment",
+        "courses_submission",
+        "courses_answer",
+        "courses_projectsubmission",
+        "courses_peerreview",
+        "courses_criteriaresponse",
+        "courses_courseregistration",
+        "django_session",
+        "socialaccount_socialaccount",
+        "socialaccount_socialapp",
+    }
+    if reads & personal:
+        _refuse("content-boundary-violated")
+
+
+def _rows(connection: sqlite3.Connection, sql: str, parameters: Sequence[Any] = ()) -> list[Any]:
+    try:
+        return list(connection.execute(sql, parameters))
+    except sqlite3.Error:
+        _refuse("source-query-failed")
+
+
+def _boolean(value: Any) -> bool:
+    return bool(value)
+
+
+def _date(value: Any) -> date | None:
+    if value in (None, ""):
+        return None
+    text = str(value)
+    try:
+        return date.fromisoformat(text[:10])
+    except ValueError:
+        _refuse("source-date-invalid")
+
+
+def _datetime(value: Any) -> datetime | None:
+    if value in (None, ""):
+        return None
+    text = str(value).replace("Z", "+00:00")
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        _refuse("source-datetime-invalid")
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed
+
+
+def _coerce(name: str, value: Any) -> Any:
+    if name in _BOOLEAN_FIELDS:
+        return _boolean(value)
+    if name in _DATE_FIELDS:
+        return _date(value)
+    if name in _DATETIME_FIELDS:
+        return _datetime(value)
+    if value is None and name in _NULLABLE_TEXT_FIELDS:
+        return ""
+    return value
+
+
+def _values(row: Any, names: Iterable[str]) -> dict[str, Any]:
+    return {name: _coerce(name, row[name]) for name in names}
+
+
+def _apply(instance: Any, values: Mapping[str, Any]) -> bool:
+    """Assign only changed fields so a replayed import writes nothing."""
+
+    changed = [name for name, value in values.items() if getattr(instance, name) != value]
+    for name in changed:
+        setattr(instance, name, values[name])
+    if changed:
+        instance.save(update_fields=changed)
+    return bool(changed)
+
+
+def import_cmp_course_content(
+    source_db: Path,
+    *,
+    cohort_slugs: Sequence[str] | None = None,
+) -> CmpContentImportResult:
+    """Copy real CMP content onto the local catalogue's existing legacy cohorts."""
+
+    connection = _readonly(source_db)
+    try:
+        _assert_content_only(connection)
+        source_cohorts = _rows(connection, "SELECT * FROM courses_course ORDER BY slug")
+        local = {cohort.slug: cohort for cohort in Cohort.objects.select_related("course")}
+
+        imported: list[CohortReport] = []
+        created: list[str] = []
+        created_families: list[str] = []
+        by_owner: list[tuple[str, str]] = []
+        missing: list[str] = []
+        fixture: list[str] = []
+        dependent: dict[str, int] = {}
+
+        for row in source_cohorts:
+            slug = str(row["slug"])
+            if cohort_slugs is not None and slug not in cohort_slugs:
+                continue
+            if slug in FIXTURE_COHORTS:
+                fixture.append(slug)
+                dependent[slug] = _dependent_row_total(connection, row["id"])
+                continue
+            if slug in SKIPPED_COHORTS:
+                by_owner.append((slug, SKIPPED_COHORTS[slug]))
+                dependent[slug] = _dependent_row_total(connection, row["id"])
+                continue
+            cohort = local.get(slug)
+            if cohort is None:
+                cohort = _adopt_reviewed_cohort(slug, row, created_families=created_families)
+                if cohort is None:
+                    missing.append(slug)
+                    dependent[slug] = _dependent_row_total(connection, row["id"])
+                    continue
+                local[slug] = cohort
+                created.append(slug)
+            if slug in COHORT_FAMILY_IDENTITIES:
+                family_slug, _year = COHORT_FAMILY_IDENTITIES[slug]
+                if cohort.course.slug != family_slug:
+                    _refuse("cohort-family-mismatch")
+            with transaction.atomic():
+                imported.append(_import_cohort(connection, row, cohort))
+
+        campaigns, unlinked = _import_registration_campaigns(
+            connection, source_cohorts, local, cohort_slugs
+        )
+
+        return CmpContentImportResult(
+            imported=tuple(imported),
+            created_cohorts=tuple(created),
+            created_families=tuple(dict.fromkeys(created_families)),
+            campaigns=campaigns,
+            campaigns_without_a_local_cohort=unlinked,
+            skipped_by_owner=tuple(by_owner),
+            skipped_not_in_local_catalogue=tuple(missing),
+            skipped_fixture=tuple(fixture),
+            skipped_dependent_rows=dependent,
+        )
+    finally:
+        connection.close()
+
+
+def _adopt_reviewed_cohort(
+    slug: str,
+    row: Any,
+    *,
+    created_families: list[str] | None = None,
+) -> Cohort | None:
+    """Create a local cohort CMP publishes and the local catalogue is missing.
+
+    Only a slug the reviewed ``COHORT_FAMILY_IDENTITIES`` mapping already names can be
+    adopted.  Nothing is derived: the family slug, the family title and the year all
+    come from the reviewed catalogue, so this cannot mint the second family for one
+    course that migration ``0052`` had to repair.  A slug the reviewers have not ruled
+    on stays missing and is reported.
+
+    The family row is created when it is absent and the reviewed catalogue names its
+    title.  Requiring a pre-existing family made a production ingest impossible: on an
+    empty database no family exists, so every cohort was reported missing and the
+    import wrote nothing at all unless a placeholder seeder had run first.  Reading the
+    title from ``COURSE_FAMILY_TITLES`` keeps that a reviewed fact rather than one
+    derived from a source value.
+    """
+
+    identity = COHORT_FAMILY_IDENTITIES.get(slug)
+    if identity is None:
+        return None
+    family_slug, year = identity
+    family = Course.objects.filter(slug=family_slug).first()
+    if family is None:
+        title = COURSE_FAMILY_TITLES.get(family_slug)
+        if title is None:
+            return None
+        family = Course.objects.create(slug=family_slug, title=title)
+        if created_families is not None:
+            created_families.append(family_slug)
+    return Cohort.objects.create(
+        course=family,
+        slug=slug,
+        identifier=str(year),
+        year=year,
+        curriculum_format=Cohort.CurriculumFormat.LEGACY,
+        **_values(row, _COHORT_FIELDS),
+    )
+
+
+def _import_registration_campaigns(
+    connection: sqlite3.Connection,
+    source_cohorts: Sequence[Any],
+    local: Mapping[str, Cohort],
+    cohort_slugs: Sequence[str] | None = None,
+) -> tuple[tuple[CampaignReport, ...], tuple[str, ...]]:
+    """Copy CMP's registration campaign *definitions*, keyed by slug.
+
+    A campaign says what is open, under which public slug, with which copy, and which
+    cohort it promotes.  The learners who registered through it are a different table and
+    are never read.  ``current_course`` is resolved through the local catalogue, so a
+    campaign whose cohort this database does not hold arrives unlinked and is reported
+    rather than silently pointing at nothing.
+    """
+
+    slug_by_source_id = {row["id"]: str(row["slug"]) for row in source_cohorts}
+    rows = _rows(connection, "SELECT * FROM courses_registrationcampaign ORDER BY slug")
+    existing = {campaign.slug: campaign for campaign in RegistrationCampaign.objects.all()}
+
+    reports: list[CampaignReport] = []
+    unlinked: list[str] = []
+    for source in rows:
+        slug = str(source["slug"])
+        promoted_slug = slug_by_source_id.get(source["current_course_id"], "")
+        if cohort_slugs is not None and promoted_slug not in cohort_slugs:
+            continue
+        cohort = local.get(promoted_slug) if promoted_slug else None
+        if promoted_slug and cohort is None:
+            unlinked.append(slug)
+        values = {**_values(source, _CAMPAIGN_FIELDS), "current_course": cohort}
+        campaign = existing.get(slug)
+        with transaction.atomic():
+            if campaign is None:
+                campaign = RegistrationCampaign.objects.create(slug=slug, **values)
+                created = True
+            else:
+                _apply(campaign, values)
+                created = False
+        reports.append(
+            CampaignReport(
+                campaign_slug=slug,
+                created=created,
+                promoted_cohort=cohort.slug if cohort is not None else "",
+            )
+        )
+    return tuple(reports), tuple(unlinked)
+
+
+def _dependent_row_total(connection: sqlite3.Connection, course_id: Any) -> int:
+    """Count the learner rows a skipped cohort would have dragged in.
+
+    They are counted, never read: an enrollment graph that imports while its cohort does
+    not is exactly the kind of orphan that passes a row-count reconciliation while being
+    wrong, so the total is reported rather than left implicit.
+    """
+
+    total = 0
+    for sql in (
+        "SELECT COUNT(*) FROM courses_enrollment WHERE course_id = ?",
+        """SELECT COUNT(*) FROM courses_submission s
+           JOIN courses_homework h ON s.homework_id = h.id WHERE h.course_id = ?""",
+        """SELECT COUNT(*) FROM courses_projectsubmission ps
+           JOIN courses_project p ON ps.project_id = p.id WHERE p.course_id = ?""",
+    ):
+        total += int(_rows(connection, sql, (course_id,))[0][0])
+    return total
+
+
+def _repository_pair(
+    by_title: dict[str, Homework],
+    title: Any,
+    slug_match: Homework | None,
+) -> Homework | None:
+    """Return the repository row this CMP row is the same assignment as, if any.
+
+    The pairing is by exact title, and it is tried whether or not a row already carries
+    CMP's slug.  Trying it only on the create branch made the import order-dependent: an
+    assignment CMP and a repository both describe reconciled on a first run and stayed
+    permanently duplicated on every later one, because the CMP-slugged row from the
+    previous run matched first and the repository row was never looked at again.  The
+    local dataset copies CMP before it pulls a repository, so *every* pairing there hits
+    that branch.
+    """
+
+    paired = by_title.get(str(title))
+    if paired is None:
+        return None
+    if slug_match is None:
+        return by_title.pop(str(title))
+    if paired.pk == slug_match.pk:
+        return None
+    # Two rows for one assignment: the repository's, and one already carrying CMP's slug.
+    # Folding them discards a row, so it is done only when the surviving row is the one a
+    # repository import owns, and never when the discarded row has submissions attached.
+    if paired.source_content_id is None:
+        return None
+    if Submission.objects.filter(homework=slug_match).exists():
+        return None
+    return by_title.pop(str(title))
+
+
+def _adopt_repository_row(
+    paired: Homework,
+    slug_match: Homework | None,
+    slug: str,
+    values: Mapping[str, Any],
+    rebound: list[tuple[str, str, str]],
+    existing: dict[str, Homework],
+) -> Homework:
+    """Give the repository's row CMP's slug and content, in place.
+
+    CMP owns homework identity, so the slug becomes CMP's.  The row itself stays the
+    repository's: replacing it would drop ``source_content_id`` and leave a homework no
+    import owns, which the course-repository path refuses on its next pull with
+    ``homework_slug_collision`` -- and would drop the imported instructions Markdown, its
+    source path, and the unit links that resolve against it.  Renaming keeps the module
+    binding as well, because the foreign key never moves.
+    """
+
+    if slug_match is not None:
+        existing.pop(slug_match.slug, None)
+        slug_match.delete()
+    previous_slug = paired.slug
+    existing.pop(previous_slug, None)
+    paired.slug = slug
+    paired.save(update_fields=["slug"])
+    _apply(paired, values)
+    if previous_slug != slug:
+        for module in Module.objects.filter(terminal_homework=paired):
+            rebound.append((module.slug, previous_slug, slug))
+    return paired
+
+
+def _import_cohort(connection: sqlite3.Connection, row: Any, cohort: Cohort) -> CohortReport:
+    _apply(cohort, _values(row, _COHORT_FIELDS))
+    course_id = row["id"]
+
+    homework_rows = _rows(
+        connection,
+        "SELECT * FROM courses_homework WHERE course_id = ? ORDER BY id",
+        (course_id,),
+    )
+    is_modules = cohort.curriculum_format != Cohort.CurriculumFormat.LEGACY
+    existing = {row.slug: row for row in Homework.objects.filter(course=cohort)}
+    # Only a repository row CMP has no slug for can stand in for a CMP row, so a title
+    # already claimed by a matching slug is never reused.
+    superseding = {row["slug"] for row in homework_rows}
+    by_title = {
+        row.title: row for row in existing.values() if row.slug not in superseding and row.title
+    }
+
+    written = 0
+    questions_written = 0
+    source_slugs: set[str] = set()
+    rebound: list[tuple[str, str, str]] = []
+    unpaired_cmp: list[str] = []
+    for source in homework_rows:
+        slug = str(source["slug"])
+        source_slugs.add(slug)
+        values = _values(source, _HOMEWORK_FIELDS)
+        homework = existing.get(slug)
+        paired = _repository_pair(by_title, values["title"], homework)
+        if paired is not None:
+            homework = _adopt_repository_row(paired, homework, slug, values, rebound, existing)
+        elif homework is not None:
+            # Slugs already agree, so the module binding needs no repair.
+            _apply(homework, values)
+        else:
+            homework = Homework.objects.create(course=cohort, slug=slug, **values)
+            if is_modules:
+                unpaired_cmp.append(slug)
+        existing[slug] = homework
+        written += 1
+        questions_written += _replace_questions(connection, source["id"], homework)
+
+    leftover = Homework.objects.filter(course=cohort).exclude(slug__in=source_slugs)
+    if is_modules:
+        # A modules cohort has two legitimate authors.  CMP owns the identity and content
+        # of the assignments it has; it does not assert that an assignment it lacks does
+        # not exist, and deleting a repository-authored homework would strip its module's
+        # page.  Report the divergence instead of resolving it by deletion.
+        removed = 0
+        unpaired_repository = tuple(sorted(leftover.values_list("slug", flat=True)))
+    else:
+        # CMP is the whole source for a legacy cohort, so a homework it does not have is
+        # seed copy.  No module can be bound to one: legacy cohorts have no modules.
+        removed = leftover.delete()[0]
+        unpaired_repository = ()
+
+    project_rows = _rows(
+        connection,
+        "SELECT * FROM courses_project WHERE course_id = ? ORDER BY id",
+        (course_id,),
+    )
+    projects_written = 0
+    project_slugs: set[str] = set()
+    for source in project_rows:
+        slug = str(source["slug"])
+        project_slugs.add(slug)
+        project, created = Project.objects.get_or_create(
+            course=cohort,
+            slug=slug,
+            defaults=_values(source, _PROJECT_FIELDS),
+        )
+        if not created:
+            _apply(project, _values(source, _PROJECT_FIELDS))
+        projects_written += 1
+    projects_removed = (
+        Project.objects.filter(course=cohort).exclude(slug__in=project_slugs).delete()[0]
+    )
+
+    criteria_rows = _rows(
+        connection,
+        "SELECT * FROM courses_reviewcriteria WHERE course_id = ? ORDER BY id",
+        (course_id,),
+    )
+    ReviewCriteria.objects.filter(course=cohort).delete()
+    ReviewCriteria.objects.bulk_create(
+        [
+            ReviewCriteria(course=cohort, **_values(source, _CRITERIA_FIELDS))
+            for source in criteria_rows
+        ]
+    )
+
+    return CohortReport(
+        cohort_slug=cohort.slug,
+        homework_written=written,
+        homework_removed=removed,
+        questions_written=questions_written,
+        projects_written=projects_written,
+        projects_removed=projects_removed,
+        criteria_written=len(criteria_rows),
+        rebound_modules=tuple(rebound),
+        unpaired_cmp_homework=tuple(sorted(unpaired_cmp)),
+        unpaired_repository_homework=unpaired_repository,
+    )
+
+
+def _replace_questions(connection: sqlite3.Connection, homework_id: Any, homework: Homework) -> int:
+    """Replace a homework's questions as a set.
+
+    A CMP question carries no stable business key, so ordinal replacement is the honest
+    idempotency rule: importing twice yields the same set rather than a second copy.
+    """
+
+    rows = _rows(
+        connection,
+        "SELECT * FROM courses_question WHERE homework_id = ? ORDER BY id",
+        (homework_id,),
+    )
+    Question.objects.filter(homework=homework).delete()
+    Question.objects.bulk_create(
+        [Question(homework=homework, **_values(source, _QUESTION_FIELDS)) for source in rows]
+    )
+    return len(rows)

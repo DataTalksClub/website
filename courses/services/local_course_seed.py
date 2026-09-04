@@ -2,28 +2,27 @@
 
 Why this exists
 ---------------
-Public course *display* and course *operations* have two different owners in this
-repository, and both are correct:
+``courses.models.Course`` and ``courses.models.Cohort`` are the single owner of public
+course facts (specification 01 "Data ownership", specification 04, and
+``_docs/architecture/app-boundaries.md``).  Every public course surface reads them: the
+homepage catalogue and featured panel, ``/courses``, ``/courses/<family>`` and
+``/courses/<family>/<year>``.  No specification puts public course display on a
+projection, and none does now: ``content/public_projection/courses.json`` remains a
+checked content artefact with no runtime reader (issue #307).
 
-* ``content/public_projection/courses.json`` is the checked baked projection the
-  homepage reads (``core.home_content.course_catalog``).  Specification 03 keeps public
-  requests on that projection, and specification 09 records that the public
-  database-read cutover is separately groomed work.
-* ``courses.models.Cohort`` is the database-owned record ``/courses`` and
-  ``/courses/<slug>`` read (specification 01 "Data ownership" and
-  ``_docs/architecture/app-boundaries.md``).
-
-Both are built from the same pinned upstream catalog:
+The seed and that artefact are built from the same pinned upstream catalog:
 ``scripts/production_like_course_specs.json``, taken from
 ``DataTalksClub/course-management-platform@98a235283904b4ef9ad29e196298540756cf1bcc``.
 ``scripts/build_public_projection.py`` verifies that file's SHA-256 before projecting it,
-and this seed verifies the same digest before writing rows.
+and this seed verifies the same digest before writing rows.  Because both come from the
+same pin, a freshly seeded database shows the pinned cohorts rather than any newer ones;
+verifying cohort-selection behaviour needs a database built from a current import, not
+from this seed.
 
-A fresh local database therefore renders a homepage catalogue whose course links resolve
-to nothing, which is indistinguishable from placeholder content.  This service closes
-that gap: it writes the same real cohorts, homework titles, and deadlines into the local
-database so ``/`` and ``/courses`` show one catalogue.  It is a development tool and
-refuses to run anywhere but a local/test SQLite database.
+An empty local database therefore renders an empty course catalogue everywhere.  This
+service closes that gap: it writes real cohorts, homework titles, and deadlines into the
+local database so ``/`` and ``/courses`` show one catalogue.  It is a development tool
+and refuses to run anywhere but a local/test SQLite database.
 
 What it does not do
 -------------------
@@ -31,7 +30,9 @@ It creates no learners, enrollments, submissions, scores, registrations, or camp
 Generating production-like participants remains the adopted
 ``scripts/generate_production_like_leaderboard_data.py`` path.  Operational state that a
 developer or that script has already set (homework/project state, registration URLs,
-scoring flags) is preserved: this seed owns catalogue identity only.
+scoring flags) is preserved: this seed owns catalogue identity only.  If a cohort
+already has homework or projects (for example from a CMP content import), this seed
+does not add placeholder assignments beside them.
 """
 
 from __future__ import annotations
@@ -55,8 +56,8 @@ from courses.course_family_catalog import (
     cohort_family_identity,
 )
 from courses.models import (
-    Course,
     Cohort,
+    Course,
     Homework,
     HomeworkState,
     Project,
@@ -177,7 +178,11 @@ def load_catalog_specs() -> tuple[dict[str, Any], ...]:
 
 
 def load_projected_courses() -> tuple[dict[str, Any], ...]:
-    """Read the checked course projection the homepage renders."""
+    """Read the checked course projection this seed is cross-checked against.
+
+    Nothing renders it; it is kept as the second copy of the same pinned catalogue so a
+    drifted seed fails here instead of writing rows the artefact never described.
+    """
 
     try:
         raw = json.loads(PUBLIC_PROJECTION_PATH.read_text(encoding="utf-8"))
@@ -295,18 +300,19 @@ def _seed_course(spec: dict[str, Any], now: datetime) -> SeededCourse:
             "visible": True,
         },
     )
+    identity = {
+        "course": family,
+        "year": year,
+        "title": str(spec["title"]),
+        "start_date": start_date,
+        "end_date": end_date,
+        "finished": bool(spec["finished"]),
+        "visible": True,
+    }
     course, created = Cohort.objects.update_or_create(
         slug=slug,
-        defaults={
-            "course": family,
-            "year": year,
-            "title": str(spec["title"]),
-            "description": course_description(spec),
-            "start_date": start_date,
-            "end_date": end_date,
-            "finished": bool(spec["finished"]),
-            "visible": True,
-        },
+        defaults=identity,
+        create_defaults={**identity, "description": course_description(spec)},
     )
     homeworks_created = _seed_homeworks(course, spec["homeworks"], now)
     projects_created = _seed_projects(course, spec["projects"], now)
@@ -323,6 +329,8 @@ def _seed_course(spec: dict[str, Any], now: datetime) -> SeededCourse:
 
 
 def _seed_homeworks(course: Cohort, homeworks: Iterable[Sequence[Any]], now: datetime) -> int:
+    if Homework.objects.filter(course=course).exists():
+        return 0
     created_count = 0
     for index, assignment in enumerate(homeworks, start=1):
         title = str(assignment[0])
@@ -343,6 +351,8 @@ def _seed_homeworks(course: Cohort, homeworks: Iterable[Sequence[Any]], now: dat
 
 
 def _seed_projects(course: Cohort, projects: Iterable[Sequence[Any]], now: datetime) -> int:
+    if Project.objects.filter(course=course).exists():
+        return 0
     created_count = 0
     for index, assignment in enumerate(projects, start=1):
         title = str(assignment[0])

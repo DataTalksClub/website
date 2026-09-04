@@ -33,11 +33,9 @@ from core.models import (
     IdempotencyRecord,
     Operation,
     OperationalSetting,
-    OperationalSettingRevision,
     RevisionConflict,
     Sponsor,
     SponsorPlacementAssignment,
-    SponsorRevision,
 )
 from core.operations import (
     InvalidOperationTransition,
@@ -107,11 +105,8 @@ class OperationalSettingTests(TestCase):
         self.assertEqual(resolved.value, True)
         self.assertEqual(resolved.source, "studio")
         self.assertEqual(resolved.revision, 1)
-        revision = OperationalSettingRevision.objects.get()
-        event = AuditEvent.objects.get(pk=revision.audit_event_id)
-        self.assertEqual(revision.changed_by_id, user.pk)
-        self.assertEqual(revision.changed_by_ref, "api_principal:settings-bot")
-        self.assertEqual(revision.value, True)
+        event = AuditEvent.objects.get()
+        self.assertEqual(event.changes["value"]["after"], True)
         self.assertEqual(event.actor_id, user.pk)
         self.assertEqual(event.actor_ref, "api_principal:settings-bot")
         self.assertEqual(event.request_id, "request-123")
@@ -137,7 +132,6 @@ class OperationalSettingTests(TestCase):
 
         self.assertEqual(caught.exception.actual, 1)
         self.assertEqual(resolve_operational_setting(BOOLEAN_SETTING.key), first)
-        self.assertEqual(OperationalSettingRevision.objects.count(), 1)
         self.assertEqual(AuditEvent.objects.count(), 1)
 
     def test_setting_and_history_roll_back_when_audit_write_fails(self) -> None:
@@ -154,7 +148,6 @@ class OperationalSettingTests(TestCase):
                 )
 
         self.assertFalse(OperationalSetting.objects.exists())
-        self.assertFalse(OperationalSettingRevision.objects.exists())
         self.assertFalse(AuditEvent.objects.exists())
 
     def test_unregistered_secret_bearing_and_mistyped_settings_fail_closed(self) -> None:
@@ -282,44 +275,10 @@ class AuditPersistenceTests(TestCase):
                 ]
             )
 
-        setting = set_operational_setting(
-            key=BOOLEAN_SETTING.key,
-            value=True,
-            source="studio",
-            expected_revision=0,
-            context=audit_context(actor_id=self.user.pk),
-        )
-        history = OperationalSettingRevision.objects.get(revision=setting.revision)
-        history.source = "rewritten"
-        with self.assertRaises(AppendOnlyViolation):
-            history.save()
-        with self.assertRaises(AppendOnlyViolation):
-            OperationalSettingRevision.objects.filter(pk=history.pk).update(source="rewritten")
-        with self.assertRaises(AppendOnlyViolation):
-            OperationalSettingRevision.objects.filter(pk=history.pk).delete()
-
         self.user.delete()
         event.refresh_from_db()
         self.assertIsNone(event.actor_id)
         self.assertEqual(event.actor_ref, "user:audit-operator")
-
-    def test_setting_revision_retains_evidence_after_actor_deletion(self) -> None:
-        set_operational_setting(
-            key=BOOLEAN_SETTING.key,
-            value=True,
-            source="studio",
-            expected_revision=0,
-            context=audit_context(actor_id=self.user.pk, actor_ref="user:setting-operator"),
-        )
-
-        self.user.delete()
-        revision = OperationalSettingRevision.objects.get()
-        event = AuditEvent.objects.get()
-        self.assertIsNone(revision.changed_by_id)
-        self.assertIsNone(event.actor_id)
-        self.assertEqual(revision.changed_by_ref, "user:setting-operator")
-        self.assertEqual(event.actor_ref, "user:setting-operator")
-        self.assertEqual(revision.audit_event_id, event.id)
 
 
 class IdempotencyTests(TestCase):
@@ -609,11 +568,6 @@ class SchemaConstraintTests(TransactionTestCase):
                 "core_setting_definition_positive",
                 "core_setting_source_key",
             },
-            OperationalSettingRevision._meta.db_table: {
-                "core_setting_history_revision_unique",
-                "core_setting_history_revision_positive",
-                "core_setting_history_key",
-            },
             IdempotencyRecord._meta.db_table: {
                 "core_idempotency_scope_key_unique",
                 "core_idempotency_state_consistent",
@@ -639,11 +593,6 @@ class SchemaConstraintTests(TransactionTestCase):
                 "core_sponsor_placement_allowlist",
                 "core_sponsor_assignment_position_positive",
                 "core_sponsor_assignment_public",
-            },
-            SponsorRevision._meta.db_table: {
-                "core_sponsor_history_revision_unique",
-                "core_sponsor_history_revision_positive",
-                "core_sponsor_history_key",
             },
         }
         with connection.cursor() as cursor:

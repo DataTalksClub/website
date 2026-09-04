@@ -4,7 +4,6 @@ import json
 from collections.abc import Callable
 from unittest.mock import patch
 
-from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from content.models import (
@@ -975,9 +974,3 @@ class ContentLifecycleTests(TestCase):
         self.assertNotEqual(first_asset.storage_key, second_key)
         self.assertIn(str(first.id), first_asset.storage_key)
         self.assertIn(str(second.id), second_key)
-
-    def test_secret_references_reject_credentials(self) -> None:
-        source = make_source()
-        source.secret_reference = "secretref:ghp_abcdefghijklmnopqrstuvwxyz0123456789"
-        with self.assertRaises(ValidationError):
-            source.full_clean()

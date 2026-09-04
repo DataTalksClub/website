@@ -1,6 +1,7 @@
 # Development course-content bootstrap
 
-This runbook applies only to `web.dtcdev.click`. It loads public CMP catalog and curriculum rows; it
+This runbook applies only to a development deployment — the host
+`deploy/development_target.py` selects. It loads public CMP catalog and curriculum rows; it
 must never import learner, administrator, registration, submission, review, session, token, email,
 job, or provider data.
 

@@ -1,7 +1,7 @@
 {% extends "studio/base.html" %}
 
 {% comment %}
-  Design 5a (issue #179).  The run's safe metadata is an .admin-facts record,
+  Design system (issue #179).  The run's safe metadata is an .admin-facts record,
   the five confirmed actions keep one form each (own checkbox, own idempotency
   key, own action URL), and the per-event reconciliation is an .admin-table
   because it is nine columns wide and five of them are counts.  Masking is
@@ -100,7 +100,7 @@
           <thead>
             <tr>
               <th scope="col">Event</th>
-              <th scope="col">Mapping</th>
+              <th scope="col">Resolved</th>
               <th scope="col">Canonical event</th>
               <th class="admin-cell-numeric" scope="col">Eligible</th>
               <th class="admin-cell-numeric" scope="col">Excluded</th>
@@ -114,8 +114,8 @@
             {% for aggregate in run.aggregates %}
               <tr>
                 <td>{{ aggregate.external_event }}</td>
-                <td>{{ aggregate.mapping_state }}</td>
-                <td>{{ aggregate.canonical_slug|default:"Not mapped" }}</td>
+                <td>{{ aggregate.resolved|yesno:"Resolved,Unresolved" }}</td>
+                <td>{{ aggregate.canonical_slug|default:"Not resolved" }}</td>
                 <td class="admin-cell-numeric">{{ aggregate.eligible_count }}</td>
                 <td class="admin-cell-numeric">{{ aggregate.excluded_count }}</td>
                 <td class="admin-cell-numeric">{{ aggregate.quarantined_count }}</td>

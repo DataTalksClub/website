@@ -38,16 +38,14 @@ from ci.evidence import (
     validate_screenshot_for_plan,
     worktree_manifest,
 )
-from ci.ownership import Impact, graph_digest, impact_for_paths, load_graph, matches_any
+from ci.ownership import Impact, graph_digest, impact_for_paths, load_graph
 from ci.selection import ChangeRecord, load_selection, parse_name_status
 
 PLAN_SCHEMA_VERSION = 3
 REPORT_SCHEMA_VERSION = 3
 SCHEDULED_STATE_SCHEMA_VERSION = 1
 PLAN_COMPONENTS = (
-    "compatibility",
     "container",
-    "content_invariants",
     "django",
     "evidence_validation",
     "playwright",
@@ -67,6 +65,13 @@ COMPONENT_REQUIRED_CONFIG = {
         "DJANGO_SETTINGS_MODULE": "website.settings.test",
     },
 }
+# The container component builds and runs the exact release image, so the job
+# that executes it runs on the deployment target's architecture instead of the
+# planner's runner.  The workflow declares that machine here; every other
+# component is bound to the host that plans it.
+COMPONENT_ARCHITECTURE_VARIABLE = {"container": "VERIFICATION_CONTAINER_ARCHITECTURE"}
+#: ``platform.machine()`` names a component may be authorized to execute on.
+REVIEWED_ARCHITECTURES = frozenset({"aarch64", "x86_64"})
 DEFAULT_FULL_DJANGO_COMMAND = "make test-django-full"
 FULL_DJANGO_COMMANDS = ("make test", DEFAULT_FULL_DJANGO_COMMAND)
 FULL_RISK_FLAGS = frozenset(
@@ -111,6 +116,27 @@ class VerificationError(ValueError):
     """A verification plan, component, or report failed closed validation."""
 
 
+def component_architecture(component: str, environ: Mapping[str, str] | None = None) -> str | None:
+    """Return the machine a component is authorized to execute on, if declared.
+
+    The container component builds and runs the release image, so it executes on
+    the deployment target's architecture rather than on the planner's runner.
+    The workflow declares that machine; nothing else may, and an undeclared or
+    unreviewed value leaves the component bound to this host.
+    """
+
+    variable = COMPONENT_ARCHITECTURE_VARIABLE.get(component)
+    if variable is None:
+        return None
+    values = os.environ if environ is None else environ
+    declared = values.get(variable, "").strip()
+    if not declared:
+        return None
+    if declared not in REVIEWED_ARCHITECTURES:
+        raise VerificationError(f"{variable} declares an unreviewed execution architecture")
+    return declared
+
+
 def component_environment_fingerprint(
     component: str, environ: Mapping[str, str] | None = None
 ) -> dict[str, Any]:
@@ -119,7 +145,9 @@ def component_environment_fingerprint(
         raise VerificationError("unknown verification component")
     resolved = dict(os.environ if environ is None else environ)
     resolved.update(COMPONENT_REQUIRED_CONFIG.get(component, {}))
-    return environment_fingerprint(resolved)
+    return environment_fingerprint(
+        resolved, architecture=component_architecture(component, resolved)
+    )
 
 
 def read_change_records(repository: str | Path, base: str, head: str) -> tuple[ChangeRecord, ...]:
@@ -294,7 +322,6 @@ def build_plan(
         "graph_sha256": digest,
         "head": head,
         "legacy_selection": dict(selection),
-        "large_content": _large_content_decision(paths, graph, manifest),
         "policy_version": graph["policy_version"],
         "profile": (
             "full" if force_full else "documentation" if impact.documentation_only else "focused"
@@ -322,7 +349,6 @@ def build_plan(
             force_full=force_full,
             impact=impact,
             browser_profile=browser_profile,
-            large_content_impact=plan["large_content"]["impact"],
             release_requires_image=release_requires_image,
         )
         component_plan = {
@@ -390,7 +416,6 @@ def validate_plan(payload: object) -> dict[str, Any]:
         "graph_sha256",
         "head",
         "legacy_selection",
-        "large_content",
         "policy_version",
         "profile",
         "reason",
@@ -463,17 +488,6 @@ def validate_plan(payload: object) -> dict[str, Any]:
     if not isinstance(render["impact"], bool) or not isinstance(render["reasons"], list):
         raise VerificationError("render decision values are invalid")
     _validate_required_captures(render["required_captures"], impact=render["impact"])
-    large_content = payload["large_content"]
-    if (
-        not isinstance(large_content, dict)
-        or set(large_content) != {"impact", "paths", "sha256"}
-        or not isinstance(large_content["impact"], bool)
-        or not isinstance(large_content["paths"], list)
-        or large_content["paths"] != sorted(set(large_content["paths"]))
-        or large_content["impact"] != bool(large_content["paths"])
-        or not isinstance(large_content["sha256"], str)
-    ):
-        raise VerificationError("large-content decision is invalid")
     if payload["profile"] == "full":
         for component in ("container", "django", "playwright", "quality"):
             if components[component]["disposition"] != "rerun":
@@ -1406,32 +1420,6 @@ def _validate_required_captures(value: object, *, impact: bool) -> None:
         raise VerificationError("render impact requires desktop and mobile screenshots")
 
 
-def _large_content_decision(
-    paths: Sequence[str], graph: Mapping[str, Any], manifest: Sequence[Mapping[str, str]]
-) -> dict[str, Any]:
-    rules = graph["large_content"]
-    extensions = set(rules["structured_extensions"])
-    selected_paths = sorted(
-        {
-            path
-            for path in paths
-            if PurePosixPath(path).suffix.lower() in extensions
-            and matches_any(path, rules["patterns"])
-        }
-    )
-    selected_entries = [entry for entry in manifest if entry["path"] in selected_paths]
-    return {
-        "impact": bool(selected_paths),
-        "paths": selected_paths,
-        "sha256": sha256_json(
-            {
-                "entries": selected_entries,
-                "rules": rules,
-            }
-        ),
-    }
-
-
 def _envelope_matches_plan(
     envelope: Mapping[str, Any],
     *,
@@ -1565,7 +1553,6 @@ def _component_requirement(
     force_full: bool,
     impact: Impact,
     browser_profile: str,
-    large_content_impact: bool,
     release_requires_image: bool,
 ) -> tuple[bool, bool, str]:
     if component in {"selector", "evidence_validation"}:
@@ -1574,18 +1561,6 @@ def _component_requirement(
         return True, True, "exact_release_image_required"
     if impact.documentation_only:
         return False, False, "prose_only_non_policy_documentation"
-    if component == "compatibility":
-        required = "compatibility_contract" in impact.risk_flags
-        reason = "compatibility_contract_changed" if required else "outside_impact_closure"
-        return required, required, reason
-    if component == "content_invariants":
-        return (
-            large_content_impact,
-            large_content_impact,
-            "large_content_invariants_required"
-            if large_content_impact
-            else "outside_large_content_closure",
-        )
     if component == "screenshots":
         if impact.render_impact:
             return True, True, "render_inputs_changed"
@@ -1739,12 +1714,14 @@ def _origin_from_args(args: argparse.Namespace) -> dict[str, Any]:
             "run_id": args.run_id,
             "workflow": args.workflow,
         }
-    return {
-        "issue": args.issue,
+    origin: dict[str, Any] = {
         "kind": "local",
         "producer_role": args.producer_role,
         "worktree": args.worktree,
     }
+    if args.issue is not None:
+        origin["issue"] = args.issue
+    return origin
 
 
 def _read_history(path: str | None) -> list[dict[str, Any]]:
@@ -2041,11 +2018,6 @@ def main() -> None:
         dump_json(actual_environment, args.output)
         return
     if args.command_name == "record":
-        if args.origin_kind == "local" and args.issue is None:
-            record_parser.error(
-                "--issue is required for --origin-kind local: refusing to attribute "
-                "verification evidence to a default issue number"
-            )
         plan = load_plan(args.plan)
         output_path = Path(args.output)
         output_path.parent.mkdir(parents=True, exist_ok=True)

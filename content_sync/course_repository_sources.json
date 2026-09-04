@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "comment": "Registration input for course-repository content sources. Registered ContentSource rows are what decides which repositories exist; this file is only how a fresh database gets its first rows, in the same way scripts/production_like_course_specs.json seeds the course catalogue. Adding a repository here does not import it -- it makes it registerable, and the course-repository ingest (webhook or pull) does the rest. A repository without a course.yaml at its root cannot be ingested by either route. data-engineering-zoomcamp was missing from this list despite having a real course.yaml -- that was a gap, fixed 2026-09-03. mlops-zoomcamp and stock-markets-analytics-zoomcamp had no course.yaml at all (confirmed 404) despite each already having a real SITE.md; course.yaml was authored and pushed to both repositories the same day, following the exact schema data-engineering-zoomcamp uses, and both are now registered here too.",
+  "sources": [
+    {
+      "stable_id": "ai-dev-tools-zoomcamp",
+      "display_name": "AI Dev Tools Zoomcamp",
+      "repository_owner": "DataTalksClub",
+      "repository_name": "ai-dev-tools-zoomcamp",
+      "branch": "main"
+    },
+    {
+      "stable_id": "de-zoomcamp",
+      "display_name": "Data Engineering Zoomcamp",
+      "repository_owner": "DataTalksClub",
+      "repository_name": "data-engineering-zoomcamp",
+      "branch": "main"
+    },
+    {
+      "stable_id": "llm-zoomcamp",
+      "display_name": "LLM Zoomcamp",
+      "repository_owner": "DataTalksClub",
+      "repository_name": "llm-zoomcamp",
+      "branch": "main"
+    },
+    {
+      "stable_id": "ml-zoomcamp",
+      "display_name": "Machine Learning Zoomcamp",
+      "repository_owner": "DataTalksClub",
+      "repository_name": "machine-learning-zoomcamp",
+      "branch": "main"
+    },
+    {
+      "stable_id": "mlops-zoomcamp",
+      "display_name": "MLOps Zoomcamp",
+      "repository_owner": "DataTalksClub",
+      "repository_name": "mlops-zoomcamp",
+      "branch": "main"
+    },
+    {
+      "stable_id": "sma-zoomcamp",
+      "display_name": "Stock Markets Analytics Zoomcamp",
+      "repository_owner": "DataTalksClub",
+      "repository_name": "stock-markets-analytics-zoomcamp",
+      "branch": "main"
+    }
+  ]
+}

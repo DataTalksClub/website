@@ -18,7 +18,8 @@ a { color: var(--qna-accent); text-underline-offset: .18em; }
 .qna-shell > h1 { font-size: clamp(2rem, 7vw, 3.75rem); letter-spacing: -.035em; line-height: 1.04; margin-block: .4rem 1rem; }
 .qna-kicker { color: var(--qna-muted); font-size: .9rem; font-weight: 700; margin: 0; }
 .qna-kicker a { align-items: center; display: inline-flex; min-height: 2.75rem; }
-.qna-banner { border-left: .25rem solid var(--qna-accent); color: var(--qna-muted); font-weight: 700; padding: .65rem .8rem; }
+/* Notices take a surface and a full border, never a coloured left rail. */
+.qna-banner { background: var(--qna-surface); border: 2px solid var(--qna-border); border-radius: .55rem; color: var(--qna-muted); font-weight: 700; padding: .65rem .8rem; }
 .qna-card { background: var(--qna-surface); border: 2px solid var(--qna-border); border-radius: .85rem; box-shadow: .28rem .28rem 0 color-mix(in srgb, var(--qna-border), transparent 20%); margin: 1.5rem 0; padding: clamp(1rem, 3vw, 1.5rem); }
 .qna-card h2 { font-size: clamp(1.3rem, 3vw, 1.65rem); margin-top: 0; }
 .qna-section-head { align-items: end; display: flex; gap: 1rem; justify-content: space-between; }
@@ -37,7 +38,7 @@ textarea { resize: vertical; }
 .qna-meta, .qna-muted { color: var(--qna-muted); font-size: .9rem; }
 .qna-vote { background: transparent; border: 2px solid var(--qna-accent); color: var(--qna-accent); min-height: 2.75rem; }
 .qna-error { color: #a31d31; min-height: 1.5rem; }
-.qna-error-callout { background: color-mix(in srgb, #a31d31, transparent 92%); border-left: .25rem solid #a31d31; padding: .75rem; }
+.qna-error-callout { background: color-mix(in srgb, #a31d31, transparent 92%); border: 2px solid #a31d31; border-radius: .55rem; padding: .75rem; }
 .qna-presentation-list { grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); }
 .qna-present-item .qna-question-text { font-size: clamp(1.25rem, 3vw, 2.5rem); }
 [href]:focus-visible, button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--qna-focus); outline-offset: 3px; }

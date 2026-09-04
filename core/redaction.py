@@ -243,5 +243,41 @@ def redact_value(value: object) -> object:
     return redact(value)
 
 
+def mask_sensitive_spans(
+    value: str,
+    *,
+    canaries: Sequence[str] = (),
+    policy: RedactionPolicy = DEFAULT_REDACTION_POLICY,
+) -> str:
+    """Redact only the sensitive spans of one string, keeping the rest readable.
+
+    ``redact`` answers "is any part of this sensitive?" by replacing the whole
+    value, which is the right answer for a metadata field and the wrong one for
+    an error message: the exception class and the status code an operator needs
+    sit in the same string as the address or the URL that must not be kept.
+    This applies the same ``_SECRET_PATTERNS`` span by span, so the diagnosable
+    text survives and the secret does not.
+
+    It is deliberately the same policy rather than a second one — a message
+    that this cannot make safe still becomes ``[REDACTED]`` in full.
+    """
+
+    if not value:
+        return ""
+    masked = value[: policy.max_string_length]
+    for canary in islice(canaries, MAX_CANARIES):
+        if isinstance(canary, str) and canary:
+            masked = masked.replace(canary[:MAX_CANARY_LENGTH], REDACTED)
+    for pattern in _SECRET_PATTERNS:
+        masked = pattern.sub(REDACTED, masked)
+    if _sensitive_string(masked, ()):
+        # The span pass did not make it safe, so fall back to the whole-value
+        # answer rather than persisting something only partly cleaned.
+        return REDACTED
+    if len(value) > policy.max_string_length:
+        return f"{masked}{TRUNCATED}"
+    return masked
+
+
 MAX_CANARY_LENGTH = 4096
 MAX_CANARIES = 64

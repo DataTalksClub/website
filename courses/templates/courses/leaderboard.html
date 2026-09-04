@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load seo %}
+{% load breadcrumbs seo %}
 
 {% block document_title %}Leaderboard — {{ course.title }} — DataTalks.Club{% endblock %}
 
@@ -17,7 +17,7 @@
 
 {% block page_styles %}
       /* ------------------------------------------------------------------ *
-       * Course leaderboard, design 5a (issue #179).  Like every rebuilt page
+       * Course leaderboard, design system (issue #179).  Like every rebuilt page
        * it carries its complete stylesheet inline — the shared design system
        * partial first, then the rules that shape this page only — and loads
        * none of the older site CSS.
@@ -133,7 +133,7 @@
       }
 
       /* One mark per project this student has passed.  The copied page drew a
-         five-colour medal star from an icon font; a design 5a page loads no
+         five-colour medal star from an icon font; a design system page loads no
          icon font and has no medal palette, so the mark is the brand bubble
          disc and the project it stands for is named in text beside it. */
       .leaderboard-passed {
@@ -233,22 +233,10 @@
 {% block header_attributes %}aria-labelledby="leaderboard-heading"{% endblock %}
 
 {% block page_header %}
-        <nav class="breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'course_list' %}">Courses</a>
-            </li>
-            <li>
-              <a href="{% url 'course_family' course_family.slug %}">{{ course_family.title }}</a>
-            </li>
-            <li>
-              <a href="{% url 'course' course_family.slug course.identifier %}">{{ course.identifier }}</a>
-            </li>
-            <li aria-current="page">
-              Leaderboard
-            </li>
-          </ol>
-        </nav>
+        {% url 'course_list' as course_list_url %}
+        {% url 'course_family' course_family.slug as course_family_url %}
+        {% url 'course' course_family.slug course.identifier as cohort_url %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url current="Leaderboard" %}
         <div class="leaderboard-hero-inner">
           <p class="mono-label mono-label-indigo">{{ course.title }}</p>
           <h1 id="leaderboard-heading">Leaderboard</h1>

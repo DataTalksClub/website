@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load seo %}
+{% load breadcrumbs seo %}
 
 {% block document_title %}Flag leaderboard record — {{ course.title }} — DataTalks.Club{% endblock %}
 
@@ -16,7 +16,7 @@
 
 {% block page_styles %}
       /* ------------------------------------------------------------------ *
-       * Leaderboard flag form, design 5a (issue #179).  The page carries its
+       * Leaderboard flag form, design system (issue #179).  The page carries its
        * complete stylesheet inline — the shared design system partial first,
        * then this page's own rules — and loads none of the older site CSS.
        *
@@ -57,7 +57,7 @@
       }
 
       /* The two widgets are built in courses/views/forms.py and arrive carrying
-         the copied platform's class name.  A design 5a page loads no
+         the copied platform's class name.  A design system page loads no
          stylesheet that defines it, so it takes the system's own field
          treatment here, in the page that renders it. */
       .form-control {
@@ -93,28 +93,12 @@
 {% block header_attributes %}aria-labelledby="complaint-heading"{% endblock %}
 
 {% block page_header %}
-        <nav class="breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'course_list' %}">Courses</a>
-            </li>
-            <li>
-              <a href="{% url 'course_family' course_family.slug %}">{{ course_family.title }}</a>
-            </li>
-            <li>
-              <a href="{% url 'course' course_family.slug course.identifier %}">{{ course.identifier }}</a>
-            </li>
-            <li>
-              <a href="{% url 'leaderboard' course_family.slug course.identifier %}">Leaderboard</a>
-            </li>
-            <li>
-              <a href="{% url 'leaderboard_score_breakdown' course.course.slug course.identifier enrollment.id %}">{{ enrollment.display_name }}</a>
-            </li>
-            <li aria-current="page">
-              Flag record
-            </li>
-          </ol>
-        </nav>
+        {% url 'course_list' as course_list_url %}
+        {% url 'course_family' course_family.slug as course_family_url %}
+        {% url 'course' course_family.slug course.identifier as cohort_url %}
+        {% url 'leaderboard' course_family.slug course.identifier as leaderboard_url %}
+        {% url 'leaderboard_score_breakdown' course.course.slug course.identifier enrollment.id as record_url %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url "Leaderboard" leaderboard_url enrollment.display_name record_url current="Flag record" %}
         <div class="complaint-hero-inner">
           <p class="mono-label mono-label-indigo">{{ course.title }}</p>
           <h1 id="complaint-heading">Flag leaderboard record</h1>

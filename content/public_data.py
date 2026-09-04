@@ -54,17 +54,24 @@ EDITORIAL_ROUTE_MIGRATION_FILENAME = "editorial_route_migration.json"
 EDITORIAL_ROUTE_MIGRATION_SCHEMA = (
     PROJECTION_ROOT.parents[1] / "_docs" / "compatibility" / "editorial-route-migration.schema.json"
 )
-EXPECTED_COUNTS = {
-    "articles": 55,
-    "podcasts": 203,
-    "transcripts": 201,
-    "books": 98,
-    "people": 438,
-    "events": 421,
-    "wiki": 282,
-    "courses": 12,
-    "media": 1_253,
-}
+# How many articles, podcasts, transcripts, books, people, events, wiki pages, courses and
+# media objects exist changes every time content is legitimately published or retired.  The
+# manifest declares its own counts (see `_checked_public_projection`), and every artifact is
+# checked against what the manifest itself declares plus a full-content digest, so nothing
+# here pins an exact total that would need a hand-edit on every routine publish.
+REQUIRED_COUNT_KEYS = frozenset(
+    {
+        "articles",
+        "podcasts",
+        "transcripts",
+        "books",
+        "people",
+        "events",
+        "wiki",
+        "courses",
+        "media",
+    }
+)
 # The accepted projection audit found these exact supported metadata markers.  Runtime cleanup
 # uses this canary to ensure the immutable-source allowlist does not silently broaden or drift.
 # Articles are zero because their bodies are now projected by the article block builder, which
@@ -72,6 +79,23 @@ EXPECTED_COUNTS = {
 # in the published text for the runtime to clean up.  Person bios still take the older plain-text
 # path, so their ten markers are still removed here.
 EXPECTED_LEAKED_TARGET_MARKERS = {"articles": 0, "people": 10}
+# Media objects are served from an object store, so the complete-tree digest covers only
+# the JSON artifacts and the wiki assets.  The manifest must declare that scope in
+# machine-readable form: a manifest produced by an older whole-tree builder, or one that
+# omits the declaration, fails closed instead of being silently accepted with a digest
+# that would happen to match an unhydrated checkout.
+MEDIA_TREE_PREFIX = "media/"
+EXPECTED_TREE_DIGEST_SCOPE = (
+    "projection artifacts and wiki assets; excludes manifest.json and media/"
+)
+# The media storage architecture is fixed; only how many objects are in it changes with
+# content.  That "count" field is checked separately against the manifest's own declared
+# media count, not pinned here.
+EXPECTED_MEDIA_STORAGE_FIELDS = {
+    "location": "object-store",
+    "records": "media.json",
+    "integrity": "per-record provenance.checksum",
+}
 EXPECTED_SELECTION = "preferred"
 EDITORIAL_ROUTE_COLLECTIONS = {
     "articles": "/blog",
@@ -79,8 +103,6 @@ EDITORIAL_ROUTE_COLLECTIONS = {
     "books": "/books",
     "people": "/people",
 }
-EXPECTED_EDITORIAL_FINALS = sum(EXPECTED_COUNTS[name] for name in EDITORIAL_ROUTE_COLLECTIONS)
-EXPECTED_EDITORIAL_ALIASES = 2 * (EXPECTED_EDITORIAL_FINALS - len(PODCAST_HIERARCHICAL_ONLY_SLUGS))
 EXPECTED_REVISIONS = {
     "preferred_content": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
     "fallback_selection": "373bef2912342ece1d2a2d2a9395aa3417243283",
@@ -337,13 +359,22 @@ def _sha256(path: Path) -> str:
 
 
 def _tree_sha256(root: Path) -> str:
+    """Digest the projection artifacts and wiki assets, excluding the media objects.
+
+    Media objects live in an object store and are verified per record against
+    ``provenance.checksum``, so they are outside the complete-tree digest.  The symlink
+    rejection deliberately still covers ``media/``: a symlink anywhere below the root is
+    a hard failure whether or not its bytes contribute to the digest.
+    """
+
     digest = hashlib.sha256()
     for path in sorted(item for item in root.rglob("*") if item.is_file()):
-        if path.is_symlink() or path.name == "manifest.json":
-            if path.is_symlink():
-                raise ImproperlyConfigured("Public projection tree contains a symlink.")
+        if path.is_symlink():
+            raise ImproperlyConfigured("Public projection tree contains a symlink.")
+        relative_path = path.relative_to(root).as_posix()
+        if path.name == "manifest.json" or relative_path.startswith(MEDIA_TREE_PREFIX):
             continue
-        relative = path.relative_to(root).as_posix().encode()
+        relative = relative_path.encode()
         payload = path.read_bytes()
         digest.update(len(relative).to_bytes(8, "big"))
         digest.update(relative)
@@ -524,6 +555,23 @@ def _expected_editorial_routes(
     return finals, aliases
 
 
+def _editorial_route_counts(projection: dict[str, Any]) -> tuple[int, int]:
+    """Return the (finals, aliases) counts the loaded projection implies.
+
+    Derived from the collections actually present, so publishing or retiring
+    content never needs a matching hand-edit here.
+    """
+
+    finals_count = sum(len(projection[name]) for name in EDITORIAL_ROUTE_COLLECTIONS)
+    hierarchical_only = sum(
+        1
+        for record in projection.get("podcasts", ())
+        if record["slug"] in PODCAST_HIERARCHICAL_ONLY_SLUGS
+    )
+    aliases_count = 2 * (finals_count - hierarchical_only)
+    return finals_count, aliases_count
+
+
 def _validate_editorial_route_manifest(
     route_manifest: Any,
     projection: dict[str, Any],
@@ -568,17 +616,18 @@ def _validate_editorial_route_manifest(
     }
     if route_manifest["provenance"] != expected_provenance:
         raise ImproperlyConfigured("Public projection editorial route provenance mismatch.")
+    expected_finals_count, expected_aliases_count = _editorial_route_counts(projection)
     if route_manifest["counts"] != {
-        "finals": EXPECTED_EDITORIAL_FINALS,
-        "aliases": EXPECTED_EDITORIAL_ALIASES,
+        "finals": expected_finals_count,
+        "aliases": expected_aliases_count,
     }:
         raise ImproperlyConfigured("Public projection editorial route count mismatch.")
 
     finals = route_manifest["finals"]
     aliases = route_manifest["aliases"]
-    if not isinstance(finals, list) or len(finals) != EXPECTED_EDITORIAL_FINALS:
+    if not isinstance(finals, list) or len(finals) != expected_finals_count:
         raise ImproperlyConfigured("Public projection editorial final count mismatch.")
-    if not isinstance(aliases, list) or len(aliases) != EXPECTED_EDITORIAL_ALIASES:
+    if not isinstance(aliases, list) or len(aliases) != expected_aliases_count:
         raise ImproperlyConfigured("Public projection editorial alias count mismatch.")
     try:
         final_paths = [item["final_path"] for item in finals]
@@ -620,8 +669,32 @@ def _checked_public_projection() -> dict[str, Any]:
     manifest = _read_json(PROJECTION_ROOT / "manifest.json")
     if manifest.get("schema_version") != 1 or manifest.get("selection_mode") != EXPECTED_SELECTION:
         raise ImproperlyConfigured("Unsupported public projection selection.")
-    if manifest.get("counts") != EXPECTED_COUNTS:
-        raise ImproperlyConfigured("Public projection count canaries do not match.")
+    # The manifest declares its own counts for this build; they are not pinned to a fixed
+    # inventory because publishing or retiring content legitimately moves every one of
+    # them.  What must hold, regardless of size, is that the declaration is well-formed
+    # and that every artifact and derived count actually matches what is declared -
+    # checked below, collection by collection, as each artifact is loaded.
+    counts = manifest.get("counts")
+    if (
+        not isinstance(counts, dict)
+        or set(counts) != REQUIRED_COUNT_KEYS
+        or any(
+            isinstance(value, bool) or not isinstance(value, int) or value < 0
+            for value in counts.values()
+        )
+    ):
+        raise ImproperlyConfigured("Public projection count declarations are malformed.")
+    if manifest.get("tree_digest_scope") != EXPECTED_TREE_DIGEST_SCOPE:
+        raise ImproperlyConfigured("Public projection tree digest scope is not declared.")
+    media_storage = manifest.get("media_storage")
+    if (
+        not isinstance(media_storage, dict)
+        or set(media_storage) != {"location", "records", "count", "integrity"}
+        or {key: media_storage[key] for key in EXPECTED_MEDIA_STORAGE_FIELDS}
+        != EXPECTED_MEDIA_STORAGE_FIELDS
+        or media_storage["count"] != counts["media"]
+    ):
+        raise ImproperlyConfigured("Public projection media storage declaration mismatch.")
     if manifest.get("tree_sha256") != _tree_sha256(PROJECTION_ROOT):
         raise ImproperlyConfigured("Public projection complete-tree digest mismatch.")
     sources = manifest.get("sources", {})
@@ -692,9 +765,30 @@ def _checked_public_projection() -> dict[str, Any]:
         if _sha256(path) != artifacts.get(filename):
             raise ImproperlyConfigured(f"Public projection digest mismatch: {filename}.")
         records = _read_json(path)
-        if not isinstance(records, list) or len(records) != EXPECTED_COUNTS[name]:
+        if not isinstance(records, list) or not records:
             raise ImproperlyConfigured(f"Public projection collection mismatch: {name}.")
+        if len(records) != counts[name]:
+            raise ImproperlyConfigured(f"Public projection declared count mismatch: {name}.")
         projection[name] = tuple(records)
+
+    # Every media reference a content record carries must resolve to a real media
+    # object.  This is the referential check that a fixed media-object total only ever
+    # gestured at: it catches a broken or stale reference regardless of how many media
+    # objects the projection happens to contain today.
+    media_paths = {item["public_path"] for item in projection["media"]}
+    for name in ("articles", "podcasts", "books", "people"):
+        for record in projection[name]:
+            image_path = record.get("image_path")
+            if image_path and image_path not in media_paths:
+                raise ImproperlyConfigured(
+                    f"Public projection media reference does not resolve: {name}."
+                )
+            for block in record.get("blocks", ()) or ():
+                if isinstance(block, dict) and block.get("kind") == "image":
+                    if block.get("src") not in media_paths:
+                        raise ImproperlyConfigured(
+                            f"Public projection media reference does not resolve: {name}."
+                        )
 
     platform_path = PROJECTION_ROOT / PODCAST_PLATFORM_FILENAME
     if _sha256(platform_path) != artifacts.get(PODCAST_PLATFORM_FILENAME):
@@ -728,7 +822,7 @@ def _checked_public_projection() -> dict[str, Any]:
     projection["podcast_platforms"] = tuple(platforms)
 
     transcript_count = sum(bool(item.get("transcript")) for item in projection["podcasts"])
-    if transcript_count != EXPECTED_COUNTS["transcripts"]:
+    if transcript_count != counts["transcripts"]:
         raise ImproperlyConfigured("Public projection transcript count mismatch.")
     ordered_podcasts(projection["podcasts"])
     try:
@@ -1040,7 +1134,6 @@ def public_paths() -> tuple[str, ...]:
         "/faq/",
         "/faq/ai-dev-tools-zoomcamp.html",
         "/slack",
-        "/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026",
     }
     paths.update(
         record["public_path"]

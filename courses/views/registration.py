@@ -1,9 +1,11 @@
 from functools import partial
+from urllib.parse import quote
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
@@ -25,7 +27,26 @@ from courses.registration import (
 from courses.services.registration_counts import public_course_registration_count
 from courses.views.url_utils import cohort_url_kwargs
 
-from .registration_form import CourseRegistrationForm
+from .registration_form import (
+    CourseRegistrationForm,
+    authenticated_registration_identity,
+    missing_profile_field_names,
+)
+
+
+def registration_is_gated(request: HttpRequest) -> bool:
+    """Whether this visitor meets the §8.3 sign-in gate instead of the form.
+
+    Registration is account-owned (`_docs/specs/open-decisions.md` §6), and the
+    signed-in-home spec §8.3 makes that visible: an anonymous visitor keeps the
+    whole campaign — marketing copy, video, and the already-registered count —
+    and is asked to create an account or sign in before the form.  The setting
+    is the revert lever the spec asks for.
+    """
+
+    if request.user.is_authenticated:
+        return False
+    return bool(getattr(settings, "REGISTRATION_REQUIRES_ACCOUNT", True))
 
 
 def campaign_course_is_open(campaign: RegistrationCampaign) -> bool:
@@ -111,8 +132,9 @@ def _start_course_url(campaign: RegistrationCampaign) -> str:
 
 
 def _registration_context(
+    request: HttpRequest,
     campaign: RegistrationCampaign,
-    form: CourseRegistrationForm,
+    form: CourseRegistrationForm | None,
     registration: CourseRegistration | None,
 ) -> dict:
     marketing_content = render_markdown(campaign.marketing_markdown)
@@ -122,6 +144,7 @@ def _registration_context(
     country_options = ordered_countries()
     course_is_open = campaign_course_is_open(campaign)
     public_count = public_course_registration_count(campaign)
+    user = request.user
 
     return {
         "campaign": campaign,
@@ -134,6 +157,9 @@ def _registration_context(
         "video_embed_url": video_embed_url,
         "start_course_url": start_course_url,
         "country_options": country_options,
+        "registration_gate": registration_is_gated(request),
+        "profile_identity": authenticated_registration_identity(user),
+        "missing_profile_fields": missing_profile_field_names(user),
     }
 
 
@@ -142,6 +168,19 @@ def registration_campaign_view(
     campaign_slug: str,
 ) -> HttpResponse:
     campaign = _active_registration_campaign(campaign_slug)
+
+    if registration_is_gated(request):
+        # The gate holds both halves of the request, not only the rendered
+        # form: an anonymous POST is sent to sign in and comes back to the
+        # campaign, so no anonymous ``CourseRegistration`` row is created while
+        # the gate is on.
+        if request.method == "POST":
+            login_url = reverse("login")
+            return redirect(f"{login_url}?next={quote(request.path)}")
+
+        context = _registration_context(request, campaign, None, None)
+        return render(request, "courses/register.html", context)
+
     existing_registration = _existing_user_registration(
         request, campaign
     )
@@ -167,6 +206,7 @@ def registration_campaign_view(
             )
 
     context = _registration_context(
+        request,
         campaign,
         form,
         registration or existing_registration,

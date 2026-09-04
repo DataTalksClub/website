@@ -1,0 +1,302 @@
+{
+  "schema_version": 1,
+  "sponsors": [
+    {
+      "key": "dlthub",
+      "name": "dltHub",
+      "url": "https://dlthub.com/",
+      "lifecycle": "active",
+      "description": "dltHub builds dlt, the open-source Python library for moving data from messy sources into well-structured datasets. Their collaboration brings production-minded data ingestion into Data Engineering Zoomcamp and LLM Zoomcamp.",
+      "logo_asset_key": "sponsors/dlthub.png",
+      "position": 1
+    },
+    {
+      "key": "astronomer",
+      "name": "Astronomer",
+      "url": "https://www.astronomer.io/",
+      "lifecycle": "active",
+      "description": "Astronomer helps teams build and run reliable data pipelines with Apache Airflow. Their support helps us teach practical orchestration skills to the next generation of data engineers.",
+      "logo_asset_key": "sponsors/astronomer.png",
+      "position": 2
+    },
+    {
+      "key": "kestra",
+      "name": "Kestra",
+      "url": "https://kestra.io/",
+      "lifecycle": "active",
+      "description": "Kestra is an open-source orchestration platform for business-critical workflows. Community members encounter it through hands-on projects in Data Engineering Zoomcamp and LLM Zoomcamp.",
+      "logo_asset_key": "sponsors/kestra.png",
+      "position": 3
+    },
+    {
+      "key": "snowplow",
+      "name": "Snowplow",
+      "url": "https://snowplow.io/",
+      "lifecycle": "active",
+      "description": "Snowplow gives teams control of high-quality behavioral data for analytics and AI. Their support helps us keep community events and practical learning available to everyone.",
+      "logo_asset_key": "sponsors/snowplow.png",
+      "position": 4
+    },
+    {
+      "key": "ai-infrastructure-alliance",
+      "name": "AI Infrastructure Alliance",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "aiven",
+      "name": "Aiven",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "anaconda",
+      "name": "Anaconda",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "arize-ai",
+      "name": "Arize AI",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "atlan",
+      "name": "Atlan",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "bentoml",
+      "name": "BentoML",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "bruin",
+      "name": "Bruin",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "double-cloud",
+      "name": "Double Cloud",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "dstack",
+      "name": "dstack",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "exasol",
+      "name": "Exasol",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "iterative",
+      "name": "Iterative",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "jetbrains",
+      "name": "JetBrains",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "mage",
+      "name": "Mage",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "nebius",
+      "name": "Nebius",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "nvidia",
+      "name": "NVIDIA",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "prefect",
+      "name": "Prefect",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "qwak",
+      "name": "Qwak",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "saturn-cloud",
+      "name": "Saturn Cloud",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "scale-ai",
+      "name": "Scale AI",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "snorkel-ai",
+      "name": "Snorkel AI",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "snowflake",
+      "name": "Snowflake",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "soda",
+      "name": "SODA",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "tecton",
+      "name": "Tecton",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "temporal-io",
+      "name": "Temporal.io",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "toloka",
+      "name": "Toloka",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "valohai",
+      "name": "Valohai",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "weights-and-biases",
+      "name": "Weights & Biases",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "whylabs",
+      "name": "WhyLabs",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    },
+    {
+      "key": "wikimedia",
+      "name": "WikiMedia",
+      "url": "",
+      "lifecycle": "archived",
+      "description": "",
+      "logo_asset_key": "",
+      "position": null
+    }
+  ]
+}

@@ -35,7 +35,6 @@ from courses.models import Cohort, HomeworkState, ProjectState, RegistrationCamp
 from events.identity import canonical_detail_path
 from events.models import (
     Event,
-    HistoricalEventMapping,
     HistoricalRegistrationAggregateRevision,
     HistoricalRegistrationAggregateSlot,
     HistoricalRegistrationPointerDisplacement,
@@ -75,6 +74,9 @@ VIEWPORTS = (
     ({"width": 390, "height": 844}, "mobile"),
 )
 SCREENSHOTS = Path(".tmp/screenshots/issue-65")
+# The one value the invalid-registration state types, so the same string is
+# submitted and then asserted to have survived the error.
+INVALID_FORM_COMPANY = "Synthetic Valid Company"
 
 
 @pytest.fixture
@@ -141,7 +143,7 @@ def _public_rendered_states(
         PublicRenderedState("public.blog-hub", "blog", "Latest Articles"),
         PublicRenderedState("public.podcast-hub", "podcast", "Podcast"),
         PublicRenderedState("public.books-hub", "books", "Book of the Week"),
-        # The design 5a events index (issue #179, mockup 6c) leads with the mockup's
+        # The design system events index (issue #179, mockup 6c) leads with the mockup's
         # headline; "Events" survives only as the navigation label and the page title.
         PublicRenderedState("public.events-hub", "events", "Something happening every week"),
         PublicRenderedState("public.courses-hub", "courses", "Learn data skills"),
@@ -331,6 +333,11 @@ def accessibility_environment() -> AccessibilityEnvironment:
         "login": Surface("/accounts/login/"),
         "login-error": Surface("/accounts/login/"),
         "account-settings": Surface("/accounts/settings/", actor="learner"),
+        # "/" branches on authentication (signed-in-home spec §3): the same URL
+        # answers with the marketing page for "home" and with the member home
+        # for a signed-in actor, so both branches are scanned.
+        "member-home": Surface("/", actor="learner"),
+        "account-welcome": Surface("/accounts/welcome/", actor="learner"),
         "identity-conflict": Surface(
             "/_accessibility/identity-conflict/",
             expected_status=409,
@@ -348,10 +355,6 @@ def accessibility_environment() -> AccessibilityEnvironment:
             "/studio/events/historical-registration-totals/",
             actor="site-admin",
         ),
-        "historical-mappings": Surface(
-            "/studio/events/historical-registration-totals/mappings/",
-            actor="site-admin",
-        ),
         "registration": Surface(
             reverse("registration_campaign", kwargs={"campaign_slug": campaign.slug})
         ),
@@ -359,8 +362,12 @@ def accessibility_environment() -> AccessibilityEnvironment:
             reverse("registration_campaign", kwargs={"campaign_slug": campaign.slug}),
             actor="learner",
         ),
+        # Registration is account-owned (signed-in-home spec §8.3), so the form
+        # that can be submitted invalidly is the signed-in "One final step"
+        # card; the anonymous campaign carries the sign-in gate instead.
         "registration-error": Surface(
-            reverse("registration_campaign", kwargs={"campaign_slug": error_campaign.slug})
+            reverse("registration_campaign", kwargs={"campaign_slug": error_campaign.slug}),
+            actor="learner",
         ),
         "dashboard": Surface(
             reverse("dashboard", kwargs=course_route),
@@ -473,8 +480,12 @@ def _visit_surface(
         page.get_by_role("button", name="Create credential").click()
         expect(page.get_by_role("heading", name="Copy this credential now")).to_be_visible()
     elif name == "registration-error":
+        # A valid value the member typed, submitted without the required
+        # newsletter consent: the error summary appears and the typed value has
+        # to survive it.  The email is not a form field on this card any more —
+        # it is the account's, shown read-only (§8.2).
         form = page.locator("[data-registration-form]")
-        form.locator('[name="email"]').fill("synthetic-valid@example.invalid")
+        form.locator('[name="company_name"]').fill(INVALID_FORM_COMPANY)
         form.evaluate("element => element.submit()")
         expect(page.locator("[data-focus-error-summary]")).to_be_visible()
 
@@ -555,42 +566,70 @@ def test_homework_breadcrumb_target_spacing_ignores_closed_account_menu(
     live_server,
     accessibility_environment: AccessibilityEnvironment,
 ) -> None:
-    page.set_viewport_size({"width": 390, "height": 844})
-    _visit_surface(page, live_server, accessibility_environment, "homework")
+    for width, height, suffix in ((390, 844, "mobile"), (1280, 900, "desktop")):
+        page.set_viewport_size({"width": width, "height": height})
+        _visit_surface(page, live_server, accessibility_environment, "homework")
 
-    account_menu = page.locator("details.user-menu")
-    expect(account_menu).not_to_have_attribute("open", "")
-    hidden_courses_link = account_menu.locator("a.user-menu-item", has_text="Courses")
-    expect(hidden_courses_link).to_have_count(0)
+        # The trail must be measured with the account menu shut: Chromium keeps a
+        # stale rectangle for links inside a closed `details`, and counting those
+        # would make the crumbs look crowded by controls nobody can reach.
+        account_menu = page.locator("details.user-menu")
+        expect(account_menu).not_to_have_attribute("open", "")
+        hidden_courses_link = account_menu.locator("a.user-menu-item", has_text="Courses")
+        expect(hidden_courses_link).to_have_count(0)
 
-    geometry = page.locator(".breadcrumbs a[href]").evaluate_all(
-        """nodes => nodes.map(node => {
-          const rect = node.getBoundingClientRect();
-          return {
-            text: node.textContent.trim(),
-            top: rect.top,
-            bottom: rect.bottom,
-            width: rect.width,
-            height: rect.height,
-          };
-        })"""
-    )
-    # The shared submission document names the full ancestor trail: courses,
-    # course family, and course edition.  The homework itself is the current page.
-    assert len(geometry) == 3, geometry
-    first, second, *_ = geometry
-    # Design 5a replaced the adopted shell's compact crumb row (issue #128's
-    # remediation asserted links no taller than 24px plus compensating spacing):
-    # every breadcrumb ancestor now carries the system's 2.75rem (44px) target
-    # floor, so each crumb is its own sufficient target and the WCAG 2.5.8
-    # spacing exception no longer applies (`templates/core/_design_system.html`,
-    # `.breadcrumbs a`; `_docs/design/design-5a.md`).
-    assert first["height"] + 0.5 >= 44 and second["height"] + 0.5 >= 44, geometry
-    assert target_size_issues(page, "learner.homework") == []
+        geometry = page.locator(".breadcrumbs a[href]").evaluate_all(
+            """nodes => nodes.map(node => {
+              const rect = node.getBoundingClientRect();
+              return {
+                text: node.textContent.trim(),
+                top: rect.top,
+                left: rect.left,
+                right: rect.right,
+                bottom: rect.bottom,
+                width: rect.width,
+                height: rect.height,
+              };
+            })"""
+        )
+        # This fixture's cohort publishes no curriculum, so the trail is the
+        # ancestors the shared submission document always names: courses, course
+        # family, course edition.  A module-format cohort adds the module crumb;
+        # that branch is covered in `courses/tests/test_homework_page_design.py`.
+        # The homework itself is never a crumb — it is the h1 beneath the trail.
+        assert len(geometry) == 3, geometry
 
-    screenshot_dir = Path(".tmp/screenshots/issue-128-breadcrumb-spacing-remediation")
-    screenshot_dir.mkdir(parents=True, exist_ok=True)
-    _capture_deterministic_screenshot(page, screenshot_dir / "homework-mobile.png")
+        # WCAG 2.2 AA target size (2.5.8) is 24x24 CSS px, and the trail meets it
+        # outright, so the spacing exception never has to be invoked for a crumb.
+        # Issue #128's remediation had asserted the opposite arrangement — crumbs
+        # under 24px relying on compensating space — and the design system rebuild
+        # then over-corrected to a 44px row, which is the AAA (2.5.5) figure and
+        # cost a whole row of the page.  The settled quiet trail draws a 2rem
+        # crumb; measured on the homework route at both widths, the smallest is
+        # "2026" at 29x32 CSS px (`templates/core/_design_system.html`,
+        # `.breadcrumbs a`).  This asserts the AA floor, not a specific height,
+        # so a later type-scale change is free as long as the floor holds.
+        for crumb in geometry:
+            assert crumb["width"] + 0.5 >= 24, (suffix, crumb, geometry)
+            assert crumb["height"] + 0.5 >= 24, (suffix, crumb, geometry)
+
+        # And no crumb sits on top of another: sufficient targets stay separate
+        # targets, whether the trail is one row or wraps to two.
+        for index, crumb in enumerate(geometry):
+            for other in geometry[index + 1 :]:
+                overlaps = (
+                    crumb["left"] < other["right"]
+                    and crumb["right"] > other["left"]
+                    and crumb["top"] < other["bottom"]
+                    and crumb["bottom"] > other["top"]
+                )
+                assert not overlaps, (suffix, crumb, other)
+
+        assert target_size_issues(page, "learner.homework") == []
+
+        screenshot_dir = Path(".tmp/screenshots/issue-128-breadcrumb-spacing-remediation")
+        screenshot_dir.mkdir(parents=True, exist_ok=True)
+        _capture_deterministic_screenshot(page, screenshot_dir / f"homework-{suffix}.png")
 
 
 @pytest.mark.accessibility
@@ -934,6 +973,12 @@ def _account_scenario(recorder: ScenarioRecorder) -> set[str]:
     ).to_have_count(0)
     recorder.scan_current("account.authenticated-navigation")
 
+    # "/" branches on authentication rather than redirecting (§3), so the same
+    # path that carries the marketing hero for "public.home" carries the member
+    # home here, and onboarding is the page it sends an incomplete profile to.
+    recorder.scan("account.member-home", "member-home", text="Getting started")
+    recorder.scan("account.welcome", "account-welcome", text="About you")
+
     recorder.scan(
         "account.identity-conflict",
         "identity-conflict",
@@ -948,7 +993,7 @@ def _account_scenario(recorder: ScenarioRecorder) -> set[str]:
     recorder.page.goto(f"{recorder.live_server.url}/accounts/logout/")
     recorder.page.get_by_role("button", name="Sign Out", exact=False).click()
     recorder.page.goto(f"{recorder.live_server.url}/accounts/login/")
-    # Exact match, same as the owner-credentials suite: the design 5a sign-in
+    # Exact match, same as the owner-credentials suite: the design system sign-in
     # page also carries an sr-visible "Sign in with your DataTalks.Club account"
     # panel heading, which a substring lookup resolves as a second heading.
     # Unreachable while the events-hub duplicate ids aborted this test earlier
@@ -1064,7 +1109,6 @@ def _historical_scenario(recorder: ScenarioRecorder) -> set[str]:
     HistoricalRegistrationAggregateSlot.objects.all().delete()
     HistoricalRegistrationTotalState.objects.all().delete()
     HistoricalRegistrationAggregateRevision.objects.all().delete()
-    HistoricalEventMapping.objects.all().delete()
     HistoricalRegistrationSourceRun.objects.all().delete()
     recorder.scan("historical.empty", "historical-list", text="No source runs")
     event = recorder.environment.objects["event"]
@@ -1084,44 +1128,6 @@ def _historical_scenario(recorder: ScenarioRecorder) -> set[str]:
     )
     recorder.scan("historical.list", "historical-list", text="Source runs")
     recorder.scan("historical.detail", "historical-detail", text="active")
-    recorder.scan("historical.mapping", "historical-mappings", text="luma · mapped")
-    recorder.scan(
-        "historical.source-missing",
-        "historical-mappings",
-        text="eventbrite · source_missing",
-    )
-
-    missing = historical["historical_event_totals.source_missing_quarantine"].value
-    _visit_surface(
-        recorder.page,
-        recorder.live_server,
-        recorder.environment,
-        "historical-mappings",
-    )
-    expect(
-        recorder.page.get_by_role("heading", name="eventbrite · source_missing", exact=True)
-    ).to_be_visible()
-    stale_card = recorder.page.locator("article[data-mapping-id]").filter(
-        has_text=missing.external_event_identifier
-    )
-    HistoricalEventMapping.objects.filter(pk=missing.pk).update(revision=missing.revision + 1)
-    stale_card.get_by_label("Decision").select_option("excluded")
-    stale_card.get_by_label("Combination policy").select_option("exclude")
-    stale_card.get_by_label("Reason code").fill("reviewed_exclusion")
-    stale_card.get_by_role("button", name="Save reviewed decision").click()
-    expect(recorder.page.get_by_role("alert")).to_be_visible()
-    recorder.scan_current("historical.stale-revision")
-
-    recorder.page.reload()
-    excluded_card = recorder.page.locator("article[data-mapping-id]").filter(
-        has_text=missing.external_event_identifier
-    )
-    excluded_card.get_by_label("Decision").select_option("excluded")
-    excluded_card.get_by_label("Combination policy").select_option("exclude")
-    excluded_card.get_by_label("Reason code").fill("reviewed_exclusion")
-    excluded_card.get_by_role("button", name="Save reviewed decision").click()
-    expect(recorder.page.get_by_text("eventbrite · excluded", exact=True)).to_be_visible()
-    recorder.scan_current("historical.exclusion")
 
     HistoricalRegistrationSourceRun.objects.filter(pk=run.pk).update(
         state=HistoricalRegistrationSourceRun.State.VALIDATED,
@@ -1204,7 +1210,11 @@ def _historical_scenario(recorder: ScenarioRecorder) -> set[str]:
 
 def _learner_scenario(recorder: ScenarioRecorder) -> set[str]:
     simple_states = (
-        ("learner.signed-out-registration", "registration", "Register"),
+        (
+            "learner.signed-out-registration",
+            "registration",
+            "Create your free account to register",
+        ),
         ("learner.dashboard", "dashboard", None),
         ("learner.enrollment", "enrollment", "Edit Enrollment Details"),
         ("learner.homework", "homework", None),
@@ -1445,12 +1455,11 @@ def test_keyboard_focus_status_and_form_error_contracts(
     expect(page.locator("#copy-status")).to_contain_text("Credential copied")
 
     _visit_surface(page, live_server, accessibility_environment, "registration-error")
-    expected_email = "synthetic-valid@example.invalid"
     assert (
         preserved_value_issues(
             page,
             "learner.invalid-form",
-            {"email": expected_email},
+            {"company_name": INVALID_FORM_COMPANY},
         )
         == []
     )

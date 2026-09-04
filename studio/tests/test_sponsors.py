@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
-from core.models import AuditEvent, Sponsor, SponsorRevision
+from core.models import AuditEvent, Sponsor
 
 
 class StudioSponsorTests(TestCase):
@@ -52,7 +52,6 @@ class StudioSponsorTests(TestCase):
         self.assertContains(detail, "draft")
         self.assertContains(detail, "studio")
         self.assertContains(detail, "Revision 1")
-        self.assertEqual(SponsorRevision.objects.count(), 1)
 
     def test_auditor_is_read_only_and_unrelated_role_is_denied(self) -> None:
         auditor = make_studio_user(username="sponsor-auditor", roles=("auditor",))

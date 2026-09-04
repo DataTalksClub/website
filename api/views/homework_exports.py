@@ -11,6 +11,7 @@ from django.forms.models import model_to_dict
 from django.views.decorators.http import require_GET
 
 from accounts.auth import token_required
+from api.safety import require_staff_token
 
 from courses.models.cohort import Cohort
 from courses.models.homework import (
@@ -75,6 +76,12 @@ def homework_export_payload(course, homework, submissions):
 @token_required
 def homework_data_view(request, course_slug: str, homework_slug: str):
     """Get homework data including course info, homework details, and all submissions with answers."""
+    # Every learner's answers and scores for the homework, plus the correct
+    # answer flag on each one.  An operator export, like its project sibling.
+    staff_error = require_staff_token(request)
+    if staff_error:
+        return staff_error
+
     course = get_object_or_404(Cohort, slug=course_slug)
 
     homework = get_object_or_404(

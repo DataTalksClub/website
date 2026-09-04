@@ -1,6 +1,6 @@
 """Editorial composition for the redesigned public person page.
 
-The person page renders one profile in the design 5a system (issue #179).  Every
+The person page renders one profile in the design system (issue #179).  Every
 fact it shows — the portrait, the roles, the external profile links, and every
 contribution with its date and marker — is read from the checked public profile
 and from the record each contribution points at.  A record that cannot supply a
@@ -41,7 +41,7 @@ SITE_TIMEZONE = ZoneInfo("Europe/Berlin")
 # band (cream, mint, lavender, cream), which made one page look like four; the
 # ground is now the site-wide content lavender and the group is named by its
 # heading and its row marks.  See "Which ground a band takes" in
-# _docs/design/design-5a.md.
+# _docs/design/design-system.md.
 CONTRIBUTION_GROUPS: tuple[tuple[str, str, str, str], ...] = (
     ("podcast", "podcasts_by_path", "Podcast episodes", "episode"),
     ("events", "events_by_path", "Events", "event"),
@@ -72,7 +72,7 @@ class ProfileLink:
 
 @dataclass(frozen=True, slots=True)
 class Contribution:
-    """One linked piece of work, prepared as a design 5a list row."""
+    """One linked piece of work, prepared as a design system list row."""
 
     role: str
     title: str

@@ -1,4 +1,4 @@
-{% load seo static %}
+{% load breadcrumbs seo static %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -11,7 +11,7 @@
     {% include "public/_wiki_head_meta.html" %}
     <style>
       /* ------------------------------------------------------------------ *
-       * Wiki search results, design 5a (issue #179).  The results are the
+       * Wiki search results, design system (issue #179).  The results are the
        * system's divided rows; each one says whether it is a whole page or a
        * section inside one, which is what the search index actually indexes.
        * ------------------------------------------------------------------ */
@@ -103,16 +103,8 @@
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream wiki-hero" aria-labelledby="search-heading">
-        <nav class="shell shell-reading breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'wiki-home' %}">Wiki</a>
-            </li>
-            <li aria-current="page">
-              Search
-            </li>
-          </ol>
-        </nav>
+        {% url 'wiki-home' as wiki_home_url %}
+        {% breadcrumbs "Wiki" wiki_home_url current="Search" nav_class="shell shell-reading" %}
         <div class="shell shell-reading">
           <h1 id="search-heading">Search the Wiki</h1>
           {% include "public/_wiki_search_form.html" with search_label="Search term" %}

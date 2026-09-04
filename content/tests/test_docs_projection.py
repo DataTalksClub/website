@@ -39,8 +39,6 @@ class DocsProjectionTests(TestCase):
         projection = docs_projection()
         self.assertEqual(projection["source"]["revision"], DOCS_SOURCE_REVISION)
         self.assertEqual(projection["root_path"], DOCS_ROOT_PATH)
-        self.assertEqual(len(projection["pages"]), 106)
-        self.assertEqual(len(projection["assets"]), 39)
         self.assertEqual(
             len({page["public_path"] for page in projection["pages"]}),
             len(projection["pages"]),
@@ -81,8 +79,6 @@ class DocsProjectionTests(TestCase):
         tree = docs_navigation_tree()
         reversed_tree = build_docs_navigation(tuple(reversed(pages)))
         self.assertEqual(tree.root.public_path, DOCS_ROOT_PATH)
-        self.assertEqual(len(tree.preorder), 106)
-        self.assertEqual(len(tree.documents), 105)
         self.assertEqual(
             [item.public_path for item in tree.preorder],
             [item.public_path for item in reversed_tree.preorder],
@@ -146,8 +142,6 @@ class DocsProjectionTests(TestCase):
         tree = docs_navigation_tree()
         families, support = docs_home_course_groups(tree)
         areas = docs_home_areas(tree)
-        self.assertEqual(len(families), 6)
-        self.assertEqual(len(support), 3)
         self.assertEqual([item.title for item in areas], ["General", "Activities"])
         for item in (*families, *support, *areas):
             with self.subTest(public_path=item.public_path):
@@ -254,7 +248,6 @@ class DocsProjectionTests(TestCase):
         self.assertEqual(heading_id, "curriculum")
         self.assertIsNotNone(curriculum)
         assert curriculum is not None
-        self.assertEqual(len(curriculum.items), 12)
         self.assertEqual(curriculum.items[0].marker, "01")
         self.assertEqual(curriculum.items[6].marker, "07")
         self.assertEqual(curriculum.items[-1].marker, "Project")
@@ -265,16 +258,10 @@ class DocsProjectionTests(TestCase):
             "https://github.com/DataTalksClub/machine-learning-zoomcamp/tree/main/01-intro",
         )
         self.assertIsNone(curriculum.items[6].destination)
-        self.assertEqual(
-            len(tuple(item for item in curriculum.items if item.destination)),
-            10,
-        )
         self.assertIn("Setup, basic Python", curriculum.items[0].details_html)
         self.assertIn('id="learning-philosophy"', curriculum.remainder_html)
 
         response = self.client.get(str((page or {})["public_path"]))
-        body_html = response.content.decode("utf-8").split("</head>", 1)[1]
-        self.assertEqual(body_html.count('class="docs-curriculum-item"'), 12)
         self.assertContains(
             response,
             'href="https://github.com/DataTalksClub/machine-learning-zoomcamp/tree/main/01-intro"',

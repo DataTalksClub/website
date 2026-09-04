@@ -6,6 +6,7 @@ import subprocess
 import sys
 from unittest.mock import patch
 
+from django.conf import settings
 from django.test import SimpleTestCase
 
 from core.bootstrap import RuntimeEnvironment
@@ -235,7 +236,16 @@ class ProductionSettingsTests(SimpleTestCase):
                     path = BASE_DIR / database["NAME"]
                     relative = path.relative_to(BASE_DIR / ".tmp" / "tests")
                     self.assertEqual(len(relative.parts[0]), 20)
-                    self.assertEqual(relative.parts[2:], ("main", "database", "test.sqlite3"))
+                    # The subprocess inherits this process's environment, so it
+                    # resolves the worker this run owns.  Naming a literal here
+                    # would pass only on the default worker and fail the whole
+                    # suite under `DJANGO_TEST_WORKER` or `PYTEST_XDIST_WORKER`,
+                    # which is exactly how the suite is run when several of them
+                    # share a checkout.
+                    self.assertEqual(
+                        relative.parts[2:],
+                        (settings.TEST_WORKER_ID, "database", "test.sqlite3"),
+                    )
 
     def test_test_settings_reject_a_caller_selected_database_path(self) -> None:
         environment = os.environ.copy()

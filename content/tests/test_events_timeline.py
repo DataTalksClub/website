@@ -73,7 +73,6 @@ class EventTimelineDataTests(StableEventClockTestCase):
 class EventTimelineRouteTests(StableEventClockTestCase):
     def test_legacy_aliases_accept_trailing_slash_and_cache_redirects(self) -> None:
         events = Event.objects.prefetch_related("aliases").order_by("source_key")
-        self.assertEqual(events.count(), 421)
         for event in events:
             alias = (
                 event.aliases.filter(kind="legacy_date_path")
@@ -524,7 +523,7 @@ class EventTimelineTemplateTests(StableEventClockTestCase):
 
 
 class EventIndexDesignSystemTests(StableEventClockTestCase):
-    """The events index is a design 5a page (issue #179, mockup 6c).
+    """The events index is a design system page (issue #179, mockup 6c).
 
     It carries one inline stylesheet built from the shared design system partial, loads no
     external CSS, and composes its rows from shared primitives instead of forking them.
@@ -674,7 +673,7 @@ class EventKindsExplainerTests(StableEventClockTestCase):
 
 
 class EventDetailDesignSystemTests(StableEventClockTestCase):
-    """The event detail page is a design 5a page (issue #179).
+    """The event detail page is a design system page (issue #179).
 
     It is the page a reader reaches by clicking a row on the index, so the two are
     written in one vocabulary: the same kind pill with the same mapping, the same

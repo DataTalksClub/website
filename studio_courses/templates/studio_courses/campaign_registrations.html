@@ -1,7 +1,7 @@
 {% extends 'studio_courses/base.html' %}
-{% load custom_filters %}
+{% load breadcrumbs custom_filters %}
 {% comment %}
-  The registrations captured by one landing page, on design 5a (issue #179).
+  The registrations captured by one landing page, on the design system (issue #179).
 
   The mix breakdown and the record list are the system's dashed row lists, so
   every filter link keeps its exact query parameter while the rows reshape on
@@ -23,18 +23,15 @@
   }
 {% endblock %}
 
-{% block breadcrumbs %}
-  <li>
-    <a href="{% url 'studio_courses_course_list' %}">Courses</a>
-  </li>
-  {% if course %}
-    <li>
-      <a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a>
-    </li>
-  {% endif %}
-  <li aria-current="page">
-    {{ campaign.title }} registrations
-  </li>
+{% block breadcrumb_trail %}
+  {% comment %}
+    "<campaign> registrations" used to be one crumb, so the campaign this list
+    belongs to was written into the trail as text instead of being the link back
+    to its own editor.
+  {% endcomment %}
+  {% url 'studio_courses_course' course.slug as studio_course_url %}
+  {% url 'studio_courses_campaign_edit' campaign.slug as studio_campaign_url %}
+  {% breadcrumbs "Studio" studio_home_url "Courses" studio_courses_url course.title studio_course_url campaign.title studio_campaign_url current="registrations" %}
 {% endblock %}
 
 {% block page_head %}

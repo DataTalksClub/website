@@ -1,6 +1,6 @@
 """Editorial composition for the public blog article page.
 
-The article page renders in the design 5a system (issue #179).  Every fact it
+The article page renders in the design system (issue #179).  Every fact it
 shows — title, subtitle, byline, author portraits, publication date, reading
 time and the body itself — is read from the checked article record and from the
 people records that article names.  A record that cannot supply a fact fails
@@ -162,8 +162,10 @@ class ArticleView:
     published_display: str
     reading_minutes: int
     authors: tuple[Author, ...]
-    image_path: str
-    media_available: bool
+    # The article's own artwork is not composed here.  It is a social card, and
+    # the page publishes it through `og:image`/`twitter:image` from the record
+    # rather than drawing it above the prose.
+    #
     # The body, split where the recovered FAQ belongs.  Without a FAQ the whole
     # body is `sections` and the other two are empty, so the page draws exactly
     # what it draws today.
@@ -417,7 +419,6 @@ def article_view(
         published_text = published_display(published)
     except ValueError as error:
         raise ImproperlyConfigured("Public article publication date is invalid.") from error
-    image_path = str(record.get("image_path") or "")
     if faq is not None and faq.slug != record.get("slug"):
         raise ImproperlyConfigured("Public article FAQ belongs to a different article.")
     sections, sections_after_faq = _split_body(record.get("blocks"), faq)
@@ -429,8 +430,6 @@ def article_view(
         published_display=published_text,
         reading_minutes=reading_minutes(record),
         authors=_authors(record, people),
-        image_path=image_path,
-        media_available=bool(record.get("media_available")) and bool(image_path),
         sections=sections,
         faq=faq.questions if faq is not None else (),
         sections_after_faq=sections_after_faq,

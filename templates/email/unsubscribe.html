@@ -1,0 +1,176 @@
+{% extends "public/text_page.html" %}
+{% comment %}
+  The public email preference page, reached from the unsubscribe link in a
+  message.  Relay owns the recipient record, the token and the mutation; this
+  page owns the surface, which is why it is an ordinary text page in the site's
+  design system rather than a proxied page from another product's shell.
+
+  It carries no canonical and no social card: a per-recipient link is not a
+  destination, and the response is `noindex` and `no-store` besides.
+
+  The form deliberately carries no CSRF token.  A recipient arrives from a mail
+  client with no session, and the opaque token in the URL is the only thing that
+  authorises the change -- the same contract Relay applies.  Leaving it out also
+  keeps an anonymous response free of `Set-Cookie`.
+
+  The four states are:
+    form       the link is live (or Relay could not be asked, see `degraded`)
+    confirmed  Relay applied the choice
+    accepted   Relay was unreachable; the choice is durable and will be applied
+    unknown    the link is not one Relay recognises
+{% endcomment %}
+
+{% block document_title %}
+  <title>Email preferences — DataTalks.Club</title>
+{% endblock %}
+
+{% block document_meta %}
+  {% comment %}
+    Deliberately empty. A recipient-scoped link claims no canonical URL, no
+    description and no social card.
+  {% endcomment %}
+  <meta name="robots" content="noindex, nofollow">
+{% endblock %}
+
+{% block kicker %}
+  Email preferences
+{% endblock %}
+
+{% block title %}
+  {% if state == "confirmed" %}
+    You have been unsubscribed
+  {% elif state == "accepted" %}
+    Your request has been recorded
+  {% elif state == "unknown" %}
+    This link is no longer valid
+  {% else %}
+    Choose which email to stop
+  {% endif %}
+{% endblock %}
+
+{% block lede %}
+  {% if state == "confirmed" %}
+    We have stopped the email you asked us to stop. You may still receive
+    messages you specifically asked for, such as account and security email.
+  {% elif state == "accepted" %}
+    We could not confirm the change with our email system just now, so we have
+    recorded it and it will be applied automatically. You do not need to do
+    anything else.
+  {% elif state == "unknown" %}
+    We could not match this link to a message we sent. Nothing has changed.
+  {% else %}
+    Pick the option that matches what you want to stop, then confirm.
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  {% if state == "form" %}
+    {% if invalid_scope %}
+      {% include "core/_callout.html" with tone="attention" role="alert" title="Choose one option" message="No preference has been changed yet. Select one of the options below and confirm." %}
+    {% endif %}
+    {% if degraded %}
+      {% include "core/_callout.html" with tone="info" title="We could not check this link just now" message="Our email system is not answering at the moment. You can still submit your choice — we will record it and apply it automatically." %}
+    {% endif %}
+    <form method="post" class="unsubscribe-form">
+      <fieldset class="unsubscribe-options">
+        <legend class="mono-label mono-label-indigo">What would you like to stop?</legend>
+        {% for choice in scope_choices %}
+          <label class="unsubscribe-option" for="scope-{{ choice.value }}">
+            <input
+              type="radio"
+              id="scope-{{ choice.value }}"
+              name="scope"
+              value="{{ choice.value }}"
+              {% if choice.value == chosen_scope or not chosen_scope and forloop.first %}checked{% endif %}
+            >
+            <span class="unsubscribe-option-text">
+              <strong>{{ choice.label }}</strong>
+              <span>{{ choice.description }}</span>
+            </span>
+          </label>
+        {% endfor %}
+      </fieldset>
+      {% include "core/_button.html" with tag="button" type="submit" label="Confirm" variant="primary" %}
+    </form>
+  {% elif state == "unknown" %}
+    <p>
+      Unsubscribe links are specific to one message. This one may have been
+      replaced by a newer message, or it may have been copied incompletely.
+      If you are still receiving email you did not ask for, use the link in the
+      most recent message, or contact us and we will stop it for you.
+    </p>
+  {% else %}
+    <p>
+      If you change your mind, you can subscribe again from the website at any
+      time.
+    </p>
+  {% endif %}
+{% endblock %}
+
+{% block actions %}
+  {% url 'home' as site_home_url %}
+  {% if site_home_url %}
+    {% include "core/_button.html" with href=site_home_url label="Return to DataTalks.Club" variant="secondary" %}
+  {% endif %}
+{% endblock %}
+
+{% block page_styles %}
+      /* ------------------------------------------------------------------ *
+       * Email preference page.  Everything visual is a shared primitive; the
+       * only thing this page adds is the option list, which is a stack of
+       * tappable rows rather than a bare radio group, because it is read on a
+       * phone straight out of a mail client.
+       * ------------------------------------------------------------------ */
+
+      .unsubscribe-options {
+        border: 0;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .unsubscribe-options legend {
+        margin-bottom: 0.75rem;
+      }
+
+      .unsubscribe-option {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-start;
+        padding: 0.9rem 1rem;
+        border: 2px solid var(--line);
+        border-radius: 0.75rem;
+        background: var(--card);
+        cursor: pointer;
+        /* Comfortably above the interface's minimum target row on a phone. */
+        min-height: 3rem;
+      }
+
+      .unsubscribe-option input {
+        margin-top: 0.25rem;
+        /* The control itself is a tap target, not just its label. */
+        width: 1.15rem;
+        height: 1.15rem;
+        flex: 0 0 auto;
+      }
+
+      .unsubscribe-option-text {
+        display: grid;
+        gap: 0.2rem;
+      }
+
+      .unsubscribe-option-text span {
+        font-size: 0.95rem;
+      }
+
+      .unsubscribe-form .cta {
+        margin-top: 1.5rem;
+      }
+
+      @media (max-width: 47.99rem) {
+        .unsubscribe-form .cta {
+          width: 100%;
+        }
+      }
+{% endblock %}

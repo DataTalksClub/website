@@ -12,10 +12,11 @@
 {% block content %}
   <h2>1. Controller and contact</h2>
   <p>
-    The controller is the verified DataTalks.Club operator identified in the
-    <a href="{% url 'impressum' %}">Impressum</a>. The exact operator identity,
-    address, representative, privacy contact, and tax details remain subject to explicit
-    owner/legal confirmation before this source candidate can be accepted for production.
+    The controller is DataTalks.Club, Schonensche Straße 13, 10439 Berlin, Germany, represented by
+    Alexey Grigorev. The full operator details are in the
+    <a href="{% url 'impressum' %}">Impressum</a>. For a question about this policy or about your
+    personal data, write to
+    <a href="mailto:alexey@datatalks.club">alexey@datatalks.club</a>.
   </p>
 
   <h2>2. Data we handle</h2>
@@ -61,17 +62,17 @@
 
   <h3>Transactional email</h3>
   <p>
-    The website commits a versioned delivery intent and sends transactional email through Relay,
-    the approved website email boundary. The website keeps only the intent, redacted delivery
-    status, reconciliation, and audit data needed for that purpose. Provider delivery systems and
-    sender infrastructure remain behind Relay rather than becoming a second website integration.
+    The website sends transactional email through Relay, the one service it uses for email
+    delivery. It keeps only the record of what was to be sent, the redacted delivery status, and
+    the reconciliation and audit data needed for that purpose. The sending provider sits behind
+    Relay, so the website itself holds no second email integration.
   </p>
 
   <h3>Country suggestion</h3>
   <p>
-    On approved zero-cache onboarding routes, an AWS CloudFront country header may be used only to
-    suggest an editable country value. The member confirms or changes it. The raw header is not a
-    public cache key and is not retained or logged by the application as a separate profile fact.
+    On some onboarding pages, an AWS CloudFront country header may be used only to suggest an
+    editable country value. The member confirms or changes it. The header is not retained or
+    logged as a separate fact about the member.
   </p>
 
   <h3>Security and operational data</h3>
@@ -107,10 +108,9 @@
     contains no account, profile, country, or session identifier.
   </p>
   <p>
-    Optional analytics fail closed. This source candidate contains no analytics provider loader,
-    measurement ID, or event taxonomy, and local, CI, development, and preview traffic contacts no
-    analytics endpoint. If optional measurement is introduced after the required privacy and
-    configuration review, it may start only after an affirmative choice and must not receive an
+    Optional analytics fail closed. The website loads no analytics provider, carries no
+    measurement ID or event taxonomy, and contacts no analytics endpoint. If optional measurement
+    is added later, it may start only after an affirmative choice and must not receive an
     email, profile value, country signal, raw IP, account or database ID, session or CSRF value,
     credential, Slack secret, or other direct identifier.
   </p>
@@ -129,25 +129,25 @@
     email. Course, event, and public-content destinations may use their own linked services.
   </p>
   <p>
-    These services may process data outside the country where a participant lives. The controller
-    must document the applicable regions, transfer mechanism, and contractual safeguards during
-    the owner/legal review. No optional analytics processor is configured in this candidate.
+    These services may process data outside the country where a participant lives. For the
+    regions and transfer safeguards that apply to a particular service, write to
+    <a href="mailto:alexey@datatalks.club">alexey@datatalks.club</a>. No optional analytics
+    processor is configured.
   </p>
 
   <h2>6. Retention</h2>
-  <p>The current architecture uses bounded records and the following provisional schedule:</p>
+  <p>Records are kept only as long as they are needed, on the following schedule:</p>
   <ul>
     <li>unverified course or event registrations are removed after 14 days;</li>
     <li>event registration personal data is removed or anonymized 90 days after the event;</li>
     <li>course enrollment, submissions, grading, certificates, and consent evidence remain while the educational record is active, then follow the published deletion or anonymization schedule;</li>
-    <li>website Relay intent and redacted delivery metadata are retained for 180 days;</li>
+    <li>Relay email records and redacted delivery metadata are retained for 180 days;</li>
     <li>security audit evidence is retained for one year; and</li>
-    <li>development logs are retained for 30 days.</li>
+    <li>operational logs are retained for 30 days.</li>
   </ul>
   <p>
     Account and profile data is retained while the account is active and then deleted or
     anonymized subject to legal, security, abuse-prevention, and educational-record requirements.
-    The educational-record schedule and any production exceptions require owner/privacy approval.
   </p>
 
   <h2>7. Your choices and rights</h2>
@@ -158,7 +158,7 @@
     also complain to the competent data protection authority.
   </p>
   <p>
-    Some public GitHub-authored material is corrected through its reviewed source workflow, while
+    Some public GitHub-authored material is corrected in the repository it is written in, while
     private account, profile, course, and event records use the relevant account or support
     process. Identity and authorization may be checked before fulfilling a request.
   </p>
@@ -172,18 +172,18 @@
 
   <h2>9. Minors</h2>
   <p>
-    DataTalks.Club is an educational community, not a service designed to profile children. The
-    exact age threshold, parental authorization process, and deletion response for a minor require
-    owner/privacy confirmation before production acceptance. A person who cannot validly agree to
-    these terms where they live should use the service only with appropriate parent or guardian
-    involvement.
+    DataTalks.Club is an educational community, not a service designed to profile children. A
+    person who cannot validly agree to these terms where they live should use the service only
+    with appropriate parent or guardian involvement. If you believe a child has given us personal
+    data without that involvement, write to
+    <a href="mailto:alexey@datatalks.club">alexey@datatalks.club</a> and we will remove it.
   </p>
 
   <h2>10. Changes and contact</h2>
   <p>
-    Material policy changes will receive a new last-updated date and follow the reviewed source
-    workflow. Contact and complaint details will be the verified details published in the
-    <a href="{% url 'impressum' %}">Impressum</a>; they remain an explicit human
-    acceptance gate for this candidate.
+    A material change to this policy is published here with a new last-updated date. For a
+    privacy question, a request about your data, or a complaint, write to
+    <a href="mailto:alexey@datatalks.club">alexey@datatalks.club</a>; the operator's postal
+    details are in the <a href="{% url 'impressum' %}">Impressum</a>.
   </p>
 {% endblock %}

@@ -1,6 +1,7 @@
 {% extends 'studio_courses/base.html' %}
+{% load breadcrumbs %}
 {% comment %}
-  One student's enrollment record, on design 5a (issue #179).
+  One student's enrollment record, on the design system (issue #179).
 
   The record facts are the admin fact list, the two submission lists are the
   admin table inside a keyboard-reachable scroll frame (so the copied
@@ -14,19 +15,10 @@
   Edit Enrollment · {{ course.title }} · Studio
 {% endblock %}
 
-{% block breadcrumbs %}
-  <li>
-    <a href="{% url 'studio_courses_course_list' %}">Courses</a>
-  </li>
-  <li>
-    <a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a>
-  </li>
-  <li>
-    <a href="{% url 'studio_courses_enrollments' course.slug %}">Enrollments</a>
-  </li>
-  <li aria-current="page">
-    Edit Enrollment
-  </li>
+{% block breadcrumb_trail %}
+  {% url 'studio_courses_course' course.slug as studio_course_url %}
+  {% url 'studio_courses_enrollments' course.slug as studio_enrollments_url %}
+  {% breadcrumbs "Studio" studio_home_url "Courses" studio_courses_url course.title studio_course_url "Enrollments" studio_enrollments_url current="Edit Enrollment" %}
 {% endblock %}
 
 {% block page_head %}

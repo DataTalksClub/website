@@ -1,6 +1,6 @@
 {% load static %}
 {% comment %}
-Design 5a shared stylesheet (issue #179).
+Design system shared stylesheet (issue #179).
 
 This partial is the site's design system: tokens, reset, masthead, bands and the
 shared primitives every rebuilt public page uses.  It is CSS only — include it
@@ -20,11 +20,11 @@ Rules for editing:
   - every colour goes through a custom property defined in :root and mirrored
     in body.dark-mode; if a colour is missing, add a token — never an inline hex;
   - keep page-specific rules in the page template, shared primitives here;
-  - the system is documented in _docs/design/design-5a.md — update it together
+  - the system is documented in _docs/design/design-system.md — update it together
     with this file.
 {% endcomment %}
       /* ------------------------------------------------------------------ *
-       * Design 5a shared design system.  Tokens, reset, masthead, bands,
+       * Design system shared design system.  Tokens, reset, masthead, bands,
        * cards and the extended primitives shared by every rebuilt page.
        * ------------------------------------------------------------------ */
 
@@ -96,7 +96,7 @@ Rules for editing:
            detail, events, podcast).  The mono face carries machine-flavoured
            metadata: status pills, spec labels, timestamps and due dates.  The
            mockups set it in JetBrains Mono; the site keeps the system stack
-           (owner decision, _docs/design/mockups/README.md). */
+           (owner decision). */
         --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas,
           "Liberation Mono", monospace;
         --lavender-deep: #dfe2f7;
@@ -115,7 +115,7 @@ Rules for editing:
            .graph-svg-type-podcast).  Aliases --gold in light mode, but gets
            its own dark-mode value below: --gold is deliberately held flat
            across themes for the RSS platform dot, which carries no text of
-           its own (design-5a.md).  A ring node does — `.graph-svg-node text`
+           its own (design-system.md).  A ring node does — `.graph-svg-node text`
            always inks itself with --ink, which flips to a near-white in dark
            mode — so pairing that text with --gold's still-light dark-mode
            value read as a washed-out, unreadable pill. */
@@ -141,8 +141,7 @@ Rules for editing:
         --code-error: #a33f3a;
       }
 
-      /* The dark palette is the designer's own: the decoded mockup source
-         (_docs/design/mockups/datatalks-homepage.source.css) carries a
+      /* The dark palette is the designer's own: the mockup source carried a
          [data-dtc-theme="dark"] substitution table and these values follow it --
          navy grounds, periwinkle text, a deepened brand green under near-white
          labels.  Two deliberate departures, because the mockup darkens its
@@ -180,7 +179,7 @@ Rules for editing:
         /* The extended tokens the 6-series pages use.  Their dark values are the
            mockup's own substitutions (#dfe2f7 -> #2d3565, #f3f0e8 -> #2a2740,
            #6b6034 -> #cbb98a, #1f6b2c -> #93c7a5) and are documented in the
-           extended-token table of _docs/design/design-5a.md.  Without them a
+           extended-token table of _docs/design/design-system.md.  Without them a
            status pill kept its light surface while its text flipped to the dark
            ink, which is unreadable; --clay and --gold hold in both themes. */
         --lavender-deep: #2d3565;
@@ -1007,19 +1006,42 @@ Rules for editing:
       }
 
       /* Breadcrumb trail: the where-am-I line at the top of a detail page
-         (restored on the course page after the design 5a rebuild; the mockups
+         (restored on the course page after the design system rebuild; the mockups
          draw none, so the shape is this system's own).  Markup contract: a
          nav.breadcrumbs with aria-label="Breadcrumb" holding an ol, one li per
-         level; every ancestor is a link and the current page sits on
-         li[aria-current="page"] as plain text, never a link.  The separator is
-         CSS-drawn with empty alternative text so it is never announced; engines
-         without the alt-text syntax fall back to the bare glyph.  Links keep
-         the 2.75rem target height the system guarantees. */
+         level; every ancestor is a link.  A page whose h1 sits directly under
+         the trail stops at its parent and lets the heading say where you are —
+         the course, module and unit pages do — because a last crumb repeating
+         the h1 word for word is duplication that costs a whole row.  Where the
+         current page is still listed it sits on li[aria-current="page"] as
+         plain text, never a link; the content pages keep it because their
+         BreadcrumbList JSON-LD lists the page itself and the visible trail must
+         match what is published.
+
+         A trail is chrome, not content, so it is drawn at the secondary size
+         and in the muted ink `.mono-note` already uses rather than at body size
+         in saturated indigo.  At the earlier scale a five-level course trail
+         competed with the heading beneath it and filled two 44px rows before
+         the page had said anything.  Every level keeps an underline — a link
+         still says it is one, and colour alone would not — and colour is what
+         answers the pointer, so the trail is quiet until it is aimed at.
+
+         The separator follows its crumb rather than leading the next one.  A
+         trail that wraps then breaks after the "/", where a reader expects the
+         line to continue, instead of opening the second row with a slash that
+         reads as broken markup.  It is CSS-drawn with empty alternative text so
+         it is never announced; engines without the alt-text syntax fall back to
+         the bare glyph.
+
+         2rem is the target height here rather than the 2.75rem a control
+         carries.  A crumb is a dense inline trail read on the way past, and
+         32px clears the 24px WCAG 2.2 AA target-size floor with room to spare
+         while halving the height of the row. */
       .breadcrumbs ol {
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        font-size: 0.92rem;
+        font-size: 0.78rem;
       }
 
       .breadcrumbs li {
@@ -1030,25 +1052,31 @@ Rules for editing:
 
       .breadcrumbs a {
         align-items: center;
-        color: var(--indigo);
+        color: var(--muted);
         display: inline-flex;
-        font-weight: 600;
-        min-height: 2.75rem;
+        font-weight: 500;
+        min-height: 2rem;
         text-decoration: underline;
+        text-decoration-thickness: 1px;
         text-underline-offset: 0.2em;
       }
 
-      .breadcrumbs li + li::before {
+      .breadcrumbs a:hover,
+      .breadcrumbs a:focus-visible {
+        color: var(--indigo);
+      }
+
+      .breadcrumbs li:not(:last-child)::after {
         color: var(--muted);
         content: "/";
         content: "/" / "";
         flex: none;
-        margin-inline: 0.65rem;
+        margin-inline: 0.45rem;
       }
 
       .breadcrumbs [aria-current="page"] {
         color: var(--muted);
-        font-weight: 600;
+        font-weight: 500;
       }
 
       /* --- calls to action ---------------------------------------------- */
@@ -1809,7 +1837,7 @@ Rules for editing:
        * Extended primitives for the 6-series pages (courses index, course
        * detail, events index, podcast index and episode).  Defined once here
        * so the four pages do not each invent their own.  Markup shapes are
-       * documented in _docs/design/design-5a.md.
+       * documented in _docs/design/design-system.md.
        * ------------------------------------------------------------------ */
 
       /* Stat tiles: the courses-index hero facts (6 free courses, 130k+…). */
@@ -2515,18 +2543,19 @@ Rules for editing:
 
       /* --- shared form primitives -------------------------------------- */
 
-      /* CMP mutation surfaces share one lavender ground, measure and rhythm.
-         Homework, project submission and peer-review pages use this class on
-         their actual form so a different field set cannot create a different
-         page shape. */
+      /* CMP mutation surfaces share one measure and rhythm.  Homework, project
+         submission and peer-review pages use this class on their actual form
+         so a different field set cannot create a different page shape.
+
+         The form is not a box.  It already sits on the lavender content band,
+         so a lavender panel with a soft border only drew a second frame around
+         everything that matters, at 1.25:1 against its own identical ground —
+         decoration, not a boundary.  The measure and the field rhythm do the
+         grouping. */
       .cmp-form {
-        background: var(--lavender);
-        border: 2px solid var(--line-soft);
-        border-radius: 0.9rem;
         display: grid;
         gap: 1.25rem;
         max-width: var(--form-measure);
-        padding: clamp(1rem, 2.5vw, 1.5rem);
         width: 100%;
       }
 
@@ -2588,6 +2617,19 @@ Rules for editing:
         color: var(--muted);
       }
 
+      /* A control you cannot touch must not be the heaviest object in view, so
+         a disabled field's edge recedes to the soft line.  Only the disabled
+         one: WCAG 1.4.11 exempts an *inactive* component from the 3:1 non-text
+         floor, and --line-soft on --sand is 1.23:1 light and 2.20:1 dark.  A
+         readonly control is still focusable and still in the tab order, so it
+         is not exempt and keeps the full --line border (13.91:1 and 3.48:1).
+         Softening it too would be an accessibility regression wearing a design
+         fix's clothes. */
+      .field-input[disabled],
+      .form-control[disabled] {
+        border-color: var(--line-soft);
+      }
+
       .field-hint {
         color: var(--muted);
         font-size: 0.8rem;
@@ -2630,11 +2672,16 @@ Rules for editing:
         min-height: 2.75rem;
       }
 
+      /* The control is 1.25rem (20px) in every theme and on every page: 1.1rem
+         (17.6px) was smaller than a browser's own default checkbox and read as
+         an afterthought beside the label.  This is affordance, not target size
+         — `.form-check` above keeps the 2.75rem (44px) row, which is what the
+         pointer target actually is. */
       .form-check-input {
         accent-color: var(--green);
         flex: none;
-        height: 1.1rem;
-        width: 1.1rem;
+        height: 1.25rem;
+        width: 1.25rem;
       }
 
       .form-check-label {
@@ -2654,7 +2701,7 @@ Rules for editing:
       /* The shared accessible form primitives.  `core/templates/accessibility/`
          renders these class names (the error summary partial and the field
          help/required/error marks a page writes beside `accessible_widget`),
-         and their stylesheet is one of the ones a design 5a page deliberately
+         and their stylesheet is one of the ones a design system page deliberately
          does not load — so the treatment lives here, once, rather than being
          re-invented by every page that owns a form.
 
@@ -2727,11 +2774,15 @@ Rules for editing:
         background: var(--lavender);
       }
 
-      /* State and guidance callouts: a tinted surface with one token-driven
-         tone rail, kept visually separate from editable controls. */
+      /* State and guidance callouts: a surface and a full border, kept
+         visually separate from editable controls.  The system draws no
+         coloured single-side accent rail anywhere (see "Borders" in
+         `_docs/design/design-system.md`), so tone here is the surface tint plus
+         the words: a card for information, sand for attention, and a dashed
+         plate when the notice is the quietest thing on the page. */
       .callout {
-        background: var(--lavender);
-        border-inline-start: 0.35rem solid var(--indigo);
+        background: var(--card);
+        border: 2px solid var(--line-soft);
         border-radius: 0.7rem;
         color: var(--body-text);
         display: grid;
@@ -2740,19 +2791,16 @@ Rules for editing:
       }
 
       .callout-info {
-        background: var(--lavender);
-        border-inline-start-color: var(--indigo);
+        background: var(--card);
       }
 
       .callout-attention {
         background: var(--sand);
-        border-inline-start-color: var(--olive);
       }
 
       .callout-quiet {
-        background: var(--card);
-        border-inline-start: 0;
-        padding-inline-start: 1.15rem;
+        background: transparent;
+        border-style: dashed;
       }
 
       .callout strong {
@@ -2782,14 +2830,17 @@ Rules for editing:
         justify-self: start;
       }
 
-      /* Date rail: the events-index date block beside each event card. */
+      /* Date rail: the events-index date block beside each event card.  It is
+         a column, not a marked-up block, so it is distinguished the way every
+         other dated index distinguishes its date (`.date-rail`): position, the
+         bold date line and the mono day/clock beneath it.  The `--bubble` left
+         rule it used to draw is the accent rail the system does not use. */
       .when {
         align-content: start;
-        border-left: 4px solid var(--bubble);
         display: grid;
         gap: 0.15rem;
-        padding-left: 0.7rem;
-        padding-top: 0.3rem;
+        /* The date meets the card's first line rather than its top edge. */
+        padding-top: 0.85rem;
       }
 
       .when strong {
@@ -3265,11 +3316,16 @@ Rules for editing:
         font-weight: 800;
       }
 
+      /* A quotation is a block the body hands over to someone else, so it takes
+         the system's card treatment rather than the accent rail this system
+         does not draw: its own surface inside a soft 2px border. */
       .prose blockquote {
-        border-left: 4px solid var(--bubble);
+        background: var(--card);
+        border: 2px solid var(--line-soft);
+        border-radius: 0.7rem;
         color: var(--ink);
         font-style: italic;
-        padding: 0.15rem 0 0.15rem 1.1rem;
+        padding: 0.85rem 1.1rem;
       }
 
       .prose code {
@@ -3374,45 +3430,108 @@ Rules for editing:
         font-weight: 800;
       }
 
-      /* JavaScript progressively wraps a code sample in this frame.  The extra
-         top padding reserves a quiet toolbar corner without covering the first
-         line; with JavaScript disabled the original `pre` keeps its compact
-         padding and remains the complete experience. */
+      /* JavaScript progressively wraps a code sample in this frame.  The frame
+         adds no padding of its own: a sample that reserved a toolbar strip read
+         as a code block with a hole in the top of it, and the reserved strip was
+         visible whether or not anyone ever wanted the control.  The `pre` keeps
+         the compact padding it has with JavaScript disabled, and the control
+         floats over the first line's right margin instead. */
       .prose .code-block {
         margin: 0;
         position: relative;
       }
 
-      .prose .code-block pre {
-        padding-top: 3.35rem;
+      /* The right margin the control floats over, made real.  Samples wrap
+         rather than scroll, so a long first line otherwise runs the full width
+         of the block and the control paints on top of it: hovering a sample hid
+         code characters, which is both a reading failure and WCAG 2.1 SC 1.4.13.
+         An empty float at the head of the `pre` shortens only the two line boxes
+         the control covers, so nothing above is reserved, the block never
+         reflows when the control appears, and a sample at rest still looks
+         exactly as it does with no JavaScript.  It is wide enough for the
+         longest label the control ever carries ("Try again") plus its offset. */
+      .code-block-gutter {
+        float: right;
+        height: 2.4rem;
+        pointer-events: none;
+        width: 5rem;
       }
 
+      /* At rest this is a fully transparent control sitting a little below the
+         block's top corner, so the sample looks exactly as it does with no
+         JavaScript at all.  `opacity` is the whole mechanism on purpose:
+         `display: none` or `visibility: hidden` would take the button out of the
+         tab order and out of the accessibility tree, which is what makes the
+         common "reveal on hover" pattern unusable from a keyboard.  It stays
+         2rem tall — comfortably past the 24px target-size floor — because being
+         quieter must not mean being harder to hit. */
       .code-block-copy {
         align-items: center;
         background: var(--card);
         border: 1.5px solid var(--line-soft);
-        border-radius: 0.55rem;
+        border-radius: 0.5rem;
         color: var(--ink);
         cursor: pointer;
         display: inline-flex;
         font-family: var(--font-sans);
-        font-size: 0.78rem;
-        font-weight: 800;
+        font-size: 0.72rem;
+        font-weight: 700;
         justify-content: center;
-        min-height: 2.75rem;
-        padding: 0.35rem 0.7rem;
+        min-height: 2rem;
+        min-width: 3rem;
+        opacity: 0;
+        padding: 0.2rem 0.55rem;
         position: absolute;
-        right: 0.65rem;
-        top: 0.65rem;
+        right: 0.6rem;
+        top: 0.9rem;
         transition: background-color 0.15s ease, border-color 0.15s ease,
           color 0.15s ease, opacity 0.15s ease;
         white-space: nowrap;
         z-index: 1;
       }
 
+      /* Pointing at the sample, or focusing anything inside the frame, is the
+         request for the control.  `:focus-within` is listed alongside
+         `:focus-visible` deliberately: `:focus-visible` is a browser heuristic,
+         and a control that is focused must be painted whichever way the focus
+         arrived.  The copied and failed states stay painted after the pointer
+         leaves, because they are the answer to a press. */
+      .prose .code-block:hover .code-block-copy,
+      .prose .code-block:focus-within .code-block-copy,
+      .code-block-copy:hover,
+      .code-block-copy:focus-visible,
       .code-block-copy.is-copied,
-      .code-block-copy.is-error {
+      .code-block-copy.is-error,
+      .code-block-copy[aria-busy="true"] {
         opacity: 1;
+      }
+
+      /* A touch screen never hovers, so there is no gesture that could reveal a
+         hover-only control.  Where the pointer is coarse the button is simply
+         always there — and because it cannot get out of the way, that is the one
+         place the sample still reserves a strip for it instead of letting it
+         cover the first line.  This is the whole reason the reserved strip is
+         written here and nowhere else; the inline gutter is dropped with it,
+         because a control sitting above the sample shortens no line. */
+      @media (hover: none) {
+        .code-block-copy {
+          opacity: 1;
+          top: 0.6rem;
+        }
+
+        .code-block-gutter {
+          display: none;
+        }
+
+        .prose .code-block pre {
+          padding-top: 2.9rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .code-block-copy {
+          transition: none;
+        }
       }
 
       .code-block-copy:hover,

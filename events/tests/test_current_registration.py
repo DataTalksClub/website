@@ -17,11 +17,7 @@ from events.current_registration import (
     load_current_registration_input,
 )
 from events.importers import derive_luma, source_reference_digest
-from events.models import (
-    HistoricalEventMapping,
-    HistoricalRegistrationAggregateRevision,
-    HistoricalRegistrationSourceRun,
-)
+from events.models import HistoricalRegistrationAggregateRevision, HistoricalRegistrationSourceRun
 from events.services import (
     HistoricalRegistrationConflict,
     activate_explicit_current_source,
@@ -211,7 +207,7 @@ class ExplicitCurrentRegistrationTests(TestCase):
         )
         return derived, current_id, legacy_id
 
-    def test_explicit_current_mapping_activates_only_current_count_and_replay_is_idempotent(
+    def test_explicit_current_bridge_activates_only_current_count_and_replay_is_idempotent(
         self,
     ) -> None:
         derived, current_id, legacy_id = self._derived()
@@ -222,20 +218,13 @@ class ExplicitCurrentRegistrationTests(TestCase):
             mapping_set_revision=1,
             actor=None,
             context=self.context,
-            auto_map_explicit=True,
         )
 
         self.assertTrue(created)
-        current = HistoricalEventMapping.objects.get(
-            provider="luma", external_event_identifier=current_id
-        )
-        legacy = HistoricalEventMapping.objects.get(
-            provider="luma", external_event_identifier=legacy_id
-        )
-        self.assertEqual(current.state, HistoricalEventMapping.State.MAPPED)
+        current = run.aggregate_revisions.get(external_event_identifier=current_id)
+        legacy = run.aggregate_revisions.get(external_event_identifier=legacy_id)
         self.assertEqual(str(current.event_id), self.event["identity_id"])
-        self.assertEqual(current.reason_code, "explicit_current_event")
-        self.assertEqual(legacy.state, HistoricalEventMapping.State.REVIEW_REQUIRED)
+        self.assertIsNone(legacy.event_id)
         self.assertEqual(run.aggregate_revisions.count(), 2)
         self.assertNotIn("current-private", repr(run))
         self.assertNotIn("legacy-private", repr(run))
@@ -243,7 +232,7 @@ class ExplicitCurrentRegistrationTests(TestCase):
         with patch("django_q.tasks.async_task"):
             activated = activate_explicit_current_source(
                 run.id,
-                mapping_ids=(current.id,),
+                external_event_identifiers=(current_id,),
                 reason_code="current_event_activation",
                 actor=None,
                 context=self.context,
@@ -254,15 +243,11 @@ class ExplicitCurrentRegistrationTests(TestCase):
         assert total is not None
         self.assertEqual(total.count, 2)
         self.assertEqual(activated.state, HistoricalRegistrationSourceRun.State.ACTIVE)
-        self.assertEqual(legacy.state, HistoricalEventMapping.State.REVIEW_REQUIRED)
-        self.assertEqual(
-            run.aggregate_revisions.get(mapping=current).state,
-            HistoricalRegistrationAggregateRevision.State.ACTIVE,
-        )
-        self.assertEqual(
-            run.aggregate_revisions.get(mapping=legacy).state,
-            HistoricalRegistrationAggregateRevision.State.STAGED,
-        )
+        current.refresh_from_db()
+        legacy.refresh_from_db()
+        self.assertIsNone(legacy.event_id)
+        self.assertEqual(current.state, HistoricalRegistrationAggregateRevision.State.ACTIVE)
+        self.assertEqual(legacy.state, HistoricalRegistrationAggregateRevision.State.STAGED)
         detail = self.client.get(self.event["public_path"])
         self.assertContains(detail, "2 registered")
         body = detail.content.decode()
@@ -284,11 +269,10 @@ class ExplicitCurrentRegistrationTests(TestCase):
                 mapping_set_revision=1,
                 actor=None,
                 context=self.context,
-                auto_map_explicit=True,
             )
             replay_activated = activate_explicit_current_source(
                 replay.id,
-                mapping_ids=(current.id,),
+                external_event_identifiers=(current_id,),
                 reason_code="current_event_activation",
                 actor=None,
                 context=self.context,
@@ -298,7 +282,6 @@ class ExplicitCurrentRegistrationTests(TestCase):
         self.assertEqual(replay.id, run.id)
         self.assertEqual(replay_activated.id, run.id)
         self.assertEqual(HistoricalRegistrationSourceRun.objects.count(), 1)
-        self.assertEqual(HistoricalEventMapping.objects.count(), 2)
         self.assertEqual(run.aggregate_revisions.count(), 2)
         self.assertEqual(DurableJob.objects.count(), 1)
         self.assertEqual(public_registration_total(self.event), total)
@@ -312,7 +295,6 @@ class ExplicitCurrentRegistrationTests(TestCase):
             mapping_set_revision=1,
             actor=None,
             context=self.context,
-            auto_map_explicit=True,
         )
         other_event = public_projection()["events"][1]
         other_provenance = other_event["provenance"]
@@ -338,15 +320,12 @@ class ExplicitCurrentRegistrationTests(TestCase):
                 mapping_set_revision=1,
                 actor=None,
                 context=self.context,
-                auto_map_explicit=True,
             )
 
         run.refresh_from_db()
-        mapping = HistoricalEventMapping.objects.get(
-            provider="luma", external_event_identifier=current_id
-        )
+        aggregate = run.aggregate_revisions.get(external_event_identifier=current_id)
         self.assertEqual(run.state, HistoricalRegistrationSourceRun.State.STAGED)
-        self.assertEqual(str(mapping.event_id), self.event["identity_id"])
+        self.assertEqual(str(aggregate.event_id), self.event["identity_id"])
         self.assertEqual(HistoricalRegistrationSourceRun.objects.count(), 1)
 
     def test_luma_provider_url_remains_an_exact_legacy_bridge_key(self) -> None:
@@ -409,7 +388,5 @@ class ExplicitCurrentRegistrationTests(TestCase):
                 mapping_set_revision=1,
                 actor=None,
                 context=self.context,
-                auto_map_explicit=True,
             )
         self.assertFalse(HistoricalRegistrationSourceRun.objects.exists())
-        self.assertFalse(HistoricalEventMapping.objects.exists())

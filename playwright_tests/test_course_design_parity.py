@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -14,16 +13,7 @@ from accounts.models import CustomUser
 from courses.models import (
     Cohort,
     CourseRegistration,
-    CourseRegistrationCountRevision,
-    CourseRegistrationCountSlot,
-    CourseRegistrationCountSourceRun,
     RegistrationCampaign,
-)
-from courses.registration_count_importer import (
-    ADAPTER_VERSION,
-    COUNT_POLICY_VERSION,
-    aggregate_checksum,
-    source_reference_digest,
 )
 from playwright_tests.accessibility_support import target_size_issues
 from playwright_tests.course_catalog_contract import assert_copied_course_catalog_link
@@ -31,10 +21,9 @@ from playwright_tests.course_catalog_contract import assert_copied_course_catalo
 pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
 CMP_SOURCE_COMMIT = "98a235283904b4ef9ad29e196298540756cf1bcc"
-# The courses index left the byte-exact CMP copy with the design 5a rebuild (issue #179);
+# The courses index left the byte-exact CMP copy with the design system rebuild (issue #179);
 # its digest is now recorded in _docs/adoption/course-platform/integration-patched-files.tsv
 # and asserted by core/tests/test_course_platform_adoption.py.
-DESIGN_MOCKUP_SOURCE = "_docs/design/mockups/datatalks-pages.source.html"
 REPO_ROOT = Path(__file__).resolve().parents[1]
 COURSE_LIST_TEMPLATE = REPO_ROOT / "courses/templates/courses/course_list.html"
 ACTIVE_HEADING = "Active now — you can still join"
@@ -95,81 +84,18 @@ def cmp_course_catalog() -> dict[str, Cohort]:
 
 @pytest.fixture
 def cmp_registration_campaign(settings) -> RegistrationCampaign:
+    del settings  # No registered-source configuration to thread through any more.
     course = Cohort.objects.create(
         title="Machine Learning Zoomcamp 2026",
         slug="synthetic-cmp-registration-course-2026",
         description="A deterministic registration layout fixture.",
     )
-    campaign = RegistrationCampaign.objects.create(
+    return RegistrationCampaign.objects.create(
         current_course=course,
+        registration_baseline_cohort=course,
+        registration_baseline_count=1,
         **REGISTRATION_CAMPAIGN,
     )
-    source_reference = "synthetic-cmp-browser-count"
-    source_checksum = "a" * 64
-    schema_checksum = "b" * 64
-    cutoff = datetime(2026, 1, 1, tzinfo=UTC)
-    native_start = cutoff + timedelta(days=1)
-    source_created_at = cutoff - timedelta(days=1)
-    settings.COURSE_REGISTRATION_COUNT_SOURCES = {
-        source_reference: {
-            "adapter": ADAPTER_VERSION,
-            "path": "/not-read-by-public-query",
-            "sha256": source_checksum,
-            "byte_size": 1,
-            "schema_version": "synthetic-browser-v1",
-            "schema_contract_checksum": schema_checksum,
-            "captured_at": cutoff.isoformat(),
-            "source_frozen_at": cutoff.isoformat(),
-            "coverage_cutoff_at": cutoff.isoformat(),
-            "native_start_at": native_start.isoformat(),
-        }
-    }
-    run = CourseRegistrationCountSourceRun.objects.create(
-        adapter_version=ADAPTER_VERSION,
-        schema_version="synthetic-browser-v1",
-        count_policy_version=COUNT_POLICY_VERSION,
-        whole_source_checksum=source_checksum,
-        source_byte_size=1,
-        schema_contract_checksum=schema_checksum,
-        aggregate_manifest_checksum="c" * 64,
-        source_reference_digest=source_reference_digest(source_reference),
-        captured_at=cutoff,
-        source_frozen_at=cutoff,
-        campaign_total=1,
-        row_total=1,
-        state=CourseRegistrationCountSourceRun.State.ACTIVE,
-    )
-    revision = CourseRegistrationCountRevision.objects.create(
-        source_run=run,
-        campaign=campaign,
-        cohort=course,
-        campaign_slug_snapshot=campaign.slug,
-        cohort_slug_snapshot=course.slug,
-        baseline_count=1,
-        source_min_created_at=source_created_at,
-        source_max_created_at=source_created_at,
-        coverage_cutoff_at=cutoff,
-        proposed_native_start_at=native_start,
-        aggregate_checksum=aggregate_checksum(
-            campaign_slug=campaign.slug,
-            cohort_slug=course.slug,
-            count=1,
-            minimum=source_created_at,
-            maximum=source_created_at,
-            cutoff=cutoff,
-        ),
-        state=CourseRegistrationCountRevision.State.ACTIVE,
-    )
-    CourseRegistrationCountSlot.objects.create(
-        campaign=campaign,
-        cohort=course,
-        campaign_slug_snapshot=campaign.slug,
-        cohort_slug_snapshot=course.slug,
-        mode=CourseRegistrationCountSlot.Mode.BASELINE_PLUS_NATIVE,
-        active_baseline_revision=revision,
-        native_start_at=native_start,
-    )
-    return campaign
 
 
 def _assert_no_horizontal_overflow(page: Page) -> None:
@@ -193,15 +119,23 @@ def _assert_local_page_assets(page: Page, origin: str) -> None:
     assert all(asset.startswith(f"{origin}/static/") for asset in assets), assets
 
 
-def _assert_design_breadcrumb_trail(page: Page) -> None:
-    """The design 5a trail: two levels, a real target on the way back, text where you are.
+def _assert_design_breadcrumb_trail(page: Page, *, levels: int) -> None:
+    """The design system trail: linked ancestors, a real target on each, text where you are.
 
-    The adopted shell drew a compact 24px crumb row and made the current page a link too.
-    Design 5a (issue #179) states the opposite contract: every ancestor is a link that keeps
-    the system's 2.75rem minimum target height, and the current page is plain text on
-    ``li[aria-current="page"]``.  The trail is allowed to wrap onto a second row on a phone —
-    that is exactly why its links carry the target height — so this asserts the levels, the
-    link/text split and the target height rather than a single-line geometry.
+    The adopted shell drew a compact crumb row and made the current page a link too.
+    Design system (issue #179) states the opposite contract: every ancestor is a link with a
+    real target, and the current page is plain text on ``li[aria-current="page"]``.
+
+    The trail was later quietened, because at body size in saturated indigo it competed
+    with the heading under it.  Its links now carry the 2rem height a dense inline trail
+    wants rather than the 2.75rem a control carries; 32px still clears the 24px WCAG 2.2
+    AA target-size floor.  The trail is allowed to wrap onto a second row on a phone, so
+    this asserts the levels, the link/text split and the target floor rather than a
+    single-line geometry.
+
+    ``levels`` is how many crumbs the page names, so a trail that gains a level — the
+    registration page split "<course> registration" into the course and the page — is
+    read as the new shape rather than silently satisfying a two-level assertion.
     """
 
     geometry = page.locator(".breadcrumbs li").evaluate_all(
@@ -215,10 +149,11 @@ def _assert_design_breadcrumb_trail(page: Page) -> None:
           };
         })"""
     )
-    assert len(geometry) == 2, geometry
-    ancestor, current = geometry
-    assert ancestor["isLink"] and ancestor["current"] is None, geometry
-    assert ancestor["linkHeight"] + 0.5 >= 44, geometry
+    assert len(geometry) == levels, geometry
+    *ancestors, current = geometry
+    for ancestor in ancestors:
+        assert ancestor["isLink"] and ancestor["current"] is None, geometry
+        assert ancestor["linkHeight"] + 0.5 >= 32, geometry
     assert not current["isLink"] and current["current"] == "page", geometry
     assert current["text"], geometry
 
@@ -228,7 +163,6 @@ def _write_attribution_evidence() -> None:
     evidence = {
         "cmp_source_commit": CMP_SOURCE_COMMIT,
         "course_list_sha256": hashlib.sha256(COURSE_LIST_TEMPLATE.read_bytes()).hexdigest(),
-        "design_source": DESIGN_MOCKUP_SOURCE,
         "fixture": [ACTIVE_COURSE, REGISTRATION_COURSE, ARCHIVED_COURSE],
         "template": "courses/templates/courses/course_list.html",
         "viewports": [viewport for viewport, _suffix in VIEWPORTS],
@@ -242,7 +176,7 @@ def _write_attribution_evidence() -> None:
 def _dark_mode_toggle(page: Page):
     """Return the page's theme control, whichever shell drew it.
 
-    The adopted catalogue shell labels it "Toggle dark mode"; the design 5a course page
+    The adopted catalogue shell labels it "Toggle dark mode"; the design system course page
     (issue #179) labels it by the mode it switches to.  Both are a single button with a
     pressed state, which is what the assertions below actually depend on.
     """
@@ -263,7 +197,7 @@ def _capture_dark_mode(page: Page, path: Path) -> None:
 
 
 def _capture_design_dark_mode(page: Page, path: Path) -> None:
-    """Design 5a pages carry their own compact "Dark"/"Light" masthead toggle."""
+    """Design system pages carry their own compact "Dark"/"Light" masthead toggle."""
 
     dark_mode = page.locator("#dark-mode-toggle")
     dark_mode.click()
@@ -276,7 +210,7 @@ def _capture_design_dark_mode(page: Page, path: Path) -> None:
 def _assert_registration_hero_is_contained(page: Page) -> dict[str, float]:
     """The campaign artwork stays inside its own column, whatever size it arrives at.
 
-    The image is taken from the page's main landmark: the design 5a rebuild (issue #179)
+    The image is taken from the page's main landmark: the design system rebuild (issue #179)
     puts the hero artwork in the hero band and the register card in a band of its own, so
     the two no longer share a parent element.  What is asserted is unchanged — the loaded
     image is bounded by the column it sits in and the page does not scroll sideways.
@@ -481,7 +415,13 @@ def test_registration_breadcrumb_matches_cmp_without_losing_target_spacing(
     ).to_be_visible()
     breadcrumb = page.get_by_role("navigation", name="Breadcrumb")
     expect(breadcrumb.get_by_role("link", name="Courses", exact=True)).to_be_visible()
-    # Design 5a leaves the page you are on as text, so the second level is read, not linked.
+    # One level per crumb.  "<title> registration" used to be a single crumb, which wrote
+    # the course this form registers for into the trail as text instead of as the link
+    # back to it.  The course is its own level now, and "registration" — the one thing
+    # the heading below does not say — is the page.
+    expect(
+        breadcrumb.get_by_role("link", name="Machine Learning Zoomcamp", exact=True)
+    ).to_be_visible()
     expect(
         breadcrumb.get_by_role(
             "link",
@@ -491,9 +431,11 @@ def test_registration_breadcrumb_matches_cmp_without_losing_target_spacing(
     ).to_have_count(0)
     current = page.locator(".breadcrumbs li[aria-current='page']")
     expect(current).to_have_count(1)
-    expect(current).to_have_text(f"{cmp_registration_campaign.title} registration")
+    # Design system leaves the page you are on as text, so the last level is read, not linked.
+    expect(current).to_have_text("registration")
+    expect(current.get_by_role("link")).to_have_count(0)
     expect(page.get_by_text("1 already registered for 2026 cohort", exact=True)).to_be_visible()
-    _assert_design_breadcrumb_trail(page)
+    _assert_design_breadcrumb_trail(page, levels=3)
     assert target_size_issues(page, f"registration-{suffix}") == []
     _assert_local_page_assets(page, live_server.url)
     _assert_no_horizontal_overflow(page)
@@ -502,7 +444,7 @@ def test_registration_breadcrumb_matches_cmp_without_losing_target_spacing(
     page.screenshot(path=SCREENSHOTS / f"registration-cmp-{suffix}.png", full_page=True)
 
     _capture_dark_mode(page, SCREENSHOTS / f"registration-cmp-dark-{suffix}.png")
-    # The design 5a masthead labels the toggle by the mode it switches to, so the control
+    # The design system masthead labels the toggle by the mode it switches to, so the control
     # is taken by its stable id rather than by the copied shell's "Toggle dark mode" name.
     page.locator("#dark-mode-toggle").click()
     expect(page.locator("body.dark-mode")).to_have_count(0)
@@ -510,7 +452,7 @@ def test_registration_breadcrumb_matches_cmp_without_losing_target_spacing(
     cdp = page.context.new_cdp_session(page)
     cdp.send("Emulation.setPageScaleFactor", {"pageScaleFactor": 2})
     assert page.evaluate("visualViewport.scale") == 2
-    _assert_design_breadcrumb_trail(page)
+    _assert_design_breadcrumb_trail(page, levels=3)
     _assert_no_horizontal_overflow(page)
     page.screenshot(
         path=SCREENSHOTS / f"registration-cmp-zoom-{suffix}.png",
@@ -700,6 +642,21 @@ def test_no_database_course_catalog_uses_the_design_system_empty_state(
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
     page.screenshot(path=SCREENSHOTS / f"course-catalog-empty-{suffix}.png", full_page=True)
     _capture_design_dark_mode(page, SCREENSHOTS / f"course-catalog-empty-dark-{suffix}.png")
+
+    # The homepage catalogue reads the same database as /courses (issue #307), so the
+    # same empty database must give it the same designed empty state rather than a 500.
+    # The capture above left the shared dark-mode preference set; clear it so the
+    # homepage loads light and its own toggle is what switches it.
+    page.evaluate("localStorage.removeItem('darkMode')")
+    home = page.goto(f"{live_server.url}/", wait_until="networkidle")
+    assert home is not None and home.status == 200
+    expect(page.locator("[data-featured-course]")).to_have_count(0)
+    expect(page.locator(".course-card")).to_have_count(0)
+    expect(page.locator("#catalog-scroller")).to_have_count(0)
+    expect(page.get_by_text("No active courses right now.", exact=True)).to_be_visible()
+    _assert_no_horizontal_overflow(page)
+    page.screenshot(path=SCREENSHOTS / f"home-catalog-empty-{suffix}.png", full_page=True)
+    _capture_design_dark_mode(page, SCREENSHOTS / f"home-catalog-empty-dark-{suffix}.png")
 
     missing_detail = page.goto(f"{live_server.url}/courses/de-zoomcamp/2026")
     assert missing_detail is not None and missing_detail.status == 404

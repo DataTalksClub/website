@@ -12,16 +12,14 @@ from django.http import (
     JsonResponse,
 )
 from django.shortcuts import render
-from django.urls import NoReverseMatch, reverse
 from django.views.decorators.http import require_GET, require_safe
 
 from content.public_data import event_groups, ordered_podcasts, public_projection
-from content.review_projection import review_projection
 from core.home_content import (
     FEATURED_BUILD_ITEMS,
+    FEATURED_COHORT_FORMAT,
+    FEATURED_COHORT_SUMMARY,
     FEATURED_FAMILY,
-    FEATURED_GROUP_NOTE,
-    MEMBER_STORIES,
     course_catalog,
     event_time_display,
     published_display,
@@ -30,9 +28,17 @@ from core.home_content import (
     wiki_graph,
     wiki_topics,
 )
-from core.sponsor_history import PAST_SUPPORTERS, featured_supporters
+from core.sponsors import public_sponsors, public_supporter_history
+from courses.services.member_home import build_member_home_context
+from courses.services.testimonials import homepage_testimonials
 
 DEVELOPMENT_ROBOTS_BODY = "User-agent: *\nDisallow: /\n"
+# ``/unified/`` renders the same view as ``/``.  It is not editorial: it is the
+# deployment's rendered-page probe (``deploy.smoke`` and ``ci.container_check``
+# both need a full template render, which ``/health/live`` deliberately is not),
+# so it stays a route and is kept out of the index instead.  Without this line it
+# becomes a byte-identical duplicate competing with the homepage the moment
+# ``NOINDEX`` flips at the apex swap.
 PRODUCTION_ROBOTS_BODY = (
     "User-agent: *\n"
     "Disallow: /admin/\n"
@@ -41,6 +47,7 @@ PRODUCTION_ROBOTS_BODY = (
     "Disallow: /config/\n"
     "Disallow: /scripts/\n"
     "Disallow: /styles/\n"
+    "Disallow: /unified/\n"
     "Sitemap: https://datatalks.club/sitemap.xml\n"
     "Sitemap: https://datatalks.club/sitemaps/wiki.xml\n"
 )
@@ -62,6 +69,14 @@ def management_slash_redirect(request: HttpRequest) -> HttpResponse:
 
 @require_safe
 def home(request: HttpRequest):
+    if request.user.is_authenticated:
+        # The member home (`_docs/design/specs/signed-in-home.md`).  No
+        # redirect: `/` branches on authentication in one view, and the
+        # authenticated branch never touches the CDN's anonymous cache
+        # (`core.middleware.ResponsePolicyMiddleware` already forces
+        # `Cache-Control: private, no-store` on every credential-bearing
+        # request, `/` included).
+        return render(request, "core/member_home.html", build_member_home_context(request))
     projection = public_projection()
     events = event_groups()
     catalog = course_catalog()
@@ -70,11 +85,16 @@ def home(request: HttpRequest):
         {**event, "home_time": event_time_display(event["starts_at"])}
         for event in events.upcoming[:3]
     )
-    featured_course = review_projection()["course"]
-    try:
-        featured_cohort_path = reverse(f"course-cohort-{featured_course['cohort']['slug']}")
-    except NoReverseMatch:
-        featured_cohort_path = str(featured_course["public_path"])
+    # The featured panel is the newest visible cohort of the featured family, or nothing
+    # at all when the database holds none; the template renders no hero in that case.
+    #
+    # The call to action goes to that cohort's own database-backed course page, the same
+    # `/courses/<family>/<year>` route the catalogue cards use.  It used to go to a
+    # hardcoded per-cohort landing route whose copy was written in Python, including a
+    # "materials are still being finalized" notice that had gone stale; that route and its
+    # page are gone, so there is one cohort page and the hero links to it.
+    featured_entry = next((entry for entry in catalog if entry.family == FEATURED_FAMILY), None)
+    featured_cohort_path = featured_entry.public_path if featured_entry is not None else ""
     return render(
         request,
         "core/home.html",
@@ -82,17 +102,15 @@ def home(request: HttpRequest):
             "canonical_url": "https://datatalks.club/",
             "upcoming_events": upcoming,
             "recent_events": events.recent[:1],
-            "featured_course": featured_course,
             "featured_cohort_path": featured_cohort_path,
-            "featured_catalog_entry": next(
-                entry for entry in catalog if entry.family == FEATURED_FAMILY
-            ),
+            "featured_catalog_entry": featured_entry,
+            "featured_cohort_format": FEATURED_COHORT_FORMAT,
+            "featured_cohort_summary": FEATURED_COHORT_SUMMARY,
             "featured_build_items": FEATURED_BUILD_ITEMS,
-            "featured_group_note": FEATURED_GROUP_NOTE,
             "catalog_courses": tuple(entry for entry in catalog if entry.family != FEATURED_FAMILY),
             "course_family_count": len(catalog),
             "course_family_word": spelled_count(len(catalog)),
-            "member_stories": MEMBER_STORIES,
+            "member_stories": homepage_testimonials(),
             "article": article,
             "article_published": published_display(article["published"]),
             "article_minutes": reading_minutes(article),
@@ -100,7 +118,7 @@ def home(request: HttpRequest):
             "wiki_topics": wiki_topics(),
             "wiki_graph": wiki_graph(),
             "counts": projection["manifest"]["counts"],
-            "sponsors": featured_supporters(),
+            "sponsors": public_sponsors(),
         },
     )
 
@@ -112,8 +130,8 @@ def sponsors(request: HttpRequest) -> HttpResponse:
         "core/sponsors.html",
         {
             "canonical_url": "https://datatalks.club/sponsors",
-            "sponsors": featured_supporters(),
-            "past_supporters": PAST_SUPPORTERS,
+            "sponsors": public_sponsors(),
+            "past_supporters": public_supporter_history(),
         },
     )
 

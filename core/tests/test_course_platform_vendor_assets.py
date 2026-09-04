@@ -116,7 +116,7 @@ class CoursePlatformRenderedVendorAssetTests(TestCase):
                 parser.feed(response.content.decode())
                 self.assertEqual(parser.external_requests, [])
 
-        # Sign in and the project page both left that shell for design 5a
+        # Sign in and the project page both left that shell for the design system
         # (issue #179): each carries its own complete stylesheet inline, so it
         # needs no vendored CSS or CDN at all — the same guarantee, reached by
         # not making the request in the first place.
@@ -126,7 +126,7 @@ class CoursePlatformRenderedVendorAssetTests(TestCase):
                 self.assertNotIn('<link rel="stylesheet"', rendered)
                 self.assertNotIn("/static/core/vendor/", rendered)
 
-        # No page is left on the adopted shell: issue #179 finished the design 5a
+        # No page is left on the adopted shell: issue #179 finished the design system
         # port and nothing extends `base.html` any more.  The shell itself is still
         # in the tree because the course-platform adoption manifests have no way to
         # record a copied file the target has stopped using, so this assertion keeps

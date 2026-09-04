@@ -1,7 +1,7 @@
 {% extends 'studio_courses/base.html' %}
-{% load custom_filters %}
+{% load breadcrumbs custom_filters %}
 {% comment %}
-  Design 5a (issue #179): the homework submission grading form.
+  Design system (issue #179): the homework submission grading form.
 
   A grading surface, so the port is presentational only: the form still posts
   to its own URL with the same CSRF token, the same answer_<question id>,
@@ -18,19 +18,10 @@
   Edit homework submission
 {% endblock %}
 
-{% block breadcrumbs %}
-  <li>
-    <a href="{% url 'studio_courses_course_list' %}">Courses</a>
-  </li>
-  <li>
-    <a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a>
-  </li>
-  <li>
-    <a href="{% url 'studio_courses_homework_submissions' course.slug homework.slug %}">{{ homework.title }} Submissions</a>
-  </li>
-  <li aria-current="page">
-    Edit Submission
-  </li>
+{% block breadcrumb_trail %}
+  {% url 'studio_courses_course' course.slug as studio_course_url %}
+  {% url 'studio_courses_homework_submissions' course.slug homework.slug as studio_homework_submissions_url %}
+  {% breadcrumbs "Studio" studio_home_url "Courses" studio_courses_url course.title studio_course_url homework.title "" "Submissions" studio_homework_submissions_url current="Edit Submission" %}
 {% endblock %}
 
 {% block page_head %}

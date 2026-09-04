@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
@@ -72,6 +73,21 @@ def homework_instructions_url(
     )
 
 
+def homework_terminal_module(homework: Homework):
+    """Return the module this homework closes, or None outside module cohorts.
+
+    ``Module.terminal_homework`` is a one-to-one, so the reverse accessor
+    raises rather than returning ``None`` for the flat cohorts that publish
+    homework without a curriculum. The page uses this for the module crumb and
+    the back-to-module link, both of which must simply disappear there.
+    """
+
+    try:
+        return homework.terminal_module
+    except ObjectDoesNotExist:
+        return None
+
+
 def homework_navigation_context(
     course: Cohort,
     homework: Homework,
@@ -86,6 +102,7 @@ def homework_navigation_context(
     )
     return {
         "instructions_url": homework_instructions_url(course, homework),
+        "homework_module": homework_terminal_module(homework),
         "previous_homework": (
             homeworks[current_index - 1] if current_index > 0 else None
         ),
