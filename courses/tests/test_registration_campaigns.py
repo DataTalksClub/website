@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.test import override_settings
 from django.urls import reverse
 
@@ -95,9 +97,7 @@ class RegistrationCampaignPublicTests(RegistrationCampaignBase):
 
         self.assertEqual(response.status_code, 200)
         registration = CourseRegistration.objects.get()
-        self.assertEqual(
-            registration.email_normalized, "student@example.com"
-        )
+        self.assertEqual(registration.email_normalized, "student@example.com")
         self.assertEqual(registration.course, self.course)
         self.assertEqual(registration.region, "Europe")
         self.assertIsNone(registration.user)
@@ -159,9 +159,7 @@ class RegistrationCampaignPublicTests(RegistrationCampaignBase):
 
         self.assertEqual(response.status_code, 200)
         registration = CourseRegistration.objects.get()
-        self.assertEqual(
-            registration.email_normalized, "email-only@example.com"
-        )
+        self.assertEqual(registration.email_normalized, "email-only@example.com")
         self.assertEqual(registration.name, "")
         self.assertEqual(registration.company_name, "")
         self.assertEqual(registration.country, "")
@@ -250,3 +248,73 @@ class RegistrationCampaignPublicTests(RegistrationCampaignBase):
 
         self.assertContains(response, "You are already registered")
         self.assertNotContains(response, 'name="email"')
+
+
+class RegistrationCampaignMalformedEmailTests(RegistrationCampaignBase):
+    """Guards against malformed emails that leaked into old
+    Airtable/Google-Form CSV imports (missing "@", missing "." in the
+    domain, stray "@" characters, truncated domains, punctuation in the
+    local part, trailing garbage, or non-email identifiers). The live
+    public registration form must reject all of these."""
+
+    def assert_email_rejected(self, email):
+        url = self.campaign_url()
+        payload = self.registration_payload(email=email)
+        with (
+            patch("courses.views.registration.record_event") as record_event,
+            patch(
+                "courses.views.registration.sync_registration_to_datamailer"
+            ) as sync_registration,
+            patch(
+                "courses.views.registration.send_registration_confirmation_email"
+            ) as send_confirmation,
+            self.captureOnCommitCallbacks(execute=True) as callbacks,
+        ):
+            response = self.client.post(url, payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Enter a valid email address.")
+        self.assertEqual(CourseRegistration.objects.count(), 0)
+        self.assertEqual(callbacks, [])
+        record_event.assert_not_called()
+        sync_registration.assert_not_called()
+        send_confirmation.assert_not_called()
+
+    def test_registration_rejects_email_missing_at_sign(self):
+        self.assert_email_rejected("testuser42examplecom")
+
+    def test_registration_rejects_email_missing_dot_in_domain(self):
+        self.assert_email_rejected("testuser@examplecom")
+
+    def test_registration_rejects_email_with_stray_extra_at_sign(self):
+        self.assert_email_rejected("testuser@@example.com")
+
+    def test_registration_rejects_email_with_at_sign_in_middle(self):
+        self.assert_email_rejected("testuser@middle@example.com")
+
+    def test_registration_rejects_email_with_truncated_domain(self):
+        self.assert_email_rejected("testuser@e")
+
+    def test_registration_rejects_email_with_incomplete_domain_no_dot(self):
+        self.assert_email_rejected("testuser@protonmailclone")
+
+    def test_registration_rejects_email_with_comma_in_local_part(self):
+        self.assert_email_rejected("test,user@example.com")
+
+    def test_registration_rejects_email_with_semicolon_in_local_part(self):
+        self.assert_email_rejected("test;user@example.com")
+
+    def test_registration_rejects_email_with_trailing_garbage_suffix(self):
+        self.assert_email_rejected("testuser@example.com_extra")
+
+    def test_registration_rejects_email_with_trailing_garbage_text(self):
+        self.assert_email_rejected("testuser@example.com au")
+
+    def test_registration_rejects_payment_id_typed_as_email(self):
+        self.assert_email_rejected("testuser@okbankid")
+
+    def test_registration_rejects_bare_username_as_email(self):
+        self.assert_email_rejected("plainusername42")
+
+    def test_registration_rejects_plain_text_as_email(self):
+        self.assert_email_rejected("not sure what to type here")

@@ -82,7 +82,6 @@ Zimbabwe
 [North America]
 Canada
 United States
-United States of America
 Mexico
 Bermuda
 Greenland
@@ -111,6 +110,8 @@ Puerto Rico
 Curacao
 Aruba
 Cayman Islands
+British Virgin Islands
+U.S. Virgin Islands
 
 [South America]
 Argentina
@@ -139,6 +140,7 @@ Brunei
 Cambodia
 China
 Georgia
+Hong Kong
 India
 Indonesia
 Iran
@@ -151,6 +153,7 @@ Kuwait
 Kyrgyzstan
 Laos
 Lebanon
+Macau
 Malaysia
 Maldives
 Mongolia
@@ -167,6 +170,7 @@ Singapore
 South Korea
 Sri Lanka
 Syria
+Taiwan
 Tajikistan
 Thailand
 Timor-Leste
@@ -193,10 +197,12 @@ Estonia
 Finland
 France
 Germany
+Gibraltar
 Greece
 Hungary
 Iceland
 Ireland
+Isle of Man
 Italy
 Kosovo
 Latvia
@@ -241,3 +247,5 @@ Micronesia
 Palau
 Marshall Islands
 New Caledonia
+Guam
+Cook Islands

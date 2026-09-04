@@ -7,41 +7,51 @@ must treat decorative artwork as `alt=""`, with `decoding="async"`. Below-the-fo
 artwork normally uses `loading="lazy"`; the homepage's paired light/dark files use
 `loading="eager"` so a theme switch or a mobile scroll cannot expose an empty slot.
 
+## How assets are produced
+
+**`imagegen` produces the finished asset.** Ask it for the exact canvas, a
+transparent outer background, and the dark companion as its own generation pass with
+the matching light file as the reference image. The goal is an output that needs no
+post-processing at all.
+
+**Nothing recolours, filters, or derives a dark asset from a light one.** A dark
+companion that was produced by inverting, tinting, or filtering a light bitmap is
+wrong and must be regenerated, not corrected.
+
+ImageMagick is not part of asset production. Where `magick` still appears below it is
+either a crop of an external source that arrived untrimmed, or a throwaway preview
+that flattens a transparent asset onto a page colour so edges can be inspected — it
+never writes a shipped asset. Prefer generating at the right size and alpha so even
+the crop is unnecessary.
+
 ## Requirements
 
-- ImageMagick, available as either `magick` or `convert`.
 - The repository's `uv` environment.
-- A source PNG (or another format ImageMagick can read), saved under `.tmp/` when
-  it came from an issue or another external source.
+- For an externally supplied source image, a copy saved under `.tmp/`.
 
 ## Prepare the image
 
-Run the reusable processor from the repository root:
+Trim the transparent margin and write the WebP directly with ImageMagick, from the
+repository root:
 
 ```bash
-uv run python scripts/process_illustration.py \
-  .tmp/illustration-sources/new-step.png \
+magick .tmp/illustration-sources/new-step.png \
+  -alpha on -background none -fuzz 5% -trim +repage \
   core/static/core/illustrations/home-new-step.webp
 ```
 
-The source argument may also be a public HTTP(S) URL. URL downloads are cached under
-`.tmp/illustration-sources/`:
+Save sources fetched from an issue or another external location under
+`.tmp/illustration-sources/` first, then trim from that local copy.
 
-```bash
-uv run python scripts/process_illustration.py \
-  "https://github.com/user-attachments/assets/<attachment-id>" \
-  core/static/core/illustrations/home-new-step.webp
-```
+The `5%` fuzz is intentional. Issue attachments can contain isolated,
+nearly-transparent edge pixels; a strict `-trim` treats those as artwork and leaves a
+large transparent margin. Fuzz only finds the crop rectangle — it does not threshold,
+recolour, or otherwise alter pixels inside it. Lower it if a source has intentionally
+faint artwork at its edge; raise it only after checking the result visually.
 
-The default `5%` fuzz is intentional. Issue attachments can contain isolated,
-nearly-transparent edge pixels. A strict `-trim` treats those pixels as artwork and
-leaves a large transparent margin. The processor uses fuzz only to find the crop
-rectangle; it does not threshold, recolour, or otherwise alter pixels inside that
-rectangle. Lower `--fuzz` if a source has intentionally faint artwork at its edge;
-increase it only after visually checking the result.
-
-The output is written atomically, so an ImageMagick failure does not replace an
-existing asset with a partial file.
+Write to a temporary path and move it into place if you want the same atomicity the
+retired `scripts/process_illustration.py` wrapper provided, so a failed conversion
+cannot replace an existing asset with a partial file.
 
 ## Reproduce the homepage light/dark pairs
 

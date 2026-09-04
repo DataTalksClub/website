@@ -51,11 +51,29 @@ overlays:
   `courses/tests/test_registration_campaigns.py`: issue #133 exports additive course-owned models,
   replaces only the copied view's direct registration-row count with the course-owned,
   completeness-gated historical-baseline plus native-row query and characterizes omission of
-  unproven totals. The copied form submission/mutation path is unchanged, and
+  unproven totals. Issue #231 appends the 13 malformed-email public-form regressions from CMP
+  commit `2494371e3c64a058204e5f0dde44ad04dca75b28`; invalid input is proven to return the bound
+  validation response before the copied form submission/mutation path can run, and
   `courses/templates/courses/register.html` remains at its previously accepted byte checksum;
+- `courses/countries.txt`: issue #231 selectively adapts exactly the six reviewed CMP inventory
+  commits `f8f408593ec869247da6a43ac754f67cf3779890` (Taiwan),
+  `165d8ab3c5ff5861278d3307dc514dc6decd8d65` (Hong Kong),
+  `3fea1b5cc515366861cf5469f732212ad04ce376` (Macau and Guam),
+  `7331930fa9bc997aefd27f0b0b71b08750fdfa90` (remove the current United States of America
+  entry), `a43ff5f5c24b3cbef4fc81a5661bd1af6c3ae979` (Gibraltar, Cook Islands, British Virgin
+  Islands, and U.S. Virgin Islands), and `b6b7badc7c7434e8b5e52941c3748b660820f429` (Isle of
+  Man). The resulting current inventory is byte-identical to CMP `8a4d052`, while historical
+  values and the website source pin remain unchanged; #247 owns retired-alias reconciliation.
 - `courses/models/project.py`: issue #144 adds runtime human-readable project and peer-review state
   labels while preserving the stored enum values, workflow comparisons, and migration-stable
   choices;
+- `courses/views/project_eval_submit.py`, `courses/views/project_eval_submit_save.py`, and
+  `courses/tests/test_project_eval.py`: issue #230 selectively adapts CMP commit
+  `56cac9a8f15a1f183de35a5e18040c49e758ff4c` so a malformed peer-review
+  learning-in-public URL re-renders the cohort-aware evaluation form with the existing validation
+  message instead of returning HTTP 500. The target keeps its stricter pre-write project-criterion
+  validation and its existing atomic save boundary, so rejected input cannot persist criterion
+  responses or submitted review state;
 - `courses/static/time_left.js`, `courses/templates/homework/stats.html`,
   `courses/tests/test_homework_question_stats.py`, and `courses/tests/test_project_eval.py`: issue
   #144 replaces deadline palette utility classes with semantic theme-backed statuses, preserves
@@ -115,6 +133,17 @@ overlays:
 - `accounts/models.py`: issue #100 expands the adopted `CustomUser` in place with normalized
   identity state plus durable alias, quarantine, and reconciliation-run evidence; it does not
   replace or renumber the copied user table;
+- `accounts/identity_resolution.py`, `accounts/tests/test_identity_resolution.py`,
+  `api/views/enrollment_certificate_updates.py`, and
+  `data/tests/test_enrollment_certificates.py`: issue #234 selectively adapts CMP commit
+  `77906c7acdf9a68adb0180e0dd70443d9aa3220f` through the target-owned durable-account contract.
+  The accounts service normalizes with `normalize_account_email`, resolves reviewed absorbed aliases
+  in batches, and fails closed on collisions or unavailable identities; the compatibility
+  certificate endpoint then restricts enrollment lookup to the requested cohort. The upstream
+  email-column rewrite, `accounts/0011_lowercase_existing_emails.py`, `CustomUser.save()` rewrite,
+  and synchronous certificate-notify changes are explicitly rejected because target migrations,
+  identity state, and durable delivery own those concerns. This selective review does not advance
+  source pin `98a235283904b4ef9ad29e196298540756cf1bcc`;
 - `accounts/auth.py`, `accounts/tests_auth.py`: issue #100 replaces unsafe raw-provider email
   selection and social auto-link characterization with verified-claim-only, fail-closed linking
   through a portable compare-and-set account claim and redacted conflict evidence;
@@ -168,10 +197,10 @@ The two target-owned admin API shims and two-file legacy `/cadmin` route adapter
 classification, rationale, size, and SHA-256 in `target-owned-compatibility-shims.tsv`. The
 provenance verifier requires all four exact paths and validates their recorded bytes.
 
-No scoring, submission, peer-review, leaderboard, certificate, communication, API serializer, or
-other CMP business behavior is modified by this integration. The copied management presentation
-and route names change under issue #59; its operational logic remains characterized by the copied
-suite.
+Except for the reviewed issue #234 certificate identity-lookup adaptation above, no scoring,
+submission, peer-review, leaderboard, certificate, communication, API serializer, or other CMP
+business behavior is modified by this integration. The copied management presentation and route
+names change under issue #59; its operational logic remains characterized by the copied suite.
 
 ## Protected copied course templates
 

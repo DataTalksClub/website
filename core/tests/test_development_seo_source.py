@@ -12,14 +12,19 @@ from django.test import SimpleTestCase
 from gunicorn.config import Config  # type: ignore[import-untyped]
 from gunicorn.glogging import Logger  # type: ignore[import-untyped]
 
+from content_sync.course_repository_sync import REQUEST_TIMEOUT_SECONDS
 from core.source_policy import (
     GUNICORN_ACCESS_LOG_FORMAT,
+    GUNICORN_WEB_TIMEOUT_SECONDS,
     SourcePolicyError,
     analytics_runtime_violations,
+    parse_gunicorn_timeout,
     validate_development_source,
     validate_gunicorn_entrypoint,
 )
+from course_management.datamailer.client import DEFAULT_TIMEOUT_SECONDS
 from course_management.observability.events import event_properties
+from courses.validators.url_status_transport import URL_VALIDATION_TIMEOUT
 from deploy.contracts import ReleaseContractError
 from deploy.deployment_targets import SELECTED_TARGET
 from deploy.development_seo_policy import (
@@ -177,6 +182,40 @@ class ApplicationSourcePolicyTests(SimpleTestCase):
             validate_gunicorn_entrypoint(source.replace("%(U)s", "%(r)s", 1))
         with self.assertRaises(SourcePolicyError):
             validate_gunicorn_entrypoint(source + "\n--access-logformat '%(r)s'\n")
+
+    def test_entrypoint_timeout_is_explicit_and_covers_reviewed_client_bounds(self) -> None:
+        source = (ROOT / "entrypoint.sh").read_text(encoding="utf-8")
+        gunicorn_line = next(
+            line
+            for line in source.splitlines()
+            if line.strip().startswith("exec uv run --no-sync gunicorn")
+        )
+        gunicorn_command_without_timeout = gunicorn_line.split("--timeout", 1)[0].rstrip()
+
+        timeout = parse_gunicorn_timeout(source)
+        self.assertEqual(timeout, GUNICORN_WEB_TIMEOUT_SECONDS)
+        self.assertGreaterEqual(timeout, DEFAULT_TIMEOUT_SECONDS + 10)
+        self.assertLessEqual(REQUEST_TIMEOUT_SECONDS, timeout)
+        self.assertLessEqual(URL_VALIDATION_TIMEOUT, timeout)
+
+        mutations = (
+            ("missing", source.replace("--timeout 90", "", 1)),
+            ("duplicate", source.replace("--timeout 90", "--timeout 90 --timeout 90", 1)),
+            ("malformed", source.replace("--timeout 90", "--timeout=90", 1)),
+            (
+                "interpolated",
+                source.replace("--timeout 90", '--timeout "${WEB_TIMEOUT:-90}"', 1),
+            ),
+            ("lower", source.replace("--timeout 90", "--timeout 89", 1)),
+            ("higher", source.replace("--timeout 90", "--timeout 91", 1)),
+            (
+                "second_gunicorn_line",
+                source + "\n" + gunicorn_command_without_timeout + "\n",
+            ),
+        )
+        for name, mutated_source in mutations:
+            with self.subTest(name=name), self.assertRaises(SourcePolicyError):
+                validate_gunicorn_entrypoint(mutated_source)
 
     def test_gunicorn_runtime_output_excludes_query_headers_cookie_referrer_and_ip(self) -> None:
         canary = "gunicorn-query-canary-36"

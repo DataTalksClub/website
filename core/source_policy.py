@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import shlex
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 
@@ -12,6 +13,7 @@ GUNICORN_ACCESS_LOG_FORMAT = (
 # per-recipient token in the path.  The logger class below redacts that segment,
 # so the entrypoint must keep using it for the format above to stay safe.
 GUNICORN_LOGGER_CLASS = "core.gunicorn_logging.RecipientTokenSafeLogger"
+GUNICORN_WEB_TIMEOUT_SECONDS = 90
 ANALYTICS_HOSTS = ("googletagmanager.com", "google-analytics.com")
 ANALYTICS_COOKIE_PREFIXES = ("_ga", "_gid", "_gat", "_gcl_")
 _ANALYTICS_ID = re.compile(r"(?:GTM-[A-Z0-9]{6,}|G-[A-Z0-9]{8,}|UA-[0-9]+-[0-9]+)")
@@ -21,10 +23,60 @@ _CANONICAL_REL = re.compile(
     r"\brel\s*=\s*(?:[\"'][^\"']*\bcanonical\b[^\"']*[\"']|[^\s\"'=<>`]*canonical[^\s\"'=<>`]*)",
     re.IGNORECASE,
 )
+_GUNICORN_WEB_CASE = re.compile(r"(?ms)^[ \t]*web\)[ \t]*\n(?P<body>.*?)(?=^[ \t]*;;[ \t]*$)")
+_GUNICORN_COMMAND = re.compile(
+    r"^[ \t]*exec[ \t]+uv[ \t]+run[ \t]+--no-sync[ \t]+gunicorn(?:[ \t]+.*)?$"
+)
 
 
 class SourcePolicyError(ValueError):
     pass
+
+
+def _gunicorn_command_lines(source: str) -> list[str]:
+    return [line for line in source.splitlines() if _GUNICORN_COMMAND.fullmatch(line)]
+
+
+def _gunicorn_web_command(source: str) -> str:
+    web_cases = list(_GUNICORN_WEB_CASE.finditer(source))
+    if len(web_cases) != 1:
+        raise SourcePolicyError("gunicorn_web_command_mismatch")
+
+    commands = _gunicorn_command_lines(web_cases[0].group("body"))
+    if len(commands) != 1:
+        raise SourcePolicyError("gunicorn_web_command_mismatch")
+    return commands[0]
+
+
+def parse_gunicorn_timeout(source: str) -> int:
+    """Parse the fixed timeout from the target-owned ``web`` command."""
+
+    command = _gunicorn_web_command(source)
+    if _gunicorn_command_lines(source) != [command]:
+        raise SourcePolicyError("gunicorn_web_command_mismatch")
+    if source.count("--timeout") != 1 or command.count("--timeout") != 1:
+        raise SourcePolicyError("gunicorn_timeout_mismatch")
+
+    match = re.search(r"(?<![A-Za-z0-9_-])--timeout[ \t]+([^ \t]+)", command)
+    if match is None or match.group(1) != str(GUNICORN_WEB_TIMEOUT_SECONDS):
+        raise SourcePolicyError("gunicorn_timeout_mismatch")
+
+    try:
+        arguments = shlex.split(command, comments=False, posix=True)
+    except ValueError as error:
+        raise SourcePolicyError("gunicorn_timeout_mismatch") from error
+
+    timeout_indexes = [index for index, argument in enumerate(arguments) if argument == "--timeout"]
+    if len(timeout_indexes) != 1:
+        raise SourcePolicyError("gunicorn_timeout_mismatch")
+    timeout_index = timeout_indexes[0]
+    if (
+        timeout_index + 1 >= len(arguments)
+        or arguments[timeout_index + 1] != str(GUNICORN_WEB_TIMEOUT_SECONDS)
+        or any(argument.startswith("--timeout=") for argument in arguments)
+    ):
+        raise SourcePolicyError("gunicorn_timeout_mismatch")
+    return int(arguments[timeout_index + 1])
 
 
 def validate_gunicorn_entrypoint(source: str) -> None:
@@ -48,6 +100,7 @@ def validate_gunicorn_entrypoint(source: str) -> None:
         or source.count("--logger-class") != 1
     ):
         raise SourcePolicyError("gunicorn_logger_class_mismatch")
+    parse_gunicorn_timeout(source)
 
 
 def _analytics_text_violations(text: str) -> set[str]:
