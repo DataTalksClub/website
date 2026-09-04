@@ -35,7 +35,7 @@ Tracked in [#310](https://github.com/DataTalksClub/website/issues/310), which is
 referenced from the production checklist in
 [#309](https://github.com/DataTalksClub/website/issues/309).
 
-Every count here was measured on branch `production-prep` on 2026-09-03 against
+Every count here was measured on `main` on 2026-09-03 against
 the export `/data/tmp/rds-export/rds-prod-20260902-012536.db` and the checkouts
 in `~/git`. Numbers marked **(measured)** were produced by running the step.
 

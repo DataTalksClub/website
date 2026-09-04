@@ -1,6 +1,6 @@
 # Unit content pipeline — how lesson content reaches the website, and how to unify it
 
-**Analysed at** `production-prep` **`2c97886`**, working tree carrying the uncommitted
+**Analysed at** `main` **`2c97886`**, working tree carrying the uncommitted
 `SITE.md` parser change. Course checkouts: `llm-zoomcamp@cc92b21`,
 `machine-learning-zoomcamp@2074193`, `ai-dev-tools-zoomcamp@bc67657`. All three moved
 during this analysis — the `SITE.md` commits landed mid-session — so re-verify counts

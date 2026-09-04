@@ -88,7 +88,7 @@ Measured in `/home/alexey/git/course-management-platform` and against
 
 - **CMP's dev-then-promote split is the safer shape and the website does not have it.** CMP never
   deploys straight to production: `main` pushes go to dev, and production is a separate,
-  human-confirmed dispatch of an already-proven tag. The website's `production-prep` pipeline goes
+  human-confirmed dispatch of an already-proven tag. The website's deploy pipeline goes
   from push-to-`main` to production in one hop once `DEVELOPMENT_AUTO_DEPLOY` is `true`. PR #44
   records that `main/dev` has no deployment pipeline at all and that adding one needs a second
   GitHub environment and a second reviewed target in `DEPLOYMENT_TARGETS`. Until that exists,

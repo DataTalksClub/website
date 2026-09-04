@@ -8,7 +8,7 @@ the work this describes. `scripts/prod/` is where that consolidation is landing;
 it is **in flight while you read this**, so §11 records what exists today against
 what the Makefile already expects.
 
-Counts in this document were measured on branch `production-prep` on 2026-09-03.
+Counts in this document were measured on `main` on 2026-09-03.
 Where a number is asserted by code, the assertion is cited so you can re-check it.
 
 ---
