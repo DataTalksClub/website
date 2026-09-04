@@ -184,7 +184,6 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertEqual(
             names,
             {
-                "DEVELOPMENT_AUTO_DEPLOY",
                 "DEVELOPMENT_AWS_REGION",
                 "DEVELOPMENT_BASE_URL",
                 "DEVELOPMENT_DEPLOYER_ROLE_ARN",
@@ -524,7 +523,9 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             workflow.index("\n  deploy:\n"),
         )
 
-    def test_auto_cd_is_opt_in_stale_safe_and_captures_prior_under_deployer(self) -> None:
+    def test_auto_cd_is_always_on_for_push_stale_safe_and_captures_prior_under_deployer(
+        self,
+    ) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         publish = workflow.split("\n  publish:\n", maxsplit=1)[1].split(
             "\n  deploy:\n", maxsplit=1
@@ -536,7 +537,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         capture = workflow.split("\n  auto-capture-prior:\n", maxsplit=1)[1].split(
             "\n  publish:\n", maxsplit=1
         )[0]
-        self.assertEqual(workflow.count("vars.DEVELOPMENT_AUTO_DEPLOY == 'true'"), 3)
+        self.assertNotIn("DEVELOPMENT_AUTO_DEPLOY", workflow)
         self.assertIn("github.event_name == 'push'", publish)
         self.assertIn("github.event_name == 'push'", deploy)
         for section, label in (
