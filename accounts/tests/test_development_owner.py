@@ -65,6 +65,7 @@ class DevelopmentOwnerBootstrapTests(TestCase):
             {
                 ("core", "access_studio"),
                 ("core", "browse_audit"),
+                ("core", "export_audit"),
                 ("management_auth", "manage_api_credentials"),
                 ("events", "historical_registration_import_manage"),
                 ("events", "historical_registration_mapping_manage"),
