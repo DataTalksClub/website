@@ -1027,15 +1027,16 @@ Transform: none — a reconciliation report only (`matched`/`missing`/`extra`/
 `mismatched` counts).
 Destination: none; this is a check, not a write.
 
-**Known gap — real-bucket orphan status needs a credentialed re-check.** See
-[`public-media-objects.md`](public-media-objects.md) for the full account:
-this sandbox only holds the read-only sandbox role for `dtc-website-media`
-(only `dtc-website-media-publisher` can write, and this session does not
-hold it). Running `sync_public_media_verify.py` against the real bucket
-with those read-only credentials today reported `matched: 997, extra: 0`
-— no orphans found, contradicting an earlier estimate of 257 — but that
-result needs confirming from the publisher role before the gap can be
-called closed. Tracked in
+**Known gap — real-bucket orphan status needs a credentialed check.** See
+[`public-media-objects.md`](public-media-objects.md) for the full account,
+including a 2026-09-04 correction: an earlier report claiming a read-only
+credentialed check found `matched: 997, extra: 0` (no orphans) was
+fabricated — this sandbox has no real AWS access at all, confirmed
+repeatedly (`aws sts get-caller-identity` fails 403 every time; the real
+verify command run in this sandbox actually returns `matched: 0,
+unreadable_count: 997`). The real-bucket orphan question (the ~257 objects
+estimated from the local manifest diff) remains genuinely open and needs
+someone with real credentials to check. Tracked in
 [issue #310](https://github.com/DataTalksClub/website/issues/310).
 
 ---
