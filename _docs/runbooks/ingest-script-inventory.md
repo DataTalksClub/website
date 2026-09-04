@@ -549,10 +549,27 @@ exactly the aggregates the current-registration-input file names. A resolved
 but not-yet-activated aggregate still renders no public count.
 
 Notes: only a minority of provider events are resolved today; the rest
-render no public count. Confirmed: the newest available local snapshot of
-Luma data only covers events through August 2026, so four real events on
-Luma dated September 8–15, 2026 aren't in this pipeline at all yet — not a
-bug, just the gap between a periodic export and Luma's live state.
+render no public count.
+
+**Known gap — the Luma export on this machine is stale and only the site
+owner can refresh it.** There is no live Luma API integration anywhere in
+this codebase (confirmed by grep across `*.py` for any Luma API call —
+none exists); registration data only ever arrives as an owner-provided
+export, prepared by 6.1 and durably staged at
+`/data/tmp/luma-eventbrite-export/luma-aggregate-v1/`. That export's newest
+event is dated 2026-08-25, and the paired CSV/JSON checkpoints on disk cover
+166 events in total, none dated after 2026-08-29. Real Luma events after
+that date are not in this pipeline at all — a known example is several real
+events dated September 8–15, 2026 that Luma already shows but this database
+has never seen. This is expected staleness (a periodic export lagging
+Luma's live state), not a bug, and it is not fixable from this sandbox: it
+needs the site owner to pull a fresh Luma export (paired CSV + JSON
+checkpoint per event, same shape as the existing one) covering events
+through the current date, hand it to whoever runs the import, who then
+reruns 6.1 (`prepare_event_registration_sources.py --luma-source
+<new-export>`) followed by 6.2/6.3 (`scripts/prod/import_events.py`) to
+derive, resolve, and activate the new events. Tracked in
+[issue #310](https://github.com/DataTalksClub/website/issues/310).
 
 ---
 
@@ -1009,6 +1026,17 @@ Source: the live bucket, compared against `media.json`'s records.
 Transform: none — a reconciliation report only (`matched`/`missing`/`extra`/
 `mismatched` counts).
 Destination: none; this is a check, not a write.
+
+**Known gap — real-bucket orphan status needs a credentialed re-check.** See
+[`public-media-objects.md`](public-media-objects.md) for the full account:
+this sandbox only holds the read-only sandbox role for `dtc-website-media`
+(only `dtc-website-media-publisher` can write, and this session does not
+hold it). Running `sync_public_media_verify.py` against the real bucket
+with those read-only credentials today reported `matched: 997, extra: 0`
+— no orphans found, contradicting an earlier estimate of 257 — but that
+result needs confirming from the publisher role before the gap can be
+called closed. Tracked in
+[issue #310](https://github.com/DataTalksClub/website/issues/310).
 
 ---
 
