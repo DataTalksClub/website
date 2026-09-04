@@ -6,10 +6,12 @@ from typing import Any
 
 from accounts.capabilities import OAUTH_PROVIDER_CAPABILITIES
 from core.audit_queries import (
+    AUDIT_EXPORT_MAX_ROWS,
     audit_field_policy,
     audit_object_policy,
     audit_object_scope,
     browse_audit_events,
+    export_audit_events,
     get_audit_event,
 )
 from core.capabilities import (
@@ -27,7 +29,10 @@ from core.site_settings import SITE_SETTING_CAPABILITIES
 from core.sponsors import SPONSOR_CAPABILITIES
 from events.capabilities import EVENT_CAPABILITIES
 from management_auth.fixture_capabilities import CREDENTIAL_FIXTURE_CAPABILITIES
-from management_auth.policies import resolved_high_risk_policy_keys
+from management_auth.policies import (
+    HIGH_RISK_FRESH_CONFIRMATION_POLICY,
+    resolved_high_risk_policy_keys,
+)
 from management_auth.runtime_capabilities import CREDENTIAL_RUNTIME_CAPABILITIES
 
 
@@ -37,6 +42,13 @@ def studio_audit_factory() -> dict[str, Any]:
 
 def studio_audit_detail_factory() -> dict[str, Any]:
     return {"capability": "studio.audit.detail"}
+
+
+def studio_audit_export_factory() -> dict[str, Any]:
+    return {
+        "bounded_rows": AUDIT_EXPORT_MAX_ROWS,
+        "capability": "studio.audit.export",
+    }
 
 
 STUDIO_HOME = Capability(
@@ -128,11 +140,41 @@ STUDIO_AUDIT_DETAIL = Capability(
     field_policy=audit_field_policy,
 )
 
+STUDIO_AUDIT_EXPORT = Capability(
+    key="studio.audit.export",
+    description="Export a bounded redacted audit snapshot",
+    service_kind=ServiceKind.COMMAND,
+    service=export_audit_events,
+    django_permission="core.export_audit",
+    studio=AdapterMetadata(
+        route="studio:audit-export",
+        method="POST",
+        operation_id="studio.audit.export.html",
+        writable_fields=("confirmed", "filters", "reason"),
+    ),
+    admin_api=AdapterMetadata(
+        route="/api/v1/admin/_fixtures/audit-events/export",
+        method="POST",
+        operation_id="studio.audit.export.api",
+        test_only=True,
+    ),
+    idempotency=IdempotencyPolicy.REQUIRED,
+    concurrency=ConcurrencyPolicy.NONE,
+    audit_action="core.audit.exported",
+    redacted_fields=STUDIO_AUDIT.redacted_fields,
+    test_factory=studio_audit_export_factory,
+    object_policy=audit_object_policy,
+    object_scope=audit_object_scope,
+    field_policy=audit_field_policy,
+    high_risk_policy=HIGH_RISK_FRESH_CONFIRMATION_POLICY,
+)
+
 CAPABILITY_REGISTRY = CapabilityRegistry(
     (
         STUDIO_HOME,
         STUDIO_AUDIT,
         STUDIO_AUDIT_DETAIL,
+        STUDIO_AUDIT_EXPORT,
         *SITE_SETTING_CAPABILITIES,
         *OPERATIONAL_SETTING_CAPABILITIES,
         *OAUTH_PROVIDER_CAPABILITIES,

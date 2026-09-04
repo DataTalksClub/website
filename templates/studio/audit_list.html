@@ -35,6 +35,33 @@
     {% endfor %}
   </nav>
 
+  {% if error_message %}
+    <section
+      id="audit-errors"
+      class="a11y-error-summary"
+      role="alert"
+      aria-labelledby="audit-errors-heading"
+      tabindex="-1"
+    >
+      <h2 id="audit-errors-heading">There is a problem</h2>
+      <p>{{ error_message }}</p>
+      <ul>
+        {% for field, message in field_errors.items %}
+          <li>
+            {% if field == "confirmed" %}
+              <a href="#audit-export-confirmed">{{ message }}</a>
+            {% else %}
+              <a href="#audit-export">{{ message }}</a>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+    <script>
+      document.getElementById("audit-errors").focus();
+    </script>
+  {% endif %}
+
   <section class="admin-section" aria-labelledby="audit-filters-heading">
     <div class="admin-section-head">
       <h2 id="audit-filters-heading">
@@ -130,4 +157,52 @@
       </nav>
     {% endif %}
   </section>
+
+  {% if can_export %}
+    <section class="admin-section" id="audit-export" aria-labelledby="audit-export-heading">
+      <div class="admin-section-head">
+        <h2 id="audit-export-heading">Export snapshot</h2>
+        <p class="mono-note">
+          {{ audit_page.total_count }} matching event{{ audit_page.total_count|pluralize }} · maximum {{ audit_export_max_rows }}
+        </p>
+      </div>
+      <p>
+        Exports use the filters shown above and contain redacted display fields only.
+        {% if audit_page.total_count > audit_export_max_rows %}Narrow the filters before exporting.{% endif %}
+      </p>
+      <form class="admin-form" method="post" action="{% url 'studio:audit-export' %}">
+        {% csrf_token %}
+        {% for name, value in filters.items %}
+          <input type="hidden" name="{{ name }}" value="{{ value }}">
+        {% endfor %}
+        <input type="hidden" name="idempotency_key" value="{{ export_idempotency_key }}">
+        <div class="field">
+          <label class="field-label" for="audit-export-reason">Reason</label>
+          <input
+            class="field-input"
+            id="audit-export-reason"
+            name="reason"
+            value="{{ submitted_reason }}"
+            maxlength="200"
+            required
+            {% if field_errors.reason %}aria-invalid="true"{% endif %}
+          >
+        </div>
+        <label class="admin-check" for="audit-export-confirmed">
+          <input
+            id="audit-export-confirmed"
+            type="checkbox"
+            name="confirmed"
+            value="true"
+            required
+            {% if field_errors.confirmed %}aria-invalid="true"{% endif %}
+          >
+          <span>Confirm a bounded, redacted CSV export of {{ audit_page.total_count }} matching events</span>
+        </label>
+        <div class="admin-form-actions">
+          <button class="cta cta-secondary" type="submit">Export CSV</button>
+        </div>
+      </form>
+    </section>
+  {% endif %}
 {% endblock %}

@@ -93,6 +93,16 @@ IMAGE_DIGEST = RUNTIME_IDENTITY.image_digest
 APP_VERSION = VERSION
 DEVELOPMENT_OWNER_LOGIN_ENABLED = RUNTIME_ENVIRONMENT is RuntimeEnvironment.DEVELOPMENT
 TEST_PROGRAMMATIC_STAFF_PASSWORD_AUTHENTICATION = False
+STUDIO_SESSION_IDLE_SECONDS = int(os.getenv("STUDIO_SESSION_IDLE_SECONDS", "900"))
+STUDIO_SESSION_ABSOLUTE_SECONDS = int(os.getenv("STUDIO_SESSION_ABSOLUTE_SECONDS", "28800"))
+STUDIO_HIGH_RISK_FRESHNESS_SECONDS = int(os.getenv("STUDIO_HIGH_RISK_FRESHNESS_SECONDS", "900"))
+for _studio_timeout_name, _studio_timeout_value in (
+    ("STUDIO_SESSION_IDLE_SECONDS", STUDIO_SESSION_IDLE_SECONDS),
+    ("STUDIO_SESSION_ABSOLUTE_SECONDS", STUDIO_SESSION_ABSOLUTE_SECONDS),
+    ("STUDIO_HIGH_RISK_FRESHNESS_SECONDS", STUDIO_HIGH_RISK_FRESHNESS_SECONDS),
+):
+    if _studio_timeout_value < 1:
+        raise ImproperlyConfigured(f"{_studio_timeout_name} must be at least one second")
 CANONICAL_ORIGIN = os.getenv("CANONICAL_ORIGIN", "https://datatalks.club").rstrip("/")
 # Source-managed homework answer keys are injected by the runtime secret boundary.  An empty
 # value deliberately fails closed when encrypted curriculum is used without configuration.

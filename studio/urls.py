@@ -35,6 +35,7 @@ urlpatterns = [
         name="credential-revoke",
     ),
     path("audit/", views.audit_list, name="audit-list"),
+    path("audit/export/", views.audit_export, name="audit-export"),
     path("audit/<uuid:event_id>/", views.audit_detail, name="audit-detail"),
     path("events/identities/", views.event_identity_list, name="event-identity-list"),
     path(

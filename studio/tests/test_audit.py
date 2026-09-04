@@ -3,6 +3,7 @@ from __future__ import annotations
 import html
 import re
 import uuid
+from datetime import timedelta
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
@@ -10,9 +11,11 @@ from django.db import connection
 from django.test import Client, TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
+from django.utils import timezone
 
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
-from core.models import AppendOnlyViolation, AuditEvent
+from core.audit_queries import AUDIT_DISPLAY_FIELDS
+from core.models import AppendOnlyViolation, AuditEvent, IdempotencyRecord, StaffSession
 
 
 def make_event(
@@ -261,6 +264,151 @@ class AuditBrowserTests(TestCase):
 
         anonymous_method = Client().post(reverse("studio:audit-list"))
         self.assert_private(anonymous_method, 302)
+
+    def export_payload(self, **overrides: object) -> dict[str, object]:
+        data: dict[str, object] = {
+            "confirmed": "true",
+            "reason": "operator review",
+            "idempotency_key": str(uuid.uuid4()),
+        }
+        data.update(overrides)
+        return data
+
+    def test_auditor_sees_bounded_export_but_other_role_is_denied(self) -> None:
+        make_event()
+        listed = self.client.get(reverse("studio:audit-list"))
+        self.assert_private(listed, 200)
+        self.assertContains(listed, "Export snapshot")
+        self.assertContains(listed, "maximum 1000")
+
+        operator = make_studio_user(username="audit-operator", roles=("content_operator",))
+        operator_client = authenticated_studio_client(operator)
+        denied = operator_client.post(
+            reverse("studio:audit-export"),
+            self.export_payload(),
+        )
+        self.assert_private(denied, 403)
+        self.assertEqual(
+            AuditEvent.objects.filter(
+                action="core.audit.exported",
+                outcome=AuditEvent.Outcome.DENIED,
+            ).count(),
+            1,
+        )
+        self.assertFalse(IdempotencyRecord.objects.exists())
+
+    def test_export_is_redacted_formula_safe_replayable_and_durable(self) -> None:
+        make_event(
+            target_type="fixture.export",
+            target_label="=1+1",
+            changes={"nested": {"note": "seeded-canary-86"}},
+        )
+        payload = self.export_payload(target_type="fixture.export")
+        url = reverse("studio:audit-export")
+
+        first = self.client.post(url, payload)
+        self.assert_private(first, 200)
+        self.assertTrue(first.headers["Content-Type"].startswith("text/csv"))
+        self.assertEqual(
+            first.headers["Content-Disposition"],
+            'attachment; filename="audit-events.csv"',
+        )
+        rendered = first.content.decode()
+        self.assertTrue(rendered.startswith(",".join(AUDIT_DISPLAY_FIELDS)))
+        self.assertIn("'=1+1", rendered)
+        self.assertIn("[REDACTED]", rendered)
+        self.assertNotIn("seeded-canary-86", rendered)
+        self.assertEqual(
+            AuditEvent.objects.filter(
+                action="core.audit.exported",
+                outcome=AuditEvent.Outcome.SUCCEEDED,
+            ).count(),
+            1,
+        )
+        record = IdempotencyRecord.objects.get()
+        self.assertEqual(record.scope, f"studio.audit.export:user:{self.auditor.pk}")
+
+        second = self.client.post(url, payload)
+        self.assert_private(second, 200)
+        self.assertEqual(second.content, first.content)
+        self.assertEqual(IdempotencyRecord.objects.count(), 1)
+        self.assertEqual(
+            AuditEvent.objects.filter(
+                action="core.audit.exported",
+                outcome=AuditEvent.Outcome.SUCCEEDED,
+            ).count(),
+            1,
+        )
+
+    def test_stale_authentication_denies_before_idempotent_execution(self) -> None:
+        make_event()
+        now = timezone.now()
+        StaffSession.objects.update(
+            authenticated_at=now - timedelta(seconds=901),
+            last_seen_at=now,
+        )
+        response = self.client.post(
+            reverse("studio:audit-export"),
+            self.export_payload(),
+        )
+
+        self.assert_private(response, 403)
+        self.assertContains(response, "Recent authentication is required.", status_code=403)
+        self.assertFalse(IdempotencyRecord.objects.exists())
+        self.assertFalse(
+            AuditEvent.objects.filter(
+                action="core.audit.exported",
+                outcome=AuditEvent.Outcome.SUCCEEDED,
+            ).exists()
+        )
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                action="core.audit.exported",
+                outcome=AuditEvent.Outcome.DENIED,
+            ).exists()
+        )
+
+    def test_row_bound_is_presented_and_denied_without_creating_replay_state(self) -> None:
+        make_event(target_type="fixture.bounded", request_id="request-one")
+        make_event(target_type="fixture.bounded", request_id="request-two")
+        with patch("studio.views.AUDIT_EXPORT_MAX_ROWS", 1):
+            response = self.client.post(
+                reverse("studio:audit-export"),
+                self.export_payload(target_type="fixture.bounded"),
+            )
+
+        self.assert_private(response, 400)
+        self.assertContains(response, "at most 1 events", status_code=400)
+        self.assertFalse(IdempotencyRecord.objects.exists())
+
+    def test_malformed_requests_are_safe_400s(self) -> None:
+        make_event()
+        cases = (
+            self.export_payload(unexpected="hidden-canary"),
+            self.export_payload(target_type="unsafe filter"),
+            self.export_payload(idempotency_key="not-a-uuid"),
+        )
+        for payload in cases:
+            with self.subTest(fields=sorted(payload)):
+                response = self.client.post(reverse("studio:audit-export"), payload)
+                self.assert_private(response, 400)
+                self.assertNotContains(response, "hidden-canary", status_code=400)
+                self.assertNotContains(response, "Traceback", status_code=400)
+        self.assertFalse(IdempotencyRecord.objects.exists())
+
+    def test_browser_csrf_is_required_for_the_mounted_route(self) -> None:
+        make_event()
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.auditor)
+        url = reverse("studio:audit-export")
+
+        missing = csrf_client.post(url, self.export_payload())
+        self.assert_private(missing, 403)
+
+        token_page = csrf_client.get(reverse("studio:audit-list"))
+        token = token_page.cookies["csrftoken"].value
+        valid = csrf_client.post(url, self.export_payload(), HTTP_X_CSRFTOKEN=token)
+        self.assert_private(valid, 200)
 
 
 @override_settings(ROOT_URLCONF="studio.tests.fixture_urls")

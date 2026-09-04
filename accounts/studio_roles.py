@@ -11,6 +11,7 @@ from django.db import transaction
 
 STUDIO_ACCESS = "core.access_studio"
 AUDIT_BROWSE = "core.browse_audit"
+AUDIT_EXPORT = "core.export_audit"
 HIGH_RISK_FIXTURE = "core.execute_high_risk_fixture"
 MANAGE_API_CREDENTIALS = "management_auth.manage_api_credentials"
 HISTORICAL_REGISTRATION_IMPORT_MANAGE = "events.historical_registration_import_manage"
@@ -31,6 +32,7 @@ _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
             {
                 STUDIO_ACCESS,
                 AUDIT_BROWSE,
+                AUDIT_EXPORT,
                 MANAGE_API_CREDENTIALS,
                 HISTORICAL_REGISTRATION_IMPORT_MANAGE,
                 HISTORICAL_REGISTRATION_MAPPING_MANAGE,
@@ -73,6 +75,7 @@ _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
             {
                 STUDIO_ACCESS,
                 AUDIT_BROWSE,
+                AUDIT_EXPORT,
                 SITE_SETTINGS_READ,
                 SITE_NAVIGATION_READ,
                 SPONSORS_READ,
@@ -108,6 +111,13 @@ def _validate_role_dependencies() -> None:
     )
     if invalid_navigation:
         raise RuntimeError("site navigation writers must also have read authority")
+    invalid_audit_exporters = sorted(
+        role
+        for role, permissions in ROLE_PERMISSIONS.items()
+        if AUDIT_EXPORT in permissions and AUDIT_BROWSE not in permissions
+    )
+    if invalid_audit_exporters:
+        raise RuntimeError("audit exporters must also have browse authority")
 
 
 _validate_role_dependencies()

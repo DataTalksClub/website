@@ -192,6 +192,7 @@ class StaffSession(models.Model):
         related_name="studio_staff_sessions",
     )
     authenticated_at = models.DateTimeField()
+    last_seen_at = models.DateTimeField(null=True, blank=True)
     revoked_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -200,6 +201,7 @@ class StaffSession(models.Model):
         permissions = (
             ("access_studio", "Can access Studio"),
             ("browse_audit", "Can browse Studio audit events"),
+            ("export_audit", "Can export Studio audit events"),
             ("execute_high_risk_fixture", "Can execute the test-only high-risk fixture"),
         )
         constraints = [

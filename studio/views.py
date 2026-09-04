@@ -24,6 +24,11 @@ from accounts.studio_sessions import session_reference
 from core.audit import AuditWriteContext, record_audit_event
 from core.audit_queries import (
     AUDIT_DISPLAY_FIELDS,
+    AUDIT_EXPORT_MAX_ROWS,
+    AUDIT_FILTERS,
+    AuditExportError,
+    AuditListQuery,
+    AuditPage,
     AuditQueryError,
     parse_audit_list_query,
     present_audit_event,
@@ -80,6 +85,7 @@ from management_auth.services import manageable_service_principals, principal_ha
 from management_registry import CAPABILITY_REGISTRY
 
 from .auth import (
+    audit_capability_denial,
     audit_site_navigation_denial,
     audit_site_settings_denial,
     capability_required,
@@ -179,6 +185,7 @@ def _audit_fields_allowed(request: HttpRequest) -> bool:
 class CredentialBrowserActor:
     principal: APIPrincipal
     capability: Capability
+    authenticated_at: datetime
 
 
 def _credential_actor(
@@ -207,15 +214,23 @@ def _credential_actor(
     )
     if principal is None:
         return HttpResponseForbidden("Studio access denied")
-    return CredentialBrowserActor(principal=principal, capability=capability)
+    return CredentialBrowserActor(
+        principal=principal,
+        capability=capability,
+        authenticated_at=studio_principal.session.authenticated_at,
+    )
 
 
-def _credential_confirmation(capability: object, value: object) -> bool:
-    policy_key = getattr(capability, "high_risk_policy", None)
+def _credential_confirmation(actor: CredentialBrowserActor, value: object) -> bool:
+    capability = actor.capability
+    policy_key = capability.high_risk_policy
     if not isinstance(policy_key, str):
         return False
     try:
-        return require_high_risk_policy(policy_key).authorize(confirmed=value)
+        return require_high_risk_policy(policy_key).authorize(
+            confirmed=value,
+            authenticated_at=actor.authenticated_at,
+        )
     except Exception:
         return False
 
@@ -826,6 +841,30 @@ def _sponsor_can(request: HttpRequest, key: str) -> bool:
     return True
 
 
+def _audit_page_context(
+    request: HttpRequest,
+    *,
+    page: AuditPage,
+    filters: dict[str, str],
+    export_idempotency_key: object | None = None,
+    error_message: str = "",
+    field_errors: dict[str, str] | None = None,
+    submitted_reason: str = "",
+) -> dict[str, object]:
+    return {
+        "audit_page": page,
+        "events": tuple((event.id, present_audit_event(event)) for event in page.events),
+        "filters": filters,
+        "audit_export_max_rows": AUDIT_EXPORT_MAX_ROWS,
+        "export_idempotency_key": export_idempotency_key or uuid.uuid4(),
+        "error_message": error_message,
+        "field_errors": field_errors or {},
+        "submitted_reason": submitted_reason,
+        "can_export": _sponsor_can(request, "studio.audit.export"),
+        "studio_navigation": _navigation(request),
+    }
+
+
 def _sponsor_query(request: HttpRequest):
     from types import SimpleNamespace
 
@@ -1314,13 +1353,211 @@ def audit_list(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "studio/audit_list.html",
-        {
-            "audit_page": page,
-            "events": tuple((event.id, present_audit_event(event)) for event in page.events),
-            "filters": query.filters,
-            "studio_navigation": _navigation(request),
-        },
+        _audit_page_context(request, page=page, filters=query.filters),
     )
+
+
+@capability_required("studio.audit.export")
+def audit_export(request: HttpRequest) -> HttpResponse:
+    if not _audit_fields_allowed(request):
+        return HttpResponseForbidden("Studio access denied")
+    if not _sponsor_can(request, "studio.audit.browse"):
+        return HttpResponseForbidden("Studio access denied")
+    principal = request.studio_principal  # type: ignore[attr-defined]
+
+    expected_fields = AUDIT_FILTERS | {"confirmed", "idempotency_key", "reason"}
+    if set(request.POST).difference(expected_fields | {"csrfmiddlewaretoken"}) or any(
+        len(request.POST.getlist(name)) != 1 for name in request.POST
+    ):
+        audit_capability_denial(
+            request,
+            capability_key="studio.audit.export",
+            reason="invalid_request",
+        )
+        return HttpResponseBadRequest("Invalid audit export request")
+
+    try:
+        parsed_idempotency = uuid.UUID(request.POST.get("idempotency_key", ""))
+        raw_idempotency = str(parsed_idempotency)
+        if parsed_idempotency != uuid.UUID(raw_idempotency):
+            raise ValueError("non-canonical idempotency key")
+    except (AttributeError, TypeError, ValueError):
+        audit_capability_denial(
+            request,
+            capability_key="studio.audit.export",
+            reason="invalid_request",
+        )
+        return HttpResponseBadRequest("Invalid audit export request")
+
+    filters = {
+        name: value for name in AUDIT_FILTERS if (value := request.POST.get(name, "").strip())
+    }
+    browse_capability = CAPABILITY_REGISTRY.require("studio.audit.browse")
+    try:
+        query = AuditListQuery(filters=filters)
+        page = browse_capability.service(
+            query,
+            context=_service_context(request),
+            actor=principal.user,
+        )
+    except AuditQueryError:
+        audit_capability_denial(
+            request,
+            capability_key="studio.audit.export",
+            reason="invalid_filter",
+            idempotency_key=raw_idempotency,
+        )
+        return HttpResponseBadRequest("Invalid audit filter")
+
+    policy_key = principal.capability.high_risk_policy
+    try:
+        allowed = isinstance(policy_key, str) and require_high_risk_policy(policy_key).authorize(
+            confirmed=request.POST.get("confirmed") == "true",
+            authenticated_at=principal.session.authenticated_at,
+        )
+    except Exception:
+        allowed = False
+    if not allowed:
+        audit_capability_denial(
+            request,
+            capability_key="studio.audit.export",
+            reason="fresh_authentication_or_confirmation_denied",
+            idempotency_key=raw_idempotency,
+        )
+        return render(
+            request,
+            "studio/audit_list.html",
+            {
+                **_audit_page_context(
+                    request,
+                    page=page,
+                    filters=query.filters,
+                    error_message="Confirm the export before continuing.",
+                    field_errors={"confirmed": "Recent authentication is required."},
+                    export_idempotency_key=raw_idempotency,
+                    submitted_reason=request.POST.get("reason", ""),
+                ),
+            },
+            status=403,
+        )
+
+    if page.total_count > AUDIT_EXPORT_MAX_ROWS:
+        audit_capability_denial(
+            request,
+            capability_key="studio.audit.export",
+            reason="row_bound_exceeded",
+            idempotency_key=raw_idempotency,
+        )
+        return render(
+            request,
+            "studio/audit_list.html",
+            _audit_page_context(
+                request,
+                page=page,
+                filters=query.filters,
+                error_message=(
+                    f"Narrow the filters so the export contains at most "
+                    f"{AUDIT_EXPORT_MAX_ROWS} events."
+                ),
+                field_errors={"form": "The selected audit snapshot exceeds its row bound."},
+                export_idempotency_key=raw_idempotency,
+                submitted_reason=request.POST.get("reason", ""),
+            ),
+            status=400,
+        )
+
+    capability = principal.capability
+    try:
+        result = capability.service(
+            confirmed=True,
+            reason=request.POST.get("reason", ""),
+            filters=filters,
+            idempotency_key=raw_idempotency,
+            actor_ref=f"user:{principal.user.pk}",
+            actor_id=principal.user.pk,
+            context=_service_context(request),
+        )
+    except AuditExportError:
+        audit_capability_denial(
+            request,
+            capability_key="studio.audit.export",
+            reason="invalid_request",
+            idempotency_key=raw_idempotency,
+        )
+        return render(
+            request,
+            "studio/audit_list.html",
+            _audit_page_context(
+                request,
+                page=page,
+                filters=query.filters,
+                error_message=("The export could not be completed. Review the form and try again."),
+                field_errors={"form": "The audit export request is invalid."},
+                export_idempotency_key=uuid.uuid4(),
+                submitted_reason=request.POST.get("reason", ""),
+            ),
+            status=400,
+        )
+    except (IdempotencyConflict, IdempotencyInProgress):
+        audit_capability_denial(
+            request,
+            capability_key="studio.audit.export",
+            reason="idempotency_conflict",
+            idempotency_key=raw_idempotency,
+        )
+        return render(
+            request,
+            "studio/audit_list.html",
+            {
+                **_audit_page_context(
+                    request,
+                    page=page,
+                    filters=query.filters,
+                    error_message="This export conflicts with an earlier submission.",
+                    field_errors={"form": "Use the new export key shown below."},
+                    export_idempotency_key=uuid.uuid4(),
+                    submitted_reason=request.POST.get("reason", ""),
+                ),
+            },
+            status=409,
+        )
+    except (TypeError, ValueError):
+        audit_capability_denial(
+            request,
+            capability_key="studio.audit.export",
+            reason="invalid_request",
+            idempotency_key=raw_idempotency,
+        )
+        return render(
+            request,
+            "studio/audit_list.html",
+            {
+                **_audit_page_context(
+                    request,
+                    page=page,
+                    filters=query.filters,
+                    error_message=(
+                        "The export could not be completed. Review the form and try again."
+                    ),
+                    field_errors={"form": "The audit export request is invalid."},
+                    export_idempotency_key=uuid.uuid4(),
+                    submitted_reason=request.POST.get("reason", ""),
+                ),
+            },
+            status=400,
+        )
+    except Exception:
+        audit_capability_denial(
+            request,
+            capability_key="studio.audit.export",
+            reason="internal_error",
+            idempotency_key=raw_idempotency,
+        )
+        return HttpResponse("Audit events could not be exported", status=500)
+
+    response = HttpResponse(result.csv, content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="{result.filename}"'
+    return response
 
 
 @capability_required("studio.audit.detail")
@@ -1579,7 +1816,7 @@ def credential_list(request: HttpRequest) -> HttpResponse:
     if request.method != "POST":
         return _render_credentials(request, actor)
     capability = actor.capability
-    if not _credential_confirmation(capability, request.POST.get("confirmed") == "true"):
+    if not _credential_confirmation(actor, request.POST.get("confirmed") == "true"):
         _audit_credential_denial(request, actor, reason="confirmation_missing")
         return _render_credentials(
             request,
@@ -1651,7 +1888,7 @@ def credential_rotate(request: HttpRequest, credential_id: uuid.UUID) -> HttpRes
         return selected
     actor = selected
     capability = actor.capability
-    if not _credential_confirmation(capability, request.POST.get("confirmed") == "true"):
+    if not _credential_confirmation(actor, request.POST.get("confirmed") == "true"):
         _audit_credential_denial(request, actor, reason="confirmation_missing")
         return _render_credentials(
             request,
@@ -1709,7 +1946,7 @@ def credential_revoke(request: HttpRequest, credential_id: uuid.UUID) -> HttpRes
         return selected
     actor = selected
     capability = actor.capability
-    if not _credential_confirmation(capability, request.POST.get("confirmed") == "true"):
+    if not _credential_confirmation(actor, request.POST.get("confirmed") == "true"):
         _audit_credential_denial(request, actor, reason="confirmation_missing")
         return _render_credentials(
             request,

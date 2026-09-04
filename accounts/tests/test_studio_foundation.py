@@ -9,7 +9,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.core.management import call_command
 from django.db import IntegrityError, connection, transaction
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -294,6 +294,8 @@ class StudioSessionRequestTests(TestCase):
             )
 
     def test_custom_permission_exists_without_assigning_test_fixture_to_roles(self) -> None:
+        Permission.objects.get(content_type__app_label="core", codename="export_audit")
+
         fixture_permission = Permission.objects.get(
             content_type__app_label="core",
             codename="execute_high_risk_fixture",
@@ -304,3 +306,44 @@ class StudioSessionRequestTests(TestCase):
                 permissions=fixture_permission,
             ).exists()
         )
+
+
+@override_settings(
+    STUDIO_SESSION_IDLE_SECONDS=60,
+    STUDIO_SESSION_ABSOLUTE_SECONDS=3_600,
+)
+class StudioSessionTimeoutTests(TestCase):
+    def _expire(self, client: Client, *, authenticated_age: int, idle_age: int) -> None:
+        now = timezone.now()
+        StaffSession.objects.filter(id=client.session[SESSION_REFERENCE_KEY]).update(
+            authenticated_at=now - timedelta(seconds=authenticated_age),
+            last_seen_at=now - timedelta(seconds=idle_age),
+        )
+
+    def test_idle_session_is_revoked_before_the_next_request(self) -> None:
+        user = make_studio_user(username="idle-expired", roles=("content_operator",))
+        client = authenticated_studio_client(user)
+        self._expire(client, authenticated_age=30, idle_age=61)
+
+        self.assertEqual(client.get(reverse("studio:home")).status_code, 403)
+        record = StaffSession.objects.get(id=client.session[SESSION_REFERENCE_KEY])
+        self.assertIsNotNone(record.revoked_at)
+
+    def test_absolute_session_lifetime_is_enforced_even_with_recent_activity(self) -> None:
+        user = make_studio_user(username="absolute-expired", roles=("content_operator",))
+        client = authenticated_studio_client(user)
+        self._expire(client, authenticated_age=3_601, idle_age=1)
+
+        self.assertEqual(client.get(reverse("studio:home")).status_code, 403)
+        record = StaffSession.objects.get(id=client.session[SESSION_REFERENCE_KEY])
+        self.assertIsNotNone(record.revoked_at)
+
+    def test_successful_resolution_refreshes_activity_within_both_limits(self) -> None:
+        user = make_studio_user(username="activity-refresh", roles=("content_operator",))
+        client = authenticated_studio_client(user)
+        self._expire(client, authenticated_age=30, idle_age=10)
+        stale_record = StaffSession.objects.get(id=client.session[SESSION_REFERENCE_KEY])
+
+        self.assertEqual(client.get(reverse("studio:home")).status_code, 200)
+        record = StaffSession.objects.get(id=client.session[SESSION_REFERENCE_KEY])
+        self.assertGreater(record.last_seen_at, stale_record.last_seen_at)

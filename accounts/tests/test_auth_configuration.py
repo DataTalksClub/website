@@ -66,6 +66,41 @@ class RuntimeAuthBoundaryTests(SimpleTestCase):
                 self.assertEqual(settings_snapshot["environment"], environment)
                 self.assertEqual(settings_snapshot["owner_login"], enabled)
 
+    def test_studio_timeout_settings_must_be_positive_integers(self) -> None:
+        child_environment = os.environ.copy()
+        child_environment.update(
+            {
+                "DTC_ENVIRONMENT": "test",
+                "VERSION": "20260809-143205-aaaaaaa",
+                "SOURCE_SHA": "a" * 40,
+                "IMAGE_DIGEST": f"sha256:{'b' * 64}",
+            }
+        )
+
+        for name in (
+            "STUDIO_SESSION_IDLE_SECONDS",
+            "STUDIO_SESSION_ABSOLUTE_SECONDS",
+            "STUDIO_HIGH_RISK_FRESHNESS_SECONDS",
+        ):
+            for timeout_name in (
+                "STUDIO_SESSION_IDLE_SECONDS",
+                "STUDIO_SESSION_ABSOLUTE_SECONDS",
+                "STUDIO_HIGH_RISK_FRESHNESS_SECONDS",
+            ):
+                child_environment[timeout_name] = "1"
+            child_environment[name] = "0"
+            result = subprocess.run(
+                [sys.executable, "-c", "import website.settings.base"],
+                cwd=BASE_DIR,
+                env=child_environment,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            with self.subTest(setting=name):
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(f"{name} must be at least one second", result.stderr)
+
 
 class LoginPageConfigurationTests(TestCase):
     def setUp(self) -> None:

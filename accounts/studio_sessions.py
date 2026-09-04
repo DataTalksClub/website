@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Protocol
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.db import transaction
@@ -40,11 +41,27 @@ class DatabaseStaffSessionAdapter:
             return None
         session = (
             StaffSession.objects.filter(id=session_id, user_id=user_id, revoked_at__isnull=True)
-            .only("id", "user_id", "authenticated_at")
+            .only("id", "user_id", "authenticated_at", "last_seen_at")
             .first()
         )
         if session is None:
             return None
+        now = timezone.now()
+        idle_reference = session.last_seen_at or session.authenticated_at
+        expired_idle = now - idle_reference > timedelta(
+            seconds=settings.STUDIO_SESSION_IDLE_SECONDS
+        )
+        expired_absolute = now - session.authenticated_at > timedelta(
+            seconds=settings.STUDIO_SESSION_ABSOLUTE_SECONDS
+        )
+        if expired_idle or expired_absolute:
+            revoke_staff_session(
+                session.id,
+                user=user_id,
+                at=max(now, session.authenticated_at),
+            )
+            return None
+        StaffSession.objects.filter(id=session.id, revoked_at__isnull=True).update(last_seen_at=now)
         return StaffSessionEvidence(
             session_id=session.id,
             user_id=session.user_id,

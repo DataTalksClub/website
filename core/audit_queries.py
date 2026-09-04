@@ -1,10 +1,17 @@
-"""Bounded, side-effect-free audit browsing for management adapters."""
+"""Bounded audit browsing and export services for management adapters."""
 
 from __future__ import annotations
 
+import base64
+import csv
+import hashlib
+import io
 import json
 import re
+import unicodedata
 import uuid
+import zlib
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -13,10 +20,13 @@ from django.core.paginator import EmptyPage, Paginator
 from django.db.models import QuerySet
 from django.http import QueryDict
 
+from core.audit import AuditWriteContext, record_audit_event
 from core.context import is_safe_external_context_id
+from core.idempotency import JsonObject, execute_idempotent, hash_idempotency_key
 from core.models import AuditEvent
-from core.redaction import redact
-from core.services import ServiceContext
+from core.redaction import is_sensitive_text, redact
+from core.security import neutralize_csv_formula
+from core.services import ServiceContext, validate_actor_ref
 
 AUDIT_FILTERS = frozenset({"action", "outcome", "target_type", "request_id", "correlation_id"})
 AUDIT_DISPLAY_FIELDS = (
@@ -35,9 +45,17 @@ AUDIT_DISPLAY_FIELDS = (
 AUDIT_PAGE_SIZE = 20
 AUDIT_MAX_PAGE_SIZE = 50
 _IDENTIFIER = re.compile(r"^[a-z][a-z0-9_.:-]{0,127}$")
+AUDIT_EXPORT_MAX_ROWS = 1_000
+AUDIT_EXPORT_REASON_MAX_LENGTH = 200
+AUDIT_EXPORT_MAX_BYTES = 32 * 1024
+_AUDIT_EXPORT_STORED_BYTES = 48 * 1024
 
 
 class AuditQueryError(ValueError):
+    pass
+
+
+class AuditExportError(ValueError):
     pass
 
 
@@ -56,6 +74,14 @@ class AuditPage:
     total_count: int
     has_previous: bool
     has_next: bool
+
+
+@dataclass(frozen=True, slots=True)
+class AuditExportResult:
+    filename: str
+    row_count: int
+    csv: str
+    replayed: bool
 
 
 def parse_audit_list_query(query: QueryDict) -> AuditListQuery:
@@ -87,6 +113,92 @@ def parse_audit_list_query(query: QueryDict) -> AuditListQuery:
     if page < 1 or page > 100_000:
         raise AuditQueryError("invalid audit page")
     return AuditListQuery(filters=filters, page=page)
+
+
+def _normalize_export_filters(filters: object) -> dict[str, str]:
+    if filters is None:
+        return {}
+    if not isinstance(filters, Mapping) or any(not isinstance(key, str) for key in filters):
+        raise AuditExportError("audit export filters are invalid")
+    unexpected = set(filters).difference(AUDIT_FILTERS)
+    if unexpected:
+        raise AuditExportError("audit export filters are invalid")
+    normalized: dict[str, str] = {}
+    for key in sorted(AUDIT_FILTERS & set(filters)):
+        value = filters[key]
+        if not isinstance(value, str) or not value:
+            raise AuditExportError("audit export filters are invalid")
+        if key in {"action", "target_type"} and _IDENTIFIER.fullmatch(value) is None:
+            raise AuditExportError("audit export filters are invalid")
+        if key == "outcome" and value not in AuditEvent.Outcome.values:
+            raise AuditExportError("audit export filters are invalid")
+        if key in {"request_id", "correlation_id"} and not is_safe_external_context_id(value):
+            raise AuditExportError("audit export filters are invalid")
+        normalized[key] = value
+    return normalized
+
+
+def _normalize_export_reason(reason: object) -> str:
+    if not isinstance(reason, str):
+        raise AuditExportError("audit export reason must be a string")
+    if any(
+        character in "\r\n\t"
+        or unicodedata.category(character).startswith("C")
+        or unicodedata.category(character) in {"Zl", "Zp"}
+        for character in reason
+    ):
+        raise AuditExportError("audit export reason must be one safe line")
+    if "<" in reason or ">" in reason:
+        raise AuditExportError("audit export reason cannot contain markup")
+    normalized = reason.strip()
+    if (
+        not normalized
+        or len(normalized) > AUDIT_EXPORT_REASON_MAX_LENGTH
+        or is_sensitive_text(normalized)
+    ):
+        raise AuditExportError("audit export reason is invalid")
+    return normalized
+
+
+def _render_audit_csv(rows: list[dict[str, str]]) -> str:
+    buffer = io.StringIO()
+    writer = csv.DictWriter(buffer, fieldnames=list(AUDIT_DISPLAY_FIELDS), lineterminator="\n")
+    writer.writeheader()
+    for row in rows:
+        writer.writerow(
+            {field: neutralize_csv_formula(row[field]) for field in AUDIT_DISPLAY_FIELDS}
+        )
+    rendered = buffer.getvalue()
+    if len(rendered.encode()) > AUDIT_EXPORT_MAX_BYTES:
+        raise AuditExportError("audit export exceeds its bounded output size")
+    return rendered
+
+
+def _store_audit_csv(rendered: str) -> tuple[str, str]:
+    raw = rendered.encode()
+    compressed = base64.b64encode(zlib.compress(raw, level=9))
+    if len(compressed) > _AUDIT_EXPORT_STORED_BYTES:
+        raise AuditExportError("audit export exceeds its durable replay bound")
+    return compressed.decode("ascii"), hashlib.sha256(raw).hexdigest()
+
+
+def _load_audit_csv(stored_csv: object, expected_digest: object) -> str:
+    if (
+        not isinstance(stored_csv, str)
+        or not isinstance(expected_digest, str)
+        or len(expected_digest) != 64
+    ):
+        raise AuditExportError("audit export replay payload is invalid")
+    try:
+        rendered_bytes = zlib.decompress(base64.b64decode(stored_csv, validate=True))
+    except (ValueError, OSError, zlib.error):
+        raise AuditExportError("audit export replay payload is invalid") from None
+    if len(rendered_bytes) > AUDIT_EXPORT_MAX_BYTES:
+        raise AuditExportError("audit export replay payload exceeds its bound")
+    digest = hashlib.sha256(rendered_bytes).hexdigest()
+    if digest != expected_digest:
+        raise AuditExportError("audit export replay integrity check failed")
+    return rendered_bytes.decode()
 
 
 def audit_object_scope(actor: Any, queryset: QuerySet[AuditEvent]) -> QuerySet[AuditEvent]:
@@ -138,6 +250,104 @@ def get_audit_event(
     del context
     # Scope is applied in SQL before UUID lookup so excluded and absent objects share one path.
     return audit_object_scope(actor, AuditEvent.objects.all()).filter(id=event_id).first()
+
+
+def export_audit_events(
+    *,
+    confirmed: object,
+    reason: object,
+    filters: object = None,
+    idempotency_key: str,
+    actor_ref: str,
+    actor_id: Any | None = None,
+    api_principal_id: uuid.UUID | None = None,
+    context: ServiceContext | None = None,
+) -> AuditExportResult:
+    """Export a bounded, re-redacted audit snapshot as a formula-safe CSV."""
+
+    if confirmed is not True:
+        raise AuditExportError("confirmation is required")
+    normalized_reason = _normalize_export_reason(reason)
+    parsed_filters = _normalize_export_filters(filters)
+    try:
+        validate_actor_ref(actor_ref)
+    except ValueError as error:
+        raise AuditExportError("audit export actor is invalid") from error
+    if context is not None and context.actor_ref != actor_ref:
+        raise AuditExportError("audit export actor context is invalid")
+    service_context = context or ServiceContext.from_current(actor_ref=actor_ref)
+    scope = f"studio.audit.export:{actor_ref}"
+    if len(scope) > 128:
+        raise AuditExportError("audit export actor scope is invalid")
+    audit_context = AuditWriteContext.from_service_context(
+        service_context,
+        actor_id=actor_id,
+        api_principal_id=api_principal_id,
+        idempotency_key_hash=hash_idempotency_key(scope, idempotency_key),
+    )
+    request: JsonObject = {
+        "confirmed": True,
+        "reason": normalized_reason,
+        "filters": dict(parsed_filters),
+    }
+
+    def command() -> JsonObject:
+        queryset = (
+            audit_object_scope(None, AuditEvent.objects.all())
+            .filter(**parsed_filters)
+            .order_by("-created_at", "-id")
+        )
+        rows = [present_audit_event(event) for event in queryset[: AUDIT_EXPORT_MAX_ROWS + 1]]
+        if len(rows) > AUDIT_EXPORT_MAX_ROWS:
+            raise AuditExportError("audit export exceeds the bounded row limit")
+        rendered = _render_audit_csv(rows)
+        stored_csv, csv_sha256 = _store_audit_csv(rendered)
+        record_audit_event(
+            action="core.audit.exported",
+            target_type="core.audit_export",
+            target_label="audit-export",
+            outcome=AuditEvent.Outcome.SUCCEEDED,
+            context=audit_context,
+            changes={},
+            metadata={
+                "count": len(rows),
+                "filter_scope": parsed_filters,
+                "reason_length": len(normalized_reason),
+            },
+        )
+        return {
+            "filename": "audit-events.csv",
+            "row_count": len(rows),
+            "csv_gzip_base64": stored_csv,
+            "csv_sha256": csv_sha256,
+        }
+
+    result = execute_idempotent(
+        scope=scope,
+        key=idempotency_key,
+        request=request,
+        command=command,
+    )
+    payload = result.value
+    filename = payload.get("filename")
+    row_count = payload.get("row_count")
+    stored_csv = payload.get("csv_gzip_base64")
+    csv_sha256 = payload.get("csv_sha256")
+    if (
+        filename != "audit-events.csv"
+        or isinstance(row_count, bool)
+        or not isinstance(row_count, int)
+        or row_count < 0
+        or not isinstance(stored_csv, str)
+        or not isinstance(csv_sha256, str)
+    ):
+        raise AuditExportError("audit export replay result is invalid")
+    return AuditExportResult(
+        filename=str(filename),
+        row_count=row_count,
+        csv=_load_audit_csv(stored_csv, csv_sha256),
+        replayed=result.replayed,
+    )
 
 
 def _present_value(value: object) -> object:

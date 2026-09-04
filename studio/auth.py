@@ -27,6 +27,14 @@ from core.idempotency import hash_idempotency_key
 from core.models import AuditEvent
 from management_registry import CAPABILITY_REGISTRY
 
+_AUDITED_COMMAND_CAPABILITIES = frozenset(
+    {
+        "site.settings.write",
+        "site.navigation.write",
+        "studio.audit.export",
+    }
+)
+
 
 def _safe_login_redirect(request: HttpRequest) -> HttpResponseRedirect:
     login_url = resolve_url("login")
@@ -144,7 +152,7 @@ def capability_required(
                     return HttpResponseForbidden("Studio access denied")
                 return _safe_login_redirect(request)
             except StudioAuthorizationDenied:
-                if capability.key in {"site.settings.write", "site.navigation.write"}:
+                if capability.key in _AUDITED_COMMAND_CAPABILITIES:
                     actor = _current_studio_denial_actor(request)
                     if actor is not None:
                         audit_capability_denial(
@@ -158,7 +166,7 @@ def capability_required(
             if capability.studio.method == "GET":
                 allowed_methods.add("HEAD")
             if request.method not in allowed_methods:
-                if capability.key in {"site.settings.write", "site.navigation.write"}:
+                if capability.key in _AUDITED_COMMAND_CAPABILITIES:
                     audit_capability_denial(
                         request,
                         capability_key=capability.key,
