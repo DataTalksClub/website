@@ -1,0 +1,51 @@
+"""Network-free parser for the accepted legacy main-site source snapshot."""
+
+from .adapter import (
+    AssetReference,
+    AssetSourceRecord,
+    ConferenceSourceRecord,
+    LegacyMainBundle,
+    LegacyMainDiagnostic,
+    LegacyMainValidationError,
+    PartnerSourceRecord,
+    TalkSourceRecord,
+    ToolSourceRecord,
+    TrackSourceRecord,
+    adapt_legacy_main_checkout,
+    parse_legacy_main,
+    parse_legacy_main_checkout,
+)
+from .contract import (
+    LEGACY_MAIN_COMMIT,
+    LEGACY_MAIN_CONTRACT,
+    LEGACY_MAIN_PARSER_VERSION,
+    LEGACY_MAIN_REPOSITORY,
+    LEGACY_MAIN_SCHEMA_VERSION,
+    LEGACY_MAIN_TREE,
+    LegacyMainAdapterContract,
+    LegacySelectedFile,
+)
+
+__all__ = [
+    "AssetReference",
+    "AssetSourceRecord",
+    "ConferenceSourceRecord",
+    "LEGACY_MAIN_COMMIT",
+    "LEGACY_MAIN_CONTRACT",
+    "LEGACY_MAIN_PARSER_VERSION",
+    "LEGACY_MAIN_REPOSITORY",
+    "LEGACY_MAIN_SCHEMA_VERSION",
+    "LEGACY_MAIN_TREE",
+    "LegacyMainAdapterContract",
+    "LegacyMainBundle",
+    "LegacyMainDiagnostic",
+    "LegacyMainValidationError",
+    "LegacySelectedFile",
+    "PartnerSourceRecord",
+    "TalkSourceRecord",
+    "ToolSourceRecord",
+    "TrackSourceRecord",
+    "adapt_legacy_main_checkout",
+    "parse_legacy_main",
+    "parse_legacy_main_checkout",
+]
