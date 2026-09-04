@@ -23,7 +23,7 @@
       </p>
     </div>
   {% endif %}
-  {% if providers and not development_owner_login_enabled %}
+  {% if providers and not development_owner_login_enabled and account_signup_url %}
     <p class="auth-account-links">
       New here?
       <a href="{{ account_signup_url }}?next={{ safe_next|urlencode }}">
@@ -72,11 +72,13 @@
           >Sign in</button>
         </div>
       </form>
-      <p class="auth-account-links">
-        <a href="{{ account_signup_url }}?next={{ safe_next|urlencode }}">
-          Create an account
-        </a>
-      </p>
+      {% if account_signup_url %}
+        <p class="auth-account-links">
+          <a href="{{ account_signup_url }}?next={{ safe_next|urlencode }}">
+            Create an account
+          </a>
+        </p>
+      {% endif %}
     </section>
   {% elif not providers %}
     <div class="auth-fallback">

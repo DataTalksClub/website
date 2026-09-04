@@ -92,6 +92,25 @@ class LoginPageConfigurationTests(TestCase):
 
         self.assertContains(response, 'href="/accounts/signup/?next=/"')
 
+    def test_login_renders_without_signup_route_in_a_reduced_urlconf(self) -> None:
+        # `accounts.urls` is reused by reduced surfaces (preview, Studio,
+        # the management API, and `core.tests.seo_fixture_urls`) that
+        # intentionally do not include allauth's URLConf, so the
+        # `account_signup` name is absent there. The login page must keep
+        # rendering — not raise `NoReverseMatch` — and must omit every
+        # account-creation entrance that would otherwise point at it.
+        with override_settings(
+            ROOT_URLCONF="core.tests.seo_fixture_urls",
+            DEVELOPMENT_OWNER_LOGIN_ENABLED=True,
+        ):
+            response = self.client.get("/accounts/login/?next=%2F")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sign In")
+        self.assertContains(response, 'name="email"')
+        self.assertNotContains(response, "Create an account")
+        self.assertNotContains(response, "/accounts/signup/")
+
     def test_empty_auth_configuration_has_no_misleading_course_fallback(self) -> None:
         with override_settings(DEVELOPMENT_OWNER_LOGIN_ENABLED=False):
             for next_path in ("/books", "/accounts/signup/"):

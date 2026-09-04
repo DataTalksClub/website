@@ -10,7 +10,8 @@ from django.contrib.auth import authenticate, login
 from django.core.cache import cache
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse
+from django.urls.exceptions import NoReverseMatch
 
 from accounts.development_owner import DEVELOPMENT_OWNER_PRINCIPAL
 from accounts.forms import DevelopmentOwnerLoginForm
@@ -58,6 +59,22 @@ def _is_exact_development_owner(user) -> bool:
         identity_snapshot=DEVELOPMENT_OWNER_PRINCIPAL,
         is_active=True,
     ).exists()
+
+
+def _optional_signup_url() -> str | None:
+    """Resolve the signup destination without failing when it is absent.
+
+    ``account_signup`` is registered by allauth's URLConf, which the full
+    site includes but a reduced URLConf (preview/Studio/management-API
+    surfaces, or ``core.tests.seo_fixture_urls``) intentionally omits. The
+    login page must keep rendering in that reduced surface instead of
+    raising ``NoReverseMatch``.
+    """
+
+    try:
+        return reverse("account_signup")
+    except NoReverseMatch:
+        return None
 
 
 def social_login_view(request):
@@ -115,7 +132,7 @@ def social_login_view(request):
     context = {
         "providers": providers,
         "safe_next": safe_next,
-        "account_signup_url": reverse_lazy("account_signup"),
+        "account_signup_url": _optional_signup_url(),
         "development_owner_form": form,
         "development_owner_login_enabled": local_login_enabled,
         "login_error": login_error,
