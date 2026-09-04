@@ -11,7 +11,7 @@ from core.capabilities import (
 )
 
 from .models import APICredential, APIPrincipal
-from .policies import HIGH_RISK_FRESH_CONFIRMATION_POLICY
+from .policies import CREDENTIAL_CONFIRMATION_POLICY
 from .services import (
     issue_manageable_credential_once,
     list_manageable_credentials,
@@ -160,7 +160,7 @@ CREDENTIAL_CREATE = Capability(
     object_policy=_manageable_object_policy,
     object_scope=_manageable_object_scope,
     field_policy=_field_policy(_SAFE_CREATE_FIELDS),
-    high_risk_policy=HIGH_RISK_FRESH_CONFIRMATION_POLICY,
+    high_risk_policy=CREDENTIAL_CONFIRMATION_POLICY,
 )
 
 CREDENTIAL_ROTATE = Capability(
@@ -196,7 +196,7 @@ CREDENTIAL_ROTATE = Capability(
     object_policy=_manageable_object_policy,
     object_scope=_manageable_object_scope,
     field_policy=_field_policy(_SAFE_ROTATE_FIELDS),
-    high_risk_policy=HIGH_RISK_FRESH_CONFIRMATION_POLICY,
+    high_risk_policy=CREDENTIAL_CONFIRMATION_POLICY,
 )
 
 CREDENTIAL_REVOKE = Capability(
@@ -231,7 +231,7 @@ CREDENTIAL_REVOKE = Capability(
     object_policy=_manageable_object_policy,
     object_scope=_manageable_object_scope,
     field_policy=_field_policy(_SAFE_REVOKE_FIELDS),
-    high_risk_policy=HIGH_RISK_FRESH_CONFIRMATION_POLICY,
+    high_risk_policy=CREDENTIAL_CONFIRMATION_POLICY,
 )
 
 CREDENTIAL_RUNTIME_CAPABILITIES = (
