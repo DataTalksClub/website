@@ -2668,12 +2668,15 @@ with it — they are enforced only inside the projection builder today, and movi
 the folder without them silently loses the constraint. **Done looks like:** the
 build takes people from `--content-root`. Independent.
 
-**B6. Give event content a home.** *Medium (3–5 days).* All 421 events take
-title, dates, description, speakers and links from `_data/events.yaml` in the
-legacy repository. `events.Event` is deliberately thin. This is a one-off export
-into the database or into the content repository. **Done looks like:** the
-projection build no longer needs `--legacy-main-root` for events. Independent;
-blocks §12 decision 1.
+**B6. Give event content a home.** *Landed, except for the build input.* Event
+type, schedule, description, speakers and links are `EventContent`,
+`EventSpeaker` and `EventLink` rows, written by `scripts/prod/import_events.py`'s
+`import_content()` from the reviewed staging records and read by
+`events/queries.py`. What is left of this item is the offline build: the
+projection build still needs `--legacy-main-root` to *regenerate* those records
+from `_data/events.yaml`, which is the same shape as B5 (people) and is what
+`--legacy-main-root` exists for. The database no longer depends on it either
+way. Still blocks §12 decision 1.
 
 **B7. Close the `sync_public_media_hydrate.py` legacy default.** *Small (hours).*
 **A separate Codex run is fixing this now — do not duplicate it; check whether it
@@ -2893,8 +2896,11 @@ stronger choice; keep it.
 
 These block nothing today but must be closed before the migration runs.
 
-1. **Event content has no home.** §11 B6 is the work; the decision is *database or
-   content repository*.
+1. **Event content is in the database; where it is *edited* is still open.** The
+   one-off export has run (§11 B6) — 421 records, 159 of them described, in
+   `EventContent`. What is undecided is where a future edit to an event is made:
+   the database through Studio, or the content repository with a sync. Nothing
+   blocks on it while events remain frozen history.
 
 2. **`_conferences` (2 records) has no fate**, reaches no page, and **6 event rows
    carry links to conference pages that do not exist on our site** — the links are
