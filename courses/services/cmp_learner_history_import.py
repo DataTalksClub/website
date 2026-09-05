@@ -424,8 +424,8 @@ def _course_registration(row: Any, resolution: Resolution) -> CourseRegistration
 
 def _course_registration_key(instance: CourseRegistration) -> dict[str, Any]:
     return {
-        "campaign_id": instance.campaign_id,
         "email_normalized": instance.email_normalized,
+        "campaign_id": instance.campaign_id,
     }
 
 
@@ -471,6 +471,10 @@ class TablePlan:
     target account whenever another importer wrote it first, and their two CMP
     enrollments in one cohort are then the same person's single enrollment.  A
     table with no natural key leaves this ``None``.
+
+    Its **first** key is the selective one, and the batch's existing rows are
+    found through a single ``__in`` on it -- one query per batch rather than one
+    per row, which is what keeps a 218,577-row table a few hundred queries.
 
     ``stamps`` names the columns Django would overwrite with the import's own
     clock and this importer restores from the export afterwards.
@@ -574,6 +578,31 @@ def _report(progress: CmpHistoryImportProgress, source_total: int) -> TableRepor
     )
 
 
+def _existing_rows(plan: TablePlan, lookups: list[dict[str, Any]]) -> dict[tuple, int]:
+    """The target rows a batch's natural keys already match, in one query.
+
+    The lookup's first field is the selective one, so ``field__in`` narrows the
+    scan to this batch and the exact composite match is made in Python.  A query
+    per row would be a quarter of a million round trips for the answer table
+    alone.
+    """
+
+    if not lookups:
+        return {}
+    fields = list(lookups[0])
+    prefilter = fields[0]
+    wanted = {tuple(lookup[name] for name in fields) for lookup in lookups}
+    found: dict[tuple, int] = {}
+    rows = plan.model.objects.filter(
+        **{f"{prefilter}__in": {lookup[prefilter] for lookup in lookups}}
+    ).values_list(*fields, "pk")
+    for row in rows:
+        key = tuple(row[:-1])
+        if key in wanted:
+            found[key] = int(row[-1])
+    return found
+
+
 def _restore_stamps(plan: TablePlan, created: Iterable[Any], stamps: list[dict[str, Any]]) -> None:
     """Put the export's own timestamps back on rows Django just clock-stamped.
 
@@ -621,6 +650,7 @@ def _import_table(
         skipped = 0
         unresolved: Counter[str] = Counter()
         with transaction.atomic():
+            candidates: list[tuple[int, Any, dict[str, Any] | None]] = []
             for row in rows:
                 source_id = int(row["id"])
                 if source_id in claimed:
@@ -631,17 +661,20 @@ def _import_table(
                 except _Unresolved as gap:
                     unresolved[gap.bucket] += 1
                     continue
-                if plan.natural_key is not None:
-                    lookup = plan.natural_key(instance)
-                    key = tuple(sorted(lookup.items()))
+                lookup = plan.natural_key(instance) if plan.natural_key is not None else None
+                candidates.append((source_id, instance, lookup))
+            existing = _existing_rows(
+                plan, [lookup for _, _, lookup in candidates if lookup is not None]
+            )
+            for source_id, instance, lookup in candidates:
+                if lookup is not None:
+                    key = tuple(lookup.values())
+                    already = existing.get(key)
+                    if already is not None:
+                        attached_to_row.append((source_id, already))
+                        continue
                     if key in pending_by_key:
                         attached_to_pending.append((source_id, pending_by_key[key]))
-                        continue
-                    existing = (
-                        plan.model.objects.filter(**lookup).values_list("pk", flat=True).first()
-                    )
-                    if existing is not None:
-                        attached_to_row.append((source_id, int(existing)))
                         continue
                     pending_by_key[key] = len(pending)
                 stamps.append({name: getattr(instance, name) for name in plan.stamps})
