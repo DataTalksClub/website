@@ -50,8 +50,10 @@ COHORT_FAMILY_IDENTITIES: dict[str, tuple[str, int]] = {
     "ml-zoomcamp-2023": ("ml-zoomcamp", 2023),
     "ml-zoomcamp-2024": ("ml-zoomcamp", 2024),
     "ml-zoomcamp-2025": ("ml-zoomcamp", 2025),
+    "ml-zoomcamp-2026": ("ml-zoomcamp", 2026),
     "llm-zoomcamp-2024": ("llm-zoomcamp", 2024),
     "llm-zoomcamp-2025": ("llm-zoomcamp", 2025),
+    "llm-zoomcamp-2026": ("llm-zoomcamp", 2026),
     "mlops-zoomcamp-2022": ("mlops-zoomcamp", 2022),
     "mlops-zoomcamp-2023": ("mlops-zoomcamp", 2023),
     "mlops-zoomcamp-2024": ("mlops-zoomcamp", 2024),
@@ -60,6 +62,7 @@ COHORT_FAMILY_IDENTITIES: dict[str, tuple[str, int]] = {
     "sma-zoomcamp-2025": ("sma-zoomcamp", 2025),
     "sma-zoomcamp-2026": ("sma-zoomcamp", 2026),
     "ai-dev-tools-2025": ("ai-dev-tools", 2025),
+    "ai-dev-tools-2026": ("ai-dev-tools", 2026),
 }
 
 COURSE_FAMILY_TITLES: dict[str, str] = {
