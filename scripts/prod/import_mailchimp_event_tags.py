@@ -49,6 +49,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.prod.target import add_target_arguments, configure_target  # noqa: E402
+
 SYNC_MODEL = "one-time"
 # Reconciles against accounts and registrant identities other importers
 # already created; never creates a CustomUser, and only ever creates a
@@ -64,16 +66,6 @@ _SUBSCRIBED_PREFIX = "subscribed_email_audience_export_"
 
 class MailchimpEventTagImportFailure(RuntimeError):
     """A safe refusal that carries a condition code, never a source value."""
-
-
-def _configure(database: Path) -> None:
-    os.environ["DTC_ENVIRONMENT"] = "local"
-    os.environ["DTC_SQLITE_PATH"] = str(database)
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings.local")
-
-    import django
-
-    django.setup()
 
 
 def _resolve_subscribed_file(export_dir: Path) -> Path:
@@ -96,7 +88,7 @@ def main(argv: list[str] | None = None) -> int:
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--database", required=True, type=Path)
+    add_target_arguments(parser)
     parser.add_argument(
         "--export-dir",
         required=True,
@@ -123,7 +115,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"error": str(error)}, indent=2))
         return 1
 
-    _configure(args.database.resolve())
+    configure_target(parser, args)
 
     from events.mailchimp_tag_import import (
         MailchimpEventTagImportError,

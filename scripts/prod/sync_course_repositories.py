@@ -39,6 +39,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.prod.target import add_target_arguments, configure_target  # noqa: E402
+
 SYNC_MODEL = "git-synchronized"
 # It owns module and unit curricula: given at least one registered source and a
 # checkout for it, this writes cohorts into a database that had none of its own.
@@ -57,16 +59,6 @@ class SyncCourseRepositoriesError(RuntimeError):
     def __init__(self, message: str, *, report: dict[str, Any] | None = None) -> None:
         super().__init__(message)
         self.report = report
-
-
-def _configure(database: Path) -> None:
-    os.environ["DTC_ENVIRONMENT"] = "local"
-    os.environ["DTC_SQLITE_PATH"] = str(database)
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings.local")
-
-    import django
-
-    django.setup()
 
 
 # --------------------------------------------------------------------------
@@ -329,7 +321,7 @@ def pull(
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--database", required=True, type=Path)
+    add_target_arguments(parser)
     parser.add_argument(
         "--from-disk",
         dest="from_disk",
@@ -393,8 +385,9 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = _parser().parse_args(argv)
-    _configure(args.database.resolve())
+    parser = _parser()
+    args = parser.parse_args(argv)
+    configure_target(parser, args)
 
     root = args.from_disk.expanduser() if args.from_disk is not None else None
     try:

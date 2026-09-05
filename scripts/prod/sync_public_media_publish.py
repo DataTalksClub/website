@@ -25,16 +25,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.prod.target import configure_ambient_settings  # noqa: E402
+
 SYNC_MODEL = "git-synchronized"
 BOOTSTRAPS_EMPTY_DATABASE = False
-
-
-def _configure() -> None:
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings.local")
-
-    import django
-
-    django.setup()
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -50,7 +44,7 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    _configure()
+    configure_ambient_settings()
 
     from content.media_store import S3MediaStore, media_store, media_store_config
     from content.media_tooling import MediaToolingError, publish_media

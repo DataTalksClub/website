@@ -6,6 +6,16 @@ belongs here, and nothing here may import a seeder -- the split is by *what data
 module touches*, so a reader can tell from the path whether a script is safe to point
 at a scratch database.
 
+Which database a run writes
+---------------------------
+
+Not this package's business to decide per module: ``scripts.prod.target`` owns it, and
+every entry point that writes rows takes its selection from there.  ``--database PATH``
+is a local SQLite file and ``--deployment-target NAME`` is a reviewed deployed one.
+There is no default and no ambient way in, and a deployed write additionally needs
+``--allow-production-write NAME`` naming the same target.  Read that package before
+changing how anything here is configured.
+
 Two sync models, said by the filename
 -------------------------------------
 

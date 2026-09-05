@@ -23,6 +23,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.prod.target import add_target_arguments, configure_target  # noqa: E402
+
 SYNC_MODEL = "one-time"
 # It creates a cohort, and its family, from the reviewed catalogue when CMP
 # publishes one the database does not have, so it no longer needs a seeded
@@ -31,19 +33,9 @@ SYNC_MODEL = "one-time"
 BOOTSTRAPS_EMPTY_DATABASE = True
 
 
-def _configure(database: Path) -> None:
-    os.environ["DTC_ENVIRONMENT"] = "local"
-    os.environ["DTC_SQLITE_PATH"] = str(database)
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings.local")
-
-    import django
-
-    django.setup()
-
-
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--database", required=True, type=Path)
+    add_target_arguments(parser)
     parser.add_argument("--source", required=True, type=Path, help="CMP production export")
     parser.add_argument(
         "--cohort",
@@ -55,8 +47,9 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = _parser().parse_args(argv)
-    _configure(args.database.resolve())
+    parser = _parser()
+    args = parser.parse_args(argv)
+    configure_target(parser, args)
 
     from courses.services.cmp_content_import import (
         CmpContentImportError,

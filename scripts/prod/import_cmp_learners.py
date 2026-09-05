@@ -46,6 +46,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.prod.target import add_target_arguments, configure_target  # noqa: E402
+
 SYNC_MODEL = "one-time"
 # accounts_customuser has no prerequisite domain rows of its own -- it can
 # populate a database with none present. (account_emailaddress and the
@@ -53,22 +55,12 @@ SYNC_MODEL = "one-time"
 BOOTSTRAPS_EMPTY_DATABASE = True
 
 
-def _configure(database: Path) -> None:
-    os.environ["DTC_ENVIRONMENT"] = "local"
-    os.environ["DTC_SQLITE_PATH"] = str(database)
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings.local")
-
-    import django
-
-    django.setup()
-
-
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--database", required=True, type=Path)
+    add_target_arguments(parser)
     parser.add_argument("--source", type=Path, help="CMP production export")
     parser.add_argument(
         "--batch-size",
@@ -102,8 +94,9 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = _parser().parse_args(argv)
-    _configure(args.database.resolve())
+    parser = _parser()
+    args = parser.parse_args(argv)
+    configure_target(parser, args)
 
     from accounts.services.cmp_learner_import import (
         DEFAULT_BATCH_SIZE,
@@ -124,11 +117,11 @@ def main(argv: list[str] | None = None) -> int:
             report = progress_status(claims_path=claims_path)
         elif args.dry_run:
             if args.source is None:
-                _parser().error("--dry-run requires --source")
+                parser.error("--dry-run requires --source")
             report = dry_run_counts(args.source.resolve(), claims_path=claims_path)
         else:
             if args.source is None:
-                _parser().error("--source is required unless --status is given")
+                parser.error("--source is required unless --status is given")
             batch_size = args.batch_size or DEFAULT_BATCH_SIZE
             result = import_cmp_learners(
                 args.source.resolve(),

@@ -291,12 +291,43 @@ Each step states what it runs, what it should produce, a checkpoint you can run,
 and what to do when it fails. **A checkpoint that does not pass stops the
 migration.** Do not run the next step to see if it helps.
 
-Two conventions used throughout:
+Three conventions used throughout:
 
-- **`$TARGET`** is the environment that selects the database. For the rehearsal
-  that is `DTC_ENVIRONMENT=local DJANGO_SETTINGS_MODULE=website.settings.local
-  DTC_SQLITE_PATH=<path>`; for production it is the production settings module and
-  its own credentials. Nothing else in a command changes between the two.
+- **`$TARGET`** is the environment that selects the database **for `manage.py`**.
+  For the rehearsal that is `DTC_ENVIRONMENT=local
+  DJANGO_SETTINGS_MODULE=website.settings.local DTC_SQLITE_PATH=<path>`. For
+  production it is `DTC_ENVIRONMENT=production
+  DJANGO_SETTINGS_MODULE=website.settings.production DJANGO_ALLOWED_HOSTS=…
+  DJANGO_CSRF_TRUSTED_ORIGINS=…` plus **the five names the deployed task carries
+  and this repository cannot supply**: `DATABASE_URL` and `DJANGO_SECRET_KEY` from
+  Secrets Manager, and the sealed release identity `VERSION`, `SOURCE_SHA` and
+  `IMAGE_DIGEST`. Read the identity off the released task definition — production
+  settings refuse to boot without a real one, deliberately, so an improvised shell
+  cannot become production.
+- **`<target>`** is the substitution for a `scripts/prod` entry point, which does
+  **not** read `$TARGET`. Those scripts select their own database and refuse to
+  inherit one:
+
+  ```
+  rehearsal:   --database <path>
+  production:  --deployment-target website-production \
+               --allow-production-write website-production
+  ```
+
+  Both flags are required and both must name the same target. The five names above
+  must be exported as well; everything else a deployed run needs — settings module,
+  environment, hosts, origins, media store, inert Datamailer client — comes from the
+  reviewed deployment target itself, so it cannot be typed wrong. A missing name is
+  refused by name before anything is written. `scripts/prod/target/__init__.py` is
+  the authority.
+
+  Two consequences worth knowing before migration day. **The `make` wrappers below
+  cannot write to production** — `make import-legacy-zoomcamp`, `make import-events`,
+  `make content-sources` and `make content-pull` hardcode `--database`, so a
+  production step calls the script directly. And **a shell that already exports the
+  production `$TARGET` cannot run a rehearsal command**: a `--database` run in that
+  shell is refused rather than quietly reinterpreted, so unset those values before
+  going back to a scratch database.
 - **`$EXPORT`** is the chosen CMP export, e.g.
   `/data/tmp/rds-export/cmp/rds-prod-20260905-182754.db`. Read in place,
   read-only. Only `cmp/` is ours — see §14 for the one beside it.
@@ -379,11 +410,15 @@ them.
 ```
 git clone https://github.com/DataTalksClub/zoomcamp-scoring ~/git/zoomcamp-scoring
 
-$TARGET uv run --frozen python scripts/prod/import_legacy_zoomcamp.py \
-    --database <target> --source-repo ~/git/zoomcamp-scoring --list
+uv run --frozen python scripts/prod/import_legacy_zoomcamp.py \
+    <target> --source-repo ~/git/zoomcamp-scoring --list
 
-$TARGET make import-legacy-zoomcamp IMPORT_DATABASE=<target>
+uv run --frozen python scripts/prod/import_legacy_zoomcamp.py \
+    <target> --source-repo ~/git/zoomcamp-scoring
 ```
+
+`make import-legacy-zoomcamp IMPORT_DATABASE=<path>` is the rehearsal shorthand for
+the second command; it hardcodes `--database`, so production runs the script itself.
 
 Run `--list` first; it discovers the editions and writes nothing.
 
@@ -453,10 +488,22 @@ numbers during the rehearsal in §8.4.
 ### Step 2 — Course repositories
 
 ```
-$TARGET make content-sources        # register ContentSource rows
-$TARGET make content-checkouts CONTENT_CHECKOUT_ROOT=<dir>   # the only networked step
-$TARGET make content-pull     CONTENT_CHECKOUT_ROOT=<dir>    # offline
+uv run --frozen python scripts/prod/sync_course_repository_sources.py <target>
+
+uv run --frozen python scripts/prod/sync_course_repositories.py <target> \
+    --checkout-plan --from-disk <dir>     # then clone or refresh each checkout;
+                                          # the only networked step
+
+uv run --frozen python scripts/prod/sync_course_repositories.py <target> \
+    --from-disk <dir>                     # offline
 ```
+
+The rehearsal shorthands are `make content-sources`, `make content-checkouts` and
+`make content-pull`, each taking `CONTENT_DATABASE=<path>` and the checkout ones
+`CONTENT_CHECKOUT_ROOT=<dir>`. `content-checkouts` is the git loop around the plan
+the second command prints; all three hardcode `--database`, so production runs the
+scripts directly. Every one of them reads the registered `ContentSource` rows, so
+the plan step needs the target too.
 
 Three repositories are registered: `ai-dev-tools-zoomcamp`, `llm-zoomcamp`,
 `machine-learning-zoomcamp`. `mlops-zoomcamp` and
@@ -515,8 +562,8 @@ network and its time is git clone time.
 ### Step 3 — CMP course content
 
 ```
-$TARGET uv run --frozen python scripts/prod/import_cmp_content.py \
-    --database <target> --source $EXPORT
+uv run --frozen python scripts/prod/import_cmp_content.py \
+    <target> --source $EXPORT
 ```
 
 Reconciles homework onto step 2's rows, adds the CMP cohorts whose family already
@@ -909,8 +956,8 @@ chance. Owner's instruction, verbatim: "first import new events, make sure
 they are up to date, then start the imports."
 
 ```
-$TARGET uv run --frozen python scripts/prod/import_events.py \
-    --database <target> \
+uv run --frozen python scripts/prod/import_events.py \
+    <target> \
     --luma-source /data/tmp/luma-eventbrite-export/luma-aggregate-v1 \
     --discover-new-events-only
 ```
@@ -957,11 +1004,14 @@ Identity manifest first, then the two registration sources. Counts only — **no
 attendee row is ever written.**
 
 ```
-$TARGET make import-events IMPORT_DATABASE=<target>
+uv run --frozen python scripts/prod/import_events.py <target> \
+    --current-registration-input \
+    _docs/migration-data/local-current-registration-input.json
 ```
 
-which runs `scripts/prod/import_events.py`. (`data-ingest.md` §11 and §13 say that
-script does not exist; it landed on this branch on 2026-09-03 and
+`make import-events IMPORT_DATABASE=<path>` is the rehearsal shorthand for it; it
+hardcodes `--database`, so production runs the script itself. (`data-ingest.md` §11
+and §13 say that script does not exist; it landed on this branch on 2026-09-03 and
 `scripts/prepare_local_data.py` already composes it. The reference needs
 correcting, not the plan.)
 
@@ -2487,18 +2537,32 @@ cheapest thing in this document and the most useful at 2am.
 | Step | Rehearsal command | Source substitution | Does it weaken the rehearsal? |
 | --- | --- | --- | --- |
 | 0 | `$TARGET uv run --frozen python manage.py migrate --no-input` | SQLite instead of Postgres | **Yes, mildly.** SQLite will not catch a Postgres-only constraint or collation problem. The uniqueness and FK checks still run. |
+<<<<<<< HEAD
 | 1 | `$TARGET make import-legacy-zoomcamp IMPORT_DATABASE=$REHEARSAL` | none — real `zoomcamp-scoring` clone | No |
 | 2 | `$TARGET make content-sources` → `content-checkouts` → `content-pull` | none — real repositories | No |
 | 3 | `$TARGET uv run … scripts/prod/import_cmp_content.py --database $REHEARSAL --source $EXPORT` | none — the real export, read in place | No |
 | 4 | `$TARGET uv run … scripts/prod/import_cmp_learners.py --database $REHEARSAL --source $EXPORT --claims-file …` then `… scripts/prod/import_cmp_learner_history.py --database $REHEARSAL --source $EXPORT --claims-dir … --user-claims-file …` | none — the real export, read in place | No — **verified end to end** on 2026-09-05: 20,469 accounts and 414,768 history rows in about two minutes, replay a no-op, SIGKILL-and-resume identical |
 | 5 | `$TARGET make import-events IMPORT_DATABASE=$REHEARSAL` | Luma/Eventbrite archives from `.local/migration-data` | No — **verified end to end**: 421 events, allocator at 422 |
+=======
+| 1 | `make import-legacy-zoomcamp IMPORT_DATABASE=$REHEARSAL` | none — real `zoomcamp-scoring` clone | No |
+| 2 | `make content-sources` → `content-checkouts` → `content-pull`, each with `CONTENT_DATABASE=$REHEARSAL` | none — real repositories | No |
+| 3 | `uv run … scripts/prod/import_cmp_content.py --database $REHEARSAL --source $EXPORT` | none — the real export, read in place | No |
+| 4 | **does not exist** — §11 A3 | — | The rehearsal cannot run at all until this exists |
+| 5 | `make import-events IMPORT_DATABASE=$REHEARSAL` | Luma/Eventbrite archives from `.local/migration-data` | No — **verified end to end**: 421 events, allocator at 422 |
+>>>>>>> worktree-agent-a03fd3b4d03d08d78
 | 6 | `scripts/prod/sync_public_media_verify.py`, `manage.py check`, `python -m ci.content_update` | the committed projection instead of a rebuild | **Yes.** A full rebuild needs three pinned checkouts and is not reproducible today (#253). The rehearsal checks the artifacts, not the build. |
 | 7 | `scripts/prod/sync_public_media_hydrate.py` → `sync_public_media_publish.py` → `sync_public_media_verify.py` | a `local` store instead of `s3` | **Yes.** The rehearsal proves the counts and the incrementality, not the bucket |
-| 8 | `$TARGET uv run … scripts/prod/import_testimonials.py --database $REHEARSAL` (sponsors: §11 B9) | none — the reviewed set is in this repository | No for testimonials; sponsors cannot be rehearsed yet |
+| 8 | `uv run … scripts/prod/import_testimonials.py --database $REHEARSAL` (sponsors: §11 B9) | none — the reviewed set is in this repository | No for testimonials; sponsors cannot be rehearsed yet |
 | OAuth | §5.2 | real Google and GitHub, local callback | No — this is the real thing |
 
+The `scripts/prod` rows carry no `$TARGET` prefix because those entry points do not
+read one: they take `--database $REHEARSAL` here and the two-flag production
+selection from §4 there. Exporting the local `$TARGET` around them is harmless but
+does nothing, and exporting the *production* `$TARGET` around them is refused.
+
 Run each step's checkpoint from §4 immediately after the step, with `$TARGET` and
-`$EXPORT` set as above. They were written to run unchanged in both places.
+`$EXPORT` set as above. The checkpoints are all `manage.py`, so they do run
+unchanged in both places.
 
 ### 8.4 Record these numbers
 

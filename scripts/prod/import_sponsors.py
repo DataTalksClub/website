@@ -37,6 +37,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.prod.target import add_target_arguments, configure_target  # noqa: E402
+
 SYNC_MODEL = "one-time"
 BOOTSTRAPS_EMPTY_DATABASE = True
 
@@ -45,16 +47,6 @@ REVIEWED_PATH = PROJECT_ROOT / "temporary" / "content" / "sponsor_directory.json
 
 class SponsorDirectoryImportFailure(RuntimeError):
     """A safe refusal that carries a condition code, never a source value."""
-
-
-def _configure(database: Path) -> None:
-    os.environ["DTC_ENVIRONMENT"] = "local"
-    os.environ["DTC_SQLITE_PATH"] = str(database)
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings.local")
-
-    import django
-
-    django.setup()
 
 
 def run(*, path: Path | None = None, apply: bool = True) -> dict[str, Any]:
@@ -83,7 +75,7 @@ def run(*, path: Path | None = None, apply: bool = True) -> dict[str, Any]:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--database", required=True, type=Path)
+    add_target_arguments(parser)
     parser.add_argument("--reviewed-file", type=Path, default=REVIEWED_PATH)
     parser.add_argument(
         "--dry-run",
@@ -94,9 +86,10 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = _parser().parse_args(argv)
+    parser = _parser()
+    args = parser.parse_args(argv)
     try:
-        _configure(args.database.resolve())
+        configure_target(parser, args)
         report = run(path=args.reviewed_file.resolve(), apply=not args.dry_run)
     except SponsorDirectoryImportFailure as error:
         print(json.dumps({"error": str(error)}, indent=2))
