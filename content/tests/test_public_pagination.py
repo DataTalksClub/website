@@ -569,7 +569,7 @@ class PublicPaginationRouteContractTests(TestCase):
         self.assertNotIn("pagination-gap", blog)
 
 
-class PublicPaginationSeoAndRepositoryTests(SimpleTestCase):
+class PublicPaginationSeoAndRepositoryTests(TestCase):
     def test_canonical_registry_allows_only_reviewed_exact_page_selectors(self) -> None:
         for base_path in sorted(PUBLIC_PAGINATION_PATHS):
             for page_number in (1, 2, 999):

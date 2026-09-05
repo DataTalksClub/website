@@ -15,7 +15,7 @@ import re
 from pathlib import Path
 
 from django.template.loader import render_to_string
-from django.test import SimpleTestCase, TestCase
+from django.test import TestCase
 
 from core.templatetags.accessibility import counted
 
@@ -54,7 +54,7 @@ RETIRED_ROW_RULES = (
 )
 
 
-class CountedFilterTests(SimpleTestCase):
+class CountedFilterTests(TestCase):
     """The row takes its pill as one piece of text, so something has to join
     a count to the noun it counts."""
 
@@ -74,7 +74,7 @@ class CountedFilterTests(SimpleTestCase):
                 self.assertEqual(counted(empty, "question"), "")
 
 
-class ArchiveRowSlotTests(SimpleTestCase):
+class ArchiveRowSlotTests(TestCase):
     def render(self, **slots: object) -> str:
         return render_to_string(ROW_TEMPLATE, slots)
 
