@@ -3,7 +3,8 @@ from __future__ import annotations
 from django.contrib.staticfiles import finders
 from django.test import TestCase
 
-from content.public_data import public_projection, safe_public_graph_url
+from content.public_data import public_projection
+from content.public_graph import safe_public_graph_url
 from scripts import build_public_projection as builder
 
 

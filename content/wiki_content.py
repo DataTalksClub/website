@@ -36,7 +36,8 @@ from core.graph_layout import (
 )
 
 from .podcast_routes import podcast_canonical_path, podcast_public_id
-from .public_data import public_projection, safe_public_graph_url
+from .public_data import public_projection
+from .public_graph import safe_public_graph_url
 
 _PODCAST_GRAPH_PATH = re.compile(r"/podcast/s[0-9]+e[0-9]+/[a-z0-9_][a-z0-9_.-]*")
 

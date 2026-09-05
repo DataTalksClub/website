@@ -10,7 +10,8 @@ from django.template.loader import render_to_string
 from django.test import TestCase
 
 from content.podcast_routes import podcast_public_id
-from content.public_data import _validate_wiki_graph, public_projection
+from content.public_data import public_projection
+from content.public_graph import validate_wiki_graph
 from content.wiki_content import episode_graph
 
 REPRESENTATIVE = (
@@ -346,14 +347,14 @@ class EpisodeGraphContractTests(TestCase):
             "links": [],
         }
         with self.assertRaises(ImproperlyConfigured):
-            _validate_wiki_graph(unsafe)
+            validate_wiki_graph(unsafe)
 
         dangling = {
             "nodes": [_graph_node("wiki:one", "One", "wiki", "/wiki/one")],
             "links": [{"kind": "related", "source": "wiki:one", "target": "wiki:two", "weight": 1}],
         }
         with self.assertRaises(ImproperlyConfigured):
-            _validate_wiki_graph(dangling)
+            validate_wiki_graph(dangling)
 
 
 class EpisodeGraphPageTests(TestCase):
