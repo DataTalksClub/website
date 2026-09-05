@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 
 from . import (  # noqa: F401
+    cmp_import,
     cohort,
     curriculum,
     curriculum_import,
@@ -9,6 +10,7 @@ from . import (  # noqa: F401
     testimonial,
     wrapped,
 )
+from .cmp_import import CmpHistoryImportProgress
 from .cohort import (
     Cohort,
     CohortBuildItem,
@@ -62,6 +64,7 @@ User = get_user_model()
 __all__ = (
     "Answer",
     "AnswerTypes",
+    "CmpHistoryImportProgress",
     "Cohort",
     "CohortBuildItem",
     "CurriculumFlowItem",

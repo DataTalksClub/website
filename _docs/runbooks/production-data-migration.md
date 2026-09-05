@@ -75,7 +75,7 @@ deliberately do nothing", it says so.
 | 9 | Legacy `images/authors/` (438) | pinned build | one-off export → CDN; **live defect**, §11 B7 | 6 |
 | 10 | Legacy `_data/faqs/` article FAQ (159 pairs) | one-time seed → git-synchronised | **owner ruling: pairs move to article frontmatter `faq:` in `DataTalksClub/content` and enter through the content ingest; no separate model** | 6 |
 | 11 | CMP export — course content (991 rows) | one-time | `scripts/prod/import_cmp_content.py` | 3 |
-| 12 | CMP export — learner data (510,519 rows) | one-time | **to build**, §11 A3 | 4 |
+| 12 | CMP export — learner data (510,519 rows) | one-time | `scripts/prod/import_cmp_learners.py` (accounts) + `scripts/prod/import_cmp_learner_history.py` (the other nine tables) | 4 |
 | 13 | `zoomcamp-scoring` — pre-2024 history | one-time | `scripts/prod/import_legacy_zoomcamp.py` | 1 |
 | 14 | Event identity manifest (421 / 1,684) | one-time | `scripts/prod/import_events.py` — **no longer a migration** | 5 |
 | 14a | Event content (421 records, 159 described) | one-time | `scripts/prod/import_events.py` → `events/content_import.py`, straight after 14 | 5 |
@@ -648,15 +648,15 @@ exists to prevent).
 
 ### Step 4 — CMP learner data
 
-**The account layer has an importer; the activity layer does not.**
-`scripts/prod/import_cmp_learners.py` imports `accounts_customuser` and
-`account_emailaddress`, resumably, with every account unprivileged and
-password-unusable. Its own docstring hands enrollments, submissions, answers,
-reviews and course registrations to a separate importer, and **that importer does
-not exist** — §11 A3. Measured on the 2026-09-05 export, that is 472,690 of the
-513,625 learner rows. Everything below is the specification the whole step has to
-satisfy, and the checkpoints it has to pass; the account transforms are the ones
-already met.
+**Two importers, run in this order.**
+`scripts/prod/import_cmp_learners.py` writes the accounts
+(`accounts_customuser`, `account_emailaddress`);
+`scripts/prod/import_cmp_learner_history.py` writes the other nine tables and
+resolves every foreign key against what it and `import_cmp_content` already
+wrote.  The history importer reads the account claims file the first one leaves
+behind, through `--user-claims-file`, so pointing the second run at the first
+run's `--claims-file` is not optional.  Everything below is the specification
+they satisfy, and the checkpoints they pass.
 
 The export is 38 tables and **664,806** rows. Every one of those tables needs a
 declared fate; here is all 38, so nothing can be forgotten:
@@ -680,6 +680,13 @@ declared fate; here is all 38, so nothing can be forgotten:
 An earlier draft put this step at "~663,000 rows". That number is
 664,806 − 991, i.e. *everything that is not course content*, most of which is
 excluded on purpose. The learner set is **510,519**.
+
+Those row counts are from the export they were measured on and every daily
+export moves them; `rds-prod-20260905-182754.db` carries 20,469 accounts and
+472,690 rows across the nine history tables. Read the counts from the export at
+run time — both importers do, and both report the source total per table — and
+use the fixed part of the table, the *fate of each table*, which is what it is
+here for.
 
 **Never import (5 tables, 92,864 rows)** — all present in the export:
 
@@ -836,16 +843,57 @@ and **58 users appear only in those cohorts**. Decide before the run whether tho
 users import with no history or are excluded; do not let the importer decide by
 accident.
 
-**Failure and recovery.** Unknown until the importer exists, and this is the
-question §11 A3 must answer explicitly. **The requirement:** per-table, keyed on
-the source primary key, resumable, and reporting per-table written/skipped counts
-— so a failure at 400,000 rows is a re-run and not a rebuild. If it cannot be
-made resumable, say so, and then a failure here means dropping the database and
-restarting from step 0, which given the duration is the difference between a
-10-minute recovery and a whole maintenance window.
+**Failure and recovery.** **Recoverable by re-run.** The transaction boundary is
+one batch of one table: the rows and the table's watermark
+(`courses.CmpHistoryImportProgress`, `accounts.CmpLearnerImportProgress`) commit
+together, so a process killed mid-batch leaves nothing half-written and a plain
+re-run resumes from the last committed batch. `--status` reports how far a run
+got without opening the export. Both importers keep their own claims files
+(`--claims-file`, `--claims-dir`) mapping a CMP source id to the row they
+created; those files are durable resumability state, not scratch, and must
+travel with the database across a kill-and-resume. Losing one is still
+recoverable: every table with a natural key re-attaches to the row already there
+rather than duplicating it, and reports the count as `attached`.
 
-**Duration.** Unknown; 510,519 rows. Measure it in the rehearsal. This is almost
-certainly the longest step and the one that sizes the maintenance window.
+**Duration.** **Measured** on 2026-09-05, SQLite, against the day's export:
+85 s for the 20,469 accounts and 45 s for the 472,690 history rows — about two
+minutes for step 4 in total. Postgres over a network will be slower; the shape
+to expect is a few hundred queries per table, not one per row.
+
+**Rehearsed on 2026-09-05** against `rds-prod-20260905-182754.db`, into a fresh
+SQLite database after `migrate` + `import_cmp_content` + `import_cmp_learners`:
+
+| Table | Source | Created | Unresolved |
+| --- | ---: | ---: | --- |
+| `courses_courseregistration` | 28,831 | 17,380 | 11,451 `cohort` |
+| `courses_enrollment` | 21,409 | 18,702 | 2,707 `cohort` |
+| `courses_submission` | 36,617 | 33,835 | 2,782 `homework` |
+| `courses_answer` | 218,577 | 202,677 | 15,900 `submission` |
+| `courses_projectsubmission` | 4,279 | 3,757 | 522 `project` |
+| `courses_peerreview` | 13,041 | 11,623 | 1,418 `project_submission` |
+| `courses_criteriaresponse` | 107,691 | 93,780 | 13,911 `peer_review` |
+| `courses_projectevaluationscore` | 38,026 | 33,014 | 5,012 `project_submission` |
+| `courses_userwrappedstatistics` | 4,219 | 0 | 4,219 `wrapped` |
+
+**Every unresolved row above is one of two open decisions, not an importer
+defect.** All of them cascade from a parent that is absent on purpose:
+
+* **The eight cohorts `import_cmp_content` does not create** — the five
+  owner-skipped ones plus `ai-dev-tools-2026`, `llm-zoomcamp-2026` and
+  `ml-zoomcamp-2026`, which the reviewed `COHORT_FAMILY_IDENTITIES` mapping does
+  not name. Everything from `cohort` down to `criteria_response` traces back to
+  them; the 11,451 registrations are entirely `ai-dev-tools-2026` and
+  `ml-zoomcamp-2026`. Name those three in the reviewed mapping (A1) and re-run:
+  the import is resumable, so it adds what it could not resolve before.
+* **`courses_wrappedstatistics`, §12 decision 4.** Its single row is the parent
+  of all 4,219 per-user Wrapped pages, and this step does not import it. Give
+  the target a `WrappedStatistics` for that year — imported, or recalculated
+  through `courses.wrapped_statistics` — and all 4,219 resolve; **verified** on
+  the rehearsal database, 4,219 created, zero unresolved.
+
+Zero rows were unresolved for `user`, `question`, `criteria` or `campaign`: every
+account, question, review criterion and campaign the history references was
+reconciled.
 
 ### Step 5 — Events
 
@@ -2442,7 +2490,7 @@ cheapest thing in this document and the most useful at 2am.
 | 1 | `$TARGET make import-legacy-zoomcamp IMPORT_DATABASE=$REHEARSAL` | none — real `zoomcamp-scoring` clone | No |
 | 2 | `$TARGET make content-sources` → `content-checkouts` → `content-pull` | none — real repositories | No |
 | 3 | `$TARGET uv run … scripts/prod/import_cmp_content.py --database $REHEARSAL --source $EXPORT` | none — the real export, read in place | No |
-| 4 | **does not exist** — §11 A3 | — | The rehearsal cannot run at all until this exists |
+| 4 | `$TARGET uv run … scripts/prod/import_cmp_learners.py --database $REHEARSAL --source $EXPORT --claims-file …` then `… scripts/prod/import_cmp_learner_history.py --database $REHEARSAL --source $EXPORT --claims-dir … --user-claims-file …` | none — the real export, read in place | No — **verified end to end** on 2026-09-05: 20,469 accounts and 414,768 history rows in about two minutes, replay a no-op, SIGKILL-and-resume identical |
 | 5 | `$TARGET make import-events IMPORT_DATABASE=$REHEARSAL` | Luma/Eventbrite archives from `.local/migration-data` | No — **verified end to end**: 421 events, allocator at 422 |
 | 6 | `scripts/prod/sync_public_media_verify.py`, `manage.py check`, `python -m ci.content_update` | the committed projection instead of a rebuild | **Yes.** A full rebuild needs three pinned checkouts and is not reproducible today (#253). The rehearsal checks the artifacts, not the build. |
 | 7 | `scripts/prod/sync_public_media_hydrate.py` → `sync_public_media_publish.py` → `sync_public_media_verify.py` | a `local` store instead of `s3` | **Yes.** The rehearsal proves the counts and the incrementality, not the bucket |
@@ -2517,19 +2565,19 @@ Say these out loud rather than letting a green rehearsal imply them.
 | 1 Legacy | none (per row) | that edition partial, statistics stale | Re-run the edition. Import one edition at a time |
 | 2 Repositories | per repository | earlier repositories complete | Re-run; expect `replayed`. A checksum/identity conflict means stop |
 | 3 CMP content | **per cohort** | earlier cohorts complete | Re-run; no-op on the done ones |
-| 4 CMP learners | **to be decided — §11 A3** | unknown | Must be resumable per table. If it cannot be, a failure costs a full rebuild |
+| 4 CMP learners | **per batch, per table** | earlier batches and tables complete | Re-run; it resumes from the watermark. Keep the claims files with the database |
 | 5 Events | atomic (identity); staged revisions (aggregates) | nothing half-written | Re-run |
 | 6 Content | build writes files | committed projection unchanged, so the site is unaffected | Re-run the build; it needs three pinned checkouts and is not reproducible (#253) |
 | 7 Media | per object | bucket holds a subset; every unpublished image is broken on the page | Re-run. Publish is incremental and skips a matching checksum, so a re-run completes rather than re-uploads |
 | 7 Site assets | per asset group | **worse — a page can 500**, because a template still asking the manifest for a removed file raises | Not a re-run: keep the `core/static/` copies until the CDN objects verify, and move each group's files and references together |
 | 8 Sponsors/testimonials | per service call (revisioned) | some rows written, history still valid | Re-run; must be keyed on a natural key |
 
-**The step with no rollback that should have one is step 4.** Everything else is
-either re-runnable in place or leaves the previous state serving. A half-imported
-learner set is the one condition from which the only certain exit is a rebuild
-from step 0 — which, at 510,519 rows, is the difference between a short recovery
-and a lost maintenance window. Design A3 for resumability, or accept that and
-budget the window for two full runs.
+**Step 4 used to be the step with no rollback.** It now resumes per batch per
+table, so a half-imported learner set is a re-run rather than a rebuild from
+step 0 — the difference, at 510,519 rows, between a short recovery and a lost
+maintenance window. The one thing that must survive the failure alongside the
+database is the pair of claims files; treat them as part of the rehearsal
+artifacts, not as scratch.
 
 ---
 
@@ -2548,7 +2596,7 @@ it, this plan's checkpoints give:
 | Step 3 — counts vs source | **FAIL, narrowly** | cohorts 16=16, projects 42=42, criteria 117=117, campaigns 5=5; **homework 107 vs 104**, **questions 500 vs 494** |
 | Step 3 — homework identity | **FAIL** | every CMP slug is present (`missing=[]`), but `llm-zoomcamp-2026` still carries `homework-03`, `homework-06`, `homework-07` — three repository rows the reconciler could not pair, plus their 6 questions. That is the entire count delta above |
 | Step 3 — inventory | **PASS** | no MLOps 2026 edition; `de-zoomcamp-2026` is `finished` |
-| Step 4 — learner counts | **FAIL** | 1 account, 0 enrollments, 0 submissions. No importer exists |
+| Step 4 — learner counts | **FAIL** | 1 account, 0 enrollments, 0 submissions — `prepare_local_data.py` runs neither step-4 importer. A fresh rehearsal database does pass; see §4 step 4 |
 | Step 4 — five forbidden tables | **PASS with a caveat** | `django_session` 6 and `socialaccount_socialapp` 3 are locally created, not imported. `socialaccount_socialaccount` and `accounts_token` are 0 |
 | Step 5 — 421 events / 1,684 aliases | **PASS** | exactly |
 | Step 5 — public ID allocator | **n/a here, PASS on a fresh build** | Measured on a from-zero database: `migrate` leaves 0 events and no allocator row; after the import, 421 events, highest `public_id` 421, allocator 422 |
@@ -2600,17 +2648,15 @@ the existing pairing rule matches, or they are deliberately deleted. **Done look
 like:** the step 3 identity checkpoint exits 0. Must be settled **before** step 4
 ever runs, because after it a submission may point at one.
 
-**A3. The CMP learner *activity* importer.** *Blocks step 4 — i.e. everything.
-**Large (1–2 weeks)**, and it is the single biggest item in this plan.* The two
-account tables have landed in `scripts/prod/import_cmp_learners.py`; the nine
-activity tables have not. See §4 step 4 for the full specification: 9 remaining
-tables / 472,690 rows measured on the 2026-09-05 export, 5 never-import tables,
-five mandatory transforms, resumable per table, per-table written/skipped
-reporting, PII-safe logging by user id. `scripts/load_rds_export.py` is deleted,
-not merely disabled — `scripts/tests/test_retired_broad_loader.py` asserts its
-absence, so there is no starting point to copy from. **Done looks like:** all four step-4 checkpoints exit 0 against a
-rehearsal database, and the run reports its own per-table counts. Depends on A1
-(cohorts must exist) and A2 (homework identity must be final).
+**A3. The CMP learner importer.** **Built.** `scripts/prod/import_cmp_learners.py`
+(accounts) and `scripts/prod/import_cmp_learner_history.py` (the other nine
+tables) together cover all 11 tables, name their own never-import set, are
+resumable per batch per table, and report per-table created/attached/skipped
+counts plus unresolved rows by named bucket — counts only, never a learner
+value. Rehearsed end to end on 2026-09-05; see §4 step 4 for the measured
+numbers. What is left is **not** importer work: the three unnamed 2026 cohorts
+belong to A1, and the Wrapped parent to A4's second open question. Re-run step 4
+after either is settled — it resumes and adds what it could not resolve.
 
 **A4. Decide the export-day questions the importer encodes.** *Blocks A3's
 design. Small (hours), but they are owner decisions and cannot be guessed.*
