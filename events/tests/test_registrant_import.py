@@ -66,8 +66,13 @@ class RegistrantImportTestCase(TestCase):
             PendingEventRegistrants(external_event_identifier=event_id, read_rows=read_rows)
         )
 
-    def _run(self) -> RunReport:
-        return import_registrants(provider=PROVIDER, pending=tuple(self.pending))
+    def _run(self, *, refresh: bool = False) -> RunReport:
+        return import_registrants(provider=PROVIDER, pending=tuple(self.pending), refresh=refresh)
+
+    def _next_export(self) -> None:
+        """Discard the pending events so the test can describe a newer export."""
+
+        self.pending = []
 
     def _mint_event(self, *, event_id: str, title: str) -> Event:
         return create_provider_event_identity(
@@ -335,6 +340,155 @@ class IdempotencyTests(RegistrantImportTestCase):
         )
         self.assertTrue(progress.completed)
         self.assertEqual(progress.rows_written, 1)
+
+
+class RefreshTests(RegistrantImportTestCase):
+    """A newer export of events we already hold -- the recurring-pull case.
+
+    Luma keeps taking sign-ups for events that already exist, and a refreshed
+    export drops the people who cancelled, so this is not append-only.
+    """
+
+    def test_a_refresh_picks_up_registrations_that_arrived_since_the_last_export(
+        self,
+    ) -> None:
+        self._mint_event(event_id="evt-1", title="Event One")
+        self._add_event(
+            event_id="evt-1", rows=[self._row(guest_id="g1", email="early@example.invalid")]
+        )
+        self._run()
+        self.assertEqual(EventRegistration.objects.count(), 1)
+
+        self._next_export()
+        self._add_event(
+            event_id="evt-1",
+            rows=[
+                self._row(guest_id="g1", email="early@example.invalid"),
+                self._row(guest_id="g2", email="late@example.invalid"),
+            ],
+        )
+
+        report = self._run(refresh=True)
+
+        self.assertEqual(report.events_refreshed, 1)
+        self.assertEqual(report.events_completed, 0)
+        self.assertEqual(report.events_already_completed, 0)
+        self.assertEqual(report.rows_replaced, 1)
+        self.assertEqual(report.rows_written, 2)
+        self.assertEqual(EventRegistration.objects.count(), 2)
+
+    def test_a_refresh_drops_a_registration_the_newer_export_no_longer_carries(
+        self,
+    ) -> None:
+        """A cancelled registrant stops being a fact; the person stays consolidated."""
+
+        self._mint_event(event_id="evt-1", title="Event One")
+        self._add_event(
+            event_id="evt-1",
+            rows=[
+                self._row(guest_id="g1", email="staying@example.invalid"),
+                self._row(guest_id="g2", email="cancelling@example.invalid"),
+            ],
+        )
+        self._run()
+        identities_after_first = EventRegistrantIdentity.objects.count()
+
+        self._next_export()
+        self._add_event(
+            event_id="evt-1", rows=[self._row(guest_id="g1", email="staying@example.invalid")]
+        )
+
+        report = self._run(refresh=True)
+
+        self.assertEqual(report.rows_replaced, 2)
+        self.assertEqual(report.rows_written, 1)
+        self.assertEqual(EventRegistration.objects.count(), 1)
+        # The identity survives: this person is still the same person, and may
+        # be on another event's list.
+        self.assertEqual(EventRegistrantIdentity.objects.count(), identities_after_first)
+
+    def test_a_refresh_never_duplicates_an_unchanged_event(self) -> None:
+        self._mint_event(event_id="evt-1", title="Event One")
+        rows = [
+            self._row(guest_id="g1", email="a@example.invalid"),
+            self._row(guest_id="g2", email="b@example.invalid"),
+        ]
+        self._add_event(event_id="evt-1", rows=rows)
+        self._run()
+
+        self._next_export()
+        self._add_event(event_id="evt-1", rows=rows)
+
+        report = self._run(refresh=True)
+
+        self.assertEqual(report.rows_replaced, 2)
+        self.assertEqual(report.rows_written, 2)
+        self.assertEqual(EventRegistration.objects.count(), 2)
+
+    def test_a_refresh_moves_the_progress_row_without_clearing_completion(self) -> None:
+        self._mint_event(event_id="evt-1", title="Event One")
+        self._add_event(
+            event_id="evt-1", rows=[self._row(guest_id="g1", email="a@example.invalid")]
+        )
+        self._run()
+
+        self._next_export()
+        self._add_event(
+            event_id="evt-1",
+            rows=[
+                self._row(guest_id="g1", email="a@example.invalid"),
+                self._row(guest_id="g2", email="b@example.invalid"),
+            ],
+        )
+        self._run(refresh=True)
+
+        progress = EventRegistrantImportProgress.objects.get(
+            provider=PROVIDER, external_event_identifier="evt-1"
+        )
+        self.assertTrue(progress.completed)
+        self.assertEqual(progress.rows_total, 2)
+        self.assertEqual(progress.rows_written, 2)
+
+    def test_a_refresh_still_reports_an_event_with_no_identity_rather_than_creating_one(
+        self,
+    ) -> None:
+        self._add_event(
+            event_id="evt-unknown", rows=[self._row(guest_id="g1", email="a@example.invalid")]
+        )
+        events_before = Event.objects.count()
+
+        report = self._run(refresh=True)
+
+        self.assertEqual(report.events_awaiting_identity, 1)
+        self.assertEqual(report.awaiting_identity_events, ("evt-unknown",))
+        self.assertEqual(Event.objects.count(), events_before)
+        self.assertEqual(self.read_calls.get("evt-unknown", 0), 0)
+
+    def test_without_refresh_a_newer_export_changes_nothing(self) -> None:
+        """The default stays a resume: a finished event's file is not reopened."""
+
+        self._mint_event(event_id="evt-1", title="Event One")
+        self._add_event(
+            event_id="evt-1", rows=[self._row(guest_id="g1", email="a@example.invalid")]
+        )
+        self._run()
+
+        self._next_export()
+        self._add_event(
+            event_id="evt-1",
+            rows=[
+                self._row(guest_id="g1", email="a@example.invalid"),
+                self._row(guest_id="g2", email="b@example.invalid"),
+            ],
+        )
+
+        report = self._run()
+
+        self.assertEqual(report.events_already_completed, 1)
+        self.assertEqual(report.events_refreshed, 0)
+        self.assertEqual(report.rows_replaced, 0)
+        self.assertEqual(self.read_calls["evt-1"], 1)
+        self.assertEqual(EventRegistration.objects.count(), 1)
 
 
 class ModelConstraintTests(TestCase):
