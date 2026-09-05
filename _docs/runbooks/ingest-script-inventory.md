@@ -12,7 +12,8 @@ Every script path below is a link to the actual file. Companion to
 (tracking checklist) — this is the at-a-glance map. Some sources have no
 script yet; those are listed too, so the gap is visible rather than silent.
 
-Verified against the real code and a real end-to-end dry run on 2026-09-03.
+Verified against the real code and a real end-to-end dry run on 2026-09-03, and
+re-verified on 2026-09-05 against the event, content, sponsor and CMP entries.
 
 ## The main design principle
 
@@ -379,8 +380,9 @@ Destination: `accounts_customuser`, `account_emailaddress`.
 
 No script. Enrollments, submissions, answers, registrations, criteria
 responses, peer reviews, project evaluation scores, wrapped statistics —
-roughly 470,000 of the export's ~510,000 learner rows. **Largest open gap in
-this entire inventory.**
+**472,690 of the export's 513,625 learner rows**, measured on
+`/data/tmp/rds-export/cmp/rds-prod-20260905-182754.db`. 4.1 covers the other
+40,935 (the two account tables). **Largest open gap in this entire inventory.**
 
 ## 4.3 Reconciliation
 
@@ -440,8 +442,9 @@ wrapped this exact call, and had no caller once
 `scripts/prepare_local_data.py` was repointed at the function directly.
 
 Source: the checked-in, human-reviewed
-[`events/event_identity_manifest.json`](../../events/event_identity_manifest.json)
-(421 events, 1,684 aliases).
+[`temporary/content/event_identity_manifest.json`](../../temporary/content/event_identity_manifest.json)
+(421 events, 1,684 aliases). No migration seeds it; `test_support/reference_data.py`
+loads the same file into every test database.
 Transform: allocates `public_id` via `EventPublicIdSequence`; writes aliases.
 Destination: [`events/models.py`](../../events/models.py) (`Event`,
 `EventAlias`).
@@ -478,14 +481,25 @@ replaces them wholesale rather than merging; an unchanged record reports
 [`scripts/prod/import_events.py`](../../scripts/prod/import_events.py), called
 from that module's own `run()` — live, not a gap. `create_event_identity()`
 in [`events/identity.py`](../../events/identity.py) is its one caller: for
-each event in the real Luma export with no existing manifest-reviewed or
-auto-created identity, it creates one directly (never the reviewed-manifest
-path), matched on exact case/whitespace-normalized title plus date, same
-discipline used throughout this migration. Verified against the real export
-2026-09-03: 166 candidates, 164 already-tracked, 0 newly created (idempotent
-re-run), 2 with no usable title/date metadata reported rather than guessed.
-Registration-count activation (6.3) stays a separate, human-gated step
-regardless.
+each event in the real Luma export that no existing event accounts for, it creates
+one directly (never the reviewed-manifest path). "No existing event accounts for
+it" is decided on exact case/whitespace-normalized title plus the same calendar
+date — the same discipline used throughout this migration, and the guard that was
+missing until 2026-09-05: without it the leg minted **164** identities against the
+pinned 166-event export, **144** of them second copies of events the reviewed
+manifest already described, each with its own public id and a provisioned Q&A
+session. `--report-duplicate-identities` names those rows in a database that ran
+the unguarded version and `--remove-duplicate-identities` deletes only the ones
+carrying no dependent data at all.
+
+Re-verified against the pinned export 2026-09-05, into a scratch database with
+only the reviewed manifest imported: 166 candidates, **144 recognised as events we
+already hold, 20 created, 2 with no usable title/date metadata** reported rather
+than guessed, 0 ambiguous. A second run creates nothing. Three of the twenty are
+reported with `existing_event_dates_with_this_title` because they share an exact
+title with an event 3–7 days away — a recurring series or a reschedule, flagged
+for a human and deliberately never matched. Registration-count activation (6.3)
+stays a separate, human-gated step regardless.
 
 ## 5.4 Staged content for discovered events
 
@@ -573,9 +587,17 @@ aggregated yet.
 
 Source: the prepared intermediate from 6.1. Default path
 `.local/migration-data/events/luma-aggregate-v1`
-(`LUMA_RELATIVE_SOURCE` in `import_events.py:86`) — gitignored and
+(`LUMA_RELATIVE_SOURCE` in `import_events.py:154`) — gitignored and
 worktree-local by design, so it is normal for it to be absent from any given
-worktree, this one included.
+worktree.
+
+**That default path no longer validates.** On 2026-09-05 it held 174 events
+against the 166 `_docs/migration-data/event-registration-sources.json` pins, and a
+full `import_events.py` run against it exits 1 with
+`registration_source_validation_failed`. Its sibling
+`luma-aggregate-v1.backup-20260902` holds the pinned 166 and runs clean, as does
+the durable copy below. Somebody has to decide whether the pin moves to the newer
+export or the newer directory is discarded.
 
 **The durable copy — the one a real migration run should point at — lives
 outside any worktree, at `/data/tmp/luma-eventbrite-export/luma-aggregate-v1/`**
@@ -626,8 +648,10 @@ narrower `activate_explicit_current_source` the import script calls for
 exactly the aggregates the current-registration-input file names. A resolved
 but not-yet-activated aggregate still renders no public count.
 
-Notes: only a minority of provider events are resolved today; the rest
-render no public count.
+Notes: measured 2026-09-05 by a full `import_events.py` run against the pinned
+exports — 375 provider events stage (166 Luma, 209 Eventbrite), the automatic pass
+resolves 99 Luma aggregates, **276 stay unresolved**, and none of the 375 is
+activated. The rest render no public count.
 
 **Known gap — the Luma export on this machine is stale and only the site
 owner can refresh it.** There is no live Luma API integration anywhere in
@@ -673,11 +697,11 @@ are separate repositories with their own entries (14, 12, 13) even though
 8.2's build script happens to read all of them in one run; if you came here
 looking for how wiki/FAQ/docs are ingested, that's the wrong section.
 
-Two entirely separate journeys exist for this one repository: the database
-pipeline (built, not yet serving) and what actually serves the site today
-(a static build, not a database importer at all).
+Two entirely separate journeys exist for this one repository: the one-time import
+that fills the database the site reads (8.2), and the continuous push-sync that
+would keep it current (8.1) and is still wired to nothing.
 
-## 8.1 Database sync — built, deferred
+## 8.1 Continuous push-sync — built, not wired
 
 [`scripts/prod/sync_content.py`](../../scripts/prod/sync_content.py) (+
 [`content_sync/dtc_content/`](../../content_sync/dtc_content))
@@ -689,24 +713,39 @@ before any cutover.
 Destination: [`content/models.py`](../../content/models.py) (`ContentSource`,
 `ContentRelease`, `ContentDocument`, `ContentRelation`, `ContentAsset`).
 
-Notes: confirmed safe to run in parallel with what's live — its own docstring
-says "until a page reads from ContentDocument, a release activated here
-changes nothing a visitor sees." Deferred past launch by design, not by
-default.
+Notes: pages read `ContentDocument` now, so that docstring's "a release activated
+here changes nothing a visitor sees" no longer holds — a release this path
+activates would change the live catalogue. What keeps it inert is that nothing
+calls it: `prepare_dtc_content_candidate` is referenced only from
+`content_sync/dtc_content/__init__.py`'s `__all__` and from tests, and no command,
+view, webhook or job invokes it. A push to `DataTalksClub/content` still changes
+nothing here. Deferred past launch by design.
 
-## 8.2 What actually serves the site today
+## 8.2 One-time import — what actually fills the database
 
-[`scripts/build_public_projection.py`](../../scripts/build_public_projection.py) —
-a build-time script, not in `scripts/prod/`, not a database importer.
+Two stages, and only the second writes to the database.
 
+**Build (offline, not in `scripts/prod/`)**:
+[`scripts/build_public_projection.py`](../../scripts/build_public_projection.py)
+over [`scripts/projection_build/`](../../scripts/projection_build).
 Source: three pinned upstream checkouts (`DataTalksClub/content`,
 `DataTalksClub/datatalksclub.github.io`, `DataTalksClub/podwiki`) at exact
 revisions.
-Transform: builds the whole public projection — articles, podcasts, books,
-people, wiki, media manifest — with digest-verified provenance.
+Transform: builds the whole catalogue — articles, podcasts, books, people, wiki,
+media manifest — with digest-verified provenance.
 Destination: [`temporary/content/public_projection/`](../../temporary/content/public_projection)`*.json`,
-checked into git, served directly by
-[`content/public_data.py`](../../content/public_data.py).
+a **staging artifact**. No request reads it.
+
+**Import**:
+[`scripts/prod/import_public_content.py`](../../scripts/prod/import_public_content.py).
+Source: that staging tree, plus `temporary/content/slack_page.json`, checked once
+through `scripts/projection_build/public_projection_source`.
+Transform: each record becomes one published document carrying that record
+verbatim in its adapter metadata; the five singleton records (manifest, platform
+links, wiki graph, wiki search index, route manifest) become one document apiece.
+Destination: [`content/models.py`](../../content/models.py) (`ContentDocument`,
+`ContentRelease`, `ActiveContentPath`, `ContentAsset`), read on every public
+request by [`content/public_data.py`](../../content/public_data.py).
 
 ---
 
@@ -977,16 +1016,17 @@ what makes `public_directory` the second value the
 
 [`scripts/prod/import_sponsors.py`](../../scripts/prod/import_sponsors.py)
 
-Source: [`core/sponsor_directory.json`](../../core/sponsor_directory.json),
-reviewed and checked in. Every entry carries the `key` `Sponsor` already
+Source: [`temporary/content/sponsor_directory.json`](../../temporary/content/sponsor_directory.json),
+reviewed and checked in. (`import_sponsors.py`'s own docstring still names the
+file's old `core/` home; its `REVIEWED_PATH` is correct.) Every entry carries the `key` `Sponsor` already
 reserves as its natural identifier, so a second run is keyed on that rather
 than on name matching.
 Transform: every write goes through `core.sponsors`' shared
 `create_sponsor`/`update_sponsor`/`archive_sponsor`/`reactivate_sponsor` —
 the same service Studio and the admin API call — never a bypassed ORM write.
-An entry with a `position` (the four companies retired from
-`core.sponsor_history.FEATURED_SUPPORTERS`: dltHub, Astronomer, Kestra,
-Snowplow) is created `active` with one `public_directory` assignment at that
+An entry with a `position` (the four companies retired from the deleted
+`core/sponsor_history.py`'s `FEATURED_SUPPORTERS` tuple: dltHub, Astronomer,
+Kestra, Snowplow) is created `active` with one `public_directory` assignment at that
 position. An entry with `position: null` (the remaining 29 names retired
 from `FEATURED_SUPPORTERS ∪ PAST_SUPPORTERS`) is created `draft` and archived
 in the same run — `create_sponsor` never accepts `archived` directly, so
@@ -1020,11 +1060,22 @@ for an events_hub sponsor.
 
 ---
 
-# 12. FAQ — not built
+# 12. FAQ — imported, not synced
 
-`content_sync/faq/` does not exist. Source would be `DataTalksClub/faq` (6
-courses / 70 sections / 1,401 questions). Today: a pinned JSON projection
-with a CI checker only — no real sync builder, in either direction.
+**Import**: [`scripts/prod/import_faq.py`](../../scripts/prod/import_faq.py).
+Source: `temporary/content/faq_projection.json`, a reviewed file pinned to a
+revision of `DataTalksClub/faq` (6 courses / 70 sections / 1,401 questions).
+Transform: checks the schema version, the pinned revision, the course order and
+every question's identifier, relationship, answer and edit URL against the
+declared counts, and refuses the file whole on any mismatch. Each course becomes
+one published document, because each course is one public page.
+Destination: `ContentDocument`, read by
+[`content/faq_data.py`](../../content/faq_data.py) on every `/faq/` request.
+
+**Still not built**: `content_sync/faq/` does not exist, and neither does a
+builder that regenerates `faq_projection.json` from the source repository. The
+file is reviewed in by hand and shape-checked by `ci/content_update.py` only —
+no sync builder, in either direction.
 
 Notes: FAQ was named as one of the two good *presentation* models (alongside
 podwiki) — that's about how FAQ content is laid out and served, unrelated to
@@ -1033,11 +1084,21 @@ repository gets ingested.
 
 ---
 
-# 13. Docs — not built
+# 13. Docs — imported, not synced
 
-`content_sync/docs/` does not exist. Source would be `DataTalksClub/docs`
-(106 pages / 39 assets). Same gap as FAQ: a pinned JSON projection with a CI
-checker only.
+**Import**: [`scripts/prod/import_docs.py`](../../scripts/prod/import_docs.py).
+Source: `temporary/content/docs_projection.json`, a reviewed file pinned to a
+revision of `DataTalksClub/docs` (106 pages / 39 images).
+Transform: checks the schema version, the pinned revision, the page hierarchy
+through the same navigation builder the site renders from, every page body
+against its recorded digest and every image against its recorded size and digest,
+and refuses the file whole on any mismatch — a half-imported documentation tree
+would 404 without saying so. Each run writes a new release and activates it.
+Destination: `ContentDocument` and `ContentAsset`, read by
+[`content/docs_projection.py`](../../content/docs_projection.py).
+
+**Still not built**: `content_sync/docs/` does not exist, and nothing regenerates
+`docs_projection.json` from the source repository. Same gap as FAQ.
 
 Notes: docs *presentation* Pass 0 landed today, entirely on the existing
 projection, no source-repository changes. This entry is the separate
@@ -1057,11 +1118,11 @@ and search corpus).
 
 ## 14.1 What actually serves the site today
 
-Folded into 8.2 — [`scripts/build_public_projection.py`](../../scripts/build_public_projection.py)
-reads podwiki as one of its three pinned upstream checkouts
-(`WIKI_REPOSITORY`, `build_public_projection.py:82`), alongside
-`DataTalksClub/content` and `DataTalksClub/datatalksclub.github.io`.
-Destination: `temporary/content/public_projection/{wiki,wiki_graph,wiki_search}.json`.
+Folded into 8.2 at both stages. The build reads podwiki as one of its three pinned
+upstream checkouts (`WIKI_REPOSITORY`, `build_public_projection.py:82`) into
+`temporary/content/public_projection/{wiki,wiki_graph,wiki_search}.json`, and
+`import_public_content.py` then writes those records into `ContentDocument`, which
+is what a wiki request reads.
 
 ## 14.2 Database sync — not built
 
@@ -1125,20 +1186,25 @@ someone with real credentials to check. Tracked in
 
 ---
 
-# 16. `rds-aisl_prod` (second production database) — undecided
+# 16. `rds-aisl_prod` (second production database) — out of scope, decided
 
-No script, no decision made yet. Precise path, confirmed today: a second,
-separate database rotates daily alongside the main CMP export —
-`/data/tmp/rds-export/rds-aisl_prod-<YYYYMMDD>-<HHMMSS>.db` (6 daily
-snapshots present, Aug 28 – Sep 2, ~48–55 MB each; naming and rotation
-pattern match `rds-prod-*` exactly). 108 tables, 151,402 rows per an earlier
-audit. Not referenced in any migration document before that audit found it.
+**No script, and there will not be one. Owner ruling, 2026-09-05: this is a
+different product's database and nothing in it is migrated here.** The entry
+stays so the next person to find a second `.db` under `/data/tmp/rds-export/`
+reads a decision instead of raising the question again. Full statement:
+[`production-data-migration.md`](production-data-migration.md) §14.
 
-Notes, found while checking this entry's precision, not yet investigated
-further: `/data/tmp/rds-export/relay/` holds a same-pattern `rds-relay-*.db`
-export (Sept 2), and `/data/tmp/rds-export/website/` holds
-`rds-dtc_website-bootstrap.db` — both unexplored, both outside this
-inventory's current scope, flagged so they aren't lost.
+Precise path: `/data/tmp/rds-export/aisl/rds-aisl_prod-<YYYYMMDD>-<HHMMSS>.db`
+since the exports were filed per product; the loose `rds-aisl_prod-*.db` files
+still at the top of `/data/tmp/rds-export/` are the same export from before that
+move. It rotates daily alongside the CMP export, ~48–55 MB each, naming and
+rotation matching `rds-prod-*` exactly. 108 tables; the row count moves every day
+— 121,265 on the 2026-09-04 export, 151,402 on 2026-09-02 — so no single figure
+is the figure. It is the database of AI Shipping Labs.
 
-Needs an owner decision on scope before this can become a scoped task, let
-alone a script.
+Two neighbours remain genuinely unexamined, flagged so they aren't lost:
+`/data/tmp/rds-export/relay/` holds a same-pattern `rds-relay-*.db` export, and
+`/data/tmp/rds-export/website/` now holds daily `rds-dtc_website-*.db` snapshots —
+backups of **our own** deployed database rather than an upstream source, so they
+are a restore artifact and not an ingest source, but nobody has confirmed that in
+writing.
