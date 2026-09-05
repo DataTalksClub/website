@@ -30,6 +30,7 @@ from .identity import (
 from .importers import (
     STATUS_POLICY_VERSION,
     AggregateCandidate,
+    CanonicalProposal,
     DerivedSource,
     ProtectedSourceError,
     derive_registered_source,
@@ -147,10 +148,10 @@ def _transition(
     instance.save(update_fields=tuple(update_fields))
 
 
-def _resolve_explicit_event(candidate: AggregateCandidate) -> Event | None:
-    """Resolve one candidate's explicit current-event bridge target, or fail loudly.
+def _resolve_proposed_event(proposal: CanonicalProposal) -> Event:
+    """Resolve one explicit bridge target, or fail loudly.
 
-    ``candidate.proposal`` is only ever present when the caller supplied an exact
+    A proposal is only ever present when the caller supplied an exact
     provider-event-to-canonical-Event bridge (the current-registration-input JSON
     file, or a registered source's own baked-in bridge) -- never inferred from a
     title or date.  A bridge naming a target that does not resolve to a real Event
@@ -158,16 +159,37 @@ def _resolve_explicit_event(candidate: AggregateCandidate) -> Event | None:
     transaction rather than silently leaving the row unresolved.
     """
 
-    if candidate.proposal is None:
-        return None
     try:
         return resolve_source_identity(
-            repository=candidate.proposal.repository,
-            revision=candidate.proposal.revision,
-            source_key=candidate.proposal.source_key,
+            repository=proposal.repository,
+            revision=proposal.revision,
+            source_key=proposal.source_key,
         )
     except EventIdentityNotFound as error:
         raise HistoricalRegistrationConflict("explicit_mapping_target_unavailable") from error
+
+
+def _resolve_explicit_event(candidate: AggregateCandidate) -> Event | None:
+    """A candidate's bridge target, or ``None`` when it carries no bridge at all."""
+
+    if candidate.proposal is None:
+        return None
+    return _resolve_proposed_event(candidate.proposal)
+
+
+def _resolved_event(aggregate: HistoricalRegistrationAggregateRevision) -> Event:
+    """The aggregate's canonical Event, refusing an unresolved row by domain code.
+
+    Only a resolved row is ever activatable, but nothing at the database level
+    enforces that, so every reader that needs the Event itself goes through
+    here rather than dereferencing a nullable pointer and getting an
+    ``AttributeError`` half-way through a transaction.
+    """
+
+    event = aggregate.event
+    if event is None:
+        raise HistoricalRegistrationConflict("aggregate_not_activatable")
+    return event
 
 
 def _ensure_explicit_event(
@@ -324,14 +346,14 @@ def _persist_derived_source(
         for candidate in derived.candidates:
             if candidate.proposal is None:
                 continue
-            event = _resolve_explicit_event(candidate)
+            bridged_event = _resolve_proposed_event(candidate.proposal)
             try:
                 aggregate = run.aggregate_revisions.get(
                     external_event_identifier=candidate.external_event_identifier
                 )
             except HistoricalRegistrationAggregateRevision.DoesNotExist as error:
                 raise HistoricalRegistrationConflict("explicit_mapping_conflict") from error
-            _ensure_explicit_event(aggregate, event=event)
+            _ensure_explicit_event(aggregate, event=bridged_event)
         return run, False
     for candidate in derived.candidates:
         event = _resolve_explicit_event(candidate)
@@ -806,7 +828,7 @@ def _preflight_activation(
             continue
         if aggregate.event_id is None or not _aggregate_matches_projection(aggregate):
             raise HistoricalRegistrationConflict("aggregate_not_activatable")
-        key = _event_key(aggregate.event)
+        key = _event_key(_resolved_event(aggregate))
         target = (*key[:3], run.provider, aggregate.coverage_boundary)
         if target in targets:
             raise HistoricalRegistrationConflict("same_run_slot_collision")
@@ -839,7 +861,7 @@ def _activate_aggregates(
             continue
         if aggregate.event_id is None or not _aggregate_matches_projection(aggregate):
             raise HistoricalRegistrationConflict("aggregate_not_activatable")
-        key = _event_key(aggregate.event)
+        key = _event_key(_resolved_event(aggregate))
         existing_slots = (
             HistoricalRegistrationAggregateSlot.objects.select_related("active_revision")
             .filter(
@@ -1118,7 +1140,7 @@ def rollback_source(
     affected: set[tuple[str, str, str, str]] = set()
     restored_pointer_total = 0
     for aggregate in active:
-        key = _event_key(aggregate.event)
+        key = _event_key(_resolved_event(aggregate))
         slot = HistoricalRegistrationAggregateSlot.objects.get(active_revision=aggregate)
         slot.active_revision = None
         slot.revision += 1
@@ -1428,7 +1450,7 @@ def get_run_detail(run_id: uuid.UUID) -> dict[str, Any]:
                 "external_event": _mask_identifier(item.external_event_identifier),
                 "event_id": str(item.event_id) if item.event_id else None,
                 "resolved": item.event_id is not None,
-                "canonical_slug": item.event.slug if item.event_id else "",
+                "canonical_slug": item.event.slug if item.event is not None else "",
                 "eligible_count": item.eligible_count,
                 "excluded_count": item.excluded_count,
                 "quarantined_count": item.quarantined_count,
