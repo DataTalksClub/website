@@ -49,65 +49,6 @@ FAMILY_ALIASES: dict[str, str] = {"ai-dev-tools-zoomcamp": "ai-dev-tools"}
 # course-page link, so it is named here instead of derived from the resolved cohort.
 FEATURED_COHORT_ROUTE_NAME = "course-cohort-ai-dev-tools-2026"
 
-# Page-owned editorial copy for the featured cohort panel.
-#
-# ``Cohort`` has no format, price or notice field, so this has never been a database fact
-# and is not invented here either.  Neither ``Cohort.description`` (generated boilerplate)
-# nor ``Course.description`` (raw README markup carrying external image tags and
-# courses.datatalks.club links) may be rendered in its place.
-#
-# THE SOURCE IS THE COHORT THIS PANEL ADVERTISES, AND ONLY THAT COHORT.  The featured
-# cohort is AI Dev Tools Zoomcamp 2026, whose curriculum is the four module lessons in
-# ``cohorts/2026/`` of DataTalksClub/ai-dev-tools-zoomcamp.  Those are the same lessons the
-# site imports into ``courses.Module``/``courses.Unit`` and renders on the cohort's course
-# page, so the panel and the page it links to describe one curriculum.  A verbatim copy is
-# checked in at ``core/tests/data/ai_dev_tools_zoomcamp_2026/`` with its revision and
-# per-file checksums, and ``core.tests.test_homepage`` pins every clause below to a phrase
-# that copy actually contains.
-#
-# This replaces copy that described the 2025 edition: "six modules", a coding agent you
-# build yourself, and n8n automation are ``cohorts/2025/`` (modules 01-overview through
-# 06-automation-lowcode).  It was taken in good faith from
-# ``courses/ai-dev-tools-zoomcamp/curriculum.md`` in DataTalksClub/docs (projected into
-# ``content/docs_projection.json`` at revision 3f23e006 and served at
-# /docs/courses/ai-dev-tools-zoomcamp/curriculum/), which still enumerates the 2025 modules
-# and is therefore not a source for the 2026 cohort.  Do not anchor this panel to a
-# course-wide docs page again; anchor it to the cohort's own modules.
-#
-# The module count is deliberately absent from this sentence.  It is a database fact
-# (``CatalogCourse.module_count``) rendered next to the homework and project counts, so it
-# cannot drift from the curriculum the site actually holds -- which is how the "six
-# modules" claim survived here in the first place.
-FEATURED_COHORT_FORMAT = "Online"
-FEATURED_COHORT_SUMMARY = (
-    "AI-native development: take a vague product idea through specification, build a "
-    "working end-to-end application with AI assistance, then deploy and operate it with "
-    "observability."
-)
-
-# What the featured cohort's mint panel promises you will build: one artefact per 2026
-# module, in module order, each traceable to that module's own lesson (see the source note
-# above).  The framing is "What you'll build", so each item is something a learner ends up
-# holding, not a topic the module covers.
-#
-# There is no final-project item.  The 2026 cohort definition (``cohorts/2026/cohort.yaml``)
-# and cohort README list these four modules and their four homeworks and nothing else; the
-# repository's ``project/README.md`` marks the 2026 project requirements as a draft that may
-# still change.  The panel does not promise coursework the cohort has not committed to, and
-# the cohort's real project rows are counted from the database beside it.
-#
-# Do not add an item the 2026 lessons do not state.  Two generations of invented copy have
-# already shipped here: a multi-agent/RAG curriculum belonging to no DataTalks.Club course
-# at all (with a "small groups of 6-8 people" note the course does not offer), and then the
-# 2025 curriculum described as if it were the 2026 one.
-FEATURED_BUILD_ITEMS: tuple[str, ...] = (
-    "a Django app built from a specification, with the AI tool of your choice",
-    "a full-stack app with a frontend, a backend, an OpenAPI contract, "
-    "and data persisted in SQLite",
-    "the same app containerized, integration-tested, and deployed at a public URL",
-    "an observability stack, an alert on real user impact, and an agent as first line of support",
-)
-
 # The wiki hub the graph is drawn around, and the direct relations it is drawn to.  Every
 # slug is validated against the projection so a source change fails loudly instead of
 # rendering an edge that does not exist.
@@ -157,6 +98,13 @@ class CatalogCourse:
     module_count: int = 0
     cohort_title: str = ""
     start_date: date | None = None
+    #: How the cohort is delivered, its one-sentence summary, and what it
+    #: promises you will build -- the cohort's own rows, empty when it has not
+    #: been given any. The panel omits what is empty rather than substituting
+    #: copy from somewhere else.
+    delivery_format: str = ""
+    promo_summary: str = ""
+    build_items: tuple[str, ...] = ()
 
     @property
     def start_display(self) -> str:
@@ -227,6 +175,9 @@ def course_catalog() -> tuple[CatalogCourse, ...]:
                 module_count=int(getattr(cohort, "module_count", 0) or 0),
                 cohort_title=str(cohort.title),
                 start_date=cohort.start_date,
+                delivery_format=str(cohort.delivery_format),
+                promo_summary=str(cohort.promo_summary),
+                build_items=tuple(item.text for item in cohort.build_items.order_by("position")),
             )
         )
     return tuple(catalog)

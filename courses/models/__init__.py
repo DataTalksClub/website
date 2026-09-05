@@ -11,6 +11,7 @@ from . import (  # noqa: F401
 )
 from .cohort import (
     Cohort,
+    CohortBuildItem,
     Course,
     CourseRegistration,
     CurriculumFormat,
@@ -62,6 +63,7 @@ __all__ = (
     "Answer",
     "AnswerTypes",
     "Cohort",
+    "CohortBuildItem",
     "CurriculumFlowItem",
     "CurriculumFormat",
     "CourseRegistration",

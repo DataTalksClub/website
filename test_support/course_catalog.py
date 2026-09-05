@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import UTC, date, datetime, timedelta
 
-from courses.models.cohort import Cohort, Course
+from courses.models.cohort import Cohort, CohortBuildItem, Course
 from courses.models.curriculum import Module
 from courses.models.homework import Homework
 from courses.models.project import Project
@@ -52,6 +52,9 @@ def make_cohort(
     homework_count: int = 0,
     project_count: int = 0,
     module_titles: Sequence[str] = (),
+    delivery_format: str = "",
+    promo_summary: str = "",
+    build_items: Sequence[str] = (),
 ) -> Cohort:
     """Build one cohort, optionally with the modules its curriculum source defines.
 
@@ -71,7 +74,11 @@ def make_cohort(
         description="",
         visible=visible,
         start_date=start_date or date(year, 8, 31),
+        delivery_format=delivery_format,
+        promo_summary=promo_summary,
     )
+    for position, text in enumerate(build_items):
+        CohortBuildItem.objects.create(cohort=cohort, text=text, position=position)
     due = datetime(year, 9, 30, 12, 0, tzinfo=UTC)
     homeworks = [
         Homework.objects.create(
@@ -131,6 +138,23 @@ def build_reviewed_catalog() -> dict[str, Cohort]:
             "Build and Ship an AI-Assisted Full-Stack App",
             "Test, Containerize, and Deploy an AI-Assisted App",
             "DevOps and Observability for AI-Built Apps",
+        ),
+        # The promo copy the featured panel prints, one build item per module in
+        # the cohort's own order. It lives on the cohort now, so this dataset
+        # carries it the way the production database does.
+        delivery_format="Online",
+        promo_summary=(
+            "AI-native development: take a vague product idea through specification, build "
+            "a working end-to-end application with AI assistance, then deploy and operate "
+            "it with observability."
+        ),
+        build_items=(
+            "a Django app built from a specification, with the AI tool of your choice",
+            "a full-stack app with a frontend, a backend, an OpenAPI contract, "
+            "and data persisted in SQLite",
+            "the same app containerized, integration-tested, and deployed at a public URL",
+            "an observability stack, an alert on real user impact, and an agent as first "
+            "line of support",
         ),
     )
     for slug, title, newest_year, start in (

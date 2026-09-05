@@ -127,6 +127,25 @@ class Cohort(SourceProvenanceModel):
 
     description = models.TextField()
     outcome = models.TextField(blank=True, default="", db_default="")
+    # How this cohort is delivered and what it promises, as the pages that
+    # advertise it print them. These used to be page-owned constants in
+    # core/home_content.py, which is how two generations of copy describing a
+    # different cohort shipped on the homepage: nothing tied the words to the
+    # cohort they claimed to describe. A cohort that has not been given promo
+    # copy has none, and the panel simply omits it.
+    delivery_format = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        db_default="",
+        help_text="How this cohort is delivered, such as 'Online'.",
+    )
+    promo_summary = models.TextField(
+        blank=True,
+        default="",
+        db_default="",
+        help_text="One-sentence summary shown where this cohort is advertised.",
+    )
     start_date = models.DateField(
         blank=True,
         null=True,
@@ -501,3 +520,33 @@ class LeaderboardComplaint(models.Model):
             f"{self.get_issue_type_display()} for "
             f"{self.enrollment.display_name}"
         )
+
+
+class CohortBuildItem(models.Model):
+    """One thing a learner ends up holding at the end of a cohort module.
+
+    The featured-cohort panel lists these in order under "What you'll build".
+    They are rows rather than a list in code because they describe a specific
+    cohort's specific modules, and the previous page-owned tuple could not say
+    which cohort it belonged to -- so it kept outliving the cohort it described.
+    """
+
+    cohort = models.ForeignKey(
+        Cohort, on_delete=models.CASCADE, related_name="build_items"
+    )
+    text = models.CharField(max_length=500)
+    position = models.PositiveSmallIntegerField()
+
+    class Meta:
+        ordering = ("cohort_id", "position")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("cohort", "position"), name="courses_cohort_build_item_position_unique"
+            ),
+            models.CheckConstraint(
+                condition=Q(text__gt=""), name="courses_cohort_build_item_text_nonempty"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.text

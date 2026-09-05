@@ -16,9 +16,6 @@ from django.views.decorators.http import require_GET, require_safe
 
 from content.public_data import event_groups, ordered_podcasts, public_projection
 from core.home_content import (
-    FEATURED_BUILD_ITEMS,
-    FEATURED_COHORT_FORMAT,
-    FEATURED_COHORT_SUMMARY,
     FEATURED_FAMILY,
     course_catalog,
     event_time_display,
@@ -108,9 +105,9 @@ def home(request: HttpRequest):
             "recent_events": events.recent[:1],
             "featured_cohort_path": featured_cohort_path,
             "featured_catalog_entry": featured_entry,
-            "featured_cohort_format": FEATURED_COHORT_FORMAT,
-            "featured_cohort_summary": FEATURED_COHORT_SUMMARY,
-            "featured_build_items": FEATURED_BUILD_ITEMS,
+            "featured_cohort_format": featured_entry.delivery_format if featured_entry else "",
+            "featured_cohort_summary": featured_entry.promo_summary if featured_entry else "",
+            "featured_build_items": featured_entry.build_items if featured_entry else (),
             "catalog_courses": tuple(entry for entry in catalog if entry.family != FEATURED_FAMILY),
             "course_family_count": len(catalog),
             "course_family_word": spelled_count(len(catalog)),

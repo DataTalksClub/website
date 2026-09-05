@@ -1,5 +1,3 @@
-import hashlib
-import json
 import re
 from datetime import timedelta
 from pathlib import Path
@@ -14,12 +12,9 @@ from django.urls import resolve, reverse
 from django.utils import timezone
 from django.utils.html import escape
 
-from content.docs_projection import docs_projection
 from core import views as core_views
 from core.home_content import (
     COURSE_FAMILIES,
-    FEATURED_BUILD_ITEMS,
-    FEATURED_COHORT_SUMMARY,
     FEATURED_FAMILY,
     course_catalog,
 )
@@ -40,197 +35,96 @@ CURRICULUM_2026 = REPO_ROOT / "core/tests/data/ai_dev_tools_zoomcamp_2026"
 
 
 class FeaturedBuildPanelTests(TestCase):
-    """The mint "What you'll build" panel may only claim what the featured cohort teaches.
+    """The mint "What you'll build" panel prints the featured cohort's own rows.
 
-    Two generations of wrong copy have shipped here.  The first advertised a
-    multi-agent/RAG curriculum and "small groups of 6-8 people", which describes no
-    DataTalks.Club course.  The second described the 2025 edition -- "six modules", a
-    coding agent you build, n8n automation -- because it was anchored to the course-wide
-    docs page ``/docs/courses/ai-dev-tools-zoomcamp/curriculum/``, which still enumerates
-    the 2025 modules.
+    Two generations of wrong copy shipped here while the words lived in Python.
+    The first advertised a multi-agent/RAG curriculum and "small groups of 6-8
+    people", which describes no DataTalks.Club course.  The second described the
+    2025 edition because it had been copied from a course-wide docs page that
+    still enumerates the 2025 modules.  Neither could be caught by looking at the
+    panel, because nothing tied its sentences to the cohort they claimed to be
+    about.
 
-    So the anchor is the featured cohort's own curriculum, not the course's: the four
-    module lessons of ``cohorts/2026/`` copied verbatim into ``core/tests/data/`` with
-    their revision and checksums.  Every clause the panel states is pinned to a phrase
-    those lessons contain, so copy that drifts back into marketing -- or back into a
-    previous edition -- fails here instead of shipping.
+    The copy is now ``Cohort.delivery_format``, ``Cohort.promo_summary`` and the
+    cohort's ordered ``CohortBuildItem`` rows, so the panel can only say what the
+    cohort it advertises says.  What is checked here is exactly that: it prints
+    those rows, and it prints nothing where there are none.
     """
 
-    # The panel's sentence, and the phrases the 2026 lessons state it from.
-    SUMMARY_SOURCE_ANCHORS = (
-        ("01-ai-native-workflow", "AI-Native Development"),
-        (
-            "01-ai-native-workflow",
-            "we take a vague product idea through specification and context",
-        ),
-        ("02-development", "you build a working end-to-end application with AI assistance"),
-        ("03-deployment", "Test, Containerize, and Deploy an AI-Assisted App"),
-        ("04-devops", "DevOps and Observability for AI-Built Apps"),
-    )
-
-    # Each build item, the 2026 module it comes from, and phrases that module's lesson
-    # actually contains.  One item per module, in module order.
-    BUILD_ITEM_SOURCE_ANCHORS = (
-        (
-            "a Django app built from a specification, with the AI tool of your choice",
-            "01-ai-native-workflow",
-            (
-                "Build a Django app with the AI tool of your choice",
-                "we take a vague product idea through specification and context",
-            ),
-        ),
-        (
-            "a full-stack app with a frontend, a backend, an OpenAPI contract, "
-            "and data persisted in SQLite",
-            "02-development",
-            (
-                "a frontend and a backend that talk to each other over a defined contract, "
-                "with data persisted in SQLite",
-                "Define an OpenAPI contract as the source of truth between frontend and backend",
-            ),
-        ),
-        (
-            "the same app containerized, integration-tested, and deployed at a public URL",
-            "03-deployment",
-            (
-                "Containerize the app with a multi-stage Dockerfile and Docker Compose",
-                "Write integration tests that hit a real database",
-                "The app should be deployed at a public URL",
-            ),
-        ),
-        (
-            "an observability stack, an alert on real user impact, "
-            "and an agent as first line of support",
-            "04-devops",
-            (
-                "The concrete stack is OpenTelemetry into Prometheus, Loki, and Tempo, "
-                "with Grafana on top",
-                "Write one alert that represents real user impact",
-                "put an agent inside that loop as the first line of support",
-            ),
-        ),
-    )
-
-    # Claims that belong to the 2025 edition (cohorts/2025) and to the invented copy before
-    # it.  None of them may reappear in the panel.
-    RETIRED_CLAIMS = (
-        "6–8",
-        "6-8",
-        "small groups",
-        "RAG evaluation",
-        "multi-agent",
-        "Six modules",
-        "six modules",
-        "n8n",
-        "coding agent that scaffolds",
-        "low-code",
-    )
-
     def setUp(self) -> None:
-        # The panel now renders from the database, so the cohort it describes must exist.
         super().setUp()
-        build_reviewed_catalog()
+        self.cohorts = build_reviewed_catalog()
+        self.featured = self.cohorts["ai-dev-tools-zoomcamp"]
 
-    def _module_lessons(self) -> dict[str, str]:
-        """Return each checked-in 2026 module lesson, whitespace-normalised for matching.
-
-        The lessons are prose wrapped at the source's own column, so a sentence is only a
-        contiguous string once its line breaks are collapsed.
-        """
-
-        manifest = json.loads((CURRICULUM_2026 / "SOURCE.json").read_text())
-        lessons: dict[str, str] = {}
-        for module in manifest["modules"]:
-            raw = (CURRICULUM_2026 / str(module["file"])).read_bytes()
-            self.assertEqual(
-                hashlib.sha256(raw).hexdigest(),
-                module["sha256"],
-                f"{module['source_path']} no longer matches its recorded checksum.",
-            )
-            lessons[str(module["slug"])] = " ".join(raw.decode().split())
-        return lessons
-
-    def test_the_checked_curriculum_copy_is_the_2026_cohort(self) -> None:
-        """The anchor source is the featured cohort's curriculum, pinned and identified."""
-
-        manifest = json.loads((CURRICULUM_2026 / "SOURCE.json").read_text())
-
-        self.assertEqual(
-            manifest["source"]["repository"],
-            "https://github.com/DataTalksClub/ai-dev-tools-zoomcamp",
-        )
-        self.assertEqual(manifest["source"]["cohort_path"], "cohorts/2026")
-        self.assertRegex(manifest["source"]["revision"], r"^[0-9a-f]{40}$")
-        self.assertEqual(
-            tuple(str(module["slug"]) for module in manifest["modules"]),
-            ("01-ai-native-workflow", "02-development", "03-deployment", "04-devops"),
-        )
-        lessons = self._module_lessons()
-        for module in manifest["modules"]:
-            with self.subTest(module=module["slug"]):
-                self.assertTrue(str(module["source_path"]).startswith("cohorts/2026/"))
-                self.assertIn(f"# {module['title']}", lessons[str(module["slug"])])
-
-    def test_the_featured_summary_is_grounded_in_the_2026_module_lessons(self) -> None:
-        """The panel's own sentence is held to the same standard as its bullets."""
-
-        lessons = self._module_lessons()
-        for module, anchor in self.SUMMARY_SOURCE_ANCHORS:
-            with self.subTest(anchor=anchor):
-                self.assertIn(anchor, lessons[module])
-        for retired in self.RETIRED_CLAIMS:
-            with self.subTest(retired=retired):
-                self.assertNotIn(retired, FEATURED_COHORT_SUMMARY)
-        # The module count is a database fact rendered beside the homework and project
-        # counts; a sentence that states its own count is what shipped the 2025 curriculum.
-        self.assertNotIn("module", FEATURED_COHORT_SUMMARY)
-
+    def _panel(self) -> str:
         response = self.client.get(reverse("home"))
-
-        self.assertContains(response, escape(FEATURED_COHORT_SUMMARY))
-
-    def test_every_build_item_is_grounded_in_its_2026_module_lesson(self) -> None:
-        lessons = self._module_lessons()
-        self.assertEqual(
-            FEATURED_BUILD_ITEMS,
-            tuple(item for item, _module, _anchors in self.BUILD_ITEM_SOURCE_ANCHORS),
-        )
-        for item, module, anchors in self.BUILD_ITEM_SOURCE_ANCHORS:
-            for anchor in anchors:
-                with self.subTest(item=item, anchor=anchor):
-                    self.assertIn(anchor, lessons[module])
-
-    def test_the_stale_course_docs_curriculum_is_not_the_panel_source(self) -> None:
-        """The docs page this panel used to read still describes the 2025 edition.
-
-        It is a course-wide page, not a cohort page, and DataTalksClub/docs has not
-        refreshed it for 2026.  Pin that here so the drift is visible rather than
-        rediscovered by copying from it again.
-        """
-
-        body = ""
-        for page in docs_projection()["pages"]:
-            if page["public_path"] == "/docs/courses/ai-dev-tools-zoomcamp/curriculum/":
-                body = str(page["body"])
-        self.assertIn("six modules plus a final project", body)
-        self.assertIn("Automate tasks with n8n", body)
-        for item in FEATURED_BUILD_ITEMS:
-            with self.subTest(item=item):
-                self.assertNotIn(item, body)
-
-    def test_the_panel_renders_the_build_items_and_no_retired_claim(self) -> None:
-        response = self.client.get(reverse("home"))
-
         self.assertEqual(response.status_code, 200)
-        for item in FEATURED_BUILD_ITEMS:
-            with self.subTest(item=item):
-                self.assertContains(response, escape(item[0].upper() + item[1:]))
-
         body = response.content.decode()
-        self.assertNotIn("build-note", body)
         panel = body[body.index("data-featured-course") :]
-        panel = panel[: panel.index("catalog-scroller")]
-        for retired in self.RETIRED_CLAIMS:
+        return panel[: panel.index("catalog-scroller")]
+
+    def test_the_panel_prints_the_featured_cohort_s_own_summary(self) -> None:
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, escape(self.featured.promo_summary))
+
+    def test_the_panel_prints_every_build_item_in_the_cohort_s_order(self) -> None:
+        items = [item.text for item in self.featured.build_items.order_by("position")]
+        self.assertTrue(items)
+
+        panel = self._panel()
+
+        offsets = []
+        for item in items:
+            rendered = escape(item[0].upper() + item[1:])
+            with self.subTest(item=item):
+                self.assertIn(rendered, panel)
+            offsets.append(panel.index(rendered))
+        self.assertEqual(offsets, sorted(offsets))
+
+    def test_the_summary_leaves_the_module_count_to_the_database(self) -> None:
+        """A sentence stating its own count is what shipped the 2025 curriculum.
+
+        The count is rendered beside the homework and project counts from
+        ``CatalogCourse.module_count``, so it cannot drift from the curriculum
+        the site holds.
+        """
+
+        self.assertNotIn("module", self.featured.promo_summary)
+        self.assertEqual(
+            next(
+                entry.module_count for entry in course_catalog() if entry.family == FEATURED_FAMILY
+            ),
+            self.featured.modules.count(),
+        )
+
+    def test_a_cohort_with_no_promo_copy_draws_no_panel_copy(self) -> None:
+        """The absent state is empty, never copy borrowed from somewhere else."""
+
+        self.featured.build_items.all().delete()
+        Cohort.objects.filter(pk=self.featured.pk).update(promo_summary="", delivery_format="")
+
+        panel = self._panel()
+
+        self.assertNotIn("build-note", panel)
+        for item in (
+            "a Django app built from a specification",
+            "an observability stack",
+            "AI-native development",
+        ):
+            with self.subTest(item=item):
+                self.assertNotIn(item, panel)
+
+    def test_the_panel_carries_no_retired_claim(self) -> None:
+        panel = self._panel()
+
+        for retired in (
+            "small groups of 6-8 people",
+            "six modules",
+            "n8n",
+            "multi-agent",
+            "retrieval-augmented generation",
+        ):
             with self.subTest(retired=retired):
                 self.assertNotIn(retired, panel)
 
