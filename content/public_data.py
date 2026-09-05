@@ -30,23 +30,8 @@ from .public_text import strip_leaked_target_attributes, target_attribute_count
 WIKI_ASSET_ROOT = Path(__file__).with_name("wiki_assets")
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
-
-PODCAST_PLATFORM_FILENAME = "podcast_platforms.json"
-EXPECTED_PODCAST_PLATFORM_PROVIDERS = (
-    "apple",
-    "spotify",
-    "youtube",
-    "spotify_for_creators",
-)
-EDITORIAL_ROUTE_MIGRATION_FILENAME = "editorial_route_migration.json"
-EDITORIAL_ROUTE_MIGRATION_SCHEMA = (
-    REPOSITORY_ROOT / "_docs" / "compatibility" / "editorial-route-migration.schema.json"
-)
-# How many articles, podcasts, transcripts, books, people, events, wiki pages, courses and
-# media objects exist changes every time content is legitimately published or retired.  The
-# manifest declares its own counts (see `_checked_public_projection`), and every artifact is
-# checked against what the manifest itself declares plus a full-content digest, so nothing
-# here pins an exact total that would need a hand-edit on every routine publish.
+#: The count keys the empty catalogue's manifest declares, so a page reading
+#: "how many articles are there" gets a zero rather than a missing key.
 REQUIRED_COUNT_KEYS = frozenset(
     {
         "articles",
@@ -66,39 +51,12 @@ REQUIRED_COUNT_KEYS = frozenset(
 # in the published text for the runtime to clean up.  Person bios still take the older plain-text
 # path, so their ten markers are still removed here.
 EXPECTED_LEAKED_TARGET_MARKERS = {"articles": 0, "people": 10}
-# Media objects are served from an object store, so the complete-tree digest covers only
-# the JSON artifacts and the wiki assets.  The manifest must declare that scope in
-# machine-readable form: a manifest produced by an older whole-tree builder, or one that
-# omits the declaration, fails closed instead of being silently accepted with a digest
-# that would happen to match an unhydrated checkout.
-MEDIA_TREE_PREFIX = "media/"
-EXPECTED_TREE_DIGEST_SCOPE = (
-    "projection artifacts and wiki assets; excludes manifest.json and media/"
-)
-# The media storage architecture is fixed; only how many objects are in it changes with
-# content.  That "count" field is checked separately against the manifest's own declared
-# media count, not pinned here.
-EXPECTED_MEDIA_STORAGE_FIELDS = {
-    "location": "object-store",
-    "records": "media.json",
-    "integrity": "per-record provenance.checksum",
-}
+
+
+#: The selection mode the empty catalogue reports, matching what a published
+#: one carries.
 EXPECTED_SELECTION = "preferred"
-EDITORIAL_ROUTE_COLLECTIONS = {
-    "articles": "/blog",
-    "podcasts": "/podcast",
-    "books": "/books",
-    "people": "/people",
-}
-EXPECTED_REVISIONS = {
-    "preferred_content": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
-    "fallback_selection": "373bef2912342ece1d2a2d2a9395aa3417243283",
-    "legacy_main": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-    "wiki": "988b79d0d655bf4755945c3118544cb9e0dbead6",
-    "courses": "98a235283904b4ef9ad29e196298540756cf1bcc",
-}
-# Events are not here: they are database rows read through events.queries, not
-# a projected collection.
+
 COLLECTION_NAMES = (
     "articles",
     "podcasts",
@@ -113,18 +71,6 @@ EVENT_TYPE_ICONS = {
     "podcast": "fas fa-microphone-alt",
     "webinar": "fas fa-tv",
     "workshop": "fas fa-wrench",
-}
-EXPECTED_RECORD_SOURCES = {
-    "articles": {("DataTalksClub/content", EXPECTED_REVISIONS["preferred_content"])},
-    "podcasts": {("DataTalksClub/content", EXPECTED_REVISIONS["preferred_content"])},
-    "books": {("DataTalksClub/content", EXPECTED_REVISIONS["preferred_content"])},
-    "people": {("DataTalksClub/datatalksclub.github.io", EXPECTED_REVISIONS["legacy_main"])},
-    "wiki": {("DataTalksClub/podwiki", EXPECTED_REVISIONS["wiki"])},
-    "courses": {("DataTalksClub/course-management-platform", EXPECTED_REVISIONS["courses"])},
-    "media": {
-        ("DataTalksClub/content", EXPECTED_REVISIONS["preferred_content"]),
-        ("DataTalksClub/datatalksclub.github.io", EXPECTED_REVISIONS["legacy_main"]),
-    },
 }
 
 
