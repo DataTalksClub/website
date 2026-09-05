@@ -19,6 +19,12 @@ from core.models import RevisionedModel
 
 SHA1_PATTERN = r"^[0-9a-f]{40}$"
 SHA256_PATTERN = r"^[0-9a-f]{64}$"
+#: An article slug as recovered by the article FAQ capture: lowercase slug
+#: characters, the same shape ``content/article_faq.py`` validates. Plain
+#: strings, so a migration serializes them by value and never imports this
+#: module (the testimonial asset-key pattern is the precedent).
+ARTICLE_FAQ_SLUG_PATTERN = r"^[a-z0-9][a-z0-9-]*$"
+ARTICLE_FAQ_ANCHOR_PATTERN = r"^faq-[a-z0-9][a-z0-9-]*$"
 PUBLIC_CONTRACT_DIGEST = "31f505350566bfcde0a30109dadcfb3565042fd395b4c1bd151966f94d361332"
 LEGACY_PUBLIC_CONTRACT_DIGEST = "50f875806217865ef35b74f58ed885c4b5c832284391dbea7f84344d3416f66d"
 SUPPORTED_PUBLIC_CONTRACT_DIGESTS = (
@@ -729,3 +735,141 @@ class ContentAsset(FrozenReleaseChild):
     def release_id_for_guard(self, *, using: str) -> uuid.UUID:
         del using
         return self.release_id
+
+
+class ArticleFaqSection(models.Model):
+    """One recovered article FAQ section, owned by the database.
+
+    Ten blog articles closed with a frequently-asked-questions section on the
+    legacy site whose pairs lived in ``_data/faqs/*.yml``, not in the article
+    Markdown. The pairs arrive through ``scripts/prod/import_article_faq.py``,
+    keyed on the article slug; replaying validates and writes nothing new, and
+    an article with no section row renders with no FAQ section at all.
+
+    ``block_index`` is the split point inside the article body the page renders
+    (blocks before it, then the FAQ, then blocks after it), and ``heading_id``
+    names the heading the section answers to. The three digests are the binding
+    evidence the importer checked: ``blocks_sha256`` proves the section still
+    belongs at ``block_index`` of that exact body. A re-import against a changed
+    body fails loudly instead of silently mispositioning the section, so the
+    read path trusts the stored position without re-reading any file.
+    """
+
+    slug = models.CharField(
+        max_length=200,
+        unique=True,
+        help_text="The article slug this FAQ section belongs to.",
+    )
+    heading_id = models.CharField(
+        max_length=200,
+        help_text="The article heading the FAQ section answers to.",
+    )
+    block_index = models.PositiveIntegerField(
+        help_text="Split point inside the article body: blocks before it render above the FAQ.",
+    )
+    source_path = models.CharField(
+        max_length=512,
+        help_text="Legacy data file the pairs were recovered from, e.g. '_data/faqs/<key>.yml'.",
+    )
+    source_sha256 = models.CharField(
+        max_length=64,
+        validators=[sha256_validator],
+        help_text="Digest of the legacy source file at import time.",
+    )
+    article_source_path = models.CharField(
+        max_length=512,
+        help_text="Article source inside DataTalksClub/content, e.g. 'articles/<slug>.md'.",
+    )
+    article_source_sha256 = models.CharField(
+        max_length=64,
+        validators=[sha256_validator],
+        help_text="Digest of the article source at import time.",
+    )
+    blocks_sha256 = models.CharField(
+        max_length=64,
+        validators=[sha256_validator],
+        help_text="Digest of the projected article blocks the section was bound to.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("slug",)
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(slug__regex=ARTICLE_FAQ_SLUG_PATTERN),
+                name="content_articlefaq_slug_ck",
+            ),
+            models.CheckConstraint(
+                condition=Q(block_index__gte=1),
+                name="content_articlefaq_block_index_ck",
+            ),
+            models.CheckConstraint(
+                condition=Q(source_sha256__regex=SHA256_PATTERN),
+                name="content_articlefaq_source_sha_ck",
+            ),
+            models.CheckConstraint(
+                condition=Q(article_source_sha256__regex=SHA256_PATTERN),
+                name="content_articlefaq_article_sha_ck",
+            ),
+            models.CheckConstraint(
+                condition=Q(blocks_sha256__regex=SHA256_PATTERN),
+                name="content_articlefaq_blocks_sha_ck",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"FAQ for {self.slug}"
+
+
+class ArticleFaqQuestion(models.Model):
+    """One recovered question inside an :class:`ArticleFaqSection`.
+
+    ``answer_markdown`` keeps the source Markdown so the stored rows stay
+    diffable against the recovery capture; pages render it through the same
+    Markdown-then-shared-sanitizer path the capture used. ``anchor_id`` is the
+    stable linkable fragment derived from the question text.
+    """
+
+    section = models.ForeignKey(
+        ArticleFaqSection,
+        on_delete=models.CASCADE,
+        related_name="questions",
+    )
+    position = models.PositiveIntegerField(
+        help_text="Order inside the section; lower positions render first.",
+    )
+    anchor_id = models.CharField(
+        max_length=84,
+        help_text="Stable fragment for the question, e.g. 'faq-<slug>'.",
+    )
+    question = models.CharField(max_length=500)
+    answer_markdown = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("position", "id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("section", "anchor_id"),
+                name="content_articlefaq_question_anchor_uq",
+            ),
+            models.UniqueConstraint(
+                fields=("section", "position"),
+                name="content_articlefaq_question_position_uq",
+            ),
+            models.CheckConstraint(
+                condition=Q(anchor_id__regex=ARTICLE_FAQ_ANCHOR_PATTERN),
+                name="content_articlefaq_anchor_ck",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=("section", "position"),
+                name="content_articlefaq_read_idx",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.anchor_id} ({self.section.slug})"
