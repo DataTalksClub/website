@@ -37,22 +37,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.prod.target import configure_ambient_settings  # noqa: E402
+
 SYNC_MODEL = "git-synchronized"
 # Writes files (or object-store keys), never a database row -- there is no
 # database domain for this to bootstrap.
 BOOTSTRAPS_EMPTY_DATABASE = False
-
-
-def _configure() -> None:
-    # No --database: this never touches the ORM. Respects whatever
-    # DJANGO_SETTINGS_MODULE is already set (production included, since a
-    # deployed public_media_publish/verify run needs real settings), falling
-    # back to local the same way manage.py itself does.
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings.local")
-
-    import django
-
-    django.setup()
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -87,7 +77,7 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    _configure()
+    configure_ambient_settings()
 
     from content.media_store import media_store, media_store_config
     from content.media_tooling import (

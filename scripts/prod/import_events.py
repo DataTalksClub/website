@@ -111,6 +111,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.prod.target import add_target_arguments, configure_target  # noqa: E402
+
 SYNC_MODEL = "one-time"
 BOOTSTRAPS_EMPTY_DATABASE = False
 
@@ -158,16 +160,6 @@ def _main_checkout_root() -> Path:
     except (OSError, subprocess.SubprocessError) as error:
         raise EventImportError("git_common_directory_unavailable") from error
     return Path(common_dir).resolve().parent
-
-
-def _configure(database: Path) -> None:
-    os.environ["DTC_ENVIRONMENT"] = "local"
-    os.environ["DTC_SQLITE_PATH"] = str(database)
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings.local")
-
-    import django
-
-    django.setup()
 
 
 # --------------------------------------------------------------------------
@@ -687,7 +679,7 @@ def run(
 def _parser() -> argparse.ArgumentParser:
     main_root = _main_checkout_root()
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--database", required=True, type=Path)
+    add_target_arguments(parser)
     parser.add_argument("--identity-manifest", type=Path, default=IDENTITY_MANIFEST_PATH)
     parser.add_argument("--luma-source", type=Path, default=main_root / LUMA_RELATIVE_SOURCE)
     parser.add_argument(
@@ -720,8 +712,9 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     try:
-        args = _parser().parse_args(argv)
-        _configure(args.database.resolve())
+        parser = _parser()
+        args = parser.parse_args(argv)
+        configure_target(parser, args)
         if args.discover_new_events_only:
             if not args.luma_source.resolve().is_dir():
                 raise EventImportError("registration_source_unavailable")

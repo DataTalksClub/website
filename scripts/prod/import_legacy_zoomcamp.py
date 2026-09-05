@@ -64,6 +64,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.prod.target import add_target_arguments, configure_target  # noqa: E402
+
 SYNC_MODEL = "one-time"
 # This is the only importer here that bootstraps an empty database: a cohort's
 # course family is resolved from its slug by ``Cohort.save()``, so nothing has
@@ -74,16 +76,6 @@ BOOTSTRAPS_EMPTY_DATABASE = True
 
 class LegacyZoomcampImportError(RuntimeError):
     """A safe refusal that names a condition, never a source value."""
-
-
-def _configure(database: Path) -> None:
-    os.environ["DTC_ENVIRONMENT"] = "local"
-    os.environ["DTC_SQLITE_PATH"] = str(database)
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings.local")
-
-    import django
-
-    django.setup()
 
 
 def discover(source_repo: Path) -> list:
@@ -225,7 +217,7 @@ def _parser() -> argparse.ArgumentParser:
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--database", required=True, type=Path)
+    add_target_arguments(parser)
     parser.add_argument(
         "--source-repo",
         required=True,
@@ -264,8 +256,9 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = _parser().parse_args(argv)
-    _configure(args.database.resolve())
+    parser = _parser()
+    args = parser.parse_args(argv)
+    configure_target(parser, args)
 
     try:
         if args.list:

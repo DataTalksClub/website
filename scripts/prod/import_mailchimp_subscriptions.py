@@ -36,6 +36,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.prod.target import add_target_arguments, configure_target  # noqa: E402
+
 SYNC_MODEL = "one-time"
 # Depends on accounts already written by an earlier importer (the legacy
 # zoomcamp import and/or import_cmp_learners) -- it only ever updates a
@@ -50,16 +52,6 @@ _SUBSCRIBED_PREFIX = "subscribed_email_audience_export_"
 
 class MailchimpImportFailure(RuntimeError):
     """A safe refusal that carries a condition code, never a source value."""
-
-
-def _configure(database: Path) -> None:
-    os.environ["DTC_ENVIRONMENT"] = "local"
-    os.environ["DTC_SQLITE_PATH"] = str(database)
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings.local")
-
-    import django
-
-    django.setup()
 
 
 def _resolve_subscribed_file(export_dir: Path) -> Path:
@@ -81,7 +73,7 @@ def main(argv: list[str] | None = None) -> int:
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--database", required=True, type=Path)
+    add_target_arguments(parser)
     parser.add_argument(
         "--export-dir",
         required=True,
@@ -111,7 +103,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"error": str(error)}, indent=2))
         return 1
 
-    _configure(args.database.resolve())
+    configure_target(parser, args)
 
     from accounts.services.mailchimp_subscription_import import (
         DEFAULT_BATCH_SIZE,

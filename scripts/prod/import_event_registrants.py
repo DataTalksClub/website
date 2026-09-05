@@ -50,6 +50,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.prod.target import add_target_arguments, configure_target  # noqa: E402
+
 SYNC_MODEL = "one-time"
 # Requires events.Event rows (from import_events.py) and, for the interesting
 # "matched to an existing account" path, accounts_customuser rows (from
@@ -64,22 +66,12 @@ class EventRegistrantImportCliError(RuntimeError):
     """A safe refusal that carries a condition code, never a source value."""
 
 
-def _configure(database: Path) -> None:
-    os.environ["DTC_ENVIRONMENT"] = "local"
-    os.environ["DTC_SQLITE_PATH"] = str(database)
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings.local")
-
-    import django
-
-    django.setup()
-
-
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--database", required=True, type=Path)
+    add_target_arguments(parser)
     parser.add_argument(
         "--luma-source",
         type=Path,
@@ -100,8 +92,9 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = _parser().parse_args(argv)
-    _configure(args.database.resolve())
+    parser = _parser()
+    args = parser.parse_args(argv)
+    configure_target(parser, args)
 
     from events.registrant_import import (
         RegistrantImportError,

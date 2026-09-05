@@ -61,19 +61,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.prod.target import add_target_arguments, configure_target  # noqa: E402
+
 SYNC_MODEL = "one-time"
 
 ARTIFACT_ROOT = (PROJECT_ROOT / ".tmp").resolve()
-
-
-def _configure(database: Path) -> None:
-    os.environ["DTC_ENVIRONMENT"] = "local"
-    os.environ["DTC_SQLITE_PATH"] = str(database)
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings.local")
-
-    import django
-
-    django.setup()
 
 
 def _artifact_path(value: str, *, must_exist: bool) -> Path:
@@ -155,7 +147,7 @@ def _parser() -> argparse.ArgumentParser:
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--database", required=True, type=Path)
+    add_target_arguments(parser)
     parser.add_argument("--snapshot-id", required=True)
     parser.add_argument("--mapping")
     parser.add_argument("--apply", action="store_true")
@@ -165,11 +157,12 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    options = _parser().parse_args(argv)
+    parser = _parser()
+    options = parser.parse_args(argv)
     if options.apply and options.rollback_check:
         print(json.dumps({"error": "choose either apply or rollback-check"}, indent=2))
         return 1
-    _configure(options.database.resolve())
+    configure_target(parser, options)
 
     from scripts.prod.account_reconciliation import ReconciliationBlocked, ReconciliationError
 
