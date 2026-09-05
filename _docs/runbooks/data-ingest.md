@@ -737,7 +737,7 @@ covers through August 2026) nor the manifest.
 
 **The fix**: `scripts/prod/import_events.py` now has a second, independent leg —
 `discover_new_luma_event_identities()` (orchestration) calling
-`events.importers.discover_luma_events()` (the read) and
+`scripts.prod.registration_sources.luma.discover_luma_events()` (the read) and
 `events.identity.create_provider_event_identity()` (the write, itself a thin wrapper
 around `create_event_identity()`; it does not reimplement allocation or path
 construction). Run it two ways:
@@ -845,14 +845,14 @@ records are what §14.2 imports. No runtime code reads the bridge.
 | **Events** | 174 | 209 |
 | **Rows** | 52,467 (52,415 approved + 52 declined) | 24,001 (all `attending`) |
 | **Schema** | `luma_v1` | three CSV schema versions, fingerprint-checked |
-| **Adapter** | `events/importers.py` | `events/importers.py` |
+| **Adapter** | `scripts/prod/registration_sources/luma.py` | `scripts/prod/registration_sources/eventbrite.py` |
 | **Prep** | `scripts/prepare_event_registration_sources.py` | same |
 | **Facts** | `_docs/migration-data/event-registration-sources.json` | same |
 | **Activation** | `mapping_review_required` | `mapping_review_required` |
 
 **Aggregate-only. No attendee row is ever read into the database** — the adapters
 return counts, checksums and provider IDs. An unsupported schema fingerprint refuses
-to parse rows at all (`events/importers.py:625-645`); one Eventbrite `.xlsx` is
+to parse rows at all (see `derive_eventbrite`'s unsupported-schema branch); one Eventbrite `.xlsx` is
 recorded as `unsupported_xlsx_total: 1`.
 
 Both are `activation_state: mapping_review_required` — **staged but not activated.**

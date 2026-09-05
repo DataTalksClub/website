@@ -516,8 +516,8 @@ aggregated yet.
 ## 6.2 Derive aggregates
 
 [`scripts/prod/import_events.py`](../../scripts/prod/import_events.py), via
-[`events/importers.py`](../../events/importers.py) (`derive_luma`,
-`derive_eventbrite`)
+[`scripts/prod/registration_sources/`](../../scripts/prod/registration_sources/)
+(`luma.derive_luma`, `eventbrite.derive_eventbrite`)
 
 Source: the prepared intermediate from 6.1. Default path
 `.local/migration-data/events/luma-aggregate-v1`
@@ -668,8 +668,9 @@ via [`events/registrant_import.py`](../../events/registrant_import.py).
 Source: the same prepared Luma export directory as 6.1/6.2 (attendee-level
 rows already present there, discarded by 6.2's aggregate-only adapters). The
 durable copy is `/data/tmp/luma-eventbrite-export/luma-aggregate-v1/`. Reads
-it independently of [`events/importers.py`](../../events/importers.py), whose
-own adapters (`derive_luma`, `derive_eventbrite`, used by 6.2) have a hard
+it independently of
+[`scripts/prod/registration_sources/`](../../scripts/prod/registration_sources/),
+whose own adapters (`derive_luma`, `derive_eventbrite`, used by 6.2) have a hard
 "no attendee value crosses this module boundary" contract that this journey
 must not violate; `events/registrant_import.py` is the one module that does
 cross it, deliberately kept separate.

@@ -261,8 +261,8 @@ def discover_new_provider_events(
     ``discovered`` items only need ``external_event_identifier``, ``title``,
     ``start_at`` and ``eligible_count`` attributes -- shaped for
     ``scripts.prod.registration_sources.luma.DiscoveredLumaEvent`` today,
-    provider-agnostic by
-    contract for whenever an Eventbrite export carries its own title source.
+    provider-agnostic by contract for whenever an Eventbrite export carries its
+    own title source.
 
     An event is skipped, not created, when any of these is true:
 
@@ -372,8 +372,8 @@ def discover_new_luma_event_identities(*, luma_source: Path, apply: bool = True)
     previously pinned whole-tree checksum -- that pin exists to protect
     registration *counts* from silent drift, and identity creation writes no
     count.  See ``scripts.prod.registration_sources.luma.discover_luma_events``
-    for the read and
-    ``discover_new_provider_events`` for the create-or-skip decision.
+    for the read and ``discover_new_provider_events`` for the create-or-skip
+    decision.
     """
 
     from events.importers import ProtectedSourceError

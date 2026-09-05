@@ -79,7 +79,7 @@ deliberately do nothing", it says so.
 | 14 | Event identity manifest (421 / 1,684) | one-time | `scripts/prod/import_events.py` — **no longer a migration** | 5 |
 | 14a | Event content (421 records, 159 described) | one-time | `scripts/prod/import_events.py` → `events/content_import.py`, straight after 14 | 5 |
 | 15 | Event description bridge | one-time | committed capture, applied into the 14a staging records; `scripts/build_event_description_bridge.py` | 6 |
-| 16 | Luma aggregates | one-time | `scripts/prod/import_events.py` → `events/importers.py` | 5 |
+| 16 | Luma aggregates | one-time | `scripts/prod/import_events.py` → `scripts/prod/registration_sources/` | 5 |
 | 17 | Eventbrite aggregates | one-time | as above | 5 |
 | 18 | Public media objects (1,253 → 997, measured) | already CDN-resident; verify, flatten, delete | **owner ruling: to the CDN and out of git**, renamed on ingest, cards and covers deleted — §11 B11, B14, B15 | **7** |
 | 19 | **Sponsors** | one-time then Studio | **owner ruling: give it an import script** — to build, §11 B9 | 8 |
