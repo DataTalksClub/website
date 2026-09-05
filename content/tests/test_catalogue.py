@@ -58,7 +58,7 @@ class EmptyCatalogueTests(TestCase):
     def test_every_collection_is_empty_rather_than_a_failure(self) -> None:
         for name in catalogue.COLLECTION_NAMES:
             with self.subTest(collection=name):
-                self.assertEqual(catalogue.records(name.rstrip("s") or name), ())
+                self.assertEqual(catalogue.records(catalogue.COLLECTION_KINDS[name]), ())
 
     def test_the_book_archive_and_its_detail_routes_render_and_miss(self) -> None:
         self.assertEqual(catalogue.books(), ())

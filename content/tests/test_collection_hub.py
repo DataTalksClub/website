@@ -8,12 +8,12 @@ partials instead of copying them, and states only what the catalogue records hol
 from __future__ import annotations
 
 import re
-from unittest import mock
 from xml.etree import ElementTree
 
 from django.test import TestCase
 from django.utils.html import escape
 
+from content import catalogue
 from content.catalogue import PUBLIC_CONTENT_STABLE_ID
 from content.models import ContentSource
 from content.pagination import PUBLIC_PAGE_SIZE
@@ -110,7 +110,7 @@ class CollectionHubRecordTests(TestCase):
     def test_blog_hub_lists_every_article_with_its_own_title_path_and_authors(self) -> None:
         """The index pages (issue #174's primitive); the whole blog is still on it."""
 
-        articles = public_projection()["articles"]
+        articles = catalogue.articles()
         body = "".join(catalogue_page_bodies(self.client, "/blog"))
 
         self.assertIn(f"blog · {len(articles)} articles", body)
@@ -131,7 +131,7 @@ class CollectionHubRecordTests(TestCase):
     def test_books_hub_lists_every_book_and_counts_only_recorded_questions(self) -> None:
         """The archive pages (issue #174); the whole archive is still on it."""
 
-        books = public_projection()["books"]
+        books = catalogue.books()
         with_archive = [book for book in books if book["archive"]]
         pages = catalogue_page_bodies(self.client, "/books")
         body = "".join(pages)
@@ -192,17 +192,12 @@ class CollectionHubRecordTests(TestCase):
                         body,
                     )
 
-    def test_an_empty_articles_collection_says_so_instead_of_drawing_an_empty_list(self) -> None:
-        projection = dict(public_projection())
-        projection["articles"] = ()
-        with mock.patch("content.public_views.public_projection", return_value=projection):
-            self.assertContains(self.client.get("/blog"), "No articles yet.")
-
-    def test_an_empty_book_archive_says_so_instead_of_drawing_an_empty_list(self) -> None:
-        # The books hub reads the database, so it is emptied the way an
-        # un-ingested database is empty rather than by patching a value in.
+    def test_an_empty_collection_says_so_instead_of_drawing_an_empty_list(self) -> None:
+        # Both hubs read the database, so they are emptied the way an un-ingested
+        # database is empty rather than by patching a value in.
         ContentSource.objects.filter(stable_id=PUBLIC_CONTENT_STABLE_ID).update(enabled=False)
 
+        self.assertContains(self.client.get("/blog"), "No articles yet.")
         empty_books = self.client.get("/books")
         self.assertContains(empty_books, "No books are available yet.")
         # An empty archive is one valid page, so it offers no page controls at
@@ -253,7 +248,7 @@ class BooksArchiveContractTests(TestCase):
         document = ElementTree.fromstring(response.content)
         locations = [node.text or "" for node in document.findall("s:url/s:loc", SITEMAP_NAMESPACE)]
         expected = ["https://datatalks.club/books"] + [
-            f"https://datatalks.club{book['public_path']}" for book in public_projection()["books"]
+            f"https://datatalks.club{book['public_path']}" for book in catalogue.books()
         ]
         # Query pages are discoverable through the controls, never through the
         # sitemap: page one is the only archive location in it.
@@ -265,12 +260,10 @@ class BooksArchiveContractTests(TestCase):
         lastmods = [
             node.text or "" for node in document.findall("s:url/s:lastmod", SITEMAP_NAMESPACE)
         ]
-        self.assertEqual(
-            lastmods, [book["published"][:10] for book in public_projection()["books"]]
-        )
+        self.assertEqual(lastmods, [book["published"][:10] for book in catalogue.books()])
 
     def test_every_archive_page_keeps_the_introduction_above_the_records(self) -> None:
-        books = public_projection()["books"]
+        books = catalogue.books()
         pages = catalogue_page_bodies(self.client, "/books")
         page_count = -(-len(books) // PUBLIC_PAGE_SIZE)
         self.assertEqual(len(pages), page_count)
@@ -418,7 +411,7 @@ class CollectionHubPaginationTests(TestCase):
         )
 
     def test_the_blog_index_pages_and_keeps_its_own_words(self) -> None:
-        articles = public_projection()["articles"]
+        articles = catalogue.articles()
         second = self.client.get("/blog?page=2")
         body = second.content.decode()
 

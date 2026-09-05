@@ -19,13 +19,17 @@ un-ingested database should do.
 
 from __future__ import annotations
 
+import re
+from collections.abc import Mapping
 from functools import lru_cache
 from typing import Any
 
+from django.core.exceptions import ImproperlyConfigured
 from django.db import DatabaseError
-from django.db.models import F
+from django.db.models import Count, F, Max
 
 from .models import ContentDocument, ContentRelease, ContentSource
+from .public_text import strip_leaked_target_attributes, target_attribute_count
 
 #: One published record, exactly as the import stored it. The pages read these
 #: as mappings because that is what the catalogue's own records are: a book has
@@ -38,8 +42,7 @@ Record = dict[str, Any]
 #: graph, search and route records that go with them.
 PUBLIC_CONTENT_STABLE_ID = "dtc-public-content"
 
-#: The collections the catalogue publishes, and the document kind each record
-#: is stored under.
+#: The collections the catalogue publishes.
 COLLECTION_NAMES = (
     "articles",
     "podcasts",
@@ -49,6 +52,10 @@ COLLECTION_NAMES = (
     "courses",
     "media",
 )
+#: The document kind each collection's records are stored under. The import
+#: names a kind by dropping the collection's plural ``s``, which leaves
+#: "people", "wiki" and "media" spelled as they are.
+COLLECTION_KINDS = {name: name.rstrip("s") or name for name in COLLECTION_NAMES}
 
 
 def active_release_id() -> str:
@@ -124,6 +131,183 @@ def singleton(kind: str) -> Record:
 
 def _by_slug(collection: tuple[Record, ...], slug: str) -> Record | None:
     return next((record for record in collection if record.get("slug") == slug), None)
+
+
+#: The audit of the accepted catalogue found exactly these supported metadata
+#: markers left in published bodies. Cleaning them is a narrow, provenance-bound
+#: repair, so the count is a canary: if it moves, the allowlist has broadened or
+#: a body has drifted, and that is a refusal rather than a wider silent cleanup.
+#: Articles are zero because their bodies are built by the article block builder,
+#: which removes the legacy ``{:target="_blank"}`` directive before publication
+#: instead of leaving 270 of them for a reader's request to clean up. Person bios
+#: still take the older plain-text path, so their ten markers are removed here.
+_EXPECTED_LEAKED_TARGET_MARKERS = {"article": 0, "people": 10}
+
+
+@lru_cache(maxsize=8)
+def _cleaned_bodies(release_id: str, kind: str) -> tuple[Record, ...]:
+    """Published records whose body blocks have had leaked link metadata removed.
+
+    The stored records are left untouched: each cleaned record is a copy, so the
+    cache above still holds exactly what the database published.
+
+    A database publishing no records of this kind has nothing to canary. That is
+    an un-ingested database, not a drifted one, so it reads as an empty
+    collection rather than a refusal.
+    """
+
+    held = _records(release_id, kind)
+    markers = sum(
+        target_attribute_count(block["text"])
+        for record in held
+        for block in record.get("blocks", ())
+        if isinstance(block, dict) and isinstance(block.get("text"), str)
+    )
+    if held and markers != _EXPECTED_LEAKED_TARGET_MARKERS[kind]:
+        raise ImproperlyConfigured("Public catalogue leaked target marker count mismatch.")
+    return tuple(_cleaned_body(record) for record in held)
+
+
+def _cleaned_body(record: Record) -> Record:
+    copied = dict(record)
+    raw_blocks = record.get("blocks")
+    if not isinstance(raw_blocks, (list, tuple)):
+        return copied
+    blocks: list[Any] = []
+    for raw_block in raw_blocks:
+        if not isinstance(raw_block, dict):
+            blocks.append(raw_block)
+            continue
+        block = dict(raw_block)
+        text = block.get("text")
+        if isinstance(text, str):
+            block["text"] = strip_leaked_target_attributes(text, validated_projection=True)
+        blocks.append(block)
+    copied["blocks"] = blocks
+    return copied
+
+
+def articles() -> tuple[Record, ...]:
+    """Every published article, newest first."""
+
+    return _cleaned_bodies(active_release_id(), "article")
+
+
+def article(slug: str) -> Record | None:
+    """One article, or ``None`` when the catalogue does not publish it."""
+
+    return _by_slug(articles(), slug)
+
+
+_EVENT_UUID_PATH = re.compile(
+    r"^/events/(?P<identity>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:/|$)"
+)
+
+
+def _event_public_path_stamp() -> tuple[int, str]:
+    """A cheap stamp that moves whenever an event public path could have.
+
+    One aggregate, not a row per event. Reading all 421 events on the way to
+    every request, just to decide whether the people records are still valid,
+    costs far more than rebuilding them on the rare occasion this changes.
+    """
+
+    from events.models import Event
+
+    try:
+        stamp = Event.objects.aggregate(total=Count("id"), latest=Max("updated_at"))
+    except DatabaseError:
+        return (0, "")
+    return (int(stamp["total"] or 0), str(stamp["latest"] or ""))
+
+
+def _event_public_paths() -> dict[str, str]:
+    """The canonical public path of every event that has one."""
+
+    from events.models import Event
+
+    try:
+        return {
+            str(event_id): f"/events/{public_id}/{slug}"
+            for event_id, public_id, slug in Event.objects.exclude(public_id=None).values_list(
+                "id", "public_id", "slug"
+            )
+        }
+    except DatabaseError:
+        return {}
+
+
+def _rewritten_event_path(path: object, replacements: Mapping[str, str]) -> object:
+    if not isinstance(path, str):
+        return path
+    match = _EVENT_UUID_PATH.match(path)
+    if match is None:
+        return path
+    return replacements.get(f"/events/{match.group('identity')}", path)
+
+
+def people() -> tuple[Record, ...]:
+    """Every published profile, with its links pointed at the live event routes."""
+
+    return _people(active_release_id(), _event_public_path_stamp())
+
+
+@lru_cache(maxsize=2)
+def _people(release_id: str, event_stamp: tuple[int, str]) -> tuple[Record, ...]:
+    """Profiles, cached on the two things that can change what they say.
+
+    A profile still carries the uuid event paths its source was written with,
+    while the running site addresses an event by its stable numeric
+    ``Event.public_id``. One query resolves every referenced identity rather
+    than turning a profile page into a round trip per relationship.
+
+    A relationship naming an event the database does not have keeps its own
+    path: the profile page is not the place to discover that an event is
+    missing, and a dead link there is better than a 500.
+    """
+
+    replacements = {f"/events/{identity}": path for identity, path in _event_public_paths().items()}
+    return tuple(
+        {
+            **person,
+            "relationships": tuple(
+                {
+                    **relationship,
+                    "public_path": _rewritten_event_path(
+                        relationship.get("public_path", ""), replacements
+                    ),
+                }
+                for relationship in person.get("relationships", ())
+            ),
+        }
+        for person in _cleaned_bodies(release_id, "people")
+    )
+
+
+def person(slug: str) -> Record | None:
+    """One profile, or ``None`` when the catalogue does not publish it."""
+
+    return _by_slug(people(), slug)
+
+
+def people_by_slug() -> dict[str, Record]:
+    """Profiles indexed by the source key a credit names them with.
+
+    A credit is resolved once per name drawn on a page, so both indexes are
+    built with the profiles rather than scanned for each one.
+    """
+
+    return {person["slug"]: person for person in people() if "slug" in person}
+
+
+def people_by_path() -> dict[str, Record]:
+    """Profiles indexed by their own canonical address.
+
+    A composed credit -- a podcast guest, an event speaker -- may carry no
+    source key, so its profile link is the second way home.
+    """
+
+    return {person["public_path"]: person for person in people() if "public_path" in person}
 
 
 def podcasts() -> tuple[Record, ...]:

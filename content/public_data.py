@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import re
-from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from functools import lru_cache
@@ -10,15 +8,12 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from django.core.exceptions import ImproperlyConfigured
-from django.db import DatabaseError
-from django.db.models import Count, Max
 from django.utils import timezone
 
 from events.queries import published_event_records
 
 from . import catalogue
 from .public_graph import validate_wiki_graph
-from .public_text import strip_leaked_target_attributes, target_attribute_count
 
 #: The wiki's default social-card image. It is a design asset that ships with
 #: the app, not editorial content, so it stays a file; the route that serves it
@@ -120,56 +115,11 @@ def _empty_public_projection() -> dict[str, Any]:
     return projection
 
 
-_EVENT_UUID_PATH = re.compile(
-    r"^/events/(?P<identity>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:/|$)"
-)
-
-
-def _apply_runtime_event_public_paths(
-    projection: dict[str, Any], event_paths: Mapping[str, str]
-) -> None:
-    """Point projected people relationships at the database-owned event URLs.
-
-    Person records still carry the UUID event paths their source was built with,
-    while the running site addresses an event by its stable numeric
-    ``Event.public_id``. One query resolves every referenced identity rather than
-    turning a person page into a round trip per relationship.
-
-    A relationship naming an event the database does not have keeps its own path:
-    the person page is not the place to discover that an event is missing, and a
-    dead link there is better than a 500.
-    """
-
-    people = projection.get("people", ())
-    replacements = {f"/events/{identity}": path for identity, path in event_paths.items()}
-    if not replacements:
-        return
-    for person in people:
-        person["relationships"] = tuple(
-            {
-                **relationship,
-                "public_path": _rewritten_event_path(
-                    relationship.get("public_path", ""), replacements
-                ),
-            }
-            for relationship in person.get("relationships", ())
-        )
-
-
-def _rewritten_event_path(path: object, replacements: Mapping[str, str]) -> object:
-    if not isinstance(path, str):
-        return path
-    match = _EVENT_UUID_PATH.match(path)
-    if match is None:
-        return path
-    return replacements.get(f"/events/{match.group('identity')}", path)
-
-
 #: The registered source whose active release publishes the editorial
 #: catalogue. Named here as well so the offline import keeps one spelling of it.
 PUBLIC_CONTENT_STABLE_ID = catalogue.PUBLIC_CONTENT_STABLE_ID
 #: Records that are one document each, keyed by slug within their collection.
-_COLLECTION_KINDS = {name: name.rstrip("s") or name for name in COLLECTION_NAMES}
+_COLLECTION_KINDS = catalogue.COLLECTION_KINDS
 #: Records the projection carries exactly one of. They are stored as a single
 #: document apiece rather than pretending to be a collection of one.
 _SINGLETON_KINDS = (
@@ -231,134 +181,26 @@ def _editorial_catalogue(release_id: str) -> dict[str, Any]:
 
 
 def _adapted_public_projection() -> dict[str, Any]:
-    """The catalogue with the database-owned URL adapters applied."""
+    """The catalogue with the records their own query services own."""
 
-    return _adapted_catalogue(catalogue.active_release_id(), _event_public_path_stamp())
-
-
-def _event_public_path_stamp() -> tuple[int, str]:
-    """A cheap stamp that moves whenever an event public path could have.
-
-    One aggregate, not a row per event. Reading all 421 events on the way to
-    every request, just to decide whether the adapted catalogue is still valid,
-    costs far more than rebuilding it on the rare occasion this changes.
-    """
-
-    from events.models import Event
-
-    try:
-        stamp = Event.objects.aggregate(total=Count("id"), latest=Max("updated_at"))
-    except DatabaseError:
-        return (0, "")
-    return (int(stamp["total"] or 0), str(stamp["latest"] or ""))
-
-
-def _event_public_paths() -> dict[str, str]:
-    """The canonical public path of every event that has one."""
-
-    from events.models import Event
-
-    try:
-        return {
-            str(event_id): f"/events/{public_id}/{slug}"
-            for event_id, public_id, slug in Event.objects.exclude(public_id=None).values_list(
-                "id", "public_id", "slug"
-            )
-        }
-    except DatabaseError:
-        return {}
+    return _adapted_catalogue(catalogue.active_release_id())
 
 
 @lru_cache(maxsize=2)
-def _adapted_catalogue(release_id: str, event_stamp: tuple[int, str]) -> dict[str, Any]:
-    """The catalogue with the database-owned URL adapters applied.
+def _adapted_catalogue(release_id: str) -> dict[str, Any]:
+    """The compatibility dictionary, with articles and profiles taken as read.
 
-    Cached on the pair that can change it: the active editorial release, and a
-    stamp over the event rows the people adapter rewrites paths to.
+    Both are published records the reader sees differently from the way they are
+    stored -- a body with its source's link metadata cleaned out, a profile
+    pointed at the live event routes -- and ``content.catalogue`` is what decides
+    that now. This only re-indexes them for the surfaces still reading keys.
     """
 
-    # Runtime URL adapters replace values in a handful of nested structures.  Copy only the
-    # records they mutate rather than deep-copying the entire (large) content projection on every
-    # request; the checked file-backed projection remains immutable and safely cached.
-    source = _checked_public_projection()
-    projection = dict(source)
-    projection["podcasts"] = tuple(dict(podcast) for podcast in source["podcasts"])
-
-    # The checked projection flattened Markdown links before runtime loading.  Build a provenance
-    # allowlist from that immutable source so only its known leaked blocks opt into metadata
-    # removal; an arbitrary attached ``literal{:target="blank"}`` value never does.
-    leaked_blocks: dict[str, dict[str, frozenset[int]]] = {}
-    for collection in ("articles", "people"):
-        collection_allowlist: dict[str, frozenset[int]] = {}
-        marker_count = 0
-        for record in source[collection]:
-            block_indexes = frozenset(
-                index
-                for index, block in enumerate(record.get("blocks", ()))
-                if isinstance(block, dict)
-                and isinstance(block.get("text"), str)
-                and target_attribute_count(block["text"]) > 0
-            )
-            marker_count += sum(
-                target_attribute_count(block.get("text", ""))
-                for block in record.get("blocks", ())
-                if isinstance(block, dict) and isinstance(block.get("text"), str)
-            )
-            collection_allowlist[record["slug"]] = block_indexes
-        if marker_count != EXPECTED_LEAKED_TARGET_MARKERS[collection]:
-            raise ImproperlyConfigured("Public projection leaked target marker count mismatch.")
-        leaked_blocks[collection] = collection_allowlist
-
-    def copy_body_record(
-        record: dict[str, Any],
-        *,
-        collection: str,
-    ) -> dict[str, Any]:
-        copied = dict(record)
-        raw_blocks = record.get("blocks")
-        if isinstance(raw_blocks, (list, tuple)):
-            copied_blocks: list[Any] = []
-            allowed_indexes = leaked_blocks[collection].get(record["slug"], frozenset())
-            for index, raw_block in enumerate(raw_blocks):
-                if not isinstance(raw_block, dict):
-                    copied_blocks.append(raw_block)
-                    continue
-                block = dict(raw_block)
-                text = block.get("text")
-                if isinstance(text, str) and index in allowed_indexes:
-                    block["text"] = strip_leaked_target_attributes(
-                        text,
-                        validated_projection=True,
-                    )
-                copied_blocks.append(block)
-            copied["blocks"] = copied_blocks
-        return copied
-
-    projection["articles"] = tuple(
-        copy_body_record(article, collection="articles") for article in source["articles"]
-    )
-    projection["people"] = tuple(
-        {
-            **copy_body_record(person, collection="people"),
-            "relationships": tuple(
-                dict(relationship) for relationship in person.get("relationships", ())
-            ),
-        }
-        for person in source["people"]
-    )
-    _apply_runtime_event_public_paths(projection, _event_public_paths())
-    # The adapters mutate copied article/people records; refresh their lookup indexes as well so
-    # detail pages and relationship tests do not retain references to checked source records.
-    projection["articles_by_slug"] = {
-        article["slug"]: article for article in projection["articles"]
-    }
-    projection["articles_by_path"] = {
-        article["public_path"]: article for article in projection["articles"]
-    }
-    projection["people_by_slug"] = {person["slug"]: person for person in projection["people"]}
-    projection["people_by_path"] = {
-        person["public_path"]: person for person in projection["people"]
-    }
+    projection = dict(_checked_public_projection())
+    for name, records in (("articles", catalogue.articles()), ("people", catalogue.people())):
+        projection[name] = records
+        projection[f"{name}_by_slug"] = {item["slug"]: item for item in records}
+        projection[f"{name}_by_path"] = {item["public_path"]: item for item in records}
     return projection
 
 
@@ -453,13 +295,11 @@ def public_paths() -> tuple[str, ...]:
         "/faq/",
         "/faq/ai-dev-tools-zoomcamp.html",
     }
-    paths.update(
-        record["public_path"]
-        for name in ("articles", "people", "wiki")
-        for record in projection[name]
-    )
+    paths.update(record["public_path"] for record in projection["wiki"])
+    paths.update(record["public_path"] for record in catalogue.people())
     paths.update(record["public_path"] for record in catalogue.books())
     paths.update(record["public_path"] for record in catalogue.podcasts())
+    paths.update(record["public_path"] for record in catalogue.articles())
     paths.update(record["public_path"] for record in published_event_records())
     paths.update(
         {

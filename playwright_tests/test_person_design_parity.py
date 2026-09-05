@@ -13,8 +13,8 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Page, expect
 
+from content import catalogue
 from content.person_content import person_view
-from content.public_data import public_projection
 
 pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
@@ -35,7 +35,7 @@ VIEWPORTS = (
 
 
 def _profile(slug: str) -> dict:
-    return public_projection()["people_by_slug"][slug]
+    return catalogue.people_by_slug()[slug]
 
 
 def _shot(page: Page, name: str) -> None:

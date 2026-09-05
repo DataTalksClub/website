@@ -28,7 +28,7 @@ from typing import Any
 
 from django.core.exceptions import ImproperlyConfigured
 
-from .public_data import public_projection
+from . import catalogue
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,10 +73,10 @@ def person_chip(
 
     # The composed values a page already holds (a podcast `Guest`, for instance) carry no source
     # key, so the profile path is the second way home: it is the person's own canonical address.
-    if people_by_slug is None or people_by_path is None:
-        projection = public_projection()
-        people_by_slug = projection["people_by_slug"] if people_by_slug is None else people_by_slug
-        people_by_path = projection["people_by_path"] if people_by_path is None else people_by_path
+    if people_by_slug is None:
+        people_by_slug = catalogue.people_by_slug()
+    if people_by_path is None:
+        people_by_path = catalogue.people_by_path()
     key = _field(credit, "key", "slug")
     person = people_by_slug.get(key) or people_by_path.get(public_path) or {}
     image_path = str(person.get("image_path") or "")
@@ -95,8 +95,8 @@ def person_chips(
 ) -> tuple[PersonChip, ...]:
     """Return a whole byline, speaker list or guest list in one call."""
 
-    if people_by_slug is None or people_by_path is None:
-        projection = public_projection()
-        people_by_slug = projection["people_by_slug"] if people_by_slug is None else people_by_slug
-        people_by_path = projection["people_by_path"] if people_by_path is None else people_by_path
+    if people_by_slug is None:
+        people_by_slug = catalogue.people_by_slug()
+    if people_by_path is None:
+        people_by_path = catalogue.people_by_path()
     return tuple(person_chip(credit, people_by_slug, people_by_path) for credit in credits or ())

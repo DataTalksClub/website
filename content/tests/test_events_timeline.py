@@ -8,14 +8,13 @@ from zoneinfo import ZoneInfo
 from django.test import TestCase
 from django.utils.html import escape
 
-from content import public_views
+from content import catalogue, public_views
 from content.pagination import PUBLIC_PAGE_SIZE
 from content.public_data import (
     EventGroups,
     event_date_groups,
     event_groups,
     public_paths,
-    public_projection,
 )
 from events.identity import canonical_detail_path
 from events.models import Event
@@ -787,7 +786,7 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
             if event["slug"] == "ai-dev-tools-zoomcamp-2026-course-launch"
         )
         speaker = event["speakers"][0]
-        bio = public_projection()["people_by_slug"][speaker["key"]]["blocks"][0]["text"]
+        bio = catalogue.people_by_slug()[speaker["key"]]["blocks"][0]["text"]
         body = self.detail(event)
 
         self.assertIn('<h2 id="event-speakers-heading">Speakers</h2>', body)

@@ -26,6 +26,7 @@ from yaml.events import (
     SequenceStartEvent,
 )
 
+from content import catalogue
 from content.article_faq_format import ArticleFaqFormatError, validate_faq_pairs
 from content.inventory import content_route_contracts
 from content.podcast_routes import podcast_canonical_path
@@ -606,7 +607,7 @@ def _checked_contracts() -> tuple[dict[str, PublicContract], str, frozenset[str]
         for record in projection["media"]
         if record.get("provenance", {}).get("repository") == "DataTalksClub/content"
     )
-    approved_person_keys = frozenset(str(key) for key in projection["people_by_slug"])
+    approved_person_keys = frozenset(str(key) for key in catalogue.people_by_slug())
     return index, PUBLIC_CONTRACT_DIGEST, frozenset(adopted_paths), approved_person_keys
 
 

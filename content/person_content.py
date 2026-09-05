@@ -22,6 +22,7 @@ says plainly when there is no linked work rather than padding the space.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
@@ -32,7 +33,7 @@ from django.utils import timezone
 
 from events.queries import published_event_records_by_path
 
-from .public_data import public_projection
+from . import catalogue
 
 # Events are shown in the same timezone the events hub and the event pages use.
 SITE_TIMEZONE = ZoneInfo("Europe/Berlin")
@@ -44,12 +45,15 @@ SITE_TIMEZONE = ZoneInfo("Europe/Berlin")
 # ground is now the site-wide content lavender and the group is named by its
 # heading and its row marks.  See "Which ground a band takes" in
 # _docs/design/design-system.md.
-CONTRIBUTION_GROUPS: tuple[tuple[str, str, str, str], ...] = (
-    ("podcast", "podcasts_by_path", "Podcast episodes", "episode"),
-    # The events index is built from the database, not read from the catalogue.
-    ("events", "", "Events", "event"),
-    ("blog", "articles_by_path", "Articles", "article"),
-    ("books", "books_by_path", "Books", "book"),
+CONTRIBUTION_GROUPS: tuple[
+    tuple[str, Callable[[], tuple[dict[str, Any], ...]] | None, str, str], ...
+] = (
+    ("podcast", catalogue.podcasts, "Podcast episodes", "episode"),
+    # Events have their own query service, so this group's records are read
+    # there rather than from the catalogue alongside the others.
+    ("events", None, "Events", "event"),
+    ("blog", catalogue.articles, "Articles", "article"),
+    ("books", catalogue.books, "Books", "book"),
 )
 
 # How many rows of a group stay in view, and how many it takes to be worth
@@ -382,20 +386,25 @@ def _contribution(
 
 
 def _groups(record: dict[str, Any], *, now: datetime) -> tuple[ContributionGroup, ...]:
-    projection = public_projection()
-    # Events are database rows rather than a projected collection, so their index
-    # is built here from the published records instead of read out of the
-    # catalogue alongside the others.  Only the events this profile actually
-    # names are read, and they are resolved by either path form: the catalogue
-    # still cross-references an event by its identity uuid, and looking those up
-    # by canonical path alone silently dropped every event a profile links to.
-    event_index = published_event_records_by_path(
-        relationship["public_path"]
-        for relationship in record.get("relationships", ())
-        if isinstance(relationship, dict) and isinstance(relationship.get("public_path"), str)
-    )
+    # Events have their own query service, so their index is built from the
+    # published event records rather than from the catalogue.  Only the events
+    # this profile actually names are read, and they are resolved by either path
+    # form: the catalogue still cross-references an event by its identity uuid,
+    # and looking those up by canonical path alone silently dropped every event a
+    # profile links to.
+    indexes: dict[str, dict[str, Any]] = {
+        "events": published_event_records_by_path(
+            relationship["public_path"]
+            for relationship in record.get("relationships", ())
+            if isinstance(relationship, dict) and isinstance(relationship.get("public_path"), str)
+        )
+    }
+    for key, published, *_ in CONTRIBUTION_GROUPS:
+        if published is not None:
+            indexes[key] = {
+                item["public_path"]: item for item in published() if "public_path" in item
+            }
     collected: dict[str, list[Contribution]] = {key: [] for key, *_ in CONTRIBUTION_GROUPS}
-    indexes = {key: index for key, index, *_ in CONTRIBUTION_GROUPS}
     for relationship in record.get("relationships", ()):
         if not isinstance(relationship, dict):
             raise ImproperlyConfigured("Public profile contribution must be a mapping.")
@@ -406,7 +415,7 @@ def _groups(record: dict[str, Any], *, now: datetime) -> tuple[ContributionGroup
         index = indexes.get(prefix)
         if index is None:
             raise ImproperlyConfigured(f"Public profile links to unknown collection: {prefix}.")
-        linked = (event_index if prefix == "events" else projection[index]).get(public_path)
+        linked = index.get(public_path)
         if linked is None:
             # The profile names work whose record is not published -- an event
             # withdrawn from the calendar, an article retired upstream.  A

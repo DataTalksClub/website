@@ -14,12 +14,14 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Any
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
 from django.utils.html import escape
 
+from content import catalogue
 from content.article_content import (
     MAX_HEADING_LEVEL,
     MIN_HEADING_LEVEL,
@@ -47,11 +49,19 @@ PROJECTED_BLOCK_KINDS = {
 }
 
 
+def _article(slug: str) -> dict[str, Any]:
+    """The published article a test names, which the catalogue must hold."""
+
+    record = catalogue.article(slug)
+    assert record is not None, slug
+    return record
+
+
 def _richest_article() -> dict:
     """The article that exercises the most block kinds, then the most blocks."""
 
     return max(
-        public_projection()["articles"],
+        catalogue.articles(),
         key=lambda record: (
             len({block["kind"] for block in record["blocks"]}),
             len(record["blocks"]),
@@ -61,9 +71,9 @@ def _richest_article() -> dict:
 
 class ArticleCompositionTests(TestCase):
     def test_every_article_composes_without_invention(self) -> None:
-        projection = public_projection()
-        people = projection["people_by_slug"]
-        records = projection["articles"]
+        public_projection()
+        people = catalogue.people_by_slug()
+        records = catalogue.articles()
 
         views = tuple(article_view(record, people) for record in records)
 
@@ -94,7 +104,7 @@ class ArticleCompositionTests(TestCase):
         """Every block becomes exactly one drawn thing, in the order it was written."""
 
         kinds: set[str] = set()
-        for record in public_projection()["articles"]:
+        for record in catalogue.articles():
             with self.subTest(slug=record["slug"]):
                 kinds.update(block["kind"] for block in record["blocks"])
                 drawn: list[str] = []
@@ -112,7 +122,7 @@ class ArticleCompositionTests(TestCase):
         """The kinds the flattening used to destroy arrive whole, with their fields."""
 
         found: dict[str, int] = {}
-        for record in public_projection()["articles"]:
+        for record in catalogue.articles():
             for section in prose_sections(record["blocks"]):
                 found[section.kind] = found.get(section.kind, 0) + 1
                 with self.subTest(slug=record["slug"], kind=section.kind):
@@ -134,7 +144,7 @@ class ArticleCompositionTests(TestCase):
     def test_a_table_frame_is_named_once_inside_its_own_article(self) -> None:
         """A scroll frame is a named region, and two of them may not share a name."""
 
-        for record in public_projection()["articles"]:
+        for record in catalogue.articles():
             labels = [
                 section.label
                 for section in prose_sections(record["blocks"])
@@ -144,9 +154,7 @@ class ArticleCompositionTests(TestCase):
                 self.assertEqual(len(labels), len(set(labels)))
 
     def test_a_link_written_in_the_source_keeps_its_address(self) -> None:
-        record = public_projection()["articles_by_slug"][
-            "how-to-run-postgresql-and-pgadmin-with-docker"
-        ]
+        record = _article("how-to-run-postgresql-and-pgadmin-with-docker")
 
         markup = " ".join(
             section.html for section in prose_sections(record["blocks"]) if section.html
@@ -159,7 +167,7 @@ class ArticleCompositionTests(TestCase):
         self.assertNotIn("{:", markup)
 
     def test_headings_keep_their_anchors_and_stay_inside_the_heading_range(self) -> None:
-        for record in public_projection()["articles"]:
+        for record in catalogue.articles():
             headings = [block for block in record["blocks"] if block["kind"] == "heading"]
             composed = [
                 section for section in prose_sections(record["blocks"]) if section.kind == "heading"
@@ -227,8 +235,8 @@ class ArticleCompositionTests(TestCase):
                     prose_sections(({"kind": "image", "src": source},))
 
     def test_a_record_that_cannot_supply_a_fact_fails_loudly(self) -> None:
-        record = dict(public_projection()["articles"][0])
-        people = public_projection()["people_by_slug"]
+        record = dict(catalogue.articles()[0])
+        people = catalogue.people_by_slug()
 
         for field, value in (("title", ""), ("title", "  "), ("published", "")):
             with self.subTest(field=field, value=value):
@@ -248,10 +256,10 @@ class ArticleCompositionTests(TestCase):
     def test_a_timestamped_record_still_publishes_the_day_it_shows(self) -> None:
         """A `<time>` never carries a clock the page has not shown the reader."""
 
-        record = dict(public_projection()["articles"][0])
+        record = dict(catalogue.articles()[0])
         record["published"] = "2026-08-10T12:00:00+00:00"
 
-        view = article_view(record, public_projection()["people_by_slug"])
+        view = article_view(record, catalogue.people_by_slug())
 
         self.assertEqual(view.published, "2026-08-10")
         self.assertEqual(view.published_display, "Aug 10, 2026")
@@ -259,12 +267,12 @@ class ArticleCompositionTests(TestCase):
     def test_the_canonical_html_suffix_is_part_of_the_identity(self) -> None:
         """The `.html` article addresses were restored once; they stay checked."""
 
-        for record in public_projection()["articles"]:
+        for record in catalogue.articles():
             with self.subTest(slug=record["slug"]):
                 self.assertEqual(article_public_path(record), f"/blog/{record['slug']}.html")
 
     def test_an_author_without_a_portrait_keeps_the_credit(self) -> None:
-        record = dict(public_projection()["articles"][0])
+        record = dict(catalogue.articles()[0])
 
         view = article_view(record, {})
 
@@ -368,7 +376,7 @@ class ArticlePageTests(TestCase):
             self.assertNotIn(leak, body)
 
     def test_the_trail_back_to_the_blog_survives_the_rebuild(self) -> None:
-        article = public_projection()["articles"][0]
+        article = catalogue.articles()[0]
 
         response = self.client.get(article["public_path"])
 
@@ -385,16 +393,16 @@ class ArticlePageTests(TestCase):
         self.assertEqual(response.content.decode().count('href="/blog"'), 2)
 
     def test_the_byline_keeps_every_author_their_link_and_their_portrait(self) -> None:
-        projection = public_projection()
+        public_projection()
         article = next(
-            record for record in projection["articles"] if len(record["author_profiles"]) > 1
+            record for record in catalogue.articles() if len(record["author_profiles"]) > 1
         )
 
         response = self.client.get(article["public_path"])
 
         body = response.content.decode()
         for profile in article["author_profiles"]:
-            person = projection["people_by_slug"][profile["key"]]
+            person = catalogue.people_by_slug()[profile["key"]]
             # The byline is the shared person chip: the name is the link, and the
             # portrait beside it is decorative, because a screen reader that heard
             # "Portrait of Alexey Grigorev, link, Alexey Grigorev" would hear the
@@ -408,7 +416,7 @@ class ArticlePageTests(TestCase):
             self.assertNotIn(f'alt="Portrait of {escape(profile["name"])}"', body)
 
     def test_the_date_and_the_reading_time_are_shown(self) -> None:
-        article = public_projection()["articles"][0]
+        article = catalogue.articles()[0]
 
         response = self.client.get(article["public_path"])
 
@@ -425,7 +433,7 @@ class ArticlePageTests(TestCase):
         reading band once opened with, or the placeholder that stood in for it.
         """
 
-        for article in public_projection()["articles"][:20]:
+        for article in catalogue.articles()[:20]:
             with self.subTest(slug=article["slug"]):
                 body = self.client.get(article["public_path"]).content.decode()
 
@@ -456,7 +464,7 @@ class ArticlePageTests(TestCase):
         self.assertIn("<h2 ", body)
 
     def test_the_seo_contract_is_exactly_what_it_was(self) -> None:
-        article = public_projection()["articles"][0]
+        article = catalogue.articles()[0]
 
         response = self.client.get(article["public_path"])
 

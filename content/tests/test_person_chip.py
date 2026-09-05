@@ -20,6 +20,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
 from django.utils.html import escape
 
+from content import catalogue
 from content.person_chip import person_chip, person_chips
 from content.podcast_content import episode_view
 from content.public_data import public_projection
@@ -39,8 +40,8 @@ def _match(pattern: str, body: str, group: int) -> str:
 
 class PersonChipResolutionTests(TestCase):
     def test_a_credit_with_a_key_gains_the_name_link_and_portrait_of_that_person(self) -> None:
-        projection = public_projection()
-        person = projection["people_by_slug"]["alexeygrigorev"]
+        public_projection()
+        person = catalogue.people_by_slug()["alexeygrigorev"]
 
         chip = person_chip({"key": "alexeygrigorev", "name": "Alexey Grigorev", "public_path": ""})
 
@@ -51,8 +52,8 @@ class PersonChipResolutionTests(TestCase):
     def test_a_credit_with_only_a_profile_path_still_finds_its_portrait(self) -> None:
         """A composed value — a podcast `Guest` — carries no source key."""
 
-        projection = public_projection()
-        person = projection["people_by_slug"]["alexeygrigorev"]
+        public_projection()
+        person = catalogue.people_by_slug()["alexeygrigorev"]
 
         chip = person_chip({"name": person["title"], "public_path": person["public_path"]})
 
@@ -78,15 +79,15 @@ class PersonChipResolutionTests(TestCase):
     def test_every_projected_credit_on_the_site_resolves_to_a_named_chip(self) -> None:
         """Nothing that names a person may reach a reader as a bare source key."""
 
-        projection = public_projection()
-        slugs = set(projection["people_by_slug"])
+        public_projection()
+        slugs = set(catalogue.people_by_slug())
         credits = [
             *(
                 credit
-                for record in (*projection["articles"], *projection["books"])
+                for record in (*catalogue.articles(), *catalogue.books())
                 for credit in record["author_profiles"]
             ),
-            *(credit for record in projection["podcasts"] for credit in record["guest_profiles"]),
+            *(credit for record in catalogue.podcasts() for credit in record["guest_profiles"]),
             *(speaker for event in published_event_records() for speaker in event["speakers"]),
         ]
 
@@ -101,10 +102,10 @@ class BookAuthorResolutionTests(TestCase):
     def test_every_book_author_becomes_a_name_and_keeps_its_profile_when_there_is_one(
         self,
     ) -> None:
-        projection = public_projection()
-        people = projection["people_by_slug"]
+        public_projection()
+        people = catalogue.people_by_slug()
 
-        for book in projection["books"]:
+        for book in catalogue.books():
             with self.subTest(slug=book["slug"]):
                 self.assertEqual(len(book["author_profiles"]), len(book["authors"]))
                 for author, credit in zip(book["authors"], book["author_profiles"], strict=True):
@@ -120,13 +121,13 @@ class BookAuthorResolutionTests(TestCase):
                         self.assertNotEqual(credit["name"], author)
 
     def test_the_unresolved_book_authors_are_a_named_inventory_not_a_surprise(self) -> None:
-        projection = public_projection()
-        people = projection["people_by_slug"]
+        public_projection()
+        people = catalogue.people_by_slug()
 
         unresolved = sorted(
             {
                 author
-                for book in projection["books"]
+                for book in catalogue.books()
                 for author in book["authors"]
                 if author not in people
             }
@@ -254,10 +255,10 @@ class PersonChipRenderingTests(TestCase):
         self.assertIn('<span class="person-chip-name">Sara Robinson</span>', body)
 
     def test_the_episode_page_draws_its_guest_with_the_shared_chip(self) -> None:
-        projection = public_projection()
+        public_projection()
         episode = next(
             record
-            for record in projection["podcasts"]
+            for record in catalogue.podcasts()
             if record["guest_profiles"] and record["guest_profiles"][0]["public_path"]
         )
         guest = episode_view(episode).guests[0]

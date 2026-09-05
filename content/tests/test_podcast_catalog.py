@@ -398,7 +398,7 @@ class PodcastEpisodeParityTests(TestCase):
 
     def test_representative_composes_resources_video_timestamps_and_person_bio(self) -> None:
         projection, record = self.representative()
-        view = episode_view(record, people_by_slug=projection["people_by_slug"])
+        view = episode_view(record, people_by_slug=catalogue.people_by_slug())
 
         # The catalogue carries no episode artwork today: every record's `image_path`
         # is empty, this one included.
@@ -479,7 +479,7 @@ class PodcastEpisodeParityTests(TestCase):
         # surfaces the guest chip and the description inside the cream hero,
         # ahead of the player/platform band — not duplicated in both places.
         projection, record = self.representative()
-        view = episode_view(record, people_by_slug=projection["people_by_slug"])
+        view = episode_view(record, people_by_slug=catalogue.people_by_slug())
         response = self.client.get(record["public_path"])
         body = response.content.decode()
 
@@ -524,7 +524,7 @@ class PodcastEpisodeParityTests(TestCase):
 
     def test_timestamps_are_topic_markers_separate_from_transcript_body(self) -> None:
         projection, record = self.representative()
-        view = episode_view(record, people_by_slug=projection["people_by_slug"])
+        view = episode_view(record, people_by_slug=catalogue.people_by_slug())
         response = self.client.get(record["public_path"])
         body = response.content.decode()
 
@@ -547,7 +547,7 @@ class PodcastEpisodeParityTests(TestCase):
     def test_previous_and_next_episode_cards_show_their_season_and_episode(self) -> None:
         projection, record = self.representative()
         previous_episode, next_episode, _ = episode_navigation(
-            record, catalogue.podcasts(), people_by_slug=projection["people_by_slug"]
+            record, catalogue.podcasts(), people_by_slug=catalogue.people_by_slug()
         )
         response = self.client.get(record["public_path"])
         body = response.content.decode()
@@ -558,12 +558,12 @@ class PodcastEpisodeParityTests(TestCase):
             self.assertIn(next_episode.season_episode, body)
 
     def test_checked_detail_and_adjacent_destinations_render_with_internal_resource(self) -> None:
-        projection = public_projection()
+        public_projection()
         record = _episode("practical-devrel-demofirst-education-and-open-source")
         previous, following, _ = episode_navigation(
             record,
             catalogue.podcasts(),
-            people_by_slug=projection["people_by_slug"],
+            people_by_slug=catalogue.people_by_slug(),
         )
         self.assertIsNotNone(previous)
         self.assertIsNotNone(following)
@@ -582,7 +582,7 @@ class PodcastEpisodeParityTests(TestCase):
         )
         view = episode_view(
             internal_resource_record,
-            people_by_slug=projection["people_by_slug"],
+            people_by_slug=catalogue.people_by_slug(),
             resource_podcast_records=catalogue.podcasts(),
         )
         self.assertIn(
@@ -623,7 +623,7 @@ class PodcastEpisodeParityTests(TestCase):
     def test_related_episode_cards_show_the_guest_instead_of_the_description(self) -> None:
         projection, record = self.representative()
         _, _, related_episodes = episode_navigation(
-            record, catalogue.podcasts(), people_by_slug=projection["people_by_slug"]
+            record, catalogue.podcasts(), people_by_slug=catalogue.people_by_slug()
         )
         self.assertTrue(related_episodes)
         response = self.client.get(record["public_path"])
@@ -657,7 +657,7 @@ class PodcastEpisodeParityTests(TestCase):
             "video": None,
             "links": {},
         }
-        view = episode_view(synthetic, people_by_slug=projection["people_by_slug"])
+        view = episode_view(synthetic, people_by_slug=catalogue.people_by_slug())
         self.assertIsNone(view.player)
 
         with patch("content.catalogue.podcasts", return_value=(synthetic,)):
@@ -743,9 +743,9 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertContains(response, "Audio unavailable.")
 
     def test_s24e05_youtube_player_uses_the_stored_watch_url_identity(self) -> None:
-        projection = public_projection()
+        public_projection()
         source = _episode("s24e05-ai-adoption-in-enterprise-beyond-writing-code")
-        view = episode_view(source, people_by_slug=projection["people_by_slug"])
+        view = episode_view(source, people_by_slug=catalogue.people_by_slug())
 
         self.assertEqual(source["links"]["youtube"], "https://www.youtube.com/watch?v=XzokRd_IPSc")
         self.assertIsNotNone(view.video)
@@ -800,7 +800,7 @@ class PodcastEpisodeParityTests(TestCase):
         previous, following, related = episode_navigation(
             record,
             (next_record, *catalogue.podcasts()),
-            people_by_slug=projection["people_by_slug"],
+            people_by_slug=catalogue.people_by_slug(),
         )
         assert previous is not None
         assert following is not None

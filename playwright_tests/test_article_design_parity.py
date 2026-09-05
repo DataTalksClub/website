@@ -16,7 +16,7 @@ from typing import Any
 import pytest
 from playwright.sync_api import Browser, Page, expect
 
-from content.public_data import public_projection
+from content import catalogue
 
 pytestmark = [pytest.mark.core]
 
@@ -50,7 +50,7 @@ def richest_article() -> dict[str, Any]:
     """The article whose body exercises the most heading levels, then the most blocks."""
 
     return max(
-        public_projection()["articles"],
+        catalogue.articles(),
         key=lambda record: (
             len({block["level"] for block in record["blocks"] if block["kind"] == "heading"}),
             len(record["blocks"]),

@@ -32,8 +32,8 @@ def _featured_event() -> dict:
         **event,
         "speakers": event_speaker_records(
             event["speakers"],
-            people_by_slug=catalogue["people_by_slug"],
-            people_by_path=catalogue["people_by_path"],
+            people_by_slug=catalogue.people_by_slug(),
+            people_by_path=catalogue.people_by_path(),
         ),
     }
 

@@ -411,11 +411,10 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
     # The credit says who spoke; the biography belongs to that person's own
     # profile and is joined in here, so the page never carries a copy that can
     # drift from the profile it came from.
-    catalogue = public_projection()
     event["speakers"] = event_speaker_records(
         event["speakers"],
-        people_by_slug=catalogue["people_by_slug"],
-        people_by_path=catalogue["people_by_path"],
+        people_by_slug=catalogue.people_by_slug(),
+        people_by_path=catalogue.people_by_path(),
     )
     # The page states whether the event has happened in a word, using the same split the
     # events index draws its rows from.  An event the grouped catalogue cannot place —
@@ -537,7 +536,7 @@ COLLECTION_HUBS = {
             "the DataTalks.Club community. Insights, tutorials, and best practices from "
             "industry experts."
         ),
-        lambda: public_projection()["articles"],
+        catalogue.articles,
     ),
     "books": (
         "Book of the Week",
@@ -709,8 +708,7 @@ def _article_faq_structured_data(article: dict, faq: ArticleFaq | None) -> tuple
 
 @require_safe
 def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
-    projection = public_projection()
-    article = projection["articles_by_slug"].get(slug)
+    article = catalogue.article(slug)
     if article is None:
         raise Http404
     # The article's FAQ section, if it publishes one, comes from its own
@@ -730,7 +728,7 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
             # The design system reading page (issue #179) renders this composed value:
             # the byline joined to the people records, the publication date and
             # reading estimate the design writes, and the body as prose sections.
-            "article": article_view(article, projection["people_by_slug"], faq),
+            "article": article_view(article, catalogue.people_by_slug(), faq),
             "og_type": "article",
             "og_image_url": _canonical(article["image_path"]) if article["image_path"] else "",
             "published_time": article["published"],
@@ -782,7 +780,7 @@ def _render_podcast_detail(
     previous_episode, next_episode, related_episodes = episode_navigation(
         episode,
         catalogue.podcasts(),
-        people_by_slug=projection["people_by_slug"],
+        people_by_slug=catalogue.people_by_slug(),
     )
     try:
         episode_graph = wiki_content.episode_graph(episode, projection=projection)
@@ -819,7 +817,7 @@ def _render_podcast_detail(
             "record": episode,
             "episode": episode_view(
                 episode,
-                people_by_slug=projection["people_by_slug"],
+                people_by_slug=catalogue.people_by_slug(),
                 resource_podcast_records=catalogue.podcasts(),
             ),
             "previous_episode": previous_episode,
@@ -966,7 +964,7 @@ def book_detail(request: HttpRequest, slug: str) -> HttpResponse:
 
 @require_safe
 def person_detail(request: HttpRequest, slug: str) -> HttpResponse:
-    person = public_projection()["people_by_slug"].get(slug)
+    person = catalogue.person(slug)
     if person is None:
         raise Http404
     return _render(
@@ -1294,7 +1292,7 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
         return (("/faq/", ""),) + tuple((course["public_path"], "") for course in faq_courses())
     if section == "blog":
         return (("/blog", ""),) + tuple(
-            (record["public_path"], record["published"][:10]) for record in projection["articles"]
+            (record["public_path"], record["published"][:10]) for record in catalogue.articles()
         )
     if section == "podcast":
         return (("/podcast", ""),) + tuple(
@@ -1305,7 +1303,7 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
             (record["public_path"], record["published"][:10]) for record in catalogue.books()
         )
     if section == "people":
-        return tuple((record["public_path"], "") for record in projection["people"])
+        return tuple((record["public_path"], "") for record in catalogue.people())
     if section == "events":
         return (("/events", ""), ("/events/past", "")) + tuple(
             (record["public_path"], record["starts_at"][:10])

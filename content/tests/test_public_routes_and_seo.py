@@ -4,12 +4,14 @@ import hashlib
 import json
 import re
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlsplit
 from xml.etree import ElementTree
 
 from django.conf import settings
 from django.test import TestCase
 
+from content import catalogue
 from content.docs_projection import docs_page
 from content.podcast_routes import (
     PODCAST_AI_PRODUCTION_PATH,
@@ -27,6 +29,14 @@ from .pagination_support import catalogue_body
 SITEMAP_NAMESPACE = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
 
+def _article(slug: str) -> dict[str, Any]:
+    """The published article a test names, which the catalogue must hold."""
+
+    record = catalogue.article(slug)
+    assert record is not None, slug
+    return record
+
+
 class PublicRouteAndSeoTests(TestCase):
     maxDiff = None
 
@@ -39,7 +49,7 @@ class PublicRouteAndSeoTests(TestCase):
         projection = public_projection()
 
         self.assertTrue(
-            removed_slugs.isdisjoint({episode["slug"] for episode in projection["podcasts"]})
+            removed_slugs.isdisjoint({episode["slug"] for episode in catalogue.podcasts()})
         )
         migration = projection["editorial_route_migration"]
         route_records = migration["finals"] + migration["aliases"]
@@ -189,7 +199,7 @@ class PublicRouteAndSeoTests(TestCase):
                     self.assertNotContains(response, 'rel="canonical"', status_code=404)
         canonical_inventory = set(public_paths())
         self.assertNotIn("/people", canonical_inventory)
-        self.assertTrue(set(public_projection()["people_by_path"]).issubset(canonical_inventory))
+        self.assertTrue(set(catalogue.people_by_path()).issubset(canonical_inventory))
 
     def test_projected_courses_do_not_claim_database_backed_course_routes(self) -> None:
         projected_paths = {record["public_path"] for record in public_projection()["courses"]}
@@ -322,7 +332,7 @@ class PublicRouteAndSeoTests(TestCase):
                     self.assertNotIn("Location", response.headers)
 
     def test_all_events_have_internal_details_and_resolved_people(self) -> None:
-        projection = public_projection()
+        public_projection()
         home = self.client.get("/").content.decode()
         hub = self.client.get("/events").content.decode()
         archive = catalogue_body(self.client, "/events/past")
@@ -331,7 +341,7 @@ class PublicRouteAndSeoTests(TestCase):
             self.assertNotIn(" · workshop", body.casefold())
         self.assertNotRegex(archive, r'href="https://(?:luma\.com|lu\.ma)')
         self.assertNotIn(" · workshop", archive.casefold())
-        people_paths = {person["public_path"] for person in projection["people"]}
+        people_paths = {person["public_path"] for person in catalogue.people()}
         for event in published_event_records():
             with self.subTest(event=event["slug"]):
                 self.assertIn(f'href="{event["public_path"]}"', hub + archive)
@@ -346,13 +356,13 @@ class PublicRouteAndSeoTests(TestCase):
                     self.assertIn("opens in a new tab", body)
 
     def test_all_podcast_guest_links_resolve_to_person_details(self) -> None:
-        projection = public_projection()
+        public_projection()
         guest_profiles = [
-            guest for podcast in projection["podcasts"] for guest in podcast["guest_profiles"]
+            guest for podcast in catalogue.podcasts() for guest in podcast["guest_profiles"]
         ]
         unresolved_guests = [guest for guest in guest_profiles if not guest["public_path"]]
         self.assertEqual(unresolved_guests, [])
-        for podcast in projection["podcasts"]:
+        for podcast in catalogue.podcasts():
             response = self.client.get(podcast["public_path"])
             self.assertEqual(response.status_code, 200)
             body = response.content.decode()
@@ -364,9 +374,9 @@ class PublicRouteAndSeoTests(TestCase):
                     self.assertNotIn(f'href="{guest["public_path"]}"', body)
 
     def test_all_person_details_remain_available_without_a_people_catalogue(self) -> None:
-        projection = public_projection()
-        self.assertNotIn("_template", projection["people_by_slug"])
-        for person in projection["people"]:
+        public_projection()
+        self.assertNotIn("_template", catalogue.people_by_slug())
+        for person in catalogue.people():
             response = self.client.get(person["public_path"])
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, 'alt="Portrait of ', count=1)
@@ -384,14 +394,14 @@ class PublicRouteAndSeoTests(TestCase):
             if path.is_file()
         }
 
-        projection = public_projection()
-        article = projection["articles_by_slug"]["ai-dev-tools-zoomcamp"]
-        person = projection["people_by_slug"]["agnieszkamikolajczyk"]
+        public_projection()
+        article = _article("ai-dev-tools-zoomcamp")
+        person = catalogue.people_by_slug()["agnieszkamikolajczyk"]
         self.assertTrue(
             any("AI-Native Development" in block.get("text", "") for block in article["blocks"])
         )
         self.assertTrue(any("Omdena" in block.get("text", "") for block in person["blocks"]))
-        for record in (*projection["articles"], *projection["people"]):
+        for record in (*catalogue.articles(), *catalogue.people()):
             body = " ".join(
                 str(block.get(name, ""))
                 for block in record["blocks"]
@@ -454,10 +464,10 @@ class PublicRouteAndSeoTests(TestCase):
     def test_representative_details_emit_valid_type_specific_json_ld(self) -> None:
         projection = public_projection()
         paths_and_types = [
-            (projection["articles"][0]["public_path"], "BlogPosting"),
-            (projection["podcasts"][0]["public_path"], "PodcastEpisode"),
-            (projection["books"][0]["public_path"], "Book"),
-            (projection["people"][0]["public_path"], "Person"),
+            (catalogue.articles()[0]["public_path"], "BlogPosting"),
+            (catalogue.podcasts()[0]["public_path"], "PodcastEpisode"),
+            (catalogue.books()[0]["public_path"], "Book"),
+            (catalogue.people()[0]["public_path"], "Person"),
             (projection["wiki"][0]["public_path"], "Article"),
         ]
         # Events are covered only when one is published: their content has no
@@ -558,6 +568,6 @@ class PublicRouteAndSeoTests(TestCase):
         expected = {
             path for path in {record["public_path"]: record for record in published_event_records()}
         }
-        expected.update(path for path in public_projection()["people_by_path"])
+        expected.update(path for path in catalogue.people_by_path())
         self.assertTrue(expected.issubset(seen))
         self.assertNotIn("/people", seen)
