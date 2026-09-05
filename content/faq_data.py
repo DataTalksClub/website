@@ -7,7 +7,6 @@ resolved and the shared HTML allow-list has sanitized the result.
 
 from __future__ import annotations
 
-import json
 import mimetypes
 import re
 from collections.abc import Mapping
@@ -18,12 +17,17 @@ from typing import Any
 from urllib.parse import urlsplit
 
 import mistune
-from django.core.exceptions import ImproperlyConfigured
+from django.db import DatabaseError
+from django.db.models import F
 
+from .models import ContentDocument, ContentRelease
 from .services import sanitize_rendered_html
 
-FAQ_PROJECTION_PATH = Path(__file__).with_name("faq_projection.json")
 FAQ_ASSET_ROOT = Path(__file__).with_name("faq_assets")
+#: The registered source whose active release publishes the FAQ, and the kind
+#: its course pages are stored under.
+FAQ_SOURCE_STABLE_ID = "dtc-faq"
+FAQ_CONTENT_KIND = "faq"
 FAQ_SOURCE_REPOSITORY = "DataTalksClub/faq"
 FAQ_SOURCE_REVISION = "c8da1deea9e24945922702994de101dd90a5380a"
 FAQ_COURSE_ORDER = (
@@ -206,109 +210,45 @@ def _resolve_faq_question_link(
     return f"/faq/{course_slug}.html#{question_id}"
 
 
-def _load_projection() -> dict[str, Any]:
-    try:
-        projection = json.loads(FAQ_PROJECTION_PATH.read_text(encoding="utf-8"))
-    except FileNotFoundError:
-        # Absent is the normal default after file-backed content was removed:
-        # the FAQ hub renders empty and course pages 404.  Present-but-invalid
-        # still fails closed below.
-        return {"schema_version": 1, "courses": []}
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ImproperlyConfigured("FAQ content projection cannot be loaded.") from exc
-    _validate_projection(projection)
-    return projection
-
-
-def _validate_projection(projection: dict[str, Any]) -> None:
-    if projection.get("schema_version") != 1:
-        raise ImproperlyConfigured("Unsupported FAQ content projection schema.")
-    source = projection.get("source")
-    if source != {
-        "repository": FAQ_SOURCE_REPOSITORY,
-        "revision": FAQ_SOURCE_REVISION,
-        "branch": "main",
-        "path": "_questions",
-    }:
-        raise ImproperlyConfigured(
-            "FAQ content projection source does not match the pinned revision."
-        )
-    courses = projection.get("courses")
-    if (
-        not isinstance(courses, list)
-        or tuple(course.get("slug") for course in courses) != FAQ_COURSE_ORDER
-    ):
-        raise ImproperlyConfigured("FAQ courses are missing or out of source order.")
-
-    expected_counts = projection.get("counts")
-    if not isinstance(expected_counts, dict):
-        raise ImproperlyConfigured("FAQ content projection counts are missing.")
-    seen_ids: set[str] = set()
-    actual_sections = actual_questions = 0
-    actual_asset_paths: set[str] = set()
-    for course in courses:
-        slug = course.get("slug")
-        if not isinstance(slug, str) or course.get("public_path") != f"/faq/{slug}.html":
-            raise ImproperlyConfigured("FAQ course has an invalid public path.")
-        sections = course.get("sections")
-        if not isinstance(sections, list):
-            raise ImproperlyConfigured("FAQ course sections are missing.")
-        section_ids: set[str] = set()
-        for section in sections:
-            section_id = section.get("id")
-            if not isinstance(section_id, str) or section_id in section_ids:
-                raise ImproperlyConfigured("FAQ section IDs must be unique within a course.")
-            section_ids.add(section_id)
-            actual_sections += 1
-            questions = section.get("questions")
-            if not isinstance(questions, list):
-                raise ImproperlyConfigured("FAQ section questions are missing.")
-            for question in questions:
-                question_id = question.get("id")
-                if not isinstance(question_id, str) or not _QUESTION_ID.fullmatch(question_id):
-                    raise ImproperlyConfigured("FAQ question IDs must be ten-character strings.")
-                if question_id in seen_ids:
-                    raise ImproperlyConfigured("FAQ question IDs must be globally unique.")
-                seen_ids.add(question_id)
-                if question.get("course") != slug or question.get("section_id") != section_id:
-                    raise ImproperlyConfigured("FAQ question relationship is inconsistent.")
-                if not isinstance(question.get("question"), str) or not isinstance(
-                    question.get("answer"), str
-                ):
-                    raise ImproperlyConfigured("FAQ question and answer must be strings.")
-                source_path = question.get("source_path")
-                edit_url = question.get("edit_url")
-                if not isinstance(source_path, str) or not source_path.startswith(
-                    f"_questions/{slug}/"
-                ):
-                    raise ImproperlyConfigured("FAQ source path is invalid.")
-                if not isinstance(edit_url, str) or not edit_url.endswith(source_path):
-                    raise ImproperlyConfigured("FAQ edit URL is invalid.")
-                actual_questions += 1
-                image_ids: set[str] = set()
-                for image in question.get("images", []):
-                    image_id = image.get("id")
-                    image_path = image.get("public_path")
-                    if not isinstance(image_id, str) or image_id in image_ids:
-                        raise ImproperlyConfigured("FAQ image IDs must be unique per question.")
-                    image_ids.add(image_id)
-                    if not isinstance(image_path, str) or not image_path.startswith(
-                        f"/faq/images/{slug}/"
-                    ):
-                        raise ImproperlyConfigured("FAQ image public path is invalid.")
-                    actual_asset_paths.add(image_path)
-    if expected_counts != {
-        "courses": len(courses),
-        "sections": actual_sections,
-        "questions": actual_questions,
-        "assets": len(actual_asset_paths),
-    }:
-        raise ImproperlyConfigured("FAQ content projection counts do not match its records.")
-
-
-@lru_cache(maxsize=1)
 def faq_projection() -> dict[str, Any]:
-    return _load_projection()
+    """Return the published FAQ courses, read from the database.
+
+    Each course is one published document: the page's own address and name are
+    its columns, and the sections and questions beneath it are its structure,
+    carried in the document's adapter metadata rather than spread over a table
+    per nesting level. Courses come back in the order the source publishes them.
+
+    A database with no active FAQ release publishes nothing: the hub renders
+    empty and every course page 404s.
+    """
+
+    try:
+        rows = list(
+            ContentDocument.objects.filter(
+                content_kind=FAQ_CONTENT_KIND,
+                is_published=True,
+                release__status=ContentRelease.Status.ACTIVE,
+                release__source__enabled=True,
+                release__source__stable_id=FAQ_SOURCE_STABLE_ID,
+                release_id=F("release__source__active_release_id"),
+            ).values("stable_key", "exact_public_path", "title", "adapter_metadata")
+        )
+    except DatabaseError:
+        return {"schema_version": 1, "courses": []}
+    by_slug = {
+        str(row["stable_key"]): {
+            "slug": str(row["stable_key"]),
+            "public_path": str(row["exact_public_path"]),
+            "name": str(row["title"]),
+            **(row["adapter_metadata"] or {}),
+        }
+        for row in rows
+    }
+    ordered = [by_slug[slug] for slug in FAQ_COURSE_ORDER if slug in by_slug]
+    ordered.extend(
+        course for slug, course in sorted(by_slug.items()) if slug not in FAQ_COURSE_ORDER
+    )
+    return {"schema_version": 1, "courses": ordered}
 
 
 def faq_courses() -> tuple[dict[str, Any], ...]:

@@ -7,11 +7,25 @@ from django.utils.html import escape
 
 from content.faq_data import (
     FAQ_COURSE_ORDER,
-    FAQ_PROJECTION_PATH,
     faq_courses,
     faq_questions,
     render_faq_answer,
 )
+
+
+def _stored_questions() -> dict[str, tuple[str, str]]:
+    """Every published question's source path and answer, exactly as stored.
+
+    Rendering is a read. This is what "the renderer did not edit its source"
+    means now that the questions are database rows rather than a file whose
+    bytes could be compared.
+    """
+
+    return {
+        question["id"]: (question["source_path"], question["answer"])
+        for course in faq_courses()
+        for question in faq_questions(course)
+    }
 
 
 class FaqRoutesTests(TestCase):
@@ -218,13 +232,13 @@ class FaqRoutesTests(TestCase):
         question = next(
             question for question in faq_questions(course) if question["id"] == "830f3d2018"
         )
-        projection_bytes = FAQ_PROJECTION_PATH.read_bytes()
+        stored = _stored_questions()
         source_path = question["source_path"]
         source_answer = question["answer"]
 
         render_faq_answer(question)
 
-        self.assertEqual(FAQ_PROJECTION_PATH.read_bytes(), projection_bytes)
+        self.assertEqual(_stored_questions(), stored)
         self.assertEqual(question["source_path"], source_path)
         self.assertEqual(question["answer"], source_answer)
 
@@ -359,8 +373,8 @@ class FaqRoutesTests(TestCase):
         self.assertNotIn("nope.png", rendered)
         self.assertNotIn("example.com", rendered)
 
-    def test_faq_rendering_keeps_projection_and_json_feeds_byte_identical(self) -> None:
-        projection_bytes = FAQ_PROJECTION_PATH.read_bytes()
+    def test_faq_rendering_keeps_the_stored_questions_and_feeds_identical(self) -> None:
+        stored = _stored_questions()
         feed_bytes = {
             course["slug"]: self.client.get(f"/faq/json/{course['slug']}.json").content
             for course in faq_courses()
@@ -368,7 +382,7 @@ class FaqRoutesTests(TestCase):
         for course in faq_courses():
             for question in faq_questions(course):
                 render_faq_answer(question)
-        self.assertEqual(FAQ_PROJECTION_PATH.read_bytes(), projection_bytes)
+        self.assertEqual(_stored_questions(), stored)
         for slug, before in feed_bytes.items():
             with self.subTest(course=slug):
                 self.assertEqual(self.client.get(f"/faq/json/{slug}.json").content, before)

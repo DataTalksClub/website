@@ -82,6 +82,14 @@ def load_reviewed_docs() -> int:
     return int(run(apply=True)["pages"])
 
 
+def load_reviewed_faq() -> int:
+    """Publish the reviewed course FAQ, the way the production import does."""
+
+    from scripts.prod.import_faq import run
+
+    return int(run(apply=True)["courses"])
+
+
 def load_homepage_testimonials() -> int:
     from courses.services.testimonials import import_homepage_testimonials
 
@@ -101,5 +109,6 @@ def load_reviewed_reference_data() -> dict[str, int]:
         "events": events,
         "aliases": aliases,
         "docs": load_reviewed_docs(),
+        "faq": load_reviewed_faq(),
         "testimonials": load_homepage_testimonials(),
     }
