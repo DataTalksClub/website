@@ -933,10 +933,14 @@ records are what §14.2 imports. No runtime code reads the bridge.
 
 ### 16 / 17 — Luma and Eventbrite registration aggregates
 
+The pinned facts, from `_docs/migration-data/event-registration-sources.json`. **A run
+validates against these**, so they are the numbers that matter, not whatever a directory
+on disk currently holds.
+
 | | Luma | Eventbrite |
 | --- | --- | --- |
-| **Events** | 174 | 209 |
-| **Rows** | 52,467 (52,415 approved + 52 declined) | 24,001 (all `attending`) |
+| **Events** | 166 | 209 |
+| **Rows** | 51,924 (51,873 approved + 51 declined) | 24,001 (all `attending`) |
 | **Schema** | `luma_v1` | three CSV schema versions, fingerprint-checked |
 | **Adapter** | `scripts/prod/registration_sources/luma.py` | `scripts/prod/registration_sources/eventbrite.py` |
 | **Prep** | `scripts/prepare_event_registration_sources.py` | same |
@@ -950,9 +954,28 @@ recorded as `unsupported_xlsx_total: 1`.
 
 Both are `activation_state: mapping_review_required` — **staged but not activated.**
 Prepared bundles land in a gitignored `.local/migration-data`, never in the worktree.
+The durable protected copy a real run should point at lives outside any worktree, at
+`/data/tmp/luma-eventbrite-export/luma-aggregate-v1/`.
 
-`make import-events` already exists in the Makefile and calls
-`scripts/prod/import_events.py` — **which does not exist yet.** See §11.
+> **The default `--luma-source` no longer validates.**
+> `.local/migration-data/events/luma-aggregate-v1` has grown to 174 events against the
+> 166 the facts file pins, so a full `import_events.py run()` against it exits 1 with
+> `registration_source_validation_failed` (verified 2026-09-05). The sibling
+> `luma-aggregate-v1.backup-20260902` holds the pinned 166 and runs clean. Somebody has
+> to decide whether the pin moves or the directory is discarded — §12 item 10.
+
+**What a clean run actually resolves.** Measured 2026-09-05 against the pinned export
+and the Eventbrite archive, into a scratch database: 375 provider events stage, the
+`activation_coverage` line reports `0 of 375 provider events resolved` because no
+`--current-registration-input` file named any exact pair, the automatic exact
+date-and-title pass then resolves 99 Luma aggregates, and 276 stay unresolved and render
+no count. Both sources finish `activated: false`. See §12 item 2 for the breakdown of
+why each one is unresolved.
+
+`make import-events` runs `scripts/prod/import_events.py` with
+`--current-registration-input` pointed at
+`_docs/migration-data/local-current-registration-input.json`; set that variable empty to
+leave every mapping review-required.
 
 ---
 
