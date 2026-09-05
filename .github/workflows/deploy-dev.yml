@@ -15,9 +15,6 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      DJANGO_SETTINGS_MODULE: website.settings.test
-      PUBLIC_MEDIA_STORE_BACKEND: memory
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -25,7 +22,8 @@ jobs:
           version: "0.10.11"
           enable-cache: true
       - run: uv sync --locked
-      - run: make test-django-full
+      - name: Test the deployment contract
+        run: uv run --frozen python -m unittest core.tests.test_cmp_style_deployment
 
   publish:
     needs: test

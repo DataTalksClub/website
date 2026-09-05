@@ -27,7 +27,7 @@ class CmpStyleDeploymentWorkflowTests(TestCase):
         self.assertIn("branches: [main]", dev)
         self.assertIn("name: development", dev)
         self.assertIn("https://dev.datatalks.club", dev)
-        self.assertIn("PUBLIC_MEDIA_STORE_BACKEND: memory", dev)
+        self.assertIn("Test the deployment contract", dev)
         self.assertIn("--platform linux/arm64", dev)
         self.assertNotIn("push:", prod)
         self.assertIn("confirm_production", prod)
