@@ -290,9 +290,11 @@ class ConsolidationTests(RegistrantImportTestCase):
         import_luma_registrants(self.root)
 
         registration = EventRegistration.objects.get()
-        self.assertIsNotNone(registration.registered_at)
-        self.assertEqual(registration.registered_at.year, 2026)
-        self.assertEqual(registration.registered_at.month, 2)
+        registered_at = registration.registered_at
+        if registered_at is None:
+            self.fail("the row's registered_at was not parsed onto the fact")
+        self.assertEqual(registered_at.year, 2026)
+        self.assertEqual(registered_at.month, 2)
 
 
 class UnknownEventIdentityTests(RegistrantImportTestCase):

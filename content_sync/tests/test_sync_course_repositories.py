@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import shutil
 import uuid
+from collections.abc import Callable, Mapping
 from datetime import timedelta
 from pathlib import Path
+from typing import Any
 
 from django.test import TestCase
 from django.utils import timezone
@@ -66,11 +68,28 @@ class PullCourseRepositoriesCommandTests(TestCase):
     def tearDown(self) -> None:
         _git(self.checkout, "checkout", "--", ".")
 
-    def pull(self, *, stable_ids: tuple[str, ...] = (), **kwargs: object) -> dict:
-        checkouts = kwargs.pop("checkouts", {"llm-zoomcamp": self.checkout})
-        root = kwargs.pop("root", None)
-        sources = select_sources(stable_ids, explicit=checkouts, root=root)
-        return pull_sources(sources=sources, checkouts=checkouts, root=root, **kwargs)  # type: ignore[arg-type]
+    def pull(
+        self,
+        *,
+        stable_ids: tuple[str, ...] = (),
+        checkouts: Mapping[str, Path] | None = None,
+        root: Path | None = None,
+        allow_modified_checkout: bool = False,
+        require_public_commit: bool = False,
+        narrate: Callable[[str], None] | None = None,
+        warn: Callable[[str], None] | None = None,
+    ) -> dict[str, Any]:
+        resolved = {"llm-zoomcamp": self.checkout} if checkouts is None else checkouts
+        sources = select_sources(stable_ids, explicit=resolved, root=root)
+        return pull_sources(
+            sources=sources,
+            checkouts=resolved,
+            root=root,
+            allow_modified_checkout=allow_modified_checkout,
+            require_public_commit=require_public_commit,
+            narrate=narrate,
+            warn=warn,
+        )
 
     def seed_project_shell(self) -> None:
         course = Course.objects.create(slug="llm-zoomcamp", title="LLM Zoomcamp")

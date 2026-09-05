@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
+from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
 from django.utils.html import escape
 
@@ -12,6 +13,8 @@ from content import public_views
 from content.pagination import PUBLIC_PAGE_SIZE
 from content.public_data import (
     EventGroups,
+    _manifest_event_identity_snapshot,
+    _runtime_event_identity_snapshot,
     event_date_groups,
     event_groups,
     public_paths,
@@ -520,6 +523,91 @@ class EventTimelineTemplateTests(StableEventClockTestCase):
             self.assertIsInstance(public_id, int)
             self.assertGreater(public_id, 0)
             self.assertEqual(event["public_path"], f"/events/{public_id}/{event['slug']}")
+
+
+class RuntimeEventIdentitySnapshotTests(TestCase):
+    """The database-owned identity snapshot public URLs are adapted from.
+
+    ``prepare_deployment`` runs ``migrate`` and *then* imports the reviewed manifest, so a
+    migrated database legitimately passes through a moment with no Event rows at all.  That
+    moment must serve pages; anything past it must agree with the manifest exactly.
+    """
+
+    UNUSED_PUBLIC_ID = 2_147_000_000
+
+    def test_an_empty_event_table_serves_the_build_time_manifest_identities(self) -> None:
+        Event.objects.all().delete()
+
+        self.assertEqual(_runtime_event_identity_snapshot(), _manifest_event_identity_snapshot())
+
+    def test_the_public_pages_render_against_an_empty_event_table(self) -> None:
+        Event.objects.all().delete()
+
+        projection = public_projection()
+
+        self.assertEqual(self.client.get("/").status_code, 200)
+        self.assertEqual(self.client.get("/events").status_code, 200)
+        self.assertEqual(len(projection["events"]), len(_manifest_event_identity_snapshot()))
+        for event in projection["events"]:
+            self.assertEqual(event["public_path"], f"/events/{event['public_id']}/{event['slug']}")
+
+    def test_a_populated_consistent_table_supplies_the_runtime_slug(self) -> None:
+        renamed = Event.objects.order_by("public_id").first()
+        assert renamed is not None
+        manifest = dict(
+            (event_id, (public_id, slug))
+            for event_id, public_id, slug in _manifest_event_identity_snapshot()
+        )
+        renamed.title = "A deliberately renamed reviewed event"
+        renamed.save()
+        renamed.refresh_from_db()
+        self.assertNotEqual(renamed.slug, manifest[str(renamed.id)][1])
+
+        snapshot = _runtime_event_identity_snapshot()
+
+        self.assertEqual(len(snapshot), len(manifest))
+        by_id = {event_id: (public_id, slug) for event_id, public_id, slug in snapshot}
+        self.assertEqual(by_id[str(renamed.id)], (renamed.public_id, renamed.slug))
+        self.assertEqual(
+            {event_id: public_id for event_id, (public_id, _slug) in by_id.items()},
+            {event_id: public_id for event_id, (public_id, _slug) in manifest.items()},
+        )
+        self.assertNotEqual(snapshot, _manifest_event_identity_snapshot())
+
+    def test_a_renumbered_public_id_still_fails_closed(self) -> None:
+        renumbered = Event.objects.order_by("public_id").first()
+        assert renumbered is not None
+        Event.objects.filter(pk=renumbered.pk).update(public_id=self.UNUSED_PUBLIC_ID)
+
+        with self.assertRaises(ImproperlyConfigured):
+            _runtime_event_identity_snapshot()
+
+    def test_a_partially_imported_table_fails_closed(self) -> None:
+        """Only a wholly empty table is "not imported yet".
+
+        The identity import is atomic - the spec requires imports and replays to "preserve the
+        checked UUID/public-ID pair and reject missing, duplicate, ambiguous, or renumbered
+        mappings atomically" - so no supported import leaves some manifest events present and
+        others absent.  That state is drift, and it keeps failing closed.
+        """
+
+        missing = Event.objects.order_by("public_id").first()
+        assert missing is not None
+        missing.delete()
+        self.assertTrue(Event.objects.exists())
+
+        with self.assertRaises(ImproperlyConfigured):
+            _runtime_event_identity_snapshot()
+
+    def test_the_snapshot_is_a_hashable_cache_key_that_moves_with_the_database(self) -> None:
+        populated = _runtime_event_identity_snapshot()
+        self.assertEqual(hash(populated), hash(_runtime_event_identity_snapshot()))
+
+        Event.objects.all().delete()
+        empty = _runtime_event_identity_snapshot()
+
+        self.assertNotEqual(populated, empty)
+        self.assertEqual(len({populated, empty}), 2)
 
 
 class EventIndexDesignSystemTests(StableEventClockTestCase):
