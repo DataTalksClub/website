@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Browser, Page, ViewportSize, expect
 
-from content.public_data import public_projection
+from events.queries import published_event_records
 
 pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
 
@@ -17,7 +17,7 @@ def _event_path(title: str) -> str:
     """Resolve the runtime public path after the DB-owned numeric IDs are available."""
 
     return next(
-        event["public_path"] for event in public_projection()["events"] if event["title"] == title
+        event["public_path"] for event in published_event_records() if event["title"] == title
     )
 
 

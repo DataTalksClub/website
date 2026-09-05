@@ -5,6 +5,7 @@ from playwright.sync_api import Browser, Page, ViewportSize, expect
 
 from content.docs_projection import docs_projection
 from content.public_data import public_projection
+from events.queries import published_event_records
 
 pytestmark = [pytest.mark.smoke, pytest.mark.django_db(transaction=True)]
 
@@ -26,7 +27,7 @@ def _featured_event_path() -> str:
 
     return next(
         event["public_path"]
-        for event in public_projection()["events"]
+        for event in published_event_records()
         if event["title"] == FEATURED_EVENT_TITLE
     )
 

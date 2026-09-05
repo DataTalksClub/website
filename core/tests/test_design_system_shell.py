@@ -188,8 +188,8 @@ class DesignFiveAShellTests(TestCase):
         cls.wiki_page = public_projection()["wiki"][0]
         cls.person = public_projection()["people_by_slug"]["alexeygrigorev"]
         cls.article = public_projection()["articles"][0]
-        # Events are database rows, and their content has no importer yet, so
-        # the shell comparison covers the event page only when one is published.
+        # Events are database rows: the shell comparison covers the event page
+        # only when the content import has published one.
         published = published_event_records()
         cls.event = published[0] if published else None
 

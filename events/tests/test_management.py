@@ -11,7 +11,6 @@ from django.contrib.auth.models import Permission
 from django.test import TestCase, override_settings
 
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
-from content.public_data import public_projection
 from events.importers import (
     ProtectedSourceError,
     registered_source_options,
@@ -19,6 +18,7 @@ from events.importers import (
     source_reference_digest,
 )
 from events.models import HistoricalRegistrationSourceRun
+from events.queries import published_event_records
 from management_api.concurrency import revision_etag
 from management_auth.models import APICredential, APIPrincipal
 from management_auth.services import (
@@ -48,7 +48,7 @@ class HistoricalRegistrationManagementTests(TestCase):
         self.temporary = tempfile.TemporaryDirectory(dir=scratch)
         self.source = Path(self.temporary.name) / "source"
         self.source.mkdir()
-        self.event = public_projection()["events"][0]
+        self.event = published_event_records()[0]
         self.external_id = "synthetic-management-event"
         self.external_url = "https://example.test/synthetic-management-event"
         (self.source / "synthetic.json").write_text(

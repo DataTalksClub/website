@@ -12,7 +12,6 @@ from django.template.loader import get_template
 from django.test import TestCase
 
 from events.queries import published_event_records
-from test_support.content_state import requires_published_events
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 ADOPTED_BASE = REPOSITORY_ROOT / "course_platform_templates/base.html"
@@ -93,7 +92,6 @@ class HomeEventsCmpRepositoryContractTests(TestCase):
         self.assertIn('{% include "core/_site_shell_foot.html" %}', detail)
 
 
-@requires_published_events
 class HomeEventsCmpRenderingTests(TestCase):
     @staticmethod
     def _main_markup(response) -> str:

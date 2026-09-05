@@ -16,13 +16,14 @@ from playwright.sync_api import Page, expect
 
 from accounts.studio_sessions import SESSION_REFERENCE_KEY
 from accounts.studio_test_support import make_studio_user
-from content.public_data import event_groups, public_projection
+from content.public_data import event_groups
 from events.models import (
     HistoricalRegistrationAggregateRevision,
     HistoricalRegistrationAggregateSlot,
     HistoricalRegistrationSourceRun,
     HistoricalRegistrationTotalState,
 )
+from events.queries import published_event_records
 
 pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
@@ -189,7 +190,7 @@ def test_public_zero_one_plural_and_omitted_states_are_private_and_responsive(
 ) -> None:
     page.set_viewport_size(viewport)
     event_times = sorted(
-        {datetime.fromisoformat(event["starts_at"]) for event in public_projection()["events"]},
+        {datetime.fromisoformat(event["starts_at"]) for event in published_event_records()},
         reverse=True,
     )
     assert len(event_times) >= 2
@@ -257,7 +258,7 @@ def test_studio_stage_replay_validate_activate_preview_rollback_and_denial(
     suffix: str,
 ) -> None:
     page.set_viewport_size(viewport)
-    event = public_projection()["events"][0]
+    event = published_event_records()[0]
     provenance = event["provenance"]
     scratch = Path(settings.BASE_DIR) / ".tmp"
     scratch.mkdir(exist_ok=True)

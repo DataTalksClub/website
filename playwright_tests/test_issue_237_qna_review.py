@@ -5,10 +5,10 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Browser, expect
 
-from content.public_data import public_projection
 from events.identity import load_identity_manifest
 from events.models import EventQnaSession
 from events.qna import security, services
+from events.queries import published_event_records
 from jobs.models import DurableJob
 from test_support.design_review_data import ensure_checked_event_identity_snapshot
 from test_support.reference_data import EVENT_IDENTITY_MANIFEST
@@ -63,11 +63,10 @@ def test_qna_participant_cohost_and_error_shells(
 ) -> None:
     participant_path, cohost_path = qna_review_paths
     manifest = load_identity_manifest(EVENT_IDENTITY_MANIFEST)
-    projection = public_projection()
     assert DurableJob.objects.count() == 0
-    assert {(event["identity_id"], event["public_path"]) for event in projection["events"]} == {
-        (str(item.id), item.canonical_path) for item in manifest.events
-    }
+    assert {
+        (event["identity_id"], event["public_path"]) for event in published_event_records()
+    } == {(str(item.id), item.canonical_path) for item in manifest.events}
     context = browser.new_context(viewport=viewport, color_scheme=color_scheme)
     page = context.new_page()
     EVIDENCE.mkdir(parents=True, exist_ok=True)

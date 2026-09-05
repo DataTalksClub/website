@@ -9,7 +9,6 @@ from content.event_banners import EVENT_BANNER_FILENAMES, event_banner_url
 from events.identity import canonical_detail_path
 from events.models import Event
 from events.queries import published_event_records
-from test_support.content_state import requires_published_events
 from test_support.reference_data import load_reviewed_reference_data
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -40,7 +39,6 @@ class EventBannerTests(TestCase):
                 self.assertEqual(struct.unpack(">II", payload[16:24]), EXPECTED_PNG_SIZE)
 
 
-@requires_published_events
 class EventBannerPageTests(TestCase):
     @classmethod
     def setUpTestData(cls) -> None:
