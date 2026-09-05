@@ -677,6 +677,10 @@ def _validate_projection(projection: Mapping[str, Any]) -> None:
 def docs_projection() -> dict[str, Any]:
     try:
         projection = json.loads(DOCS_PROJECTION_PATH.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        # Absent is the normal default after file-backed content was removed:
+        # docs pages 404.  Present-but-invalid still fails closed below.
+        return {"pages": []}
     except (OSError, json.JSONDecodeError) as exc:
         raise ImproperlyConfigured("Docs content projection cannot be loaded.") from exc
     if not isinstance(projection, dict):

@@ -209,6 +209,11 @@ def _resolve_faq_question_link(
 def _load_projection() -> dict[str, Any]:
     try:
         projection = json.loads(FAQ_PROJECTION_PATH.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        # Absent is the normal default after file-backed content was removed:
+        # the FAQ hub renders empty and course pages 404.  Present-but-invalid
+        # still fails closed below.
+        return {"schema_version": 1, "courses": []}
     except (OSError, json.JSONDecodeError) as exc:
         raise ImproperlyConfigured("FAQ content projection cannot be loaded.") from exc
     _validate_projection(projection)

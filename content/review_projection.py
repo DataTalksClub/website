@@ -91,6 +91,10 @@ def _validate_projection(projection: dict[str, Any]) -> None:
 def review_projection() -> dict[str, Any]:
     try:
         projection = json.loads(PROJECTION_PATH.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        # Absent is the normal default after file-backed content was removed:
+        # review surfaces 404.  Present-but-invalid still fails closed below.
+        return {}
     except (OSError, json.JSONDecodeError) as exc:
         raise ImproperlyConfigured("Review content projection cannot be loaded.") from exc
     _validate_projection(projection)
