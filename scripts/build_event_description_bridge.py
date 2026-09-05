@@ -64,7 +64,9 @@ from content.event_description_link_policy import (  # noqa: E402
     projection_routes_and_fragments,
 )
 
-PROJECTION_EVENTS_PATH = REPOSITORY_ROOT / "content" / "public_projection" / "events.json"
+PROJECTION_EVENTS_PATH = (
+    REPOSITORY_ROOT / "temporary" / "content" / "public_projection" / "events.json"
+)
 BASELINE_WEBSITE_REVISION = "4cad269d576217679ac6c9ce02286e7939d8b043"
 MAX_CHECKPOINT_BYTES = 32 * 1024 * 1024
 MAX_DESCRIPTION_BYTES = 8 * 1024

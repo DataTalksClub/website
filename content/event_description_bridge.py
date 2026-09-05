@@ -471,10 +471,16 @@ def _validate_bridge(bridge: Any) -> dict[str, Any]:
     return bridge
 
 
-@lru_cache(maxsize=1)
-def load_event_description_bridge() -> dict[str, Any]:
+@lru_cache(maxsize=2)
+def load_event_description_bridge(path: Path | None = None) -> dict[str, Any]:
+    """Load and validate the reviewed bridge, defaulting to the runtime capture path.
+
+    Builders pass their explicit helper path; every other caller uses the
+    default, so runtime behavior is unchanged.
+    """
+
     try:
-        bridge = json.loads(BRIDGE_PATH.read_text(encoding="utf-8"))
+        bridge = json.loads((path or BRIDGE_PATH).read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise EventDescriptionBridgeError("event description bridge is unavailable") from exc
     return _validate_bridge(bridge)

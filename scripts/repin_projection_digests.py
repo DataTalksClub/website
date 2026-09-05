@@ -32,7 +32,7 @@ from scripts.build_public_projection import (  # noqa: E402
     _tree_sha256,
 )
 
-DEFAULT_PROJECTION_ROOT = REPOSITORY_ROOT / "content" / "public_projection"
+DEFAULT_PROJECTION_ROOT = REPOSITORY_ROOT / "temporary" / "content" / "public_projection"
 #: The only manifest keys this utility is permitted to introduce or change.
 DERIVED_FIELDS = ("tree_sha256", "tree_digest_scope", "media_storage")
 

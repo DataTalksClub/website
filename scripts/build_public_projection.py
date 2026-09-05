@@ -34,6 +34,7 @@ from content.event_description_bridge import (  # noqa: E402
     EventDescriptionBridgeError,
     apply_bridge_to_events,
     bridge_manifest_binding,
+    load_event_description_bridge,
 )
 from content.event_speaker_bio_normalization import (  # noqa: E402
     EventSpeakerBioNormalizationError,
@@ -48,11 +49,15 @@ from content.podcast_routes import (  # noqa: E402
     PODCAST_HIERARCHICAL_ONLY_SLUGS,
     podcast_canonical_path,
 )
+from content.article_faq_format import (  # noqa: E402
+    ArticleFaqFormatError,
+    validate_faq_pairs,
+)
 from content.public_text import strip_target_attributes_from_links  # noqa: E402
 from courses.course_family_catalog import cohort_family_identity  # noqa: E402
 from events.slugs import event_title_slug  # noqa: E402
 
-DEFAULT_OUTPUT = REPOSITORY_ROOT / "content" / "public_projection"
+DEFAULT_OUTPUT = REPOSITORY_ROOT / "temporary" / "content" / "public_projection"
 PODCAST_PLATFORM_SEED = REPOSITORY_ROOT / "scripts" / "podcast_platforms.json"
 PODCAST_PLATFORM_FILENAME = "podcast_platforms.json"
 SPOTIFY_FOR_CREATORS_URL = "https://creators.spotify.com/pod/profile/datatalksclub/"
@@ -61,7 +66,28 @@ EDITORIAL_ROUTE_MIGRATION_FILENAME = "editorial_route_migration.json"
 EDITORIAL_ROUTE_MIGRATION_SCHEMA = (
     REPOSITORY_ROOT / "_docs" / "compatibility" / "editorial-route-migration.schema.json"
 )
-EVENT_IDENTITY_MANIFEST = REPOSITORY_ROOT / "events" / "event_identity_manifest.json"
+EVENT_IDENTITY_MANIFEST = (
+    REPOSITORY_ROOT / "temporary" / "content" / "event_identity_manifest.json"
+)
+BRIDGE_INPUT = REPOSITORY_ROOT / "temporary" / "content" / "event_description_bridge.json"
+# The accordion marker still in ten article bodies: it contributes no block of
+# its own, so it stays purely as the FAQ section's position anchor while the
+# pairs themselves live in frontmatter.  Same shape scripts/build_article_faq.py
+# matched before it was retired.
+FAQ_INCLUDE = re.compile(r"^\{%\s*include\s+faq-accordion\.html[^%]*%\}$")
+# Frozen legacy recovery moved into frontmatter: ten articles, 159 pairs.  A
+# corpus that gains or loses a pair is a review event, never a silent change.
+EXPECTED_FAQ_ARTICLES = 10
+EXPECTED_FAQ_QUESTIONS = 159
+
+
+def _migration_bridge() -> dict[str, Any]:
+    """Load the helper bridge the event projection is validated against."""
+
+    try:
+        return load_event_description_bridge(BRIDGE_INPUT)
+    except EventDescriptionBridgeError as exc:
+        raise ProjectionBuildError("event description bridge cannot be read") from exc
 
 PREFERRED_CONTENT_REVISION = "1375c506dbce85c7c0e5e61f83c753128c5a48d1"
 PREFERRED_CONTENT_TREE = "1537664d1222950f43f11cc4b105683c81456cc9"
@@ -1348,6 +1374,8 @@ def _main_records(
         "code_blocks": 0,
         "charts": 0,
     }
+    faq_article_count = 0
+    faq_question_total = 0
 
     article_paths = (
         (content_root / "articles").rglob("*.md")
@@ -1373,6 +1401,24 @@ def _main_records(
             field="article date",
             maximum=50,
         )
+        blocks = _article_blocks(body, media_root=content_root, counters=article_counters)
+        # Frontmatter FAQ travels with the article as record JSON -- no separate
+        # model, no second file.  Preferred mode only: the unaccepted legacy
+        # fallback corpus carries no frontmatter FAQ and is never promoted.
+        faq_record = (
+            _article_faq_record(
+                metadata=metadata,
+                body=body,
+                blocks=blocks,
+                content_root=content_root,
+                slug=slug,
+            )
+            if mode == "preferred"
+            else None
+        )
+        if faq_record is not None:
+            faq_article_count += 1
+            faq_question_total += len(faq_record["questions"])
         articles.append(
             {
                 "slug": slug,
@@ -1389,7 +1435,8 @@ def _main_records(
                 ),
                 "published": published,
                 "authors": _safe_key_list(metadata.get("authors"), field="article author"),
-                "blocks": _article_blocks(body, media_root=content_root, counters=article_counters),
+                "blocks": blocks,
+                "faq": faq_record,
                 "image_source": _string(
                     metadata.get("image"), field="article image", maximum=500, optional=True
                 ),
@@ -1418,6 +1465,13 @@ def _main_records(
         "charts": EXPECTED_ARTICLE_CHARTS,
     }:
         raise ProjectionBuildError("article body inventory mismatch")
+    # The frontmatter FAQ recovery is closed: ten articles, 159 pairs.  A corpus
+    # that gains or loses a pair is a review event, never a silent change.
+    if mode == "preferred" and (
+        faq_article_count != EXPECTED_FAQ_ARTICLES
+        or faq_question_total != EXPECTED_FAQ_QUESTIONS
+    ):
+        raise ProjectionBuildError("article FAQ inventory mismatch")
 
     podcast_root = content_root / "podcasts"
     podcast_paths = (
@@ -1875,7 +1929,7 @@ def _events(
         raise ProjectionBuildError("event conference-link omission count mismatch")
     events.sort(key=lambda item: (item["starts_at"], item["slug"]), reverse=True)
     try:
-        apply_bridge_to_events(events)
+        apply_bridge_to_events(events, _migration_bridge())
     except EventDescriptionBridgeError as exc:
         raise ProjectionBuildError("event description bridge validation failed") from exc
     _apply_event_identity_manifest(events)
@@ -2386,6 +2440,60 @@ def _load_json_bounded(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ProjectionBuildError(f"JSON source is not an object: {path.name[:120]}")
     return value
+
+
+def _article_faq_record(
+    *,
+    metadata: dict[str, Any],
+    body: str,
+    blocks: list[dict[str, Any]],
+    content_root: Path,
+    slug: str,
+) -> dict[str, Any] | None:
+    """Attach one article's frontmatter FAQ pairs as record JSON.
+
+    The pairs live in the article frontmatter ``faq:`` section and travel with
+    the article -- no separate model, no second file.  Position and heading
+    still come from the body's accordion marker, exactly as the retired legacy
+    recovery bound them: the marker contributes no block of its own.  Answers
+    stay source Markdown here; the page renders them through the shared
+    sanitizer, as it always has.
+    """
+
+    pairs_value = metadata.get("faq")
+    marker_indexes = [
+        index for index, line in enumerate(body.splitlines()) if FAQ_INCLUDE.match(line.strip())
+    ]
+    if pairs_value is None and not marker_indexes:
+        return None
+    if pairs_value is None:
+        raise ProjectionBuildError(f"article accordion has no frontmatter FAQ: {slug[:120]}")
+    if len(marker_indexes) != 1:
+        raise ProjectionBuildError(f"article FAQ has no single accordion position: {slug[:120]}")
+    try:
+        questions = validate_faq_pairs(pairs_value)
+    except ArticleFaqFormatError as exc:
+        raise ProjectionBuildError(f"article frontmatter FAQ rejected: {slug[:120]}") from exc
+    prefix_blocks = _article_blocks(
+        "\n".join(body.splitlines()[: marker_indexes[0]]),
+        media_root=content_root,
+        counters={},
+    )
+    block_index = len(prefix_blocks)
+    if not 0 < block_index <= len(blocks):
+        raise ProjectionBuildError(f"article FAQ position is outside the body: {slug[:120]}")
+    heading_ids = [
+        block.get("id")
+        for block in blocks[:block_index]
+        if block.get("kind") == "heading" and block.get("id")
+    ]
+    if not heading_ids:
+        raise ProjectionBuildError(f"article FAQ heading is missing: {slug[:120]}")
+    return {
+        "heading_id": heading_ids[-1],
+        "block_index": block_index,
+        "questions": [dict(question) for question in questions],
+    }
 
 
 def _courses(course_specs: Path) -> list[dict[str, Any]]:
@@ -3200,7 +3308,7 @@ def build(args: argparse.Namespace) -> None:
             "event_source_timezone": str(EVENT_SOURCE_TIMEZONE),
             "event_record_schema_version": EVENT_RECORD_SCHEMA_VERSION,
             "event_identity_manifest": _event_identity_manifest_binding(),
-            "event_description_bridge": bridge_manifest_binding(),
+            "event_description_bridge": bridge_manifest_binding(_migration_bridge()),
             "event_speaker_bio_normalization": normalization_manifest_binding(),
             "conference_links_outside_slice": "omitted",
             "people_source": "438 public _people profiles; underscore-prefixed source excluded",
