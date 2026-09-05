@@ -49,7 +49,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from scripts.projection_build.luma_event_descriptions import (  # noqa: E402
+from scripts.staging.luma_event_descriptions import (  # noqa: E402
     ARTIFACT_PATH,
     DEFAULT_DESCRIPTION_ROOT,
     LumaDescriptionError,
@@ -88,7 +88,7 @@ def run(*, descriptions: Path, apply: bool = False) -> dict[str, Any]:
 
     # One renderer for the whole run: building it reads the route registry the
     # link policy resolves internal paths against.
-    from scripts.projection_build.luma_event_descriptions import _renderer
+    from scripts.staging.luma_event_descriptions import _renderer
 
     renderer = _renderer()
     for source in sources:
