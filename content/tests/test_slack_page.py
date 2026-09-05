@@ -4,8 +4,9 @@
 front door, and it is the page the first shell copies quietly broke: five pages
 lost the Slack link because each carried its own masthead.  The page now includes
 the shared shell instead, so these tests pin what the rebuilt page must still
-offer — the projected title, lede, every channel, and the one action it owns —
-next to the design contract every page in the system carries.
+offer -- the title, lede, every channel, and the one action it owns, all read
+from the page's own database row -- next to the design contract every page in
+the system carries.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ import re
 from django.test import TestCase
 from django.urls import reverse
 
-from content.review_projection import review_projection
+from test_support.published_content import PublishedPage, publish_documents
 
 RETIRED_ASSETS = (
     "/static/courses.css",
@@ -27,9 +28,33 @@ RETIRED_ASSETS = (
 TEMPLATE_SYNTAX = ("{#", "#}", "{%", "%}", "{{", "}}")
 
 
+SLACK_CHANNELS = ("#events", "#jobs", "#random")
+SLACK_TROUBLESHOOTING_URL = "https://example.invalid/slack-help"
+
+
+class SlackPageAbsentTests(TestCase):
+    """The page is its database row, so an empty database has no page to serve."""
+
+    def test_the_page_is_absent_rather_than_empty_when_no_row_publishes_it(self) -> None:
+        self.assertEqual(self.client.get(reverse("slack")).status_code, 404)
+
+
 class SlackPageTests(TestCase):
     def setUp(self) -> None:
-        self.page = review_projection()["slack"]
+        self.page = PublishedPage(
+            exact_public_path="/slack",
+            title="DataTalks.Club on Slack",
+            summary=(
+                "See where DataTalks.Club members talk, and contact the community team "
+                "if you need help with the next step."
+            ),
+            slug="slack",
+            adapter_metadata={
+                "channels": list(SLACK_CHANNELS),
+                "troubleshooting_url": SLACK_TROUBLESHOOTING_URL,
+            },
+        )
+        publish_documents([self.page])
         self.response = self.client.get(reverse("slack"))
         self.assertEqual(self.response.status_code, 200)
         self.body = self.response.content.decode()
@@ -83,7 +108,7 @@ class SlackPageTests(TestCase):
         """A channel name is a literal, so it keeps the system's `.mono-code` face."""
 
         self.assertIn('<h2 id="slack-channels-heading">Find your conversation</h2>', self.body)
-        channels = self.page["channels"]
+        channels = SLACK_CHANNELS
         self.assertTrue(channels)
         for channel in channels:
             with self.subTest(channel=channel):
@@ -99,7 +124,7 @@ class SlackPageTests(TestCase):
         self.assertRegex(
             self.body,
             r'<a\s+class="cta cta-primary interactive-lift"\s+href="'
-            + re.escape(str(self.page["troubleshooting_url"]))
+            + re.escape(SLACK_TROUBLESHOOTING_URL)
             + r'"\s+target="_blank"\s+rel="noreferrer"\s*>\s*Contact the community team',
         )
         self.assertIn('<span class="sr-only">(opens in a new tab)</span>', self.body)

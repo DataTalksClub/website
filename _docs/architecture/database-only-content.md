@@ -56,7 +56,6 @@ migrated into database models before their runtime readers are deleted:
 | --- | --- | --- |
 | Documentation | `content/docs_projection.json` | `content/docs_projection.py` |
 | Course FAQ | `content/faq_projection.json` | `content/faq_data.py` |
-| Review/Slack pages | `content/review_projection.json` | `content/review_projection.py` |
 | Article FAQ | `content/article_faq.json` | `content/article_faq.py` |
 | Sponsor directory | `core/sponsor_directory.json` | `core/sponsors.py` |
 | Event descriptions | `temporary/content/event_description_bridge.json` (migration helper) | `content/event_description_bridge.py` |
@@ -97,6 +96,6 @@ rows return an empty collection or 404; they never trigger a filesystem fallback
 Useful audit commands:
 
 ```text
-rg -n "public_projection|docs_projection|faq_projection|review_projection|article_faq|sponsor_directory|event_identity_manifest|event_description_bridge" .
+rg -n "public_projection|docs_projection|faq_projection|article_faq|sponsor_directory|event_identity_manifest|event_description_bridge" .
 rg -n "read_text|read_bytes|json\.load" content core events
 ```

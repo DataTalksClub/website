@@ -2,12 +2,25 @@ from __future__ import annotations
 
 from django.test import TestCase
 
-from content.event_description_link_policy import projection_routes_and_fragments
 from content.public_data import public_paths
-from content.review_projection import review_projection
+from test_support.published_content import PublishedPage, publish_documents
 
 
 class CanonicalRouteTests(TestCase):
+    def setUp(self) -> None:
+        # /slack is a database-owned page, so the route contract needs a row to
+        # serve before it can say anything about canonical URLs or aliases.
+        publish_documents(
+            [
+                PublishedPage(
+                    exact_public_path="/slack",
+                    title="DataTalks.Club on Slack",
+                    summary="Where the community talks.",
+                    slug="slack",
+                )
+            ]
+        )
+
     def test_slack_route_and_alias_have_exact_method_and_query_contracts(self) -> None:
         query = "x=%2F&x=&q=A+B&q=A%20B"
         canonical = self.client.get("/slack")
@@ -66,20 +79,12 @@ class CanonicalRouteTests(TestCase):
             with self.subTest(path=path):
                 self.assertEqual(self.client.get(path).status_code, 404)
 
-    def test_slack_projection_and_link_policy_use_only_the_canonical_path(self) -> None:
-        projection = review_projection()
-        self.assertEqual(projection["slack"]["public_path"], "/slack")
-        self.assertEqual(
-            sum(
-                isinstance(record, dict) and record.get("public_path") == "/slack"
-                for record in projection.values()
-            ),
-            1,
-        )
+    def test_only_the_canonical_slack_path_is_public(self) -> None:
+        """`/slack.html` is an alias to redirect from, never a page in its own right."""
+
         self.assertNotIn("/slack.html", public_paths())
-        policy_paths, _ = projection_routes_and_fragments()
-        self.assertIn("/slack", policy_paths)
-        self.assertNotIn("/slack.html", policy_paths)
+        self.assertEqual(self.client.get("/slack").status_code, 200)
+        self.assertEqual(self.client.get("/slack.html")["Location"], "/slack")
 
     def test_docs_and_faq_replace_legacy_slack_links_when_rendered(self) -> None:
         docs = self.client.get("/docs/general/slack/")

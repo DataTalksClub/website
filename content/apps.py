@@ -4,40 +4,6 @@ from django.core.exceptions import ImproperlyConfigured
 
 
 @register()
-def review_projection_check(app_configs, **kwargs):
-    del app_configs, kwargs
-    from pathlib import Path
-
-    from .review_projection import PROJECTION_PATH, review_projection
-
-    # Absent is the normal default after the migration snapshot program removed
-    # file-backed content: review surfaces render empty until the database owns
-    # them.  Present-but-invalid still fails closed.
-    if not Path(PROJECTION_PATH).is_file():
-        return [
-            Warning(
-                "Review projection is absent; review surfaces render empty.",
-                id="content.W002",
-                hint=(
-                    "Review content is database-owned; see "
-                    "_docs/architecture/database-only-content.md."
-                ),
-            )
-        ]
-    try:
-        review_projection()
-    except ImproperlyConfigured as exc:
-        return [
-            Error(
-                str(exc),
-                id="content.E001",
-                hint="Restore the pinned review projection and its inventory revisions.",
-            )
-        ]
-    return []
-
-
-@register()
 def public_projection_check(app_configs, **kwargs):
     del app_configs, kwargs
     from .public_data import _checked_public_projection, is_projection_present

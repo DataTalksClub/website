@@ -19,8 +19,8 @@ from accounts.studio_sessions import SESSION_REFERENCE_KEY, revoke_staff_session
 from accounts.studio_test_support import make_studio_user
 from content import public_data
 from content.docs_projection import docs_pages
+from content.faq_data import faq_course, faq_questions
 from content.public_data import public_projection
-from content.review_projection import review_projection
 from core.accessibility_registry import (
     BEHAVIOR_SCENARIOS,
     CRITICAL_STATES,
@@ -117,20 +117,37 @@ class PublicRenderedState:
     marker: str
 
 
+def _faq_anchor_sample() -> dict[str, str]:
+    """The FAQ question the anchored surface is audited against.
+
+    The audit needs one real question with a stable anchor, not a particular
+    one, so it takes the first question of the reviewed course rather than
+    naming a question that an upstream FAQ edit could retire.
+    """
+
+    course = faq_course("ai-dev-tools-zoomcamp")
+    assert course is not None, "the reviewed FAQ course is absent"
+    question = faq_questions(course)[0]
+    return {
+        "public_path": course["public_path"],
+        "question_id": question["id"],
+        "question": question["question"],
+    }
+
+
 def _public_rendered_states(
     environment: AccessibilityEnvironment,
 ) -> tuple[PublicRenderedState, ...]:
     """Build the public state/marker map from the frozen projections and fixture environment."""
 
     public = public_projection()
-    review_public = review_projection()
     event = environment.objects["event"]
     assert isinstance(event, dict)
     article = public["articles"][0]
     book = public["books"][0]
     public_course = public["courses"][0]
     wiki = public["wiki"][0]
-    faq = review_public["faq"]
+    faq = _faq_anchor_sample()
     speaker = event["speakers"][0]
     docs = next(
         page
@@ -275,7 +292,6 @@ def accessibility_environment() -> AccessibilityEnvironment:
     audit_id = uuid.uuid5(uuid.NAMESPACE_URL, f"https://web.dtcdev.click/{namespace}/audit")
 
     public = public_projection()
-    review_public = review_projection()
     event = public["events"][0]
     database_event = Event.objects.filter(pk=event["identity_id"]).first()
     if database_event is not None:
@@ -294,7 +310,7 @@ def accessibility_environment() -> AccessibilityEnvironment:
         },
     )
     wiki = public["wiki"][0]
-    faq = review_public["faq"]
+    faq = _faq_anchor_sample()
     course_route = {
         "course_slug": course.course.slug,
         "cohort_year": course.identifier,

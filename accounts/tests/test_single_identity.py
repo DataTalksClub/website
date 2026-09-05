@@ -34,7 +34,6 @@ from accounts.models import (
 )
 from accounts.navigation import SAFE_ACCOUNT_DESTINATION, safe_next_path
 from accounts.studio_roles import synchronize_studio_roles
-from content.review_projection import review_projection
 from core.models import AuditEvent
 from management_api.authentication import authenticate as authenticate_management
 from management_auth.constants import DIGEST_ALGORITHM, DIGEST_VERSION
@@ -474,7 +473,6 @@ class SharedAccountSurfaceTests(TestCase):
                 "aliases": AccountIdentityAlias.objects.count(),
             },
         )
-        self.assertIsNotNone(review_projection())
 
     def test_signed_in_public_course_settings_and_api_share_account_id(self) -> None:
         user = create_verified_user(

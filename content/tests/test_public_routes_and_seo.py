@@ -19,7 +19,6 @@ from content.podcast_routes import (
     podcast_legacy_path,
 )
 from content.public_data import public_paths, public_projection
-from content.review_projection import review_projection
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
 
 from .pagination_support import catalogue_body
@@ -481,16 +480,12 @@ class PublicRouteAndSeoTests(TestCase):
                 self.assertContains(response, 'name="twitter:title"')
 
     def test_review_backed_public_details_do_not_render_source_provenance(self) -> None:
-        projection = review_projection()
+        """A public page says what it is, never where it was built from."""
+
         blocked = {
             "Checked source",
             "View source on GitHub",
             "This page is maintained on",
-            *(
-                source["repository"].removeprefix("https://github.com/")
-                for source in projection["sources"].values()
-            ),
-            *(source["revision"] for source in projection["sources"].values()),
         }
         for path in (
             "/faq/ai-dev-tools-zoomcamp.html",
@@ -516,7 +511,6 @@ class PublicRouteAndSeoTests(TestCase):
         self.assertNotContains(response, "Checked source")
         self.assertNotContains(response, "View source on GitHub")
         self.assertNotContains(response, "This page is maintained on")
-        self.assertNotContains(response, review_projection()["sources"]["docs"]["revision"])
 
     def test_every_section_sitemap_entry_is_a_unique_canonical_public_200(self) -> None:
         root = self.client.get("/sitemap.xml")

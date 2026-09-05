@@ -16,6 +16,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_safe
 
 from core.breadcrumbs import trail
+from core.context import current_request_id, external_context_id_or_new
+from core.services import ServiceContext
 
 from .docs_presentation import (
     docs_body_without_primary_heading,
@@ -51,11 +53,11 @@ from .faq_data import (
 from .faq_data import (
     faq_course as faq_course_data,
 )
-from .review_projection import (
-    SLACK_PUBLIC_PATH,
-    projection_context,
-    review_projection,
-)
+from .queries import ResolvePublicDocument, resolve_public_document
+
+#: Route, not content: the page's own address is owned by the URL configuration,
+#: while everything the page says comes from its ``ContentDocument`` row.
+SLACK_PUBLIC_PATH = "/slack"
 
 
 def _canonical(path: str) -> str:
@@ -354,25 +356,28 @@ def slack(request: HttpRequest) -> HttpResponse:
         response = HttpResponseNotAllowed(("GET", "HEAD"))
         response["Cache-Control"] = "no-store, max-age=0"
         return response
-    page = review_projection()["slack"]
-    # Keep the rendered context canonical even while an older source projection is being
-    # replaced.  The checked projection validator enforces the same path at load time.
-    page = {
-        **page,
-        "public_path": SLACK_PUBLIC_PATH,
-        "title": "DataTalks.Club on Slack",
-        "lead": (
-            "See where DataTalks.Club members talk, and contact the community team "
-            "if you need help with the next step."
-        ),
+    document = resolve_public_document(
+        ResolvePublicDocument(SLACK_PUBLIC_PATH),
+        context=ServiceContext(correlation_id=external_context_id_or_new(current_request_id())),
+    )
+    if document is None:
+        raise Http404("The Slack page is unavailable.")
+    # The channel row and the help link are this page's own shape, so they ride in
+    # the document's adapter metadata rather than in a column every kind carries.
+    metadata = document.adapter_metadata
+    channels = metadata.get("channels")
+    page: dict[str, Any] = {
+        "public_path": document.exact_public_path,
+        "title": document.title,
+        "lead": document.summary,
+        "channels": tuple(channels) if isinstance(channels, list) else (),
+        "troubleshooting_url": str(metadata.get("troubleshooting_url") or ""),
     }
-    context = projection_context("slack")
-    context["slack"] = page
     return _render(
         request,
         "review/slack.html",
-        path=page["public_path"],
-        title="DataTalks.Club on Slack",
-        description=page["lead"],
-        context=context,
+        path=document.exact_public_path,
+        title=document.title,
+        description=document.summary,
+        context={"slack": page},
     )

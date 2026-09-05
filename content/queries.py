@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from django.db.models import F
 
@@ -34,6 +35,10 @@ class PublishedDocument:
     rendered_html: str
     noindex: bool
     edit_url: str
+    #: Adapter-written structured fields the page shape needs beyond the common
+    #: document columns -- a channel list, an off-site help URL. Database-owned
+    #: like every other column here; the reader treats a missing key as absent.
+    adapter_metadata: dict[str, Any]
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,6 +96,7 @@ def resolve_public_document(
             "rendered_html",
             "noindex",
             "edit_url",
+            "adapter_metadata",
         )
         .first()
     )
@@ -110,6 +116,7 @@ def resolve_public_document(
         rendered_html=row["rendered_html"],
         noindex=row["noindex"],
         edit_url=row["edit_url"],
+        adapter_metadata=dict(row["adapter_metadata"] or {}),
     )
 
 
