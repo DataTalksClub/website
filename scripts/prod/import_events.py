@@ -88,6 +88,24 @@ every link bound to a reviewed destination
 (``_docs/event-description-bridge.md``).  The reviewed result exists nowhere
 else, which is why it is the source.
 
+**Staged content for discovered events**
+(``temporary/content/luma_event_descriptions.json``, absent until built): the
+other half of the step above.  The 421-record file cannot grow -- its
+descriptions come through the event description bridge, which matches on the
+legacy ``_data/events.yaml`` tuple that a discovered event does not have -- so
+an event created by ``new_event_identities`` above would otherwise reach the
+database with a title, a path, and no page content at all.  This leg lands the
+type, start and description a person and the export between them decided.  See
+:func:`import_new_content`, ``events.content_import.import_new_event_content``
+and ``scripts/staging/luma_event_descriptions.py``.
+
+Its two gates stay human, and the builder reports both rather than resolving
+either: a description naming a destination nobody has reviewed is stopped and
+its URLs are named (approving one is an edit to
+``scripts/projection_build/event_description_link_policy.py``), and an event's
+``type`` comes only from ``_docs/migration-data/local-event-type-input.json``,
+which a person maintains.  Nothing here infers either one.
+
 Note that both the identity manifest and the content records *record* the legacy
 repository as provenance (all 421 events carry ``source_repository =
 DataTalksClub/datatalksclub.github.io``).  That is history written into a
@@ -128,6 +146,7 @@ EVENTBRITE_RELATIVE_SOURCE = Path(".local/migration-data/events/eventbrite/aggre
 EVENT_CONTENT_PATH = (
     PROJECT_ROOT / "temporary" / "content" / "public_projection" / "events.json"
 )
+NEW_EVENT_CONTENT_PATH = PROJECT_ROOT / "temporary" / "content" / "luma_event_descriptions.json"
 
 PROVIDERS = ("luma", "eventbrite")
 
@@ -161,6 +180,12 @@ def _configure(database: Path) -> None:
     import django
 
     django.setup()
+
+    # The events app owns no provider file format, so the readers it dispatches
+    # to are supplied here, by the ingestion layer that has the exports.
+    from scripts.prod.registration_sources import register_source_readers
+
+    register_source_readers()
 
 
 # --------------------------------------------------------------------------
@@ -226,6 +251,43 @@ def import_content(*, source: Path | None = None, apply: bool = True) -> dict[st
     }
 
 
+def import_new_content(*, source: Path | None = None, apply: bool = True) -> dict[str, Any]:
+    """Attach staged descriptions to the identities discovered below.
+
+    Runs after :func:`discover_new_provider_events`, never before it, for the
+    same reason :func:`import_content` runs after the manifest: a record naming
+    an identity the database does not hold is a refusal rather than a new event.
+
+    A missing artifact is a normal state, not a failure. It exists only while
+    there is new content waiting to land -- an operator builds it with
+    ``scripts/build_luma_event_descriptions.py --write`` once the link review
+    and the type review it reports are clean, and it is reported as ``absent``
+    when nobody has.
+    """
+
+    from events.content_import import EventContentImportError, import_new_event_content
+
+    path = source or NEW_EVENT_CONTENT_PATH
+    if not path.is_file():
+        return {"present": False, "applied": apply}
+    try:
+        report = import_new_event_content(path=path, dry_run=not apply)
+    except (EventContentImportError, OSError, ValueError) as error:
+        raise EventImportError("new_event_content_invalid") from error
+    return {
+        "present": True,
+        "events": report.total,
+        "described": report.described,
+        "created": report.created,
+        "updated": report.updated,
+        "unchanged": report.unchanged,
+        "speakers": report.speakers,
+        "links": report.links,
+        "replayed": report.replayed,
+        "applied": apply,
+    }
+
+
 # --------------------------------------------------------------------------
 # New-event identity discovery
 # --------------------------------------------------------------------------
@@ -254,8 +316,9 @@ def discover_new_provider_events(
 
     ``discovered`` items only need ``external_event_identifier``, ``title``,
     ``start_at`` and ``eligible_count`` attributes -- shaped for
-    ``events.importers.DiscoveredLumaEvent`` today, provider-agnostic by
-    contract for whenever an Eventbrite export carries its own title source.
+    ``scripts.prod.registration_sources.luma.DiscoveredLumaEvent`` today,
+    provider-agnostic by contract for whenever an Eventbrite export carries its
+    own title source.
 
     An event is skipped, not created, when any of these is true:
 
@@ -364,11 +427,13 @@ def discover_new_luma_event_identities(*, luma_source: Path, apply: bool = True)
     Unlike ``derive_luma`` (below), this never requires the export to match a
     previously pinned whole-tree checksum -- that pin exists to protect
     registration *counts* from silent drift, and identity creation writes no
-    count.  See ``events.importers.discover_luma_events`` for the read and
-    ``discover_new_provider_events`` for the create-or-skip decision.
+    count.  See ``scripts.prod.registration_sources.luma.discover_luma_events``
+    for the read and ``discover_new_provider_events`` for the create-or-skip
+    decision.
     """
 
-    from events.importers import ProtectedSourceError, discover_luma_events
+    from events.importers import ProtectedSourceError
+    from scripts.prod.registration_sources.luma import discover_luma_events
 
     try:
         discovered = discover_luma_events(luma_source)
@@ -446,7 +511,8 @@ def derive_registration_sources(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Parse both protected exports and reconcile them against the recorded facts."""
 
-    from events.importers import derive_eventbrite, derive_luma
+    from scripts.prod.registration_sources.eventbrite import derive_eventbrite
+    from scripts.prod.registration_sources.luma import derive_luma
 
     facts = load_registration_facts()
     bridges: dict[str, dict[str, dict[str, str]]] = {name: {} for name in PROVIDERS}
@@ -604,8 +670,9 @@ def activate_unambiguous_mappings(
     """
 
     from core.services import ServiceContext
-    from events.importers import ProtectedSourceError, discover_luma_events
+    from events.importers import ProtectedSourceError
     from events.services import ProviderEventMetadata, resolve_unmatched_aggregates
+    from scripts.prod.registration_sources.luma import discover_luma_events
 
     try:
         discovered = discover_luma_events(luma_source)
@@ -667,6 +734,7 @@ def run(
     *,
     identity_manifest: Path | None = None,
     event_content_source: Path | None = None,
+    new_event_content_source: Path | None = None,
     luma_source: Path,
     eventbrite_source: Path,
     current_registration_input: Path | None = None,
@@ -684,6 +752,11 @@ def run(
     new_event_identities = {
         "luma": discover_new_luma_event_identities(luma_source=luma_source, apply=True),
     }
+    # Straight after the identities it depends on, and under its own key: the
+    # 421 reviewed records and the staged descriptions for discovered events are
+    # different artifacts with different provenance, and merging their counts
+    # would hide which of the two moved.
+    new_event_content = import_new_content(source=new_event_content_source, apply=True)
     current_input = load_current_registration_input(current_registration_input)
     source_report, derived_sources = derive_registration_sources(
         luma_source=luma_source,
@@ -714,6 +787,7 @@ def run(
             source_report=source_report, staged=staged
         ),
         "event_content": content,
+        "new_event_content": new_event_content,
     }
 
 
@@ -723,6 +797,16 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--database", required=True, type=Path)
     parser.add_argument("--identity-manifest", type=Path, default=IDENTITY_MANIFEST_PATH)
     parser.add_argument("--event-content", type=Path, default=EVENT_CONTENT_PATH)
+    parser.add_argument(
+        "--new-event-content",
+        type=Path,
+        default=NEW_EVENT_CONTENT_PATH,
+        help=(
+            "Staged descriptions for events discovered in a provider export, built by "
+            "scripts/build_luma_event_descriptions.py. Absent until an operator has "
+            "cleared the link and type reviews that builder reports."
+        ),
+    )
     parser.add_argument("--luma-source", type=Path, default=main_root / LUMA_RELATIVE_SOURCE)
     parser.add_argument(
         "--eventbrite-source", type=Path, default=main_root / EVENTBRITE_RELATIVE_SOURCE
@@ -769,11 +853,18 @@ def main(argv: list[str] | None = None) -> int:
                         luma_source=args.luma_source.resolve(), apply=True
                     ),
                 },
+                # The identities this mode creates are exactly what the staged
+                # descriptions attach to, so landing them here is what makes the
+                # mode a complete pass for a fresh export rather than half of one.
+                "new_event_content": import_new_content(
+                    source=args.new_event_content.resolve(), apply=True
+                ),
             }
         else:
             report = run(
                 identity_manifest=args.identity_manifest.resolve(),
                 event_content_source=args.event_content.resolve(),
+                new_event_content_source=args.new_event_content.resolve(),
                 luma_source=args.luma_source.resolve(),
                 eventbrite_source=args.eventbrite_source.resolve(),
                 current_registration_input=(

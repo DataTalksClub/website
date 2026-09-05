@@ -15,7 +15,7 @@ from django.test import TestCase, override_settings
 from content.public_data import event_groups
 from core.models import AuditEvent
 from core.services import ServiceContext
-from events.importers import source_reference_digest
+from events.importers import clear_source_readers, source_reference_digest
 from events.models import (
     HistoricalRegistrationAggregateRevision,
     HistoricalRegistrationAggregateSlot,
@@ -32,11 +32,11 @@ from events.services import (
     replace_aggregate_with_row_projection,
     restore_aggregate_from_row_projection,
     rollback_source,
-    safe_source_facts,
     stage_registered_source,
     validate_source,
 )
 from jobs.models import DurableJob
+from scripts.prod.registration_sources import register_source_readers
 
 
 def tree_checksum(root: Path) -> str:
@@ -58,6 +58,10 @@ class HistoricalRegistrationTotalTests(TestCase):
         self.temporary = tempfile.TemporaryDirectory(dir=scratch)
         self.source = Path(self.temporary.name) / "source"
         self.source.mkdir()
+        # Staging a registered source dispatches to a registered reader; the
+        # domain ships none, so the ingestion layer supplies them here.
+        register_source_readers()
+        self.addCleanup(clear_source_readers)
         self.event = published_event_records()[0]
         self.user = get_user_model().objects.create_user(
             username="synthetic-historical-reviewer",
@@ -806,29 +810,3 @@ class HistoricalRegistrationTotalTests(TestCase):
         self.assertNotIn("private-canary", evidence)
         self.assertNotIn("synthetic-guest", evidence)
         self.assertIn("synthetic-provider-event", evidence)
-
-    def test_safe_acceptance_facts_are_exact_aggregate_only_values(self) -> None:
-        facts = safe_source_facts()
-        self.assertEqual(
-            facts["luma"],
-            {
-                "manifest_event_total": 159,
-                "paired_json_total": 159,
-                "paired_csv_total": 159,
-                "parsed_row_total": 50_505,
-                "unique_provider_event_guest_total": 50_505,
-                "eligible_row_total": 50_456,
-                "excluded_row_total": 49,
-                "status_totals": {"approved": 50_456, "declined": 49},
-                "nonempty_event_total": 157,
-                "empty_event_total": 2,
-                "exact_proposal_total": 64,
-                "review_required_total": 95,
-            },
-        )
-        self.assertEqual(facts["eventbrite"]["manifest_entry_total"], 210)
-        self.assertEqual(facts["eventbrite"]["csv_total"], 209)
-        self.assertEqual(facts["eventbrite"]["parsed_row_total"], 24_001)
-        self.assertEqual(facts["eventbrite"]["exact_bridge_total"], 200)
-        self.assertEqual(facts["eventbrite"]["review_required_total"], 9)
-        self.assertEqual(facts["eventbrite"]["source_missing_total"], 27)

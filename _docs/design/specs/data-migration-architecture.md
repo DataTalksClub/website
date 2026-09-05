@@ -69,6 +69,16 @@ folder of monoliths. Concretely:
   `events/importers.py` is not moved. `scripts/prod/` *registers* it.
   Moving 904 lines of tested code to satisfy a folder name would be pure risk for zero
   discoverability gain, and the owner's goal is discoverability.
+
+  **Superseded for the registration adapters.** The owner has since ruled that a
+  provider-shaped concept may not live in the `events` domain at all: `Event` is the
+  only event type, and reading a Luma or Eventbrite export file is ingestion work.
+  `events/importers.py` is now the *port* — the bounded error, the aggregate-only
+  result types, the configured-source registry, and the `SourceReader` contract — and
+  the two readers live in `scripts/prod/registration_sources/`, registered explicitly
+  by `scripts/prod/import_events.py`. The dependency runs adapter → port, never the
+  other way, so no web process loads a provider parser. Rows below that say "keep in
+  place" for `events/importers.py` read as "keep the port in place".
 - **Adapters that live in standalone scripts move in**, and gain tests as they move.
 - `scripts/prod/` therefore holds: the orchestrator, the registry, the modes/PII boundary,
   the normalization and loading layer, and the adapters that had no better home.
@@ -307,7 +317,7 @@ renames, and deletes nothing under `scripts/`.**
 | `scripts/build_course_modules_manifest.py` (345) | course repos → manifest | **Move to `scripts/prod/`** |
 | `courses/services/local_course_modules.py` | manifest → curriculum importer | Keep in app code; registered |
 | `courses/services/curriculum_import.py` | transactional curriculum importer | **Keep, untouched** — held by another lane |
-| `events/importers.py` (904) | Luma + Eventbrite adapters | **Keep in place**, registered. Tested; do not move |
+| `events/importers.py` (904) | Luma + Eventbrite adapters | **Split** (owner ruling, §above): the port stays; the readers move to `scripts/prod/registration_sources/` with their tests |
 | `scripts/prepare_event_registration_sources.py` (193) | Luma/Eventbrite CLI | Becomes `scripts/prod/` entry point over `events/importers.py` |
 | `scripts/import_historical_zoomcamp_data.py` (194) + `scripts/historical_import/` | pre-2024 scoring/certificates | **Move to `scripts/prod/`**; already a package |
 | `scripts/build_public_projection.py` (3213) | pinned repos → projection | Move to `scripts/prod/` (touches real upstream). Internals out of scope |
@@ -351,7 +361,7 @@ scripts/prod/                     # importable package; "prod" = touches real da
         cmp_snapshot.py           # CMP RDS export        (from local_cmp_content_import.py)
         course_repository.py      # course repos          (wraps local_course_modules.py)
         historical_scoring.py     # (from scripts/historical_import/)
-        luma.py, eventbrite.py    # thin registrations of events.importers.derive_*
+        luma.py, eventbrite.py    # landed as scripts/prod/registration_sources/
         event_identity.py, registration_mapping.py
     binding/
         curriculum_format.py      # legacy vs modules routing (§7.1)

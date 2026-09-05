@@ -487,6 +487,58 @@ re-run), 2 with no usable title/date metadata reported rather than guessed.
 Registration-count activation (6.3) stays a separate, human-gated step
 regardless.
 
+## 5.4 Staged content for discovered events
+
+Two scripts, because the build and the load are different jobs with different
+inputs.
+
+**Build**: [`scripts/build_luma_event_descriptions.py`](../../scripts/build_luma_event_descriptions.py)
+over [`scripts/staging/luma_event_descriptions.py`](../../scripts/staging/luma_event_descriptions.py).
+
+Source: a description export root holding `descriptions/*.md` beside
+`_json/*.json`, one pair per event, in the operator's gitignored `.local/`.
+Plus [`_docs/migration-data/local-event-type-input.json`](../../_docs/migration-data/local-event-type-input.json),
+the reviewed `type` per description file, which a person maintains and which
+ships empty.
+Transform: resolves each pair to an `Event` by the provider's own event id —
+the exact `source_key` 5.3 minted the row under, never a title or a slug —
+takes `starts_at` from the checkpoint, takes `type` only from the reviewed
+file, renders the Markdown through the description bridge's own Markdown and
+link policies, and strips the speaker biography and the platform footer with
+the same `normalize_description_html` the 421 went through. `ends_at` is
+deliberately not taken: Luma derives it from a nominal duration.
+Destination: `temporary/content/luma_event_descriptions.json`, a staging
+artifact. Reporting is the default; `--write` replaces the file.
+
+Nothing is inferred. A destination with no reviewed decision stops that event
+and is reported **by URL** (approving one is an edit to
+[`scripts/projection_build/event_description_link_policy.py`](../../scripts/projection_build/event_description_link_policy.py)
+by a person, and host approval alone is deliberately not enough); an export the
+reviewed type file does not name is reported and skipped; an export whose event
+has no identity yet is reported and skipped. Verified against the real export
+2026-09-05: 166 pairs, 164 resolved, 4 stopped for link review over 6 distinct
+destinations, and 2 with no identity because 5.3 could not name them.
+
+**Load**: `import_new_content()` in
+[`scripts/prod/import_events.py`](../../scripts/prod/import_events.py), called
+from that module's own `run()` straight after 5.3 and again under
+`--discover-new-events-only`.
+
+Transform: [`events/content_import.py`](../../events/content_import.py)'s
+`import_new_event_content()` validates the whole candidate — envelope,
+declared counts and content digest recomputed, then every record — before
+writing a row, and reconciles each one against the identity's own source
+triple rather than the legacy tuple 5.2 uses. That is what keeps it off the
+421: their triples name the legacy repository and can never equal a provider
+one. A record naming an identity the database does not hold is a refusal,
+never a new event; so is a description arriving without the review that decided
+its type. A missing artifact is a normal state, reported as `present: false`.
+Destination: [`events/models.py`](../../events/models.py) (`EventContent`,
+`EventSpeaker`, `EventLink`), same rows 5.2 writes.
+
+Replaying is safe, and measured: 160 records created on the first run, then
+`replayed: true` with `unchanged: 160` on the second.
+
 ---
 
 # 6. Luma + Eventbrite registration aggregates
@@ -516,8 +568,8 @@ aggregated yet.
 ## 6.2 Derive aggregates
 
 [`scripts/prod/import_events.py`](../../scripts/prod/import_events.py), via
-[`events/importers.py`](../../events/importers.py) (`derive_luma`,
-`derive_eventbrite`)
+[`scripts/prod/registration_sources/`](../../scripts/prod/registration_sources/)
+(`luma.derive_luma`, `eventbrite.derive_eventbrite`)
 
 Source: the prepared intermediate from 6.1. Default path
 `.local/migration-data/events/luma-aggregate-v1`
@@ -668,8 +720,9 @@ via [`events/registrant_import.py`](../../events/registrant_import.py).
 Source: the same prepared Luma export directory as 6.1/6.2 (attendee-level
 rows already present there, discarded by 6.2's aggregate-only adapters). The
 durable copy is `/data/tmp/luma-eventbrite-export/luma-aggregate-v1/`. Reads
-it independently of [`events/importers.py`](../../events/importers.py), whose
-own adapters (`derive_luma`, `derive_eventbrite`, used by 6.2) have a hard
+it independently of
+[`scripts/prod/registration_sources/`](../../scripts/prod/registration_sources/),
+whose own adapters (`derive_luma`, `derive_eventbrite`, used by 6.2) have a hard
 "no attendee value crosses this module boundary" contract that this journey
 must not violate; `events/registrant_import.py` is the one module that does
 cross it, deliberately kept separate.

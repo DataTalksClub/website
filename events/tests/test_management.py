@@ -13,6 +13,7 @@ from django.test import TestCase, override_settings
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
 from events.importers import (
     ProtectedSourceError,
+    clear_source_readers,
     registered_source_options,
     resolve_registered_source_reference,
     source_reference_digest,
@@ -27,6 +28,7 @@ from management_auth.services import (
     principal_has_permission,
 )
 from management_registry import CAPABILITY_REGISTRY
+from scripts.prod.registration_sources import register_source_readers
 
 
 def tree_checksum(root: Path) -> str:
@@ -48,6 +50,10 @@ class HistoricalRegistrationManagementTests(TestCase):
         self.temporary = tempfile.TemporaryDirectory(dir=scratch)
         self.source = Path(self.temporary.name) / "source"
         self.source.mkdir()
+        # Staging through the API dispatches to a registered reader; the domain
+        # ships none, so the ingestion layer supplies them here.
+        register_source_readers()
+        self.addCleanup(clear_source_readers)
         self.event = published_event_records()[0]
         self.external_id = "synthetic-management-event"
         self.external_url = "https://example.test/synthetic-management-event"

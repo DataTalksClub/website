@@ -24,55 +24,74 @@ checked person profile. No checklist rows remain open.
 Canonical projection at checklist creation: `temporary/content/public_projection/events.json`
 (421 events, 2026-08-29).
 
-## A new event does not pass through this automatically
+## A new event now has a path, and two places it waits for a person
 
-This checklist is closed for the 421 events it covers. A Luma event that
-arrives tomorrow does not flow through it, and the reason is structural rather
-than a missing command. Each stage below was checked against the real export in
-`.local/migration-data/events/luma/descriptions/` (166 files).
+This checklist is closed for the 421 events it covers, and it never grows: the
+bridge that described them matches on the legacy `_data/events.yaml` tuple, and
+a Luma-discovered event does not have one. That is why the fix is not a bigger
+bridge. A new event's description goes through its own additive artifact,
+applied after the bridge and keyed on identity id, with the same Markdown and
+link policies and its own provenance saying the description came straight from
+an export.
 
-**The removal rule is code, and it does generalise.** `normalize_description_html`
-finds a bio section by the markers in the plan's `rules.bio_section_markers` --
-"about the speaker", "about the guests", "speaker bio", "bio", "biography" --
-and drops that block through to the end of the section. Run it over a
-description Luma produced this morning and the bio goes; it needs no plan entry
-to do that. The same call removes the "DataTalks.Club is the place to talk about
-data" footer and rewrites absolute self-links.
+That artifact exists now. `_docs/runbooks/data-ingest.md` §14.4 is the runbook;
+this section says what it means for the bio decision specifically.
 
-**The link policy is the human gate, and it works.** Rendering one real
-undescribed event's Luma Markdown classified twelve URLs without help: six Luma
-registration links and two course/Slack actions removed, one internal link
-rewritten, two GitHub links kept -- and two refused, `https://Fly.io` (host not
-in `REVIEWED_EXTERNAL_HOSTS`) and one GitHub URL on a reviewed host that is not
-in the 80-literal `REVIEWED_RENDERED_LINKS`. Rendering fails closed with
-`description rendered link is not reviewed`. That gate should stay: approving a
-destination is a person's decision, and the bridge's own rules say host approval
-alone is not enough.
+**The removal rule is code, and it generalises — so there is no second plan to
+write.** `normalize_description_html` finds a bio section by the markers in the
+plan's `rules.bio_section_markers` -- "about the speaker", "about the guests",
+"speaker bio", "bio", "biography" -- and drops that block through to the end of
+the section. Run it over a description Luma produced this morning and the bio
+goes; it needs no plan entry to do that. The same call removes the
+"DataTalks.Club is the place to talk about data" footer and rewrites absolute
+self-links.
 
-**Two things then block the result from surviving.**
+`scripts/staging/luma_event_descriptions.py` calls exactly that function and
+records the outcome -- `removed_speaker_bio`, `removed_platform_boilerplate`,
+`normalized_internal_links` -- in each record's own `description_provenance`,
+rather than in a replay plan. There is nothing to replay it against: unlike the
+421, whose descriptions are rebuilt from the bridge each time, this artifact
+*is* the reviewed result and the database reads it once. So the "the plan
+refuses an unknown event" blocker recorded here is not worked around; it simply
+does not apply on this path, and `apply_event_speaker_bio_normalization` and its
+421-event plan are left exactly as they are.
 
-1. *The plan refuses an unknown event.* `apply_event_speaker_bio_normalization`
-   replays a reviewed decision per event and checks the set is exactly the 421 it
-   names. A 422nd fails with `event speaker-bio projection count mismatch`
-   (verified). Nothing in this repository writes that plan file -- it has readers
-   only -- so recording a new decision is unbuilt work.
+Measured over the real export on 2026-09-05, with a scratch type file standing
+in for the review nobody has done yet: 160 of the 166 description pairs built,
+154 speaker bios removed, 134 platform-boilerplate blocks removed, 154 internal
+links rewritten. What the removal does is settled; what is not settled is the
+type, below.
 
-2. *A projection rebuild erases the description anyway.* `apply_bridge_to_events`
-   is authoritative: an event with no bridge entry has its description set to
-   `""` and its provenance to `null`. And the bridge matches entries on the
-   **legacy `_data/events.yaml` tuple**, which a Luma-discovered event does not
-   have -- `create_event_identity` gives it title and path only. So the bridge
-   cannot key a new event's description even if someone added one to it.
+**The link policy is still the human gate, and it still works.** A destination
+with no reviewed decision stops that event, and the builder now reports it *by
+URL* so a person knows what to look at. Over the real export that is 4 events
+and 6 distinct destinations: `http://bol.com` and `https://Fly.io` (hosts not in
+`REVIEWED_EXTERNAL_HOSTS`), and four URLs on already-approved hosts that are not
+in `REVIEWED_RENDERED_LINKS` -- two GitHub paths, one YouTube video, and
+`https://pythoninvest.com/`, whose reviewed literal is the no-slash spelling.
+Approving any of them is an edit to
+`scripts/projection_build/event_description_link_policy.py` by a person. Nothing
+infers or auto-approves one, and host approval alone stays deliberately
+insufficient.
 
-**What this means for the shape of the fix.** Extending the bridge is the wrong
-move: its matching key is legacy provenance that new events will never carry. A
-new event's description needs its own additive artifact, applied after the
-bridge and keyed on identity id, with the same Markdown and link policies and
-its own provenance kind saying the description came straight from a Luma export
-rather than through the bridge. The plan then needs a generator so the bio
-decision for that event is recorded and replayable.
+**What still requires a person, and it is not the bio.**
 
-Until that exists, a new Luma event reaches the database with an identity and no
-description: `scripts/prod/import_events.py --discover-new-events-only` creates
-the `Event` row (see `_docs/runbooks/data-ingest.md` §14.3), and no path carries
-its description in.
+1. *The event's type.* An `EventContent` row needs one, and nothing anywhere in
+   a Luma export says whether an event is a webinar, a workshop, a podcast or a
+   conference. It comes only from
+   `_docs/migration-data/local-event-type-input.json`, which a person maintains
+   and which ships empty. Until somebody fills it in, the builder reports every
+   export under `no_reviewed_type` and prepares nothing -- 164 of them today.
+   Its start time is not a person's job: the export states it, and the builder
+   reads it from the `_json` checkpoint beside each description.
+
+2. *The link approvals above.* 4 events.
+
+Everything else is wired: `scripts/prod/import_events.py --discover-new-events-only`
+creates the `Event` row (§14.3), `scripts/build_luma_event_descriptions.py --write`
+builds the artifact once both reviews are clean, and the same import script's
+`new_event_content` leg lands it as `EventContent` with its speakers and links.
+A description export carries no reviewed speaker list and no reviewed event
+links -- the bio block is removed and the links stay inside the description
+copy -- so those two collections land empty, which is the honest value rather
+than a gap.

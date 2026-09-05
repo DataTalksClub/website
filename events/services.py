@@ -520,10 +520,10 @@ def resolve_unmatched_aggregates(
     For every ``event__isnull`` aggregate revision of ``provider`` (across every
     source run, not just the latest -- an old row is harmless to resolve too):
     look up the provider event's title/date (from ``provider_metadata``, keyed by
-    ``external_event_identifier`` -- for Luma this is
-    ``events.importers.discover_luma_events``; Eventbrite's export carries no
-    event-level title or date at all, so an empty mapping here correctly leaves
-    every Eventbrite row unmatched and reported as such).  Set ``event`` directly
+    ``external_event_identifier``).  A provider whose export carries no
+    event-level title or date at all supplies an empty mapping here, which
+    correctly leaves every one of its rows unmatched and reported as such.  Set
+    ``event`` directly
     only when exactly one canonical ``Event`` shares the provider event's date and
     that event's case/whitespace-normalized title equals the provider event's
     normalized title exactly.  Idempotent: an already-resolved row is not
@@ -1569,64 +1569,3 @@ def public_registration_total(event: Mapping[str, Any]) -> PublicRegistrationTot
             return None
         count += eligible_count
     return PublicRegistrationTotal(count=count, revision=state.revision)
-
-
-def safe_source_facts() -> dict[str, Any]:
-    """Code-owned aggregate acceptance facts; no source path or event identity."""
-
-    return {
-        "luma": {
-            "manifest_event_total": 159,
-            "paired_json_total": 159,
-            "paired_csv_total": 159,
-            "parsed_row_total": 50_505,
-            "unique_provider_event_guest_total": 50_505,
-            "eligible_row_total": 50_456,
-            "excluded_row_total": 49,
-            "status_totals": {"approved": 50_456, "declined": 49},
-            "nonempty_event_total": 157,
-            "empty_event_total": 2,
-            "exact_proposal_total": 64,
-            "review_required_total": 95,
-        },
-        "eventbrite": {
-            "whole_source_checksum": (
-                "5cc493c7e9a142d09f5a524d28df486f4fa33ce832210ea0d325025b939744df"
-            ),
-            "manifest_entry_total": 210,
-            "csv_total": 209,
-            "unsupported_xlsx_total": 1,
-            "expansion_ratio": "3.80",
-            "parsed_row_total": 24_001,
-            "provider_event_total": 209,
-            "eligible_row_total": 24_001,
-            "status_totals": {"Attending": 24_001},
-            "duplicate_protected_key_total": 0,
-            "exact_bridge_total": 200,
-            "review_required_total": 9,
-            "source_missing_total": 27,
-            "csv_schemas": {
-                "eventbrite_csv_v1": {
-                    "header_sha256": (
-                        "333061583991588f9b6bc78c9873feb7ddab8711687ee999da2135a4cbef0c7e"
-                    ),
-                    "column_total": 23,
-                    "csv_total": 22,
-                },
-                "eventbrite_csv_v2": {
-                    "header_sha256": (
-                        "6f7f37db55176240fa695289cf13c8bcbaf86970f00b0ed18c4f2a1a6ee4e9ae"
-                    ),
-                    "column_total": 25,
-                    "csv_total": 12,
-                },
-                "eventbrite_csv_v3": {
-                    "header_sha256": (
-                        "c3a799fcbcee38d3e1733fc0cd317e84236f5d17241513c1a76b3646a19ea0b8"
-                    ),
-                    "column_total": 24,
-                    "csv_total": 175,
-                },
-            },
-        },
-    }

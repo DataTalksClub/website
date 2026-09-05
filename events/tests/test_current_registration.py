@@ -15,7 +15,7 @@ from events.current_registration import (
     CurrentRegistrationInputError,
     load_current_registration_input,
 )
-from events.importers import derive_luma, source_reference_digest
+from events.importers import source_reference_digest
 from events.models import HistoricalRegistrationAggregateRevision, HistoricalRegistrationSourceRun
 from events.queries import published_event_records
 from events.services import (
@@ -25,6 +25,7 @@ from events.services import (
     stage_derived_source,
 )
 from jobs.models import DurableJob
+from scripts.prod.registration_sources.luma import derive_luma
 
 
 def tree_checksum(root: Path) -> str:

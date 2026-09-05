@@ -1,0 +1,624 @@
+from __future__ import annotations
+
+import csv
+import hashlib
+import io
+import json
+import stat
+import tempfile
+from collections import Counter
+from pathlib import Path
+from unittest.mock import patch
+from zipfile import ZipFile, ZipInfo
+
+from django.conf import settings
+from django.test import SimpleTestCase, override_settings
+
+from events.importers import (
+    AggregateCandidate,
+    CanonicalProposal,
+    ProtectedSourceError,
+    clear_source_readers,
+    derive_registered_source,
+)
+from events.models import HistoricalRegistrationAggregateRevision
+from scripts.prod.registration_sources import register_source_readers, safe_source_facts
+from scripts.prod.registration_sources.eventbrite import (
+    SCHEMA_FINGERPRINTS,
+    _require_pinned_reconciliation as _require_pinned_eventbrite_reconciliation,
+    derive_eventbrite,
+)
+from scripts.prod.registration_sources.luma import (
+    _require_pinned_reconciliation as _require_pinned_luma_reconciliation,
+    derive_luma,
+    discover_luma_events,
+)
+
+
+def tree_checksum(root: Path) -> str:
+    digest = hashlib.sha256(b"dtc-protected-tree-v1\0")
+    for path in sorted(root.iterdir(), key=lambda item: item.name):
+        relative = path.relative_to(root).as_posix().encode()
+        payload = path.read_bytes()
+        digest.update(len(relative).to_bytes(8, "big"))
+        digest.update(relative)
+        digest.update(len(payload).to_bytes(8, "big"))
+        digest.update(payload)
+    return digest.hexdigest()
+
+
+def canonical_proposal(index: int) -> CanonicalProposal:
+    return CanonicalProposal(
+        repository="synthetic-repository",
+        revision="synthetic-revision",
+        source_key=f"synthetic-source-{index}",
+        slug=f"synthetic-event-{index}",
+    )
+
+
+def aggregate_candidate(
+    index: int,
+    *,
+    eligible_count: int,
+    excluded_count: int = 0,
+    proposal: bool,
+) -> AggregateCandidate:
+    return AggregateCandidate(
+        external_event_identifier=str(index + 1),
+        eligible_count=eligible_count,
+        excluded_count=excluded_count,
+        quarantined_count=0,
+        status_totals={},
+        schema_version="synthetic-v1",
+        state=HistoricalRegistrationAggregateRevision.State.STAGED,
+        reason_code="",
+        aggregate_checksum=hashlib.sha256(f"synthetic-{index}".encode()).hexdigest(),
+        proposal=canonical_proposal(index) if proposal else None,
+    )
+
+
+class ProtectedSourceAdapterTests(SimpleTestCase):
+    def setUp(self) -> None:
+        scratch = Path(settings.BASE_DIR) / ".tmp"
+        scratch.mkdir(exist_ok=True)
+        self.temporary = tempfile.TemporaryDirectory(dir=scratch)
+        self.root = Path(self.temporary.name)
+        # `derive_registered_source` dispatches to whatever the ingestion layer
+        # registered; the domain ships no reader of its own.
+        register_source_readers()
+        self.addCleanup(clear_source_readers)
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def _luma_source(self, statuses: tuple[str, ...]) -> Path:
+        source = self.root / "luma"
+        source.mkdir()
+        (source / "synthetic.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "event_id": "synthetic-event",
+                    "event_url": "https://example.test/synthetic-event",
+                }
+            ),
+            encoding="utf-8",
+        )
+        with (source / "synthetic.csv").open("w", encoding="utf-8", newline="") as stream:
+            writer = csv.DictWriter(
+                stream,
+                fieldnames=("event_id", "guest_id", "approval_status", "ignored_email"),
+            )
+            writer.writeheader()
+            for index, status in enumerate(statuses):
+                writer.writerow(
+                    {
+                        "event_id": "synthetic-event",
+                        "guest_id": f"synthetic-guest-{index}",
+                        "approval_status": status,
+                        "ignored_email": f"canary-{index}@example.test",
+                    }
+                )
+        return source
+
+    def _eventbrite_archive(
+        self,
+        *,
+        status: str = "Attending",
+        entry_name: str = "123.csv",
+        include_xlsx: bool = True,
+        symlink: bool = False,
+    ) -> tuple[Path, dict[str, tuple[str, int]]]:
+        headers = ("Order #", "Order Date", "Attendee #", "Attendee Status")
+        stream = io.StringIO(newline="")
+        writer = csv.DictWriter(stream, fieldnames=headers)
+        writer.writeheader()
+        writer.writerow(
+            {
+                "Order #": "synthetic-order",
+                "Order Date": "2026-01-01",
+                "Attendee #": "synthetic-attendee",
+                "Attendee Status": status,
+            }
+        )
+        archive_path = self.root / f"archive-{len(tuple(self.root.iterdir()))}.zip"
+        with ZipFile(archive_path, "w") as archive:
+            if symlink:
+                entry = ZipInfo(entry_name)
+                entry.create_system = 3
+                entry.external_attr = (stat.S_IFLNK | 0o777) << 16
+                archive.writestr(entry, "target")
+            else:
+                archive.writestr(entry_name, stream.getvalue())
+            if include_xlsx:
+                archive.writestr("synthetic.xlsx", b"never-opened")
+        fingerprint = hashlib.sha256("\x1f".join(headers).encode()).hexdigest()
+        return archive_path, {fingerprint: ("synthetic_eventbrite_v1", len(headers))}
+
+    def test_luma_counts_only_statuses_and_discards_ignored_identity_values(self) -> None:
+        source = self._luma_source(("approved", "approved", "declined"))
+        derived = derive_luma(source, expected_checksum=tree_checksum(source))
+
+        self.assertEqual(derived.parsed_row_total, 3)
+        self.assertEqual(derived.eligible_row_total, 2)
+        self.assertEqual(derived.excluded_row_total, 1)
+        self.assertEqual(derived.status_totals, {"approved": 2, "declined": 1})
+        self.assertNotIn("canary", repr(derived))
+        self.assertEqual(
+            derived.candidates[0].state,
+            HistoricalRegistrationAggregateRevision.State.STAGED,
+        )
+
+    def test_luma_unknown_status_quarantines_event_and_pair_mismatch_rejects(self) -> None:
+        source = self._luma_source(("approved", "unexpected"))
+        derived = derive_luma(source, expected_checksum=tree_checksum(source))
+        self.assertEqual(derived.quarantined_event_total, 1)
+        self.assertEqual(derived.candidates[0].reason_code, "unknown_status")
+
+        (source / "synthetic.json").unlink()
+        with self.assertRaisesMessage(ProtectedSourceError, "mismatched_luma_pair"):
+            derive_luma(source, expected_checksum=tree_checksum(source))
+
+    def test_eventbrite_uses_exact_ordered_header_fingerprint_and_never_opens_xlsx(self) -> None:
+        archive, schemas = self._eventbrite_archive()
+        checksum = hashlib.sha256(archive.read_bytes()).hexdigest()
+        derived = derive_eventbrite(
+            archive,
+            expected_checksum=checksum,
+            allowed_schema_fingerprints=schemas,
+        )
+
+        self.assertEqual(derived.manifest_entry_total, 2)
+        self.assertEqual(derived.manifest_event_total, 1)
+        self.assertEqual(derived.parsed_row_total, 1)
+        self.assertEqual(derived.eligible_row_total, 1)
+        self.assertIn("unsupported_xlsx", derived.reason_codes)
+        self.assertNotIn("synthetic-attendee", repr(derived))
+
+    def test_eventbrite_unknown_status_and_unsupported_schema_quarantine(self) -> None:
+        archive, schemas = self._eventbrite_archive(status="Unexpected", include_xlsx=False)
+        checksum = hashlib.sha256(archive.read_bytes()).hexdigest()
+        derived = derive_eventbrite(
+            archive,
+            expected_checksum=checksum,
+            allowed_schema_fingerprints=schemas,
+        )
+        self.assertEqual(derived.quarantined_event_total, 1)
+        self.assertEqual(derived.candidates[0].reason_code, "unknown_status")
+
+        unsupported = derive_eventbrite(
+            archive,
+            expected_checksum=checksum,
+            allowed_schema_fingerprints=SCHEMA_FINGERPRINTS,
+        )
+        self.assertEqual(unsupported.parsed_row_total, 0)
+        self.assertEqual(unsupported.candidates[0].reason_code, "unsupported_schema")
+
+    def test_eventbrite_rejects_traversal_symlink_and_checksum_drift(self) -> None:
+        traversal, schemas = self._eventbrite_archive(entry_name="../123.csv", include_xlsx=False)
+        with self.assertRaisesMessage(ProtectedSourceError, "path_traversal"):
+            derive_eventbrite(
+                traversal,
+                expected_checksum=hashlib.sha256(traversal.read_bytes()).hexdigest(),
+                allowed_schema_fingerprints=schemas,
+            )
+
+        symlink, schemas = self._eventbrite_archive(
+            entry_name="456.csv", include_xlsx=False, symlink=True
+        )
+        with self.assertRaisesMessage(ProtectedSourceError, "source_symlink"):
+            derive_eventbrite(
+                symlink,
+                expected_checksum=hashlib.sha256(symlink.read_bytes()).hexdigest(),
+                allowed_schema_fingerprints=schemas,
+            )
+
+        valid, schemas = self._eventbrite_archive(include_xlsx=False)
+        with self.assertRaisesMessage(ProtectedSourceError, "checksum_drift"):
+            derive_eventbrite(
+                valid,
+                expected_checksum="0" * 64,
+                allowed_schema_fingerprints=schemas,
+            )
+
+    def test_pinned_eventbrite_fingerprints_are_exact(self) -> None:
+        self.assertEqual(
+            dict(SCHEMA_FINGERPRINTS),
+            {
+                "333061583991588f9b6bc78c9873feb7ddab8711687ee999da2135a4cbef0c7e": (
+                    "eventbrite_csv_v1",
+                    23,
+                ),
+                "6f7f37db55176240fa695289cf13c8bcbaf86970f00b0ed18c4f2a1a6ee4e9ae": (
+                    "eventbrite_csv_v2",
+                    25,
+                ),
+                "c3a799fcbcee38d3e1733fc0cd317e84236f5d17241513c1a76b3646a19ea0b8": (
+                    "eventbrite_csv_v3",
+                    24,
+                ),
+            },
+        )
+
+    def test_pinned_eventbrite_checksum_requires_exact_aggregate_reconciliation(self) -> None:
+        archive, schemas = self._eventbrite_archive(include_xlsx=False)
+        checksum = hashlib.sha256(archive.read_bytes()).hexdigest()
+        with (
+            patch(
+                "scripts.prod.registration_sources.eventbrite.PINNED_SOURCE_CHECKSUM",
+                checksum,
+            ),
+            self.assertRaisesMessage(ProtectedSourceError, "protected_fact_mismatch"),
+        ):
+            derive_eventbrite(
+                archive,
+                expected_checksum=checksum,
+                allowed_schema_fingerprints=schemas,
+            )
+
+    def test_pinned_luma_mapping_reconciliation_accepts_only_64_and_95(self) -> None:
+        candidates = tuple(
+            aggregate_candidate(
+                index,
+                eligible_count=50_300 if index == 0 else 1 if index < 157 else 0,
+                excluded_count=49 if index == 0 else 0,
+                proposal=index < 64,
+            )
+            for index in range(159)
+        )
+        bridge = {f"https://example.test/{index}": canonical_proposal(index) for index in range(64)}
+
+        def verify(test_bridge: dict[str, CanonicalProposal]) -> None:
+            _require_pinned_luma_reconciliation(
+                files=tuple(Path(f"synthetic-{index}") for index in range(318)),
+                candidates=candidates,
+                parsed_total=50_505,
+                eligible_total=50_456,
+                excluded_total=49,
+                statuses=Counter({"approved": 50_456, "declined": 49}),
+                bridge=test_bridge,
+                source_missing={},
+            )
+
+        verify(bridge)
+        with self.assertRaisesMessage(ProtectedSourceError, "protected_fact_mismatch"):
+            verify(dict(tuple(bridge.items())[:-1]))
+
+    def test_pinned_eventbrite_mapping_reconciliation_accepts_only_200_9_and_27(
+        self,
+    ) -> None:
+        candidates = tuple(
+            aggregate_candidate(
+                index,
+                eligible_count=23_793 if index == 0 else 1,
+                proposal=index < 200,
+            )
+            for index in range(209)
+        )
+        bridge = {str(index + 1): canonical_proposal(index) for index in range(200)}
+        missing = {str(index + 1_000): canonical_proposal(index + 1_000) for index in range(27)}
+
+        def verify(
+            test_candidates: tuple[AggregateCandidate, ...],
+            test_bridge: dict[str, CanonicalProposal],
+            test_missing: dict[str, CanonicalProposal],
+        ) -> None:
+            _require_pinned_eventbrite_reconciliation(
+                entries_total=210,
+                candidates=test_candidates,
+                xlsx_total=1,
+                parsed_total=24_001,
+                eligible_total=24_001,
+                excluded_total=0,
+                event_ids={str(index + 1) for index in range(209)},
+                statuses=Counter({"attending": 24_001}),
+                schema_totals=Counter(
+                    {
+                        "eventbrite_csv_v1": 22,
+                        "eventbrite_csv_v2": 12,
+                        "eventbrite_csv_v3": 175,
+                    }
+                ),
+                bridge=test_bridge,
+                source_missing=test_missing,
+            )
+
+        verify(candidates, bridge, missing)
+        changed_candidates = tuple(
+            aggregate_candidate(
+                index,
+                eligible_count=23_793 if index == 0 else 1,
+                proposal=index < 199,
+            )
+            for index in range(209)
+        )
+        for changed_candidates_value, changed_bridge, changed_missing in (
+            (candidates, dict(tuple(bridge.items())[:-1]), missing),
+            (candidates, bridge, dict(tuple(missing.items())[:-1])),
+            (changed_candidates, bridge, missing),
+        ):
+            with self.subTest(
+                bridge_total=len(changed_bridge),
+                source_missing_total=len(changed_missing),
+            ):
+                with self.assertRaisesMessage(ProtectedSourceError, "protected_fact_mismatch"):
+                    verify(changed_candidates_value, changed_bridge, changed_missing)
+
+    def test_registered_sources_require_code_owned_reconciliation_profile(self) -> None:
+        source = self._luma_source(("approved",))
+        registry = {
+            "synthetic-profile-source": {
+                "provider": "luma",
+                "path": str(source),
+                "sha256": tree_checksum(source),
+            }
+        }
+        with (
+            override_settings(HISTORICAL_REGISTRATION_SOURCES=registry),
+            self.assertRaisesMessage(ProtectedSourceError, "source_registry_invalid"),
+        ):
+            derive_registered_source("synthetic-profile-source")
+
+        registry["synthetic-profile-source"]["reconciliation_profile"] = "synthetic"
+        with override_settings(
+            HISTORICAL_REGISTRATION_SOURCES=registry,
+            HISTORICAL_REGISTRATION_ALLOW_SYNTHETIC_PROFILE=True,
+        ):
+            derived = derive_registered_source("synthetic-profile-source")
+        self.assertEqual(derived.manifest_event_total, 1)
+
+        with (
+            override_settings(
+                HISTORICAL_REGISTRATION_SOURCES=registry,
+                HISTORICAL_REGISTRATION_ALLOW_SYNTHETIC_PROFILE=False,
+            ),
+            self.assertRaisesMessage(ProtectedSourceError, "source_registry_invalid"),
+        ):
+            derive_registered_source("synthetic-profile-source")
+
+    def test_adapter_paths_invoke_pinned_mapping_reconciliation(self) -> None:
+        source = self._luma_source(("approved",))
+        with patch(
+            "scripts.prod.registration_sources.luma._require_pinned_reconciliation"
+        ) as luma_guard:
+            derive_luma(
+                source,
+                expected_checksum=tree_checksum(source),
+                enforce_pinned_reconciliation=True,
+            )
+        luma_guard.assert_called_once()
+
+        archive, schemas = self._eventbrite_archive(include_xlsx=False)
+        with patch(
+            "scripts.prod.registration_sources.eventbrite._require_pinned_reconciliation"
+        ) as eventbrite_guard:
+            derive_eventbrite(
+                archive,
+                expected_checksum=hashlib.sha256(archive.read_bytes()).hexdigest(),
+                allowed_schema_fingerprints=schemas,
+                enforce_pinned_reconciliation=True,
+            )
+        eventbrite_guard.assert_called_once()
+
+    def test_mapping_evidence_rejects_unknown_and_overlapping_keys(self) -> None:
+        source = self._luma_source(("approved",))
+        proposal = {
+            "repository": "synthetic-repository",
+            "revision": "synthetic-revision",
+            "source_key": "synthetic-source",
+            "slug": "synthetic-event",
+        }
+        with self.assertRaisesMessage(ProtectedSourceError, "invalid_mapping_bridge"):
+            derive_luma(
+                source,
+                expected_checksum=tree_checksum(source),
+                mapping_bridge={"https://example.test/not-in-source": proposal},
+            )
+
+        archive, schemas = self._eventbrite_archive(include_xlsx=False)
+        checksum = hashlib.sha256(archive.read_bytes()).hexdigest()
+        with self.assertRaisesMessage(ProtectedSourceError, "invalid_mapping_bridge"):
+            derive_eventbrite(
+                archive,
+                expected_checksum=checksum,
+                mapping_bridge={"123": proposal},
+                source_missing={"123": proposal},
+                allowed_schema_fingerprints=schemas,
+            )
+
+
+class LumaEventDiscoveryTests(SimpleTestCase):
+    """`discover_luma_events` reads identity metadata, never a pinned checksum."""
+
+    def setUp(self) -> None:
+        scratch = Path(settings.BASE_DIR) / ".tmp"
+        scratch.mkdir(exist_ok=True)
+        self.temporary = tempfile.TemporaryDirectory(dir=scratch)
+        self.root = Path(self.temporary.name)
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def _write_event(
+        self,
+        stem: str,
+        *,
+        event_id: str,
+        event_url: str,
+        title: str,
+        start_at: str,
+        statuses: tuple[str, ...],
+    ) -> None:
+        (self.root / f"{stem}.json").write_text(
+            json.dumps({"schema_version": 1, "event_id": event_id, "event_url": event_url}),
+            encoding="utf-8",
+        )
+        fieldnames = (
+            "guest_id",
+            "email",
+            "approval_status",
+            "event_id",
+            "event_name",
+            "event_start_at",
+        )
+        with (self.root / f"{stem}.csv").open("w", encoding="utf-8", newline="") as stream:
+            writer = csv.DictWriter(stream, fieldnames=fieldnames)
+            writer.writeheader()
+            for index, status in enumerate(statuses):
+                writer.writerow(
+                    {
+                        "guest_id": f"guest-{index}",
+                        "email": f"canary-{index}@example.test",
+                        "approval_status": status,
+                        "event_id": event_id,
+                        "event_name": title,
+                        "event_start_at": start_at,
+                    }
+                )
+
+    def test_discovers_title_date_and_counts_without_pinned_checksum_or_pii(self) -> None:
+        self._write_event(
+            "2026-09-08_a-new-event_evt-newone",
+            event_id="evt-NewOne",
+            event_url="https://luma.com/newone",
+            title="A New Event",
+            start_at="2026-09-08T10:00:00.000Z",
+            statuses=("approved", "approved", "declined"),
+        )
+
+        discovered = discover_luma_events(self.root)
+
+        self.assertEqual(len(discovered), 1)
+        event = discovered[0]
+        self.assertEqual(event.external_event_identifier, "evt-NewOne")
+        self.assertEqual(event.event_url, "https://luma.com/newone")
+        self.assertEqual(event.title, "A New Event")
+        self.assertEqual(event.start_at, "2026-09-08T10:00:00.000Z")
+        self.assertEqual(event.eligible_count, 2)
+        self.assertEqual(event.excluded_count, 1)
+        self.assertEqual(event.quarantined_count, 0)
+        self.assertEqual(event.row_total, 3)
+        self.assertNotIn("canary", repr(discovered))
+        self.assertNotIn("guest-0", repr(discovered))
+
+    def test_unknown_status_is_quarantined_not_eligible_or_excluded(self) -> None:
+        self._write_event(
+            "2026-09-09_another-event_evt-newtwo",
+            event_id="evt-NewTwo",
+            event_url="https://luma.com/newtwo",
+            title="Another Event",
+            start_at="2026-09-09T10:00:00.000Z",
+            statuses=("approved", "pending"),
+        )
+
+        discovered = discover_luma_events(self.root)
+
+        self.assertEqual(discovered[0].eligible_count, 1)
+        self.assertEqual(discovered[0].excluded_count, 0)
+        self.assertEqual(discovered[0].quarantined_count, 1)
+
+    def test_zero_registration_event_yields_empty_title_not_an_error(self) -> None:
+        """A real event can have zero registrations; there is nowhere to read a title."""
+
+        self._write_event(
+            "2026-09-11_empty-event_evt-empty",
+            event_id="evt-Empty",
+            event_url="https://luma.com/empty",
+            title="ignored -- statuses is empty so no row is written",
+            start_at="ignored",
+            statuses=(),
+        )
+
+        discovered = discover_luma_events(self.root)
+
+        self.assertEqual(len(discovered), 1)
+        self.assertEqual(discovered[0].title, "")
+        self.assertEqual(discovered[0].start_at, "")
+        self.assertEqual(discovered[0].row_total, 0)
+
+    def test_missing_discovery_columns_is_a_bounded_error(self) -> None:
+        (self.root / "bare.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "event_id": "evt-Bare",
+                    "event_url": "https://luma.com/bare",
+                }
+            ),
+            encoding="utf-8",
+        )
+        with (self.root / "bare.csv").open("w", encoding="utf-8", newline="") as stream:
+            writer = csv.DictWriter(stream, fieldnames=("event_id", "guest_id", "approval_status"))
+            writer.writeheader()
+            writer.writerow(
+                {"event_id": "evt-Bare", "guest_id": "g1", "approval_status": "approved"}
+            )
+
+        with self.assertRaisesMessage(ProtectedSourceError, "unsupported_luma_schema"):
+            discover_luma_events(self.root)
+
+    def test_no_pinned_checksum_is_required_unlike_derive_luma(self) -> None:
+        """A fresh, never-reconciled export is exactly what this function is for."""
+
+        self._write_event(
+            "2026-09-10_yet-another-event_evt-newthree",
+            event_id="evt-NewThree",
+            event_url="https://luma.com/newthree",
+            title="Yet Another Event",
+            start_at="2026-09-10T10:00:00.000Z",
+            statuses=("approved",),
+        )
+
+        # No expected_checksum argument exists on this function at all.
+        discovered = discover_luma_events(self.root)
+        self.assertEqual(len(discovered), 1)
+
+
+class SafeAcceptanceFactTests(SimpleTestCase):
+    """The reviewed facts each reader owns, beside the guard that enforces them."""
+
+    def test_safe_acceptance_facts_are_exact_aggregate_only_values(self) -> None:
+        facts = safe_source_facts()
+        self.assertEqual(
+            facts["luma"],
+            {
+                "manifest_event_total": 159,
+                "paired_json_total": 159,
+                "paired_csv_total": 159,
+                "parsed_row_total": 50_505,
+                "unique_provider_event_guest_total": 50_505,
+                "eligible_row_total": 50_456,
+                "excluded_row_total": 49,
+                "status_totals": {"approved": 50_456, "declined": 49},
+                "nonempty_event_total": 157,
+                "empty_event_total": 2,
+                "exact_proposal_total": 64,
+                "review_required_total": 95,
+            },
+        )
+        self.assertEqual(facts["eventbrite"]["manifest_entry_total"], 210)
+        self.assertEqual(facts["eventbrite"]["csv_total"], 209)
+        self.assertEqual(facts["eventbrite"]["parsed_row_total"], 24_001)
+        self.assertEqual(facts["eventbrite"]["exact_bridge_total"], 200)
+        self.assertEqual(facts["eventbrite"]["review_required_total"], 9)
+        self.assertEqual(facts["eventbrite"]["source_missing_total"], 27)
