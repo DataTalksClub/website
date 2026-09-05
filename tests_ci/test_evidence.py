@@ -158,6 +158,31 @@ def test_same_family_hosted_runner_drift_is_explicitly_compatible_for_fresh_exec
     assert not environment_matches_plan(windows, planned, allow_hosted_runner_drift=True)
 
 
+def test_declared_runner_image_binds_the_plan_to_the_authorized_hosted_family() -> None:
+    """A component planned for another runner records that runner's image family.
+
+    The revision stays the planner's, because it cannot know the other pool's,
+    so the declaration only moves the *family* -- a hosted execution on a
+    different family, or a local plan with no concrete revision at all, is still
+    refused.
+    """
+
+    planned = environment_fingerprint(
+        {"ImageOS": "ubuntu24", "ImageVersion": "20260801.1"}, runner_image="ubuntu24-arm64"
+    )
+    assert planned["runner_image"] == "ubuntu24-arm64@20260801.1"
+
+    actual = environment_fingerprint({"ImageOS": "ubuntu24-arm64", "ImageVersion": "20260808.1"})
+    assert environment_matches_plan(actual, planned, allow_hosted_runner_drift=True)
+
+    intel = environment_fingerprint({"ImageOS": "ubuntu24", "ImageVersion": "20260808.1"})
+    assert not environment_matches_plan(intel, planned, allow_hosted_runner_drift=True)
+
+    local_plan = environment_fingerprint({}, runner_image="ubuntu24-arm64")
+    assert local_plan["runner_image"] == "ubuntu24-arm64@local"
+    assert not environment_matches_plan(actual, local_plan, allow_hosted_runner_drift=True)
+
+
 @pytest.mark.parametrize(
     "component, actual_environment",
     [

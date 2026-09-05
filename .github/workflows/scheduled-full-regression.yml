@@ -18,6 +18,11 @@ env:
   # deployment target's architecture. Keep this equal to the selected deployment
   # target's runner_machine and the container job's runs-on label.
   VERIFICATION_CONTAINER_ARCHITECTURE: aarch64
+  # That runner is also built from its own hosted image, so the plan has to
+  # authorize the image family as well as the machine. Keep this equal to the
+  # selected deployment target's runner_image (GitHub's ImageOS for the label
+  # above); a workflow contract test fails if it drifts.
+  VERIFICATION_CONTAINER_RUNNER_IMAGE: ubuntu24-arm64
 
 jobs:
   selector:

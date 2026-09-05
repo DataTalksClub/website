@@ -133,26 +133,31 @@ def environment_fingerprint(
     environ: Mapping[str, str] | None = None,
     *,
     architecture: str | None = None,
+    runner_image: str | None = None,
 ) -> dict[str, Any]:
     """Fingerprint the environment an execution is bound to.
 
     ``architecture`` names the machine a component is *authorized* to execute
     on when that is not this host -- the container component builds and runs the
     release image on the deployment target's architecture, so a planner on an
-    x86_64 runner still authorizes the aarch64 runner that job uses.  It is only
-    ever supplied while planning: an execution always fingerprints its real
-    host, so a wrong declared architecture fails the component closed instead of
-    passing it.
+    x86_64 runner still authorizes the aarch64 runner that job uses.
+    ``runner_image`` names that runner's hosted image family (GitHub's
+    ``ImageOS``), which is a property of the same foreign runner: the aarch64
+    job runs the ``ubuntu24-arm64`` image while the planner runs ``ubuntu24``,
+    and only the *patch revision* of one family is drift-compatible.  Both are
+    only ever supplied while planning: an execution always fingerprints its real
+    host, so a wrong declared architecture or image family fails the component
+    closed instead of passing it.
     """
 
     environ = os.environ if environ is None else environ
     hosted_runner = "ImageOS" in environ or "RUNNER_OS" in environ
-    runner_image = environ.get("ImageOS", environ.get("RUNNER_OS", "local"))
+    image_family = runner_image or environ.get("ImageOS", environ.get("RUNNER_OS", "local"))
     image_version = environ.get("ImageVersion")
     if hosted_runner and not image_version:
         raise EvidenceError("hosted runner fingerprint requires ImageVersion")
     image_version = image_version or "local"
-    runner_image = f"{runner_image}@{image_version}"
+    runner_image = f"{image_family}@{image_version}"
     payload = {
         "allowlisted_config": {
             key: environ[key] for key in ALLOWLISTED_CONFIG if key in environ and environ[key]
@@ -185,6 +190,11 @@ def environment_matches_plan(
     same Ubuntu image while the jobs are queued.  The concrete revision remains part of
     each fingerprint (and therefore still prevents cross-run evidence reuse), but a caller
     may explicitly allow this same-workflow drift when recording fresh hosted evidence.
+
+    Only the revision drifts.  The image family (``ubuntu24`` vs
+    ``ubuntu24-arm64``), the architecture, and every other field are still
+    compared exactly, so a job that ran on another image or machine than the one
+    the plan authorized fails closed.
     """
 
     actual_environment = validate_environment_fingerprint(actual)
@@ -198,8 +208,10 @@ def environment_matches_plan(
     if (
         not actual_version
         or not planned_version
-        or actual_family == "local"
-        or planned_family == "local"
+        # A local fingerprint has no concrete hosted revision to drift within,
+        # even when a component declares the hosted image family it is planned
+        # for, so it is only ever compared exactly.
+        or "local" in {actual_family, planned_family, actual_version, planned_version}
         or actual_family != planned_family
     ):
         return False

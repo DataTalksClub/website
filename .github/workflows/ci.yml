@@ -69,6 +69,12 @@ env:
   # runner_machine and the container job's runs-on label; a workflow contract
   # test fails if either drifts.
   VERIFICATION_CONTAINER_ARCHITECTURE: aarch64
+  # GitHub builds that runner from its own hosted image, so the planner also has
+  # to authorize the image family or the container job's evidence would not match
+  # the plan that asked for it. Keep this equal to the selected deployment
+  # target's runner_image (GitHub's ImageOS for the label above); a workflow
+  # contract test fails if it drifts.
+  VERIFICATION_CONTAINER_RUNNER_IMAGE: ubuntu24-arm64
 
 jobs:
   resolve-release:

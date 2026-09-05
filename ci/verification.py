@@ -70,8 +70,16 @@ COMPONENT_REQUIRED_CONFIG = {
 # planner's runner.  The workflow declares that machine here; every other
 # component is bound to the host that plans it.
 COMPONENT_ARCHITECTURE_VARIABLE = {"container": "VERIFICATION_CONTAINER_ARCHITECTURE"}
+# That job runs on a different hosted image too: GitHub builds the aarch64
+# runner from its own ``ubuntu24-arm64`` image, so a plan that authorized only
+# the machine still bound the component to the planner's ``ubuntu24`` image and
+# rejected the very job it authorized.  The workflow declares the image family
+# of the runner label it pins, alongside the machine.
+COMPONENT_RUNNER_IMAGE_VARIABLE = {"container": "VERIFICATION_CONTAINER_RUNNER_IMAGE"}
 #: ``platform.machine()`` names a component may be authorized to execute on.
 REVIEWED_ARCHITECTURES = frozenset({"aarch64", "x86_64"})
+#: GitHub-hosted ``ImageOS`` families a component may be authorized to execute on.
+REVIEWED_RUNNER_IMAGES = frozenset({"ubuntu24", "ubuntu24-arm64"})
 DEFAULT_FULL_DJANGO_COMMAND = "make test-django-full"
 FULL_DJANGO_COMMANDS = ("make test", DEFAULT_FULL_DJANGO_COMMAND)
 FULL_RISK_FLAGS = frozenset(
@@ -125,15 +133,49 @@ def component_architecture(component: str, environ: Mapping[str, str] | None = N
     unreviewed value leaves the component bound to this host.
     """
 
-    variable = COMPONENT_ARCHITECTURE_VARIABLE.get(component)
+    return _declared_execution_value(
+        COMPONENT_ARCHITECTURE_VARIABLE.get(component),
+        environ,
+        reviewed=REVIEWED_ARCHITECTURES,
+        subject="execution architecture",
+    )
+
+
+def component_runner_image(component: str, environ: Mapping[str, str] | None = None) -> str | None:
+    """Return the hosted image family a component is authorized to execute on.
+
+    The container component executes on the deployment target's architecture,
+    and GitHub builds that runner from a different hosted image than the
+    planner's (``ubuntu24-arm64`` rather than ``ubuntu24``).  The workflow
+    declares that family; nothing else may, and an undeclared or unreviewed
+    value leaves the component bound to this host's image.  The concrete image
+    revision is still the executing host's, so only the reviewed same-family
+    drift an execution may explicitly allow can absorb it.
+    """
+
+    return _declared_execution_value(
+        COMPONENT_RUNNER_IMAGE_VARIABLE.get(component),
+        environ,
+        reviewed=REVIEWED_RUNNER_IMAGES,
+        subject="execution runner image",
+    )
+
+
+def _declared_execution_value(
+    variable: str | None,
+    environ: Mapping[str, str] | None,
+    *,
+    reviewed: frozenset[str],
+    subject: str,
+) -> str | None:
     if variable is None:
         return None
     values = os.environ if environ is None else environ
     declared = values.get(variable, "").strip()
     if not declared:
         return None
-    if declared not in REVIEWED_ARCHITECTURES:
-        raise VerificationError(f"{variable} declares an unreviewed execution architecture")
+    if declared not in reviewed:
+        raise VerificationError(f"{variable} declares an unreviewed {subject}")
     return declared
 
 
@@ -146,7 +188,9 @@ def component_environment_fingerprint(
     resolved = dict(os.environ if environ is None else environ)
     resolved.update(COMPONENT_REQUIRED_CONFIG.get(component, {}))
     return environment_fingerprint(
-        resolved, architecture=component_architecture(component, resolved)
+        resolved,
+        architecture=component_architecture(component, resolved),
+        runner_image=component_runner_image(component, resolved),
     )
 
 

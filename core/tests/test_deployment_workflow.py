@@ -962,6 +962,14 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
                     document["env"]["VERIFICATION_CONTAINER_ARCHITECTURE"],
                     SELECTED_TARGET.runner_machine,
                 )
+                # GitHub builds the pinned runner label from its own hosted
+                # image, so authorizing only the machine leaves the plan bound to
+                # the planner's image and rejects the job it authorized.  A
+                # moving label runs the planner's own image and declares nothing.
+                self.assertEqual(
+                    document["env"].get("VERIFICATION_CONTAINER_RUNNER_IMAGE"),
+                    SELECTED_TARGET.runner_image,
+                )
                 steps = "\n".join(str(step.get("run", "")) for step in container["steps"])
                 self.assertIn(
                     "deploy.deployment_targets architecture --field build_platform", steps
@@ -1102,9 +1110,14 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertEqual(arm.build_platform, "linux/arm64")
         self.assertEqual(arm.image_architecture, "arm64")
         self.assertEqual(arm.runner_machine, "aarch64")
+        self.assertEqual(arm.runner_label, "ubuntu-24.04-arm")
+        self.assertEqual(arm.runner_image, "ubuntu24-arm64")
         self.assertEqual(intel.build_platform, "linux/amd64")
         self.assertEqual(intel.image_architecture, "amd64")
         self.assertEqual(intel.runner_machine, "x86_64")
+        # ``ubuntu-latest`` is a moving alias: it resolves to the same image the
+        # planner runs, so there is no separate family to authorize.
+        self.assertIsNone(intel.runner_image)
         self.assertEqual(
             architecture_fields(),
             {

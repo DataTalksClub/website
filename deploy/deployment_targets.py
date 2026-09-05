@@ -79,6 +79,13 @@ class CpuArchitecture:
     runner_machine: str
     #: GitHub-hosted runner label that executes this architecture natively.
     runner_label: str
+    #: GitHub's ``ImageOS`` for that runner label, where the label pins one
+    #: image.  The verification planner runs on the default runner, so the
+    #: container job's plan has to authorize this image family as well as the
+    #: machine, or the job's own evidence fails against the plan that asked for
+    #: it.  ``None`` where the label is a moving alias that resolves to
+    #: whichever image the planner itself runs, which needs no declaration.
+    runner_image: str | None
 
 
 #: The ``cpu_architecture`` values ``modules/django-website`` accepts.  Keep the
@@ -89,12 +96,14 @@ CPU_ARCHITECTURES: Mapping[str, CpuArchitecture] = {
         image_architecture="arm64",
         runner_machine="aarch64",
         runner_label="ubuntu-24.04-arm",
+        runner_image="ubuntu24-arm64",
     ),
     "X86_64": CpuArchitecture(
         build_platform="linux/amd64",
         image_architecture="amd64",
         runner_machine="x86_64",
         runner_label="ubuntu-latest",
+        runner_image=None,
     ),
 }
 
@@ -236,6 +245,10 @@ class DeploymentTarget:
     @property
     def runner_label(self) -> str:
         return self.cpu_architecture.runner_label
+
+    @property
+    def runner_image(self) -> str | None:
+        return self.cpu_architecture.runner_image
 
     # -- derived physical identifiers -------------------------------------
 

@@ -1,15 +1,19 @@
 from __future__ import annotations
 
+import os
+import platform
 from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
-from ci.evidence import build_envelope
+from ci.evidence import build_envelope, environment_fingerprint, environment_matches_plan
 from ci.ownership import sha256_json
 from ci.selection import ChangeRecord, classify_records
 from ci.verification import (
+    REVIEWED_ARCHITECTURES,
+    REVIEWED_RUNNER_IMAGES,
     VerificationError,
     _read_screenshot_metadata,
     _record_machine_output,
@@ -23,6 +27,7 @@ from ci.verification import (
     validate_plan,
     validate_report,
 )
+from deploy.deployment_targets import CPU_ARCHITECTURES
 from tests_ci.helpers import component_output, repository_with_change, selection_for
 
 NOW = datetime(2026, 8, 9, 12, tzinfo=UTC)
@@ -603,6 +608,105 @@ def test_declared_container_architecture_must_be_reviewed(
     monkeypatch.setenv("VERIFICATION_CONTAINER_ARCHITECTURE", "riscv64")
     with pytest.raises(VerificationError, match="unreviewed execution architecture"):
         make_plan(tmp_path, {"courses/service.py": "changed\n"})
+
+
+def test_container_component_is_planned_for_its_declared_runner_image(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """GitHub builds the aarch64 runner from its own hosted image family.
+
+    Authorizing only the machine left the container component bound to the
+    planner's ``ubuntu24`` image, so the job the plan asked for could not record
+    evidence against it.
+    """
+
+    host = tmp_path / "host"
+    host.mkdir()
+    declared_root = tmp_path / "declared"
+    declared_root.mkdir()
+    monkeypatch.setenv("ImageOS", "ubuntu24")
+    monkeypatch.setenv("ImageVersion", "20260831.293.1")
+
+    monkeypatch.delenv("VERIFICATION_CONTAINER_RUNNER_IMAGE", raising=False)
+    _repository, host_plan = make_plan(host, {"courses/service.py": "changed\n"})
+    assert host_plan["components"]["container"]["environment"]["runner_image"] == (
+        "ubuntu24@20260831.293.1"
+    )
+
+    monkeypatch.setenv("VERIFICATION_CONTAINER_RUNNER_IMAGE", "ubuntu24-arm64")
+    _repository, declared_plan = make_plan(declared_root, {"courses/service.py": "changed\n"})
+    assert declared_plan["components"]["container"]["environment"]["runner_image"] == (
+        "ubuntu24-arm64@20260831.293.1"
+    )
+    assert declared_plan["environment"]["runner_image"] == "ubuntu24@20260831.293.1"
+    for component in ("django", "playwright", "quality", "screenshots"):
+        assert declared_plan["components"][component]["environment"]["runner_image"] == (
+            "ubuntu24@20260831.293.1"
+        )
+
+
+def test_every_deployment_target_runner_is_reviewed_by_the_planner() -> None:
+    """The two allowlists describe one runner, so they cannot drift apart.
+
+    ``deploy`` decides which runner the container job uses; ``ci.verification``
+    decides which declarations a plan may authorize.  A target whose runner the
+    planner has not reviewed would fail every container job at planning time.
+    """
+
+    declared_machines = {item.runner_machine for item in CPU_ARCHITECTURES.values()}
+    declared_images = {item.runner_image for item in CPU_ARCHITECTURES.values()} - {None}
+
+    assert declared_machines <= REVIEWED_ARCHITECTURES
+    assert declared_images <= REVIEWED_RUNNER_IMAGES
+
+
+def test_declared_container_runner_image_must_be_reviewed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("VERIFICATION_CONTAINER_RUNNER_IMAGE", "ubuntu24-riscv64")
+    with pytest.raises(VerificationError, match="unreviewed execution runner image"):
+        make_plan(tmp_path, {"courses/service.py": "changed\n"})
+
+
+def test_container_job_on_the_declared_runner_matches_the_plan_that_asked_for_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The whole point of the declaration: that job's own evidence has to fit.
+
+    The planner runs on the default x86_64 ``ubuntu24`` runner and the container
+    job on the pinned ``ubuntu-24.04-arm`` label, whose image is a different
+    family at an independent revision.  Only the revision may drift; a job on
+    another machine or another image family still fails closed.
+    """
+
+    monkeypatch.setenv("ImageOS", "ubuntu24")
+    monkeypatch.setenv("ImageVersion", "20260831.293.1")
+    monkeypatch.setenv("VERIFICATION_CONTAINER_ARCHITECTURE", "aarch64")
+    monkeypatch.setenv("VERIFICATION_CONTAINER_RUNNER_IMAGE", "ubuntu24-arm64")
+    monkeypatch.setattr(platform, "machine", lambda: "x86_64")
+    _repository, plan = make_plan(tmp_path, {"courses/service.py": "changed\n"})
+    planned = plan["components"]["container"]["environment"]
+    assert planned["architecture"] == "aarch64"
+    assert planned["runner_image"] == "ubuntu24-arm64@20260831.293.1"
+
+    def executing(machine: str, image: str, version: str) -> dict[str, object]:
+        # An execution always fingerprints its real host, never a declaration.
+        monkeypatch.setattr(platform, "machine", lambda: machine)
+        return environment_fingerprint(
+            dict(os.environ) | {"ImageOS": image, "ImageVersion": version}
+        )
+
+    authorized = executing("aarch64", "ubuntu24-arm64", "20260831.111.1")
+    assert not environment_matches_plan(authorized, planned)
+    assert environment_matches_plan(authorized, planned, allow_hosted_runner_drift=True)
+
+    for mismatch in (
+        executing("x86_64", "ubuntu24", "20260831.293.1"),
+        executing("x86_64", "ubuntu24-arm64", "20260831.111.1"),
+        executing("aarch64", "ubuntu22-arm64", "20260831.111.1"),
+    ):
+        assert not environment_matches_plan(mismatch, planned)
+        assert not environment_matches_plan(mismatch, planned, allow_hosted_runner_drift=True)
 
 
 def test_repository_state_declares_the_same_container_architecture_as_the_plan(
