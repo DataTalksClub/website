@@ -4,7 +4,6 @@ from django.contrib.staticfiles import finders
 from django.test import TestCase
 
 from content import catalogue
-from content.public_data import public_projection
 from content.public_graph import safe_public_graph_url
 from scripts import build_public_projection as builder
 
@@ -13,7 +12,6 @@ class SponsorArticleChartTests(TestCase):
     path = "/blog/sponsor-datatalks-club.html"
 
     def test_all_owned_projected_editorial_links_to_this_site_are_root_relative(self) -> None:
-        projection = public_projection()
         occurrences = [
             (article["slug"], index, field)
             for article in catalogue.articles()
@@ -33,7 +31,7 @@ class SponsorArticleChartTests(TestCase):
                     if builder._localize_editorial_links(str(text)) != str(text)
                 )
 
-        for page in projection["wiki"]:
+        for page in catalogue.wiki_pages():
             occurrences.extend(
                 (page["slug"], index, "wiki")
                 for index, block in enumerate(page.get("blocks", ()))

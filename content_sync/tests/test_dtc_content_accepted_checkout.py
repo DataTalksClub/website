@@ -14,6 +14,7 @@ from unittest.mock import patch
 import yaml
 from django.test import SimpleTestCase, TestCase
 
+from content import catalogue
 from content.models import ContentRelation, ContentRelease
 from content.public_data import public_projection
 from content.services import (
@@ -372,20 +373,19 @@ class AcceptedDtcContentPreparationTests(TestCase):
         return response.status_code, hashlib.sha256(body).hexdigest()
 
     def test_full_candidate_is_ready_replay_safe_and_publicly_inert(self) -> None:
-        projection = public_projection()
         people = {
             str(key): str(record["public_path"])
-            for key, record in projection["people_by_slug"].items()
+            for key, record in catalogue.people_by_slug().items()
         }
         content_media = next(
             record
-            for record in projection["media"]
+            for record in catalogue.media()
             if record["provenance"]["repository"] == "DataTalksClub/content"
         )
         paths = (
-            projection["articles"][0]["public_path"],
-            projection["podcasts"][0]["public_path"],
-            projection["books"][0]["public_path"],
+            catalogue.articles()[0]["public_path"],
+            catalogue.podcasts()[0]["public_path"],
+            catalogue.books()[0]["public_path"],
             content_media["public_path"],
         )
         before = {path: self._response_digest(path) for path in paths}

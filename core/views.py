@@ -16,7 +16,7 @@ from django.views.decorators.http import require_GET, require_safe
 
 from content import catalogue
 from content.podcast_content import ordered_podcasts
-from content.public_data import event_groups, public_projection
+from content.public_data import event_groups
 from core.home_content import (
     FEATURED_FAMILY,
     course_catalog,
@@ -76,7 +76,6 @@ def home(request: HttpRequest):
         # `Cache-Control: private, no-store` on every credential-bearing
         # request, `/` included).
         return render(request, "core/member_home.html", build_member_home_context(request))
-    projection = public_projection()
     events = event_groups()
     catalog = course_catalog()
     # An empty catalogue is a normal state, not a failure: content arrives by
@@ -120,7 +119,7 @@ def home(request: HttpRequest):
             "podcast": podcast,
             "wiki_topics": wiki_topics(),
             "wiki_graph": wiki_graph(),
-            "counts": projection["manifest"]["counts"],
+            "counts": catalogue.collection_counts(),
             "sponsors": public_sponsors(),
         },
     )

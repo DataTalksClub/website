@@ -25,7 +25,6 @@ from content.person_content import (
     ContributionGroup,
     person_view,
 )
-from content.public_data import public_projection
 from events.queries import published_event_records_by_path
 
 # The profile with the widest body of work in the catalogue (63 links across all
@@ -93,7 +92,6 @@ class PersonCompositionTests(TestCase):
                 self.assertEqual(undated, list(range(len(dated), len(group.items))))
 
     def test_markers_and_dates_are_read_from_the_linked_record(self) -> None:
-        public_projection()
         person = person_view(profile(RICH_SLUG))
         groups = {group.key: group for group in person.groups}
 
@@ -153,7 +151,6 @@ class PersonCompositionTests(TestCase):
                 self.assertTrue(all(item.state_label == "" for item in group.items))
 
     def test_an_episode_without_a_date_states_none(self) -> None:
-        public_projection()
         silent = next(
             record
             for record in catalogue.people()

@@ -18,8 +18,9 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils.html import escape
 
+from content import catalogue
+from content.models import ContentSource
 from content.pagination import PUBLIC_PAGE_SIZE
-from content.public_data import public_projection
 from content.public_views import WIKI_SPECIAL_CATEGORIES, _wiki_search_results
 from content.wiki_content import (
     GRAPH_GROUPS,
@@ -44,8 +45,16 @@ RETIRED_ASSETS = (
 TEMPLATE_SYNTAX = ("{#", "#}", "{%", "%}", "{{", "}}")
 
 
+def _wiki_page(slug: str) -> dict[str, Any]:
+    """The published wiki page a test names, which the catalogue must hold."""
+
+    record = catalogue.wiki_page(slug)
+    assert record is not None, slug
+    return record
+
+
 def wiki_paths() -> dict[str, str]:
-    page = public_projection()["wiki"][0]
+    page = catalogue.wiki_pages()[0]
     return {
         "hub": reverse("wiki-home"),
         "results": f"{reverse('wiki-home')}?q=machine+learning",
@@ -117,7 +126,7 @@ class WikiHubTests(TestCase):
         self.body = self.client.get(reverse("wiki-home")).content.decode()
 
     def test_the_hub_keeps_its_title_search_field_and_catalogue_count(self) -> None:
-        records = public_projection()["wiki"]
+        records = catalogue.wiki_pages()
 
         self.assertIn("DataTalks.Club Podcast Wiki", self.body)
         self.assertIn('<label class="sr-only" for="wiki-query">Search the Wiki</label>', self.body)
@@ -156,7 +165,7 @@ class WikiHubTests(TestCase):
         existing order, with no topic repeated between two pages and none lost.
         """
 
-        records = public_projection()["wiki"]
+        records = catalogue.wiki_pages()
         self.assertEqual(
             [(record["title"], record["slug"]) for record in records],
             sorted(
@@ -329,12 +338,15 @@ class WikiCataloguePaginationTests(TestCase):
         self.assertEqual(response.headers["Location"], "/wiki?page=2")
 
     def test_an_empty_catalogue_says_so_and_leaves_the_other_paths_useful(self) -> None:
-        projection = dict(public_projection())
-        projection["wiki"] = ()
-        with patch("content.public_views.public_projection", return_value=projection):
-            response = self.client.get(reverse("wiki-home"))
-            body = response.content.decode()
-            beyond = self.client.get(f"{reverse('wiki-home')}?page=2")
+        # The hub reads the database, so it is emptied the way an un-ingested
+        # database is empty rather than by patching a value in.
+        ContentSource.objects.filter(stable_id=catalogue.PUBLIC_CONTENT_STABLE_ID).update(
+            enabled=False
+        )
+
+        response = self.client.get(reverse("wiki-home"))
+        body = response.content.decode()
+        beyond = self.client.get(f"{reverse('wiki-home')}?page=2")
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("No Wiki pages are available yet.", body)
@@ -656,17 +668,18 @@ class WikiSpecialPagesTests(TestCase):
                 self.assertEqual(body.count(f'href="{record["public_path"]}"'), 2)
 
     def test_an_empty_category_still_says_so(self) -> None:
-        projection = dict(public_projection())
-        projection["wiki"] = ()
-        with patch("content.public_views.public_projection", return_value=projection):
-            body = self.client.get(reverse("wiki-special")).content.decode()
+        ContentSource.objects.filter(stable_id=catalogue.PUBLIC_CONTENT_STABLE_ID).update(
+            enabled=False
+        )
+
+        body = self.client.get(reverse("wiki-special")).content.decode()
 
         self.assertIn("No pages found.", body)
 
 
 class WikiPageTests(TestCase):
     def setUp(self) -> None:
-        self.record = public_projection()["wiki_by_slug"]["a-a-testing"]
+        self.record = _wiki_page("a-a-testing")
         self.body = self.client.get(str(self.record["public_path"])).content.decode()
 
     def test_the_page_keeps_one_wiki_context_label_title_and_every_relation(self) -> None:
@@ -699,7 +712,7 @@ class WikiPageTests(TestCase):
         self.assertFalse(
             [
                 record["slug"]
-                for record in public_projection()["wiki"]
+                for record in catalogue.wiki_pages()
                 if any(not relation["href"] for relation in record["relations"])
             ],
             "a wiki page now carries an unlinked relation: assert its rendering here",
@@ -724,7 +737,7 @@ class WikiPageTests(TestCase):
         self.assertIn('<div class="prose wiki-prose">', self.body)
 
     def test_an_ampersand_in_a_wiki_title_is_escaped_in_the_heading(self) -> None:
-        record = public_projection()["wiki_by_slug"]["data-scientist-cv-and-portfolio"]
+        record = _wiki_page("data-scientist-cv-and-portfolio")
         self.assertNotEqual(escape(record["title"]), record["title"])
         body = self.client.get(str(record["public_path"])).content.decode()
 
@@ -733,7 +746,7 @@ class WikiPageTests(TestCase):
     def test_an_ampersand_in_a_relation_label_is_escaped(self) -> None:
         record = next(
             page
-            for page in public_projection()["wiki"]
+            for page in catalogue.wiki_pages()
             if any("&" in relation["label"] for relation in page["relations"])
         )
         relation = next(item for item in record["relations"] if "&" in item["label"])
@@ -747,7 +760,7 @@ class WikiPageTests(TestCase):
 
     def test_an_anchor_the_source_never_defined_still_lands_on_the_page(self) -> None:
         page = next(
-            (record for record in public_projection()["wiki"] if record["unresolved_fragment_ids"]),
+            (record for record in catalogue.wiki_pages() if record["unresolved_fragment_ids"]),
             None,
         )
         if page is None:

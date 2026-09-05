@@ -12,6 +12,7 @@ from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import Resolver404, resolve
 
+from content import catalogue
 from content.public_data import event_groups, public_projection
 from courses.models.cohort import Cohort
 from events.queries import published_event_records
@@ -19,6 +20,14 @@ from scripts import build_public_projection as projection_builder
 from test_support.content_state import requires_media_bytes
 
 from .pagination_support import catalogue_body
+
+
+def _book(slug: str) -> dict[str, Any]:
+    """The published book a test names, which the catalogue must hold."""
+
+    record = catalogue.book(slug)
+    assert record is not None, slug
+    return record
 
 
 class LinkParser(HTMLParser):
@@ -41,18 +50,18 @@ class PublicProjectionTests(TestCase):
         cls.projection = public_projection()
 
     def test_accepted_provenance(self) -> None:
-        self.assertTrue(self.projection["manifest"]["sources"]["preferred_content"]["accepted"])
-        self.assertFalse(self.projection["manifest"]["sources"]["fallback_selection"]["accepted"])
+        self.assertTrue(catalogue.manifest()["sources"]["preferred_content"]["accepted"])
+        self.assertFalse(catalogue.manifest()["sources"]["fallback_selection"]["accepted"])
         self.assertEqual(
-            self.projection["manifest"]["sources"]["preferred_content"]["revision"],
+            catalogue.manifest()["sources"]["preferred_content"]["revision"],
             "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
         )
         self.assertEqual(
-            self.projection["manifest"]["sources"]["preferred_content"]["editorial_overlay_sha256"],
+            catalogue.manifest()["sources"]["preferred_content"]["editorial_overlay_sha256"],
             "b2e6f23da40b6afbc310340196101422ac5de466b89e409c0ce5f24f5bf20326",
         )
         self.assertEqual(
-            self.projection["manifest"]["wiki_assets"],
+            catalogue.manifest()["wiki_assets"],
             {
                 "/wiki/assets/og-default.png": (
                     "afddea001f9cf846630cb7a8046352a52d4d6c2edacd0feaaecb0e8d9b27e8de"
@@ -60,7 +69,7 @@ class PublicProjectionTests(TestCase):
             },
         )
         self.assertEqual(
-            self.projection["manifest"]["runtime_contract"]["source_execution"],
+            catalogue.manifest()["runtime_contract"]["source_execution"],
             "none",
         )
         for collection in (
@@ -84,8 +93,8 @@ class PublicProjectionTests(TestCase):
                 self.assertTrue(record["provenance"]["source_key"])
 
     def test_editorial_provenance_keeps_owner_approved_internal_sources(self) -> None:
-        preferred_revision = self.projection["manifest"]["sources"]["preferred_content"]["revision"]
-        legacy_revision = self.projection["manifest"]["sources"]["legacy_main"]["revision"]
+        preferred_revision = catalogue.manifest()["sources"]["preferred_content"]["revision"]
+        legacy_revision = catalogue.manifest()["sources"]["legacy_main"]["revision"]
         for collection, prefix in (
             ("articles", "articles/"),
             ("podcasts", "podcasts/"),
@@ -96,7 +105,7 @@ class PublicProjectionTests(TestCase):
                     self.assertEqual(record["provenance"]["repository"], "DataTalksClub/content")
                     self.assertEqual(record["provenance"]["revision"], preferred_revision)
                     self.assertTrue(record["provenance"]["source_path"].startswith(prefix))
-        for podcast in self.projection["podcasts"]:
+        for podcast in catalogue.podcasts():
             if podcast["transcript"]:
                 self.assertEqual(
                     podcast["transcript_provenance"]["repository"],
@@ -106,7 +115,7 @@ class PublicProjectionTests(TestCase):
                     podcast["transcript_provenance"]["revision"],
                     preferred_revision,
                 )
-        for person in self.projection["people"]:
+        for person in catalogue.people():
             self.assertEqual(
                 person["provenance"]["repository"],
                 "DataTalksClub/datatalksclub.github.io",
@@ -145,7 +154,7 @@ class PublicProjectionTests(TestCase):
             self.assertIn(f'href="{event["public_path"]}"', events + archive)
 
     def test_book_details_render_source_backed_questions_and_answers(self) -> None:
-        book = self.projection["books_by_slug"]["20201214-ml-bookcamp"]
+        book = _book("20201214-ml-bookcamp")
         first_thread = book["archive"][0]
         self.assertEqual(first_thread["name"], "Vladimir Finkelshtein")
         self.assertIn("timeseries", first_thread["text"])
@@ -162,7 +171,7 @@ class PublicProjectionTests(TestCase):
         self.assertContains(response, 'rel="noopener noreferrer"')
         self.assertNotContains(response, "<script>alert")
 
-        current_book = self.projection["books_by_slug"]["20250922-how-software-fails"]
+        current_book = _book("20250922-how-software-fails")
         self.assertEqual(current_book["archive"], [])
         current_response = self.client.get(current_book["public_path"])
         self.assertNotContains(current_response, "Questions and answers")
@@ -175,7 +184,7 @@ class PublicProjectionTests(TestCase):
         literally; it must now print the emphasis and the list they describe.
         """
 
-        book = self.projection["books_by_slug"]["20250908-machine-learning-algorithms-in-depth"]
+        book = _book("20250908-machine-learning-algorithms-in-depth")
         self.assertIn("**Algorithms You'll Explore**", book["summary"])
         self.assertIn("* Monte Carlo Stock Price Simulation", book["summary"])
 
@@ -197,7 +206,7 @@ class PublicProjectionTests(TestCase):
         legitimately reuses the flyer image, must still carry it.
         """
 
-        book = self.projection["books_by_slug"]["20250908-machine-learning-algorithms-in-depth"]
+        book = _book("20250908-machine-learning-algorithms-in-depth")
         self.assertTrue(book["media_available"])
         self.assertTrue(book["image_path"])
 
@@ -256,17 +265,17 @@ class PublicProjectionTests(TestCase):
                 self.assertEqual(self.client.post(record["public_path"]).status_code, 405)
 
     def test_people_relationships_use_exact_book_ids_and_collapse_recording_lineage(self) -> None:
-        people = self.projection["people_by_slug"]
+        people = catalogue.people_by_slug()
         book_paths = self.projection["books_by_path"]
         expected_book_relationships = {
             (author, book["public_path"])
-            for book in self.projection["books"]
+            for book in catalogue.books()
             for author in book["authors"]
             if author in people
         }
         actual_book_relationships = {
             (person["slug"], relationship["public_path"])
-            for person in self.projection["people"]
+            for person in catalogue.people()
             for relationship in person["relationships"]
             if relationship["role"] == "author" and relationship["public_path"] in book_paths
         }
@@ -281,7 +290,7 @@ class PublicProjectionTests(TestCase):
         )
 
         lineage = projection_builder._podcast_event_lineage(
-            list(self.projection["podcasts"]),
+            list(catalogue.podcasts()),
             list(published_event_records()),
         )
         podcasts = self.projection["podcasts_by_slug"]
@@ -320,7 +329,7 @@ class PublicProjectionTests(TestCase):
         bela_relationships = people["belawiertz"]["relationships"]
         early_stage_podcast_path = next(
             record["public_path"]
-            for record in self.projection["podcasts"]
+            for record in catalogue.podcasts()
             if record["title"]
             == (
                 "Early-Stage Investing in Open Source Developer Tools: Deal Sourcing, Due "
@@ -359,7 +368,7 @@ class PublicProjectionTests(TestCase):
         self.assertFalse(after.upcoming)
 
     def test_wiki_fragments_and_corpus_targets_resolve(self) -> None:
-        for page in self.projection["wiki"]:
+        for page in catalogue.wiki_pages():
             response = self.client.get(page["public_path"])
             body = response.content.decode()
             for fragment in page["fragment_ids"]:
@@ -367,7 +376,7 @@ class PublicProjectionTests(TestCase):
 
         person_relations = [
             relation
-            for page in self.projection["wiki"]
+            for page in catalogue.wiki_pages()
             for relation in page["relations"]
             if relation["type"] == "person"
         ]
@@ -423,7 +432,7 @@ class PublicProjectionTests(TestCase):
         store behaving correctly, not the route being wrong.
         """
 
-        for record in self.projection["media"]:
+        for record in catalogue.media():
             with self.subTest(path=record["public_path"]):
                 response = self.client.get(record["public_path"])
                 self.assertEqual(response.status_code, 200)
@@ -449,7 +458,7 @@ class PublicProjectionTests(TestCase):
         self.assertEqual(mutations, [])
 
     def test_existing_cmp_course_row_preserves_its_detail_view(self) -> None:
-        record = self.projection["courses"][0]
+        record = catalogue.courses()[0]
         Cohort.objects.create(
             title=record["title"],
             slug=record["slug"],

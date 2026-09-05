@@ -29,6 +29,7 @@ from django.db import DatabaseError
 from django.db.models import Count, F, Max
 
 from .models import ContentDocument, ContentRelease, ContentSource
+from .public_graph import validate_wiki_graph
 from .public_text import strip_leaked_target_attributes, target_attribute_count
 
 #: One published record, exactly as the import stored it. The pages read these
@@ -56,6 +57,9 @@ COLLECTION_NAMES = (
 #: names a kind by dropping the collection's plural ``s``, which leaves
 #: "people", "wiki" and "media" spelled as they are.
 COLLECTION_KINDS = {name: name.rstrip("s") or name for name in COLLECTION_NAMES}
+#: The counts a release's manifest declares, so a page asking "how many articles
+#: are there" gets a zero rather than a missing key.
+COUNT_KEYS = (*COLLECTION_NAMES, "transcripts")
 
 
 def active_release_id() -> str:
@@ -343,3 +347,127 @@ def book(slug: str) -> Record | None:
     """One book, or ``None`` when the catalogue does not publish it."""
 
     return _by_slug(books(), slug)
+
+
+def wiki_pages() -> tuple[Record, ...]:
+    """The wiki catalogue, in the A-Z order the hub pages through."""
+
+    return records("wiki")
+
+
+def wiki_page(slug: str) -> Record | None:
+    """One wiki page, or ``None`` when the catalogue does not publish it."""
+
+    return _by_slug(wiki_pages(), slug)
+
+
+def wiki_graph() -> Record:
+    """The wiki knowledge graph, checked before it can reach a page.
+
+    The graph is drawn as links a reader can follow, so its destinations are
+    validated where they are read: a stored graph that breaks the contract is a
+    refusal rather than something the page renders and hopes about. An
+    un-ingested database publishes no graph, and an empty mapping passes
+    validation as the absence it is.
+    """
+
+    graph = singleton("wiki_graph")
+    if graph:
+        validate_wiki_graph(graph)
+    return graph
+
+
+def wiki_search() -> Record:
+    """The wiki search index the hub and the JSON route read."""
+
+    return singleton("wiki_search")
+
+
+def wiki_asset_paths() -> frozenset[str]:
+    """The wiki asset paths the published manifest declares.
+
+    The asset bytes are a design file that ships with the app; what the database
+    owns is whether the release publishes it at all, so the route asks here
+    before handing anything over.
+    """
+
+    declared = manifest().get("wiki_assets", {})
+    return frozenset(declared) if isinstance(declared, dict) else frozenset()
+
+
+def manifest() -> Record:
+    """What the active release records about itself.
+
+    Its provenance, its per-collection counts and the artifacts it was built
+    from. Nothing a reader sees comes from here; it is what the release says it
+    is, kept beside the records it published.
+    """
+
+    return singleton("manifest")
+
+
+def courses() -> tuple[Record, ...]:
+    """The course records the catalogue publishes.
+
+    The course pages themselves are database rows of their own; these are the
+    catalogue's own copies, kept for the route inventory that checks the two
+    agree.
+    """
+
+    return records("course")
+
+
+def collection_counts() -> dict[str, int]:
+    """How many records the release says each collection holds.
+
+    The homepage states these totals. A database publishing nothing reports a
+    zero for every collection rather than a missing key.
+    """
+
+    held = manifest().get("counts", {})
+    counts = {key: 0 for key in COUNT_KEYS}
+    if isinstance(held, dict):
+        counts.update({key: int(value) for key, value in held.items()})
+    return counts
+
+
+def media() -> tuple[Record, ...]:
+    """Every recorded public media object, in the order the release lists them."""
+
+    return records("media")
+
+
+def media_at(public_path: str) -> Record | None:
+    """The media record a request addresses, or ``None`` when none is published."""
+
+    return _media_index(active_release_id()).get(public_path)
+
+
+@lru_cache(maxsize=2)
+def _media_index(release_id: str) -> dict[str, Record]:
+    """Media records by their public path.
+
+    Every image on the site is one lookup here, so the index is built with the
+    records rather than scanned for each request.
+    """
+
+    return {
+        item["public_path"]: item for item in _records(release_id, "media") if "public_path" in item
+    }
+
+
+def editorial_route_alias(source_path: str) -> Record | None:
+    """The reviewed redirect a retired editorial path still answers with."""
+
+    return _editorial_route_aliases(active_release_id()).get(source_path)
+
+
+@lru_cache(maxsize=2)
+def _editorial_route_aliases(release_id: str) -> dict[str, Record]:
+    aliases = _records(release_id, "editorial_route_migration")
+    held = aliases[0].get("aliases", ()) if aliases else ()
+    return {
+        str(alias["source_path"]): alias
+        for alias in held
+        if isinstance(alias, dict) and isinstance(alias.get("source_path"), str)
+    }

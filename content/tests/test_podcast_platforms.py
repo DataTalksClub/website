@@ -8,7 +8,6 @@ from django.test import TestCase
 
 from content import catalogue
 from content.podcast_content import podcast_platform_links
-from content.public_data import public_projection
 from scripts import build_public_projection as builder
 
 
@@ -150,10 +149,9 @@ class PodcastPlatformDataTests(TestCase):
     def test_platform_artifact_is_manifest_bound_and_provider_keys_cannot_drift(self) -> None:
         root = Path(__file__).resolve().parents[2] / "temporary" / "content" / "public_projection"
         path = root / "podcast_platforms.json"
-        projection = public_projection()
 
         self.assertEqual(
-            projection["manifest"]["artifacts"]["podcast_platforms.json"],
+            catalogue.manifest()["artifacts"]["podcast_platforms.json"],
             hashlib.sha256(path.read_bytes()).hexdigest(),
         )
         self.assertEqual(

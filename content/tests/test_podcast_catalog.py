@@ -558,7 +558,6 @@ class PodcastEpisodeParityTests(TestCase):
             self.assertIn(next_episode.season_episode, body)
 
     def test_checked_detail_and_adjacent_destinations_render_with_internal_resource(self) -> None:
-        public_projection()
         record = _episode("practical-devrel-demofirst-education-and-open-source")
         previous, following, _ = episode_navigation(
             record,
@@ -707,7 +706,6 @@ class PodcastEpisodeParityTests(TestCase):
             self.assertNotIn(f'href="{path}"', body)
 
     def test_spotify_creator_episode_renders_the_responsive_accessible_player(self) -> None:
-        public_projection()
         source = _episode("s24e05-ai-adoption-in-enterprise-beyond-writing-code")
         creator_key = next(
             key for key in ("spotify_for_creators", "anchor") if key in source["links"]
@@ -743,7 +741,6 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertContains(response, "Audio unavailable.")
 
     def test_s24e05_youtube_player_uses_the_stored_watch_url_identity(self) -> None:
-        public_projection()
         source = _episode("s24e05-ai-adoption-in-enterprise-beyond-writing-code")
         view = episode_view(source, people_by_slug=catalogue.people_by_slug())
 
@@ -884,7 +881,6 @@ class PodcastEpisodeParityTests(TestCase):
 
 class PodcastSeasonNavigationTests(TestCase):
     def test_each_actual_season_contains_one_complete_season_and_all_details_once(self) -> None:
-        public_projection()
         seasons = podcast_seasons()
         seen_paths: list[str] = []
         self.assertEqual(tuple(season.number for season in seasons), tuple(range(24, 0, -1)))
@@ -972,7 +968,6 @@ class PodcastSeasonNavigationTests(TestCase):
         self.assertEqual(self.client.post(alias_path).status_code, 405)
 
     def test_s24e05_uses_the_new_canonical_route_and_redirects_its_html_path(self) -> None:
-        public_projection()
         episode = _episode("s24e05-ai-adoption-in-enterprise-beyond-writing-code")
         canonical = episode["public_path"]
         legacy = podcast_legacy_path(episode["slug"])
@@ -1119,7 +1114,6 @@ class PodcastSeasonNavigationTests(TestCase):
         self.assertNotContains(response, "/podcast?season=24")
 
     def test_higher_season_becomes_clean_default_and_real_adjacency_skips_gaps(self) -> None:
-        public_projection()
         synthetic = {
             **ordered_podcasts()[0],
             "season": 30,

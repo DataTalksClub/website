@@ -280,7 +280,6 @@ _event_date_groups = event_date_groups
 
 
 def public_paths() -> tuple[str, ...]:
-    projection = public_projection()
     paths = {
         "/",
         "/blog",
@@ -295,7 +294,7 @@ def public_paths() -> tuple[str, ...]:
         "/faq/",
         "/faq/ai-dev-tools-zoomcamp.html",
     }
-    paths.update(record["public_path"] for record in projection["wiki"])
+    paths.update(record["public_path"] for record in catalogue.wiki_pages())
     paths.update(record["public_path"] for record in catalogue.people())
     paths.update(record["public_path"] for record in catalogue.books())
     paths.update(record["public_path"] for record in catalogue.podcasts())

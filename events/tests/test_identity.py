@@ -10,7 +10,7 @@ from typing import ClassVar
 from django.test import TestCase
 from django.urls import Resolver404, resolve
 
-from content.public_data import public_projection
+from content import catalogue
 from events.identity import (
     EventIdentityError,
     EventIdentityNotFound,
@@ -207,7 +207,7 @@ class EventIdentityManifestTests(TestCase):
         canonical_paths = {event["public_path"] for event in published_event_records()}
         speaker_paths = {
             relationship["public_path"]
-            for person in public_projection()["people"]
+            for person in catalogue.people()
             for relationship in person["relationships"]
             if relationship["role"] == "speaker"
         }

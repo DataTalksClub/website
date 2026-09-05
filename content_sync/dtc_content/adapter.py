@@ -30,7 +30,6 @@ from content import catalogue
 from content.article_faq_format import ArticleFaqFormatError, validate_faq_pairs
 from content.inventory import content_route_contracts
 from content.podcast_routes import podcast_canonical_path
-from content.public_data import public_projection
 from content.route_contracts import PublicContract
 from content.services import PreparedDocument, sanitize_rendered_html
 
@@ -585,11 +584,10 @@ def _checked_contracts() -> tuple[dict[str, PublicContract], str, frozenset[str]
     index = {contract.percent_encoded_public_reference: contract for contract in contracts}
     from content.models import PUBLIC_CONTRACT_DIGEST
 
-    projection = public_projection()
     adopted_paths = {
         quote(str(record["public_path"]), safe="/")
-        for collection in ("articles", "podcasts", "books")
-        for record in projection[collection]
+        for published in (catalogue.articles, catalogue.podcasts, catalogue.books)
+        for record in published()
     }
     # Adoption is a statement about the public path -- "the projection publishes
     # this, so a missing legacy route contract means the crawl never saw it, not
@@ -604,7 +602,7 @@ def _checked_contracts() -> tuple[dict[str, PublicContract], str, frozenset[str]
     # published and served, whose sibling cover.jpg was crawled and it was not.
     adopted_paths.update(
         quote(str(record["public_path"]), safe="/")
-        for record in projection["media"]
+        for record in catalogue.media()
         if record.get("provenance", {}).get("repository") == "DataTalksClub/content"
     )
     approved_person_keys = frozenset(str(key) for key in catalogue.people_by_slug())

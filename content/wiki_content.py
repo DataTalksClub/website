@@ -35,8 +35,8 @@ from core.graph_layout import (
     ring_layouts,
 )
 
+from . import catalogue
 from .podcast_routes import podcast_canonical_path, podcast_public_id
-from .public_data import public_projection
 from .public_graph import safe_public_graph_url
 
 _PODCAST_GRAPH_PATH = re.compile(r"/podcast/s[0-9]+e[0-9]+/[a-z0-9_][a-z0-9_.-]*")
@@ -427,13 +427,16 @@ def episode_graph(
     external graph service is consulted.
     """
 
-    projection = projection or public_projection()
-    graph = projection.get("wiki_graph")
+    graph = catalogue.wiki_graph() if projection is None else projection.get("wiki_graph")
     if not isinstance(graph, dict):
-        raise ImproperlyConfigured("The public projection has no wiki graph.")
+        raise ImproperlyConfigured("The published catalogue has no wiki graph.")
     shell = _episode_graph_shell(episode, state="no_data")
     episode_public_path = episode["public_path"]
-    podcast_records = projection.get("podcasts_by_slug", {})
+    podcast_records = (
+        {item["slug"]: item for item in catalogue.podcasts() if "slug" in item}
+        if projection is None
+        else projection.get("podcasts_by_slug", {})
+    )
     if not isinstance(podcast_records, dict):
         podcast_records = {}
     nodes = _episode_graph_nodes(graph, podcast_records=podcast_records)
@@ -531,7 +534,7 @@ def podcast_episode_graph(
 
 
 def _graph() -> dict[str, Any]:
-    return public_projection()["wiki_graph"]
+    return catalogue.wiki_graph()
 
 
 def graph_nodes() -> tuple[dict[str, Any], ...]:

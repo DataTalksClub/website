@@ -368,7 +368,6 @@ class EpisodeGraphContractTests(TestCase):
 
 class EpisodeGraphPageTests(TestCase):
     def test_s23e06_page_exposes_complete_fallback_without_changing_episode_metadata(self) -> None:
-        public_projection()
         episode = _episode(REPRESENTATIVE)
 
         response = self.client.get(episode["public_path"])
@@ -403,10 +402,8 @@ class EpisodeGraphPageTests(TestCase):
         self.assertNotIn('"@type": "KnowledgeGraph"', body)
 
     def test_no_data_and_known_graph_failure_keep_the_episode_page_successful(self) -> None:
-        projection = public_projection()
         episode = _episode(REPRESENTATIVE)
-        no_data_projection = {**projection, "wiki_graph": {"nodes": [], "links": []}}
-        with patch("content.public_views.public_projection", return_value=no_data_projection):
+        with patch("content.catalogue.wiki_graph", return_value={"nodes": [], "links": []}):
             no_data_response = self.client.get(episode["public_path"])
         self.assertEqual(no_data_response.status_code, 200)
         self.assertContains(

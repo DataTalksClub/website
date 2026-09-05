@@ -20,7 +20,7 @@ from content.podcast_routes import (
     PODCAST_ROUTE_MIGRATION_PATH,
     podcast_legacy_path,
 )
-from content.public_data import public_paths, public_projection
+from content.public_data import public_paths
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
 from events.queries import published_event_records
 
@@ -46,12 +46,11 @@ class PublicRouteAndSeoTests(TestCase):
             "_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
         }
         removed_aliases = {slug.removeprefix("_") for slug in removed_slugs}
-        projection = public_projection()
 
         self.assertTrue(
             removed_slugs.isdisjoint({episode["slug"] for episode in catalogue.podcasts()})
         )
-        migration = projection["editorial_route_migration"]
+        migration = catalogue.singleton("editorial_route_migration")
         route_records = migration["finals"] + migration["aliases"]
         self.assertFalse(
             any(
@@ -65,7 +64,7 @@ class PublicRouteAndSeoTests(TestCase):
             )
         )
 
-        graph = projection["wiki_graph"]
+        graph = catalogue.wiki_graph()
         removed_node_ids = {f"podcast:{alias}" for alias in removed_aliases}
         self.assertFalse(removed_node_ids.intersection({node["id"] for node in graph["nodes"]}))
         self.assertFalse(
@@ -75,7 +74,7 @@ class PublicRouteAndSeoTests(TestCase):
             )
         )
 
-        search_documents = projection["wiki_search"]["docs"]
+        search_documents = catalogue.wiki_search()["docs"]
         self.assertFalse(
             any(
                 alias in str(document.get(field, ""))
@@ -202,7 +201,7 @@ class PublicRouteAndSeoTests(TestCase):
         self.assertTrue(set(catalogue.people_by_path()).issubset(canonical_inventory))
 
     def test_projected_courses_do_not_claim_database_backed_course_routes(self) -> None:
-        projected_paths = {record["public_path"] for record in public_projection()["courses"]}
+        projected_paths = {record["public_path"] for record in catalogue.courses()}
         self.assertTrue(projected_paths)
         self.assertTrue(projected_paths.isdisjoint(public_paths()))
         for path in projected_paths:
@@ -213,8 +212,7 @@ class PublicRouteAndSeoTests(TestCase):
                 self.assertNotContains(response, 'rel="canonical"', status_code=404)
 
     def test_editorial_detail_aliases_redirect_directly_to_canonicals(self) -> None:
-        projection = public_projection()
-        migration = projection["editorial_route_migration"]
+        migration = catalogue.singleton("editorial_route_migration")
         canonical_paths = {item["final_path"] for item in migration["finals"]}
         alias_map = {item["source_path"]: item["final_path"] for item in migration["aliases"]}
         self.assertEqual(
@@ -332,7 +330,6 @@ class PublicRouteAndSeoTests(TestCase):
                     self.assertNotIn("Location", response.headers)
 
     def test_all_events_have_internal_details_and_resolved_people(self) -> None:
-        public_projection()
         home = self.client.get("/").content.decode()
         hub = self.client.get("/events").content.decode()
         archive = catalogue_body(self.client, "/events/past")
@@ -356,7 +353,6 @@ class PublicRouteAndSeoTests(TestCase):
                     self.assertIn("opens in a new tab", body)
 
     def test_all_podcast_guest_links_resolve_to_person_details(self) -> None:
-        public_projection()
         guest_profiles = [
             guest for podcast in catalogue.podcasts() for guest in podcast["guest_profiles"]
         ]
@@ -374,7 +370,6 @@ class PublicRouteAndSeoTests(TestCase):
                     self.assertNotIn(f'href="{guest["public_path"]}"', body)
 
     def test_all_person_details_remain_available_without_a_people_catalogue(self) -> None:
-        public_projection()
         self.assertNotIn("_template", catalogue.people_by_slug())
         for person in catalogue.people():
             response = self.client.get(person["public_path"])
@@ -394,7 +389,6 @@ class PublicRouteAndSeoTests(TestCase):
             if path.is_file()
         }
 
-        public_projection()
         article = _article("ai-dev-tools-zoomcamp")
         person = catalogue.people_by_slug()["agnieszkamikolajczyk"]
         self.assertTrue(
@@ -462,13 +456,12 @@ class PublicRouteAndSeoTests(TestCase):
         self.assertNotRegex(control.content.decode(), r"\{:[ \t]*target[ \t]*=")
 
     def test_representative_details_emit_valid_type_specific_json_ld(self) -> None:
-        projection = public_projection()
         paths_and_types = [
             (catalogue.articles()[0]["public_path"], "BlogPosting"),
             (catalogue.podcasts()[0]["public_path"], "PodcastEpisode"),
             (catalogue.books()[0]["public_path"], "Book"),
             (catalogue.people()[0]["public_path"], "Person"),
-            (projection["wiki"][0]["public_path"], "Article"),
+            (catalogue.wiki_pages()[0]["public_path"], "Article"),
         ]
         # Events are covered only when one is published: their content has no
         # importer yet, so an empty catalogue is the expected state rather than

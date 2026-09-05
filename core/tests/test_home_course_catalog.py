@@ -17,7 +17,7 @@ from django.db import OperationalError
 from django.test import TestCase
 from django.urls import reverse
 
-from content.public_data import public_projection
+from content import catalogue
 from core.home_content import FEATURED_FAMILY, course_catalog
 from courses.models.cohort import Cohort, Course
 from test_support.course_catalog import (
@@ -43,7 +43,7 @@ class CourseCatalogSourceTests(TestCase):
         ):
             with self.subTest(module=module.name):
                 source = module.read_text(encoding="utf-8")
-                self.assertNotIn('public_projection()["courses"]', source)
+                self.assertNotIn("catalogue.courses()", source)
                 self.assertNotIn('review_projection()["course"]', source)
 
     def test_an_empty_database_renders_an_empty_catalogue_rather_than_raising(self) -> None:
@@ -261,7 +261,7 @@ class CourseSitemapSourceTests(TestCase):
 
     def test_no_course_sitemap_entry_comes_from_the_checked_projection(self) -> None:
         build_reviewed_catalog()
-        projection_paths = {str(record["public_path"]) for record in public_projection()["courses"]}
+        projection_paths = {str(record["public_path"]) for record in catalogue.courses()}
         self.assertTrue(projection_paths)
 
         response = self.client.get("/sitemaps/courses.xml")

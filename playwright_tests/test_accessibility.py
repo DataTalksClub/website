@@ -17,7 +17,7 @@ from playwright.sync_api import Browser, Page, expect
 
 from accounts.studio_sessions import SESSION_REFERENCE_KEY, revoke_staff_session
 from accounts.studio_test_support import make_studio_user
-from content import public_data
+from content import catalogue, public_data
 from content.docs_projection import docs_pages
 from content.faq_data import faq_course, faq_questions
 from content.public_data import public_projection
@@ -140,13 +140,12 @@ def _public_rendered_states(
 ) -> tuple[PublicRenderedState, ...]:
     """Build the public state/marker map from the frozen projections and fixture environment."""
 
-    public = public_projection()
     event = environment.objects["event"]
     assert isinstance(event, dict)
-    article = public["articles"][0]
-    book = public["books"][0]
-    public_course = public["courses"][0]
-    wiki = public["wiki"][0]
+    article = catalogue.articles()[0]
+    book = catalogue.books()[0]
+    public_course = catalogue.courses()[0]
+    wiki = catalogue.wiki_pages()[0]
     faq = _faq_anchor_sample()
     speaker = event["speakers"][0]
     docs = next(
@@ -297,10 +296,10 @@ def accessibility_environment() -> AccessibilityEnvironment:
     if database_event is not None:
         event = {**event, "public_path": canonical_detail_path(database_event.id)}
     person_path = event["speakers"][0]["public_path"]
-    article = public["articles"][0]
-    podcast = next(record for record in public["podcasts"] if record.get("transcript"))
-    book = public["books"][0]
-    public_course = public["courses"][0]
+    article = catalogue.articles()[0]
+    podcast = next(record for record in catalogue.podcasts() if record.get("transcript"))
+    book = catalogue.books()[0]
+    public_course = catalogue.courses()[0]
     Cohort.objects.get_or_create(
         slug=public_course["slug"],
         defaults={
@@ -309,7 +308,7 @@ def accessibility_environment() -> AccessibilityEnvironment:
             "visible": True,
         },
     )
-    wiki = public["wiki"][0]
+    wiki = catalogue.wiki_pages()[0]
     faq = _faq_anchor_sample()
     course_route = {
         "course_slug": course.course.slug,

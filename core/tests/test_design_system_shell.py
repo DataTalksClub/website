@@ -186,7 +186,7 @@ class DesignFiveAShellTests(TestCase):
             visible=True,
         )
         cls.episode = next(iter(public_projection()["podcasts_by_slug"].values()))
-        cls.wiki_page = public_projection()["wiki"][0]
+        cls.wiki_page = catalogue.wiki_pages()[0]
         cls.person = catalogue.people_by_slug()["alexeygrigorev"]
         cls.article = catalogue.articles()[0]
         # Events are database rows: the shell comparison covers the event page

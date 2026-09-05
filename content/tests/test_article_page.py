@@ -29,7 +29,6 @@ from content.article_content import (
     article_view,
     prose_sections,
 )
-from content.public_data import public_projection
 from core.home_content import published_display, reading_minutes
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -71,7 +70,6 @@ def _richest_article() -> dict:
 
 class ArticleCompositionTests(TestCase):
     def test_every_article_composes_without_invention(self) -> None:
-        public_projection()
         people = catalogue.people_by_slug()
         records = catalogue.articles()
 
@@ -393,7 +391,6 @@ class ArticlePageTests(TestCase):
         self.assertEqual(response.content.decode().count('href="/blog"'), 2)
 
     def test_the_byline_keeps_every_author_their_link_and_their_portrait(self) -> None:
-        public_projection()
         article = next(
             record for record in catalogue.articles() if len(record["author_profiles"]) > 1
         )
