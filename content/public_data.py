@@ -446,11 +446,48 @@ def _editorial_route_manifest_digest(manifest: dict[str, Any]) -> str:
 
 @lru_cache(maxsize=1)
 def _manifest_event_identity_snapshot() -> tuple[tuple[str, int, str], ...]:
+    # Absent manifest is a valid empty state (default runtime after the snapshot
+    # moved to temporary/content/).  Only an explicit prod-ingest run names the
+    # helper manifest; a present-but-invalid file still fails closed.
+    manifest_path = _resolve_identity_manifest_path()
+    if not manifest_path.is_file():
+        return ()
     try:
-        manifest = load_identity_manifest(EVENT_IDENTITY_MANIFEST)
+        manifest = load_identity_manifest(manifest_path)
     except EventIdentityError as exc:
         raise ImproperlyConfigured("Public Event identity manifest is invalid.") from exc
     return tuple((str(item.id), item.public_id, item.slug) for item in manifest.events)
+
+
+def _empty_public_projection() -> dict[str, Any]:
+    """Return the default empty catalogue used when no projection is present.
+
+    Hubs render empty, detail lookups miss (404), sitemaps list only static
+    paths.  No ImproperlyConfigured is raised: an absent snapshot is the normal
+    state, not a deployment failure.  The migration helper under
+    temporary/content/ is read only when explicitly requested.
+    """
+
+    manifest: dict[str, Any] = {
+        "schema_version": 1,
+        "selection_mode": EXPECTED_SELECTION,
+        "counts": {key: 0 for key in REQUIRED_COUNT_KEYS},
+        "wiki_assets": {},
+        "absent": True,
+    }
+    projection: dict[str, Any] = {"manifest": manifest}
+    for name in COLLECTION_NAMES:
+        projection[name] = ()
+        projection[f"{name}_by_slug"] = {}
+        projection[f"{name}_by_path"] = {}
+    projection["events_by_source_identity"] = {}
+    projection["events_by_identity_id"] = {}
+    projection["podcast_platforms"] = ()
+    projection["wiki_graph"] = {"nodes": [], "links": [], "counts": {"nodes": 0, "links": 0}}
+    projection["wiki_search"] = {"docs": []}
+    projection["editorial_route_migration"] = {"finals": [], "aliases": []}
+    projection["editorial_route_aliases_by_path"] = {}
+    return projection
 
 
 def _runtime_event_identity_snapshot() -> tuple[tuple[str, int, str], ...]:
@@ -728,7 +765,15 @@ def _validate_editorial_route_manifest(
 
 @lru_cache(maxsize=1)
 def _checked_public_projection() -> dict[str, Any]:
-    manifest = _read_json(PROJECTION_ROOT / "manifest.json")
+    root = _resolve_projection_root()
+    try:
+        manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise ImproperlyConfigured(
+            "Public projection is absent (no manifest.json; default catalogues are empty)."
+        ) from exc
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ImproperlyConfigured("Public projection cannot load manifest.json.") from exc
     if manifest.get("schema_version") != 1 or manifest.get("selection_mode") != EXPECTED_SELECTION:
         raise ImproperlyConfigured("Unsupported public projection selection.")
     # The manifest declares its own counts for this build; they are not pinned to a fixed
@@ -757,7 +802,7 @@ def _checked_public_projection() -> dict[str, Any]:
         or media_storage["count"] != counts["media"]
     ):
         raise ImproperlyConfigured("Public projection media storage declaration mismatch.")
-    if manifest.get("tree_sha256") != _tree_sha256(PROJECTION_ROOT):
+    if manifest.get("tree_sha256") != _tree_sha256(root):
         raise ImproperlyConfigured("Public projection complete-tree digest mismatch.")
     sources = manifest.get("sources", {})
     if {key: value.get("revision") for key, value in sources.items()} != EXPECTED_REVISIONS:
@@ -777,14 +822,14 @@ def _checked_public_projection() -> dict[str, Any]:
     if projection_rules.get("event_record_schema_version") != EVENT_RECORD_SCHEMA_VERSION:
         raise ImproperlyConfigured("Public event record schema version mismatch.")
     try:
-        identity_manifest = load_identity_manifest(EVENT_IDENTITY_MANIFEST)
+        identity_manifest = load_identity_manifest(_resolve_identity_manifest_path())
     except EventIdentityError as exc:
         raise ImproperlyConfigured("Public event identity manifest is invalid.") from exc
     # The checked projection retains its accepted UUID-era manifest digest as migration
     # evidence.  Runtime binds separately to the current schema-v2 numeric route manifest.
     current_identity_binding = {
         "path": "events/event_identity_manifest.json",
-        "sha256": _sha256(EVENT_IDENTITY_MANIFEST),
+        "sha256": _sha256(_resolve_identity_manifest_path()),
         "schema_version": identity_manifest.schema_version,
         "counts": {
             "events": len(identity_manifest.events),
@@ -823,7 +868,7 @@ def _checked_public_projection() -> dict[str, Any]:
     artifacts = manifest.get("artifacts", {})
     for name in COLLECTION_NAMES:
         filename = f"{name}.json"
-        path = PROJECTION_ROOT / filename
+        path = root / filename
         if _sha256(path) != artifacts.get(filename):
             raise ImproperlyConfigured(f"Public projection digest mismatch: {filename}.")
         records = _read_json(path)
@@ -852,7 +897,7 @@ def _checked_public_projection() -> dict[str, Any]:
                             f"Public projection media reference does not resolve: {name}."
                         )
 
-    platform_path = PROJECTION_ROOT / PODCAST_PLATFORM_FILENAME
+    platform_path = root / PODCAST_PLATFORM_FILENAME
     if _sha256(platform_path) != artifacts.get(PODCAST_PLATFORM_FILENAME):
         raise ImproperlyConfigured("Public podcast platform artifact digest mismatch.")
     platforms = _read_json(platform_path)
@@ -907,7 +952,7 @@ def _checked_public_projection() -> dict[str, Any]:
 
     for name in ("wiki_graph", "wiki_search"):
         filename = f"{name}.json"
-        path = PROJECTION_ROOT / filename
+        path = root / filename
         if _sha256(path) != artifacts.get(filename):
             raise ImproperlyConfigured(f"Public projection digest mismatch: {filename}.")
         projection[name] = _read_json(path)
@@ -992,7 +1037,7 @@ def _checked_public_projection() -> dict[str, Any]:
         for podcast in projection["podcasts"]
     ):
         raise ImproperlyConfigured("Public projection transcript provenance mismatch.")
-    route_path = PROJECTION_ROOT / EDITORIAL_ROUTE_MIGRATION_FILENAME
+    route_path = root / EDITORIAL_ROUTE_MIGRATION_FILENAME
     if _sha256(route_path) != artifacts.get(EDITORIAL_ROUTE_MIGRATION_FILENAME):
         raise ImproperlyConfigured("Public projection editorial route artifact digest mismatch.")
     route_manifest = _read_json(route_path)
@@ -1115,9 +1160,19 @@ def public_projection() -> dict[str, Any]:
     The file-backed projection is cached, while the numeric event IDs come from the database.  A
     compact identity snapshot keeps repeated public requests fast and automatically invalidates
     the adapted projection after an event is imported or edited.
+
+    When no projection manifest is present (the default after the snapshot moved to
+    temporary/content/), returns an empty catalogue instead of raising: hubs render
+    empty, detail lookups miss (404), sitemaps list only static paths.  The helper
+    snapshot is read only when PUBLIC_PROJECTION_ROOT names it explicitly.
     """
 
-    return _adapted_public_projection(_runtime_event_identity_snapshot())
+    try:
+        return _adapted_public_projection(_runtime_event_identity_snapshot())
+    except ImproperlyConfigured as exc:
+        if "absent" in str(exc).lower():
+            return _empty_public_projection()
+        raise
 
 
 def event_groups(now: datetime | None = None) -> EventGroups:
