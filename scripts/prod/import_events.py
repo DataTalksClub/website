@@ -684,7 +684,8 @@ def reconcile_duplicate_luma_identities(
 ) -> dict[str, Any]:
     """Read a Luma export and reconcile the duplicates a previous run minted."""
 
-    from events.importers import ProtectedSourceError, discover_luma_events
+    from events.importers import ProtectedSourceError
+    from scripts.prod.registration_sources.luma import discover_luma_events
 
     try:
         discovered = discover_luma_events(luma_source)
