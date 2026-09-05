@@ -964,6 +964,7 @@ class HomepageWikiGraphTests(TestCase):
         from core.home_content import wiki_graph
 
         graph = wiki_graph()
+        assert graph is not None, "the reviewed wiki publishes the homepage hub"
         rendered = self._rendered_layouts()
         for layout in graph.layouts:
             svg = rendered[layout.kind]
@@ -995,6 +996,7 @@ class HomepageWikiGraphTests(TestCase):
         from core.home_content import wiki_graph
 
         graph = wiki_graph()
+        assert graph is not None, "the reviewed wiki publishes the homepage hub"
         rendered = self._rendered_layouts()
         for layout in graph.layouts:
             with self.subTest(layout=layout.kind):
@@ -1016,6 +1018,7 @@ class HomepageWikiGraphTests(TestCase):
         from core.home_content import wiki_graph
 
         graph = wiki_graph()
+        assert graph is not None, "the reviewed wiki publishes the homepage hub"
         body = self.client.get(reverse("home")).content.decode()
         self.assertIn("data-home-graph", body)
         self.assertIn(f'data-graph-url="{reverse("wiki-graph-json")}"', body)

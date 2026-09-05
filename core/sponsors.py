@@ -736,12 +736,6 @@ def public_supporter_history(*, using: str = "default") -> tuple[str, ...]:
         return ()
 
 
-#: The reviewed public sponsor directory: the four currently featured
-#: sponsors (``FEATURED_SUPPORTERS`` before this moved to the database) and
-#: every other organization DataTalks.Club has publicly thanked
-#: (``PAST_SUPPORTERS``).  See :func:`import_public_sponsor_directory`.
-REVIEWED_SPONSOR_DIRECTORY_PATH = Path(__file__).resolve().parent / "sponsor_directory.json"
-
 _DIRECTORY_REQUIRED_FIELDS = (
     "key",
     "name",
@@ -787,12 +781,14 @@ class SponsorDirectoryImportReport:
         return self.created == 0 and self.updated == 0
 
 
-def load_reviewed_sponsor_directory(
-    path: Path | None = None,
-) -> tuple[SponsorDirectoryEntry, ...]:
-    """Parse and validate the checked reviewed directory without touching the database."""
+def load_reviewed_sponsor_directory(source: Path) -> tuple[SponsorDirectoryEntry, ...]:
+    """Parse and validate a reviewed directory file without touching the database.
 
-    source = path or REVIEWED_SPONSOR_DIRECTORY_PATH
+    The caller supplies the location. Sponsors are database rows; a reviewed
+    file is one-time ingestion input, and where that input sits is a fact about
+    the ingest rather than about this module.
+    """
+
     try:
         payload = json.loads(source.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
@@ -937,7 +933,7 @@ def _import_reconcile(entry: SponsorDirectoryEntry, sponsor: Sponsor) -> bool:
 
 
 @transaction.atomic
-def import_public_sponsor_directory(path: Path | None = None) -> SponsorDirectoryImportReport:
+def import_public_sponsor_directory(path: Path) -> SponsorDirectoryImportReport:
     """Apply the reviewed sponsor directory, keyed on each sponsor's ``key``.
 
     Every write goes through :func:`create_sponsor`, :func:`update_sponsor`,

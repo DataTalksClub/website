@@ -296,10 +296,18 @@ def _wiki_pages() -> dict[str, dict[str, Any]]:
     return {str(page["slug"]): page for page in public_projection()["wiki"]}
 
 
-def _wiki_topic(pages: dict[str, dict[str, Any]], slug: str) -> WikiTopic:
+def _wiki_topic(pages: dict[str, dict[str, Any]], slug: str) -> WikiTopic | None:
+    """The topic for ``slug``, or ``None`` when the wiki does not publish it.
+
+    The homepage names the topics it would like to show, but the wiki decides
+    which pages exist. A page the wiki has not published (an un-ingested
+    database publishes none at all) drops its card rather than taking the
+    homepage down with it.
+    """
+
     page = pages.get(slug)
     if page is None:
-        raise ImproperlyConfigured(f"Public wiki projection has no {slug} page.")
+        return None
     return WikiTopic(
         slug=slug,
         title=str(page["title"]),
@@ -310,26 +318,35 @@ def _wiki_topic(pages: dict[str, dict[str, Any]], slug: str) -> WikiTopic:
 
 def wiki_topics() -> tuple[WikiTopic, ...]:
     pages = _wiki_pages()
-    return tuple(_wiki_topic(pages, slug) for slug in WIKI_TOPICS)
+    topics = (_wiki_topic(pages, slug) for slug in WIKI_TOPICS)
+    return tuple(topic for topic in topics if topic is not None)
 
 
-def wiki_graph() -> WikiGraph:
-    """Draw the hub and its real wiki relations, never an invented edge."""
+def wiki_graph() -> WikiGraph | None:
+    """Draw the hub and its real wiki relations, never an invented edge.
+
+    ``None`` when the wiki does not publish the hub, so the homepage simply
+    draws no graph. A published hub that does not link to a named spoke is a
+    different matter -- the graph would be drawing an edge that does not exist
+    -- and still fails loudly.
+    """
 
     pages = _wiki_pages()
     hub_page = pages.get(WIKI_GRAPH_HUB)
-    if hub_page is None:
-        raise ImproperlyConfigured(f"Public wiki projection has no {WIKI_GRAPH_HUB} page.")
+    hub = _wiki_topic(pages, WIKI_GRAPH_HUB)
+    if hub_page is None or hub is None:
+        return None
     related = {
         str(relation["href"]) for relation in hub_page["relations"] if relation["type"] == "wiki"
     }
     spokes: list[WikiTopic] = []
     for slug in WIKI_GRAPH_SPOKES:
         topic = _wiki_topic(pages, slug)
+        if topic is None:
+            continue
         if topic.public_path not in related:
             raise ImproperlyConfigured(f"{WIKI_GRAPH_HUB} does not link to {slug}.")
         spokes.append(topic)
-    hub = _wiki_topic(pages, WIKI_GRAPH_HUB)
     return WikiGraph(
         hub=hub,
         spokes=tuple(spokes),

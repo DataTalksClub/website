@@ -7,6 +7,7 @@ from unittest import mock
 from django.db import DatabaseError, OperationalError, close_old_connections, connections
 from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
+from django.utils.html import escape
 
 from core.idempotency import IdempotencyConflict
 from core.models import AuditEvent, RevisionConflict, Sponsor
@@ -17,7 +18,6 @@ from core.sponsors import (
     create_sponsor,
     export_sponsor_directory,
     get_sponsor,
-    import_public_sponsor_directory,
     list_sponsors,
     public_events_hub_sponsors,
     public_sponsors,
@@ -342,26 +342,42 @@ class SponsorServiceTests(TestCase):
         self.assertEqual(len(items), 1)
 
 
+FEATURED = (
+    ("northwind", "Northwind Analytics", "Warehousing for teams that ship"),
+    ("contoso", "Contoso Data", "Streaming pipelines without the pager"),
+)
+ARCHIVED_SUPPORTER = ("fabrikam", "Fabrikam & Co")
+
+
 class SponsorPublicSurfaceTests(TestCase):
     """The homepage and ``/sponsors`` render the ``public_directory`` placement.
 
-    ``setUp`` imports the reviewed set (``core/sponsor_directory.json``)
-    itself, the same way production does, rather than relying on
-    ``test_support.reference_data`` to have loaded it globally the way the
-    reviewed testimonials are -- this file already has an extensive suite
-    that assumes an empty ``Sponsor`` table at the start of a test, and
-    seeding it globally would silently change what every one of those tests
-    counts. A Studio- or API-created sponsor assigned to the same placement
-    (position 5, after the four reviewed ones) proves the page reads the
-    database and not a frozen set of four -- the same "not merely the old
-    hardcoded content by coincidence" proof the reviewed portraits get in
-    ``courses.tests.test_testimonials``.
+    ``setUp`` writes its sponsors through the shared service, the same way
+    Studio and the admin API do, rather than relying on
+    ``test_support.reference_data`` to have seeded any globally -- this file
+    has an extensive suite that assumes an empty ``Sponsor`` table at the start
+    of a test, and seeding it globally would silently change what every one of
+    those tests counts. The ordering and the archived supporter below prove the
+    pages read the database, in placement order, and nothing else.
     """
 
     def setUp(self) -> None:
-        import_public_sponsor_directory()
+        for position, (key, name, description) in enumerate(FEATURED, start=1):
+            _create(
+                _payload(
+                    key=key,
+                    lifecycle="active",
+                    name=name,
+                    description=description,
+                    logo_asset_key=f"sponsors/{key}.png",
+                    assignments=[
+                        {"placement": "public_directory", "position": position, "enabled": True},
+                    ],
+                )
+            )
         _create(
             _payload(
+                key="open-data-partner",
                 lifecycle="active",
                 name="Open Data Partner",
                 description="Keeping community learning free",
@@ -370,11 +386,24 @@ class SponsorPublicSurfaceTests(TestCase):
                 ],
             )
         )
+        archived_key, archived_name = ARCHIVED_SUPPORTER
+        archived = _create(
+            _payload(key=archived_key, lifecycle="draft", name=archived_name, assignments=[])
+        ).sponsor
+        archive_sponsor(
+            sponsor_id=archived["id"],
+            expected_revision=archived["revision"],
+            confirmed=True,
+            source="studio",
+            idempotency_key=str(uuid.uuid4()),
+            actor_ref="user:188",
+        )
 
     def test_homepage_and_directory_share_the_public_sponsor_source(self) -> None:
+        featured_names = [name for _key, name, _description in FEATURED]
         self.assertEqual(
             [sponsor["name"] for sponsor in public_sponsors()],
-            ["dltHub", "Astronomer", "Kestra", "Snowplow", "Open Data Partner"],
+            [*featured_names, "Open Data Partner"],
         )
 
         home = self.client.get(reverse("home"))
@@ -382,20 +411,21 @@ class SponsorPublicSurfaceTests(TestCase):
 
         self.assertEqual(home.status_code, 200)
         self.assertContains(home, 'id="sponsors-heading"')
-        for name in ("dltHub", "Astronomer", "Kestra", "Snowplow", "Open Data Partner"):
+        for name in (*featured_names, "Open Data Partner"):
             self.assertContains(home, f'alt="{name}"')
         self.assertContains(home, f'href="{reverse("sponsors")}"')
         self.assertEqual(directory.status_code, 200)
         self.assertContains(directory, "Our Sponsors")
         self.assertNotContains(directory, "Our supporters")
-        self.assertContains(directory, "Weights &amp; Biases")
-        self.assertContains(directory, "/static/core/sponsors/dlthub.png")
-        self.assertContains(directory, "production-minded data ingestion")
-        self.assertContains(directory, "LLM Zoomcamp")
+        for _key, name, description in FEATURED:
+            self.assertContains(directory, name)
+            self.assertContains(directory, description)
         self.assertContains(directory, "Open Data Partner")
         self.assertContains(directory, "Keeping community learning free")
-        self.assertNotContains(directory, "Community partners")
+        # An archived sponsor keeps its thanks without keeping its placement.
+        self.assertContains(directory, escape(ARCHIVED_SUPPORTER[1]))
         self.assertContains(directory, "With thanks to every supporter")
+        self.assertNotContains(directory, "Community partners")
         self.assertNotContains(directory, 'href="/mediakit/')
         self.assertContains(
             directory,

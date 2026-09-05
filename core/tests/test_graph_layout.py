@@ -110,8 +110,10 @@ class DrawnGraphDataTests(TestCase):
     """The drawings the two live pages actually make, from the checked data."""
 
     def test_neither_drawn_graph_overlaps_itself_or_leaves_its_frame(self) -> None:
+        homepage_graph = wiki_graph()
+        assert homepage_graph is not None, "the reviewed wiki publishes the homepage hub"
         for name, layouts in (
-            ("homepage", wiki_graph().layouts),
+            ("homepage", homepage_graph.layouts),
             ("wiki graph", busiest_neighbourhood().layouts),
         ):
             with self.subTest(page=name):

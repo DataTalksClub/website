@@ -40,7 +40,7 @@ if str(PROJECT_ROOT) not in sys.path:
 SYNC_MODEL = "one-time"
 BOOTSTRAPS_EMPTY_DATABASE = True
 
-REVIEWED_PATH = PROJECT_ROOT / "core" / "sponsor_directory.json"
+REVIEWED_PATH = PROJECT_ROOT / "temporary" / "content" / "sponsor_directory.json"
 
 
 class SponsorDirectoryImportFailure(RuntimeError):
@@ -65,10 +65,11 @@ def run(*, path: Path | None = None, apply: bool = True) -> dict[str, Any]:
     )
 
     try:
-        entries = load_reviewed_sponsor_directory(path)
+        source = path or REVIEWED_PATH
+        entries = load_reviewed_sponsor_directory(source)
         if not apply:
             return {"total": len(entries), "created": 0, "updated": 0, "applied": False}
-        report = import_public_sponsor_directory(path)
+        report = import_public_sponsor_directory(source)
     except SponsorDirectoryImportError as error:
         raise SponsorDirectoryImportFailure(str(error)) from error
     return {

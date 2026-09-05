@@ -80,7 +80,11 @@ def home(request: HttpRequest):
     projection = public_projection()
     events = event_groups()
     catalog = course_catalog()
-    article = projection["articles"][0]
+    # An empty catalogue is a normal state, not a failure: content arrives by
+    # ingest, and a database that has not been ingested yet still has a homepage.
+    # The template drops the panel whose record is missing.
+    article = next(iter(projection["articles"]), None)
+    podcast = next(iter(ordered_podcasts(projection["podcasts"])), None)
     upcoming = tuple(
         {**event, "home_time": event_time_display(event["starts_at"])}
         for event in events.upcoming[:3]
@@ -112,9 +116,9 @@ def home(request: HttpRequest):
             "course_family_word": spelled_count(len(catalog)),
             "member_stories": homepage_testimonials(),
             "article": article,
-            "article_published": published_display(article["published"]),
-            "article_minutes": reading_minutes(article),
-            "podcast": ordered_podcasts(projection["podcasts"])[0],
+            "article_published": published_display(article["published"]) if article else "",
+            "article_minutes": reading_minutes(article) if article else 0,
+            "podcast": podcast,
             "wiki_topics": wiki_topics(),
             "wiki_graph": wiki_graph(),
             "counts": projection["manifest"]["counts"],

@@ -1,8 +1,10 @@
 """The reviewed public sponsor directory: its logo guard, import, and read paths.
 
-``core/sponsor_directory.json`` replaced ``core.sponsor_history``'s hardcoded
-``FEATURED_SUPPORTERS``/``PAST_SUPPORTERS`` tuples.  This file covers the three
-things that moved with it: :attr:`core.models.Sponsor.logo_url`'s never-raise
+A reviewed directory file replaced ``core.sponsor_history``'s hardcoded
+``FEATURED_SUPPORTERS``/``PAST_SUPPORTERS`` tuples.  Sponsors are database rows
+now; a reviewed file is one-time ingestion input, so these tests write the
+input they import rather than asserting the contents of a checked-in one.  This
+file covers the three things that moved: :attr:`core.models.Sponsor.logo_url`'s never-raise
 guard (the same treatment ``courses.models.Testimonial.portrait_url`` got),
 the reviewed file's loader and importer
 (:mod:`courses.tests.test_testimonials` is the template), and
@@ -37,7 +39,73 @@ from core.sponsors import (
     public_supporter_history,
 )
 
-REVIEWED_PATH = Path(__file__).resolve().parents[1] / "sponsor_directory.json"
+#: A reviewed directory the tests own: two featured sponsors and two the site
+#: has stopped featuring.  Its shape is the contract; its contents are nobody's
+#: business but this file's.
+REVIEWED_SPONSORS = (
+    {
+        "key": "northwind",
+        "name": "Northwind Analytics",
+        "url": "https://northwind.example.invalid",
+        "lifecycle": "active",
+        "description": "A synthetic featured sponsor.",
+        "logo_asset_key": "sponsors/northwind.png",
+        "position": 1,
+    },
+    {
+        "key": "contoso",
+        "name": "Contoso Data",
+        "url": "https://contoso.example.invalid",
+        "lifecycle": "active",
+        "description": "A second synthetic featured sponsor.",
+        "logo_asset_key": "sponsors/contoso.png",
+        "position": 2,
+    },
+    {
+        "key": "adventureworks",
+        "name": "AdventureWorks",
+        "url": "https://adventureworks.example.invalid",
+        "lifecycle": "archived",
+        "description": "A synthetic sponsor the site has thanked.",
+        "logo_asset_key": "sponsors/adventureworks.png",
+        "position": None,
+    },
+    {
+        "key": "fabrikam",
+        "name": "fabrikam",
+        "url": "https://fabrikam.example.invalid",
+        "lifecycle": "archived",
+        "description": "A second synthetic archived sponsor.",
+        "logo_asset_key": "sponsors/fabrikam.png",
+        "position": None,
+    },
+)
+REVIEWED_TOTAL = len(REVIEWED_SPONSORS)
+REVIEWED_ACTIVE = tuple(
+    entry["name"] for entry in REVIEWED_SPONSORS if entry["lifecycle"] == "active"
+)
+
+
+def _write_json(test: TestCase, payload: object) -> Path:
+    """Write ``payload`` to a scratch file the test cleans up, and return its path."""
+
+    scratch = Path(__file__).resolve().parents[2] / ".tmp"
+    scratch.mkdir(parents=True, exist_ok=True)
+    handle = tempfile.NamedTemporaryFile(
+        "w", suffix=".json", dir=scratch, delete=False, encoding="utf-8"
+    )
+    with handle:
+        json.dump(payload, handle)
+    path = Path(handle.name)
+    test.addCleanup(path.unlink, True)
+    return path
+
+
+def _reviewed_directory(test: TestCase, **overrides: object) -> Path:
+    sponsors = [dict(entry) for entry in REVIEWED_SPONSORS]
+    for entry in sponsors:
+        entry.update(overrides.get(str(entry["key"]), {}))  # type: ignore[call-overload]
+    return _write_json(test, {"schema_version": 1, "sponsors": sponsors})
 
 
 def _unsaved(**overrides: object) -> Sponsor:
@@ -196,28 +264,16 @@ class SponsorLogoDegradesOnThePublicPageTests(TestCase):
 
 class ReviewedSponsorDirectoryLoadTests(TestCase):
     def _write(self, payload: object) -> Path:
-        scratch = Path(__file__).resolve().parents[2] / ".tmp"
-        scratch.mkdir(parents=True, exist_ok=True)
-        handle = tempfile.NamedTemporaryFile(
-            "w", suffix=".json", dir=scratch, delete=False, encoding="utf-8"
-        )
-        with handle:
-            json.dump(payload, handle)
-        path = Path(handle.name)
-        self.addCleanup(path.unlink, True)
-        return path
+        return _write_json(self, payload)
 
-    def test_the_checked_in_file_carries_33_entries_four_of_them_featured(self) -> None:
-        entries = load_reviewed_sponsor_directory()
+    def test_a_well_formed_file_loads_as_validated_entries(self) -> None:
+        entries = load_reviewed_sponsor_directory(_reviewed_directory(self))
 
-        self.assertEqual(len(entries), 33)
+        self.assertEqual(len(entries), REVIEWED_TOTAL)
         active = [entry for entry in entries if entry["lifecycle"] == "active"]
         archived = [entry for entry in entries if entry["lifecycle"] == "archived"]
-        self.assertEqual(
-            [entry["name"] for entry in active],
-            ["dltHub", "Astronomer", "Kestra", "Snowplow"],
-        )
-        self.assertEqual(len(archived), 29)
+        self.assertEqual([entry["name"] for entry in active], list(REVIEWED_ACTIVE))
+        self.assertEqual(len(archived), REVIEWED_TOTAL - len(REVIEWED_ACTIVE))
         for entry in active:
             self.assertIsNotNone(entry["position"])
             self.assertTrue(entry["logo_asset_key"].startswith("sponsors/"))
@@ -278,32 +334,44 @@ class ReviewedSponsorDirectoryLoadTests(TestCase):
 class SponsorDirectoryImportTests(TestCase):
     """The reviewed set is imported, not migrated: replay is safe and bounded."""
 
-    def test_it_bootstraps_an_empty_table_and_reports_what_it_created(self) -> None:
-        report = import_public_sponsor_directory()
+    def setUp(self) -> None:
+        self.reviewed = _reviewed_directory(self)
 
-        self.assertEqual((report.total, report.created, report.updated), (33, 33, 0))
+    def test_it_bootstraps_an_empty_table_and_reports_what_it_created(self) -> None:
+        report = import_public_sponsor_directory(self.reviewed)
+
+        self.assertEqual(
+            (report.total, report.created, report.updated),
+            (REVIEWED_TOTAL, REVIEWED_TOTAL, 0),
+        )
         self.assertFalse(report.replayed)
-        self.assertEqual(Sponsor.objects.count(), 33)
-        self.assertEqual(Sponsor.objects.filter(lifecycle=Sponsor.Lifecycle.ACTIVE).count(), 4)
-        self.assertEqual(Sponsor.objects.filter(lifecycle=Sponsor.Lifecycle.ARCHIVED).count(), 29)
+        self.assertEqual(Sponsor.objects.count(), REVIEWED_TOTAL)
+        self.assertEqual(
+            Sponsor.objects.filter(lifecycle=Sponsor.Lifecycle.ACTIVE).count(),
+            len(REVIEWED_ACTIVE),
+        )
+        self.assertEqual(
+            Sponsor.objects.filter(lifecycle=Sponsor.Lifecycle.ARCHIVED).count(),
+            REVIEWED_TOTAL - len(REVIEWED_ACTIVE),
+        )
         self.assertEqual(
             SponsorPlacementAssignment.objects.filter(
                 placement_key=SPONSOR_PLACEMENT_PUBLIC_DIRECTORY
             ).count(),
-            4,
+            len(REVIEWED_ACTIVE),
         )
         self.assertEqual(
             [sponsor["name"] for sponsor in public_sponsors()],
-            ["dltHub", "Astronomer", "Kestra", "Snowplow"],
+            list(REVIEWED_ACTIVE),
         )
 
     def test_replaying_the_reviewed_file_writes_nothing(self) -> None:
-        import_public_sponsor_directory()
+        import_public_sponsor_directory(self.reviewed)
         before = Sponsor.objects.count()
 
-        report = import_public_sponsor_directory()
+        report = import_public_sponsor_directory(self.reviewed)
 
-        self.assertEqual(report.total, 33)
+        self.assertEqual(report.total, REVIEWED_TOTAL)
         self.assertTrue(report.replayed)
         self.assertEqual(Sponsor.objects.count(), before)
 
@@ -320,7 +388,7 @@ class SponsorDirectoryImportTests(TestCase):
             actor_ref="user:188",
         ).sponsor
 
-        import_public_sponsor_directory()
+        import_public_sponsor_directory(self.reviewed)
 
         refreshed = Sponsor.objects.get(key="editor-added")
         self.assertEqual(refreshed.name, "Editor Added")
@@ -330,44 +398,34 @@ class SponsorDirectoryImportTests(TestCase):
         """Archived sponsors cannot be edited directly; the import reactivates,
         edits, and re-archives -- the same steps a Studio editor would take."""
 
-        import_public_sponsor_directory()
-        archived_key = "wikimedia"
+        import_public_sponsor_directory(self.reviewed)
+        archived_key = "adventureworks"
         before = Sponsor.objects.get(key=archived_key)
         self.assertEqual(before.lifecycle, Sponsor.Lifecycle.ARCHIVED)
 
-        corrected = json.loads(REVIEWED_PATH.read_text(encoding="utf-8"))
-        for entry in corrected["sponsors"]:
-            if entry["key"] == archived_key:
-                entry["name"] = "Wikimedia Foundation"
-        scratch = Path(__file__).resolve().parents[2] / ".tmp"
-        scratch.mkdir(parents=True, exist_ok=True)
-        handle = tempfile.NamedTemporaryFile(
-            "w", suffix=".json", dir=scratch, delete=False, encoding="utf-8"
-        )
-        with handle:
-            json.dump(corrected, handle)
-        path = Path(handle.name)
-        self.addCleanup(path.unlink, True)
+        corrected = _reviewed_directory(self, **{archived_key: {"name": "AdventureWorks Group"}})
 
-        report = import_public_sponsor_directory(path)
+        report = import_public_sponsor_directory(corrected)
 
         self.assertEqual(report.updated, 1)
         after = Sponsor.objects.get(key=archived_key)
-        self.assertEqual(after.name, "Wikimedia Foundation")
+        self.assertEqual(after.name, "AdventureWorks Group")
         self.assertEqual(after.lifecycle, Sponsor.Lifecycle.ARCHIVED)
         self.assertFalse(after.assignments.exists())
 
 
 class PublicSupporterHistoryTests(TestCase):
     def test_active_and_archived_sponsors_are_named_alphabetically(self) -> None:
-        import_public_sponsor_directory()
+        import_public_sponsor_directory(_reviewed_directory(self))
 
         names = public_supporter_history()
 
-        self.assertEqual(len(names), 33)
+        self.assertEqual(len(names), REVIEWED_TOTAL)
         self.assertEqual(list(names), sorted(names, key=str.casefold))
-        self.assertIn("dltHub", names)
-        self.assertIn("WikiMedia", names)
+        # Case-insensitive ordering is the point: a lowercase name sorts by its
+        # letters, not behind every capitalised one.
+        self.assertIn("fabrikam", names)
+        self.assertIn("Northwind Analytics", names)
 
     def test_a_draft_sponsor_is_excluded(self) -> None:
         create_sponsor(
