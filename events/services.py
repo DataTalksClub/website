@@ -23,7 +23,10 @@ from .identity import (
     EventIdentityError,
     EventIdentityNotFound,
     canonical_detail_path,
+    canonical_event_date,
     event_public_record,
+    normalize_event_title,
+    provider_event_date,
     resolve_source_identity,
     resolve_uuid,
 )
@@ -474,8 +477,11 @@ def dry_run_source(
 # date, or a title that is merely similar) is left unresolved, reported under
 # its own reason so a human can go add the right entry to the
 # current-registration-input JSON file.
-_PROVIDER_EVENT_DATE = re.compile(r"^(\d{4}-\d{2}-\d{2})")
-_CANONICAL_SOURCE_KEY_DATE = re.compile(r"^(\d{4}-\d{2}-\d{2})-")
+#
+# The normalization and the date reads themselves live in ``events.identity``,
+# beside the duplicate-creation guard that applies the same rule to provider
+# discovery, so the two exact-match tests cannot drift into two different
+# notions of "equal".
 
 
 @dataclass(frozen=True, slots=True)
@@ -488,24 +494,6 @@ class ProviderEventMetadata:
     external_event_identifier: str
     title: str
     start_at: str
-
-
-def _normalized_title(title: str) -> str:
-    return " ".join(title.split()).casefold()
-
-
-def _canonical_event_date(source_key: str) -> str | None:
-    """The event's date, read from its canonical ``YYYY-MM-DD-slug`` source key.
-
-    Some canonical events (older podcast-style entries) have no date component
-    in their source key at all. Those events simply never participate in the
-    date comparison below -- they cannot be the "only canonical event on this
-    date" for any provider event, so a provider event that would otherwise
-    match one stays unresolved.
-    """
-
-    match = _CANONICAL_SOURCE_KEY_DATE.match(source_key)
-    return match.group(1) if match else None
 
 
 def resolve_unmatched_aggregates(
@@ -539,7 +527,7 @@ def resolve_unmatched_aggregates(
 
     events_by_date: dict[str, list[Event]] = defaultdict(list)
     for event in Event.objects.all():
-        date = _canonical_event_date(event.source_key)
+        date = canonical_event_date(event.source_key)
         if date is not None:
             events_by_date[date].append(event)
 
@@ -572,11 +560,10 @@ def resolve_unmatched_aggregates(
         if metadata is None or not metadata.title or not metadata.start_at:
             _leave_unresolved(aggregate, reason="provider_event_metadata_unavailable")
             continue
-        date_match = _PROVIDER_EVENT_DATE.match(metadata.start_at)
-        if date_match is None:
+        date = provider_event_date(metadata.start_at)
+        if date is None:
             _leave_unresolved(aggregate, reason="provider_event_date_unparseable")
             continue
-        date = date_match.group(1)
         candidates = events_by_date.get(date, [])
         if not candidates:
             _leave_unresolved(aggregate, reason="no_canonical_event_on_date", date=date)
@@ -590,7 +577,7 @@ def resolve_unmatched_aggregates(
             )
             continue
         canonical_event = candidates[0]
-        if _normalized_title(canonical_event.title) != _normalized_title(metadata.title):
+        if normalize_event_title(canonical_event.title) != normalize_event_title(metadata.title):
             _leave_unresolved(
                 aggregate,
                 reason="title_mismatch",

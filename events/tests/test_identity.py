@@ -12,8 +12,13 @@ from django.urls import Resolver404, resolve
 
 from content.public_data import public_projection
 from events.identity import (
+    EXISTING_EVENT_AMBIGUOUS,
+    EXISTING_EVENT_DATE_UNUSABLE,
+    EXISTING_EVENT_MATCHED,
+    EXISTING_EVENT_NONE,
     EventIdentityError,
     EventIdentityNotFound,
+    ExistingEventIndex,
     canonical_detail_path,
     canonical_registration_path,
     create_event_identity,
@@ -410,3 +415,113 @@ class ProviderEventIdentityTests(TestCase):
             create_provider_event_identity(
                 provider="meetup", external_event_identifier="evt-1", title="Meetup Event"
             )
+
+
+class ExistingEventIndexTests(TestCase):
+    """The exact date-and-title test that keeps discovery from minting a duplicate.
+
+    Exact on both axes, or no match: there is no fuzzy, ranked or partial branch
+    to test because there is none to have.
+    """
+
+    def _canonical(self, *, title: str, source_key: str) -> Event:
+        return create_event_identity(
+            title=title,
+            source_repository="DataTalksClub/datatalksclub.github.io",
+            source_revision="a" * 40,
+            source_key=source_key,
+        )
+
+    def test_the_same_date_and_the_same_title_is_the_same_event(self) -> None:
+        existing = self._canonical(
+            title="Workshop On Vector Search", source_key="2026-09-08-workshop-on-vector-search"
+        )
+
+        match = ExistingEventIndex().match(
+            title="Workshop On Vector Search", start_at="2026-09-08T18:00:00.000Z"
+        )
+
+        self.assertEqual(match.outcome, EXISTING_EVENT_MATCHED)
+        self.assertTrue(match.matched)
+        assert match.event is not None
+        self.assertEqual(match.event.id, existing.id)
+        self.assertEqual(match.date, "2026-09-08")
+
+    def test_case_and_whitespace_differences_are_not_title_differences(self) -> None:
+        existing = self._canonical(
+            title="Workshop On Vector Search", source_key="2026-09-08-workshop-on-vector-search"
+        )
+
+        match = ExistingEventIndex().match(
+            title="  workshop   on VECTOR search ", start_at="2026-09-08T18:00:00.000Z"
+        )
+
+        self.assertEqual(match.outcome, EXISTING_EVENT_MATCHED)
+        assert match.event is not None
+        self.assertEqual(match.event.id, existing.id)
+
+    def test_a_merely_similar_title_on_the_same_date_is_not_a_match(self) -> None:
+        self._canonical(
+            title="Workshop On Vector Search", source_key="2026-09-08-workshop-on-vector-search"
+        )
+
+        match = ExistingEventIndex().match(
+            title="Workshop on Vector Searching", start_at="2026-09-08T18:00:00.000Z"
+        )
+
+        self.assertEqual(match.outcome, EXISTING_EVENT_NONE)
+        self.assertIsNone(match.event)
+
+    def test_the_same_title_on_another_date_is_a_different_event(self) -> None:
+        self._canonical(title="Monthly Meetup", source_key="2026-09-08-monthly-meetup")
+
+        match = ExistingEventIndex().match(
+            title="Monthly Meetup", start_at="2026-10-08T18:00:00.000Z"
+        )
+
+        self.assertEqual(match.outcome, EXISTING_EVENT_NONE)
+        self.assertEqual(match.other_dates_with_this_title, ("2026-09-08",))
+
+    def test_two_events_sharing_the_date_and_the_title_are_ambiguous(self) -> None:
+        self._canonical(title="Office Hours", source_key="2026-09-08-office-hours")
+        self._canonical(title="Office Hours", source_key="2026-09-08-office-hours-second")
+
+        match = ExistingEventIndex().match(
+            title="Office Hours", start_at="2026-09-08T18:00:00.000Z"
+        )
+
+        self.assertEqual(match.outcome, EXISTING_EVENT_AMBIGUOUS)
+        self.assertIsNone(match.event)
+        self.assertEqual(match.candidate_total, 2)
+
+    def test_a_start_time_with_no_readable_date_matches_nothing(self) -> None:
+        self._canonical(
+            title="Workshop On Vector Search", source_key="2026-09-08-workshop-on-vector-search"
+        )
+
+        match = ExistingEventIndex().match(title="Workshop On Vector Search", start_at="")
+
+        self.assertEqual(match.outcome, EXISTING_EVENT_DATE_UNUSABLE)
+        self.assertIsNone(match.event)
+        self.assertIsNone(match.date)
+
+    def test_an_event_minted_from_a_provider_export_never_enters_the_index(self) -> None:
+        """Its source key is the provider's opaque id, so it carries no date.
+
+        This is what keeps a duplicate an earlier run wrote from being treated as
+        the event we already have.  Replay idempotency stays the source
+        identity's job.
+        """
+
+        create_provider_event_identity(
+            provider="luma",
+            external_event_identifier="evt-Undated",
+            title="An Undated Provider Event",
+        )
+
+        match = ExistingEventIndex().match(
+            title="An Undated Provider Event", start_at="2026-09-08T18:00:00.000Z"
+        )
+
+        self.assertEqual(match.outcome, EXISTING_EVENT_NONE)
+        self.assertEqual(match.other_dates_with_this_title, ())

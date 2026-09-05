@@ -45,9 +45,20 @@ nor any prior provider-registration run has ever seen -- gets a real
 ``Event`` row here, via ``events.identity.create_event_identity``.  This is
 title and a canonical path only; it never resolves or activates a
 registration count, and it never touches ``events/event_identity_manifest.json``.
-See ``discover_new_luma_event_identities`` and ``discover_new_provider_events``.
-Run with ``--discover-new-events-only`` to do just this against a fresh export
-that has not yet been reconciled into ``event-registration-sources.json``.
+"Genuinely new" is decided against every event we already have: an export event
+whose calendar date and exact case/whitespace-normalized title belong to one
+event already in the database is that event, and creates nothing
+(``existing_event_total``).  See ``discover_new_luma_event_identities`` and
+``discover_new_provider_events``.  Run with ``--discover-new-events-only`` to do
+just this against a fresh export that has not yet been reconciled into
+``event-registration-sources.json``.
+
+**Duplicate reconciliation** (``--report-duplicate-identities``,
+``--remove-duplicate-identities``): before that guard existed this step minted a
+second ``Event``, with its own public id, for every export event the manifest
+already described.  A database that ran it still holds those rows; this names
+them exactly and removes only the ones carrying no dependent data at all.  See
+``reconcile_duplicate_provider_identities``.
 
 **Resolution** happens in two ways, both applied every run, neither a
 persistent review queue:
@@ -307,6 +318,16 @@ def import_new_content(*, source: Path | None = None, apply: bool = True) -> dic
 # already-gated decisions (see s.6 of the ingest inventory) and stay exactly
 # as gated as they are today: this section never resolves or activates a
 # ``HistoricalRegistrationAggregateRevision``.
+#
+# The aggregate-revision guard below used to be the only thing standing between
+# this step and a duplicate row, and on a database built in production order it
+# is empty when this step runs: identities are imported, then discovery runs,
+# and the aggregates are staged only afterwards.  So an export event the
+# reviewed manifest already describes -- under its legacy ``_data/events.yaml``
+# source key, which discovery has no way to guess -- got a second ``Event`` with
+# a second public id.  ``events.identity.ExistingEventIndex`` closes that: an
+# export event whose date and normalized title exactly match one event we
+# already have is recognised as that event and creates nothing.
 
 
 def discover_new_provider_events(
@@ -327,19 +348,35 @@ def discover_new_provider_events(
     - A ``HistoricalRegistrationAggregateRevision`` row already exists for
       ``(provider, external_event_identifier)`` -- resolved or not.  This is
       what keeps the step from racing ahead of the existing, separately
-      tracked resolution backlog: an event already staged there was very
-      likely described by the legacy manifest under a different
-      (date/title-derived) source key, and creating a second identity for it
-      would be a silent duplicate, not a fix.
+      tracked resolution backlog.  It only ever fires on a database whose
+      aggregates were staged first, so it cannot be the only duplicate guard.
+    - Exactly one ``Event`` we already have shares the export event's calendar
+      date and, case/whitespace-normalized, its exact title.  Reported under
+      ``existing_event_total``: this is the same event, so there is nothing to
+      create.  No identity is attached, no source key is rewritten and no
+      registration count moves -- the export event is simply not new.
+    - Several events share that date *and* that exact title, so which one it is
+      cannot be proved.  Reported under ``ambiguous_total`` and left alone; a
+      human resolves it, because folding two real events into one is worse than
+      a duplicate.
     - The export carries no title for it (``item.title == ""`` -- a Luma event
       with zero registrations has no row to read one from).  Reported
       separately as ``no_metadata_total`` rather than silently dropped, since
       an operator needs to know an event exists that this step could not name.
+    - The export's start timestamp carries no readable calendar date, so the
+      match cannot even be attempted.  Reported as ``undated_total``: without a
+      date, "already have it" is unanswerable, and creating would be a guess.
+
+    Everything else is genuinely new and gets an identity, exactly as before.
     """
 
     from events.identity import (
+        EXISTING_EVENT_AMBIGUOUS,
+        EXISTING_EVENT_DATE_UNUSABLE,
+        EXISTING_EVENT_MATCHED,
         EventIdentityError,
         EventIdentityNotFound,
+        ExistingEventIndex,
         canonical_detail_path,
         create_provider_event_identity,
         provider_source_identity,
@@ -347,8 +384,12 @@ def discover_new_provider_events(
     )
     from events.models import HistoricalRegistrationAggregateRevision
 
+    index = ExistingEventIndex()
     created: list[dict[str, Any]] = []
     no_metadata: list[dict[str, Any]] = []
+    existing_events: list[dict[str, Any]] = []
+    ambiguous: list[dict[str, Any]] = []
+    undated: list[dict[str, Any]] = []
     already_tracked = 0
     for item in discovered:
         already_mapped = HistoricalRegistrationAggregateRevision.objects.filter(
@@ -384,6 +425,56 @@ def discover_new_provider_events(
             "start_at": item.start_at,
             "eligible_count": item.eligible_count,
         }
+        match = index.match(title=item.title, start_at=item.start_at)
+        if match.outcome == EXISTING_EVENT_MATCHED and match.event is not None:
+            existing_events.append(
+                {
+                    **entry,
+                    "external_event_identifier": item.external_event_identifier,
+                    "matched_date": match.date,
+                    "matched_event_public_id": match.event.public_id,
+                    "matched_canonical_path": canonical_detail_path(match.event.id),
+                    "reason": (
+                        "Already have this event: one existing event shares this "
+                        "export event's date and its exact normalized title. No "
+                        "identity was created, attached or changed."
+                    ),
+                }
+            )
+            continue
+        if match.outcome == EXISTING_EVENT_AMBIGUOUS:
+            ambiguous.append(
+                {
+                    **entry,
+                    "external_event_identifier": item.external_event_identifier,
+                    "matched_date": match.date,
+                    "candidate_event_total": match.candidate_total,
+                    "reason": (
+                        "Several existing events share this export event's date "
+                        "and exact title, so which one it is cannot be proved. "
+                        "Nothing was created; a human must decide."
+                    ),
+                }
+            )
+            continue
+        if match.outcome == EXISTING_EVENT_DATE_UNUSABLE:
+            undated.append(
+                {
+                    **entry,
+                    "external_event_identifier": item.external_event_identifier,
+                    "reason": (
+                        "The export carries no readable calendar date for this "
+                        "event, so whether we already have it cannot be "
+                        "answered. Nothing was created."
+                    ),
+                }
+            )
+            continue
+        # Genuinely new. Flag a same-title event on another date so an operator
+        # can eyeball a rescheduled event; it does not change the decision,
+        # because a different date is a different event until a human says so.
+        if match.other_dates_with_this_title:
+            entry["existing_event_dates_with_this_title"] = list(match.other_dates_with_this_title)
         if not apply:
             created.append({**entry, "public_id": None, "canonical_path": None, "dry_run": True})
             continue
@@ -401,10 +492,11 @@ def discover_new_provider_events(
                 "public_id": event.public_id,
                 "canonical_path": canonical_detail_path(event.id),
                 "reason": (
-                    "Auto-created: no reviewed identity-manifest entry and no "
-                    "aggregate revision row existed for this provider event "
-                    "at run time -- title and canonical path only, no "
-                    "registration count was resolved or activated."
+                    "Auto-created: no reviewed identity-manifest entry, no "
+                    "aggregate revision row, and no event sharing this date "
+                    "and exact title existed at run time -- title and canonical "
+                    "path only, no registration count was resolved or "
+                    "activated."
                 ),
             }
         )
@@ -413,6 +505,12 @@ def discover_new_provider_events(
         "mechanism": "auto_created_event_identity",
         "candidate_total": len(discovered),
         "already_tracked_total": already_tracked,
+        "existing_event_total": len(existing_events),
+        "existing_events": existing_events,
+        "ambiguous_total": len(ambiguous),
+        "ambiguous_events": ambiguous,
+        "undated_total": len(undated),
+        "undated_events": undated,
         "no_metadata_total": len(no_metadata),
         "no_metadata_events": no_metadata,
         "created_total": len(created),
@@ -440,6 +538,161 @@ def discover_new_luma_event_identities(*, luma_source: Path, apply: bool = True)
     except ProtectedSourceError as error:
         raise EventImportError("luma_discovery_failed") from error
     return discover_new_provider_events(provider="luma", discovered=discovered, apply=apply)
+
+
+# --------------------------------------------------------------------------
+# Reconciling the duplicates an earlier run already wrote
+# --------------------------------------------------------------------------
+#
+# Fixing discovery stops new duplicates.  It does nothing for a database that
+# already ran the unguarded version and holds a second ``Event``, with a real
+# public id and a provisioned Q&A session, for an event the manifest already
+# describes.  Those rows have to go, but deleting an Event is destructive and
+# unreviewable after the fact, so this reports by default and removes only when
+# an operator asks *and* the row is provably inert.
+#
+# "Provably inert" is narrow on purpose: no alias, no registration aggregate
+# revision, no registration, and either no Q&A session or the untouched draft
+# session ``create_event_identity`` provisions -- no question, vote or co-host
+# invite row.  Anything else is reported as retained with the dependent rows
+# named, and a human decides.  There is no force flag: a duplicate carrying real
+# dependent data is a merge, and a merge is not something this script may guess
+# at.
+
+# One reverse relation per thing that would be destroyed with the Event.
+_DEPENDENT_RELATIONS = (
+    ("aliases", "alias"),
+    ("historical_registration_aggregate_revisions", "registration_aggregate_revision"),
+    ("registrant_registrations", "registration"),
+)
+_QNA_RELATIONS = (
+    # A vote hangs off a question, so counting questions already covers it.
+    ("questions", "qna_question"),
+    ("cohost_invites", "qna_cohost_invite"),
+)
+
+
+def _dependent_row_totals(event: Any) -> dict[str, int]:
+    """Count everything a delete would take with this Event. Never reads a value."""
+
+    from events.models import EventQnaSession
+
+    totals = {label: getattr(event, relation).count() for relation, label in _DEPENDENT_RELATIONS}
+    session = EventQnaSession.objects.filter(event=event).first()
+    if session is None:
+        return {label: total for label, total in totals.items() if total}
+    if session.state != EventQnaSession.State.DRAFT:
+        totals["qna_session_beyond_draft"] = 1
+    for relation, label in _QNA_RELATIONS:
+        totals[label] = getattr(session, relation).count()
+    return {label: total for label, total in totals.items() if total}
+
+
+def reconcile_duplicate_provider_identities(
+    *, provider: str, discovered: tuple[Any, ...], remove: bool = False
+) -> dict[str, Any]:
+    """Name every provider-minted Event that duplicates one we already had.
+
+    A duplicate is decided by the same rule discovery now uses to avoid making
+    one: the provider Event's export entry shares its calendar date and its
+    exact case/whitespace-normalized title with exactly one dated event we
+    already have.  Anything less exact is not reported as a duplicate at all.
+    """
+
+    from django.db import transaction
+
+    from events.identity import (
+        EXISTING_EVENT_MATCHED,
+        EventIdentityNotFound,
+        ExistingEventIndex,
+        canonical_detail_path,
+        provider_source_identity,
+        resolve_source_identity,
+    )
+    from events.models import Event
+
+    # Provider-minted events carry no date in their source key, so they are
+    # already absent from the index and cannot be matched against each other.
+    index = ExistingEventIndex()
+    duplicates: list[dict[str, Any]] = []
+    for item in discovered:
+        if not item.title:
+            continue
+        source = provider_source_identity(
+            provider=provider, external_event_identifier=item.external_event_identifier
+        )
+        try:
+            event = resolve_source_identity(
+                repository=source.repository,
+                revision=source.revision,
+                source_key=source.source_key,
+            )
+        except EventIdentityNotFound:
+            continue
+        match = index.match(title=item.title, start_at=item.start_at)
+        if match.outcome != EXISTING_EVENT_MATCHED or match.event is None:
+            continue
+        dependents = _dependent_row_totals(event)
+        duplicates.append(
+            {
+                "external_event_identifier": item.external_event_identifier,
+                "duplicate_event_id": str(event.id),
+                "duplicate_public_id": event.public_id,
+                "duplicate_canonical_path": canonical_detail_path(event.id),
+                "keep_event_id": str(match.event.id),
+                "keep_public_id": match.event.public_id,
+                "keep_canonical_path": canonical_detail_path(match.event.id),
+                "matched_date": match.date,
+                "dependent_rows": dependents,
+                "removable": not dependents,
+            }
+        )
+    removable = [entry for entry in duplicates if entry["removable"]]
+    retained = [entry for entry in duplicates if not entry["removable"]]
+    removed_total = 0
+    if remove and removable:
+        with transaction.atomic():
+            # Re-check under the transaction: a dependent row written between
+            # the report and the delete must still save the Event.
+            for entry in removable:
+                event = Event.objects.get(pk=entry["duplicate_event_id"])
+                if _dependent_row_totals(event):
+                    raise EventImportError("duplicate_identity_dependent_rows_appeared")
+                event.delete()
+                removed_total += 1
+    return {
+        "provider": provider,
+        "mechanism": "duplicate_provider_identity_reconciliation",
+        "provider_event_total": len(discovered),
+        "duplicate_total": len(duplicates),
+        "removable_total": len(removable),
+        "retained_total": len(retained),
+        "removed_total": removed_total,
+        "removed": remove,
+        "duplicates": duplicates,
+        "note": (
+            "A duplicate listed here shares its date and exact normalized title "
+            "with keep_event_id. Only a duplicate with no dependent rows is "
+            "removable; everything else needs a human decision, because "
+            "deleting it would destroy the rows named in dependent_rows."
+        ),
+    }
+
+
+def reconcile_duplicate_luma_identities(
+    *, luma_source: Path, remove: bool = False
+) -> dict[str, Any]:
+    """Read a Luma export and reconcile the duplicates a previous run minted."""
+
+    from events.importers import ProtectedSourceError, discover_luma_events
+
+    try:
+        discovered = discover_luma_events(luma_source)
+    except ProtectedSourceError as error:
+        raise EventImportError("luma_discovery_failed") from error
+    return reconcile_duplicate_provider_identities(
+        provider="luma", discovered=discovered, remove=remove
+    )
 
 
 # --------------------------------------------------------------------------
@@ -834,6 +1087,26 @@ def _parser() -> argparse.ArgumentParser:
             "the registration pipeline has not been reconciled against yet."
         ),
     )
+    parser.add_argument(
+        "--report-duplicate-identities",
+        action="store_true",
+        help=(
+            "Report, and change nothing, every Luma-minted Event that duplicates "
+            "an event this database already had -- same calendar date, same exact "
+            "normalized title. Names each duplicate's public id and canonical "
+            "path alongside the event it duplicates, and the rows a delete would "
+            "destroy."
+        ),
+    )
+    parser.add_argument(
+        "--remove-duplicate-identities",
+        action="store_true",
+        help=(
+            "Report the same duplicates and delete only those carrying no alias, "
+            "registration, aggregate revision, Q&A question or co-host invite. "
+            "Any duplicate with dependent rows is reported and kept."
+        ),
+    )
     return parser
 
 
@@ -841,7 +1114,18 @@ def main(argv: list[str] | None = None) -> int:
     try:
         args = _parser().parse_args(argv)
         _configure(args.database.resolve())
-        if args.discover_new_events_only:
+        if args.report_duplicate_identities or args.remove_duplicate_identities:
+            if not args.luma_source.resolve().is_dir():
+                raise EventImportError("registration_source_unavailable")
+            report = {
+                "duplicate_event_identities": {
+                    "luma": reconcile_duplicate_luma_identities(
+                        luma_source=args.luma_source.resolve(),
+                        remove=args.remove_duplicate_identities,
+                    ),
+                },
+            }
+        elif args.discover_new_events_only:
             if not args.luma_source.resolve().is_dir():
                 raise EventImportError("registration_source_unavailable")
             report = {
