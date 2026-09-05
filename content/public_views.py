@@ -45,7 +45,7 @@ from events.models import EventQnaSession
 from events.queries import published_event_records
 from events.services import public_registration_total
 
-from . import wiki_content
+from . import catalogue, wiki_content
 from .article_content import article_view, render_body_markdown
 from .article_faq import ArticleFaq, article_faq
 from .event_banners import event_banner_url
@@ -525,7 +525,8 @@ def event_legacy_redirect(request: HttpRequest, legacy_path: str) -> HttpRespons
 # The two collections behind `public/collection_hub.html`.  Both are dated archives
 # that grew past one screen — 55 articles, 98 books — so both page, through the one
 # shared paginator (issues #174, #178).  Each entry is the hub's heading, its clean
-# canonical base path, its catalogue's accessible label and its description.
+# canonical base path, its catalogue's accessible label, its description, and the
+# query the records come from.
 COLLECTION_HUBS = {
     "articles": (
         "Articles",
@@ -536,6 +537,7 @@ COLLECTION_HUBS = {
             "the DataTalks.Club community. Insights, tutorials, and best practices from "
             "industry experts."
         ),
+        lambda: public_projection()["articles"],
     ),
     "books": (
         "Book of the Week",
@@ -546,6 +548,7 @@ COLLECTION_HUBS = {
             "weekly book discussions with authors at DataTalks.Club and win free copies of "
             "featured books."
         ),
+        catalogue.books,
     ),
 }
 
@@ -560,10 +563,10 @@ def collection_hub(request: HttpRequest, *, collection: str) -> HttpResponse:
     path and which words.
     """
 
-    heading, base_path, catalogue_label, description = COLLECTION_HUBS[collection]
+    heading, base_path, catalogue_label, description, hub_records = COLLECTION_HUBS[collection]
     pagination = paginate_public_request(
         request,
-        public_projection()[collection],
+        hub_records(),
         clean_base_path=base_path,
         catalogue_label=catalogue_label,
     )
@@ -911,7 +914,7 @@ def podcast_legacy_detail(request: HttpRequest, slug: str) -> HttpResponse:
 
 @require_safe
 def book_detail(request: HttpRequest, slug: str) -> HttpResponse:
-    book = public_projection()["books_by_slug"].get(slug)
+    book = catalogue.book(slug)
     if book is None:
         raise Http404
     # The book's own summary is source Markdown, not plain text — it used to be
@@ -1303,7 +1306,7 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
         )
     if section == "books":
         return (("/books", ""),) + tuple(
-            (record["public_path"], record["published"][:10]) for record in projection["books"]
+            (record["public_path"], record["published"][:10]) for record in catalogue.books()
         )
     if section == "people":
         return tuple((record["public_path"], "") for record in projection["people"])

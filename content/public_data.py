@@ -16,6 +16,7 @@ from django.utils import timezone
 
 from events.queries import published_event_records
 
+from . import catalogue
 from .models import ContentDocument, ContentRelease, ContentSource
 from .podcast_routes import podcast_canonical_path
 from .public_graph import validate_wiki_graph
@@ -587,9 +588,10 @@ def public_paths() -> tuple[str, ...]:
     }
     paths.update(
         record["public_path"]
-        for name in ("articles", "podcasts", "books", "people", "wiki")
+        for name in ("articles", "podcasts", "people", "wiki")
         for record in projection[name]
     )
+    paths.update(record["public_path"] for record in catalogue.books())
     paths.update(record["public_path"] for record in published_event_records())
     paths.update(
         {

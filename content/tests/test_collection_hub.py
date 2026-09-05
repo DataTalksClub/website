@@ -14,6 +14,8 @@ from xml.etree import ElementTree
 from django.test import TestCase
 from django.utils.html import escape
 
+from content.catalogue import PUBLIC_CONTENT_STABLE_ID
+from content.models import ContentSource
 from content.pagination import PUBLIC_PAGE_SIZE
 from content.public_data import public_projection
 from core.templatetags.accessibility import human_day, iso_day
@@ -190,18 +192,23 @@ class CollectionHubRecordTests(TestCase):
                         body,
                     )
 
-    def test_an_empty_collection_says_so_instead_of_drawing_an_empty_list(self) -> None:
+    def test_an_empty_articles_collection_says_so_instead_of_drawing_an_empty_list(self) -> None:
         projection = dict(public_projection())
         projection["articles"] = ()
-        projection["books"] = ()
         with mock.patch("content.public_views.public_projection", return_value=projection):
             self.assertContains(self.client.get("/blog"), "No articles yet.")
-            empty_books = self.client.get("/books")
-            self.assertContains(empty_books, "No books are available yet.")
-            # An empty archive is one valid page, so it offers no page controls at
-            # all, and the page beyond it is a real miss rather than a nearest page.
-            self.assertNotContains(empty_books, 'aria-label="Book archive pages"')
-            self.assertEqual(self.client.get("/books?page=2").status_code, 404)
+
+    def test_an_empty_book_archive_says_so_instead_of_drawing_an_empty_list(self) -> None:
+        # The books hub reads the database, so it is emptied the way an
+        # un-ingested database is empty rather than by patching a value in.
+        ContentSource.objects.filter(stable_id=PUBLIC_CONTENT_STABLE_ID).update(enabled=False)
+
+        empty_books = self.client.get("/books")
+        self.assertContains(empty_books, "No books are available yet.")
+        # An empty archive is one valid page, so it offers no page controls at
+        # all, and the page beyond it is a real miss rather than a nearest page.
+        self.assertNotContains(empty_books, 'aria-label="Book archive pages"')
+        self.assertEqual(self.client.get("/books?page=2").status_code, 404)
 
 
 class BooksArchiveContractTests(TestCase):
