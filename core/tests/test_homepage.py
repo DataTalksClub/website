@@ -31,8 +31,6 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 ADOPTED_COURSE_LIST_TEMPLATE = (REPO_ROOT / "courses/templates/courses/course_list.html").resolve()
 ADOPTED_COURSE_DETAIL_TEMPLATE = (REPO_ROOT / "courses/templates/courses/course.html").resolve()
 
-CURRICULUM_2026 = REPO_ROOT / "core/tests/data/ai_dev_tools_zoomcamp_2026"
-
 
 class FeaturedBuildPanelTests(TestCase):
     """The mint "What you'll build" panel prints the featured cohort's own rows.
