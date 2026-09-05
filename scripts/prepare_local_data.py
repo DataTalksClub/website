@@ -34,6 +34,7 @@ if str(PROJECT_ROOT) not in sys.path:
 # second copy of the same parsing, staging and activation code.
 from scripts.prod.import_events import (  # noqa: E402
     EVENTBRITE_RELATIVE_SOURCE,
+    IDENTITY_MANIFEST_PATH,
     LUMA_RELATIVE_SOURCE,
     EventImportError,
     activation_coverage,
@@ -315,7 +316,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--identity-manifest",
         type=Path,
-        default=PROJECT_ROOT / "events" / "event_identity_manifest.json",
+        # The one place that owns where the reviewed manifest sits is the
+        # importer this orchestrator composes. Re-deriving the path here is how
+        # it came to point at a file that had moved away two commits earlier.
+        default=IDENTITY_MANIFEST_PATH,
     )
     parser.add_argument(
         "--luma-source",
