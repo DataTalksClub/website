@@ -644,8 +644,15 @@ exists to prevent).
 
 ### Step 4 — CMP learner data
 
-**No importer for this exists.** §11 A3. Everything below is the specification it
-has to satisfy, and the checkpoints it has to pass.
+**The account layer has an importer; the activity layer does not.**
+`scripts/prod/import_cmp_learners.py` imports `accounts_customuser` and
+`account_emailaddress`, resumably, with every account unprivileged and
+password-unusable. Its own docstring hands enrollments, submissions, answers,
+reviews and course registrations to a separate importer, and **that importer does
+not exist** — §11 A3. Measured on the 2026-09-05 export, that is 472,690 of the
+513,625 learner rows. Everything below is the specification the whole step has to
+satisfy, and the checkpoints it has to pass; the account transforms are the ones
+already met.
 
 The export is 38 tables and **664,806** rows. Every one of those tables needs a
 declared fate; here is all 38, so nothing can be forgotten:
@@ -1043,13 +1050,15 @@ three pinned checkouts and is not reproducible (#253).
 
 ```
 make content-update-check CONTENT_UPDATE_FAMILY=all  # committed artifacts vs manifest, one run per family
-$TARGET uv run --frozen python manage.py check       # content.E002 digest canary
 ```
 
-`manage.py check` is a real checkpoint here: `content/public_data.py`
-`_checked_public_projection()` raises `ImproperlyConfigured` if any per-artifact
-digest, source revision or count canary drifts, wired in as system check
-`content.E002`. **You cannot hand-edit a projection file and have the site boot.**
+**The startup digest canary is gone.** `content.E002` no longer exists: the site
+reads its catalogue from the database, so there is no projection file for a
+startup check to verify, and `content/apps.py`'s remaining checks
+(`content.E003`–`E005`, `content.W001`) cover only the media store. A hand-edit
+under `temporary/content/` is therefore carried silently into the database by the
+next import rather than refusing to boot. `make content-update-check` is the
+checkpoint that still catches it, and it has to be run deliberately.
 
 **Failure and recovery.** **Recoverable, but not by re-run.** A full projection
 rebuild is currently *not reproducible* (issue #253) and requires three pinned
@@ -2582,13 +2591,15 @@ the existing pairing rule matches, or they are deliberately deleted. **Done look
 like:** the step 3 identity checkpoint exits 0. Must be settled **before** step 4
 ever runs, because after it a submission may point at one.
 
-**A3. The CMP learner importer.** *Blocks step 4 — i.e. everything. **Large
-(1–2 weeks)**, and it is the single biggest item in this plan.* See §4 step 4 for
-the full specification: 11 tables / 510,519 rows, 5 never-import tables, five
-mandatory transforms, resumable per table, per-table written/skipped reporting,
-PII-safe logging by user id. `scripts/load_rds_export.py` looks like a starting
-point but its `main()` is disabled and only its internals survive, in two test
-modules. **Done looks like:** all four step-4 checkpoints exit 0 against a
+**A3. The CMP learner *activity* importer.** *Blocks step 4 — i.e. everything.
+**Large (1–2 weeks)**, and it is the single biggest item in this plan.* The two
+account tables have landed in `scripts/prod/import_cmp_learners.py`; the nine
+activity tables have not. See §4 step 4 for the full specification: 9 remaining
+tables / 472,690 rows measured on the 2026-09-05 export, 5 never-import tables,
+five mandatory transforms, resumable per table, per-table written/skipped
+reporting, PII-safe logging by user id. `scripts/load_rds_export.py` is deleted,
+not merely disabled — `scripts/tests/test_retired_broad_loader.py` asserts its
+absence, so there is no starting point to copy from. **Done looks like:** all four step-4 checkpoints exit 0 against a
 rehearsal database, and the run reports its own per-table counts. Depends on A1
 (cohorts must exist) and A2 (homework identity must be final).
 
@@ -2930,8 +2941,11 @@ These block nothing today but must be closed before the migration runs.
    `courses_wrappedstatistics` (1). Small enough to ignore and small enough to
    import; either is fine, neither by accident.
 
-5. **380 of 383 event mappings are unreviewed.** The scripts work; the mappings
-   are a decision backlog.
+5. **276 of 375 provider events resolve to no canonical event.** Re-measured
+   2026-09-05 by a full `scripts/prod/import_events.py` run against the pinned
+   exports: 375 stage (166 Luma, 209 Eventbrite), the automatic exact
+   date-and-title pass resolves 99 Luma aggregates, and none of the 375 is
+   activated. The scripts work; the mappings are a decision backlog.
 
 6. **The five owner-skipped CMP cohorts.** `ai-bootcamp-2025`, `ai-hero-2025`,
    `ai-hero-2026` need a reviewed family, title and publication state.
@@ -2987,7 +3001,7 @@ Recorded so they are not reopened.
 | Was "stem exactly `cover`" the right deletion rule? | **Not quite** — one file too broad. `.jpg` only: the 3 `.png` are 2 MB artwork embedded in article bodies, against 49 KB generated cards |
 | Do FAQ and docs stay at the legacy site, or come to us? | **They come to us via content sync.** The CloudFront 302s are transitional — §11 B8, B10 |
 | Sponsors and testimonials have no source | **They get an import script** — step 8, §11 B9 |
-| Is `rds-aisl_prod` in scope? | **No.** §14 |
+| Is `rds-aisl_prod` in scope? | **No** — owner ruling, 2026-09-05. A different product's database; nothing in it is migrated here. §14 |
 | Do books and people exist in two repositories? | **No dual ownership.** podwiki's `_people`, `_books` and `_podcast_summaries` are never opened by the builder — all four `wiki_root` joins read `_wiki/`, `graph/`, `search/` and one asset. Nothing to reconcile |
 | Are the projection count deltas silent drops? | **No.** Every one is pin drift (additions after the pin; zero deletions), a `_template.md` scaffold, or 2 podcast episodes removed under a signed manifest (`content/migration/podcast-removals.yaml`) |
 
@@ -3007,8 +3021,9 @@ Non-negotiable, and every one of these has a reason behind it.
   excludes the whole payload of step 4.
 - A member's email address is visible to admins in Studio and nowhere else.
 - In a log, identify a person by user id, never by email address.
-- Do not hand-edit anything in `temporary/content/public_projection/` — the startup digest
-  check (`content.E002`) will refuse to boot.
+- Do not hand-edit anything under `temporary/content/`. Nothing refuses to boot over it
+  any more (`content.E002` is gone); the next import carries the edit into the database
+  silently. `make content-update-check` is the check, and somebody has to run it.
 - Do not add a second entry point for course-repository ingest. There is one and
   both transports share it deliberately.
 - Plain scripts, direct ORM, no framework. Call the existing services rather than
@@ -3021,12 +3036,16 @@ Non-negotiable, and every one of these has a reason behind it.
 
 Written down so nobody rediscovers these and re-raises them as gaps.
 
-**`rds-aisl_prod` — the second production database.**
-`/data/tmp/rds-export/rds-aisl_prod-*.db`, refreshed daily alongside the CMP
-export: **108 tables, 151,402 rows**, with its own `events`, `content`,
-`payments`, `plans`, `questionnaires`, `bookclub`, `crm` and `analytics` apps,
-5,142 accounts and 1,508 event registrations. It is the database of **AI Shipping
-Labs** (`~/git/ai-shipping-labs`). **Owner ruling: "this is a different website."**
+**`rds-aisl_prod` — the second production database. Ruled out of scope 2026-09-05.**
+`/data/tmp/rds-export/aisl/rds-aisl_prod-*.db` — the loose `rds-aisl_prod-*.db`
+files at the top of `/data/tmp/rds-export/` are the same export before it was
+filed per product. Refreshed daily alongside the CMP export: **108 tables**, with
+its own `events`, `content`, `payments`, `plans`, `questionnaires`, `bookclub`,
+`crm` and `analytics` apps, 5,142 accounts and 1,508 event registrations. The row
+count moves every day — **121,265** on the 2026-09-04 export, 151,402 on
+2026-09-02 — so treat any single figure as a snapshot. It is the database of **AI
+Shipping Labs**, a different product (`~/git/ai-shipping-labs`). **Owner ruling:
+"this is a different website."**
 Nothing in it is migrated here, no script in this repository reads it, and the
 files in `/data/tmp/rds-export/` matching `rds-aisl_prod-*` are to be ignored by
 every step of this plan. Its content-sync design is still worth borrowing —
@@ -3041,10 +3060,11 @@ redirected.
 ingest.
 
 **`scripts/production_like_course_specs.json` and the `courses.json` artifact it
-produces.** The specs seed the *local* catalogue only; `courses.json` (12 records)
-is built, committed and digest-verified, and read by no view. `/courses` is
-database-served. Neither is migrated. `courses.json` could be deleted — that is
-worth doing eventually and is not worth doing now.
+produces.** The specs seed the *local* catalogue only. `courses.json` (12 records)
+is now imported into `ContentDocument` by `scripts/prod/import_public_content.py`
+along with the rest of the catalogue, and is still **read by no view** — `/courses`
+is served from `courses.models.Cohort`. Neither is migrated. The collection could
+be dropped from the import — worth doing eventually, not worth doing now.
 
 **`backfill_event_qna` and `retry_event_qna`.** Zero callers. Not a migration
 concern; noted so the next survey does not re-find them.
