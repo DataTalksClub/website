@@ -45,10 +45,13 @@ nor any prior provider-registration run has ever seen -- gets a real
 ``Event`` row here, via ``events.identity.create_event_identity``.  This is
 title and a canonical path only; it never resolves or activates a
 registration count, and it never touches ``events/event_identity_manifest.json``.
-See ``discover_new_luma_event_identities`` and ``discover_new_provider_events``.
-Run with ``--discover-new-events-only`` to do just this against a fresh export
-that has not yet been reconciled into ``event-registration-sources.json``.
-
+"Genuinely new" is decided against every event we already have: an export event
+whose calendar date and exact case/whitespace-normalized title belong to one
+event already in the database is that event, and creates nothing
+(``existing_event_total``).  See ``discover_new_luma_event_identities`` and
+``discover_new_provider_events``.  Run with ``--discover-new-events-only`` to do
+just this against a fresh export that has not yet been reconciled into
+``event-registration-sources.json``.
 **Resolution** happens in two ways, both applied every run, neither a
 persistent review queue:
 
@@ -214,6 +217,16 @@ def import_identities(*, manifest: Path | None = None, apply: bool = True) -> di
 # already-gated decisions (see s.6 of the ingest inventory) and stay exactly
 # as gated as they are today: this section never resolves or activates a
 # ``HistoricalRegistrationAggregateRevision``.
+#
+# The aggregate-revision guard below used to be the only thing standing between
+# this step and a duplicate row, and on a database built in production order it
+# is empty when this step runs: identities are imported, then discovery runs,
+# and the aggregates are staged only afterwards.  So an export event the
+# reviewed manifest already describes -- under its legacy ``_data/events.yaml``
+# source key, which discovery has no way to guess -- got a second ``Event`` with
+# a second public id.  ``events.identity.ExistingEventIndex`` closes that: an
+# export event whose date and normalized title exactly match one event we
+# already have is recognised as that event and creates nothing.
 
 
 def discover_new_provider_events(
@@ -233,19 +246,35 @@ def discover_new_provider_events(
     - A ``HistoricalRegistrationAggregateRevision`` row already exists for
       ``(provider, external_event_identifier)`` -- resolved or not.  This is
       what keeps the step from racing ahead of the existing, separately
-      tracked resolution backlog: an event already staged there was very
-      likely described by the legacy manifest under a different
-      (date/title-derived) source key, and creating a second identity for it
-      would be a silent duplicate, not a fix.
+      tracked resolution backlog.  It only ever fires on a database whose
+      aggregates were staged first, so it cannot be the only duplicate guard.
+    - Exactly one ``Event`` we already have shares the export event's calendar
+      date and, case/whitespace-normalized, its exact title.  Reported under
+      ``existing_event_total``: this is the same event, so there is nothing to
+      create.  No identity is attached, no source key is rewritten and no
+      registration count moves -- the export event is simply not new.
+    - Several events share that date *and* that exact title, so which one it is
+      cannot be proved.  Reported under ``ambiguous_total`` and left alone; a
+      human resolves it, because folding two real events into one is worse than
+      a duplicate.
     - The export carries no title for it (``item.title == ""`` -- a Luma event
       with zero registrations has no row to read one from).  Reported
       separately as ``no_metadata_total`` rather than silently dropped, since
       an operator needs to know an event exists that this step could not name.
+    - The export's start timestamp carries no readable calendar date, so the
+      match cannot even be attempted.  Reported as ``undated_total``: without a
+      date, "already have it" is unanswerable, and creating would be a guess.
+
+    Everything else is genuinely new and gets an identity, exactly as before.
     """
 
     from events.identity import (
+        EXISTING_EVENT_AMBIGUOUS,
+        EXISTING_EVENT_DATE_UNUSABLE,
+        EXISTING_EVENT_MATCHED,
         EventIdentityError,
         EventIdentityNotFound,
+        ExistingEventIndex,
         canonical_detail_path,
         create_provider_event_identity,
         provider_source_identity,
@@ -253,8 +282,12 @@ def discover_new_provider_events(
     )
     from events.models import HistoricalRegistrationAggregateRevision
 
+    index = ExistingEventIndex()
     created: list[dict[str, Any]] = []
     no_metadata: list[dict[str, Any]] = []
+    existing_events: list[dict[str, Any]] = []
+    ambiguous: list[dict[str, Any]] = []
+    undated: list[dict[str, Any]] = []
     already_tracked = 0
     for item in discovered:
         already_mapped = HistoricalRegistrationAggregateRevision.objects.filter(
@@ -290,6 +323,56 @@ def discover_new_provider_events(
             "start_at": item.start_at,
             "eligible_count": item.eligible_count,
         }
+        match = index.match(title=item.title, start_at=item.start_at)
+        if match.outcome == EXISTING_EVENT_MATCHED and match.event is not None:
+            existing_events.append(
+                {
+                    **entry,
+                    "external_event_identifier": item.external_event_identifier,
+                    "matched_date": match.date,
+                    "matched_event_public_id": match.event.public_id,
+                    "matched_canonical_path": canonical_detail_path(match.event.id),
+                    "reason": (
+                        "Already have this event: one existing event shares this "
+                        "export event's date and its exact normalized title. No "
+                        "identity was created, attached or changed."
+                    ),
+                }
+            )
+            continue
+        if match.outcome == EXISTING_EVENT_AMBIGUOUS:
+            ambiguous.append(
+                {
+                    **entry,
+                    "external_event_identifier": item.external_event_identifier,
+                    "matched_date": match.date,
+                    "candidate_event_total": match.candidate_total,
+                    "reason": (
+                        "Several existing events share this export event's date "
+                        "and exact title, so which one it is cannot be proved. "
+                        "Nothing was created; a human must decide."
+                    ),
+                }
+            )
+            continue
+        if match.outcome == EXISTING_EVENT_DATE_UNUSABLE:
+            undated.append(
+                {
+                    **entry,
+                    "external_event_identifier": item.external_event_identifier,
+                    "reason": (
+                        "The export carries no readable calendar date for this "
+                        "event, so whether we already have it cannot be "
+                        "answered. Nothing was created."
+                    ),
+                }
+            )
+            continue
+        # Genuinely new. Flag a same-title event on another date so an operator
+        # can eyeball a rescheduled event; it does not change the decision,
+        # because a different date is a different event until a human says so.
+        if match.other_dates_with_this_title:
+            entry["existing_event_dates_with_this_title"] = list(match.other_dates_with_this_title)
         if not apply:
             created.append({**entry, "public_id": None, "canonical_path": None, "dry_run": True})
             continue
@@ -307,10 +390,11 @@ def discover_new_provider_events(
                 "public_id": event.public_id,
                 "canonical_path": canonical_detail_path(event.id),
                 "reason": (
-                    "Auto-created: no reviewed identity-manifest entry and no "
-                    "aggregate revision row existed for this provider event "
-                    "at run time -- title and canonical path only, no "
-                    "registration count was resolved or activated."
+                    "Auto-created: no reviewed identity-manifest entry, no "
+                    "aggregate revision row, and no event sharing this date "
+                    "and exact title existed at run time -- title and canonical "
+                    "path only, no registration count was resolved or "
+                    "activated."
                 ),
             }
         )
@@ -319,6 +403,12 @@ def discover_new_provider_events(
         "mechanism": "auto_created_event_identity",
         "candidate_total": len(discovered),
         "already_tracked_total": already_tracked,
+        "existing_event_total": len(existing_events),
+        "existing_events": existing_events,
+        "ambiguous_total": len(ambiguous),
+        "ambiguous_events": ambiguous,
+        "undated_total": len(undated),
+        "undated_events": undated,
         "no_metadata_total": len(no_metadata),
         "no_metadata_events": no_metadata,
         "created_total": len(created),

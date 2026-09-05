@@ -213,6 +213,163 @@ class NewEventIdentityDiscoveryTests(TestCase):
         self.assertEqual(event.public_id, created["public_id"])
         self.assertEqual(canonical_detail_path(event.id), created["canonical_path"])
 
+    def _canonical_event(self, *, title: str, source_key: str):
+        """One event shaped like a reviewed-manifest entry: a dated legacy source key."""
+
+        from events.identity import create_event_identity
+
+        return create_event_identity(
+            title=title,
+            source_repository="DataTalksClub/datatalksclub.github.io",
+            source_revision="a" * 40,
+            source_key=source_key,
+        )
+
+    def test_an_event_we_already_have_creates_nothing(self) -> None:
+        """The bug: on a database built in production order nothing else caught this.
+
+        Identities import first, discovery runs next and the aggregates are staged
+        only afterwards, so the aggregate-revision guard is empty exactly when it
+        is needed.  The export names the event by a Luma event id; the reviewed
+        manifest describes it under a legacy ``_data/events.yaml`` source key.  The
+        date and the exact title are the only thing the two share.
+        """
+
+        from events.models import Event
+        from scripts.prod.import_events import discover_new_luma_event_identities
+
+        existing = self._canonical_event(
+            title="An Event We Already Have",
+            source_key="2026-09-08-an-event-we-already-have",
+        )
+        self._write_luma_event(
+            "2026-09-08_an-event-we-already-have_evt-known",
+            event_id="evt-Known",
+            event_url="https://luma.com/known",
+            title="an event   we ALREADY have",
+            start_at="2026-09-08T10:00:00.000Z",
+            statuses=("approved", "approved"),
+        )
+
+        before = Event.objects.count()
+        report = discover_new_luma_event_identities(luma_source=self.root)
+
+        self.assertEqual(report["created_total"], 0)
+        self.assertEqual(report["existing_event_total"], 1)
+        matched = report["existing_events"][0]
+        self.assertEqual(matched["external_event_identifier"], "evt-Known")
+        self.assertEqual(matched["matched_event_public_id"], existing.public_id)
+        self.assertEqual(matched["matched_date"], "2026-09-08")
+        self.assertEqual(Event.objects.count(), before)
+        # Recognising it must not have attached anything to the event we kept.
+        existing.refresh_from_db()
+        self.assertEqual(existing.source_key, "2026-09-08-an-event-we-already-have")
+        self.assertEqual(existing.source_repository, "DataTalksClub/datatalksclub.github.io")
+
+    def test_recognising_an_event_we_already_have_replays_as_a_no_op(self) -> None:
+        from events.models import Event
+        from scripts.prod.import_events import discover_new_luma_event_identities
+
+        self._canonical_event(
+            title="An Event We Already Have",
+            source_key="2026-09-08-an-event-we-already-have",
+        )
+        self._write_luma_event(
+            "2026-09-08_an-event-we-already-have_evt-known",
+            event_id="evt-Known",
+            event_url="https://luma.com/known",
+            title="An Event We Already Have",
+            start_at="2026-09-08T10:00:00.000Z",
+            statuses=("approved",),
+        )
+
+        first = discover_new_luma_event_identities(luma_source=self.root)
+        before = Event.objects.count()
+        second = discover_new_luma_event_identities(luma_source=self.root)
+
+        self.assertEqual((first["created_total"], second["created_total"]), (0, 0))
+        self.assertEqual((first["existing_event_total"], second["existing_event_total"]), (1, 1))
+        self.assertEqual(Event.objects.count(), before)
+
+    def test_two_events_sharing_the_date_and_title_are_reported_not_resolved(self) -> None:
+        """Folding two real events into one is worse than a duplicate, so neither wins."""
+
+        from events.models import Event
+        from scripts.prod.import_events import discover_new_luma_event_identities
+
+        self._canonical_event(
+            title="An Event With A Twin", source_key="2026-09-08-an-event-with-a-twin"
+        )
+        self._canonical_event(
+            title="An Event With A Twin", source_key="2026-09-08-an-event-with-a-twin-second"
+        )
+        self._write_luma_event(
+            "2026-09-08_an-event-with-a-twin_evt-twin",
+            event_id="evt-Twin",
+            event_url="https://luma.com/twin",
+            title="An Event With A Twin",
+            start_at="2026-09-08T10:00:00.000Z",
+            statuses=("approved",),
+        )
+
+        before = Event.objects.count()
+        report = discover_new_luma_event_identities(luma_source=self.root)
+
+        self.assertEqual(report["created_total"], 0)
+        self.assertEqual(report["existing_event_total"], 0)
+        self.assertEqual(report["ambiguous_total"], 1)
+        ambiguous = report["ambiguous_events"][0]
+        self.assertEqual(ambiguous["external_event_identifier"], "evt-Twin")
+        self.assertEqual(ambiguous["candidate_event_total"], 2)
+        self.assertEqual(Event.objects.count(), before)
+
+    def test_the_same_title_on_another_date_is_still_a_new_event(self) -> None:
+        """A recurring series repeats its title; a different date is a different session."""
+
+        from events.models import Event
+        from scripts.prod.import_events import discover_new_luma_event_identities
+
+        self._canonical_event(title="Monthly Meetup", source_key="2026-09-08-monthly-meetup")
+        self._write_luma_event(
+            "2026-10-08_monthly-meetup_evt-october",
+            event_id="evt-October",
+            event_url="https://luma.com/october",
+            title="Monthly Meetup",
+            start_at="2026-10-08T10:00:00.000Z",
+            statuses=("approved",),
+        )
+
+        before = Event.objects.count()
+        report = discover_new_luma_event_identities(luma_source=self.root)
+
+        self.assertEqual(report["created_total"], 1)
+        self.assertEqual(report["existing_event_total"], 0)
+        created = report["created_events"][0]
+        # Flagged for an operator, because a rescheduled event looks like this too.
+        self.assertEqual(created["existing_event_dates_with_this_title"], ["2026-09-08"])
+        self.assertEqual(Event.objects.count(), before + 1)
+
+    def test_an_export_event_with_no_readable_date_is_reported_not_created(self) -> None:
+        from events.models import Event
+        from scripts.prod.import_events import discover_new_luma_event_identities
+
+        self._write_luma_event(
+            "undated_event_evt-undated",
+            event_id="evt-Undated",
+            event_url="https://luma.com/undated",
+            title="An Undated Export Event",
+            start_at="whenever",
+            statuses=("approved",),
+        )
+
+        before = Event.objects.count()
+        report = discover_new_luma_event_identities(luma_source=self.root)
+
+        self.assertEqual(report["created_total"], 0)
+        self.assertEqual(report["undated_total"], 1)
+        self.assertEqual(report["undated_events"][0]["external_event_identifier"], "evt-Undated")
+        self.assertEqual(Event.objects.count(), before)
+
     def test_a_second_run_creates_nothing_new(self) -> None:
         from events.models import Event
         from scripts.prod.import_events import discover_new_luma_event_identities
@@ -388,3 +545,4 @@ class NewEventIdentityDiscoveryTests(TestCase):
             independently_counted_rows = sum(1 for _ in csv.DictReader(handle))
         self.assertEqual(independently_counted_rows, raw_csv_row_total)
         self.assertEqual(independently_counted_rows, 5)
+

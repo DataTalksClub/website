@@ -2,7 +2,9 @@
 
 The manifest is intentionally source-controlled and request-network-free.  Date/title/provider
 values are never used to infer an Event identity; source identity and the reviewed UUID are the
-only attachment keys.
+only attachment keys.  :class:`ExistingEventIndex` compares dates and titles but attaches
+nothing: it only lets provider discovery decline to create a second row for an event we already
+have.
 """
 
 from __future__ import annotations
@@ -450,6 +452,120 @@ def create_provider_event_identity(
         source_revision=source.revision,
         source_key=source.source_key,
     )
+
+
+# --------------------------------------------------------------------------
+# Duplicate-creation guard for provider discovery
+# --------------------------------------------------------------------------
+#
+# This is not an identity attachment and does not weaken the module rule above.
+# Nothing here writes, rewrites or infers an ``Event``'s source identity: a
+# provider event that matches an existing event is never given that event's
+# source key, alias, UUID or public ID, and no registration count moves.  The
+# index answers one narrower question -- "does this database already describe
+# this event?" -- so provider discovery can decline to mint a *second* row for
+# an event the reviewed manifest already describes under its legacy
+# ``_data/events.yaml`` source key.  Declining to create is the only effect.
+#
+# The rule is the one this repository already uses for exactly this problem in
+# ``events.services.resolve_unmatched_aggregates``: case/whitespace-normalized
+# title equality plus the same calendar date, exact on both axes, with anything
+# ambiguous left unresolved and reported rather than guessed.  No fuzzy,
+# ranked, partial or scored matching exists here or may be added.
+_PROVIDER_EVENT_DATE = re.compile(r"^(\d{4}-\d{2}-\d{2})")
+_CANONICAL_SOURCE_KEY_DATE = re.compile(r"^(\d{4}-\d{2}-\d{2})-")
+
+EXISTING_EVENT_MATCHED = "existing_event_matched"
+EXISTING_EVENT_AMBIGUOUS = "existing_event_ambiguous"
+EXISTING_EVENT_NONE = "no_existing_event"
+EXISTING_EVENT_DATE_UNUSABLE = "provider_event_date_unusable"
+
+
+def normalize_event_title(title: str) -> str:
+    """Collapse whitespace and fold case so two titles compare exactly."""
+
+    return " ".join(title.split()).casefold()
+
+
+def canonical_event_date(source_key: str) -> str | None:
+    """The event's date, read from its canonical ``YYYY-MM-DD-slug`` source key.
+
+    Some events have no date component in their source key at all: the older
+    podcast-style legacy entries, and every event minted from a provider export
+    (whose source key is the provider's own opaque event id).  Those never enter
+    the index, so a provider event can neither match one nor match a duplicate a
+    previous buggy run created -- replay idempotency stays the source identity's
+    job, not this index's.
+    """
+
+    match = _CANONICAL_SOURCE_KEY_DATE.match(source_key)
+    return match.group(1) if match else None
+
+
+def provider_event_date(start_at: str) -> str | None:
+    """The calendar date a provider export's start timestamp names, if any."""
+
+    match = _PROVIDER_EVENT_DATE.match(start_at)
+    return match.group(1) if match else None
+
+
+@dataclass(frozen=True, slots=True)
+class ExistingEventMatch:
+    """What the index found for one provider event. Never a ranked guess."""
+
+    outcome: str
+    event: Event | None
+    date: str | None
+    candidate_total: int
+    other_dates_with_this_title: tuple[str, ...]
+
+    @property
+    def matched(self) -> bool:
+        return self.outcome == EXISTING_EVENT_MATCHED
+
+
+class ExistingEventIndex:
+    """Events already in this database, keyed by their exact date and title.
+
+    Built once per discovery run so a 166-event export does not issue a query
+    per candidate.
+    """
+
+    def __init__(self, events: Any = None) -> None:
+        self._by_dated_title: dict[tuple[str, str], list[Event]] = {}
+        self._dates_by_title: dict[str, set[str]] = {}
+        for event in Event.objects.all() if events is None else events:
+            date = canonical_event_date(event.source_key)
+            if date is None:
+                continue
+            title = normalize_event_title(event.title)
+            self._by_dated_title.setdefault((date, title), []).append(event)
+            self._dates_by_title.setdefault(title, set()).add(date)
+
+    def match(self, *, title: str, start_at: str) -> ExistingEventMatch:
+        """Find the one existing event a provider event's date and title prove.
+
+        Exactly one candidate resolves.  Several events sharing both the date
+        and the normalized title is ambiguous: the caller reports it and creates
+        nothing, because a wrong pick here would silently fold two real events
+        into one.  Zero candidates means genuinely new, and the caller mints an
+        identity as before.
+        """
+
+        normalized = normalize_event_title(title)
+        other_dates = tuple(sorted(self._dates_by_title.get(normalized, ())))
+        date = provider_event_date(start_at)
+        if date is None:
+            return ExistingEventMatch(EXISTING_EVENT_DATE_UNUSABLE, None, None, 0, other_dates)
+        candidates = self._by_dated_title.get((date, normalized), [])
+        remaining = tuple(sorted(other for other in other_dates if other != date))
+        if len(candidates) == 1:
+            return ExistingEventMatch(EXISTING_EVENT_MATCHED, candidates[0], date, 1, remaining)
+        if len(candidates) > 1:
+            return ExistingEventMatch(
+                EXISTING_EVENT_AMBIGUOUS, None, date, len(candidates), remaining
+            )
+        return ExistingEventMatch(EXISTING_EVENT_NONE, None, date, 0, remaining)
 
 
 def current_slug(event_id: uuid.UUID | str) -> str:
