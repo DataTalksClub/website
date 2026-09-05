@@ -57,9 +57,10 @@ created.
 from __future__ import annotations
 
 import csv
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 from django.db import transaction
 
@@ -139,7 +140,9 @@ def _classify_read_only(normalized_email: str) -> tuple[EventRegistrantIdentity 
         return identity, "matched_account"
 
     existing = (
-        EventRegistrantIdentity.objects.filter(normalized_email=normalized_email, account__isnull=True)
+        EventRegistrantIdentity.objects.filter(
+            normalized_email=normalized_email, account__isnull=True
+        )
         .order_by("id")
         .first()
     )
@@ -205,7 +208,9 @@ def import_mailchimp_event_tags(
     for row in _rows(subscribed):
         source_rows += 1
         tags = parse_mailchimp_tags(row.get(TAGS_COLUMN, ""))
-        present_tags = tuple(dict.fromkeys(tag for tag in tags if tag in MAILCHIMP_EVENT_TAG_CATEGORIES))
+        present_tags = tuple(
+            dict.fromkeys(tag for tag in tags if tag in MAILCHIMP_EVENT_TAG_CATEGORIES)
+        )
         if not present_tags:
             continue
         categories = tuple(sorted({MAILCHIMP_EVENT_TAG_CATEGORIES[tag] for tag in present_tags}))
@@ -229,13 +234,13 @@ def import_mailchimp_event_tags(
                     else:
                         signals_already_present += 1
         else:
-            identity, match_kind = _classify_read_only(normalized_email)
+            existing_identity, match_kind = _classify_read_only(normalized_email)
             existing_categories: frozenset[str] = frozenset()
-            if identity is not None:
+            if existing_identity is not None:
                 existing_categories = frozenset(
-                    EventRegistrantInterestSignal.objects.filter(identity=identity).values_list(
-                        "category", flat=True
-                    )
+                    EventRegistrantInterestSignal.objects.filter(
+                        identity=existing_identity
+                    ).values_list("category", flat=True)
                 )
             for category in categories:
                 if category in existing_categories:

@@ -928,7 +928,11 @@ class EventRegistrantIdentity(models.Model):
     # Only ever set when `account` is null -- an account-anchored identity's
     # email is read from the account itself, never cached here where it could
     # drift out of sync with it.
-    normalized_email = models.EmailField(max_length=254, null=True, blank=True)
+    # NULL is load-bearing, not an empty value: the check constraint below and the
+    # partial unique index both key off `normalized_email IS NULL`.
+    normalized_email = models.EmailField(  # noqa: DJ001 -- null marks an account-anchored row.
+        max_length=254, null=True, blank=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

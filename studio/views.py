@@ -37,7 +37,6 @@ from core.capabilities import Capability
 from core.idempotency import (
     IdempotencyConflict,
     IdempotencyInProgress,
-    JsonObject,
     execute_idempotent,
 )
 from core.models import AuditEvent, RevisionConflict
