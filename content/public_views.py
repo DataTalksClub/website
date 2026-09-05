@@ -456,9 +456,7 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
             "registration_total_label": "registered",
             "qna_url": qna_url,
             "og_type": "event",
-            "og_image_url": (
-                _canonical(event["banner_url"]) if event["banner_url"] else ""
-            ),
+            "og_image_url": (_canonical(event["banner_url"]) if event["banner_url"] else ""),
             "structured_data": _json_ld(
                 entity,
                 trail(("Events", "/events"), (event["title"], event["public_path"])),

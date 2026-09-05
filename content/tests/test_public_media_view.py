@@ -136,9 +136,7 @@ class MediaResponseContractTests(TestCase):
         record = self.records[response.wsgi_request.path]
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers["Content-Type"], "image/jpeg")
-        self.assertEqual(
-            response.headers["Content-Disposition"], f'inline; filename="{filename}"'
-        )
+        self.assertEqual(response.headers["Content-Disposition"], f'inline; filename="{filename}"')
         payload = _body(response)
         self.assertEqual(hashlib.sha256(payload).hexdigest(), store.expected_checksum(record))
 

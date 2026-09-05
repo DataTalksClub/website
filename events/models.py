@@ -681,9 +681,7 @@ class HistoricalRegistrationAggregateRevision(RevisionedModel):
                 .first()
             )
             if original is not None:
-                if any(
-                    original[field] != getattr(self, field) for field in self._IMMUTABLE_FIELDS
-                ):
+                if any(original[field] != getattr(self, field) for field in self._IMMUTABLE_FIELDS):
                     raise ValueError("aggregate revision provenance and counts are immutable")
                 if original["event_id"] is not None and original["event_id"] != self.event_id:
                     raise ValueError("aggregate revision event resolution is immutable once set")
@@ -1058,9 +1056,7 @@ class EventRegistrantInterestSignal(models.Model):
         EventRegistrantIdentity, on_delete=models.PROTECT, related_name="interest_signals"
     )
     category = models.CharField(max_length=32, choices=Category.choices)
-    source = models.CharField(
-        max_length=16, choices=Source.choices, default=Source.MAILCHIMP_TAG
-    )
+    source = models.CharField(max_length=16, choices=Source.choices, default=Source.MAILCHIMP_TAG)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -175,9 +175,7 @@ def read_snapshot_archive(
             if path is None or member.isdir():
                 continue
             if not member.isreg() or member.issym() or member.islnk():
-                raise SnapshotError(
-                    "archive_entry_invalid", detail=f"{path} is not a regular file"
-                )
+                raise SnapshotError("archive_entry_invalid", detail=f"{path} is not a regular file")
             if admit is not None:
                 admit(path, member.size, len(snapshot), total_bytes)
             else:
@@ -269,9 +267,7 @@ def run_git_archive(
             ),
         )
     if len(completed.stdout) > max_bytes:
-        raise SnapshotError(
-            "archive_too_large", detail=f"the archive exceeds {max_bytes} bytes"
-        )
+        raise SnapshotError("archive_too_large", detail=f"the archive exceeds {max_bytes} bytes")
     return completed.stdout
 
 

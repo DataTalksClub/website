@@ -111,9 +111,7 @@ class MailchimpEventTagImportTests(TestCase):
         self.assertEqual(signal.source, EventRegistrantInterestSignal.Source.MAILCHIMP_TAG)
 
     def test_event_tag_matching_existing_registrant_only_identity_reuses_it(self) -> None:
-        prior = EventRegistrantIdentity.objects.create(
-            normalized_email="attendee@example.invalid"
-        )
+        prior = EventRegistrantIdentity.objects.create(normalized_email="attendee@example.invalid")
         result = self._run(
             [{EMAIL_COLUMN: "attendee@example.invalid", TAGS_COLUMN: _tags("event-conference")}]
         )

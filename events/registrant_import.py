@@ -169,9 +169,7 @@ def discover_luma_registrant_files(root: Path) -> tuple[DiscoveredRegistrantFile
         if not isinstance(event_id, str) or not event_id:
             _refuse("malformed_json")
         discovered.append(
-            DiscoveredRegistrantFile(
-                external_event_identifier=event_id, csv_path=csv_by_stem[stem]
-            )
+            DiscoveredRegistrantFile(external_event_identifier=event_id, csv_path=csv_by_stem[stem])
         )
     return tuple(discovered)
 
@@ -254,9 +252,7 @@ def resolve_registrant_identity(normalized_email: str) -> tuple[EventRegistrantI
     own.
     """
 
-    account = (
-        CustomUser.objects.filter(normalized_email=normalized_email).order_by("pk").first()
-    )
+    account = CustomUser.objects.filter(normalized_email=normalized_email).order_by("pk").first()
     if account is not None:
         identity, _ = EventRegistrantIdentity.objects.get_or_create(account=account)
         return identity, "matched_account"

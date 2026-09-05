@@ -2420,4 +2420,3 @@ with workflow._operation_lock():
         with self.assertRaises(ImportFailure) as target_error:
             ReviewImporter().run(self.config(target_db=PROJECT_ROOT / "README.md"))
         self.assertEqual(target_error.exception.category, "unsafe-target-path")
-

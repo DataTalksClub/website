@@ -185,9 +185,9 @@ class BreadcrumbsWithoutATrailTests(SimpleTestCase):
     """
 
     def test_a_missing_trail_variable_renders_nothing(self):
-        rendered = Template(
-            "{% load breadcrumbs %}{% breadcrumbs breadcrumbs %}"
-        ).render(Context({}))
+        rendered = Template("{% load breadcrumbs %}{% breadcrumbs breadcrumbs %}").render(
+            Context({})
+        )
 
         self.assertEqual(rendered, "")
 

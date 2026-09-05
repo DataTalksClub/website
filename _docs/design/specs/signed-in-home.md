@@ -238,10 +238,9 @@ enrolled_ids = Enrollment.objects.filter(student=user).values("course_id")
 registered_ids = CourseRegistration.objects.filter(
     Q(user=user) | Q(email_normalized=email_normalized)
 ).values("course_id")
-my_cohorts = (
-    Cohort.objects.filter(Q(id__in=enrolled_ids) | Q(id__in=registered_ids))
-    .select_related("course")
-)
+my_cohorts = Cohort.objects.filter(
+    Q(id__in=enrolled_ids) | Q(id__in=registered_ids)
+).select_related("course")
 ```
 
 Classify each cohort with the **existing derived rule** — there is no state
@@ -266,8 +265,7 @@ pattern from `courses/views/module.py:36-45`:
 ```python
 next_unit = (
     Unit.objects.filter(module__cohort=cohort)
-    .annotate(is_read=Exists(
-        UnitReadState.objects.filter(user=user, unit_id=OuterRef("pk"))))
+    .annotate(is_read=Exists(UnitReadState.objects.filter(user=user, unit_id=OuterRef("pk"))))
     .order_by("module__position", "position")
     .filter(is_read=False)
     .first()
