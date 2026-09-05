@@ -291,9 +291,9 @@ repo in the interim is acceptable. **A source with no declared fate is not.**
 
 ### 5.1 The headline
 
-**The legacy repository is never read at Django request time.** Every page is served
-from JSON committed into this repository. There is exactly **one** non-offline read
-path, and it is a management command, not a view.
+**The legacy repository is never read at Django request time.** Every page is
+served from the database. There is exactly **one** non-offline read path, and it
+is a script an operator runs, not a view.
 
 **If `datatalksclub.github.io` disappeared right now, no visitor would see any
 change.** What breaks is *rebuilding*, and one specific operational task.
@@ -307,7 +307,7 @@ Reads that **take content** (fate required):
 | a1 | `scripts/build_public_projection.py:1721` | `_people/*.md` | `people.json` (438) | Pages fine (committed). **Rebuild fails** at `:2941` |
 | a2 | `scripts/build_public_projection.py:1799` | `_data/events.yaml` | `events.json` (421) | Pages fine. **Rebuild fails** |
 | a3 | `scripts/build_public_projection.py:2846` | `images/authors/*` | 438 `media.json` records | Pages fine *if already hydrated*. See a5 |
-| a4 | `scripts/build_article_faq.py:199-203` | `_data/faqs/*.yml` | `article_faq.json` (10 articles, 159 pairs) | Pages fine. **Rebuild fails** at `:201` |
+| a4 | *(retired)* | `_data/faqs/*.yml` | the article FAQ, 10 articles / 159 pairs | Nothing. `scripts/build_article_faq.py` and the `article_faq.json` capture are both deleted; the pairs live in the article catalogue and are read from the database |
 | a5 | `content/media_tooling.py` `_read_from_github` | `raw.githubusercontent.com/.../images/authors/*` over HTTPS | 438 author images | **Only under an explicit `--source github`**, which then breaks. See below |
 | a6 | `build_public_projection.py:1385, 1541, 1556, 1641, 3078` | `_posts`, `_podcast`, `_books`, `images/**` | articles, podcasts, books, media — **`--mode fallback` only** | Nothing. Fallback is not accepted |
 
