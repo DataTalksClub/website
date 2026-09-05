@@ -24,7 +24,7 @@ import unicodedata
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import urlsplit
 
 from django.db import DatabaseError, IntegrityError, transaction
@@ -757,6 +757,25 @@ class SponsorDirectoryImportError(ValueError):
     """The reviewed sponsor directory file is missing, malformed, or ambiguous."""
 
 
+class SponsorDirectoryEntry(TypedDict):
+    """One validated row of the reviewed directory file.
+
+    The file itself is arbitrary JSON, so :func:`load_reviewed_sponsor_directory`
+    is the only place that turns it into this shape: every field below has
+    already been checked, which is why the importer downstream can read
+    ``entry["key"]`` as a string and ``entry["position"]`` as an optional
+    integer without re-narrowing it.
+    """
+
+    key: str
+    name: str
+    url: str
+    lifecycle: str
+    description: str
+    logo_asset_key: str
+    position: int | None
+
+
 @dataclass(frozen=True, slots=True)
 class SponsorDirectoryImportReport:
     total: int
@@ -768,7 +787,9 @@ class SponsorDirectoryImportReport:
         return self.created == 0 and self.updated == 0
 
 
-def load_reviewed_sponsor_directory(path: Path | None = None) -> tuple[JsonObject, ...]:
+def load_reviewed_sponsor_directory(
+    path: Path | None = None,
+) -> tuple[SponsorDirectoryEntry, ...]:
     """Parse and validate the checked reviewed directory without touching the database."""
 
     source = path or REVIEWED_SPONSOR_DIRECTORY_PATH
@@ -781,24 +802,42 @@ def load_reviewed_sponsor_directory(path: Path | None = None) -> tuple[JsonObjec
     entries = payload.get("sponsors")
     if not isinstance(entries, list) or not entries:
         raise SponsorDirectoryImportError("reviewed_sponsor_directory_empty")
-    parsed: list[JsonObject] = []
+    parsed: list[SponsorDirectoryEntry] = []
     for entry in entries:
-        if not isinstance(entry, dict) or any(
-            not isinstance(entry.get(field), str) for field in _DIRECTORY_REQUIRED_FIELDS
-        ):
+        if not isinstance(entry, dict):
             raise SponsorDirectoryImportError("reviewed_sponsor_entry_shape_invalid")
-        if entry["lifecycle"] not in _DIRECTORY_PUBLIC_LIFECYCLES:
+        fields: dict[str, str] = {}
+        for field in _DIRECTORY_REQUIRED_FIELDS:
+            value = entry.get(field)
+            if not isinstance(value, str):
+                raise SponsorDirectoryImportError("reviewed_sponsor_entry_shape_invalid")
+            fields[field] = value
+        lifecycle = fields["lifecycle"]
+        if lifecycle not in _DIRECTORY_PUBLIC_LIFECYCLES:
             raise SponsorDirectoryImportError("reviewed_sponsor_entry_lifecycle_invalid")
-        position = entry.get("position")
-        if position is not None and (isinstance(position, bool) or not isinstance(position, int)):
+        raw_position = entry.get("position")
+        position: int | None
+        if raw_position is None:
+            position = None
+        elif isinstance(raw_position, bool) or not isinstance(raw_position, int):
             raise SponsorDirectoryImportError("reviewed_sponsor_entry_position_invalid")
-        is_active = entry["lifecycle"] == Sponsor.Lifecycle.ACTIVE
+        else:
+            position = raw_position
+        is_active = lifecycle == Sponsor.Lifecycle.ACTIVE
         if is_active and (position is None or position < 1):
             raise SponsorDirectoryImportError("reviewed_sponsor_entry_active_needs_position")
         if not is_active and position is not None:
             raise SponsorDirectoryImportError("reviewed_sponsor_entry_archived_has_position")
         parsed.append(
-            {field: entry[field] for field in _DIRECTORY_REQUIRED_FIELDS} | {"position": position}
+            SponsorDirectoryEntry(
+                key=fields["key"],
+                name=fields["name"],
+                url=fields["url"],
+                lifecycle=lifecycle,
+                description=fields["description"],
+                logo_asset_key=fields["logo_asset_key"],
+                position=position,
+            )
         )
     keys = [entry["key"] for entry in parsed]
     if len(set(keys)) != len(keys):
@@ -809,16 +848,23 @@ def load_reviewed_sponsor_directory(path: Path | None = None) -> tuple[JsonObjec
     return tuple(parsed)
 
 
-def _directory_entry_payload(entry: JsonObject) -> JsonObject:
-    assignments: list[JsonObject] = []
-    if entry["position"] is not None:
-        assignments.append(
-            {
-                "placement": SPONSOR_PLACEMENT_PUBLIC_DIRECTORY,
-                "position": entry["position"],
-                "enabled": True,
-            }
-        )
+def _directory_entry_assignments(entry: SponsorDirectoryEntry) -> list[JsonObject]:
+    """The placement assignments one reviewed entry asks for: one, or none at all."""
+
+    position = entry["position"]
+    if position is None:
+        return []
+    return [
+        {
+            "placement": SPONSOR_PLACEMENT_PUBLIC_DIRECTORY,
+            "position": position,
+            "enabled": True,
+        }
+    ]
+
+
+def _directory_entry_payload(entry: SponsorDirectoryEntry) -> JsonObject:
+    assignments: list[JsonValue] = list(_directory_entry_assignments(entry))
     return {
         "name": entry["name"],
         "url": entry["url"],
@@ -829,14 +875,14 @@ def _directory_entry_payload(entry: JsonObject) -> JsonObject:
     }
 
 
-def _directory_entry_matches(sponsor: Sponsor, entry: JsonObject) -> bool:
+def _directory_entry_matches(sponsor: Sponsor, entry: SponsorDirectoryEntry) -> bool:
     current_assignments = {
         (assignment.placement_key, assignment.position, assignment.enabled)
         for assignment in sponsor.assignments.all()
     }
     target_assignments = {
         (item["placement"], item["position"], item["enabled"])
-        for item in _directory_entry_payload(entry)["assignments"]
+        for item in _directory_entry_assignments(entry)
     }
     return (
         sponsor.name == entry["name"]
@@ -852,7 +898,7 @@ _IMPORT_ACTOR_REF = "system:import_sponsors"
 _IMPORT_SOURCE = "import"
 
 
-def _import_reconcile(entry: JsonObject, sponsor: Sponsor) -> bool:
+def _import_reconcile(entry: SponsorDirectoryEntry, sponsor: Sponsor) -> bool:
     """Bring one existing row to match its reviewed entry. Returns whether it changed."""
 
     if _directory_entry_matches(sponsor, entry):
