@@ -1,0 +1,76 @@
+name: Deploy Prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_production:
+        description: Promote the latest release proven in dev to prod.datatalks.club
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: inputs.confirm_production == true
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://prod.datatalks.club
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    env:
+      ECS_CLUSTER_NAME: ${{ vars.ECS_CLUSTER_NAME }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: dev-run
+        name: Select the latest successful dev deployment from main
+        run: |
+          set -euo pipefail
+          response="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/deploy-dev.yml/runs?branch=main&status=success&per_page=1")"
+          run_id="$(jq -er '.workflow_runs[0].id' <<< "$response")"
+          source_sha="$(jq -er '.workflow_runs[0].head_sha' <<< "$response")"
+          echo "run_id=${run_id}" >> "$GITHUB_OUTPUT"
+          echo "source_sha=${source_sha}" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.dev-run.outputs.run_id }}
+          pattern: dev-release-*
+          path: .tmp/promotion
+          merge-multiple: true
+      - name: Validate the dev release record before assuming AWS
+        env:
+          EXPECTED_SOURCE_SHA: ${{ steps.dev-run.outputs.source_sha }}
+        run: |
+          set -euo pipefail
+          test "$(find .tmp/promotion -name dev-release.json -type f | wc -l)" = 1
+          release=.tmp/promotion/dev-release.json
+          jq -e \
+            --arg source_sha "$EXPECTED_SOURCE_SHA" \
+            --arg repository "387546586013.dkr.ecr.eu-west-1.amazonaws.com/website-production" '
+              .source_sha[0:7] as $short_sha |
+              keys == ["image", "source_sha", "version"] and
+              .source_sha == $source_sha and
+              (.source_sha | test("^[0-9a-f]{40}$")) and
+              (.version | test("^[0-9]{8}-[0-9]{6}-[0-9a-f]{7}$")) and
+              (.version | endswith($short_sha)) and
+              (.image | test("^" + $repository + "@sha256:[0-9a-f]{64}$"))
+            ' "$release" > /dev/null
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::387546586013:role/website-production-github-deployer
+          aws-region: eu-west-1
+          role-session-name: website-production-deployer-${{ github.run_id }}
+      - name: Promote the dev-proven release to production
+        run: bash deploy/deploy_prod.sh .tmp/promotion/dev-release.json

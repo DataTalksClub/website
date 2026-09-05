@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 concurrency:
   group: deploy-dev
   cancel-in-progress: false
@@ -12,6 +15,9 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      DJANGO_SETTINGS_MODULE: website.settings.test
+      PUBLIC_MEDIA_STORE_BACKEND: memory
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -19,23 +25,19 @@ jobs:
           version: "0.10.11"
           enable-cache: true
       - run: uv sync --locked
-      - run: DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test --noinput
+      - run: make test-django-full
 
-  # No `environment:` here, deliberately: this assumes main/website's existing
-  # production-image publisher role, whose trust is pinned to the "main"
-  # branch ref (repo:...:ref:refs/heads/main), not a GitHub environment. Dev
-  # has no publisher role of its own -- it deploys the same immutable image
-  # family production does, from the one shared ECR repository main/website
-  # owns (see main/dev/website_service.tf's own comment on this).
   publish:
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     if: github.ref == 'refs/heads/main'
     permissions:
       contents: read
       id-token: write
     outputs:
       image: ${{ steps.push.outputs.image }}
+      source_sha: ${{ steps.identity.outputs.source_sha }}
+      version: ${{ steps.identity.outputs.version }}
     env:
       AWS_REGION: eu-west-1
       REPO_URI: 387546586013.dkr.ecr.eu-west-1.amazonaws.com/website-production
@@ -46,35 +48,52 @@ jobs:
           role-to-assume: arn:aws:iam::387546586013:role/website-production-github-publisher
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: website-dev-publisher-${{ github.run_id }}
-      - run: aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.REPO_URI }}
-      - run: docker buildx build --platform linux/arm64 --provenance=false --tag dev-build:${{ github.sha }} --load .
-      - name: Push by digest and capture the exact reference
-        id: push
+      - id: identity
+        name: Construct the release identity once
         run: |
           set -euo pipefail
-          docker tag dev-build:${{ github.sha }} ${{ env.REPO_URI }}:dev-${{ github.sha }}
-          docker push ${{ env.REPO_URI }}:dev-${{ github.sha }}
-          digest="$(docker inspect --format '{{index .RepoDigests 0}}' ${{ env.REPO_URI }}:dev-${{ github.sha }})"
-          echo "image=${digest}" >> "$GITHUB_OUTPUT"
+          constructed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          version="$(date -u +%Y%m%d-%H%M%S)-${GITHUB_SHA:0:7}"
+          echo "constructed_at=${constructed_at}" >> "$GITHUB_OUTPUT"
+          echo "source_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+      - run: aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "${REPO_URI%%/*}"
+      - name: Build the ARM64 release image
+        env:
+          VERSION: ${{ steps.identity.outputs.version }}
+          CONSTRUCTED_AT: ${{ steps.identity.outputs.constructed_at }}
+        run: |
+          docker buildx build \
+            --platform linux/arm64 \
+            --provenance=false \
+            --label "org.opencontainers.image.version=$VERSION" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --label "org.opencontainers.image.created=$CONSTRUCTED_AT" \
+            --tag "${REPO_URI}:${VERSION}" \
+            --load .
+      - id: push
+        name: Publish and capture the immutable digest
+        env:
+          VERSION: ${{ steps.identity.outputs.version }}
+        run: |
+          set -euo pipefail
+          docker push "${REPO_URI}:${VERSION}"
+          image="$(docker image inspect --format '{{index .RepoDigests 0}}' "${REPO_URI}:${VERSION}")"
+          [[ "${image%@*}" == "$REPO_URI" ]]
+          [[ "${image##*@}" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
 
-  # `environment: development` here, deliberately: this assumes the dev-only
-  # deployer role (main/dev/deployment_iam.tf), whose trust is pinned to the
-  # "development" GitHub environment, not a branch ref. Everything the
-  # deployer role needs to know -- cluster, service, and task-family names --
-  # is fixed in deploy/deploy_dev.sh, not configured here: this pipeline only
-  # ever deploys to the one reviewed dev environment, so there is nothing to
-  # select between. DEV_SUBNET_IDS / DEV_SECURITY_GROUP_IDS are the two
-  # values that can't be hardcoded, because AWS generates them -- see
-  # `terraform -chdir=main/dev output website_task_subnet_ids
-  # website_task_security_group_id` in DataTalksClub/aws-infra.
   deploy:
     needs: publish
     runs-on: ubuntu-latest
     environment:
       name: development
+      url: https://dev.datatalks.club
     permissions:
       contents: read
       id-token: write
+    env:
+      ECS_CLUSTER_NAME: ${{ vars.ECS_CLUSTER_NAME }}
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
@@ -82,13 +101,28 @@ jobs:
           role-to-assume: arn:aws:iam::387546586013:role/website-dev-github-deployer
           aws-region: eu-west-1
           role-session-name: website-dev-deployer-${{ github.run_id }}
-      - run: bash deploy/deploy_dev.sh "${{ needs.publish.outputs.image }}"
+      - name: Deploy the exact published release
+        run: >-
+          bash deploy/deploy_dev.sh
+          "${{ needs.publish.outputs.image }}"
+          "${{ needs.publish.outputs.version }}"
+          "${{ needs.publish.outputs.source_sha }}"
+      - name: Record the release proven in dev
         env:
-          # Two brand-new variables, deliberately not reusing the old
-          # DEVELOPMENT_ECS_SUBNET_IDS/_SECURITY_GROUP_IDS names or their
-          # JSON-array format: plain comma-separated ids, e.g.
-          # "subnet-0abc,subnet-0def" / "sg-0abc". Real values come from
-          # `terraform -chdir=main/dev output website_task_subnet_ids
-          # website_task_security_group_id` in DataTalksClub/aws-infra.
-          DEV_SUBNET_IDS: ${{ vars.DEV_SUBNET_IDS }}
-          DEV_SECURITY_GROUP_IDS: ${{ vars.DEV_SECURITY_GROUP_IDS }}
+          IMAGE: ${{ needs.publish.outputs.image }}
+          VERSION: ${{ needs.publish.outputs.version }}
+          SOURCE_SHA: ${{ needs.publish.outputs.source_sha }}
+        run: |
+          mkdir -p .tmp
+          jq -n \
+            --arg image "$IMAGE" \
+            --arg version "$VERSION" \
+            --arg source_sha "$SOURCE_SHA" \
+            '{image: $image, version: $version, source_sha: $source_sha}' \
+            > .tmp/dev-release.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dev-release-${{ needs.publish.outputs.source_sha }}
+          path: .tmp/dev-release.json
+          if-no-files-found: error
+          retention-days: 90

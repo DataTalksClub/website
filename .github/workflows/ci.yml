@@ -1354,10 +1354,10 @@ jobs:
           retention-days: 30
 
   auto-capture-prior:
-    if: >-
-      needs.ci-gate.result == 'success' &&
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main'
+    # Automatic application delivery is owned by deploy-dev.yml. Production is
+    # manual-only in deploy-prod.yml, so this legacy capture path must never
+    # turn a push to main into a production deployment.
+    if: ${{ false }}
     needs: [resolve-release, classification, quality, django, playwright, container, ci-gate]
     runs-on: ubuntu-latest
     # The GitHub environment is the OIDC authorisation boundary, not a label:

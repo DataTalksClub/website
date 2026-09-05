@@ -1,9 +1,9 @@
-"""Swap the image reference in a describe-task-definition response, in place.
+"""Swap the release identity in a describe-task-definition response.
 
 Deliberately minimal, mirroring course-management-platform's
 deploy/update_task_def.py: read the task definition the register-task-definition
-API returned when it was last created, replace only the image and the VERSION
-environment entry, strip the fields ECS forbids on RegisterTaskDefinition, and
+API returned when it was last created, replace only the image and the complete
+release identity, strip the fields ECS forbids on RegisterTaskDefinition, and
 write the result back out for `aws ecs register-task-definition
 --cli-input-json` to consume directly.
 
@@ -30,19 +30,35 @@ REGISTER_TASK_DEFINITION_EXCLUDED_FIELDS = (
 )
 
 
-def update_task_definition(input_file: str, image: str, version: str, output_file: str) -> None:
+IDENTITY_NAMES = frozenset({"APP_VERSION", "VERSION", "SOURCE_SHA", "IMAGE_DIGEST"})
+
+
+def update_task_definition(
+    input_file: str,
+    image: str,
+    version: str,
+    source_sha: str,
+    image_digest: str,
+    output_file: str,
+) -> None:
     with open(input_file, encoding="utf-8") as handle:
         task_definition = json.load(handle)["taskDefinition"]
 
     for container in task_definition["containerDefinitions"]:
         container["image"] = image
-        environment = container.setdefault("environment", [])
-        for entry in environment:
-            if entry["name"] == "VERSION":
-                entry["value"] = version
-                break
-        else:
-            environment.append({"name": "VERSION", "value": version})
+        environment = [
+            entry
+            for entry in container.setdefault("environment", [])
+            if entry.get("name") not in IDENTITY_NAMES
+        ]
+        environment.extend(
+            [
+                {"name": "IMAGE_DIGEST", "value": image_digest},
+                {"name": "SOURCE_SHA", "value": source_sha},
+                {"name": "VERSION", "value": version},
+            ]
+        )
+        container["environment"] = sorted(environment, key=lambda entry: entry["name"])
 
     for field in REGISTER_TASK_DEFINITION_EXCLUDED_FIELDS:
         task_definition.pop(field, None)
@@ -52,11 +68,14 @@ def update_task_definition(input_file: str, image: str, version: str, output_fil
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 5:
+    if len(sys.argv) != 7:
         print(
             "Usage: python update_task_definition_image.py "
-            "<input_file> <image_ref> <version> <output_file>",
+            "<input_file> <image_ref> <version> <source_sha> "
+            "<image_digest> <output_file>",
             file=sys.stderr,
         )
         raise SystemExit(1)
-    update_task_definition(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+    update_task_definition(
+        sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6]
+    )
