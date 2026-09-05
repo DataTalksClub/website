@@ -9,6 +9,30 @@ from django.core.management.base import BaseCommand, CommandError, CommandParser
 from psycopg import sql
 
 
+def _database_port(value: object) -> int:
+    """The database port as an ``int``, refusing anything that is not a usable one.
+
+    ``handle`` reads already-parsed options, and on the command line argparse has
+    applied ``type=int`` for us -- but ``call_command`` passes a non-required
+    keyword straight into the options without any conversion, so this is the only
+    place the value is actually checked.  It matters more here than in most
+    commands: the port is interpolated into the ``DATABASE_URL`` that gets written
+    to Secrets Manager, so an unusable one would be stored as production
+    configuration rather than rejected.  Every other bad input in this command
+    surfaces as a ``CommandError``, so this one does too.
+    """
+
+    if isinstance(value, bool) or not isinstance(value, int | str):
+        raise CommandError("--database-port must be an integer TCP port")
+    try:
+        port = int(value)
+    except ValueError as error:
+        raise CommandError("--database-port must be an integer TCP port") from error
+    if not 1 <= port <= 65_535:
+        raise CommandError("--database-port must be an integer TCP port")
+    return port
+
+
 class Command(BaseCommand):
     help = "Create the unprivileged production database role and populate runtime secrets"
     requires_system_checks: list[str] = []
@@ -30,7 +54,7 @@ class Command(BaseCommand):
 
         region = str(options["region"])
         host = str(options["database_host"])
-        port = int(options["database_port"])
+        port = _database_port(options["database_port"])
         database_name = str(options["database_name"])
         application_user = str(options["application_user"])
         client = boto3.client("secretsmanager", region_name=region)
