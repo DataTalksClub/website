@@ -725,18 +725,14 @@ under `unchanged` and writes nothing.
 
 ### 14.3 — New-event identity discovery
 
-Until now, the manifest above (§14) was the **only** way an `Event` row could exist.
-`events.identity.create_event_identity()` — the atomic, allocator-safe function that
-actually inserts one — had **zero callers anywhere outside tests**. A genuinely new
-event named in a fresh Luma or Eventbrite export (one the manifest has never
-described, because it postdates the export the manifest was built from) had no path
-into the database at all. This was confirmed directly: four real upcoming Luma events
-(dated 2026-09-08 through 2026-09-15) exist on Luma but are in neither the local
-export snapshot available at the time (`.tmp/luma-prepared-20260831`, which only
-covers through August 2026) nor the manifest.
+Until this leg existed, the manifest above (§14) was the **only** way an `Event` row
+could exist. `events.identity.create_event_identity()` — the atomic, allocator-safe
+function that actually inserts one — had zero callers outside tests. A genuinely new
+event named in a fresh Luma export (one the manifest has never described, because it
+postdates the export the manifest was built from) had no path into the database at all.
 
-**The fix**: `scripts/prod/import_events.py` now has a second, independent leg —
-`discover_new_luma_event_identities()` (orchestration) calling
+**The mechanism**: `scripts/prod/import_events.py`'s
+`discover_new_luma_event_identities()` (orchestration) calls
 `scripts.prod.registration_sources.luma.discover_luma_events()` (the read) and
 `events.identity.create_provider_event_identity()` (the write, itself a thin wrapper
 around `create_event_identity()`; it does not reimplement allocation or path
@@ -749,80 +745,79 @@ uv run --frozen python scripts/prod/import_events.py \
     --discover-new-events-only
 ```
 
-`--discover-new-events-only` runs identity-manifest import plus this leg alone, and
-deliberately **does not** require `--eventbrite-source` or a Luma export that matches
-the pinned checksum in `event-registration-sources.json` — that pin exists to protect
-registration *counts* from silent drift, and this leg writes no count. Without the
-flag, a full `run()` (§16/17) also calls this leg once, right after the identity
-import and before registration-aggregate derivation, reporting it under the
+`--discover-new-events-only` runs the identity-manifest import, this leg and the staged
+content of §14.4, and deliberately **does not** require `--eventbrite-source` or a Luma
+export matching the pinned checksum in `event-registration-sources.json` — that pin
+exists to protect registration *counts* from silent drift, and this leg writes no count.
+Without the flag, a full `run()` (§16/17) also calls it once, right after the identity
+and content imports and before registration-aggregate derivation, reporting it under the
 `new_event_identities` key — a distinct top-level key, deliberately never merged into
 `identities` (the manifest replay) or `activation_coverage` (the registration-count
 gate), so an automatic creation can never be mistaken for either.
 
-**What counts as "new."** An event is *not* created — it is counted in
-`already_tracked_total` and left alone — if either is already true: this database
-already holds an `Event` under our own provider source identity (idempotent replay:
-a second run against the same export creates nothing), or a
-`HistoricalEventMapping` row already exists for `(provider, external_event_identifier)`
-in **any** state, including `review_required`. That second condition is deliberate:
-"3 of 421 activated, 380 awaiting mapping review" (§16/17 below) is a *different*,
-already-tracked gap — those 380 provider events are very likely described by the
-manifest already, just under a different (date/title-derived) source key nobody has
-reviewed yet. Racing ahead of that human review by minting a second identity would be
-a silent duplicate, not a fix. **Identity is never attached or withheld by matching
-title or date** — same rule the manifest itself follows (`events/identity.py`'s module
-docstring) — only by the provider's own stable event id, via the mapping table or our
-own prior creation.
+**What counts as "new," and the duplicate bug that taught us the rule.** The first
+version of this leg asked only whether *we* had already minted an identity for the
+provider's own event id, guarded by a check for an existing registration aggregate
+revision. On a database built in production order that guard is always empty when
+discovery runs — identities import first, aggregates stage last — so every export event
+the reviewed manifest already described under its legacy `_data/events.yaml` source key
+got a **second** `Event`, with its own public id and a provisioned Q&A session. Measured
+against the pinned 166-event export: **164 identities created, 144 of them duplicates.**
 
-**The mapping-review-posture decision, stated explicitly.** Creating an identity and
-activating a registration count are independent gates, deliberately. Minting an
-identity is safe, reviewable plumbing — title and a canonical `/events/<public_id>/
-<slug>` path, nothing a visitor's registration count depends on — so it is fine to
-automate. This leg never creates or touches a `HistoricalEventMapping` row and never
-activates a count; that stays exactly as gated as it is today (`mapping_review_required`,
-same as the existing 380-event backlog).
+An export event now matches an event we already have when **exactly one** existing event
+shares its calendar date and, case/whitespace-normalized, its exact title — the same
+rule `events.services.resolve_unmatched_aggregates` already applies to the same problem,
+exact on both axes, so a merely similar title or a neighbouring date is not a match at
+all (`events.identity.ExistingEventIndex`). Several events sharing both is reported
+under `ambiguous_total` and guessed at by nobody, because folding two real events into
+one is worse than a duplicate. Anything matching nothing is genuinely new and still gets
+an identity. Nothing is *attached* by title or date: a recognised event keeps its own
+source key and gains no alias, no provider id and no registration count — discovery
+simply declines to create.
+
+**Reconciling a database that ran the unguarded version.** Guarding discovery stops new
+duplicates and does nothing about rows already written, so
+`--report-duplicate-identities` names each one — its public id and canonical path, the
+event it duplicates, and the rows a delete would take with it — and changes nothing.
+`--remove-duplicate-identities` removes only a duplicate that is provably inert: no
+alias, no registration, no aggregate revision, and either no Q&A session or the
+untouched draft one `create_event_identity` provisions. A duplicate carrying real
+dependent data is reported and kept. There is no force flag, because merging one is a
+decision this script may not guess at.
 
 **Report shape**, per provider: `candidate_total` (events read from the export),
-`already_tracked_total` (skipped, see above), `no_metadata_total` (a Luma event with
-zero registrations has no CSV row to read a title from at all — reported separately,
-not silently dropped and not treated as an error), `created_total` and
-`created_events` — each entry carrying `title`, `start_at`, `eligible_count`,
-`public_id`, `canonical_path`, and a `reason` string in the same spirit as the
-manifest's per-alias `reason` field, so a human reviewing the run log sees *why* each
-row exists without needing to re-derive it.
+`existing_event_total` (recognised as an event we already hold), `already_tracked_total`
+(we minted this one on an earlier run), `ambiguous_total`, `undated_total`,
+`no_metadata_total` (a Luma event with zero registrations has no CSV row to read a title
+from at all — reported separately, not silently dropped and not treated as an error),
+`created_total` and `created_events`. Each created entry carries `title`, `start_at`,
+`eligible_count`, `public_id`, `canonical_path` and a `reason` string, so a human
+reading the run log sees *why* each row exists without re-deriving it.
 
-**Verified against real data.** Run against the real local export
-(`.tmp/luma-prepared-20260831/luma-aggregate-v1`, 166 events) with a fresh database
-that had only the reviewed manifest imported (no `HistoricalEventMapping` rows
-staged at all — this worktree's `.local/migration-data` does not exist, so nothing
-has staged this export before), the naive run flagged all 166 as new. That is
-technically correct given the database state, but not how this should be run in
-practice: `discover_new_luma_event_identities` is meant to run *after* the
-registration-aggregate pipeline has staged (not necessarily activated) mapping rows
-for a reconciled export, using the resulting mapping-review backlog as the
-correlation signal — not stand-alone against a raw export nothing has ever staged.
-Re-run with 143 of the 166 events pre-staged as `review_required` (matched
-deterministically against the manifest's own `source_key`, which for legacy-site
-events is exactly `<date>-<title-slug>`, and the export's own filenames are named
-`<date>_<title-slug>_evt-<id>` — an exact, non-fuzzy match, used only to build a
-realistic test fixture, never as production logic) produced 22 created identities and
-1 `no_metadata` (a zero-registration event). A second run against the same database
-created zero (`already_tracked_total: 165`), proving idempotency.
+**Measured 2026-09-05** against the pinned export
+(`.local/migration-data/events/luma-aggregate-v1.backup-20260902`, 166 events) into a
+scratch SQLite database built by `manage.py migrate`, with only the reviewed manifest
+imported: **166 candidates → 144 recognised as events already held, 20 created, 2 with
+no metadata, 0 ambiguous, 0 undated.** A second run against the same database creates
+nothing (`already_tracked_total: 20`). Against the drifted 174-event directory the same
+run reads 174 candidates and creates 27 — see §12 item 10 for why that directory does
+not validate in a full run.
 
-For one created event ("Data Engineering Zoomcamp 2025 Pre-Course Live Q&A",
-2024-12-16), the reported `eligible_count` was **777**, matching the raw export's own
-`2024-12-16_data-engineering-zoomcamp-2025-pre-course-live-q-a_evt-*.csv` exactly:
-778 data rows, 777 `approved` + 1 `declined`, counted independently with `csv.DictReader`
-and cross-checked with a plain `grep -c`. No discrepancy found.
+**Three of the twenty are worth a human's eye, and the report says so.** A created event
+that shares its exact normalized title with an existing event on a *different* date is
+flagged under `existing_event_dates_with_this_title` — it does not change the decision,
+because a different date is a different event until a person says otherwise, but a
+recurring series or a rescheduled event looks exactly like this. On the pinned export
+the three are "Open-Source LLM Zoomcamp 2025 Pre-Course Live Q&A" (7 days apart), "From
+RAG to AI Agents: Function Calling and Tool Use" (5 days) and "RAG and Agents
+Evaluation: Measuring Retrieval and LLM Answers" (3 days).
 
-**A known residual worth a human's attention, not this task's to resolve**: of the 22
-created in that demonstration, 6 share a date with no manifest entry at all (strong
-genuinely-new candidates) while 16 share a date with an existing manifest entry under
-different title wording — ambiguous, and this mechanism deliberately does not try to
-resolve that ambiguity by matching title or date. Those 16 will need the same human
-mapping-review attention the existing 380-event backlog already gets; some may turn
-out to be the same event as an existing manifest row (in which case a human merges
-them) rather than a second, permanently-duplicate identity.
+**The mapping-review posture, stated explicitly.** Creating an identity and activating a
+registration count are independent gates, deliberately. Minting an identity is safe,
+reviewable plumbing — title and a canonical `/events/<public_id>/<slug>` path, nothing a
+visitor's registration count depends on — so it is fine to automate. This leg never
+creates or touches a registration mapping and never activates a count; that stays
+exactly as gated as it is (§12 item 2).
 
 ### 14.4 — Staged content for discovered events
 
