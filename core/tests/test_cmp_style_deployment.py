@@ -83,6 +83,7 @@ class TaskDefinitionImageUpdateTests(TestCase):
                 "20260905-120000-aaaaaaa",
                 "a" * 40,
                 "sha256:" + "b" * 64,
+                "development",
                 str(output_path),
             )
             updated = json.loads(output_path.read_text(encoding="utf-8"))
@@ -93,6 +94,7 @@ class TaskDefinitionImageUpdateTests(TestCase):
         self.assertEqual(environment["VERSION"], "20260905-120000-aaaaaaa")
         self.assertEqual(environment["SOURCE_SHA"], "a" * 40)
         self.assertEqual(environment["IMAGE_DIGEST"], "sha256:" + "b" * 64)
+        self.assertEqual(environment["DTC_ENVIRONMENT"], "development")
         self.assertEqual(environment["CANONICAL_ORIGIN"], "https://dev.datatalks.club")
         self.assertNotIn("revision", updated)
         self.assertNotIn("taskDefinitionArn", updated)

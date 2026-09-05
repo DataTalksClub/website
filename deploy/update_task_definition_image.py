@@ -30,7 +30,9 @@ REGISTER_TASK_DEFINITION_EXCLUDED_FIELDS = (
 )
 
 
-IDENTITY_NAMES = frozenset({"APP_VERSION", "VERSION", "SOURCE_SHA", "IMAGE_DIGEST"})
+IDENTITY_NAMES = frozenset(
+    {"APP_VERSION", "VERSION", "SOURCE_SHA", "IMAGE_DIGEST", "DTC_ENVIRONMENT"}
+)
 
 
 def update_task_definition(
@@ -39,6 +41,7 @@ def update_task_definition(
     version: str,
     source_sha: str,
     image_digest: str,
+    runtime_environment: str,
     output_file: str,
 ) -> None:
     with open(input_file, encoding="utf-8") as handle:
@@ -56,6 +59,7 @@ def update_task_definition(
                 {"name": "IMAGE_DIGEST", "value": image_digest},
                 {"name": "SOURCE_SHA", "value": source_sha},
                 {"name": "VERSION", "value": version},
+                {"name": "DTC_ENVIRONMENT", "value": runtime_environment},
             ]
         )
         container["environment"] = sorted(environment, key=lambda entry: entry["name"])
@@ -68,14 +72,20 @@ def update_task_definition(
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 7:
+    if len(sys.argv) != 8:
         print(
             "Usage: python update_task_definition_image.py "
             "<input_file> <image_ref> <version> <source_sha> "
-            "<image_digest> <output_file>",
+            "<image_digest> <runtime_environment> <output_file>",
             file=sys.stderr,
         )
         raise SystemExit(1)
     update_task_definition(
-        sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6]
+        sys.argv[1],
+        sys.argv[2],
+        sys.argv[3],
+        sys.argv[4],
+        sys.argv[5],
+        sys.argv[6],
+        sys.argv[7],
     )
