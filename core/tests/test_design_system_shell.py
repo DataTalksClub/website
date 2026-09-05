@@ -27,7 +27,6 @@ from django.urls import reverse
 
 from accounts.navigation import login_url_for_path
 from content import catalogue
-from content.public_data import public_projection
 from courses.models.cohort import Cohort
 from events.queries import published_event_records
 
@@ -185,7 +184,7 @@ class DesignFiveAShellTests(TestCase):
             description="Fixture for the design system shell comparison.",
             visible=True,
         )
-        cls.episode = next(iter(public_projection()["podcasts_by_slug"].values()))
+        cls.episode = catalogue.podcasts()[0]
         cls.wiki_page = catalogue.wiki_pages()[0]
         cls.person = catalogue.people_by_slug()["alexeygrigorev"]
         cls.article = catalogue.articles()[0]

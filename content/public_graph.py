@@ -85,7 +85,7 @@ def validate_wiki_graph(graph: Any) -> None:
     """Validate graph references before a stored graph reaches a view."""
 
     if not isinstance(graph, dict):
-        raise ImproperlyConfigured("Public wiki graph projection is invalid.")
+        raise ImproperlyConfigured("Public wiki graph is invalid.")
     raw_nodes = graph.get("nodes")
     raw_links = graph.get("links")
     if not isinstance(raw_nodes, list) or not isinstance(raw_links, list):

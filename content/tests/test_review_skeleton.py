@@ -13,7 +13,7 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import Resolver404, resolve
 
 from content import catalogue
-from content.public_data import event_groups, public_projection
+from content.event_content import event_groups
 from courses.models.cohort import Cohort
 from events.queries import published_event_records
 from scripts import build_public_projection as projection_builder
@@ -42,12 +42,17 @@ class LinkParser(HTMLParser):
             self.destinations.append(values[attribute] or "")
 
 
-class PublicProjectionTests(TestCase):
-    projection: dict[str, Any]
-
-    @classmethod
-    def setUpTestData(cls) -> None:
-        cls.projection = public_projection()
+class PublishedCatalogueTests(TestCase):
+    #: Every published collection, named by the query it is read from.
+    collections = {
+        "articles": catalogue.articles,
+        "podcasts": catalogue.podcasts,
+        "books": catalogue.books,
+        "people": catalogue.people,
+        "wiki": catalogue.wiki_pages,
+        "courses": catalogue.courses,
+        "media": catalogue.media,
+    }
 
     def test_accepted_provenance(self) -> None:
         self.assertTrue(catalogue.manifest()["sources"]["preferred_content"]["accepted"])
@@ -81,7 +86,7 @@ class PublicProjectionTests(TestCase):
             "courses",
             "media",
         ):
-            for record in self.projection[collection]:
+            for record in self.collections[collection]():
                 self.assertRegex(record["provenance"]["checksum"], r"^[0-9a-f]{64}$")
                 self.assertTrue(record["provenance"]["source_path"])
                 self.assertTrue(record["provenance"]["source_key"])
@@ -100,7 +105,7 @@ class PublicProjectionTests(TestCase):
             ("podcasts", "podcasts/"),
             ("books", "books/"),
         ):
-            for record in self.projection[collection]:
+            for record in self.collections[collection]():
                 with self.subTest(slug=record["slug"]):
                     self.assertEqual(record["provenance"]["repository"], "DataTalksClub/content")
                     self.assertEqual(record["provenance"]["revision"], preferred_revision)
@@ -145,7 +150,7 @@ class PublicProjectionTests(TestCase):
         ):
             with self.subTest(path=path):
                 body = catalogue_body(self.client, path)
-                for record in self.projection[collection]:
+                for record in self.collections[collection]():
                     self.assertIn(f'href="{record["public_path"]}"', body)
 
         events = self.client.get("/events").content.decode()
@@ -225,7 +230,7 @@ class PublicProjectionTests(TestCase):
         catalogue = [
             record
             for collection in ("articles", "podcasts", "books", "people", "wiki")
-            for record in self.projection[collection]
+            for record in self.collections[collection]()
         ]
         for record in [*catalogue, *published_event_records()]:
             with self.subTest(slug=record["slug"]):
@@ -266,7 +271,7 @@ class PublicProjectionTests(TestCase):
 
     def test_people_relationships_use_exact_book_ids_and_collapse_recording_lineage(self) -> None:
         people = catalogue.people_by_slug()
-        book_paths = self.projection["books_by_path"]
+        book_paths = {book["public_path"]: book for book in catalogue.books()}
         expected_book_relationships = {
             (author, book["public_path"])
             for book in catalogue.books()
@@ -293,7 +298,7 @@ class PublicProjectionTests(TestCase):
             list(catalogue.podcasts()),
             list(published_event_records()),
         )
-        podcasts = self.projection["podcasts_by_slug"]
+        podcasts = {episode["slug"]: episode for episode in catalogue.podcasts()}
         events = {record["slug"]: record for record in published_event_records()}
         for event_slug, podcast_slug in lineage.items():
             # The lineage answers to a source key as well as a slug, so that the
@@ -438,7 +443,7 @@ class PublicProjectionTests(TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.headers["Content-Type"], record["content_type"])
 
-    def test_public_projection_requests_do_not_mutate_the_database(self) -> None:
+    def test_public_page_requests_do_not_mutate_the_database(self) -> None:
         paths = [
             "/",
             "/events",
@@ -480,7 +485,7 @@ class PublicProjectionTests(TestCase):
         self.assertIn("active_courses", response.context)
         self.assertContains(response, "Database-backed catalog marker")
 
-    def test_rendered_projection_links_never_use_the_removed_mount(self) -> None:
+    def test_rendered_catalogue_links_never_use_the_removed_mount(self) -> None:
         paths = (
             "/",
             "/blog",

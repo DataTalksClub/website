@@ -49,6 +49,7 @@ from . import catalogue, wiki_content
 from .article_content import article_view, render_body_markdown
 from .article_faq import ArticleFaq, article_faq
 from .event_banners import event_banner_url
+from .event_content import event_date_groups, event_groups
 from .event_speakers import event_speaker_records
 from .faq_data import faq_courses
 from .media_store import (
@@ -79,15 +80,11 @@ from .podcast_routes import (
     podcast_legacy_path,
     podcast_public_id,
 )
-from .public_data import (
-    WIKI_ASSET_ROOT,
-    event_date_groups,
-    event_groups,
-)
 from .public_query import selector_query
 from .queries import ResolvePublicDocument, resolve_public_document
 from .review_views import SLACK_PUBLIC_PATH
 from .sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
+from .wiki_content import WIKI_ASSET_ROOT
 
 WIKI_SPECIAL_CATEGORIES = {
     "guides": "guide",
@@ -187,7 +184,7 @@ def permanent_detail_redirect(
     *,
     collection: str,
 ) -> HttpResponse:
-    projection_name = {
+    collection_name = {
         "blog": "articles",
         "podcast": "podcasts",
         "books": "books",
@@ -196,7 +193,7 @@ def permanent_detail_redirect(
     redirect = catalogue.editorial_route_alias(request.path_info)
     if (
         redirect is None
-        or redirect["collection"] != projection_name
+        or redirect["collection"] != collection_name
         or redirect["record_key"] != slug
     ):
         raise Http404
@@ -555,7 +552,7 @@ COLLECTION_HUBS = {
 def collection_hub(request: HttpRequest, *, collection: str) -> HttpResponse:
     """The blog index and the Book of the Week archive, on the shared paginator.
 
-    The projections are already in their published order — `(published, slug)`
+    The records arrive in their published order — `(published, slug)`
     descending — and that is the order the pages are cut from.  Nothing here sorts,
     filters or renumbers; the collection differs only by which records, which base
     path and which words.
@@ -992,7 +989,7 @@ def wiki_hub(request: HttpRequest) -> HttpResponse:
 
     `q` is the mode switch and is read first, so a search request never reaches the
     paginator and search results are never paged (issue #175).  Without `q` the hub is
-    the A–Z catalogue in the projection's `(title.casefold(), slug)` order, cut into
+    the A–Z catalogue in the published `(title.casefold(), slug)` order, cut into
     pages by the shared paginator (issue #178).
     """
 
@@ -1190,7 +1187,7 @@ def wiki_asset(request: HttpRequest, asset: str) -> FileResponse:
 
 @require_safe
 def media(request: HttpRequest, media_path: str) -> HttpResponseBase:
-    """Serve one recorded projection image through the configured media store.
+    """Serve one recorded public image through the configured media store.
 
     The public URL, the response status, and the response header shape are unchanged
     from the era when the bytes lived in the git working tree.  An unrecognised path is

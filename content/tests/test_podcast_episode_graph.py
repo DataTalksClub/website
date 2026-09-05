@@ -11,7 +11,6 @@ from django.test import TestCase
 
 from content import catalogue
 from content.podcast_routes import podcast_public_id
-from content.public_data import public_projection
 from content.public_graph import validate_wiki_graph
 from content.wiki_content import episode_graph
 
@@ -48,22 +47,38 @@ def _graph_node(
     }
 
 
-def _synthetic_projection(
-    *,
-    links: list[dict[str, Any]],
-    nodes: list[dict[str, str]],
-    episode_path: str = "/podcast/s01e01/episode",
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    episode = {"title": "Synthetic episode", "public_path": episode_path}
-    return {"wiki_graph": {"nodes": nodes, "links": links}}, episode
+def _synthetic_episode(episode_path: str = "/podcast/s01e01/episode") -> dict[str, Any]:
+    return {"title": "Synthetic episode", "public_path": episode_path}
 
 
 class EpisodeGraphContractTests(TestCase):
+    def publish_graph(
+        self,
+        *,
+        nodes: list[dict[str, str]],
+        links: list[dict[str, Any]],
+        podcasts: tuple[dict[str, Any], ...] = (),
+    ) -> None:
+        """Publish a synthetic graph and episode list for the rest of this check.
+
+        The resolver reads what the catalogue publishes, so a shape it has to
+        refuse or resolve exactly is published here rather than handed in.  The
+        node and link lists stay live, so a check may extend them and read the
+        graph again.
+        """
+
+        for target, value in (
+            ("content.catalogue.wiki_graph", {"nodes": nodes, "links": links}),
+            ("content.catalogue.podcasts", podcasts),
+        ):
+            published = patch(target, return_value=value)
+            published.start()
+            self.addCleanup(published.stop)
+
     def test_s23e06_uses_exact_typed_path_and_aggregates_the_checked_oracle(self) -> None:
-        projection = public_projection()
         episode = _episode(REPRESENTATIVE)
 
-        resolved = episode_graph(episode, projection=projection)
+        resolved = episode_graph(episode)
 
         self.assertEqual(resolved.state, "available")
         self.assertEqual(resolved.hub_id, "podcast:" + REPRESENTATIVE)
@@ -96,9 +111,8 @@ class EpisodeGraphContractTests(TestCase):
         )
 
     def test_visual_nodes_are_native_links_to_their_resolved_targets(self) -> None:
-        projection = public_projection()
         episode = _episode(REPRESENTATIVE)
-        resolved = episode_graph(episode, projection=projection)
+        resolved = episode_graph(episode)
         body = render_to_string(
             "public/_podcast_episode_knowledge_graph.html", {"episode_graph": resolved}
         )
@@ -158,8 +172,10 @@ class EpisodeGraphContractTests(TestCase):
             }
             for node in nodes[1:]
         ]
-        projection, episode = _synthetic_projection(nodes=nodes, links=links)
-        resolved = episode_graph(episode, projection=projection)
+        episode = _synthetic_episode()
+        self.publish_graph(nodes=nodes, links=links)
+
+        resolved = episode_graph(episode)
         body = render_to_string(
             "public/_podcast_episode_knowledge_graph.html", {"episode_graph": resolved}
         )
@@ -205,15 +221,11 @@ class EpisodeGraphContractTests(TestCase):
             }
             for node in nodes[1:]
         ]
-        projection, episode = _synthetic_projection(
-            nodes=nodes,
-            links=links,
-            episode_path="/podcast/s01e01/episode",
-        )
+        episode = _synthetic_episode()
         episode.update({"slug": "episode", "season": 1, "episode": 1})
-        projection["podcasts_by_slug"] = {"episode": episode, "target-episode.md": target}
+        self.publish_graph(nodes=nodes, links=links, podcasts=(episode, target))
 
-        resolved = episode_graph(episode, projection=projection)
+        resolved = episode_graph(episode)
         target_neighbour = next(
             neighbour
             for neighbour in resolved.neighbors
@@ -233,12 +245,9 @@ class EpisodeGraphContractTests(TestCase):
         self.assertNotRegex(body, r'href="/podcast/[^" ]+\.html"')
 
     def test_narrow_visual_hub_stays_clear_of_all_eight_spokes(self) -> None:
-        projection = public_projection()
         episode = _episode(REPRESENTATIVE)
         narrow = next(
-            layout
-            for layout in episode_graph(episode, projection=projection).layouts
-            if layout.kind == "narrow"
+            layout for layout in episode_graph(episode).layouts if layout.kind == "narrow"
         )
 
         self.assertEqual(narrow.hub.title, "S23E06")
@@ -261,11 +270,10 @@ class EpisodeGraphContractTests(TestCase):
         graph_links: list[dict[str, Any]] = [
             {"kind": "z", "source": "podcast:other", "target": "wiki:z", "weight": 1},
         ]
-        projection, episode = _synthetic_projection(
-            nodes=graph_nodes, links=graph_links, episode_path="/podcast/s01e01/episode"
-        )
+        episode = _synthetic_episode()
+        self.publish_graph(nodes=graph_nodes, links=graph_links)
         # The graph has no node whose type and canonical path identify this episode.
-        self.assertEqual(episode_graph(episode, projection=projection).state, "no_data")
+        self.assertEqual(episode_graph(episode).state, "no_data")
 
         graph_nodes.append(
             _graph_node(
@@ -280,8 +288,8 @@ class EpisodeGraphContractTests(TestCase):
                 {"kind": "z2", "source": "podcast:episode", "target": "wiki:z", "weight": 1},
             ]
         )
-        first = episode_graph(episode, projection=projection)
-        second = episode_graph(episode, projection=projection)
+        first = episode_graph(episode)
+        second = episode_graph(episode)
 
         self.assertEqual(first.neighbors, second.neighbors)
         self.assertEqual(
@@ -313,9 +321,10 @@ class EpisodeGraphContractTests(TestCase):
             }
             for node in nodes[1:]
         ]
-        projection, episode = _synthetic_projection(nodes=nodes, links=links)
+        episode = _synthetic_episode()
+        self.publish_graph(nodes=nodes, links=links)
 
-        resolved = episode_graph(episode, projection=projection)
+        resolved = episode_graph(episode)
         destinations = {neighbour.label: neighbour.url for neighbour in resolved.neighbors}
         self.assertEqual(destinations["Safe"], "/wiki/safe")
         for label in ("No destination", "External", "Protocol relative", "Traversal"):
@@ -329,7 +338,8 @@ class EpisodeGraphContractTests(TestCase):
         self.assertNotIn('href=""', body)
 
     def test_dangling_incident_reference_fails_closed(self) -> None:
-        projection, episode = _synthetic_projection(
+        episode = _synthetic_episode()
+        self.publish_graph(
             nodes=[
                 _graph_node(
                     "podcast:episode",
@@ -347,8 +357,9 @@ class EpisodeGraphContractTests(TestCase):
                 }
             ],
         )
+
         with self.assertRaises(ImproperlyConfigured):
-            episode_graph(episode, projection=projection)
+            episode_graph(episode)
 
     def test_projection_validator_rejects_unsafe_urls_and_dangling_links(self) -> None:
         unsafe = {

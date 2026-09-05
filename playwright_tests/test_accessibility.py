@@ -17,10 +17,9 @@ from playwright.sync_api import Browser, Page, expect
 
 from accounts.studio_sessions import SESSION_REFERENCE_KEY, revoke_staff_session
 from accounts.studio_test_support import make_studio_user
-from content import catalogue, public_data
+from content import catalogue, event_content
 from content.docs_projection import docs_pages
 from content.faq_data import faq_course, faq_questions
-from content.public_data import public_projection
 from core.accessibility_registry import (
     BEHAVIOR_SCENARIOS,
     CRITICAL_STATES,
@@ -41,6 +40,7 @@ from events.models import (
     HistoricalRegistrationSourceRun,
     HistoricalRegistrationTotalState,
 )
+from events.queries import published_event_records
 from management_auth.models import APIPrincipal
 from management_auth.services import create_principal
 from playwright_tests.accessibility_support import (
@@ -83,7 +83,7 @@ INVALID_FORM_COMPANY = "Synthetic Valid Company"
 def _accessibility_settings(monkeypatch):
     monkeypatch.setattr(
         "core.views.event_groups",
-        lambda: public_data.event_groups(DEFAULT_FROZEN_AT),
+        lambda: event_content.event_groups(DEFAULT_FROZEN_AT),
     )
     with override_settings(
         ROOT_URLCONF="playwright_tests.accessibility_fixture_urls",
@@ -290,8 +290,7 @@ def accessibility_environment() -> AccessibilityEnvironment:
     )
     audit_id = uuid.uuid5(uuid.NAMESPACE_URL, f"https://web.dtcdev.click/{namespace}/audit")
 
-    public = public_projection()
-    event = public["events"][0]
+    event = published_event_records()[0]
     database_event = Event.objects.filter(pk=event["identity_id"]).first()
     if database_event is not None:
         event = {**event, "public_path": canonical_detail_path(database_event.id)}

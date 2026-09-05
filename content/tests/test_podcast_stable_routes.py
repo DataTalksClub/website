@@ -12,7 +12,6 @@ from content.podcast_routes import (
     PODCAST_GENAI_PILOTS_SLUG,
     podcast_legacy_path,
 )
-from content.public_data import public_projection
 from content.wiki_content import episode_graph
 
 
@@ -32,11 +31,10 @@ class PodcastStableRouteTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(reverse("podcast-genai-pilots"), PODCAST_GENAI_PILOTS_PATH)
-        projection = public_projection()
         episode = _episode(PODCAST_GENAI_PILOTS_SLUG)
         self.assertEqual(episode["public_path"], PODCAST_GENAI_PILOTS_PATH)
         self.assertEqual(
-            episode_graph(episode, projection=projection).url,
+            episode_graph(episode).url,
             PODCAST_GENAI_PILOTS_PATH,
         )
         self.assertContains(

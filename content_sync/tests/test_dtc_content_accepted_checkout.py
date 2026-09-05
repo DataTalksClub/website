@@ -16,7 +16,6 @@ from django.test import SimpleTestCase, TestCase
 
 from content import catalogue
 from content.models import ContentRelation, ContentRelease
-from content.public_data import public_projection
 from content.services import (
     ActivateContentRelease,
     activate_content_release,
@@ -44,7 +43,7 @@ from content_sync.dtc_content.contract import (
     REPAIRED_BASELINE_TREE,
     REPLACEMENT_ATTESTATION_SHA256,
 )
-from content_sync.dtc_content.parity import verify_initial_projection_parity
+from content_sync.dtc_content.parity import published_catalogue, verify_initial_projection_parity
 from content_sync.dtc_content.preparation import prepare_dtc_content_candidate
 from content_sync.dtc_content.repository import verify_dtc_content_checkout
 from core.models import AuditEvent
@@ -344,7 +343,7 @@ class AcceptedDtcContentCheckoutTests(SimpleTestCase):
             with self.subTest(label=label), self.assertRaises(DtcContentValidationError):
                 verify_initial_projection_parity(candidate)
 
-        projection_drift = deepcopy(public_projection())
+        projection_drift = deepcopy(published_catalogue())
         projection_drift["articles"][0]["title"] = "tampered projection title"
         with self.assertRaises(DtcContentValidationError):
             verify_initial_projection_parity(bundle, projection=projection_drift)
@@ -352,7 +351,7 @@ class AcceptedDtcContentCheckoutTests(SimpleTestCase):
         for field in ("season", "episode"):
             for invalid in (None, True, "1", 1.0, 0, -1):
                 with self.subTest(field=field, invalid=invalid):
-                    projection_number_drift = deepcopy(public_projection())
+                    projection_number_drift = deepcopy(published_catalogue())
                     projection_number_drift["podcasts"][0][field] = invalid
                     with self.assertRaises(DtcContentValidationError):
                         verify_initial_projection_parity(

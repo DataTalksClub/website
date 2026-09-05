@@ -25,7 +25,7 @@ def _replace_outside_code_spans(
 ) -> str:
     """Apply a narrow replacement to prose while leaving backtick code spans untouched."""
 
-    # The public projection currently stores plain body text, but keeping this boundary code-span
+    # Published bodies are plain text today, but keeping this boundary code-span
     # aware prevents the helper from interpreting a literal example as editorial metadata when it
     # is used by the projection builder in the future.
     pieces: list[str] = []
@@ -68,24 +68,24 @@ def strip_target_attributes_from_links(value: str) -> str:
 def strip_leaked_target_attributes(
     value: str,
     *,
-    validated_projection: bool = False,
+    published_body: bool = False,
 ) -> str:
-    """Remove exact leaked target metadata from an already projected body block.
+    """Remove exact leaked target metadata from an already published body block.
 
-    Projection v1 intentionally stores article/person body blocks as plain text, so the preceding
-    Markdown link has already been reduced to its visible label.  Callers must opt in with the
-    immutable-projection provenance flag; without it, attached literal prose is returned unchanged.
-    Even with the flag, only the exact metadata token is removed; braces, code spans, and unrelated
-    attribute forms are preserved.
+    Article and person body blocks are stored as plain text, so the preceding Markdown link has
+    already been reduced to its visible label.  Callers must opt in by declaring the value is one
+    of those published blocks; without it, attached literal prose is returned unchanged.  Even
+    then, only the exact metadata token is removed; braces, code spans, and unrelated attribute
+    forms are preserved.
     """
 
-    if not validated_projection:
+    if not published_body:
         return value
     return _replace_outside_code_spans(value, _LEAKED_TARGET_ATTRIBUTE_RE, "")
 
 
 def target_attribute_count(value: str) -> int:
-    """Count supported target metadata outside code spans for projection allowlist validation."""
+    """Count supported target metadata outside code spans, for the published-body canary."""
 
     count = 0
 

@@ -115,7 +115,7 @@ def load_reviewed_slack_page(path: Path | None = None) -> dict[str, Any]:
 
 
 def run(*, root: Path | None = None, apply: bool = True) -> dict[str, Any]:
-    from content.public_data import COLLECTION_NAMES
+    from content.catalogue import COLLECTION_NAMES
 
     catalogue = load_reviewed_catalogue(root or REVIEWED_ROOT)
     slack_page = load_reviewed_slack_page()
@@ -135,7 +135,7 @@ def run(*, root: Path | None = None, apply: bool = True) -> dict[str, Any]:
     from django.db import transaction
     from django.utils import timezone
 
-    from content.public_data import PUBLIC_CONTENT_STABLE_ID
+    from content.catalogue import PUBLIC_CONTENT_STABLE_ID
     from content.models import ContentDocument, ContentRelease, ContentSource
     from content.services import (
         ActivateContentRelease,

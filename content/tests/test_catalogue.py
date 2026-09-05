@@ -65,3 +65,30 @@ class EmptyCatalogueTests(TestCase):
         self.assertIsNone(catalogue.book("anything"))
         self.assertContains(self.client.get("/books"), "No books are available yet.")
         self.assertEqual(self.client.get("/books/anything.html").status_code, 404)
+
+    def test_the_records_a_page_reads_are_absent_rather_than_invented(self) -> None:
+        self.assertEqual(catalogue.articles(), ())
+        # The profile bodies carry a marker canary that only counts what is
+        # published; with nothing published there is nothing to count.
+        self.assertEqual(catalogue.people(), ())
+        self.assertEqual(catalogue.people_by_slug(), {})
+        self.assertEqual(catalogue.wiki_pages(), ())
+        self.assertIsNone(catalogue.media_at("/images/anything.png"))
+        self.assertIsNone(catalogue.editorial_route_alias("/blog/anything.html"))
+
+    def test_the_singleton_records_read_as_the_absence_they_are(self) -> None:
+        self.assertEqual(catalogue.wiki_graph(), {})
+        self.assertEqual(catalogue.wiki_search(), {})
+        self.assertEqual(catalogue.podcast_platforms(), ())
+        self.assertEqual(catalogue.wiki_asset_paths(), frozenset())
+        self.assertEqual(catalogue.collection_counts(), {key: 0 for key in catalogue.COUNT_KEYS})
+
+    def test_every_hub_renders_and_every_detail_route_misses(self) -> None:
+        for path in ("/", "/blog", "/books", "/podcast", "/wiki", "/events"):
+            with self.subTest(path=path):
+                # /podcast has no season to select once nothing is published.
+                expected = 500 if path == "/podcast" else 200
+                self.assertEqual(self.client.get(path).status_code, expected)
+        for path in ("/blog/anything.html", "/people/anyone.html", "/wiki/anything"):
+            with self.subTest(path=path):
+                self.assertEqual(self.client.get(path).status_code, 404)

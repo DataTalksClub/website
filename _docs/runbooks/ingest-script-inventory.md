@@ -705,8 +705,11 @@ revisions.
 Transform: builds the whole public projection — articles, podcasts, books,
 people, wiki, media manifest — with digest-verified provenance.
 Destination: [`temporary/content/public_projection/`](../../temporary/content/public_projection)`*.json`,
-checked into git, served directly by
-[`content/public_data.py`](../../content/public_data.py).
+checked into git as staging input for
+[`scripts/prod/import_public_content.py`](../../scripts/prod/import_public_content.py),
+which writes it to the database that
+[`content/catalogue.py`](../../content/catalogue.py) reads. No request reads the
+files.
 
 ---
 

@@ -30,7 +30,6 @@ from content.podcast_routes import (
     PODCAST_ROUTE_MIGRATION_PATH,
     podcast_legacy_path,
 )
-from content.public_data import public_projection
 from core.seo import validated_canonical_url
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -54,11 +53,11 @@ def cache_directives(response) -> set[str]:
 
 
 class PodcastOrderingTests(TestCase):
-    def test_catalogue_orders_complete_seasons_without_mutating_projection_order(self) -> None:
-        projection = catalogue.podcasts()
-        source_order = tuple(episode["slug"] for episode in projection)
-        ordered = ordered_podcasts(projection)
-        seasons = podcast_seasons(projection)
+    def test_catalogue_orders_complete_seasons_without_mutating_stored_order(self) -> None:
+        published = catalogue.podcasts()
+        source_order = tuple(episode["slug"] for episode in published)
+        ordered = ordered_podcasts(published)
+        seasons = podcast_seasons(published)
 
         self.assertEqual([season.number for season in seasons], list(range(24, 0, -1)))
         self.assertEqual(
@@ -70,7 +69,7 @@ class PodcastOrderingTests(TestCase):
                 "from-computer-vision-research-to-autonomous-driving-ai",
             ),
         )
-        self.assertEqual(tuple(episode["slug"] for episode in projection), source_order)
+        self.assertEqual(tuple(episode["slug"] for episode in published), source_order)
         self.assertEqual(
             [episode["slug"] for episode in ordered[:3]],
             [
@@ -264,7 +263,7 @@ class PodcastPageCompositionTests(TestCase):
         record["links"] = {}
         # The current catalogue carries no episode artwork at all (every record's
         # ``image_path`` is empty), so this fact is asserted explicitly rather than
-        # relied upon from the real projection -- the point under test is that
+        # relied upon from the real catalogue -- the point under test is that
         # artwork availability is independent of a listening link, not of content.
         record["media_available"] = True
         record["image_path"] = "/images/podcast/example-episode.jpg"
@@ -392,12 +391,11 @@ class PodcastPageCompositionTests(TestCase):
 class PodcastEpisodeParityTests(TestCase):
     representative_slug = "s24e06-how-to-build-ai-that-actually-ships-in-production"
 
-    def representative(self) -> tuple[dict, dict]:
-        projection = public_projection()
-        return projection, _episode(self.representative_slug)
+    def representative(self) -> dict:
+        return _episode(self.representative_slug)
 
     def test_representative_composes_resources_video_timestamps_and_person_bio(self) -> None:
-        projection, record = self.representative()
+        record = self.representative()
         view = episode_view(record, people_by_slug=catalogue.people_by_slug())
 
         # The catalogue carries no episode artwork today: every record's `image_path`
@@ -439,7 +437,7 @@ class PodcastEpisodeParityTests(TestCase):
         )
 
     def test_representative_page_is_server_rendered_and_undated_metadata_is_omitted(self) -> None:
-        _, record = self.representative()
+        record = self.representative()
         response = self.client.get(record["public_path"])
         body = response.content.decode()
         self.assertEqual(response.status_code, 200)
@@ -478,7 +476,7 @@ class PodcastEpisodeParityTests(TestCase):
         # h1 title-only (so the JSON-LD `name` above stays clean) and instead
         # surfaces the guest chip and the description inside the cream hero,
         # ahead of the player/platform band — not duplicated in both places.
-        projection, record = self.representative()
+        record = self.representative()
         view = episode_view(record, people_by_slug=catalogue.people_by_slug())
         response = self.client.get(record["public_path"])
         body = response.content.decode()
@@ -498,7 +496,7 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertNotIn(escape(view.description), about_html)
 
     def test_about_band_names_the_listening_platforms_with_a_real_heading(self) -> None:
-        _, record = self.representative()
+        record = self.representative()
         response = self.client.get(record["public_path"])
 
         self.assertContains(response, "Listen to or watch on your favorite platform")
@@ -509,7 +507,7 @@ class PodcastEpisodeParityTests(TestCase):
         # The tabs are progressive enhancement applied by client-side script: the
         # server-rendered page must never bake in ARIA tab roles or a `hidden`
         # panel, or a visitor without JavaScript loses reachable content.
-        _, record = self.representative()
+        record = self.representative()
         response = self.client.get(record["public_path"])
         body = response.content.decode()
 
@@ -523,7 +521,7 @@ class PodcastEpisodeParityTests(TestCase):
             self.assertNotIn("hidden", match.group(0))
 
     def test_timestamps_are_topic_markers_separate_from_transcript_body(self) -> None:
-        projection, record = self.representative()
+        record = self.representative()
         view = episode_view(record, people_by_slug=catalogue.people_by_slug())
         response = self.client.get(record["public_path"])
         body = response.content.decode()
@@ -545,7 +543,7 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertIn(view.transcript[2].line, body[body.index('<section id="transcript"') :])
 
     def test_previous_and_next_episode_cards_show_their_season_and_episode(self) -> None:
-        projection, record = self.representative()
+        record = self.representative()
         previous_episode, next_episode, _ = episode_navigation(
             record, catalogue.podcasts(), people_by_slug=catalogue.people_by_slug()
         )
@@ -599,7 +597,7 @@ class PodcastEpisodeParityTests(TestCase):
         )
 
     def test_resource_urls_fail_closed_without_taking_down_the_episode_page(self) -> None:
-        projection, record = self.representative()
+        record = self.representative()
         for unsafe in (
             "http://example.invalid/resource",
             "javascript:alert(1)",
@@ -620,7 +618,7 @@ class PodcastEpisodeParityTests(TestCase):
                 self.assertEqual(view.resources, ())
 
     def test_related_episode_cards_show_the_guest_instead_of_the_description(self) -> None:
-        projection, record = self.representative()
+        record = self.representative()
         _, _, related_episodes = episode_navigation(
             record, catalogue.podcasts(), people_by_slug=catalogue.people_by_slug()
         )
@@ -637,7 +635,7 @@ class PodcastEpisodeParityTests(TestCase):
             self.assertNotIn(escape(related.description), related_html)
 
     def test_a_player_present_episode_renders_no_redundant_artwork_figure(self) -> None:
-        _, record = self.representative()
+        record = self.representative()
         response = self.client.get(record["public_path"])
         body = response.content.decode()
 
@@ -646,9 +644,9 @@ class PodcastEpisodeParityTests(TestCase):
 
     def test_a_no_player_episode_keeps_its_only_artwork_in_the_fallback(self) -> None:
         # No catalogue record lacks a player today (verified against the full
-        # projection), so this exercises the documented no-player state with a
+        # catalogue), so this exercises the documented no-player state with a
         # synthetic record, the same way the Spotify-creator test above does.
-        projection, record = self.representative()
+        record = self.representative()
         synthetic = {
             **record,
             "slug": "synthetic-no-player-episode",
@@ -672,7 +670,7 @@ class PodcastEpisodeParityTests(TestCase):
         )
 
     def test_episode_page_omits_unsafe_guest_paths_but_keeps_root_relative_links(self) -> None:
-        projection, record = self.representative()
+        record = self.representative()
         safe_path = "/people/aleksandrkim.html"
         unsafe_paths = (
             "//external.example/guest",
@@ -758,7 +756,7 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertContains(response, f'src="{view.video.embed_url.replace("&", "&amp;")}"')
 
     def test_dated_episode_keeps_exact_visible_and_structured_publication_date(self) -> None:
-        projection, record = self.representative()
+        record = self.representative()
         dated = {
             **record,
             "slug": "synthetic-dated-episode",
@@ -785,7 +783,7 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertEqual(entity["datePublished"], "2026-02-03")
 
     def test_episode_navigation_uses_real_adjacency_and_same_season_related_limit(self) -> None:
-        projection, record = self.representative()
+        record = self.representative()
         next_record = {
             **record,
             "slug": "s24e07-synthetic-next",
@@ -808,7 +806,7 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertNotIn(record["public_path"], [item.public_path for item in related])
 
     def test_query_detail_is_no_store_and_unsafe_methods_keep_allowlist(self) -> None:
-        _, record = self.representative()
+        record = self.representative()
         response = self.client.get(record["public_path"] + "?utm_source=test")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers["Cache-Control"], "no-store, max-age=0")
@@ -818,7 +816,7 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertEqual(cache_directives(post), {"no-store", "max-age=0"})
 
     def test_optional_media_and_reading_fields_omit_empty_controls(self) -> None:
-        projection, record = self.representative()
+        record = self.representative()
         synthetic = {
             **record,
             "slug": "synthetic-no-media",
@@ -853,7 +851,7 @@ class PodcastEpisodeParityTests(TestCase):
     def test_valid_video_without_artwork_omits_the_redundant_artwork_and_social_image(
         self,
     ) -> None:
-        projection, record = self.representative()
+        record = self.representative()
         synthetic = {
             **record,
             "slug": "synthetic-video-without-artwork",
@@ -925,9 +923,8 @@ class PodcastSeasonNavigationTests(TestCase):
             self.assertIn("PodcastEpisode", types)
 
     def test_detail_routes_keep_html_finals_except_reviewed_hierarchical_migrations(self) -> None:
-        projection = public_projection()
         podcasts = catalogue.podcasts()
-        migration = projection["editorial_route_migration"]
+        migration = catalogue.singleton("editorial_route_migration")
         podcast_finals = {
             item["final_path"] for item in migration["finals"] if item["collection"] == "podcasts"
         }

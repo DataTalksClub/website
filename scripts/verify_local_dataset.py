@@ -160,7 +160,7 @@ def _content_report() -> dict[str, Any]:
 def _event_report() -> dict[str, Any]:
     from django.utils import timezone
 
-    from content.public_data import event_groups
+    from content.event_content import event_groups
     from events.models import Event, EventContent
 
     groups = event_groups()

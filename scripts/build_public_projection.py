@@ -920,7 +920,7 @@ def _article_segment(value: str) -> str:
     value = _localize_editorial_links(value)
     # The accepted articles attach Kramdown's `{:target="_blank"}` to 270 links.
     # The plain-text projection keeps that token and the runtime strips it under a
-    # provenance allowlist (content/public_data.py); the source segment this field
+    # counted canary (content/catalogue.py); the source segment this field
     # adds is written clean instead, because nothing downstream would ever want a
     # legacy renderer's directive rendered as prose.
     value = ARTICLE_TARGET_ATTRIBUTE.sub("", value)
@@ -2816,8 +2816,7 @@ def _write_json(path: Path, payload: Any) -> str:
 def _tree_sha256(root: Path) -> str:
     """Digest the projection artifacts and wiki assets, excluding the media objects.
 
-    This must stay byte-for-byte equivalent to ``content.public_data._tree_sha256``:
-    the media objects are served from an object store and verified per record against
+    The media objects are served from an object store and verified per record against
     ``provenance.checksum``, while a symlink anywhere below the root — including under
     ``media/`` — is still a hard failure.
     """

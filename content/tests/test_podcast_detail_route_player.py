@@ -8,7 +8,6 @@ from django.urls import reverse
 from content import catalogue
 from content.podcast_content import _spotify_creator_embed, episode_view
 from content.podcast_routes import PODCAST_ROUTE_MIGRATION_PATH, podcast_legacy_path
-from content.public_data import public_projection
 
 
 def _episode(slug: str) -> dict[str, Any]:
@@ -23,7 +22,6 @@ class PodcastDetailRoutePlayerTests(TestCase):
     slug = "s24e05-ai-adoption-in-enterprise-beyond-writing-code"
 
     def setUp(self) -> None:
-        self.projection = public_projection()
         self.record = _episode(self.slug)
 
     def test_canonical_route_and_legacy_redirect_are_consistent(self) -> None:

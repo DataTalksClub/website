@@ -29,7 +29,7 @@ from accounts.home_dismissals import (
     CHECKLIST_SLACK_DONE,
     HOME_DISMISSAL_KEYS,
 )
-from content.public_data import event_groups
+from content.event_content import event_groups
 from core.home_content import event_time_display
 from courses.course_page_content import course_modules, submission_progress
 from courses.models.cohort import Cohort, CourseRegistration, CurriculumFormat, Enrollment

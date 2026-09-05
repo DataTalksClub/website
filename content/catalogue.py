@@ -185,7 +185,7 @@ def _cleaned_body(record: Record) -> Record:
         block = dict(raw_block)
         text = block.get("text")
         if isinstance(text, str):
-            block["text"] = strip_leaked_target_attributes(text, validated_projection=True)
+            block["text"] = strip_leaked_target_attributes(text, published_body=True)
         blocks.append(block)
     copied["blocks"] = blocks
     return copied

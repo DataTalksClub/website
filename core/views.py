@@ -15,8 +15,8 @@ from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_safe
 
 from content import catalogue
+from content.event_content import event_groups
 from content.podcast_content import ordered_podcasts
-from content.public_data import event_groups
 from core.home_content import (
     FEATURED_FAMILY,
     course_catalog,

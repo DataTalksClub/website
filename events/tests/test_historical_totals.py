@@ -12,7 +12,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 
-from content.public_data import event_groups
+from content.event_content import event_groups
 from core.models import AuditEvent
 from core.services import ServiceContext
 from events.importers import clear_source_readers, source_reference_digest

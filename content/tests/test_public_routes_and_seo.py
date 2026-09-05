@@ -20,7 +20,7 @@ from content.podcast_routes import (
     PODCAST_ROUTE_MIGRATION_PATH,
     podcast_legacy_path,
 )
-from content.public_data import public_paths
+from content.public_routes import public_paths
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
 from events.queries import published_event_records
 
@@ -40,7 +40,7 @@ def _article(slug: str) -> dict[str, Any]:
 class PublicRouteAndSeoTests(TestCase):
     maxDiff = None
 
-    def test_removed_podcast_records_are_absent_from_active_projections(self) -> None:
+    def test_removed_podcast_records_are_absent_from_the_published_catalogue(self) -> None:
         removed_slugs = {
             "_s12e08",
             "_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",

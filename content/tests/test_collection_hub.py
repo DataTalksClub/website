@@ -17,7 +17,6 @@ from content import catalogue
 from content.catalogue import PUBLIC_CONTENT_STABLE_ID
 from content.models import ContentSource
 from content.pagination import PUBLIC_PAGE_SIZE
-from content.public_data import public_projection
 from core.templatetags.accessibility import human_day, iso_day
 
 from .pagination_support import catalogue_page_bodies
@@ -159,11 +158,11 @@ class CollectionHubRecordTests(TestCase):
         accessibility failure, so the day is what both halves of the element say.
         """
 
-        for path, collection in (("/blog", "articles"), ("/books", "books")):
+        for path, published in (("/blog", catalogue.articles), ("/books", catalogue.books)):
             with self.subTest(path=path):
                 body = "".join(catalogue_page_bodies(self.client, path))
                 self.assertNotIn("00:00 UTC", body)
-                for record in public_projection()[collection]:
+                for record in published():
                     day = str(record["published"])[:10]
                     self.assertIn(f'<time datetime="{day}">', body)
         # The shared archive rail sets the day above the year, so that a column of
@@ -182,10 +181,10 @@ class CollectionHubRecordTests(TestCase):
                 self.assertEqual(re.findall(r'<time datetime="[^"]*T[^"]*"', body), [])
 
     def test_descriptions_are_shown_and_no_record_is_summarised_by_the_page(self) -> None:
-        for path, collection in (("/blog", "articles"), ("/books", "books")):
+        for path, published in (("/blog", catalogue.articles), ("/books", catalogue.books)):
             with self.subTest(path=path):
                 body = "".join(catalogue_page_bodies(self.client, path))
-                for record in public_projection()[collection]:
+                for record in published():
                     self.assertTrue(record["description"])
                     self.assertIn(
                         f'<p class="archive-summary">{escape(record["description"])}</p>',
@@ -348,10 +347,10 @@ class CollectionHubPaginationTests(TestCase):
         self.assertIn('<h2 id="how-it-works-heading">How it works</h2>', body)
         self.assertIn('<h2 id="collection-list-heading">Archive</h2>', body)
 
-    def test_the_pages_partition_the_projection_in_its_recorded_order(self) -> None:
-        for path, collection in (("/blog", "articles"), ("/books", "books")):
+    def test_the_pages_partition_the_catalogue_in_its_recorded_order(self) -> None:
+        for path, published in (("/blog", catalogue.articles), ("/books", catalogue.books)):
             with self.subTest(path=path):
-                records = public_projection()[collection]
+                records = published()
                 pages = catalogue_page_bodies(self.client, path)
                 self.assertEqual(
                     len(pages),
