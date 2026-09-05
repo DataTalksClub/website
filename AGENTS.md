@@ -12,6 +12,10 @@ here.
 - Keep secrets, tokens, registration data and production data out of logs,
   screenshots, issues and reports. In a log, identify a person by user id, never
   by email address.
+- Public website content is database-owned. Runtime code must never read public
+  content from hardcoded Python values, checked-in JSON, or a file-backed
+  projection/fallback. See `_docs/architecture/database-only-content.md` for the
+  current violation inventory and removal plan.
 
 Where the rest went: app and service boundaries are in
 `_docs/architecture/app-boundaries.md`; the page shell is in
