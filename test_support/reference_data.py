@@ -67,6 +67,19 @@ def load_event_identities() -> tuple[int, int]:
     return len(events), len(aliases)
 
 
+def load_event_content() -> int:
+    """Attach the reviewed event content, the way the production import does.
+
+    Identity alone publishes nothing: :func:`events.queries.published_event_records`
+    reads ``EventContent``, so without this a test database holds 421 addressable
+    events and no event pages.
+    """
+
+    from scripts.prod.import_events import import_content
+
+    return int(import_content(apply=True)["events"])
+
+
 def load_reviewed_docs() -> int:
     """Publish the reviewed documentation, the way the production import does.
 
@@ -117,6 +130,7 @@ def load_reviewed_reference_data() -> dict[str, int]:
     return {
         "events": events,
         "aliases": aliases,
+        "event_content": load_event_content(),
         "docs": load_reviewed_docs(),
         "faq": load_reviewed_faq(),
         "public_content": load_reviewed_public_content(),

@@ -33,7 +33,7 @@ Every public surface reads the database. What is left on disk under
 | Course FAQ | `content/faq_data.py` -> `ContentDocument` | `scripts/prod/import_faq.py` |
 | `/slack` | `content/review_views.py` -> `ContentDocument` | (page row) |
 | Article FAQ sections | `content/article_faq.py` -> the article's own row | with the article |
-| Events | `events/queries.py` -> `Event`/`EventContent` | identity: `scripts/prod/import_events.py`; content: source decision pending |
+| Events | `events/queries.py` -> `Event`/`EventContent` | `scripts/prod/import_events.py` (identity, then content) |
 | Sponsors | `core/sponsors.py` -> `Sponsor` | `scripts/prod/import_sponsors.py` |
 | Testimonials | `courses/services/testimonials.py` -> `Testimonial` | `scripts/prod/import_testimonials.py` |
 | Featured cohort copy | `Cohort.delivery_format`/`promo_summary`/`CohortBuildItem` | course ingest |
@@ -48,22 +48,43 @@ have run against the production database.
 
 ### Still to do
 
-- Event content has no importer: `scripts/prod/import_events.py` records that
-  its only current source is the legacy repository being retired, and that the
-  replacement source is undecided. Until then `EventContent` stays empty and the
-  event pages render empty.
 - Docs and FAQ images are still files in `content/docs_assets/` and
   `content/faq_assets/`; their records are database rows. Moving the bytes to the
   public media store is the media-objects program, not this one.
 - Delete `temporary/content/` and `scripts/projection_build/` once production is
   ingested.
 
+## The staging tree is not a second source of truth
+
+`temporary/content/` is a **staging layer**: the reviewed form of each source,
+sitting between the original data and the database, and existing for no other
+reason than to be pumped into it once. Some of it is a straight capture; some of
+it was rewritten during review and exists in that form nowhere else.
+
+`temporary/content/public_projection/events.json` is the clearest case. It was
+built offline from the legacy site's `_data/events.yaml`, and then edited: the
+event description bridge matched 159 events to their Luma descriptions, removed
+the "about the speaker" biography and the platform boilerplate from each one, and
+bound every surviving link to a reviewed destination
+(`_docs/event-description-bridge.md`). Rebuilding it needs an exporter checkout
+an operator holds privately. So it is not a cache of something we could re-derive
+-- it is the reviewed content itself, and `scripts/prod/import_events.py` is what
+it is for.
+
+Three properties keep this from being a file-backed fallback in disguise:
+
+- nothing on a public request path reads it, and no startup check touches it;
+- the record *records* its legacy origin as provenance, and the importer re-checks
+  that tuple against the identity row rather than trusting it;
+- once production is ingested, the tree is deleted. It is scaffolding with a
+  removal date, not an input the running site has.
+
 ## Target database reads
 
 - General imported pages and assets: `ContentSource`, `ContentRelease`,
   `ContentDocument`, `ContentRelation`, `ContentAsset`, and `ActiveContentPath`.
-- Events and aliases: `Event` and `EventAlias`; add database fields/models for
-  schedule, description, speakers, links, and media instead of joining to JSON.
+- Events: `Event` and `EventAlias` for identity, `EventContent` with `EventSpeaker`
+  and `EventLink` for what the page says. Nothing joins to JSON.
 - Courses and curriculum: existing course-platform models.
 - Sponsors and testimonials: existing core/course database models.
 - Navigation and other editable site records: database models such as

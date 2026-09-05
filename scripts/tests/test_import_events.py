@@ -1,8 +1,8 @@
-"""Event identity replay, registration-aggregate coverage, and the named gap.
+"""Event identity replay, content replay, and registration-aggregate coverage.
 
 The adapters work; the per-event mapping decisions are the backlog.  These tests
-lock in that a run reports the ratio rather than a bare success, and that event
-content is declared missing rather than quietly absent.
+lock in that a run reports the ratio rather than a bare success, and that the
+reviewed content records land on the identities they describe.
 """
 
 from __future__ import annotations
@@ -77,14 +77,62 @@ class EventImportTests(TestCase):
         self.assertIn("3 of 383", coverage["summary"])
         self.assertIn("380 remain unresolved", coverage["summary"])
 
-    def test_event_content_is_a_named_gap_rather_than_a_silent_omission(self) -> None:
-        """Its only current source is the legacy site, which is not permitted."""
+    def test_the_content_records_replay_onto_the_identities_they_describe(self) -> None:
+        """The test database already holds them, so importing is a reconcile."""
 
-        from scripts.prod.import_events import EVENT_CONTENT
+        from events.models import EventContent, EventLink, EventSpeaker
+        from scripts.prod.import_events import import_content
 
-        self.assertFalse(EVENT_CONTENT["imported"])
-        self.assertEqual(EVENT_CONTENT["reason"], "source_decision_pending")
-        self.assertIn("datatalksclub.github.io", EVENT_CONTENT["detail"])
+        before = (
+            EventContent.objects.count(),
+            EventSpeaker.objects.count(),
+            EventLink.objects.count(),
+        )
+
+        report = import_content(apply=True)
+
+        self.assertTrue(report["replayed"])
+        self.assertEqual(report["created"], 0)
+        self.assertEqual(report["updated"], 0)
+        self.assertEqual(report["events"], report["unchanged"])
+        self.assertEqual(
+            (
+                EventContent.objects.count(),
+                EventSpeaker.objects.count(),
+                EventLink.objects.count(),
+            ),
+            before,
+        )
+
+    def test_every_identity_gets_content_and_the_reviewed_share_is_described(self) -> None:
+        """159 of the 421 carry a reviewed description; the rest correctly carry none."""
+
+        from events.models import Event, EventContent
+        from scripts.prod.import_events import import_content
+
+        report = import_content(apply=True)
+
+        self.assertEqual(report["events"], Event.objects.count())
+        self.assertEqual(report["events"], EventContent.objects.count())
+        self.assertEqual(
+            report["described"],
+            EventContent.objects.exclude(description_html="").count(),
+        )
+        self.assertGreater(report["described"], 0)
+        self.assertLess(report["described"], report["events"])
+
+    def test_a_content_dry_run_writes_nothing(self) -> None:
+        from events.models import EventContent
+        from scripts.prod.import_events import import_content
+
+        EventContent.objects.filter(description_html="").delete()
+        remaining = EventContent.objects.count()
+
+        report = import_content(apply=False)
+
+        self.assertFalse(report["applied"])
+        self.assertGreater(report["created"], 0)
+        self.assertEqual(EventContent.objects.count(), remaining)
 
     def test_no_production_import_reads_the_legacy_site(self) -> None:
         """The repository must function without DataTalksClub/datatalksclub.github.io."""
@@ -104,7 +152,12 @@ class EventImportTests(TestCase):
                         stripped.startswith(("import ", "from ")),
                         "a production importer must not read the legacy site",
                     )
-        self.assertFalse(import_events.EVENT_CONTENT["imported"])
+        # The content records name that repository as provenance and are read
+        # from inside this checkout, which is the distinction the rule draws.
+        self.assertTrue(
+            import_events.EVENT_CONTENT_PATH.is_relative_to(PROD_ROOT.parents[1]),
+            "event content must be staged inside this repository",
+        )
 
 
 class OrchestratorEventLegTests(TestCase):

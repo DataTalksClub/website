@@ -75,22 +75,26 @@ Neither tier is a Studio page or a separate model: a human resolves an
 ambiguous case by adding the exact pair to the current-registration-input
 JSON file and re-running this script.
 
-What does not land yet
-----------------------
+**Event content** (``temporary/content/public_projection/events.json``, 421
+records): the type, schedule, description, speakers and links one public event
+page prints, as ``EventContent`` rows with their speakers and links.  See
+:func:`import_content` and ``events.content_import``.
 
-**Event content** -- title, dates, description, speakers and links for all 421
-events -- is *not* in the database.  ``events.Event`` is deliberately thin, and
-the content is served from ``content/public_projection/events.json``, which
-``scripts/build_public_projection.py`` builds from ``_data/events.yaml`` in
-``DataTalksClub/datatalksclub.github.io``.  The owner has ruled that this
-repository must function without that legacy site, so that source is going
-away and event content needs a new home.  That decision is pending; see
-:data:`EVENT_CONTENT`.  This script names the gap and refuses to guess.
+That file is a staging artifact whose only purpose is this import.  It was
+built offline from the legacy ``_data/events.yaml`` and then reviewed and
+rewritten -- 159 events carry a description reconciled against its Luma copy
+with the "about the speaker" biography and the platform boilerplate removed and
+every link bound to a reviewed destination
+(``_docs/event-description-bridge.md``).  The reviewed result exists nowhere
+else, which is why it is the source.
 
-Note that the identity manifest *records* the legacy repository as provenance
-(all 421 events carry ``source_repository = DataTalksClub/datatalksclub.github.io``).
-That is history written into a checked-in file, not a live dependency: importing
-it reads nothing outside this repository.
+Note that both the identity manifest and the content records *record* the legacy
+repository as provenance (all 421 events carry ``source_repository =
+DataTalksClub/datatalksclub.github.io``).  That is history written into a
+checked-in file, not a live dependency: importing either reads nothing outside
+this repository.  The content import re-checks that tuple against the identity
+row rather than trusting it, so a record can only land on the event it was
+reviewed against.
 
     uv run --frozen python scripts/prod/import_events.py \\
         --database .tmp/local.sqlite3 \\
@@ -121,22 +125,11 @@ IDENTITY_MANIFEST_PATH = PROJECT_ROOT / "temporary" / "content" / "event_identit
 LUMA_RELATIVE_SOURCE = Path(".local/migration-data/events/luma-aggregate-v1")
 EVENTBRITE_RELATIVE_SOURCE = Path(".local/migration-data/events/eventbrite/aggregate-v1.zip")
 
-PROVIDERS = ("luma", "eventbrite")
+EVENT_CONTENT_PATH = (
+    PROJECT_ROOT / "temporary" / "content" / "public_projection" / "events.json"
+)
 
-# Event content has no database importer yet, and its only current source is the
-# legacy GitHub Pages repository the owner is retiring. Naming the gap here keeps
-# it out of the "quietly missing" category until the replacement source is chosen.
-EVENT_CONTENT = {
-    "imported": False,
-    "reason": "source_decision_pending",
-    "detail": (
-        "Event title, dates, description, speakers and links are served from the "
-        "checked public projection, built from _data/events.yaml in the legacy "
-        "DataTalksClub/datatalksclub.github.io repository. That repository is not a "
-        "permitted content source, so event content needs a new home before it can "
-        "be imported here."
-    ),
-}
+PROVIDERS = ("luma", "eventbrite")
 
 
 class EventImportError(RuntimeError):
@@ -192,6 +185,42 @@ def import_identities(*, manifest: Path | None = None, apply: bool = True) -> di
         "events_created": report.events_created,
         "events_updated": report.events_updated,
         "aliases_created": report.aliases_created,
+        "replayed": report.replayed,
+        "applied": apply,
+    }
+
+
+# --------------------------------------------------------------------------
+# Content
+# --------------------------------------------------------------------------
+
+
+def import_content(*, source: Path | None = None, apply: bool = True) -> dict[str, Any]:
+    """Attach the reviewed content records to the identities imported above.
+
+    Runs after :func:`import_identities` and never before it: this reconciles
+    against identities that already exist, and a record naming an identity the
+    database does not hold is a refusal rather than a new event.
+    """
+
+    from events.content_import import EventContentImportError, import_event_content
+
+    try:
+        report = import_event_content(
+            path=source or EVENT_CONTENT_PATH, dry_run=not apply
+        )
+    except (EventContentImportError, OSError, ValueError) as error:
+        raise EventImportError("event_content_invalid") from error
+    return {
+        "events": report.total,
+        # How many of the 421 carry a reviewed description at all. The rest
+        # render a page with no description region, which is correct.
+        "described": report.described,
+        "created": report.created,
+        "updated": report.updated,
+        "unchanged": report.unchanged,
+        "speakers": report.speakers,
+        "links": report.links,
         "replayed": report.replayed,
         "applied": apply,
     }
@@ -637,6 +666,7 @@ def activation_coverage(
 def run(
     *,
     identity_manifest: Path | None = None,
+    event_content_source: Path | None = None,
     luma_source: Path,
     eventbrite_source: Path,
     current_registration_input: Path | None = None,
@@ -646,6 +676,7 @@ def run(
         raise EventImportError("registration_source_unavailable")
 
     identities = import_identities(manifest=identity_manifest, apply=True)
+    content = import_content(source=event_content_source, apply=True)
     # Distinct top-level key, deliberately never merged into `identities` (the
     # reviewed-manifest replay) or `activation_coverage` (the registration-count
     # gate) -- an operator reading the report must not mistake an automatic
@@ -682,7 +713,7 @@ def run(
         "activation_coverage": activation_coverage(
             source_report=source_report, staged=staged
         ),
-        "event_content": EVENT_CONTENT,
+        "event_content": content,
     }
 
 
@@ -691,6 +722,7 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--database", required=True, type=Path)
     parser.add_argument("--identity-manifest", type=Path, default=IDENTITY_MANIFEST_PATH)
+    parser.add_argument("--event-content", type=Path, default=EVENT_CONTENT_PATH)
     parser.add_argument("--luma-source", type=Path, default=main_root / LUMA_RELATIVE_SOURCE)
     parser.add_argument(
         "--eventbrite-source", type=Path, default=main_root / EVENTBRITE_RELATIVE_SOURCE
@@ -710,7 +742,8 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help=(
             "Import identities, then discover and create identities for new Luma "
-            "events only. Skips registration-aggregate derivation entirely, so it "
+            "events only. Skips the content import and registration-aggregate "
+            "derivation entirely, so it "
             "does not require --eventbrite-source and does not require "
             "--luma-source to match the pinned checksum in "
             "event-registration-sources.json -- use this to land a fresh export "
@@ -740,6 +773,7 @@ def main(argv: list[str] | None = None) -> int:
         else:
             report = run(
                 identity_manifest=args.identity_manifest.resolve(),
+                event_content_source=args.event_content.resolve(),
                 luma_source=args.luma_source.resolve(),
                 eventbrite_source=args.eventbrite_source.resolve(),
                 current_registration_input=(

@@ -5,10 +5,10 @@ titles, times, types, speakers, ordering, podcast lineage, and non-Luma event li
 event description bridge supplies only a reviewed, sanitized description for 159 exact matches.
 The other 262 events intentionally have no description region.
 
-The bridge is a build artifact, not a synchronization path. Public requests, Django startup,
-ordinary tests, container builds, and `scripts/build_public_projection.py` read only the committed
-`content/event_description_bridge.json`. They never need the exporter checkout, make a network
-request, read a CSV, or inspect a guest record.
+The bridge is a build artifact, not a synchronization path. Only the offline projection build
+reads it, from the committed `temporary/content/event_description_bridge.json`; public requests and
+Django startup read the database and never see it. Nothing here needs the exporter checkout, makes a
+network request, reads a CSV, or inspects a guest record.
 
 ## Reconciliation and review
 
@@ -43,8 +43,8 @@ orphaned `form` link labels and the unsupported “Use this link to submit them 
 instruction. Builder and runtime corpus validation reject those dangling link/form remnants, so a
 future source or artifact change fails closed instead of rendering a phantom action.
 
-The builder and ordinary Django reader share the code-owned policy in
-`content/event_description_link_policy.py`. It pins the exact seven decision kinds and counts and
+The builder and the projection checker share the code-owned policy in
+`scripts/projection_build/event_description_link_policy.py`. It pins the exact seven decision kinds and counts and
 the literal set of 80 reviewed destinations that may appear in rendered HTML; host approval alone
 is not sufficient. Both boundaries also resolve internal paths and fragments against the committed
 route registry and reject registration/action paths, provider links, meeting/join hosts, unknown
@@ -70,11 +70,25 @@ Its exhaustive test compares every identity, provenance value, and retained link
 legacy baseline and the active projection. The old event artifact containing Luma actions is never
 a valid rollback target.
 
-## Future database Event migration
+## Where the reviewed descriptions end up
 
-Issue #45 must resolve every migrated row by the exact legacy tuple preserved on each projected
-event: repository `DataTalksClub/datatalksclub.github.io`, revision
-`ee43d3fa0929faf691178d79f19528e6f15a83e5`, source path `_data/events.yaml`, source key, and source
-checksum `7eac8bcc9bfb3ec5f0b35434343a58eb766f8cc8451dca8a4a82ac4674aa213d`.
-Missing, duplicate, or changed tuples block that migration. The database migration consumes this
-safe bridge; it does not reread the exporter or create an event from any of the nine source gaps.
+The projection this builds is a **staging layer**, not a serving path. Nothing on a public request
+path reads it. Its one consumer is `scripts/prod/import_events.py`, which writes the reviewed
+records into `EventContent` with its speakers and links, and the public event pages read those rows
+(`events/queries.py`). See `_docs/architecture/database-only-content.md`.
+
+That import is why the artifact is checked in at all. The description a visitor reads -- stripped of
+the "about the speaker" biography and the platform boilerplate, with every link bound to a reviewed
+destination -- exists in that form only here: rebuilding it needs the exporter checkout an
+authorized operator holds locally, and the legacy repository it was originally derived from is
+retired.
+
+`events.content_import` resolves every record by the exact legacy tuple preserved on it: repository
+`DataTalksClub/datatalksclub.github.io`, revision `ee43d3fa0929faf691178d79f19528e6f15a83e5`, source
+path `_data/events.yaml`, source key, and source checksum
+`7eac8bcc9bfb3ec5f0b35434343a58eb766f8cc8451dca8a4a82ac4674aa213d`. It re-checks that tuple, the
+title and the slug against the identity row already in the database and refuses the whole candidate
+on any mismatch, so a missing, duplicated, or changed tuple blocks the import rather than landing a
+description on the wrong event. It also refuses a description that arrives without this bridge's
+provenance behind it. It never rereads the exporter and never creates an event -- including from any
+of the nine source gaps; identity import (`events.identity`) is the only thing that creates events.
