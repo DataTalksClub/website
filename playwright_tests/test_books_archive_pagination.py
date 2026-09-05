@@ -16,6 +16,7 @@ reader scrolls, not a page a script assembles.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -27,9 +28,19 @@ from content.public_data import public_projection
 pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-174")
-BOOKS = public_projection()["books"]
-PAGE_COUNT = -(-len(BOOKS) // PUBLIC_PAGE_SIZE)
 INTRO_SENTENCE = "Each week we have a book author coming to DataTalks.Club to answer your questions"
+
+
+def _books() -> list[dict[str, Any]]:
+    """The archive's records, read when the test runs rather than at import.
+
+    The catalogue is database-owned, and this module is imported during
+    discovery -- before ``manage.py test`` has created a test database at all.
+    Reading it at import time raised out of collection, and under ``--parallel``
+    that error cannot be pickled, so it took the whole run down with it.
+    """
+
+    return list(public_projection()["books"])
 
 
 def _record_paths(page: Page) -> list[str]:
@@ -54,6 +65,8 @@ def test_books_archive_walks_its_pages_and_fails_closed_without_javascript(
     viewport: dict[str, int],
     size: str,
 ) -> None:
+    books = _books()
+    page_count = -(-len(books) // PUBLIC_PAGE_SIZE)
     context = browser.new_context(java_script_enabled=False, viewport=viewport)
     page = context.new_page()
     origin = live_server.url
@@ -77,7 +90,7 @@ def test_books_archive_walks_its_pages_and_fails_closed_without_javascript(
             "node => node.getBoundingClientRect().bottom"
         )
         assert lede_bottom < archive_heading.evaluate("node => node.getBoundingClientRect().top")
-        assert _record_paths(page) == [book["public_path"] for book in BOOKS[:PUBLIC_PAGE_SIZE]]
+        assert _record_paths(page) == [book["public_path"] for book in books[:PUBLIC_PAGE_SIZE]]
         navigation = page.get_by_role("navigation", name="Book archive pages")
         expect(navigation).to_have_count(1)
         expect(navigation.locator("[aria-current='page']")).to_have_text("1")
@@ -95,10 +108,10 @@ def test_books_archive_walks_its_pages_and_fails_closed_without_javascript(
         expect(page.get_by_text(INTRO_SENTENCE)).to_be_visible()
         expect(archive_heading).to_be_visible()
         second_slice = [
-            book["public_path"] for book in BOOKS[PUBLIC_PAGE_SIZE : 2 * PUBLIC_PAGE_SIZE]
+            book["public_path"] for book in books[PUBLIC_PAGE_SIZE : 2 * PUBLIC_PAGE_SIZE]
         ]
         assert _record_paths(page) == second_slice
-        assert not set(second_slice) & {book["public_path"] for book in BOOKS[:PUBLIC_PAGE_SIZE]}
+        assert not set(second_slice) & {book["public_path"] for book in books[:PUBLIC_PAGE_SIZE]}
         expect(navigation.locator("[aria-current='page']")).to_have_text("2")
         _shot(page, size, "books-page-2.png")
 
@@ -115,23 +128,23 @@ def test_books_archive_walks_its_pages_and_fails_closed_without_javascript(
         # -- A record link from page two is the canonical detail, with a way back.
         page.goto(f"{origin}/books?page=2", wait_until="domcontentloaded")
         first_on_page = page.locator(".archive-title a").first
-        expect(first_on_page).to_have_attribute("href", BOOKS[PUBLIC_PAGE_SIZE]["public_path"])
+        expect(first_on_page).to_have_attribute("href", books[PUBLIC_PAGE_SIZE]["public_path"])
         first_on_page.click()
-        expect(page).to_have_url(f"{origin}{BOOKS[PUBLIC_PAGE_SIZE]['public_path']}")
+        expect(page).to_have_url(f"{origin}{books[PUBLIC_PAGE_SIZE]['public_path']}")
         expect(page.locator('link[rel="canonical"]')).to_have_attribute(
-            "href", f"https://datatalks.club{BOOKS[PUBLIC_PAGE_SIZE]['public_path']}"
+            "href", f"https://datatalks.club{books[PUBLIC_PAGE_SIZE]['public_path']}"
         )
-        expect(page.locator("#book-heading")).to_have_text(BOOKS[PUBLIC_PAGE_SIZE]["title"])
+        expect(page.locator("#book-heading")).to_have_text(books[PUBLIC_PAGE_SIZE]["title"])
         page.get_by_role("navigation", name="Breadcrumb").get_by_role("link", name="Books").click()
         expect(page).to_have_url(f"{origin}/books")
 
         page.goto(f"{origin}/books?page=2", wait_until="domcontentloaded")
         last_on_page = page.locator(".archive-title a").last
         expect(last_on_page).to_have_attribute(
-            "href", BOOKS[2 * PUBLIC_PAGE_SIZE - 1]["public_path"]
+            "href", books[2 * PUBLIC_PAGE_SIZE - 1]["public_path"]
         )
         last_on_page.click()
-        expect(page).to_have_url(f"{origin}{BOOKS[2 * PUBLIC_PAGE_SIZE - 1]['public_path']}")
+        expect(page).to_have_url(f"{origin}{books[2 * PUBLIC_PAGE_SIZE - 1]['public_path']}")
 
         # -- The exact first-page spelling is the same page, and stays clean. --
         response = page.goto(f"{origin}/books?page=1", wait_until="domcontentloaded")
@@ -142,11 +155,11 @@ def test_books_archive_walks_its_pages_and_fails_closed_without_javascript(
         expect(navigation.locator("[aria-current='page']")).to_have_text("1")
 
         # -- The last page ends the archive; one beyond is a real miss. -------
-        response = page.goto(f"{origin}/books?page={PAGE_COUNT}", wait_until="domcontentloaded")
+        response = page.goto(f"{origin}/books?page={page_count}", wait_until="domcontentloaded")
         assert response is not None and response.status == 200
-        expect(navigation.locator("[aria-current='page']")).to_have_text(str(PAGE_COUNT))
+        expect(navigation.locator("[aria-current='page']")).to_have_text(str(page_count))
         expect(page.get_by_role("link", name="Next page")).to_have_count(0)
-        beyond = page.goto(f"{origin}/books?page={PAGE_COUNT + 1}", wait_until="domcontentloaded")
+        beyond = page.goto(f"{origin}/books?page={page_count + 1}", wait_until="domcontentloaded")
         assert beyond is not None and beyond.status == 404
         assert "no-store" in beyond.headers["cache-control"]
         expect(page.get_by_role("heading", name="Page not found", exact=True)).to_be_visible()

@@ -214,9 +214,15 @@ written nothing.
 
 `scripts/prod/__init__.py` records which is which in `BOOTSTRAPPING_ENTRY_POINTS`,
 and `scripts/tests/test_prod_imports.py` checks the declaration against each
-module's `BOOTSTRAPS_EMPTY_DATABASE`. Today four bootstrap —
-`import_legacy_zoomcamp`, `import_cmp_content`, `import_testimonials` and
-`sync_content` — and only `import_events` reconciles.
+module's `BOOTSTRAPS_EMPTY_DATABASE`. Today eleven bootstrap: the course
+catalogue (`import_legacy_zoomcamp`, `sync_course_repositories`,
+`import_cmp_content`), its learners (`import_cmp_learners`), the repository
+registration (`sync_course_repository_sources`), and the reviewed public content
+(`sync_content`, `import_docs`, `import_faq`, `import_public_content`,
+`import_sponsors`, `import_testimonials`), each of which writes the rows of its
+own domain straight from a reviewed source and so needs nothing already there.
+The rest reconcile: `import_events`, the registration and Mailchimp importers,
+and the media sync scripts.
 
 **Measured**: against a database that had only just been migrated, importing
 `mlops-zoomcamp-2022` created the `mlops-zoomcamp` family, the cohort, 6 homeworks,
