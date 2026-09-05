@@ -17,6 +17,8 @@ class Command(BaseCommand):
         parser.add_argument("--master-secret-id", required=True)
         parser.add_argument("--database-url-secret-id", required=True)
         parser.add_argument("--django-secret-key-secret-id", required=True)
+        parser.add_argument("--database-host", required=True)
+        parser.add_argument("--database-port", default=5432, type=int)
         parser.add_argument("--database-name", default="dtc_website")
         parser.add_argument("--application-user", default="website_app")
         parser.add_argument("--region", default="eu-west-1")
@@ -27,6 +29,8 @@ class Command(BaseCommand):
             raise CommandError("This command is restricted to the production environment")
 
         region = str(options["region"])
+        host = str(options["database_host"])
+        port = int(options["database_port"])
         database_name = str(options["database_name"])
         application_user = str(options["application_user"])
         client = boto3.client("secretsmanager", region_name=region)
@@ -35,8 +39,6 @@ class Command(BaseCommand):
             master = json.loads(response["SecretString"])
             master_user = str(master["username"])
             master_password = str(master["password"])
-            host = str(master["host"])
-            port = int(master["port"])
         except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
             raise CommandError("The RDS-managed master secret is incomplete") from error
 
