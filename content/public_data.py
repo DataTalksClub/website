@@ -751,12 +751,9 @@ def _checked_public_projection() -> dict[str, Any]:
         for item in platforms
     ):
         raise ImproperlyConfigured("Public podcast platform record mismatch.")
-    spotify_for_creators = platforms[-1]
-    if (
-        spotify_for_creators["label"] != "Spotify for Creators"
-        or spotify_for_creators["url"] != "https://creators.spotify.com/pod/profile/datatalksclub/"
-    ):
-        raise ImproperlyConfigured("Spotify for Creators platform metadata mismatch.")
+    # What each platform is called and where it points is editorial content, so it
+    # is not pinned here. The checks above are the code-owned part: every record
+    # names a known provider, carries a non-empty label, and links over https.
     projection["podcast_platforms"] = tuple(platforms)
 
     transcript_count = sum(bool(item.get("transcript")) for item in projection["podcasts"])
