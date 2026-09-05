@@ -1,16 +1,36 @@
-"""Attendee-level registrant identity consolidation and per-event registration facts.
+"""Consolidate attendee-level registrant rows into identities and registration facts.
 
-This is the one place in the codebase that reads a Luma/Eventbrite export's
-attendee-level rows (an email, a per-event registration status) at all --
-deliberately kept separate from the aggregate-only export readers in
+This is the domain half of the registrant import: everything that is about
+*our* records -- which person a registrant row resolves to, which rows become
+``EventRegistration`` facts, which events this run has already finished.  It
+opens no file and knows no provider's export format.
+
+Reading a provider's export is ingestion work and lives beside the other
+provider readers, in ``scripts/prod/registration_sources``.  A reader hands
+this module already-parsed, provider-neutral :class:`RegistrantRow` values
+wrapped in
+:class:`PendingEventRegistrants`.  The dependency runs one way only: a reader
+imports this module, and this module imports no reader -- the same direction
+``events.importers`` and the aggregate-only readers already use.  Unlike that
+port there is no reader *registry* here: nothing on a request path derives
+registrants, so the single ingest entry point hands its reader's output
+straight in rather than through global state.
+
+``PendingEventRegistrants.read_rows`` is a callable, not a tuple, and that is
+load-bearing: it is what keeps the resume rule below exactly what it was.  A
+completed event is skipped without its rows ever being asked for, so the reader
+never reopens that event's file.
+
+This remains the one path in the codebase that handles attendee-level values at
+all -- a :class:`RegistrantRow` carries a normalized email address --
+deliberately separate from the aggregate-only readers in
 ``scripts/prod/registration_sources``, whose own contract is "no attendee value
 crosses this module boundary".  Nothing here reuses their checksum-pinned
-production-count safety net (``derive_luma``/``derive_eventbrite``); this reads
-the same protected directory independently, with its own narrower safety
-checks, because minting an identity/fact row carries none of the "silently
-corrupt a public count" risk those adapters exist to guard against -- the same
-reasoning ``scripts.prod.registration_sources.luma.discover_luma_events`` uses
-for identity-only reads.
+production-count safety net; minting an identity/fact row carries none of the
+"silently corrupt a public count" risk those adapters exist to guard against.
+No attendee value is ever logged, printed, or embedded in an error:
+:class:`RegistrantImportError` carries a bounded condition code and nothing
+else, and every number this module reports is an aggregate.
 
 The core principle, stated by the product owner: someone who both took a
 course and registered for an event must resolve to one account, never two.
@@ -32,36 +52,26 @@ the same person is recognised whether they are on event 3 or event 300.
 
 Resumability is at event granularity, not row granularity -- see
 :class:`events.models.EventRegistrantImportProgress` for why.  A completed
-event is skipped without even reopening its file; an interrupted event is
+event is skipped without even reading its rows; an interrupted event is
 retried whole, inside one transaction, on the next run.
 
-Eventbrite is not read here yet.  The real durable export at
-``/data/tmp/luma-eventbrite-export/`` currently holds only the Luma
-side (``luma-aggregate-v1``); no real Eventbrite attendee-level archive is
-available to build or verify an Eventbrite reader against, and this
-codebase's own Eventbrite adapter
-(``scripts.prod.registration_sources.eventbrite.derive_eventbrite``) never
-needed to know that provider's attendee-level column names, since it
-only ever counted rows. Rather than guess a schema for a real PII export this
-module has never seen, ``EventRegistration.Provider.EVENTBRITE`` and every
-field below are already provider-generic, so an Eventbrite reader is a
-follow-up that adds a second ``discover_*``/``read_*`` pair, not a rework of
-the model or matching logic.
+Only one provider's registrants are imported today, because only one real
+attendee-level export exists to build and verify a reader against.  Nothing
+here has to change when a second one arrives: every type below is
+provider-generic and the provider is an argument rather than a constant, so a
+second provider is one more reader module in the ingestion layer, not a rework
+of the model or the matching logic.
 """
 
 from __future__ import annotations
 
-import csv
-import json
-import stat
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, NoReturn
+from typing import Any
 
 from django.db import IntegrityError, transaction
 from django.utils.dateparse import parse_datetime
 
-from accounts.identity_values import normalize_account_email
 from accounts.models import CustomUser
 
 from .identity import EventIdentityNotFound, provider_source_identity, resolve_source_identity
@@ -73,158 +83,50 @@ from .models import (
 
 __all__ = [
     "RegistrantImportError",
-    "DiscoveredRegistrantFile",
+    "RegistrantRow",
+    "PendingEventRegistrants",
     "EventImportOutcome",
     "RunReport",
-    "discover_luma_registrant_files",
-    "read_luma_registrant_rows",
-    "import_luma_registrants",
+    "import_registrants",
     "resolve_registrant_identity",
 ]
 
-# Required for identity-consolidation reads only -- a narrower set than
-# the aggregate-only reader's REQUIRED_COLUMNS, since this reader also needs
-# `email` and `registered_at`, neither of which the aggregate-only adapter
-# ever touches.
-_REGISTRANT_REQUIRED_COLUMNS = (
-    "event_id",
-    "guest_id",
-    "email",
-    "approval_status",
-    "registered_at",
-)
-# Generous headroom over the real export's largest single event file
-# (~3,500 rows, measured) -- a bound, not a tuned expectation.
-MAX_ROWS_PER_EVENT = 100_000
-
 
 class RegistrantImportError(ValueError):
-    """A bounded refusal that never embeds a source value (an email, a name, a guest id)."""
+    """A bounded refusal that never embeds a source value (an email, a name, a guest id).
 
-
-def _refuse(code: str) -> NoReturn:
-    raise RegistrantImportError(code)
-
-
-def _safe_csv_path(path: Path) -> Path:
-    try:
-        resolved = path.resolve(strict=True)
-        metadata = path.lstat()
-    except OSError:
-        _refuse("source_unavailable")
-    if stat.S_ISLNK(metadata.st_mode):
-        _refuse("source_symlink")
-    if not resolved.is_file():
-        _refuse("source_not_file")
-    return resolved
-
-
-@dataclass(frozen=True, slots=True)
-class DiscoveredRegistrantFile:
-    external_event_identifier: str
-    csv_path: Path
-
-
-def discover_luma_registrant_files(root: Path) -> tuple[DiscoveredRegistrantFile, ...]:
-    """Pair each CSV with its JSON checkpoint's ``event_id``, sorted by file stem.
-
-    Deliberately re-derives this pairing rather than importing
-    the aggregate-only readers' private helpers -- see the module docstring for why
-    attendee-crossing code stays out of that module's boundary. Applies the
-    same non-symlink, regular-file safety check to every path it opens as
-    ``scripts/prod/registration_sources`` does for the aggregate-only reads.
+    Raised by the provider readers in ``scripts/prod/registration_sources`` as
+    well as from here: it is this port's failure type, the way
+    ``events.importers.ProtectedSourceError`` is the aggregate port's.
     """
-
-    try:
-        resolved_root = root.resolve(strict=True)
-    except OSError:
-        _refuse("source_unavailable")
-    if not resolved_root.is_dir():
-        _refuse("source_not_directory")
-
-    csv_by_stem: dict[str, Path] = {}
-    json_by_stem: dict[str, Path] = {}
-    for entry in sorted(resolved_root.iterdir(), key=lambda item: item.name):
-        if entry.name.startswith("."):
-            continue
-        metadata = entry.lstat()
-        if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
-            continue
-        suffix = entry.suffix.casefold()
-        if suffix == ".csv":
-            csv_by_stem[entry.stem] = entry
-        elif suffix == ".json":
-            json_by_stem[entry.stem] = entry
-    if set(csv_by_stem) != set(json_by_stem):
-        _refuse("mismatched_luma_pair")
-
-    discovered: list[DiscoveredRegistrantFile] = []
-    for stem in sorted(csv_by_stem):
-        try:
-            document = json.loads(json_by_stem[stem].read_text(encoding="utf-8"))
-        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-            _refuse("malformed_json")
-        if not isinstance(document, dict) or document.get("schema_version") != 1:
-            _refuse("unsupported_luma_schema")
-        event_id = document.get("event_id")
-        if not isinstance(event_id, str) or not event_id:
-            _refuse("malformed_json")
-        discovered.append(
-            DiscoveredRegistrantFile(external_event_identifier=event_id, csv_path=csv_by_stem[stem])
-        )
-    return tuple(discovered)
 
 
 @dataclass(frozen=True, slots=True)
 class RegistrantRow:
+    """One registrant's row, already parsed and stripped of provider shape.
+
+    ``normalized_email`` is the only attendee value that crosses this boundary,
+    and it exists solely as the consolidation key.  It is never logged and
+    never reported; only counts derived from it leave this module.
+    """
+
     external_registrant_identifier: str
     normalized_email: str | None
     status: str
     registered_at_raw: str
 
 
-def read_luma_registrant_rows(
-    csv_path: Path, *, external_event_identifier: str
-) -> tuple[RegistrantRow, ...]:
-    """Read one event's registrant rows.  Duplicate ``guest_id`` rows keep the first only."""
+@dataclass(frozen=True, slots=True)
+class PendingEventRegistrants:
+    """One provider event whose rows this run may or may not need to read.
 
-    resolved = _safe_csv_path(csv_path)
-    rows: list[RegistrantRow] = []
-    seen_guest_ids: set[str] = set()
-    try:
-        with resolved.open("r", encoding="utf-8-sig", newline="") as stream:
-            reader = csv.DictReader(stream, strict=True)
-            headers = reader.fieldnames
-            if headers is None or any(
-                column not in headers for column in _REGISTRANT_REQUIRED_COLUMNS
-            ):
-                _refuse("unsupported_luma_schema")
-            for index, row in enumerate(reader):
-                if index >= MAX_ROWS_PER_EVENT:
-                    _refuse("row_count_exceeded")
-                if row.get("event_id") != external_event_identifier:
-                    _refuse("mismatched_luma_pair")
-                guest_id = (row.get("guest_id") or "").strip()
-                status = (row.get("approval_status") or "").strip()
-                if not guest_id or not status:
-                    _refuse("malformed_csv")
-                if guest_id in seen_guest_ids:
-                    continue
-                seen_guest_ids.add(guest_id)
-                email = (row.get("email") or "").strip()
-                rows.append(
-                    RegistrantRow(
-                        external_registrant_identifier=guest_id,
-                        normalized_email=normalize_account_email(email),
-                        status=status.casefold(),
-                        registered_at_raw=(row.get("registered_at") or "").strip(),
-                    )
-                )
-    except RegistrantImportError:
-        raise
-    except (OSError, UnicodeDecodeError, csv.Error) as error:
-        raise RegistrantImportError("malformed_csv") from error
-    return tuple(rows)
+    ``read_rows`` is called at most once per run, and only after the progress
+    row says the event is unfinished *and* its event identity resolves -- so a
+    completed event is skipped without the reader touching its file at all.
+    """
+
+    external_event_identifier: str
+    read_rows: Callable[[], tuple[RegistrantRow, ...]]
 
 
 def _parse_registered_at(raw: str) -> Any:
@@ -299,7 +201,10 @@ class EventImportOutcome:
 
 
 def _import_one_event(
-    *, provider: str, external_event_identifier: str, csv_path: Path
+    *,
+    provider: str,
+    external_event_identifier: str,
+    read_rows: Callable[[], tuple[RegistrantRow, ...]],
 ) -> EventImportOutcome:
     progress, _ = EventRegistrantImportProgress.objects.get_or_create(
         provider=provider, external_event_identifier=external_event_identifier
@@ -333,7 +238,9 @@ def _import_one_event(
             external_event_identifier=external_event_identifier, status="no_identity_yet"
         )
 
-    rows = read_luma_registrant_rows(csv_path, external_event_identifier=external_event_identifier)
+    # Only here, past both gates, are the rows asked for at all: that is what
+    # keeps a completed or identity-less event from reopening its source file.
+    rows = read_rows()
 
     written = skipped = matched_account = matched_prior = created_identity = 0
     with transaction.atomic():
@@ -398,9 +305,9 @@ class RunReport:
             "events_completed": self.events_completed,
             "events_already_completed": self.events_already_completed,
             "events_awaiting_identity": self.events_awaiting_identity,
-            # Provider event ids are public (part of the event's public Luma
-            # URL), not attendee PII -- same treatment as
-            # the aggregate-only reader's own "no_metadata_events" reporting.
+            # Provider event ids are public (part of the event's public
+            # provider URL), not attendee PII -- same treatment as
+            # the aggregate-only readers' own "no_metadata_events" reporting.
             "awaiting_identity_events": list(self.awaiting_identity_events),
             "rows_written": self.rows_written,
             "rows_skipped": self.rows_skipped,
@@ -410,30 +317,29 @@ class RunReport:
         }
 
 
-def import_luma_registrants(source: Path) -> RunReport:
-    """Import one Luma export's registrant rows, one event at a time.
+def import_registrants(*, provider: str, pending: Iterable[PendingEventRegistrants]) -> RunReport:
+    """Import one export's registrant rows, one event at a time, in the reader's order.
 
     Global consolidation, per-event sequencing: each event's rows are
-    resolved and written inside their own transaction, in file-stem order,
-    but every identity lookup queries the whole database, so a person seen on
-    event 3 is recognised again on event 300, whether or not the earlier
-    event has finished in this same run. Safe to run repeatedly -- a
-    completed event contributes nothing new on replay; see
-    events.models.EventRegistrantImportProgress.
+    resolved and written inside their own transaction, in the order the reader
+    discovered them, but every identity lookup queries the whole database, so a
+    person seen on event 3 is recognised again on event 300, whether or not the
+    earlier event has finished in this same run. Safe to run repeatedly -- a
+    completed event contributes nothing new on replay and its rows are never
+    read again; see events.models.EventRegistrantImportProgress.
     """
 
-    provider = EventRegistration.Provider.LUMA
-    discovered = discover_luma_registrant_files(source)
+    events = tuple(pending)
 
     events_completed = events_already_completed = 0
     awaiting_identity: list[str] = []
     rows_written = rows_skipped = 0
     matched_account = matched_prior = new_identity = 0
-    for item in discovered:
+    for item in events:
         outcome = _import_one_event(
             provider=provider,
             external_event_identifier=item.external_event_identifier,
-            csv_path=item.csv_path,
+            read_rows=item.read_rows,
         )
         if outcome.status == "no_identity_yet":
             awaiting_identity.append(item.external_event_identifier)
@@ -450,7 +356,7 @@ def import_luma_registrants(source: Path) -> RunReport:
 
     return RunReport(
         provider=provider,
-        events_total=len(discovered),
+        events_total=len(events),
         events_completed=events_completed,
         events_already_completed=events_already_completed,
         events_awaiting_identity=len(awaiting_identity),
