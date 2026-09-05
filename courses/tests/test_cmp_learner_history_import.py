@@ -26,6 +26,9 @@ from courses.models import (
     CourseRegistration,
     Enrollment,
     Homework,
+    PeerReview,
+    Project,
+    ProjectSubmission,
     Question,
     RegistrationCampaign,
     Submission,
@@ -68,6 +71,21 @@ CREATE TABLE courses_submission (
 );
 CREATE TABLE courses_answer (
     id INTEGER, answer_text TEXT, is_correct INTEGER, question_id INTEGER, submission_id INTEGER
+);
+CREATE TABLE courses_project (id INTEGER, course_id INTEGER, slug TEXT);
+CREATE TABLE courses_projectsubmission (
+    id INTEGER, github_link TEXT, commit_id TEXT, learning_in_public_links TEXT,
+    faq_contribution TEXT, time_spent REAL, problems_comments TEXT, submitted_at TEXT,
+    enrollment_id INTEGER, project_id INTEGER, student_id INTEGER, passed INTEGER,
+    peer_review_learning_in_public_score INTEGER, peer_review_score INTEGER,
+    project_faq_score INTEGER, project_learning_in_public_score INTEGER, project_score INTEGER,
+    reviewed_enough_peers INTEGER, total_score INTEGER, faq_contribution_url TEXT,
+    volunteer_review_only INTEGER
+);
+CREATE TABLE courses_peerreview (
+    id INTEGER, note_to_peer TEXT, learning_in_public_links TEXT, time_spent_reviewing REAL,
+    problems_comments TEXT, reviewer_id INTEGER, submission_under_evaluation_id INTEGER,
+    optional INTEGER, state TEXT, submitted_at TEXT
 );
 """
 
@@ -158,6 +176,58 @@ def answer_row(source_id: int, *, question_id: int = 1, submission_id: int = 1) 
     return (source_id, f"answer {source_id}", 1, question_id, submission_id)
 
 
+def project_submission_row(
+    source_id: int,
+    *,
+    enrollment_id: int = 1,
+    project_id: int = 1,
+    student_id: int = 1,
+) -> tuple:
+    return (
+        source_id,
+        "https://github.invalid/project",
+        "abc1234",
+        "[]",
+        "",
+        4.0,
+        "",
+        MOMENT,
+        enrollment_id,
+        project_id,
+        student_id,
+        1,
+        0,
+        5,
+        1,
+        2,
+        12,
+        1,
+        20,
+        None,
+        0,
+    )
+
+
+def peer_review_row(
+    source_id: int,
+    *,
+    reviewer_id: int = 1,
+    submission_under_evaluation_id: int = 2,
+) -> tuple:
+    return (
+        source_id,
+        "A note to the peer.",
+        "[]",
+        1.5,
+        "",
+        reviewer_id,
+        submission_under_evaluation_id,
+        0,
+        "SU",
+        MOMENT,
+    )
+
+
 def build_source(path: Path, **tables: list[tuple]) -> None:
     connection = sqlite3.connect(path)
     connection.executescript(SOURCE_SCHEMA)
@@ -189,6 +259,13 @@ class HistoryImportFixture(TestCase):
         self.question = Question.objects.create(
             homework=self.homework, text="How many rows?", question_type="MC", answer_type="INT"
         )
+        self.project = Project.objects.create(
+            course=self.cohort,
+            slug="capstone",
+            title="Capstone",
+            submission_due_date=MOMENT_UTC,
+            peer_review_due_date=MOMENT_UTC,
+        )
         self.learner = CustomUser.objects.create_user(
             username="learner-one", email="one@example.invalid"
         )
@@ -204,6 +281,7 @@ class HistoryImportFixture(TestCase):
         tables.setdefault("courses_registrationcampaign", [(1, "de-zoomcamp", 1)])
         tables.setdefault("courses_homework", [(1, 1, "module-1")])
         tables.setdefault("courses_question", [(1, 1, "How many rows?")])
+        tables.setdefault("courses_project", [(1, 1, "capstone")])
         build_source(path, **tables)
         return path
 
@@ -619,3 +697,72 @@ class AnswerImportTests(HistoryImportFixture):
             for source_id, pk in self.claims("courses_answer").items()
         }
         self.assertEqual(by_source, {1: self.question.pk, 2: second.pk})
+
+
+class ProjectSubmissionImportTests(HistoryImportFixture):
+    def test_a_project_submission_keeps_every_score_the_export_computed(self) -> None:
+        source = self.source(
+            courses_enrollment=[enrollment_row(1)],
+            courses_projectsubmission=[project_submission_row(1)],
+        )
+        self.run_import(source)
+
+        submission = ProjectSubmission.objects.get()
+        self.assertEqual(submission.project, self.project)
+        self.assertEqual(submission.enrollment, Enrollment.objects.get())
+        self.assertEqual(submission.project_score, 12)
+        self.assertEqual(submission.peer_review_score, 5)
+        self.assertEqual(submission.total_score, 20)
+        self.assertTrue(submission.passed)
+        self.assertTrue(submission.reviewed_enough_peers)
+        self.assertFalse(submission.volunteer_review_only)
+        self.assertEqual(submission.submitted_at, MOMENT_UTC)
+
+    def test_a_project_the_catalogue_lacks_is_bucketed(self) -> None:
+        source = self.source(
+            courses_project=[(1, 1, "capstone"), (2, 1, "unimported-project")],
+            courses_enrollment=[enrollment_row(1)],
+            courses_projectsubmission=[project_submission_row(1, project_id=2)],
+        )
+        result = self.run_import(source)
+
+        report = self.report(result, "courses_projectsubmission")
+        self.assertEqual(report["unresolved"], {"project": 1})
+        self.assertEqual(Project.objects.count(), 1)
+
+
+class PeerReviewImportTests(HistoryImportFixture):
+    def _two_project_submissions(self, **overrides) -> Path:
+        other = CustomUser.objects.create_user(username="learner-two", email="two@example.invalid")
+        self.user_claims = {1: self.learner.pk, 2: other.pk}
+        tables = {
+            "courses_enrollment": [enrollment_row(1), enrollment_row(2, student_id=2)],
+            "courses_projectsubmission": [
+                project_submission_row(1),
+                project_submission_row(2, enrollment_id=2, student_id=2),
+            ],
+            "courses_peerreview": [peer_review_row(1)],
+        }
+        tables.update(overrides)
+        return self.source(**tables)
+
+    def test_both_ends_of_a_review_are_project_submissions(self) -> None:
+        self.run_import(self._two_project_submissions())
+
+        review = PeerReview.objects.get()
+        claims = self.claims("courses_projectsubmission")
+        self.assertEqual(review.reviewer_id, claims[1])
+        self.assertEqual(review.submission_under_evaluation_id, claims[2])
+        self.assertEqual(review.state, "SU")
+        self.assertEqual(review.note_to_peer, "A note to the peer.")
+        self.assertEqual(review.submitted_at, MOMENT_UTC)
+
+    def test_a_review_of_a_project_submission_that_never_imported_is_bucketed(self) -> None:
+        source = self._two_project_submissions(
+            courses_peerreview=[peer_review_row(1, submission_under_evaluation_id=404)]
+        )
+        result = self.run_import(source)
+
+        report = self.report(result, "courses_peerreview")
+        self.assertEqual(report["unresolved"], {"project_submission": 1})
+        self.assertEqual(PeerReview.objects.count(), 0)

@@ -119,6 +119,9 @@ from courses.models import (
     CourseRegistration,
     Enrollment,
     Homework,
+    PeerReview,
+    Project,
+    ProjectSubmission,
     Question,
     RegistrationCampaign,
     Submission,
@@ -165,6 +168,8 @@ TABLE_ORDER: tuple[str, ...] = (
     "courses_enrollment",
     "courses_submission",
     "courses_answer",
+    "courses_projectsubmission",
+    "courses_peerreview",
 )
 
 LEARNER_TABLES = frozenset(TABLE_ORDER)
@@ -366,6 +371,7 @@ class Resolution:
     campaigns: Mapping[int, int]
     homework: Mapping[int, int]
     questions: Mapping[int, int]
+    projects: Mapping[int, int]
     # The rows earlier stages of this same run created. Read live, because the
     # enrollment a submission needs was claimed a few batches ago.
     claims: CmpHistoryClaims
@@ -400,6 +406,12 @@ class Resolution:
             raise _Unresolved("question")
         return resolved
 
+    def project(self, source_id: Any) -> int:
+        resolved = self.projects.get(source_id)
+        if resolved is None:
+            raise _Unresolved("project")
+        return resolved
+
     def _claimed(self, table: str, source_id: Any, bucket: str) -> int:
         resolved = None if source_id is None else self.claims.table(table).get(int(source_id))
         if resolved is None:
@@ -411,6 +423,9 @@ class Resolution:
 
     def submission(self, source_id: Any) -> int:
         return self._claimed("courses_submission", source_id, "submission")
+
+    def project_submission(self, source_id: Any) -> int:
+        return self._claimed("courses_projectsubmission", source_id, "project_submission")
 
 
 def _cohort_map(connection: sqlite3.Connection) -> dict[int, int]:
@@ -501,6 +516,27 @@ def _question_map(connection: sqlite3.Connection, homework: Mapping[int, int]) -
     return resolved
 
 
+def _project_map(connection: sqlite3.Connection, cohorts: Mapping[int, int]) -> dict[int, int]:
+    """Source project id -> target pk, by ``(cohort, slug)``."""
+
+    local = {
+        (course_id, slug): pk
+        for course_id, slug, pk in Project.objects.filter(
+            course_id__in=set(cohorts.values())
+        ).values_list("course_id", "slug", "pk")
+    }
+    resolved: dict[int, int] = {}
+    rows = _rows(connection, "courses_project", "select id, course_id, slug from courses_project")
+    for row in rows:
+        cohort_pk = cohorts.get(row["course_id"])
+        if cohort_pk is None:
+            continue
+        target = local.get((cohort_pk, str(row["slug"])))
+        if target is not None:
+            resolved[int(row["id"])] = target
+    return resolved
+
+
 def _build_resolution(
     connection: sqlite3.Connection, *, users: Mapping[int, int], claims: CmpHistoryClaims
 ) -> Resolution:
@@ -512,6 +548,7 @@ def _build_resolution(
         campaigns=_campaign_map(connection),
         homework=homework,
         questions=_question_map(connection, homework),
+        projects=_project_map(connection, cohorts),
         claims=claims,
     )
 
@@ -625,6 +662,72 @@ def _answer_key(instance: Answer) -> dict[str, Any]:
     return {"submission_id": instance.submission_id, "question_id": instance.question_id}
 
 
+def _project_submission(row: Any, resolution: Resolution) -> ProjectSubmission:
+    """A project submission and every score already computed for it.
+
+    The peer-review scores are copied rather than recomputed: they are the
+    outcome of reviews that happened, and the leaderboard the export shipped was
+    built from these numbers.  Only the derived *statistics* tables are left to
+    be recalculated -- see the runbook's step 4, transform 3.
+    """
+
+    return ProjectSubmission(
+        project_id=resolution.project(row["project_id"]),
+        student_id=resolution.user(row["student_id"]),
+        enrollment_id=resolution.enrollment(row["enrollment_id"]),
+        github_link=_text(row["github_link"]),
+        commit_id=_text(row["commit_id"]),
+        learning_in_public_links=_json_list(row["learning_in_public_links"]),
+        faq_contribution=_text(row["faq_contribution"]),
+        faq_contribution_url=row["faq_contribution_url"],
+        time_spent=row["time_spent"],
+        problems_comments=_text(row["problems_comments"]),
+        submitted_at=_moment(row["submitted_at"]),
+        project_score=int(row["project_score"] or 0),
+        project_faq_score=int(row["project_faq_score"] or 0),
+        project_learning_in_public_score=int(row["project_learning_in_public_score"] or 0),
+        peer_review_score=int(row["peer_review_score"] or 0),
+        peer_review_learning_in_public_score=int(row["peer_review_learning_in_public_score"] or 0),
+        total_score=int(row["total_score"] or 0),
+        reviewed_enough_peers=bool(row["reviewed_enough_peers"]),
+        passed=bool(row["passed"]),
+        volunteer_review_only=bool(row["volunteer_review_only"]),
+    )
+
+
+def _project_submission_key(instance: ProjectSubmission) -> dict[str, Any]:
+    return {"enrollment_id": instance.enrollment_id, "project_id": instance.project_id}
+
+
+def _peer_review(row: Any, resolution: Resolution) -> PeerReview:
+    """One learner's review of another's project.
+
+    Both ends are project *submissions*, not accounts: the reviewer is
+    identified by the submission that earned them the right to review.
+    """
+
+    return PeerReview(
+        submission_under_evaluation_id=resolution.project_submission(
+            row["submission_under_evaluation_id"]
+        ),
+        reviewer_id=resolution.project_submission(row["reviewer_id"]),
+        note_to_peer=_text(row["note_to_peer"]),
+        learning_in_public_links=_json_list(row["learning_in_public_links"]),
+        time_spent_reviewing=row["time_spent_reviewing"],
+        problems_comments=_text(row["problems_comments"]),
+        optional=bool(row["optional"]),
+        submitted_at=_moment(row["submitted_at"]),
+        state=_text(row["state"]),
+    )
+
+
+def _peer_review_key(instance: PeerReview) -> dict[str, Any]:
+    return {
+        "reviewer_id": instance.reviewer_id,
+        "submission_under_evaluation_id": instance.submission_under_evaluation_id,
+    }
+
+
 @dataclass(frozen=True, slots=True)
 class TablePlan:
     """How one source table becomes target rows.
@@ -682,6 +785,18 @@ TABLE_PLANS: tuple[TablePlan, ...] = (
         model=Answer,
         build=_answer,
         natural_key=_answer_key,
+    ),
+    TablePlan(
+        table="courses_projectsubmission",
+        model=ProjectSubmission,
+        build=_project_submission,
+        natural_key=_project_submission_key,
+    ),
+    TablePlan(
+        table="courses_peerreview",
+        model=PeerReview,
+        build=_peer_review,
+        natural_key=_peer_review_key,
     ),
 )
 
