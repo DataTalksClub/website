@@ -375,12 +375,58 @@ along with the migration that added it, following this inventory's own main
 design principle above.
 Destination: `accounts_customuser`, `account_emailaddress`.
 
-## 4.2 Learner activity — not built
+## 4.2 Learner activity
 
-No script. Enrollments, submissions, answers, registrations, criteria
-responses, peer reviews, project evaluation scores, wrapped statistics —
-roughly 470,000 of the export's ~510,000 learner rows. **Largest open gap in
-this entire inventory.**
+[`scripts/prod/import_cmp_learner_history.py`](../../scripts/prod/import_cmp_learner_history.py)
+(+ [`courses/services/cmp_learner_history_import.py`](../../courses/services/cmp_learner_history_import.py))
+
+Source: the same CMP production export as 3.1 and 4.1, same path convention,
+read in place, required `--source`. Nine tables — course registrations,
+enrollments, homework submissions, answers, project submissions, peer reviews,
+criteria responses, project evaluation scores and per-user Wrapped statistics —
+472,690 rows in the 2026-09-05 export. Runs **after** 3.1 and 4.1, because every
+foreign key it writes is resolved against what those two wrote.
+
+Transform, exactly: it **reconciles and never invents**. Neither 3.1 nor 4.1
+keeps a CMP row id on the rows it writes, so a cohort resolves by slug, a
+homework and a project by `(cohort, slug)`, a question by its text within its
+homework, a review criterion by `(cohort, description)`, a campaign by slug, a
+Wrapped parent by year, an account through 4.1's claims file
+(`--user-claims-file`), and an enrollment, submission, project submission or
+peer review through this importer's own claims, written by an earlier stage of
+the same run. A row whose parent does not resolve is counted under a named
+bucket and skipped; no placeholder parent is ever created to hang a child off,
+because that turns a reportable gap into data that looks real. Rows are written
+with `bulk_create`, deliberately: it bypasses the `save()` overrides that would
+otherwise mint a random leaderboard name for an enrollment or re-point a
+cohort-less registration at its campaign's current cohort. The historical
+timestamps Django clock-stamps during the insert are restored from the export
+afterwards. A Wrapped page's stored per-course `enrollment_id` values are
+re-pointed at the enrollments this import created — left as CMP's they would
+link one learner's page to a stranger's score breakdown.
+
+The same six tables as 4.1 are explicitly never read:
+`django_session`, `socialaccount_socialaccount`, `socialaccount_socialapp`,
+`socialaccount_socialapp_sites`, `socialaccount_socialtoken`, `accounts_token`.
+This importer declares its own set rather than reusing `review_import`'s
+`SENSITIVE_TABLES`, which is the policy for a sanitized *review* database and
+excludes this importer's entire payload.
+
+Resumable per batch per table, via a persisted high-water mark
+([`courses/migrations/0003_cmphistoryimportprogress.py`](../../courses/migrations/0003_cmphistoryimportprogress.py))
+that advances inside the same transaction as the batch it counts — proven with
+a real `kill -9` mid-run and a clean resume that reached byte-identical counts.
+Which target row it created for a given CMP source id is tracked in a
+`--claims-dir` of one JSON file per table that this importer owns (default:
+project-local `.tmp/`), never a column on a live model. `--status` reports
+progress without opening the export; `--dry-run` reports counts without writing.
+Reports carry counts and bounded bucket names only — the payload is learner
+answers, names and addresses, and none of it is printed or logged.
+
+Destination: `courses_courseregistration`, `courses_enrollment`,
+`courses_submission`, `courses_answer`, `courses_projectsubmission`,
+`courses_peerreview`, `courses_criteriaresponse`,
+`courses_projectevaluationscore`, `courses_userwrappedstatistics`.
 
 ## 4.3 Reconciliation
 
