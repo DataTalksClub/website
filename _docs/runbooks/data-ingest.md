@@ -824,6 +824,104 @@ mapping-review attention the existing 380-event backlog already gets; some may t
 out to be the same event as an existing manifest row (in which case a human merges
 them) rather than a second, permanently-duplicate identity.
 
+### 14.4 — Staged content for discovered events
+
+§14.3 gives a genuinely new event an identity: a title and a canonical path. §14.2
+cannot then give it a page, because the 421-record corpus it imports is frozen and
+its descriptions come through the bridge (§15), which matches on the legacy
+`_data/events.yaml` tuple a discovered event does not have. Without this stage such
+an event reaches the database with a URL that renders no schedule and no
+description. This is that stage.
+
+**Two files, and which of them a person owns.**
+
+| | What it is | Who writes it |
+| --- | --- | --- |
+| `_docs/migration-data/local-event-type-input.json` | The reviewed `type` per description file — `webinar`, `workshop`, `podcast` or `conference` — with a `reason` | **A person.** Ships empty. |
+| `temporary/content/luma_event_descriptions.json` | The built staging artifact: finished descriptions with their schedule and provenance | `scripts/build_luma_event_descriptions.py --write` |
+
+**Build.** `scripts/build_luma_event_descriptions.py` reads a description export root
+holding `descriptions/*.md` beside `_json/*.json`, one pair per event, named alike.
+Reporting is the default; it writes nothing without `--write`.
+
+```
+uv run --frozen python scripts/build_luma_event_descriptions.py \
+    --database .tmp/local.sqlite3 \
+    --source-root .local/migration-data/events/luma
+```
+
+Per pair it resolves the event by the **provider's own event id**, read from the
+checkpoint, against the source identity §14.3 minted the row under. Not by slug: 128
+of the 166 export slugs match more than one `Event` row in a database that has both
+the manifest and the discovered identities, so a slug lookup silently picks one of
+them. An export whose event has no identity yet is reported under `no_identity_yet`
+and skipped — run §14.3 first.
+
+`starts_at` comes from that same checkpoint's `event.start_at`, which is genuinely
+there. `ends_at` deliberately does not: Luma derives `end_at` from a nominal
+`duration_interval`, so importing it would publish a guessed duration as a stated
+end, which `events.models.EventContent` says never to do. `type` comes only from the
+reviewed input file above — nothing anywhere in a Luma export says whether an event
+is a webinar or a workshop, and nothing here infers it from a title. An export the
+reviewed file does not name is reported under `no_reviewed_type`, run after run,
+until somebody decides.
+
+The description itself is rendered through the bridge's own Markdown and link
+policies and then put through the same `normalize_description_html` that removed the
+"about the speaker" block and the platform footer from the 421.
+
+The checkpoint carries the registration list beside the event fields. The three
+fields are read through the bridge's span reader, which decodes only the spans it is
+given, so the `guests` array is never parsed. No attendee value reaches the artifact,
+the report or the database.
+
+**The link gate stays human.** A destination with no reviewed decision stops that
+event, and the builder reports it **by URL** under `needs_link_review`. Approving one
+is an edit to `scripts/projection_build/event_description_link_policy.py` by a
+person: host approval alone is deliberately not enough, and nothing here infers or
+auto-approves. Measured against the real export on 2026-09-05: **4 events, 6 distinct
+destinations** — `http://bol.com`, `https://Fly.io`, two GitHub URLs and one YouTube
+URL on already-approved hosts that are not in `REVIEWED_RENDERED_LINKS`, and
+`https://pythoninvest.com/` (the reviewed literal is the no-slash spelling).
+
+The build is deterministic: the same export, identities and reviewed input produce a
+byte-identical artifact.
+
+**Import.** `scripts/prod/import_events.py`'s `import_new_content()` runs straight
+after `discover_new_luma_event_identities()` in the same `run()`, and again under
+`--discover-new-events-only`, into `EventContent` with its `EventSpeaker` and
+`EventLink` rows. It is reported under its own top-level `new_event_content` key,
+never merged into `event_content`: the two artifacts have different provenance and
+merging their counts would hide which one moved.
+
+`events/content_import.py`'s `import_new_event_content()` is the same shape as
+`import_event_content()` beside it. It validates the whole candidate — envelope,
+declared counts and content digest recomputed, then every record — before writing a
+row. It reconciles against the identity's **own source triple** rather than the
+legacy tuple, which is what keeps it off the 421: their triples name the legacy
+repository and can never equal a provider one. A record naming an identity the
+database does not hold is a refusal, never a new event. A description arriving
+without the review that decided its type is refused too.
+
+**A missing artifact is a normal state**, reported as `{"present": false}`. It exists
+only while there is content waiting to land.
+
+Replaying is safe. Speakers and links are an ordered set the record owns outright, so
+a re-run replaces them wholesale; an unchanged record reports `unchanged` and writes
+nothing.
+
+**Measured end to end on 2026-09-05**, against a scratch SQLite database built from
+`manage.py migrate` plus a full `import_events.py` run: 166 description pairs read,
+**164 resolved** to an identity by exact provider event id (the other 2 are the
+zero-registration events §14.3 could not name, so they have no identity to resolve
+to), **4 stopped for link review**, and the rest waiting on a type. With a scratch
+type file covering the 160 that pass both gates, the builder prepared 160 records —
+154 speaker bios removed, 134 platform-boilerplate blocks removed, 154 internal links
+rewritten — and the import created 160 `EventContent` rows. A second run of both
+reported `replayed: true`, `created: 0`, `unchanged: 160`. With the checked-in
+reviewed file, which is empty, the same run prepares **0**: nobody has decided a type
+yet, and that is the honest state.
+
 ### 15 — Event description bridge
 
 `temporary/content/event_description_bridge.json`, built by
@@ -1060,7 +1158,11 @@ What genuinely differs, and needs care rather than a separate pipeline:
 7. `scripts/prod/import_events.py`'s identity import — before anything else event-related.
 8. `scripts/prod/import_events.py`'s content import — reconciles against stage 7, so it
    writes nothing before it. Both run in the script's own `run()`, in that order.
-9. Event registration aggregates (currently `mapping_review_required`).
+9. `scripts/prod/import_events.py`'s new-event identity discovery (§14.3), then its
+   staged-content leg (§14.4) — the second reconciles against the identities the
+   first mints, so it writes nothing before it. Both run in the script's own `run()`,
+   in that order.
+10. Event registration aggregates (currently `mapping_review_required`).
 
 `make production-prep-dataset` runs stages 1–5 plus `scripts/prepare_local_data.py`
 and `scripts/verify_local_dataset.py`. Read
@@ -1163,6 +1265,8 @@ Ordered by how much they will hurt.
 | Import CMP course content | `uv run --frozen python scripts/prod/import_cmp_content.py --database … --source …` |
 | Import event identities and content | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --eventbrite-source …` (identity import is always the first step; content follows it in the same run) |
 | Create identities for new events in a fresh Luma export (§14.3) | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --discover-new-events-only` |
+| See what a description export still needs from a person (§14.4) | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --discover-new-events-only`, then `uv run --frozen python scripts/build_luma_event_descriptions.py --database … --source-root …` |
+| Build the staged descriptions once that report is clean (§14.4) | the same command with `--write`; then re-run `import_events.py` |
 | Materialise media | `uv run --frozen python scripts/prod/sync_public_media_hydrate.py` |
 | Publish media to the store | `uv run --frozen python scripts/prod/sync_public_media_publish.py` |
 | Verify media against `media.json` | `uv run --frozen python scripts/prod/sync_public_media_verify.py` |
