@@ -21,6 +21,24 @@ Operational configuration, schemas, migrations, test fixtures, and static design
 assets are not public content, but they must not be used as a hidden public-content
 fallback.
 
+## Source authority
+
+`DataTalksClub/content`, `DataTalksClub/podwiki`, and `DataTalksClub/faq` are
+live sources: their content enters the website only through git-synchronized
+ingestion. Most of the legacy site already lives in those repositories, and
+everything that does must enter from there.
+
+The legacy website is a one-time migration source. Legacy source material may
+appear exclusively inside temporary one-time prod-ingest scripts, never in
+runtime views, services, checks, builders, adapters, or synchronized syncs.
+
+People profiles and article FAQ pairs move into the content repository like
+articles -- people as their own synced collection, FAQ pairs in each article's
+frontmatter `faq:` section -- and enter through the content ingest like
+everything else. No separate model, no second pipeline. The legacy `_people`
+tree, `_data/events.yaml`, `_data/faqs`, and author images are consumed exactly
+once by their one-time imports, then never again.
+
 ## Current violations to remove
 
 ### Main public projection
