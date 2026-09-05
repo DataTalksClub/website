@@ -45,13 +45,14 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+
+from scripts.prod.target import add_target_arguments, configure_target  # noqa: E402
 
 SYNC_MODEL = "one-time"
 # Every row it writes hangs off a cohort, a homework or an account another
@@ -60,22 +61,12 @@ SYNC_MODEL = "one-time"
 BOOTSTRAPS_EMPTY_DATABASE = False
 
 
-def _configure(database: Path) -> None:
-    os.environ["DTC_ENVIRONMENT"] = "local"
-    os.environ["DTC_SQLITE_PATH"] = str(database)
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings.local")
-
-    import django
-
-    django.setup()
-
-
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--database", required=True, type=Path)
+    add_target_arguments(parser)
     parser.add_argument("--source", type=Path, help="CMP production export")
     parser.add_argument(
         "--batch-size",
@@ -125,8 +116,9 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = _parser().parse_args(argv)
-    _configure(args.database.resolve())
+    parser = _parser()
+    args = parser.parse_args(argv)
+    configure_target(parser, args)
 
     from accounts.services.cmp_learner_import import (
         DEFAULT_CLAIMS_PATH as DEFAULT_USER_CLAIMS_PATH,
