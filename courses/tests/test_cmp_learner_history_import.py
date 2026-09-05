@@ -35,6 +35,8 @@ from courses.models import (
     RegistrationCampaign,
     ReviewCriteria,
     Submission,
+    UserWrappedStatistics,
+    WrappedStatistics,
 )
 from courses.services.cmp_learner_history_import import (
     CONTENT_TABLES,
@@ -96,6 +98,13 @@ CREATE TABLE courses_criteriaresponse (
 );
 CREATE TABLE courses_projectevaluationscore (
     id INTEGER, score INTEGER, review_criteria_id INTEGER, submission_id INTEGER
+);
+CREATE TABLE courses_wrappedstatistics (id INTEGER, year INTEGER);
+CREATE TABLE courses_userwrappedstatistics (
+    id INTEGER, total_points INTEGER, total_hours REAL, homework_count INTEGER,
+    project_count INTEGER, peer_reviews_given INTEGER, learning_in_public_count INTEGER,
+    faq_contributions_count INTEGER, certificates_earned INTEGER, courses TEXT, rank INTEGER,
+    display_name TEXT, calculated_at TEXT, user_id INTEGER, wrapped_id INTEGER
 );
 """
 
@@ -250,6 +259,28 @@ def evaluation_score_row(
     return (source_id, score, review_criteria_id, submission_id)
 
 
+def user_wrapped_row(
+    source_id: int, *, user_id: int = 1, wrapped_id: int = 1, courses: str = "[]"
+) -> tuple:
+    return (
+        source_id,
+        42,
+        11.5,
+        3,
+        1,
+        2,
+        4,
+        1,
+        1,
+        courses,
+        7,
+        f"Pseudonym {source_id}",
+        MOMENT,
+        user_id,
+        wrapped_id,
+    )
+
+
 def build_source(path: Path, **tables: list[tuple]) -> None:
     connection = sqlite3.connect(path)
     connection.executescript(SOURCE_SCHEMA)
@@ -313,6 +344,7 @@ class HistoryImportFixture(TestCase):
         tables.setdefault("courses_question", [(1, 1, "How many rows?")])
         tables.setdefault("courses_project", [(1, 1, "capstone")])
         tables.setdefault("courses_reviewcriteria", [(1, 1, "Is the problem described?")])
+        tables.setdefault("courses_wrappedstatistics", [(1, 2025)])
         build_source(path, **tables)
         return path
 
@@ -864,3 +896,59 @@ class RubricImportTests(HistoryImportFixture):
             self.report(result, "courses_criteriaresponse")["unresolved"], {"peer_review": 1}
         )
         self.assertEqual(CriteriaResponse.objects.count(), 0)
+
+
+class UserWrappedStatisticsImportTests(HistoryImportFixture):
+    def test_a_year_with_no_wrapped_row_keeps_every_learner_page_out(self) -> None:
+        """``courses_wrappedstatistics`` is not one of the tables this
+        migration imports, so unless the target database already holds that
+        year the per-user pages have no parent -- and this importer does not
+        create one to hang them off."""
+
+        source = self.source(courses_userwrappedstatistics=[user_wrapped_row(1)])
+        result = self.run_import(source)
+
+        report = self.report(result, "courses_userwrappedstatistics")
+        self.assertEqual(report["unresolved"], {"wrapped": 1})
+        self.assertEqual(UserWrappedStatistics.objects.count(), 0)
+        self.assertEqual(WrappedStatistics.objects.count(), 0)
+
+    def test_a_learner_page_lands_on_the_wrapped_row_for_its_year(self) -> None:
+        wrapped = WrappedStatistics.objects.create(year=2025)
+        source = self.source(courses_userwrappedstatistics=[user_wrapped_row(1)])
+
+        self.run_import(source)
+
+        statistics = UserWrappedStatistics.objects.get()
+        self.assertEqual(statistics.wrapped, wrapped)
+        self.assertEqual(statistics.user, self.learner)
+        self.assertEqual(statistics.total_points, 42)
+        self.assertEqual(statistics.rank, 7)
+        self.assertEqual(statistics.calculated_at, MOMENT_UTC)
+
+    def test_a_course_entry_is_repointed_at_the_enrollment_this_import_created(self) -> None:
+        """The stored enrollment id builds a leaderboard breakdown link. Left
+        as CMP's, it would address whichever enrollment happens to hold that
+        number here -- a link to a stranger's score breakdown."""
+
+        WrappedStatistics.objects.create(year=2025)
+        courses = json.dumps(
+            [
+                {"slug": "de-zoomcamp-2025", "score": 9, "enrollment_id": 1},
+                {"slug": "llm-zoomcamp-2025", "score": 4, "enrollment_id": 99},
+                {"slug": "no-enrollment-recorded", "score": 0},
+            ]
+        )
+        source = self.source(
+            courses_enrollment=[enrollment_row(1)],
+            courses_userwrappedstatistics=[user_wrapped_row(1, courses=courses)],
+        )
+        self.run_import(source)
+
+        entries = UserWrappedStatistics.objects.get().courses
+        self.assertEqual(entries[0]["enrollment_id"], Enrollment.objects.get().pk)
+        # An enrollment that never imported loses the id rather than keeping a
+        # number that now means something else.
+        self.assertNotIn("enrollment_id", entries[1])
+        self.assertEqual(entries[1]["score"], 4)
+        self.assertNotIn("enrollment_id", entries[2])

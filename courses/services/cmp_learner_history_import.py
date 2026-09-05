@@ -128,6 +128,8 @@ from courses.models import (
     RegistrationCampaign,
     ReviewCriteria,
     Submission,
+    UserWrappedStatistics,
+    WrappedStatistics,
 )
 
 __all__ = [
@@ -175,6 +177,7 @@ TABLE_ORDER: tuple[str, ...] = (
     "courses_peerreview",
     "courses_criteriaresponse",
     "courses_projectevaluationscore",
+    "courses_userwrappedstatistics",
 )
 
 LEARNER_TABLES = frozenset(TABLE_ORDER)
@@ -378,6 +381,7 @@ class Resolution:
     questions: Mapping[int, int]
     projects: Mapping[int, int]
     criteria: Mapping[int, int]
+    wrapped: Mapping[int, int]
     # The rows earlier stages of this same run created. Read live, because the
     # enrollment a submission needs was claimed a few batches ago.
     claims: CmpHistoryClaims
@@ -423,6 +427,22 @@ class Resolution:
         if resolved is None:
             raise _Unresolved("criteria")
         return resolved
+
+    def wrapped_year(self, source_id: Any) -> int:
+        resolved = self.wrapped.get(source_id)
+        if resolved is None:
+            raise _Unresolved("wrapped")
+        return resolved
+
+    def enrollment_if_known(self, source_id: Any) -> int | None:
+        """The enrollment for a source id, or ``None`` -- for the one place a
+        missing one is a link this page will not render rather than a row this
+        import will not write."""
+
+        try:
+            return self.enrollment(source_id)
+        except _Unresolved:
+            return None
 
     def _claimed(self, table: str, source_id: Any, bucket: str) -> int:
         resolved = None if source_id is None else self.claims.table(table).get(int(source_id))
@@ -584,6 +604,29 @@ def _criteria_map(connection: sqlite3.Connection, cohorts: Mapping[int, int]) ->
     return resolved
 
 
+def _wrapped_map(connection: sqlite3.Connection) -> dict[int, int]:
+    """Source Wrapped id -> target pk, by year.
+
+    ``courses_wrappedstatistics`` is not one of the tables this migration
+    imports -- the runbook leaves its fate to an owner decision, and it is a
+    derived platform-wide aggregate that ``courses.wrapped_statistics`` can
+    recalculate.  So the parent is resolved against whatever the target database
+    already holds for that year, and per-user rows for a year with no parent are
+    reported under ``wrapped`` rather than given an invented one.
+    """
+
+    local = dict(WrappedStatistics.objects.values_list("year", "pk"))
+    resolved = {}
+    rows = _rows(
+        connection, "courses_wrappedstatistics", "select id, year from courses_wrappedstatistics"
+    )
+    for row in rows:
+        target = local.get(row["year"])
+        if target is not None:
+            resolved[int(row["id"])] = target
+    return resolved
+
+
 def _build_resolution(
     connection: sqlite3.Connection, *, users: Mapping[int, int], claims: CmpHistoryClaims
 ) -> Resolution:
@@ -597,6 +640,7 @@ def _build_resolution(
         questions=_question_map(connection, homework),
         projects=_project_map(connection, cohorts),
         criteria=_criteria_map(connection, cohorts),
+        wrapped=_wrapped_map(connection),
         claims=claims,
     )
 
@@ -811,6 +855,51 @@ def _project_evaluation_score_key(instance: ProjectEvaluationScore) -> dict[str,
     }
 
 
+def _user_wrapped_statistics(row: Any, resolution: Resolution) -> UserWrappedStatistics:
+    """One learner's Wrapped page, with its per-course rows re-pointed.
+
+    Each entry in ``courses`` carries the enrollment id its leaderboard link is
+    built from, and those ids are CMP's.  Left alone they would address whatever
+    enrollment happens to hold that number here -- a link from one learner's
+    Wrapped page to a stranger's score breakdown.  An entry whose enrollment did
+    not import loses the id instead, and ``wrapped_context`` then renders the
+    course without a breakdown link.
+    """
+
+    courses = _json_list(row["courses"]) or []
+    repointed = []
+    for entry in courses:
+        if not isinstance(entry, dict) or "enrollment_id" not in entry:
+            repointed.append(entry)
+            continue
+        enrollment_id = resolution.enrollment_if_known(entry["enrollment_id"])
+        moved = {name: value for name, value in entry.items() if name != "enrollment_id"}
+        if enrollment_id is not None:
+            moved["enrollment_id"] = enrollment_id
+        repointed.append(moved)
+
+    return UserWrappedStatistics(
+        wrapped_id=resolution.wrapped_year(row["wrapped_id"]),
+        user_id=resolution.user(row["user_id"]),
+        total_points=int(row["total_points"] or 0),
+        total_hours=float(row["total_hours"] or 0),
+        homework_count=int(row["homework_count"] or 0),
+        project_count=int(row["project_count"] or 0),
+        peer_reviews_given=int(row["peer_reviews_given"] or 0),
+        learning_in_public_count=int(row["learning_in_public_count"] or 0),
+        faq_contributions_count=int(row["faq_contributions_count"] or 0),
+        certificates_earned=int(row["certificates_earned"] or 0),
+        courses=repointed,
+        rank=row["rank"],
+        display_name=_text(row["display_name"]),
+        calculated_at=_moment(row["calculated_at"]),
+    )
+
+
+def _user_wrapped_statistics_key(instance: UserWrappedStatistics) -> dict[str, Any]:
+    return {"user_id": instance.user_id, "wrapped_id": instance.wrapped_id}
+
+
 @dataclass(frozen=True, slots=True)
 class TablePlan:
     """How one source table becomes target rows.
@@ -892,6 +981,13 @@ TABLE_PLANS: tuple[TablePlan, ...] = (
         model=ProjectEvaluationScore,
         build=_project_evaluation_score,
         natural_key=_project_evaluation_score_key,
+    ),
+    TablePlan(
+        table="courses_userwrappedstatistics",
+        model=UserWrappedStatistics,
+        build=_user_wrapped_statistics,
+        natural_key=_user_wrapped_statistics_key,
+        stamps=("calculated_at",),
     ),
 )
 
