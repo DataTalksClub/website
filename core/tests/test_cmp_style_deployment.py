@@ -85,6 +85,7 @@ class TaskDefinitionImageUpdateTests(TestCase):
                 "sha256:" + "b" * 64,
                 "development",
                 "website.settings.development",
+                "dev.datatalks.club",
                 str(output_path),
             )
             updated = json.loads(output_path.read_text(encoding="utf-8"))
@@ -97,6 +98,7 @@ class TaskDefinitionImageUpdateTests(TestCase):
         self.assertEqual(environment["IMAGE_DIGEST"], "sha256:" + "b" * 64)
         self.assertEqual(environment["DTC_ENVIRONMENT"], "development")
         self.assertEqual(environment["DJANGO_SETTINGS_MODULE"], "website.settings.development")
+        self.assertEqual(environment["DTC_DEVELOPMENT_HOSTNAME"], "dev.datatalks.club")
         self.assertEqual(environment["CANONICAL_ORIGIN"], "https://dev.datatalks.club")
         self.assertNotIn("revision", updated)
         self.assertNotIn("taskDefinitionArn", updated)

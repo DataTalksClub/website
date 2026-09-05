@@ -37,6 +37,7 @@ IDENTITY_NAMES = frozenset(
         "SOURCE_SHA",
         "IMAGE_DIGEST",
         "DTC_ENVIRONMENT",
+        "DTC_DEVELOPMENT_HOSTNAME",
         "DJANGO_SETTINGS_MODULE",
     }
 )
@@ -50,6 +51,7 @@ def update_task_definition(
     image_digest: str,
     runtime_environment: str,
     settings_module: str,
+    development_hostname: str,
     output_file: str,
 ) -> None:
     with open(input_file, encoding="utf-8") as handle:
@@ -71,6 +73,8 @@ def update_task_definition(
                 {"name": "DJANGO_SETTINGS_MODULE", "value": settings_module},
             ]
         )
+        if development_hostname:
+            environment.append({"name": "DTC_DEVELOPMENT_HOSTNAME", "value": development_hostname})
         container["environment"] = sorted(environment, key=lambda entry: entry["name"])
 
     for field in REGISTER_TASK_DEFINITION_EXCLUDED_FIELDS:
@@ -81,11 +85,12 @@ def update_task_definition(
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 9:
+    if len(sys.argv) != 10:
         print(
             "Usage: python update_task_definition_image.py "
             "<input_file> <image_ref> <version> <source_sha> "
-            "<image_digest> <runtime_environment> <settings_module> <output_file>",
+            "<image_digest> <runtime_environment> <settings_module> "
+            "<development_hostname> <output_file>",
             file=sys.stderr,
         )
         raise SystemExit(1)
@@ -98,4 +103,5 @@ if __name__ == "__main__":
         sys.argv[6],
         sys.argv[7],
         sys.argv[8],
+        sys.argv[9],
     )

@@ -38,6 +38,7 @@ case "$TARGET" in
     NAMESPACE="website-dev"
     RUNTIME_ENVIRONMENT="development"
     SETTINGS_MODULE="website.settings.development"
+    DEVELOPMENT_HOSTNAME="dev.datatalks.club"
     ENVIRONMENT_TAG="dev"
     PROJECT_TAG="dtc-website"
     BASE_URL="https://dev.datatalks.club"
@@ -48,6 +49,7 @@ case "$TARGET" in
     NAMESPACE="website-production"
     RUNTIME_ENVIRONMENT="production"
     SETTINGS_MODULE="website.settings.production"
+    DEVELOPMENT_HOSTNAME=""
     ENVIRONMENT_TAG="production"
     PROJECT_TAG="website"
     BASE_URL="https://prod.datatalks.club"
@@ -81,7 +83,7 @@ register_family() {
     --task-definition "$family" > "$current"
   python3 "$(dirname "$0")/update_task_definition_image.py" \
     "$current" "$IMAGE" "$VERSION" "$SOURCE_SHA" "$IMAGE_DIGEST" \
-    "$RUNTIME_ENVIRONMENT" "$SETTINGS_MODULE" "$updated"
+    "$RUNTIME_ENVIRONMENT" "$SETTINGS_MODULE" "$DEVELOPMENT_HOSTNAME" "$updated"
 
   echo "Registering ${family} for ${VERSION}" >&2
   aws ecs register-task-definition --region "$AWS_REGION" \
