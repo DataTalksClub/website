@@ -77,7 +77,8 @@ deliberately do nothing", it says so.
 | 12 | CMP export — learner data (510,519 rows) | one-time | **to build**, §11 A3 | 4 |
 | 13 | `zoomcamp-scoring` — pre-2024 history | one-time | `scripts/prod/import_legacy_zoomcamp.py` | 1 |
 | 14 | Event identity manifest (421 / 1,684) | one-time | `scripts/prod/import_events.py` — **no longer a migration** | 5 |
-| 15 | Event description bridge | one-time | committed capture; `scripts/build_event_description_bridge.py` | 6 |
+| 14a | Event content (421 records, 159 described) | one-time | `scripts/prod/import_events.py` → `events/content_import.py`, straight after 14 | 5 |
+| 15 | Event description bridge | one-time | committed capture, applied into the 14a staging records; `scripts/build_event_description_bridge.py` | 6 |
 | 16 | Luma aggregates | one-time | `scripts/prod/import_events.py` → `events/importers.py` | 5 |
 | 17 | Eventbrite aggregates | one-time | as above | 5 |
 | 18 | Public media objects (1,253 → 997, measured) | already CDN-resident; verify, flatten, delete | **owner ruling: to the CDN and out of git**, renamed on ingest, cards and covers deleted — §11 B11, B14, B15 | **7** |
@@ -2345,7 +2346,7 @@ thing to a rehearsal that exists. Where it differs from this plan, **the plan is
 the decision and the difference is a work item.**
 
 What it actually does, in order: `migrate` → event identity import (`import_events.py`'s
-`import_identities()`) → `seed_local_courses` → course-repository source registration
+`import_identities()`) → event content import (its `import_content()`) → `seed_local_courses` → course-repository source registration
 (`scripts/prod/sync_course_repository_sources.py`) → course-repository pull
 (`scripts/prod/sync_course_repositories.py`) → CMP content import → derive/stage/activate
 registration aggregates.

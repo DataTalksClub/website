@@ -62,7 +62,7 @@ Confusing them is the main way this goes wrong.
 | 5 | `DataTalksClub/docs` | Pinned build (no builder) | JSON projection | Undecided |
 | 6 | `DataTalksClub/course-management-platform` (specs) | Pinned build | Unused | Undecided |
 | 7 | Legacy site — people | Pinned build | JSON projection | **Push-synced** |
-| 8 | Legacy site — events | Pinned build | JSON projection | **One-off export** |
+| 8 | Legacy site — events | Pinned build | Database | **One-off export** (done) |
 | 9 | Legacy site — author images | Pinned build | Object store | **One-off export** → CDN |
 | 10 | Legacy site — article FAQ | Pinned build | JSON projection | **One-off export** (done) |
 | 11 | CMP export — course content | One-time | Database | One-off export |
@@ -219,9 +219,10 @@ editorial dependency on the legacy repository. Fate: **push-synced** — `_peopl
 moves to `DataTalksClub/content`. It has not moved yet.
 
 **8 — legacy `_data/events.yaml`** → `events.json` (421), with description, speakers
-and links. Read **unconditionally in both modes** at
-`scripts/build_public_projection.py:1799`. Fate: **one-off export** — this is
-historical event content that nobody edits any more.
+and links, built at `scripts/build_public_projection.py:1799`. Fate: **one-off
+export, and it is done** — `scripts/prod/import_events.py`'s `import_content()`
+writes those records into `EventContent` and the event pages read the database
+(§14.2). The built file is ingest input now; nothing serves it.
 
 **9 — legacy `images/authors/`** → 438 of the 1,253 `media.json` records, copied by
 `_copy_people_media()` (`scripts/build_public_projection.py:2837-2846`). Fate:
@@ -355,7 +356,7 @@ hard-verified at `:2941`.
 | `_podcast` | 209 | 206 | Episode Markdown | `podcasts.json` (203) — **fallback only** | Push-synced | **Already in `content`** |
 | `_books` | 100 | 99 | Book Markdown | `books.json` (98) — **fallback only** | Push-synced | **Already in `content`** as `books/*.yaml` |
 | `_people` | 443 | **439** | Author/speaker profiles | `people.json` (438) — **read in BOTH modes** | **Push-synced** | **No destination. This is the work.** |
-| `_data/events.yaml` | 429 rows | **421 rows** | Events + descriptions | `events.json` (421) — **read in BOTH modes** | **One-off export** | Database |
+| `_data/events.yaml` | 429 rows | **421 rows** | Events + descriptions | `events.json` (421) — **ingest input** | **One-off export — done** | Database |
 | `_data/faqs/` | 10 | 10 | Blog article FAQ pairs | `article_faq.json` | One-off export — **done** | Already captured |
 | `_data/sponsors.yaml` | 1 | 1 | Sponsor list | **Nothing reads it** | Undecided — §12.7 | — |
 | `_data/*` (rest) | 3 | 3 | `header`, `navigation`, `events_extra` | Nothing | Stays behind | — |
@@ -668,7 +669,36 @@ directly, nothing called the command anymore.
 This assigns the stable public event IDs. **Everything about events depends on it** —
 run it before any event registration import.
 
-### 14.1 — New-event identity discovery
+### 14.2 — Event content
+
+`temporary/content/public_projection/events.json` — 421 records, 159 of them
+carrying a description. Imported by `scripts/prod/import_events.py`'s
+`import_content()`, which runs immediately after `import_identities()` in the
+same `run()`, into `EventContent` with its `EventSpeaker` and `EventLink` rows.
+The public event pages read those rows through `events/queries.py`; nothing on a
+request path opens the file.
+
+That file is a **staging layer**, not a projection anybody serves. It was built
+offline from the legacy `_data/events.yaml` (§8) and then reviewed and
+rewritten: the event description bridge (§15) matched 159 events to their Luma
+descriptions, removed the "about the speaker" biography and the platform
+boilerplate from each one, and bound every surviving link to a reviewed
+destination. Rebuilding it needs a Luma exporter checkout an authorized operator
+holds locally, so the reviewed form exists nowhere else — which is why it is
+checked in and why it is the source.
+
+`events/content_import.py` validates the whole candidate before writing a row
+and resolves each record against the identity by its exact legacy tuple, title
+and slug, refusing everything on any mismatch. It **reconciles only**: a record
+naming an identity the database does not hold is a refusal, never a new event.
+Run §14 first — this writes nothing without it. A description arriving without
+the bridge's provenance behind it is also refused.
+
+Replaying is safe. Speakers and links are an ordered set the record owns
+outright, so a re-run replaces them wholesale; an unchanged record is reported
+under `unchanged` and writes nothing.
+
+### 14.3 — New-event identity discovery
 
 Until now, the manifest above (§14) was the **only** way an `Event` row could exist.
 `events.identity.create_event_identity()` — the atomic, allocator-safe function that
@@ -771,17 +801,17 @@ them) rather than a second, permanently-duplicate identity.
 
 ### 15 — Event description bridge
 
-`content/event_description_bridge.json`, built by `scripts/build_event_description_bridge.py`.
-159 described events matched, 262 undescribed, 9 gaps, from 168 source pairs.
+`temporary/content/event_description_bridge.json`, built by
+`scripts/build_event_description_bridge.py`. 159 described events matched, 262
+undescribed, 9 gaps, from 168 source pairs.
 
 Its inputs are `--exporter-root` (a Luma exporter checkout) and
 `temporary/content/public_projection/events.json` — **it does not read the legacy repository**,
 despite naming it in `LEGACY_REPOSITORY`. That constant is provenance stamping only
 (§5.2 a9).
 
-Descriptions are injected into event records at projection-load time in
-`content/public_data.py`; the runtime contract is literally
-`event_description_source: "committed_safe_bridge_only"`.
+The bridge is applied into the event records at projection-build time, and those
+records are what §14.2 imports. No runtime code reads the bridge.
 
 ### 16 / 17 — Luma and Eventbrite registration aggregates
 
@@ -821,14 +851,13 @@ starting position.
 | Article FAQ accordions | **JSON** | `content/article_faq.json` |
 | People / authors | **JSON** | `public_projection/people.json` |
 | Books | **JSON** | `public_projection/books.json` |
-| Event listing | **JSON** | `public_projection/events.json` |
-| Event descriptions | **JSON** | `content/event_description_bridge.json` |
-| Event speakers + bios | **JSON** | `events.json` ⋈ `people.json`, joined in memory |
+| Event listing, descriptions and links | **Database** | `events.EventContent` / `EventLink` |
+| Event speakers | **Database** ⋈ JSON | `events.EventSpeaker`, bio joined from `people.json` at request time |
 | FAQ (`/faq/`) | **JSON** | `content/faq_projection.json` |
 | Docs (`/docs/`) | **JSON** | `content/docs_projection.json` |
 | Media (`/images/…`) | **JSON index + object store** | `media.json` + store |
 | Editorial redirects | **JSON** | `editorial_route_migration.json` |
-| **Event detail** | **Hybrid** | body from `events.json`; **DB** for `Event` identity, `EventQnaSession`, registration totals |
+| **Event detail** | **Database** | `Event` identity, `EventContent`, `EventQnaSession`, registration totals |
 | **Sitemaps** | **Hybrid** | JSON per section; **DB** `Cohort` for courses |
 | **Courses / curriculum** | **Database** | `courses` models |
 | **Sponsors** | **Database** | `core.models.Sponsor` |
@@ -1004,7 +1033,9 @@ What genuinely differs, and needs care rather than a separate pipeline:
 6. Course catalogue seed, then `scripts/prod/import_cmp_content.py` (it needs the
    placeholder rows to reconcile against).
 7. `scripts/prod/import_events.py`'s identity import — before anything else event-related.
-8. Event registration aggregates (currently `mapping_review_required`).
+8. `scripts/prod/import_events.py`'s content import — reconciles against stage 7, so it
+   writes nothing before it. Both run in the script's own `run()`, in that order.
+9. Event registration aggregates (currently `mapping_review_required`).
 
 `make production-prep-dataset` runs stages 1–5 plus `scripts/prepare_local_data.py`
 and `scripts/verify_local_dataset.py`. Read
@@ -1019,8 +1050,9 @@ As of 2026-09-03 on this branch:
   `scripts/prod/legacy_zoomcamp/` (untracked, not yet committed).
 - `scripts/build_legacy_manifest.py` and `scripts/build_pinned_legacy_sources.py` are
   **deleted**.
-- **`make import-events` calls `scripts/prod/import_events.py`, which does not exist
-  yet.** That target will fail.
+- **`make import-events` calls `scripts/prod/import_events.py`.** That script exists
+  now and imports event identity and content; this bullet recorded the window when
+  the target pointed at nothing.
 - `_docs/design/specs/script-inventory.md` still documents all four old paths and is
   **stale**. Any survey based on it will be wrong.
 
@@ -1104,8 +1136,8 @@ Ordered by how much they will hurt.
 | Import pre-2024 Zoomcamp history | `make import-legacy-zoomcamp` |
 | Import events | `make import-events` — **broken, script missing** |
 | Import CMP course content | `uv run --frozen python scripts/prod/import_cmp_content.py --database … --source …` |
-| Import event identities | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --eventbrite-source …` (identity import is always the first step) |
-| Create identities for new events in a fresh Luma export (§14.1) | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --discover-new-events-only` |
+| Import event identities and content | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --eventbrite-source …` (identity import is always the first step; content follows it in the same run) |
+| Create identities for new events in a fresh Luma export (§14.3) | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --discover-new-events-only` |
 | Materialise media | `uv run --frozen python scripts/prod/sync_public_media_hydrate.py` |
 | Publish media to the store | `uv run --frozen python scripts/prod/sync_public_media_publish.py` |
 | Verify media against `media.json` | `uv run --frozen python scripts/prod/sync_public_media_verify.py` |

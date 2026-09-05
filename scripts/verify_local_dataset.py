@@ -161,7 +161,7 @@ def _event_report() -> dict[str, Any]:
     from django.utils import timezone
 
     from content.public_data import event_groups
-    from events.models import Event
+    from events.models import Event, EventContent
 
     groups = event_groups()
     return {
@@ -170,6 +170,10 @@ def _event_report() -> dict[str, Any]:
         "future_dated_events": len(groups.upcoming),
         "next_event_starts_at": groups.upcoming[0]["starts_at"] if groups.upcoming else None,
         "database_event_identities": Event.objects.count(),
+        # Identity alone publishes no page, so the two counts are reported
+        # separately: identities with no content behind them is the shape the
+        # dataset had while event content still lacked an importer.
+        "database_event_content": EventContent.objects.count(),
     }
 
 

@@ -429,9 +429,9 @@ the code.
 
 ---
 
-# 5. Event identity manifest
+# 5. Event identity and content
 
-## 5.1 Import
+## 5.1 Identity import
 
 [`scripts/prod/import_events.py`](../../scripts/prod/import_events.py) —
 `import_identities()`. The former standalone `manage.py import_event_identities`
@@ -446,7 +446,33 @@ Transform: allocates `public_id` via `EventPublicIdSequence`; writes aliases.
 Destination: [`events/models.py`](../../events/models.py) (`Event`,
 `EventAlias`).
 
-## 5.2 New-event identity creation
+## 5.2 Content import
+
+[`scripts/prod/import_events.py`](../../scripts/prod/import_events.py) —
+`import_content()`, run straight after `import_identities()` in the same
+`run()`.
+
+Source: the checked-in, reviewed
+[`temporary/content/public_projection/events.json`](../../temporary/content/public_projection/events.json)
+(421 records, 159 of them carrying a description). A staging artifact, not a
+serving path: built offline from the legacy `_data/events.yaml` and then
+rewritten by the description bridge, which stripped the "about the speaker"
+biography and the platform boilerplate and bound every surviving link to a
+reviewed destination (`_docs/event-description-bridge.md`).
+Transform: [`events/content_import.py`](../../events/content_import.py)
+validates the complete candidate, then resolves each record against the
+identity row by its exact legacy tuple, title and slug. It reconciles only —
+a record naming an identity the database does not hold is a refusal, never a
+new event — and refuses a description carrying no bridge provenance.
+Destination: [`events/models.py`](../../events/models.py) (`EventContent`,
+`EventSpeaker`, `EventLink`), read by
+[`events/queries.py`](../../events/queries.py).
+
+Speakers and links are an ordered set the record owns outright, so a re-run
+replaces them wholesale rather than merging; an unchanged record reports
+`unchanged` and writes nothing.
+
+## 5.3 New-event identity creation
 
 `discover_new_luma_event_identities()` in
 [`scripts/prod/import_events.py`](../../scripts/prod/import_events.py), called
@@ -648,7 +674,7 @@ own adapters (`derive_luma`, `derive_eventbrite`, used by 6.2) have a hard
 must not violate; `events/registrant_import.py` is the one module that does
 cross it, deliberately kept separate.
 
-Transform: per event, once 5.2 has ensured that event has an identity
+Transform: per event, once 5.3 has ensured that event has an identity
 (`events.identity.resolve_source_identity`), parse its registrant rows —
 an event with no identity yet is reported under `awaiting_identity_events`
 and skipped, never created here. Each row is consolidated against
@@ -689,7 +715,7 @@ is no verified real schema to build or test an Eventbrite reader against yet.
 `EventRegistration.Provider` and the matching logic are already
 provider-generic; adding Eventbrite is a second `discover_*`/`read_*` pair,
 not a model or matching-logic change. Backfill scope is every event from the
-first one onward, not just new events going forward. Sequenced behind 5.2,
+first one onward, not just new events going forward. Sequenced behind 5.3,
 which has landed.
 
 ---

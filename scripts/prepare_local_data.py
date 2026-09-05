@@ -38,6 +38,7 @@ from scripts.prod.import_events import (  # noqa: E402
     EventImportError,
     activation_coverage,
     derive_registration_sources,
+    import_content,
     import_identities,
     load_current_registration_input,
     stage_registration_aggregates,
@@ -213,6 +214,9 @@ def run(
     # implementation, not a management command wrapping a second copy of it.
     with _event_import_refusals():
         identities = import_identities(manifest=identity_manifest, apply=True)
+        # Content reconciles against the identities just written, so it follows
+        # them here for the same reason it follows them in production.
+        event_content = import_content(apply=True)
     catalog = _json_management_command("seed_local_courses")
     # Real reviewed content, so it comes from the production importer rather than a
     # seeder: the same six rows a production database gets.
@@ -282,6 +286,7 @@ def run(
         "steps": {
             "migrations": {"completed": True, "report": migrations},
             "event_identities": identities,
+            "event_content": event_content,
             "course_catalog": catalog,
             "homepage_testimonials": testimonials,
             "course_repository_sources": course_sources,
