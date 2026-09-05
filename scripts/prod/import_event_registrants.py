@@ -103,23 +103,26 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     _configure(args.database.resolve())
 
-    from events.registrant_import import (
-        RegistrantImportError,
-        discover_luma_registrant_files,
-        import_luma_registrants,
+    from events.registrant_import import RegistrantImportError, import_registrants
+
+    # The events app owns no provider file format, so the reader that knows what
+    # a Luma export looks like is supplied here, by the ingestion layer.
+    from scripts.prod.registration_sources.luma_registrants import (
+        PROVIDER,
+        luma_registrant_sources,
     )
 
     source = args.luma_source.resolve()
     try:
+        pending = luma_registrant_sources(source)
         if args.dry_run:
-            discovered = discover_luma_registrant_files(source)
             report: dict[str, object] = {
-                "provider": "luma",
-                "events_total": len(discovered),
+                "provider": PROVIDER,
+                "events_total": len(pending),
                 "applied": False,
             }
         else:
-            result = import_luma_registrants(source)
+            result = import_registrants(provider=PROVIDER, pending=pending)
             report = {**result.as_dict(), "applied": True}
     except RegistrantImportError as error:
         # The error carries a condition code, never a source value.

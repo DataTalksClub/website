@@ -715,17 +715,22 @@ checked into git, served directly by
 ## 9.1 Import
 
 [`scripts/prod/import_event_registrants.py`](../../scripts/prod/import_event_registrants.py),
-via [`events/registrant_import.py`](../../events/registrant_import.py).
+reading via
+[`scripts/prod/registration_sources/luma_registrants.py`](../../scripts/prod/registration_sources/luma_registrants.py)
+and writing via
+[`events/registrant_import.py`](../../events/registrant_import.py).
 
 Source: the same prepared Luma export directory as 6.1/6.2 (attendee-level
 rows already present there, discarded by 6.2's aggregate-only adapters). The
-durable copy is `/data/tmp/luma-eventbrite-export/luma-aggregate-v1/`. Reads
-it independently of
+durable copy is `/data/tmp/luma-eventbrite-export/luma-aggregate-v1/`. Read by
+its own reader in
 [`scripts/prod/registration_sources/`](../../scripts/prod/registration_sources/),
-whose own adapters (`derive_luma`, `derive_eventbrite`, used by 6.2) have a hard
-"no attendee value crosses this module boundary" contract that this journey
-must not violate; `events/registrant_import.py` is the one module that does
-cross it, deliberately kept separate.
+separate from the aggregate-only adapters beside it (`derive_luma`,
+`derive_eventbrite`, used by 6.2), whose hard "no attendee value crosses this
+module boundary" contract this journey must not violate;
+`luma_registrants.py` is the one reader that does cross it, deliberately kept
+in its own module. The `events` app owns no provider file format at all: the
+reader hands it already-parsed, provider-neutral rows.
 
 Transform: per event, once 5.3 has ensured that event has an identity
 (`events.identity.resolve_source_identity`), parse its registrant rows —
