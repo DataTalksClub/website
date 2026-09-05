@@ -26,9 +26,6 @@ REPOSITORY_ROOT = PROJECTION_ROOT.parents[1]
 # Explicit prod-ingest helper location. Default runtime never reads here unless
 # PUBLIC_PROJECTION_ROOT names it explicitly. See temporary/content/README.md.
 MIGRATION_PROJECTION_ROOT = REPOSITORY_ROOT / "temporary" / "content" / "public_projection"
-MIGRATION_IDENTITY_MANIFEST = (
-    REPOSITORY_ROOT / "temporary" / "content" / "event_identity_manifest.json"
-)
 
 
 def _resolve_projection_root() -> Path:
@@ -45,24 +42,6 @@ def _resolve_projection_root() -> Path:
     return Path(override) if override else PROJECTION_ROOT
 
 
-def _resolve_identity_manifest_path() -> Path:
-    """Return the identity manifest the default runtime binds to.
-
-    Absent by default (empty event catalogue): the helper at
-    `temporary/content/event_identity_manifest.json` is used only when
-    explicitly configured via `EVENT_IDENTITY_MANIFEST_PATH` (or when
-    `PUBLIC_PROJECTION_ROOT` names the helper projection outright), or passed
-    as `--identity-manifest` to `scripts/prod/import_events.py`.
-    """
-
-    override = os.getenv("EVENT_IDENTITY_MANIFEST_PATH", "").strip()
-    if override:
-        return Path(override)
-    if os.getenv("PUBLIC_PROJECTION_ROOT", "").strip() == str(MIGRATION_PROJECTION_ROOT):
-        return MIGRATION_IDENTITY_MANIFEST
-    return PROJECTION_ROOT.parents[1] / "events" / "event_identity_manifest.json"
-
-
 def is_projection_present(root: Path | None = None) -> bool:
     """Return True when a projection manifest exists at the resolved root."""
 
@@ -77,13 +56,6 @@ EXPECTED_PODCAST_PLATFORM_PROVIDERS = (
     "youtube",
     "spotify_for_creators",
 )
-EVENT_IDENTITY_MANIFEST = PROJECTION_ROOT.parents[1] / "events" / "event_identity_manifest.json"
-ACCEPTED_UUID_IDENTITY_BINDING = {
-    "path": "events/event_identity_manifest.json",
-    "sha256": "26c2fd6589ff8acd132ebef0b31d15a81dc43901e1ba0b2e4437e72aeab5d91e",
-    "schema_version": 1,
-    "counts": {"events": 421, "aliases": 421},
-}
 EDITORIAL_ROUTE_MIGRATION_FILENAME = "editorial_route_migration.json"
 EDITORIAL_ROUTE_MIGRATION_SCHEMA = (
     PROJECTION_ROOT.parents[1] / "_docs" / "compatibility" / "editorial-route-migration.schema.json"
@@ -100,7 +72,6 @@ REQUIRED_COUNT_KEYS = frozenset(
         "transcripts",
         "books",
         "people",
-        "events",
         "wiki",
         "courses",
         "media",
