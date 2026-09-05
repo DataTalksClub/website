@@ -43,6 +43,16 @@ def _record(content: EventContent) -> dict[str, Any]:
             for speaker in content.speakers.all()
         ],
         "links": [{"label": link.label, "url": link.url} for link in content.links.all()],
+        # Where this event came from, carried from the identity row rather than
+        # from the content row: provenance belongs to the identity, which is
+        # frozen at import, and consumers match on it exactly.
+        "provenance": {
+            "repository": event.source_repository,
+            "revision": event.source_revision,
+            "source_key": event.source_key,
+            "source_path": event.source_path,
+            "checksum": event.source_checksum,
+        },
     }
 
 

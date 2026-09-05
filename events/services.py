@@ -23,7 +23,7 @@ from .identity import (
     EventIdentityError,
     EventIdentityNotFound,
     canonical_detail_path,
-    event_projection_record,
+    event_public_record,
     resolve_source_identity,
     resolve_uuid,
 )
@@ -99,7 +99,7 @@ def _canonical_event(event_id: uuid.UUID | str) -> dict[str, Any]:
 
     try:
         resolved = resolve_uuid(event_id)
-        record = event_projection_record(resolved)
+        record = event_public_record(resolved)
         if record.get("identity_id") != str(resolved.id):
             raise EventIdentityError("event_projection_identity_mismatch")
         return record

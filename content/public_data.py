@@ -18,6 +18,7 @@ from django.db import DatabaseError
 from django.utils import timezone
 
 from events.identity import EventIdentityError, load_identity_manifest
+from events.queries import published_event_records
 from events.slugs import event_title_slug
 
 from .event_description_bridge import (
@@ -1185,7 +1186,7 @@ def event_groups(now: datetime | None = None) -> EventGroups:
         current = timezone.make_aware(current)
     upcoming: list[dict[str, Any]] = []
     recent: list[dict[str, Any]] = []
-    for raw in public_projection()["events"]:
+    for raw in published_event_records():
         event = {**raw, "starts_at_value": datetime.fromisoformat(raw["starts_at"])}
         local_start = event["starts_at_value"].astimezone(ZoneInfo("Europe/Berlin"))
         event["display_time"] = f"{local_start:%b} {local_start.day}, {local_start:%Y, %H:%M %Z}"

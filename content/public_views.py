@@ -33,13 +33,14 @@ from courses.models import Cohort
 from events.identity import (
     EventIdentityNotFound,
     canonical_detail_path,
-    event_projection_record,
+    event_public_record,
     redirect_for_supplied_slug,
     resolve_legacy_path,
     resolve_public_id,
     resolve_uuid,
 )
 from events.models import EventQnaSession
+from events.queries import published_event_records
 from events.services import public_registration_total
 
 from . import wiki_content
@@ -388,7 +389,7 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
     if redirect_path is not None:
         return permanent_public_redirect(request, target=redirect_path)
     try:
-        projected = event_projection_record(identity)
+        projected = event_public_record(identity)
     except EventIdentityNotFound as exc:
         raise Http404 from exc
     grouped = event_groups()
@@ -1283,7 +1284,8 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
         return tuple((record["public_path"], "") for record in projection["people"])
     if section == "events":
         return (("/events", ""), ("/events/past", "")) + tuple(
-            (record["public_path"], record["starts_at"][:10]) for record in projection["events"]
+            (record["public_path"], record["starts_at"][:10])
+            for record in published_event_records()
         )
     if section == "courses":
         return (

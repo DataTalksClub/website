@@ -588,17 +588,18 @@ def resolve_source_identity(*, repository: str, revision: str, source_key: str) 
         raise EventIdentityError("source_identity_ambiguous") from exc
 
 
-def event_projection_record(event: Event) -> dict[str, Any]:
-    """Return the checked public record for an Event using exact provenance only."""
+def event_public_record(event: Event) -> dict[str, Any]:
+    """Return the public record for an Event, read from its own content rows.
 
-    from content.public_data import public_projection
+    An identity whose content has not been ingested yet publishes nothing, so
+    this raises rather than returning a record with an invented schedule.
+    """
 
-    projection = public_projection()
-    record = projection.get("events_by_source_identity", {}).get(
-        (event.source_repository, event.source_revision, event.source_key)
-    )
+    from .queries import published_event_record
+
+    record = published_event_record(event.id)
     if record is None:
-        raise EventIdentityNotFound("event_projection_unavailable")
+        raise EventIdentityNotFound("event_content_unavailable")
     return record
 
 

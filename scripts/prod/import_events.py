@@ -482,7 +482,7 @@ def stage_registration_aggregates(
     """Stage each derived source and activate only the explicitly mapped events."""
 
     from core.services import ServiceContext
-    from events.identity import event_projection_record
+    from events.identity import event_public_record
     from events.importers import source_reference_digest
     from events.services import (
         activate_explicit_current_source,
@@ -539,7 +539,7 @@ def stage_registration_aggregates(
         }
     public_counts: list[int] = []
     for event in target_events.values():
-        total = public_registration_total(event_projection_record(event))
+        total = public_registration_total(event_public_record(event))
         if total is None:
             raise EventImportError("current_registration_total_unavailable")
         public_counts.append(total.count)

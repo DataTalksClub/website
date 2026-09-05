@@ -944,7 +944,7 @@ def _events(context: FactoryContext, state: str) -> dict[str, object]:
 
     with (
         patch(
-            "events.services.event_projection_record",
+            "events.services.event_public_record",
             return_value={
                 "identity_id": str(canonical_event.id),
                 "slug": canonical_event.slug,
