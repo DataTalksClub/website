@@ -1141,47 +1141,69 @@ What genuinely differs, and needs care rather than a separate pipeline:
 
 ### Bootstrap order
 
-1. `manage.py migrate` — **required first.** Data-bearing migrations already seed
-   the event identity manifest (`events/0005`), homepage testimonials
-   (`courses/0056`), the sponsor directory schema (`core/0005`), and certificate-name
-   backfills (`accounts/0005`, `0012`).
-2. `scripts/prod/import_legacy_zoomcamp.py` — **the only importer that populates an
-   empty database.** Everything else reconciles against rows that already exist, and
-   against an empty database is a silent no-op rather than an error. This ordering
-   constraint is declared as `BOOTSTRAP_FIRST` in `scripts/prod/__init__.py` and
-   checked by `scripts/tests/test_prod_conventions.py`.
-3. `make content-sources` — register `ContentSource` rows.
-4. `make content-checkouts` — **the only networked step.**
-5. `make content-pull` — offline curriculum ingest.
-6. Course catalogue seed, then `scripts/prod/import_cmp_content.py` (it needs the
-   placeholder rows to reconcile against).
-7. `scripts/prod/import_events.py`'s identity import — before anything else event-related.
-8. `scripts/prod/import_events.py`'s content import — reconciles against stage 7, so it
-   writes nothing before it. Both run in the script's own `run()`, in that order.
-9. `scripts/prod/import_events.py`'s new-event identity discovery (§14.3), then its
-   staged-content leg (§14.4) — the second reconciles against the identities the
-   first mints, so it writes nothing before it. Both run in the script's own `run()`,
-   in that order.
-10. Event registration aggregates (currently `mapping_review_required`).
+1. `manage.py migrate` — **required first, and it seeds no content.** Exactly one
+   data-bearing migration survives repo-wide (`courses/0002_simplify_registration_counts.py`)
+   and it publishes nothing. Event identities, homepage testimonials and the sponsor
+   directory used to arrive this way; they are explicit imports now.
+2. **A bootstrapping importer, in the order below.** An importer either *bootstraps* —
+   it can populate a database holding no prior rows of its own domain — or it
+   *reconciles*, matching upstream rows against rows already present and writing
+   nothing where it finds no match. Running a reconciler first is not an error, it is a
+   silent no-op, which is the trap. Every module declares `BOOTSTRAPS_EMPTY_DATABASE`,
+   `scripts/prod/__init__.py` lists the bootstrapping set in
+   `BOOTSTRAPPING_ENTRY_POINTS`, and `scripts/tests/test_prod_conventions.py` checks the
+   two agree. Eleven modules bootstrap today; the ones that reconcile are
+   `import_events`, `import_event_registrants`, `import_mailchimp_event_tags`,
+   `import_mailchimp_subscriptions` and the three media `sync_public_media_*` scripts.
+3. **Course catalogue, in the declared order** (`COURSE_CATALOGUE_ORDER`, same module):
+   `import_legacy_zoomcamp` (the frozen pre-2024 editions, which nothing else has), then
+   `make content-sources` / `make content-checkouts` / `make content-pull`
+   (`sync_course_repositories` — the git-synchronized upstream, which owns module and
+   unit curricula, and the only networked step), then
+   `scripts/prod/import_cmp_content.py`. **CMP runs last because it reconciles.** It no
+   longer needs a placeholder seeder to reconcile against — it mints its own cohort and
+   family from the reviewed catalogue — but the reverse order still refuses on a
+   homework slug collision the first time one cohort is described by both CMP and a
+   repository. `scripts/tests/test_prepare_local_data_order.py` holds the orchestrator
+   to it.
+4. `scripts/prod/import_public_content.py`, `import_faq.py`, `import_docs.py`,
+   `import_sponsors.py`, `import_testimonials.py` — the reviewed one-time inputs under
+   `temporary/content/`. All bootstrap; none depends on another.
+5. `scripts/prod/import_events.py`, whose own `run()` performs five legs in a fixed
+   order because each reconciles against the one before it: identity import (§14),
+   content import (§14.2), new-event identity discovery (§14.3), staged content for
+   those events (§14.4), then registration-aggregate derivation and staging (§16/17).
+   Run it before anything else event-related.
+6. `scripts/prod/import_event_registrants.py` and the Mailchimp importers, which
+   reconcile against the events step 5 wrote.
 
-`make production-prep-dataset` runs stages 1–5 plus `scripts/prepare_local_data.py`
-and `scripts/verify_local_dataset.py`. Read
+`make production-prep-dataset` runs stages 1–3 plus `scripts/prepare_local_data.py` and
+`scripts/verify_local_dataset.py`; that orchestrator also runs the event identity and
+content imports in production order, and `verify_local_dataset.py` reports
+`database_event_identities` and `database_event_content` separately, because an identity
+alone publishes no page. Read
 `_docs/runbooks/local-course-modules-preparation.md` for prerequisites.
 
-### The consolidation is mid-flight
+### Where the consolidation got to
 
-As of 2026-09-03 on this branch:
+As of 2026-09-05, `scripts/prod/` is the single set of production entry points and the
+Makefile targets resolve:
 
-- `scripts/import_historical_zoomcamp_data.py` and `scripts/historical_import/` have
-  been **renamed** to `scripts/prod/import_legacy_zoomcamp.py` and
-  `scripts/prod/legacy_zoomcamp/` (untracked, not yet committed).
-- `scripts/build_legacy_manifest.py` and `scripts/build_pinned_legacy_sources.py` are
-  **deleted**.
-- **`make import-events` calls `scripts/prod/import_events.py`.** That script exists
-  now and imports event identity and content; this bullet recorded the window when
-  the target pointed at nothing.
-- `_docs/design/specs/script-inventory.md` still documents all four old paths and is
-  **stale**. Any survey based on it will be wrong.
+- `make import-legacy-zoomcamp` and `make import-events` both run, against
+  `scripts/prod/import_legacy_zoomcamp.py` and `scripts/prod/import_events.py`. The
+  window in which `import-events` pointed at a script that did not exist is over.
+- The provider export readers have left the `events` domain.
+  `scripts/prod/registration_sources/` holds the Luma and Eventbrite parsers, the Luma
+  registrant CSV reader and `safe_source_facts`; `events/importers.py` is a port
+  (registry, result types, `SourceReader`) that the ingest entry point registers readers
+  into. The domain no longer hard-codes provider names, row counts or CSV header
+  digests.
+- The projection build helpers live in `scripts/projection_build/`, and the staging
+  files they produce live under `temporary/content/`.
+- `_docs/design/specs/script-inventory.md` is a point-in-time analysis pinned to an old
+  commit — it still describes `scripts/load_rds_export.py`, which is deleted. **Any
+  survey based on it will be wrong.** `_docs/runbooks/ingest-script-inventory.md` is the
+  maintained map.
 
 ---
 
