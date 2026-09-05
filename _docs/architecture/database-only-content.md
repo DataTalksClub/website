@@ -25,8 +25,9 @@ fallback.
 
 ### Main public projection
 
-The largest violation is `content/public_projection/`, loaded by
-`content/public_data.py`. It currently bundles articles, books, courses, events,
+The largest violation is the public projection (currently parked as a
+migration-only helper at `temporary/content/public_projection/`, loaded by
+`content/public_data.py`). It currently bundles articles, books, courses, events,
 media metadata, people, podcasts/transcripts, wiki pages, search data, graph data,
 editorial route aliases, podcast platform links, and a wiki image.
 
@@ -58,8 +59,8 @@ migrated into database models before their runtime readers are deleted:
 | Review/Slack pages | `content/review_projection.json` | `content/review_projection.py` |
 | Article FAQ | `content/article_faq.json` | `content/article_faq.py` |
 | Sponsor directory | `core/sponsor_directory.json` | `core/sponsors.py` |
-| Event descriptions | `content/event_description_bridge.json` | `content/event_description_bridge.py` |
-| Event identity seed | `events/event_identity_manifest.json` | `events/identity.py` |
+| Event descriptions | `temporary/content/event_description_bridge.json` (migration helper) | `content/event_description_bridge.py` |
+| Event identity seed | `temporary/content/event_identity_manifest.json` (migration helper) | `events/identity.py` |
 | Event normalization evidence used at runtime | `_docs/migrations/event-speaker-bio-normalization.json` | `content/event_speaker_bio_normalization.py` |
 
 Audit hardcoded public copy and inventories in `core/home_content.py`, navigation
