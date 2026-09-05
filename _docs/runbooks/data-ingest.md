@@ -8,7 +8,10 @@ the work this describes. `scripts/prod/` is where that consolidation is landing;
 it is **in flight while you read this**, so §11 records what exists today against
 what the Makefile already expects.
 
-Counts in this document were measured on `main` on 2026-09-03.
+Counts were measured on `main` on 2026-09-03 and re-checked on 2026-09-05. The
+2026-09-05 pass re-measured the CMP export, the `aisl` export, event identity,
+content and new-event discovery, and the registration aggregates; a figure it did
+not re-measure says so where it appears rather than implying a fresh count.
 Where a number is asserted by code, the assertion is cited so you can re-check it.
 
 ---
@@ -600,18 +603,18 @@ Things that will surprise you:
 
 | | |
 | --- | --- |
-| **Upstream** | A CMP production SQLite export, e.g. `/data/tmp/rds-export/rds-prod-20260902-012536.db` (235–246 MB) |
+| **Upstream** | A CMP production SQLite export, e.g. `/data/tmp/rds-export/cmp/rds-prod-20260905-182754.db` (235–250 MB). The exports are filed per product now: `cmp/` is ours, `aisl/` is not (§12 item 9) |
 | **Script** | `scripts/prod/import_cmp_content.py` → `courses/services/cmp_content_import.py` |
 | **Reads** | `courses_course`, `courses_homework`, `courses_question`, `courses_project`, `courses_reviewcriteria`, `courses_registrationcampaign` — enforced by `_assert_content_only()` at `cmp_content_import.py:312-340` |
 | **Refuses to read** | `courses_enrollment`, `courses_submission`, `courses_answer`, `courses_projectsubmission`, `courses_peerreview`, `courses_criteriaresponse`, `courses_courseregistration` |
-| **Writes** | ~991 rows: replaces seeded placeholder content on existing cohorts, plus registration campaign definitions |
+| **Writes** | ~991 rows: cohort content and registration campaign definitions |
 | **Idempotency** | Safe. Every write keyed on a natural key; prints a JSON summary |
-| **Bootstrap** | **No.** `BOOTSTRAPS_EMPTY_DATABASE = False`. It *reconciles* — against an empty database it is a silent no-op, not an error. A placeholder seeder must have run first |
+| **Bootstrap** | **Yes.** `BOOTSTRAPS_EMPTY_DATABASE = True` — it mints its own cohort and family from the reviewed catalogue, so no placeholder seeder is needed. It still *reconciles* against whatever the repository pull wrote, which is why it runs last in `COURSE_CATALOGUE_ORDER` (§11) |
 
 ```
 uv run --frozen python scripts/prod/import_cmp_content.py \
     --database .tmp/production-prep-current.sqlite3 \
-    --source /data/tmp/rds-export/rds-prod-20260902-012536.db
+    --source /data/tmp/rds-export/cmp/rds-prod-20260905-182754.db
 ```
 
 > **The export is not frozen.** `/data/tmp/rds-export/` receives a **new dump every
@@ -619,33 +622,46 @@ uv run --frozen python scripts/prod/import_cmp_content.py \
 > the source: CMP is still live and still being written to. Pick the export
 > deliberately and record which one you used.
 
-### 12 — CMP export, learner data — **no importer exists**
+### 12 — CMP export, learner data — **accounts only; the rest has no importer**
 
-The other 31 tables in the same export. Measured on `rds-prod-20260902-012536.db`,
-38 tables, **664,806 rows total**. The learner-bearing ones:
+The other 31 tables in the same export. Measured on
+`/data/tmp/rds-export/cmp/rds-prod-20260905-182754.db` (2026-09-05): 38 tables,
+**673,449 rows total**. The eleven learner-bearing ones hold **513,625** rows:
 
-| Table | Rows |
-| ---: | --- |
-| `courses_answer` | 218,157 |
-| `courses_criteriaresponse` | 107,691 |
-| `courses_projectevaluationscore` | 38,026 |
-| `courses_submission` | 36,547 |
-| `courses_courseregistration` | 27,656 |
-| `socialaccount_socialaccount` | 21,761 |
-| `courses_enrollment` | 20,907 |
-| `accounts_customuser` | 20,009 |
-| `account_emailaddress` | 20,005 |
-| `courses_peerreview` | 13,041 |
-| `courses_projectsubmission` | 4,261 |
-| `courses_userwrappedstatistics` | 4,219 |
+| Table | Rows | Imported by |
+| --- | ---: | --- |
+| `courses_answer` | 218,577 | — |
+| `courses_criteriaresponse` | 107,691 | — |
+| `courses_projectevaluationscore` | 38,026 | — |
+| `courses_submission` | 36,617 | — |
+| `courses_courseregistration` | 28,831 | — |
+| `courses_enrollment` | 21,409 | — |
+| `accounts_customuser` | 20,469 | `import_cmp_learners.py` |
+| `account_emailaddress` | 20,466 | `import_cmp_learners.py` |
+| `courses_peerreview` | 13,041 | — |
+| `courses_projectsubmission` | 4,279 | — |
+| `courses_userwrappedstatistics` | 4,219 | — |
 
-**There is no script that imports any of this.** `scripts/load_rds_export.py` looks
-like the candidate but its `main()` is **disabled** (returns 2); only its internals
-are still imported by two test modules. `review_import/` imports a *sanitized*
-subset for local review and deliberately leaves learner tables empty.
+`socialaccount_socialaccount` (21,761 on the 2026-09-02 export) is in the same file and
+is on the **never import** list — see `production-data-migration.md` step 4 for the fate
+of all 38 tables.
 
-This is the largest single gap in the migration. It is also the one carrying PII, so
-it needs a decision about scope before it needs a script.
+**`scripts/prod/import_cmp_learners.py` imports the two account tables and nothing
+else.** It is resumable, tracks progress per table in `CmpLearnerImportProgress`, and
+creates no account with a usable password, staff or superuser rights, or a
+`SocialAccount` row. Its own docstring says enrollments, submissions, answers, reviews
+and course registrations "belong to a separate importer that reconciles against the
+cohorts and homework `import_cmp_content` writes".
+
+**That separate importer does not exist.** **472,690** of the 513,625 learner rows have
+no script. `scripts/load_rds_export.py`, which used to look like the candidate, is
+deleted — `scripts/tests/test_retired_broad_loader.py` asserts its absence.
+`review_import/` imports a *sanitized* subset for local review and deliberately leaves
+the learner tables empty.
+
+This is the largest single gap in the migration. It is also the one carrying PII, so it
+needs a decision about scope before it needs a script; the specification it has to
+satisfy is `production-data-migration.md` step 4.
 
 ### 13 — `zoomcamp-scoring`, pre-2024 history
 
@@ -656,7 +672,7 @@ it needs a decision about scope before it needs a script.
 | **Make** | `make import-legacy-zoomcamp` (`LEGACY_ZOOMCAMP_SOURCE ?= $(HOME)/git/zoomcamp-scoring`) |
 | **Writes** | Cohorts, homeworks, projects, submissions, enrollments, certificates |
 | **Idempotency** | Safe. Every write keyed on a natural key; a replay reports the same counts and creates no duplicate |
-| **Bootstrap** | **Yes — the only importer that does.** `Cohort.save()` resolves the course family from the slug, so no catalogue need exist |
+| **Bootstrap** | **Yes**, and it is the only source for the pre-2024 editions. `Cohort.save()` resolves the course family from the slug, so no catalogue need exist. Ten other modules bootstrap too (§11) |
 
 The owner's list said "pre-2023"; the code says **pre-2024** — the CMP carries data
 from 2024 onward (`scripts/prod/import_legacy_zoomcamp.py:9-13`).
@@ -679,11 +695,16 @@ uv run --frozen python scripts/prod/import_legacy_zoomcamp.py \
 
 ### 14 — Event identity manifest
 
-`events/event_identity_manifest.json` — schema version 2, **421 events / 1,684
-aliases**. Imported by `scripts/prod/import_events.py`'s `import_identities()`
-(dry-run by default when called with `apply=False`; atomic). Also seeded by
-migrations `events/0005_seed_event_identity_manifest.py` and
-`0008_align_public_event_ids_to_manifest.py`.
+`temporary/content/event_identity_manifest.json` — schema version 2, **421 events /
+1,684 aliases**. Imported by `scripts/prod/import_events.py`'s `import_identities()`
+(dry-run by default when called with `apply=False`; atomic), which reads that path
+as `IDENTITY_MANIFEST_PATH`. **No migration seeds it any more** — the ones that used
+to are gone, and `migrate` publishes nothing. `test_support/reference_data.py` loads
+the same file into every test database, and the event content beside it.
+
+> **A stale default worth knowing about.** `scripts/prepare_local_data.py:318` still
+> defaults `--identity-manifest` to `events/event_identity_manifest.json`, a path
+> that no longer exists. Pass the path explicitly until that is fixed — §12 item 19.
 
 The former `manage.py import_event_identities` command (and its
 `import_event_identity_manifest` alias) are retired: they wrapped the exact
@@ -1445,20 +1466,27 @@ the answer rather than re-investigating.
 | Rebuild the whole local dataset | `make production-prep-dataset` |
 | Verify that dataset | `make production-prep-dataset-verify` |
 | Import pre-2024 Zoomcamp history | `make import-legacy-zoomcamp` |
-| Import events | `make import-events` — **broken, script missing** |
+| Import events | `make import-events` |
 | Import CMP course content | `uv run --frozen python scripts/prod/import_cmp_content.py --database … --source …` |
+| Import CMP learner accounts | `uv run --frozen python scripts/prod/import_cmp_learners.py --database … --source …` (accounts only — §8/12) |
+| Import the editorial catalogue | `uv run --frozen python scripts/prod/import_public_content.py --database …` |
+| Import the FAQ and the docs | `uv run --frozen python scripts/prod/import_faq.py --database …`, then `import_docs.py` |
+| Import sponsors and testimonials | `uv run --frozen python scripts/prod/import_sponsors.py --database …`, then `import_testimonials.py` |
 | Import event identities and content | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --eventbrite-source …` (identity import is always the first step; content follows it in the same run) |
 | Create identities for new events in a fresh Luma export (§14.3) | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --discover-new-events-only` |
 | See what a description export still needs from a person (§14.4) | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --discover-new-events-only`, then `uv run --frozen python scripts/build_luma_event_descriptions.py --database … --source-root …` |
 | Build the staged descriptions once that report is clean (§14.4) | the same command with `--write`; then re-run `import_events.py` |
+| Find the duplicate identities an unguarded discovery run left behind (§14.3) | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --report-duplicate-identities`; add `--remove-duplicate-identities` to delete only the provably inert ones |
 | Materialise media | `uv run --frozen python scripts/prod/sync_public_media_hydrate.py` |
 | Publish media to the store | `uv run --frozen python scripts/prod/sync_public_media_publish.py` |
 | Verify media against `media.json` | `uv run --frozen python scripts/prod/sync_public_media_verify.py` |
 
 ### Never do these
 
-- Do not hand-edit anything in `temporary/content/public_projection/` — the startup digest
-  check (`content.E002`) will refuse to boot.
+- Do not hand-edit anything in `temporary/content/`. Nothing checks it at startup any
+  more — `content.E002` is gone and the app's remaining checks (`content/apps.py`,
+  `content.E003`–`E005`, `content.W001`) only cover the media store — so an edit here
+  is silently carried into the database by the next import instead of refusing to boot.
 - Do not copy `/data/tmp/rds-export/` into the worktree. Read it in place, read-only.
 - Do not add a second entry point for course-repository ingest. There is one, and
   both transports share it deliberately.
