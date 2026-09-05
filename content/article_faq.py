@@ -34,6 +34,7 @@ from typing import Any
 import mistune
 from django.core.exceptions import ImproperlyConfigured
 
+from .article_faq_format import ANCHOR_MAX_CHARACTERS, faq_anchor_id
 from .services import sanitize_rendered_html
 
 ARTICLE_FAQ_PATH = Path(__file__).with_name("article_faq.json")
@@ -56,7 +57,7 @@ MAX_CAPTURE_BYTES = 1_000_000
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _SLUG = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _ANCHOR = re.compile(r"^faq-[a-z0-9][a-z0-9-]*$")
-_ANCHOR_MAX_CHARACTERS = 80
+_ANCHOR_MAX_CHARACTERS = ANCHOR_MAX_CHARACTERS
 _ARTICLE_KEYS = frozenset(
     {
         "slug",
@@ -133,10 +134,10 @@ def question_anchor_id(question: str) -> str:
     can never collide with a heading in the same document.
     """
 
-    slug = re.sub(r"[^a-z0-9]+", "-", question.casefold()).strip("-")
-    if len(slug) > _ANCHOR_MAX_CHARACTERS:
-        slug = slug[:_ANCHOR_MAX_CHARACTERS].rsplit("-", 1)[0]
-    return f"faq-{slug or 'question'}"
+    # Single implementation lives in article_faq_format so the projection
+    # builder and the content-sync adapter derive identical anchors without
+    # importing this Django-dependent module.
+    return faq_anchor_id(question)
 
 
 def _require(condition: bool, message: str) -> None:

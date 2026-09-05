@@ -26,6 +26,7 @@ from yaml.events import (
     SequenceStartEvent,
 )
 
+from content.article_faq_format import ArticleFaqFormatError, validate_faq_pairs
 from content.inventory import content_route_contracts
 from content.podcast_routes import podcast_canonical_path
 from content.public_data import public_projection
@@ -819,6 +820,23 @@ def _article_parts(text: str, *, path: str) -> tuple[dict[str, Any], str]:
     return frontmatter, body
 
 
+def _article_faq_pairs(value: Any, *, path: str) -> tuple[dict[str, str], ...] | None:
+    """Validate one article frontmatter ``faq:`` list into stable pair rows.
+
+    Returns ``None`` when the article carries no FAQ section.  The pairs travel
+    inside the article document as plain JSON -- no separate model, no second
+    pipeline -- and each pair's linkable anchor is derived from its question so
+    the frontmatter never names an identifier that could collide with a heading.
+    """
+
+    if value is None:
+        return None
+    try:
+        return validate_faq_pairs(value)
+    except ArticleFaqFormatError as error:
+        _fail(f"article_faq_invalid:{error}", path)
+
+
 def _source_text(value: Any, *, field: str, path: str, required: bool) -> str:
     if isinstance(value, (date, datetime)):
         value = value.isoformat()
@@ -1085,6 +1103,7 @@ def _document_metadata(
     extensions: Sequence[str] = (),
     omitted_remote_images: Sequence[str] = (),
     publication_state: str = "published",
+    faq: Sequence[Mapping[str, str]] | None = None,
 ) -> dict[str, Any]:
     result: dict[str, Any] = {
         "adapter_schema_version": DTC_CONTENT_CONTRACT.schema_version,
@@ -1097,6 +1116,8 @@ def _document_metadata(
     }
     if omitted_remote_images:
         result["omitted_remote_images"] = list(omitted_remote_images)
+    if faq:
+        result["faq"] = [dict(pair) for pair in faq]
     return result
 
 
@@ -1354,6 +1375,7 @@ def adapt_dtc_content_checkout(
         subtitle = _optional_text(metadata, "subtitle", path=source_path)
         description = _optional_text(metadata, "description", path=source_path)
         summary = subtitle or description
+        article_faq = _article_faq_pairs(metadata.get("faq"), path=source_path)
         documents.append(
             PreparedDocument(
                 content_kind="article",
@@ -1381,6 +1403,7 @@ def adapt_dtc_content_checkout(
                     migration_sha256=MIGRATION_SHA256,
                     extensions=extensions,
                     omitted_remote_images=omitted_remote_images,
+                    faq=article_faq,
                 ),
                 is_published=True,
                 noindex=False,
