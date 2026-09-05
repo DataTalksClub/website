@@ -214,9 +214,9 @@ additionally test-imported.
 `repin_projection_digests.py` — confirmed sole-reproducer scripts.** Each is the only
 executable record of how a checked-in artifact was produced:
 
-- `build_public_projection.py` → `content/public_projection/*.json`; recorded as the builder
+- `build_public_projection.py` → `temporary/content/public_projection/*.json`; recorded as the builder
   inside the artifact itself (`content/public_data.py:584`,
-  `content/public_projection/editorial_route_migration.json:23022`) and asserted as a schema
+  `temporary/content/public_projection/editorial_route_migration.json:23022`) and asserted as a schema
   constant (`_docs/compatibility/editorial-route-migration.schema.json:39`).
   `_docs/runbooks/production-hosting-and-dns-migration.md:1633` calls it "the sole builder".
 - `build_legacy_manifest.py` → `_docs/compatibility/legacy-manifest.jsonl`,

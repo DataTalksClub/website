@@ -160,7 +160,12 @@ def article_faq(slug: str, *, using: str = "default") -> ArticleFaq | None:
         return None
     if not isinstance(metadata, dict):
         return None
-    pairs = metadata.get("faq")
+    # An imported catalogue record is stored beside its position, so the record
+    # itself is one level in; an adapter-written document is the record. Both are
+    # article documents and either can carry the FAQ.
+    held = metadata.get("record")
+    record: dict[str, Any] = held if isinstance(held, dict) else metadata
+    pairs = record.get("faq")
     if pairs is None:
         return None
     return ArticleFaq(

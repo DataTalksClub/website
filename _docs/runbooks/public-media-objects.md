@@ -1,8 +1,8 @@
 # Public projection media objects
 
 The 1,253 public projection images (`/images/...`, about 154 MB) are **not** carried in the git
-working tree. `content/public_projection/media/` is gitignored and excluded from the container build
-context. Django resolves each request against `content/public_projection/media.json` and then reads
+working tree. `temporary/content/public_projection/media/` is gitignored and excluded from the container build
+context. Django resolves each request against `temporary/content/public_projection/media.json` and then reads
 the object through a pluggable media store.
 
 Public URLs, statuses, and response headers are unchanged: `/images/<path>` still returns `200` with
@@ -16,7 +16,7 @@ Selected by `PUBLIC_MEDIA_STORE_BACKEND`.
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | `PUBLIC_MEDIA_STORE_BACKEND` | `local` | `local`, `memory`, or `s3` |
-| `PUBLIC_MEDIA_LOCAL_ROOT` | `content/public_projection/media` | filesystem root for `local` |
+| `PUBLIC_MEDIA_LOCAL_ROOT` | `temporary/content/public_projection/media` | filesystem root for `local` |
 | `PUBLIC_MEDIA_S3_BUCKET` | `""` | bucket name for `s3` |
 | `PUBLIC_MEDIA_S3_PREFIX` | `public-projection` | key prefix for `s3` |
 | `PUBLIC_MEDIA_S3_REGION` | `""` | region for `s3` |
@@ -51,9 +51,9 @@ uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source checko
   --checkout DataTalksClub/datatalksclub.github.io=/path/to/datatalksclub.github.io
 
 # from an already hydrated peer checkout or the configured object store
-PUBLIC_MEDIA_LOCAL_ROOT=/path/to/other/checkout/content/public_projection/media \
+PUBLIC_MEDIA_LOCAL_ROOT=/path/to/other/checkout/temporary/content/public_projection/media \
   uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source store \
-  --destination content/public_projection/media
+  --destination temporary/content/public_projection/media
 ```
 
 Hydration is idempotent and resumable: an object already present with the recorded checksum is
@@ -117,7 +117,7 @@ PUBLIC_MEDIA_S3_REGION=eu-west-1 \
   uv run --frozen python scripts/prod/sync_public_media_verify.py
 ```
 
-Run these from a checkout whose `content/public_projection/media/` is hydrated — that tree is the
+Run these from a checkout whose `temporary/content/public_projection/media/` is hydrated — that tree is the
 publish source. `sync_public_media_verify.py` exits non-zero unless every one of the 1,253 records is
 present with a matching checksum and the store holds no unrecorded object.
 

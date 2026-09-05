@@ -658,9 +658,9 @@ and it is the difference the brief asked to be made visible before anyone starts
 | Events + registrations | `<main checkout>/.local/migration-data/events/` — `luma/` 78 MB, `luma-aggregate-v1/` 13 MB, `eventbrite/` 2.1 MB | ~93 MB, ~174 Luma events | `events.*` (9 models exist) | **Adapters exist and are tested** (`events/importers.py`); register them |
 | Course curricula | three repos, `Makefile:426-429` | 20 modules, 181 units | `courses.Module/Unit` | **Working today.** Do not disturb |
 | Historical scoring | `zoomcamp-scoring` repo | pre-2024 cohorts, certificates | `courses.*` | Adapter exists (`scripts/historical_import/`); relocate |
-| Wiki / podwiki | `content/public_projection/wiki.json`, `wiki_graph.json`, `wiki_search.json`, `wiki_assets/` | 310 baseline rows | `content.ContentDocument` **(exists, empty)** | **Loader only** |
-| Podcast | `content/public_projection/podcasts.json`, `media/` | episodes + media | `content.ContentDocument` + `ContentAsset` **(exist, empty)** | **Loader only** |
-| Articles / blog | `content/public_projection/articles.json` | | `content.ContentDocument` **(exists, empty)** | **Loader only** |
+| Wiki / podwiki | `temporary/content/public_projection/wiki.json`, `wiki_graph.json`, `wiki_search.json`, `wiki_assets/` | 310 baseline rows | `content.ContentDocument` **(exists, empty)** | **Loader only** |
+| Podcast | `temporary/content/public_projection/podcasts.json`, `media/` | episodes + media | `content.ContentDocument` + `ContentAsset` **(exist, empty)** | **Loader only** |
+| Articles / blog | `temporary/content/public_projection/articles.json` | | `content.ContentDocument` **(exists, empty)** | **Loader only** |
 | Books, docs, FAQ, people | `books.json`, `people.json`, `media.json` | | `content.ContentDocument` / `ContentAsset` | **Loader only** |
 
 ⚠ The brief located the events data at `.local/migration-data/events/` relative to this

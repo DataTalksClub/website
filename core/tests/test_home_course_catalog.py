@@ -28,7 +28,7 @@ from test_support.course_catalog import (
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-PROJECTION_COURSES = REPOSITORY_ROOT / "content/public_projection/courses.json"
+PROJECTION_COURSES = REPOSITORY_ROOT / "temporary/content/public_projection/courses.json"
 
 
 class CourseCatalogSourceTests(TestCase):

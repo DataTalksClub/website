@@ -140,7 +140,7 @@ class PodcastPlatformDataTests(TestCase):
             )
 
     def test_platform_artifact_is_manifest_bound_and_provider_keys_cannot_drift(self) -> None:
-        root = Path(__file__).resolve().parents[1] / "public_projection"
+        root = Path(__file__).resolve().parents[2] / "temporary" / "content" / "public_projection"
         path = root / "podcast_platforms.json"
         projection = public_projection()
 

@@ -10,7 +10,7 @@
     "rollback": "roll back immediately at or after the canonical traffic switch"
   },
   "manifest": {
-    "path": "content/public_projection/editorial_route_migration.json",
+    "path": "temporary/content/public_projection/editorial_route_migration.json",
     "selection_mode": "preferred",
     "required_finals": 794,
     "required_aliases": 1586,

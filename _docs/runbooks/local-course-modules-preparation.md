@@ -170,5 +170,5 @@ is a diagnosis rather than a rollback.
 Two known defects fail this gate today and are owned elsewhere: the duplicate AI Dev Tools course
 family (#308) and the absence of future-dated events (#307). The events count comes from the
 checked public projection, not from the database, so no amount of database preparation moves it —
-it moves when `content/public_projection/events.json` is rebuilt from a fresher
+it moves when `temporary/content/public_projection/events.json` is rebuilt from a fresher
 `DataTalksClub/datatalksclub.github.io` revision.

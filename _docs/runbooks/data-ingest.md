@@ -130,7 +130,7 @@ uv run --frozen python scripts/build_public_projection.py \
     --content-root     <DataTalksClub/content     @ 1375c506…> \
     --legacy-main-root <datatalksclub.github.io   @ ee43d3fa…> \
     --wiki-root        <DataTalksClub/podwiki     @ 988b79d0…> \
-    --output content/public_projection
+    --output temporary/content/public_projection
 ```
 
 Each root is verified at `scripts/build_public_projection.py:187-196` (`_verify_checkout`):
@@ -147,7 +147,7 @@ currently **not reproducible** — see issue #253 and §11.
 
 ### What it writes
 
-`content/public_projection/`, all committed, ~37 MB excluding media:
+`temporary/content/public_projection/`, all committed, ~37 MB excluding media:
 
 | Artifact | Records | Source |
 | --- | ---: | --- |
@@ -269,7 +269,7 @@ Reads that **take content** (fate required):
 | a6 | `build_public_projection.py:1385, 1541, 1556, 1641, 3078` | `_posts`, `_podcast`, `_books`, `images/**` | articles, podcasts, books, media — **`--mode fallback` only** | Nothing. Fallback is not accepted |
 
 **a5 is the only live defect.** `scripts/prod/sync_public_media_hydrate.py:60-64`
-defaults to `--source github`, and `content/public_projection/media/` is gitignored
+defaults to `--source github`, and `temporary/content/public_projection/media/` is gitignored
 (`.gitignore:23`, `git ls-files` returns 0 files). 438 of the 1,253 media records
 carry `"repository": "DataTalksClub/datatalksclub.github.io"` in their provenance,
 so:
@@ -497,8 +497,8 @@ to trip over.
 Settled by the owner: **images go to the CDN**, not into the content repository.
 
 The mechanism already exists and is landed — issue #301,
-`_docs/runbooks/public-media-objects.md`. `content/public_projection/media/` is
-gitignored; Django resolves `/images/<path>` against `content/public_projection/media.json`
+`_docs/runbooks/public-media-objects.md`. `temporary/content/public_projection/media/` is
+gitignored; Django resolves `/images/<path>` against `temporary/content/public_projection/media.json`
 and reads the object through a pluggable store selected by
 `PUBLIC_MEDIA_STORE_BACKEND`:
 
@@ -775,7 +775,7 @@ them) rather than a second, permanently-duplicate identity.
 159 described events matched, 262 undescribed, 9 gaps, from 168 source pairs.
 
 Its inputs are `--exporter-root` (a Luma exporter checkout) and
-`content/public_projection/events.json` — **it does not read the legacy repository**,
+`temporary/content/public_projection/events.json` — **it does not read the legacy repository**,
 despite naming it in `LEGACY_REPOSITORY`. That constant is provenance stamping only
 (§5.2 a9).
 
@@ -949,7 +949,7 @@ The check that invents nothing, reusing the pieces above in order:
    `freshness_target_minutes` as the staleness threshold for (d).
 
 For editorial content the shape is identical, except the "served" side is
-`content/public_projection/*.json` plus `provenance.checksum` rather than the
+`temporary/content/public_projection/*.json` plus `provenance.checksum` rather than the
 database — and `parity.py` already does most of it, needing only to be un-pinned from
 `ACCEPTED_CONTENT_COMMIT` and given the bundle → projection direction.
 
@@ -1112,7 +1112,7 @@ Ordered by how much they will hurt.
 
 ### Never do these
 
-- Do not hand-edit anything in `content/public_projection/` — the startup digest
+- Do not hand-edit anything in `temporary/content/public_projection/` — the startup digest
   check (`content.E002`) will refuse to boot.
 - Do not copy `/data/tmp/rds-export/` into the worktree. Read it in place, read-only.
 - Do not add a second entry point for course-repository ingest. There is one, and

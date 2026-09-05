@@ -43,11 +43,15 @@ from django.core.exceptions import ImproperlyConfigured
 
 from core.runtime_config import get_int_setting, get_str_setting
 
-#: The reviewed projection tree, which is ingest input under temporary/content/
-#: rather than something the app ships. Only the operator tooling reads it: the
-#: public /images/ route resolves its records from the database and its bytes
-#: from the configured media store.
-PROJECTION_ROOT = (
+#: Where an operator hydrates the local object store. Nothing is checked in
+#: here; ``scripts/prod/sync_public_media_hydrate.py`` fills it, and the default
+#: is overridable through ``PUBLIC_MEDIA_LOCAL_ROOT``.
+PROJECTION_ROOT = Path(__file__).with_name("public_projection")
+#: The reviewed projection tree, ingest input under temporary/content/. Only the
+#: operator tooling reads it, to learn which objects should exist; the public
+#: /images/ route resolves its records from the database and its bytes from the
+#: configured store.
+REVIEWED_PROJECTION_ROOT = (
     Path(__file__).resolve().parents[1] / "temporary" / "content" / "public_projection"
 )
 MEDIA_RECORDS_FILENAME = "media.json"
@@ -197,8 +201,8 @@ def media_records() -> tuple[dict[str, Any], ...]:
     never act on an edited ``media.json``.
     """
 
-    manifest_path = PROJECTION_ROOT / "manifest.json"
-    records_path = PROJECTION_ROOT / MEDIA_RECORDS_FILENAME
+    manifest_path = REVIEWED_PROJECTION_ROOT / "manifest.json"
+    records_path = REVIEWED_PROJECTION_ROOT / MEDIA_RECORDS_FILENAME
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         payload = records_path.read_bytes()

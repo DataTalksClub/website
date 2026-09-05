@@ -626,7 +626,7 @@ Source: three pinned upstream checkouts (`DataTalksClub/content`,
 revisions.
 Transform: builds the whole public projection — articles, podcasts, books,
 people, wiki, media manifest — with digest-verified provenance.
-Destination: [`content/public_projection/`](../../content/public_projection)`*.json`,
+Destination: [`temporary/content/public_projection/`](../../temporary/content/public_projection)`*.json`,
 checked into git, served directly by
 [`content/public_data.py`](../../content/public_data.py).
 
@@ -977,7 +977,7 @@ Folded into 8.2 — [`scripts/build_public_projection.py`](../../scripts/build_p
 reads podwiki as one of its three pinned upstream checkouts
 (`WIKI_REPOSITORY`, `build_public_projection.py:82`), alongside
 `DataTalksClub/content` and `DataTalksClub/datatalksclub.github.io`.
-Destination: `content/public_projection/{wiki,wiki_graph,wiki_search}.json`.
+Destination: `temporary/content/public_projection/{wiki,wiki_graph,wiki_search}.json`.
 
 ## 14.2 Database sync — not built
 

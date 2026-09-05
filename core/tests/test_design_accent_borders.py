@@ -33,7 +33,7 @@ ROOT = Path(__file__).resolve().parents[2]
 # generated projections of source-authored content.
 EXCLUDED_PREFIXES = (
     "content/faq_assets/",
-    "content/public_projection/",
+    "temporary/content/public_projection/",
     "test_support/fixtures/",
 )
 EXCLUDED_PARTS = ("vendor", "node_modules")

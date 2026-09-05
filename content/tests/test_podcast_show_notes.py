@@ -27,7 +27,7 @@ class PodcastShowNotesContractTests(TestCase):
     def setUpClass(cls) -> None:
         super().setUpClass()
         cls.records = json.loads(
-            (REPOSITORY_ROOT / "content/public_projection/podcasts.json").read_text(
+            (REPOSITORY_ROOT / "temporary/content/public_projection/podcasts.json").read_text(
                 encoding="utf-8"
             )
         )

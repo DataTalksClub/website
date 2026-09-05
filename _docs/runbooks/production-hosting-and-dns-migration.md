@@ -223,7 +223,7 @@ this runbook is the missing piece and defers to spec 02/09 wherever they already
 1. **Stale audit evidence, since deleted.** The 2026-08-14 editorial source/projection
    inventory and its validator pinned `media.json = 6b6670d0…` and `podcasts: 205` against a
    frozen snapshot, while the live projection manifest carries different values
-   (`content/public_projection/manifest.json`, `artifacts`/`counts`). Both the audit and its
+   (`temporary/content/public_projection/manifest.json`, `artifacts`/`counts`). Both the audit and its
    validator have been removed; read counts from the live manifest.
 2. **Sibling-repo doc contradicts its own Terraform.** AISL's
    `~/git/ai-shipping-labs/_docs/integrations/s3_content.md` describes the content bucket as
@@ -464,7 +464,7 @@ State-root ownership when the dust settles:
 - **D5 — Media S3 key scheme (#301).** Recommendation: object key = public path minus leading
   slash (`images/authors/ aashishnair.jpg`), preserving the two literal-space keys byte-exact, so
   CloudFront path→key mapping is identity and no rewrite layer is needed. Note the on-disk
-  projection tree drops the `images/` prefix (`content/public_projection/media/authors/...`), so
+  projection tree drops the `images/` prefix (`temporary/content/public_projection/media/authors/...`), so
   the uploader maps `record_key` → key, not directory walk → key.
 - **D6 — Zone placement.** `docs/state-boundaries.md:19-24` assigns DNS zones to the account
   `common` root; `main/common` currently owns VPC/bastion/OIDC. **Recommendation: a dedicated
@@ -970,7 +970,7 @@ rollback window (≥30 days) — they cost nothing. Retirement is Phase 7.
 
 ## 8. Phase 3 — Media to S3 (#301, aws-infra PR #30)
 
-**Goal:** the 150 MB git-tracked media tree (`content/public_projection/media/`, 1,254 files)
+**Goal:** the 150 MB git-tracked media tree (`temporary/content/public_projection/media/`, 1,254 files)
 serves from the `dtc-website-media` bucket; public URLs unchanged; repo slims down.
 
 This phase is owned by issue **#301** (currently `needs grooming`) and PR
@@ -1018,7 +1018,7 @@ dependency is only that 3.3–3.5 follow it.
 
 **3.2a [website] Resolve the confirmed orphan before the first sync.** Verified twice (this
 audit and the coordinator's independent check):
-`content/public_projection/media/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.jpg`
+`temporary/content/public_projection/media/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.jpg`
 exists on disk and in git with **no `media.json` record** (1,254 files vs 1,253 records). A
 record-driven sync silently drops it; a tree-driven sync uploads an unowned object forever.
 Determine which is wrong — a missing projection record (fix the projection, count becomes 1,254)
@@ -2013,7 +2013,7 @@ It is a **manual, build-time, committed projection** — verified:
 
 - `scripts/build_public_projection.py` is the sole builder (docstring lines 1–8: deterministic,
   pinned to the accepted content revision + its green CI evidence); it has **no Makefile target**
-  and is run by hand; its output `content/public_projection/*.json` + `media/` is **committed**.
+  and is run by hand; its output `temporary/content/public_projection/*.json` + `media/` is **committed**.
 - CI never rebuilds it: `ci/content_update.py:1-7` — "intentionally a projection checker, not a
   source synchronizer".
 - Integrity chain: `manifest.json` records per-artifact sha256 (`artifacts`), a whole-tree
@@ -2706,7 +2706,7 @@ checkpoint/resume semantics inherit from the harness (README:235-244). This is t
 **expected result = zero unexplained differences on the 2,937 preserve rows.**
 
 **15.5 `media-sync` / `media-verify` [new, owned by #301]** — Purpose: upload and prove the
-1,253 media records. Inputs: `content/public_projection/media.json` (authoritative), media tree
+1,253 media records. Inputs: `temporary/content/public_projection/media.json` (authoritative), media tree
 root, bucket, `--dry-run`. `media-sync`: for each record, key = D5 mapping of `record_key`, local
 file = tree path (prefix-stripped, hole 8.2), set `ContentType` from the record (hole 8.4),
 `CacheControl: public, max-age=86400` (hole 8.5), `Metadata={"sha256": provenance.checksum}`;

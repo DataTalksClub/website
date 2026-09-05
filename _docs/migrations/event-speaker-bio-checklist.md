@@ -21,7 +21,7 @@ Two source conflicts are recorded in the replay plan: a
 mismatched speaker name was discarded, and a conflicting current affiliation retained the
 checked person profile. No checklist rows remain open.
 
-Canonical projection at checklist creation: `content/public_projection/events.json`
+Canonical projection at checklist creation: `temporary/content/public_projection/events.json`
 (421 events, 2026-08-29).
 
 

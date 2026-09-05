@@ -2,7 +2,7 @@
 
 This runbook governs the 794 editorial finals (including 791 `.html` finals and three hierarchical
 podcast finals) and 1,586 direct clean/slash aliases in
-[`editorial_route_migration.json`](../../content/public_projection/editorial_route_migration.json).
+[`editorial_route_migration.json`](../../temporary/content/public_projection/editorial_route_migration.json).
 The `s24e04` GenAI Pilots episode is hierarchical-only: its former flat-slug path is not an alias
 and must return `404` without a redirect.
 Its machine-checkable thresholds are
@@ -22,7 +22,7 @@ duplicate, final/alias collision, chain, or loop stops the cutover.
 engineering fix.** `editorial-route-seo-cutover-policy.json`'s `manifest.required_content_sha256` is
 currently `f5f52a799317393aa31beda6ed0550d7c1d25593ea439a42b9e9af88832f817b`, but the real, current
 `content_sha256` recorded inside
-[`content/public_projection/editorial_route_migration.json`](../../content/public_projection/editorial_route_migration.json)
+[`temporary/content/public_projection/editorial_route_migration.json`](../../temporary/content/public_projection/editorial_route_migration.json)
 is `05137971ffae1859815195128c401c0b53cdda9ced0114448f3d81c0ba5d0c1c` — a legitimate content-projection
 refresh in commit `66ae75c` ("Refresh production content projection and sync guard", 2026-09-03) moved
 the real hash; the counts it covers did not change (794 finals, 1,586 aliases both still match). The

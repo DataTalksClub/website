@@ -54,6 +54,7 @@ class PublicContentQueryTests(TestCase):
                 "rendered_html",
                 "noindex",
                 "edit_url",
+                "adapter_metadata",
             },
         )
         with self.assertRaises(FrozenInstanceError):

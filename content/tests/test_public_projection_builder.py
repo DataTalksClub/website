@@ -452,7 +452,7 @@ class PublicProjectionBuilderTests(TestCase):
     def editorial_route_fixture(
         self,
     ) -> tuple[dict[str, list[dict]], dict[str, str], dict]:
-        root = Path(settings.BASE_DIR) / "content" / "public_projection"
+        root = Path(settings.BASE_DIR) / "temporary" / "content" / "public_projection"
         collections = {
             name: json.loads((root / f"{name}.json").read_text(encoding="utf-8"))
             for name in builder.EDITORIAL_ROUTE_COLLECTIONS

@@ -1005,7 +1005,7 @@ uv run --frozen python scripts/build_public_projection.py \
     --content-root <DataTalksClub/content @ pin> \
     --legacy-main-root <datatalksclub.github.io @ pin> \
     --wiki-root <DataTalksClub/podwiki @ pin> \
-    --output content/public_projection
+    --output temporary/content/public_projection
 ```
 
 Expected: wiki 282 · podcasts 203 (201 transcripts) · articles 55 · people 438 ·
@@ -1623,7 +1623,7 @@ if pending:
     print("  NOTE: the store still holds deleted objects. Sweep before cutover.")
 
 tracked = subprocess.run(["git", "ls-files",
-                          "content/public_projection/media", "core/static/core"],
+                          "temporary/content/public_projection/media", "core/static/core"],
                          capture_output=True, text=True).stdout.split()
 # core/static/core/vendor holds FontAwesome webfonts, three of which are .svg.
 # They are font files, not assets, and they stay with the CSS that names them.
@@ -2994,7 +2994,7 @@ Non-negotiable, and every one of these has a reason behind it.
   excludes the whole payload of step 4.
 - A member's email address is visible to admins in Studio and nowhere else.
 - In a log, identify a person by user id, never by email address.
-- Do not hand-edit anything in `content/public_projection/` — the startup digest
+- Do not hand-edit anything in `temporary/content/public_projection/` — the startup digest
   check (`content.E002`) will refuse to boot.
 - Do not add a second entry point for course-repository ingest. There is one and
   both transports share it deliberately.

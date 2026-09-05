@@ -40,7 +40,9 @@ from content.article_faq_format import faq_anchor_id
 from content.public_views import _article_faq_structured_data
 from test_support.published_content import PublishedPage, publish_documents
 
-ARTICLE_SLUG = "llm-zoomcamp"
+# A slug the reviewed catalogue does not publish, so this module's rows are the
+# only ones its assertions can be reading.
+ARTICLE_SLUG = "a-synthetic-article-with-a-faq"
 ARTICLE_PATH = f"/blog/{ARTICLE_SLUG}.html"
 PAIRS = (
     {
