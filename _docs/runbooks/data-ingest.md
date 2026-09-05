@@ -981,49 +981,65 @@ leave every mapping review-required.
 
 ## 9. What is file-backed and what is database-backed
 
-The owner has decided "all the content" moves into the database. This is the
-starting position.
+The owner decided "all the content" moves into the database. **That has happened for
+the serving path**: no public request reads a file from the source tree. What survives
+of the old arrangement is naming and shape, not behaviour — `content/public_data.py`'s
+entry point is still called `public_projection()` and still returns the dict shape the
+files had, because switching every caller off that shape is separate work in flight.
+Describe this as "database-backed, still wearing the projection's name", not as
+unfinished ingest.
 
 | Area | Serving path | Source |
 | --- | --- | --- |
-| Wiki (hub, detail, search, graph, feed, sitemap, assets) | **JSON** | `public_projection/wiki*.json` |
-| Podcasts (hub, episodes, guests, transcripts, resources) | **JSON** | `public_projection/podcasts.json` |
-| Articles (hub, detail) | **JSON** | `public_projection/articles.json` |
-| Article FAQ accordions | **JSON** | `content/article_faq.json` |
-| People / authors | **JSON** | `public_projection/people.json` |
-| Books | **JSON** | `public_projection/books.json` |
+| Wiki (hub, detail, search, graph, feed, sitemap) | **Database** | `ContentDocument`, via `content/public_data.py` |
+| Podcasts (hub, episodes, guests, transcripts, resources) | **Database** | as above |
+| Articles (hub, detail) | **Database** | as above |
+| Article FAQ accordions | **Database** | `content/article_faq.py` over `ContentDocument` |
+| People / authors | **Database** | `ContentDocument` |
+| Books | **Database** | `ContentDocument` |
+| FAQ (`/faq/`) | **Database** | `content/faq_data.py` over `ContentDocument` |
+| Docs (`/docs/`) | **Database** | `content/docs_projection.py` over `ContentDocument` / `ContentAsset` |
+| Editorial redirects | **Database** | `ContentDocument` (the route manifest is one document) |
+| Media (`/images/…`) | **Database record + object store** | record from `ContentDocument`, bytes from the store (`content/media_store.py`) |
 | Event listing, descriptions and links | **Database** | `events.EventContent` / `EventLink` |
-| Event speakers | **Database** ⋈ JSON | `events.EventSpeaker`, bio joined from `people.json` at request time |
-| FAQ (`/faq/`) | **JSON** | `content/faq_projection.json` |
-| Docs (`/docs/`) | **JSON** | `content/docs_projection.json` |
-| Media (`/images/…`) | **JSON index + object store** | `media.json` + store |
-| Editorial redirects | **JSON** | `editorial_route_migration.json` |
-| **Event detail** | **Database** | `Event` identity, `EventContent`, `EventQnaSession`, registration totals |
-| **Sitemaps** | **Hybrid** | JSON per section; **DB** `Cohort` for courses |
-| **Courses / curriculum** | **Database** | `courses` models |
-| **Sponsors** | **Database** | `core.models.Sponsor` |
-| **Testimonials** | **Database** | `courses.models.Testimonial` |
-| **Certificates** | **Database** | `Enrollment.certificate_url` |
+| Event speakers | **Database** ⋈ **database** | `events.EventSpeaker`, biography joined from the person's catalogue record at request time (`content/event_speakers.py`) |
+| Event detail | **Database** | `Event` identity, `EventContent`, `EventQnaSession`, registration totals |
+| Sitemaps | **Database** | catalogue sections plus `Cohort` for courses |
+| Courses / curriculum | **Database** | `courses` models |
+| Sponsors | **Database** | `core.models.Sponsor` |
+| Testimonials | **Database** | `courses.models.Testimonial` |
+| Certificates | **Database** | `Enrollment.certificate_url` |
 
-### The dead pipeline
+The one file a public request still touches is the wiki's default social card,
+`content/wiki_assets/og-default.png` — a design asset that ships with the app, and the
+route serving it still checks the published manifest first. `content/media_store.py`'s
+`media_records()` also reads the staged `media.json`, but only for operator tooling and
+the offline fixture store; the `/images/…` view resolves its record from the database.
+
+### The pipeline, and what is still wired to nothing
 
 `content/models.py` defines `ContentSource`, `ContentRelease`, `ActiveContentPath`,
-`ContentDocument`, `ContentRelation`, `ContentAsset`. Of these:
+`ContentDocument`, `ContentRelation`, `ContentAsset`.
 
-- **`ContentSource` is live** — written by `content_sync/course_repository_registration.py`,
-  read by `scripts/prod/sync_course_repositories.py`, `course_repository_sync.py` and the webhook view.
-  But it is a **repository registry**, not a content store.
-- **Everything else is written by nothing outside tests and migrations.**
-  `prepare_dtc_content_candidate` (`content_sync/dtc_content/preparation.py:207`) is
-  the only writer, and it is referenced only from `content_sync/dtc_content/__init__.py`'s
-  `__all__` and from tests. No command, view, webhook or job invokes it.
-- **The read side is dead too.** `content/queries.py` `resolve_public_document` and
-  `resolve_public_asset` have **zero callers outside `content/tests/`**. No URL
-  resolves a page through `ContentDocument`.
+- **`ContentSource`** is the repository registry — written by
+  `content_sync/course_repository_registration.py`, read by
+  `scripts/prod/sync_course_repositories.py` and the webhook view. It is not a content
+  store and never was.
+- **`ContentDocument`, `ContentRelease`, `ActiveContentPath` and `ContentAsset` are
+  live at both ends.** `scripts/prod/import_public_content.py` writes the editorial
+  catalogue, `import_faq.py` the FAQ, `import_docs.py` the documentation and its
+  assets; every table in the row above is read on a public request.
+  `content/queries.py`'s `resolve_public_document` is called from
+  `content/public_views.py:1272` and `content/review_views.py:359`.
+- **What is still wired to nothing is the *push-sync* half.**
+  `prepare_dtc_content_candidate` (`content_sync/dtc_content/preparation.py`) — the
+  function that would turn a pushed `DataTalksClub/content` revision into a release —
+  is referenced only from `content_sync/dtc_content/__init__.py`'s `__all__` and from
+  tests. No command, view, webhook or job invokes it.
 
-So the `DataTalksClub/content` database pipeline is **built and wired at both ends to
-nothing**. Writing an importer that fills `ContentDocument` would not change a single
-page until the views are switched over. Plan both halves or neither.
+So the database is the serving path, and the remaining gap is *continuous* ingest: a
+push to `DataTalksClub/content` changes nothing here today. The one-time importers filled
+the tables; nothing keeps them current. §10 is the check that gap needs.
 
 ---
 
