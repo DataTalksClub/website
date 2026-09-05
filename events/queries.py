@@ -15,9 +15,10 @@ normal state and not a failure.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Iterable
 from typing import Any
 
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 
 from .models import Event, EventContent, EventLink, EventSpeaker
 
@@ -78,3 +79,41 @@ def published_event_record(event_id: uuid.UUID | str) -> dict[str, Any] | None:
 
     content = _published().filter(event_id=event_id).first()
     return None if content is None else _record(content)
+
+
+def published_event_records_by_path(paths: Iterable[str]) -> dict[str, dict[str, Any]]:
+    """The published records these public paths address, keyed by the path given.
+
+    An event answers to two paths: the canonical ``/events/<public id>/<slug>``
+    it carries, and ``/events/<identity uuid>/<slug>``, which is what the
+    catalogue's own cross-references were written with. A caller holding a
+    mixture of both should not have to know which it has, so both forms are
+    resolved here, and a path this database publishes nothing for is simply
+    absent from the result.
+    """
+
+    public_ids: set[int] = set()
+    identity_ids: set[uuid.UUID] = set()
+    for path in paths:
+        parts = path.split("/")
+        if len(parts) < 3 or parts[1] != "events":
+            continue
+        token = parts[2]
+        if token.isdigit():
+            public_ids.add(int(token))
+            continue
+        try:
+            identity_ids.add(uuid.UUID(token))
+        except ValueError:
+            continue
+    if not public_ids and not identity_ids:
+        return {}
+
+    resolved: dict[str, dict[str, Any]] = {}
+    for content in _published().filter(
+        Q(event__public_id__in=public_ids) | Q(event_id__in=identity_ids)
+    ):
+        record = _record(content)
+        resolved[record["public_path"]] = record
+        resolved[f"/events/{record['identity_id']}/{record['slug']}"] = record
+    return resolved

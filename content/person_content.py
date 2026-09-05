@@ -30,7 +30,7 @@ from zoneinfo import ZoneInfo
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import timezone
 
-from events.queries import published_event_records
+from events.queries import published_event_records_by_path
 
 from .public_data import public_projection
 
@@ -385,8 +385,15 @@ def _groups(record: dict[str, Any], *, now: datetime) -> tuple[ContributionGroup
     projection = public_projection()
     # Events are database rows rather than a projected collection, so their index
     # is built here from the published records instead of read out of the
-    # catalogue alongside the others.
-    event_index = {record["public_path"]: record for record in published_event_records()}
+    # catalogue alongside the others.  Only the events this profile actually
+    # names are read, and they are resolved by either path form: the catalogue
+    # still cross-references an event by its identity uuid, and looking those up
+    # by canonical path alone silently dropped every event a profile links to.
+    event_index = published_event_records_by_path(
+        relationship["public_path"]
+        for relationship in record.get("relationships", ())
+        if isinstance(relationship, dict) and isinstance(relationship.get("public_path"), str)
+    )
     collected: dict[str, list[Contribution]] = {key: [] for key, *_ in CONTRIBUTION_GROUPS}
     indexes = {key: index for key, index, *_ in CONTRIBUTION_GROUPS}
     for relationship in record.get("relationships", ()):
@@ -402,8 +409,8 @@ def _groups(record: dict[str, Any], *, now: datetime) -> tuple[ContributionGroup
         linked = (event_index if prefix == "events" else projection[index]).get(public_path)
         if linked is None:
             # The profile names work whose record is not published -- an event
-            # whose content has not been ingested, an article retired upstream.
-            # A profile lists the work a reader can actually reach, so the row is
+            # withdrawn from the calendar, an article retired upstream.  A
+            # profile lists the work a reader can actually reach, so the row is
             # dropped rather than the page being taken down over it.
             continue
         collected[prefix].append(_contribution(relationship, prefix, linked, now=now))

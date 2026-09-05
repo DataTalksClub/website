@@ -25,7 +25,7 @@ from content.person_content import (
     person_view,
 )
 from content.public_data import public_projection
-from test_support.content_state import requires_published_events
+from events.queries import published_event_records_by_path
 
 # The profile with the widest body of work in the catalogue (63 links across all
 # four kinds), and one that carries a portrait, a bio and links but no work.
@@ -37,7 +37,6 @@ def profile(slug: str) -> dict[str, Any]:
     return public_projection()["people_by_slug"][slug]
 
 
-@requires_published_events
 class PersonCompositionTests(TestCase):
     def test_every_profile_composes_without_invention(self) -> None:
         for record in public_projection()["people"]:
@@ -102,7 +101,9 @@ class PersonCompositionTests(TestCase):
         self.assertEqual(episode.mark, "play")
 
         event = groups["events"].items[0]
-        event_source = projection["events_by_path"][event.public_path]
+        # Events are database rows, so the row's own record comes from the
+        # database rather than from the catalogue beside the other three.
+        event_source = published_event_records_by_path([event.public_path])[event.public_path]
         self.assertEqual(event.pill_label, event_source["type"])
         # A date is the row's rail, not a mark: only the podcast disc is one, and
         # the shared archive row writes the date itself from this one field.
@@ -276,15 +277,6 @@ class PersonCompositionTests(TestCase):
                 },
             ),
             (
-                "missing record",
-                {
-                    **record,
-                    "relationships": [
-                        {"role": "guest", "label": "X", "public_path": "/podcast/nothing.html"}
-                    ],
-                },
-            ),
-            (
                 "unnamed contribution",
                 {
                     **record,
@@ -302,6 +294,30 @@ class PersonCompositionTests(TestCase):
             with self.subTest(case=name):
                 with self.assertRaises(ImproperlyConfigured):
                     person_view(broken)
+
+    def test_work_whose_record_is_not_published_is_dropped_rather_than_fatal(self) -> None:
+        """A retired record costs the profile one row, not the whole page."""
+
+        record = profile(RICH_SLUG)
+        published = {
+            item.public_path for group in person_view(record).groups for item in group.items
+        }
+        self.assertTrue(published)
+
+        with_retired = person_view(
+            {
+                **record,
+                "relationships": [
+                    *record["relationships"],
+                    {"role": "guest", "label": "X", "public_path": "/podcast/nothing.html"},
+                ],
+            }
+        )
+
+        self.assertEqual(
+            {item.public_path for group in with_retired.groups for item in group.items},
+            published,
+        )
 
 
 class PersonPageTests(TestCase):
@@ -353,7 +369,6 @@ class PersonPageTests(TestCase):
         for block in record["blocks"]:
             self.assertIn(escape(block["text"]), body)
 
-    @requires_published_events
     def test_every_contribution_keeps_its_link_role_and_marker(self) -> None:
         record = profile(RICH_SLUG)
         body = self.rendered(RICH_SLUG)
@@ -401,7 +416,6 @@ class PersonPageTests(TestCase):
         self.assertNotIn('<section class="band band-cream person-contributions', body)
         self.assertNotIn('href="/people"', body)
 
-    @requires_published_events
     def test_a_long_group_offers_one_control_that_says_what_it_is_holding(self) -> None:
         """The fold is a <details>: no script, and it opens with JavaScript off."""
 
