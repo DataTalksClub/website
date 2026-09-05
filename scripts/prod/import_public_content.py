@@ -41,6 +41,10 @@ SYNC_MODEL = "one-time"
 BOOTSTRAPS_EMPTY_DATABASE = True
 
 REVIEWED_ROOT = PROJECT_ROOT / "temporary" / "content" / "public_projection"
+#: The Slack landing page. It sits beside the projection rather than inside it
+#: because the built tree never carried it -- it came from the review projection,
+#: whose only public surface this page was.
+REVIEWED_SLACK_PAGE = PROJECT_ROOT / "temporary" / "content" / "slack_page.json"
 
 PUBLIC_CONTENT_REPOSITORY = "DataTalksClub/content"
 
@@ -90,10 +94,31 @@ def load_reviewed_catalogue(root: Path | None = None) -> dict[str, Any]:
         raise PublicContentImportFailure(f"reviewed_catalogue_invalid:{error}") from error
 
 
+def load_reviewed_slack_page(path: Path | None = None) -> dict[str, Any]:
+    """Parse and validate the reviewed Slack page."""
+
+    source = path or REVIEWED_SLACK_PAGE
+    try:
+        payload = json.loads(source.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise PublicContentImportFailure("reviewed_slack_page_unreadable") from error
+    page = payload.get("page") if isinstance(payload, dict) else None
+    if not isinstance(page, dict) or page.get("public_path") != "/slack":
+        raise PublicContentImportFailure("reviewed_slack_page_invalid")
+    for field in ("title", "lead", "troubleshooting_url"):
+        if not isinstance(page.get(field), str) or not page[field].strip():
+            raise PublicContentImportFailure(f"reviewed_slack_page_{field}_invalid")
+    channels = page.get("channels")
+    if not isinstance(channels, list) or not channels:
+        raise PublicContentImportFailure("reviewed_slack_page_channels_invalid")
+    return page
+
+
 def run(*, root: Path | None = None, apply: bool = True) -> dict[str, Any]:
     from content.public_data import COLLECTION_NAMES
 
     catalogue = load_reviewed_catalogue(root or REVIEWED_ROOT)
+    slack_page = load_reviewed_slack_page()
     singletons = (
         "manifest",
         "podcast_platforms",
@@ -200,6 +225,25 @@ def run(*, root: Path | None = None, apply: bool = True) -> dict[str, Any]:
                     is_published=True,
                 )
             )
+        documents.append(
+            ContentDocument(
+                release=release,
+                content_kind="page",
+                stable_key="slack",
+                source_path=str(slack_page["source_path"]),
+                checksum=_record_digest(slack_page),
+                exact_public_path=str(slack_page["public_path"]),
+                slug="slack",
+                title=str(slack_page["title"]),
+                summary=str(slack_page["lead"]),
+                rendered_html=f"<h1>{slack_page['title']}</h1>",
+                adapter_metadata={
+                    "channels": list(slack_page["channels"]),
+                    "troubleshooting_url": str(slack_page["troubleshooting_url"]),
+                },
+                is_published=True,
+            )
+        )
         ContentDocument.objects.bulk_create(documents, batch_size=500)
 
     context = ServiceContext(

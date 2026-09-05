@@ -1,0 +1,27 @@
+{
+  "page": {
+    "channels": [
+      "#book-of-the-week",
+      "#career-questions",
+      "#datascience",
+      "#engineering",
+      "#events",
+      "#jobs",
+      "#memes",
+      "#random"
+    ],
+    "edit_url": "https://github.com/DataTalksClub/datatalksclub.github.io/edit/main/slack.md",
+    "lead": "Join our community of data science professionals, machine learning engineers, and AI practitioners on Slack.",
+    "public_path": "/slack",
+    "source": "main",
+    "source_path": "slack.md",
+    "title": "Join our Slack",
+    "troubleshooting_url": "https://airtable.com/shrhUBN51Jy10fjJq"
+  },
+  "schema_version": 1,
+  "source": {
+    "repository": "DataTalksClub/datatalksclub.github.io",
+    "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+    "source_path": "slack.md"
+  }
+}

@@ -12,11 +12,13 @@ the system carries.
 from __future__ import annotations
 
 import re
+from typing import Any
 
 from django.test import TestCase
 from django.urls import reverse
+from django.utils.html import escape
 
-from test_support.published_content import PublishedPage, publish_documents
+from content.models import ContentDocument
 
 RETIRED_ASSETS = (
     "/static/courses.css",
@@ -28,33 +30,26 @@ RETIRED_ASSETS = (
 TEMPLATE_SYNTAX = ("{#", "#}", "{%", "%}", "{{", "}}")
 
 
-SLACK_CHANNELS = ("#events", "#jobs", "#random")
-SLACK_TROUBLESHOOTING_URL = "https://example.invalid/slack-help"
+def _reviewed_page() -> dict[str, Any]:
+    from scripts.prod.import_public_content import load_reviewed_slack_page
+
+    return load_reviewed_slack_page()
 
 
 class SlackPageAbsentTests(TestCase):
-    """The page is its database row, so an empty database has no page to serve."""
+    """The page is its database row, so a database without one has no page."""
 
     def test_the_page_is_absent_rather_than_empty_when_no_row_publishes_it(self) -> None:
+        ContentDocument.objects.filter(exact_public_path="/slack").update(is_published=False)
+
         self.assertEqual(self.client.get(reverse("slack")).status_code, 404)
 
 
 class SlackPageTests(TestCase):
     def setUp(self) -> None:
-        self.page = PublishedPage(
-            exact_public_path="/slack",
-            title="DataTalks.Club on Slack",
-            summary=(
-                "See where DataTalks.Club members talk, and contact the community team "
-                "if you need help with the next step."
-            ),
-            slug="slack",
-            adapter_metadata={
-                "channels": list(SLACK_CHANNELS),
-                "troubleshooting_url": SLACK_TROUBLESHOOTING_URL,
-            },
-        )
-        publish_documents([self.page])
+        # The reviewed page the ingest publishes; the assertions read what it
+        # says rather than restating it.
+        self.page = _reviewed_page()
         self.response = self.client.get(reverse("slack"))
         self.assertEqual(self.response.status_code, 200)
         self.body = self.response.content.decode()
@@ -95,12 +90,13 @@ class SlackPageTests(TestCase):
         # they carry its identifier and its `.prose-lede` face (issue #179).
         self.assertRegex(
             self.body,
-            r'<h1 id="text-page-heading">\s*DataTalks\.Club on Slack\s*</h1>',
+            r'<h1 id="text-page-heading">\s*'
+            + re.escape(escape(str(self.page["title"])))
+            + r"\s*</h1>",
         )
         self.assertRegex(
             self.body,
-            r'<p class="prose-lede">\s*See where DataTalks\.Club members talk, and contact '
-            r"the community team if you need help with the next step\.\s*</p>",
+            r'<p class="prose-lede">\s*' + re.escape(escape(str(self.page["lead"]))) + r"\s*</p>",
         )
         self.assertEqual(self.body.count("<h1"), 1)
 
@@ -108,7 +104,7 @@ class SlackPageTests(TestCase):
         """A channel name is a literal, so it keeps the system's `.mono-code` face."""
 
         self.assertIn('<h2 id="slack-channels-heading">Find your conversation</h2>', self.body)
-        channels = SLACK_CHANNELS
+        channels = self.page["channels"]
         self.assertTrue(channels)
         for channel in channels:
             with self.subTest(channel=channel):
@@ -124,7 +120,7 @@ class SlackPageTests(TestCase):
         self.assertRegex(
             self.body,
             r'<a\s+class="cta cta-primary interactive-lift"\s+href="'
-            + re.escape(SLACK_TROUBLESHOOTING_URL)
+            + re.escape(str(self.page["troubleshooting_url"]))
             + r'"\s+target="_blank"\s+rel="noreferrer"\s*>\s*Contact the community team',
         )
         self.assertIn('<span class="sr-only">(opens in a new tab)</span>', self.body)

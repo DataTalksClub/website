@@ -3,24 +3,9 @@ from __future__ import annotations
 from django.test import TestCase
 
 from content.public_data import public_paths
-from test_support.published_content import PublishedPage, publish_documents
 
 
 class CanonicalRouteTests(TestCase):
-    def setUp(self) -> None:
-        # /slack is a database-owned page, so the route contract needs a row to
-        # serve before it can say anything about canonical URLs or aliases.
-        publish_documents(
-            [
-                PublishedPage(
-                    exact_public_path="/slack",
-                    title="DataTalks.Club on Slack",
-                    summary="Where the community talks.",
-                    slug="slack",
-                )
-            ]
-        )
-
     def test_slack_route_and_alias_have_exact_method_and_query_contracts(self) -> None:
         query = "x=%2F&x=&q=A+B&q=A%20B"
         canonical = self.client.get("/slack")

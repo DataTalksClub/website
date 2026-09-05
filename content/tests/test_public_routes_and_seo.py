@@ -21,7 +21,6 @@ from content.podcast_routes import (
 from content.public_data import public_paths, public_projection
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
 from events.queries import published_event_records
-from test_support.published_content import PublishedPage, publish_documents
 
 from .pagination_support import catalogue_body
 
@@ -30,21 +29,6 @@ SITEMAP_NAMESPACE = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
 class PublicRouteAndSeoTests(TestCase):
     maxDiff = None
-
-    def setUp(self) -> None:
-        super().setUp()
-        # /slack is a database-owned page and there is no ingest that publishes
-        # it yet, so the routes that must serve it need a row to serve.
-        publish_documents(
-            [
-                PublishedPage(
-                    exact_public_path="/slack",
-                    title="DataTalks.Club on Slack",
-                    summary="Where the community talks.",
-                    slug="slack",
-                )
-            ]
-        )
 
     def test_removed_podcast_records_are_absent_from_active_projections(self) -> None:
         removed_slugs = {
