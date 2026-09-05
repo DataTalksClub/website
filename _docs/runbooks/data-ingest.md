@@ -15,6 +15,31 @@ Where a number is asserted by code, the assertion is cited so you can re-check i
 
 ## 1. How to read this
 
+### The three places data can be
+
+Every question in this document is really "which of these three is it in?", so
+they are named once here and used with these meanings throughout.
+
+| Term | What it is |
+| --- | --- |
+| **Source** | Where the data actually lives and is authored, upstream of us: a Luma export, the CMP production export, `DataTalksClub/content`, a course repository, the retired legacy site. We do not serve it and mostly cannot write to it. |
+| **Staging** | `temporary/content/`. Source data after review and processing, already in the shape the production database wants. Nothing serves it, nobody authors in it, and it is deleted once production is ingested. Its only purpose is to be pumped into prod. |
+| **Production database** | The target. Every public page reads it and nothing else. |
+
+Work moves in one direction: **source → staging → production database.** A thing
+that reads staging on a public request is a bug, and a thing that reaches past
+staging into a source at request time is a worse one.
+
+> **A naming leftover.** `temporary/content/public_projection/` is staging. It is
+> called a *projection* because it once was one: the site read those JSON files
+> on every request, and "projection" named a read model served directly. Nothing
+> has served them since the database cutover. Read "projection" as "staging"
+> wherever it appears as a *noun for the files*; `scripts/projection_build/` and
+> `scripts/build_public_projection.py` keep the name honestly, because building
+> that artifact is what they do.
+
+### Three things that decide how a source behaves
+
 Three things decide how a source behaves, and they are independent of each other.
 Confusing them is the main way this goes wrong.
 

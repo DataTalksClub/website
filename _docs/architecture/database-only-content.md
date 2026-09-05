@@ -56,6 +56,12 @@ have run against the production database.
 
 ## The staging tree is not a second source of truth
 
+Three terms, used with these meanings here and in `_docs/runbooks/data-ingest.md`:
+a **source** is where data is authored upstream, **staging** is `temporary/content/`
+where a reviewed, processed copy waits, and the **production database** is the
+target every public page reads. Data moves one way, source → staging → database.
+
+
 `temporary/content/` is a **staging layer**: the reviewed form of each source,
 sitting between the original data and the database, and existing for no other
 reason than to be pumped into it once. Some of it is a straight capture; some of
