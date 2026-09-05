@@ -129,6 +129,39 @@ def _write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, object]])
         writer.writerows(rows)
 
 
+def _write_luma_pair(
+    root: Path,
+    stem: str,
+    *,
+    event_id: str,
+    event_url: str,
+    title: str,
+    start_at: str,
+    statuses: tuple[str, ...],
+) -> None:
+    """One synthetic Luma CSV/JSON export pair. The guest values are canaries."""
+
+    (root / f"{stem}.json").write_text(
+        json.dumps({"schema_version": 1, "event_id": event_id, "event_url": event_url}),
+        encoding="utf-8",
+    )
+    _write_csv(
+        root / f"{stem}.csv",
+        ["guest_id", "email", "approval_status", "event_id", "event_name", "event_start_at"],
+        [
+            {
+                "guest_id": f"guest-{index}",
+                "email": f"canary-{index}@example.test",
+                "approval_status": status,
+                "event_id": event_id,
+                "event_name": title,
+                "event_start_at": start_at,
+            }
+            for index, status in enumerate(statuses)
+        ],
+    )
+
+
 class NewEventIdentityDiscoveryTests(TestCase):
     """A genuinely new provider event gets a real identity; an already-known one does not.
 
@@ -158,24 +191,14 @@ class NewEventIdentityDiscoveryTests(TestCase):
         start_at: str,
         statuses: tuple[str, ...],
     ) -> None:
-        (self.root / f"{stem}.json").write_text(
-            json.dumps({"schema_version": 1, "event_id": event_id, "event_url": event_url}),
-            encoding="utf-8",
-        )
-        _write_csv(
-            self.root / f"{stem}.csv",
-            ["guest_id", "email", "approval_status", "event_id", "event_name", "event_start_at"],
-            [
-                {
-                    "guest_id": f"guest-{index}",
-                    "email": f"canary-{index}@example.test",
-                    "approval_status": status,
-                    "event_id": event_id,
-                    "event_name": title,
-                    "event_start_at": start_at,
-                }
-                for index, status in enumerate(statuses)
-            ],
+        _write_luma_pair(
+            self.root,
+            stem,
+            event_id=event_id,
+            event_url=event_url,
+            title=title,
+            start_at=start_at,
+            statuses=statuses,
         )
 
     def test_creates_an_identity_for_a_genuinely_new_event(self) -> None:
@@ -546,3 +569,146 @@ class NewEventIdentityDiscoveryTests(TestCase):
         self.assertEqual(independently_counted_rows, raw_csv_row_total)
         self.assertEqual(independently_counted_rows, 5)
 
+
+class DuplicateProviderIdentityReconciliationTests(TestCase):
+    """Naming, and only conditionally removing, the duplicates an earlier run wrote.
+
+    Fixing discovery stops new duplicates; it does nothing for a database that
+    already holds them.  Deleting an ``Event`` that carries a public id and a
+    Q&A session is destructive, so the default is a report and the removal is
+    narrow: no alias, no registration, no aggregate revision, no Q&A question
+    and no co-host invite, or the row stays and a human decides.
+    """
+
+    def setUp(self) -> None:
+        scratch = Path(settings.BASE_DIR) / ".tmp"
+        scratch.mkdir(exist_ok=True)
+        self.temporary = tempfile.TemporaryDirectory(dir=scratch)
+        self.root = Path(self.temporary.name)
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def _duplicate_pair(self):
+        """One reviewed-manifest event and the duplicate an unguarded run minted."""
+
+        from events.identity import create_event_identity, create_provider_event_identity
+
+        keep = create_event_identity(
+            title="An Event We Already Have",
+            source_repository="DataTalksClub/datatalksclub.github.io",
+            source_revision="a" * 40,
+            source_key="2026-09-08-an-event-we-already-have",
+        )
+        duplicate = create_provider_event_identity(
+            provider="luma",
+            external_event_identifier="evt-Known",
+            title="An Event We Already Have",
+        )
+        _write_luma_pair(
+            self.root,
+            "2026-09-08_an-event-we-already-have_evt-known",
+            event_id="evt-Known",
+            event_url="https://luma.com/known",
+            title="An Event We Already Have",
+            start_at="2026-09-08T10:00:00.000Z",
+            statuses=("approved",),
+        )
+        return keep, duplicate
+
+    def test_reporting_names_the_duplicate_and_changes_nothing(self) -> None:
+        from events.models import Event
+        from scripts.prod.import_events import reconcile_duplicate_luma_identities
+
+        keep, duplicate = self._duplicate_pair()
+        before = Event.objects.count()
+
+        report = reconcile_duplicate_luma_identities(luma_source=self.root)
+
+        self.assertEqual(report["duplicate_total"], 1)
+        self.assertEqual(report["removed"], False)
+        self.assertEqual(report["removed_total"], 0)
+        entry = report["duplicates"][0]
+        self.assertEqual(entry["external_event_identifier"], "evt-Known")
+        self.assertEqual(entry["duplicate_public_id"], duplicate.public_id)
+        self.assertEqual(entry["keep_public_id"], keep.public_id)
+        self.assertEqual(entry["dependent_rows"], {})
+        self.assertTrue(entry["removable"])
+        self.assertEqual(Event.objects.count(), before)
+
+    def test_removal_deletes_the_inert_duplicate_and_keeps_the_event_we_had(self) -> None:
+        from events.models import Event
+        from scripts.prod.import_events import reconcile_duplicate_luma_identities
+
+        keep, duplicate = self._duplicate_pair()
+
+        report = reconcile_duplicate_luma_identities(luma_source=self.root, remove=True)
+
+        self.assertEqual(report["removed_total"], 1)
+        self.assertEqual(report["retained_total"], 0)
+        self.assertFalse(Event.objects.filter(pk=duplicate.id).exists())
+        self.assertTrue(Event.objects.filter(pk=keep.id).exists())
+
+    def test_a_second_removal_run_finds_nothing_left_to_do(self) -> None:
+        from scripts.prod.import_events import reconcile_duplicate_luma_identities
+
+        self._duplicate_pair()
+        reconcile_duplicate_luma_identities(luma_source=self.root, remove=True)
+
+        replayed = reconcile_duplicate_luma_identities(luma_source=self.root, remove=True)
+
+        self.assertEqual(replayed["duplicate_total"], 0)
+        self.assertEqual(replayed["removed_total"], 0)
+
+    def test_a_duplicate_carrying_dependent_rows_is_reported_and_kept(self) -> None:
+        """Deleting this would destroy a real Q&A question, so a human decides."""
+
+        from events.models import Event, EventQnaQuestion, EventQnaSession
+        from events.qna.ids import opaque_id
+        from scripts.prod.import_events import reconcile_duplicate_luma_identities
+
+        _keep, duplicate = self._duplicate_pair()
+        session = EventQnaSession.objects.get(event=duplicate)
+        EventQnaQuestion.objects.create(
+            question_id=opaque_id(),
+            session=session,
+            text="Will this be recorded?",
+            participant_digest="a" * 64,
+        )
+
+        report = reconcile_duplicate_luma_identities(luma_source=self.root, remove=True)
+
+        self.assertEqual(report["duplicate_total"], 1)
+        self.assertEqual(report["removable_total"], 0)
+        self.assertEqual(report["retained_total"], 1)
+        self.assertEqual(report["removed_total"], 0)
+        self.assertEqual(report["duplicates"][0]["dependent_rows"], {"qna_question": 1})
+        self.assertTrue(Event.objects.filter(pk=duplicate.id).exists())
+
+    def test_a_provider_event_we_never_duplicated_is_not_reported(self) -> None:
+        """Only an exact date-and-title twin counts; a genuinely new event is left alone."""
+
+        from events.identity import create_provider_event_identity
+        from events.models import Event
+        from scripts.prod.import_events import reconcile_duplicate_luma_identities
+
+        created = create_provider_event_identity(
+            provider="luma",
+            external_event_identifier="evt-GenuinelyNew",
+            title="A Genuinely New Event",
+        )
+        _write_luma_pair(
+            self.root,
+            "2026-09-08_a-genuinely-new-event_evt-genuinelynew",
+            event_id="evt-GenuinelyNew",
+            event_url="https://luma.com/genuinely-new",
+            title="A Genuinely New Event",
+            start_at="2026-09-08T10:00:00.000Z",
+            statuses=("approved",),
+        )
+
+        report = reconcile_duplicate_luma_identities(luma_source=self.root, remove=True)
+
+        self.assertEqual(report["duplicate_total"], 0)
+        self.assertEqual(report["removed_total"], 0)
+        self.assertTrue(Event.objects.filter(pk=created.id).exists())
