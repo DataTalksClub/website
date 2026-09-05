@@ -10,6 +10,7 @@ from django.db import IntegrityError, transaction
 from django.test import TestCase
 
 from courses.models import Course, Testimonial, TestimonialPlacement
+from scripts.prod.import_testimonials import REVIEWED_PATH
 from courses.models.testimonial import INTERIM_SITE_ASSET_STATIC_PREFIX
 from courses.services.testimonials import (
     TestimonialImportError,
@@ -308,7 +309,7 @@ class HomepageTestimonialImportTests(TestCase):
     def test_replaying_the_reviewed_file_writes_no_second_row(self) -> None:
         before = Testimonial.objects.filter(placement=TestimonialPlacement.HOMEPAGE).count()
 
-        report = import_homepage_testimonials()
+        report = import_homepage_testimonials(REVIEWED_PATH)
 
         self.assertEqual(report.total, 6)
         self.assertTrue(report.replayed)
@@ -320,7 +321,7 @@ class HomepageTestimonialImportTests(TestCase):
     def test_it_bootstraps_an_empty_table_and_reports_what_it_created(self) -> None:
         Testimonial.objects.all().delete()
 
-        report = import_homepage_testimonials()
+        report = import_homepage_testimonials(REVIEWED_PATH)
 
         self.assertEqual((report.total, report.created, report.updated), (6, 6, 0))
         self.assertFalse(report.replayed)
@@ -336,7 +337,7 @@ class HomepageTestimonialImportTests(TestCase):
             published=True,
         )
 
-        import_homepage_testimonials()
+        import_homepage_testimonials(REVIEWED_PATH)
 
         editor_row.refresh_from_db()
         self.assertEqual(editor_row.name, "Editor Added")

@@ -36,7 +36,7 @@ if str(PROJECT_ROOT) not in sys.path:
 SYNC_MODEL = "one-time"
 BOOTSTRAPS_EMPTY_DATABASE = True
 
-REVIEWED_PATH = PROJECT_ROOT / "courses" / "homepage_testimonials.json"
+REVIEWED_PATH = PROJECT_ROOT / "temporary" / "content" / "homepage_testimonials.json"
 
 
 class TestimonialImportFailure(RuntimeError):
@@ -61,10 +61,11 @@ def run(*, path: Path | None = None, apply: bool = True) -> dict[str, Any]:
     )
 
     try:
-        entries = load_reviewed_homepage_testimonials(path)
+        source = path or REVIEWED_PATH
+        entries = load_reviewed_homepage_testimonials(source)
         if not apply:
             return {"total": len(entries), "created": 0, "updated": 0, "applied": False}
-        report = import_homepage_testimonials(path)
+        report = import_homepage_testimonials(source)
     except TestimonialImportError as error:
         raise TestimonialImportFailure(str(error)) from error
     return {

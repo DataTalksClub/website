@@ -92,8 +92,9 @@ def load_reviewed_faq() -> int:
 
 def load_homepage_testimonials() -> int:
     from courses.services.testimonials import import_homepage_testimonials
+    from scripts.prod.import_testimonials import REVIEWED_PATH
 
-    return import_homepage_testimonials().total
+    return import_homepage_testimonials(REVIEWED_PATH).total
 
 
 @transaction.atomic

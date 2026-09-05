@@ -22,7 +22,6 @@ from courses.models import Testimonial, TestimonialPlacement
 
 logger = logging.getLogger(__name__)
 
-REVIEWED_TESTIMONIALS_PATH = Path(__file__).resolve().parents[1] / "homepage_testimonials.json"
 
 _REQUIRED_FIELDS = ("name", "attribution", "quote", "source_url", "portrait_asset_key")
 
@@ -42,10 +41,14 @@ class TestimonialImportReport:
         return self.created == 0 and self.updated == 0
 
 
-def load_reviewed_homepage_testimonials(path: Path | None = None) -> tuple[dict[str, str], ...]:
-    """Parse and validate the checked reviewed set without touching the database."""
+def load_reviewed_homepage_testimonials(source: Path) -> tuple[dict[str, str], ...]:
+    """Parse and validate a reviewed set without touching the database.
 
-    source = path or REVIEWED_TESTIMONIALS_PATH
+    The caller supplies the location. Testimonials are database rows; a reviewed
+    file is one-time ingestion input, and where that input sits is a fact about
+    the ingest rather than about this module.
+    """
+
     try:
         payload = json.loads(source.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
@@ -71,7 +74,7 @@ def load_reviewed_homepage_testimonials(path: Path | None = None) -> tuple[dict[
 
 
 @transaction.atomic
-def import_homepage_testimonials(path: Path | None = None) -> TestimonialImportReport:
+def import_homepage_testimonials(path: Path) -> TestimonialImportReport:
     """Apply the reviewed homepage set, keyed on the public post it came from.
 
     Replaying writes nothing.  Rows an editor added by hand are untouched: this
