@@ -193,17 +193,25 @@ currently **not reproducible** — see issue #253 and §11.
 | `podcast_platforms.json` | 4 | `scripts/podcast_platforms.json` (in-repo) |
 | `manifest.json` | — | counts + per-artifact SHA-256 + `tree_sha256` |
 
-`courses.json` is loaded and digest-verified at startup but **no view reads it** —
-`/courses` is database-served. It is validation ballast.
+`courses.json` is imported into `ContentDocument` with the rest of the catalogue
+but **no view reads it** — `/courses` is database-served. It is ballast (§12 item
+14).
 
 ### Integrity at runtime
 
-`content/public_data.py:642` `_checked_public_projection()` raises
-`ImproperlyConfigured` if any per-artifact digest, source revision, or count canary
-drifts, and it is wired into a Django system check (`content/apps.py:24`,
-`content.E002`). The projection is effectively immutable at runtime and cached with
-`lru_cache(maxsize=1)`. **You cannot hand-edit a projection file and have the site
-boot.**
+**The startup digest check is gone, and nothing replaced it.** `content.E002` no
+longer exists: the catalogue is database rows, so there is no file for a system
+check to digest. `content/public_data.py`'s `_checked_public_projection()` now
+reads the active editorial release and caches per release id
+(`_editorial_catalogue`, `lru_cache(maxsize=2)`); a database with no active
+release returns the empty catalogue rather than refusing to boot, because an
+absent snapshot is a normal state. `content/apps.py`'s remaining checks
+(`content.E003`–`E005`, `content.W001`) cover only the media store.
+
+The consequence for an operator: a hand-edit under `temporary/content/` is not
+caught at boot. It is caught by `make content-update-check`, and by the importers
+themselves — each refuses a reviewed file whose declared counts, digests or pinned
+revision do not match. Somebody has to run them.
 
 ### Per-source detail
 
@@ -316,18 +324,19 @@ clone (`content/media_tooling.py:115-124` parses
 an already-hydrated peer. Closing this properly means the CDN bucket becomes the
 origin of record — §7.
 
-Reads that are **provenance assertions only** — they compare strings inside committed
+Reads that are **provenance assertions only** — they compare strings inside reviewed
 JSON and never touch the repository or the network. They still *pin* us to the legacy
 repo's name, so rebuilding any of these records from a different upstream requires
-editing these constants first, or Django refuses to boot:
+editing these constants first. They are build- and import-time checks now, not the
+boot-time refusal this table used to describe:
 
 | # | Location | Asserts |
 | --- | --- | --- |
-| a7 | `content/public_data.py:102, 126, 127, 132`; check at `:788-798` | `people`, `events` and 438 `media` records must *claim* the legacy repo at `ee43d3fa…`. Runs at **startup** (`content.E002`) |
-| a8 | `content/article_faq.py:44-46, 171-175, 227` | the committed FAQ capture names the legacy repo + `_data/faqs` |
-| a9 | `content/event_description_bridge.py:46-49, 338-341, 391-394` | `LEGACY_REPOSITORY`, `LEGACY_REVISION`, `LEGACY_SOURCE_PATH = "_data/events.yaml"`, source checksum |
-| a10 | `content/event_speaker_bio_normalization.py:242` | `people_repository` in the committed normalization plan |
-| a11 | `events/event_identity_manifest.json` | 422 occurrences of the legacy repo as per-event provenance. Read by `events/identity.py:28` and migrations `0005`, `0008` |
+| a7 | *(retired)* | the startup claim check ran as `content.E002`, which no longer exists — see **Integrity at runtime** above. The provenance still travels on each record; nothing verifies it at boot |
+| a8 | `content/article_faq.py` | the article FAQ is built from published documents now; what survives is the legacy Slack-URL rewrite (`_LEGACY_SLACK`, `:45`) |
+| a9 | `scripts/projection_build/event_description_bridge.py` | `LEGACY_REPOSITORY`, `LEGACY_REVISION`, `LEGACY_SOURCE_PATH = "_data/events.yaml"`, source checksum. A build-time pin now, not a runtime one |
+| a10 | `scripts/projection_build/event_speaker_bio_normalization.py` | `people_repository` in the committed normalization plan, which also pins the event count at exactly 421 (§12 item 8) |
+| a11 | `temporary/content/event_identity_manifest.json` | the legacy repo as per-event provenance. Read by `scripts/prod/import_events.py`; **no migration reads it any more** |
 | a12 | `content_sync/dtc_content/adapter.py:151, 879, 1203-1205`; `contract.py:13` | the `migration.yaml` **inside a `DataTalksClub/content` checkout** — not a legacy read |
 
 Dead data, no code path:
