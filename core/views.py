@@ -14,7 +14,8 @@ from django.http import (
 from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_safe
 
-from content.public_data import event_groups, ordered_podcasts, public_projection
+from content.podcast_content import ordered_podcasts
+from content.public_data import event_groups, public_projection
 from core.home_content import (
     FEATURED_FAMILY,
     course_catalog,
@@ -81,7 +82,7 @@ def home(request: HttpRequest):
     # ingest, and a database that has not been ingested yet still has a homepage.
     # The template drops the panel whose record is missing.
     article = next(iter(projection["articles"]), None)
-    podcast = next(iter(ordered_podcasts(projection["podcasts"])), None)
+    podcast = next(iter(ordered_podcasts()), None)
     upcoming = tuple(
         {**event, "home_time": event_time_display(event["starts_at"])}
         for event in events.upcoming[:3]

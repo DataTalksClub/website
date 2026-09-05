@@ -71,6 +71,7 @@ from .podcast_content import (
     episode_view,
     listening_platform_phrase,
     podcast_platform_links,
+    podcast_seasons,
     season_episodes,
 )
 from .podcast_routes import (
@@ -82,7 +83,6 @@ from .public_data import (
     WIKI_ASSET_ROOT,
     event_date_groups,
     event_groups,
-    podcast_seasons,
     public_projection,
 )
 from .public_query import selector_query
@@ -605,8 +605,7 @@ def podcast_hub(request: HttpRequest) -> HttpResponse:
     if not valid_query:
         return _no_store(HttpResponseBadRequest("Bad request."))
 
-    projection = public_projection()
-    seasons = podcast_seasons(projection["podcasts"])
+    seasons = podcast_seasons(catalogue.podcasts())
     latest_season = seasons[0].number
     selected_number = latest_season if requested_season is None else requested_season
     season_index = next(
@@ -638,7 +637,7 @@ def podcast_hub(request: HttpRequest) -> HttpResponse:
             "episodes": episodes,
             "episode_total": sum(len(available.episodes) for available in seasons),
             "listening_platforms": listening_platform_phrase(episodes),
-            "podcast_platform_links": podcast_platform_links(projection["podcast_platforms"]),
+            "podcast_platform_links": podcast_platform_links(catalogue.podcast_platforms()),
             "season_links": tuple(
                 {
                     "number": available.number,
@@ -782,7 +781,7 @@ def _render_podcast_detail(
     )
     previous_episode, next_episode, related_episodes = episode_navigation(
         episode,
-        projection["podcasts"],
+        catalogue.podcasts(),
         people_by_slug=projection["people_by_slug"],
     )
     try:
@@ -821,7 +820,7 @@ def _render_podcast_detail(
             "episode": episode_view(
                 episode,
                 people_by_slug=projection["people_by_slug"],
-                resource_podcast_records=projection["podcasts"],
+                resource_podcast_records=catalogue.podcasts(),
             ),
             "previous_episode": previous_episode,
             "next_episode": next_episode,
@@ -848,17 +847,16 @@ def _render_podcast_detail(
 def podcast_detail(request: HttpRequest, slug: str) -> HttpResponse:
     if request.method not in {"GET", "HEAD"}:
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
-    projection = public_projection()
-    episode = projection["podcasts_by_slug"].get(slug)
+    episode = catalogue.podcast(slug)
     if episode is None:
         raise Http404
-    return _render_podcast_detail(request, episode, projection=projection)
+    return _render_podcast_detail(request, episode)
 
 
-def _podcast_by_public_id(projection: dict, episode_id: str) -> dict:
+def _podcast_by_public_id(episode_id: str) -> dict:
     matches = [
         episode
-        for episode in projection["podcasts"]
+        for episode in catalogue.podcasts()
         if podcast_public_id(
             season=episode["season"],
             episode=episode["episode"],
@@ -880,18 +878,17 @@ def podcast_detail_by_id(
 
     if request.method not in {"GET", "HEAD"}:
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
-    projection = public_projection()
-    episode = _podcast_by_public_id(projection, episode_id)
+    episode = _podcast_by_public_id(episode_id)
     if request.path_info != episode["public_path"]:
         return permanent_public_redirect(request, target=episode["public_path"])
-    return _render_podcast_detail(request, episode, projection=projection)
+    return _render_podcast_detail(request, episode)
 
 
 @csrf_exempt
 def podcast_detail_by_id_without_slug(request: HttpRequest, episode_id: str) -> HttpResponse:
     if request.method not in {"GET", "HEAD"}:
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
-    episode = _podcast_by_public_id(public_projection(), episode_id)
+    episode = _podcast_by_public_id(episode_id)
     return permanent_public_redirect(request, target=episode["public_path"])
 
 
@@ -903,13 +900,12 @@ def podcast_legacy_detail(request: HttpRequest, slug: str) -> HttpResponse:
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
     if slug in PODCAST_HIERARCHICAL_ONLY_SLUGS:
         raise Http404
-    projection = public_projection()
-    episode = projection["podcasts_by_slug"].get(slug)
+    episode = catalogue.podcast(slug)
     if episode is None:
         raise Http404
     if episode["public_path"] != podcast_legacy_path(slug):
         return permanent_public_redirect(request, target=episode["public_path"])
-    return _render_podcast_detail(request, episode, projection=projection)
+    return _render_podcast_detail(request, episode)
 
 
 @require_safe
@@ -1302,7 +1298,7 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
         )
     if section == "podcast":
         return (("/podcast", ""),) + tuple(
-            (record["public_path"], record["published"][:10]) for record in projection["podcasts"]
+            (record["public_path"], record["published"][:10]) for record in catalogue.podcasts()
         )
     if section == "books":
         return (("/books", ""),) + tuple(

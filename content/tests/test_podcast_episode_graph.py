@@ -9,6 +9,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.template.loader import render_to_string
 from django.test import TestCase
 
+from content import catalogue
 from content.podcast_routes import podcast_public_id
 from content.public_data import public_projection
 from content.public_graph import validate_wiki_graph
@@ -22,6 +23,14 @@ REPRESENTATIVE_GRAPH_PATH = (
     "s23e06-data-engineer-career-in-2026-roles-specializations-and-what-companies-look-for"
 )
 PODCAST_GRAPH_PATH_PATTERN = re.compile(r"^/podcast/s[0-9]+e[0-9]+/[a-z0-9_][a-z0-9_.-]*$")
+
+
+def _episode(slug: str) -> dict[str, Any]:
+    """The published episode a test names, which the catalogue must hold."""
+
+    record = catalogue.podcast(slug)
+    assert record is not None, slug
+    return record
 
 
 def _graph_node(
@@ -52,7 +61,7 @@ def _synthetic_projection(
 class EpisodeGraphContractTests(TestCase):
     def test_s23e06_uses_exact_typed_path_and_aggregates_the_checked_oracle(self) -> None:
         projection = public_projection()
-        episode = projection["podcasts_by_slug"][REPRESENTATIVE]
+        episode = _episode(REPRESENTATIVE)
 
         resolved = episode_graph(episode, projection=projection)
 
@@ -88,7 +97,7 @@ class EpisodeGraphContractTests(TestCase):
 
     def test_visual_nodes_are_native_links_to_their_resolved_targets(self) -> None:
         projection = public_projection()
-        episode = projection["podcasts_by_slug"][REPRESENTATIVE]
+        episode = _episode(REPRESENTATIVE)
         resolved = episode_graph(episode, projection=projection)
         body = render_to_string(
             "public/_podcast_episode_knowledge_graph.html", {"episode_graph": resolved}
@@ -225,7 +234,7 @@ class EpisodeGraphContractTests(TestCase):
 
     def test_narrow_visual_hub_stays_clear_of_all_eight_spokes(self) -> None:
         projection = public_projection()
-        episode = projection["podcasts_by_slug"][REPRESENTATIVE]
+        episode = _episode(REPRESENTATIVE)
         narrow = next(
             layout
             for layout in episode_graph(episode, projection=projection).layouts
@@ -359,8 +368,8 @@ class EpisodeGraphContractTests(TestCase):
 
 class EpisodeGraphPageTests(TestCase):
     def test_s23e06_page_exposes_complete_fallback_without_changing_episode_metadata(self) -> None:
-        projection = public_projection()
-        episode = projection["podcasts_by_slug"][REPRESENTATIVE]
+        public_projection()
+        episode = _episode(REPRESENTATIVE)
 
         response = self.client.get(episode["public_path"])
 
@@ -395,7 +404,7 @@ class EpisodeGraphPageTests(TestCase):
 
     def test_no_data_and_known_graph_failure_keep_the_episode_page_successful(self) -> None:
         projection = public_projection()
-        episode = projection["podcasts_by_slug"][REPRESENTATIVE]
+        episode = _episode(REPRESENTATIVE)
         no_data_projection = {**projection, "wiki_graph": {"nodes": [], "links": []}}
         with patch("content.public_views.public_projection", return_value=no_data_projection):
             no_data_response = self.client.get(episode["public_path"])

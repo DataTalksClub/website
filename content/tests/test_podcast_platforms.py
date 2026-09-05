@@ -2,17 +2,27 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
+from typing import Any
 
 from django.test import TestCase
 
+from content import catalogue
 from content.podcast_content import podcast_platform_links
 from content.public_data import public_projection
 from scripts import build_public_projection as builder
 
 
+def _episode(slug: str) -> dict[str, Any]:
+    """The published episode a test names, which the catalogue must hold."""
+
+    record = catalogue.podcast(slug)
+    assert record is not None, slug
+    return record
+
+
 class PodcastPlatformDataTests(TestCase):
     def test_show_platforms_use_legacy_destinations_and_canonical_provider(self) -> None:
-        platforms = podcast_platform_links(public_projection()["podcast_platforms"])
+        platforms = podcast_platform_links(catalogue.podcast_platforms())
 
         self.assertEqual(
             [(link.provider, link.label, link.url) for link in platforms],
@@ -48,7 +58,7 @@ class PodcastPlatformDataTests(TestCase):
         )
         listener_links = [
             link
-            for link in podcast_platform_links(public_projection()["podcast_platforms"])
+            for link in podcast_platform_links(catalogue.podcast_platforms())
             if link.provider != "spotify_for_creators"
         ]
         for link in listener_links:
@@ -97,9 +107,7 @@ class PodcastPlatformDataTests(TestCase):
     def test_episode_keeps_youtube_and_restores_creator_audio_without_creator_pill(
         self,
     ) -> None:
-        episode = public_projection()["podcasts_by_slug"][
-            "s24e06-how-to-build-ai-that-actually-ships-in-production"
-        ]
+        episode = _episode("s24e06-how-to-build-ai-that-actually-ships-in-production")
         response = self.client.get(episode["public_path"])
         body = response.content.decode()
 
@@ -149,18 +157,18 @@ class PodcastPlatformDataTests(TestCase):
             hashlib.sha256(path.read_bytes()).hexdigest(),
         )
         self.assertEqual(
-            {item["provider"] for item in projection["podcast_platforms"]},
+            {item["provider"] for item in catalogue.podcast_platforms()},
             {"apple", "spotify", "youtube", "spotify_for_creators"},
         )
         self.assertEqual(
-            [item["key"] for item in projection["podcast_platforms"]],
-            [item["provider"] for item in projection["podcast_platforms"]],
+            [item["key"] for item in catalogue.podcast_platforms()],
+            [item["provider"] for item in catalogue.podcast_platforms()],
         )
         self.assertTrue(
-            all(item["title"] == item["label"] for item in projection["podcast_platforms"])
+            all(item["title"] == item["label"] for item in catalogue.podcast_platforms())
         )
         self.assertTrue(
-            all("anchor" not in record.get("links", {}) for record in projection["podcasts"])
+            all("anchor" not in record.get("links", {}) for record in catalogue.podcasts())
         )
 
     def test_pinned_source_anchor_links_are_canonicalized_at_projection_boundary(self) -> None:

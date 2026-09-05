@@ -3,12 +3,12 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Browser, Page, ViewportSize, expect
 
+from content.podcast_content import ordered_podcasts, podcast_seasons
 from content.podcast_routes import (
     PODCAST_GENAI_PILOTS_PATH,
     PODCAST_GENAI_PILOTS_SLUG,
     podcast_legacy_path,
 )
-from content.public_data import ordered_podcasts, podcast_seasons
 from playwright_tests.accessibility_support import assert_accessible_page
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-132")

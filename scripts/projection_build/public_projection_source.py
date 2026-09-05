@@ -23,7 +23,7 @@ from typing import Any
 from django.core.exceptions import ImproperlyConfigured
 
 from content.podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_canonical_path
-from content.public_data import ordered_podcasts
+from content.podcast_content import ordered_podcasts
 from content.public_graph import safe_public_graph_url, validate_wiki_graph
 
 EXPECTED_SELECTION = "preferred"

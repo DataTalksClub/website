@@ -51,7 +51,7 @@ COLLECTION_NAMES = (
 )
 
 
-def _active_release_id() -> str:
+def active_release_id() -> str:
     """The id of the release currently publishing the catalogue, or ``""``.
 
     One cheap indexed lookup, used as the cache key below. It changes exactly
@@ -74,7 +74,7 @@ def _active_release_id() -> str:
 def records(kind: str) -> tuple[Record, ...]:
     """Every published record of one kind, in the catalogue's own order."""
 
-    return _records(_active_release_id(), kind)
+    return _records(active_release_id(), kind)
 
 
 @lru_cache(maxsize=64)
@@ -110,8 +110,43 @@ def _records(release_id: str, kind: str) -> tuple[Record, ...]:
     return tuple(record for _position, record in held)
 
 
+def singleton(kind: str) -> Record:
+    """The one record of a kind the catalogue publishes exactly one of.
+
+    The wiki graph, the search index, the platform links and the route manifest
+    are one document apiece rather than a collection of one. A database that
+    publishes none gives an empty mapping, which every reader treats as absent.
+    """
+
+    held = records(kind)
+    return held[0] if held else {}
+
+
 def _by_slug(collection: tuple[Record, ...], slug: str) -> Record | None:
     return next((record for record in collection if record.get("slug") == slug), None)
+
+
+def podcasts() -> tuple[Record, ...]:
+    """Every published episode, in the catalogue's own order.
+
+    This is not the order the pages list episodes in. Season and episode
+    numbering is a podcast fact rather than a catalogue one, so
+    :func:`content.podcast_content.ordered_podcasts` decides that.
+    """
+
+    return records("podcast")
+
+
+def podcast(slug: str) -> Record | None:
+    """One episode, or ``None`` when the catalogue does not publish it."""
+
+    return _by_slug(podcasts(), slug)
+
+
+def podcast_platforms() -> tuple[Record, ...]:
+    """The listening platforms the show publishes, in the offered order."""
+
+    return tuple(singleton("podcast_platforms").get("platforms", ()))
 
 
 def books() -> tuple[Record, ...]:

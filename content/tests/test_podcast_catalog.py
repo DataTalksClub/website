@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 from xml.etree import ElementTree
 
@@ -12,11 +13,14 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils.html import conditional_escape, escape
 
+from content import catalogue
 from content.podcast_content import (
     _spotify_creator_embed,
     episode_navigation,
     episode_view,
     listening_platform_phrase,
+    ordered_podcasts,
+    podcast_seasons,
     published_display,
     season_episodes,
 )
@@ -26,11 +30,19 @@ from content.podcast_routes import (
     PODCAST_ROUTE_MIGRATION_PATH,
     podcast_legacy_path,
 )
-from content.public_data import ordered_podcasts, podcast_seasons, public_projection
+from content.public_data import public_projection
 from core.seo import validated_canonical_url
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SITEMAP_NAMESPACE = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+
+
+def _episode(slug: str) -> dict[str, Any]:
+    """The published episode a test names, which the catalogue must hold."""
+
+    record = catalogue.podcast(slug)
+    assert record is not None, slug
+    return record
 
 
 def cache_directives(response) -> set[str]:
@@ -43,7 +55,7 @@ def cache_directives(response) -> set[str]:
 
 class PodcastOrderingTests(TestCase):
     def test_catalogue_orders_complete_seasons_without_mutating_projection_order(self) -> None:
-        projection = public_projection()["podcasts"]
+        projection = catalogue.podcasts()
         source_order = tuple(episode["slug"] for episode in projection)
         ordered = ordered_podcasts(projection)
         seasons = podcast_seasons(projection)
@@ -157,7 +169,7 @@ class PodcastPageCompositionTests(TestCase):
     """The design system pages (issue #179) read every fact, or fail loudly."""
 
     def test_every_catalogue_record_composes_without_invention(self) -> None:
-        records = public_projection()["podcasts"]
+        records = catalogue.podcasts()
         views = tuple(episode_view(record) for record in records)
 
         self.assertEqual(len(views), len(records))
@@ -322,9 +334,7 @@ class PodcastPageCompositionTests(TestCase):
         self.assertEqual(view.timestamp_entries[0].seconds, 17)
 
     def test_spotify_creator_link_derives_a_safe_embed_without_inventing_an_id(self) -> None:
-        target = public_projection()["podcasts_by_slug"][
-            "s24e05-ai-adoption-in-enterprise-beyond-writing-code"
-        ]
+        target = _episode("s24e05-ai-adoption-in-enterprise-beyond-writing-code")
         creator_key = next(
             key for key in ("spotify_for_creators", "anchor") if key in target["links"]
         )
@@ -384,7 +394,7 @@ class PodcastEpisodeParityTests(TestCase):
 
     def representative(self) -> tuple[dict, dict]:
         projection = public_projection()
-        return projection, projection["podcasts_by_slug"][self.representative_slug]
+        return projection, _episode(self.representative_slug)
 
     def test_representative_composes_resources_video_timestamps_and_person_bio(self) -> None:
         projection, record = self.representative()
@@ -537,7 +547,7 @@ class PodcastEpisodeParityTests(TestCase):
     def test_previous_and_next_episode_cards_show_their_season_and_episode(self) -> None:
         projection, record = self.representative()
         previous_episode, next_episode, _ = episode_navigation(
-            record, projection["podcasts"], people_by_slug=projection["people_by_slug"]
+            record, catalogue.podcasts(), people_by_slug=projection["people_by_slug"]
         )
         response = self.client.get(record["public_path"])
         body = response.content.decode()
@@ -549,12 +559,10 @@ class PodcastEpisodeParityTests(TestCase):
 
     def test_checked_detail_and_adjacent_destinations_render_with_internal_resource(self) -> None:
         projection = public_projection()
-        record = projection["podcasts_by_slug"][
-            "practical-devrel-demofirst-education-and-open-source"
-        ]
+        record = _episode("practical-devrel-demofirst-education-and-open-source")
         previous, following, _ = episode_navigation(
             record,
-            projection["podcasts"],
+            catalogue.podcasts(),
             people_by_slug=projection["people_by_slug"],
         )
         self.assertIsNotNone(previous)
@@ -569,13 +577,13 @@ class PodcastEpisodeParityTests(TestCase):
             with self.subTest(destination=destination):
                 self.assertEqual(self.client.get(destination).status_code, 200)
 
-        internal_resource_record = projection["podcasts_by_slug"][
+        internal_resource_record = _episode(
             "data-freelancing-career-strategy-market-demand-and-client-acquisition"
-        ]
+        )
         view = episode_view(
             internal_resource_record,
             people_by_slug=projection["people_by_slug"],
-            resource_podcast_records=projection["podcasts"],
+            resource_podcast_records=catalogue.podcasts(),
         )
         self.assertIn(
             "/podcast/s16e09/becoming-data-freelancer",
@@ -608,14 +616,14 @@ class PodcastEpisodeParityTests(TestCase):
                         **record,
                         "resources": [{"title": "Unsafe", "url": unsafe}],
                     },
-                    resource_podcast_records=projection["podcasts"],
+                    resource_podcast_records=catalogue.podcasts(),
                 )
                 self.assertEqual(view.resources, ())
 
     def test_related_episode_cards_show_the_guest_instead_of_the_description(self) -> None:
         projection, record = self.representative()
         _, _, related_episodes = episode_navigation(
-            record, projection["podcasts"], people_by_slug=projection["people_by_slug"]
+            record, catalogue.podcasts(), people_by_slug=projection["people_by_slug"]
         )
         self.assertTrue(related_episodes)
         response = self.client.get(record["public_path"])
@@ -649,15 +657,10 @@ class PodcastEpisodeParityTests(TestCase):
             "video": None,
             "links": {},
         }
-        synthetic_projection = {
-            **projection,
-            "podcasts": (synthetic,),
-            "podcasts_by_slug": {synthetic["slug"]: synthetic},
-        }
         view = episode_view(synthetic, people_by_slug=projection["people_by_slug"])
         self.assertIsNone(view.player)
 
-        with patch("content.public_views.public_projection", return_value=synthetic_projection):
+        with patch("content.catalogue.podcasts", return_value=(synthetic,)):
             response = self.client.get(synthetic["public_path"])
 
         self.assertEqual(response.status_code, 200)
@@ -693,13 +696,8 @@ class PodcastEpisodeParityTests(TestCase):
                 ),
             ],
         }
-        synthetic_projection = {
-            **projection,
-            "podcasts": (synthetic,),
-            "podcasts_by_slug": {synthetic["slug"]: synthetic},
-        }
 
-        with patch("content.public_views.public_projection", return_value=synthetic_projection):
+        with patch("content.catalogue.podcasts", return_value=(synthetic,)):
             response = self.client.get(synthetic["public_path"])
 
         body = response.content.decode()
@@ -709,10 +707,8 @@ class PodcastEpisodeParityTests(TestCase):
             self.assertNotIn(f'href="{path}"', body)
 
     def test_spotify_creator_episode_renders_the_responsive_accessible_player(self) -> None:
-        projection = public_projection()
-        source = projection["podcasts_by_slug"][
-            "s24e05-ai-adoption-in-enterprise-beyond-writing-code"
-        ]
+        public_projection()
+        source = _episode("s24e05-ai-adoption-in-enterprise-beyond-writing-code")
         creator_key = next(
             key for key in ("spotify_for_creators", "anchor") if key in source["links"]
         )
@@ -727,13 +723,8 @@ class PodcastEpisodeParityTests(TestCase):
             "guest_profiles": [],
             "guests": [],
         }
-        synthetic_projection = {
-            **projection,
-            "podcasts": (synthetic,),
-            "podcasts_by_slug": {synthetic["slug"]: synthetic},
-        }
 
-        with patch("content.public_views.public_projection", return_value=synthetic_projection):
+        with patch("content.catalogue.podcasts", return_value=(synthetic,)):
             response = self.client.get(synthetic["public_path"])
 
         self.assertEqual(response.status_code, 200)
@@ -753,9 +744,7 @@ class PodcastEpisodeParityTests(TestCase):
 
     def test_s24e05_youtube_player_uses_the_stored_watch_url_identity(self) -> None:
         projection = public_projection()
-        source = projection["podcasts_by_slug"][
-            "s24e05-ai-adoption-in-enterprise-beyond-writing-code"
-        ]
+        source = _episode("s24e05-ai-adoption-in-enterprise-beyond-writing-code")
         view = episode_view(source, people_by_slug=projection["people_by_slug"])
 
         self.assertEqual(source["links"]["youtube"], "https://www.youtube.com/watch?v=XzokRd_IPSc")
@@ -779,12 +768,7 @@ class PodcastEpisodeParityTests(TestCase):
             "public_path": "/podcast/synthetic-dated-episode.html",
             "published": "2026-02-03",
         }
-        synthetic_projection = {
-            **projection,
-            "podcasts": (dated,),
-            "podcasts_by_slug": {dated["slug"]: dated},
-        }
-        with patch("content.public_views.public_projection", return_value=synthetic_projection):
+        with patch("content.catalogue.podcasts", return_value=(dated,)):
             response = self.client.get(dated["public_path"])
         body = response.content.decode()
         self.assertContains(response, 'property="article:published_time" content="2026-02-03"')
@@ -815,7 +799,7 @@ class PodcastEpisodeParityTests(TestCase):
         }
         previous, following, related = episode_navigation(
             record,
-            (next_record, *projection["podcasts"]),
+            (next_record, *catalogue.podcasts()),
             people_by_slug=projection["people_by_slug"],
         )
         assert previous is not None
@@ -852,12 +836,7 @@ class PodcastEpisodeParityTests(TestCase):
             "video": None,
             "transcript": [],
         }
-        synthetic_projection = {
-            **projection,
-            "podcasts": (synthetic,),
-            "podcasts_by_slug": {synthetic["slug"]: synthetic},
-        }
-        with patch("content.public_views.public_projection", return_value=synthetic_projection):
+        with patch("content.catalogue.podcasts", return_value=(synthetic,)):
             response = self.client.get(synthetic["public_path"])
         body = response.content.decode()
         self.assertEqual(response.status_code, 200)
@@ -890,12 +869,7 @@ class PodcastEpisodeParityTests(TestCase):
             "guest_profiles": [],
             "guests": [],
         }
-        synthetic_projection = {
-            **projection,
-            "podcasts": (synthetic,),
-            "podcasts_by_slug": {synthetic["slug"]: synthetic},
-        }
-        with patch("content.public_views.public_projection", return_value=synthetic_projection):
+        with patch("content.catalogue.podcasts", return_value=(synthetic,)):
             response = self.client.get(synthetic["public_path"])
 
         body = response.content.decode()
@@ -910,7 +884,7 @@ class PodcastEpisodeParityTests(TestCase):
 
 class PodcastSeasonNavigationTests(TestCase):
     def test_each_actual_season_contains_one_complete_season_and_all_details_once(self) -> None:
-        projection = public_projection()
+        public_projection()
         seasons = podcast_seasons()
         seen_paths: list[str] = []
         self.assertEqual(tuple(season.number for season in seasons), tuple(range(24, 0, -1)))
@@ -933,7 +907,7 @@ class PodcastSeasonNavigationTests(TestCase):
                         self.assertIn(f'href="{guest["public_path"]}"', body)
             seen_paths.extend(page_paths)
 
-        expected_paths = {episode["public_path"] for episode in projection["podcasts"]}
+        expected_paths = {episode["public_path"] for episode in catalogue.podcasts()}
         self.assertEqual(set(seen_paths), expected_paths)
 
         for detail_path in seen_paths:
@@ -956,7 +930,7 @@ class PodcastSeasonNavigationTests(TestCase):
 
     def test_detail_routes_keep_html_finals_except_reviewed_hierarchical_migrations(self) -> None:
         projection = public_projection()
-        podcasts = projection["podcasts"]
+        podcasts = catalogue.podcasts()
         migration = projection["editorial_route_migration"]
         podcast_finals = {
             item["final_path"] for item in migration["finals"] if item["collection"] == "podcasts"
@@ -998,10 +972,8 @@ class PodcastSeasonNavigationTests(TestCase):
         self.assertEqual(self.client.post(alias_path).status_code, 405)
 
     def test_s24e05_uses_the_new_canonical_route_and_redirects_its_html_path(self) -> None:
-        projection = public_projection()
-        episode = projection["podcasts_by_slug"][
-            "s24e05-ai-adoption-in-enterprise-beyond-writing-code"
-        ]
+        public_projection()
+        episode = _episode("s24e05-ai-adoption-in-enterprise-beyond-writing-code")
         canonical = episode["public_path"]
         legacy = podcast_legacy_path(episode["slug"])
         query = "utm_source=route%2Btest&blank="
@@ -1147,7 +1119,7 @@ class PodcastSeasonNavigationTests(TestCase):
         self.assertNotContains(response, "/podcast?season=24")
 
     def test_higher_season_becomes_clean_default_and_real_adjacency_skips_gaps(self) -> None:
-        projection = public_projection()
+        public_projection()
         synthetic = {
             **ordered_podcasts()[0],
             "season": 30,
@@ -1159,7 +1131,7 @@ class PodcastSeasonNavigationTests(TestCase):
             "description": "A synthetic ordering fixture.",
             "guest_profiles": (),
         }
-        records = (synthetic, *projection["podcasts"])
+        records = (synthetic, *catalogue.podcasts())
         synthetic_seasons = podcast_seasons(records)
 
         with patch("content.public_views.podcast_seasons", return_value=synthetic_seasons):
@@ -1190,9 +1162,7 @@ class PodcastSeasonNavigationTests(TestCase):
             self.assertEqual(absent.status_code, 404)
             self.assertIn("no-store", cache_directives(absent))
 
-        synthetic_projection = dict(projection)
-        synthetic_projection["podcasts"] = records
-        with patch("core.views.public_projection", return_value=synthetic_projection):
+        with patch("core.views.ordered_podcasts", return_value=ordered_podcasts(records)):
             homepage = self.client.get("/")
         self.assertContains(homepage, "Synthetic future episode")
         self.assertContains(homepage, 'href="/podcast/synthetic-future-season.html"', count=1)
@@ -1289,16 +1259,16 @@ class PodcastSeasonNavigationTests(TestCase):
         self.assertContains(latest, "Season 24 · Episode 6")
 
         oldest = self.client.get("/podcast?season=1")
-        episode = public_projection()["podcasts_by_slug"]["data-team-roles"]
+        episode = _episode("data-team-roles")
         self.assertTrue(episode["description"])
         self.assertContains(oldest, str(conditional_escape(episode["description"])))
         self.assertNotContains(oldest, 'datetime="2021-02-23"')
         for guest in episode["guest_profiles"]:
             if guest["public_path"]:
                 self.assertContains(oldest, f'href="{guest["public_path"]}"')
-        self.assertFalse(any(not item["description"] for item in public_projection()["podcasts"]))
+        self.assertFalse(any(not item["description"] for item in catalogue.podcasts()))
         special_description = next(
-            item for item in public_projection()["podcasts"] if "&" in item["description"]
+            item for item in catalogue.podcasts() if "&" in item["description"]
         )
         season_path = (
             "/podcast"
@@ -1355,7 +1325,7 @@ class PodcastSeasonNavigationTests(TestCase):
         self.assertNotIn("#214", body)
 
     def test_episode_page_plays_and_lists_only_real_destinations(self) -> None:
-        episode = public_projection()["podcasts_by_slug"]["practical-llm-engineering-and-rag"]
+        episode = _episode("practical-llm-engineering-and-rag")
         response = self.client.get(episode["public_path"])
         body = response.content.decode()
 
@@ -1391,9 +1361,7 @@ class PodcastSeasonNavigationTests(TestCase):
         self.assertNotContains(response, episode["transcript_provenance"]["source_url"])
 
     def test_episode_without_a_transcript_renders_without_the_section(self) -> None:
-        silent = next(
-            item for item in public_projection()["podcasts"] if not item.get("transcript")
-        )
+        silent = next(item for item in catalogue.podcasts() if not item.get("transcript"))
         response = self.client.get(silent["public_path"])
 
         self.assertEqual(response.status_code, 200)
@@ -1401,14 +1369,14 @@ class PodcastSeasonNavigationTests(TestCase):
         self.assertNotContains(response, 'id="transcript-heading"')
 
     def test_an_ampersand_in_an_episode_title_is_escaped_on_the_page(self) -> None:
-        episode = next(item for item in public_projection()["podcasts"] if "&" in item["title"])
+        episode = next(item for item in catalogue.podcasts() if "&" in item["title"])
         self.assertNotEqual(escape(episode["title"]), episode["title"])
         response = self.client.get(episode["public_path"])
 
         self.assertContains(response, f'<h1 id="episode-heading">{escape(episode["title"])}</h1>')
 
     def test_an_apostrophe_in_a_guest_name_is_escaped_on_the_page(self) -> None:
-        episode = public_projection()["podcasts_by_slug"]["devrel-data-science-open-source-tools"]
+        episode = _episode("devrel-data-science-open-source-tools")
         guest = next(item for item in episode["guest_profiles"] if "'" in item["name"])
         self.assertNotEqual(escape(guest["name"]), guest["name"])
         response = self.client.get(episode["public_path"])
@@ -1488,7 +1456,7 @@ class PodcastSeasonNavigationTests(TestCase):
             "https://datatalks.club/podcast",
             *(
                 f"https://datatalks.club{episode['public_path']}"
-                for episode in public_projection()["podcasts"]
+                for episode in catalogue.podcasts()
             ),
         }
         self.assertEqual(set(locations), expected)

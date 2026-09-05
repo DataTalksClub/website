@@ -11,14 +11,12 @@ from zoneinfo import ZoneInfo
 
 from django.core.exceptions import ImproperlyConfigured
 from django.db import DatabaseError
-from django.db.models import Count, F, Max
+from django.db.models import Count, Max
 from django.utils import timezone
 
 from events.queries import published_event_records
 
 from . import catalogue
-from .models import ContentDocument, ContentRelease, ContentSource
-from .podcast_routes import podcast_canonical_path
 from .public_graph import validate_wiki_graph
 from .public_text import strip_leaked_target_attributes, target_attribute_count
 
@@ -58,15 +56,7 @@ EXPECTED_LEAKED_TARGET_MARKERS = {"articles": 0, "people": 10}
 #: one carries.
 EXPECTED_SELECTION = "preferred"
 
-COLLECTION_NAMES = (
-    "articles",
-    "podcasts",
-    "books",
-    "people",
-    "wiki",
-    "courses",
-    "media",
-)
+COLLECTION_NAMES = catalogue.COLLECTION_NAMES
 EVENT_TYPE_ICONS = {
     "conference": "fas fa-briefcase",
     "podcast": "fas fa-microphone-alt",
@@ -98,76 +88,6 @@ class EventDateGroup:
     display_date: str
     weekday: str
     events: tuple[dict[str, Any], ...]
-
-
-@dataclass(frozen=True, slots=True)
-class PodcastSeason:
-    number: int
-    episodes: tuple[dict[str, Any], ...]
-
-
-def podcast_public_path(record: dict[str, Any]) -> str:
-    """Return the checked canonical podcast detail path."""
-
-    slug = record.get("slug")
-    public_path = record.get("public_path")
-    if (
-        not isinstance(slug, str)
-        or not slug
-        or not isinstance(public_path, str)
-        or public_path != podcast_canonical_path(slug)
-    ):
-        raise ImproperlyConfigured("Public podcast canonical path is invalid.")
-    return public_path
-
-
-def _podcast_number(record: dict[str, Any], field: str) -> int:
-    value = record.get(field)
-    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
-        raise ImproperlyConfigured(f"Public podcast {field} must be a positive integer.")
-    return value
-
-
-def ordered_podcasts(
-    records: tuple[dict[str, Any], ...] | None = None,
-) -> tuple[dict[str, Any], ...]:
-    """Return the catalogue order without mutating the accepted projection order."""
-
-    selected = list(public_projection()["podcasts"] if records is None else records)
-    for record in selected:
-        _podcast_number(record, "season")
-        _podcast_number(record, "episode")
-        if not isinstance(record.get("published"), str) or not isinstance(record.get("slug"), str):
-            raise ImproperlyConfigured("Public podcast ordering metadata is invalid.")
-
-    # Stable sorts make the mixed direction contract explicit: season and episode
-    # descending, then published descending, then slug ascending.
-    selected.sort(key=lambda record: record["slug"])
-    selected.sort(key=lambda record: record["published"], reverse=True)
-    selected.sort(key=lambda record: record["episode"], reverse=True)
-    selected.sort(key=lambda record: record["season"], reverse=True)
-    return tuple(selected)
-
-
-def podcast_seasons(
-    records: tuple[dict[str, Any], ...] | None = None,
-) -> tuple[PodcastSeason, ...]:
-    ordered = ordered_podcasts(records)
-    if not ordered:
-        raise ImproperlyConfigured("Public podcast catalogue must not be empty.")
-
-    seasons: list[PodcastSeason] = []
-    for episode in ordered:
-        season_number = episode["season"]
-        if not seasons or seasons[-1].number != season_number:
-            seasons.append(PodcastSeason(number=season_number, episodes=(episode,)))
-            continue
-        previous = seasons[-1]
-        seasons[-1] = PodcastSeason(
-            number=previous.number,
-            episodes=(*previous.episodes, episode),
-        )
-    return tuple(seasons)
 
 
 @lru_cache(maxsize=1)
@@ -246,9 +166,8 @@ def _rewritten_event_path(path: object, replacements: Mapping[str, str]) -> obje
 
 
 #: The registered source whose active release publishes the editorial
-#: catalogue: articles, podcasts, books, people, wiki pages and the derived
-#: graph, search and route records that go with them.
-PUBLIC_CONTENT_STABLE_ID = "dtc-public-content"
+#: catalogue. Named here as well so the offline import keeps one spelling of it.
+PUBLIC_CONTENT_STABLE_ID = catalogue.PUBLIC_CONTENT_STABLE_ID
 #: Records that are one document each, keyed by slug within their collection.
 _COLLECTION_KINDS = {name: name.rstrip("s") or name for name in COLLECTION_NAMES}
 #: Records the projection carries exactly one of. They are stored as a single
@@ -262,99 +181,47 @@ _SINGLETON_KINDS = (
 )
 
 
-def _active_editorial_release() -> str:
-    """The id of the release currently publishing the catalogue, or ``""``.
-
-    One cheap indexed lookup, used as the cache key below. It changes exactly
-    when an import activates a new release, which is the only thing that can
-    change what the catalogue holds.
-    """
-
-    try:
-        active = (
-            ContentSource.objects.filter(stable_id=PUBLIC_CONTENT_STABLE_ID, enabled=True)
-            .values_list("active_release_id", flat=True)
-            .first()
-        )
-    except DatabaseError:
-        return ""
-    return str(active or "")
-
-
 def _checked_public_projection() -> dict[str, Any]:
     """Return the published catalogue, rebuilt only when the release changes."""
 
-    return _editorial_catalogue(_active_editorial_release())
+    return _editorial_catalogue(catalogue.active_release_id())
 
 
 @lru_cache(maxsize=2)
 def _editorial_catalogue(release_id: str) -> dict[str, Any]:
-    """Return the published editorial catalogue, read from the database.
+    """Reassemble the old projection dictionary from the database catalogue.
 
-    Every record the built projection used to carry is one published document
-    whose ``adapter_metadata`` holds it verbatim, so the catalogue the pages read
-    has the shape it always had. What changed is where it comes from: the files
-    are ingest input now, checked once by
-    ``scripts/projection_build/public_projection_source`` and imported, rather
-    than re-read and re-digested on the way to every request.
+    This is the compatibility shape, not a second way to read the database:
+    every record here comes from ``content.catalogue``. It exists only for the
+    surfaces that have not been given their own query yet, and it goes away with
+    the last of them.
 
-    A database with no active release publishes nothing, and the empty catalogue
-    is returned instead -- hubs render empty, detail lookups 404.
+    A database publishing nothing yields the empty catalogue -- hubs render
+    empty, detail lookups 404.
 
-    ``release_id`` is the cache key, not an argument this reads: the query below
-    already resolves the active release, and naming it here is what makes the
+    ``release_id`` is the cache key, not an argument this reads: the catalogue
+    resolves the active release itself, and naming it here is what makes the
     cached result follow an import instead of outliving it.
     """
 
-    try:
-        rows = list(
-            ContentDocument.objects.filter(
-                is_published=True,
-                release__status=ContentRelease.Status.ACTIVE,
-                release__source__enabled=True,
-                release__source__stable_id=PUBLIC_CONTENT_STABLE_ID,
-                release_id=F("release__source__active_release_id"),
-            ).values("content_kind", "stable_key", "adapter_metadata")
-        )
-    except DatabaseError:
-        return _empty_public_projection()
-    if not rows:
+    singletons = {name: catalogue.singleton(name) for name in _SINGLETON_KINDS}
+    collections = {name: catalogue.records(kind) for name, kind in _COLLECTION_KINDS.items()}
+    if not any(singletons.values()) and not any(collections.values()):
         return _empty_public_projection()
 
-    # Restore each collection's editorial order. It is stored beside the record
-    # because it is a fact about the catalogue -- newest first, season order, the
-    # sequence a hub lists in -- and no key the rows happen to sort by carries it.
-    ordered: dict[str, list[tuple[int, dict[str, Any]]]] = {}
-    for row in rows:
-        held = row["adapter_metadata"] or {}
-        ordered.setdefault(str(row["content_kind"]), []).append(
-            (int(held.get("position") or 0), held.get("record") or {})
-        )
-    by_kind = {
-        kind: [record for _position, record in sorted(items, key=lambda item: item[0])]
-        for kind, items in ordered.items()
-    }
-
-    projection: dict[str, Any] = {}
-    for singleton in _SINGLETON_KINDS:
-        held = by_kind.get(singleton)
-        projection[singleton] = held[0] if held else {}
-    projection["podcast_platforms"] = tuple(projection["podcast_platforms"].get("platforms", ()))
+    projection: dict[str, Any] = dict(singletons)
+    projection["podcast_platforms"] = catalogue.podcast_platforms()
     # The graph is drawn as links on a public page, so its destinations are
     # checked where they are read. A stored graph that fails this is a refusal,
     # not something the page renders and hopes about.
     validate_wiki_graph(projection["wiki_graph"])
 
-    for name, kind in _COLLECTION_KINDS.items():
-        records = tuple(by_kind.get(kind, ()))
+    for name, records in collections.items():
         projection[name] = records
         projection[f"{name}_by_slug"] = {item["slug"]: item for item in records if "slug" in item}
         projection[f"{name}_by_path"] = {
             item["public_path"]: item for item in records if "public_path" in item
         }
-    projection["media_by_path"] = {
-        item["public_path"]: item for item in projection["media"] if "public_path" in item
-    }
     projection["editorial_route_aliases_by_path"] = {
         str(alias["source_path"]): alias
         for alias in projection["editorial_route_migration"].get("aliases", ())
@@ -366,7 +233,7 @@ def _editorial_catalogue(release_id: str) -> dict[str, Any]:
 def _adapted_public_projection() -> dict[str, Any]:
     """The catalogue with the database-owned URL adapters applied."""
 
-    return _adapted_catalogue(_active_editorial_release(), _event_public_path_stamp())
+    return _adapted_catalogue(catalogue.active_release_id(), _event_public_path_stamp())
 
 
 def _event_public_path_stamp() -> tuple[int, str]:
@@ -588,10 +455,11 @@ def public_paths() -> tuple[str, ...]:
     }
     paths.update(
         record["public_path"]
-        for name in ("articles", "podcasts", "people", "wiki")
+        for name in ("articles", "people", "wiki")
         for record in projection[name]
     )
     paths.update(record["public_path"] for record in catalogue.books())
+    paths.update(record["public_path"] for record in catalogue.podcasts())
     paths.update(record["public_path"] for record in published_event_records())
     paths.update(
         {

@@ -2,14 +2,24 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from playwright.sync_api import Browser, Page, expect
 
-from content.public_data import public_projection
+from content import catalogue
 
 pytestmark = [pytest.mark.core]
 
 REPRESENTATIVE = "s24e06-how-to-build-ai-that-actually-ships-in-production"
+
+
+def _episode(slug: str) -> dict[str, Any]:
+    """The published episode a test names, which the catalogue must hold."""
+
+    record = catalogue.podcast(slug)
+    assert record is not None, slug
+    return record
 
 
 def _settle_analytics_preferences(page: Page) -> None:
@@ -41,7 +51,7 @@ def test_episode_sections_player_and_guest_links_are_keyboard_reachable(
     page: Page,
     live_server,
 ) -> None:
-    episode = public_projection()["podcasts_by_slug"][REPRESENTATIVE]
+    episode = _episode(REPRESENTATIVE)
     _stub_video_provider(page)
     page.goto(f"{live_server.url}{episode['public_path']}", wait_until="networkidle")
     _settle_analytics_preferences(page)
@@ -71,7 +81,7 @@ def test_timestamp_enhancement_updates_player_and_keeps_native_target(
     page: Page,
     live_server,
 ) -> None:
-    episode = public_projection()["podcasts_by_slug"][REPRESENTATIVE]
+    episode = _episode(REPRESENTATIVE)
     _stub_video_provider(page)
     page.goto(f"{live_server.url}{episode['public_path']}", wait_until="networkidle")
     _settle_analytics_preferences(page)
@@ -94,7 +104,7 @@ def test_reading_sections_become_a_wai_aria_tablist_with_show_notes_first(
     page: Page,
     live_server,
 ) -> None:
-    episode = public_projection()["podcasts_by_slug"][REPRESENTATIVE]
+    episode = _episode(REPRESENTATIVE)
     _stub_video_provider(page)
     page.goto(f"{live_server.url}{episode['public_path']}", wait_until="networkidle")
     _settle_analytics_preferences(page)
@@ -149,7 +159,7 @@ def test_timestamp_and_section_links_remain_native_without_javascript(
     browser: Browser,
     live_server,
 ) -> None:
-    episode = public_projection()["podcasts_by_slug"][REPRESENTATIVE]
+    episode = _episode(REPRESENTATIVE)
     context = browser.new_context(
         java_script_enabled=False,
         viewport={"width": 320, "height": 800},
