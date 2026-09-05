@@ -231,16 +231,20 @@ application** from that projection — `content/public_urls.py:213-228` routes t
 hub, detail, search corpus, graph, special pages, feed, sitemap, robots and assets.
 Owner ruling: **the wiki source stays in podwiki.** The serving stays ours.
 
-**4 — `DataTalksClub/faq`** @ `c8da1dee…` → `content/faq_projection.json` +
-`content/faq_assets/`. 6 courses, 70 sections, 1,401 questions, 99 assets. Served at
-`/faq/` by `content/review_views.py:203` via `content/faq_data.py`. Owner ruling:
-**FAQ stays where it is.** **Gap: there is no builder for this projection in this
-repository.** It is reviewed in by hand and only *checked* by `ci/content_update.py`.
-Every other family has a reproducer; this one does not.
+**4 — `DataTalksClub/faq`** @ `c8da1dee…` → `temporary/content/faq_projection.json`
++ `content/faq_assets/`, imported into `ContentDocument` by
+`scripts/prod/import_faq.py`. 6 courses, 70 sections, 1,401 questions, 99 assets.
+Served at `/faq/` by `content/review_views.py` via `content/faq_data.py`, from the
+database. Owner ruling: **FAQ stays where it is.** **Gap: there is no builder for
+the reviewed file in this repository.** It is reviewed in by hand and only
+*checked* by `ci/content_update.py`. Every other family has a reproducer; this one
+does not.
 
-**5 — `DataTalksClub/docs`** @ `3f23e006…` → `content/docs_projection.json` +
-`content/docs_assets/`. 106 pages, 39 assets. Served at `/docs/` by
-`content/review_views.py:83`. **Same gap: no builder in this repository.**
+**5 — `DataTalksClub/docs`** @ `3f23e006…` →
+`temporary/content/docs_projection.json` + `content/docs_assets/`, imported into
+`ContentDocument` and `ContentAsset` by `scripts/prod/import_docs.py`. 106 pages,
+39 images. Served at `/docs/` by `content/review_views.py`, from the database.
+**Same gap: no builder for the reviewed file in this repository.**
 
 **6 — `DataTalksClub/course-management-platform`** @ `98a23528…`. Two unrelated uses:
 `scripts/production_like_course_specs.json` is pinned from it and produces
@@ -264,9 +268,11 @@ writes those records into `EventContent` and the event pages read the database
 `_copy_people_media()` (`scripts/build_public_projection.py:2837-2846`). Fate:
 **one-off export to the CDN**; see §7.
 
-**10 — legacy `_data/faqs/*.yml`** → `content/article_faq.json`. 10 blog articles
-ended with an FAQ accordion whose pairs lived in the legacy site's data files, not
-in the article Markdown; 159 Q/A pairs. Built by `scripts/build_article_faq.py:199-203`.
+**10 — legacy `_data/faqs/*.yml`** → the article catalogue in `ContentDocument`,
+read by `content/article_faq.py`. 10 blog articles ended with an FAQ accordion
+whose pairs lived in the legacy site's data files, not in the article Markdown;
+159 Q/A pairs. The former `content/article_faq.json` capture and its builder
+`scripts/build_article_faq.py` are both deleted.
 Fate: **one-off export, and it is already done** — the capture is committed and the
 pages render from it.
 
@@ -369,8 +375,9 @@ The redirect behaviour is documented in
 21.7% of the contract, now 302.
 
 > **Live contradiction, flagged for decision.** Django *also* serves `/docs/` and
-> `/faq/` itself (`website/urls.py:59-80`) from `content/docs_projection.json` and
-> `content/faq_projection.json` — sourced from `DataTalksClub/docs` and
+> `/faq/` itself (`website/urls.py:62-84`) out of the database, filled by
+> `scripts/prod/import_docs.py` and `import_faq.py` — sourced from
+> `DataTalksClub/docs` and
 > `DataTalksClub/faq`, **not** from the legacy repo. In production the CloudFront
 > 302 fires first, so those Django routes are shadowed. Both facts are true and
 > they point in opposite directions: either the projections are dead weight and

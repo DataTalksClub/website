@@ -36,7 +36,8 @@ referenced from the production checklist in
 [#309](https://github.com/DataTalksClub/website/issues/309).
 
 Every count here was measured on `main` on 2026-09-03 against
-the export `/data/tmp/rds-export/rds-prod-20260902-012536.db` and the checkouts
+the export then at `/data/tmp/rds-export/rds-prod-20260902-012536.db` (the exports
+are filed per product now — `cmp/` is ours) and the checkouts
 in `~/git`. Numbers marked **(measured)** were produced by running the step.
 
 ---
@@ -135,11 +136,13 @@ the redirect fires first. **Django wins. The two 302s are transitional and retir
 once the sync works** (§11 B10).
 
 > **This is not already how it works, despite appearances.** There is **no builder
-> in this repository** for either projection. `content/faq_projection.json` and
-> `content/docs_projection.json` are reviewed in by hand and only *checked*, by
-> `ci/content_update.py`. Every other content family has a reproducer; these two
-> do not, and there is no sync, no webhook and no `ContentSource` row for either
-> repository. It is a build item (§11 B8), not a done item.
+> in this repository** for either reviewed file. `temporary/content/faq_projection.json`
+> and `temporary/content/docs_projection.json` are reviewed in by hand and only
+> *checked*, by `ci/content_update.py`. `scripts/prod/import_faq.py` and
+> `import_docs.py` load them into the database, so both pages are database-served —
+> what is missing is the sync: no builder regenerates either file from its source
+> repository, and there is no webhook and no `ContentSource` row for either. It is a
+> build item (§11 B8), not a done item.
 
 Goes to the CDN, **and out of every git repository** — owner ruling, both halves.
 This is **step 7**, with its own checkpoint; the summary here is so the fate is
@@ -295,7 +298,8 @@ Two conventions used throughout:
   DTC_SQLITE_PATH=<path>`; for production it is the production settings module and
   its own credentials. Nothing else in a command changes between the two.
 - **`$EXPORT`** is the chosen CMP export, e.g.
-  `/data/tmp/rds-export/rds-prod-20260902-012536.db`. Read in place, read-only.
+  `/data/tmp/rds-export/cmp/rds-prod-20260905-182754.db`. Read in place,
+  read-only. Only `cmp/` is ours — see §14 for the one beside it.
 
 > **The export is not frozen.** `/data/tmp/rds-export/` receives a new dump every
 > day. "One-time" is a decision about cutover, not a property of the source — CMP
@@ -846,7 +850,8 @@ certainly the longest step and the one that sizes the maintenance window.
 ### Step 5 — Events
 
 **First, sync new events against the current export — before anything else in
-this step runs.** The reviewed identity manifest (`events/event_identity_manifest.json`)
+this step runs.** The reviewed identity manifest
+(`temporary/content/event_identity_manifest.json`)
 is frozen at the moment it was built; Luma keeps moving. Confirmed today: four
 real events dated 2026-09-08 through 2026-09-15 exist on Luma but were in
 neither the prepared export available at the time nor the manifest — not a
@@ -1886,10 +1891,13 @@ then owns.
 
 **Testimonials now have theirs — `scripts/prod/import_testimonials.py`.** The six
 quotes used to be inserted by a data-bearing migration and are now an explicit
-import, reading the reviewed set from `courses/homepage_testimonials.json`. Every
-row is keyed on its `source_url`, so a replay reports `replayed`, creates nothing,
-and never touches a testimonial an editor added by hand. **Sponsors still have no
-script**; §11 B9.
+import, reading the reviewed set from
+`temporary/content/homepage_testimonials.json`. Every row is keyed on its
+`source_url`, so a replay reports `replayed`, creates nothing, and never touches a
+testimonial an editor added by hand. **Sponsors have theirs too** —
+`scripts/prod/import_sponsors.py`, reading
+`temporary/content/sponsor_directory.json` through `core.sponsors`' shared
+create/update/archive/reactivate services, keyed on each entry's `key`.
 
 What it has to write into, read rather than invented:
 
@@ -2407,7 +2415,7 @@ after step 3.
 
 ```
 export REHEARSAL=.tmp/migration-rehearsal.sqlite3
-export EXPORT=/data/tmp/rds-export/rds-prod-20260902-012536.db
+export EXPORT=/data/tmp/rds-export/cmp/rds-prod-20260905-182754.db
 export TARGET="DTC_ENVIRONMENT=local DJANGO_SETTINGS_MODULE=website.settings.local \
                DTC_SQLITE_PATH=$REHEARSAL"
 

@@ -683,8 +683,9 @@ Single stage.
 
 [`scripts/prod/import_testimonials.py`](../../scripts/prod/import_testimonials.py)
 
-Source: [`courses/homepage_testimonials.json`](../../courses/homepage_testimonials.json),
-reviewed and checked in.
+Source: [`temporary/content/homepage_testimonials.json`](../../temporary/content/homepage_testimonials.json),
+reviewed and checked in. (`import_testimonials.py`'s own docstring still names the
+file's old `courses/` home; its `REVIEWED_PATH` is correct.)
 Transform: none beyond validation; direct write, replay-safe.
 Destination: `Testimonial` (homepage and per-course placement).
 
