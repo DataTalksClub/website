@@ -4,37 +4,6 @@ from django.core.exceptions import ImproperlyConfigured
 
 
 @register()
-def public_projection_check(app_configs, **kwargs):
-    del app_configs, kwargs
-    from .public_data import _checked_public_projection, is_projection_present
-
-    # Absent is the normal default after the migration snapshot moved to
-    # temporary/content/: public hubs render empty until the migration owner
-    # configures the helper explicitly.  Present-but-invalid still fails closed.
-    if not is_projection_present():
-        return [
-            Warning(
-                "Public projection is absent; public catalogues render empty. "
-                "Configure PUBLIC_PROJECTION_ROOT for the temporary migration helper "
-                "or run scripts/prod/* explicitly.",
-                id="content.W003",
-                hint="See temporary/content/README.md.",
-            )
-        ]
-    try:
-        _checked_public_projection()
-    except ImproperlyConfigured as exc:
-        return [
-            Error(
-                str(exc),
-                id="content.E002",
-                hint="Rebuild the accepted checked public projection before deployment.",
-            )
-        ]
-    return []
-
-
-@register()
 def public_media_store_check(app_configs, **kwargs):
     """Fail closed on a deployable media-store configuration that cannot serve.
 

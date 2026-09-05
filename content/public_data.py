@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import hashlib
-import json
-import os
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -14,39 +11,24 @@ from urllib.parse import parse_qs, unquote, urlsplit
 from zoneinfo import ZoneInfo
 
 from django.core.exceptions import ImproperlyConfigured
+from django.db import DatabaseError
+from django.db.models import Count, F, Max
 from django.utils import timezone
 
 from events.queries import published_event_records
 
-from .podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_canonical_path
+from .models import ContentDocument, ContentRelease, ContentSource
+from .podcast_routes import podcast_canonical_path
 from .public_text import strip_leaked_target_attributes, target_attribute_count
 
-PROJECTION_ROOT = Path(__file__).with_name("public_projection")
-REPOSITORY_ROOT = PROJECTION_ROOT.parents[1]
-# Explicit prod-ingest helper location. Default runtime never reads here unless
-# PUBLIC_PROJECTION_ROOT names it explicitly. See temporary/content/README.md.
-MIGRATION_PROJECTION_ROOT = REPOSITORY_ROOT / "temporary" / "content" / "public_projection"
-
-
-def _resolve_projection_root() -> Path:
-    """Return the projection root the default runtime reads.
-
-    `content/public_projection/` holds no snapshot: the migration helper moved
-    to `temporary/content/` and the release image excludes it, so a manifest
-    here is absent and public catalogues render empty. `PUBLIC_PROJECTION_ROOT`
-    lets explicit migration tooling point at the helper without changing the
-    default.
-    """
-
-    override = os.getenv("PUBLIC_PROJECTION_ROOT", "").strip()
-    return Path(override) if override else PROJECTION_ROOT
-
-
-def is_projection_present(root: Path | None = None) -> bool:
-    """Return True when a projection manifest exists at the resolved root."""
-
-    candidate = root if root is not None else _resolve_projection_root()
-    return (candidate / "manifest.json").is_file()
+#: The wiki's default social-card image. It is a design asset that ships with
+#: the app, not editorial content, so it stays a file; the route that serves it
+#: still checks the published manifest before handing it over. The reviewed
+#: ingest tree keeps its own copy because its digest covers it, and that copy is
+#: evidence rather than something a request reads. Nothing else in this module
+#: reads a file -- the catalogue is database rows.
+WIKI_ASSET_ROOT = Path(__file__).with_name("wiki_assets")
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
 
 PODCAST_PLATFORM_FILENAME = "podcast_platforms.json"
@@ -58,7 +40,7 @@ EXPECTED_PODCAST_PLATFORM_PROVIDERS = (
 )
 EDITORIAL_ROUTE_MIGRATION_FILENAME = "editorial_route_migration.json"
 EDITORIAL_ROUTE_MIGRATION_SCHEMA = (
-    PROJECTION_ROOT.parents[1] / "_docs" / "compatibility" / "editorial-route-migration.schema.json"
+    REPOSITORY_ROOT / "_docs" / "compatibility" / "editorial-route-migration.schema.json"
 )
 # How many articles, podcasts, transcripts, books, people, events, wiki pages, courses and
 # media objects exist changes every time content is legitimately published or retired.  The
@@ -349,61 +331,6 @@ def podcast_seasons(
     return tuple(seasons)
 
 
-def _read_json(path: Path) -> Any:
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ImproperlyConfigured(f"Public projection cannot load {path.name}.") from exc
-
-
-def _sha256(path: Path) -> str:
-    try:
-        return hashlib.sha256(path.read_bytes()).hexdigest()
-    except OSError as exc:
-        raise ImproperlyConfigured(f"Public projection cannot read {path.name}.") from exc
-
-
-def _tree_sha256(root: Path) -> str:
-    """Digest the projection artifacts and wiki assets, excluding the media objects.
-
-    Media objects live in an object store and are verified per record against
-    ``provenance.checksum``, so they are outside the complete-tree digest.  The symlink
-    rejection deliberately still covers ``media/``: a symlink anywhere below the root is
-    a hard failure whether or not its bytes contribute to the digest.
-    """
-
-    digest = hashlib.sha256()
-    for path in sorted(item for item in root.rglob("*") if item.is_file()):
-        if path.is_symlink():
-            raise ImproperlyConfigured("Public projection tree contains a symlink.")
-        relative_path = path.relative_to(root).as_posix()
-        if path.name == "manifest.json" or relative_path.startswith(MEDIA_TREE_PREFIX):
-            continue
-        relative = relative_path.encode()
-        payload = path.read_bytes()
-        digest.update(len(relative).to_bytes(8, "big"))
-        digest.update(relative)
-        digest.update(len(payload).to_bytes(8, "big"))
-        digest.update(payload)
-    return digest.hexdigest()
-
-
-def _canonical_json_sha256(payload: Any) -> str:
-    encoded = json.dumps(
-        payload,
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode()
-    return hashlib.sha256(encoded).hexdigest()
-
-
-def _editorial_route_manifest_digest(manifest: dict[str, Any]) -> str:
-    return _canonical_json_sha256(
-        {key: value for key, value in manifest.items() if key != "content_sha256"}
-    )
-
-
 @lru_cache(maxsize=1)
 def _empty_public_projection() -> dict[str, Any]:
     """Return the default empty catalogue used when no projection is present.
@@ -439,7 +366,9 @@ _EVENT_UUID_PATH = re.compile(
 )
 
 
-def _apply_runtime_event_public_paths(projection: dict[str, Any]) -> None:
+def _apply_runtime_event_public_paths(
+    projection: dict[str, Any], event_paths: Mapping[str, str]
+) -> None:
     """Point projected people relationships at the database-owned event URLs.
 
     Person records still carry the UUID event paths their source was built with,
@@ -453,23 +382,7 @@ def _apply_runtime_event_public_paths(projection: dict[str, Any]) -> None:
     """
 
     people = projection.get("people", ())
-    referenced = {
-        match.group("identity")
-        for person in people
-        for relationship in person.get("relationships", ())
-        if isinstance(relationship.get("public_path"), str)
-        and (match := _EVENT_UUID_PATH.match(relationship["public_path"])) is not None
-    }
-    if not referenced:
-        return
-    from events.models import Event
-
-    replacements = {
-        f"/events/{identity}": f"/events/{public_id}/{slug}"
-        for identity, public_id, slug in Event.objects.filter(id__in=referenced)
-        .exclude(public_id=None)
-        .values_list("id", "public_id", "slug")
-    }
+    replacements = {f"/events/{identity}": path for identity, path in event_paths.items()}
     if not replacements:
         return
     for person in people:
@@ -493,327 +406,161 @@ def _rewritten_event_path(path: object, replacements: Mapping[str, str]) -> obje
     return replacements.get(f"/events/{match.group('identity')}", path)
 
 
-def _expected_editorial_routes(
-    projection: dict[str, Any],
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    finals: list[dict[str, Any]] = []
-    aliases: list[dict[str, Any]] = []
-    for collection, prefix in EDITORIAL_ROUTE_COLLECTIONS.items():
-        for record in projection[collection]:
-            final_path = record["public_path"]
-            clean_path = f"{prefix}/{record['slug']}"
-            expected_path = (
-                podcast_canonical_path(record["slug"])
-                if collection == "podcasts"
-                else f"{clean_path}.html"
-            )
-            if final_path != expected_path:
-                raise ImproperlyConfigured("Public projection editorial final mismatch.")
-            finals.append(
-                {
-                    "collection": collection,
-                    "record_key": record["slug"],
-                    "final_path": final_path,
-                    "source": dict(record["provenance"]),
-                }
-            )
-            if collection == "podcasts" and record["slug"] in PODCAST_HIERARCHICAL_ONLY_SLUGS:
-                continue
-            for source_path in (clean_path, f"{clean_path}/"):
-                aliases.append(
-                    {
-                        "collection": collection,
-                        "record_key": record["slug"],
-                        "source_path": source_path,
-                        "final_path": final_path,
-                        "status_code": 301,
-                        "query_policy": "preserve_raw",
-                    }
-                )
-    finals.sort(key=lambda item: item["final_path"])
-    aliases.sort(key=lambda item: item["source_path"])
-    return finals, aliases
+#: The registered source whose active release publishes the editorial
+#: catalogue: articles, podcasts, books, people, wiki pages and the derived
+#: graph, search and route records that go with them.
+PUBLIC_CONTENT_STABLE_ID = "dtc-public-content"
+#: Records that are one document each, keyed by slug within their collection.
+_COLLECTION_KINDS = {name: name.rstrip("s") or name for name in COLLECTION_NAMES}
+#: Records the projection carries exactly one of. They are stored as a single
+#: document apiece rather than pretending to be a collection of one.
+_SINGLETON_KINDS = (
+    "manifest",
+    "podcast_platforms",
+    "wiki_graph",
+    "wiki_search",
+    "editorial_route_migration",
+)
 
 
-def _editorial_route_counts(projection: dict[str, Any]) -> tuple[int, int]:
-    """Return the (finals, aliases) counts the loaded projection implies.
+def _active_editorial_release() -> str:
+    """The id of the release currently publishing the catalogue, or ``""``.
 
-    Derived from the collections actually present, so publishing or retiring
-    content never needs a matching hand-edit here.
+    One cheap indexed lookup, used as the cache key below. It changes exactly
+    when an import activates a new release, which is the only thing that can
+    change what the catalogue holds.
     """
 
-    finals_count = sum(len(projection[name]) for name in EDITORIAL_ROUTE_COLLECTIONS)
-    hierarchical_only = sum(
-        1
-        for record in projection.get("podcasts", ())
-        if record["slug"] in PODCAST_HIERARCHICAL_ONLY_SLUGS
-    )
-    aliases_count = 2 * (finals_count - hierarchical_only)
-    return finals_count, aliases_count
-
-
-def _validate_editorial_route_manifest(
-    route_manifest: Any,
-    projection: dict[str, Any],
-    artifact_digests: dict[str, str],
-) -> None:
-    if not isinstance(route_manifest, dict) or set(route_manifest) != {
-        "schema_version",
-        "schema",
-        "provenance",
-        "counts",
-        "finals",
-        "aliases",
-        "content_sha256",
-    }:
-        raise ImproperlyConfigured("Public projection editorial route manifest shape mismatch.")
-    expected_schema = {
-        "path": "_docs/compatibility/editorial-route-migration.schema.json",
-        "sha256": _sha256(EDITORIAL_ROUTE_MIGRATION_SCHEMA),
-    }
-    if route_manifest["schema_version"] != 1 or route_manifest["schema"] != expected_schema:
-        raise ImproperlyConfigured("Public projection editorial route schema mismatch.")
-
-    expected_source_artifacts = {
-        f"{name}.json": artifact_digests[f"{name}.json"] for name in EDITORIAL_ROUTE_COLLECTIONS
-    }
-    source_revisions = sorted(
-        {
-            (record["provenance"]["repository"], record["provenance"]["revision"])
-            for name in EDITORIAL_ROUTE_COLLECTIONS
-            for record in projection[name]
-        }
-    )
-    expected_provenance = {
-        "builder": "scripts/build_public_projection.py",
-        "projection_schema_version": 1,
-        "projection_selection_mode": projection["manifest"]["selection_mode"],
-        "source_artifacts": expected_source_artifacts,
-        "source_revisions": [
-            {"repository": repository, "revision": revision}
-            for repository, revision in source_revisions
-        ],
-    }
-    if route_manifest["provenance"] != expected_provenance:
-        raise ImproperlyConfigured("Public projection editorial route provenance mismatch.")
-    expected_finals_count, expected_aliases_count = _editorial_route_counts(projection)
-    if route_manifest["counts"] != {
-        "finals": expected_finals_count,
-        "aliases": expected_aliases_count,
-    }:
-        raise ImproperlyConfigured("Public projection editorial route count mismatch.")
-
-    finals = route_manifest["finals"]
-    aliases = route_manifest["aliases"]
-    if not isinstance(finals, list) or len(finals) != expected_finals_count:
-        raise ImproperlyConfigured("Public projection editorial final count mismatch.")
-    if not isinstance(aliases, list) or len(aliases) != expected_aliases_count:
-        raise ImproperlyConfigured("Public projection editorial alias count mismatch.")
     try:
-        final_paths = [item["final_path"] for item in finals]
-        alias_paths = [item["source_path"] for item in aliases]
-        alias_graph = {item["source_path"]: item["final_path"] for item in aliases}
-    except (KeyError, TypeError) as exc:
-        raise ImproperlyConfigured(
-            "Public projection editorial route record shape mismatch."
-        ) from exc
-    if len(final_paths) != len(set(final_paths)) or len(alias_paths) != len(set(alias_paths)):
-        raise ImproperlyConfigured("Public projection editorial route duplicate.")
-    if set(final_paths) & set(alias_paths):
-        raise ImproperlyConfigured("Public projection editorial route collision.")
-    for source_path, target_path in alias_graph.items():
-        visited = {source_path}
-        cursor = target_path
-        followed_alias = False
-        while cursor in alias_graph:
-            followed_alias = True
-            if cursor in visited:
-                raise ImproperlyConfigured("Public projection editorial redirect loop.")
-            visited.add(cursor)
-            cursor = alias_graph[cursor]
-        if followed_alias:
-            raise ImproperlyConfigured("Public projection editorial redirect chain.")
-    final_path_set = set(final_paths)
-    if any(target not in final_path_set for target in alias_graph.values()):
-        raise ImproperlyConfigured("Public projection editorial redirect target mismatch.")
-
-    expected_finals, expected_aliases = _expected_editorial_routes(projection)
-    if finals != expected_finals or aliases != expected_aliases:
-        raise ImproperlyConfigured("Public projection editorial route inventory is incomplete.")
-    if route_manifest["content_sha256"] != _editorial_route_manifest_digest(route_manifest):
-        raise ImproperlyConfigured("Public projection editorial route content digest mismatch.")
+        active = (
+            ContentSource.objects.filter(stable_id=PUBLIC_CONTENT_STABLE_ID, enabled=True)
+            .values_list("active_release_id", flat=True)
+            .first()
+        )
+    except DatabaseError:
+        return ""
+    return str(active or "")
 
 
-@lru_cache(maxsize=1)
 def _checked_public_projection() -> dict[str, Any]:
-    root = _resolve_projection_root()
+    """Return the published catalogue, rebuilt only when the release changes."""
+
+    return _editorial_catalogue(_active_editorial_release())
+
+
+@lru_cache(maxsize=2)
+def _editorial_catalogue(release_id: str) -> dict[str, Any]:
+    """Return the published editorial catalogue, read from the database.
+
+    Every record the built projection used to carry is one published document
+    whose ``adapter_metadata`` holds it verbatim, so the catalogue the pages read
+    has the shape it always had. What changed is where it comes from: the files
+    are ingest input now, checked once by
+    ``scripts/projection_build/public_projection_source`` and imported, rather
+    than re-read and re-digested on the way to every request.
+
+    A database with no active release publishes nothing, and the empty catalogue
+    is returned instead -- hubs render empty, detail lookups 404.
+
+    ``release_id`` is the cache key, not an argument this reads: the query below
+    already resolves the active release, and naming it here is what makes the
+    cached result follow an import instead of outliving it.
+    """
+
     try:
-        manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
-    except FileNotFoundError as exc:
-        raise ImproperlyConfigured(
-            "Public projection is absent (no manifest.json; default catalogues are empty)."
-        ) from exc
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ImproperlyConfigured("Public projection cannot load manifest.json.") from exc
-    if manifest.get("schema_version") != 1 or manifest.get("selection_mode") != EXPECTED_SELECTION:
-        raise ImproperlyConfigured("Unsupported public projection selection.")
-    # The manifest declares its own counts for this build; they are not pinned to a fixed
-    # inventory because publishing or retiring content legitimately moves every one of
-    # them.  What must hold, regardless of size, is that the declaration is well-formed
-    # and that every artifact and derived count actually matches what is declared -
-    # checked below, collection by collection, as each artifact is loaded.
-    counts = manifest.get("counts")
-    if (
-        not isinstance(counts, dict)
-        or set(counts) != REQUIRED_COUNT_KEYS
-        or any(
-            isinstance(value, bool) or not isinstance(value, int) or value < 0
-            for value in counts.values()
+        rows = list(
+            ContentDocument.objects.filter(
+                is_published=True,
+                release__status=ContentRelease.Status.ACTIVE,
+                release__source__enabled=True,
+                release__source__stable_id=PUBLIC_CONTENT_STABLE_ID,
+                release_id=F("release__source__active_release_id"),
+            )
+            .order_by("content_kind", "stable_key")
+            .values("content_kind", "stable_key", "adapter_metadata")
         )
-    ):
-        raise ImproperlyConfigured("Public projection count declarations are malformed.")
-    if manifest.get("tree_digest_scope") != EXPECTED_TREE_DIGEST_SCOPE:
-        raise ImproperlyConfigured("Public projection tree digest scope is not declared.")
-    media_storage = manifest.get("media_storage")
-    if (
-        not isinstance(media_storage, dict)
-        or set(media_storage) != {"location", "records", "count", "integrity"}
-        or {key: media_storage[key] for key in EXPECTED_MEDIA_STORAGE_FIELDS}
-        != EXPECTED_MEDIA_STORAGE_FIELDS
-        or media_storage["count"] != counts["media"]
-    ):
-        raise ImproperlyConfigured("Public projection media storage declaration mismatch.")
-    if manifest.get("tree_sha256") != _tree_sha256(root):
-        raise ImproperlyConfigured("Public projection complete-tree digest mismatch.")
-    sources = manifest.get("sources", {})
-    if {key: value.get("revision") for key, value in sources.items()} != EXPECTED_REVISIONS:
-        raise ImproperlyConfigured(
-            "Public projection revisions do not match the accepted inventory."
-        )
-    if sources["preferred_content"].get("accepted") is not True:
-        raise ImproperlyConfigured("Preferred projection source is not marked accepted.")
-    if sources["fallback_selection"].get("accepted") is not False:
-        raise ImproperlyConfigured("Fallback selection must remain explicitly unaccepted.")
+    except DatabaseError:
+        return _empty_public_projection()
+    if not rows:
+        return _empty_public_projection()
 
-    projection: dict[str, Any] = {"manifest": manifest}
-    artifacts = manifest.get("artifacts", {})
-    for name in COLLECTION_NAMES:
-        filename = f"{name}.json"
-        path = root / filename
-        if _sha256(path) != artifacts.get(filename):
-            raise ImproperlyConfigured(f"Public projection digest mismatch: {filename}.")
-        records = _read_json(path)
-        if not isinstance(records, list) or not records:
-            raise ImproperlyConfigured(f"Public projection collection mismatch: {name}.")
-        if len(records) != counts[name]:
-            raise ImproperlyConfigured(f"Public projection declared count mismatch: {name}.")
-        projection[name] = tuple(records)
+    by_kind: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        by_kind.setdefault(str(row["content_kind"]), []).append(row["adapter_metadata"] or {})
 
-    # Every media reference a content record carries must resolve to a real media
-    # object.  This is the referential check that a fixed media-object total only ever
-    # gestured at: it catches a broken or stale reference regardless of how many media
-    # objects the projection happens to contain today.
-    media_paths = {item["public_path"] for item in projection["media"]}
-    for name in ("articles", "podcasts", "books", "people"):
-        for record in projection[name]:
-            image_path = record.get("image_path")
-            if image_path and image_path not in media_paths:
-                raise ImproperlyConfigured(
-                    f"Public projection media reference does not resolve: {name}."
-                )
-            for block in record.get("blocks", ()) or ():
-                if isinstance(block, dict) and block.get("kind") == "image":
-                    if block.get("src") not in media_paths:
-                        raise ImproperlyConfigured(
-                            f"Public projection media reference does not resolve: {name}."
-                        )
-
-    platform_path = root / PODCAST_PLATFORM_FILENAME
-    if _sha256(platform_path) != artifacts.get(PODCAST_PLATFORM_FILENAME):
-        raise ImproperlyConfigured("Public podcast platform artifact digest mismatch.")
-    platforms = _read_json(platform_path)
-    if (
-        not isinstance(platforms, list)
-        or tuple(item.get("provider") for item in platforms if isinstance(item, dict))
-        != EXPECTED_PODCAST_PLATFORM_PROVIDERS
-    ):
-        raise ImproperlyConfigured("Public podcast platform inventory mismatch.")
-    if any(
-        not isinstance(item, dict)
-        or set(item) != {"key", "provider", "label", "title", "url", "dot"}
-        or item.get("key") != item.get("provider")
-        or not isinstance(item.get("label"), str)
-        or not item["label"].strip()
-        or item.get("title") != item.get("label")
-        or not isinstance(item.get("url"), str)
-        or not item["url"].startswith("https://")
-        or not isinstance(item.get("dot"), str)
-        for item in platforms
-    ):
-        raise ImproperlyConfigured("Public podcast platform record mismatch.")
-    # What each platform is called and where it points is editorial content, so it
-    # is not pinned here. The checks above are the code-owned part: every record
-    # names a known provider, carries a non-empty label, and links over https.
-    projection["podcast_platforms"] = tuple(platforms)
-
-    transcript_count = sum(bool(item.get("transcript")) for item in projection["podcasts"])
-    if transcript_count != counts["transcripts"]:
-        raise ImproperlyConfigured("Public projection transcript count mismatch.")
-    ordered_podcasts(projection["podcasts"])
-
-    for name in ("wiki_graph", "wiki_search"):
-        filename = f"{name}.json"
-        path = root / filename
-        if _sha256(path) != artifacts.get(filename):
-            raise ImproperlyConfigured(f"Public projection digest mismatch: {filename}.")
-        projection[name] = _read_json(path)
+    projection: dict[str, Any] = {}
+    for singleton in _SINGLETON_KINDS:
+        held = by_kind.get(singleton)
+        projection[singleton] = held[0] if held else {}
+    projection["podcast_platforms"] = tuple(projection["podcast_platforms"].get("platforms", ()))
+    # The graph is drawn as links on a public page, so its destinations are
+    # checked where they are read. A stored graph that fails this is a refusal,
+    # not something the page renders and hopes about.
     _validate_wiki_graph(projection["wiki_graph"])
 
-    for name in COLLECTION_NAMES:
-        records = projection[name]
-        if any(
-            (
-                record.get("provenance", {}).get("repository"),
-                record.get("provenance", {}).get("revision"),
-            )
-            not in EXPECTED_RECORD_SOURCES[name]
-            for record in records
-        ):
-            raise ImproperlyConfigured(f"Public projection record provenance mismatch: {name}.")
-        paths = [item["public_path"] for item in records]
-        slugs = [item["slug"] for item in records]
-        if len(paths) != len(set(paths)) or len(slugs) != len(set(slugs)):
-            raise ImproperlyConfigured(f"Public projection duplicate key: {name}.")
-        projection[f"{name}_by_slug"] = {item["slug"]: item for item in records}
-        projection[f"{name}_by_path"] = {item["public_path"]: item for item in records}
-    if any(
-        podcast["transcript"]
-        and (
-            podcast.get("transcript_provenance", {}).get("repository") != "DataTalksClub/content"
-            or podcast.get("transcript_provenance", {}).get("revision")
-            != EXPECTED_REVISIONS["preferred_content"]
-        )
-        for podcast in projection["podcasts"]
-    ):
-        raise ImproperlyConfigured("Public projection transcript provenance mismatch.")
-    route_path = root / EDITORIAL_ROUTE_MIGRATION_FILENAME
-    if _sha256(route_path) != artifacts.get(EDITORIAL_ROUTE_MIGRATION_FILENAME):
-        raise ImproperlyConfigured("Public projection editorial route artifact digest mismatch.")
-    route_manifest = _read_json(route_path)
-    _validate_editorial_route_manifest(route_manifest, projection, artifacts)
-    projection["editorial_route_migration"] = route_manifest
+    for name, kind in _COLLECTION_KINDS.items():
+        records = tuple(by_kind.get(kind, ()))
+        projection[name] = records
+        projection[f"{name}_by_slug"] = {item["slug"]: item for item in records if "slug" in item}
+        projection[f"{name}_by_path"] = {
+            item["public_path"]: item for item in records if "public_path" in item
+        }
+    projection["media_by_path"] = {
+        item["public_path"]: item for item in projection["media"] if "public_path" in item
+    }
     projection["editorial_route_aliases_by_path"] = {
-        item["source_path"]: item for item in route_manifest["aliases"]
+        str(alias["source_path"]): alias
+        for alias in projection["editorial_route_migration"].get("aliases", ())
+        if isinstance(alias, dict) and isinstance(alias.get("source_path"), str)
     }
     return projection
 
 
 def _adapted_public_projection() -> dict[str, Any]:
-    """Build the runtime projection: the checked file plus database-owned URLs.
+    """The catalogue with the database-owned URL adapters applied."""
 
-    Not cached. The file half is (``_checked_public_projection``); the adapters
-    on top of it read the database, so a cached result would keep serving event
-    URLs from before an import.
+    return _adapted_catalogue(_active_editorial_release(), _event_public_path_stamp())
+
+
+def _event_public_path_stamp() -> tuple[int, str]:
+    """A cheap stamp that moves whenever an event public path could have.
+
+    One aggregate, not a row per event. Reading all 421 events on the way to
+    every request, just to decide whether the adapted catalogue is still valid,
+    costs far more than rebuilding it on the rare occasion this changes.
+    """
+
+    from events.models import Event
+
+    try:
+        stamp = Event.objects.aggregate(total=Count("id"), latest=Max("updated_at"))
+    except DatabaseError:
+        return (0, "")
+    return (int(stamp["total"] or 0), str(stamp["latest"] or ""))
+
+
+def _event_public_paths() -> dict[str, str]:
+    """The canonical public path of every event that has one."""
+
+    from events.models import Event
+
+    try:
+        return {
+            str(event_id): f"/events/{public_id}/{slug}"
+            for event_id, public_id, slug in Event.objects.exclude(public_id=None).values_list(
+                "id", "public_id", "slug"
+            )
+        }
+    except DatabaseError:
+        return {}
+
+
+@lru_cache(maxsize=2)
+def _adapted_catalogue(release_id: str, event_stamp: tuple[int, str]) -> dict[str, Any]:
+    """The catalogue with the database-owned URL adapters applied.
+
+    Cached on the pair that can change it: the active editorial release, and a
+    stamp over the event rows the people adapter rewrites paths to.
     """
 
     # Runtime URL adapters replace values in a handful of nested structures.  Copy only the
@@ -885,7 +632,7 @@ def _adapted_public_projection() -> dict[str, Any]:
         }
         for person in source["people"]
     )
-    _apply_runtime_event_public_paths(projection)
+    _apply_runtime_event_public_paths(projection, _event_public_paths())
     # The adapters mutate copied article/people records; refresh their lookup indexes as well so
     # detail pages and relationship tests do not retain references to checked source records.
     projection["articles_by_slug"] = {
@@ -904,10 +651,8 @@ def _adapted_public_projection() -> dict[str, Any]:
 def public_projection() -> dict[str, Any]:
     """Return the checked projection with database-owned public URL adapters applied.
 
-    When no projection manifest is present (the default after the snapshot moved to
-    temporary/content/), returns an empty catalogue instead of raising: hubs render
-    empty, detail lookups miss (404), sitemaps list only static paths.  The helper
-    snapshot is read only when PUBLIC_PROJECTION_ROOT names it explicitly.
+    A database with no active editorial release returns the empty catalogue: hubs
+    render empty, detail lookups miss (404), sitemaps list only static paths.
     """
 
     try:
@@ -993,13 +738,13 @@ def public_paths() -> tuple[str, ...]:
         "/docs/courses/ai-dev-tools-zoomcamp/getting-started/",
         "/faq/",
         "/faq/ai-dev-tools-zoomcamp.html",
-        "/slack",
     }
     paths.update(
         record["public_path"]
-        for name in ("articles", "podcasts", "books", "people", "events", "wiki")
+        for name in ("articles", "podcasts", "books", "people", "wiki")
         for record in projection[name]
     )
+    paths.update(record["public_path"] for record in published_event_records())
     paths.update(
         {
             "/wiki/graph",

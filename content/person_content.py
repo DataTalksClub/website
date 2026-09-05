@@ -30,6 +30,8 @@ from zoneinfo import ZoneInfo
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import timezone
 
+from events.queries import published_event_records
+
 from .public_data import public_projection
 
 # Events are shown in the same timezone the events hub and the event pages use.
@@ -44,7 +46,8 @@ SITE_TIMEZONE = ZoneInfo("Europe/Berlin")
 # _docs/design/design-system.md.
 CONTRIBUTION_GROUPS: tuple[tuple[str, str, str, str], ...] = (
     ("podcast", "podcasts_by_path", "Podcast episodes", "episode"),
-    ("events", "events_by_path", "Events", "event"),
+    # The events index is built from the database, not read from the catalogue.
+    ("events", "", "Events", "event"),
     ("blog", "articles_by_path", "Articles", "article"),
     ("books", "books_by_path", "Books", "book"),
 )
@@ -380,6 +383,10 @@ def _contribution(
 
 def _groups(record: dict[str, Any], *, now: datetime) -> tuple[ContributionGroup, ...]:
     projection = public_projection()
+    # Events are database rows rather than a projected collection, so their index
+    # is built here from the published records instead of read out of the
+    # catalogue alongside the others.
+    event_index = {record["public_path"]: record for record in published_event_records()}
     collected: dict[str, list[Contribution]] = {key: [] for key, *_ in CONTRIBUTION_GROUPS}
     indexes = {key: index for key, index, *_ in CONTRIBUTION_GROUPS}
     for relationship in record.get("relationships", ()):
@@ -392,9 +399,13 @@ def _groups(record: dict[str, Any], *, now: datetime) -> tuple[ContributionGroup
         index = indexes.get(prefix)
         if index is None:
             raise ImproperlyConfigured(f"Public profile links to unknown collection: {prefix}.")
-        linked = projection[index].get(public_path)
+        linked = (event_index if prefix == "events" else projection[index]).get(public_path)
         if linked is None:
-            raise ImproperlyConfigured(f"Public profile links to a missing record: {public_path}.")
+            # The profile names work whose record is not published -- an event
+            # whose content has not been ingested, an article retired upstream.
+            # A profile lists the work a reader can actually reach, so the row is
+            # dropped rather than the page being taken down over it.
+            continue
         collected[prefix].append(_contribution(relationship, prefix, linked, now=now))
 
     groups: list[ContributionGroup] = []

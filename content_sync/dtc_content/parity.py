@@ -10,7 +10,7 @@ from urllib.parse import quote
 
 from content.inventory import content_route_contracts
 from content.podcast_resources import normalize_podcast_resources
-from content.public_data import PROJECTION_ROOT, public_projection
+from content.public_data import public_projection
 from content.services import PreparedDocument
 from scripts.build_public_projection import (
     _article_blocks,
@@ -18,6 +18,7 @@ from scripts.build_public_projection import (
     _canonical_podcast_platform_url,
 )
 from scripts.build_public_projection import _string as _projection_string
+from scripts.projection_build.public_projection_source import DEFAULT_PROJECTION_ROOT
 
 from .adapter import CandidateAsset, CandidateBundle, CandidateRelation, DtcContentValidationError
 from .contract import (
@@ -312,7 +313,7 @@ def verify_initial_projection_parity(
     bundle: CandidateBundle,
     *,
     projection: Mapping[str, Any] | None = None,
-    projection_root: Path = PROJECTION_ROOT,
+    projection_root: Path = DEFAULT_PROJECTION_ROOT,
 ) -> ProjectionParityEvidence:
     """Prove the accepted adapter bundle equals #105's adopted checked projection."""
 

@@ -12,11 +12,13 @@ from unittest.mock import patch
 from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase
 
-from content import public_data
-from content.public_data import (
+from scripts.projection_build import public_projection_source as source_loader
+from scripts.projection_build.public_projection_source import (
+    DEFAULT_PROJECTION_ROOT as PROJECTION_ROOT,
+)
+from scripts.projection_build.public_projection_source import (
     EXPECTED_MEDIA_STORAGE_FIELDS,
     EXPECTED_TREE_DIGEST_SCOPE,
-    PROJECTION_ROOT,
     _tree_sha256,
 )
 from scripts import build_public_projection as projection_builder
@@ -118,12 +120,7 @@ class ManifestScopeDeclarationTests(SimpleTestCase):
             json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
             encoding="utf-8",
         )
-        public_data._checked_public_projection.cache_clear()
-        try:
-            with patch.object(public_data, "PROJECTION_ROOT", root):
-                public_data._checked_public_projection()
-        finally:
-            public_data._checked_public_projection.cache_clear()
+        source_loader.load_checked_projection(root)
 
     def test_a_missing_scope_declaration_is_rejected(self) -> None:
         with self.assertRaises(ImproperlyConfigured) as caught:
@@ -152,12 +149,7 @@ class ManifestScopeDeclarationTests(SimpleTestCase):
 
     def test_the_accepted_manifest_still_loads(self) -> None:
         # Smoke test: the checked manifest loads without raising.
-        public_data._checked_public_projection.cache_clear()
-        try:
-            public_data._checked_public_projection()
-        finally:
-            public_data._checked_public_projection.cache_clear()
-
+        source_loader.load_checked_projection()
 
 class MediaArtifactDigestTests(SimpleTestCase):
     """The media artifact and the manifest that describes it stay bound."""

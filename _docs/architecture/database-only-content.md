@@ -21,47 +21,42 @@ Operational configuration, schemas, migrations, test fixtures, and static design
 assets are not public content, but they must not be used as a hidden public-content
 fallback.
 
-## Current violations to remove
+## Where the content lives now
 
-### Main public projection
+Every public surface reads the database. What is left on disk under
+`temporary/content/` is one-time ingest input, read only by `scripts/prod/*`:
 
-The largest violation is the public projection (currently parked as a
-migration-only helper at `temporary/content/public_projection/`, loaded by
-`content/public_data.py`). It currently bundles articles, books, courses, events,
-media metadata, people, podcasts/transcripts, wiki pages, search data, graph data,
-editorial route aliases, podcast platform links, and a wiki image.
-
-Runtime consumers include:
-
-- `core/views.py` and `core/home_content.py`;
-- `content/public_views.py`, `content/wiki_content.py`,
-  `content/person_content.py`, `content/person_chip.py`, and
-  `content/podcast_content.py`;
-- `events/identity.py` and event services that resolve a database Event back to a
-  projected record;
-- sitemap and media-serving paths;
-- the `content.E002` startup check in `content/apps.py`.
-
-Remove the projection directory, loader/validator, startup check, file-backed
-media inventory, projection builders, repinning tools, parity code, and tests that
-assert the bundled inventory. Replace every runtime query with database models and
-database query services. Empty querysets must be normal page states.
-
-### Other checked-in content stores
-
-These are separate file-backed public-content sources and must also be removed or
-migrated into database models before their runtime readers are deleted:
-
-| Data | Checked-in source | Runtime reader |
+| Surface | Read path | Ingest |
 | --- | --- | --- |
-| Documentation | `content/docs_projection.json` | `content/docs_projection.py` |
-| Course FAQ | `content/faq_projection.json` | `content/faq_data.py` |
-| Event identity seed | `temporary/content/event_identity_manifest.json` (migration helper) | ingest only: `scripts/prod/import_events.py` |
+| Articles, podcasts, books, people, wiki, courses, media, graph, search, routes | `content/public_data.py` -> `ContentDocument` | `scripts/prod/import_public_content.py` |
+| Documentation | `content/docs_projection.py` -> `ContentDocument`/`ContentAsset` | `scripts/prod/import_docs.py` |
+| Course FAQ | `content/faq_data.py` -> `ContentDocument` | `scripts/prod/import_faq.py` |
+| `/slack` | `content/review_views.py` -> `ContentDocument` | (page row) |
+| Article FAQ sections | `content/article_faq.py` -> the article's own row | with the article |
+| Events | `events/queries.py` -> `Event`/`EventContent` | identity: `scripts/prod/import_events.py`; content: source decision pending |
+| Sponsors | `core/sponsors.py` -> `Sponsor` | `scripts/prod/import_sponsors.py` |
+| Testimonials | `courses/services/testimonials.py` -> `Testimonial` | `scripts/prod/import_testimonials.py` |
+| Featured cohort copy | `Cohort.delivery_format`/`promo_summary`/`CohortBuildItem` | course ingest |
 
-Audit hardcoded public copy and inventories in `core/home_content.py`, navigation
-defaults, sponsor history, podcast platform metadata, wiki categories, sitemap
-inventories, and route-specific featured records. Presentation labels may remain
-code-owned; publishable records and editorial facts must be database fields.
+An empty database is a normal state on every one of these: hubs render empty and
+detail routes 404. Nothing falls back to a file.
+
+The projection *files* are still checked in as that ingest input, and
+`scripts/projection_build/` holds the code that checks and builds them. Neither
+is on a public request path. Removing them is the last step, once the ingests
+have run against the production database.
+
+### Still to do
+
+- Event content has no importer: `scripts/prod/import_events.py` records that
+  its only current source is the legacy repository being retired, and that the
+  replacement source is undecided. Until then `EventContent` stays empty and the
+  event pages render empty.
+- Docs and FAQ images are still files in `content/docs_assets/` and
+  `content/faq_assets/`; their records are database rows. Moving the bytes to the
+  public media store is the media-objects program, not this one.
+- Delete `temporary/content/` and `scripts/projection_build/` once production is
+  ingested.
 
 ## Target database reads
 

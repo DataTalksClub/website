@@ -30,7 +30,9 @@ SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 SOURCE_REVISION_RE = re.compile(r"^[0-9a-f]{40}$")
 CODE_RE = re.compile(r"^[a-z][a-z0-9_]{1,63}$")
 
-_PUBLIC_PROJECTION_PATH = "content/public_projection"
+# The reviewed source files this check compares upstream against. They are
+# ingest input under temporary/content/, not something the site reads.
+_PUBLIC_PROJECTION_PATH = "temporary/content/public_projection"
 _DECLARED_PROJECTION_PATHS = {
     "courses": (
         f"{_PUBLIC_PROJECTION_PATH}/courses.json",
@@ -42,8 +44,8 @@ _DECLARED_PROJECTION_PATHS = {
         f"{_PUBLIC_PROJECTION_PATH}/wiki_search.json",
         f"{_PUBLIC_PROJECTION_PATH}/manifest.json",
     ),
-    "faq": ("content/faq_projection.json",),
-    "docs": ("content/docs_projection.json",),
+    "faq": ("temporary/content/faq_projection.json",),
+    "docs": ("temporary/content/docs_projection.json",),
 }
 _ASSET_ROOTS = {
     "courses": (),
@@ -254,7 +256,7 @@ def _family_contract(family: str) -> FamilyContract:
 
         revision = FAQ_SOURCE_REVISION
     else:
-        from content.public_data import EXPECTED_REVISIONS
+        from scripts.projection_build.public_projection_source import EXPECTED_REVISIONS
 
         revision = EXPECTED_REVISIONS["courses" if family == "courses" else "wiki"]
     return FamilyContract(
@@ -269,16 +271,19 @@ def _family_contract(family: str) -> FamilyContract:
 def _projection_for_family(family: str) -> dict[str, Any]:
     try:
         if family == "docs":
-            from content.docs_projection import docs_projection
+            from scripts.prod.import_docs import REVIEWED_PATH, load_reviewed_docs
 
-            return docs_projection()
+            return load_reviewed_docs(REVIEWED_PATH)
         if family == "faq":
-            from content.faq_data import faq_projection
+            from scripts.prod.import_faq import REVIEWED_PATH, load_reviewed_faq
 
-            return faq_projection()
-        from content.public_data import _checked_public_projection
+            return load_reviewed_faq(REVIEWED_PATH)
+        # The reviewed source files, not the database: this check asks whether an
+        # upstream update has landed, which is a question about the files the
+        # ingest reads.
+        from scripts.projection_build.public_projection_source import load_checked_projection
 
-        return _checked_public_projection()
+        return load_checked_projection()
     except ContentUpdateError:
         raise
     except Exception:
