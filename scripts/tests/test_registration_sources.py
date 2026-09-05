@@ -22,7 +22,7 @@ from events.importers import (
     derive_registered_source,
 )
 from events.models import HistoricalRegistrationAggregateRevision
-from scripts.prod.registration_sources import register_source_readers
+from scripts.prod.registration_sources import register_source_readers, safe_source_facts
 from scripts.prod.registration_sources.eventbrite import (
     SCHEMA_FINGERPRINTS,
     _require_pinned_reconciliation as _require_pinned_eventbrite_reconciliation,
@@ -398,7 +398,9 @@ class ProtectedSourceAdapterTests(SimpleTestCase):
 
     def test_adapter_paths_invoke_pinned_mapping_reconciliation(self) -> None:
         source = self._luma_source(("approved",))
-        with patch("scripts.prod.registration_sources.luma._require_pinned_reconciliation") as luma_guard:
+        with patch(
+            "scripts.prod.registration_sources.luma._require_pinned_reconciliation"
+        ) as luma_guard:
             derive_luma(
                 source,
                 expected_checksum=tree_checksum(source),
@@ -590,3 +592,33 @@ class LumaEventDiscoveryTests(SimpleTestCase):
         # No expected_checksum argument exists on this function at all.
         discovered = discover_luma_events(self.root)
         self.assertEqual(len(discovered), 1)
+
+
+class SafeAcceptanceFactTests(SimpleTestCase):
+    """The reviewed facts each reader owns, beside the guard that enforces them."""
+
+    def test_safe_acceptance_facts_are_exact_aggregate_only_values(self) -> None:
+        facts = safe_source_facts()
+        self.assertEqual(
+            facts["luma"],
+            {
+                "manifest_event_total": 159,
+                "paired_json_total": 159,
+                "paired_csv_total": 159,
+                "parsed_row_total": 50_505,
+                "unique_provider_event_guest_total": 50_505,
+                "eligible_row_total": 50_456,
+                "excluded_row_total": 49,
+                "status_totals": {"approved": 50_456, "declined": 49},
+                "nonempty_event_total": 157,
+                "empty_event_total": 2,
+                "exact_proposal_total": 64,
+                "review_required_total": 95,
+            },
+        )
+        self.assertEqual(facts["eventbrite"]["manifest_entry_total"], 210)
+        self.assertEqual(facts["eventbrite"]["csv_total"], 209)
+        self.assertEqual(facts["eventbrite"]["parsed_row_total"], 24_001)
+        self.assertEqual(facts["eventbrite"]["exact_bridge_total"], 200)
+        self.assertEqual(facts["eventbrite"]["review_required_total"], 9)
+        self.assertEqual(facts["eventbrite"]["source_missing_total"], 27)

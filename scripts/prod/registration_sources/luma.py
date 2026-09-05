@@ -50,6 +50,24 @@ REQUIRED_COLUMNS = ("event_id", "guest_id", "approval_status")
 # identity discovery -- never an attendee identity field.
 DISCOVERY_REQUIRED_COLUMNS = (*REQUIRED_COLUMNS, "event_name", "event_start_at")
 
+# The reviewed acceptance facts for the one real export -- counts and status
+# totals only, never a source path or an event identity.  The pinned
+# reconciliation guard below refuses any derivation that disagrees with them.
+SAFE_SOURCE_FACTS = {
+    "manifest_event_total": 159,
+    "paired_json_total": 159,
+    "paired_csv_total": 159,
+    "parsed_row_total": 50_505,
+    "unique_provider_event_guest_total": 50_505,
+    "eligible_row_total": 50_456,
+    "excluded_row_total": 49,
+    "status_totals": {"approved": 50_456, "declined": 49},
+    "nonempty_event_total": 157,
+    "empty_event_total": 2,
+    "exact_proposal_total": 64,
+    "review_required_total": 95,
+}
+
 
 def _require_pinned_reconciliation(
     *,

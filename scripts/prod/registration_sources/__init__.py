@@ -22,7 +22,7 @@ from events.importers import register_source_reader
 
 from . import eventbrite, luma
 
-__all__ = ["register_source_readers"]
+__all__ = ["register_source_readers", "safe_source_facts"]
 
 
 def register_source_readers() -> None:
@@ -34,3 +34,17 @@ def register_source_readers() -> None:
 
     register_source_reader(luma.source_reader())
     register_source_reader(eventbrite.source_reader())
+
+
+def safe_source_facts() -> dict[str, dict[str, object]]:
+    """The reviewed acceptance facts for both real exports, keyed by provider.
+
+    Counts, status totals and header fingerprints only: no source path and no
+    event identity.  Each reader owns its own, beside the pinned reconciliation
+    guard that enforces them.
+    """
+
+    return {
+        luma.PROVIDER: dict(luma.SAFE_SOURCE_FACTS),
+        eventbrite.PROVIDER: dict(eventbrite.SAFE_SOURCE_FACTS),
+    }

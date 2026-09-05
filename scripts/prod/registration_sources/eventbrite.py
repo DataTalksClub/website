@@ -75,6 +75,39 @@ REQUIRED_COLUMNS = (
     "Attendee Status",
 )
 _ENTRY = re.compile(r"^(?P<event_id>[0-9]{1,20})\.csv$")
+# How many of the real archive's CSVs carry each reviewed header.
+_SCHEMA_CSV_TOTALS = {
+    "eventbrite_csv_v1": 22,
+    "eventbrite_csv_v2": 12,
+    "eventbrite_csv_v3": 175,
+}
+
+# The reviewed acceptance facts for the one real export -- counts, status totals
+# and header fingerprints only, never a source path or an event identity.  The
+# pinned reconciliation guard below refuses any derivation that disagrees.
+SAFE_SOURCE_FACTS = {
+    "whole_source_checksum": PINNED_SOURCE_CHECKSUM,
+    "manifest_entry_total": 210,
+    "csv_total": 209,
+    "unsupported_xlsx_total": 1,
+    "expansion_ratio": "3.80",
+    "parsed_row_total": 24_001,
+    "provider_event_total": 209,
+    "eligible_row_total": 24_001,
+    "status_totals": {"Attending": 24_001},
+    "duplicate_protected_key_total": 0,
+    "exact_bridge_total": 200,
+    "review_required_total": 9,
+    "source_missing_total": 27,
+    "csv_schemas": {
+        name: {
+            "header_sha256": fingerprint,
+            "column_total": columns,
+            "csv_total": _SCHEMA_CSV_TOTALS[name],
+        }
+        for fingerprint, (name, columns) in SCHEMA_FINGERPRINTS.items()
+    },
+}
 
 
 def _is_event_identifier(external_id: str) -> bool:
@@ -115,14 +148,7 @@ def _require_pinned_reconciliation(
             candidate.state != HistoricalRegistrationAggregateRevision.State.STAGED
             for candidate in candidates
         )
-        or schema_totals
-        != Counter(
-            {
-                "eventbrite_csv_v1": 22,
-                "eventbrite_csv_v2": 12,
-                "eventbrite_csv_v3": 175,
-            }
-        )
+        or schema_totals != Counter(_SCHEMA_CSV_TOTALS)
         or len(bridge) != 200
         or proposal_total != 200
         or review_total != 9
