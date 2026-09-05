@@ -56,7 +56,8 @@ ADOPTION_INTEGRATION_PYTHON = \
 # from the default ruff and mypy roots, so this package opts back in explicitly.
 PRODUCTION_IMPORT_PYTHON = \
 	scripts/prod \
-	courses/services/cmp_content_import.py
+	courses/services/cmp_content_import.py \
+	courses/services/cmp_learner_history_import.py
 
 setup:
 	uv sync --locked
