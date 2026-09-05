@@ -39,6 +39,9 @@ IDENTITY_NAMES = frozenset(
         "DTC_ENVIRONMENT",
         "DTC_DEVELOPMENT_HOSTNAME",
         "DJANGO_SETTINGS_MODULE",
+        "PUBLIC_MEDIA_S3_BUCKET",
+        "PUBLIC_MEDIA_S3_REGION",
+        "PUBLIC_MEDIA_STORE_BACKEND",
     }
 )
 
@@ -71,6 +74,9 @@ def update_task_definition(
                 {"name": "VERSION", "value": version},
                 {"name": "DTC_ENVIRONMENT", "value": runtime_environment},
                 {"name": "DJANGO_SETTINGS_MODULE", "value": settings_module},
+                {"name": "PUBLIC_MEDIA_S3_BUCKET", "value": "dtc-website-media"},
+                {"name": "PUBLIC_MEDIA_S3_REGION", "value": "eu-west-1"},
+                {"name": "PUBLIC_MEDIA_STORE_BACKEND", "value": "s3"},
             ]
         )
         if development_hostname:
