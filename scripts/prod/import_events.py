@@ -117,7 +117,7 @@ BOOTSTRAPS_EMPTY_DATABASE = False
 REGISTRATION_FACTS_PATH = (
     PROJECT_ROOT / "_docs" / "migration-data" / "event-registration-sources.json"
 )
-IDENTITY_MANIFEST_PATH = PROJECT_ROOT / "events" / "event_identity_manifest.json"
+IDENTITY_MANIFEST_PATH = PROJECT_ROOT / "temporary" / "content" / "event_identity_manifest.json"
 LUMA_RELATIVE_SOURCE = Path(".local/migration-data/events/luma-aggregate-v1")
 EVENTBRITE_RELATIVE_SOURCE = Path(".local/migration-data/events/eventbrite/aggregate-v1.zip")
 

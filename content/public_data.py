@@ -41,7 +41,9 @@ REPOSITORY_ROOT = PROJECTION_ROOT.parents[1]
 # Explicit prod-ingest helper location. Default runtime never reads here unless
 # PUBLIC_PROJECTION_ROOT names it explicitly. See temporary/content/README.md.
 MIGRATION_PROJECTION_ROOT = REPOSITORY_ROOT / "temporary" / "content" / "public_projection"
-MIGRATION_IDENTITY_MANIFEST = REPOSITORY_ROOT / "temporary" / "content" / "event_identity_manifest.json"
+MIGRATION_IDENTITY_MANIFEST = (
+    REPOSITORY_ROOT / "temporary" / "content" / "event_identity_manifest.json"
+)
 
 
 def _resolve_projection_root() -> Path:
@@ -81,6 +83,8 @@ def is_projection_present(root: Path | None = None) -> bool:
 
     candidate = root if root is not None else _resolve_projection_root()
     return (candidate / "manifest.json").is_file()
+
+
 PODCAST_PLATFORM_FILENAME = "podcast_platforms.json"
 EXPECTED_PODCAST_PLATFORM_PROVIDERS = (
     "apple",

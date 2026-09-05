@@ -25,7 +25,13 @@ from core.runtime_config import get_str_setting
 from .models import Event, EventAlias, EventPublicIdSequence
 from .slugs import event_title_slug
 
-IDENTITY_MANIFEST_PATH = Path(__file__).with_name("event_identity_manifest.json")
+# The reviewed identity manifest is a migration helper, not runtime content: it
+# lives under `temporary/content/` and is excluded from the release image.  The
+# public read path resolves identities from `Event`/`EventAlias` rows; this path
+# exists so the one-time import and the test reference data can seed them.
+IDENTITY_MANIFEST_PATH = (
+    Path(__file__).parents[1] / "temporary" / "content" / "event_identity_manifest.json"
+)
 IDENTITY_MANIFEST_SCHEMA_VERSION = 2
 _SOURCE_KEY = re.compile(r"^[^\x00]{1,512}$")
 _REPOSITORY = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
