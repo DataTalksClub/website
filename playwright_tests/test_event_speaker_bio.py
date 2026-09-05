@@ -5,7 +5,9 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Page, ViewportSize, expect
 
+from content.event_speakers import event_speaker_records
 from content.public_data import public_projection
+from events.queries import published_event_records
 
 pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
 
@@ -16,9 +18,24 @@ FEATURED_EVENT_PATH = "/events/365/ai-dev-tools-zoomcamp-2026-course-launch"
 
 
 def _featured_event() -> dict:
-    return next(
-        event for event in public_projection()["events"] if event["title"] == FEATURED_EVENT_TITLE
+    """The published event row, with each credit joined to its profile biography.
+
+    The page composes the biography the same way, from the person's own
+    catalogue record: the event row carries the credit and nothing more.
+    """
+
+    event = next(
+        event for event in published_event_records() if event["title"] == FEATURED_EVENT_TITLE
     )
+    catalogue = public_projection()
+    return {
+        **event,
+        "speakers": event_speaker_records(
+            event["speakers"],
+            people_by_slug=catalogue["people_by_slug"],
+            people_by_path=catalogue["people_by_path"],
+        ),
+    }
 
 
 def _screenshot(page: Page, name: str) -> None:

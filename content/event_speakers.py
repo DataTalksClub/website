@@ -1,9 +1,10 @@
-"""The checked public view of speakers on an event detail page.
+"""The public view of speakers on an event detail page.
 
-Event records own the ordered speaker credit (the source key, display name, and
-profile path).  The biography is owned by the linked public person record.  This
-small adapter joins those two records for rendering without copying a person's
-bio into every event artifact.
+The event owns the ordered speaker credit -- the source key, display name and
+profile path, as ``EventSpeaker`` rows.  The biography is owned by the linked
+person's own catalogue record.  This small adapter joins the two at request
+time rather than copying a person's bio onto every event they ever spoke at,
+so editing a profile updates every event page that credits them.
 
 Biography blocks remain untrusted text at this boundary.  The event template
 renders them through ``public/_prose_body.html``, which escapes text and only

@@ -7,8 +7,8 @@ from django.template.loader import render_to_string
 from django.test import SimpleTestCase
 from django.utils.html import escape
 
+from content.event_speakers import event_speaker_records
 from content.person_chip import PersonChip
-from scripts.projection_build.event_speakers import event_speaker_records
 
 
 class EventSpeakerRecordTests(SimpleTestCase):

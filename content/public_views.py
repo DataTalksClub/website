@@ -49,6 +49,7 @@ from . import wiki_content
 from .article_content import article_view, render_body_markdown
 from .article_faq import ArticleFaq, article_faq
 from .event_banners import event_banner_url
+from .event_speakers import event_speaker_records
 from .faq_data import faq_courses
 from .media_store import (
     MediaStore,
@@ -407,6 +408,15 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
     )
     event["public_path"] = canonical_detail_path(identity.id)
     event["banner_url"] = event_banner_url(event)
+    # The credit says who spoke; the biography belongs to that person's own
+    # profile and is joined in here, so the page never carries a copy that can
+    # drift from the profile it came from.
+    catalogue = public_projection()
+    event["speakers"] = event_speaker_records(
+        event["speakers"],
+        people_by_slug=catalogue["people_by_slug"],
+        people_by_path=catalogue["people_by_path"],
+    )
     # The page states whether the event has happened in a word, using the same split the
     # events index draws its rows from.  An event the grouped catalogue cannot place —
     # the projected fallback record above — reports no state rather than an invented one.
