@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import uuid
 from dataclasses import dataclass
@@ -36,6 +37,50 @@ from .podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_canonical_p
 from .public_text import strip_leaked_target_attributes, target_attribute_count
 
 PROJECTION_ROOT = Path(__file__).with_name("public_projection")
+REPOSITORY_ROOT = PROJECTION_ROOT.parents[1]
+# Explicit prod-ingest helper location. Default runtime never reads here unless
+# PUBLIC_PROJECTION_ROOT names it explicitly. See temporary/content/README.md.
+MIGRATION_PROJECTION_ROOT = REPOSITORY_ROOT / "temporary" / "content" / "public_projection"
+MIGRATION_IDENTITY_MANIFEST = REPOSITORY_ROOT / "temporary" / "content" / "event_identity_manifest.json"
+
+
+def _resolve_projection_root() -> Path:
+    """Return the projection root the default runtime reads.
+
+    `content/public_projection/` holds no snapshot: the migration helper moved
+    to `temporary/content/` and the release image excludes it, so a manifest
+    here is absent and public catalogues render empty. `PUBLIC_PROJECTION_ROOT`
+    lets explicit migration tooling point at the helper without changing the
+    default.
+    """
+
+    override = os.getenv("PUBLIC_PROJECTION_ROOT", "").strip()
+    return Path(override) if override else PROJECTION_ROOT
+
+
+def _resolve_identity_manifest_path() -> Path:
+    """Return the identity manifest the default runtime binds to.
+
+    Absent by default (empty event catalogue): the helper at
+    `temporary/content/event_identity_manifest.json` is used only when
+    explicitly configured via `EVENT_IDENTITY_MANIFEST_PATH` (or when
+    `PUBLIC_PROJECTION_ROOT` names the helper projection outright), or passed
+    as `--identity-manifest` to `scripts/prod/import_events.py`.
+    """
+
+    override = os.getenv("EVENT_IDENTITY_MANIFEST_PATH", "").strip()
+    if override:
+        return Path(override)
+    if os.getenv("PUBLIC_PROJECTION_ROOT", "").strip() == str(MIGRATION_PROJECTION_ROOT):
+        return MIGRATION_IDENTITY_MANIFEST
+    return PROJECTION_ROOT.parents[1] / "events" / "event_identity_manifest.json"
+
+
+def is_projection_present(root: Path | None = None) -> bool:
+    """Return True when a projection manifest exists at the resolved root."""
+
+    candidate = root if root is not None else _resolve_projection_root()
+    return (candidate / "manifest.json").is_file()
 PODCAST_PLATFORM_FILENAME = "podcast_platforms.json"
 EXPECTED_PODCAST_PLATFORM_PROVIDERS = (
     "apple",
@@ -412,7 +457,9 @@ def _runtime_event_identity_snapshot() -> tuple[tuple[str, int, str], ...]:
     """Return the database-owned event URL fields in one portable query.
 
     The tuple is also a safe cache key: when Studio imports or edits an event, the next request
-    observes a different snapshot and rebuilds the adapted projection.
+    observes a different snapshot and rebuilds the adapted projection.  The empty-table fallback
+    below returns the manifest tuple, which differs from every populated snapshot, so the first
+    request after an import still rebuilds.
     """
 
     from events.models import Event
@@ -424,10 +471,25 @@ def _runtime_event_identity_snapshot() -> tuple[tuple[str, int, str], ...]:
                 "id", "public_id", "slug"
             )
         }
+        if not rows:
+            # A usable but completely unpopulated Event table is the pre-import bootstrap, not
+            # corruption: `prepare_deployment` imports the reviewed manifest after `migrate`, and
+            # a freshly migrated database is simply not there yet.  Serve the build-time manifest
+            # identities, exactly as the DB-less fallback below does, instead of 500ing every
+            # public page.  This deliberately reads the whole table, not just the manifest UUIDs,
+            # so "empty" means empty.
+            return _manifest_event_identity_snapshot()
         resolved: list[tuple[str, int, str]] = []
         for event_id, expected_public_id, _manifest_slug in _manifest_event_identity_snapshot():
             runtime = rows.get(event_id)
             if runtime is None or runtime[0] != expected_public_id:
+                # Any non-empty table must agree with the manifest, entry for entry.  The spec
+                # makes identity import atomic - "Imports and replays preserve the checked
+                # UUID/public-ID pair and reject missing, duplicate, ambiguous, or renumbered
+                # mappings atomically" - so a table holding some manifest events but not others,
+                # or holding one under a different public ID, is a state no supported import can
+                # produce.  It is drift, and publication "fails closed without a public ID"
+                # rather than serving manifest numbers the database would not resolve.
                 raise ImproperlyConfigured("Public Event UUID/public-ID mapping is incomplete.")
             resolved.append((event_id, expected_public_id, runtime[1]))
         return tuple(resolved)
