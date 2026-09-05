@@ -31,7 +31,9 @@ authoritative specifications under `_docs/specs/`.
 ## Public editorial content
 
 - [ ] Import the pinned DataTalks.Club Jekyll website content.
-  - [ ] Articles/blog posts and article FAQ sections.
+  - [ ] Articles/blog posts, with article FAQ sections from each article's
+        frontmatter `faq:` section (pairs moved there from legacy `_data/faqs`;
+        no separate model).
   - [ ] Podcast episodes, transcripts, guests, listening links and media.
   - [ ] Books, people, events, tools and other collection records.
   - [ ] Images, downloads and other referenced static assets.

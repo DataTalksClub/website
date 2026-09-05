@@ -72,7 +72,7 @@ deliberately do nothing", it says so.
 | 7 | Legacy `_people` (443) | pinned build | push-sync — move to `DataTalksClub/content`, §11 B5 | 6 |
 | 8 | Legacy `_data/events.yaml` (421) | pinned build | one-off export — **no home yet**, §11 B6 | 6 |
 | 9 | Legacy `images/authors/` (438) | pinned build | one-off export → CDN; **live defect**, §11 B7 | 6 |
-| 10 | Legacy `_data/faqs/` article FAQ (159 pairs) | pinned build | one-off export — **already done and committed** | — |
+| 10 | Legacy `_data/faqs/` article FAQ (159 pairs) | one-time seed → git-synchronised | **owner ruling: pairs move to article frontmatter `faq:` in `DataTalksClub/content` and enter through the content ingest; no separate model** | 6 |
 | 11 | CMP export — course content (991 rows) | one-time | `scripts/prod/import_cmp_content.py` | 3 |
 | 12 | CMP export — learner data (510,519 rows) | one-time | **to build**, §11 A3 | 4 |
 | 13 | `zoomcamp-scoring` — pre-2024 history | one-time | `scripts/prod/import_legacy_zoomcamp.py` | 1 |
@@ -97,11 +97,14 @@ were folded into "the content repository" and are not in it and never were.
 `DataTalksClub/datatalksclub.github.io` stops being a content source. Taking
 content from it **in the interim is fine**; depending on it at the end is not.
 
-**The legacy repository is never read at Django request time.** If it vanished
-right now no visitor would see a change — every editorial page is served from
-JSON committed into this repository. The six reads are all at *projection-build*
-time. That changes the urgency: this is a rebuild risk and a one-off-export risk,
-not a live-site risk. The single exception is `sync_public_media_hydrate.py`, below.
+**Owner ruling: the legacy repository lives only in temporary one-time
+prod-ingest scripts, never anywhere else.** No runtime view, service, check,
+builder, adapter, or synchronized sync reads it. The committed snapshot it
+produced now sits at `temporary/content/` as explicit ingest input, excluded
+from the release image. The remaining legacy reads are the violation list in
+`_docs/architecture/database-only-content.md`; each is removed by its own move:
+people and article FAQ pairs into `DataTalksClub/content`, events as a one-off
+export, images to the CDN.
 
 Copied to `DataTalksClub/content`, then push-synchronised from there:
 
@@ -111,6 +114,7 @@ Copied to `DataTalksClub/content`, then push-synchronised from there:
 | `_podcast` | 209 | podcast episodes | **already in `content`** |
 | `_books` | 100 | books | **already in `content`** as `books/*.yaml` |
 | `_people` | 443 | people | **not moved. This is the work** |
+| `_data/faqs` | 10 | article FAQ pairs | **moving to article frontmatter `faq:`, then push-synced with the article** |
 | `_conferences` | 2 | — | reaches no page; no destination — §12 decision 2 |
 
 Stays in its own repository, and **we serve it**:
