@@ -118,7 +118,9 @@ class EventSpeakerTemplateTests(SimpleTestCase):
         self.assertIn('href="https://example.com/guide"', body)
         self.assertIn('target="_blank" rel="noopener noreferrer"', body)
 
-    def test_empty_bio_has_a_clear_message_without_an_empty_prose_region(self) -> None:
+    def test_a_speaker_without_a_bio_is_still_the_credit_and_nothing_else(self) -> None:
+        """The absence is not announced: no bio region, and no line reporting one."""
+
         body = self._render(
             {
                 "name": "Ada Example",
@@ -127,5 +129,7 @@ class EventSpeakerTemplateTests(SimpleTestCase):
             }
         )
 
-        self.assertIn("No biography is available for this speaker.", body)
+        self.assertIn("Ada Example", body)
+        self.assertIn('class="event-speaker"', body)
         self.assertNotIn('class="prose event-speaker-bio"', body)
+        self.assertNotIn("biography", body.casefold())
