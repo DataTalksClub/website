@@ -59,9 +59,11 @@ class Command(BaseCommand):
                 role_statement = "ALTER ROLE" if cursor.fetchone() else "CREATE ROLE"
                 cursor.execute(
                     sql.SQL(
-                        f"{role_statement} {{}} WITH LOGIN CONNECTION LIMIT 40 PASSWORD %s"
-                    ).format(sql.Identifier(application_user)),
-                    (application_password,),
+                        f"{role_statement} {{}} WITH LOGIN CONNECTION LIMIT 40 PASSWORD {{}}"
+                    ).format(
+                        sql.Identifier(application_user),
+                        sql.Literal(application_password),
+                    )
                 )
                 cursor.execute(
                     sql.SQL("REVOKE ALL ON DATABASE {} FROM PUBLIC").format(
