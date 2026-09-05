@@ -291,27 +291,29 @@ Reads that **take content** (fate required):
 | a2 | `scripts/build_public_projection.py:1799` | `_data/events.yaml` | `events.json` (421) | Pages fine. **Rebuild fails** |
 | a3 | `scripts/build_public_projection.py:2846` | `images/authors/*` | 438 `media.json` records | Pages fine *if already hydrated*. See a5 |
 | a4 | `scripts/build_article_faq.py:199-203` | `_data/faqs/*.yml` | `article_faq.json` (10 articles, 159 pairs) | Pages fine. **Rebuild fails** at `:201` |
-| a5 | `content/media_tooling.py:154-157`, `:230` | `raw.githubusercontent.com/.../images/authors/*` over HTTPS | 438 author images | **This one genuinely breaks.** See below |
+| a5 | `content/media_tooling.py` `_read_from_github` | `raw.githubusercontent.com/.../images/authors/*` over HTTPS | 438 author images | **Only under an explicit `--source github`**, which then breaks. See below |
 | a6 | `build_public_projection.py:1385, 1541, 1556, 1641, 3078` | `_posts`, `_podcast`, `_books`, `images/**` | articles, podcasts, books, media — **`--mode fallback` only** | Nothing. Fallback is not accepted |
 
-**a5 is the only live defect.** `scripts/prod/sync_public_media_hydrate.py:60-64`
-defaults to `--source github`, and `temporary/content/public_projection/media/` is gitignored
-(`.gitignore:23`, `git ls-files` returns 0 files). 438 of the 1,253 media records
-carry `"repository": "DataTalksClub/datatalksclub.github.io"` in their provenance,
-so:
+**a5 is the only read that still wants the legacy repository at run time**, and
+`temporary/content/public_projection/media/` is gitignored (`.gitignore:23`, `git ls-files`
+returns 0 files). 438 of the 997 media records carry
+`"repository": "DataTalksClub/datatalksclub.github.io"` in their provenance.
+
+`sync_public_media_hydrate.py` no longer defaults to `--source github`: the flag is
+required, and with no source the command refuses (exit `2`) and names what each source
+needs instead of downloading 997 objects, 438 of them from the legacy repository. So:
 
 - Production with `PUBLIC_MEDIA_STORE_BACKEND=s3` — **unaffected**, images come from the bucket.
 - CI with `PUBLIC_MEDIA_STORE_BACKEND=memory` — **unaffected**.
-- **A fresh developer clone, or any re-hydration of the S3 bucket, loses 438 images.**
-  `hydrate_media` returns `failed: 438` and exits non-zero. Every `/people/*` avatar
-  and every author chip on `/blog/*`, `/podcast/*` and `/events/*` renders without
-  its picture.
+- A fresh developer clone, or a re-hydration of the S3 bucket, must name its source:
+  `--source checkout` against local clones (`content/media_tooling.py` parses
+  `--checkout DataTalksClub/datatalksclub.github.io=/path`), or `--source store` from
+  an already-hydrated peer or the bucket. `--source github` still exists and still
+  reaches the legacy repository; it is the only network route to those 438 objects
+  while the bucket is not yet the origin of record.
 
-Existing escape hatches, already in the code: `--source checkout` against a local
-clone (`content/media_tooling.py:115-124` parses
-`--checkout DataTalksClub/datatalksclub.github.io=/path`), or `--source store` from
-an already-hydrated peer. Closing this properly means the CDN bucket becomes the
-origin of record — §7.
+Closing this the rest of the way means the CDN bucket becomes the origin of record —
+§7 — after which `--source github` has no remaining purpose.
 
 Reads that are **provenance assertions only** — they compare strings inside committed
 JSON and never touch the repository or the network. They still *pin* us to the legacy
@@ -1193,9 +1195,12 @@ Ordered by how much they will hurt.
    throughout, no script, no plan. `scripts/load_rds_export.py` is disabled.
 2. **The content database pipeline is dead at both ends** (§9). Models, services and
    a preparation function exist; nothing writes them and nothing reads them.
-3. **`sync_public_media_hydrate.py` defaults to fetching 438 images from the legacy repo over
-   the network**, and the media tree is gitignored (§5.2 a5). This is the only live
-   legacy dependency.
+3. **The only remaining route to 438 of the media objects is the legacy repository**
+   (§5.2 a5), and the media tree is gitignored. The default is closed —
+   `sync_public_media_hydrate.py` requires `--source` and refuses rather than reach for
+   `DataTalksClub/datatalksclub.github.io` — but `--source github` is still the only way
+   to fetch those bytes for anyone without a legacy checkout or a populated bucket. It
+   stops mattering when the bucket becomes the origin of record.
 4. **A full projection rebuild is not reproducible** — issue #253. Contract digests
    `PROJECTION_MANIFEST_SHA256` / `PROJECTION_TREE_SHA256`
    (`content_sync/dtc_content/contract.py:42-43`) were already stale before #301
@@ -1267,7 +1272,7 @@ Ordered by how much they will hurt.
 | Create identities for new events in a fresh Luma export (§14.3) | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --discover-new-events-only` |
 | See what a description export still needs from a person (§14.4) | `uv run --frozen python scripts/prod/import_events.py --database … --luma-source … --discover-new-events-only`, then `uv run --frozen python scripts/build_luma_event_descriptions.py --database … --source-root …` |
 | Build the staged descriptions once that report is clean (§14.4) | the same command with `--write`; then re-run `import_events.py` |
-| Materialise media | `uv run --frozen python scripts/prod/sync_public_media_hydrate.py` |
+| Materialise media | `uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source checkout --checkout …` (`--source` is required; run it bare to see the options) |
 | Publish media to the store | `uv run --frozen python scripts/prod/sync_public_media_publish.py` |
 | Verify media against `media.json` | `uv run --frozen python scripts/prod/sync_public_media_verify.py` |
 

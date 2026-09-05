@@ -39,12 +39,14 @@ only**, never from the request path.
 
 ## Hydrating a fresh clone
 
-A fresh clone has no images. `manage.py check` says so and names the command:
+A fresh clone has no images. `manage.py check` says so and names the command.
+
+**`--source` is required and has no default.** No source is reachable from every
+machine, so the command refuses (exit `2`) rather than guess, and prints what each
+source needs. It used to default to `github`, which pulls 438 of the 997 records out of
+the retired `DataTalksClub/datatalksclub.github.io`; that is now an explicit opt-in.
 
 ```bash
-# from the pinned upstream revisions recorded in each record's provenance
-uv run --frozen python scripts/prod/sync_public_media_hydrate.py
-
 # fully offline, from local checkouts of the pinned upstream repositories
 uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source checkout \
   --checkout DataTalksClub/content=/path/to/content \
@@ -54,6 +56,9 @@ uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source checko
 PUBLIC_MEDIA_LOCAL_ROOT=/path/to/other/checkout/temporary/content/public_projection/media \
   uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source store \
   --destination temporary/content/public_projection/media
+
+# last resort: the pinned upstream revisions over the network, legacy repository included
+uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source github
 ```
 
 Hydration is idempotent and resumable: an object already present with the recorded checksum is
@@ -61,7 +66,8 @@ skipped, and an object whose retrieved digest does not match its record is never
 command prints `{"failed": N, "skipped": N, "total": 1253, "written": N}` and exits non-zero if any
 object failed. `--force` re-fetches everything.
 
-The `github` source needs network access to `raw.githubusercontent.com`. No source needs an AWS
+The `github` source needs network access to `raw.githubusercontent.com`, and for 438 records that
+means the retired legacy repository — prefer `checkout` or `store`. No source needs an AWS
 credential except `--source store` with the `s3` backend.
 
 ## Provisioned object store

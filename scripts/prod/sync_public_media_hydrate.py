@@ -7,10 +7,12 @@ grows as new content ships, so this is re-run whenever it does, not run once.
 Touches no database: every record and every byte lives in files or the
 configured object store, never in a model row.
 
-Examples::
+``--source`` has no default. No one source is reachable from every machine, and the
+one that used to be the default reads 438 of the records straight out of
+``DataTalksClub/datatalksclub.github.io``, the retired repository this repository must
+be able to work without. Naming the source is therefore the operator's call.
 
-    # fresh clone, from the pinned upstream revisions recorded in each record
-    uv run --frozen python scripts/prod/sync_public_media_hydrate.py
+Examples::
 
     # fully offline, from local checkouts of the pinned upstream repositories
     uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source checkout \\
@@ -19,6 +21,9 @@ Examples::
 
     # from the configured object store, once the bucket is populated
     uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source store
+
+    # last resort: the pinned upstream revisions, over the network
+    uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source github
 
 No AWS credential is required for the ``github`` or ``checkout`` sources.  Every object
 is verified against its record's ``provenance.checksum`` and a mismatching object is
@@ -42,6 +47,22 @@ SYNC_MODEL = "git-synchronized"
 # database domain for this to bootstrap.
 BOOTSTRAPS_EMPTY_DATABASE = False
 
+#: Printed when no ``--source`` is named.  Guessing one is worse than refusing: the
+#: historic default, ``github``, pulls 438 of the records from the retired
+#: ``DataTalksClub/datatalksclub.github.io``, and no other source is reachable from
+#: every machine either.  Say what each one needs so the choice is a decision, not a
+#: retry loop.
+NO_SOURCE_GUIDANCE = (
+    "--source is required; nothing is hydrated without it.\n"
+    "  --source checkout  local clones of the pinned repositories, passed with"
+    " --checkout REPOSITORY=PATH (offline, no credential)\n"
+    "  --source store     the store selected by PUBLIC_MEDIA_STORE_BACKEND: another"
+    " hydrated checkout under `local`, or the bucket under `s3`\n"
+    "  --source github    the pinned upstream revisions over the network; 438 of the"
+    " records still name the retired DataTalksClub/datatalksclub.github.io, so prefer"
+    " one of the two above"
+)
+
 
 def _configure() -> None:
     # No --database: this never touches the ORM. Respects whatever
@@ -60,8 +81,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--source",
         choices=("github", "checkout", "store"),
-        default="github",
-        help="where the bytes come from (default: the pinned upstream revisions)",
+        default=None,
+        help="where the bytes come from; required, because no source suits every machine",
     )
     parser.add_argument(
         "--checkout",
@@ -86,7 +107,10 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = _parser().parse_args(argv)
+    parser = _parser()
+    args = parser.parse_args(argv)
+    if args.source is None:
+        parser.error(NO_SOURCE_GUIDANCE)
     _configure()
 
     from content.media_store import media_store, media_store_config
