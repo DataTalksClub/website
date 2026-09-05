@@ -20,7 +20,7 @@ Two sync models, said by the filename
 
 So a person opening this directory can tell at a glance which scripts they would
 ever run twice.  Each module also declares ``SYNC_MODEL`` and
-``scripts/tests/test_prod_scripts.py`` checks that the declaration and the
+``scripts/tests/test_prod_conventions.py`` checks that the declaration and the
 filename agree, so the convention cannot quietly rot.
 
 The course-repository curriculum is git-synchronized and has exactly one ingestion
@@ -46,7 +46,7 @@ copy.  A production ingest that depends on fake rows existing first is backwards
 that importer now creates the cohort and its family from the reviewed catalogue.
 
 :data:`BOOTSTRAPPING_ENTRY_POINTS` records which modules bootstrap.  It is checked by
-``scripts/tests/test_prod_imports.py``, so a module that gains or loses the ability is
+``scripts/tests/test_prod_conventions.py``, so a module that gains or loses the ability is
 a deliberate edit rather than a surprise.
 
 Course catalogue order

@@ -213,7 +213,7 @@ no-op*, which is the more dangerous failure because it reports success having
 written nothing.
 
 `scripts/prod/__init__.py` records which is which in `BOOTSTRAPPING_ENTRY_POINTS`,
-and `scripts/tests/test_prod_imports.py` checks the declaration against each
+and `scripts/tests/test_prod_conventions.py` checks the declaration against each
 module's `BOOTSTRAPS_EMPTY_DATABASE`. Today eleven bootstrap: the course
 catalogue (`import_legacy_zoomcamp`, `sync_course_repositories`,
 `import_cmp_content`), its learners (`import_cmp_learners`), the repository

@@ -1026,7 +1026,7 @@ What genuinely differs, and needs care rather than a separate pipeline:
    empty database.** Everything else reconciles against rows that already exist, and
    against an empty database is a silent no-op rather than an error. This ordering
    constraint is declared as `BOOTSTRAP_FIRST` in `scripts/prod/__init__.py` and
-   checked by `scripts/tests/test_prod_imports.py`.
+   checked by `scripts/tests/test_prod_conventions.py`.
 3. `make content-sources` — register `ContentSource` rows.
 4. `make content-checkouts` — **the only networked step.**
 5. `make content-pull` — offline curriculum ingest.
