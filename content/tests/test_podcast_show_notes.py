@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 from django.template.loader import render_to_string
-from django.test import SimpleTestCase
+from django.test import TestCase
 
 from content.podcast_content import episode_view
 from content.podcast_resources import (
@@ -20,7 +20,7 @@ from content.podcast_resources import (
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
-class PodcastShowNotesContractTests(SimpleTestCase):
+class PodcastShowNotesContractTests(TestCase):
     records: ClassVar[list[dict[str, Any]]]
 
     @classmethod

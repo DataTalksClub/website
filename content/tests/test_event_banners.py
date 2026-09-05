@@ -3,19 +3,20 @@ from __future__ import annotations
 import struct
 from pathlib import Path
 
-from django.test import SimpleTestCase, TestCase
+from django.test import TestCase
 
 from content.event_banners import EVENT_BANNER_FILENAMES, event_banner_url
 from events.identity import canonical_detail_path
 from events.models import Event
 from events.queries import published_event_records
+from test_support.content_state import requires_published_events
 from test_support.reference_data import load_reviewed_reference_data
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 EXPECTED_PNG_SIZE = (1000, 1000)
 
 
-class EventBannerTests(SimpleTestCase):
+class EventBannerTests(TestCase):
     def test_known_event_id_resolves_to_a_static_url(self) -> None:
         identity_id = next(iter(EVENT_BANNER_FILENAMES))
 
@@ -39,6 +40,7 @@ class EventBannerTests(SimpleTestCase):
                 self.assertEqual(struct.unpack(">II", payload[16:24]), EXPECTED_PNG_SIZE)
 
 
+@requires_published_events
 class EventBannerPageTests(TestCase):
     @classmethod
     def setUpTestData(cls) -> None:

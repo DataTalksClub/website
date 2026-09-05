@@ -8,7 +8,7 @@ from xml.etree import ElementTree
 
 from django.core.exceptions import ImproperlyConfigured
 from django.template.loader import render_to_string
-from django.test import Client, SimpleTestCase, TestCase
+from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils.html import conditional_escape, escape
 
@@ -41,7 +41,7 @@ def cache_directives(response) -> set[str]:
     }
 
 
-class PodcastOrderingTests(SimpleTestCase):
+class PodcastOrderingTests(TestCase):
     def test_catalogue_orders_complete_seasons_without_mutating_projection_order(self) -> None:
         projection = public_projection()["podcasts"]
         source_order = tuple(episode["slug"] for episode in projection)
@@ -153,7 +153,7 @@ class PodcastOrderingTests(SimpleTestCase):
                 self.assertEqual(validated_canonical_url(value), "")
 
 
-class PodcastPageCompositionTests(SimpleTestCase):
+class PodcastPageCompositionTests(TestCase):
     """The design system pages (issue #179) read every fact, or fail loudly."""
 
     def test_every_catalogue_record_composes_without_invention(self) -> None:

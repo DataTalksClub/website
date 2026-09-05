@@ -172,7 +172,11 @@ def run(*, root: Path | None = None, apply: bool = True) -> dict[str, Any]:
                         exact_public_path=_import_path(kind, _safe_key(key, index)),
                         slug=str(record.get("slug") or "")[:255],
                         title=str(record.get("title") or record.get("name") or key)[:512],
-                        adapter_metadata=record,
+                        # The record verbatim, next to the position it holds in
+                        # its collection. Order is editorial -- newest first,
+                        # season order, the sequence a hub lists in -- so it
+                        # cannot be left to whatever the row key sorts as.
+                        adapter_metadata={"record": record, "position": index},
                         rendered_html=f"<p>{kind}</p>",
                         is_published=True,
                     )
@@ -191,7 +195,7 @@ def run(*, root: Path | None = None, apply: bool = True) -> dict[str, Any]:
                     checksum=_record_digest(payload),
                     exact_public_path=_import_path(singleton, singleton),
                     title=singleton,
-                    adapter_metadata=payload,
+                    adapter_metadata={"record": payload, "position": 0},
                     rendered_html=f"<p>{singleton}</p>",
                     is_published=True,
                 )

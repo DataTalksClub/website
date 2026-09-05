@@ -9,9 +9,10 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from django.template.loader import get_template
-from django.test import SimpleTestCase, TestCase
+from django.test import TestCase
 
-from content.public_data import public_projection
+from events.queries import published_event_records
+from test_support.content_state import requires_published_events
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 ADOPTED_BASE = REPOSITORY_ROOT / "course_platform_templates/base.html"
@@ -38,7 +39,7 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-class HomeEventsCmpRepositoryContractTests(SimpleTestCase):
+class HomeEventsCmpRepositoryContractTests(TestCase):
     def test_logical_base_fails_closed_to_the_adopted_cmp_origin(self) -> None:
         template = get_template("base.html")
         origin = getattr(template, "origin", None)
@@ -92,6 +93,7 @@ class HomeEventsCmpRepositoryContractTests(SimpleTestCase):
         self.assertIn('{% include "core/_site_shell_foot.html" %}', detail)
 
 
+@requires_published_events
 class HomeEventsCmpRenderingTests(TestCase):
     @staticmethod
     def _main_markup(response) -> str:
@@ -127,7 +129,7 @@ class HomeEventsCmpRenderingTests(TestCase):
     def test_events_catalog_and_detail_preserve_public_content_and_seo(self) -> None:
         featured_event_path = next(
             event["public_path"]
-            for event in public_projection()["events"]
+            for event in published_event_records()
             if event["title"] == FEATURED_EVENT_TITLE
         )
         stable_now = datetime(2026, 8, 12, tzinfo=ZoneInfo("Europe/Berlin"))

@@ -20,12 +20,14 @@ from content.public_data import (
 from events.identity import canonical_detail_path
 from events.models import Event
 from events.queries import published_event_records
+from test_support.content_state import requires_published_events
 
 from .pagination_support import catalogue_page_bodies
 
 STABLE_EVENT_NOW = datetime(2026, 8, 12, tzinfo=ZoneInfo("Europe/Berlin"))
 
 
+@requires_published_events
 class StableEventClockTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()

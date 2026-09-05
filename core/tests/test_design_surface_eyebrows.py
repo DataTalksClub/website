@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from django.conf import settings
-from django.test import SimpleTestCase
+from django.test import TestCase
 
 REMOVED_PAGE_EYEBROWS = {
     "templates/review/faq_detail.html": ('<p class="mono-label mono-label-indigo">Course FAQ</p>'),
@@ -56,7 +56,7 @@ ACCOUNT_EYEBROW_TEMPLATES = (
 GENERIC_ACCOUNT_EYEBROW = '<p class="mono-label mono-label-indigo">Account</p>'
 
 
-class DesignSurfaceEyebrowSourceTests(SimpleTestCase):
+class DesignSurfaceEyebrowSourceTests(TestCase):
     def template_source(self, relative_path: str) -> str:
         return (Path(settings.BASE_DIR) / relative_path).read_text()
 

@@ -17,7 +17,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.test import SimpleTestCase, TestCase
+from django.test import TestCase
 from django.utils.html import escape
 
 from content.article_content import (
@@ -59,7 +59,7 @@ def _richest_article() -> dict:
     )
 
 
-class ArticleCompositionTests(SimpleTestCase):
+class ArticleCompositionTests(TestCase):
     def test_every_article_composes_without_invention(self) -> None:
         projection = public_projection()
         people = projection["people_by_slug"]

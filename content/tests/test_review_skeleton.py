@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-import unittest
 from datetime import datetime
 from html import escape
 from html.parser import HTMLParser
@@ -14,31 +13,12 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import Resolver404, resolve
 
 from content.public_data import event_groups, public_projection
-from content.tests.test_public_media_view import requires_hydrated_tree
 from courses.models.cohort import Cohort
 from events.queries import published_event_records
 from scripts import build_public_projection as projection_builder
+from test_support.content_state import requires_media_bytes, requires_published_events
 
 from .pagination_support import catalogue_body
-
-
-def _events_are_published() -> bool:
-    from django.db import DatabaseError
-
-    try:
-        return bool(published_event_records())
-    except DatabaseError:
-        return False
-
-
-#: Event content has no importer yet -- the source decision recorded in
-#: scripts/prod/import_events.py is still open -- so a database with identities
-#: and no EventContent rows is the expected state. Tests that need a published
-#: event say so rather than failing over its absence.
-requires_published_events = unittest.skipUnless(
-    _events_are_published(),
-    "no event content is published (its importer is blocked on a source decision)",
-)
 
 
 class LinkParser(HTMLParser):
@@ -428,7 +408,7 @@ class PublicProjectionTests(TestCase):
     def test_a_media_path_outside_the_catalogue_is_not_served(self) -> None:
         self.assertEqual(self.client.get("/images/../../manage.py").status_code, 404)
 
-    @requires_hydrated_tree
+    @requires_media_bytes
     def test_media_routes_are_local_and_checked(self) -> None:
         """Every recorded object is served, with the content type its record names.
 

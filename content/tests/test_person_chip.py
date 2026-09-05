@@ -17,7 +17,7 @@ import json
 import re
 
 from django.core.exceptions import ImproperlyConfigured
-from django.test import SimpleTestCase, TestCase
+from django.test import TestCase
 from django.utils.html import escape
 
 from content.person_chip import person_chip, person_chips
@@ -37,7 +37,7 @@ def _match(pattern: str, body: str, group: int) -> str:
     return found.group(group)
 
 
-class PersonChipResolutionTests(SimpleTestCase):
+class PersonChipResolutionTests(TestCase):
     def test_a_credit_with_a_key_gains_the_name_link_and_portrait_of_that_person(self) -> None:
         projection = public_projection()
         person = projection["people_by_slug"]["alexeygrigorev"]
@@ -97,7 +97,7 @@ class PersonChipResolutionTests(SimpleTestCase):
                 self.assertTrue(chip.public_path.startswith("/people/"))
 
 
-class BookAuthorResolutionTests(SimpleTestCase):
+class BookAuthorResolutionTests(TestCase):
     def test_every_book_author_becomes_a_name_and_keeps_its_profile_when_there_is_one(
         self,
     ) -> None:
@@ -274,7 +274,7 @@ class PersonChipRenderingTests(TestCase):
         self.assertNotIn(f'href="{guest.public_path}">Profile</a>', body)
 
 
-class DesignSystemOwnershipTests(SimpleTestCase):
+class DesignSystemOwnershipTests(TestCase):
     def test_the_chip_is_a_shared_primitive_and_not_a_page_of_its_own(self) -> None:
         from pathlib import Path
 

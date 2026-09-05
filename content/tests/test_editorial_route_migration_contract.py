@@ -6,13 +6,13 @@ from pathlib import Path
 from typing import Any
 
 from django.conf import settings
-from django.test import SimpleTestCase
+from django.test import TestCase
 
 from content.podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_canonical_path
 from content.public_data import public_projection
 
 
-class EditorialRouteMigrationContractTests(SimpleTestCase):
+class EditorialRouteMigrationContractTests(TestCase):
     root: Path
     policy_path: Path
     policy: dict[str, Any]

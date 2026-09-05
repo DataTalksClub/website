@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 
 from django.conf import settings
-from django.test import SimpleTestCase
+from django.test import TestCase
 
 from content.public_text import (
     strip_leaked_target_attributes,
@@ -16,7 +16,7 @@ from content.public_text import (
 from scripts import build_public_projection as builder
 
 
-class PublicProjectionBuilderTests(SimpleTestCase):
+class PublicProjectionBuilderTests(TestCase):
     def temporary_directory(self) -> tempfile.TemporaryDirectory[str]:
         scratch = Path(settings.BASE_DIR) / ".tmp"
         scratch.mkdir(exist_ok=True)
@@ -557,7 +557,7 @@ class PublicProjectionBuilderTests(SimpleTestCase):
                     )
 
 
-class ArticleBodyProjectionTests(SimpleTestCase):
+class ArticleBodyProjectionTests(TestCase):
     """The article body builder, which is what stopped flattening a body to prose."""
 
     def temporary_directory(self) -> tempfile.TemporaryDirectory[str]:

@@ -25,7 +25,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from django.test import SimpleTestCase
+from django.test import TestCase
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -116,7 +116,7 @@ def _selector_for(text: str, position: int) -> str:
     return " ".join(selector.split())
 
 
-class AccentLeftBorderBanTests(SimpleTestCase):
+class AccentLeftBorderBanTests(TestCase):
     """No page, partial or stylesheet draws a coloured single-side accent rail."""
 
     def test_every_left_border_is_a_removal_or_a_reviewed_structural_rule(self) -> None:

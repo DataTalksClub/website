@@ -11,7 +11,7 @@ import re
 from unittest import mock
 from xml.etree import ElementTree
 
-from django.test import SimpleTestCase, TestCase
+from django.test import TestCase
 from django.utils.html import escape
 
 from content.pagination import PUBLIC_PAGE_SIZE
@@ -32,7 +32,7 @@ RETIRED_ASSETS = (
 TEMPLATE_SYNTAX = ("{#", "#}", "{%", "%}", "{{", "}}")
 
 
-class PublicationDayFilterTests(SimpleTestCase):
+class PublicationDayFilterTests(TestCase):
     """``human_day`` publishes the recorded day and never a clock reading."""
 
     def test_a_bare_day_and_a_padded_midnight_render_the_same_day(self) -> None:

@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from django.core.exceptions import ImproperlyConfigured
 from django.template.loader import render_to_string
-from django.test import SimpleTestCase, TestCase
+from django.test import TestCase
 
 from content.podcast_routes import podcast_public_id
 from content.public_data import _validate_wiki_graph, public_projection
@@ -48,7 +48,7 @@ def _synthetic_projection(
     return {"wiki_graph": {"nodes": nodes, "links": links}}, episode
 
 
-class EpisodeGraphContractTests(SimpleTestCase):
+class EpisodeGraphContractTests(TestCase):
     def test_s23e06_uses_exact_typed_path_and_aggregates_the_checked_oracle(self) -> None:
         projection = public_projection()
         episode = projection["podcasts_by_slug"][REPRESENTATIVE]

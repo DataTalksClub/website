@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from django.core.exceptions import ImproperlyConfigured
-from django.test import SimpleTestCase, TestCase
+from django.test import TestCase
 from django.utils.html import escape
 
 from content.person_content import (
@@ -25,6 +25,7 @@ from content.person_content import (
     person_view,
 )
 from content.public_data import public_projection
+from test_support.content_state import requires_published_events
 
 # The profile with the widest body of work in the catalogue (63 links across all
 # four kinds), and one that carries a portrait, a bio and links but no work.
@@ -36,7 +37,8 @@ def profile(slug: str) -> dict[str, Any]:
     return public_projection()["people_by_slug"][slug]
 
 
-class PersonCompositionTests(SimpleTestCase):
+@requires_published_events
+class PersonCompositionTests(TestCase):
     def test_every_profile_composes_without_invention(self) -> None:
         for record in public_projection()["people"]:
             with self.subTest(slug=record["slug"]):
@@ -351,6 +353,7 @@ class PersonPageTests(TestCase):
         for block in record["blocks"]:
             self.assertIn(escape(block["text"]), body)
 
+    @requires_published_events
     def test_every_contribution_keeps_its_link_role_and_marker(self) -> None:
         record = profile(RICH_SLUG)
         body = self.rendered(RICH_SLUG)
@@ -398,6 +401,7 @@ class PersonPageTests(TestCase):
         self.assertNotIn('<section class="band band-cream person-contributions', body)
         self.assertNotIn('href="/people"', body)
 
+    @requires_published_events
     def test_a_long_group_offers_one_control_that_says_what_it_is_holding(self) -> None:
         """The fold is a <details>: no script, and it opens with JavaScript off."""
 

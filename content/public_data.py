@@ -421,18 +421,26 @@ def _editorial_catalogue(release_id: str) -> dict[str, Any]:
                 release__source__enabled=True,
                 release__source__stable_id=PUBLIC_CONTENT_STABLE_ID,
                 release_id=F("release__source__active_release_id"),
-            )
-            .order_by("content_kind", "stable_key")
-            .values("content_kind", "stable_key", "adapter_metadata")
+            ).values("content_kind", "stable_key", "adapter_metadata")
         )
     except DatabaseError:
         return _empty_public_projection()
     if not rows:
         return _empty_public_projection()
 
-    by_kind: dict[str, list[dict[str, Any]]] = {}
+    # Restore each collection's editorial order. It is stored beside the record
+    # because it is a fact about the catalogue -- newest first, season order, the
+    # sequence a hub lists in -- and no key the rows happen to sort by carries it.
+    ordered: dict[str, list[tuple[int, dict[str, Any]]]] = {}
     for row in rows:
-        by_kind.setdefault(str(row["content_kind"]), []).append(row["adapter_metadata"] or {})
+        held = row["adapter_metadata"] or {}
+        ordered.setdefault(str(row["content_kind"]), []).append(
+            (int(held.get("position") or 0), held.get("record") or {})
+        )
+    by_kind = {
+        kind: [record for _position, record in sorted(items, key=lambda item: item[0])]
+        for kind, items in ordered.items()
+    }
 
     projection: dict[str, Any] = {}
     for singleton in _SINGLETON_KINDS:

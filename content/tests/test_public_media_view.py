@@ -19,7 +19,7 @@ from typing import Any
 from unittest.mock import patch
 
 from django.core.management import call_command
-from django.test import SimpleTestCase, TestCase, override_settings
+from django.test import TestCase, override_settings
 
 from content.media_store import (
     MediaObject,
@@ -271,7 +271,7 @@ class MediaFailureContractTests(TestCase):
                 self._assert_fail_closed(self.client.get(SPACED_AUTHOR_PATH))
 
 
-class MediaStoreSystemCheckTests(SimpleTestCase):
+class MediaStoreSystemCheckTests(TestCase):
     def test_an_empty_local_root_warns_with_the_hydrate_command(self) -> None:
         with tempfile.TemporaryDirectory() as empty:
             with override_settings(
@@ -347,7 +347,7 @@ class MediaStoreSystemCheckTests(SimpleTestCase):
         )
 
 
-class MediaToolingReachabilityTests(SimpleTestCase):
+class MediaToolingReachabilityTests(TestCase):
     def test_the_operator_commands_are_not_reachable_from_any_request_path(self) -> None:
         from django.urls import Resolver404, resolve
 
