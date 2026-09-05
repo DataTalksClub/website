@@ -182,6 +182,116 @@ class Event(models.Model):
         return instance
 
 
+class EventContent(models.Model):
+    """What one public event page says, as database columns.
+
+    :class:`Event` is identity -- the UUID, the public ID, the slug the URL is
+    built from -- and deliberately says nothing about the event itself. This is
+    the other half: the schedule the page prints, the type it is filed under,
+    the description it renders, and the season and episode a podcast recording
+    carries.
+
+    It is a separate row rather than more columns on ``Event`` because the two
+    change for different reasons and at different times: identity is frozen at
+    import and never re-derived, while content is re-ingested whenever upstream
+    edits an event. An identity with no content row yet is a normal state -- the
+    page renders what it has -- and content can be replaced without touching the
+    identity the public URL depends on.
+    """
+
+    class Type(models.TextChoices):
+        WEBINAR = "webinar", "Webinar"
+        WORKSHOP = "workshop", "Workshop"
+        PODCAST = "podcast", "Podcast"
+        CONFERENCE = "conference", "Conference"
+
+    event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name="content")
+    type = models.CharField(max_length=16, choices=Type.choices, db_index=True)
+    starts_at = models.DateTimeField(db_index=True)
+    # Almost no event records an end. A missing one is "not stated", which the
+    # page omits, and is never filled in from a guessed duration.
+    ends_at = models.DateTimeField(null=True, blank=True)
+    # Podcast recordings carry a season and episode; nothing else does.
+    season = models.PositiveIntegerField(null=True, blank=True)
+    episode = models.PositiveIntegerField(null=True, blank=True)
+    description_html = models.TextField(blank=True)
+    description_text = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-starts_at", "event_id")
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(ends_at__isnull=True) | Q(ends_at__gte=F("starts_at")),
+                name="events_event_content_ends_after_start",
+            ),
+            models.CheckConstraint(
+                # Season and episode name one position between them, so a row
+                # carrying half of it would describe an episode of no season or
+                # a season with no episode.
+                condition=Q(season__isnull=True, episode__isnull=True)
+                | Q(season__isnull=False, episode__isnull=False),
+                name="events_event_content_season_episode_together",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"content:{self.event_id}"
+
+
+class EventSpeaker(models.Model):
+    """One person billed on one event, in the order the page lists them."""
+
+    content = models.ForeignKey(EventContent, on_delete=models.CASCADE, related_name="speakers")
+    # The person's own key upstream. The public path is stored beside it rather
+    # than derived, because whether a speaker has a person page at all is a fact
+    # about the people catalogue, not something this row may assume.
+    key = models.CharField(max_length=255)
+    name = models.CharField(max_length=255)
+    public_path = models.CharField(max_length=1024, blank=True)
+    position = models.PositiveSmallIntegerField()
+
+    class Meta:
+        ordering = ("content_id", "position")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("content", "position"), name="events_event_speaker_position_unique"
+            ),
+            models.UniqueConstraint(
+                fields=("content", "key"), name="events_event_speaker_key_unique"
+            ),
+            models.CheckConstraint(
+                condition=Q(key__gt="") & Q(name__gt=""),
+                name="events_event_speaker_identified",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class EventLink(models.Model):
+    """One outbound link an event page offers, in the order it offers them."""
+
+    content = models.ForeignKey(EventContent, on_delete=models.CASCADE, related_name="links")
+    label = models.CharField(max_length=255)
+    url = models.URLField(max_length=2048)
+    position = models.PositiveSmallIntegerField()
+
+    class Meta:
+        ordering = ("content_id", "position")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("content", "position"), name="events_event_link_position_unique"
+            ),
+            models.CheckConstraint(condition=Q(label__gt=""), name="events_event_link_labelled"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.label}: {self.url}"
+
+
 class EventQnaSession(models.Model):
     """The website-owned Q&A session attached to exactly one Event.
 
