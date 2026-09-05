@@ -9,11 +9,12 @@ from zipfile import ZipFile
 from django.conf import settings
 from django.test import SimpleTestCase
 
-from events.importers import derive_eventbrite, derive_luma
 from scripts.prepare_event_registration_sources import (
     prepare_eventbrite,
     prepare_luma,
 )
+from scripts.prod.registration_sources.eventbrite import derive_eventbrite
+from scripts.prod.registration_sources.luma import derive_luma
 
 
 class PrepareEventRegistrationSourcesTests(SimpleTestCase):

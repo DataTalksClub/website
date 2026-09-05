@@ -24,6 +24,7 @@ from events.models import (
     HistoricalRegistrationTotalState,
 )
 from events.queries import published_event_records
+from scripts.prod.registration_sources import register_source_readers
 
 pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
@@ -258,6 +259,9 @@ def test_studio_stage_replay_validate_activate_preview_rollback_and_denial(
     suffix: str,
 ) -> None:
     page.set_viewport_size(viewport)
+    # Studio dispatches to a registered reader; the domain ships none, so the
+    # ingestion layer supplies them for this browser run.
+    register_source_readers()
     event = published_event_records()[0]
     provenance = event["provenance"]
     scratch = Path(settings.BASE_DIR) / ".tmp"

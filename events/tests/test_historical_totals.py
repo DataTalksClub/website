@@ -15,7 +15,7 @@ from django.test import TestCase, override_settings
 from content.public_data import event_groups
 from core.models import AuditEvent
 from core.services import ServiceContext
-from events.importers import source_reference_digest
+from events.importers import clear_source_readers, source_reference_digest
 from events.models import (
     HistoricalRegistrationAggregateRevision,
     HistoricalRegistrationAggregateSlot,
@@ -37,6 +37,7 @@ from events.services import (
     validate_source,
 )
 from jobs.models import DurableJob
+from scripts.prod.registration_sources import register_source_readers
 
 
 def tree_checksum(root: Path) -> str:
@@ -58,6 +59,10 @@ class HistoricalRegistrationTotalTests(TestCase):
         self.temporary = tempfile.TemporaryDirectory(dir=scratch)
         self.source = Path(self.temporary.name) / "source"
         self.source.mkdir()
+        # Staging a registered source dispatches to a registered reader; the
+        # domain ships none, so the ingestion layer supplies them here.
+        register_source_readers()
+        self.addCleanup(clear_source_readers)
         self.event = published_event_records()[0]
         self.user = get_user_model().objects.create_user(
             username="synthetic-historical-reviewer",

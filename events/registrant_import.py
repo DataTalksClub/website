@@ -2,15 +2,15 @@
 
 This is the one place in the codebase that reads a Luma/Eventbrite export's
 attendee-level rows (an email, a per-event registration status) at all --
-deliberately kept separate from :mod:`events.importers`, whose own contract is
-"no attendee value crosses this module boundary" for the aggregate-only
-adapters it provides.  Nothing here reuses that module's checksum-pinned
+deliberately kept separate from the aggregate-only export readers in
+``scripts/prod/registration_sources``, whose own contract is "no attendee value
+crosses this module boundary".  Nothing here reuses their checksum-pinned
 production-count safety net (``derive_luma``/``derive_eventbrite``); this reads
 the same protected directory independently, with its own narrower safety
 checks, because minting an identity/fact row carries none of the "silently
 corrupt a public count" risk those adapters exist to guard against -- the same
-reasoning ``events.importers.discover_luma_events`` already uses for
-identity-only reads.
+reasoning ``scripts.prod.registration_sources.luma.discover_luma_events`` uses
+for identity-only reads.
 
 The core principle, stated by the product owner: someone who both took a
 course and registered for an event must resolve to one account, never two.
@@ -39,8 +39,9 @@ Eventbrite is not read here yet.  The real durable export at
 ``/data/tmp/luma-eventbrite-export/`` currently holds only the Luma
 side (``luma-aggregate-v1``); no real Eventbrite attendee-level archive is
 available to build or verify an Eventbrite reader against, and this
-codebase's own Eventbrite adapter (``events.importers.derive_eventbrite``)
-never needed to know that provider's attendee-level column names, since it
+codebase's own Eventbrite adapter
+(``scripts.prod.registration_sources.eventbrite.derive_eventbrite``) never
+needed to know that provider's attendee-level column names, since it
 only ever counted rows. Rather than guess a schema for a real PII export this
 module has never seen, ``EventRegistration.Provider.EVENTBRITE`` and every
 field below are already provider-generic, so an Eventbrite reader is a
@@ -82,7 +83,7 @@ __all__ = [
 ]
 
 # Required for identity-consolidation reads only -- a narrower set than
-# events.importers's LUMA_REQUIRED_COLUMNS, since this reader also needs
+# the aggregate-only reader's REQUIRED_COLUMNS, since this reader also needs
 # `email` and `registered_at`, neither of which the aggregate-only adapter
 # ever touches.
 _REGISTRANT_REQUIRED_COLUMNS = (
@@ -128,10 +129,10 @@ def discover_luma_registrant_files(root: Path) -> tuple[DiscoveredRegistrantFile
     """Pair each CSV with its JSON checkpoint's ``event_id``, sorted by file stem.
 
     Deliberately re-derives this pairing rather than importing
-    ``events.importers``'s private helpers -- see the module docstring for why
+    the aggregate-only readers' private helpers -- see the module docstring for why
     attendee-crossing code stays out of that module's boundary. Applies the
     same non-symlink, regular-file safety check to every path it opens as
-    ``events.importers`` does for the aggregate-only reads.
+    ``scripts/prod/registration_sources`` does for the aggregate-only reads.
     """
 
     try:
@@ -399,7 +400,7 @@ class RunReport:
             "events_awaiting_identity": self.events_awaiting_identity,
             # Provider event ids are public (part of the event's public Luma
             # URL), not attendee PII -- same treatment as
-            # events.importers's own "no_metadata_events" reporting.
+            # the aggregate-only reader's own "no_metadata_events" reporting.
             "awaiting_identity_events": list(self.awaiting_identity_events),
             "rows_written": self.rows_written,
             "rows_skipped": self.rows_skipped,

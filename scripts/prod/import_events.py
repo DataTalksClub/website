@@ -162,6 +162,12 @@ def _configure(database: Path) -> None:
 
     django.setup()
 
+    # The events app owns no provider file format, so the readers it dispatches
+    # to are supplied here, by the ingestion layer that has the exports.
+    from scripts.prod.registration_sources import register_source_readers
+
+    register_source_readers()
+
 
 # --------------------------------------------------------------------------
 # Identity
@@ -254,7 +260,8 @@ def discover_new_provider_events(
 
     ``discovered`` items only need ``external_event_identifier``, ``title``,
     ``start_at`` and ``eligible_count`` attributes -- shaped for
-    ``events.importers.DiscoveredLumaEvent`` today, provider-agnostic by
+    ``scripts.prod.registration_sources.luma.DiscoveredLumaEvent`` today,
+    provider-agnostic by
     contract for whenever an Eventbrite export carries its own title source.
 
     An event is skipped, not created, when any of these is true:
@@ -364,11 +371,13 @@ def discover_new_luma_event_identities(*, luma_source: Path, apply: bool = True)
     Unlike ``derive_luma`` (below), this never requires the export to match a
     previously pinned whole-tree checksum -- that pin exists to protect
     registration *counts* from silent drift, and identity creation writes no
-    count.  See ``events.importers.discover_luma_events`` for the read and
+    count.  See ``scripts.prod.registration_sources.luma.discover_luma_events``
+    for the read and
     ``discover_new_provider_events`` for the create-or-skip decision.
     """
 
-    from events.importers import ProtectedSourceError, discover_luma_events
+    from events.importers import ProtectedSourceError
+    from scripts.prod.registration_sources.luma import discover_luma_events
 
     try:
         discovered = discover_luma_events(luma_source)
@@ -446,7 +455,8 @@ def derive_registration_sources(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Parse both protected exports and reconcile them against the recorded facts."""
 
-    from events.importers import derive_eventbrite, derive_luma
+    from scripts.prod.registration_sources.eventbrite import derive_eventbrite
+    from scripts.prod.registration_sources.luma import derive_luma
 
     facts = load_registration_facts()
     bridges: dict[str, dict[str, dict[str, str]]] = {name: {} for name in PROVIDERS}
@@ -604,8 +614,9 @@ def activate_unambiguous_mappings(
     """
 
     from core.services import ServiceContext
-    from events.importers import ProtectedSourceError, discover_luma_events
+    from events.importers import ProtectedSourceError
     from events.services import ProviderEventMetadata, resolve_unmatched_aggregates
+    from scripts.prod.registration_sources.luma import discover_luma_events
 
     try:
         discovered = discover_luma_events(luma_source)

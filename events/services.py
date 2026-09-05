@@ -520,10 +520,10 @@ def resolve_unmatched_aggregates(
     For every ``event__isnull`` aggregate revision of ``provider`` (across every
     source run, not just the latest -- an old row is harmless to resolve too):
     look up the provider event's title/date (from ``provider_metadata``, keyed by
-    ``external_event_identifier`` -- for Luma this is
-    ``events.importers.discover_luma_events``; Eventbrite's export carries no
-    event-level title or date at all, so an empty mapping here correctly leaves
-    every Eventbrite row unmatched and reported as such).  Set ``event`` directly
+    ``external_event_identifier``).  A provider whose export carries no
+    event-level title or date at all supplies an empty mapping here, which
+    correctly leaves every one of its rows unmatched and reported as such.  Set
+    ``event`` directly
     only when exactly one canonical ``Event`` shares the provider event's date and
     that event's case/whitespace-normalized title equals the provider event's
     normalized title exactly.  Idempotent: an already-resolved row is not
