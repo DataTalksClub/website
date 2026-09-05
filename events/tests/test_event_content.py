@@ -106,9 +106,12 @@ class EventContentConstraintTests(TestCase):
 
 class PublishedEventRecordTests(TestCase):
     def setUp(self) -> None:
-        # The test database starts with the reviewed identities and no content
-        # rows, so they publish nothing and these assertions see only what this
-        # test describes.
+        # These assertions are about what the query returns for a controlled set
+        # -- which events are listed, and in what order -- so the 421 reviewed
+        # events the test database is seeded with are cleared first. Removing
+        # them here rolls back with the test; the identities stay, which is the
+        # point of `test_an_identity_with_no_content_row_publishes_nothing`.
+        EventContent.objects.all().delete()
         self.event = _event(public_id=9_001, slug="a-synthetic-event", title="A synthetic event")
         self.content = _content(self.event, season=24, episode=6)
         for position, (key, name, path) in enumerate(

@@ -63,9 +63,7 @@ class EventIdentityManifestTests(TestCase):
                 self.assertIn(f"/events/{item.id}", {a.source_path for a in item.aliases})
 
     def test_manifest_rejects_missing_duplicate_and_renumbered_public_mappings(self) -> None:
-        payload = json.loads(
-            Path("events/event_identity_manifest.json").read_text(encoding="utf-8")
-        )
+        payload = json.loads(EVENT_IDENTITY_MANIFEST.read_text(encoding="utf-8"))
         missing = deepcopy(payload)
         del missing["events"][0]["public_id"]
         with self.assertRaisesMessage(EventIdentityError, "manifest_event_shape_invalid"):
