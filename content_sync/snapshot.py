@@ -56,11 +56,22 @@ DEFAULT_GIT_ARCHIVE_TIMEOUT_SECONDS = 120
 
 
 class SnapshotLimits(Protocol):
-    """Duck-typed admission ceilings; ``CourseRepositoryLimits`` satisfies this."""
+    """Duck-typed admission ceilings; ``CourseRepositoryLimits`` satisfies this.
 
-    max_files: int
-    max_total_bytes: int
-    max_file_bytes: int
+    Read-only members on purpose: nothing here ever writes a ceiling back, and
+    a settable protocol member would exclude exactly the implementations this
+    module wants -- ``CourseRepositoryLimits`` is a frozen dataclass, and a
+    future adapter's ceilings have every reason to be frozen too.
+    """
+
+    @property
+    def max_files(self) -> int: ...
+
+    @property
+    def max_total_bytes(self) -> int: ...
+
+    @property
+    def max_file_bytes(self) -> int: ...
 
 
 class SnapshotError(RuntimeError):
