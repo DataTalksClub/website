@@ -117,13 +117,16 @@ from courses.models import (
     CmpHistoryImportProgress,
     Cohort,
     CourseRegistration,
+    CriteriaResponse,
     Enrollment,
     Homework,
     PeerReview,
     Project,
+    ProjectEvaluationScore,
     ProjectSubmission,
     Question,
     RegistrationCampaign,
+    ReviewCriteria,
     Submission,
 )
 
@@ -170,6 +173,8 @@ TABLE_ORDER: tuple[str, ...] = (
     "courses_answer",
     "courses_projectsubmission",
     "courses_peerreview",
+    "courses_criteriaresponse",
+    "courses_projectevaluationscore",
 )
 
 LEARNER_TABLES = frozenset(TABLE_ORDER)
@@ -372,6 +377,7 @@ class Resolution:
     homework: Mapping[int, int]
     questions: Mapping[int, int]
     projects: Mapping[int, int]
+    criteria: Mapping[int, int]
     # The rows earlier stages of this same run created. Read live, because the
     # enrollment a submission needs was claimed a few batches ago.
     claims: CmpHistoryClaims
@@ -412,6 +418,12 @@ class Resolution:
             raise _Unresolved("project")
         return resolved
 
+    def criterion(self, source_id: Any) -> int:
+        resolved = self.criteria.get(source_id)
+        if resolved is None:
+            raise _Unresolved("criteria")
+        return resolved
+
     def _claimed(self, table: str, source_id: Any, bucket: str) -> int:
         resolved = None if source_id is None else self.claims.table(table).get(int(source_id))
         if resolved is None:
@@ -426,6 +438,9 @@ class Resolution:
 
     def project_submission(self, source_id: Any) -> int:
         return self._claimed("courses_projectsubmission", source_id, "project_submission")
+
+    def peer_review(self, source_id: Any) -> int:
+        return self._claimed("courses_peerreview", source_id, "peer_review")
 
 
 def _cohort_map(connection: sqlite3.Connection) -> dict[int, int]:
@@ -537,6 +552,38 @@ def _project_map(connection: sqlite3.Connection, cohorts: Mapping[int, int]) -> 
     return resolved
 
 
+def _criteria_map(connection: sqlite3.Connection, cohorts: Mapping[int, int]) -> dict[int, int]:
+    """Source review criterion id -> target pk, by ``(cohort, description)``.
+
+    A criterion has no slug.  ``import_cmp_content`` replaces a cohort's criteria
+    as a set, copying the description verbatim, and a description is unique
+    within a course throughout the export -- so the description is the identity.
+    A criterion the target does not hold keeps its responses and scores out
+    rather than attaching them to a different question about the project.
+    """
+
+    local = {
+        (course_id, description): pk
+        for course_id, description, pk in ReviewCriteria.objects.filter(
+            course_id__in=set(cohorts.values())
+        ).values_list("course_id", "description", "pk")
+    }
+    resolved: dict[int, int] = {}
+    rows = _rows(
+        connection,
+        "courses_reviewcriteria",
+        "select id, course_id, description from courses_reviewcriteria",
+    )
+    for row in rows:
+        cohort_pk = cohorts.get(row["course_id"])
+        if cohort_pk is None:
+            continue
+        target = local.get((cohort_pk, str(row["description"])))
+        if target is not None:
+            resolved[int(row["id"])] = target
+    return resolved
+
+
 def _build_resolution(
     connection: sqlite3.Connection, *, users: Mapping[int, int], claims: CmpHistoryClaims
 ) -> Resolution:
@@ -549,6 +596,7 @@ def _build_resolution(
         homework=homework,
         questions=_question_map(connection, homework),
         projects=_project_map(connection, cohorts),
+        criteria=_criteria_map(connection, cohorts),
         claims=claims,
     )
 
@@ -728,6 +776,41 @@ def _peer_review_key(instance: PeerReview) -> dict[str, Any]:
     }
 
 
+def _criteria_response(row: Any, resolution: Resolution) -> CriteriaResponse:
+    """One answer a reviewer gave to one rubric criterion.
+
+    ``answer`` is stored exactly as CMP holds it -- a comma-separated list of
+    1-based option indices that ``CriteriaResponse.get_scores`` reads against
+    the criterion's own options.  Which is why a response may only ever attach
+    to the criterion it was actually answered against.
+    """
+
+    return CriteriaResponse(
+        review_id=resolution.peer_review(row["review_id"]),
+        criteria_id=resolution.criterion(row["criteria_id"]),
+        answer=row["answer"],
+    )
+
+
+def _criteria_response_key(instance: CriteriaResponse) -> dict[str, Any]:
+    return {"review_id": instance.review_id, "criteria_id": instance.criteria_id}
+
+
+def _project_evaluation_score(row: Any, resolution: Resolution) -> ProjectEvaluationScore:
+    return ProjectEvaluationScore(
+        submission_id=resolution.project_submission(row["submission_id"]),
+        review_criteria_id=resolution.criterion(row["review_criteria_id"]),
+        score=int(row["score"] or 0),
+    )
+
+
+def _project_evaluation_score_key(instance: ProjectEvaluationScore) -> dict[str, Any]:
+    return {
+        "submission_id": instance.submission_id,
+        "review_criteria_id": instance.review_criteria_id,
+    }
+
+
 @dataclass(frozen=True, slots=True)
 class TablePlan:
     """How one source table becomes target rows.
@@ -797,6 +880,18 @@ TABLE_PLANS: tuple[TablePlan, ...] = (
         model=PeerReview,
         build=_peer_review,
         natural_key=_peer_review_key,
+    ),
+    TablePlan(
+        table="courses_criteriaresponse",
+        model=CriteriaResponse,
+        build=_criteria_response,
+        natural_key=_criteria_response_key,
+    ),
+    TablePlan(
+        table="courses_projectevaluationscore",
+        model=ProjectEvaluationScore,
+        build=_project_evaluation_score,
+        natural_key=_project_evaluation_score_key,
     ),
 )
 

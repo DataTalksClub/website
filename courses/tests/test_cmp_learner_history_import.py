@@ -24,13 +24,16 @@ from courses.models import (
     Cohort,
     Course,
     CourseRegistration,
+    CriteriaResponse,
     Enrollment,
     Homework,
     PeerReview,
     Project,
+    ProjectEvaluationScore,
     ProjectSubmission,
     Question,
     RegistrationCampaign,
+    ReviewCriteria,
     Submission,
 )
 from courses.services.cmp_learner_history_import import (
@@ -86,6 +89,13 @@ CREATE TABLE courses_peerreview (
     id INTEGER, note_to_peer TEXT, learning_in_public_links TEXT, time_spent_reviewing REAL,
     problems_comments TEXT, reviewer_id INTEGER, submission_under_evaluation_id INTEGER,
     optional INTEGER, state TEXT, submitted_at TEXT
+);
+CREATE TABLE courses_reviewcriteria (id INTEGER, course_id INTEGER, description TEXT);
+CREATE TABLE courses_criteriaresponse (
+    id INTEGER, criteria_id INTEGER, review_id INTEGER, answer TEXT
+);
+CREATE TABLE courses_projectevaluationscore (
+    id INTEGER, score INTEGER, review_criteria_id INTEGER, submission_id INTEGER
 );
 """
 
@@ -228,6 +238,18 @@ def peer_review_row(
     )
 
 
+def criteria_response_row(
+    source_id: int, *, criteria_id: int = 1, review_id: int = 1, answer: str = "2"
+) -> tuple:
+    return (source_id, criteria_id, review_id, answer)
+
+
+def evaluation_score_row(
+    source_id: int, *, review_criteria_id: int = 1, submission_id: int = 1, score: int = 3
+) -> tuple:
+    return (source_id, score, review_criteria_id, submission_id)
+
+
 def build_source(path: Path, **tables: list[tuple]) -> None:
     connection = sqlite3.connect(path)
     connection.executescript(SOURCE_SCHEMA)
@@ -266,6 +288,14 @@ class HistoryImportFixture(TestCase):
             submission_due_date=MOMENT_UTC,
             peer_review_due_date=MOMENT_UTC,
         )
+        self.criterion = ReviewCriteria.objects.create(
+            course=self.cohort,
+            description="Is the problem described?",
+            options=[
+                {"criteria": "No", "score": 0},
+                {"criteria": "Yes", "score": 2},
+            ],
+        )
         self.learner = CustomUser.objects.create_user(
             username="learner-one", email="one@example.invalid"
         )
@@ -282,6 +312,7 @@ class HistoryImportFixture(TestCase):
         tables.setdefault("courses_homework", [(1, 1, "module-1")])
         tables.setdefault("courses_question", [(1, 1, "How many rows?")])
         tables.setdefault("courses_project", [(1, 1, "capstone")])
+        tables.setdefault("courses_reviewcriteria", [(1, 1, "Is the problem described?")])
         build_source(path, **tables)
         return path
 
@@ -766,3 +797,70 @@ class PeerReviewImportTests(HistoryImportFixture):
         report = self.report(result, "courses_peerreview")
         self.assertEqual(report["unresolved"], {"project_submission": 1})
         self.assertEqual(PeerReview.objects.count(), 0)
+
+
+class RubricImportTests(HistoryImportFixture):
+    def _reviewed_project(self, **overrides) -> Path:
+        other = CustomUser.objects.create_user(username="learner-two", email="two@example.invalid")
+        self.user_claims = {1: self.learner.pk, 2: other.pk}
+        tables = {
+            "courses_enrollment": [enrollment_row(1), enrollment_row(2, student_id=2)],
+            "courses_projectsubmission": [
+                project_submission_row(1),
+                project_submission_row(2, enrollment_id=2, student_id=2),
+            ],
+            "courses_peerreview": [peer_review_row(1)],
+            "courses_criteriaresponse": [criteria_response_row(1)],
+            "courses_projectevaluationscore": [evaluation_score_row(1)],
+        }
+        tables.update(overrides)
+        return self.source(**tables)
+
+    def test_a_response_and_a_score_land_on_the_criterion_they_were_given_for(self) -> None:
+        self.run_import(self._reviewed_project())
+
+        response = CriteriaResponse.objects.get()
+        self.assertEqual(response.criteria, self.criterion)
+        self.assertEqual(response.review, PeerReview.objects.get())
+        # The answer is an index into that criterion's own options, so the
+        # score only means anything against the criterion it was given for.
+        self.assertEqual(response.answer, "2")
+        self.assertEqual(response.get_score(), 2)
+
+        score = ProjectEvaluationScore.objects.get()
+        self.assertEqual(score.review_criteria, self.criterion)
+        self.assertEqual(score.score, 3)
+        self.assertEqual(score.submission_id, self.claims("courses_projectsubmission")[1])
+
+    def test_a_criterion_the_catalogue_lacks_keeps_its_responses_and_scores_out(self) -> None:
+        source = self._reviewed_project(
+            courses_reviewcriteria=[
+                (1, 1, "Is the problem described?"),
+                (2, 1, "A criterion nobody imported"),
+            ],
+            courses_criteriaresponse=[criteria_response_row(1, criteria_id=2)],
+            courses_projectevaluationscore=[evaluation_score_row(1, review_criteria_id=2)],
+        )
+        result = self.run_import(source)
+
+        self.assertEqual(
+            self.report(result, "courses_criteriaresponse")["unresolved"], {"criteria": 1}
+        )
+        self.assertEqual(
+            self.report(result, "courses_projectevaluationscore")["unresolved"], {"criteria": 1}
+        )
+        self.assertEqual(CriteriaResponse.objects.count(), 0)
+        self.assertEqual(ProjectEvaluationScore.objects.count(), 0)
+        self.assertEqual(ReviewCriteria.objects.count(), 1)
+
+    def test_a_response_whose_review_never_imported_is_bucketed(self) -> None:
+        source = self._reviewed_project(
+            courses_peerreview=[],
+            courses_criteriaresponse=[criteria_response_row(1)],
+        )
+        result = self.run_import(source)
+
+        self.assertEqual(
+            self.report(result, "courses_criteriaresponse")["unresolved"], {"peer_review": 1}
+        )
+        self.assertEqual(CriteriaResponse.objects.count(), 0)
