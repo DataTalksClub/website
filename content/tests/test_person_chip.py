@@ -23,6 +23,7 @@ from django.utils.html import escape
 from content.person_chip import person_chip, person_chips
 from content.podcast_content import episode_view
 from content.public_data import public_projection
+from events.queries import published_event_records
 
 # The book the owner reported: one author, who has a profile and a portrait.
 REPORTED_BOOK = "20251006-software-development-at-rocket-speed"
@@ -86,7 +87,7 @@ class PersonChipResolutionTests(SimpleTestCase):
                 for credit in record["author_profiles"]
             ),
             *(credit for record in projection["podcasts"] for credit in record["guest_profiles"]),
-            *(speaker for event in projection["events"] for speaker in event["speakers"]),
+            *(speaker for event in published_event_records() for speaker in event["speakers"]),
         ]
 
         for chip in person_chips(credits):

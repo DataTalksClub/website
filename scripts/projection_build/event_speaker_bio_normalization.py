@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 NORMALIZATION_PATH = (
     REPOSITORY_ROOT / "_docs" / "migrations" / "event-speaker-bio-normalization.json"
 )

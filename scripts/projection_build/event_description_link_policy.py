@@ -8,7 +8,10 @@ from pathlib import Path
 from types import MappingProxyType
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit, urlunsplit
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+# The route registry is read from the migration helper projection, which is
+# where the built snapshot lives; runtime never reads it.
+PROJECTION_ROOT = REPOSITORY_ROOT / "temporary" / "content" / "public_projection"
 
 FRAGMENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:%~-]{0,199}$")
 
@@ -225,7 +228,7 @@ def projection_routes_and_fragments() -> tuple[set[str], dict[str, set[str]]]:
         "wiki",
         "courses",
     ):
-        path = REPOSITORY_ROOT / "content" / "public_projection" / f"{collection}.json"
+        path = PROJECTION_ROOT / f"{collection}.json"
         try:
             records = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:

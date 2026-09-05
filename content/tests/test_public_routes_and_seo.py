@@ -20,6 +20,7 @@ from content.podcast_routes import (
 )
 from content.public_data import public_paths, public_projection
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
+from events.queries import published_event_records
 
 from .pagination_support import catalogue_body
 
@@ -331,7 +332,7 @@ class PublicRouteAndSeoTests(TestCase):
         self.assertNotRegex(archive, r'href="https://(?:luma\.com|lu\.ma)')
         self.assertNotIn(" · workshop", archive.casefold())
         people_paths = {person["public_path"] for person in projection["people"]}
-        for event in projection["events"]:
+        for event in published_event_records():
             with self.subTest(event=event["slug"]):
                 self.assertIn(f'href="{event["public_path"]}"', hub + archive)
                 response = self.client.get(event["public_path"])
@@ -454,7 +455,7 @@ class PublicRouteAndSeoTests(TestCase):
             (public_projection()["podcasts"][0]["public_path"], "PodcastEpisode"),
             (public_projection()["books"][0]["public_path"], "Book"),
             (public_projection()["people"][0]["public_path"], "Person"),
-            (public_projection()["events"][0]["public_path"], "Event"),
+            (published_event_records()[0]["public_path"], "Event"),
             (public_projection()["wiki"][0]["public_path"], "Article"),
         )
         for path, expected_type in paths_and_types:
@@ -546,7 +547,9 @@ class PublicRouteAndSeoTests(TestCase):
                     f'<link rel="canonical" href="{public_url}">',
                     count=1,
                 )
-        expected = {path for path in public_projection()["events_by_path"]}
+        expected = {
+            path for path in {record["public_path"]: record for record in published_event_records()}
+        }
         expected.update(path for path in public_projection()["people_by_path"])
         self.assertTrue(expected.issubset(seen))
         self.assertNotIn("/people", seen)

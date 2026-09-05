@@ -29,14 +29,14 @@ import yaml
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from content.event_description_bridge import (  # noqa: E402
+from scripts.projection_build.event_description_bridge import (  # noqa: E402
     EVENT_RECORD_SCHEMA_VERSION,
     EventDescriptionBridgeError,
     apply_bridge_to_events,
     bridge_manifest_binding,
     load_event_description_bridge,
 )
-from content.event_speaker_bio_normalization import (  # noqa: E402
+from scripts.projection_build.event_speaker_bio_normalization import (  # noqa: E402
     EventSpeakerBioNormalizationError,
     apply_event_speaker_bio_normalization,
     normalization_manifest_binding,

@@ -14,6 +14,7 @@ from django.urls import Resolver404, resolve
 
 from content.public_data import event_groups, public_projection
 from courses.models.cohort import Cohort
+from events.queries import published_event_records
 from scripts import build_public_projection as projection_builder
 
 from .pagination_support import catalogue_body
@@ -106,7 +107,7 @@ class PublicProjectionTests(TestCase):
             )
             self.assertEqual(person["provenance"]["revision"], legacy_revision)
             self.assertTrue(person["provenance"]["source_path"].startswith("_people/"))
-        for event in self.projection["events"]:
+        for event in published_event_records():
             self.assertEqual(
                 event["provenance"]["repository"],
                 "DataTalksClub/datatalksclub.github.io",
@@ -134,7 +135,7 @@ class PublicProjectionTests(TestCase):
 
         events = self.client.get("/events").content.decode()
         archive = catalogue_body(self.client, "/events/past")
-        for event in self.projection["events"]:
+        for event in published_event_records():
             self.assertIn(f'href="{event["public_path"]}"', events + archive)
 
     def test_book_details_render_source_backed_questions_and_answers(self) -> None:
@@ -269,7 +270,7 @@ class PublicProjectionTests(TestCase):
 
         lineage = projection_builder._podcast_event_lineage(
             list(self.projection["podcasts"]),
-            list(self.projection["events"]),
+            list(published_event_records()),
         )
         podcasts = self.projection["podcasts_by_slug"]
         events = self.projection["events_by_slug"]

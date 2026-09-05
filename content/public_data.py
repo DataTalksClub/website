@@ -4,7 +4,7 @@ import hashlib
 import json
 import os
 import re
-import uuid
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from functools import lru_cache
@@ -14,26 +14,10 @@ from urllib.parse import parse_qs, unquote, urlsplit
 from zoneinfo import ZoneInfo
 
 from django.core.exceptions import ImproperlyConfigured
-from django.db import DatabaseError
 from django.utils import timezone
 
-from events.identity import EventIdentityError, load_identity_manifest
 from events.queries import published_event_records
-from events.slugs import event_title_slug
 
-from .event_description_bridge import (
-    EVENT_RECORD_SCHEMA_VERSION,
-    EXPECTED_EVENTS_WITH_LINKS,
-    EXPECTED_EVENTS_WITHOUT_LINKS,
-    EXPECTED_MATCH_COUNT,
-    EXPECTED_NON_LUMA_LINKS,
-    EventDescriptionBridgeError,
-    bridge_manifest_binding,
-    load_event_description_bridge,
-    validate_projected_event,
-)
-from .event_speaker_bio_normalization import normalization_manifest_binding
-from .event_speakers import event_speaker_records
 from .podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_canonical_path
 from .public_text import strip_leaked_target_attributes, target_attribute_count
 
@@ -160,12 +144,13 @@ EXPECTED_REVISIONS = {
     "wiki": "988b79d0d655bf4755945c3118544cb9e0dbead6",
     "courses": "98a235283904b4ef9ad29e196298540756cf1bcc",
 }
+# Events are not here: they are database rows read through events.queries, not
+# a projected collection.
 COLLECTION_NAMES = (
     "articles",
     "podcasts",
     "books",
     "people",
-    "events",
     "wiki",
     "courses",
     "media",
@@ -181,7 +166,6 @@ EXPECTED_RECORD_SOURCES = {
     "podcasts": {("DataTalksClub/content", EXPECTED_REVISIONS["preferred_content"])},
     "books": {("DataTalksClub/content", EXPECTED_REVISIONS["preferred_content"])},
     "people": {("DataTalksClub/datatalksclub.github.io", EXPECTED_REVISIONS["legacy_main"])},
-    "events": {("DataTalksClub/datatalksclub.github.io", EXPECTED_REVISIONS["legacy_main"])},
     "wiki": {("DataTalksClub/podwiki", EXPECTED_REVISIONS["wiki"])},
     "courses": {("DataTalksClub/course-management-platform", EXPECTED_REVISIONS["courses"])},
     "media": {
@@ -450,20 +434,6 @@ def _editorial_route_manifest_digest(manifest: dict[str, Any]) -> str:
 
 
 @lru_cache(maxsize=1)
-def _manifest_event_identity_snapshot() -> tuple[tuple[str, int, str], ...]:
-    # Absent manifest is a valid empty state (default runtime after the snapshot
-    # moved to temporary/content/).  Only an explicit prod-ingest run names the
-    # helper manifest; a present-but-invalid file still fails closed.
-    manifest_path = _resolve_identity_manifest_path()
-    if not manifest_path.is_file():
-        return ()
-    try:
-        manifest = load_identity_manifest(manifest_path)
-    except EventIdentityError as exc:
-        raise ImproperlyConfigured("Public Event identity manifest is invalid.") from exc
-    return tuple((str(item.id), item.public_id, item.slug) for item in manifest.events)
-
-
 def _empty_public_projection() -> dict[str, Any]:
     """Return the default empty catalogue used when no projection is present.
 
@@ -485,8 +455,6 @@ def _empty_public_projection() -> dict[str, Any]:
         projection[name] = ()
         projection[f"{name}_by_slug"] = {}
         projection[f"{name}_by_path"] = {}
-    projection["events_by_source_identity"] = {}
-    projection["events_by_identity_id"] = {}
     projection["podcast_platforms"] = ()
     projection["wiki_graph"] = {"nodes": [], "links": [], "counts": {"nodes": 0, "links": 0}}
     projection["wiki_search"] = {"docs": []}
@@ -495,126 +463,63 @@ def _empty_public_projection() -> dict[str, Any]:
     return projection
 
 
-def _runtime_event_identity_snapshot() -> tuple[tuple[str, int, str], ...]:
-    """Return the database-owned event URL fields in one portable query.
+_EVENT_UUID_PATH = re.compile(
+    r"^/events/(?P<identity>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:/|$)"
+)
 
-    The tuple is also a safe cache key: when Studio imports or edits an event, the next request
-    observes a different snapshot and rebuilds the adapted projection.  The empty-table fallback
-    below returns the manifest tuple, which differs from every populated snapshot, so the first
-    request after an import still rebuilds.
+
+def _apply_runtime_event_public_paths(projection: dict[str, Any]) -> None:
+    """Point projected people relationships at the database-owned event URLs.
+
+    Person records still carry the UUID event paths their source was built with,
+    while the running site addresses an event by its stable numeric
+    ``Event.public_id``. One query resolves every referenced identity rather than
+    turning a person page into a round trip per relationship.
+
+    A relationship naming an event the database does not have keeps its own path:
+    the person page is not the place to discover that an event is missing, and a
+    dead link there is better than a 500.
     """
 
+    people = projection.get("people", ())
+    referenced = {
+        match.group("identity")
+        for person in people
+        for relationship in person.get("relationships", ())
+        if isinstance(relationship.get("public_path"), str)
+        and (match := _EVENT_UUID_PATH.match(relationship["public_path"])) is not None
+    }
+    if not referenced:
+        return
     from events.models import Event
 
-    try:
-        rows = {
-            str(event_id): (public_id, slug)
-            for event_id, public_id, slug in Event.objects.order_by("id").values_list(
-                "id", "public_id", "slug"
-            )
-        }
-        if not rows:
-            # A usable but completely unpopulated Event table is the pre-import bootstrap, not
-            # corruption: `prepare_deployment` imports the reviewed manifest after `migrate`, and
-            # a freshly migrated database is simply not there yet.  Serve the build-time manifest
-            # identities, exactly as the DB-less fallback below does, instead of 500ing every
-            # public page.  This deliberately reads the whole table, not just the manifest UUIDs,
-            # so "empty" means empty.
-            return _manifest_event_identity_snapshot()
-        resolved: list[tuple[str, int, str]] = []
-        for event_id, expected_public_id, _manifest_slug in _manifest_event_identity_snapshot():
-            runtime = rows.get(event_id)
-            if runtime is None or runtime[0] != expected_public_id:
-                # Any non-empty table must agree with the manifest, entry for entry.  The spec
-                # makes identity import atomic - "Imports and replays preserve the checked
-                # UUID/public-ID pair and reject missing, duplicate, ambiguous, or renumbered
-                # mappings atomically" - so a table holding some manifest events but not others,
-                # or holding one under a different public ID, is a state no supported import can
-                # produce.  It is drift, and publication "fails closed without a public ID"
-                # rather than serving manifest numbers the database would not resolve.
-                raise ImproperlyConfigured("Public Event UUID/public-ID mapping is incomplete.")
-            resolved.append((event_id, expected_public_id, runtime[1]))
-        return tuple(resolved)
-    except (AssertionError, DatabaseError, RuntimeError) as exc:
-        if isinstance(exc, AssertionError) and "Database queries to" not in str(exc):
-            raise
-        if isinstance(exc, RuntimeError) and "Database access not allowed" not in str(exc):
-            raise
-        # A runtime without a usable database (query-forbidden tests, the DB-less liveness
-        # container whose SQLite scratch directory is absent) serves the build-time manifest
-        # identities instead of failing every public page.
-        return _manifest_event_identity_snapshot()
-
-
-def _apply_runtime_event_public_paths(
-    projection: dict[str, Any],
-    runtime_identities: tuple[tuple[str, int, str], ...] = (),
-) -> None:
-    """Replace UUID event paths with database-owned numeric public paths.
-
-    The checked projection keeps the UUID path as source evidence, while the running site uses
-    the stable numeric ``Event.public_id``.  UUIDs remain available in provenance and management
-    APIs; this adapter only changes links exposed by public templates, feeds, and sitemaps.
-    """
-
-    replacements: dict[str, str] = {}
-    # Resolve all identities in one portable query.  Calling ``canonical_detail_path`` for each
-    # projected event turns a catalogue request into hundreds of database round trips (and made
-    # sitemap/public-route checks unnecessarily slow).  The projection keeps the immutable UUID;
-    # the database supplies only the public number and current title-derived slug.
-    runtime_identity_map = {
-        event_id: (public_id, slug) for event_id, public_id, slug in runtime_identities
+    replacements = {
+        f"/events/{identity}": f"/events/{public_id}/{slug}"
+        for identity, public_id, slug in Event.objects.filter(id__in=referenced)
+        .exclude(public_id=None)
+        .values_list("id", "public_id", "slug")
     }
-    events: list[dict[str, Any]] = []
-    for raw_event in projection["events"]:
-        event = dict(raw_event)
-        identity_id = event.get("identity_id")
-        if isinstance(identity_id, str):
-            identity = runtime_identity_map.get(identity_id)
-            if identity is None:
-                raise ImproperlyConfigured("Public Event UUID/public-ID mapping is incomplete.")
-            public_id, slug = identity
-            public_path = f"/events/{public_id}/{slug}"
-            replacements[event["public_path"]] = public_path
-            event["public_path"] = public_path
-            # Numeric public ID is already in the href.  Surface it so each row can
-            # mint a unique kind-tip id without falling back to the date-group loop
-            # counter or exposing the UUID.
-            event["public_id"] = public_id
-        events.append(event)
-    projection["events"] = tuple(events)
-
-    # Rebuild all event indexes after changing the paths so every public consumer observes the
-    # same canonical URL.  The source-identity and UUID indexes intentionally remain keyed by
-    # their private identities.
-    projection["events_by_path"] = {event["public_path"]: event for event in events}
-    projection["events_by_identity_id"] = {
-        event["identity_id"]: event for event in events if event.get("identity_id")
-    }
-    projection["events_by_slug"] = {
-        slug: projection["events_by_identity_id"].get(event.get("identity_id"), event)
-        for slug, event in projection["events_by_slug"].items()
-    }
-    projection["events_by_source_identity"] = {
-        (
-            event["provenance"]["repository"],
-            event["provenance"]["revision"],
-            event["provenance"]["source_key"],
-        ): event
-        for event in events
-    }
-
-    for person in projection["people"]:
-        relationships = person.get("relationships", ())
+    if not replacements:
+        return
+    for person in people:
         person["relationships"] = tuple(
             {
                 **relationship,
-                "public_path": replacements.get(
-                    relationship.get("public_path"), relationship.get("public_path", "")
+                "public_path": _rewritten_event_path(
+                    relationship.get("public_path", ""), replacements
                 ),
             }
-            for relationship in relationships
+            for relationship in person.get("relationships", ())
         )
+
+
+def _rewritten_event_path(path: object, replacements: Mapping[str, str]) -> object:
+    if not isinstance(path, str):
+        return path
+    match = _EVENT_UUID_PATH.match(path)
+    if match is None:
+        return path
+    return replacements.get(f"/events/{match.group('identity')}", path)
 
 
 def _expected_editorial_routes(
@@ -818,56 +723,6 @@ def _checked_public_projection() -> dict[str, Any]:
         raise ImproperlyConfigured("Preferred projection source is not marked accepted.")
     if sources["fallback_selection"].get("accepted") is not False:
         raise ImproperlyConfigured("Fallback selection must remain explicitly unaccepted.")
-    try:
-        event_description_bridge = load_event_description_bridge()
-        expected_bridge_binding = bridge_manifest_binding(event_description_bridge)
-    except EventDescriptionBridgeError as exc:
-        raise ImproperlyConfigured("Public event description bridge is invalid.") from exc
-    projection_rules = manifest.get("projection_rules", {})
-    if projection_rules.get("event_record_schema_version") != EVENT_RECORD_SCHEMA_VERSION:
-        raise ImproperlyConfigured("Public event record schema version mismatch.")
-    try:
-        identity_manifest = load_identity_manifest(_resolve_identity_manifest_path())
-    except EventIdentityError as exc:
-        raise ImproperlyConfigured("Public event identity manifest is invalid.") from exc
-    # The checked projection retains its accepted UUID-era manifest digest as migration
-    # evidence.  Runtime binds separately to the current schema-v2 numeric route manifest.
-    current_identity_binding = {
-        "path": "events/event_identity_manifest.json",
-        "sha256": _sha256(_resolve_identity_manifest_path()),
-        "schema_version": identity_manifest.schema_version,
-        "counts": {
-            "events": len(identity_manifest.events),
-            "aliases": len(identity_manifest.aliases),
-        },
-    }
-    if projection_rules.get("event_identity_manifest") not in (
-        ACCEPTED_UUID_IDENTITY_BINDING,
-        current_identity_binding,
-    ):
-        raise ImproperlyConfigured("Accepted UUID Event identity evidence binding mismatch.")
-    identity_aliases_by_id = {
-        str(item.id): tuple(alias for alias in item.aliases) for item in identity_manifest.events
-    }
-    identities_by_id = {str(item.id): item for item in identity_manifest.events}
-    if projection_rules.get("event_description_bridge") != expected_bridge_binding:
-        raise ImproperlyConfigured("Public event description bridge binding mismatch.")
-    try:
-        expected_event_speaker_bio_binding = normalization_manifest_binding()
-    except Exception as exc:
-        raise ImproperlyConfigured(
-            "Public event speaker-bio normalization plan is invalid."
-        ) from exc
-    if (
-        projection_rules.get("event_speaker_bio_normalization")
-        != expected_event_speaker_bio_binding
-    ):
-        raise ImproperlyConfigured("Public event speaker-bio normalization binding mismatch.")
-    if (
-        manifest.get("runtime_contract", {}).get("event_description_source")
-        != "committed_safe_bridge_only"
-    ):
-        raise ImproperlyConfigured("Public event description runtime contract mismatch.")
 
     projection: dict[str, Any] = {"manifest": manifest}
     artifacts = manifest.get("artifacts", {})
@@ -937,23 +792,6 @@ def _checked_public_projection() -> dict[str, Any]:
     if transcript_count != counts["transcripts"]:
         raise ImproperlyConfigured("Public projection transcript count mismatch.")
     ordered_podcasts(projection["podcasts"])
-    try:
-        for event in projection["events"]:
-            validate_projected_event(event, event_description_bridge)
-    except EventDescriptionBridgeError as exc:
-        raise ImproperlyConfigured("Public event description record is invalid.") from exc
-    described_event_count = sum(bool(event["description_html"]) for event in projection["events"])
-    remaining_event_links = sum(len(event["links"]) for event in projection["events"])
-    linked_event_count = sum(bool(event["links"]) for event in projection["events"])
-    if described_event_count != EXPECTED_MATCH_COUNT:
-        raise ImproperlyConfigured("Public event description coverage mismatch.")
-    if remaining_event_links != EXPECTED_NON_LUMA_LINKS:
-        raise ImproperlyConfigured("Public event link count mismatch.")
-    if (
-        linked_event_count != EXPECTED_EVENTS_WITH_LINKS
-        or len(projection["events"]) - linked_event_count != EXPECTED_EVENTS_WITHOUT_LINKS
-    ):
-        raise ImproperlyConfigured("Public event link coverage mismatch.")
 
     for name in ("wiki_graph", "wiki_search"):
         filename = f"{name}.json"
@@ -976,62 +814,10 @@ def _checked_public_projection() -> dict[str, Any]:
             raise ImproperlyConfigured(f"Public projection record provenance mismatch: {name}.")
         paths = [item["public_path"] for item in records]
         slugs = [item["slug"] for item in records]
-        if len(paths) != len(set(paths)) or (name != "events" and len(slugs) != len(set(slugs))):
+        if len(paths) != len(set(paths)) or len(slugs) != len(set(slugs)):
             raise ImproperlyConfigured(f"Public projection duplicate key: {name}.")
-        by_slug = {
-            item["slug"]: item
-            for item in records
-            if name != "events" or sum(other["slug"] == item["slug"] for other in records) == 1
-        }
-        if name == "events":
-            for item in records:
-                for alias in identity_aliases_by_id.get(item.get("identity_id"), ()):
-                    if alias.kind != "legacy_date_path" or alias.source_path.endswith("/"):
-                        continue
-                    legacy_slug = alias.source_path.removeprefix("/events/")
-                    if legacy_slug and legacy_slug not in by_slug:
-                        by_slug[legacy_slug] = item
-        projection[f"{name}_by_slug"] = by_slug
+        projection[f"{name}_by_slug"] = {item["slug"]: item for item in records}
         projection[f"{name}_by_path"] = {item["public_path"]: item for item in records}
-        if name == "events":
-            identity_ids: set[str] = set()
-            source_identities: set[tuple[str, str, str]] = set()
-            by_source: dict[tuple[str, str, str], dict[str, Any]] = {}
-            by_identity: dict[str, dict[str, Any]] = {}
-            for event in records:
-                identity_id = event.get("identity_id")
-                if not isinstance(identity_id, str):
-                    raise ImproperlyConfigured("Public event identity is missing.")
-                try:
-                    parsed_identity = uuid.UUID(identity_id)
-                except ValueError as exc:
-                    raise ImproperlyConfigured("Public event identity is invalid.") from exc
-                if str(parsed_identity) != identity_id or parsed_identity.variant != uuid.RFC_4122:
-                    raise ImproperlyConfigured("Public event identity is not lowercase RFC 4122.")
-                if event.get("slug") != event_title_slug(event.get("title", "")):
-                    raise ImproperlyConfigured("Public event slug is not title-derived.")
-                identity = identities_by_id.get(identity_id)
-                if identity is None:
-                    raise ImproperlyConfigured("Public event route identity is unmapped.")
-                accepted_uuid_path = f"/events/{identity_id}/{event['slug']}"
-                if event.get("public_path") != accepted_uuid_path or accepted_uuid_path not in {
-                    alias.source_path for alias in identity.aliases
-                }:
-                    raise ImproperlyConfigured("Accepted UUID Event route evidence mismatch.")
-                provenance = event.get("provenance", {})
-                source_identity = (
-                    provenance.get("repository", ""),
-                    provenance.get("revision", ""),
-                    provenance.get("source_key", ""),
-                )
-                if identity_id in identity_ids or source_identity in source_identities:
-                    raise ImproperlyConfigured("Public event identity collision.")
-                identity_ids.add(identity_id)
-                source_identities.add(source_identity)
-                by_source[source_identity] = event
-                by_identity[identity_id] = event
-            projection["events_by_source_identity"] = by_source
-            projection["events_by_identity_id"] = by_identity
     if any(
         podcast["transcript"]
         and (
@@ -1054,18 +840,19 @@ def _checked_public_projection() -> dict[str, Any]:
     return projection
 
 
-@lru_cache(maxsize=2)
-def _adapted_public_projection(
-    runtime_identities: tuple[tuple[str, int, str], ...],
-) -> dict[str, Any]:
-    """Build one immutable-by-convention runtime projection per event identity snapshot."""
+def _adapted_public_projection() -> dict[str, Any]:
+    """Build the runtime projection: the checked file plus database-owned URLs.
+
+    Not cached. The file half is (``_checked_public_projection``); the adapters
+    on top of it read the database, so a cached result would keep serving event
+    URLs from before an import.
+    """
 
     # Runtime URL adapters replace values in a handful of nested structures.  Copy only the
     # records they mutate rather than deep-copying the entire (large) content projection on every
     # request; the checked file-backed projection remains immutable and safely cached.
     source = _checked_public_projection()
     projection = dict(source)
-    projection["events"] = tuple(dict(event) for event in source["events"])
     projection["podcasts"] = tuple(dict(podcast) for podcast in source["podcasts"])
 
     # The checked projection flattened Markdown links before runtime loading.  Build a provenance
@@ -1130,20 +917,7 @@ def _adapted_public_projection(
         }
         for person in source["people"]
     )
-    people_by_slug = {person["slug"]: person for person in projection["people"]}
-    people_by_path = {person["public_path"]: person for person in projection["people"]}
-    projection["events"] = tuple(
-        {
-            **event,
-            "speakers": event_speaker_records(
-                event.get("speakers", ()),
-                people_by_slug=people_by_slug,
-                people_by_path=people_by_path,
-            ),
-        }
-        for event in projection["events"]
-    )
-    _apply_runtime_event_public_paths(projection, runtime_identities)
+    _apply_runtime_event_public_paths(projection)
     # The adapters mutate copied article/people records; refresh their lookup indexes as well so
     # detail pages and relationship tests do not retain references to checked source records.
     projection["articles_by_slug"] = {
@@ -1162,10 +936,6 @@ def _adapted_public_projection(
 def public_projection() -> dict[str, Any]:
     """Return the checked projection with database-owned public URL adapters applied.
 
-    The file-backed projection is cached, while the numeric event IDs come from the database.  A
-    compact identity snapshot keeps repeated public requests fast and automatically invalidates
-    the adapted projection after an event is imported or edited.
-
     When no projection manifest is present (the default after the snapshot moved to
     temporary/content/), returns an empty catalogue instead of raising: hubs render
     empty, detail lookups miss (404), sitemaps list only static paths.  The helper
@@ -1173,7 +943,7 @@ def public_projection() -> dict[str, Any]:
     """
 
     try:
-        return _adapted_public_projection(_runtime_event_identity_snapshot())
+        return _adapted_public_projection()
     except ImproperlyConfigured as exc:
         if "absent" in str(exc).lower():
             return _empty_public_projection()

@@ -7,29 +7,11 @@ from django.template.loader import render_to_string
 from django.test import SimpleTestCase
 from django.utils.html import escape
 
-from content.event_speakers import event_speaker_records
 from content.person_chip import PersonChip
-from content.public_data import public_projection
+from scripts.projection_build.event_speakers import event_speaker_records
 
 
 class EventSpeakerRecordTests(SimpleTestCase):
-    def test_every_checked_event_speaker_gets_a_bio_view(self) -> None:
-        projection = public_projection()
-        credits = [speaker for event in projection["events"] for speaker in event["speakers"]]
-
-        self.assertTrue(all("bio_blocks" in speaker for speaker in credits))
-
-        event = next(
-            event
-            for event in projection["events"]
-            if event["public_path"] == "/events/365/ai-dev-tools-zoomcamp-2026-course-launch"
-        )
-        speaker = event["speakers"][0]
-        self.assertEqual(
-            speaker["bio_blocks"],
-            tuple(projection["people_by_slug"][speaker["key"]]["blocks"]),
-        )
-
     def test_speaker_credit_joins_the_canonical_profile_blocks_without_mutating_the_credit(
         self,
     ) -> None:

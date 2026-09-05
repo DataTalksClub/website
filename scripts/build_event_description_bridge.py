@@ -24,7 +24,7 @@ import mistune
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from content.event_description_bridge import (  # noqa: E402
+from scripts.projection_build.event_description_bridge import (  # noqa: E402
     BASELINE_EVENTS_SHA256,
     BRIDGE_PATH,
     BRIDGE_PUBLIC_PATH,
@@ -56,7 +56,7 @@ from content.event_description_bridge import (  # noqa: E402
     description_plain_text,
     validate_description_html,
 )
-from content.event_description_link_policy import (  # noqa: E402
+from scripts.projection_build.event_description_link_policy import (  # noqa: E402
     EXPECTED_LINK_DECISION_COUNTS,
     EventDescriptionLinkPolicyError,
     classify_rendered_url,

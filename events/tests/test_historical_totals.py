@@ -12,7 +12,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 
-from content.public_data import event_groups, public_projection
+from content.public_data import event_groups
 from core.models import AuditEvent
 from core.services import ServiceContext
 from events.importers import source_reference_digest
@@ -22,6 +22,7 @@ from events.models import (
     HistoricalRegistrationPointerDisplacement,
     HistoricalRegistrationSourceRun,
 )
+from events.queries import published_event_records
 from events.services import (
     HistoricalRegistrationConflict,
     HistoricalRegistrationInvalid,
@@ -57,7 +58,7 @@ class HistoricalRegistrationTotalTests(TestCase):
         self.temporary = tempfile.TemporaryDirectory(dir=scratch)
         self.source = Path(self.temporary.name) / "source"
         self.source.mkdir()
-        self.event = public_projection()["events"][0]
+        self.event = published_event_records()[0]
         self.user = get_user_model().objects.create_user(
             username="synthetic-historical-reviewer",
             email="synthetic-reviewer@example.test",
@@ -277,7 +278,7 @@ class HistoricalRegistrationTotalTests(TestCase):
 
     def test_aggregate_event_resolution_is_immutable_once_set(self) -> None:
         run, aggregate, _registry = self._map_validate_activate()
-        other_event = public_projection()["events"][1]
+        other_event = published_event_records()[1]
 
         aggregate.event_id = other_event["identity_id"]
         with self.assertRaisesMessage(ValueError, "event resolution is immutable"):

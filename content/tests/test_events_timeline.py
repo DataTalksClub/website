@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
-from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
 from django.utils.html import escape
 
@@ -13,8 +12,6 @@ from content import public_views
 from content.pagination import PUBLIC_PAGE_SIZE
 from content.public_data import (
     EventGroups,
-    _manifest_event_identity_snapshot,
-    _runtime_event_identity_snapshot,
     event_date_groups,
     event_groups,
     public_paths,
@@ -22,6 +19,7 @@ from content.public_data import (
 )
 from events.identity import canonical_detail_path
 from events.models import Event
+from events.queries import published_event_records
 
 from .pagination_support import catalogue_page_bodies
 
@@ -508,106 +506,21 @@ class PastEventPaginationTests(StableEventClockTestCase):
 
 class EventTimelineTemplateTests(StableEventClockTestCase):
     def test_timeline_uses_numeric_paths_at_runtime(self) -> None:
-        projection = public_projection()
         self.assertTrue(
             all(
                 re.fullmatch(r"/events/[1-9][0-9]*/[-a-z0-9]+", event["public_path"])
-                for event in projection["events"]
+                for event in published_event_records()
             )
         )
         self.assertTrue(
-            all(event["public_path"].startswith("/events/") for event in projection["events"])
+            all(event["public_path"].startswith("/events/") for event in published_event_records())
         )
-        for event in projection["events"]:
-            public_id = event.get("public_id")
+        for event in published_event_records():
+            public_id = event["public_id"]
             self.assertIsInstance(public_id, int)
+            assert isinstance(public_id, int)
             self.assertGreater(public_id, 0)
             self.assertEqual(event["public_path"], f"/events/{public_id}/{event['slug']}")
-
-
-class RuntimeEventIdentitySnapshotTests(TestCase):
-    """The database-owned identity snapshot public URLs are adapted from.
-
-    ``prepare_deployment`` runs ``migrate`` and *then* imports the reviewed manifest, so a
-    migrated database legitimately passes through a moment with no Event rows at all.  That
-    moment must serve pages; anything past it must agree with the manifest exactly.
-    """
-
-    UNUSED_PUBLIC_ID = 2_147_000_000
-
-    def test_an_empty_event_table_serves_the_build_time_manifest_identities(self) -> None:
-        Event.objects.all().delete()
-
-        self.assertEqual(_runtime_event_identity_snapshot(), _manifest_event_identity_snapshot())
-
-    def test_the_public_pages_render_against_an_empty_event_table(self) -> None:
-        Event.objects.all().delete()
-
-        projection = public_projection()
-
-        self.assertEqual(self.client.get("/").status_code, 200)
-        self.assertEqual(self.client.get("/events").status_code, 200)
-        self.assertEqual(len(projection["events"]), len(_manifest_event_identity_snapshot()))
-        for event in projection["events"]:
-            self.assertEqual(event["public_path"], f"/events/{event['public_id']}/{event['slug']}")
-
-    def test_a_populated_consistent_table_supplies_the_runtime_slug(self) -> None:
-        renamed = Event.objects.order_by("public_id").first()
-        assert renamed is not None
-        manifest = dict(
-            (event_id, (public_id, slug))
-            for event_id, public_id, slug in _manifest_event_identity_snapshot()
-        )
-        renamed.title = "A deliberately renamed reviewed event"
-        renamed.save()
-        renamed.refresh_from_db()
-        self.assertNotEqual(renamed.slug, manifest[str(renamed.id)][1])
-
-        snapshot = _runtime_event_identity_snapshot()
-
-        self.assertEqual(len(snapshot), len(manifest))
-        by_id = {event_id: (public_id, slug) for event_id, public_id, slug in snapshot}
-        self.assertEqual(by_id[str(renamed.id)], (renamed.public_id, renamed.slug))
-        self.assertEqual(
-            {event_id: public_id for event_id, (public_id, _slug) in by_id.items()},
-            {event_id: public_id for event_id, (public_id, _slug) in manifest.items()},
-        )
-        self.assertNotEqual(snapshot, _manifest_event_identity_snapshot())
-
-    def test_a_renumbered_public_id_still_fails_closed(self) -> None:
-        renumbered = Event.objects.order_by("public_id").first()
-        assert renumbered is not None
-        Event.objects.filter(pk=renumbered.pk).update(public_id=self.UNUSED_PUBLIC_ID)
-
-        with self.assertRaises(ImproperlyConfigured):
-            _runtime_event_identity_snapshot()
-
-    def test_a_partially_imported_table_fails_closed(self) -> None:
-        """Only a wholly empty table is "not imported yet".
-
-        The identity import is atomic - the spec requires imports and replays to "preserve the
-        checked UUID/public-ID pair and reject missing, duplicate, ambiguous, or renumbered
-        mappings atomically" - so no supported import leaves some manifest events present and
-        others absent.  That state is drift, and it keeps failing closed.
-        """
-
-        missing = Event.objects.order_by("public_id").first()
-        assert missing is not None
-        missing.delete()
-        self.assertTrue(Event.objects.exists())
-
-        with self.assertRaises(ImproperlyConfigured):
-            _runtime_event_identity_snapshot()
-
-    def test_the_snapshot_is_a_hashable_cache_key_that_moves_with_the_database(self) -> None:
-        populated = _runtime_event_identity_snapshot()
-        self.assertEqual(hash(populated), hash(_runtime_event_identity_snapshot()))
-
-        Event.objects.all().delete()
-        empty = _runtime_event_identity_snapshot()
-
-        self.assertNotEqual(populated, empty)
-        self.assertEqual(len({populated, empty}), 2)
 
 
 class EventIndexDesignSystemTests(StableEventClockTestCase):
@@ -725,7 +638,7 @@ class EventKindsExplainerTests(StableEventClockTestCase):
         kind appearing on this page brings its own explanation with it.
         """
 
-        kinds = {event["type"] for event in public_projection()["events"]}
+        kinds = {event["type"] for event in published_event_records()}
         self.assertEqual(kinds, {kind for kind, _ in self.EXPLANATIONS})
 
         for path in ("/events", "/events/past"):
@@ -870,7 +783,7 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
     def test_event_speakers_render_their_canonical_profile_bio(self) -> None:
         event = next(
             event
-            for event in public_projection()["events"]
+            for event in published_event_records()
             if event["slug"] == "ai-dev-tools-zoomcamp-2026-course-launch"
         )
         speaker = event["speakers"][0]
@@ -886,7 +799,7 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
         self.assertNotIn("About the Speaker", body)
 
     def test_an_ampersand_in_an_event_title_is_escaped_in_the_heading(self) -> None:
-        event = next(item for item in public_projection()["events"] if "&" in item["title"])
+        event = next(item for item in published_event_records() if "&" in item["title"])
         self.assertNotEqual(escape(event["title"]), event["title"])
         body = self.detail(event)
 
@@ -895,7 +808,7 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
     def test_an_apostrophe_in_a_speaker_name_is_escaped_in_the_chip(self) -> None:
         event = next(
             item
-            for item in public_projection()["events"]
+            for item in published_event_records()
             if any("'" in speaker["name"] for speaker in item["speakers"])
         )
         speaker = next(item for item in event["speakers"] if "'" in item["name"])

@@ -6,15 +6,15 @@ from pathlib import Path
 
 import pytest
 
-from content.event_description_bridge import validate_description_html
-from content.event_speaker_bio_normalization import (
+from scripts.projection_build.event_description_bridge import validate_description_html
+from scripts.projection_build.event_speaker_bio_normalization import (
     EventSpeakerBioNormalizationError,
     apply_event_speaker_bio_normalization,
     load_normalization_plan,
     normalize_description_html,
 )
 
-PROJECTION_ROOT = Path(__file__).parents[1] / "public_projection"
+PROJECTION_ROOT = Path(__file__).resolve().parents[2] / "temporary" / "content" / "public_projection"
 
 
 def _projection() -> tuple[list[dict], list[dict]]:

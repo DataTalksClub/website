@@ -6,22 +6,18 @@ import tempfile
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
-from urllib.parse import urlsplit
 
 from django.conf import settings
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase
 
-from content import event_description_bridge as bridge_contract
-from content.event_description_bridge import (
+from scripts.projection_build import event_description_bridge as bridge_contract
+from scripts import build_event_description_bridge as bridge_builder
+from scripts.projection_build.event_description_bridge import (
     EventDescriptionBridgeError,
-    apply_empty_description_rollback_to_events,
     load_event_description_bridge,
     validate_description_html,
     validate_projected_event,
 )
-from content.public_data import public_projection
-from events.slugs import event_title_slug
-from scripts import build_event_description_bridge as bridge_builder
 
 
 def _rehash_bridge(bridge: dict[str, Any]) -> None:
@@ -162,39 +158,6 @@ class EventDescriptionBridgeArtifactTests(SimpleTestCase):
                 _add_rehashed_link(changed, href)
                 with self.assertRaises(EventDescriptionBridgeError) as raised:
                     bridge_contract._validate_bridge(changed)
-                self.assertNotIn("private-canary", str(raised.exception))
-
-    def test_fully_rehashed_projected_record_rejects_forbidden_links(self) -> None:
-        accepted_bridge = load_event_description_bridge()
-        projection = public_projection()
-        accepted_event = next(
-            record
-            for record in projection["events"]
-            if record["provenance"]["source_key"]
-            == accepted_bridge["matches"][0]["target"]["source_key"]
-        )
-        for href in (
-            "https://example.com/register",
-            "https://zoom.us/j/private-canary",
-            "https://datatalks.club/events/private-canary/register",
-            "https://unreviewed.invalid/resource",
-            "https://github.com/private-canary/not-reviewed",
-        ):
-            with self.subTest(href=href):
-                bridge = copy.deepcopy(accepted_bridge)
-                entry = _add_rehashed_link(bridge, href)
-                event = copy.deepcopy(accepted_event)
-                event["description_html"] = entry["description_html"]
-                event["description_text"] = entry["description_text"]
-                event["description_provenance"].update(
-                    {
-                        "bridge_content_sha256": bridge["content_sha256"],
-                        "entry_sha256": entry["entry_sha256"],
-                    }
-                )
-
-                with self.assertRaises(EventDescriptionBridgeError) as raised:
-                    validate_projected_event(event, bridge)
                 self.assertNotIn("private-canary", str(raised.exception))
 
     def test_fully_rehashed_bridge_rejects_unknown_link_decision_reason(self) -> None:
@@ -428,153 +391,3 @@ class EventDescriptionBridgeArtifactTests(SimpleTestCase):
             with self.subTest(fragment=fragment):
                 with self.assertRaises(EventDescriptionBridgeError):
                     validate_description_html(fragment)
-
-
-class PublicEventDescriptionTests(TestCase):
-    projection: dict[str, Any]
-
-    @classmethod
-    def setUpTestData(cls) -> None:
-        cls.projection = public_projection()
-
-    def test_event_record_schema_coverage_and_top_level_link_contract(self) -> None:
-        events = self.projection["events"]
-        for event in events:
-            with self.subTest(event=event["slug"]):
-                self.assertEqual(event["record_schema_version"], 2)
-                validate_projected_event(event, load_event_description_bridge())
-                for link in event["links"]:
-                    self.assertNotIn(
-                        (urlsplit(link["url"]).hostname or "").casefold(),
-                        {"luma.com", "lu.ma", "images.lumacdn.com"},
-                    )
-
-    def test_projection_preserves_baseline_identity_and_empty_rollback_is_luma_free(self) -> None:
-        baseline = bridge_builder._load_projection_events()
-        rollback = copy.deepcopy(baseline)
-        apply_empty_description_rollback_to_events(rollback)
-        current = list(self.projection["events"])
-
-        for baseline_event, rollback_event, current_event in zip(
-            baseline, rollback, current, strict=True
-        ):
-            with self.subTest(event=baseline_event["slug"]):
-                baseline_non_luma = [
-                    link
-                    for link in baseline_event["links"]
-                    if (urlsplit(link["url"]).hostname or "").casefold()
-                    not in {"luma.com", "lu.ma"}
-                ]
-                self.assertEqual(rollback_event["links"], baseline_non_luma)
-                self.assertEqual(current_event["links"], baseline_non_luma)
-                for field in (
-                    "title",
-                    "starts_at",
-                    "ends_at",
-                    "type",
-                    "speakers",
-                    "season",
-                    "episode",
-                    "provenance",
-                ):
-                    self.assertEqual(rollback_event[field], baseline_event[field])
-                    if field == "speakers":
-                        # The public adapter adds the canonical profile biography to
-                        # each credit. Compare the source-owned identity fields here;
-                        # the derived bio is covered by test_event_speakers.
-                        current_speakers = [
-                            {key: speaker[key] for key in baseline_speaker}
-                            for speaker, baseline_speaker in zip(
-                                current_event[field], baseline_event[field], strict=True
-                            )
-                        ]
-                        self.assertEqual(current_speakers, baseline_event[field])
-                    else:
-                        self.assertEqual(current_event[field], baseline_event[field])
-                self.assertEqual(current_event["slug"], event_title_slug(current_event["title"]))
-                self.assertRegex(
-                    current_event["public_path"],
-                    rf"^/events/(?:{current_event['identity_id']}|[1-9][0-9]*)/{current_event['slug']}$",
-                )
-                self.assertEqual(rollback_event["record_schema_version"], 2)
-                self.assertEqual(rollback_event["description_html"], "")
-                self.assertEqual(rollback_event["description_text"], "")
-                self.assertIsNone(rollback_event["description_provenance"])
-
-    def test_every_event_detail_renders_truthful_description_and_no_registration_action(
-        self,
-    ) -> None:
-        for event in self.projection["events"]:
-            with self.subTest(event=event["slug"]):
-                response = self.client.get(event["public_path"])
-                self.assertEqual(response.status_code, 200)
-                body = response.content.decode()
-                body_lower = body.casefold()
-                self.assertNotIn("luma.com", body_lower)
-                self.assertNotIn("lu.ma", body_lower)
-                self.assertNotIn("images.lumacdn.com", body_lower)
-                self.assertNotIn("register on luma", body_lower)
-                self.assertNotIn("utm_source=luma", body_lower)
-                self.assertNotIn(f"{event['public_path']}/register", body)
-                self.assertNotRegex(body_lower, r"<(?:a|form)[^>]+(?:register|rsvp|join)")
-                self.assertNotRegex(body, bridge_contract.DANGLING_ACTION_COPY)
-                for private_marker in (
-                    "description_provenance",
-                    "source_identity_sha256",
-                    "source_description_sha256",
-                    "matching_policy_version",
-                    "datatalksclub/datatalksclub.github.io",
-                    "_data/events.yaml",
-                    "/home/",
-                ):
-                    self.assertNotIn(private_marker, body_lower)
-                if event["description_html"]:
-                    self.assertContains(response, 'aria-label="Event description"', count=1)
-                    self.assertIn(event["description_html"], body)
-                else:
-                    self.assertNotContains(response, 'aria-label="Event description"')
-                if event["links"]:
-                    self.assertContains(response, "Event links", count=1)
-                else:
-                    self.assertNotContains(response, "Event links")
-
-    def test_discovery_metadata_and_missing_registration_routes_are_luma_free(self) -> None:
-        for path in ("/", "/events", "/sitemap.xml"):
-            response = self.client.get(path)
-            self.assertEqual(response.status_code, 200)
-            body = response.content.decode().casefold()
-            self.assertNotIn("luma.com", body)
-            self.assertNotIn("lu.ma", body)
-            self.assertNotIn("register on luma", body)
-        for event in self.projection["events"][:5]:
-            response = self.client.get(f"{event['public_path']}/register")
-            self.assertEqual(response.status_code, 404)
-
-    def test_manifest_binds_bridge_and_resulting_event_artifact(self) -> None:
-        manifest = self.projection["manifest"]
-        self.assertEqual(manifest["schema_version"], 1)
-        self.assertEqual(manifest["projection_rules"]["event_record_schema_version"], 2)
-        self.assertEqual(
-            manifest["projection_rules"]["event_description_bridge"],
-            bridge_contract.bridge_manifest_binding(),
-        )
-        self.assertEqual(
-            manifest["runtime_contract"]["event_description_source"],
-            "committed_safe_bridge_only",
-        )
-        event_path = (
-            bridge_contract.REPOSITORY_ROOT / "content" / "public_projection" / "events.json"
-        )
-        self.assertEqual(
-            manifest["artifacts"]["events.json"],
-            bridge_contract.pretty_json_sha256(json.loads(event_path.read_text(encoding="utf-8"))),
-        )
-
-    def test_projected_record_tampering_fails_closed(self) -> None:
-        bridge = load_event_description_bridge()
-        described = next(event for event in self.projection["events"] if event["description_html"])
-        changed = copy.deepcopy(described)
-        changed["description_html"] += "<script>private-canary</script>"
-        with self.assertRaises(EventDescriptionBridgeError) as raised:
-            validate_projected_event(changed, bridge)
-        self.assertNotIn("private-canary", str(raised.exception))

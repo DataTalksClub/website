@@ -56,9 +56,7 @@ migrated into database models before their runtime readers are deleted:
 | --- | --- | --- |
 | Documentation | `content/docs_projection.json` | `content/docs_projection.py` |
 | Course FAQ | `content/faq_projection.json` | `content/faq_data.py` |
-| Event descriptions | `temporary/content/event_description_bridge.json` (migration helper) | `content/event_description_bridge.py` |
 | Event identity seed | `temporary/content/event_identity_manifest.json` (migration helper) | ingest only: `scripts/prod/import_events.py` |
-| Event normalization evidence used at runtime | `_docs/migrations/event-speaker-bio-normalization.json` | `content/event_speaker_bio_normalization.py` |
 
 Audit hardcoded public copy and inventories in `core/home_content.py`, navigation
 defaults, sponsor history, podcast platform metadata, wiki categories, sitemap

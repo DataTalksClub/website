@@ -6,9 +6,9 @@ from pathlib import Path
 from django.test import SimpleTestCase, TestCase
 
 from content.event_banners import EVENT_BANNER_FILENAMES, event_banner_url
-from content.public_data import public_projection
 from events.identity import canonical_detail_path
 from events.models import Event
+from events.queries import published_event_records
 from test_support.reference_data import load_reviewed_reference_data
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -45,7 +45,6 @@ class EventBannerPageTests(TestCase):
         load_reviewed_reference_data()
 
     def test_mapped_event_pages_render_artwork_and_social_metadata(self) -> None:
-        projection = public_projection()
 
         for identity_id, filename in EVENT_BANNER_FILENAMES.items():
             with self.subTest(identity_id=identity_id):
@@ -54,10 +53,12 @@ class EventBannerPageTests(TestCase):
                 body = response.content.decode()
                 image_path = f"/static/core/event-banners/{filename}"
                 canonical_image_url = f"https://datatalks.club{image_path}"
-                projected_event = projection["events_by_identity_id"].get(identity_id)
+                projected_event = {
+                    record["identity_id"]: record for record in published_event_records()
+                }.get(identity_id)
 
                 self.assertEqual(response.status_code, 200)
-                self.assertIsNotNone(projected_event)
+                assert projected_event is not None
                 self.assertIn('data-testid="event-banner"', body)
                 self.assertIn(f'src="{image_path}"', body)
                 self.assertIn(

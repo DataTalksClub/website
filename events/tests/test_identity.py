@@ -6,10 +6,7 @@ import uuid
 from copy import deepcopy
 from pathlib import Path
 from typing import ClassVar
-from unittest import mock
 
-from django.core.exceptions import ImproperlyConfigured
-from django.db import OperationalError
 from django.test import TestCase
 from django.urls import Resolver404, resolve
 
@@ -31,6 +28,7 @@ from events.identity import (
     serialize_event_identity,
 )
 from events.models import Event, EventAlias, EventPublicIdSequence, EventQnaSession
+from events.queries import published_event_records
 from test_support.reference_data import EVENT_IDENTITY_MANIFEST
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -39,7 +37,6 @@ ROOT = Path(__file__).resolve().parents[2]
 class EventIdentityManifestTests(TestCase):
     def test_checked_manifest_and_database_freeze_all_numeric_mappings_and_aliases(self) -> None:
         manifest = load_identity_manifest(EVENT_IDENTITY_MANIFEST)
-        projection = public_projection()
 
         self.assertEqual(manifest.schema_version, 2)
         self.assertEqual(
@@ -48,10 +45,6 @@ class EventIdentityManifestTests(TestCase):
                 (str(event_id), public_id)
                 for event_id, public_id in Event.objects.values_list("id", "public_id")
             },
-        )
-        self.assertEqual(
-            {str(item.id) for item in manifest.events},
-            set(projection["events_by_identity_id"]),
         )
         for item in manifest.events:
             with self.subTest(event=item.id):
@@ -89,27 +82,6 @@ class EventIdentityManifestTests(TestCase):
         Event.objects.filter(pk=event.pk).update(public_id=10_000)
         with self.assertRaisesMessage(EventIdentityError, "public_id_renumber_forbidden"):
             import_identity_manifest(path=EVENT_IDENTITY_MANIFEST, dry_run=True)
-        with self.assertRaisesMessage(
-            ImproperlyConfigured,
-            "Public Event UUID/public-ID mapping is incomplete",
-        ):
-            public_projection()
-
-    def test_unavailable_database_serves_the_manifest_identity_snapshot(self) -> None:
-        manifest = load_identity_manifest(EVENT_IDENTITY_MANIFEST)
-        expected_paths = {item.canonical_path for item in manifest.events}
-
-        with mock.patch.object(
-            Event.objects,
-            "order_by",
-            side_effect=OperationalError("unable to open database file"),
-        ):
-            projection = public_projection()
-
-        self.assertEqual(
-            {event["public_path"] for event in projection["events"]},
-            expected_paths,
-        )
 
     def test_manifest_import_replay_is_byte_stable_and_a_preflight_noop(self) -> None:
         before = tuple(Event.objects.order_by("id").values_list("id", "public_id", "slug"))
@@ -234,11 +206,10 @@ class EventIdentityManifestTests(TestCase):
             resolve_legacy_path(alias.source_path + "-guessed")
 
     def test_public_projection_and_management_metadata_keep_the_identity_boundary(self) -> None:
-        projection = public_projection()
-        canonical_paths = {event["public_path"] for event in projection["events"]}
+        canonical_paths = {event["public_path"] for event in published_event_records()}
         speaker_paths = {
             relationship["public_path"]
-            for person in projection["people"]
+            for person in public_projection()["people"]
             for relationship in person["relationships"]
             if relationship["role"] == "speaker"
         }

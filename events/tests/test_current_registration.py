@@ -10,7 +10,6 @@ from unittest.mock import patch
 from django.conf import settings
 from django.test import SimpleTestCase, TestCase
 
-from content.public_data import public_projection
 from core.services import ServiceContext
 from events.current_registration import (
     CurrentRegistrationInputError,
@@ -18,6 +17,7 @@ from events.current_registration import (
 )
 from events.importers import derive_luma, source_reference_digest
 from events.models import HistoricalRegistrationAggregateRevision, HistoricalRegistrationSourceRun
+from events.queries import published_event_records
 from events.services import (
     HistoricalRegistrationConflict,
     activate_explicit_current_source,
@@ -130,7 +130,7 @@ class ExplicitCurrentRegistrationTests(TestCase):
         self.temporary = tempfile.TemporaryDirectory(dir=scratch)
         self.source = Path(self.temporary.name) / "luma"
         self.source.mkdir()
-        self.event = public_projection()["events"][0]
+        self.event = published_event_records()[0]
         self.context = ServiceContext(
             correlation_id="explicit-current-registration-test",
             actor_ref="system:explicit-current-registration-test",
@@ -296,7 +296,7 @@ class ExplicitCurrentRegistrationTests(TestCase):
             actor=None,
             context=self.context,
         )
-        other_event = public_projection()["events"][1]
+        other_event = published_event_records()[1]
         other_provenance = other_event["provenance"]
         changed_derived = derive_luma(
             self.source,
