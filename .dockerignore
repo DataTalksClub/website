@@ -20,3 +20,9 @@ _docs/planning
 # build context. Excluding a locally hydrated tree keeps a local image build byte
 # equivalent to a CI build from a clean checkout.
 content/public_projection/media
+temporary/content/public_projection/media
+# The migration snapshot under temporary/content/ is an explicit prod-ingest
+# helper only. It is never read by default runtime and must not ship in the
+# release image: Docker builds from a clean checkout must produce an empty
+# public catalogue until the migration owner runs scripts/prod/* explicitly.
+temporary/

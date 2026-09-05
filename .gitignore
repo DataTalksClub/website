@@ -21,3 +21,4 @@ build/
 # locally (manage.py public_media_hydrate). Keeping ~150 MB of binaries out of the
 # working tree also keeps every .tmp/ worktree small.
 content/public_projection/media/
+temporary/content/public_projection/media/
