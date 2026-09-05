@@ -111,12 +111,13 @@ WEB_TASK_DEFINITION="$(register_family "$WEB_FAMILY")"
 WORKER_TASK_DEFINITION="$(register_family "$WORKER_FAMILY")"
 MIGRATION_TASK_DEFINITION="$(register_family "$MIGRATION_FAMILY")"
 
-echo "Running migrations before either service is promoted"
+echo "Running migrations and loading required code-owned data before either service is promoted"
 aws ecs run-task --region "$AWS_REGION" \
   --cluster "$CLUSTER" \
   --task-definition "$MIGRATION_TASK_DEFINITION" \
   --launch-type FARGATE \
   --network-configuration "$NETWORK_CONFIGURATION" \
+  --overrides '{"containerOverrides":[{"name":"migration","command":["prepare_deployment"]}]}' \
   > "$WORKDIR/migration.json"
 jq -e '(.failures | length) == 0 and (.tasks | length) == 1' \
   "$WORKDIR/migration.json" > /dev/null
@@ -153,7 +154,9 @@ for attempt in $(seq 1 30); do
        --arg source_sha "$SOURCE_SHA" \
        --arg image_digest "$IMAGE_DIGEST" \
        '.status == "ok" and .version == $version and .source_sha == $source_sha and .image_digest == $image_digest' \
-       "$WORKDIR/health.json" > /dev/null; then
+       "$WORKDIR/health.json" > /dev/null &&
+     curl --fail --silent --show-error "${BASE_URL}/" \
+       --output "$WORKDIR/home.html"; then
     echo "${TARGET} deployment completed successfully"
     exit 0
   fi

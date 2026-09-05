@@ -44,9 +44,11 @@ class CmpStyleDeploymentWorkflowTests(TestCase):
         script = (ROOT / "deploy" / "deploy_website.sh").read_text(encoding="utf-8")
         self.assertIn("aws ecs describe-services", script)
         self.assertIn(".services[0].networkConfiguration", script)
-        self.assertIn("Running migrations before either service is promoted", script)
+        self.assertIn("Running migrations and loading required code-owned data", script)
+        self.assertIn('["prepare_deployment"]', script)
         self.assertLess(script.index("aws ecs run-task"), script.index("aws ecs update-service"))
         self.assertIn("aws ecs wait services-stable", script)
+        self.assertIn('curl --fail --silent --show-error "${BASE_URL}/"', script)
 
 
 class TaskDefinitionImageUpdateTests(TestCase):
