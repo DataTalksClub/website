@@ -43,7 +43,13 @@ from django.core.exceptions import ImproperlyConfigured
 
 from core.runtime_config import get_int_setting, get_str_setting
 
-PROJECTION_ROOT = Path(__file__).with_name("public_projection")
+#: The reviewed projection tree, which is ingest input under temporary/content/
+#: rather than something the app ships. Only the operator tooling reads it: the
+#: public /images/ route resolves its records from the database and its bytes
+#: from the configured media store.
+PROJECTION_ROOT = (
+    Path(__file__).resolve().parents[1] / "temporary" / "content" / "public_projection"
+)
 MEDIA_RECORDS_FILENAME = "media.json"
 #: Every projection media record key is path-mirrored below this segment, which is also
 #: the public URL prefix.  The historic on-disk tree drops it, because the local root is
