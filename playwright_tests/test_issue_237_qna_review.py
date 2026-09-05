@@ -11,6 +11,7 @@ from events.models import EventQnaSession
 from events.qna import security, services
 from jobs.models import DurableJob
 from test_support.design_review_data import ensure_checked_event_identity_snapshot
+from test_support.reference_data import EVENT_IDENTITY_MANIFEST
 
 pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
@@ -61,7 +62,7 @@ def test_qna_participant_cohost_and_error_shells(
     label: str,
 ) -> None:
     participant_path, cohost_path = qna_review_paths
-    manifest = load_identity_manifest()
+    manifest = load_identity_manifest(EVENT_IDENTITY_MANIFEST)
     projection = public_projection()
     assert DurableJob.objects.count() == 0
     assert {(event["identity_id"], event["public_path"]) for event in projection["events"]} == {

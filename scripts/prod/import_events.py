@@ -181,7 +181,9 @@ def import_identities(*, manifest: Path | None = None, apply: bool = True) -> di
     from events.identity import EventIdentityError, import_identity_manifest
 
     try:
-        report = import_identity_manifest(path=manifest, dry_run=not apply)
+        report = import_identity_manifest(
+            path=manifest or IDENTITY_MANIFEST_PATH, dry_run=not apply
+        )
     except (EventIdentityError, OSError, ValueError) as error:
         raise EventImportError("identity_manifest_invalid") from error
     return {

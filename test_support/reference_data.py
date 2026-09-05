@@ -15,7 +15,16 @@ for the same two sets is ``scripts/prod/import_events.py`` and
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from django.db import transaction
+
+#: Where the reviewed manifest sits is a fact about the one-time ingest, so the
+#: event domain does not carry it. Test support and ``scripts/prod`` each name
+#: the location they read, and neither imports it from the other.
+EVENT_IDENTITY_MANIFEST = (
+    Path(__file__).resolve().parents[1] / "temporary" / "content" / "event_identity_manifest.json"
+)
 
 
 def load_event_identities() -> tuple[int, int]:
@@ -24,7 +33,7 @@ def load_event_identities() -> tuple[int, int]:
     from events.identity import ensure_public_id_sequence, load_identity_manifest
     from events.models import Event, EventAlias
 
-    manifest = load_identity_manifest()
+    manifest = load_identity_manifest(EVENT_IDENTITY_MANIFEST)
     events = [
         Event(
             id=item.id,

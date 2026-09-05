@@ -31,13 +31,14 @@ from events.identity import (
     serialize_event_identity,
 )
 from events.models import Event, EventAlias, EventPublicIdSequence, EventQnaSession
+from test_support.reference_data import EVENT_IDENTITY_MANIFEST
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class EventIdentityManifestTests(TestCase):
     def test_checked_manifest_and_database_freeze_all_numeric_mappings_and_aliases(self) -> None:
-        manifest = load_identity_manifest()
+        manifest = load_identity_manifest(EVENT_IDENTITY_MANIFEST)
         projection = public_projection()
 
         self.assertEqual(manifest.schema_version, 2)
@@ -87,7 +88,7 @@ class EventIdentityManifestTests(TestCase):
         assert event is not None and event.public_id is not None
         Event.objects.filter(pk=event.pk).update(public_id=10_000)
         with self.assertRaisesMessage(EventIdentityError, "public_id_renumber_forbidden"):
-            import_identity_manifest(dry_run=True)
+            import_identity_manifest(path=EVENT_IDENTITY_MANIFEST, dry_run=True)
         with self.assertRaisesMessage(
             ImproperlyConfigured,
             "Public Event UUID/public-ID mapping is incomplete",
@@ -95,7 +96,7 @@ class EventIdentityManifestTests(TestCase):
             public_projection()
 
     def test_unavailable_database_serves_the_manifest_identity_snapshot(self) -> None:
-        manifest = load_identity_manifest()
+        manifest = load_identity_manifest(EVENT_IDENTITY_MANIFEST)
         expected_paths = {item.canonical_path for item in manifest.events}
 
         with mock.patch.object(
@@ -112,9 +113,9 @@ class EventIdentityManifestTests(TestCase):
 
     def test_manifest_import_replay_is_byte_stable_and_a_preflight_noop(self) -> None:
         before = tuple(Event.objects.order_by("id").values_list("id", "public_id", "slug"))
-        first = import_identity_manifest(dry_run=True)
-        applied = import_identity_manifest()
-        second = import_identity_manifest(dry_run=True)
+        first = import_identity_manifest(path=EVENT_IDENTITY_MANIFEST, dry_run=True)
+        applied = import_identity_manifest(path=EVENT_IDENTITY_MANIFEST)
+        second = import_identity_manifest(path=EVENT_IDENTITY_MANIFEST, dry_run=True)
         after = tuple(Event.objects.order_by("id").values_list("id", "public_id", "slug"))
 
         self.assertTrue(first.replayed)
@@ -133,7 +134,7 @@ class EventIdentityManifestTests(TestCase):
         Event.objects.all().delete()
         EventPublicIdSequence.objects.all().delete()
 
-        report = import_identity_manifest()
+        report = import_identity_manifest(path=EVENT_IDENTITY_MANIFEST)
 
         self.assertEqual(report.events_created, 421)
         self.assertEqual(EventPublicIdSequence.objects.get(pk=1).next_public_id, 422)

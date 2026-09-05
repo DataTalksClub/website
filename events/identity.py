@@ -25,13 +25,6 @@ from core.runtime_config import get_str_setting
 from .models import Event, EventAlias, EventPublicIdSequence
 from .slugs import event_title_slug
 
-# The reviewed identity manifest is a migration helper, not runtime content: it
-# lives under `temporary/content/` and is excluded from the release image.  The
-# public read path resolves identities from `Event`/`EventAlias` rows; this path
-# exists so the one-time import and the test reference data can seed them.
-IDENTITY_MANIFEST_PATH = (
-    Path(__file__).parents[1] / "temporary" / "content" / "event_identity_manifest.json"
-)
 IDENTITY_MANIFEST_SCHEMA_VERSION = 2
 _SOURCE_KEY = re.compile(r"^[^\x00]{1,512}$")
 _REPOSITORY = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
@@ -273,10 +266,16 @@ def parse_identity_manifest(payload: Any) -> IdentityManifest:
     return IdentityManifest(IDENTITY_MANIFEST_SCHEMA_VERSION, tuple(parsed))
 
 
-def load_identity_manifest(path: Path | None = None) -> IdentityManifest:
-    manifest_path = path or IDENTITY_MANIFEST_PATH
+def load_identity_manifest(path: Path) -> IdentityManifest:
+    """Parse the reviewed manifest at ``path``.
+
+    The caller supplies the location. Where the reviewed manifest sits is a fact
+    about the one-time ingest (and about test fixtures), not about the event
+    domain, which resolves public identity from ``Event``/``EventAlias`` rows.
+    """
+
     try:
-        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise EventIdentityError("manifest_unreadable") from exc
     return parse_identity_manifest(payload)
@@ -604,9 +603,7 @@ def event_projection_record(event: Event) -> dict[str, Any]:
 
 
 @transaction.atomic
-def import_identity_manifest(
-    *, path: Path | None = None, dry_run: bool = False
-) -> IdentityImportReport:
+def import_identity_manifest(*, path: Path, dry_run: bool = False) -> IdentityImportReport:
     """Validate and atomically apply the reviewed manifest; replay is an idempotent no-op."""
 
     manifest = load_identity_manifest(path)

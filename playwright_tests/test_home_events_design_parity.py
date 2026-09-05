@@ -11,6 +11,7 @@ from playwright.sync_api import Browser, Page, expect
 from content import public_views
 from content.public_data import EventGroups, event_groups
 from events.identity import load_identity_manifest
+from test_support.reference_data import EVENT_IDENTITY_MANIFEST
 
 pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
@@ -36,7 +37,7 @@ FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
 def _featured_event_path() -> str:
     return next(
         event.canonical_path
-        for event in load_identity_manifest().events
+        for event in load_identity_manifest(EVENT_IDENTITY_MANIFEST).events
         if event.title == FEATURED_EVENT_TITLE
     )
 

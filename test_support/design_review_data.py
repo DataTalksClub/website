@@ -46,6 +46,8 @@ from events.qna.services import event_qna_path
 from test_support.design_review_identity import FROZEN_AT, SEED
 from test_support.factories import FactoryContext, create_current_scenario
 
+from .reference_data import EVENT_IDENTITY_MANIFEST
+
 QNA_REVIEW_EVENT_PUBLIC_ID = 364
 
 
@@ -58,7 +60,7 @@ def ensure_checked_event_identity_snapshot() -> Event:
     files untouched.
     """
 
-    manifest = load_identity_manifest()
+    manifest = load_identity_manifest(EVENT_IDENTITY_MANIFEST)
     existing = {event.id: event for event in Event.objects.all()}
     existing_public_ids = {
         event.public_id: event.id for event in existing.values() if event.public_id is not None
