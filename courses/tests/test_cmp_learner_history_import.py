@@ -19,12 +19,16 @@ from django.test import TestCase
 
 from accounts.models import CustomUser
 from courses.models import (
+    Answer,
     CmpHistoryImportProgress,
     Cohort,
     Course,
     CourseRegistration,
     Enrollment,
+    Homework,
+    Question,
     RegistrationCampaign,
+    Submission,
 )
 from courses.services.cmp_learner_history_import import (
     CONTENT_TABLES,
@@ -52,6 +56,18 @@ CREATE TABLE courses_enrollment (
     certificate_name TEXT, total_score INTEGER, course_id INTEGER, student_id INTEGER,
     position_on_leaderboard INTEGER, certificate_url TEXT, disable_learning_in_public INTEGER,
     display_public_profile INTEGER
+);
+CREATE TABLE courses_homework (id INTEGER, course_id INTEGER, slug TEXT);
+CREATE TABLE courses_question (id INTEGER, homework_id INTEGER, text TEXT);
+CREATE TABLE courses_submission (
+    id INTEGER, homework_link TEXT, learning_in_public_links TEXT, time_spent_lectures REAL,
+    time_spent_homework REAL, problems_comments TEXT, faq_contribution TEXT, submitted_at TEXT,
+    questions_score INTEGER, faq_score INTEGER, learning_in_public_score INTEGER,
+    total_score INTEGER, enrollment_id INTEGER, homework_id INTEGER, student_id INTEGER,
+    faq_contribution_url TEXT
+);
+CREATE TABLE courses_answer (
+    id INTEGER, answer_text TEXT, is_correct INTEGER, question_id INTEGER, submission_id INTEGER
 );
 """
 
@@ -110,6 +126,38 @@ def enrollment_row(
     )
 
 
+def submission_row(
+    source_id: int,
+    *,
+    enrollment_id: int = 1,
+    homework_id: int = 1,
+    student_id: int = 1,
+    links: str | None = '["https://post.invalid/one"]',
+) -> tuple:
+    return (
+        source_id,
+        "https://homework.invalid/repo",
+        links,
+        3.5,
+        2.0,
+        "",
+        "",
+        MOMENT,
+        6,
+        1,
+        2,
+        9,
+        enrollment_id,
+        homework_id,
+        student_id,
+        None,
+    )
+
+
+def answer_row(source_id: int, *, question_id: int = 1, submission_id: int = 1) -> tuple:
+    return (source_id, f"answer {source_id}", 1, question_id, submission_id)
+
+
 def build_source(path: Path, **tables: list[tuple]) -> None:
     connection = sqlite3.connect(path)
     connection.executescript(SOURCE_SCHEMA)
@@ -135,6 +183,12 @@ class HistoryImportFixture(TestCase):
         self.campaign = RegistrationCampaign.objects.create(
             slug="de-zoomcamp", title="Data Engineering Zoomcamp"
         )
+        self.homework = Homework.objects.create(
+            course=self.cohort, slug="module-1", title="Module 1", due_date=MOMENT_UTC
+        )
+        self.question = Question.objects.create(
+            homework=self.homework, text="How many rows?", question_type="MC", answer_type="INT"
+        )
         self.learner = CustomUser.objects.create_user(
             username="learner-one", email="one@example.invalid"
         )
@@ -148,6 +202,8 @@ class HistoryImportFixture(TestCase):
         self.addCleanup(path.unlink, missing_ok=True)
         tables.setdefault("courses_course", [(1, "de-zoomcamp-2025")])
         tables.setdefault("courses_registrationcampaign", [(1, "de-zoomcamp", 1)])
+        tables.setdefault("courses_homework", [(1, 1, "module-1")])
+        tables.setdefault("courses_question", [(1, 1, "How many rows?")])
         build_source(path, **tables)
         return path
 
@@ -458,3 +514,108 @@ class ReportingTests(HistoryImportFixture):
         self.assertNotIn("private@example.invalid", rendered)
         self.assertNotIn("Learner 1", rendered)
         self.assertNotIn("Pseudonym 1", rendered)
+
+
+class SubmissionImportTests(HistoryImportFixture):
+    def test_a_submission_lands_on_the_enrollment_the_previous_stage_claimed(self) -> None:
+        source = self.source(
+            courses_enrollment=[enrollment_row(1)],
+            courses_submission=[submission_row(1)],
+        )
+        self.run_import(source)
+
+        submission = Submission.objects.get()
+        self.assertEqual(submission.enrollment, Enrollment.objects.get())
+        self.assertEqual(submission.homework, self.homework)
+        self.assertEqual(submission.student, self.learner)
+        self.assertEqual(submission.learning_in_public_links, ["https://post.invalid/one"])
+        self.assertEqual(submission.total_score, 9)
+        self.assertEqual(submission.submitted_at, MOMENT_UTC)
+
+    def test_a_submission_whose_enrollment_was_never_imported_is_bucketed(self) -> None:
+        """The enrollment stage skipped it, so this stage has nothing to attach
+        to -- and must not invent one."""
+
+        source = self.source(courses_submission=[submission_row(1)])
+        result = self.run_import(source)
+
+        self.assertEqual(self.report(result, "courses_submission")["unresolved"], {"enrollment": 1})
+        self.assertEqual(Submission.objects.count(), 0)
+        self.assertEqual(Enrollment.objects.count(), 0)
+
+    def test_a_submission_for_a_homework_the_catalogue_lacks_is_bucketed(self) -> None:
+        source = self.source(
+            courses_homework=[(1, 1, "module-1"), (2, 1, "module-never-imported")],
+            courses_enrollment=[enrollment_row(1)],
+            courses_submission=[submission_row(1, homework_id=2)],
+        )
+        result = self.run_import(source)
+
+        self.assertEqual(self.report(result, "courses_submission")["unresolved"], {"homework": 1})
+        self.assertEqual(Homework.objects.count(), 1)
+
+    def test_a_malformed_json_column_is_bucketed_not_stored_as_a_guess(self) -> None:
+        source = self.source(
+            courses_enrollment=[enrollment_row(1)],
+            courses_submission=[submission_row(1, links="not json at all")],
+        )
+        result = self.run_import(source)
+
+        report = self.report(result, "courses_submission")
+        self.assertEqual(report["unresolved"], {"source_json_invalid": 1})
+        self.assertEqual(Submission.objects.count(), 0)
+
+
+class AnswerImportTests(HistoryImportFixture):
+    def _source(self, **overrides) -> Path:
+        tables = {
+            "courses_enrollment": [enrollment_row(1)],
+            "courses_submission": [submission_row(1)],
+            "courses_answer": [answer_row(1)],
+        }
+        tables.update(overrides)
+        return self.source(**tables)
+
+    def test_an_answer_lands_on_its_submission_and_its_question(self) -> None:
+        self.run_import(self._source())
+
+        answer = Answer.objects.get()
+        self.assertEqual(answer.submission, Submission.objects.get())
+        self.assertEqual(answer.question, self.question)
+        self.assertEqual(answer.answer_text, "answer 1")
+        self.assertTrue(answer.is_correct)
+
+    def test_a_question_the_catalogue_lacks_bucketed_not_matched_to_another(self) -> None:
+        """Attaching an answer to whichever question happened to be nearby
+        would render as a page that looks fine and is wrong."""
+
+        source = self._source(
+            courses_question=[(1, 1, "How many rows?"), (2, 1, "A question CMP alone has")],
+            courses_answer=[answer_row(1), answer_row(2, question_id=2)],
+        )
+        result = self.run_import(source)
+
+        report = self.report(result, "courses_answer")
+        self.assertEqual(report["created"], 1)
+        self.assertEqual(report["unresolved"], {"question": 1})
+        self.assertEqual(Answer.objects.get().question, self.question)
+
+    def test_a_homework_repeating_a_question_text_pairs_them_in_source_order(self) -> None:
+        """One homework in the real export asks the same text four times.
+        ``import_cmp_content`` writes questions as a set in source-id order, so
+        the repeats pair in that order rather than all landing on the first."""
+
+        second = Question.objects.create(
+            homework=self.homework, text="How many rows?", question_type="MC", answer_type="INT"
+        )
+        source = self._source(
+            courses_question=[(1, 1, "How many rows?"), (2, 1, "How many rows?")],
+            courses_answer=[answer_row(1), answer_row(2, question_id=2)],
+        )
+        self.run_import(source)
+
+        by_source = {
+            source_id: Answer.objects.get(pk=pk).question_id
+            for source_id, pk in self.claims("courses_answer").items()
+        }
+        self.assertEqual(by_source, {1: self.question.pk, 2: second.pk})

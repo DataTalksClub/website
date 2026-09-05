@@ -113,11 +113,15 @@ from django.db import models, transaction
 from django.utils.dateparse import parse_datetime
 
 from courses.models import (
+    Answer,
     CmpHistoryImportProgress,
     Cohort,
     CourseRegistration,
     Enrollment,
+    Homework,
+    Question,
     RegistrationCampaign,
+    Submission,
 )
 
 __all__ = [
@@ -159,6 +163,8 @@ FORBIDDEN_TABLES = frozenset(
 TABLE_ORDER: tuple[str, ...] = (
     "courses_courseregistration",
     "courses_enrollment",
+    "courses_submission",
+    "courses_answer",
 )
 
 LEARNER_TABLES = frozenset(TABLE_ORDER)
@@ -326,6 +332,25 @@ def _moment(value: Any) -> datetime | None:
     return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
 
 
+def _json_list(value: Any) -> list[Any] | None:
+    """A JSONField column the export stores as text.
+
+    Every one of the export's such values parses as a list today, so one that
+    does not is a shape this importer has never seen: the row is bucketed and
+    skipped rather than stored as something a reader would have to guess at.
+    """
+
+    if value in (None, ""):
+        return None
+    try:
+        parsed = json.loads(str(value))
+    except json.JSONDecodeError:
+        raise _Unresolved("source_json_invalid") from None
+    if not isinstance(parsed, list):
+        raise _Unresolved("source_json_invalid")
+    return parsed
+
+
 @dataclass(frozen=True, slots=True)
 class Resolution:
     """CMP source id -> target primary key, for every parent this import needs.
@@ -339,6 +364,11 @@ class Resolution:
     users: Mapping[int, int]
     cohorts: Mapping[int, int]
     campaigns: Mapping[int, int]
+    homework: Mapping[int, int]
+    questions: Mapping[int, int]
+    # The rows earlier stages of this same run created. Read live, because the
+    # enrollment a submission needs was claimed a few batches ago.
+    claims: CmpHistoryClaims
 
     def user(self, source_id: Any) -> int:
         resolved = self.users.get(source_id)
@@ -357,6 +387,30 @@ class Resolution:
         if resolved is None:
             raise _Unresolved("campaign")
         return resolved
+
+    def homework_row(self, source_id: Any) -> int:
+        resolved = self.homework.get(source_id)
+        if resolved is None:
+            raise _Unresolved("homework")
+        return resolved
+
+    def question(self, source_id: Any) -> int:
+        resolved = self.questions.get(source_id)
+        if resolved is None:
+            raise _Unresolved("question")
+        return resolved
+
+    def _claimed(self, table: str, source_id: Any, bucket: str) -> int:
+        resolved = None if source_id is None else self.claims.table(table).get(int(source_id))
+        if resolved is None:
+            raise _Unresolved(bucket)
+        return resolved
+
+    def enrollment(self, source_id: Any) -> int:
+        return self._claimed("courses_enrollment", source_id, "enrollment")
+
+    def submission(self, source_id: Any) -> int:
+        return self._claimed("courses_submission", source_id, "submission")
 
 
 def _cohort_map(connection: sqlite3.Connection) -> dict[int, int]:
@@ -384,11 +438,81 @@ def _campaign_map(connection: sqlite3.Connection) -> dict[int, int]:
     return resolved
 
 
-def _build_resolution(connection: sqlite3.Connection, *, users: Mapping[int, int]) -> Resolution:
+def _homework_map(connection: sqlite3.Connection, cohorts: Mapping[int, int]) -> dict[int, int]:
+    """Source homework id -> target pk, by ``(cohort, slug)``.
+
+    ``import_cmp_content`` copies CMP's homework slug verbatim -- it even renames
+    a repository-authored row to take it -- so the slug is the identity both
+    sides agree on.
+    """
+
+    local = {
+        (course_id, slug): pk
+        for course_id, slug, pk in Homework.objects.filter(
+            course_id__in=set(cohorts.values())
+        ).values_list("course_id", "slug", "pk")
+    }
+    resolved: dict[int, int] = {}
+    rows = _rows(connection, "courses_homework", "select id, course_id, slug from courses_homework")
+    for row in rows:
+        cohort_pk = cohorts.get(row["course_id"])
+        if cohort_pk is None:
+            continue
+        target = local.get((cohort_pk, str(row["slug"])))
+        if target is not None:
+            resolved[int(row["id"])] = target
+    return resolved
+
+
+def _question_map(connection: sqlite3.Connection, homework: Mapping[int, int]) -> dict[int, int]:
+    """Source question id -> target pk, by text within its homework.
+
+    A question carries no business key of its own, so ``import_cmp_content``
+    replaces a homework's questions as a set, in source-id order.  Text is
+    therefore the identity, and where one homework repeats a text verbatim --
+    exactly one homework in the export does -- the repeats are paired in that
+    same order.  A text the target does not hold stays out of the map, and the
+    answers pointing at it are bucketed rather than attached to a question that
+    asked something else.
+    """
+
+    by_homework: dict[int, dict[str, list[int]]] = {}
+    local = (
+        Question.objects.filter(homework_id__in=set(homework.values()))
+        .order_by("pk")
+        .values_list("homework_id", "text", "pk")
+    )
+    for homework_pk, text, pk in local:
+        by_homework.setdefault(homework_pk, {}).setdefault(text, []).append(pk)
+
+    resolved: dict[int, int] = {}
+    rows = _rows(
+        connection,
+        "courses_question",
+        "select id, homework_id, text from courses_question order by id",
+    )
+    for row in rows:
+        homework_pk = homework.get(row["homework_id"])
+        if homework_pk is None:
+            continue
+        available = by_homework.get(homework_pk, {}).get(str(row["text"]))
+        if available:
+            resolved[int(row["id"])] = available.pop(0)
+    return resolved
+
+
+def _build_resolution(
+    connection: sqlite3.Connection, *, users: Mapping[int, int], claims: CmpHistoryClaims
+) -> Resolution:
+    cohorts = _cohort_map(connection)
+    homework = _homework_map(connection, cohorts)
     return Resolution(
         users=users,
-        cohorts=_cohort_map(connection),
+        cohorts=cohorts,
         campaigns=_campaign_map(connection),
+        homework=homework,
+        questions=_question_map(connection, homework),
+        claims=claims,
     )
 
 
@@ -456,6 +580,51 @@ def _enrollment_key(instance: Enrollment) -> dict[str, Any]:
     return {"student_id": instance.student_id, "course_id": instance.course_id}
 
 
+def _submission(row: Any, resolution: Resolution) -> Submission:
+    """A homework submission, with the scores CMP awarded it.
+
+    ``student`` and ``enrollment`` both come from the export and agree there on
+    every one of its rows; both are copied rather than one derived from the
+    other, so a future export that disagrees is visible instead of quietly
+    rewritten.
+    """
+
+    return Submission(
+        homework_id=resolution.homework_row(row["homework_id"]),
+        student_id=resolution.user(row["student_id"]),
+        enrollment_id=resolution.enrollment(row["enrollment_id"]),
+        homework_link=row["homework_link"],
+        learning_in_public_links=_json_list(row["learning_in_public_links"]),
+        time_spent_lectures=row["time_spent_lectures"],
+        time_spent_homework=row["time_spent_homework"],
+        problems_comments=_text(row["problems_comments"]),
+        faq_contribution=_text(row["faq_contribution"]),
+        faq_contribution_url=row["faq_contribution_url"],
+        submitted_at=_moment(row["submitted_at"]),
+        questions_score=int(row["questions_score"] or 0),
+        faq_score=int(row["faq_score"] or 0),
+        learning_in_public_score=int(row["learning_in_public_score"] or 0),
+        total_score=int(row["total_score"] or 0),
+    )
+
+
+def _submission_key(instance: Submission) -> dict[str, Any]:
+    return {"enrollment_id": instance.enrollment_id, "homework_id": instance.homework_id}
+
+
+def _answer(row: Any, resolution: Resolution) -> Answer:
+    return Answer(
+        submission_id=resolution.submission(row["submission_id"]),
+        question_id=resolution.question(row["question_id"]),
+        answer_text=row["answer_text"],
+        is_correct=bool(row["is_correct"]),
+    )
+
+
+def _answer_key(instance: Answer) -> dict[str, Any]:
+    return {"submission_id": instance.submission_id, "question_id": instance.question_id}
+
+
 @dataclass(frozen=True, slots=True)
 class TablePlan:
     """How one source table becomes target rows.
@@ -501,6 +670,18 @@ TABLE_PLANS: tuple[TablePlan, ...] = (
         build=_enrollment,
         natural_key=_enrollment_key,
         stamps=("enrollment_date",),
+    ),
+    TablePlan(
+        table="courses_submission",
+        model=Submission,
+        build=_submission,
+        natural_key=_submission_key,
+    ),
+    TablePlan(
+        table="courses_answer",
+        model=Answer,
+        build=_answer,
+        natural_key=_answer_key,
     ),
 )
 
@@ -717,7 +898,7 @@ def import_cmp_learner_history(
     claims = CmpHistoryClaims(directory=claims_directory)
     connection = _readonly(source)
     try:
-        resolution = _build_resolution(connection, users=user_claims)
+        resolution = _build_resolution(connection, users=user_claims, claims=claims)
         reports = [
             _import_table(
                 connection,
