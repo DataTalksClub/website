@@ -88,7 +88,9 @@ class ContentLifecycleTests(TestCase):
                 ),
                 context=CONTEXT,
             )
-        self.assertEqual(ContentRelease.objects.count(), 0)
+        # Scoped to this source: the test database also carries the reviewed
+        # documentation release, which this test says nothing about.
+        self.assertEqual(ContentRelease.objects.filter(source=source).count(), 0)
 
         first = activate(source, make_ready_release(source, commit_character="b"))
         self.assertEqual(first.public_contracts_sha256, PUBLIC_CONTRACT_DIGEST)
@@ -616,8 +618,11 @@ class ContentLifecycleTests(TestCase):
         assert visible is not None
         self.assertEqual(visible.title, "Fixture release v1")
 
+        # Scoped to this source: the test database also carries the reviewed
+        # documentation release, whose activation this test says nothing about.
         events = AuditEvent.objects.filter(
-            action__in=("content.release.activate", "content.release.rollback")
+            action__in=("content.release.activate", "content.release.rollback"),
+            target_id=source.id,
         )
         self.assertEqual(events.count(), 3)
         for event in events:

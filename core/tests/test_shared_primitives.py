@@ -86,6 +86,17 @@ def audit_context(
     )
 
 
+def _setting_audits():
+    """Audit rows this module's settings writes make, and nothing else.
+
+    The test database arrives with reviewed reference data, and publishing the
+    reviewed documentation is itself an audited content activation. A test about
+    settings has to say which rows it means rather than counting the whole table.
+    """
+
+    return AuditEvent.objects.filter(action="core.operational_setting.set")
+
+
 class OperationalSettingTests(TestCase):
     def test_default_and_database_sources_are_visible_and_revisioned(self) -> None:
         default = resolve_operational_setting(BOOLEAN_SETTING.key)
@@ -105,7 +116,7 @@ class OperationalSettingTests(TestCase):
         self.assertEqual(resolved.value, True)
         self.assertEqual(resolved.source, "studio")
         self.assertEqual(resolved.revision, 1)
-        event = AuditEvent.objects.get()
+        event = _setting_audits().get()
         self.assertEqual(event.changes["value"]["after"], True)
         self.assertEqual(event.actor_id, user.pk)
         self.assertEqual(event.actor_ref, "api_principal:settings-bot")
@@ -132,7 +143,7 @@ class OperationalSettingTests(TestCase):
 
         self.assertEqual(caught.exception.actual, 1)
         self.assertEqual(resolve_operational_setting(BOOLEAN_SETTING.key), first)
-        self.assertEqual(AuditEvent.objects.count(), 1)
+        self.assertEqual(_setting_audits().count(), 1)
 
     def test_setting_and_history_roll_back_when_audit_write_fails(self) -> None:
         with mock.patch(
@@ -148,7 +159,7 @@ class OperationalSettingTests(TestCase):
                 )
 
         self.assertFalse(OperationalSetting.objects.exists())
-        self.assertFalse(AuditEvent.objects.exists())
+        self.assertFalse(_setting_audits().exists())
 
     def test_unregistered_secret_bearing_and_mistyped_settings_fail_closed(self) -> None:
         with self.assertRaises(InvalidOperationalSetting):
@@ -243,7 +254,7 @@ class AuditPersistenceTests(TestCase):
                     context=AuditWriteContext(actor_ref=actor_ref),
                 )
             self.assertNotIn(actor_ref, str(caught.exception))
-        self.assertFalse(AuditEvent.objects.exists())
+        self.assertFalse(AuditEvent.objects.filter(action="tests.audit.invalid_actor").exists())
 
     def test_application_paths_are_append_only_but_actor_set_null_is_retained(self) -> None:
         event = record_audit_event(

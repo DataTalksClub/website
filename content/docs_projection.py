@@ -9,14 +9,11 @@ closed instead of silently serving a mixture of document versions.
 
 from __future__ import annotations
 
-import hashlib
 import html
-import json
 import re
 import unicodedata
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from functools import lru_cache
 from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
 from types import MappingProxyType
@@ -25,15 +22,21 @@ from urllib.parse import urlsplit
 
 import mistune
 from django.core.exceptions import ImproperlyConfigured
+from django.db import DatabaseError
+from django.db.models import F
 
+from .models import ContentAsset, ContentDocument, ContentRelease
 from .services import sanitize_rendered_html
 
-DOCS_PROJECTION_PATH = Path(__file__).with_name("docs_projection.json")
 DOCS_ASSET_ROOT = Path(__file__).with_name("docs_assets")
+#: The registered source whose active release publishes the documentation. One
+#: source, so the read path never has to choose between two of them.
+DOCS_SOURCE_STABLE_ID = "dtc-docs"
+DOCS_CONTENT_KIND = "docs"
 DOCS_SOURCE_REVISION = "3f23e006ffdaa498bbc69697408853b6f5eb37dc"
 DOCS_ROOT_PATH = "/docs/"
 DOCS_SEARCH_URL = "https://github.com/DataTalksClub/docs/search"
-_DOCS_ASSET_CONTENT_TYPES = frozenset({"image/jpeg", "image/png", "image/svg+xml"})
+DOCS_ASSET_CONTENT_TYPES = frozenset({"image/jpeg", "image/png", "image/svg+xml"})
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _DOCS_PREFIXES = ("/courses/", "/general/", "/activities/", "/assets/")
 _LIQUID_RELATIVE_URL = re.compile(
@@ -569,124 +572,88 @@ def build_docs_navigation(pages: Iterable[Mapping[str, Any]]) -> DocsNavigationT
     )
 
 
-def _validate_projection(projection: Mapping[str, Any]) -> None:
-    if projection.get("schema_version") != 1:
-        raise ImproperlyConfigured("Unsupported docs content projection schema.")
-    source = projection.get("source")
-    if not isinstance(source, Mapping) or source.get("revision") != DOCS_SOURCE_REVISION:
-        raise ImproperlyConfigured("Docs content projection revision does not match inventory.")
-    if projection.get("root_path") != DOCS_ROOT_PATH:
-        raise ImproperlyConfigured("Docs projection root path is invalid.")
-    pages = projection.get("pages")
-    if not isinstance(pages, list) or not pages:
-        raise ImproperlyConfigured("Docs content projection contains no pages.")
-    assets = projection.get("assets")
-    if not isinstance(assets, list) or not assets:
-        raise ImproperlyConfigured("Docs content projection contains no assets.")
-    asset_paths: set[str] = set()
-    asset_sources: set[str] = set()
-    for asset in assets:
-        if not isinstance(asset, Mapping):
-            raise ImproperlyConfigured("Docs projection asset must be an object.")
-        public_path = asset.get("public_path")
-        source_path = asset.get("source_path")
-        content_type = asset.get("content_type")
-        size = asset.get("size")
-        checksum = asset.get("sha256")
-        if (
-            not isinstance(public_path, str)
-            or not public_path.startswith("/docs/assets/")
-            or "?" in public_path
-            or "#" in public_path
-            or public_path in asset_paths
-            or not isinstance(source_path, str)
-            or source_path in asset_sources
-            or not source_path.startswith("assets/")
-            or "?" in source_path
-            or "#" in source_path
-            or "\\" in source_path
-            or any(part in {"", ".", ".."} for part in source_path.split("/"))
-            or not isinstance(content_type, str)
-            or content_type not in _DOCS_ASSET_CONTENT_TYPES
-            or not isinstance(size, int)
-            or size < 1
-            or not isinstance(checksum, str)
-            or _SHA256.fullmatch(checksum) is None
-            or asset.get("source_revision") != DOCS_SOURCE_REVISION
-        ):
-            raise ImproperlyConfigured("Docs projection asset metadata is invalid.")
-        expected_public_path = f"/docs/{source_path}"
-        if public_path != expected_public_path:
-            raise ImproperlyConfigured("Docs projection asset public path is inconsistent.")
-        path = _asset_file(source_path)
-        if path is None:
-            raise ImproperlyConfigured(f"Docs projection asset is unavailable: {source_path}")
-        if path.stat().st_size != size:
-            raise ImproperlyConfigured(f"Docs projection asset size mismatch: {source_path}")
-        if hashlib.sha256(path.read_bytes()).hexdigest() != checksum:
-            raise ImproperlyConfigured(f"Docs projection asset checksum mismatch: {source_path}")
-        asset_paths.add(public_path)
-        asset_sources.add(source_path)
-    # Navigation validation runs before the older metadata checks so hierarchy failures always
-    # use the bounded, content-free source-path diagnostic and cannot fall through to partial data.
-    build_docs_navigation(pages)
-    public_paths: set[str] = set()
-    source_paths: set[str] = set()
-    for page in pages:
-        if not isinstance(page, Mapping):
-            raise ImproperlyConfigured("Docs projection page must be an object.")
-        public_path = page.get("public_path")
-        source_path = page.get("source_path")
-        title = page.get("title")
-        body = page.get("body")
-        if (
-            not isinstance(public_path, str)
-            or not public_path.startswith(DOCS_ROOT_PATH)
-            or not public_path.endswith("/")
-            or "?" in public_path
-            or "#" in public_path
-            or public_path in public_paths
-        ):
-            raise ImproperlyConfigured(
-                "Docs projection contains an invalid or duplicate public path."
-            )
-        if not isinstance(source_path, str) or not source_path or source_path in source_paths:
-            raise ImproperlyConfigured(
-                "Docs projection contains an invalid or duplicate source path."
-            )
-        if not isinstance(title, str) or not title.strip() or not isinstance(body, str):
-            raise ImproperlyConfigured("Docs projection page metadata is incomplete.")
-        body_hash = page.get("body_sha256")
-        if body_hash != hashlib.sha256(body.encode("utf-8")).hexdigest():
-            raise ImproperlyConfigured(f"Docs projection body checksum mismatch: {source_path}")
-        if page.get("source_revision") != DOCS_SOURCE_REVISION:
-            raise ImproperlyConfigured(f"Docs projection page revision mismatch: {source_path}")
-        public_paths.add(public_path)
-        source_paths.add(source_path)
-    if DOCS_ROOT_PATH not in public_paths:
-        raise ImproperlyConfigured("Docs projection root page is missing.")
-    for page in pages:
-        value = page.get("grand_parent_path")
-        if value is not None and value not in public_paths:
-            raise ImproperlyConfigured(
-                f"Docs projection grand_parent_path does not resolve: {value}"
-            )
+def _docs_release_filter() -> dict[str, Any]:
+    """The one active release of the enabled docs source, or nothing."""
+
+    return {
+        "release__status": ContentRelease.Status.ACTIVE,
+        "release__source__enabled": True,
+        "release__source__stable_id": DOCS_SOURCE_STABLE_ID,
+    }
 
 
-@lru_cache(maxsize=1)
+def _page_record(row: Mapping[str, Any]) -> dict[str, Any]:
+    """One documentation page, as the navigation and templates read it.
+
+    The hierarchy fields -- which page is a page's parent, where it sorts, whether
+    it draws a table of contents -- are the source's own front matter, so they
+    ride in the document's adapter metadata rather than in columns every content
+    kind would carry.
+    """
+
+    metadata = row["adapter_metadata"] or {}
+    return {
+        "public_path": row["exact_public_path"],
+        "source_path": row["source_path"],
+        "title": row["title"],
+        "description": row["summary"],
+        "body": row["raw_body"],
+        "edit_url": row["edit_url"],
+        "body_sha256": row["checksum"],
+        "parent": metadata.get("parent"),
+        "parent_path": metadata.get("parent_path"),
+        "grand_parent": metadata.get("grand_parent"),
+        "grand_parent_path": metadata.get("grand_parent_path"),
+        "nav_order": metadata.get("nav_order"),
+        "has_children": bool(metadata.get("has_children")),
+        "has_toc": bool(metadata.get("has_toc", True)),
+        "permalink": metadata.get("permalink"),
+    }
+
+
 def docs_projection() -> dict[str, Any]:
+    """Return the published documentation pages and assets, read from the database.
+
+    A database with no active docs release publishes nothing: the hub renders
+    empty and every documentation route 404s. That is the normal state before an
+    ingest has run, not a failure.
+    """
+
     try:
-        projection = json.loads(DOCS_PROJECTION_PATH.read_text(encoding="utf-8"))
-    except FileNotFoundError:
-        # Absent is the normal default after file-backed content was removed:
-        # docs pages 404.  Present-but-invalid still fails closed below.
-        return {"pages": []}
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ImproperlyConfigured("Docs content projection cannot be loaded.") from exc
-    if not isinstance(projection, dict):
-        raise ImproperlyConfigured("Docs content projection must be an object.")
-    _validate_projection(projection)
-    return projection
+        pages = [
+            _page_record(row)
+            for row in ContentDocument.objects.filter(
+                content_kind=DOCS_CONTENT_KIND,
+                is_published=True,
+                release_id=F("release__source__active_release_id"),
+                **_docs_release_filter(),
+            ).values(
+                "exact_public_path",
+                "source_path",
+                "title",
+                "summary",
+                "raw_body",
+                "edit_url",
+                "checksum",
+                "adapter_metadata",
+            )
+        ]
+        assets = [
+            {
+                "public_path": row["stable_public_path"],
+                "source_path": row["source_path"],
+                "content_type": row["content_type"],
+                "size": row["size"],
+                "sha256": row["checksum"],
+            }
+            for row in ContentAsset.objects.filter(
+                release_id=F("release__source__active_release_id"),
+                **_docs_release_filter(),
+            ).values("stable_public_path", "source_path", "content_type", "size", "checksum")
+        ]
+    except DatabaseError:
+        return {"pages": [], "assets": []}
+    return {"pages": pages, "assets": assets, "root_path": DOCS_ROOT_PATH}
 
 
 def docs_pages() -> tuple[dict[str, Any], ...]:
@@ -713,9 +680,8 @@ def _nav_key(page: Mapping[str, Any]) -> tuple[int, str, str]:
     return order, str(page.get("title") or "").casefold(), str(page["public_path"])
 
 
-@lru_cache(maxsize=1)
 def docs_navigation_tree() -> DocsNavigationTree:
-    """Return the one validated tree for the active checked projection."""
+    """Return the validated tree for the active documentation release."""
 
     return build_docs_navigation(tuple(docs_projection()["pages"]))
 

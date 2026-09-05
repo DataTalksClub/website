@@ -173,8 +173,14 @@ class PortableContentActivationConcurrencyTests(TransactionTestCase):
             releases[loser_release_id].revision,
             original_release_revisions[loser_release_id],
         )
+        # Scoped to the two contending sources: the test database also carries
+        # the reviewed documentation release, which claims its own paths.
         self.assertEqual(
-            set(ActiveContentPath.objects.values_list("source_id", "release_id")),
+            set(
+                ActiveContentPath.objects.filter(source_id__in=sources).values_list(
+                    "source_id", "release_id"
+                )
+            ),
             {(winner_source_id, winner_release_id)},
         )
         self.assertEqual(

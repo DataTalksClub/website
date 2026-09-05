@@ -28,6 +28,7 @@ from core.site_settings import (
     ANNOUNCEMENT_ENABLED_KEY,
     ANNOUNCEMENT_MESSAGE,
     ANNOUNCEMENT_MESSAGE_KEY,
+    SITE_SETTINGS_AUDIT_WRITE,
     InvalidSiteSettingsBatch,
     SiteSettingsRevisionConflict,
     public_announcement,
@@ -65,6 +66,12 @@ def settings_from_result(result: object) -> list[dict[str, object]]:
 
 def queried_settings() -> list[dict[str, object]]:
     return settings_from_result(query_site_settings())
+
+
+def _site_settings_audits():
+    """The audit rows a site-settings write makes, and nothing else."""
+
+    return AuditEvent.objects.filter(action=SITE_SETTINGS_AUDIT_WRITE)
 
 
 class SiteSettingsRegistryTests(TestCase):
@@ -281,9 +288,11 @@ class SiteSettingsCommandTests(TestCase):
         )
         self.assertTrue(all(item["changed"] is True for item in first.settings))
         self.assertEqual(OperationalSetting.objects.count(), 2)
-        self.assertEqual(AuditEvent.objects.count(), 1)
+        # Scoped to this command's own action: the test database arrives with
+        # the reviewed documentation, whose activation is itself audited.
+        self.assertEqual(_site_settings_audits().count(), 1)
         self.assertEqual(IdempotencyRecord.objects.count(), 1)
-        event = AuditEvent.objects.get()
+        event = _site_settings_audits().get()
         evidence = json.dumps(
             {
                 "changes": event.changes,
@@ -324,7 +333,7 @@ class SiteSettingsCommandTests(TestCase):
         self.assertIs(enabled.value, True)
         self.assertEqual(enabled.revision, 1)
         self.assertFalse(OperationalSetting.objects.filter(key=ANNOUNCEMENT_MESSAGE_KEY).exists())
-        self.assertEqual(AuditEvent.objects.count(), 1)
+        self.assertEqual(_site_settings_audits().count(), 1)
 
     def test_validation_boundaries_and_exact_shapes_fail_before_mutation(self) -> None:
         valid_message = "x" * 500
@@ -381,7 +390,7 @@ class SiteSettingsCommandTests(TestCase):
         )
         self.assertTrue(all(item["changed"] is False for item in no_op.settings))
         self.assertFalse(OperationalSetting.objects.exists())
-        self.assertFalse(AuditEvent.objects.exists())
+        self.assertFalse(_site_settings_audits().exists())
         self.assertEqual(IdempotencyRecord.objects.count(), 1)
 
         with mock.patch(
@@ -391,7 +400,7 @@ class SiteSettingsCommandTests(TestCase):
             with self.assertRaisesRegex(RuntimeError, "audit unavailable"):
                 update_settings([setting_update(ANNOUNCEMENT_ENABLED_KEY, True, 0)])
         self.assertFalse(OperationalSetting.objects.exists())
-        self.assertFalse(AuditEvent.objects.exists())
+        self.assertFalse(_site_settings_audits().exists())
         self.assertEqual(IdempotencyRecord.objects.count(), 1)
 
     def test_same_actor_key_conflicts_but_other_actor_has_an_independent_scope(self) -> None:

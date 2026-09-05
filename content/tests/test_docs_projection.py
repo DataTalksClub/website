@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import re
 from copy import deepcopy
 from typing import Any
@@ -18,7 +17,6 @@ from content.docs_presentation import (
     docs_home_course_groups,
 )
 from content.docs_projection import (
-    DOCS_PROJECTION_PATH,
     DOCS_ROOT_PATH,
     DOCS_SOURCE_REVISION,
     _prepare_markdown,
@@ -35,10 +33,13 @@ from content.docs_projection import (
 
 
 class DocsProjectionTests(TestCase):
-    def test_projection_is_complete_and_pinned(self) -> None:
+    def test_the_published_documentation_is_complete_and_addressable(self) -> None:
         projection = docs_projection()
-        self.assertEqual(projection["source"]["revision"], DOCS_SOURCE_REVISION)
         self.assertEqual(projection["root_path"], DOCS_ROOT_PATH)
+        self.assertTrue(projection["pages"])
+        # Which revision the pages came from is the ingest's business, checked
+        # when the reviewed file is imported. What matters here is that every
+        # published page has its own address.
         self.assertEqual(
             len({page["public_path"] for page in projection["pages"]}),
             len(projection["pages"]),
@@ -535,17 +536,24 @@ class DocsProjectionTests(TestCase):
                 for url in urls:
                     self.assertIn(f'href="{url}"', rendered)
 
-    def test_rendering_keeps_projection_source_and_metadata_immutable(self) -> None:
-        before_bytes = DOCS_PROJECTION_PATH.read_bytes()
-        before_projection = json.loads(before_bytes)
-        before_digest = hashlib.sha256(before_bytes).hexdigest()
+    def test_rendering_leaves_every_stored_page_unchanged(self) -> None:
+        """Rendering is a read. A renderer that edited its source would drift."""
+
+        before = {
+            page["public_path"]: (page["body"], page["body_sha256"])
+            for page in docs_projection()["pages"]
+        }
 
         for page in docs_projection()["pages"]:
             render_docs_markdown(page)
 
-        after_bytes = DOCS_PROJECTION_PATH.read_bytes()
-        self.assertEqual(hashlib.sha256(after_bytes).hexdigest(), before_digest)
-        self.assertEqual(json.loads(after_bytes), before_projection)
+        after = {
+            page["public_path"]: (page["body"], page["body_sha256"])
+            for page in docs_projection()["pages"]
+        }
+        self.assertEqual(after, before)
+        for body, digest in after.values():
+            self.assertEqual(hashlib.sha256(body.encode("utf-8")).hexdigest(), digest)
 
     def test_referenced_assets_are_served_only_from_the_pinned_allowlist(self) -> None:
         asset = docs_projection()["assets"][0]
@@ -563,8 +571,8 @@ class DocsProjectionTests(TestCase):
 
         for path in (
             "/docs/assets/images/not-referenced.png",
-            "/docs/assets/../docs_projection.json",
-            "/docs/assets/images/brand-assets/../../../../content/docs_projection.json",
+            "/docs/assets/../docs_assets",
+            "/docs/assets/images/brand-assets/../../../../content/docs_projection.py",
         ):
             with self.subTest(path=path):
                 self.assertEqual(self.client.get(path).status_code, 404)

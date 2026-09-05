@@ -67,6 +67,21 @@ def load_event_identities() -> tuple[int, int]:
     return len(events), len(aliases)
 
 
+def load_reviewed_docs() -> int:
+    """Publish the reviewed documentation, the way the production import does.
+
+    The docs used to be read straight out of a file in the app, so every test
+    that touched a documentation route got them for free. They are database
+    rows now, and hundreds of tests still read them without creating them, so
+    the same import production runs seeds them here -- once, after ``migrate``,
+    like the event identities above.
+    """
+
+    from scripts.prod.import_docs import run
+
+    return int(run(apply=True)["pages"])
+
+
 def load_homepage_testimonials() -> int:
     from courses.services.testimonials import import_homepage_testimonials
 
@@ -85,5 +100,6 @@ def load_reviewed_reference_data() -> dict[str, int]:
     return {
         "events": events,
         "aliases": aliases,
+        "docs": load_reviewed_docs(),
         "testimonials": load_homepage_testimonials(),
     }

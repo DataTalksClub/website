@@ -174,8 +174,14 @@ class SponsorServiceTests(TestCase):
             actor_ref="user:188",
         )
         self.assertEqual(reactivated.sponsor["lifecycle"], "active")
+        # Scoped to sponsor actions: the test database arrives with the reviewed
+        # documentation, whose activation writes its own audit trail.
         self.assertEqual(
-            set(AuditEvent.objects.values_list("action", flat=True)),
+            set(
+                AuditEvent.objects.filter(action__startswith="core.sponsor.").values_list(
+                    "action", flat=True
+                )
+            ),
             {
                 "core.sponsor.created",
                 "core.sponsor.archived",
