@@ -3,7 +3,8 @@ from __future__ import annotations
 from django.contrib.staticfiles import finders
 from django.test import TestCase
 
-from content.public_data import public_projection, safe_public_graph_url
+from content import catalogue
+from content.public_graph import safe_public_graph_url
 from scripts import build_public_projection as builder
 
 
@@ -11,17 +12,16 @@ class SponsorArticleChartTests(TestCase):
     path = "/blog/sponsor-datatalks-club.html"
 
     def test_all_owned_projected_editorial_links_to_this_site_are_root_relative(self) -> None:
-        projection = public_projection()
         occurrences = [
             (article["slug"], index, field)
-            for article in projection["articles"]
+            for article in catalogue.articles()
             for index, block in enumerate(article.get("blocks", ()))
             for field in ("markdown", "html")
             if builder._localize_editorial_links(str(block.get(field) or ""))
             != str(block.get(field) or "")
         ]
 
-        for book in projection["books"]:
+        for book in catalogue.books():
             for index, thread in enumerate(book.get("archive", ())):
                 texts = [thread.get("text", "")]
                 texts.extend(reply.get("text", "") for reply in thread.get("replies", ()))
@@ -31,7 +31,7 @@ class SponsorArticleChartTests(TestCase):
                     if builder._localize_editorial_links(str(text)) != str(text)
                 )
 
-        for page in projection["wiki"]:
+        for page in catalogue.wiki_pages():
             occurrences.extend(
                 (page["slug"], index, "wiki")
                 for index, block in enumerate(page.get("blocks", ()))
@@ -41,7 +41,7 @@ class SponsorArticleChartTests(TestCase):
 
         occurrences.extend(
             (podcast["slug"], index, "resource")
-            for podcast in projection["podcasts"]
+            for podcast in catalogue.podcasts()
             for index, resource in enumerate(podcast.get("resources", ()))
             if builder._localize_internal_url(resource["url"]) != resource["url"]
         )

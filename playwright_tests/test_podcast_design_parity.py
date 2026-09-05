@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Browser, Page, expect
 
-from content.public_data import ordered_podcasts, podcast_seasons
+from content.podcast_content import ordered_podcasts, podcast_seasons
 
 pytestmark = [pytest.mark.core]
 

@@ -98,10 +98,9 @@ def _database_unreachable(error: BaseException) -> bool:
     unmigrated database, a closed socket.  The two message-matched cases are the
     test guards -- ``SimpleTestCase`` raises ``AssertionError`` and the pytest
     guard raises ``RuntimeError`` when a unit that declares it needs no database
-    touches one.  ``content.public_data`` already recognises exactly these two
-    for exactly this reason, and the reason applies here too: a runtime without
-    a usable settings table serves the value the process booted with instead of
-    failing every read.  Anything else propagates.
+    touches one.  They are recognised for the same reason the database errors
+    are: a runtime without a usable settings table serves the value the process
+    booted with instead of failing every read.  Anything else propagates.
     """
 
     if isinstance(error, (DatabaseLayerError, ImproperlyConfigured)):

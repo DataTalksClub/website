@@ -1,16 +1,26 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.test import TestCase
 from django.urls import reverse
 
+from content import catalogue
 from content.podcast_routes import (
     PODCAST_AI_PRODUCTION_PATH,
     PODCAST_GENAI_PILOTS_PATH,
     PODCAST_GENAI_PILOTS_SLUG,
     podcast_legacy_path,
 )
-from content.public_data import public_projection
 from content.wiki_content import episode_graph
+
+
+def _episode(slug: str) -> dict[str, Any]:
+    """The published episode a test names, which the catalogue must hold."""
+
+    record = catalogue.podcast(slug)
+    assert record is not None, slug
+    return record
 
 
 class PodcastStableRouteTests(TestCase):
@@ -21,11 +31,10 @@ class PodcastStableRouteTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(reverse("podcast-genai-pilots"), PODCAST_GENAI_PILOTS_PATH)
-        projection = public_projection()
-        episode = projection["podcasts_by_slug"][PODCAST_GENAI_PILOTS_SLUG]
+        episode = _episode(PODCAST_GENAI_PILOTS_SLUG)
         self.assertEqual(episode["public_path"], PODCAST_GENAI_PILOTS_PATH)
         self.assertEqual(
-            episode_graph(episode, projection=projection).url,
+            episode_graph(episode).url,
             PODCAST_GENAI_PILOTS_PATH,
         )
         self.assertContains(
@@ -62,7 +71,7 @@ class PodcastStableRouteTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(reverse("podcast-ai-production"), PODCAST_AI_PRODUCTION_PATH)
         self.assertEqual(
-            public_projection()["podcasts_by_slug"][self.slug]["public_path"],
+            _episode(self.slug)["public_path"],
             PODCAST_AI_PRODUCTION_PATH,
         )
         self.assertContains(

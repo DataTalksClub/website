@@ -15,20 +15,29 @@ from __future__ import annotations
 
 import json
 import re
+from typing import Any
 
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
 from django.utils.html import escape
 
+from content import catalogue
 from content.person_chip import person_chip, person_chips
 from content.podcast_content import episode_view
-from content.public_data import public_projection
 from events.queries import published_event_records
 
 # The book the owner reported: one author, who has a profile and a portrait.
 REPORTED_BOOK = "20251006-software-development-at-rocket-speed"
 # A book crediting two authors the community never hosted alongside one it did.
 MIXED_BOOK = "20210208-ml-design-patterns"
+
+
+def _book(slug: str) -> dict[str, Any]:
+    """The published book a test names, which the catalogue must hold."""
+
+    record = catalogue.book(slug)
+    assert record is not None, slug
+    return record
 
 
 def _match(pattern: str, body: str, group: int) -> str:
@@ -39,8 +48,7 @@ def _match(pattern: str, body: str, group: int) -> str:
 
 class PersonChipResolutionTests(TestCase):
     def test_a_credit_with_a_key_gains_the_name_link_and_portrait_of_that_person(self) -> None:
-        projection = public_projection()
-        person = projection["people_by_slug"]["alexeygrigorev"]
+        person = catalogue.people_by_slug()["alexeygrigorev"]
 
         chip = person_chip({"key": "alexeygrigorev", "name": "Alexey Grigorev", "public_path": ""})
 
@@ -51,8 +59,7 @@ class PersonChipResolutionTests(TestCase):
     def test_a_credit_with_only_a_profile_path_still_finds_its_portrait(self) -> None:
         """A composed value — a podcast `Guest` — carries no source key."""
 
-        projection = public_projection()
-        person = projection["people_by_slug"]["alexeygrigorev"]
+        person = catalogue.people_by_slug()["alexeygrigorev"]
 
         chip = person_chip({"name": person["title"], "public_path": person["public_path"]})
 
@@ -78,15 +85,14 @@ class PersonChipResolutionTests(TestCase):
     def test_every_projected_credit_on_the_site_resolves_to_a_named_chip(self) -> None:
         """Nothing that names a person may reach a reader as a bare source key."""
 
-        projection = public_projection()
-        slugs = set(projection["people_by_slug"])
+        slugs = set(catalogue.people_by_slug())
         credits = [
             *(
                 credit
-                for record in (*projection["articles"], *projection["books"])
+                for record in (*catalogue.articles(), *catalogue.books())
                 for credit in record["author_profiles"]
             ),
-            *(credit for record in projection["podcasts"] for credit in record["guest_profiles"]),
+            *(credit for record in catalogue.podcasts() for credit in record["guest_profiles"]),
             *(speaker for event in published_event_records() for speaker in event["speakers"]),
         ]
 
@@ -101,10 +107,9 @@ class BookAuthorResolutionTests(TestCase):
     def test_every_book_author_becomes_a_name_and_keeps_its_profile_when_there_is_one(
         self,
     ) -> None:
-        projection = public_projection()
-        people = projection["people_by_slug"]
+        people = catalogue.people_by_slug()
 
-        for book in projection["books"]:
+        for book in catalogue.books():
             with self.subTest(slug=book["slug"]):
                 self.assertEqual(len(book["author_profiles"]), len(book["authors"]))
                 for author, credit in zip(book["authors"], book["author_profiles"], strict=True):
@@ -120,13 +125,12 @@ class BookAuthorResolutionTests(TestCase):
                         self.assertNotEqual(credit["name"], author)
 
     def test_the_unresolved_book_authors_are_a_named_inventory_not_a_surprise(self) -> None:
-        projection = public_projection()
-        people = projection["people_by_slug"]
+        people = catalogue.people_by_slug()
 
         unresolved = sorted(
             {
                 author
-                for book in projection["books"]
+                for book in catalogue.books()
                 for author in book["authors"]
                 if author not in people
             }
@@ -161,7 +165,7 @@ class BookAuthorResolutionTests(TestCase):
 
 class BookPageBylineTests(TestCase):
     def book(self, slug: str) -> dict:
-        return public_projection()["books_by_slug"][slug]
+        return _book(slug)
 
     def test_the_reported_book_names_its_author_and_links_to_the_profile(self) -> None:
         record = self.book(REPORTED_BOOK)
@@ -231,7 +235,7 @@ class PersonChipRenderingTests(TestCase):
     def test_a_portrait_beside_its_own_name_says_nothing_to_a_screen_reader(self) -> None:
         """The name is the credit; a portrait that repeated it would be heard twice."""
 
-        record = public_projection()["books_by_slug"][REPORTED_BOOK]
+        record = _book(REPORTED_BOOK)
         body = self.client.get(record["public_path"]).content.decode()
         portrait = _match(r'<img\s+class="person-chip-portrait".*?>', body, 0)
 
@@ -244,7 +248,7 @@ class PersonChipRenderingTests(TestCase):
     def test_a_credit_without_a_portrait_keeps_the_stand_in_disc(self) -> None:
         """Every profile carries a picture today; a credit with no profile does not."""
 
-        record = public_projection()["books_by_slug"][MIXED_BOOK]
+        record = _book(MIXED_BOOK)
         body = self.client.get(record["public_path"]).content.decode()
 
         self.assertIn(
@@ -254,10 +258,9 @@ class PersonChipRenderingTests(TestCase):
         self.assertIn('<span class="person-chip-name">Sara Robinson</span>', body)
 
     def test_the_episode_page_draws_its_guest_with_the_shared_chip(self) -> None:
-        projection = public_projection()
         episode = next(
             record
-            for record in projection["podcasts"]
+            for record in catalogue.podcasts()
             if record["guest_profiles"] and record["guest_profiles"][0]["public_path"]
         )
         guest = episode_view(episode).guests[0]

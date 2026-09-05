@@ -16,7 +16,7 @@ from playwright.sync_api import Page, expect
 
 from accounts.studio_sessions import SESSION_REFERENCE_KEY
 from accounts.studio_test_support import make_studio_user
-from content.public_data import event_groups
+from content.event_content import event_groups
 from events.models import (
     HistoricalRegistrationAggregateRevision,
     HistoricalRegistrationAggregateSlot,

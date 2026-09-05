@@ -607,7 +607,7 @@ def live_server(django_db_setup: None):
 def stable_public_event_clock() -> Generator[None]:
     """Keep browser event pages aligned with the deterministic public fixture."""
 
-    with patch("content.public_data.timezone.now", return_value=PUBLIC_EVENT_TEST_NOW):
+    with patch("content.event_content.timezone.now", return_value=PUBLIC_EVENT_TEST_NOW):
         yield
 
 

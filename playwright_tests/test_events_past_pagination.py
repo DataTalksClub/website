@@ -16,8 +16,8 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Browser, Page, ViewportSize, expect
 
+from content.event_content import event_date_groups, event_groups
 from content.pagination import PUBLIC_PAGE_SIZE
-from content.public_data import event_date_groups, event_groups
 from events.models import Event
 from playwright_tests.accessibility_support import assert_accessible_page
 

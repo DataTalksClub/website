@@ -23,7 +23,8 @@ from typing import Any
 from django.core.exceptions import ImproperlyConfigured
 
 from content.podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_canonical_path
-from content.public_data import _validate_wiki_graph, ordered_podcasts, safe_public_graph_url
+from content.podcast_content import ordered_podcasts
+from content.public_graph import safe_public_graph_url, validate_wiki_graph
 
 EXPECTED_SELECTION = "preferred"
 #: The collections the built files carry. Events are among them: the files were
@@ -422,7 +423,7 @@ def load_checked_projection(root: Path | None = None) -> dict[str, Any]:
         if _sha256(path) != artifacts.get(filename):
             raise ImproperlyConfigured(f"Public projection digest mismatch: {filename}.")
         projection[name] = _read_json(path)
-    _validate_wiki_graph(projection["wiki_graph"])
+    validate_wiki_graph(projection["wiki_graph"])
 
     for name in COLLECTION_NAMES:
         records = projection[name]

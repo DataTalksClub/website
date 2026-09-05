@@ -22,8 +22,8 @@ from unittest import mock
 import pytest
 from playwright.sync_api import Browser, Page, expect
 
+from content import catalogue
 from content.pagination import PUBLIC_PAGE_SIZE
-from content.public_data import public_projection
 
 pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
@@ -40,7 +40,7 @@ def _books() -> list[dict[str, Any]]:
     that error cannot be pickled, so it took the whole run down with it.
     """
 
-    return list(public_projection()["books"])
+    return list(catalogue.books())
 
 
 def _record_paths(page: Page) -> list[str]:
@@ -213,11 +213,11 @@ def test_an_empty_book_projection_is_one_clear_page_without_controls(
     )
     page = context.new_page()
     origin = live_server.url
-    projection = dict(public_projection())
-    projection["books"] = ()
 
     try:
-        with mock.patch("content.public_views.public_projection", return_value=projection):
+        # The archive reads the database, so it is emptied the way an un-ingested
+        # database is empty rather than by patching a value in.
+        with mock.patch("content.catalogue.books", return_value=()):
             response = page.goto(f"{origin}/books", wait_until="domcontentloaded")
             assert response is not None and response.status == 200
             expect(page.get_by_role("heading", name="Book of the Week", exact=True)).to_be_visible()

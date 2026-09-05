@@ -131,7 +131,7 @@ class HomeEventsCmpRenderingTests(TestCase):
             if event["title"] == FEATURED_EVENT_TITLE
         )
         stable_now = datetime(2026, 8, 12, tzinfo=ZoneInfo("Europe/Berlin"))
-        with patch("content.public_data.timezone.now", return_value=stable_now):
+        with patch("content.event_content.timezone.now", return_value=stable_now):
             catalog = self.client.get("/events")
         detail = self.client.get(featured_event_path)
 

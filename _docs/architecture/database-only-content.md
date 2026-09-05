@@ -28,7 +28,7 @@ Every public surface reads the database. What is left on disk under
 
 | Surface | Read path | Ingest |
 | --- | --- | --- |
-| Articles, podcasts, books, people, wiki, courses, media, graph, search, routes | `content/public_data.py` -> `ContentDocument` | `scripts/prod/import_public_content.py` |
+| Articles, podcasts, books, people, wiki, courses, media, graph, search, routes | `content/catalogue.py` -> `ContentDocument` | `scripts/prod/import_public_content.py` |
 | Documentation | `content/docs_projection.py` -> `ContentDocument`/`ContentAsset` | `scripts/prod/import_docs.py` |
 | Course FAQ | `content/faq_data.py` -> `ContentDocument` | `scripts/prod/import_faq.py` |
 | `/slack` | `content/review_views.py` -> `ContentDocument` | (page row) |
@@ -41,6 +41,20 @@ Every public surface reads the database. What is left on disk under
 An empty database is a normal state on every one of these: hubs render empty and
 detail routes 404. Nothing falls back to a file.
 
+`content/catalogue.py` is a function per kind, not a dictionary holding every
+kind at once. The kinds share one module because they share the source, the
+active release, the stored editorial order and the cache key that follows an
+import. What a reader sees differently from what is stored -- an article or
+profile body with its source's link metadata cleaned out, a profile pointed at
+the live event routes, a wiki graph checked before it can be drawn -- is decided
+there, beside the query that returns it.
+
+The compatibility layer that reassembled these rows into the old projection
+dictionary is gone: `content/public_data.py` no longer exists. Its event display
+helpers are `content/event_content.py`, its route inventory is
+`content/public_routes.py`, and its graph safety contract is
+`content/public_graph.py`.
+
 The projection *files* are still checked in as that ingest input, and
 `scripts/projection_build/` holds the code that checks and builds them. Neither
 is on a public request path. Removing them is the last step, once the ingests
@@ -51,6 +65,9 @@ have run against the production database.
 - Docs and FAQ images are still files in `content/docs_assets/` and
   `content/faq_assets/`; their records are database rows. Moving the bytes to the
   public media store is the media-objects program, not this one.
+- The wiki's default social card is still a design asset on disk
+  (`content/wiki_assets/`). The route asks the published manifest before serving
+  it, so what is published is a database fact; only the bytes are a file.
 - Delete `temporary/content/` and `scripts/projection_build/` once production is
   ingested.
 

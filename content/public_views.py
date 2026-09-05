@@ -45,10 +45,11 @@ from events.models import EventQnaSession
 from events.queries import published_event_records
 from events.services import public_registration_total
 
-from . import wiki_content
+from . import catalogue, wiki_content
 from .article_content import article_view, render_body_markdown
 from .article_faq import ArticleFaq, article_faq
 from .event_banners import event_banner_url
+from .event_content import event_date_groups, event_groups
 from .event_speakers import event_speaker_records
 from .faq_data import faq_courses
 from .media_store import (
@@ -71,6 +72,7 @@ from .podcast_content import (
     episode_view,
     listening_platform_phrase,
     podcast_platform_links,
+    podcast_seasons,
     season_episodes,
 )
 from .podcast_routes import (
@@ -78,17 +80,11 @@ from .podcast_routes import (
     podcast_legacy_path,
     podcast_public_id,
 )
-from .public_data import (
-    WIKI_ASSET_ROOT,
-    event_date_groups,
-    event_groups,
-    podcast_seasons,
-    public_projection,
-)
 from .public_query import selector_query
 from .queries import ResolvePublicDocument, resolve_public_document
 from .review_views import SLACK_PUBLIC_PATH
 from .sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
+from .wiki_content import WIKI_ASSET_ROOT
 
 WIKI_SPECIAL_CATEGORIES = {
     "guides": "guide",
@@ -188,16 +184,16 @@ def permanent_detail_redirect(
     *,
     collection: str,
 ) -> HttpResponse:
-    projection_name = {
+    collection_name = {
         "blog": "articles",
         "podcast": "podcasts",
         "books": "books",
         "people": "people",
     }[collection]
-    redirect = public_projection()["editorial_route_aliases_by_path"].get(request.path_info)
+    redirect = catalogue.editorial_route_alias(request.path_info)
     if (
         redirect is None
-        or redirect["collection"] != projection_name
+        or redirect["collection"] != collection_name
         or redirect["record_key"] != slug
     ):
         raise Http404
@@ -411,11 +407,10 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
     # The credit says who spoke; the biography belongs to that person's own
     # profile and is joined in here, so the page never carries a copy that can
     # drift from the profile it came from.
-    catalogue = public_projection()
     event["speakers"] = event_speaker_records(
         event["speakers"],
-        people_by_slug=catalogue["people_by_slug"],
-        people_by_path=catalogue["people_by_path"],
+        people_by_slug=catalogue.people_by_slug(),
+        people_by_path=catalogue.people_by_path(),
     )
     # The page states whether the event has happened in a word, using the same split the
     # events index draws its rows from.  An event the grouped catalogue cannot place —
@@ -525,7 +520,8 @@ def event_legacy_redirect(request: HttpRequest, legacy_path: str) -> HttpRespons
 # The two collections behind `public/collection_hub.html`.  Both are dated archives
 # that grew past one screen — 55 articles, 98 books — so both page, through the one
 # shared paginator (issues #174, #178).  Each entry is the hub's heading, its clean
-# canonical base path, its catalogue's accessible label and its description.
+# canonical base path, its catalogue's accessible label, its description, and the
+# query the records come from.
 COLLECTION_HUBS = {
     "articles": (
         "Articles",
@@ -536,6 +532,7 @@ COLLECTION_HUBS = {
             "the DataTalks.Club community. Insights, tutorials, and best practices from "
             "industry experts."
         ),
+        catalogue.articles,
     ),
     "books": (
         "Book of the Week",
@@ -546,6 +543,7 @@ COLLECTION_HUBS = {
             "weekly book discussions with authors at DataTalks.Club and win free copies of "
             "featured books."
         ),
+        catalogue.books,
     ),
 }
 
@@ -554,16 +552,16 @@ COLLECTION_HUBS = {
 def collection_hub(request: HttpRequest, *, collection: str) -> HttpResponse:
     """The blog index and the Book of the Week archive, on the shared paginator.
 
-    The projections are already in their published order — `(published, slug)`
+    The records arrive in their published order — `(published, slug)`
     descending — and that is the order the pages are cut from.  Nothing here sorts,
     filters or renumbers; the collection differs only by which records, which base
     path and which words.
     """
 
-    heading, base_path, catalogue_label, description = COLLECTION_HUBS[collection]
+    heading, base_path, catalogue_label, description, hub_records = COLLECTION_HUBS[collection]
     pagination = paginate_public_request(
         request,
-        public_projection()[collection],
+        hub_records(),
         clean_base_path=base_path,
         catalogue_label=catalogue_label,
     )
@@ -602,8 +600,7 @@ def podcast_hub(request: HttpRequest) -> HttpResponse:
     if not valid_query:
         return _no_store(HttpResponseBadRequest("Bad request."))
 
-    projection = public_projection()
-    seasons = podcast_seasons(projection["podcasts"])
+    seasons = podcast_seasons(catalogue.podcasts())
     latest_season = seasons[0].number
     selected_number = latest_season if requested_season is None else requested_season
     season_index = next(
@@ -635,7 +632,7 @@ def podcast_hub(request: HttpRequest) -> HttpResponse:
             "episodes": episodes,
             "episode_total": sum(len(available.episodes) for available in seasons),
             "listening_platforms": listening_platform_phrase(episodes),
-            "podcast_platform_links": podcast_platform_links(projection["podcast_platforms"]),
+            "podcast_platform_links": podcast_platform_links(catalogue.podcast_platforms()),
             "season_links": tuple(
                 {
                     "number": available.number,
@@ -707,8 +704,7 @@ def _article_faq_structured_data(article: dict, faq: ArticleFaq | None) -> tuple
 
 @require_safe
 def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
-    projection = public_projection()
-    article = projection["articles_by_slug"].get(slug)
+    article = catalogue.article(slug)
     if article is None:
         raise Http404
     # The article's FAQ section, if it publishes one, comes from its own
@@ -728,7 +724,7 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
             # The design system reading page (issue #179) renders this composed value:
             # the byline joined to the people records, the publication date and
             # reading estimate the design writes, and the body as prose sections.
-            "article": article_view(article, projection["people_by_slug"], faq),
+            "article": article_view(article, catalogue.people_by_slug(), faq),
             "og_type": "article",
             "og_image_url": _canonical(article["image_path"]) if article["image_path"] else "",
             "published_time": article["published"],
@@ -765,13 +761,7 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
     )
 
 
-def _render_podcast_detail(
-    request: HttpRequest,
-    episode: dict,
-    *,
-    projection: dict | None = None,
-) -> HttpResponse:
-    projection = projection or public_projection()
+def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
     image_path = (
         episode["image_path"]
         if episode.get("media_available") and episode.get("image_path")
@@ -779,15 +769,16 @@ def _render_podcast_detail(
     )
     previous_episode, next_episode, related_episodes = episode_navigation(
         episode,
-        projection["podcasts"],
-        people_by_slug=projection["people_by_slug"],
+        catalogue.podcasts(),
+        people_by_slug=catalogue.people_by_slug(),
     )
     try:
-        episode_graph = wiki_content.episode_graph(episode, projection=projection)
+        episode_graph = wiki_content.episode_graph(episode)
     except ImproperlyConfigured:
-        # A checked projection failure must not make an otherwise useful episode
-        # page fail or expose graph-contract details.  The next projection build
-        # can repair the data while the page keeps its explicit unavailable state.
+        # A graph the published catalogue cannot supply must not take an
+        # otherwise useful episode page down or expose graph-contract details.
+        # The next import can repair the data while the page keeps its explicit
+        # unavailable state.
         episode_graph = wiki_content.unavailable_episode_graph(episode)
     episode_entity = {
         "@type": "PodcastEpisode",
@@ -817,8 +808,8 @@ def _render_podcast_detail(
             "record": episode,
             "episode": episode_view(
                 episode,
-                people_by_slug=projection["people_by_slug"],
-                resource_podcast_records=projection["podcasts"],
+                people_by_slug=catalogue.people_by_slug(),
+                resource_podcast_records=catalogue.podcasts(),
             ),
             "previous_episode": previous_episode,
             "next_episode": next_episode,
@@ -845,17 +836,16 @@ def _render_podcast_detail(
 def podcast_detail(request: HttpRequest, slug: str) -> HttpResponse:
     if request.method not in {"GET", "HEAD"}:
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
-    projection = public_projection()
-    episode = projection["podcasts_by_slug"].get(slug)
+    episode = catalogue.podcast(slug)
     if episode is None:
         raise Http404
-    return _render_podcast_detail(request, episode, projection=projection)
+    return _render_podcast_detail(request, episode)
 
 
-def _podcast_by_public_id(projection: dict, episode_id: str) -> dict:
+def _podcast_by_public_id(episode_id: str) -> dict:
     matches = [
         episode
-        for episode in projection["podcasts"]
+        for episode in catalogue.podcasts()
         if podcast_public_id(
             season=episode["season"],
             episode=episode["episode"],
@@ -877,18 +867,17 @@ def podcast_detail_by_id(
 
     if request.method not in {"GET", "HEAD"}:
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
-    projection = public_projection()
-    episode = _podcast_by_public_id(projection, episode_id)
+    episode = _podcast_by_public_id(episode_id)
     if request.path_info != episode["public_path"]:
         return permanent_public_redirect(request, target=episode["public_path"])
-    return _render_podcast_detail(request, episode, projection=projection)
+    return _render_podcast_detail(request, episode)
 
 
 @csrf_exempt
 def podcast_detail_by_id_without_slug(request: HttpRequest, episode_id: str) -> HttpResponse:
     if request.method not in {"GET", "HEAD"}:
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
-    episode = _podcast_by_public_id(public_projection(), episode_id)
+    episode = _podcast_by_public_id(episode_id)
     return permanent_public_redirect(request, target=episode["public_path"])
 
 
@@ -900,18 +889,17 @@ def podcast_legacy_detail(request: HttpRequest, slug: str) -> HttpResponse:
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
     if slug in PODCAST_HIERARCHICAL_ONLY_SLUGS:
         raise Http404
-    projection = public_projection()
-    episode = projection["podcasts_by_slug"].get(slug)
+    episode = catalogue.podcast(slug)
     if episode is None:
         raise Http404
     if episode["public_path"] != podcast_legacy_path(slug):
         return permanent_public_redirect(request, target=episode["public_path"])
-    return _render_podcast_detail(request, episode, projection=projection)
+    return _render_podcast_detail(request, episode)
 
 
 @require_safe
 def book_detail(request: HttpRequest, slug: str) -> HttpResponse:
-    book = public_projection()["books_by_slug"].get(slug)
+    book = catalogue.book(slug)
     if book is None:
         raise Http404
     # The book's own summary is source Markdown, not plain text — it used to be
@@ -967,7 +955,7 @@ def book_detail(request: HttpRequest, slug: str) -> HttpResponse:
 
 @require_safe
 def person_detail(request: HttpRequest, slug: str) -> HttpResponse:
-    person = public_projection()["people_by_slug"].get(slug)
+    person = catalogue.person(slug)
     if person is None:
         raise Http404
     return _render(
@@ -1001,7 +989,7 @@ def wiki_hub(request: HttpRequest) -> HttpResponse:
 
     `q` is the mode switch and is read first, so a search request never reaches the
     paginator and search results are never paged (issue #175).  Without `q` the hub is
-    the A–Z catalogue in the projection's `(title.casefold(), slug)` order, cut into
+    the A–Z catalogue in the published `(title.casefold(), slug)` order, cut into
     pages by the shared paginator (issue #178).
     """
 
@@ -1011,7 +999,7 @@ def wiki_hub(request: HttpRequest) -> HttpResponse:
         return wiki_search(request)
     pagination = paginate_public_request(
         request,
-        public_projection()["wiki"],
+        catalogue.wiki_pages(),
         clean_base_path="/wiki",
         catalogue_label="Wiki catalogue pages",
     )
@@ -1033,7 +1021,7 @@ def wiki_hub(request: HttpRequest) -> HttpResponse:
 
 @require_safe
 def wiki_detail(request: HttpRequest, slug: str) -> HttpResponse:
-    page = public_projection()["wiki_by_slug"].get(slug)
+    page = catalogue.wiki_page(slug)
     if page is None:
         raise Http404
     wiki_trail = trail(("Wiki", "/wiki"), (page["title"], page["public_path"]))
@@ -1066,7 +1054,7 @@ def _wiki_search_results(query: str) -> tuple[dict, ...]:
     terms = query.casefold().split()
     results: list[dict] = []
     seen: set[str] = set()
-    for document in public_projection()["wiki_search"].get("docs", []):
+    for document in catalogue.wiki_search().get("docs", []):
         url = document.get("url", "")
         haystack = " ".join(
             str(document.get(field, ""))
@@ -1119,17 +1107,17 @@ def wiki_graph(request: HttpRequest) -> HttpResponse:
 
 @require_safe
 def wiki_graph_json(request: HttpRequest) -> JsonResponse:
-    return JsonResponse(public_projection()["wiki_graph"])
+    return JsonResponse(catalogue.wiki_graph())
 
 
 @require_safe
 def wiki_search_json(request: HttpRequest) -> JsonResponse:
-    return JsonResponse(public_projection()["wiki_search"])
+    return JsonResponse(catalogue.wiki_search())
 
 
 @require_safe
 def wiki_special(request: HttpRequest, category: str = "all") -> HttpResponse:
-    pages = public_projection()["wiki"]
+    pages = catalogue.wiki_pages()
     special_tags = set(WIKI_SPECIAL_CATEGORIES.values())
     if category == "all":
         pages = tuple(page for page in pages if special_tags.intersection(page["tags"]))
@@ -1166,7 +1154,7 @@ def wiki_feed(request: HttpRequest) -> HttpResponse:
             xml_escape(_canonical(page["public_path"])),
             xml_escape(page["summary"]),
         )
-        for page in public_projection()["wiki"][-30:]
+        for page in catalogue.wiki_pages()[-30:]
     )
     return _xml_response(
         '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>'
@@ -1189,7 +1177,7 @@ def wiki_robots(request: HttpRequest) -> HttpResponse:
 @require_safe
 def wiki_asset(request: HttpRequest, asset: str) -> FileResponse:
     public_path = f"/wiki/assets/{asset}"
-    if public_path not in public_projection()["manifest"].get("wiki_assets", {}):
+    if public_path not in catalogue.wiki_asset_paths():
         raise Http404
     path = WIKI_ASSET_ROOT / asset
     if not path.is_file() or path.is_symlink():
@@ -1199,7 +1187,7 @@ def wiki_asset(request: HttpRequest, asset: str) -> FileResponse:
 
 @require_safe
 def media(request: HttpRequest, media_path: str) -> HttpResponseBase:
-    """Serve one recorded projection image through the configured media store.
+    """Serve one recorded public image through the configured media store.
 
     The public URL, the response status, and the response header shape are unchanged
     from the era when the bytes lived in the git working tree.  An unrecognised path is
@@ -1209,7 +1197,7 @@ def media(request: HttpRequest, media_path: str) -> HttpResponseBase:
     """
 
     public_path = f"/images/{media_path}"
-    record = public_projection()["media_by_path"].get(public_path)
+    record = catalogue.media_at(public_path)
     if record is None:
         raise Http404
     store = media_store()
@@ -1264,7 +1252,6 @@ def _record_media_failure(
 
 
 def _section_records(section: str) -> tuple[tuple[str, str], ...]:
-    projection = public_projection()
     # /slack is a database-owned page: it is listed when a row publishes it and
     # absent when none does, rather than being a permanent entry that 404s.
     slack_entries = (
@@ -1295,18 +1282,18 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
         return (("/faq/", ""),) + tuple((course["public_path"], "") for course in faq_courses())
     if section == "blog":
         return (("/blog", ""),) + tuple(
-            (record["public_path"], record["published"][:10]) for record in projection["articles"]
+            (record["public_path"], record["published"][:10]) for record in catalogue.articles()
         )
     if section == "podcast":
         return (("/podcast", ""),) + tuple(
-            (record["public_path"], record["published"][:10]) for record in projection["podcasts"]
+            (record["public_path"], record["published"][:10]) for record in catalogue.podcasts()
         )
     if section == "books":
         return (("/books", ""),) + tuple(
-            (record["public_path"], record["published"][:10]) for record in projection["books"]
+            (record["public_path"], record["published"][:10]) for record in catalogue.books()
         )
     if section == "people":
-        return tuple((record["public_path"], "") for record in projection["people"])
+        return tuple((record["public_path"], "") for record in catalogue.people())
     if section == "events":
         return (("/events", ""), ("/events/past", "")) + tuple(
             (record["public_path"], record["starts_at"][:10])
@@ -1330,7 +1317,7 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
             ("/wiki/special-pages", ""),
             *((f"/wiki/special-pages/{category}", "") for category in WIKI_SPECIAL_CATEGORIES),
         )
-        return discovery + tuple((record["public_path"], "") for record in projection["wiki"])
+        return discovery + tuple((record["public_path"], "") for record in catalogue.wiki_pages())
     raise Http404
 
 

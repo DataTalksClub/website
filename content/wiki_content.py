@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from django.core.exceptions import ImproperlyConfigured
@@ -35,8 +36,16 @@ from core.graph_layout import (
     ring_layouts,
 )
 
+from . import catalogue
 from .podcast_routes import podcast_canonical_path, podcast_public_id
-from .public_data import public_projection, safe_public_graph_url
+from .public_graph import safe_public_graph_url
+
+#: The wiki's default social-card image. It is a design asset that ships with
+#: the app, not editorial content, so it stays a file; the route that serves it
+#: still asks the published manifest before handing it over. The reviewed ingest
+#: tree keeps its own copy because its digest covers it, and that copy is
+#: evidence rather than something a request reads.
+WIKI_ASSET_ROOT = Path(__file__).with_name("wiki_assets")
 
 _PODCAST_GRAPH_PATH = re.compile(r"/podcast/s[0-9]+e[0-9]+/[a-z0-9_][a-z0-9_.-]*")
 
@@ -184,7 +193,7 @@ class EpisodeGraphNeighbour:
 
 @dataclass(frozen=True, slots=True)
 class EpisodeGraph:
-    """The projection-backed graph contract exposed to a podcast template.
+    """The graph contract exposed to a podcast template.
 
     ``neighbors`` is complete and is the semantic fallback.  ``visual_neighbors``
     is only the bounded ring shown in the compact drawing; it is never the source
@@ -220,7 +229,7 @@ def _hierarchical_podcast_graph_path(record: dict[str, Any]) -> str:
     """Build the graph-only destination for one validated podcast record.
 
     The route owner supplies the stable episode identifier format.  The graph
-    still has to translate older projection node URLs at its boundary so a
+    still has to translate the older node URLs its records were built with, so a
     graph link never reintroduces the retired flat ``.html`` spelling.
     """
 
@@ -413,28 +422,19 @@ def unavailable_episode_graph(episode: dict[str, Any]) -> EpisodeGraph:
         )
 
 
-def episode_graph(
-    episode: dict[str, Any],
-    *,
-    projection: dict[str, Any] | None = None,
-) -> EpisodeGraph:
+def episode_graph(episode: dict[str, Any]) -> EpisodeGraph:
     """Resolve one episode against its exact typed public graph node.
 
     Resolution is deliberately path-and-type based.  Titles, season numbers,
-    transcripts and source identities are not graph identity.  The graph is
-    read from the already checked public projection; no request-time source or
-    external graph service is consulted.
+    transcripts and source identities are not graph identity.  The graph is the
+    one the database publishes, checked by the query that returns it; no
+    request-time source or external graph service is consulted.
     """
 
-    projection = projection or public_projection()
-    graph = projection.get("wiki_graph")
-    if not isinstance(graph, dict):
-        raise ImproperlyConfigured("The public projection has no wiki graph.")
+    graph = catalogue.wiki_graph()
     shell = _episode_graph_shell(episode, state="no_data")
     episode_public_path = episode["public_path"]
-    podcast_records = projection.get("podcasts_by_slug", {})
-    if not isinstance(podcast_records, dict):
-        podcast_records = {}
+    podcast_records = {item["slug"]: item for item in catalogue.podcasts() if "slug" in item}
     nodes = _episode_graph_nodes(graph, podcast_records=podcast_records)
     links = _episode_graph_links(graph, nodes)
     episode_slug = episode.get("slug")
@@ -519,18 +519,14 @@ def episode_graph(
     )
 
 
-def podcast_episode_graph(
-    episode: dict[str, Any],
-    *,
-    projection: dict[str, Any] | None = None,
-) -> EpisodeGraph:
+def podcast_episode_graph(episode: dict[str, Any]) -> EpisodeGraph:
     """Descriptive alias for the episode graph resolver used by extensions."""
 
-    return episode_graph(episode, projection=projection)
+    return episode_graph(episode)
 
 
 def _graph() -> dict[str, Any]:
-    return public_projection()["wiki_graph"]
+    return catalogue.wiki_graph()
 
 
 def graph_nodes() -> tuple[dict[str, Any], ...]:

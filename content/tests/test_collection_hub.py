@@ -8,14 +8,15 @@ partials instead of copying them, and states only what the catalogue records hol
 from __future__ import annotations
 
 import re
-from unittest import mock
 from xml.etree import ElementTree
 
 from django.test import TestCase
 from django.utils.html import escape
 
+from content import catalogue
+from content.catalogue import PUBLIC_CONTENT_STABLE_ID
+from content.models import ContentSource
 from content.pagination import PUBLIC_PAGE_SIZE
-from content.public_data import public_projection
 from core.templatetags.accessibility import human_day, iso_day
 
 from .pagination_support import catalogue_page_bodies
@@ -108,7 +109,7 @@ class CollectionHubRecordTests(TestCase):
     def test_blog_hub_lists_every_article_with_its_own_title_path_and_authors(self) -> None:
         """The index pages (issue #174's primitive); the whole blog is still on it."""
 
-        articles = public_projection()["articles"]
+        articles = catalogue.articles()
         body = "".join(catalogue_page_bodies(self.client, "/blog"))
 
         self.assertIn(f"blog · {len(articles)} articles", body)
@@ -129,7 +130,7 @@ class CollectionHubRecordTests(TestCase):
     def test_books_hub_lists_every_book_and_counts_only_recorded_questions(self) -> None:
         """The archive pages (issue #174); the whole archive is still on it."""
 
-        books = public_projection()["books"]
+        books = catalogue.books()
         with_archive = [book for book in books if book["archive"]]
         pages = catalogue_page_bodies(self.client, "/books")
         body = "".join(pages)
@@ -157,11 +158,11 @@ class CollectionHubRecordTests(TestCase):
         accessibility failure, so the day is what both halves of the element say.
         """
 
-        for path, collection in (("/blog", "articles"), ("/books", "books")):
+        for path, published in (("/blog", catalogue.articles), ("/books", catalogue.books)):
             with self.subTest(path=path):
                 body = "".join(catalogue_page_bodies(self.client, path))
                 self.assertNotIn("00:00 UTC", body)
-                for record in public_projection()[collection]:
+                for record in published():
                     day = str(record["published"])[:10]
                     self.assertIn(f'<time datetime="{day}">', body)
         # The shared archive rail sets the day above the year, so that a column of
@@ -180,10 +181,10 @@ class CollectionHubRecordTests(TestCase):
                 self.assertEqual(re.findall(r'<time datetime="[^"]*T[^"]*"', body), [])
 
     def test_descriptions_are_shown_and_no_record_is_summarised_by_the_page(self) -> None:
-        for path, collection in (("/blog", "articles"), ("/books", "books")):
+        for path, published in (("/blog", catalogue.articles), ("/books", catalogue.books)):
             with self.subTest(path=path):
                 body = "".join(catalogue_page_bodies(self.client, path))
-                for record in public_projection()[collection]:
+                for record in published():
                     self.assertTrue(record["description"])
                     self.assertIn(
                         f'<p class="archive-summary">{escape(record["description"])}</p>',
@@ -191,17 +192,17 @@ class CollectionHubRecordTests(TestCase):
                     )
 
     def test_an_empty_collection_says_so_instead_of_drawing_an_empty_list(self) -> None:
-        projection = dict(public_projection())
-        projection["articles"] = ()
-        projection["books"] = ()
-        with mock.patch("content.public_views.public_projection", return_value=projection):
-            self.assertContains(self.client.get("/blog"), "No articles yet.")
-            empty_books = self.client.get("/books")
-            self.assertContains(empty_books, "No books are available yet.")
-            # An empty archive is one valid page, so it offers no page controls at
-            # all, and the page beyond it is a real miss rather than a nearest page.
-            self.assertNotContains(empty_books, 'aria-label="Book archive pages"')
-            self.assertEqual(self.client.get("/books?page=2").status_code, 404)
+        # Both hubs read the database, so they are emptied the way an un-ingested
+        # database is empty rather than by patching a value in.
+        ContentSource.objects.filter(stable_id=PUBLIC_CONTENT_STABLE_ID).update(enabled=False)
+
+        self.assertContains(self.client.get("/blog"), "No articles yet.")
+        empty_books = self.client.get("/books")
+        self.assertContains(empty_books, "No books are available yet.")
+        # An empty archive is one valid page, so it offers no page controls at
+        # all, and the page beyond it is a real miss rather than a nearest page.
+        self.assertNotContains(empty_books, 'aria-label="Book archive pages"')
+        self.assertEqual(self.client.get("/books?page=2").status_code, 404)
 
 
 class BooksArchiveContractTests(TestCase):
@@ -246,7 +247,7 @@ class BooksArchiveContractTests(TestCase):
         document = ElementTree.fromstring(response.content)
         locations = [node.text or "" for node in document.findall("s:url/s:loc", SITEMAP_NAMESPACE)]
         expected = ["https://datatalks.club/books"] + [
-            f"https://datatalks.club{book['public_path']}" for book in public_projection()["books"]
+            f"https://datatalks.club{book['public_path']}" for book in catalogue.books()
         ]
         # Query pages are discoverable through the controls, never through the
         # sitemap: page one is the only archive location in it.
@@ -258,12 +259,10 @@ class BooksArchiveContractTests(TestCase):
         lastmods = [
             node.text or "" for node in document.findall("s:url/s:lastmod", SITEMAP_NAMESPACE)
         ]
-        self.assertEqual(
-            lastmods, [book["published"][:10] for book in public_projection()["books"]]
-        )
+        self.assertEqual(lastmods, [book["published"][:10] for book in catalogue.books()])
 
     def test_every_archive_page_keeps_the_introduction_above_the_records(self) -> None:
-        books = public_projection()["books"]
+        books = catalogue.books()
         pages = catalogue_page_bodies(self.client, "/books")
         page_count = -(-len(books) // PUBLIC_PAGE_SIZE)
         self.assertEqual(len(pages), page_count)
@@ -348,10 +347,10 @@ class CollectionHubPaginationTests(TestCase):
         self.assertIn('<h2 id="how-it-works-heading">How it works</h2>', body)
         self.assertIn('<h2 id="collection-list-heading">Archive</h2>', body)
 
-    def test_the_pages_partition_the_projection_in_its_recorded_order(self) -> None:
-        for path, collection in (("/blog", "articles"), ("/books", "books")):
+    def test_the_pages_partition_the_catalogue_in_its_recorded_order(self) -> None:
+        for path, published in (("/blog", catalogue.articles), ("/books", catalogue.books)):
             with self.subTest(path=path):
-                records = public_projection()[collection]
+                records = published()
                 pages = catalogue_page_bodies(self.client, path)
                 self.assertEqual(
                     len(pages),
@@ -411,7 +410,7 @@ class CollectionHubPaginationTests(TestCase):
         )
 
     def test_the_blog_index_pages_and_keeps_its_own_words(self) -> None:
-        articles = public_projection()["articles"]
+        articles = catalogue.articles()
         second = self.client.get("/blog?page=2")
         body = second.content.decode()
 

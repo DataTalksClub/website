@@ -9,8 +9,8 @@ from typing import Any
 import pytest
 from playwright.sync_api import Browser, Page, expect
 
+from content import catalogue
 from content.podcast_routes import podcast_public_id
-from content.public_data import public_projection
 from playwright_tests.accessibility_support import assert_accessible_page
 
 pytestmark = [pytest.mark.core]
@@ -20,6 +20,14 @@ REPRESENTATIVE = (
 )
 SCREENSHOTS = Path(".tmp/screenshots/issue-217")
 PODCAST_GRAPH_PATH_PATTERN = re.compile(r"^/podcast/s[0-9]+e[0-9]+/[a-z0-9_][a-z0-9_.-]*$")
+
+
+def _episode(slug: str) -> dict[str, Any]:
+    """The published episode a test names, which the catalogue must hold."""
+
+    record = catalogue.podcast(slug)
+    assert record is not None, slug
+    return record
 
 
 def _hierarchical_graph_path(episode: dict[str, Any]) -> str:
@@ -117,7 +125,7 @@ def test_episode_graph_has_complete_links_and_a_bounded_visual_on_desktop(
     page: Page,
     live_server,
 ) -> None:
-    episode = public_projection()["podcasts_by_slug"][REPRESENTATIVE]
+    episode = _episode(REPRESENTATIVE)
     requests: list[str] = []
     page.on("request", lambda request: requests.append(request.url))
     page.set_viewport_size({"width": 1440, "height": 900})
@@ -171,7 +179,7 @@ def test_episode_graph_is_accessible_on_a_mobile_viewport(
     page: Page,
     live_server,
 ) -> None:
-    episode = public_projection()["podcasts_by_slug"][REPRESENTATIVE]
+    episode = _episode(REPRESENTATIVE)
     page.set_viewport_size({"width": 390, "height": 844})
     _stub_video_provider(page)
     response = page.goto(f"{live_server.url}{episode['public_path']}", wait_until="networkidle")
@@ -213,7 +221,7 @@ def test_episode_graph_has_a_native_fallback_without_javascript(
     browser: Browser,
     live_server,
 ) -> None:
-    episode = public_projection()["podcasts_by_slug"][REPRESENTATIVE]
+    episode = _episode(REPRESENTATIVE)
     context = browser.new_context(
         java_script_enabled=False,
         viewport={"width": 390, "height": 844},

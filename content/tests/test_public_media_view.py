@@ -21,6 +21,7 @@ from unittest.mock import patch
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 
+from content import catalogue
 from content.media_store import (
     MediaObject,
     MediaObjectTooLarge,
@@ -32,7 +33,6 @@ from content.media_store import (
     media_store,
     record_relative_path,
 )
-from content.public_data import public_projection
 
 SPACED_AUTHOR_PATH = "/images/authors/%20aashishnair.jpg"
 LARGEST_OBJECT_PATH = (
@@ -95,7 +95,7 @@ class MediaResponseContractTests(TestCase):
 
     @classmethod
     def setUpTestData(cls) -> None:
-        cls.records = {record["public_path"]: record for record in public_projection()["media"]}
+        cls.records = {record["public_path"]: record for record in catalogue.media()}
 
     def test_every_record_resolves_with_its_recorded_content_type_offline(self) -> None:
         with override_settings(PUBLIC_MEDIA_STORE_BACKEND="memory"):

@@ -281,7 +281,7 @@ class PublicProjectionBuilderTests(TestCase):
         self.assertEqual(
             strip_leaked_target_attributes(
                 'label{:target="blank"}',
-                validated_projection=True,
+                published_body=True,
             ),
             "label",
         )
@@ -292,7 +292,7 @@ class PublicProjectionBuilderTests(TestCase):
         self.assertEqual(
             strip_leaked_target_attributes(
                 "label{:target=&quot;blank&quot;}",
-                validated_projection=True,
+                published_body=True,
             ),
             "label",
         )

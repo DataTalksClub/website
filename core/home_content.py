@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import NoReverseMatch, reverse
 
-from content.public_data import public_projection
+from content import catalogue
 from core.graph_layout import GraphLayout, GraphPoint, ring_layouts
 from courses.services.public_course_catalog import (
     cohort_recency_key,
@@ -50,7 +50,7 @@ FAMILY_ALIASES: dict[str, str] = {"ai-dev-tools-zoomcamp": "ai-dev-tools"}
 FEATURED_COHORT_ROUTE_NAME = "course-cohort-ai-dev-tools-2026"
 
 # The wiki hub the graph is drawn around, and the direct relations it is drawn to.  Every
-# slug is validated against the projection so a source change fails loudly instead of
+# slug is validated against the published wiki so a source change fails loudly instead of
 # rendering an edge that does not exist.
 WIKI_GRAPH_HUB = "mlops"
 WIKI_GRAPH_SPOKES = (
@@ -211,9 +211,9 @@ def spelled_count(value: int) -> str:
 def event_time_display(starts_at: str) -> str:
     """Render an event start the way the design writes it: weekday, date, then time.
 
-    The shared ``display_time`` on the projection is what the events hub and the event
-    pages render; the homepage wants the weekday too, so it formats its own without
-    changing those surfaces.
+    The shared ``display_time`` on the event record is what the events hub and the
+    event pages render; the homepage wants the weekday too, so it formats its own
+    without changing those surfaces.
     """
 
     local = datetime.fromisoformat(starts_at).astimezone(ZoneInfo("Europe/Berlin"))
@@ -225,7 +225,7 @@ READING_WORDS_PER_MINUTE = 200
 
 
 def reading_minutes(article: dict[str, Any]) -> int:
-    """Estimate an article's reading time from its own projected text blocks."""
+    """Estimate an article's reading time from its own published text blocks."""
 
     words = 0
     for block in article.get("blocks", ()):
@@ -237,14 +237,14 @@ def reading_minutes(article: dict[str, Any]) -> int:
 
 
 def published_display(value: str) -> str:
-    """Render a projection ``YYYY-MM-DD`` publication date the way the design shows it."""
+    """Render a published ``YYYY-MM-DD`` publication date the way the design shows it."""
 
     published = date.fromisoformat(value)
     return f"{published:%b} {published.day}, {published:%Y}"
 
 
 def _wiki_pages() -> dict[str, dict[str, Any]]:
-    return {str(page["slug"]): page for page in public_projection()["wiki"]}
+    return {str(page["slug"]): page for page in catalogue.wiki_pages()}
 
 
 def _wiki_topic(pages: dict[str, dict[str, Any]], slug: str) -> WikiTopic | None:

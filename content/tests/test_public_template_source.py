@@ -4,7 +4,7 @@ from pathlib import Path
 
 from django.test import SimpleTestCase
 
-from content.public_data import EVENT_TYPE_ICONS
+from content.event_content import EVENT_TYPE_ICONS
 from core.accessibility_registry import template_readability_issues
 from core.templatetags.public import public_text
 

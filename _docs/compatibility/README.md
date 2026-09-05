@@ -22,8 +22,8 @@ from these files by `content.route_contracts.public_contract_inventory_sha256`; 
 a second checked-in copy of the joined rows.
 
 `editorial-route-migration.schema.json` and `event-description-bridge.schema.json` are unrelated to
-the above. They are live schemas for `scripts/build_public_projection.py`, `content/public_data.py`,
-and `content/event_description_bridge.py`.
+the above. They are live schemas for `scripts/build_public_projection.py` and
+`scripts/projection_build/event_description_bridge.py`.
 
 `development-legacy-identifiers.md` is also unrelated: it records the retired
 `website-sandbox` deployment identifiers that `deploy/` and `.github/workflows/ci.yml` still name.

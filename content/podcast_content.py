@@ -24,12 +24,14 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from django.core.exceptions import ImproperlyConfigured
 
+from . import catalogue
 from .podcast_resources import (
     PodcastResourceError,
     normalize_podcast_resource,
     normalize_podcast_resources,
 )
-from .public_data import podcast_public_path, safe_public_graph_url
+from .podcast_routes import podcast_canonical_path
+from .public_graph import safe_public_graph_url
 
 # Listening destinations, in the order the pages offer them, with the platform
 # dot the design system reserves for each.  A link key outside this map is still
@@ -56,6 +58,82 @@ WATCH_PREFERENCE: tuple[str, ...] = (
 YOUTUBE_VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]{6,20}$")
 SPOTIFY_CREATOR_SEGMENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,255}$")
 SPOTIFY_EPISODE_ID = re.compile(r"^[A-Za-z0-9]{22}$")
+
+
+# How the show is numbered, and where an episode lives.  The catalogue stores
+# episodes in its own order and the pages list them in the show's: season and
+# episode descending, newest first within a tie.  That is a podcast fact, so it
+# is decided here rather than by whatever the catalogue rows sort as.
+
+
+@dataclass(frozen=True, slots=True)
+class PodcastSeason:
+    number: int
+    episodes: tuple[dict[str, Any], ...]
+
+
+def podcast_public_path(record: dict[str, Any]) -> str:
+    """Return the checked canonical podcast detail path."""
+
+    slug = record.get("slug")
+    public_path = record.get("public_path")
+    if (
+        not isinstance(slug, str)
+        or not slug
+        or not isinstance(public_path, str)
+        or public_path != podcast_canonical_path(slug)
+    ):
+        raise ImproperlyConfigured("Public podcast canonical path is invalid.")
+    return public_path
+
+
+def _podcast_number(record: dict[str, Any], field: str) -> int:
+    value = record.get(field)
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ImproperlyConfigured(f"Public podcast {field} must be a positive integer.")
+    return value
+
+
+def ordered_podcasts(
+    records: tuple[dict[str, Any], ...] | None = None,
+) -> tuple[dict[str, Any], ...]:
+    """Return the listing order without mutating the catalogue's own order."""
+
+    selected = list(catalogue.podcasts() if records is None else records)
+    for record in selected:
+        _podcast_number(record, "season")
+        _podcast_number(record, "episode")
+        if not isinstance(record.get("published"), str) or not isinstance(record.get("slug"), str):
+            raise ImproperlyConfigured("Public podcast ordering metadata is invalid.")
+
+    # Stable sorts make the mixed direction contract explicit: season and episode
+    # descending, then published descending, then slug ascending.
+    selected.sort(key=lambda record: record["slug"])
+    selected.sort(key=lambda record: record["published"], reverse=True)
+    selected.sort(key=lambda record: record["episode"], reverse=True)
+    selected.sort(key=lambda record: record["season"], reverse=True)
+    return tuple(selected)
+
+
+def podcast_seasons(
+    records: tuple[dict[str, Any], ...] | None = None,
+) -> tuple[PodcastSeason, ...]:
+    ordered = ordered_podcasts(records)
+    if not ordered:
+        raise ImproperlyConfigured("Public podcast catalogue must not be empty.")
+
+    seasons: list[PodcastSeason] = []
+    for episode in ordered:
+        season_number = episode["season"]
+        if not seasons or seasons[-1].number != season_number:
+            seasons.append(PodcastSeason(number=season_number, episodes=(episode,)))
+            continue
+        previous = seasons[-1]
+        seasons[-1] = PodcastSeason(
+            number=previous.number,
+            episodes=(*previous.episodes, episode),
+        )
+    return tuple(seasons)
 
 
 @dataclass(frozen=True, slots=True)
@@ -772,10 +850,6 @@ def episode_navigation(
     people_by_slug: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[Episode | None, Episode | None, tuple[Episode, ...]]:
     """Return older/newer neighbours and up to three same-season related episodes."""
-
-    # Import lazily: public_data owns the checked projection and podcast_content owns its
-    # presentation, so importing the ordering helper at module load would create a cycle.
-    from .public_data import ordered_podcasts
 
     season_records = tuple(
         item

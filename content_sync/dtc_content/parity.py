@@ -8,9 +8,9 @@ from pathlib import Path, PurePosixPath
 from typing import Any, NoReturn
 from urllib.parse import quote
 
+from content import catalogue
 from content.inventory import content_route_contracts
 from content.podcast_resources import normalize_podcast_resources
-from content.public_data import public_projection
 from content.services import PreparedDocument
 from scripts.build_public_projection import (
     _article_blocks,
@@ -309,6 +309,24 @@ def _transcript_segments(value: Any, *, source_path: str) -> list[dict[str, Any]
     return result
 
 
+def published_catalogue() -> dict[str, Any]:
+    """The published records this parity check reads, in the shape it reads them.
+
+    The check compares an accepted checkout against what the site actually
+    publishes, so it assembles exactly the collections it looks at rather than
+    asking for a whole catalogue in one value.
+    """
+
+    return {
+        "manifest": catalogue.manifest(),
+        "articles": catalogue.articles(),
+        "podcasts": catalogue.podcasts(),
+        "books": catalogue.books(),
+        "media": catalogue.media(),
+        "people_by_slug": catalogue.people_by_slug(),
+    }
+
+
 def verify_initial_projection_parity(
     bundle: CandidateBundle,
     *,
@@ -332,7 +350,7 @@ def verify_initial_projection_parity(
         or dict(bundle.counts) != ACCEPTED_COUNTS
     ):
         _fail("projection_source_evidence_mismatch")
-    checked = projection or public_projection()
+    checked = projection or published_catalogue()
     manifest = checked.get("manifest")
     if not isinstance(manifest, dict):
         _fail("projection_manifest_mismatch")

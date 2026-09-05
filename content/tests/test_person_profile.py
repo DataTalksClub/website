@@ -17,6 +17,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
 from django.utils.html import escape
 
+from content import catalogue
 from content.person_content import (
     ROWS_BEFORE_FOLD,
     SMALLEST_FOLD,
@@ -24,7 +25,6 @@ from content.person_content import (
     ContributionGroup,
     person_view,
 )
-from content.public_data import public_projection
 from events.queries import published_event_records_by_path
 
 # The profile with the widest body of work in the catalogue (63 links across all
@@ -34,12 +34,18 @@ SPARSE_SLUG = "aaronwishnick"
 
 
 def profile(slug: str) -> dict[str, Any]:
-    return public_projection()["people_by_slug"][slug]
+    return catalogue.people_by_slug()[slug]
+
+
+def _at(records: tuple[dict[str, Any], ...], public_path: str) -> dict[str, Any]:
+    """The catalogue record a profile row links to, which must be published."""
+
+    return next(record for record in records if record["public_path"] == public_path)
 
 
 class PersonCompositionTests(TestCase):
     def test_every_profile_composes_without_invention(self) -> None:
-        for record in public_projection()["people"]:
+        for record in catalogue.people():
             with self.subTest(slug=record["slug"]):
                 person = person_view(record)
                 self.assertEqual(person.name, record["title"])
@@ -86,12 +92,11 @@ class PersonCompositionTests(TestCase):
                 self.assertEqual(undated, list(range(len(dated), len(group.items))))
 
     def test_markers_and_dates_are_read_from_the_linked_record(self) -> None:
-        projection = public_projection()
         person = person_view(profile(RICH_SLUG))
         groups = {group.key: group for group in person.groups}
 
         episode = groups["podcast"].items[0]
-        source = projection["podcasts_by_path"][episode.public_path]
+        source = _at(catalogue.podcasts(), episode.public_path)
         self.assertEqual(
             episode.pill_label,
             f"Season {source['season']} · Episode {source['episode']}",
@@ -112,13 +117,13 @@ class PersonCompositionTests(TestCase):
         self.assertIn(event.date[:4], event_source["starts_at"])
 
         article = groups["blog"].items[0]
-        article_source = projection["articles_by_path"][article.public_path]
+        article_source = _at(catalogue.articles(), article.public_path)
         self.assertEqual(article.note, article_source["description"])
         self.assertEqual(article.date, article_source["published"][:10])
         self.assertEqual(article.pill_label, "")
 
         book = groups["books"].items[0]
-        book_source = projection["books_by_path"][book.public_path]
+        book_source = _at(catalogue.books(), book.public_path)
         self.assertEqual(book.date, book_source["published"][:10])
         # A book's authors are source keys, not names: the row states no author.
         self.assertEqual(book.note, "")
@@ -146,13 +151,12 @@ class PersonCompositionTests(TestCase):
                 self.assertTrue(all(item.state_label == "" for item in group.items))
 
     def test_an_episode_without_a_date_states_none(self) -> None:
-        projection = public_projection()
         silent = next(
             record
-            for record in projection["people"]
+            for record in catalogue.people()
             if any(
                 relationship["public_path"].startswith("/podcast/")
-                and not projection["podcasts_by_path"][relationship["public_path"]]["published"]
+                and not _at(catalogue.podcasts(), relationship["public_path"])["published"]
                 for relationship in record["relationships"]
             )
         )
@@ -162,7 +166,7 @@ class PersonCompositionTests(TestCase):
             for group in person.groups
             if group.key == "podcast"
             for item in group.items
-            if not projection["podcasts_by_path"][item.public_path]["published"]
+            if not _at(catalogue.podcasts(), item.public_path)["published"]
         ]
         self.assertTrue(undated)
         for item in undated:
@@ -246,13 +250,13 @@ class PersonCompositionTests(TestCase):
         self.assertTrue(sparse.blocks)
 
         without_links = [
-            person_view(record) for record in public_projection()["people"] if not record["links"]
+            person_view(record) for record in catalogue.people() if not record["links"]
         ]
         self.assertTrue(without_links)
         for person in without_links:
             self.assertEqual(person.links, ())
 
-        summarised = [record for record in public_projection()["people"] if record["summary"]]
+        summarised = [record for record in catalogue.people() if record["summary"]]
         self.assertEqual(person_view(summarised[0]).summary, summarised[0]["summary"])
 
     def test_a_portrait_the_media_index_cannot_serve_is_not_shown(self) -> None:

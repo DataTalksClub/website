@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.test import TestCase
 
-from content.public_data import public_paths
+from content.public_routes import public_paths
 
 
 class CanonicalRouteTests(TestCase):

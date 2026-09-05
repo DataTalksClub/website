@@ -3,8 +3,8 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Browser, Page, ViewportSize, expect
 
+from content import catalogue
 from content.docs_projection import docs_projection
-from content.public_data import public_projection
 from events.queries import published_event_records
 
 pytestmark = [pytest.mark.smoke, pytest.mark.django_db(transaction=True)]
@@ -274,10 +274,9 @@ def test_podcast_latest_middle_and_oldest_seasons(
 
 def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server) -> None:
     origin = live_server.url
-    projection = public_projection()
     podcast_target = next(
         item["public_path"]
-        for item in projection["podcasts"]
+        for item in catalogue.podcasts()
         if item["slug"] == "practical-llm-engineering-and-rag"
     )
     aliases = {
@@ -396,7 +395,7 @@ def test_oldest_latest_details_and_media_fallback(page: Page, live_server) -> No
     origin = live_server.url
     podcast_path = next(
         record["public_path"]
-        for record in public_projection()["podcasts"]
+        for record in catalogue.podcasts()
         if record["slug"] == "practical-llm-engineering-and-rag"
     )
     for path in (

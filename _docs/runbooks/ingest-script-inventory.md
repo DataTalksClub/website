@@ -791,7 +791,7 @@ verbatim in its adapter metadata; the five singleton records (manifest, platform
 links, wiki graph, wiki search index, route manifest) become one document apiece.
 Destination: [`content/models.py`](../../content/models.py) (`ContentDocument`,
 `ContentRelease`, `ActiveContentPath`, `ContentAsset`), read on every public
-request by [`content/public_data.py`](../../content/public_data.py).
+request by [`content/catalogue.py`](../../content/catalogue.py).
 
 ---
 

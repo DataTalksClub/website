@@ -14,7 +14,9 @@ from django.http import (
 from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_safe
 
-from content.public_data import event_groups, ordered_podcasts, public_projection
+from content import catalogue
+from content.event_content import event_groups
+from content.podcast_content import ordered_podcasts
 from core.home_content import (
     FEATURED_FAMILY,
     course_catalog,
@@ -74,14 +76,13 @@ def home(request: HttpRequest):
         # `Cache-Control: private, no-store` on every credential-bearing
         # request, `/` included).
         return render(request, "core/member_home.html", build_member_home_context(request))
-    projection = public_projection()
     events = event_groups()
     catalog = course_catalog()
     # An empty catalogue is a normal state, not a failure: content arrives by
     # ingest, and a database that has not been ingested yet still has a homepage.
     # The template drops the panel whose record is missing.
-    article = next(iter(projection["articles"]), None)
-    podcast = next(iter(ordered_podcasts(projection["podcasts"])), None)
+    article = next(iter(catalogue.articles()), None)
+    podcast = next(iter(ordered_podcasts()), None)
     upcoming = tuple(
         {**event, "home_time": event_time_display(event["starts_at"])}
         for event in events.upcoming[:3]
@@ -118,7 +119,7 @@ def home(request: HttpRequest):
             "podcast": podcast,
             "wiki_topics": wiki_topics(),
             "wiki_graph": wiki_graph(),
-            "counts": projection["manifest"]["counts"],
+            "counts": catalogue.collection_counts(),
             "sponsors": public_sponsors(),
         },
     )

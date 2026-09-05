@@ -8,8 +8,8 @@ from typing import Any
 from django.conf import settings
 from django.test import TestCase
 
+from content import catalogue
 from content.podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_canonical_path
-from content.public_data import public_projection
 
 
 class EditorialRouteMigrationContractTests(TestCase):
@@ -27,8 +27,7 @@ class EditorialRouteMigrationContractTests(TestCase):
         cls.policy = json.loads(cls.policy_path.read_text(encoding="utf-8"))
 
     def test_checked_manifest_is_bound_to_schema_projection_and_runtime(self) -> None:
-        projection = public_projection()
-        migration = projection["editorial_route_migration"]
+        migration = catalogue.singleton("editorial_route_migration")
         checked = json.loads(
             (self.root / self.policy["manifest"]["path"]).read_text(encoding="utf-8")
         )
@@ -38,7 +37,7 @@ class EditorialRouteMigrationContractTests(TestCase):
         self.assertEqual(
             migration["provenance"]["source_artifacts"],
             {
-                name: projection["manifest"]["artifacts"][name]
+                name: catalogue.manifest()["artifacts"][name]
                 for name in ("articles.json", "podcasts.json", "books.json", "people.json")
             },
         )
@@ -47,12 +46,12 @@ class EditorialRouteMigrationContractTests(TestCase):
             migration["content_sha256"],
         )
         self.assertEqual(
-            projection["manifest"]["artifacts"]["editorial_route_migration.json"],
+            catalogue.manifest()["artifacts"]["editorial_route_migration.json"],
             hashlib.sha256((self.root / self.policy["manifest"]["path"]).read_bytes()).hexdigest(),
         )
 
     def test_manifest_has_every_source_to_final_mapping_without_graph_hazards(self) -> None:
-        migration = public_projection()["editorial_route_migration"]
+        migration = catalogue.singleton("editorial_route_migration")
         finals = {item["final_path"]: item for item in migration["finals"]}
         aliases = {item["source_path"]: item for item in migration["aliases"]}
 

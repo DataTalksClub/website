@@ -8,15 +8,10 @@ from zoneinfo import ZoneInfo
 from django.test import TestCase
 from django.utils.html import escape
 
-from content import public_views
+from content import catalogue, public_views
+from content.event_content import EventGroups, event_date_groups, event_groups
 from content.pagination import PUBLIC_PAGE_SIZE
-from content.public_data import (
-    EventGroups,
-    event_date_groups,
-    event_groups,
-    public_paths,
-    public_projection,
-)
+from content.public_routes import public_paths
 from events.identity import canonical_detail_path
 from events.models import Event
 from events.queries import published_event_records
@@ -30,7 +25,7 @@ class StableEventClockTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.event_clock = patch(
-            "content.public_data.timezone.now",
+            "content.event_content.timezone.now",
             return_value=STABLE_EVENT_NOW,
         )
         self.event_clock.start()
@@ -787,7 +782,7 @@ class EventDetailDesignSystemTests(StableEventClockTestCase):
             if event["slug"] == "ai-dev-tools-zoomcamp-2026-course-launch"
         )
         speaker = event["speakers"][0]
-        bio = public_projection()["people_by_slug"][speaker["key"]]["blocks"][0]["text"]
+        bio = catalogue.people_by_slug()[speaker["key"]]["blocks"][0]["text"]
         body = self.detail(event)
 
         self.assertIn('<h2 id="event-speakers-heading">Speakers</h2>', body)

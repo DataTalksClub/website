@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Page, ViewportSize, expect
 
+from content import catalogue
 from content.event_speakers import event_speaker_records
-from content.public_data import public_projection
 from events.queries import published_event_records
 
 pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
@@ -27,13 +27,12 @@ def _featured_event() -> dict:
     event = next(
         event for event in published_event_records() if event["title"] == FEATURED_EVENT_TITLE
     )
-    catalogue = public_projection()
     return {
         **event,
         "speakers": event_speaker_records(
             event["speakers"],
-            people_by_slug=catalogue["people_by_slug"],
-            people_by_path=catalogue["people_by_path"],
+            people_by_slug=catalogue.people_by_slug(),
+            people_by_path=catalogue.people_by_path(),
         ),
     }
 
