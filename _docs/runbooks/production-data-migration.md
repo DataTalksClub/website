@@ -1543,7 +1543,7 @@ testimonial portraits this step places. If step 7 must slip, delay going public 
 publish media first and content second — never content first.
 
 ```
-# Materialise the tree. NOT --source github; see above.
+# Materialise the tree. --source is required and has no default; do not pass github.
 $TARGET uv run --frozen python scripts/prod/sync_public_media_hydrate.py \
     --source checkout --checkout DataTalksClub/content=<path> \
                       --checkout DataTalksClub/datatalksclub.github.io=<path>
@@ -2352,7 +2352,8 @@ registration**, **1 wrapped-statistics row** and **1 certificate**.
 - [ ] A second `sync_public_media_publish.py` reports `added: 0, changed: 0` — it does not
       re-upload 147 MB
 - [ ] `sync_public_media_hydrate.py` succeeds on a fresh clone with no access to the legacy
-      repository — §11 B7
+      repository — §11 B7. The default no longer reaches for it (`--source` is required),
+      but `--source github` is still the only network route to 438 objects
 - [ ] **The public ID allocator sits above the highest imported event ID** — step 5
 - [ ] **Testimonials imported** — `migrate` no longer seeds them
 - [ ] Interim artwork state understood and accepted: 44 articles emit no `og:image`
@@ -2704,13 +2705,14 @@ from `_data/events.yaml`, which is the same shape as B5 (people) and is what
 way. Still blocks §12 decision 1.
 
 **B7. Close the `sync_public_media_hydrate.py` legacy default.** *Small (hours).*
-**A separate Codex run is fixing this now — do not duplicate it; check whether it
-has landed before starting.* `--source github` is the default, and a fresh clone
-or a bucket re-hydration therefore fetches 438 author images from the legacy
-repository and reports `failed: 438` once it is gone. Production on `s3` and CI on
-`memory` are unaffected, which is why it survived this long. **Done looks like:**
-`sync_public_media_hydrate.py` on a fresh clone succeeds with no network access to the
-legacy repository. Independent.
+**The default half is done.** `--source` is now required and has no default: a
+fresh clone or a bucket re-hydration with no source refuses (exit `2`) and names
+what `checkout`, `store` and `github` each need, instead of silently downloading
+997 objects, 438 of them from `DataTalksClub/datatalksclub.github.io`. Production
+on `s3` and CI on `memory` were never affected, which is why the old default
+survived this long. **Still open:** `--source github` remains the only network
+route to those 438 objects, so hydrating without a legacy checkout still needs the
+legacy repository. That closes when the bucket becomes the origin of record.
 
 Note the ruling makes this more than a default. `--source github` reads media
 *from a git repository*, which is the arrangement being ended: once the bucket is

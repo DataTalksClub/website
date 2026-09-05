@@ -76,11 +76,15 @@ The 1,253 public projection images (`/images/...`, about 154 MB) are not tracked
 clone renders every page except the artwork, and `manage.py check` warns with the command to run:
 
 ```bash
-uv run --frozen python scripts/prod/sync_public_media_hydrate.py
+uv run --frozen python scripts/prod/sync_public_media_hydrate.py --source checkout \
+  --checkout DataTalksClub/content=/path/to/content \
+  --checkout DataTalksClub/datatalksclub.github.io=/path/to/datatalksclub.github.io
 ```
 
-Hydration is idempotent, verifies every object against its recorded checksum, and needs no AWS
-credential. The default `local` backend then serves the real bytes at the unchanged URLs. See the
+`--source` is required — run the command bare and it prints what each of `checkout`, `store` and
+`github` needs. Hydration is idempotent, verifies every object against its recorded checksum, and
+needs no AWS credential. The default `local` backend then serves the real bytes at the unchanged
+URLs. See the
 [public media runbook](_docs/runbooks/public-media-objects.md) for the backends, the operator
 publish/verify flow, and what a `502` on an image means.
 

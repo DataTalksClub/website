@@ -1144,7 +1144,11 @@ here for completeness.
 
 [`scripts/prod/sync_public_media_hydrate.py`](../../scripts/prod/sync_public_media_hydrate.py)
 
-Source: the pinned upstream content checkouts (same ones 8.2 reads).
+Source: named by `--source`, which is required and has no default — `checkout`
+(the pinned upstream content checkouts, same ones 8.2 reads), `store` (a hydrated
+peer or the bucket), or `github` (the pinned revisions over the network, 438 of
+them from the retired legacy repository). With no `--source` the command refuses
+and prints what each one needs.
 Transform: content-sniffs every file (JPEG/PNG/GIF magic bytes checked, not
 trusted from the extension), sanitizes SVGs (rejects `<script>`, `<style>`,
 event handlers, remote `href`/`src`/`url()` — no exemption for anything,
