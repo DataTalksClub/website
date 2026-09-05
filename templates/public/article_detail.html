@@ -173,12 +173,6 @@
         margin-top: 1.6rem;
       }
 
-      /* Prose that continues below the FAQ — a call to action or a closing note
-         in six of these articles — keeps the same rhythm. */
-      .article-body-tail {
-        margin-top: 1.6rem;
-      }
-
       /* ------------------------------------------------------------------ *
        * The recovered FAQ section, drawn with the course FAQ page's own marks
        * (templates/review/faq_detail.html) so the site keeps one way of
@@ -193,12 +187,6 @@
       .article-faq {
         margin-top: 1.6rem;
         padding: 0.4rem 1.25rem;
-      }
-
-      /* Prose that continues below the FAQ — a call to action or a closing note
-         in six of these articles — keeps the same rhythm. */
-      .article-body-tail {
-        margin-top: 1.6rem;
       }
 
       /* Each question folds.  <details> gives the keyboard behaviour and the
@@ -287,12 +275,6 @@
          and its rows already carry their own dividers. */
       .article-faq {
         margin-top: 1.1rem;
-      }
-
-      /* Prose that continues below the FAQ — a call to action or a closing note
-         in six of these articles — keeps the same rhythm. */
-      .article-body-tail {
-        margin-top: 1.6rem;
       }
 
       /* A question is a row in a grid, so it says so: without the zero minimum
@@ -431,11 +413,6 @@
               {% include "public/_prose_blocks.html" with sections=article.sections %}
             </div>
             {% include "public/_article_faq.html" with faq_questions=article.faq %}
-            {% if article.sections_after_faq %}
-              <div class="prose prose-reading article-body article-body-tail">
-                {% include "public/_prose_blocks.html" with sections=article.sections_after_faq %}
-              </div>
-            {% endif %}
           </div>
         </section>
       </article>

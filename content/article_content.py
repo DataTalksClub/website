@@ -14,16 +14,15 @@ ordered or unordered list, each richer kind is drawn from its own fields, and an
 block kind this module does not know keeps its text as a paragraph — so a kind
 the projection grows later is rendered rather than silently dropped.
 
-Ten articles closed with a frequently-asked-questions section whose pairs were
-never part of the article Markdown, so the projected body carries the heading and
-nothing beneath it.  :mod:`content.article_faq` holds that recovered half, and
-this module splits the body at the position the capture records so the section
-lands where the article put it.  An article the capture does not name renders no
-FAQ at all: no heading of its own, no empty region.
+Some articles close with a frequently-asked-questions section.  Its pairs are
+part of the article's upstream frontmatter and travel in the article's own
+document row, which :mod:`content.article_faq` reads; this module places the
+section after the body.  An article whose row names no FAQ renders none at all:
+no heading of its own, no empty region.
 
 A body block carries the plain text it always carried and, where the source held
 more than that plain text, the bounded source segment it came from.  This module
-renders that segment the way :mod:`content.article_faq` renders a recovered
+renders that segment the way :mod:`content.article_faq` renders a published
 answer — Markdown, then the shared sanitizer — so an article's links keep their
 addresses and its emphasis, inline code and literal markup survive without any
 page ever writing unsanitized external HTML.  Illustrations, comparison tables,
@@ -166,12 +165,10 @@ class ArticleView:
     # the page publishes it through `og:image`/`twitter:image` from the record
     # rather than drawing it above the prose.
     #
-    # The body, split where the recovered FAQ belongs.  Without a FAQ the whole
-    # body is `sections` and the other two are empty, so the page draws exactly
-    # what it draws today.
+    # The body, then the FAQ section the article's own row publishes.  An
+    # article without one has an empty `faq` and the page draws no FAQ region.
     sections: tuple[ProseSection, ...] = field(default_factory=tuple)
     faq: tuple[FaqQuestion, ...] = field(default_factory=tuple)
-    sections_after_faq: tuple[ProseSection, ...] = field(default_factory=tuple)
 
     @property
     def reading_time(self) -> str:
@@ -384,25 +381,6 @@ def prose_sections(blocks: Any) -> tuple[ProseSection, ...]:
     return tuple(sections)
 
 
-def _split_body(
-    blocks: Any, faq: ArticleFaq | None
-) -> tuple[tuple[ProseSection, ...], tuple[ProseSection, ...]]:
-    """Return the body above the recovered FAQ and the body below it.
-
-    The capture records a block index, not a heading, because five of the ten
-    articles put a sentence between their FAQ heading and the accordion, and six
-    put a call to action or a closing note after it.  Splitting on the recorded
-    index keeps every one of them in the order the article was written in.
-    """
-
-    body = list(blocks or ())
-    if faq is None:
-        return prose_sections(body), ()
-    if not 0 < faq.block_index <= len(body):
-        raise ImproperlyConfigured("Public article FAQ position is outside the body.")
-    return prose_sections(body[: faq.block_index]), prose_sections(body[faq.block_index :])
-
-
 def article_view(
     record: dict[str, Any],
     people: dict[str, dict[str, Any]],
@@ -421,7 +399,7 @@ def article_view(
         raise ImproperlyConfigured("Public article publication date is invalid.") from error
     if faq is not None and faq.slug != record.get("slug"):
         raise ImproperlyConfigured("Public article FAQ belongs to a different article.")
-    sections, sections_after_faq = _split_body(record.get("blocks"), faq)
+    sections = prose_sections(list(record.get("blocks") or ()))
     return ArticleView(
         title=_required_text(record, "title"),
         subtitle=str(record.get("subtitle") or ""),
@@ -432,5 +410,4 @@ def article_view(
         authors=_authors(record, people),
         sections=sections,
         faq=faq.questions if faq is not None else (),
-        sections_after_faq=sections_after_faq,
     )

@@ -657,7 +657,7 @@ def podcast_hub(request: HttpRequest) -> HttpResponse:
 
 
 def _article_faq_structured_data(article: dict, faq: ArticleFaq | None) -> tuple[dict, ...]:
-    """Return the FAQPage node one article's recovered section publishes.
+    """Return the FAQPage node one article's FAQ section publishes.
 
     Written the way `content.review_views._faq_structured_data` writes the course
     FAQ node, so the two agree: one `FAQPage` whose questions carry their own
@@ -696,9 +696,9 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
     article = projection["articles_by_slug"].get(slug)
     if article is None:
         raise Http404
-    # Ten articles closed with a frequently-asked-questions section the projected
-    # body never carried; `content.article_faq` holds that recovered half.  An
-    # article without one gets `None`, and the page then draws no FAQ region.
+    # The article's FAQ section, if it publishes one, comes from its own
+    # document row alongside the body.  An article without one gets `None`, and
+    # the page then draws no FAQ region.
     faq = article_faq(slug)
     article_trail = trail(("Blog", "/blog"), (article["title"], article["public_path"]))
     return _render(

@@ -95,6 +95,10 @@ def publish_documents(
     release = ContentRelease.objects.create(
         source=source,
         sequence=sequence,
+        # A second publish supersedes the first, so it has to declare the
+        # release it is replacing -- activation refuses a candidate based on
+        # anything but the pointer it is about to move.
+        based_on_release_id=source.active_release_id,
         # A release is identified by the commit it was built from, and every
         # activation of this source needs its own, so the sequence supplies one.
         commit_sha=f"{sequence:040x}",

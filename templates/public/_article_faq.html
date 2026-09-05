@@ -1,5 +1,5 @@
 {% comment %}
-  One article's recovered frequently-asked-questions section.
+  One article's frequently-asked-questions section.
 
   Each question folds, the way the legacy accordion folded: a disclosure
   element rather than a script, so the fold works with JavaScript off, the browser gives
@@ -7,16 +7,15 @@
   the expanded state without any aria of ours.
 
   The whole thing sits in its own panel so it reads as a separate block at the
-  foot of the article rather than as more article.  The heading it belongs under
-  is already in the article body above it, so this partial draws no heading of
-  its own, and renders nothing at all when there are no questions.
+  foot of the article rather than as more article.  It draws no heading of its
+  own, and renders nothing at all when there are no questions.
 
   A deep link still works: `:target` opens the question it names, so a link to
   #faq-… lands on an open answer rather than a closed summary.
 
-  The answers arrive as reviewed, sanitized markup from the checked capture,
-  which is why they are the one place on this page that renders HTML rather than
-  block text.
+  The answers arrive as sanitized markup rendered from the Markdown stored on the
+  article's own row, which is why they are the one place on this page that
+  renders HTML rather than block text.
 {% endcomment %}
 {% if faq_questions %}
   <div class="article-faq faq-panel panel panel-outlined">
