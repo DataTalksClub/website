@@ -55,6 +55,19 @@ Resumability is at event granularity, not row granularity -- see
 event is skipped without even reading its rows; an interrupted event is
 retried whole, inside one transaction, on the next run.
 
+That skip is the whole replay guarantee, and it is also why a *later* export of
+the same event cannot simply be re-imported: :class:`events.models.EventRegistration`
+deliberately keeps no per-attendee natural key, so a second pass over an event
+would write a second row for every registrant it already holds.  ``refresh``
+below is the supported way to pick up sign-ups that arrived after the export we
+last read.  It replaces one event's registration facts wholesale -- delete the
+provider's rows for that event, write the ones the newer export carries, in the
+same transaction -- rather than appending, because a refreshed export is not
+append-only: a registrant who cancels, or whom the provider deletes, disappears
+from it, and an append would leave us asserting a registration that no longer
+exists.  Identities are never deleted: a person we have already consolidated
+stays consolidated whether or not they are still on this event's list.
+
 Only one provider's registrants are imported today, because only one real
 attendee-level export exists to build and verify a reader against.  Nothing
 here has to change when a second one arrives: every type below is
@@ -191,10 +204,11 @@ def resolve_registrant_identity(normalized_email: str) -> tuple[EventRegistrantI
 @dataclass(frozen=True, slots=True)
 class EventImportOutcome:
     external_event_identifier: str
-    status: str  # "completed", "already_completed", "no_identity_yet"
+    status: str  # "completed", "refreshed", "already_completed", "no_identity_yet"
     rows_total: int = 0
     rows_written: int = 0
     rows_skipped: int = 0
+    rows_replaced: int = 0
     matched_account_total: int = 0
     matched_prior_identity_total: int = 0
     new_identity_total: int = 0
@@ -205,11 +219,12 @@ def _import_one_event(
     provider: str,
     external_event_identifier: str,
     read_rows: Callable[[], tuple[RegistrantRow, ...]],
+    refresh: bool = False,
 ) -> EventImportOutcome:
     progress, _ = EventRegistrantImportProgress.objects.get_or_create(
         provider=provider, external_event_identifier=external_event_identifier
     )
-    if progress.completed:
+    if progress.completed and not refresh:
         # Per-call reporting, deliberately -- the same convention
         # accounts.services.cmp_learner_import uses ("this call's matches
         # only -- not cumulative across a killed-and-resumed run"). Nothing
@@ -240,10 +255,18 @@ def _import_one_event(
 
     # Only here, past both gates, are the rows asked for at all: that is what
     # keeps a completed or identity-less event from reopening its source file.
+    replacing = progress.completed
     rows = read_rows()
 
     written = skipped = matched_account = matched_prior = created_identity = 0
+    replaced = 0
     with transaction.atomic():
+        if replacing:
+            # Wholesale, and inside the same transaction as the rewrite: a
+            # refreshed export is not append-only, so the rows it no longer
+            # carries have to stop being facts at the same moment the new ones
+            # start being facts.  Identities are untouched.
+            replaced, _ = EventRegistration.objects.filter(event=event, provider=provider).delete()
         for row in rows:
             if row.normalized_email is None:
                 skipped += 1
@@ -274,10 +297,11 @@ def _import_one_event(
 
     return EventImportOutcome(
         external_event_identifier=external_event_identifier,
-        status="completed",
+        status="refreshed" if replacing else "completed",
         rows_total=len(rows),
         rows_written=written,
         rows_skipped=skipped,
+        rows_replaced=replaced,
         matched_account_total=matched_account,
         matched_prior_identity_total=matched_prior,
         new_identity_total=created_identity,
@@ -289,11 +313,13 @@ class RunReport:
     provider: str
     events_total: int
     events_completed: int
+    events_refreshed: int
     events_already_completed: int
     events_awaiting_identity: int
     awaiting_identity_events: tuple[str, ...]
     rows_written: int
     rows_skipped: int
+    rows_replaced: int
     matched_account_total: int
     matched_prior_identity_total: int
     new_identity_total: int
@@ -303,6 +329,9 @@ class RunReport:
             "provider": self.provider,
             "events_total": self.events_total,
             "events_completed": self.events_completed,
+            # Events whose already-imported registration facts this run replaced
+            # with a newer export's. Zero unless the caller asked for a refresh.
+            "events_refreshed": self.events_refreshed,
             "events_already_completed": self.events_already_completed,
             "events_awaiting_identity": self.events_awaiting_identity,
             # Provider event ids are public (part of the event's public
@@ -311,13 +340,18 @@ class RunReport:
             "awaiting_identity_events": list(self.awaiting_identity_events),
             "rows_written": self.rows_written,
             "rows_skipped": self.rows_skipped,
+            # Rows deleted to make room for the refreshed ones. A refresh that
+            # replaces more than it writes means registrants left the export.
+            "rows_replaced": self.rows_replaced,
             "matched_account_total": self.matched_account_total,
             "matched_prior_identity_total": self.matched_prior_identity_total,
             "new_identity_total": self.new_identity_total,
         }
 
 
-def import_registrants(*, provider: str, pending: Iterable[PendingEventRegistrants]) -> RunReport:
+def import_registrants(
+    *, provider: str, pending: Iterable[PendingEventRegistrants], refresh: bool = False
+) -> RunReport:
     """Import one export's registrant rows, one event at a time, in the reader's order.
 
     Global consolidation, per-event sequencing: each event's rows are
@@ -327,29 +361,41 @@ def import_registrants(*, provider: str, pending: Iterable[PendingEventRegistran
     earlier event has finished in this same run. Safe to run repeatedly -- a
     completed event contributes nothing new on replay and its rows are never
     read again; see events.models.EventRegistrantImportProgress.
+
+    ``refresh`` is for the case that replay deliberately does not cover: a newer
+    export of events we have already imported. It re-reads every event the
+    reader offers, including completed ones, and replaces each one's existing
+    registration facts with what the newer export carries -- see the module
+    docstring for why replacing rather than appending is the only correct
+    reading of a provider export. It is not the default, because the default is
+    resuming an interrupted run, and a resume must never touch a finished event.
     """
 
     events = tuple(pending)
 
-    events_completed = events_already_completed = 0
+    events_completed = events_refreshed = events_already_completed = 0
     awaiting_identity: list[str] = []
-    rows_written = rows_skipped = 0
+    rows_written = rows_skipped = rows_replaced = 0
     matched_account = matched_prior = new_identity = 0
     for item in events:
         outcome = _import_one_event(
             provider=provider,
             external_event_identifier=item.external_event_identifier,
             read_rows=item.read_rows,
+            refresh=refresh,
         )
         if outcome.status == "no_identity_yet":
             awaiting_identity.append(item.external_event_identifier)
             continue
         if outcome.status == "already_completed":
             events_already_completed += 1
+        elif outcome.status == "refreshed":
+            events_refreshed += 1
         else:
             events_completed += 1
         rows_written += outcome.rows_written
         rows_skipped += outcome.rows_skipped
+        rows_replaced += outcome.rows_replaced
         matched_account += outcome.matched_account_total
         matched_prior += outcome.matched_prior_identity_total
         new_identity += outcome.new_identity_total
@@ -358,11 +404,13 @@ def import_registrants(*, provider: str, pending: Iterable[PendingEventRegistran
         provider=provider,
         events_total=len(events),
         events_completed=events_completed,
+        events_refreshed=events_refreshed,
         events_already_completed=events_already_completed,
         events_awaiting_identity=len(awaiting_identity),
         awaiting_identity_events=tuple(awaiting_identity),
         rows_written=rows_written,
         rows_skipped=rows_skipped,
+        rows_replaced=rows_replaced,
         matched_account_total=matched_account,
         matched_prior_identity_total=matched_prior,
         new_identity_total=new_identity,

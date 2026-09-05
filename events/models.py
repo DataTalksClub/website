@@ -1081,6 +1081,13 @@ class EventRegistration(models.Model):
     table itself needs to deduplicate on, and no reason to keep a protected
     per-attendee token around permanently to do it with.
 
+    The consequence, and it is the reason a refresh works the way it does: a
+    newer export of an event we already hold cannot be merged row by row,
+    because there is no key to merge on.  ``events.registrant_import``'s
+    ``refresh`` replaces the event's rows for that provider wholesale instead,
+    so an ``id`` and a ``created_at`` here are stable only until the next
+    refresh of that event.  Nothing reads either.
+
     Public event pages are unaffected by this table.  They keep showing
     ``HistoricalRegistrationAggregateRevision``-derived counts through the
     existing ``mapping_review_required``/activation flow; a later pass may
@@ -1196,6 +1203,12 @@ class EventRegistrantImportProgress(models.Model):
     retried whole on the next run -- cheap, because a single event's file is
     small enough that redoing it in full is not the same problem CMP's 20,009
     rows would have been.
+
+    ``updated_at`` is therefore also the per-event answer to "when did we last
+    read this event's registrations", which is what an operator needs to decide
+    which events a newer export makes stale.  ``events.registrant_import``'s
+    ``refresh`` re-reads a completed event and replaces its registration facts;
+    it moves this row's counts and ``updated_at`` and never clears ``completed``.
     """
 
     provider = models.CharField(max_length=16, choices=EventRegistration.Provider.choices)

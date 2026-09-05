@@ -29,6 +29,13 @@ written inside a single transaction, and only marked complete once that
 transaction commits.  A re-run skips a completed event without reopening its
 file -- see ``events.models.EventRegistrantImportProgress``.
 
+That skip is what makes a resume safe, and it is also why a plain re-run picks
+up nothing from a *newer* export.  Luma is not frozen: people keep registering
+for events we already hold, and a refreshed export drops the ones who cancelled.
+``--refresh`` is the pass for that -- it re-reads every event and replaces each
+one's registration facts wholesale.  See
+``_docs/runbooks/event-registration-pull.md`` for when to run which.
+
     uv run --frozen python scripts/prod/import_event_registrants.py \\
         --database .tmp/production-prep-current.sqlite3 \\
         --luma-source /data/tmp/luma-eventbrite-export/luma-aggregate-v1
@@ -36,6 +43,10 @@ file -- see ``events.models.EventRegistrantImportProgress``.
     uv run --frozen python scripts/prod/import_event_registrants.py \\
         --database .tmp/production-prep-current.sqlite3 \\
         --luma-source /data/tmp/luma-eventbrite-export/luma-aggregate-v1 --dry-run
+
+    uv run --frozen python scripts/prod/import_event_registrants.py \\
+        --database .tmp/production-prep-current.sqlite3 \\
+        --luma-source <a newer prepared export> --refresh
 """
 
 from __future__ import annotations
@@ -96,6 +107,17 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Report what a run would find, using the same discovery pass. Writes nothing.",
     )
+    parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help=(
+            "Re-read every event in the export, including ones already recorded "
+            "complete, and replace each one's registration facts with what this "
+            "export carries. Use this for a newer export of events we already "
+            "have; without it a completed event is skipped, which is what makes "
+            "an interrupted run safe to resume."
+        ),
+    )
     return parser
 
 
@@ -119,11 +141,14 @@ def main(argv: list[str] | None = None) -> int:
             report: dict[str, object] = {
                 "provider": PROVIDER,
                 "events_total": len(pending),
+                "refresh": args.refresh,
                 "applied": False,
             }
         else:
-            result = import_registrants(provider=PROVIDER, pending=pending)
-            report = {**result.as_dict(), "applied": True}
+            result = import_registrants(
+                provider=PROVIDER, pending=pending, refresh=args.refresh
+            )
+            report = {**result.as_dict(), "refresh": args.refresh, "applied": True}
     except RegistrantImportError as error:
         # The error carries a condition code, never a source value.
         print(json.dumps({"error": str(error)}, indent=2))

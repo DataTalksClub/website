@@ -1002,6 +1002,20 @@ The durable protected copy a real run should point at lives outside any worktree
 > `registration_source_validation_failed` (verified 2026-09-05). The sibling
 > `luma-aggregate-v1.backup-20260902` holds the pinned 166 and runs clean. Somebody has
 > to decide whether the pin moves or the directory is discarded — §12 item 10.
+>
+> **It should move.** Counted 2026-09-05: the 174-event directory is a later capture of
+> the same account — 52,467 rows, `tree_sha256 2e18d184…`, the eight extra events dated
+> 2026-08-31 to 2026-09-15 — not a corrupted one. Moving a pin is a reviewed commit;
+> [`event-registration-pull.md`](event-registration-pull.md) §4.3 is what that review is.
+
+**Luma is not frozen history, and this table is a snapshot rather than a fact.**
+New events keep appearing and people keep registering for events we already have:
+between the two prepared exports on this machine, 8 events are new and **99 of the
+166 they share have different registrant rows — 5 grew, 13 shrank**. A provider
+export is therefore not append-only, and neither the aggregate leg nor the
+attendee-level leg picks any of that up on a plain re-run. The recurring
+procedure, the last-synchronised record, and what is lost when Luma access
+expires are in [`event-registration-pull.md`](event-registration-pull.md).
 
 **What a clean run actually resolves.** Measured 2026-09-05 against the pinned export
 and the Eventbrite archive, into a scratch database: 375 provider events stage, the
@@ -1383,6 +1397,15 @@ somewhere.
     recomputed)*. Somebody has to decide whether the pin moves to the 174-event export
     or the 174-event directory is discarded; until then the default `--luma-source` path
     is the one that fails.
+
+    **The 174-event directory is a later capture, not a broken one** (counted
+    2026-09-05: 52,467 rows, 52,415 approved, 52 declined, `tree_sha256 2e18d184…`).
+    Its eight extra events are dated 2026-08-31 to 2026-09-15, and 99 of the 166 it
+    shares with the pinned export carry different registrant rows — 5 grew, 13 shrank.
+    So the pin is what is stale. Moving it is a reviewed commit, not a workaround:
+    [`event-registration-pull.md`](event-registration-pull.md) §4.3 says what the
+    review has to establish, and §1 of the same document is why this whole item is a
+    recurring task rather than a one-off decision.
 
 11. **No drift check exists for `DataTalksClub/content`** (§10). Nothing in the
     repository compares what we serve against what the content repository says, at any

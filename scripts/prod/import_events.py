@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 """Import event identities and the historical registration aggregates.
 
-One-time import.  Both sources are frozen: the reviewed identity manifest is
-checked into this repository, and the Luma and Eventbrite exports are archives
-of platforms we no longer publish through.  See ``scripts/prod/__init__.py``
-for what the two sync models mean.
+Declared ``one-time``, and that is now only half true.  The reviewed identity
+manifest really is frozen, and Eventbrite really is an archive of a platform we
+no longer publish through.  **Luma is not.**  New events keep appearing there
+and people keep registering for events that already exist, so this script is
+run again every time a fresh export arrives -- see
+``_docs/runbooks/event-registration-pull.md`` for the recurring procedure and
+what an operator must review before anything becomes public.  ``SYNC_MODEL``
+stays ``one-time`` because ``scripts/prod/__init__.py`` ties that word to the
+``import_`` filename prefix and renaming this module would break every runbook,
+inventory entry and Make target that names it; the honest description is here
+instead of in the filename.
 
 This gathers what used to be in two places -- ``manage.py
 import_event_identities`` for identity, and a block buried inside
@@ -51,7 +58,10 @@ event already in the database is that event, and creates nothing
 (``existing_event_total``).  See ``discover_new_luma_event_identities`` and
 ``discover_new_provider_events``.  Run with ``--discover-new-events-only`` to do
 just this against a fresh export that has not yet been reconciled into
-``event-registration-sources.json``.
+``event-registration-sources.json``, and add ``--dry-run`` to see what it would
+create without creating it -- that pair is how an operator answers "which events
+are new since the last pull".  The recurring procedure the owner asks this
+question inside is ``_docs/runbooks/event-registration-pull.md``.
 
 **Duplicate reconciliation** (``--report-duplicate-identities``,
 ``--remove-duplicate-identities``): before that guard existed this step minted a
@@ -1089,6 +1099,17 @@ def _parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help=(
+            "With --discover-new-events-only, report exactly what a fresh export "
+            "would create and change nothing. The answer to 'which events are new "
+            "since last time' -- created_events are the ones this database has "
+            "never seen. Point it at the database you would apply to: the decision "
+            "is made against the events that database already holds."
+        ),
+    )
+    parser.add_argument(
         "--report-duplicate-identities",
         action="store_true",
         help=(
@@ -1113,12 +1134,18 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     try:
-        args = _parser().parse_args(argv)
+        parser = _parser()
+        args = parser.parse_args(argv)
+        if args.dry_run and not args.discover_new_events_only:
+            # The full run stages aggregates and activates counts; there is no
+            # halfway version of that, and pretending otherwise would be worse
+            # than refusing. --report-duplicate-identities is already read-only.
+            parser.error("--dry-run applies to --discover-new-events-only")
         _configure(args.database.resolve())
         if args.report_duplicate_identities or args.remove_duplicate_identities:
             if not args.luma_source.resolve().is_dir():
                 raise EventImportError("registration_source_unavailable")
-            report = {
+            report: dict[str, Any] = {
                 "duplicate_event_identities": {
                     "luma": reconcile_duplicate_luma_identities(
                         luma_source=args.luma_source.resolve(),
@@ -1129,20 +1156,26 @@ def main(argv: list[str] | None = None) -> int:
         elif args.discover_new_events_only:
             if not args.luma_source.resolve().is_dir():
                 raise EventImportError("registration_source_unavailable")
+            # --dry-run makes this the "what is new since last time" question an
+            # operator asks before committing to a fresh export. Every leg takes
+            # the same apply flag, so the reported decision is the one the
+            # applying run would make, not a separate approximation of it.
+            apply = not args.dry_run
             report = {
+                "applied": apply,
                 "identities": import_identities(
-                    manifest=args.identity_manifest.resolve(), apply=True
+                    manifest=args.identity_manifest.resolve(), apply=apply
                 ),
                 "new_event_identities": {
                     "luma": discover_new_luma_event_identities(
-                        luma_source=args.luma_source.resolve(), apply=True
+                        luma_source=args.luma_source.resolve(), apply=apply
                     ),
                 },
                 # The identities this mode creates are exactly what the staged
                 # descriptions attach to, so landing them here is what makes the
                 # mode a complete pass for a fresh export rather than half of one.
                 "new_event_content": import_new_content(
-                    source=args.new_event_content.resolve(), apply=True
+                    source=args.new_event_content.resolve(), apply=apply
                 ),
             }
         else:

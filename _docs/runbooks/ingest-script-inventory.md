@@ -718,6 +718,37 @@ reruns 6.1 (`prepare_event_registration_sources.py --luma-source
 derive, resolve, and activate the new events. Tracked in
 [issue #310](https://github.com/DataTalksClub/website/issues/310).
 
+**Correction, 2026-09-05: one fresher export is already on this machine.**
+`.local/migration-data/events/luma-aggregate-v1` — the directory 6.2 calls
+drifted — is not junk. It is a later capture of the same account: 174 events
+against the durable copy's 166, with the eight extra dated 2026-08-31 to
+2026-09-15, including exactly the September events named above. Counted
+2026-09-05: 52,467 rows (52,415 approved, 52 declined),
+`tree_sha256 2e18d184…`. So the pin is what is behind, not the export.
+
+## 6.4 The recurring pull
+
+**Luma is not frozen history**, which the `one-time` sync model above
+understates. Comparing the two prepared exports on this machine: 8 events exist
+only in the newer one, and **99 of the 166 they share have different registrant
+rows — 5 grew, 13 shrank**. A refreshed provider export is not append-only, and
+a plain re-run of either leg picks up none of it.
+
+The procedure, the decision points and the failure modes are in
+[`event-registration-pull.md`](event-registration-pull.md). In brief:
+`--discover-new-events-only --dry-run` answers "what is new" without writing it;
+moving the pinned checksum in `event-registration-sources.json` is a reviewed
+commit, not a workaround; and 9.1's `--refresh` is the only correct way to pick
+up sign-ups for events we already hold.
+
+**The last-synchronised point already exists in three places**, and no new model
+or state file was added for it: `event-registration-sources.json`'s
+`capture_completed_at` and `tree_sha256` (what a human accepted), the newest
+`HistoricalRegistrationSourceRun` row per provider (what a database ingested,
+uniquely keyed on the export's own checksum), and each
+`EventRegistrantImportProgress` row's `updated_at` (when that one event's
+registrations were last read).
+
 ---
 
 # 7. Testimonials
@@ -850,6 +881,18 @@ default, not an oversight. Public event pages are unaffected — they keep
 showing 6's aggregate counts; a later pass may derive that aggregate from
 these rows instead, but this journey does not change how a public page gets
 its count.
+
+**Replay versus refresh.** The completed marker is what makes an interrupted run
+safe to resume, and it is also why a plain re-run against a *newer* export picks
+up nothing: a completed event is skipped without its file being reopened.
+`--refresh` is the pass for that case. It re-reads every event and, per event
+inside one transaction, deletes that provider's `EventRegistration` rows for it
+and writes the ones the newer export carries — wholesale, because a provider
+export is not append-only (13 of 166 events lost rows between the two captures
+on this machine) and because `EventRegistration` deliberately keeps no
+per-attendee natural key to merge on. Identities are never deleted. The report's
+`rows_replaced` against `rows_written` is how you see registrants leaving. See
+[`event-registration-pull.md`](event-registration-pull.md) §4.5.
 
 Notes: Eventbrite is not read yet — the durable export currently holds only
 the Luma side, and this codebase's own Eventbrite adapter never needed that
