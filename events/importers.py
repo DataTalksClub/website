@@ -5,8 +5,8 @@ bounded failure code, the aggregate-only result types, the registry of
 configured source references, and the registry of *readers* that know how to
 turn one configured reference into a :class:`DerivedSource`.
 
-It owns none of the provider file formats.  Reading a Luma export directory or
-an Eventbrite export archive is ingestion work and lives in
+It owns none of the provider file formats.  Reading one provider's export
+directory or archive is ingestion work and lives in
 ``scripts/prod/registration_sources``; those readers register themselves here
 through :func:`register_source_reader` when an ingest run needs them.  A process
 with no reader registered -- an ordinary web process -- can still list and
