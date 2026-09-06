@@ -1,10 +1,23 @@
-"""Validated, source-backed projection for the public documentation site.
+"""The public documentation site, read from the database.
 
-The documentation repository is intentionally not read during a request.  The checked-in
-projection is generated from the pinned source checkout and contains the Markdown body, source
-checksums, and the navigation metadata needed by the public renderer.  Keeping the source commit
-in this module and validating it at load time makes an accidental partial or stale projection fail
-closed instead of silently serving a mixture of document versions.
+Pages are ``ContentDocument`` rows and asset records are ``ContentAsset`` rows of
+the active ``dtc-docs`` release, written by ``scripts/prod/import_docs.py``. No
+request reads the documentation repository, and none reads the reviewed
+``temporary/content/docs_projection.json`` the importer takes as its input
+either. Only the asset *bytes* are still files, under ``content/docs_assets/``,
+and the record that names one is a database row. A database with no active docs
+release publishes nothing: the hub renders empty and every documentation route
+404s. That is the normal state before an ingest has run.
+
+``DOCS_SOURCE_REVISION`` is the upstream commit the reviewed input was cut at.
+The importer refuses a page or asset carrying any other revision, so a partial
+or superseded ingest fails there rather than publishing a mixture of document
+versions.
+
+The module name is a leftover from when these pages were served straight out of
+a checked-in JSON file. Read "projection" here as the documentation read model,
+not as a file. ``_docs/architecture/database-only-content.md`` records why the
+name has not been changed yet.
 """
 
 from __future__ import annotations
