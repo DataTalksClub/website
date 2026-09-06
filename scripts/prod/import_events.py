@@ -990,8 +990,72 @@ def run(
     current_registration_input: Path | None = None,
     correlation_id: str = "prod-import-events",
 ) -> dict[str, Any]:
+    """Run every ingest leg, or leave the database exactly as it was found.
+
+    **One transaction around all five legs, deliberately.**  The registration
+    leg validates its exports last and the four legs before it used to have
+    committed already, so a refused run failed loudly and left state quietly:
+    a "fresh" database that had just exited 1 with
+    ``registration_source_validation_failed`` still held 448 events, 1,684
+    aliases, 421 content rows and 448 queued Q2 wakeups, and the retry then
+    started from a half-populated database that looked populated.
+
+    Validating every source up front instead was the other candidate and is
+    not sufficient here.  It would catch the checksum and aggregate drift --
+    the failure we actually hit -- but not
+    ``current_registration_target_unavailable``,
+    ``current_registration_total_unavailable``, a content record naming an
+    identity the database does not hold, or any integrity error raised part
+    way through a leg, all of which land after the first write.  It also
+    cannot be complete by construction: :func:`mapping_bridges` resolves the
+    current-registration input against the very ``Event`` rows the identity
+    leg writes, so that check has nothing to resolve against until the first
+    leg has run.
+
+    A transaction also gets the queued work right for free.
+    ``jobs.dispatch.dispatch_after_commit`` writes its ``DurableJob`` row in
+    the caller's transaction and defers the Q2 enqueue to
+    ``transaction.on_commit``, which fires only when the *outermost* block
+    commits.  Under this one, a failed run enqueues nothing at all rather
+    than leaving hundreds of wakeups pointing at rows that no longer exist.
+
+    The identity import is atomic on its own and stays that way; nesting it
+    here makes it a savepoint inside the wider guarantee rather than
+    weakening it.
+    """
+
     if not luma_source.is_dir() or not eventbrite_source.is_file():
         raise EventImportError("registration_source_unavailable")
+
+    from django.db import transaction
+
+    with transaction.atomic():
+        return _run_legs(
+            identity_manifest=identity_manifest,
+            event_content_source=event_content_source,
+            new_event_content_source=new_event_content_source,
+            luma_source=luma_source,
+            eventbrite_source=eventbrite_source,
+            current_registration_input=current_registration_input,
+            correlation_id=correlation_id,
+        )
+
+
+def _run_legs(
+    *,
+    identity_manifest: Path | None,
+    event_content_source: Path | None,
+    new_event_content_source: Path | None,
+    luma_source: Path,
+    eventbrite_source: Path,
+    current_registration_input: Path | None,
+    correlation_id: str,
+) -> dict[str, Any]:
+    """The five legs in their fixed order. Only :func:`run` may call this.
+
+    Split out purely so the transaction boundary is one unmissable line in
+    :func:`run` rather than an indent level wrapped around a hundred of them.
+    """
 
     identities = import_identities(manifest=identity_manifest, apply=True)
     content = import_content(source=event_content_source, apply=True)

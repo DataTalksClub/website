@@ -765,3 +765,114 @@ class DuplicateProviderIdentityReconciliationTests(TestCase):
         self.assertEqual(report["duplicate_total"], 0)
         self.assertEqual(report["removed_total"], 0)
         self.assertTrue(Event.objects.filter(pk=created.id).exists())
+
+
+class RunAtomicityTests(TestCase):
+    """A refused run leaves the database exactly as it found it.
+
+    The registration leg validates its exports last, so before `run()` took a
+    transaction a checksum refusal still left every earlier leg committed: a
+    "fresh" database that had just exited 1 held 448 events, 1,684 aliases,
+    421 content rows and 448 queued Q2 wakeups, and the retry started from a
+    half-populated database that looked populated.
+    """
+
+    def setUp(self) -> None:
+        scratch = Path(settings.BASE_DIR) / ".tmp"
+        scratch.mkdir(exist_ok=True)
+        self.temporary = tempfile.TemporaryDirectory(dir=scratch)
+        self.root = Path(self.temporary.name)
+        self.luma_source = self.root / "luma"
+        self.luma_source.mkdir()
+        _write_luma_pair(
+            self.luma_source,
+            "2026-09-08_a-brand-new-event_evt-atomicity",
+            event_id="evt-Atomicity",
+            event_url="https://luma.com/atomicity",
+            title="An Event Only This Export Knows About",
+            start_at="2026-09-08T10:00:00.000Z",
+            statuses=("approved", "approved", "declined"),
+        )
+        # The eventbrite leg is never reached: the luma checksum refuses first.
+        # It only has to exist, because `run()` refuses a missing source before
+        # it opens the transaction at all.
+        self.eventbrite_source = self.root / "eventbrite.zip"
+        self.eventbrite_source.write_bytes(b"not a real archive")
+        self.new_event_content = self.root / "absent-new-event-content.json"
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def _run(self):
+        from scripts.prod.import_events import run
+
+        return run(
+            luma_source=self.luma_source,
+            eventbrite_source=self.eventbrite_source,
+            new_event_content_source=self.new_event_content,
+        )
+
+    def test_the_leg_that_rolls_back_really_does_write(self) -> None:
+        """Without this, the rollback assertion below would pass vacuously."""
+
+        from events.models import Event
+        from scripts.prod.import_events import discover_new_luma_event_identities
+
+        before = Event.objects.count()
+
+        report = discover_new_luma_event_identities(luma_source=self.luma_source, apply=True)
+
+        self.assertEqual(report["created_total"], 1)
+        self.assertEqual(Event.objects.count(), before + 1)
+
+    def test_a_refused_run_leaves_no_partial_row_behind(self) -> None:
+        from events.models import (
+            Event,
+            EventAlias,
+            EventContent,
+            HistoricalRegistrationAggregateRevision,
+            HistoricalRegistrationSourceRun,
+        )
+        from jobs.models import DurableJob
+        from scripts.prod.import_events import EventImportError
+
+        def counts() -> tuple[int, ...]:
+            return (
+                Event.objects.count(),
+                EventAlias.objects.count(),
+                EventContent.objects.count(),
+                HistoricalRegistrationSourceRun.objects.count(),
+                HistoricalRegistrationAggregateRevision.objects.count(),
+                DurableJob.objects.count(),
+            )
+
+        before = counts()
+
+        with self.assertRaises(EventImportError) as refusal:
+            self._run()
+
+        self.assertEqual(str(refusal.exception), "registration_source_validation_failed")
+        self.assertEqual(counts(), before)
+
+    def test_a_refused_run_queues_no_background_work(self) -> None:
+        """The Q2 enqueue is an on-commit side effect, so it must not survive either."""
+
+        from scripts.prod.import_events import EventImportError
+
+        with self.captureOnCommitCallbacks(execute=False) as callbacks:
+            with self.assertRaises(EventImportError):
+                self._run()
+
+        self.assertEqual(callbacks, [])
+
+    def test_the_refusal_names_no_source_value(self) -> None:
+        """The opaque code is deliberate: this data is protected."""
+
+        from scripts.prod.import_events import EventImportError
+
+        with self.assertRaises(EventImportError) as refusal:
+            self._run()
+
+        message = str(refusal.exception)
+        self.assertNotIn(str(self.luma_source), message)
+        self.assertNotIn("evt-Atomicity", message)
