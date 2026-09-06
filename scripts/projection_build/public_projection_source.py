@@ -57,7 +57,6 @@ EDITORIAL_ROUTE_MIGRATION_FILENAME = "editorial_route_migration.json"
 EDITORIAL_ROUTE_MIGRATION_SCHEMA = (
     REPOSITORY_ROOT / "_docs" / "compatibility" / "editorial-route-migration.schema.json"
 )
-EXPECTED_LEAKED_TARGET_MARKERS = {"articles": 0, "people": 10}
 MEDIA_TREE_PREFIX = "media/"
 EXPECTED_TREE_DIGEST_SCOPE = (
     "projection artifacts and wiki assets; excludes manifest.json and media/"

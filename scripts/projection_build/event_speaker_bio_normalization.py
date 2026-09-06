@@ -39,10 +39,6 @@ _BIO_START = re.compile(
     r"^(?:about\s+the\s+(?:speaker|speakers|guest|guests)|speaker\s+bio|bio(?:graphy)?)\b",
     re.IGNORECASE,
 )
-_BIO_PREFIX = re.compile(
-    r"^(?:about\s+the\s+(?:speaker|speakers|guest|guests)|speaker\s+bio|bio(?:graphy)?)\s*[:.]?\s*",
-    re.IGNORECASE,
-)
 _SPONSOR_START = re.compile(
     r"^(?:this\s+(?:event|post|workshop|podcast)\s+is\s+sponsored"
     r"|this\s+workshop\s+is\s+hosted\s+by)\b",
@@ -83,11 +79,6 @@ class DescriptionNormalization:
 
 def _canonical_digest(value: Any) -> str:
     payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
-    return hashlib.sha256(payload).hexdigest()
-
-
-def _pretty_digest(value: Any) -> str:
-    payload = (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode()
     return hashlib.sha256(payload).hexdigest()
 
 
