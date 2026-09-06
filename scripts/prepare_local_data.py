@@ -5,10 +5,13 @@ This command composes the existing local-only preparation seams.  It writes only
 explicit SQLite database below ``.tmp/`` and never connects to a deployed database.
 
 The public event identity manifest and course catalog are imported into the database.  The
-protected Eventbrite and Luma exports are parsed and reconciled against their recorded safe
-facts.  Legacy candidates remain review-required; an optional explicit current-event mapping
-input can stage and activate only those exact provider identities so a fresh database can render
-their aggregate count without a title/date guess.
+reviewed editorial inputs under ``temporary/content/`` -- the public catalogue, the FAQ, the
+documentation, the sponsor directory and the homepage testimonials -- are imported after the
+course catalogue, which is step 4 of the bootstrap order in
+``_docs/runbooks/data-ingest.md`` §11.  The protected Eventbrite and Luma exports are parsed and
+reconciled against their recorded safe facts.  Legacy candidates remain review-required; an
+optional explicit current-event mapping input can stage and activate only those exact provider
+identities so a fresh database can render their aggregate count without a title/date guess.
 """
 
 from __future__ import annotations
@@ -141,6 +144,50 @@ def _json_management_command(name: str, **options: Any) -> dict[str, Any]:
     return report
 
 
+def _import_editorial_content() -> dict[str, Any]:
+    """Step 4 of the documented bootstrap order, as one block.
+
+    ``_docs/runbooks/data-ingest.md`` §11 step 4 names five reviewed one-time inputs
+    under ``temporary/content/``.  All five declare ``BOOTSTRAPS_EMPTY_DATABASE`` and
+    none depends on another, so the order within the block carries no meaning -- what
+    matters is that the block runs, and that it runs after the course catalogue rather
+    than instead of it.  Only testimonials used to run here, so a rehearsal database
+    had no articles, podcasts, books, people, wiki, docs, FAQ or sponsors and nothing
+    said so.
+
+    Every one is replay-safe: the three catalogue importers write and activate a fresh
+    release, and the sponsor and testimonial importers key each row on its natural key
+    and report ``replayed``.  These are the production importers themselves, not a
+    second copy of what they do.
+    """
+
+    from scripts.prod.import_docs import DocsImportFailure
+    from scripts.prod.import_docs import run as import_docs
+    from scripts.prod.import_faq import FaqImportFailure
+    from scripts.prod.import_faq import run as import_faq
+    from scripts.prod.import_public_content import PublicContentImportFailure
+    from scripts.prod.import_public_content import run as import_public_content
+    from scripts.prod.import_sponsors import SponsorDirectoryImportFailure
+    from scripts.prod.import_sponsors import run as import_sponsors
+    from scripts.prod.import_testimonials import TestimonialImportFailure
+    from scripts.prod.import_testimonials import run as import_testimonials
+
+    steps: tuple[tuple[str, Any, type[RuntimeError]], ...] = (
+        ("public_content", import_public_content, PublicContentImportFailure),
+        ("faq", import_faq, FaqImportFailure),
+        ("docs", import_docs, DocsImportFailure),
+        ("sponsors", import_sponsors, SponsorDirectoryImportFailure),
+        ("testimonials", import_testimonials, TestimonialImportFailure),
+    )
+    reports: dict[str, Any] = {}
+    for name, importer, failure in steps:
+        try:
+            reports[name] = importer()
+        except failure as error:
+            raise LocalPreparationError(f"{name}_{error}") from error
+    return reports
+
+
 def _load_current_registration_input(path: Path | None):
     with _event_import_refusals():
         return load_current_registration_input(path)
@@ -219,11 +266,6 @@ def run(
         # them here for the same reason it follows them in production.
         event_content = import_content(apply=True)
     catalog = _json_management_command("seed_local_courses")
-    # Real reviewed content, so it comes from the production importer rather than a
-    # seeder: the same six rows a production database gets.
-    from scripts.prod.import_testimonials import run as import_testimonials
-
-    testimonials = import_testimonials()
     # Which repositories exist is registered data, so the rehearsal registers the
     # pinned sources and then runs the one ingestion the signed push webhook runs.
     # Same functions scripts/prod/sync_course_repository_sources.py and
@@ -266,6 +308,10 @@ def run(
             cmp_content = import_cmp_course_content(cmp_source_db).summary()
         except CmpContentImportError as error:
             raise LocalPreparationError(f"cmp_content_{error}") from error
+    # Step 4, after the catalogue and before the registration legs: real reviewed
+    # content from the production importers rather than a seeder, so the rehearsal
+    # database holds the same editorial catalogue a production database does.
+    editorial_content = _import_editorial_content()
     registration_sources, derived_sources = _registration_source_derivations(
         luma_source=luma_source,
         eventbrite_source=eventbrite_source,
@@ -289,10 +335,10 @@ def run(
             "event_identities": identities,
             "event_content": event_content,
             "course_catalog": catalog,
-            "homepage_testimonials": testimonials,
             "course_repository_sources": course_sources,
             "course_modules": modules,
             "cmp_content": cmp_content,
+            "editorial_content": editorial_content,
         },
         "registration_sources": registration_sources,
         "registration_import": registration_import,
