@@ -55,10 +55,6 @@ EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
         (re.compile(r"^/studio/access/api-credentials/$"), 403),
         (re.compile(r"^/studio/events/historical-registration-totals/$"), 403),
         (
-            re.compile(r"^/studio/events/historical-registration-totals/mappings/$"),
-            409,
-        ),
-        (
             re.compile(r"^/studio/events/historical-registration-totals/[0-9a-f-]{36}/activate/$"),
             409,
         ),
@@ -86,11 +82,10 @@ EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
     "test_empty_optional_and_error_states_are_responsive": (
         (re.compile(r"^/events/not-a-real-event$"), 404),
     ),
-    "test_studio_stage_replay_map_validate_activate_preview_rollback_and_denial": (
-        (
-            re.compile(r"^/studio/events/historical-registration-totals/mappings/$"),
-            409,
-        ),
+    # The scenario's own name, after the mapping surface was removed from it and
+    # the test renamed with it: an entry keyed to a test that no longer exists
+    # allows nothing, so the safe 403/409 the flow drives became console errors.
+    "test_studio_stage_replay_validate_activate_preview_rollback_and_denial": (
         (
             re.compile(
                 r"^/studio/events/historical-registration-totals/[0-9a-f-]{36}/"
