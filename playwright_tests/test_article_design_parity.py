@@ -58,6 +58,17 @@ def richest_article() -> dict[str, Any]:
     )
 
 
+def illustrated_article() -> dict[str, Any]:
+    """The first article the catalogue publishes a social card for.
+
+    ``richest_article`` is chosen for the shape of its body, and the body says
+    nothing about artwork: most published articles carry no image at all. A test
+    that measures the social card therefore names a record that has one.
+    """
+
+    return next(record for record in catalogue.articles() if record["image_path"])
+
+
 def _assert_no_horizontal_overflow(page: Page) -> None:
     overflow = page.evaluate(
         """() => ({
@@ -429,11 +440,21 @@ def test_the_article_stays_usable_at_320px_without_javascript(
         expect(page.locator("main h1")).to_have_count(1)
         expect(page.get_by_role("navigation", name="Primary navigation")).to_be_visible()
         expect(page.get_by_role("navigation", name="Breadcrumb")).to_be_visible()
-        # The artwork is a social card, published in the head, never in the body.
         assert page.locator(".article-cover").count() == 0
-        assert page.locator('meta[property="og:image"]').count() == 1
         _assert_no_horizontal_overflow(page)
         SCREENSHOTS.mkdir(parents=True, exist_ok=True)
         page.screenshot(path=SCREENSHOTS / "article-320-no-js.png", full_page=True)
+
+        # The artwork is a social card, published in the head, never in the body,
+        # measured on an article the catalogue actually publishes a card for.
+        illustrated = illustrated_article()
+        card = page.goto(
+            f"{live_server.url}{illustrated['public_path']}",
+            wait_until="domcontentloaded",
+        )
+        assert card is not None and card.status == 200
+        assert page.locator(".article-cover").count() == 0
+        assert page.locator('meta[property="og:image"]').count() == 1
+        _assert_no_horizontal_overflow(page)
     finally:
         context.close()

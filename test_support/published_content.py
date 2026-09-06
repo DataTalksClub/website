@@ -18,12 +18,14 @@ from __future__ import annotations
 
 import hashlib
 import uuid
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any
 
 from django.utils import timezone
 
+from content.catalogue import PUBLIC_CONTENT_STABLE_ID
 from content.models import ContentDocument, ContentRelease, ContentSource
 from content.services import (
     ActivateContentRelease,
@@ -154,3 +156,26 @@ def publish_documents(
     )
     release.refresh_from_db()
     return release
+
+
+@contextmanager
+def unpublished_editorial_catalogue() -> Iterator[None]:
+    """Read the editorial catalogue the way an un-ingested database serves it.
+
+    Disabling the source is what "nothing has been imported yet" looks like to
+    :mod:`content.catalogue`: ``active_release_id`` resolves to nothing, every
+    collection reads empty, and the release-keyed record cache follows on its own
+    because the key itself changed.
+
+    A test for an empty hub uses this rather than patching a catalogue function,
+    because a view can hold its own reference to that function -- ``COLLECTION_HUBS``
+    binds ``catalogue.books`` at import time -- and then the patch decides nothing
+    while the page still renders the rows the database holds.
+    """
+
+    sources = ContentSource.objects.filter(stable_id=PUBLIC_CONTENT_STABLE_ID)
+    sources.update(enabled=False)
+    try:
+        yield
+    finally:
+        sources.update(enabled=True)

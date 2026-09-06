@@ -1050,7 +1050,21 @@ def _account_scenario(recorder: ScenarioRecorder) -> set[str]:
 
 
 def _management_scenario(recorder: ScenarioRecorder) -> set[str]:
-    recorder.scan("studio.audit-empty", "audit-list", text="No audit events")
+    # The audit list with nothing in it.  The reviewed reference data is imported
+    # through the very services the studio audits, so a session opens on a list that
+    # already holds their release events, and an audit record is append-only and
+    # cannot be removed to get back to an unwritten database.  The state is reached
+    # the way a reader reaches it instead: a filter that matches no event, which is
+    # the case the page's own empty copy is written for.
+    _visit_surface(recorder.page, recorder.live_server, recorder.environment, "audit-list")
+    recorder.page.get_by_label("Action").fill("no.such.audited.action")
+    recorder.page.get_by_role("button", name="Apply filters").click()
+    expect(
+        recorder.page.locator("main, [role='main']")
+        .get_by_text("No audit events match these filters.", exact=False)
+        .first
+    ).to_be_visible()
+    recorder.scan_current("studio.audit-empty")
     audit_id = recorder.environment.objects["audit_id"]
     assert isinstance(audit_id, uuid.UUID)
     AuditEvent.objects.create(
@@ -1191,7 +1205,9 @@ def _historical_scenario(recorder: ScenarioRecorder) -> set[str]:
 
     active_run = (
         HistoricalRegistrationSourceRun.objects.filter(
-            aggregate_revisions__mapping__event_id=event["identity_id"],
+            # The mapping row is gone: a revision names its own canonical event
+            # (events.models.HistoricalRegistrationAggregateRevision.event).
+            aggregate_revisions__event_id=event["identity_id"],
             state=HistoricalRegistrationSourceRun.State.ACTIVE,
         )
         .distinct()

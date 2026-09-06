@@ -57,6 +57,7 @@ def _event_description_shot(page: Page, name: str) -> None:
 def test_public_home_and_hubs(
     page: Page,
     live_server,
+    homepage_course_catalog: None,
     viewport: ViewportSize,
     suffix: str,
 ) -> None:
@@ -75,8 +76,11 @@ def test_public_home_and_hubs(
     expect(featured_course).to_have_count(1)
     expect(featured_course.get_by_role("heading", name="AI Dev Tools Zoomcamp")).to_be_visible()
     expect(featured_course.get_by_text("Starts August 31, 2026")).to_be_visible()
+    # The panel's call to action is the featured cohort's own course route, the same
+    # ``/courses/<family>/<identifier>`` page the catalogue cards link to.
     expect(featured_course.get_by_role("link", name="View the syllabus")).to_have_attribute(
         "href",
+        "/courses/ai-dev-tools-zoomcamp/2026",
     )
     expect(page.get_by_role("link", name="all courses")).to_have_attribute(
         "href",
@@ -102,7 +106,13 @@ def test_public_home_and_hubs(
         expect(page.get_by_role("heading", name=heading, exact=True)).to_be_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
         if label == "Courses":
-            expect(page.get_by_text("No active courses right now.", exact=True)).to_be_visible()
+            # The hub reads the same cohorts as the homepage band asserted above, so
+            # the catalogue this test owns has to be listed here rather than the
+            # designed empty state.  Seven cards for six families: ``ai-dev-tools``
+            # and ``ai-dev-tools-zoomcamp`` are still two rows sharing one title, and
+            # only the homepage collapses them (``core.home_content.FAMILY_ALIASES``).
+            expect(page.get_by_text("No active courses right now.", exact=True)).to_have_count(0)
+            expect(page.locator("main .active-card")).to_have_count(7)
             _shot(page, f"{label.casefold()}-hub-{suffix}.png", full_page=True)
         else:
             _shot(page, f"{label.casefold()}-hub-{suffix}.png")

@@ -55,10 +55,6 @@ EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
         (re.compile(r"^/studio/access/api-credentials/$"), 403),
         (re.compile(r"^/studio/events/historical-registration-totals/$"), 403),
         (
-            re.compile(r"^/studio/events/historical-registration-totals/mappings/$"),
-            409,
-        ),
-        (
             re.compile(r"^/studio/events/historical-registration-totals/[0-9a-f-]{36}/activate/$"),
             409,
         ),
@@ -86,11 +82,10 @@ EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
     "test_empty_optional_and_error_states_are_responsive": (
         (re.compile(r"^/events/not-a-real-event$"), 404),
     ),
-    "test_studio_stage_replay_map_validate_activate_preview_rollback_and_denial": (
-        (
-            re.compile(r"^/studio/events/historical-registration-totals/mappings/$"),
-            409,
-        ),
+    # The scenario's own name, after the mapping surface was removed from it and
+    # the test renamed with it: an entry keyed to a test that no longer exists
+    # allows nothing, so the safe 403/409 the flow drives became console errors.
+    "test_studio_stage_replay_validate_activate_preview_rollback_and_denial": (
         (
             re.compile(
                 r"^/studio/events/historical-registration-totals/[0-9a-f-]{36}/"
@@ -584,6 +579,51 @@ def _start_live_server(server: live_server_helper.LiveServer) -> None:
                 f"{start_error} (startup cleanup failed: {shutdown_error})"
             ) from start_error
         raise
+
+
+@pytest.fixture(scope="session")
+def django_db_setup(django_db_setup, django_db_blocker) -> None:
+    """Give the browser database the reviewed rows every public page renders from.
+
+    ``test_support.django_runner.IsolatedDiscoverRunner`` loads the reviewed reference
+    data — event identities and content, documentation, course FAQ, the editorial
+    catalogue and the homepage testimonials — right after ``migrate`` builds a Django
+    test database.  pytest-django does not use that runner: its ``django_db_setup``
+    calls ``django.test.utils.setup_databases`` directly, so a Playwright session used
+    to start on a database holding nothing but schema.
+
+    That is why the browser suite broke when public content moved into the database:
+    the pages are correct on an empty database — hubs render empty and details 404 —
+    but a browser test that measures an article, a podcast season, a wiki page or an
+    event has to own those rows.  Loading exactly what the Django runner loads keeps
+    both suites reading one set of rows, so their assertions cannot drift.
+
+    ``serialized_rollback`` restores each transactional test from the snapshot Django
+    takes inside ``create_test_db``, which is older than this load, so the snapshot is
+    taken again afterwards.  The Django runner needs no such step: it loads the rows
+    from inside ``IsolatedSQLiteCreation.create_test_db``, ahead of every clone and
+    the snapshot.  Only the runner can do that — the creation class is what it swaps
+    in, and ``django.test.utils.setup_databases`` uses the stock one.
+    """
+
+    from django.db import connections
+
+    from test_support.reference_data import load_reviewed_reference_data
+
+    del django_db_setup
+    with django_db_blocker.unblock():
+        for connection in connections.all():
+            # A pytest run whose selected tests need no database gets no database, so
+            # there is nothing to seed and no schema to seed it into.
+            if not connection.introspection.table_names():
+                continue
+            load_reviewed_reference_data()
+            if getattr(connection, "_test_serialized_contents", None) is not None:
+                setattr(  # noqa: B010
+                    connection,
+                    "_test_serialized_contents",
+                    connection.creation.serialize_db_to_string(),
+                )
 
 
 @pytest.fixture(scope="session")

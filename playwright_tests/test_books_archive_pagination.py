@@ -17,13 +17,13 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
-from unittest import mock
 
 import pytest
 from playwright.sync_api import Browser, Page, expect
 
 from content import catalogue
 from content.pagination import PUBLIC_PAGE_SIZE
+from test_support.published_content import unpublished_editorial_catalogue
 
 pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
@@ -216,8 +216,10 @@ def test_an_empty_book_projection_is_one_clear_page_without_controls(
 
     try:
         # The archive reads the database, so it is emptied the way an un-ingested
-        # database is empty rather than by patching a value in.
-        with mock.patch("content.catalogue.books", return_value=()):
+        # database is empty rather than by patching a value in.  Patching
+        # ``catalogue.books`` would decide nothing here: ``COLLECTION_HUBS`` binds the
+        # function at import time and the hub still reads the rows the database holds.
+        with unpublished_editorial_catalogue():
             response = page.goto(f"{origin}/books", wait_until="domcontentloaded")
             assert response is not None and response.status == 200
             expect(page.get_by_role("heading", name="Book of the Week", exact=True)).to_be_visible()

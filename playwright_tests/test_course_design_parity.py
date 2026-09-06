@@ -525,7 +525,13 @@ def test_registration_hero_fits_loaded_image_without_javascript(
         response = page.goto(f"{live_server.url}{registration_path}", wait_until="networkidle")
         assert response is not None and response.status == 200
         expect(page.locator("html.no-js")).to_have_count(1)
-        expect(page.locator(".registration-panel form[data-registration-form]")).to_have_count(1)
+        # Registration is account-owned, so an anonymous visitor is offered the
+        # sign-in gate rather than the form (courses/_registration_gate.html).  The
+        # panel is what the hero has to sit above either way.
+        expect(page.locator(".registration-panel")).to_have_count(1)
+        expect(
+            page.get_by_role("heading", name="Create your free account to register", exact=True)
+        ).to_be_visible()
         geometry = _assert_registration_hero_is_contained(page)
         assert (
             abs(

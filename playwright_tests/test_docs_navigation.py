@@ -124,7 +124,10 @@ def test_docs_system_hierarchy_and_responsive_evidence(
             "Course FAQ",
         ):
             expect(page.get_by_role("link", name=title, exact=False).first).to_be_visible()
-        expect(page.get_by_role("link", name="Workshops", exact=True)).to_be_visible()
+        # The activities row lists its pages inline, separated by a CSS ``", "`` that
+        # Chrome folds into the accessible name of every link after the first, so an
+        # exact accessible name matches none of them.  Name the destination instead.
+        expect(page.locator('main a[href="/docs/activities/workshops/"]')).to_be_visible()
         assert page.locator('a[href^="/docs/"]').count() < 30
         _assert_repository_chrome_absent(page)
         _assert_no_page_overflow(page)
