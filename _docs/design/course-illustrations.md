@@ -28,8 +28,11 @@ Keep all existing homepage assets unchanged.
 
 Generate the dark companion in a separate pass using the accepted light file
 as its composition reference. Follow [illustration-assets.md](illustration-assets.md):
-image generation produces the finished asset; no recoloring, CSS filtering,
-background removal, or mechanically derived dark companion is part of production.
+image generation produces the finished drawing and its transparency. Encode the
+accepted native PNG as lossless WebP for the site, preserving alpha. Proportional
+canvas sizing is allowed; recoloring, CSS filtering, background removal, alpha
+manufacture, and mechanically derived dark companions remain prohibited. The
+linked guide provides the 1024 × 1024 encoding and verification commands.
 
 ## Light-generation prompt
 
@@ -53,7 +56,8 @@ Use cream #fdfaf3, navy ink #1e2136, green #2b7a35, indigo #5a62c4 and pale
 lavender #c9cdf2. Outside the cloud and figure, pixels must have real transparent
 alpha. Keep white drawing fills opaque. Let the watercolor cloud fade irregularly
 to transparency. No painted checkerboard, white rectangle, hard cutout, shadow,
-glow, halo, luminous rim or colored fringe. Output a finished transparent WebP.
+glow, halo, luminous rim or colored fringe. Output a finished drawing with genuine
+alpha transparency in the native PNG.
 ```
 
 ## Dark-generation prompt
@@ -76,8 +80,9 @@ cloud silhouette. Keep foreground colors close to the light anchor.
 The irregular cloud edge dissolves softly into actual alpha transparency so the
 page surface shows through. No light rim, colored fringe, glow, shine, halo,
 aura, shadow, hard cutout, rectangular or oval plate, opaque background, or
-painted checkerboard. Produce a finished transparent WebP. This is an independent
-generation, not a filtered, inverted or tinted version of the light bitmap.
+painted checkerboard. Produce a finished drawing with genuine alpha transparency
+in the native PNG. This is an independent generation, not a filtered, inverted or
+tinted version of the light bitmap.
 ```
 
 ## Acceptance and placement
