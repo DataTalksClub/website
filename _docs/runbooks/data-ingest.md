@@ -58,8 +58,13 @@ Confusing them is the main way this goes wrong.
 
 | Path | Meaning |
 | --- | --- |
-| **Database** | A view queries Django models. |
-| **JSON projection** | A view reads a checked-in JSON file from `content/`. No database involved. |
+| **Database** | A view queries Django models. Every public content page is this. |
+| **Object store** | A database row names the bytes; the bytes come from the public media store. |
+| **Unused** | Ingested into the database, but no view resolves anything through it. |
+
+A fourth value, **JSON projection** — a view reading a checked-in JSON file with
+no database involved — was removed from this table. No source has been served
+that way since the database cutover, so a row in §2 never carries it.
 
 **Fate** — where the owner has ruled it should end up.
 
@@ -71,11 +76,22 @@ Confusing them is the main way this goes wrong.
 | **Undecided** | No ruling yet. Listed so it cannot be missed. |
 
 > **The single most important fact in this document.** Every public content page is
-> served today from a **checked-in JSON file**, not from the database. The `content/`
-> app has a full database pipeline — `ContentSource`, `ContentRelease`,
-> `ContentDocument`, `ContentRelation`, `ContentAsset` — and **nothing calls it**.
-> See §9. An importer is only the right tool once a page reads from the database;
-> for most sources below, the missing piece is the *read* side, not the *write* side.
+> served today from the **database**. The `content/` app's pipeline —
+> `ContentSource`, `ContentRelease`, `ContentDocument`, `ContentRelation`,
+> `ContentAsset` — is live at both ends: the `scripts/prod/` importers write it and
+> a public request reads it. `content/public_data.py`, the module that used to
+> reassemble those rows into the old projection dictionary, is deleted;
+> `content/catalogue.py`, `content/docs_projection.py`, `content/faq_data.py`,
+> `content/article_faq.py` and `events/queries.py` are the readers now. §9 lists
+> every surface.
+>
+> **So an importer is the right tool for every source below**, and the missing piece
+> is never the *read* side. Where a source is still a gap, the gap is either a
+> *reproducer* — something that rebuilds its staging file from upstream — or
+> continuous re-ingest. It is never a page that cannot read a database row.
+>
+> *(Until the database cutover this paragraph said the exact opposite, and was
+> right. If you are holding a quotation of it, this is the correction.)*
 
 ---
 
@@ -84,20 +100,20 @@ Confusing them is the main way this goes wrong.
 | # | Source | Sync model | Serving path | Fate |
 | --- | --- | --- | --- | --- |
 | 1 | Course repositories (3) | **Continuous** | Database | Already fine |
-| 2 | `DataTalksClub/content` | Pinned build | JSON projection | **Push-synced** |
-| 3 | `DataTalksClub/podwiki` | Pinned build | JSON projection | Stays at podwiki |
-| 4 | `DataTalksClub/faq` | Pinned build (no builder) | JSON projection | Stays at faq |
-| 5 | `DataTalksClub/docs` | Pinned build (no builder) | JSON projection | Undecided |
+| 2 | `DataTalksClub/content` | Pinned build | Database | **Push-synced** |
+| 3 | `DataTalksClub/podwiki` | Pinned build | Database | Stays at podwiki |
+| 4 | `DataTalksClub/faq` | Pinned build (no builder) | Database | Stays at faq |
+| 5 | `DataTalksClub/docs` | Pinned build (no builder) | Database | Undecided |
 | 6 | `DataTalksClub/course-management-platform` (specs) | Pinned build | Unused | Undecided |
-| 7 | Legacy site — people | Pinned build | JSON projection | **Push-synced** |
+| 7 | Legacy site — people | Pinned build | Database | **Push-synced** |
 | 8 | Legacy site — events | Pinned build | Database | **One-off export** (done) |
 | 9 | Legacy site — author images | Pinned build | Object store | **One-off export** → CDN |
-| 10 | Legacy site — article FAQ | Pinned build | JSON projection | **One-off export** (done) |
+| 10 | Legacy site — article FAQ | Pinned build | Database | **One-off export** (done) |
 | 11 | CMP export — course content | One-time | Database | One-off export |
 | 12 | CMP export — learner data | **No importer** | Database | Undecided |
 | 13 | `zoomcamp-scoring` (pre-2024) | One-time | Database | One-off export |
 | 14 | Event identity manifest | One-time | Database | One-off export |
-| 15 | Event description bridge | One-time | JSON projection | One-off export |
+| 15 | Event description bridge | One-time | Database | One-off export |
 | 16 | Luma registration aggregates | One-time | Database | One-off export |
 | 17 | Eventbrite registration aggregates | One-time | Database | One-off export |
 | 18 | Public media objects | Hydrate/publish | Object store | Already fine → CDN |
@@ -201,11 +217,11 @@ but **no view reads it** — `/courses` is database-served. It is ballast (§12 
 
 **The startup digest check is gone, and nothing replaced it.** `content.E002` no
 longer exists: the catalogue is database rows, so there is no file for a system
-check to digest. `content/public_data.py`'s `_checked_public_projection()` now
-reads the active editorial release and caches per release id
-(`_editorial_catalogue`, `lru_cache(maxsize=2)`); a database with no active
-release returns the empty catalogue rather than refusing to boot, because an
-absent snapshot is a normal state. `content/apps.py`'s remaining checks
+check to digest. `content/public_data.py` itself is deleted; `content/catalogue.py`
+reads the active editorial release and caches each kind on the release id
+(`_records`, `lru_cache(maxsize=64)`), so the cached answer follows an import. A
+database with no active release returns an empty collection rather than refusing
+to boot, because an absent catalogue is a normal state. `content/apps.py`'s remaining checks
 (`content.E003`–`E005`, `content.W001`) cover only the media store.
 
 The consequence for an operator: a hand-edit under `temporary/content/` is not
@@ -720,10 +736,6 @@ as `IDENTITY_MANIFEST_PATH`. **No migration seeds it any more** — the ones tha
 to are gone, and `migrate` publishes nothing. `test_support/reference_data.py` loads
 the same file into every test database, and the event content beside it.
 
-> **A stale default worth knowing about.** `scripts/prepare_local_data.py:318` still
-> defaults `--identity-manifest` to `events/event_identity_manifest.json`, a path
-> that no longer exists. Pass the path explicitly until that is fixed — §12 item 19.
-
 The former `manage.py import_event_identities` command (and its
 `import_event_identity_manifest` alias) are retired: they wrapped the exact
 same `events.identity.import_identity_manifest` call `import_events.py` already
@@ -1036,15 +1048,17 @@ leave every mapping review-required.
 
 The owner decided "all the content" moves into the database. **That has happened for
 the serving path**: no public request reads a file from the source tree. What survives
-of the old arrangement is naming and shape, not behaviour — `content/public_data.py`'s
-entry point is still called `public_projection()` and still returns the dict shape the
-files had, because switching every caller off that shape is separate work in flight.
-Describe this as "database-backed, still wearing the projection's name", not as
-unfinished ingest.
+of the old arrangement is naming, not behaviour. `content/public_data.py` — the
+compatibility layer that kept returning the dict shape the files had — is deleted;
+`content/catalogue.py` is a query function per kind, `content/public_routes.py`
+holds the route inventory and `content/public_graph.py` the graph safety contract.
+The name still shows on `content/docs_projection.py` and on
+`content/media_store.py`'s `PROJECTION_ROOT`. Describe those as "database-backed,
+still wearing the projection's name", not as unfinished ingest.
 
 | Area | Serving path | Source |
 | --- | --- | --- |
-| Wiki (hub, detail, search, graph, feed, sitemap) | **Database** | `ContentDocument`, via `content/public_data.py` |
+| Wiki (hub, detail, search, graph, feed, sitemap) | **Database** | `ContentDocument`, via `content/catalogue.py` |
 | Podcasts (hub, episodes, guests, transcripts, resources) | **Database** | as above |
 | Articles (hub, detail) | **Database** | as above |
 | Article FAQ accordions | **Database** | `content/article_faq.py` over `ContentDocument` |
@@ -1112,7 +1126,6 @@ Five mechanisms, each solving part of the problem for a different source.
 | `CourseCurriculumImportRun` + `replayed` | this commit against previously applied runs | during ingest | re-applying a commit; a commit that produces a different manifest checksum |
 | `manage.py verify_dtc_content` | a **checkout** against pinned contract constants | CI / by hand | wrong repo, wrong commit, dirty tree, content that fails the adapter |
 | `content_sync/dtc_content/parity.py` | adapter bundle against the committed projection | inside `verify_dtc_content`, **only at one frozen commit** | projection and content repo disagreeing |
-| `content/public_data.py:640` | committed projection against itself | **every Django boot** | any local mutation of the projection tree |
 | `scripts/prod/sync_public_media_verify.py` | `media.json` against the object store, **both directions** | by hand / ops | missing, unreadable, mismatched and **orphaned** objects |
 | `ci/content_update.py` | on-disk artifact digests against `manifest.json`, per family | CI | a hand-edited projection artifact |
 
@@ -1426,7 +1439,8 @@ somewhere.
 
 14. **The projection's `courses` collection (12 records) is imported and read by no
     view.** `scripts/prod/import_public_content.py` writes it into `ContentDocument`
-    and `content/public_data.py` lists `courses` in `COLLECTION_NAMES`, but `/courses`
+    and `scripts/projection_build/public_projection_source.py` lists `courses` in
+    `COLLECTION_NAMES`, but `/courses`
     is served from `courses.models.Cohort`. Nothing resolves a page through those
     documents.
 
@@ -1458,16 +1472,18 @@ somewhere.
     **Changing our counts requires a matching podwiki graph rebuild**, across a
     repository boundary, or the projection build fails (§6.2).
 
-19. **Two scripts and one service still name files that moved to `temporary/content/`.**
-    `scripts/prepare_local_data.py:318` defaults `--identity-manifest` to
-    `events/event_identity_manifest.json`, a path that no longer exists — the manifest is
-    at `temporary/content/event_identity_manifest.json`, which is where
-    `scripts/prod/import_events.py:153` reads it from. The docstrings of
-    `scripts/prod/import_sponsors.py`, `scripts/prod/import_testimonials.py`,
-    `scripts/prod/import_faq.py`, `scripts/prod/import_docs.py` and `core/sponsors.py`
-    still name `core/sponsor_directory.json`, `courses/homepage_testimonials.json`,
-    `content/faq_projection.json` and `content/docs_projection.json`; each script's
+19. **Four importer docstrings and one service still name files that moved to
+    `temporary/content/`.** `scripts/prod/import_sponsors.py`,
+    `scripts/prod/import_testimonials.py`, `scripts/prod/import_faq.py`,
+    `scripts/prod/import_docs.py` and `core/sponsors.py` name
+    `core/sponsor_directory.json`, `courses/homepage_testimonials.json`,
+    `content/faq_projection.json` and `content/docs_projection.json`. Each script's
     `REVIEWED_PATH` is correct, so only the prose misleads. Recorded, not fixed.
+
+    The `--identity-manifest` half of this item is closed:
+    `scripts/prepare_local_data.py` imports `IDENTITY_MANIFEST_PATH` from
+    `scripts/prod/import_events.py` instead of re-deriving the path, which is the
+    fix that stops it drifting again.
 
 20. **`content_sync`'s test suite fails wholesale on `main`.** `manage.py test
     content_sync` on 2026-09-05: **104 failures, 8 errors**, every one
@@ -1488,7 +1504,7 @@ the answer rather than re-investigating.
 
 | Was item | Was claimed | Closed by |
 | --- | --- | --- |
-| 2 | "The content database pipeline is dead at both ends — nothing writes them and nothing reads them" | `scripts/prod/import_public_content.py` writes `ContentDocument` rows; `content/public_data.py`, `content/article_faq.py`, `content/faq_data.py` and `content/docs_projection.py` read them on every public request. §9 |
+| 2 | "The content database pipeline is dead at both ends — nothing writes them and nothing reads them" | `scripts/prod/import_public_content.py` writes `ContentDocument` rows; `content/catalogue.py`, `content/article_faq.py`, `content/faq_data.py` and `content/docs_projection.py` read them on every public request. §9 |
 | 7 | "Sponsors have no ingest at all" | `scripts/prod/import_sponsors.py`, reading `temporary/content/sponsor_directory.json` through `core.sponsors`' shared services. `core/sponsor_history.py` and its hardcoded `FEATURED_SUPPORTERS` tuple are deleted |
 | 8 | "Testimonials arrive only through a data migration" | `scripts/prod/import_testimonials.py`, reading `temporary/content/homepage_testimonials.json`. The seeding migration is gone; one data-bearing migration remains repo-wide (`courses/0002_simplify_registration_counts.py`) and it seeds no content |
 | — | "Event content has no importer" | `scripts/prod/import_events.py`'s `import_content()` over `events/content_import.py`. Measured 2026-09-05: 421 events, 159 described, 456 speakers, 682 links (§14.2) |

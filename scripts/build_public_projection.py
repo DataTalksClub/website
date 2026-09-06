@@ -735,15 +735,10 @@ ARTICLE_FIGCAPTION = re.compile(
     r"<figcaption\b[^>]*>(.*?)</figcaption\s*>", re.DOTALL | re.IGNORECASE
 )
 ARTICLE_IMG = re.compile(r"<img\b([^>]*?)/?>", re.IGNORECASE)
-ARTICLE_TABLE = re.compile(r"<table\b[^>]*>(.*?)</table\s*>", re.DOTALL | re.IGNORECASE)
 ARTICLE_TABLE_ROW = re.compile(r"<tr\b[^>]*>(.*?)</tr\s*>", re.DOTALL | re.IGNORECASE)
 ARTICLE_TABLE_CELL = re.compile(r"<(th|td)\b[^>]*>(.*?)</\1\s*>", re.DOTALL | re.IGNORECASE)
 ARTICLE_HTML_HEADING = re.compile(r"<h([1-6])\b([^>]*)>(.*?)</h\1\s*>", re.DOTALL | re.IGNORECASE)
 ARTICLE_CANVAS = re.compile(r"<canvas\b([^>]*?)(?:/>|>.*?</canvas\s*>)", re.DOTALL | re.IGNORECASE)
-ARTICLE_DIVIDER = re.compile(
-    r"<div\b[^>]*class=\"[^\"]*article-divider[^\"]*\"[^>]*>\s*</div\s*>", re.IGNORECASE
-)
-ARTICLE_HR = re.compile(r"<hr\b[^>]*/?>", re.IGNORECASE)
 ARTICLE_HTML_BLOCK_START = re.compile(
     r"^<(?:figure|table|img|canvas|hr|div|h[1-6])\b", re.IGNORECASE
 )
