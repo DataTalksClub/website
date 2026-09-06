@@ -1205,7 +1205,9 @@ def _historical_scenario(recorder: ScenarioRecorder) -> set[str]:
 
     active_run = (
         HistoricalRegistrationSourceRun.objects.filter(
-            aggregate_revisions__mapping__event_id=event["identity_id"],
+            # The mapping row is gone: a revision names its own canonical event
+            # (events.models.HistoricalRegistrationAggregateRevision.event).
+            aggregate_revisions__event_id=event["identity_id"],
             state=HistoricalRegistrationSourceRun.State.ACTIVE,
         )
         .distinct()
