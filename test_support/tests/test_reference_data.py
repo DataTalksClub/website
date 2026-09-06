@@ -23,7 +23,9 @@ from test_support.django_runner import IsolatedSQLiteCreation
 class ReferenceDataLoadOrderTests(SimpleTestCase):
     def test_the_database_is_filled_before_create_test_db_returns(self) -> None:
         order: list[str] = []
-        creation = IsolatedSQLiteCreation.__new__(IsolatedSQLiteCreation)
+        # A connection is never used here, only held: ``BaseDatabaseCreation``
+        # deletes the attribute in ``__del__`` and complains if it was absent.
+        creation = IsolatedSQLiteCreation(connection=None)
 
         def create(*args: object, **kwargs: object) -> str:
             order.append("create")
