@@ -17,12 +17,12 @@
 	verification-evidence-check verification-report-check
 
 # The checkout does not carry the public projection media objects, so every CI
-# job that runs Django tests reads them from the deterministic offline fixture
-# store. Local runs default to the same store, which is what makes a fresh clone
-# green. A tester who has hydrated the real artwork with
-# scripts/prod/sync_public_media_hydrate.py runs
+# job that runs tests -- Django, playwright and screenshots alike -- reads them
+# from the deterministic offline fixture store. Local runs default to the same
+# store, which is what makes a fresh clone green. A tester who has hydrated the
+# real artwork with scripts/prod/sync_public_media_hydrate.py runs
 # `PUBLIC_MEDIA_STORE_BACKEND=local make ...` and gets the real bytes.
-DJANGO_TEST_MEDIA_STORE = PUBLIC_MEDIA_STORE_BACKEND="$${PUBLIC_MEDIA_STORE_BACKEND:-memory}"
+TEST_MEDIA_STORE = PUBLIC_MEDIA_STORE_BACKEND="$${PUBLIC_MEDIA_STORE_BACKEND:-memory}"
 
 VERIFY_BASE_SHA ?= HEAD
 VERIFY_HEAD_SHA ?= HEAD
@@ -142,7 +142,7 @@ terraform-seo-source-check:
 		--expected-commit "$(AWS_INFRA_EXPECTED_COMMIT)"
 
 test-core:
-	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" $(DJANGO_TEST_MEDIA_STORE) \
+	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" $(TEST_MEDIA_STORE) \
 		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test --noinput \
 		accounts core studio api management_auth management_api --parallel
 
@@ -153,7 +153,7 @@ check-management-parity:
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py check_management_parity
 
 test-content:
-	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" $(DJANGO_TEST_MEDIA_STORE) \
+	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" $(TEST_MEDIA_STORE) \
 		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test content.tests
 
 test-course-platform-sync:
@@ -190,7 +190,7 @@ course-platform-sync:
 test: test-django-full
 
 test-django-full:
-	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" $(DJANGO_TEST_MEDIA_STORE) \
+	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" $(TEST_MEDIA_STORE) \
 		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test --parallel --noinput
 
 test-ci:
@@ -272,31 +272,31 @@ verification-report-check: verification-evidence-check
 
 test-ci-focused:
 	@test -n "$$CI_SELECTION_PATH" || (echo "CI_SELECTION_PATH is required" >&2; exit 2)
-	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" $(DJANGO_TEST_MEDIA_STORE) \
+	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" $(TEST_MEDIA_STORE) \
 		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python -m ci.focused_tests \
 		--selection "$$CI_SELECTION_PATH"
 
 test-factories:
-	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" $(DJANGO_TEST_MEDIA_STORE) \
+	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" $(TEST_MEDIA_STORE) \
 		uv run --frozen pytest test_support/tests/test_factories.py \
 		test_support/tests/test_runtime.py test_support/tests/test_safety.py \
 		test_support/tests/test_marker_registry.py -q
 
 test-migrations:
-	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" $(DJANGO_TEST_MEDIA_STORE) \
+	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" $(TEST_MEDIA_STORE) \
 		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test --noinput \
 		test_support.tests.test_migrations \
 		content.tests.test_editorial_route_migration_contract
 
-# Every local browser tier runs the environment the CI playwright and screenshots
-# jobs declare.  The checkout carries no projection media objects, so `/images/...`
-# reads them from the deterministic offline fixture store; on the default `local`
-# backend every recorded object fails closed with a 502 and the browser harness
-# reports it as a console error.  An operator who has hydrated the local tree can
-# still ask for the real artwork by exporting the variable.
+# A browser tier needs the same store for a harder reason than the Django tiers:
+# a page that references a recorded object gets a 502 from the unhydrated local
+# store, and the browser harness reads that as a console error and fails the
+# test.  There is no "real artwork" to prefer on a checkout that has not been
+# hydrated -- only a fail-closed 502 -- so the local tiers select what the CI
+# playwright and screenshots jobs already select.
 PLAYWRIGHT_ENV = DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
 	DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \
-	PUBLIC_MEDIA_STORE_BACKEND="$${PUBLIC_MEDIA_STORE_BACKEND:-memory}"
+	$(TEST_MEDIA_STORE)
 
 test-playwright-core:
 	$(PLAYWRIGHT_ENV) \
