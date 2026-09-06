@@ -210,7 +210,7 @@ def _resolve_faq_question_link(
     return f"/faq/{course_slug}.html#{question_id}"
 
 
-def faq_projection() -> dict[str, Any]:
+def _faq_catalogue() -> dict[str, Any]:
     """Return the published FAQ courses, read from the database.
 
     Each course is one published document: the page's own address and name are
@@ -252,7 +252,7 @@ def faq_projection() -> dict[str, Any]:
 
 
 def faq_courses() -> tuple[dict[str, Any], ...]:
-    return tuple(faq_projection()["courses"])
+    return tuple(_faq_catalogue()["courses"])
 
 
 def faq_course(course_slug: str) -> dict[str, Any] | None:
