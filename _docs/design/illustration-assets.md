@@ -9,6 +9,67 @@ artwork normally uses `loading="lazy"`; the homepage's paired light/dark files u
 
 ## How assets are produced
 
+### Always start from reference images
+
+Every illustration generation and edit must receive reference images as actual
+tool inputs. A filename mentioned in the prompt alone does not attach an image.
+Use the built-in `imagegen`; this workflow does not use an API key or the imagegen
+CLI.
+
+1. Inspect the approved site artwork and the subject reference with `view_image`.
+   Generate the **light version first**, passing those files through
+   `referenced_image_paths`. Identify their roles in the prompt: drawing-style
+   reference, subject reference, or composition anchor. For a course robot, use
+   `home-step-2.webp` for style and the historical robot-reading course image for
+   the subject; exclude the historical banner's lettering.
+2. Review the light result's composition, dimensions and actual alpha channel.
+   Keep that accepted light file as the fixed anchor. For corrections, pass the
+   previous candidate as an edit target and state what must remain unchanged.
+3. Generate the **dark companion second**, passing the accepted light file as
+   the reference image. Tune the cloud and palette for the actual dark page
+   through imagegen while preserving the light composition. Do not independently
+   invent a new dark composition or manufacture one with a CSS filter.
+4. Inspect both files on their real consuming surfaces, then capture the page
+   in both themes. Save the reference paths, exact prompts, raw outputs and
+   validation results under the project's `.tmp/illustration-sources/` while
+   working; record the accepted recipe and final asset paths in the owning doc.
+
+Use `referenced_image_paths` when all references are local files. Use
+`num_last_images_to_include` only for references without local paths, choosing
+the smallest recent-image count that includes the required references. Never
+provide both mechanisms, and never run an illustration pass without either one.
+
+### Verify transparency in the file, not the preview
+
+A checkerboard in a preview can be painted into an opaque image. Asking for
+transparency in a prompt does not prove that the returned file has alpha. Inspect
+the raw file immediately, before generating the dark companion or wiring it into
+the page:
+
+```bash
+identify -format '%f %wx%h %[channels] opaque=%[opaque]\n' \
+  .tmp/illustration-sources/course-learning-light.png
+```
+
+The file must have an alpha channel and `opaque=false`. Check that the outer
+canvas is transparent while the drawing's white fills remain opaque. Renaming a
+PNG to WebP, enabling an all-opaque alpha channel, or inspecting only its filename
+does not satisfy this check.
+
+**Historical provenance check, 2026-09-06:** the shipped homepage WebPs have real
+alpha. However, inspection of 99 saved PNGs from four relevant August 26–27 Codex
+sessions found only opaque RGB outputs. Those sessions added transparency after
+generation using local background flood fill, and some dark variants reused a
+light asset's alpha mask. They are evidence of finished transparent assets, not
+of a native-alpha imagegen invocation. Do not claim that a specific prompt alone
+reproduces those results, and do not silently repeat the historical processing:
+the production rules below currently prohibit it.
+
+If the raw output is opaque, retain it as a rejected source and report that
+specific result. Check the exposed tool's capabilities before repeating the same
+prompt. Do not switch to an API-key workflow, claim a successful alpha result,
+or ship a fake checkerboard as transparency.
+
 **`imagegen` produces the finished asset.** Ask it for the exact canvas, a
 transparent outer background, and the dark companion as its own generation pass with
 the matching light file as the reference image. The goal is an output that needs no
