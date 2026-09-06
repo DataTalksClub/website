@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import yaml
-from django.test import SimpleTestCase
+from django.test import TestCase
 
 from content_sync.dtc_content import adapter as adapter_module
 from content_sync.dtc_content import media as media_module
@@ -71,7 +71,7 @@ def _filename_component_fits(directory: Path, filename: str) -> bool:
     return len(filename.encode("utf-8")) <= limit
 
 
-class DtcContentAdapterTests(SimpleTestCase):
+class DtcContentAdapterTests(TestCase):
     def test_bounded_media_batch_keeps_path_order_and_validation_results(self) -> None:
         items = (
             ("images/z.png", png_bytes()),
