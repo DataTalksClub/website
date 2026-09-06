@@ -10,6 +10,7 @@ import pytest
 import yaml
 
 from ci.content_update import (
+    _DECLARED_PROJECTION_PATHS,
     CONTRACT_VERSION,
     FAMILIES,
     ContentUpdateError,
@@ -32,6 +33,22 @@ _SAFE_COUNT_KEYS = {
 
 def _load_json(relative_path: str) -> Any:
     return json.loads((ROOT / relative_path).read_text(encoding="utf-8"))
+
+
+def _declared_projection(family: str, name: str) -> Any:
+    """Load a projection file at the location the checker itself declares.
+
+    Resolving the path through the contract instead of restating it keeps this
+    cross-check pointed at the exact bytes the report was built from. Restating it
+    is how the check broke when the ingest snapshot was relocated under
+    `temporary/content/`: the checker followed, the cross-check did not, and the
+    aggregate contract stopped being verifiable at all.
+    """
+    declared = [
+        path for path in _DECLARED_PROJECTION_PATHS[family] if path.rsplit("/", 1)[-1] == name
+    ]
+    assert len(declared) == 1, f"{family} must declare exactly one {name}, got {declared}"
+    return _load_json(declared[0])
 
 
 def _report_artifact_paths(report: Mapping[str, Any]) -> set[str]:
@@ -109,7 +126,7 @@ def test_source_specific_counts_are_safe_aggregates() -> None:
     reports = {family: build_report(repository=ROOT, family=family) for family in FAMILIES}
     counts = {family: _assert_safe_counts(report, family) for family, report in reports.items()}
 
-    courses = _load_json("content/public_projection/courses.json")
+    courses = _declared_projection("courses", "courses.json")
     assert isinstance(courses, list)
     course_slugs = []
     course_paths = []
@@ -125,9 +142,9 @@ def test_source_specific_counts_are_safe_aggregates() -> None:
     assert len(course_paths) == len(set(course_paths))
     assert counts["courses"] == {"courses": len(courses)}
 
-    wiki_pages = _load_json("content/public_projection/wiki.json")
-    graph = _load_json("content/public_projection/wiki_graph.json")
-    search = _load_json("content/public_projection/wiki_search.json")
+    wiki_pages = _declared_projection("podwiki", "wiki.json")
+    graph = _declared_projection("podwiki", "wiki_graph.json")
+    search = _declared_projection("podwiki", "wiki_search.json")
     assert isinstance(wiki_pages, list)
     assert isinstance(graph, Mapping)
     assert isinstance(search, Mapping)
@@ -195,7 +212,7 @@ def test_source_specific_counts_are_safe_aggregates() -> None:
         "wiki_pages": len(wiki_pages),
     }
 
-    faq = _load_json("content/faq_projection.json")
+    faq = _declared_projection("faq", "faq_projection.json")
     assert isinstance(faq, Mapping)
     faq_declared_counts = faq.get("counts")
     faq_courses = faq.get("courses")
@@ -276,7 +293,7 @@ def test_source_specific_counts_are_safe_aggregates() -> None:
     assert dict(faq_declared_counts) == faq_derived_counts
     assert counts["faq"] == faq_derived_counts
 
-    docs = _load_json("content/docs_projection.json")
+    docs = _declared_projection("docs", "docs_projection.json")
     assert isinstance(docs, Mapping)
     docs_assets = docs.get("assets")
     docs_pages = docs.get("pages")
