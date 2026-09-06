@@ -65,39 +65,85 @@ of a native-alpha imagegen invocation. Do not claim that a specific prompt alone
 reproduces those results, and do not silently repeat the historical processing:
 the production rules below currently prohibit it.
 
+**Native-tool check, 2026-09-06:** an isolated check explicitly forwarded
+`background="transparent"` to the backend and still returned a 1254 × 1254 RGB
+PNG with `opaque=true`. The client saved the backend image bytes unchanged.
+This check did not establish native transparency or show alpha being lost during
+the save. The experimental client change did not solve the result and is not a
+production recipe to preserve or repeat.
+
 If the raw output is opaque, retain it as a rejected source and report that
 specific result. Check the exposed tool's capabilities before repeating the same
 prompt. Do not switch to an API-key workflow, claim a successful alpha result,
 or ship a fake checkerboard as transparency.
 
-**`imagegen` produces the finished asset.** Ask it for the exact canvas, a
-transparent outer background, and the dark companion as its own generation pass with
-the matching light file as the reference image. The goal is an output that needs no
-post-processing at all.
+**`imagegen` produces the finished drawing and its transparency.** Ask it for the
+exact canvas, a transparent outer background, and the dark companion as its own
+generation pass with the matching light file as the reference image. The built-in
+tool saves PNG output; the site serves WebP. Lossless format encoding and canvas
+sizing that preserves the alpha channel are allowed after the raw output passes
+the transparency check. Prefer the requested canvas so resizing is unnecessary.
 
 **Nothing recolours, filters, or derives a dark asset from a light one.** A dark
 companion that was produced by inverting, tinting, or filtering a light bitmap is
 wrong and must be regenerated, not corrected.
 
-ImageMagick is not part of asset production. Where `magick` still appears below it is
-either a crop of an external source that arrived untrimmed, or a throwaway preview
-that flattens a transparent asset onto a page colour so edges can be inspected — it
-never writes a shipped asset. Prefer generating at the right size and alpha so even
-the crop is unnecessary.
+ImageMagick may encode the accepted drawing as lossless WebP, resize it without
+stretching, center it on a transparent canvas, or trim surplus transparent margins
+from an external source. It may also flatten throwaway edge-review previews.
+These operations must not manufacture or replace the drawing's alpha, remove a
+background, recolor the artwork, or repair an edge. An opaque raw output still
+fails even if transparent padding could be added around it.
 
 ## Requirements
 
 - The repository's `uv` environment.
+- ImageMagick for encoding and inspection. This environment provides ImageMagick
+  6's `convert` and `identify`; use `magick` in place of `convert` on ImageMagick 7.
+  Existing examples below using `magick` also work with `convert` here.
 - For an externally supplied source image, a copy saved under `.tmp/`.
 
 ## Prepare the image
 
-Trim the transparent margin and write the WebP directly with ImageMagick, from the
-repository root:
+First inspect the raw generated PNG. Only continue if it already contains real
+outer transparency and opaque white drawing fills. For an accepted course image
+already at 1024 × 1024, encode without resizing:
+
+```bash
+identify -format '%f %wx%h %[channels] opaque=%[opaque]\n' \
+  .tmp/illustration-sources/course-learning-light.png
+
+convert .tmp/illustration-sources/course-learning-light.png \
+  -define webp:lossless=true \
+  .tmp/illustration-sources/course-learning-light.webp
+
+identify -format '%f %wx%h %[channels] opaque=%[opaque]\n' \
+  .tmp/illustration-sources/course-learning-light.webp
+```
+
+If an otherwise accepted source needs the declared canvas size, use proportional
+resizing and transparent padding. Do not use `!`, which can stretch the drawing:
+
+```bash
+convert .tmp/illustration-sources/course-learning-light.png \
+  -background none -resize 1024x1024 -gravity center -extent 1024x1024 \
+  -define webp:lossless=true \
+  .tmp/illustration-sources/course-learning-light.webp
+```
+
+Lossless encoding avoids compression loss; resizing still resamples pixels.
+Recheck the dimensions, alpha and actual page-edge previews after sizing. Copy
+the reviewed WebP to its final static path only after those checks pass. Apply
+the same encoding to the separately generated dark PNG; never derive its colors
+or alpha from the light bitmap.
+
+For an externally supplied image with excess transparent margins, trim from the
+local copy and encode as lossless WebP:
 
 ```bash
 magick .tmp/illustration-sources/new-step.png \
   -alpha on -background none -fuzz 5% -trim +repage \
+  -define webp:lossless=true \
   core/static/core/illustrations/home-new-step.webp
 ```
 
