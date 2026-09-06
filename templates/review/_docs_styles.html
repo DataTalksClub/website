@@ -130,8 +130,18 @@
    with its pages as inline text links rather than a full row apiece -- the
    hub stays a bounded catalogue of collections, not a flattened dump of every
    page underneath them. */
+/* Every one of those inline links is still a pointer target, so it carries the
+   24px minimum of WCAG 2.5.8 rather than the 18px its 0.88rem text box gives it.
+   The row's line height grows past that minimum so a wrapped second line of
+   links never overlaps the first. */
+.docs-row-links {
+  line-height: 1.75rem;
+}
+
 .docs-row-links a {
   color: var(--indigo);
+  display: inline-block;
+  min-height: 1.5rem;
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
