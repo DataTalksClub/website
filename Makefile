@@ -10,6 +10,8 @@
 	production-prep-course-registry production-prep-course-sources production-prep-dataset \
 	production-prep-dataset-verify run-production-prep-dataset \
 	import-legacy-zoomcamp import-events \
+	import-public-content import-faq import-docs import-sponsors import-testimonials \
+	import-editorial-content production-prep-bootstrap \
 	terraform-seo-source-check check-openapi check-management-parity \
 	database-portability-check verify-dtc-content review-data review-data-dry-run \
 	review-data-cleanup run-review-data verification-plan verification-run verification-full \
@@ -413,7 +415,7 @@ production-prep-local:
 		--course-checkout-root "$(PRODUCTION_PREP_COURSE_SOURCE_DIR)" \
 		$(if $(PRODUCTION_PREP_CURRENT_REGISTRATION_INPUT),--current-registration-input "$(PRODUCTION_PREP_CURRENT_REGISTRATION_INPUT)",) \
 		$(if $(PRODUCTION_PREP_CMP_SOURCE),--cmp-source-db "$(PRODUCTION_PREP_CMP_SOURCE)",) \
-		$(if $(PRODUCTION_PREP_FRESH),--fresh,)
+		$(if $(PRODUCTION_PREP_FRESH),--fresh,) $(PRODUCTION_PREP_LOCAL_ARGS)
 
 # One command that rebuilds the whole local dataset from its sources. See
 # _docs/runbooks/local-course-modules-preparation.md for prerequisites.
@@ -489,6 +491,78 @@ import-events:
 		--database "$(IMPORT_DATABASE)" \
 		$(if $(IMPORT_EVENTS_REGISTRATION_INPUT),--current-registration-input "$(IMPORT_EVENTS_REGISTRATION_INPUT)",) \
 		$(IMPORT_EVENTS_ARGS)
+
+# Step 4 of the documented bootstrap order: the reviewed one-time editorial
+# inputs under temporary/content/. All five bootstrap an empty database, none
+# depends on another, and every one is replay-safe -- the three catalogue
+# importers write and activate a fresh release, the other two key each row on
+# its natural key and report `replayed`.
+import-public-content:
+	uv run --frozen python scripts/prod/import_public_content.py \
+		--database "$(IMPORT_DATABASE)" $(IMPORT_PUBLIC_CONTENT_ARGS)
+
+import-faq:
+	uv run --frozen python scripts/prod/import_faq.py \
+		--database "$(IMPORT_DATABASE)" $(IMPORT_FAQ_ARGS)
+
+import-docs:
+	uv run --frozen python scripts/prod/import_docs.py \
+		--database "$(IMPORT_DATABASE)" $(IMPORT_DOCS_ARGS)
+
+import-sponsors:
+	uv run --frozen python scripts/prod/import_sponsors.py \
+		--database "$(IMPORT_DATABASE)" $(IMPORT_SPONSORS_ARGS)
+
+import-testimonials:
+	uv run --frozen python scripts/prod/import_testimonials.py \
+		--database "$(IMPORT_DATABASE)" $(IMPORT_TESTIMONIALS_ARGS)
+
+# The whole of step 4, for a database built by something other than
+# `scripts/prepare_local_data.py` (which runs the same five itself). Recipe
+# lines rather than prerequisites, so `make -j` cannot interleave five writers
+# on one SQLite file.
+import-editorial-content:
+	$(MAKE) import-public-content IMPORT_DATABASE="$(IMPORT_DATABASE)"
+	$(MAKE) import-faq IMPORT_DATABASE="$(IMPORT_DATABASE)"
+	$(MAKE) import-docs IMPORT_DATABASE="$(IMPORT_DATABASE)"
+	$(MAKE) import-sponsors IMPORT_DATABASE="$(IMPORT_DATABASE)"
+	$(MAKE) import-testimonials IMPORT_DATABASE="$(IMPORT_DATABASE)"
+
+# One command for the whole documented bootstrap order
+# (_docs/runbooks/data-ingest.md §11), from an empty directory to a verified
+# database. `production-prep-dataset` above is the same run without §11 step 3's
+# first leg, the pre-2024 Zoomcamp history, which needs a separate checkout and
+# takes about 35 minutes.
+#
+# Steps 1-5 only. Step 6 -- `import_event_registrants` and the Mailchimp
+# importers -- reads attendee-level personal data and provider credentials, so
+# it stays a deliberate, separately invoked run rather than something a
+# rebuild does on its way past.
+production-prep-bootstrap:
+	@if test -n "$(LEGACY_ZOOMCAMP_SOURCE)" && ! test -d "$(LEGACY_ZOOMCAMP_SOURCE)"; then \
+		echo "LEGACY_ZOOMCAMP_SOURCE=$(LEGACY_ZOOMCAMP_SOURCE) is not a checkout." >&2; \
+		echo "Clone DataTalksClub/zoomcamp-scoring and point LEGACY_ZOOMCAMP_SOURCE at it," >&2; \
+		echo "or set it empty to skip the pre-2024 editions deliberately." >&2; \
+		exit 2; \
+	fi
+	rm -f "$(PRODUCTION_PREP_DATASET_DATABASE)" \
+		"$(PRODUCTION_PREP_DATASET_DATABASE)-shm" \
+		"$(PRODUCTION_PREP_DATASET_DATABASE)-wal"
+	$(MAKE) production-prep-course-sources
+	@if test -n "$(LEGACY_ZOOMCAMP_SOURCE)"; then \
+		echo "$(MAKE) import-legacy-zoomcamp"; \
+		$(MAKE) import-legacy-zoomcamp \
+			IMPORT_DATABASE="$(PRODUCTION_PREP_DATASET_DATABASE)"; \
+	else \
+		echo "skipping the pre-2024 Zoomcamp history: LEGACY_ZOOMCAMP_SOURCE is empty"; \
+	fi
+	$(MAKE) production-prep-local \
+		PRODUCTION_PREP_DATABASE="$(PRODUCTION_PREP_DATASET_DATABASE)" \
+		PRODUCTION_PREP_COURSE_SOURCE_DIR="$(PRODUCTION_PREP_COURSE_SOURCE_DIR)" \
+		PRODUCTION_PREP_CURRENT_REGISTRATION_INPUT="$(PRODUCTION_PREP_DATASET_REGISTRATION_INPUT)" \
+		PRODUCTION_PREP_LOCAL_ARGS="$(PRODUCTION_PREP_LOCAL_ARGS)"
+	$(MAKE) import-events IMPORT_DATABASE="$(PRODUCTION_PREP_DATASET_DATABASE)"
+	$(MAKE) production-prep-dataset-verify
 
 run-production-prep-dataset:
 	DTC_ENVIRONMENT=local \
