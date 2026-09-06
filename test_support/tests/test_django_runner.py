@@ -12,7 +12,11 @@ from test_support.django_runner import (
     ResilientRemoteTestResult,
     ResilientRemoteTestRunner,
 )
-from test_support.parallel_failures import UnpicklableFailure, picklable_exc_info
+from test_support.parallel_failures import (
+    UnpicklableAssertionFailure,
+    UnpicklableFailure,
+    picklable_exc_info,
+)
 
 
 class Unshippable(AssertionError):
@@ -20,6 +24,13 @@ class Unshippable(AssertionError):
 
     def __reduce__(self) -> tuple[object, ...]:
         raise TypeError("cannot pickle 'Unshippable' object")
+
+
+class UnshippableRuntime(RuntimeError):
+    """Unpicklable, and not an assertion, so it must stay an error."""
+
+    def __reduce__(self) -> tuple[object, ...]:
+        raise TypeError("cannot pickle 'UnshippableRuntime' object")
 
 
 def _exc_info(exception: BaseException) -> tuple[type[BaseException], BaseException, object]:
@@ -40,13 +51,21 @@ class PicklableExcInfoTests(SimpleTestCase):
 
         replacement = picklable_exc_info("suite.Case.test_one", err)
 
-        self.assertIs(replacement[0], UnpicklableFailure)
+        self.assertIs(replacement[0], UnpicklableAssertionFailure)
         self.assertIsNone(replacement[2])
         message = str(replacement[1])
         self.assertIn("suite.Case.test_one", message)
         self.assertIn("the real assertion nobody could read", message)
         self.assertIn("Traceback (most recent call last)", message)
         self.assertIn("test_support/tests/test_django_runner.py", message)
+
+    def test_an_assertion_stays_a_failure_and_anything_else_stays_an_error(self) -> None:
+        assertion = picklable_exc_info("suite.Case.test_one", _exc_info(Unshippable("no")))
+        other = picklable_exc_info("suite.Case.test_two", _exc_info(UnshippableRuntime("no")))
+
+        self.assertTrue(issubclass(assertion[0], AssertionError))
+        self.assertFalse(issubclass(other[0], AssertionError))
+        self.assertIs(other[0], UnpicklableFailure)
 
     def test_the_replacement_survives_a_pickle_round_trip(self) -> None:
         replacement = picklable_exc_info(

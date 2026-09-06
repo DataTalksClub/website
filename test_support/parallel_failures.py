@@ -26,10 +26,19 @@ ExcInfo = tuple[type[BaseException], BaseException, TracebackType | None]
 
 
 class UnpicklableFailure(Exception):
-    """A worker failure rendered as text because its ``exc_info`` would not pickle.
+    """A worker error rendered as text because its ``exc_info`` would not pickle.
 
     Takes exactly one already-formatted argument so that the default
     ``Exception`` pickling round-trips it.
+    """
+
+
+class UnpicklableAssertionFailure(UnpicklableFailure, AssertionError):
+    """The same stand-in for an assertion, so it still counts as a failure.
+
+    ``TestResult.addSubTest`` decides between the failure and the error list by
+    asking whether the exception is the test's ``failureException``.  A subtest
+    that failed an assertion has to keep saying so after the round trip.
     """
 
 
@@ -61,6 +70,10 @@ def picklable_exc_info(test: object, err: ExcInfo) -> ExcInfo:
         pickle.loads(pickle.dumps(err))
     except Exception as pickle_error:
         message = format_unpicklable_failure(test, err, pickle_error)
-        return (UnpicklableFailure, UnpicklableFailure(message), None)
+        stand_in = (
+            UnpicklableAssertionFailure
+            if issubclass(err[0], AssertionError)
+            else UnpicklableFailure
+        )
+        return (stand_in, stand_in(message), None)
     return err
-
