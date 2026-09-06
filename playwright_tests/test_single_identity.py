@@ -212,7 +212,10 @@ def test_returning_learner_keeps_one_account_across_site_and_courses(
     account_menu = page.locator(".user-menu-panel")
     expect(account_menu.get_by_role("link", name="Courses", exact=True)).to_have_count(0)
     expect(account_menu.get_by_role("link", name="Account settings")).to_be_visible()
-    expect(account_menu.get_by_role("link", name="Login connections")).to_be_visible()
+    # One account destination: sign-in methods are a section of account settings,
+    # not a second menu entry to their own page.  accounts/tests/test_single_identity.py
+    # and playwright_tests/test_account_preferences.py hold the same contract.
+    expect(account_menu.get_by_role("link", name="Login connections")).to_have_count(0)
     expect(account_menu.get_by_role("link", name="Studio", exact=True)).to_have_count(0)
     page.screenshot(
         path=_screenshot_path("learner-account-menu", viewport),
