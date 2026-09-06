@@ -17,6 +17,15 @@ failure mode this importer actually has.  A single cohort with no questions is n
 ``ml-zoomcamp-2026`` has nine homework rows and no authored questions in the production
 export -- so that is reported rather than failed.  No questions anywhere is not normal.
 
+**The editorial catalogue is checked the same way, and for the same reason.**  Step 4 of
+the bootstrap order in ``_docs/runbooks/data-ingest.md`` §11 -- the blog, the podcast, the
+book archive, the profiles, the wiki, the documentation, the FAQ, the sponsor directory
+and the homepage testimonials -- used to be invisible here, so a database that never ran
+those importers passed this gate while serving an empty site.  Each kind is asserted
+present rather than pinned to a count: the importers themselves refuse a reviewed file
+whose declared counts or digests do not match, so what this gate is for is the importer
+that never ran at all, and a count frozen here would only fail later for being right.
+
 Every check is aggregate-only.  Nothing here reads or prints learner data.
 """
 
@@ -55,6 +64,22 @@ EXPECTED_MODULE_CURRICULA = {
 }
 # Upstream test rows that must never reach a public catalogue.
 FORBIDDEN_COHORT_SLUGS = ("fake-course", "fake-course-2")
+# The published collections step 4 of the bootstrap order fills, and the reader
+# each one is counted through -- the same read a public request makes, so a
+# document that was written but never published or activated counts as absent
+# here exactly as it does on the page.  ``media`` is in the same release and is
+# checked with them; ``courses`` is not, because the catalogue's course records
+# are ballast that no view reads.
+EXPECTED_EDITORIAL_COLLECTIONS = (
+    "articles",
+    "podcasts",
+    "books",
+    "people",
+    "wiki",
+    "media",
+    "docs",
+    "faq",
+)
 
 
 def _configure(database: Path) -> None:
@@ -157,6 +182,56 @@ def _content_report() -> dict[str, Any]:
     }
 
 
+def _editorial_content_report() -> dict[str, Any]:
+    """What the editorial catalogue publishes, counted through the public readers.
+
+    ``content.catalogue`` resolves the active release of ``dtc-public-content``;
+    ``docs_pages`` and ``faq_courses`` do the same for their own sources.  Reading
+    them rather than counting ``ContentDocument`` rows directly matters, because a
+    re-run writes and activates a *new* release and leaves the superseded one in
+    place: after two imports the table holds 4,406 rows and the site still serves
+    2,203.  The row totals are reported for context and nothing is failed on them.
+
+    Sponsors and testimonials are the other two step-4 importers.  They write
+    ``core.Sponsor`` and ``courses.Testimonial`` rather than documents, so they are
+    counted from their own models, but they fail for the same reason: a homepage
+    with no member stories and a directory with no supporters is an importer that
+    never ran.
+    """
+
+    from content import catalogue
+    from content.docs_projection import docs_pages
+    from content.faq_data import faq_courses
+    from content.models import ContentAsset, ContentDocument, ContentSource
+    from core.models import Sponsor
+    from courses.models import Testimonial
+
+    faq = faq_courses()
+    published = {
+        "articles": len(catalogue.articles()),
+        "podcasts": len(catalogue.podcasts()),
+        "books": len(catalogue.books()),
+        "people": len(catalogue.people()),
+        "wiki": len(catalogue.wiki_pages()),
+        "media": len(catalogue.media()),
+        "docs": len(docs_pages()),
+        "faq": len(faq),
+    }
+    return {
+        "published_records": published,
+        "empty_collections": [
+            name for name in EXPECTED_EDITORIAL_COLLECTIONS if not published.get(name)
+        ],
+        "faq_section_total": sum(len(course.get("sections", ())) for course in faq),
+        "active_catalogue_release": catalogue.active_release_id(),
+        "content_source_total": ContentSource.objects.count(),
+        "content_document_total": ContentDocument.objects.count(),
+        "content_asset_total": ContentAsset.objects.count(),
+        "sponsor_total": Sponsor.objects.count(),
+        "testimonial_total": Testimonial.objects.count(),
+    }
+
+
 def _event_report() -> dict[str, Any]:
     from django.utils import timezone
 
@@ -218,6 +293,35 @@ def _failures(report: dict[str, Any]) -> list[str]:
         failures.append(
             "homework exists but no question was imported, so the CMP import wrote nothing"
         )
+    failures.extend(_editorial_failures(report["editorial"]))
+    return failures
+
+
+def _editorial_failures(editorial: dict[str, Any]) -> list[str]:
+    """Step 4 of the bootstrap order, or the absence of it.
+
+    A missing collection means the site serves an empty blog, podcast, wiki,
+    documentation tree or FAQ, which is the exact shape a database has when
+    nothing ran ``scripts/prod/import_public_content.py``, ``import_faq.py`` or
+    ``import_docs.py``.  It is reported per importer, so the failure names the
+    command to run rather than a count to go and look up.
+    """
+
+    failures: list[str] = []
+    if editorial["empty_collections"]:
+        failures.append(
+            "editorial catalogue publishes nothing for "
+            f"{editorial['empty_collections']}: run the step 4 importers "
+            "(make import-editorial-content)"
+        )
+    if not editorial["content_asset_total"]:
+        failures.append("no content assets, so scripts/prod/import_docs.py never ran")
+    if not editorial["faq_section_total"]:
+        failures.append("no FAQ sections, so scripts/prod/import_faq.py never ran")
+    if not editorial["sponsor_total"]:
+        failures.append("no sponsors, so scripts/prod/import_sponsors.py never ran")
+    if not editorial["testimonial_total"]:
+        failures.append("no testimonials, so scripts/prod/import_testimonials.py never ran")
     return failures
 
 
@@ -236,6 +340,7 @@ def main(argv: list[str] | None = None) -> int:
         "database": str(args.database.resolve()),
         "courses": _cohort_report(),
         "content": _content_report(),
+        "editorial": _editorial_content_report(),
         "events": _event_report(),
     }
     failures = _failures(report)
