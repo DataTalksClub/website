@@ -15,6 +15,11 @@ below pass. A plausible-looking preview is not sufficient.
 | Light | `course-learning.webp` | 1024 × 1024 |
 | Dark | `course-learning-dark.webp` | 1024 × 1024 |
 
+Every pass must attach actual reference images through the built-in imagegen
+tool. Do not rely on filenames in prompt text and do not use an API key.
+Create and accept the light version first, then tune that light version for dark
+mode through a separate imagegen pass.
+
 Use `home-step-2.webp` as the drawing-style reference for the first light pass.
 The historical subject reference is the robot in
 `DataTalksClub/datatalksclub.github.io:images/courses/zoomcamp.jpg`.
