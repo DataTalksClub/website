@@ -288,40 +288,45 @@ test-migrations:
 		test_support.tests.test_migrations \
 		content.tests.test_editorial_route_migration_contract
 
+# Every local browser tier runs the environment the CI playwright and screenshots
+# jobs declare.  The checkout carries no projection media objects, so `/images/...`
+# reads them from the deterministic offline fixture store; on the default `local`
+# backend every recorded object fails closed with a 502 and the browser harness
+# reports it as a console error.  An operator who has hydrated the local tree can
+# still ask for the real artwork by exporting the variable.
+PLAYWRIGHT_ENV = DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
+	DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \
+	PUBLIC_MEDIA_STORE_BACKEND="$${PUBLIC_MEDIA_STORE_BACKEND:-memory}"
+
 test-playwright-core:
-	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
-		DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \
+	$(PLAYWRIGHT_ENV) \
 		uv run --frozen pytest playwright_tests \
 		-p ci.playwright_flake_policy \
 		-o faulthandler_timeout=120 \
 		-m 'core and not quarantine and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v
 
 test-playwright-smoke:
-	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
-		DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \
+	$(PLAYWRIGHT_ENV) \
 		timeout --foreground --signal=TERM --kill-after=30s 600s uv run --frozen pytest playwright_tests \
 		-p ci.playwright_flake_policy \
 		-o faulthandler_timeout=120 \
 		-m 'smoke and not quarantine and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v
 
 test-playwright:
-	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
-		DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \
+	$(PLAYWRIGHT_ENV) \
 		uv run --frozen pytest playwright_tests \
 		-p ci.playwright_flake_policy \
 		-o faulthandler_timeout=120 \
 		-m '(smoke or core or full) and not quarantine and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v
 
 test-playwright-quarantined:
-	set +e; DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
-		DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \
+	set +e; $(PLAYWRIGHT_ENV) \
 		uv run --frozen pytest playwright_tests -p ci.playwright_flake_policy \
 		-o faulthandler_timeout=120 \
 		-m 'quarantine and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v; \
 	status=$$?; if [ "$$status" -eq 5 ]; then exit 0; fi; exit "$$status"
 test-accessibility:
-	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
-		DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \
+	$(PLAYWRIGHT_ENV) \
 		uv run --frozen pytest playwright_tests/test_accessibility.py \
 		-o faulthandler_timeout=120 \
 		-m 'accessibility and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v
