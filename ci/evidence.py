@@ -92,7 +92,11 @@ MAKE_DIRECTORY_RE = re.compile(r"^make(?:\[[0-9]+\])?: (?:Entering|Leaving) dire
 DJANGO_DATABASE_TEARDOWN_RE = re.compile(r"^Destroying test database for alias .+$")
 UNITTEST_RAN_RE = re.compile(r"^Ran (?P<count>[0-9]+) tests? in ", re.MULTILINE)
 UNITTEST_SKIPPED_RE = re.compile(r"skipped=(?P<count>[0-9]+)")
-UNITTEST_FAILURE_RE = re.compile(r"(?:failures|errors)=(?P<count>[0-9]+)")
+# ``expected failures=N`` appears inside a PASSING run's "OK (...)" summary, and
+# ``unexpected successes=N`` inside a failing one. Only unqualified ``failures=``
+# and ``errors=`` count: a declared expected failure is a green outcome, and
+# counting it made a passing Django suite report a failed test.
+UNITTEST_FAILURE_RE = re.compile(r"(?<!expected )(?:failures|errors)=(?P<count>[0-9]+)")
 TRUSTED_CI_JOB_COMPONENTS = {
     "classification": frozenset({"selector"}),
     "container": frozenset({"container"}),

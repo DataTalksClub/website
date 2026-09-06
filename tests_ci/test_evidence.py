@@ -1081,3 +1081,71 @@ def test_screenshot_reuse_requires_independent_inspection_and_exact_render_diges
         now=datetime(2026, 8, 9, 13, tzinfo=UTC),
     )
     assert chosen is None and reason == "render_inputs_changed"
+
+
+def test_a_declared_expected_failure_is_not_counted_as_a_failed_test(
+    tmp_path: Path,
+) -> None:
+    """Django reports expected failures inside a PASSING run's own OK summary.
+
+    ``OK (skipped=17, expected failures=1)`` is a green suite.  Counting the
+    ``failures=1`` inside it recorded a failed test for a passing run, and
+    ``build_envelope`` then refused the whole component with "successful
+    evidence cannot contain failed outcomes" -- so a single ``@expectedFailure``
+    anywhere in the tree made the django job unable to produce valid evidence.
+    """
+
+    _repository, plan = plan_for_api(tmp_path)
+    root = tmp_path / "evidence"
+    root.mkdir()
+    output_path = root / "django-output.log"
+    output_path.write_text(
+        "Ran 3589 tests in 416.806s\n\nOK (skipped=17, expected failures=1)\n",
+        encoding="utf-8",
+    )
+    records = artifact_records((output_path,), root=root)
+    output = machine_output_claim(
+        output_path,
+        root=root,
+        component="django",
+        plan=plan,
+        result="success",
+    )
+    envelope = build_envelope(
+        plan=plan,
+        component="django",
+        result="success",
+        origin=local_origin(),
+        command=plan["components"]["django"]["command"],
+        execution_environment=plan["components"]["django"]["environment"],
+        artifacts=records,
+        machine_output=output,
+        completed_at=datetime(2026, 8, 9, 12, tzinfo=UTC),
+    )
+    assert {key: envelope["counts"][key] for key in ("tests", "passed", "failed", "skipped")} == {
+        "tests": 3589,
+        "passed": 3572,
+        "failed": 0,
+        "skipped": 17,
+    }
+
+
+def test_a_real_unittest_failure_is_still_counted(tmp_path: Path) -> None:
+    """The expected-failure carve-out must not blind the parser to real ones."""
+
+    _repository, plan = plan_for_api(tmp_path)
+    root = tmp_path / "evidence"
+    root.mkdir()
+    output_path = root / "django-output.log"
+    output_path.write_text(
+        "Ran 10 tests in 1.0s\n\nFAILED (failures=2, errors=1, expected failures=3)\n",
+        encoding="utf-8",
+    )
+    output = machine_output_claim(
+        output_path,
+        root=root,
+        component="django",
+        plan=plan,
+        result="failure",
+    )
+    assert output["counts"]["failed"] == 3
