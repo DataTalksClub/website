@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
+from content.catalogue import PUBLIC_CONTENT_STABLE_ID
 from content.models import (
     LEGACY_PUBLIC_CONTRACT_DIGEST,
     ActiveContentPath,
@@ -15,6 +16,7 @@ from content.models import (
     ContentDocument,
     ContentRelation,
     ContentRelease,
+    ContentSource,
 )
 from content.services import (
     ActivateContentRelease,
@@ -57,6 +59,33 @@ def _resolve_person(key: str) -> str:
 
 
 class DtcContentPreparationTests(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self._retire_the_one_time_editorial_import()
+
+    @staticmethod
+    def _retire_the_one_time_editorial_import() -> None:
+        """Hand DataTalksClub/content back to the sync contract under test.
+
+        The reviewed editorial catalogue is ingested once, before this sync
+        exists, under its own ``dtc-public-content`` source -- and that source
+        holds the repository and branch this contract owns.
+        ``content_source_repo_branch_uq`` allows one source per repository and
+        branch, so the one-time import has to be retired before the sync source
+        can be created. That is the cutover the sync is for, performed here in a
+        transaction the test rolls back.
+        """
+
+        placeholder = {"stable_id": PUBLIC_CONTENT_STABLE_ID}
+        ActiveContentPath.objects.filter(source__stable_id=PUBLIC_CONTENT_STABLE_ID).delete()
+        ContentSource.objects.filter(**placeholder).update(active_release=None)
+        # Newest first: a release protects the one it was based on.
+        for release in ContentRelease.objects.filter(
+            source__stable_id=PUBLIC_CONTENT_STABLE_ID
+        ).order_by("-sequence"):
+            release.delete()
+        ContentSource.objects.filter(**placeholder).delete()
+
     def _source(self, *, enabled: bool = True):
         return create_content_source(
             DTC_CONTENT_CONTRACT.create_source_command(enabled=enabled),
@@ -96,10 +125,15 @@ class DtcContentPreparationTests(TestCase):
         self.assertEqual(first.release.document_count, 5)
         self.assertEqual(first.release.relation_count, 5)
         self.assertEqual(first.release.asset_count, 7)
-        self.assertEqual(ContentRelease.objects.count(), 1)
-        self.assertEqual(ContentDocument.objects.count(), 5)
-        self.assertEqual(ContentRelation.objects.count(), 5)
-        self.assertEqual(ContentAsset.objects.count(), 7)
+        # Scoped to this source: the reviewed documentation and course FAQ are
+        # ingested under sources of their own, and neither is this contract's.
+        self.assertEqual(ContentRelease.objects.filter(source=source).count(), 1)
+        self.assertEqual(ContentDocument.objects.filter(release__source=source).count(), 5)
+        self.assertEqual(
+            ContentRelation.objects.filter(source_document__release__source=source).count(),
+            5,
+        )
+        self.assertEqual(ContentAsset.objects.filter(release__source=source).count(), 7)
         self.assertEqual(AuditEvent.objects.count(), audit_count)
         transcript = ContentDocument.objects.get(content_kind="podcast_transcript")
         self.assertIsNone(transcript.exact_public_path)
@@ -179,7 +213,9 @@ class DtcContentPreparationTests(TestCase):
         source.refresh_from_db()
         self.assertEqual(source.active_release_id, second.release.id)
         self.assertEqual(
-            set(ActiveContentPath.objects.values_list("release_id", flat=True)),
+            set(
+                ActiveContentPath.objects.filter(source=source).values_list("release_id", flat=True)
+            ),
             {second.release.id},
         )
         self.assertEqual(
@@ -203,7 +239,9 @@ class DtcContentPreparationTests(TestCase):
         source.refresh_from_db()
         self.assertEqual(source.active_release_id, first.release.id)
         self.assertEqual(
-            set(ActiveContentPath.objects.values_list("release_id", flat=True)),
+            set(
+                ActiveContentPath.objects.filter(source=source).values_list("release_id", flat=True)
+            ),
             {first.release.id},
         )
         self.assertEqual(
