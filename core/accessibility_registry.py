@@ -136,14 +136,16 @@ CRITICAL_STATES = (
     _state("studio.audit-denied", "management", None, STUDIO_TEST, contract=True),
     _state("historical.list", "historical", "historical-list", HISTORICAL_TEST, core=True),
     _state("historical.detail", "historical", "historical-detail", HISTORICAL_TEST),
-    _state("historical.mapping", "historical", "historical-mappings", HISTORICAL_TEST),
     _state("historical.validation-success", "historical", "historical-detail", HISTORICAL_TEST),
-    _state("historical.exclusion", "historical", "historical-detail", HISTORICAL_TEST),
-    _state("historical.source-missing", "historical", "historical-mappings", HISTORICAL_TEST),
+    # The mapping review page is gone: staging resolves an aggregate to its event
+    # through the embedded registry bridge, so there is no page on which to decide
+    # mapped/excluded, no source-missing display, and no stale mapping revision to
+    # conflict with.  "historical.mapping", "historical.source-missing",
+    # "historical.exclusion" and "historical.stale-revision" named those four, and
+    # two of them named a "historical-mappings" surface that no longer resolves.
     _state(
         "historical.unsupported-quarantined", "historical", "historical-detail", HISTORICAL_TEST
     ),
-    _state("historical.stale-revision", "historical", "historical-detail", HISTORICAL_TEST),
     _state("historical.overlap-conflict", "historical", "historical-detail", HISTORICAL_TEST),
     _state("historical.activation-preview", "historical", "historical-detail", HISTORICAL_TEST),
     _state("historical.rollback", "historical", "historical-detail", HISTORICAL_TEST),
