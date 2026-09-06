@@ -5,10 +5,16 @@ from typing import Any
 from django.conf import settings
 from django.db import connections
 from django.db.backends.sqlite3.creation import DatabaseCreation
-from django.test.runner import DiscoverRunner
+from django.test.runner import (
+    DiscoverRunner,
+    ParallelTestSuite,
+    RemoteTestResult,
+    RemoteTestRunner,
+)
 
 from .email_backend import SYNTHETIC_EMAIL_BACKEND, reset_capture_mailbox
 from .network import NetworkGuard
+from .parallel_failures import ExcInfo, picklable_exc_info
 from .reference_data import load_reviewed_reference_data
 from .runtime import TestRuntime, TestRuntimeSafetyError
 
@@ -25,9 +31,43 @@ class IsolatedSQLiteCreation(DatabaseCreation):
         }
 
 
+class ResilientRemoteTestResult(RemoteTestResult):
+    """Never let an unpicklable failure take the whole parallel run down.
+
+    Django ships each worker failure to the main process as a pickled
+    ``exc_info`` triple and re-raises whatever pickling error it hits, which
+    aborts every remaining test and prints no assertion.  Replacing the triple
+    with formatted text first means the run reports the failing test and its
+    traceback and carries on to the next one.
+    """
+
+    def addError(self, test: Any, err: ExcInfo) -> None:
+        super().addError(test, picklable_exc_info(test, err))
+
+    def addFailure(self, test: Any, err: ExcInfo) -> None:
+        super().addFailure(test, picklable_exc_info(test, err))
+
+    def addExpectedFailure(self, test: Any, err: ExcInfo) -> None:
+        super().addExpectedFailure(test, picklable_exc_info(test, err))
+
+    def addSubTest(self, test: Any, subtest: Any, err: ExcInfo | None) -> None:
+        if err is not None:
+            err = picklable_exc_info(test, err)
+        super().addSubTest(test, subtest, err)
+
+
+class ResilientRemoteTestRunner(RemoteTestRunner):
+    resultclass = ResilientRemoteTestResult
+
+
+class ResilientParallelTestSuite(ParallelTestSuite):
+    runner_class = ResilientRemoteTestRunner
+
+
 class IsolatedDiscoverRunner(DiscoverRunner):
     """Django runner with owned SQLite clones and default external-network denial."""
 
+    parallel_test_suite = ResilientParallelTestSuite
     _network_guard: NetworkGuard | None = None
 
     def setup_test_environment(self, **kwargs: Any) -> None:
