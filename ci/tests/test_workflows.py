@@ -164,6 +164,14 @@ def test_selected_django_always_uses_fresh_sqlite_and_validated_closed_runner() 
     assert contract_step["working-directory"] == ".tmp/ci-controller"
 
 
+# Release-consuming jobs that are deliberately hard-disabled rather than gated.
+# `auto-capture-prior` is the legacy production capture path; application delivery moved to
+# deploy-dev.yml and production promotion is manual-only in deploy-prod.yml, so a push to main
+# must never reach it. Naming it here keeps the "off" deliberate and reviewed instead of
+# letting any release job silently opt out of the aggregate gate.
+PERMANENTLY_DISABLED_RELEASE_JOBS = frozenset({"auto-capture-prior"})
+
+
 def test_aggregate_gate_is_the_release_dependency() -> None:
     jobs = workflow("ci.yml")["jobs"]
     gate = jobs["ci-gate"]
@@ -192,8 +200,21 @@ def test_aggregate_gate_is_the_release_dependency() -> None:
     assert '--expected-source-before-sha "$EVENT_BEFORE"' in gate_script
     assert '--expected-selection-sha256 "$SELECTION_SHA256"' in gate_script
     for name in ("auto-capture-prior", "publish", "deploy"):
-        assert "ci-gate" in jobs[name]["needs"]
-        assert "needs.ci-gate.result == 'success'" in jobs[name]["if"]
+        assert "ci-gate" in jobs[name]["needs"], (
+            f"{name} consumes the release and must depend on the aggregate gate"
+        )
+        if name in PERMANENTLY_DISABLED_RELEASE_JOBS:
+            # Hard-disabled is strictly stronger than gated: the job cannot start at all.
+            # It still has to declare the dependency so re-enabling it inherits the gate,
+            # and it has to stay disabled literally -- a condition that merely looks
+            # disabled, or one that is quietly restored, fails here.
+            assert jobs[name]["if"].strip() == "${{ false }}", (
+                f"{name} is recorded as permanently disabled; re-enabling it is a release "
+                "decision that must update PERMANENTLY_DISABLED_RELEASE_JOBS and restore an "
+                "explicit needs.ci-gate.result == 'success' condition"
+            )
+        else:
+            assert "needs.ci-gate.result == 'success'" in jobs[name]["if"]
     playwright = jobs["playwright"]
     assert set(playwright["needs"]) == {"resolve-release", "classification"}
     assert playwright["timeout-minutes"] == "60"
