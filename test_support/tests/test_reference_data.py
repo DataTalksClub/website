@@ -9,8 +9,10 @@ fails with an empty page instead of a missing fixture.
 
 from __future__ import annotations
 
+from typing import cast
 from unittest.mock import patch
 
+from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.sqlite3.creation import DatabaseCreation
 from django.test import SimpleTestCase, TestCase
 
@@ -25,7 +27,7 @@ class ReferenceDataLoadOrderTests(SimpleTestCase):
         order: list[str] = []
         # A connection is never used here, only held: ``BaseDatabaseCreation``
         # deletes the attribute in ``__del__`` and complains if it was absent.
-        creation = IsolatedSQLiteCreation(connection=None)
+        creation = IsolatedSQLiteCreation(connection=cast(BaseDatabaseWrapper, None))
 
         def create(*args: object, **kwargs: object) -> str:
             order.append("create")

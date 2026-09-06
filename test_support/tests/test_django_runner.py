@@ -13,6 +13,7 @@ from test_support.django_runner import (
     ResilientRemoteTestRunner,
 )
 from test_support.parallel_failures import (
+    ExcInfo,
     UnpicklableAssertionFailure,
     UnpicklableFailure,
     picklable_exc_info,
@@ -33,7 +34,7 @@ class UnshippableRuntime(RuntimeError):
         raise TypeError("cannot pickle 'UnshippableRuntime' object")
 
 
-def _exc_info(exception: BaseException) -> tuple[type[BaseException], BaseException, object]:
+def _exc_info(exception: BaseException) -> ExcInfo:
     try:
         raise exception
     except BaseException as raised:  # noqa: BLE001 - the triple is the subject
