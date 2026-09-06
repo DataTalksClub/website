@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from django.core.management import CommandError, call_command
-from django.test import SimpleTestCase
+from django.test import TestCase
 
 from content_sync.dtc_content.repository import (
     DtcContentCheckoutError,
@@ -61,7 +61,7 @@ def _initialize_checkout(root: Path) -> str:
     return _git(root, "rev-parse", "HEAD")
 
 
-class DtcContentRepositoryVerificationTests(SimpleTestCase):
+class DtcContentRepositoryVerificationTests(TestCase):
     def test_exact_clean_checkout_passes_without_executing_source_code(self) -> None:
         with fixture_checkout() as root:
             commit = _initialize_checkout(root)
