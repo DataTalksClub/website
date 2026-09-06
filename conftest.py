@@ -598,9 +598,12 @@ def django_db_setup(django_db_setup, django_db_blocker) -> None:
     event has to own those rows.  Loading exactly what the Django runner loads keeps
     both suites reading one set of rows, so their assertions cannot drift.
 
-    ``serialized_rollback`` restores each transactional test from the snapshot taken
-    inside ``create_test_db``, which is older than this load, so the snapshot is taken
-    again afterwards — the same correction the Django runner makes.
+    ``serialized_rollback`` restores each transactional test from the snapshot Django
+    takes inside ``create_test_db``, which is older than this load, so the snapshot is
+    taken again afterwards.  The Django runner needs no such step: it loads the rows
+    from inside ``IsolatedSQLiteCreation.create_test_db``, ahead of every clone and
+    the snapshot.  Only the runner can do that — the creation class is what it swaps
+    in, and ``django.test.utils.setup_databases`` uses the stock one.
     """
 
     from django.db import connections
