@@ -2537,19 +2537,11 @@ cheapest thing in this document and the most useful at 2am.
 | Step | Rehearsal command | Source substitution | Does it weaken the rehearsal? |
 | --- | --- | --- | --- |
 | 0 | `$TARGET uv run --frozen python manage.py migrate --no-input` | SQLite instead of Postgres | **Yes, mildly.** SQLite will not catch a Postgres-only constraint or collation problem. The uniqueness and FK checks still run. |
-<<<<<<< HEAD
 | 1 | `$TARGET make import-legacy-zoomcamp IMPORT_DATABASE=$REHEARSAL` | none — real `zoomcamp-scoring` clone | No |
 | 2 | `$TARGET make content-sources` → `content-checkouts` → `content-pull` | none — real repositories | No |
 | 3 | `$TARGET uv run … scripts/prod/import_cmp_content.py --database $REHEARSAL --source $EXPORT` | none — the real export, read in place | No |
 | 4 | `$TARGET uv run … scripts/prod/import_cmp_learners.py --database $REHEARSAL --source $EXPORT --claims-file …` then `… scripts/prod/import_cmp_learner_history.py --database $REHEARSAL --source $EXPORT --claims-dir … --user-claims-file …` | none — the real export, read in place | No — **verified end to end** on 2026-09-05: 20,469 accounts and 414,768 history rows in about two minutes, replay a no-op, SIGKILL-and-resume identical |
 | 5 | `$TARGET make import-events IMPORT_DATABASE=$REHEARSAL` | Luma/Eventbrite archives from `.local/migration-data` | No — **verified end to end**: 421 events, allocator at 422 |
-=======
-| 1 | `make import-legacy-zoomcamp IMPORT_DATABASE=$REHEARSAL` | none — real `zoomcamp-scoring` clone | No |
-| 2 | `make content-sources` → `content-checkouts` → `content-pull`, each with `CONTENT_DATABASE=$REHEARSAL` | none — real repositories | No |
-| 3 | `uv run … scripts/prod/import_cmp_content.py --database $REHEARSAL --source $EXPORT` | none — the real export, read in place | No |
-| 4 | **does not exist** — §11 A3 | — | The rehearsal cannot run at all until this exists |
-| 5 | `make import-events IMPORT_DATABASE=$REHEARSAL` | Luma/Eventbrite archives from `.local/migration-data` | No — **verified end to end**: 421 events, allocator at 422 |
->>>>>>> worktree-agent-a03fd3b4d03d08d78
 | 6 | `scripts/prod/sync_public_media_verify.py`, `manage.py check`, `python -m ci.content_update` | the committed projection instead of a rebuild | **Yes.** A full rebuild needs three pinned checkouts and is not reproducible today (#253). The rehearsal checks the artifacts, not the build. |
 | 7 | `scripts/prod/sync_public_media_hydrate.py` → `sync_public_media_publish.py` → `sync_public_media_verify.py` | a `local` store instead of `s3` | **Yes.** The rehearsal proves the counts and the incrementality, not the bucket |
 | 8 | `uv run … scripts/prod/import_testimonials.py --database $REHEARSAL` (sponsors: §11 B9) | none — the reviewed set is in this repository | No for testimonials; sponsors cannot be rehearsed yet |
