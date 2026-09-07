@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "description": "Recorded generation chain for the course-learning pair. Prompts are exact; generation is not deterministic. Raw images stay under ignored .tmp/. The initial opaque composition becomes a clean white source, then a keyed light source; dark is separately generated from the accepted finished light.",
+  "finishing": {
+    "script": "scripts/finish_illustration_key.py",
+    "transient_dependencies": {
+      "pillow": "12.3.0",
+      "numpy": "2.5.1",
+      "scipy": "1.18.1"
+    },
+    "light_parameters": {
+      "fringe_chroma": 12,
+      "solid_key_chroma": 100,
+      "fringe_radius": 20,
+      "size": 1024
+    },
+    "dark_parameters": {
+      "fringe_chroma": 12,
+      "solid_key_chroma": 100,
+      "fringe_radius": 20,
+      "size": 1024
+    }
+  },
+  "stages": [
+    {
+      "name": "white-light",
+      "tool": "image_gen.imagegen (built-in)",
+      "references": [
+        {
+          "artifact": ".tmp/illustration-sources/course-learning-native-light.png",
+          "sha256": "8a920b08018b7c4461b85230e21b312776eaa80971e89975e72f0ef8d10a280f"
+        },
+        {
+          "artifact": "core/static/core/illustrations/home-step-2.webp",
+          "sha256": "e51e4610490150ae78d5e01262dcd822e308f58662bf9872cb0dbabd181fa4b8"
+        }
+      ],
+      "prompt": "Edit reference 1, the course-learning robot. Keep the exact robot, pose, facial expression, open blank indigo book, both hands, green forearms, linework, size and central composition. Reference 2 is the approved website watercolor drawing style. Change only the outer background: replace every gray/white grid square with a perfectly uniform pure white #ffffff background. Keep one soft irregular pale lavender watercolor cloud behind the robot, fading softly to white. No grid pattern anywhere, no additional props, no lettering, no shadows or glow. Keep the entire antenna, book and hands visible with comfortable edge clearance. Square 1024x1024 canvas. This is the light-theme source illustration; preserve opaque warm-white face, hands and book pages. Output PNG.",
+      "raw_output": {
+        "artifact": ".tmp/illustration-sources/course-learning-white-light.png",
+        "sha256": "6b9ac00b06b59a20a8ab019c10dfa1d345604be10164c1c2c2a081eb1a088a85",
+        "format": "PNG",
+        "dimensions": [
+          1254,
+          1254
+        ],
+        "alpha": "opaque RGB"
+      }
+    },
+    {
+      "name": "key-light",
+      "tool": "image_gen.imagegen (built-in)",
+      "references": [
+        {
+          "artifact": ".tmp/illustration-sources/course-learning-white-light.png",
+          "sha256": "6b9ac00b06b59a20a8ab019c10dfa1d345604be10164c1c2c2a081eb1a088a85"
+        }
+      ],
+      "prompt": "Precise background edit of the attached accepted light-theme course illustration. Preserve the robot and the entire pale lilac watercolor blur as one artwork: exact pose, down-looking eyes, green arms, white face and hands, open blank indigo book, navy lines, watercolor texture, and cloud silhouette. The lilac blur IS ARTWORK and must remain. Change ONLY the outer white canvas around that blur to a perfectly flat uniform vivid magenta #ff00ff chroma-key background, absent from all artwork. No magenta tint/spill on robot or cloud. Keep natural soft irregular cloud boundaries, with the blur still lilac right up to its edges. All four canvas corners are solid magenta. No grid, checkerboard, text, extra elements, shadows, frame or white border. Keep full antenna, hands and book inside square canvas, same composition. This is still the light-theme illustration. Output PNG at 1024x1024.",
+      "raw_output": {
+        "artifact": ".tmp/illustration-sources/course-learning-key-light.png",
+        "sha256": "4b72ccb0738ac0413daeb5d7b8c0287c51b4048ce893a2bfe576151fd7774158",
+        "format": "PNG",
+        "dimensions": [
+          1254,
+          1254
+        ],
+        "alpha": "opaque RGB"
+      }
+    },
+    {
+      "name": "key-dark",
+      "tool": "image_gen.imagegen (built-in)",
+      "references": [
+        {
+          "artifact": "core/static/core/illustrations/course-learning.webp",
+          "sha256": "e69d680752baae0b0d2efc0c9edc5574586c6a26c3e715c4c04b58a356d17826"
+        }
+      ],
+      "prompt": "Create the DARK-THEME companion of the attached accepted light illustration for DataTalks.Club, using this exact reference as the composition anchor. Preserve the exact robot pose, looking-down eyes, entire antenna, both rounded hands, open blank book, proportions, crop, ink line weight and watercolor drawing style. Keep opaque warm-white face, hands and book pages; retain readable green arms and an indigo book, close to the light reference. Change the pale lilac watercolor cloud to a subdued dark indigo/lilac watercolor cloud in #30385f and #3e4778, appropriate for a navy website surface #13162a. The entire watercolor blur is ARTWORK: keep its organic cloud silhouette and painted texture. Its edge should be soft and irregular without any light rim, shine, halo or glow. No pale-lilac plate behind the robot in this dark version. Outside the cloud, use a perfectly uniform saturated magenta #ff00ff chroma-key backdrop with all corners magenta, no gradient and no magenta spill/tint in the drawing or cloud. Only the outer key will be removed later. No checkerboard, text, symbols, new props, or white rectangle. Square1024x1024 PNG. This dark adaptation must be freshly generated from the light reference, preserving its composition.",
+      "raw_output": {
+        "artifact": ".tmp/illustration-sources/course-learning-key-dark.png",
+        "sha256": "6ffd6a19f805e3d89a787ac5c398327eedc55dd86bb4acb6ac5f337c76539263",
+        "format": "PNG",
+        "dimensions": [
+          1254,
+          1254
+        ],
+        "alpha": "opaque RGB"
+      }
+    }
+  ],
+  "accepted_assets": {
+    "light": {
+      "artifact": "core/static/core/illustrations/course-learning.webp",
+      "sha256": "e69d680752baae0b0d2efc0c9edc5574586c6a26c3e715c4c04b58a356d17826"
+    },
+    "dark": {
+      "artifact": "core/static/core/illustrations/course-learning-dark.webp",
+      "sha256": "39dfe89caf30f76265fe7083f366d90a7fef42dc667dbad80b681196c51dd14d"
+    }
+  }
+}

@@ -51,7 +51,18 @@
       .courses-hero-grid {
         align-items: center;
         display: grid;
-        gap: 2rem;
+        gap: 1.5rem;
+        grid-template-columns: minmax(0, 1fr) 12rem;
+      }
+
+      .courses-hero-art {
+        aspect-ratio: 1;
+        width: 100%;
+      }
+
+      .courses-hero-art .doodle {
+        height: 100%;
+        object-fit: contain;
       }
 
       .courses-hero h1 {
@@ -291,6 +302,15 @@
       /* --- narrow layout: reshape, not reflow ---------------------------- */
 
       @media (max-width: 47.99rem) {
+        .courses-hero-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        /* Course choices take priority over decorative artwork on phones. */
+        .courses-hero-art {
+          display: none;
+        }
+
         .courses-hero h1 {
           max-width: none;
         }
@@ -325,6 +345,9 @@
               leaderboards and peer review. Join a cohort for the deadlines and the
               classmates.
             </p>
+          </div>
+          <div class="courses-hero-art">
+            {% include "core/_course_illustration.html" %}
           </div>
         </div>
 {% endblock %}

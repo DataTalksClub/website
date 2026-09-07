@@ -1,0 +1,11 @@
+{% load static %}
+{% comment %}
+Shared decorative course-learning artwork. Both independently generated theme
+files occupy the same reserved slot; the shared design system selects the theme.
+{% endcomment %}
+<span class="doodle-variants">
+  <img class="doodle doodle-light" src="{% static 'core/illustrations/course-learning.webp' %}"
+       alt="" width="1024" height="1024" decoding="async" loading="eager">
+  <img class="doodle doodle-dark" src="{% static 'core/illustrations/course-learning-dark.webp' %}"
+       alt="" width="1024" height="1024" decoding="async" loading="eager">
+</span>

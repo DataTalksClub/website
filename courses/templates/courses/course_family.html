@@ -19,8 +19,22 @@
       }
 
       .family-hero-inner {
+        align-items: center;
+        display: grid;
+        gap: 1.5rem;
+        grid-template-columns: minmax(0, 1fr) 12rem;
         padding-bottom: 3.25rem;
         padding-top: 2rem;
+      }
+
+      .family-hero-art {
+        aspect-ratio: 1;
+        width: 100%;
+      }
+
+      .family-hero-art .doodle {
+        height: 100%;
+        object-fit: contain;
       }
 
       .family-hero h1 {
@@ -112,6 +126,17 @@
         margin-top: 1.5rem;
       }
 
+      @media (max-width: 47.99rem) {
+        .family-hero-inner {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        /* Keep registration and cohort choices close to the title on phones. */
+        .family-hero-art {
+          display: none;
+        }
+      }
+
       @media (max-width: 42rem) {
         .family-edition-head,
         .family-project {
@@ -137,25 +162,30 @@
         {% url 'course_list' as course_list_url %}
         {% breadcrumbs "Courses" course_list_url %}
         <div class="family-hero-inner">
-          <h1 id="family-heading">{{ course_family.title }}</h1>
-          {% if family_lede %}
-            <div class="family-lede">{{ family_lede }}</div>
-          {% endif %}
-          {% comment %}
-            Registration for the course, not for one of its editions: an open edition is
-            named because naming it is honest, a course whose editions have all closed
-            offers the next one, and a course with no campaign offers nothing.
-          {% endcomment %}
-          {% if family_registration %}
-            <div class="family-hero-actions">
-              {% url 'registration_campaign' family_registration.campaign.slug as family_registration_url %}
-              {% if family_registration.cohort %}
-                {% include "core/_button.html" with href=family_registration_url label="Register for the "|add:family_registration.cohort.identifier|add:" cohort" variant="primary" compact=True %}
-              {% else %}
-                {% include "core/_button.html" with href=family_registration_url label="Register for the next edition" variant="primary" compact=True %}
-              {% endif %}
-            </div>
-          {% endif %}
+          <div>
+            <h1 id="family-heading">{{ course_family.title }}</h1>
+            {% if family_lede %}
+              <div class="family-lede">{{ family_lede }}</div>
+            {% endif %}
+            {% comment %}
+              Registration for the course, not for one of its editions: an open edition is
+              named because naming it is honest, a course whose editions have all closed
+              offers the next one, and a course with no campaign offers nothing.
+            {% endcomment %}
+            {% if family_registration %}
+              <div class="family-hero-actions">
+                {% url 'registration_campaign' family_registration.campaign.slug as family_registration_url %}
+                {% if family_registration.cohort %}
+                  {% include "core/_button.html" with href=family_registration_url label="Register for the "|add:family_registration.cohort.identifier|add:" cohort" variant="primary" compact=True %}
+                {% else %}
+                  {% include "core/_button.html" with href=family_registration_url label="Register for the next edition" variant="primary" compact=True %}
+                {% endif %}
+              </div>
+            {% endif %}
+          </div>
+          <div class="family-hero-art">
+            {% include "core/_course_illustration.html" %}
+          </div>
         </div>
 {% endblock %}
 

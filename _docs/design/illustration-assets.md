@@ -23,6 +23,8 @@ CLI.
    `home-step-2.webp` for style and the historical robot-reading course image for
    the subject; exclude the historical banner's lettering.
 2. Review the light result's composition, dimensions and actual alpha channel.
+   If its outer canvas is opaque, use the outer-background workflow below before
+   accepting it. The lilac watercolor cloud is part of the drawing and stays.
    Keep that accepted light file as the fixed anchor. For corrections, pass the
    previous candidate as an edit target and state what must remain unchanged.
 3. Generate the **dark companion second**, passing the accepted light file as
@@ -51,38 +53,45 @@ identify -format '%f %wx%h %[channels] opaque=%[opaque]\n' \
   .tmp/illustration-sources/course-learning-light.png
 ```
 
-The file must have an alpha channel and `opaque=false`. Check that the outer
-canvas is transparent while the drawing's white fills remain opaque. Renaming a
-PNG to WebP, enabling an all-opaque alpha channel, or inspecting only its filename
-does not satisfy this check.
+Prefer native transparency. The file is ready for encoding only when it has an
+alpha channel and `opaque=false`, the outer canvas is transparent, and the white
+drawing fills remain opaque. Renaming a PNG to WebP, adding transparent padding,
+or enabling an all-opaque alpha channel does not satisfy this check. Keep the
+raw source and record whether transparency came from imagegen or local finishing;
+a transparent final WebP alone does not establish native alpha generation.
 
-**Historical provenance check, 2026-09-06:** the shipped homepage WebPs have real
-alpha. However, inspection of 99 saved PNGs from four relevant August 26–27 Codex
-sessions found only opaque RGB outputs. Those sessions added transparency after
-generation using local background flood fill, and some dark variants reused a
-light asset's alpha mask. They are evidence of finished transparent assets, not
-of a native-alpha imagegen invocation. Do not claim that a specific prompt alone
-reproduces those results, and do not silently repeat the historical processing:
-the production rules below currently prohibit it.
+### Remove only the outer backdrop when needed
 
-**Native-tool check, 2026-09-06:** an isolated check explicitly forwarded
-`background="transparent"` to the backend and still returned a 1254 × 1254 RGB
-PNG with `opaque=true`. The client saved the backend image bytes unchanged.
-This check did not establish native transparency or show alpha being lost during
-the save. The experimental client change did not solve the result and is not a
-production recipe to preserve or repeat.
+If imagegen returns an opaque image, a solid chroma-key backdrop followed by local
+removal is allowed. The lilac watercolor blur is artwork: retain its shape, color,
+texture and soft edge. Remove only the surrounding backdrop.
 
-If the raw output is opaque, retain it as a rejected source and report that
-specific result. Check the exposed tool's capabilities before repeating the same
-prompt. Do not switch to an API-key workflow, claim a successful alpha result,
-or ship a fake checkerboard as transparency.
+1. Use imagegen with actual reference images to produce the same drawing against
+   one perfectly uniform key color absent from the artwork. Saturated magenta
+   (`#ff00ff`) is suitable for the green course robot; green would conflict with
+   its forearms and side panels. Keep the cloud and all interior white fills.
+   Ask for no checkerboard, gradient or key-colored details inside the drawing.
+2. Save the untouched output under `.tmp/illustration-sources/`. Work on a copy
+   and remove only the outer key color. Preserve the watercolor cloud, robot,
+   book, white interiors and their intended soft or crisp edges. Do not treat
+   pale lilac or white as disposable background, or copy alpha from another image.
+3. Inspect the result on the actual light and dark page surfaces, including the
+   cloud boundary at 200%. Check for remaining key-colored fringe, clipped ink,
+   missing watercolor, holes in white fills, halos and visible canvas edges.
+   If key removal damages the artwork, revise the finishing or regenerate the
+   keyed source; do not disguise damage by blurring or recoloring the drawing.
+4. Accept the light image only after these checks, then generate its dark
+   companion from that accepted light through imagegen. Finish the dark image's
+   own outer key if needed and repeat the checks. Record the exact accepted
+   command, parameters, input/output paths and inspection results in the owning
+   illustration document; no particular finishing command is accepted merely
+   because it worked on another image.
 
-**`imagegen` produces the finished drawing and its transparency.** Ask it for the
-exact canvas, a transparent outer background, and the dark companion as its own
-generation pass with the matching light file as the reference image. The built-in
-tool saves PNG output; the site serves WebP. Lossless format encoding and canvas
-sizing that preserves the alpha channel are allowed after the raw output passes
-the transparency check. Prefer the requested canvas so resizing is unnecessary.
+**`imagegen` produces the finished drawing.** Native outer transparency is
+preferred; the keyed-background workflow above is the fallback. The built-in tool
+saves PNG output; the site serves WebP. Lossless encoding and canvas sizing that
+preserves alpha are allowed after the transparency and edge checks. Prefer the
+requested canvas so resizing is unnecessary.
 
 **Nothing recolours, filters, or derives a dark asset from a light one.** A dark
 companion that was produced by inverting, tinting, or filtering a light bitmap is
@@ -91,9 +100,9 @@ wrong and must be regenerated, not corrected.
 ImageMagick may encode the accepted drawing as lossless WebP, resize it without
 stretching, center it on a transparent canvas, or trim surplus transparent margins
 from an external source. It may also flatten throwaway edge-review previews.
-These operations must not manufacture or replace the drawing's alpha, remove a
-background, recolor the artwork, or repair an edge. An opaque raw output still
-fails even if transparent padding could be added around it.
+Local removal of a generated outer key is also allowed as described above. These
+operations must not recolor the artwork, remove the watercolor cloud, replace
+interior fills, or borrow another drawing's alpha mask.
 
 ## Requirements
 
@@ -105,9 +114,10 @@ fails even if transparent padding could be added around it.
 
 ## Prepare the image
 
-First inspect the raw generated PNG. Only continue if it already contains real
-outer transparency and opaque white drawing fills. For an accepted course image
-already at 1024 × 1024, encode without resizing:
+First inspect the generated PNG. Continue after native transparency or approved
+outer-key finishing passes review, with the cloud preserved and white drawing
+fills opaque. For an accepted course image already at 1024 × 1024, encode without
+resizing:
 
 ```bash
 identify -format '%f %wx%h %[channels] opaque=%[opaque]\n' \
@@ -282,9 +292,10 @@ magick "$RAW" -alpha on -background none -resize 957x532 \
   -gravity center -extent 957x532 -define webp:lossless=true "$TARGET"
 ```
 
-Replace the names and dimensions for the other slots. If the raw output has an
-opaque background, a rectangular edge, a glow, or a coloured fringe, reject it and
-regenerate it; do not flood-fill, filter, or mechanically recolour it into shape.
+Replace the names and dimensions for the other slots. An opaque raw backdrop may
+use the outer-key workflow above. The finished image must have no rectangular
+edge, glow or coloured fringe; correct the key removal or regenerate the source
+if it fails. Do not filter or mechanically recolour the drawing into shape.
 The final asset must pass this check:
 
 ```bash
@@ -339,8 +350,9 @@ size) before accepting an iteration.
 | The cloud remains visible but subdued, with the same visual blending idea as the dark hero repeated independently for each slot. | The cloud looks like a light-mode asset placed on navy, disappears into the page, or uses one copied cloud/blurb for all steps. |
 | Ink, white screens, hands, and feet stay crisp at the edge; the approved hand shapes remain intact. | Edge processing softens or clips the ink, creates a glow around hands/feet, or changes a hand into a fist/open outlined substitute. |
 
-If any red-circled transition fails, reject the whole asset and regenerate it;
-do not repair the edge with a CSS filter, flood fill, recolour, crop, or blur.
+If any red-circled transition fails, reject the candidate. Revisit outer-key
+removal if it caused the defect, or regenerate the source. Do not disguise a
+damaged cloud edge with a CSS filter, recolour, crop or blur.
 Repeat the flattened-surface check after every new generation and again after
 the real-site screenshot check below.
 
