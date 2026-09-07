@@ -28,11 +28,13 @@ Keep all existing homepage assets unchanged.
 
 Generate the dark companion in a separate pass using the accepted light file
 as its composition reference. Follow [illustration-assets.md](illustration-assets.md):
-image generation produces the finished drawing and its transparency. Encode the
-accepted native PNG as lossless WebP for the site, preserving alpha. Proportional
-canvas sizing is allowed; recoloring, CSS filtering, background removal, alpha
-manufacture, and mechanically derived dark companions remain prohibited. The
-linked guide provides the 1024 × 1024 encoding and verification commands.
+image generation produces the finished drawing. Prefer native transparency; if
+the output is opaque, generate a solid magenta outer backdrop and remove only
+that key locally. The lilac watercolor blur is part of the artwork and must stay,
+along with the robot, book and white interiors. Encode the accepted PNG as
+lossless WebP, preserving alpha. Proportional canvas sizing is allowed; recoloring,
+CSS filtering and mechanically derived dark companions remain prohibited. The
+linked guide provides the finishing review and 1024 × 1024 encoding checks.
 
 ## Light-generation prompt
 
@@ -85,6 +87,76 @@ in the native PNG. This is an independent generation, not a filtered, inverted o
 tinted version of the light bitmap.
 ```
 
+For an opaque result, use the candidate and the relevant style/composition
+references in a new imagegen pass. Replace the native-transparency background
+instructions with this outer-key request:
+
+```text
+Preserve the entire drawing, including its lilac or indigo watercolor cloud and
+soft edge, and all white robot and book interiors. Change only the outer backdrop
+to perfectly uniform saturated magenta #ff00ff. This key color must occur nowhere
+inside the artwork. No checkerboard, gradient, added decoration or changed pose.
+The watercolor cloud is artwork; do not remove it with the surrounding backdrop.
+```
+
+Remove only the outer magenta locally and inspect the cloud and interior fills
+on the actual page surfaces. Keep the accepted light drawing as the anchor for
+the separately generated dark companion.
+
+## Accepted finishing recipe
+
+The accepted light source is a built-in imagegen edit of the reviewed robot
+composition: only the outer white backdrop was changed to magenta, while the
+lilac watercolor cloud stayed. Its PNG is 1254 × 1254 RGB, so transparency comes
+from local key removal. The [generation record](references/course-learning-generation.json)
+contains the exact white-source, keyed-light and dark-companion prompts with
+their actual reference and output hashes. The source chain is opaque composition
+→ white light source → magenta light source → accepted light → generated dark.
+Raw images remain under ignored `.tmp/`; image generation is not deterministic.
+Preserve the keyed light source under
+`.tmp/illustration-sources/course-learning-key-light.png` before running:
+
+```bash
+uv run --with pillow==12.3.0 --with numpy==2.5.1 --with scipy==1.18.1 python \
+  scripts/finish_illustration_key.py \
+  .tmp/illustration-sources/course-learning-key-light.png \
+  .tmp/course-key-finishing/light \
+  --fringe-chroma 12 --solid-key-chroma 100 --fringe-radius 20 --size 1024
+
+uv run --with pillow==12.3.0 --with numpy==2.5.1 --with scipy==1.18.1 python \
+  scripts/finish_illustration_key.py \
+  .tmp/illustration-sources/course-learning-key-dark.png \
+  .tmp/course-key-finishing/dark \
+  --fringe-chroma 12 --solid-key-chroma 100 --fringe-radius 20 --size 1024
+```
+
+The helper identifies exterior magenta and its nearby fringe, estimates edge
+coverage from neighboring paint and backdrop colors, then encodes a 1024 × 1024
+lossless WebP. It preserves source RGB outside that fringe before resizing.
+Fringe coverage is estimated from an opaque composite, not recovered original
+alpha; resizing also resamples pixels. The helper rejects non-square sources
+and inputs that already contain transparency. It uses transient dependencies
+without adding image-processing packages to the website runtime.
+
+Review `candidate.webp`, `alpha.png`, `preview-cream.png`, `preview-navy.png` and
+`evidence.json` in the output directory before copying `candidate.webp` to the
+static asset path. The accepted light has 31.28% fully transparent pixels,
+25,357 pixels with partial alpha; the dark companion has 31.23% fully transparent
+pixels and 20,199 with partial alpha. Both retain opaque face/book probes and
+decode from WebP to exactly the normalized RGBA. These checks accompany visual
+review of the retained cloud and interior fills; they do not replace it.
+
+| Artifact | SHA256 |
+| --- | --- |
+| Keyed light source PNG | `4b72ccb0738ac0413daeb5d7b8c0287c51b4048ce893a2bfe576151fd7774158` |
+| Accepted `course-learning.webp` | `e69d680752baae0b0d2efc0c9edc5574586c6a26c3e715c4c04b58a356d17826` |
+| Keyed dark source PNG | `6ffd6a19f805e3d89a787ac5c398327eedc55dd86bb4acb6ac5f337c76539263` |
+| Accepted `course-learning-dark.webp` | `39dfe89caf30f76265fe7083f366d90a7fef42dc667dbad80b681196c51dd14d` |
+
+The dark companion was generated through imagegen using the exact accepted light
+as its sole reference. Its own source passed the same finishing and edge checks;
+the light mask was not reused.
+
 ## Acceptance and placement
 
 Inspect the actual file format, dimensions and alpha channel before wiring either
@@ -93,8 +165,9 @@ must be rejected. A filename or generation prompt claiming transparency is not
 evidence of alpha. Keep rejected drafts under `.tmp/illustration-sources/`.
 
 Inspect temporary flattened previews against each actual consuming surface.
-Check the cloud boundary at 200% for seams, bright rims and clipped ink. Generate
-again if this fails; do not repair the bitmap with filters or background removal.
+Check the cloud boundary at 200% for seams, key-colored fringe, bright rims,
+clipped ink and missing watercolor. Revise outer-key removal or regenerate if
+this fails; preserve the cloud instead of hiding damage with filters or blur.
 
 The course include must own both theme variants in one contained, square layout
 slot. Both must use empty alt text, async decoding and explicit dimensions.
