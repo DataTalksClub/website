@@ -1376,23 +1376,30 @@ What genuinely differs, and needs care rather than a separate pipeline:
    it can populate a database holding no prior rows of its own domain — or it
    *reconciles*, matching upstream rows against rows already present and writing
    nothing where it finds no match. Running a reconciler first is not an error, it is a
-   silent no-op, which is the trap. Every module declares `BOOTSTRAPS_EMPTY_DATABASE`,
+   silent no-op, which is the trap. A module that bootstraps declares
+   `BOOTSTRAPS_EMPTY_DATABASE = True`; the rest either declare it `False` or, like
+   `import_account_reconciliation`, declare nothing and are read as not bootstrapping.
    `scripts/prod/__init__.py` lists the bootstrapping set in
    `BOOTSTRAPPING_ENTRY_POINTS`, and `scripts/tests/test_prod_conventions.py` checks the
-   two agree. Eleven modules bootstrap today; the ones that reconcile are
-   `import_events`, `import_event_registrants`, `import_mailchimp_event_tags`,
-   `import_mailchimp_subscriptions` and the three media `sync_public_media_*` scripts.
+   two agree. Eleven modules bootstrap today and nine do not: `import_events`,
+   `import_event_registrants`, `import_mailchimp_event_tags`,
+   `import_mailchimp_subscriptions`, `import_cmp_learner_history`,
+   `import_account_reconciliation` and the three media `sync_public_media_*` scripts.
+   `import_cmp_learner_history` is the sharpest case — on a database without
+   `import_cmp_content` and `import_cmp_learners` it resolves nothing, writes nothing
+   and reports success.
 3. **Course catalogue, in the declared order** (`COURSE_CATALOGUE_ORDER`, same module):
    `import_legacy_zoomcamp` (the frozen pre-2024 editions, which nothing else has), then
    `make content-sources` / `make content-checkouts` / `make content-pull`
    (`sync_course_repositories` — the git-synchronized upstream, which owns module and
    unit curricula, and the only networked step), then
-   `scripts/prod/import_cmp_content.py`. **CMP runs last because it reconciles.** It no
-   longer needs a placeholder seeder to reconcile against — it mints its own cohort and
-   family from the reviewed catalogue — but the reverse order still refuses on a
-   homework slug collision the first time one cohort is described by both CMP and a
-   repository. `scripts/tests/test_prepare_local_data_order.py` holds the orchestrator
-   to it.
+   `scripts/prod/import_cmp_content.py`, which is `make import-cmp-content
+   CMP_EXPORT=<export> IMPORT_DATABASE=<database>`. **CMP runs last because it
+   reconciles.** It no longer needs a placeholder seeder to reconcile against — it
+   mints its own cohort and family from the reviewed catalogue — but the reverse
+   order still refuses on a homework slug collision the first time one cohort is
+   described by both CMP and a repository.
+   `scripts/tests/test_prepare_local_data_order.py` holds the orchestrator to it.
 4. `scripts/prod/import_public_content.py`, `import_faq.py`, `import_docs.py`,
    `import_sponsors.py`, `import_testimonials.py` — the reviewed one-time inputs under
    `temporary/content/`. All bootstrap; none depends on another.
@@ -1402,7 +1409,8 @@ What genuinely differs, and needs care rather than a separate pipeline:
    those events (§14.4), then registration-aggregate derivation and staging (§16/17).
    Run it before anything else event-related.
 6. `scripts/prod/import_event_registrants.py` and the Mailchimp importers, which
-   reconcile against the events step 5 wrote.
+   reconcile against the events step 5 wrote. They have no Make target on purpose —
+   see "Not in the bootstrap order, and why" below.
 
 `make production-prep-dataset` runs stages 1–3 plus `scripts/prepare_local_data.py` and
 `scripts/verify_local_dataset.py`; that orchestrator also runs the event identity and
@@ -1410,6 +1418,42 @@ content imports in production order, and `verify_local_dataset.py` reports
 `database_event_identities` and `database_event_content` separately, because an identity
 alone publishes no page. Read
 `_docs/runbooks/local-course-modules-preparation.md` for prerequisites.
+
+### Not in the bootstrap order, and why
+
+`make production-prep-bootstrap` runs steps 1–5 and stops. Three groups of entry
+points are deliberately outside it, and the exclusions are checked by
+`scripts/tests/test_prod_make_targets.py` rather than left to prose.
+
+- **Step 6** — `import_event_registrants`, `import_mailchimp_event_tags` and
+  `import_mailchimp_subscriptions`. They read attendee-level personal data and need
+  provider credentials, so they stay separately invoked runs.
+- **The CMP learner importers** — `make import-cmp-learners`,
+  `make import-cmp-learner-history`, and `make import-cmp-learner-data` for the pair
+  in order. Between them they write 20,009 real accounts and 472,690 learner rows. A
+  local dataset rebuild is a routine developer action and must never pull real
+  accounts into a dev SQLite file on its way past. The export is not frozen either —
+  a new dump lands daily and there is no `latest` symlink — so an unattended rebuild
+  could neither choose one deliberately nor record the choice in the run log, which
+  `_docs/runbooks/production-data-migration.md` §4 step 4 requires. Use
+  `make import-cmp-learners-status` and `make import-cmp-learner-history-status` to
+  read a resumable run's progress without opening the export at all.
+- **Account reconciliation** — `make import-account-reconciliation` (the dry run) and
+  `make import-account-reconciliation-rollback-check`. It merges real people, and
+  `_docs/runbooks/account-reconciliation.md` §4 calls the apply out as the one step of
+  the migration with no rollback. **There is no `--apply` target and there must never
+  be one**: the apply stays a consciously typed command against a human-reviewed
+  mapping document.
+
+`make import-cmp-content` is the exception that proves the shape. It reads content
+only, so it is safe in a rebuild — and it is still not added to
+`production-prep-bootstrap`, because that target already runs it through
+`production-prep-local` → `prepare_local_data.py --cmp-source-db`, and a second call
+would import it twice.
+
+`CMP_EXPORT` and `IMPORT_LEARNER_DATABASE` have no default value. Every one of these
+targets refuses with exit 2 and a message naming the variable before any Python
+starts; a missing variable is never a skip, a warning or a guess.
 
 ### Where the consolidation got to
 
@@ -1427,6 +1471,16 @@ Makefile targets resolve:
   digests.
 - The projection build helpers live in `scripts/projection_build/`, and the staging
   files they produce live under `temporary/content/`.
+- The four CMP entry points — `import_cmp_content`, `import_cmp_learners`,
+  `import_cmp_learner_history` and `import_account_reconciliation` — have Make targets
+  now, listed under "Not in the bootstrap order, and why" above. They were runbook-only
+  prose that nothing executed and nothing held to an order. `scripts/prod/__init__.py`
+  declares `CMP_LEARNER_ORDER` for the run order and `MAKE_TARGET_EXCLUSIONS` for the
+  entry points that deliberately have no target, and
+  `scripts/tests/test_prod_make_targets.py` closes the set: a new `scripts/prod` module
+  is either invoked by a recipe or carries a written reason. `sync_content` and the
+  three `sync_public_media_*` scripts are excluded pending #310, which is where that
+  decision belongs.
 - `_docs/design/specs/script-inventory.md` is a point-in-time analysis pinned to an old
   commit — it still describes `scripts/load_rds_export.py`, which is deleted. **Any
   survey based on it will be wrong.** `_docs/runbooks/ingest-script-inventory.md` is the

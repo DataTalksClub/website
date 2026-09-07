@@ -321,13 +321,22 @@ Three conventions used throughout:
   refused by name before anything is written. `scripts/prod/target/__init__.py` is
   the authority.
 
-  Two consequences worth knowing before migration day. **The `make` wrappers below
-  cannot write to production** — `make import-legacy-zoomcamp`, `make import-events`,
-  `make content-sources` and `make content-pull` hardcode `--database`, so a
-  production step calls the script directly. And **a shell that already exports the
-  production `$TARGET` cannot run a rehearsal command**: a `--database` run in that
-  shell is refused rather than quietly reinterpreted, so unset those values before
-  going back to a scratch database.
+  Two consequences worth knowing before migration day. **No `make` wrapper in this
+  repository can write to production**, and that is now a checked property rather
+  than a claim about the wrappers that happen to exist: every one that invokes a
+  script hardcodes `--database`, `make import-cmp-learner-data` delegates to two
+  that do, and `scripts/tests/test_prod_make_targets.py` asserts that **no recipe
+  anywhere in the `Makefile`** passes `--deployment-target` or
+  `--allow-production-write`. A wrapper cannot quietly acquire the capability later.
+  So a production step calls the script directly — for `make import-legacy-zoomcamp`,
+  `make import-events`, `make content-sources` and `make content-pull`, and equally
+  for the CMP wrappers `make import-cmp-content`, `make import-cmp-learners`,
+  `make import-cmp-learner-history`, `make import-cmp-learner-data`, their two
+  `*-status` counterparts and `make import-account-reconciliation` with its
+  `-rollback-check` counterpart. And **a shell that already exports the production
+  `$TARGET` cannot run a rehearsal command**: a `--database` run in that shell is
+  refused rather than quietly reinterpreted, so unset those values before going back
+  to a scratch database.
 - **`$EXPORT`** is the chosen CMP export, e.g.
   `/data/tmp/rds-export/cmp/rds-prod-20260905-182754.db`. Read in place,
   read-only. Only `cmp/` is ours — see §14 for the one beside it.
@@ -704,6 +713,31 @@ wrote.  The history importer reads the account claims file the first one leaves
 behind, through `--user-claims-file`, so pointing the second run at the first
 run's `--claims-file` is not optional.  Everything below is the specification
 they satisfy, and the checkpoints they pass.
+
+```
+uv run --frozen python scripts/prod/import_cmp_learners.py \
+    <target> --source $EXPORT --claims-file <claims>
+
+uv run --frozen python scripts/prod/import_cmp_learner_history.py \
+    <target> --source $EXPORT --claims-dir <claims-dir> \
+    --user-claims-file <claims>
+```
+
+`make import-cmp-learner-data IMPORT_LEARNER_DATABASE=<path> CMP_EXPORT=$EXPORT
+CMP_CLAIMS_FILE=<claims> CMP_CLAIMS_DIR=<claims-dir>` is the rehearsal shorthand for
+both commands, in that order; it threads `CMP_CLAIMS_FILE` into the second run's
+`--user-claims-file` so the pairing above is not something to remember. The legs are
+also available singly as `make import-cmp-learners` and
+`make import-cmp-learner-history`, and `make import-cmp-learners-status` /
+`make import-cmp-learner-history-status` report how far a killed run got without
+opening the export at all. All of them hardcode `--database`, so production runs the
+scripts directly.
+
+`CMP_EXPORT` and `IMPORT_LEARNER_DATABASE` have **no default value**, deliberately:
+the export is not frozen (see the note above) and which database receives 20,009 real
+accounts is a decision typed once per run, not inherited. Every one of these targets
+refuses with exit 2, naming the variable, before any Python starts —
+`scripts/tests/test_prod_make_targets.py` runs them to prove it.
 
 The export is 38 tables and **664,806** rows. Every one of those tables needs a
 declared fate; here is all 38, so nothing can be forgotten:
