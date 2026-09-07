@@ -1,4 +1,5 @@
 path	classification	owner	removal_gate
+_docs/audits/2026-09-06-community-base-migration-plan.md	migration plan provenance	courses	Retain while the community-base migration plan records legacy course route and adapter retirement requirements; remove when that analysis is superseded.
 _docs/adoption/course-platform/README.md	adoption provenance	courses	Retain while the pinned CMP adoption baseline is authoritative.
 _docs/adoption/course-platform/upstream-sync.md	adoption provenance	courses	Retain while the controlled CMP upstream procedure and namespace mapping remain authoritative.
 _docs/adoption/course-platform/cadmin-reference-allowlist.tsv	adoption provenance	courses	Remove only after every listed compatibility and provenance reference reaches its recorded gate.
