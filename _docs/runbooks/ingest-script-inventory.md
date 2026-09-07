@@ -824,6 +824,52 @@ Destination: [`content/models.py`](../../content/models.py) (`ContentDocument`,
 `ContentRelease`, `ActiveContentPath`, `ContentAsset`), read on every public
 request by [`content/catalogue.py`](../../content/catalogue.py).
 
+## 8.3 Drift check — reports, never writes
+
+[`scripts/prod/sync_content_verify.py`](../../scripts/prod/sync_content_verify.py)
+(`make content-drift`), fed by `make content-checkout`
+
+Two targets, because only one of them touches the network.
+
+**`make content-checkout`** — Source: GitHub, live network. Transform: clones a
+fresh checkout of `DataTalksClub/content` or fast-forwards an existing one to the
+registered branch, and prints the HEAD it landed on. Destination: a local git
+checkout at `$(CONTENT_CHECKOUT)` (default `.tmp/content-checkout`), on disk only.
+It exists because `make content-checkouts` (1.2) does **not** cover this
+repository: that target selects only sources whose `adapter_type` is
+`course_repository_v1`, and the editorial source is not one.
+
+**`make content-drift`** — Source: the served catalogue in the database plus that
+checkout's own object database, at a revision resolved locally (default the
+checkout's `refs/remotes/origin/<branch>`; override with
+`CONTENT_DRIFT_REVISION`). Transform: a set-diff plus a digest compare per family
+— `articles`, `podcasts`, `podcast_transcripts`, `books`, `media` — keyed on
+`provenance.source_key` (`provenance.source_path` for media) and digested against
+`provenance.checksum`, which is the raw SHA-256 of the upstream file bytes. It
+also reports whether the revision the served records were built from is still
+reachable from the remote-tracking branch, and by how many commits it is behind.
+Destination: **none.** No `INSERT`/`UPDATE`/`DELETE`, no service call, no release
+transition, and none of `last_reconciled_at` / `pending_follow_up` /
+`last_successful_commit`. One JSON report on stdout; exit `0` clean, `1` drift,
+`2` refusal, so "we are behind" is distinguishable from "I could not look".
+
+Which repository is compared is a database question — the enabled `ContentSource`
+whose repository is `DataTalksClub/content` — never a name in the Makefile;
+`--checkout-plan` prints that selection and is what `make content-checkout`
+consumes.
+
+Media is deliberately asymmetric: the served media set is the *referenced* subset
+by construction, so upstream images nothing points at are reported in their own
+`upstream_unreferenced` bucket, counted and listed but not part of the exit code.
+
+**Known finding — the served catalogue names a revision upstream does not have.**
+`scripts/build_public_projection.py`'s `PREFERRED_CONTENT_REVISION` is not on
+`DataTalksClub/content`, and every content-owned served record carries it, so the
+first real run reports `revision_status.state = "unreachable"` and exits 1.
+Repairing that is
+[issue #326](https://github.com/DataTalksClub/website/issues/326); this check only
+reports it. No CI gate or scheduled job is wired for the same reason.
+
 ---
 
 # 9. Event registrants (attendee-level)

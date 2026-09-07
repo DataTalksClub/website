@@ -1119,7 +1119,8 @@ the offline fixture store; the `/images/…` view resolves its record from the d
 
 So the database is the serving path, and the remaining gap is *continuous* ingest: a
 push to `DataTalksClub/content` changes nothing here today. The one-time importers filled
-the tables; nothing keeps them current. §10 is the check that gap needs.
+the tables; nothing keeps them current. `make content-drift` (§10.3) now measures that
+gap on demand — it reports, it does not close it.
 
 ---
 
@@ -1127,15 +1128,18 @@ the tables; nothing keeps them current. §10 is the check that gap needs.
 
 Once content is push-synchronised the operational question is *"is what we are
 serving actually what the content repository says?"* — at any moment, not only at
-import time. Today there is **no such check for `DataTalksClub/content`**. The parts
-to build it out of all exist.
+import time. For `DataTalksClub/content` that check now exists and is
+`make content-drift` (§10.3). **The course repositories still have none**: nothing
+compares a served curriculum against its repository out of band, and §10.3's second
+half is still a design rather than a tool.
 
 ### 10.1 What already exists
 
-Five mechanisms, each solving part of the problem for a different source.
+Six mechanisms, each solving part of the problem for a different source.
 
 | Mechanism | Compares | Runs | Catches |
 | --- | --- | --- | --- |
+| `scripts/prod/sync_content_verify.py` | the **served editorial catalogue** against a `DataTalksClub/content` checkout at a named revision, **both directions** | `make content-drift`, by hand / ops | missing, extra and byte-mismatched records per family; a served revision that is behind upstream or not on it at all |
 | `CourseCurriculumImportRun` + `replayed` | this commit against previously applied runs | during ingest | re-applying a commit; a commit that produces a different manifest checksum |
 | `manage.py verify_dtc_content` | a **checkout** against pinned contract constants | CI / by hand | wrong repo, wrong commit, dirty tree, content that fails the adapter |
 | `content_sync/dtc_content/parity.py` | adapter bundle against the committed projection | inside `verify_dtc_content`, **only at one frozen commit** | projection and content repo disagreeing |
@@ -1143,6 +1147,20 @@ Five mechanisms, each solving part of the problem for a different source.
 | `ci/content_update.py` | on-disk artifact digests against `manifest.json`, per family | CI | a hand-edited projection artifact |
 
 Detail worth knowing at 2am:
+
+**`sync_content_verify.py`** is the only one of the six that compares what a **request
+actually serves** against **today's upstream**. It reads `ContentDocument` rows through
+the active release of the enabled `ContentSource` for `DataTalksClub/content`, keys each
+record on `provenance.source_key` (`transcript_provenance.source_key` for a transcript,
+`provenance.source_path` for a media object) and compares `provenance.checksum` — which
+is the raw SHA-256 of the upstream file bytes — against the blob at the revision under
+comparison. It needs no adapter, no bundle and no `parity.py`, because a served record
+already declares which repository owns it, which record it is, and what its source bytes
+hashed to. It writes nothing and makes no call over a network of its own: every git
+invocation is a local object-database read, and the comparison revision is resolved from
+the checkout's own remote-tracking branch. Refreshing that checkout is a separate,
+explicitly networked step (`make content-checkout`), which is why the report always
+states the remote-tracking head it resolved — that is how stale the answer is.
 
 **`replayed`** (`courses/services/curriculum_import.py:876`) means *this exact commit
 and parser version was already applied; nothing was written*. It is reported by
@@ -1177,23 +1195,116 @@ Copy its report shape.
 
 ### 10.2 What a drift check must assert, and what is closest today
 
-| Question | Assert | Closest existing |
+The third column is the state **before** `sync_content_verify.py` landed. It is still the
+state for every source except `DataTalksClub/content`; what answers each class for the
+editorial repository today is the table below it.
+
+| Question | Assert | Closest existing (pre-#323; still current for every other source) |
 | --- | --- | --- |
 | **(a)** Upstream document never arrived | for every upstream path admitted by `path_allowlist`, a served record exists at its identity; report `upstream − served` | `parity.py:410-415` — but **inverted** and frozen-commit gated. Counts-only: `EXPECTED_COUNTS` + `_validate_collection` (`build_public_projection.py:2469`). Shape to copy: `verify_media` `report.missing` |
 | **(b)** We serve what upstream deleted | the reverse diff `served − upstream` | `curriculum_import.py:583-588, 697-699, 751-777` reconciles deletions **during** ingest (with `protected_question_removal` when submissions exist) but never detects out of band. `media_tooling.py:344-352` `report.extra` is the only orphan detector |
 | **(c)** Upstream changed, we did not re-ingest | recompute per-record digest from upstream, compare to stored | Course rows store `source_checksum` (`curriculum_import.py:257`) — but it digests the **parsed dataclass**, not file bytes, so comparison requires re-parsing. `manifest_checksum` conflict (`:876-877`) fires only inside an ingest of the same commit. Editorial: `provenance.checksum` is stored in every projection record and **nothing recomputes it from upstream** |
 | **(d)** Our commit is behind upstream HEAD | resolve `refs/heads/<branch>` upstream, compare to ingested commit, assert ancestry not fork | **Nothing does this.** No code path resolves an upstream ref. Closest: `course_repository_checkout.py:77` `commit_is_public` answers "is our commit on the public remote?" — one `git rev-parse <remote>/<branch>` from answering "is it the tip?". `make content-checkouts` already prints upstream HEAD per source and compares it to nothing |
 
-**The schema is already waiting for this.** `ContentSource` declares
-`last_webhook_at` (`content/models.py:70`), `last_reconciled_at` (`:71`),
-`pending_follow_up` (`:73`) and `freshness_target_minutes` (`:74`). All four have
-**zero writers and zero readers** anywhere in the tree. `last_successful_commit`
-(`:65`) is the "what we hold" pointer and is written only by the unused release
-pipeline — the course-repository route never sets it.
+**What answers each class today, for `DataTalksClub/content`.** The "closest existing"
+column above is the state before `sync_content_verify.py` landed; it is kept because it
+is still the state for every other source. For the editorial repository the four classes
+now map onto named report buckets:
 
-### 10.3 How an operator should run it
+| Class | Bucket | Sets the exit code |
+| --- | --- | --- |
+| **(a)** upstream document never arrived | `families.<family>.missing` | yes |
+| **(b)** we serve what upstream deleted | `families.<family>.extra` | yes |
+| **(c)** upstream changed, we did not re-ingest | `families.<family>.mismatched` | yes |
+| **(d)** our commit is behind upstream HEAD | `revision_status.state` — `clean` / `behind` with `commits_behind` / `unreachable` | yes |
 
-The check that invents nothing, reusing the pieces above in order:
+Media is the one deliberate asymmetry. The served media set is the **referenced** subset
+by construction — an image no article, podcast or book points at was never published — so
+upstream-only images are reported as `families.media.upstream_unreferenced`, counted and
+listed but **not** part of the exit code, while `extra` and `mismatched` for media stay
+drift. Media's `missing` bucket is therefore always empty; it exists so that every family
+reads the same way.
+
+**The schema is still waiting, and the check deliberately does not touch it.**
+`ContentSource` declares `last_webhook_at` (`content/models.py:70`),
+`last_reconciled_at` (`:71`), `pending_follow_up` (`:73`) and
+`freshness_target_minutes` (`:74`). All four still have **zero writers and zero readers**
+anywhere in the tree — `sync_content_verify.py` did not become the first writer, on
+purpose. `last_successful_commit` (`:65`) is the "what we hold" pointer and is written
+only by the unused release pipeline — the course-repository route never sets it.
+
+### 10.3 How an operator runs it
+
+**For `DataTalksClub/content`: two commands, and only the first touches the network.**
+
+```bash
+make content-checkout    # clone or refresh the editorial checkout; prints the resolved HEAD
+make content-drift       # offline, read-only; one JSON report on stdout
+```
+
+`make content-checkouts` — plural, §3 — does **not** cover this repository: it selects
+only sources whose `adapter_type` is `course_repository_v1`
+(`sync_course_repositories.py:73-80`), and the editorial source is not one. The singular
+`content-checkout` is the editorial one. Do not reach for one expecting the other.
+
+Neither target names a repository. Both read the registered enabled `ContentSource` whose
+repository is `DataTalksClub/content` — `dtc-public-content` on any database built by
+`scripts/prod/import_public_content.py` — and
+`sync_content_verify.py --checkout-plan` prints that selection, which is what
+`content-checkout` consumes. A database with no such enabled source is refused rather
+than falling back to a name written into the Makefile.
+
+| Override | Default | Means |
+| --- | --- | --- |
+| `CONTENT_DATABASE` | `.tmp/local.sqlite3` | the database whose served catalogue is read |
+| `CONTENT_CHECKOUT` | `.tmp/content-checkout` | the editorial checkout; absolutised for you |
+| `CONTENT_DRIFT_REVISION` | the checkout's `refs/remotes/origin/<branch>` | compare against a different revision |
+
+**Exit codes, and why 1 and 2 are not the same thing.**
+
+| Code | Means |
+| --- | --- |
+| 0 | clean — every family matched and the served revision is upstream's tip |
+| 1 | drift — the report is on stdout and something is not clean |
+| 2 | refusal — the run could not produce an answer; `{"condition": …, "error": …}` on stderr and **nothing on stdout** |
+
+One is reserved for a *report* so that "we are behind" is distinguishable from "I could
+not look" — which matters the day this becomes a scheduled job. GNU make collapses any
+failed recipe to its own exit 2, so `make content-drift` echoes the script's real code to
+stderr; anything that has to tell the two apart runs
+`uv run --frozen python scripts/prod/sync_content_verify.py --database … --checkout …`
+directly.
+
+Exit 2 covers: an argparse refusal, a checkout that is not an absolute non-symlink
+directory, an `origin` outside `DataTalksClub/content` (refused before a byte of it is
+parsed), an unresolvable `--revision`, no enabled editorial source, no active release,
+an unreadable upstream file and an upstream tree over the contract's ceilings. **An
+un-ingested database is a refusal, not "everything is missing".**
+
+**What it deliberately does not do — this corrects the step 7 this section used to
+carry.** The shipped check performs **no** `INSERT`, `UPDATE` or `DELETE`, no service
+call and no release transition, and in particular it does **not** write
+`last_reconciled_at`, `pending_follow_up` or `last_successful_commit`. The design sketch
+below used to instruct an operator to record the outcome in those fields; do not. That
+schema slice belongs to **#273**, those four fields still have zero writers (§10.2), and
+a read-only report that writes is no longer a read-only report. `freshness_target_minutes`
+is likewise not consulted: the report states the remote-tracking head it resolved and
+lets the reader judge staleness, because the answer is only ever as fresh as the last
+`make content-checkout`.
+
+A checkout with uncommitted changes, or with HEAD parked on some other branch, still
+produces a report. The answer comes from the named revision's tree read out of the object
+database, so the working copy is simply not part of it — deliberately unlike
+`verify_dtc_content`, which is a CI gate on a checkout and does refuse both.
+
+**What it answers today.** Against the current dataset it exits **1** with
+`revision_status.state = "unreachable"`: every content-owned served record names
+`1375c506…`, which is not on `DataTalksClub/content` (§12 item 1, issue #326). That is
+the finding, not a malfunction, and this check is what makes it visible without counting
+by hand. Repairing it is #326's; reporting it is this tool's.
+
+**For the course repositories there is still no such check.** What follows is the design
+it would be built from, unchanged except that its step 7 is struck for the reason above:
 
 1. **Enumerate** sources exactly as `sync_course_repositories.select_sources` does
    (`:77-111`) — `ContentSource.objects.filter(enabled=True, adapter_type=…)`.
@@ -1209,14 +1320,17 @@ The check that invents nothing, reusing the pieces above in order:
    absent-in-upstream → **b**) and by digest (→ **c**).
 6. **Emit** one line of sorted JSON; exit non-zero unless clean — the house style of
    `verify_dtc_content.py:59`, `sync_public_media_verify.py:52-53`,
-   `sync_course_repositories.py:449`.
-7. **Record** the outcome in `last_reconciled_at` and `pending_follow_up`, using
-   `freshness_target_minutes` as the staleness threshold for (d).
+   `sync_course_repositories.py:449`, and now `sync_content_verify.py`.
+7. ~~**Record** the outcome in `last_reconciled_at` and `pending_follow_up`, using
+   `freshness_target_minutes` as the staleness threshold for (d).~~ **Struck.** That is
+   a write, it belongs to #273, and the editorial check that shipped does not do it. A
+   course-repository check must not either until #273 says what those fields mean.
 
-For editorial content the shape is identical, except the "served" side is
-`temporary/content/public_projection/*.json` plus `provenance.checksum` rather than the
-database — and `parity.py` already does most of it, needing only to be un-pinned from
-`ACCEPTED_CONTENT_COMMIT` and given the bundle → projection direction.
+One thing the editorial check settled that this sketch got wrong: the served side is the
+**database**, not `temporary/content/public_projection/*.json`, and `parity.py` is not
+the way in. `parity.py` is pinned to `ACCEPTED_CONTENT_COMMIT` and only iterates
+projection → bundle; the shipped check reads `ContentDocument` rows and diffs both
+directions, which is why it needed neither the adapter nor the bundle.
 
 ### 10.2 Should the content repo reuse the course-repository machinery?
 
@@ -1343,9 +1457,10 @@ closed, so an old item number still leads somewhere.
    built from a source nobody else can fetch, and its provenance resolves only on the
    machine holding the unpushed clone. **This is the most serious entry in the list**,
    and two others are pieces of it: it makes item 4 unfixable rather than merely un-run,
-   because a rebuild cannot obtain its inputs at all; and it makes item 14 an
+   because a rebuild cannot obtain its inputs at all; and it makes item 13 an
    understatement for this source, because the content pin is not behind upstream, it is
-   off the upstream graph.
+   off the upstream graph. It is no longer invisible: `make content-drift` reports it as
+   `revision_status.state = "unreachable"` and exits 1 (§10.3, §12.1 was item 10).
 
 2. **The mapping backlog: registration aggregates stage, mostly do not resolve, and
    none activate.** Measured on 2026-09-05 by a full
@@ -1426,51 +1541,49 @@ closed, so an old item number still leads somewhere.
    `production-data-migration.md` §14. *The row figures are carried forward from
    2026-09-05 and were not re-measured.*
 
-10. **No drift check exists for `DataTalksClub/content`** (§10) — issue #323. Nothing in
-    the repository compares what we serve against what the content repository says, at
-    any moment. Item 1 is what a drift check would have caught the day the pin was set.
-
-11. **`backfill_event_qna` and `retry_event_qna` have zero callers.** Repo-wide grep for
+10. **`backfill_event_qna` and `retry_event_qna` have zero callers.** Repo-wide grep for
     either name returns no reference outside the command modules themselves. The
     *service* `retry_event_qna_provision` is reachable from Studio
     (`events/qna/studio_views.py:121`), the admin API (`management_api/views.py:1046`)
     and its capability (`events/qna/capabilities.py:151`); only the two CLI wrappers are
     dead.
 
-12. **`_conferences` (2 records) has no declared fate**, reaches no page, and **6 event
+11. **`_conferences` (2 records) has no declared fate**, reaches no page, and **6 event
     rows carry links to conference pages that do not exist on our site** — the links are
     dropped at `scripts/build_public_projection.py:1878-1881` and the drop is
     count-asserted at `:1923-1924`, so it is deliberate and visible rather than silent
     (§6).
 
-13. **The projection's `courses` collection (12 records) is imported and read by no
+12. **The projection's `courses` collection (12 records) is imported and read by no
     view.** `scripts/prod/import_public_content.py` writes it into `ContentDocument`
     and `scripts/projection_build/public_projection_source.py` lists `courses` in
     `COLLECTION_NAMES`, but `/courses`
     is served from `courses.models.Cohort`. Nothing resolves a page through those
     documents.
 
-14. **The pinned revisions are behind upstream, so the site is missing records that
+13. **The pinned revisions are behind upstream, so the site is missing records that
     exist today** — 4 people, 3 podcast episodes, 1 book, 8 event rows, 1 wiki page
     (§6.1). *Not re-measured in either pass (2026-09-05, 2026-09-07): it needs a fresh
     clone of the upstream repositories, and the gap can only have grown.* Those figures
     are against the legacy `datatalksclub.github.io` and podwiki pins; for
     `DataTalksClub/content` the problem is not drift but item 1. Not a defect in itself;
-    it is the strongest practical argument for push-sync, and it is invisible without a
-    drift check (§10).
+    it is the strongest practical argument for push-sync. **The editorial half is no
+    longer invisible** — `make content-drift` counts it per family (§10.3) — but the
+    legacy and podwiki pins in these figures still have no drift check of their own, so
+    they stay hand-counted.
 
-15. **The `_people` front-matter field allowlist is enforced only in the projection
+14. **The `_people` front-matter field allowlist is enforced only in the projection
     builder** (`scripts/build_public_projection.py:1757-1793`), along with `short == stem`
     and the `picture` path pattern. Move the folder to `DataTalksClub/content` without
     carrying those rules across and the constraint is silently lost.
 
-16. **The podwiki graph asserts our record counts.**
+15. **The podwiki graph asserts our record counts.**
     `scripts/build_public_projection.py:2315-2326` fails unless the graph holds 1,070
     nodes and 12,987 links and references exactly 203 podcasts, 98 books and 438 people.
     **Changing our counts requires a matching podwiki graph rebuild**, across a
     repository boundary, or the projection build fails (§6.2).
 
-17. **Four importer docstrings and one service still name files that moved to
+16. **Four importer docstrings and one service still name files that moved to
     `temporary/content/`.** `scripts/prod/import_sponsors.py`,
     `scripts/prod/import_testimonials.py`, `scripts/prod/import_faq.py`,
     `scripts/prod/import_docs.py` and `core/sponsors.py` name
@@ -1499,6 +1612,7 @@ number can appear twice in this table for two unrelated defects.
 | 7 | "Sponsors have no ingest at all" | `scripts/prod/import_sponsors.py`, reading `temporary/content/sponsor_directory.json` through `core.sponsors`' shared services. `core/sponsor_history.py` and its hardcoded `FEATURED_SUPPORTERS` tuple are deleted |
 | 8 | "Testimonials arrive only through a data migration" | `scripts/prod/import_testimonials.py`, reading `temporary/content/homepage_testimonials.json`. The seeding migration is gone; the two `RunPython` migrations left repo-wide (`courses/0002_simplify_registration_counts.py` and `data/0002_redact_datamailer_audit_pii.py`) seed no content |
 | 10 | "`.local/migration-data/events/luma-aggregate-v1` has drifted off the pin — it holds 174 events against the 166 `_docs/migration-data/event-registration-sources.json` pins, so the default `--luma-source` fails, and somebody has to decide whether the pin moves or the directory is discarded" | The decision was taken and the pin moved: `f100d16d` (2026-09-06) re-pins `luma.event_total` to **174** and `luma.tree_sha256` to `2e18d184…`, the digest of that directory, with the row, registration and status totals moved together. Reviewed per [`event-registration-pull.md`](event-registration-pull.md) §4.3. *Closed on the pin file alone; no import was re-run for this pass* |
+| 10 | "No drift check exists for `DataTalksClub/content` — nothing in the repository compares what we serve against what the content repository says, at any moment" | `scripts/prod/sync_content_verify.py`, run as `make content-drift` over a checkout refreshed by `make content-checkout` (§10.1, §10.3) — issue #323. Read-only in both directions and offline: it diffs the five families `DataTalksClub/content` owns — articles, podcasts, podcast transcripts, books, media — keyed on `provenance.source_key` and digested against `provenance.checksum`, and reports `missing` / `extra` / `mismatched` per family plus `revision_status` for drift class (d). Exit 0 clean, 1 drift, 2 refusal. It writes nothing, including the `last_reconciled_at` / `pending_follow_up` this section's step 7 used to ask for — that slice is #273's. Two things it does **not** close: the course repositories still have no equivalent (§10.3), and no CI or scheduled job runs it, because against today's data it exits 1 by design (item 1) and `_docs/PROCESS.md` does not permit carrying a red required job |
 | 15 | "The ingest contract's `path_allowlist` declares flat `podcasts/*.yaml` and `podcasts/transcripts/*.yaml` while the content repository's layout is season-hierarchical, so any push-sync built against it would match nothing" | The premise was wrong. `DataTalksClub/content` `main` is `8be8587c` and its layout is flat — checked 2026-09-07 through the API: `podcasts/` holds **205** `*.yaml` files plus one directory, `podcasts/transcripts/` holds **203**, which is exactly what `content_sync/dtc_content/contract.py:121-124` declares, what `ACCEPTED_SOURCE_COUNTS` records and what [`content-authoring.md`](../content-authoring.md) `:26-32` requires normatively. The season-hierarchical tree the entry described is what the unobtainable pinned revision `1375c506…` holds in an unpushed local clone (§6.1, and item 1) — not what a push-sync would be built against. The count half was already closed: `ACCEPTED_SOURCE_COUNTS` (205/203) and `ACCEPTED_COUNTS` (203/201) are two named constants with a comment explaining that they describe different commits |
 | 20 | "`content_sync`'s test suite fails wholesale on `main` — 104 failures and 8 errors, every one `DatabaseOperationForbidden`" | `a218361d` and `abc3890c` (both 2026-09-06): the adapter and repository suites moved from `SimpleTestCase` to `TestCase`, and the preparation suite stopped needing the one-time `dtc-public-content` source. Re-run on 2026-09-07 at `6899c616`: `manage.py test content_sync` → **`Ran 101 tests … OK (skipped=11)`**, exit 0. The two figures this entry carried alongside it were also wrong: `content.tests.test_editorial_route_migration_contract` is **not** failing (`Ran 5 tests … OK (expected failures=1)` — its human gate is encoded as an `expectedFailure`), and `content.tests.test_public_media_view` passes under the repository default `PUBLIC_MEDIA_STORE_BACKEND=memory`; forcing `local` against an unhydrated media root gives 6 failures and 3 errors, which is the condition `manage.py check` already reports as `content.W001` (`content/apps.py:59`, issue #301). What is left for **#324** is narrow: `content_sync/tests/test_dtc_content_accepted_checkout.py:95-96` is still a `SimpleTestCase` that reads the catalogue, but it is `@skipUnless(ACCEPTED_CHECKOUT, …)` and `DTC_CONTENT_ACCEPTED_CHECKOUT` is unset in every default environment, so the wall has never been observed |
 | — | "Event content has no importer" | `scripts/prod/import_events.py`'s `import_content()` over `events/content_import.py`. Measured 2026-09-05: 421 events, 159 described, 456 speakers, 682 links (§14.2) |
@@ -1510,9 +1624,11 @@ number can appear twice in this table for two unrelated defects.
 
 | I need to… | Run |
 | --- | --- |
-| Register course repositories | `make content-sources` |
-| Fetch course checkouts (network) | `make content-checkouts` |
-| Ingest curriculum (offline) | `make content-pull` |
+| Register **course** repositories | `make content-sources` |
+| Fetch the **course** checkouts, one per registered course repository (network) | `make content-checkout`**`s`** — plural. Course repositories only; it does **not** cover `DataTalksClub/content` |
+| Ingest curriculum from those checkouts (offline) | `make content-pull` |
+| Refresh the **editorial** checkout, `DataTalksClub/content` alone (network) | `make content-checkout` — singular. The only networked step of the drift check |
+| Ask whether we still serve what `DataTalksClub/content` says (offline, read-only) | `make content-drift` — exit 0 clean, 1 drift, 2 refusal (§10.3) |
 | Verify a content checkout | `make verify-dtc-content` |
 | Check the committed projections | `make content-update-check` |
 | Rebuild the whole local dataset | `make production-prep-dataset` |

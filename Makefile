@@ -412,6 +412,62 @@ content-pull:
 		--database "$(CONTENT_DATABASE)" \
 		--from-disk "$(CONTENT_CHECKOUT_ROOT)" $(CONTENT_PULL_ARGS)
 
+# --------------------------------------------------------------------------
+# Editorial content drift check (issue #323)
+#
+# `make content-checkouts` above does NOT cover DataTalksClub/content: it
+# selects only sources whose adapter_type is course_repository_v1, and the
+# editorial source is not one. So the editorial checkout gets its own networked
+# target, and the check that reads it gets its own offline one. Which repository
+# either of them means stays a database question -- the registered enabled
+# ContentSource for DataTalksClub/content -- never a name written here.
+# --------------------------------------------------------------------------
+.PHONY: content-checkout content-drift
+
+CONTENT_CHECKOUT ?= .tmp/content-checkout
+# The script refuses a relative checkout -- a report has to say which tree it read
+# without depending on where it was run -- so the path is absolutised here rather
+# than every operator having to type an absolute one.
+CONTENT_CHECKOUT_ABS = $(abspath $(CONTENT_CHECKOUT))
+
+# Clone or refresh the editorial checkout, and print the HEAD it landed on. The
+# only target in this pair that touches the network, deliberately separate from
+# the check so a report is never quietly one round trip old.
+content-checkout:
+	@set -eu; \
+	mkdir -p "$$(dirname "$(CONTENT_CHECKOUT_ABS)")"; \
+	plan="$$(uv run --frozen python scripts/prod/sync_content_verify.py \
+		--database "$(CONTENT_DATABASE)" \
+		--checkout "$(CONTENT_CHECKOUT_ABS)" \
+		--checkout-plan)"; \
+	printf '%s\n' "$$plan" \
+	| while IFS="$$(printf '\t')" read -r stable repository branch checkout; do \
+		if test -d "$$checkout/.git"; then \
+			git -C "$$checkout" fetch --quiet origin "$$branch"; \
+			git -C "$$checkout" checkout --quiet "$$branch"; \
+			git -C "$$checkout" reset --hard --quiet FETCH_HEAD; \
+			git -C "$$checkout" clean --quiet -fdx; \
+		else \
+			git clone --quiet --branch "$$branch" \
+				"$(CONTENT_GIT_HOST)/$$repository" "$$checkout"; \
+		fi; \
+		echo "$$stable $$(git -C "$$checkout" rev-parse HEAD)"; \
+	done
+
+# Report drift between what the database serves and that checkout. Offline,
+# read-only, and never invokes content-checkout: exit 1 means "we are behind",
+# exit 2 means "I could not look". Make collapses any failed recipe to its own
+# exit 2, so the script's code is echoed here; anything that has to tell the two
+# apart -- a scheduler, a future CI job -- runs the script directly.
+content-drift:
+	@uv run --frozen python scripts/prod/sync_content_verify.py \
+		--database "$(CONTENT_DATABASE)" \
+		--checkout "$(CONTENT_CHECKOUT_ABS)" \
+		$(if $(CONTENT_DRIFT_REVISION),--revision "$(CONTENT_DRIFT_REVISION)",) \
+	|| { status=$$?; \
+		echo "content-drift: sync_content_verify exited $$status (1 drift, 2 refusal)" >&2; \
+		exit $$status; }
+
 production-prep-local:
 	@test -n "$(PRODUCTION_PREP_DATABASE)" || (echo "PRODUCTION_PREP_DATABASE is required" >&2; exit 2)
 	@test -n "$(PRODUCTION_PREP_COURSE_SOURCE_DIR)" || (echo "PRODUCTION_PREP_COURSE_SOURCE_DIR is required" >&2; exit 2)
