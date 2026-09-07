@@ -110,7 +110,7 @@ that way since the database cutover, so a row in §2 never carries it.
 | 9 | Legacy site — author images | Pinned build | Object store | **One-off export** → CDN |
 | 10 | Legacy site — article FAQ | Pinned build | Database | **One-off export** (done) |
 | 11 | CMP export — course content | One-time | Database | One-off export |
-| 12 | CMP export — learner data | **No importer** | Database | Undecided |
+| 12 | CMP export — learner data | One-time | Database | One-off export |
 | 13 | `zoomcamp-scoring` (pre-2024) | One-time | Database | One-off export |
 | 14 | Event identity manifest | One-time | Database | One-off export |
 | 15 | Event description bridge | One-time | Database | One-off export |
@@ -211,7 +211,7 @@ currently **not reproducible** — see issue #253 and §11.
 
 `courses.json` is imported into `ContentDocument` with the rest of the catalogue
 but **no view reads it** — `/courses` is database-served. It is ballast (§12 item
-14).
+13).
 
 ### Integrity at runtime
 
@@ -656,7 +656,7 @@ uv run --frozen python scripts/prod/import_cmp_content.py \
 > the source: CMP is still live and still being written to. Pick the export
 > deliberately and record which one you used.
 
-### 12 — CMP export, learner data — **accounts only; the rest has no importer**
+### 12 — CMP export, learner data — **two importers: accounts, then history**
 
 The other 31 tables in the same export. Measured on
 `/data/tmp/rds-export/cmp/rds-prod-20260905-182754.db` (2026-09-05): 38 tables,
@@ -664,17 +664,17 @@ The other 31 tables in the same export. Measured on
 
 | Table | Rows | Imported by |
 | --- | ---: | --- |
-| `courses_answer` | 218,577 | — |
-| `courses_criteriaresponse` | 107,691 | — |
-| `courses_projectevaluationscore` | 38,026 | — |
-| `courses_submission` | 36,617 | — |
-| `courses_courseregistration` | 28,831 | — |
-| `courses_enrollment` | 21,409 | — |
+| `courses_answer` | 218,577 | `import_cmp_learner_history.py` |
+| `courses_criteriaresponse` | 107,691 | `import_cmp_learner_history.py` |
+| `courses_projectevaluationscore` | 38,026 | `import_cmp_learner_history.py` |
+| `courses_submission` | 36,617 | `import_cmp_learner_history.py` |
+| `courses_courseregistration` | 28,831 | `import_cmp_learner_history.py` |
+| `courses_enrollment` | 21,409 | `import_cmp_learner_history.py` |
 | `accounts_customuser` | 20,469 | `import_cmp_learners.py` |
 | `account_emailaddress` | 20,466 | `import_cmp_learners.py` |
-| `courses_peerreview` | 13,041 | — |
-| `courses_projectsubmission` | 4,279 | — |
-| `courses_userwrappedstatistics` | 4,219 | — |
+| `courses_peerreview` | 13,041 | `import_cmp_learner_history.py` |
+| `courses_projectsubmission` | 4,279 | `import_cmp_learner_history.py` |
+| `courses_userwrappedstatistics` | 4,219 | `import_cmp_learner_history.py` |
 
 `socialaccount_socialaccount` (21,761 on the 2026-09-02 export) is in the same file and
 is on the **never import** list — see `production-data-migration.md` step 4 for the fate
@@ -687,15 +687,28 @@ creates no account with a usable password, staff or superuser rights, or a
 and course registrations "belong to a separate importer that reconciles against the
 cohorts and homework `import_cmp_content` writes".
 
-**That separate importer does not exist.** **472,690** of the 513,625 learner rows have
-no script. `scripts/load_rds_export.py`, which used to look like the candidate, is
-deleted — `scripts/tests/test_retired_broad_loader.py` asserts its absence.
-`review_import/` imports a *sanitized* subset for local review and deliberately leaves
-the learner tables empty.
+**That separate importer is `scripts/prod/import_cmp_learner_history.py`**
+(`BOOTSTRAPS_EMPTY_DATABASE = False`, `:61`) over
+`courses/services/cmp_learner_history_import.py`, whose `TABLE_ORDER` (`:171-181`) is
+the dependency order of the remaining nine tables: course registrations, enrollments,
+submissions, answers, project submissions, peer reviews, criteria responses, project
+evaluation scores and per-user Wrapped statistics. It **reconciles and never invents** —
+cohorts, homework, questions, projects and criteria come from `import_cmp_content`,
+accounts from `import_cmp_learners`, and a row whose parent is missing is counted under
+a named bucket and skipped rather than given a placeholder parent. It is resumable,
+tracks progress per table in `CmpHistoryImportProgress`, and reports counts and bounded
+codes only, never payload. `scripts/load_rds_export.py`, the broad loader that used to
+look like the candidate, is deleted — `scripts/tests/test_retired_broad_loader.py`
+asserts its absence. `review_import/` imports a *sanitized* subset for local review and
+deliberately leaves the learner tables empty.
 
-This is the largest single gap in the migration. It is also the one carrying PII, so it
-needs a decision about scope before it needs a script; the specification it has to
-satisfy is `production-data-migration.md` step 4.
+So the run order is `import_cmp_content`, then `import_cmp_learners`, then
+`import_cmp_learner_history` — the third reads the account claims the second wrote,
+through `--user-claims-file`, so point it at the same file that run used. It still
+carries PII, so it stays under `production-data-migration.md` step 4's transforms and
+never-import list; that document's §8.3 step 4 records the verified end-to-end run
+(20,469 accounts and 414,768 history rows, replay a no-op, SIGKILL-and-resume
+identical).
 
 ### 13 — `zoomcamp-scoring`, pre-2024 history
 
@@ -851,8 +864,8 @@ scratch SQLite database built by `manage.py migrate`, with only the reviewed man
 imported: **166 candidates → 144 recognised as events already held, 20 created, 2 with
 no metadata, 0 ambiguous, 0 undated.** A second run against the same database creates
 nothing (`already_tracked_total: 20`). Against the drifted 174-event directory the same
-run reads 174 candidates and creates 27 — see §12 item 10 for why that directory does
-not validate in a full run.
+run reads 174 candidates and creates 27 — see §12.1, was item 10, for why that
+directory did not validate in a full run.
 
 **Three of the twenty are worth a human's eye, and the report says so.** A created event
 that shares its exact normalized title with an existing event on a *different* date is
@@ -1013,7 +1026,7 @@ The durable protected copy a real run should point at lives outside any worktree
 > 166 the facts file pins, so a full `import_events.py run()` against it exits 1 with
 > `registration_source_validation_failed` (verified 2026-09-05). The sibling
 > `luma-aggregate-v1.backup-20260902` holds the pinned 166 and runs clean. Somebody has
-> to decide whether the pin moves or the directory is discarded — §12 item 10.
+> to decide whether the pin moves or the directory is discarded — §12.1, was item 10.
 >
 > **It should move.** Counted 2026-09-05: the 174-event directory is a later capture of
 > the same account — 52,467 rows, `tree_sha256 2e18d184…`, the eight extra events dated
@@ -1309,30 +1322,35 @@ Makefile targets resolve:
 
 ## 12. Known defects and gaps
 
-Ordered by how much they will hurt. Every entry was re-checked against the code on
-2026-09-05. Where a figure was re-measured that day the command or file that
-produced it is named; where it was not, the entry says so rather than implying a
-fresh measurement. §12.1 records what closed, so an old item number still leads
-somewhere.
+Ordered by how much they will hurt. Every entry's **structural** claims — a file exists
+or does not, a symbol is present, a repo-wide grep returns nothing, a cited line range
+still holds what it is cited for — were re-checked against the code on **2026-09-07** at
+`6899c616`. Figures measured over data outside this repository were **not** re-measured
+that day: the CMP and AISL exports under `/data/tmp/rds-export/`, anything from a full
+`import_events.py` run, the directories under `.local/migration-data/`, and the legacy
+upstream drift in §6.1. Each such figure keeps the date it was taken and says so, so a
+freshly checked line number never implies a freshly taken number. §12.1 records what
+closed, so an old item number still leads somewhere.
 
-1. **CMP learner data beyond accounts has no importer.** `scripts/prod/import_cmp_learners.py`
-   imports `accounts_customuser` and `account_emailaddress` and nothing else; its own
-   docstring says enrollments, submissions, answers, reviews and course registrations
-   "belong to a separate importer". **That importer does not exist.** Measured on
-   `/data/tmp/rds-export/cmp/rds-prod-20260905-182754.db` (38 tables, 673,449 rows):
-   the eleven learner-bearing tables hold **513,625** rows, of which the accounts
-   importer covers **40,935**, leaving **472,690** rows — answers, criteria responses,
-   evaluation scores, submissions, course registrations, enrollments, peer reviews,
-   project submissions and wrapped statistics — with no script. PII throughout.
-   **This is the largest remaining gap in the migration**, and it needs a scope
-   decision before it needs a script (`production-data-migration.md` step 4 holds the
-   specification it must satisfy). `scripts/load_rds_export.py` is deleted, not merely
-   disabled — `scripts/tests/test_retired_broad_loader.py` asserts its absence.
+1. **The revision the served editorial catalogue was built from does not exist
+   upstream** — issue #326. `scripts/build_public_projection.py:92` pins
+   `PREFERRED_CONTENT_REVISION = "1375c506dbce85c7c0e5e61f83c753128c5a48d1"`, and
+   `gh api repos/DataTalksClub/content/commits/1375c506…` answers **HTTP 422, "No commit
+   found for SHA"** (checked 2026-09-07; upstream `main` is `8be8587c`). All **1,116**
+   content-owned served records carry that revision — 55 articles, 203 podcasts, 201
+   transcripts (in `transcript_provenance`), 98 books and 559 media objects, counted
+   2026-09-07 over `temporary/content/public_projection/*.json`. So what we serve was
+   built from a source nobody else can fetch, and its provenance resolves only on the
+   machine holding the unpushed clone. **This is the most serious entry in the list**,
+   and two others are pieces of it: it makes item 4 unfixable rather than merely un-run,
+   because a rebuild cannot obtain its inputs at all; and it makes item 14 an
+   understatement for this source, because the content pin is not behind upstream, it is
+   off the upstream graph.
 
 2. **The mapping backlog: registration aggregates stage, mostly do not resolve, and
    none activate.** Measured on 2026-09-05 by a full
-   `scripts/prod/import_events.py` run against the pinned Luma export and the
-   Eventbrite archive, into a scratch SQLite database built by `manage.py migrate`:
+   `scripts/prod/import_events.py` run against the then-pinned 166-event Luma export and
+   the Eventbrite archive, into a scratch SQLite database built by `manage.py migrate`:
    **375 provider events** stage (166 Luma, 209 Eventbrite). With no
    `--current-registration-input` file supplied, `activation_coverage` reports **0 of
    375 resolved**; the narrower automatic pass then resolves **99** Luma aggregates on
@@ -1342,7 +1360,11 @@ somewhere.
    title or date to match on). Both sources finish `activated: false`,
    `activation_state: unresolved`. Resolution and public-display activation are two
    separate gates and neither has been passed. The adapters are not the gap; the
-   mapping review is.
+   mapping review is. *Every figure here is against the 166-event capture and was not
+   re-measured on 2026-09-07; the Luma pin has since moved to the 174-event export
+   (`f100d16d`, 2026-09-06 — §12.1, was item 10), so the staged totals will differ on
+   the next run.* The code path is unchanged: `--current-registration-input`
+   (`import_events.py:1129`) and `activation_coverage` (`:954`, reported at `:1100`).
 
 3. **The only remaining route to 438 of the media objects is the legacy repository**
    (§5.2 a5), and the media tree is gitignored. The default is closed —
@@ -1356,7 +1378,9 @@ somewhere.
    (`content_sync/dtc_content/contract.py:42-43`) were already stale before #301
    changed the digest scope, and the comment above them still says they were
    deliberately left untouched. Whichever of #253/#301 lands second must regenerate
-   them.
+   them. **Regenerating them is not enough on its own:** item 1 means the content
+   revision a rebuild would have to read cannot be fetched, so #253 cannot be closed
+   before #326 is.
 
 5. **The FAQ and docs staging files have no builder in this repository.**
    `temporary/content/faq_projection.json` and `temporary/content/docs_projection.json`
@@ -1383,7 +1407,7 @@ somewhere.
 8. **`_docs/migrations/event-speaker-bio-normalization.json` pins exactly 421 events and
    has no generator in this repository.** A 422nd event fails the build with `event
    speaker-bio projection count mismatch`
-   (`scripts/projection_build/event_speaker_bio_normalization.py:492-494`). Since §14.3
+   (`scripts/projection_build/event_speaker_bio_normalization.py:483-485`). Since §14.3
    now mints identities for genuinely new events, the count this file pins and the
    number of events we hold are no longer the same thing by construction.
 
@@ -1395,84 +1419,58 @@ somewhere.
    `content`, `payments`, `plans`, `questionnaires`, `bookclub`, `crm` and `analytics`
    apps; the row count moves every day (151,402 on 2026-09-02), so treat any single
    figure as a snapshot. **Owner ruling: it is not migrated here.** No script in this
-   repository reads it and none should. The entry stays so that the next person to find
+   repository reads it and none should — re-verified 2026-09-07: a repo-wide grep for
+   `aisl` matches no Python file. The entry stays so that the next person to find
    a second `.db` under `/data/tmp/rds-export/` learns it was excluded deliberately
    rather than rediscovering it. Full statement:
-   `production-data-migration.md` §14.
+   `production-data-migration.md` §14. *The row figures are carried forward from
+   2026-09-05 and were not re-measured.*
 
-10. **`.local/migration-data/events/luma-aggregate-v1` has drifted off the pin.** It
-    holds **174** events; `_docs/migration-data/event-registration-sources.json` pins
-    **166** with a `tree_sha256`. Verified 2026-09-05: a full `import_events.py` run
-    against it exits 1 with `registration_source_validation_failed`, while the same run
-    against the sibling `luma-aggregate-v1.backup-20260902` (166 events) succeeds. The
-    durable protected copy at `/data/tmp/luma-eventbrite-export/luma-aggregate-v1/`
-    also holds 166 CSV/JSON pairs *(file count only — its tree digest was not
-    recomputed)*. Somebody has to decide whether the pin moves to the 174-event export
-    or the 174-event directory is discarded; until then the default `--luma-source` path
-    is the one that fails.
+10. **No drift check exists for `DataTalksClub/content`** (§10) — issue #323. Nothing in
+    the repository compares what we serve against what the content repository says, at
+    any moment. Item 1 is what a drift check would have caught the day the pin was set.
 
-    **The 174-event directory is a later capture, not a broken one** (counted
-    2026-09-05: 52,467 rows, 52,415 approved, 52 declined, `tree_sha256 2e18d184…`).
-    Its eight extra events are dated 2026-08-31 to 2026-09-15, and 99 of the 166 it
-    shares with the pinned export carry different registrant rows — 5 grew, 13 shrank.
-    So the pin is what is stale. Moving it is a reviewed commit, not a workaround:
-    [`event-registration-pull.md`](event-registration-pull.md) §4.3 says what the
-    review has to establish, and §1 of the same document is why this whole item is a
-    recurring task rather than a one-off decision.
-
-11. **No drift check exists for `DataTalksClub/content`** (§10). Nothing in the
-    repository compares what we serve against what the content repository says, at any
-    moment.
-
-12. **`backfill_event_qna` and `retry_event_qna` have zero callers.** Repo-wide grep for
+11. **`backfill_event_qna` and `retry_event_qna` have zero callers.** Repo-wide grep for
     either name returns no reference outside the command modules themselves. The
     *service* `retry_event_qna_provision` is reachable from Studio
     (`events/qna/studio_views.py:121`), the admin API (`management_api/views.py:1046`)
     and its capability (`events/qna/capabilities.py:151`); only the two CLI wrappers are
     dead.
 
-13. **`_conferences` (2 records) has no declared fate**, reaches no page, and **6 event
+12. **`_conferences` (2 records) has no declared fate**, reaches no page, and **6 event
     rows carry links to conference pages that do not exist on our site** — the links are
-    dropped at `scripts/build_public_projection.py:1882-1885` and the drop is
-    count-asserted at `:1928-1929`, so it is deliberate and visible rather than silent
+    dropped at `scripts/build_public_projection.py:1878-1881` and the drop is
+    count-asserted at `:1923-1924`, so it is deliberate and visible rather than silent
     (§6).
 
-14. **The projection's `courses` collection (12 records) is imported and read by no
+13. **The projection's `courses` collection (12 records) is imported and read by no
     view.** `scripts/prod/import_public_content.py` writes it into `ContentDocument`
     and `scripts/projection_build/public_projection_source.py` lists `courses` in
     `COLLECTION_NAMES`, but `/courses`
     is served from `courses.models.Cohort`. Nothing resolves a page through those
     documents.
 
-15. **The ingest contract's `path_allowlist` cannot match the content repository's
-    current layout.** `content_sync/dtc_content/contract.py:121-124` declares flat
-    `podcasts/*.yaml` and `podcasts/transcripts/*.yaml`. At `PREFERRED_CONTENT_REVISION`
-    the layout is season-hierarchical (`podcasts/s12/e08.yaml`, 24 season directories)
-    — *carried forward from §6.1's measurement; no content checkout was available to
-    re-walk on 2026-09-05*. **Any push-sync built against this allowlist would match
-    nothing.** The count half of this entry is closed: `ACCEPTED_SOURCE_COUNTS`
-    (205/203) and `ACCEPTED_COUNTS` (203/201) are now two named constants with a comment
-    explaining that they describe different commits, so neither is stale.
-
-16. **The pinned revisions are behind upstream, so the site is missing records that
+14. **The pinned revisions are behind upstream, so the site is missing records that
     exist today** — 4 people, 3 podcast episodes, 1 book, 8 event rows, 1 wiki page
-    (§6.1). *Not re-measured on 2026-09-05: it needs a fresh clone of the upstream
-    repositories, and the gap can only have grown.* Not a defect in itself; it is the
-    strongest practical argument for push-sync, and it is invisible without a drift
-    check (§10).
+    (§6.1). *Not re-measured in either pass (2026-09-05, 2026-09-07): it needs a fresh
+    clone of the upstream repositories, and the gap can only have grown.* Those figures
+    are against the legacy `datatalksclub.github.io` and podwiki pins; for
+    `DataTalksClub/content` the problem is not drift but item 1. Not a defect in itself;
+    it is the strongest practical argument for push-sync, and it is invisible without a
+    drift check (§10).
 
-17. **The `_people` front-matter field allowlist is enforced only in the projection
+15. **The `_people` front-matter field allowlist is enforced only in the projection
     builder** (`scripts/build_public_projection.py:1757-1793`), along with `short == stem`
     and the `picture` path pattern. Move the folder to `DataTalksClub/content` without
     carrying those rules across and the constraint is silently lost.
 
-18. **The podwiki graph asserts our record counts.**
-    `scripts/build_public_projection.py:2320-2330` fails unless the graph holds 1,070
+16. **The podwiki graph asserts our record counts.**
+    `scripts/build_public_projection.py:2315-2326` fails unless the graph holds 1,070
     nodes and 12,987 links and references exactly 203 podcasts, 98 books and 438 people.
     **Changing our counts requires a matching podwiki graph rebuild**, across a
     repository boundary, or the projection build fails (§6.2).
 
-19. **Four importer docstrings and one service still name files that moved to
+17. **Four importer docstrings and one service still name files that moved to
     `temporary/content/`.** `scripts/prod/import_sponsors.py`,
     `scripts/prod/import_testimonials.py`, `scripts/prod/import_faq.py`,
     `scripts/prod/import_docs.py` and `core/sponsors.py` name
@@ -1485,28 +1483,24 @@ somewhere.
     `scripts/prod/import_events.py` instead of re-deriving the path, which is the
     fix that stops it drifting again.
 
-20. **`content_sync`'s test suite fails wholesale on `main`.** `manage.py test
-    content_sync` on 2026-09-05: **104 failures, 8 errors**, every one
-    `DatabaseOperationForbidden` — `SimpleTestCase` subclasses that now touch the
-    database because the catalogue became database-backed under them. Pre-existing and
-    unrelated to any one change; recorded so the next person does not attribute it to
-    theirs. Four `content.tests.test_public_media_view` failures (an unhydrated local
-    media store answering 502) and
-    `content.tests.test_editorial_route_migration_contract` (a checked digest, issue
-    #253) are pre-existing in the same way. *(Measured for `content_sync` only; the other
-    two are carried forward from the same session's report and not independently re-run
-    here.)*
-
 ### 12.1 Closed since the last revision
 
 Recorded with the old item number so a reader arriving with a stale reference finds
-the answer rather than re-investigating.
+the answer rather than re-investigating. **A `Was item` number is the number the entry
+held in the revision that closed it** — the numbering a stale reference was written
+against, not a number that survives later revisions. §12 renumbers contiguously
+whenever an entry leaves it or a new one is ranked above it, so the same `Was item`
+number can appear twice in this table for two unrelated defects.
 
 | Was item | Was claimed | Closed by |
 | --- | --- | --- |
+| 1 | "CMP learner data beyond accounts has no importer — that importer does not exist, and it is the largest remaining gap in the migration" | `scripts/prod/import_cmp_learner_history.py` over `courses/services/cmp_learner_history_import.py`, whose `TABLE_ORDER` (`:171-181`) covers all nine remaining learner tables — course registrations, enrollments, submissions, answers, project submissions, peer reviews, criteria responses, project evaluation scores and Wrapped statistics. Rehearsed end to end on 2026-09-05: 20,469 accounts and 414,768 history rows, replay a no-op, SIGKILL-and-resume identical (`production-data-migration.md` §8.3 step 4). §8 source 12 |
 | 2 | "The content database pipeline is dead at both ends — nothing writes them and nothing reads them" | `scripts/prod/import_public_content.py` writes `ContentDocument` rows; `content/catalogue.py`, `content/article_faq.py`, `content/faq_data.py` and `content/docs_projection.py` read them on every public request. §9 |
 | 7 | "Sponsors have no ingest at all" | `scripts/prod/import_sponsors.py`, reading `temporary/content/sponsor_directory.json` through `core.sponsors`' shared services. `core/sponsor_history.py` and its hardcoded `FEATURED_SUPPORTERS` tuple are deleted |
-| 8 | "Testimonials arrive only through a data migration" | `scripts/prod/import_testimonials.py`, reading `temporary/content/homepage_testimonials.json`. The seeding migration is gone; one data-bearing migration remains repo-wide (`courses/0002_simplify_registration_counts.py`) and it seeds no content |
+| 8 | "Testimonials arrive only through a data migration" | `scripts/prod/import_testimonials.py`, reading `temporary/content/homepage_testimonials.json`. The seeding migration is gone; the two `RunPython` migrations left repo-wide (`courses/0002_simplify_registration_counts.py` and `data/0002_redact_datamailer_audit_pii.py`) seed no content |
+| 10 | "`.local/migration-data/events/luma-aggregate-v1` has drifted off the pin — it holds 174 events against the 166 `_docs/migration-data/event-registration-sources.json` pins, so the default `--luma-source` fails, and somebody has to decide whether the pin moves or the directory is discarded" | The decision was taken and the pin moved: `f100d16d` (2026-09-06) re-pins `luma.event_total` to **174** and `luma.tree_sha256` to `2e18d184…`, the digest of that directory, with the row, registration and status totals moved together. Reviewed per [`event-registration-pull.md`](event-registration-pull.md) §4.3. *Closed on the pin file alone; no import was re-run for this pass* |
+| 15 | "The ingest contract's `path_allowlist` declares flat `podcasts/*.yaml` and `podcasts/transcripts/*.yaml` while the content repository's layout is season-hierarchical, so any push-sync built against it would match nothing" | The premise was wrong. `DataTalksClub/content` `main` is `8be8587c` and its layout is flat — checked 2026-09-07 through the API: `podcasts/` holds **205** `*.yaml` files plus one directory, `podcasts/transcripts/` holds **203**, which is exactly what `content_sync/dtc_content/contract.py:121-124` declares, what `ACCEPTED_SOURCE_COUNTS` records and what [`content-authoring.md`](../content-authoring.md) `:26-32` requires normatively. The season-hierarchical tree the entry described is what the unobtainable pinned revision `1375c506…` holds in an unpushed local clone (§6.1, and item 1) — not what a push-sync would be built against. The count half was already closed: `ACCEPTED_SOURCE_COUNTS` (205/203) and `ACCEPTED_COUNTS` (203/201) are two named constants with a comment explaining that they describe different commits |
+| 20 | "`content_sync`'s test suite fails wholesale on `main` — 104 failures and 8 errors, every one `DatabaseOperationForbidden`" | `a218361d` and `abc3890c` (both 2026-09-06): the adapter and repository suites moved from `SimpleTestCase` to `TestCase`, and the preparation suite stopped needing the one-time `dtc-public-content` source. Re-run on 2026-09-07 at `6899c616`: `manage.py test content_sync` → **`Ran 101 tests … OK (skipped=11)`**, exit 0. The two figures this entry carried alongside it were also wrong: `content.tests.test_editorial_route_migration_contract` is **not** failing (`Ran 5 tests … OK (expected failures=1)` — its human gate is encoded as an `expectedFailure`), and `content.tests.test_public_media_view` passes under the repository default `PUBLIC_MEDIA_STORE_BACKEND=memory`; forcing `local` against an unhydrated media root gives 6 failures and 3 errors, which is the condition `manage.py check` already reports as `content.W001` (`content/apps.py:59`, issue #301). What is left for **#324** is narrow: `content_sync/tests/test_dtc_content_accepted_checkout.py:95-96` is still a `SimpleTestCase` that reads the catalogue, but it is `@skipUnless(ACCEPTED_CHECKOUT, …)` and `DTC_CONTENT_ACCEPTED_CHECKOUT` is unset in every default environment, so the wall has never been observed |
 | — | "Event content has no importer" | `scripts/prod/import_events.py`'s `import_content()` over `events/content_import.py`. Measured 2026-09-05: 421 events, 159 described, 456 speakers, 682 links (§14.2) |
 | — | "New-event discovery mints a duplicate identity for events we already have" | Fixed. Against the pinned 166-event export it created **164** identities, **144** of them duplicates; it now creates **20**, recognises **144** as events already held, and reports 2 it cannot name (§14.3) |
 
@@ -1526,7 +1520,8 @@ the answer rather than re-investigating.
 | Import pre-2024 Zoomcamp history | `make import-legacy-zoomcamp` |
 | Import events | `make import-events` |
 | Import CMP course content | `uv run --frozen python scripts/prod/import_cmp_content.py --database … --source …` |
-| Import CMP learner accounts | `uv run --frozen python scripts/prod/import_cmp_learners.py --database … --source …` (accounts only — §8/12) |
+| Import CMP learner accounts | `uv run --frozen python scripts/prod/import_cmp_learners.py --database … --source … --claims-file …` (the account layer of step 4 — §8) |
+| Import CMP learner history | `uv run --frozen python scripts/prod/import_cmp_learner_history.py --database … --source … --claims-dir … --user-claims-file …` (the other nine tables; run it after the two above, and point `--user-claims-file` at the same file the accounts run wrote — §8) |
 | Import the editorial catalogue | `uv run --frozen python scripts/prod/import_public_content.py --database …` |
 | Import the FAQ and the docs | `uv run --frozen python scripts/prod/import_faq.py --database …`, then `import_docs.py` |
 | Import sponsors and testimonials | `uv run --frozen python scripts/prod/import_sponsors.py --database …`, then `import_testimonials.py` |
