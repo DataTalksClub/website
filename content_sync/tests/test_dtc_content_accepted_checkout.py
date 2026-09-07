@@ -93,7 +93,38 @@ def _write_overlay_manifest(root: Path, manifest: dict[str, object]) -> str:
 
 
 @skipUnless(ACCEPTED_CHECKOUT, "DTC_CONTENT_ACCEPTED_CHECKOUT is not configured")
-class AcceptedDtcContentCheckoutTests(SimpleTestCase):
+class AcceptedDtcContentCheckoutTests(TestCase):
+    """All four methods read the published catalogue, so all four need rows.
+
+    This was a ``SimpleTestCase`` long after the catalogue became database
+    backed, and the gate above meant no environment ever ran it to find out
+    (#324). Splitting the class was considered and rejected: there is no
+    filesystem-only method to split off. ``verify_dtc_content_checkout`` calls
+    ``verify_initial_projection_parity`` for ``ACCEPTED_CONTENT_COMMIT``
+    (``content_sync/dtc_content/repository.py:353``), and
+    ``adapt_dtc_content_checkout`` asks the catalogue which public paths are
+    already published (``content_sync/dtc_content/adapter.py:1323``), so:
+
+    * ``test_accepted_checkout_is_exact_deterministic_and_projection_equivalent``
+      -> ``verify_dtc_content_checkout`` -> ``published_catalogue``;
+    * ``test_editorial_overlay_bytes_schema_and_binding_fail_closed`` and
+      ``test_each_overlay_description_and_target_digest_is_bound``
+      -> ``_overlay_diagnostic`` -> ``adapt_dtc_content_checkout``
+      -> ``_checked_contracts`` -> ``content.catalogue``;
+    * ``test_projection_parity_blocks_semantic_and_evidence_drift``
+      -> ``published_catalogue`` -> ``content.catalogue``.
+
+    ``TestCase`` gives them the rows, matching ``AcceptedDtcContentPreparationTests``
+    below; measured against a real accepted checkout, the two overlay methods
+    (``..._fail_closed``, ``..._is_bound``) pass, while
+    ``..._exact_deterministic_and_projection_equivalent`` and
+    ``..._blocks_semantic_and_evidence_drift`` error at ``legacy_contract_missing``
+    (``content_sync/dtc_content/adapter.py:624``) on the #253/#301 content pin drift
+    recorded in ``content_sync/dtc_content/contract.py:30-41`` -- raised *after*
+    ``_checked_contracts`` has read the catalogue, so it is stale pins to be
+    regenerated there, not a database boundary failure here.
+    """
+
     def test_accepted_checkout_is_exact_deterministic_and_projection_equivalent(self) -> None:
         root = Path(ACCEPTED_CHECKOUT)
         first = verify_dtc_content_checkout(root, expected_commit=ACCEPTED_CONTENT_COMMIT)
