@@ -73,6 +73,35 @@ Three sources write cohorts, and they are not interchangeable:
 CMP runs **last** because it reconciles.  The reverse order happened to work only
 while no cohort was described by both CMP and a repository; the first time one is,
 a CMP-first rebuild refuses on a homework slug collision.
+
+CMP learner order
+-----------------
+
+The CMP export also carries the learners, and those three legs are even less
+interchangeable.  :data:`CMP_LEARNER_ORDER` records them: ``import_cmp_content``,
+then ``import_cmp_learners``, then ``import_cmp_learner_history``.
+
+The history importer reconciles every foreign key it writes against what the first
+two wrote -- cohorts, homework, questions, projects and criteria from the content
+import, accounts from the learner import -- and it resolves its learners through the
+accounts claims file ``import_cmp_learners`` leaves behind, which it is pointed at
+with ``--user-claims-file``.  So a reordered run is not an error: it is a silent
+partial import that reports success while skipping every row whose parent is not
+there yet.  ``scripts/tests/test_prod_make_targets.py`` checks the Makefile runs the
+two learner legs in this order.
+
+Reachable from the Makefile, or excluded with a reason
+------------------------------------------------------
+
+Every module here is either invoked by a Makefile recipe or named in
+:data:`MAKE_TARGET_EXCLUSIONS` with the reason it is deliberately reachable only by
+a typed command.  ``scripts/tests/test_prod_make_targets.py`` checks the closure, so
+the next entry point that lands cannot quietly become runbook-only prose that nothing
+executes and nothing holds to an order.
+
+Being excluded is a statement about *who may start the run*, not about safety: an
+importer that reads attendee-level personal data or merges real accounts should cost
+a deliberate command, not ride along inside a rebuild.
 """
 
 from __future__ import annotations
@@ -103,4 +132,57 @@ COURSE_CATALOGUE_ORDER = (
     "import_cmp_content",
 )
 
-__all__ = ["BOOTSTRAPPING_ENTRY_POINTS", "COURSE_CATALOGUE_ORDER", "SYNC_MODELS"]
+# The declared CMP learner order. The history importer reconciles against both
+# of the legs before it and reads the claims file the second one writes.
+CMP_LEARNER_ORDER = (
+    "import_cmp_content",
+    "import_cmp_learners",
+    "import_cmp_learner_history",
+)
+
+# Modules that deliberately have no Makefile target: module name -> why. An entry
+# here is a decision someone has to argue with, not an omission.
+MAKE_TARGET_EXCLUSIONS: dict[str, str] = {
+    "import_event_registrants": (
+        "Reads attendee-level personal data and provider credentials, so it stays a "
+        "deliberate, separately invoked run rather than something a local rebuild "
+        "does on its way past. Same reason the Makefile records above "
+        "production-prep-bootstrap for step 6."
+    ),
+    "import_mailchimp_event_tags": (
+        "Needs Mailchimp provider credentials and reads subscriber-level personal "
+        "data. Step 6, excluded for the reason above production-prep-bootstrap."
+    ),
+    "import_mailchimp_subscriptions": (
+        "Needs Mailchimp provider credentials and reads subscriber-level personal "
+        "data. Step 6, excluded for the reason above production-prep-bootstrap."
+    ),
+    "sync_content": (
+        "Not decided yet. Its absence from the Makefile is recorded here rather "
+        "than left silent; deciding whether it gets a target belongs to the ingest "
+        "consolidation epic, DataTalksClub/website#310."
+    ),
+    "sync_public_media_hydrate": (
+        "Not decided yet. The Makefile names it only in a comment, which is not a "
+        "way to run it; deciding whether it gets a target belongs to the ingest "
+        "consolidation epic, DataTalksClub/website#310."
+    ),
+    "sync_public_media_publish": (
+        "Not decided yet. Its absence from the Makefile is recorded here rather "
+        "than left silent; deciding whether it gets a target belongs to the ingest "
+        "consolidation epic, DataTalksClub/website#310."
+    ),
+    "sync_public_media_verify": (
+        "Not decided yet. Its absence from the Makefile is recorded here rather "
+        "than left silent; deciding whether it gets a target belongs to the ingest "
+        "consolidation epic, DataTalksClub/website#310."
+    ),
+}
+
+__all__ = [
+    "BOOTSTRAPPING_ENTRY_POINTS",
+    "CMP_LEARNER_ORDER",
+    "COURSE_CATALOGUE_ORDER",
+    "MAKE_TARGET_EXCLUSIONS",
+    "SYNC_MODELS",
+]

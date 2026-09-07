@@ -12,6 +12,10 @@
 	import-legacy-zoomcamp import-events \
 	import-public-content import-faq import-docs import-sponsors import-testimonials \
 	import-editorial-content production-prep-bootstrap \
+	import-cmp-content import-cmp-learners import-cmp-learners-status \
+	import-cmp-learner-history import-cmp-learner-history-status \
+	import-cmp-learner-data import-account-reconciliation \
+	import-account-reconciliation-rollback-check \
 	terraform-seo-source-check check-openapi check-management-parity \
 	database-portability-check verify-dtc-content review-data review-data-dry-run \
 	review-data-cleanup run-review-data verification-plan verification-run verification-full \
@@ -533,6 +537,142 @@ import-editorial-content:
 	$(MAKE) import-sponsors IMPORT_DATABASE="$(IMPORT_DATABASE)"
 	$(MAKE) import-testimonials IMPORT_DATABASE="$(IMPORT_DATABASE)"
 
+# CMP export imports. The CMP production export is the largest single step of
+# the migration -- 991 content rows plus 510,519 learner rows measured -- and
+# the learner half of it is 20,009 real people. Every target below refuses
+# before any Python starts when the variable naming the export or the
+# destination database is unset; a missing variable is never a skip, a warning
+# or a default. See _docs/runbooks/production-data-migration.md §4 and
+# _docs/runbooks/account-reconciliation.md.
+#
+# The CMP production export to read, passed to `--source` and read in place --
+# never copied into the worktree. Deliberately no default: a new dump lands in
+# the export directory daily and there is no `latest` symlink, so guessing one
+# is how the wrong export gets imported.
+CMP_EXPORT ?=
+# Which database receives the learner accounts and their history. Deliberately
+# no default, and deliberately not IMPORT_DATABASE's: that one is the dev
+# dataset `make run-production-prep-dataset` serves on port 8001, and which
+# database receives 20,000 real people is a decision typed once per run.
+IMPORT_LEARNER_DATABASE ?=
+# The accounts claims file `import_cmp_learners.py` writes and
+# `import_cmp_learner_history.py` reads back. Set it once and both targets use
+# it; leave it empty and each importer uses its own default path.
+CMP_CLAIMS_FILE ?=
+# Where the history importer records which target row it created for a given
+# CMP source id, one file per table. Durable resumability state.
+CMP_CLAIMS_DIR ?=
+ACCOUNT_RECONCILIATION_MAPPING ?=
+ACCOUNT_RECONCILIATION_OUTPUT ?= .tmp/account-reconciliation-dry-run.json
+
+# The third leg of step 3's catalogue order, after `import-legacy-zoomcamp` and
+# `make content-pull`. Content only -- no account, enrollment, submission or
+# registration row -- so the ordinary IMPORT_DATABASE default is safe here.
+# `production-prep-bootstrap` already runs it through `production-prep-local`;
+# this target is for a database built some other way.
+import-cmp-content:
+	@test -n "$(CMP_EXPORT)" || (echo "CMP_EXPORT is required: point it at the CMP export to import. There is deliberately no default." >&2; exit 2)
+	@test -f "$(CMP_EXPORT)" || (echo "CMP_EXPORT=$(CMP_EXPORT) is not an existing file" >&2; exit 2)
+	uv run --frozen python scripts/prod/import_cmp_content.py \
+		--database "$(IMPORT_DATABASE)" \
+		--source "$(CMP_EXPORT)" \
+		$(IMPORT_CMP_CONTENT_ARGS)
+
+# The learner-account half of migration step 4: 20,009 accounts and their email
+# addresses. Resumable -- a killed run is re-run with the same variables.
+import-cmp-learners:
+	@test -n "$(IMPORT_LEARNER_DATABASE)" || (echo "IMPORT_LEARNER_DATABASE is required: name the database that receives the learner accounts. There is deliberately no default." >&2; exit 2)
+	@test -n "$(CMP_EXPORT)" || (echo "CMP_EXPORT is required: point it at the CMP export to import. There is deliberately no default." >&2; exit 2)
+	@test -f "$(CMP_EXPORT)" || (echo "CMP_EXPORT=$(CMP_EXPORT) is not an existing file" >&2; exit 2)
+	uv run --frozen python scripts/prod/import_cmp_learners.py \
+		--database "$(IMPORT_LEARNER_DATABASE)" \
+		--source "$(CMP_EXPORT)" \
+		$(if $(CMP_CLAIMS_FILE),--claims-file "$(CMP_CLAIMS_FILE)",) \
+		$(IMPORT_CMP_LEARNERS_ARGS)
+
+# How far a resumable run got, without opening the export at all. No --source,
+# and no CMP_EXPORT required: that is the point of --status.
+import-cmp-learners-status:
+	@test -n "$(IMPORT_LEARNER_DATABASE)" || (echo "IMPORT_LEARNER_DATABASE is required: name the database whose progress you are reading. There is deliberately no default." >&2; exit 2)
+	uv run --frozen python scripts/prod/import_cmp_learners.py \
+		--database "$(IMPORT_LEARNER_DATABASE)" \
+		--status \
+		$(if $(CMP_CLAIMS_FILE),--claims-file "$(CMP_CLAIMS_FILE)",)
+
+# The second half of migration step 4: registrations, enrollments, submissions,
+# answers, reviews, scores and Wrapped statistics. It reconciles -- against the
+# cohorts `import_cmp_content` wrote, and against the accounts claims file
+# `import-cmp-learners` left behind, which is why CMP_CLAIMS_FILE is threaded
+# through to --user-claims-file rather than left for an operator to remember.
+import-cmp-learner-history:
+	@test -n "$(IMPORT_LEARNER_DATABASE)" || (echo "IMPORT_LEARNER_DATABASE is required: name the database that receives the learner history. There is deliberately no default." >&2; exit 2)
+	@test -n "$(CMP_EXPORT)" || (echo "CMP_EXPORT is required: point it at the CMP export to import. There is deliberately no default." >&2; exit 2)
+	@test -f "$(CMP_EXPORT)" || (echo "CMP_EXPORT=$(CMP_EXPORT) is not an existing file" >&2; exit 2)
+	uv run --frozen python scripts/prod/import_cmp_learner_history.py \
+		--database "$(IMPORT_LEARNER_DATABASE)" \
+		--source "$(CMP_EXPORT)" \
+		$(if $(CMP_CLAIMS_DIR),--claims-dir "$(CMP_CLAIMS_DIR)",) \
+		$(if $(CMP_CLAIMS_FILE),--user-claims-file "$(CMP_CLAIMS_FILE)",) \
+		$(IMPORT_CMP_LEARNER_HISTORY_ARGS)
+
+import-cmp-learner-history-status:
+	@test -n "$(IMPORT_LEARNER_DATABASE)" || (echo "IMPORT_LEARNER_DATABASE is required: name the database whose progress you are reading. There is deliberately no default." >&2; exit 2)
+	uv run --frozen python scripts/prod/import_cmp_learner_history.py \
+		--database "$(IMPORT_LEARNER_DATABASE)" \
+		--status \
+		$(if $(CMP_CLAIMS_DIR),--claims-dir "$(CMP_CLAIMS_DIR)",)
+
+# The whole of migration step 4, in the declared CMP_LEARNER_ORDER
+# (scripts/prod/__init__.py). Recipe lines rather than prerequisites, and not
+# only for the reason `import-editorial-content` records: the order here is
+# semantic. The history importer resolves every foreign key against what the
+# accounts importer wrote, so the reverse order is a silent partial import
+# rather than an error.
+import-cmp-learner-data:
+	@test -n "$(IMPORT_LEARNER_DATABASE)" || (echo "IMPORT_LEARNER_DATABASE is required: name the database that receives the learner data. There is deliberately no default." >&2; exit 2)
+	@test -n "$(CMP_EXPORT)" || (echo "CMP_EXPORT is required: point it at the CMP export to import. There is deliberately no default." >&2; exit 2)
+	@test -f "$(CMP_EXPORT)" || (echo "CMP_EXPORT=$(CMP_EXPORT) is not an existing file" >&2; exit 2)
+	$(MAKE) import-cmp-learners \
+		IMPORT_LEARNER_DATABASE="$(IMPORT_LEARNER_DATABASE)" \
+		CMP_EXPORT="$(CMP_EXPORT)" \
+		CMP_CLAIMS_FILE="$(CMP_CLAIMS_FILE)" \
+		IMPORT_CMP_LEARNERS_ARGS="$(IMPORT_CMP_LEARNERS_ARGS)"
+	$(MAKE) import-cmp-learner-history \
+		IMPORT_LEARNER_DATABASE="$(IMPORT_LEARNER_DATABASE)" \
+		CMP_EXPORT="$(CMP_EXPORT)" \
+		CMP_CLAIMS_FILE="$(CMP_CLAIMS_FILE)" \
+		CMP_CLAIMS_DIR="$(CMP_CLAIMS_DIR)" \
+		IMPORT_CMP_LEARNER_HISTORY_ARGS="$(IMPORT_CMP_LEARNER_HISTORY_ARGS)"
+
+# Account reconciliation, dry run only -- the script's own default mode. The
+# report goes to a file rather than stdout because the runbook's flow is to run
+# it twice and `cmp` the two reports, and because it lists every source user id.
+#
+# There is deliberately no `--apply` target, and there must never be one.
+# Applying a reviewed merge mapping is the one step in the whole migration with
+# no rollback (_docs/runbooks/account-reconciliation.md §4), so it stays a
+# consciously typed command against a human-reviewed mapping document.
+# `scripts/tests/test_prod_make_targets.py` holds this file to that.
+import-account-reconciliation:
+	@test -n "$(IMPORT_LEARNER_DATABASE)" || (echo "IMPORT_LEARNER_DATABASE is required: name the database holding the accounts to reconcile. There is deliberately no default." >&2; exit 2)
+	@test -n "$(SNAPSHOT_ID)" || (echo "SNAPSHOT_ID is required" >&2; exit 2)
+	uv run --frozen python scripts/prod/import_account_reconciliation.py \
+		--database "$(IMPORT_LEARNER_DATABASE)" \
+		--snapshot-id "$(SNAPSHOT_ID)" \
+		--output "$(ACCOUNT_RECONCILIATION_OUTPUT)"
+
+# Proves the evidence needed to reverse an applied merge is still intact. It
+# reverses nothing itself.
+import-account-reconciliation-rollback-check:
+	@test -n "$(IMPORT_LEARNER_DATABASE)" || (echo "IMPORT_LEARNER_DATABASE is required: name the database holding the reconciled accounts. There is deliberately no default." >&2; exit 2)
+	@test -n "$(SNAPSHOT_ID)" || (echo "SNAPSHOT_ID is required" >&2; exit 2)
+	@test -n "$(ACCOUNT_RECONCILIATION_MAPPING)" || (echo "ACCOUNT_RECONCILIATION_MAPPING is required: point it at the reviewed mapping document" >&2; exit 2)
+	uv run --frozen python scripts/prod/import_account_reconciliation.py \
+		--database "$(IMPORT_LEARNER_DATABASE)" \
+		--snapshot-id "$(SNAPSHOT_ID)" \
+		--rollback-check \
+		--mapping "$(ACCOUNT_RECONCILIATION_MAPPING)"
+
 # One command for the whole documented bootstrap order
 # (_docs/runbooks/data-ingest.md §11), from an empty directory to a verified
 # database. `production-prep-dataset` above is the same run without §11 step 3's
@@ -543,6 +683,19 @@ import-editorial-content:
 # importers -- reads attendee-level personal data and provider credentials, so
 # it stays a deliberate, separately invoked run rather than something a
 # rebuild does on its way past.
+#
+# The CMP learner importers (`import-cmp-learners`, `import-cmp-learner-history`
+# and the `import-cmp-learner-data` pair) and the reconciliation entry point
+# (`import-account-reconciliation`) are out for the same reason and two more. A
+# local dataset rebuild is a routine developer action and must never pull 20,009
+# real accounts and 472,690 learner rows into a dev SQLite file on its way past;
+# the export is not frozen either -- a new dump lands daily and there is no
+# `latest` symlink -- so an unattended rebuild could not pick one deliberately
+# or record it in the run log the way the migration runbook requires. Account
+# reconciliation merges real people, and its apply step has no rollback at all.
+# `make import-cmp-content` is safe to add here and still is not: this target
+# already runs it through `production-prep-local`, and a second call would
+# import it twice.
 production-prep-bootstrap:
 	@if test -n "$(LEGACY_ZOOMCAMP_SOURCE)" && ! test -d "$(LEGACY_ZOOMCAMP_SOURCE)"; then \
 		echo "LEGACY_ZOOMCAMP_SOURCE=$(LEGACY_ZOOMCAMP_SOURCE) is not a checkout." >&2; \
