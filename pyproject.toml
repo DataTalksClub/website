@@ -7,6 +7,8 @@ requires-python = ">=3.13"
 dependencies = [
     "bleach>=6.2,<7",
     "boto3>=1.43.33,<2",
+    # Shared DataTalks.Club package (kernel); pinned release, see make core-link.
+    "community-base @ git+https://github.com/DataTalksClub/community-base@v0.3.0",
     "cryptography>=50,<51",
     "django>=6.0,<6.1",
     "django-allauth>=65.10,<66",
@@ -82,6 +84,12 @@ module = [
     "e2e.*",
 ]
 ignore_errors = true
+
+# The pinned community-base release ships no py.typed marker; treat its
+# imports like any other untyped third-party package (D0.1a).
+[[tool.mypy.overrides]]
+module = ["community_base.*"]
+ignore_missing_imports = true
 
 [tool.django-stubs]
 django_settings_module = "website.settings.test"

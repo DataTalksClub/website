@@ -1,8 +1,12 @@
 # syntax=docker/dockerfile:1.7
 FROM ghcr.io/astral-sh/uv:0.10.11 AS uv
 
-FROM python:3.13-slim AS builder
+FROM python:3.13 AS builder
 COPY --from=uv /uv /uvx /bin/
+# The builder uses the full python image because the pinned community-base
+# dependency is a git source (D0.1a) and the locked sync needs git, which the
+# slim image does not carry. The runtime stage never syncs (--no-sync) and
+# keeps the prebuilt venv on the slim base.
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
