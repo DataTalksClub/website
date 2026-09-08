@@ -267,9 +267,7 @@ def _resolve_uncached(
         from community_base.config.models import Setting as PackageSetting
 
         stored = (
-            PackageSetting.objects.using(using)
-            .filter(key=definition.key)
-            .first()
+            PackageSetting.objects.using(using).filter(key=definition.key).first()
         ) or OperationalSetting.objects.using(using).filter(key=definition.key).first()
     except Exception as error:
         if not _database_unreachable(error):

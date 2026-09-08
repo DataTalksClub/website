@@ -305,7 +305,6 @@ def _declare_in_package(definition: OperationalSettingDefinition) -> None:
     )
 
 
-
 def registered_operational_settings() -> tuple[OperationalSettingDefinition, ...]:
     return tuple(_definition_copy(_registry[key]) for key in sorted(_registry))
 
@@ -456,5 +455,3 @@ def operational_setting_snapshot(*, using: str = "default") -> JsonObject:
         for definition in registered_operational_settings()
         for resolved in [resolve_operational_setting(definition.key, using=using)]
     }
-
-
