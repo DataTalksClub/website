@@ -177,8 +177,7 @@ def query_settings(scope: SettingsScope, *, using: str = "default") -> JsonObjec
     definitions = scope_definitions(scope)
     keys = tuple(definition.key for definition in definitions)
     package_rows = {
-        setting.key: setting
-        for setting in PackageSetting.objects.using(using).filter(key__in=keys)
+        setting.key: setting for setting in PackageSetting.objects.using(using).filter(key__in=keys)
     }
     site_rows = {
         setting.key: setting
@@ -196,9 +195,7 @@ def query_settings(scope: SettingsScope, *, using: str = "default") -> JsonObjec
                 revision=0,
             )
         else:
-            if package_value_type(setting.value_type) != package_value_type(
-                definition.value_type
-            ):
+            if package_value_type(setting.value_type) != package_value_type(definition.value_type):
                 raise InvalidOperationalSetting(
                     f"stored setting {definition.key} has an invalid type"
                 )
@@ -333,9 +330,7 @@ def _apply_settings_batch(
                     actual=error.actual,
                 ) from error
         if changed and setting is not None:
-            upsert_package_setting(
-                setting.key, setting.value, setting.value_type, source
-            )
+            upsert_package_setting(setting.key, setting.value, setting.value_type, source)
             changed_rows.append((setting, previous_revision, setting.revision))
         result_items.append(
             {
