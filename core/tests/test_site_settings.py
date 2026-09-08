@@ -194,7 +194,7 @@ class SiteSettingsRegistryTests(TestCase):
 
 
 class SiteSettingsQueryTests(TestCase):
-    def test_defaults_and_overrides_use_one_bounded_query_and_ignore_unknown_rows(self) -> None:
+    def test_defaults_and_overrides_use_bounded_queries_and_ignore_unknown_rows(self) -> None:
         OperationalSetting.objects.create(
             key=ANNOUNCEMENT_MESSAGE_KEY,
             value_type=OperationalSetting.ValueType.STRING,
@@ -212,7 +212,9 @@ class SiteSettingsQueryTests(TestCase):
             revision=1,
         )
 
-        with self.assertNumQueries(1):
+        # Cutover reads one bounded query per storage; D0.1d retires the
+        # site-table query and restores the single-query contract.
+        with self.assertNumQueries(2):
             result = query_site_settings()
 
         settings = settings_from_result(result)
