@@ -12,6 +12,25 @@ from ci.verification import build_plan
 from tests_ci.helpers import repository_with_change, selection_for
 
 
+@pytest.fixture(autouse=True)
+def local_synthetic_execution(monkeypatch):
+    """Bind every plan in this module to the host that executes it.
+
+    These are local synthetic execution scenarios: ``run_plan`` runs every
+    component on this machine, never on the container job's remote runner.  A
+    shell that exports the real workflow's target declarations (or the ci.yml
+    job environment itself, which sets them workflow-wide) would otherwise make
+    ``build_plan`` authorize the remote aarch64 container runner and the local
+    execution would then fail its own environment comparison.  Deleting the two
+    declarations with monkeypatch restores the ambient environment after every
+    test; the declared-target acceptance and rejection contracts stay in
+    ``tests_ci/test_verification.py`` and are not weakened here.
+    """
+
+    monkeypatch.delenv("VERIFICATION_CONTAINER_ARCHITECTURE", raising=False)
+    monkeypatch.delenv("VERIFICATION_CONTAINER_RUNNER_IMAGE", raising=False)
+
+
 def plan_for(tmp_path, changed):
     repository, base, head = repository_with_change(tmp_path, changed)
     selection, records = selection_for(tuple(changed), base=base, head=head)
@@ -68,6 +87,19 @@ def test_runner_rejects_a_different_actual_runner_before_component_execution(
 
 def test_runner_records_the_selected_tester_role(monkeypatch, tmp_path) -> None:
     plan = plan_for(tmp_path, {"api/service.py": "changed\n"})
+    # The synthetic plan must stay bound to the host that runs its components.
+    # If this fixture ever stops isolating the workflow's remote container
+    # target, the container component would authorize a foreign machine/image
+    # while the execution below still happens here; name that drift directly
+    # instead of leaving only the runner's opaque environment rejection.
+    assert (
+        plan["components"]["container"]["environment"]["architecture"]
+        == (plan["environment"]["architecture"])
+    )
+    assert (
+        plan["components"]["container"]["environment"]["runner_image"]
+        == (plan["environment"]["runner_image"])
+    )
 
     def completed(command, **_kwargs):
         if command == ["uv", "--version"]:
