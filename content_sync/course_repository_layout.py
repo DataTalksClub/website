@@ -98,9 +98,7 @@ def check_root_modules(snapshot: Mapping[str, bytes]) -> None:
         if parts[1] == MODULE_MANIFEST_NAME:
             manifests.add(parts[0])
             if V2_MODULE_DIR.fullmatch(parts[0]) is None:
-                raise CourseRepositoryLayoutError(
-                    "numbered_module_required", path
-                )
+                raise CourseRepositoryLayoutError("numbered_module_required", path)
         elif _NUMBER_PREFIX.match(parts[0]) is not None:
             numbered.add(parts[0])
     stubs = sorted(numbered - manifests)
@@ -168,9 +166,7 @@ def build_layout_report(
         if cohort.curriculum == "github_archive"
     }
     archive_module_records = sum(
-        1
-        for module in parsed.modules
-        if module.source_path.startswith(tuple(archive_prefixes))
+        1 for module in parsed.modules if module.source_path.startswith(tuple(archive_prefixes))
     )
 
     return LayoutReport(
