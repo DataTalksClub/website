@@ -5,6 +5,7 @@ import subprocess
 import sys
 
 import pytest
+from community_base.jobs.models import JobIntent
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client, override_settings
@@ -18,7 +19,6 @@ from courses.models import (
     Unit,
     UnitReadState,
 )
-from jobs.models import DurableJob
 from test_support.design_review_data import seed_design_review_data
 from test_support.design_review_identity import complaint_path
 
@@ -70,7 +70,7 @@ def test_issue_237_interactions_reach_only_bounded_validation_and_toggle_views()
         "answers": Answer.objects.count(),
         "complaints": LeaderboardComplaint.objects.count(),
         "enrollments": Enrollment.objects.count(),
-        "jobs": DurableJob.objects.count(),
+        "jobs": JobIntent.objects.count(),
         "registrations": CourseRegistration.objects.count(),
         "submissions": Submission.objects.count(),
     }
@@ -110,7 +110,7 @@ def test_issue_237_interactions_reach_only_bounded_validation_and_toggle_views()
         "answers": Answer.objects.count(),
         "complaints": LeaderboardComplaint.objects.count(),
         "enrollments": Enrollment.objects.count(),
-        "jobs": DurableJob.objects.count(),
+        "jobs": JobIntent.objects.count(),
         "registrations": CourseRegistration.objects.count(),
         "submissions": Submission.objects.count(),
     }

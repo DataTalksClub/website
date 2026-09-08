@@ -13,11 +13,11 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 
+from community_base.jobs.dispatch import dispatch_after_commit
 from django.db import DEFAULT_DB_ALIAS, transaction
 
 from email_app import relay_links
 from email_app.models import PendingUnsubscribe
-from jobs.dispatch import dispatch_after_commit
 
 UNSUBSCRIBE_REPLAY_HANDLER = "email.unsubscribe-replay"
 # An opt-out is worth persisting harder than an ordinary side effect.  Twenty
@@ -71,9 +71,9 @@ def accept_unsubscribe_for_replay(
             pending.save(using=using, update_fields=["scope", "updated_at"])
 
         dispatch_after_commit(
-            handler=UNSUBSCRIBE_REPLAY_HANDLER,
-            deduplication_key=f"email:unsubscribe-replay:{pending.id}",
-            payload={"pending_unsubscribe_id": str(pending.id)},
+            UNSUBSCRIBE_REPLAY_HANDLER,
+            f"email:unsubscribe-replay:{pending.id}",
+            {"pending_unsubscribe_id": str(pending.id)},
             max_attempts=UNSUBSCRIBE_REPLAY_MAX_ATTEMPTS,
             using=using,
         )

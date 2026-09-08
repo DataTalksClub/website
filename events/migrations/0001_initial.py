@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('jobs', '0001_initial'),
+        ('cb_jobs', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -85,7 +85,7 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('event', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='qna_session', to='events.event')),
-                ('provisioning_job', models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='qna_provisioning_session', to='jobs.durablejob')),
+                ('provisioning_job', models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='qna_provisioning_session', to='cb_jobs.jobintent')),
             ],
             options={
                 'ordering': ('event_id', 'id'),

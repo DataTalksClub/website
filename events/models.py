@@ -345,7 +345,7 @@ class EventQnaSession(models.Model):
     backend_reference = models.CharField(max_length=255, blank=True)
     revision = models.PositiveBigIntegerField(default=1)
     provisioning_job = models.OneToOneField(
-        "jobs.DurableJob",
+        "cb_jobs.JobIntent",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,

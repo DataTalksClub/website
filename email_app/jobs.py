@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import uuid
 
-from jobs.execution import PermanentJobError, RetryableJobError
-from jobs.registry import JobContext, JobPayload, register_handler
+from community_base.jobs.registry import JobContext, JobPayload, register_handler
+from community_base.jobs.runner import PermanentJobError, RetryableJobError
 
 from .services import UNSUBSCRIBE_REPLAY_HANDLER, replay_pending_unsubscribe
 

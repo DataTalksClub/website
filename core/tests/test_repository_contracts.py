@@ -22,7 +22,7 @@ class RepositoryContractTests(SimpleTestCase):
             "email_app",
             "studio",
             "api",
-            "jobs",
+            "community_base.jobs",
         }
         self.assertTrue(expected.issubset({config.name for config in apps.get_app_configs()}))
 

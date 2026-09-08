@@ -503,7 +503,7 @@ def seed_synthetic_snapshot(path: Path) -> None:
             },
         ),
         (
-            "jobs_durablejob",
+            "cb_jobs_jobintent",
             {
                 "id": "9001",
                 "payload": json.dumps({"canary": CANARIES["payload"]}),
@@ -912,7 +912,7 @@ django.setup()
 from django.conf import settings
 from course_management.datamailer.client import DatamailerConfig
 from data.models import DatamailerOutboxEvent
-from jobs.models import DurableJob
+from community_base.jobs.models import JobIntent
 from review_import.admin import create_synthetic_admin
 
 empty_settings = (
@@ -942,7 +942,7 @@ if settings.DATAMAILER_IMPORT_URL_EXPIRES_SECONDS != 0:
     raise SystemExit(16)
 if settings.EMAIL_BACKEND != 'django.core.mail.backends.dummy.EmailBackend':
     raise SystemExit(17)
-if not settings.Q_CLUSTER.get('sync') or settings.Q_CLUSTER.get('scheduler'):
+if settings.COMMUNITY_BASE.get('JOBS_BACKEND') != 'sync':
     raise SystemExit(18)
 if DatamailerConfig.from_settings() is not None:
     raise SystemExit(19)
@@ -958,17 +958,17 @@ with (
         side_effect=AssertionError('email attempted'),
     ) as email_send,
     patch(
-        'django_q.tasks.async_task',
-        side_effect=AssertionError('job wakeup attempted'),
-    ) as async_task,
+        'community_base.jobs.dispatch.get_backend',
+        side_effect=AssertionError('job submit attempted'),
+    ) as job_submit,
 ):
     create_synthetic_admin(os.environ['REVIEW_ADMIN_PASSWORD'])
 
-if sync.called or transport.called or email_send.called or async_task.called:
+if sync.called or transport.called or email_send.called or job_submit.called:
     raise SystemExit(20)
 if DatamailerOutboxEvent.objects.count() != 0:
     raise SystemExit(21)
-if DurableJob.objects.count() != 0:
+if JobIntent.objects.count() != 0:
     raise SystemExit(22)
 """
             result = subprocess.run(
@@ -1012,7 +1012,7 @@ if DurableJob.objects.count() != 0:
                 0,
             )
             self.assertEqual(
-                connection.execute("SELECT COUNT(*) FROM jobs_durablejob").fetchone()[0],
+                connection.execute("SELECT COUNT(*) FROM cb_jobs_jobintent").fetchone()[0],
                 0,
             )
 

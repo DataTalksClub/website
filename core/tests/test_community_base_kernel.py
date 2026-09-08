@@ -19,9 +19,12 @@ class _AuthenticatedUser:
 
 
 class KernelInstallationTests(SimpleTestCase):
-    def test_only_the_kernel_app_is_installed(self):
+    def test_kernel_and_jobs_apps_are_installed(self):
         installed = [app for app in settings.INSTALLED_APPS if app.startswith("community_base.")]
-        self.assertEqual(installed, ["community_base.kernel.apps.KernelConfig"])
+        self.assertEqual(
+            installed,
+            ["community_base.jobs", "community_base.kernel.apps.KernelConfig"],
+        )
         self.assertEqual(apps.get_app_config("cb_kernel").name, "community_base.kernel")
 
     def test_site_declarations(self):
