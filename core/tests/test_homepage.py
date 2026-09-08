@@ -599,7 +599,7 @@ class MainHomepageRoutingTests(TestCase):
             self.assertEqual(response.status_code, 301)
             self.assertEqual(
                 response.headers["Location"],
-                f"/courses/compatibility-course/cohorts/2026?x=%2F&x=",
+                "/courses/compatibility-course/cohorts/2026?x=%2F&x=",
             )
         canonical = self.client.get(canonical_path)
         self.assertEqual(canonical.status_code, 200)

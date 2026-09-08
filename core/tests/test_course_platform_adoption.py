@@ -23,9 +23,6 @@ def callback_name_of(match) -> str:
     return f"{match.func.__module__}.{match.func.__name__}"
 
 
-def callback_name_of(match) -> str:
-    return f"{match.func.__module__}.{match.func.__name__}"
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ADOPTION_DIR = REPO_ROOT / "_docs/adoption/course-platform"
 MANIFEST_PATH = ADOPTION_DIR / "copied-files.tsv"

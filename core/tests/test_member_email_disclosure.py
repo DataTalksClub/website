@@ -527,13 +527,19 @@ class MemberFacingPageWalkTests(TestCase):
                 "cohort_leaderboard_score_breakdown",
                 kwargs={**route_kwargs, "enrollment_id": self.enrollment.id},
             ),
-            reverse("cohort_homework", kwargs={**route_kwargs, "homework_slug": self.homework.slug}),
+            reverse(
+                "cohort_homework", kwargs={**route_kwargs, "homework_slug": self.homework.slug}
+            ),
             reverse(
                 "cohort_homework_statistics",
                 kwargs={**route_kwargs, "homework_slug": self.homework.slug},
             ),
-            reverse("cohort_project", kwargs={**route_kwargs, "project_slug": self.project.slug}),
-            reverse("cohort_project_list", kwargs={**route_kwargs, "project_slug": self.project.slug}),
+            reverse(
+                "cohort_project", kwargs={**route_kwargs, "project_slug": self.project.slug}
+            ),
+            reverse(
+                "cohort_project_list", kwargs={**route_kwargs, "project_slug": self.project.slug}
+            ),
             reverse("cohort_projects", kwargs=route_kwargs),
             reverse(
                 "cohort_project_statistics",

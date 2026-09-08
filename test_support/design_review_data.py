@@ -859,7 +859,8 @@ def seed_design_review_data(*, execution_namespace: str = "local-review") -> Des
         ReviewSurface(
             "native-unit-empty",
             reverse(
-                "cohort_unit", args=[native_family.slug, native.identifier, modules[0].slug, units[0].slug]
+                "cohort_unit",
+                args=[native_family.slug, native.identifier, modules[0].slug, units[0].slug],
             ),
             "anonymous",
             "empty-content fallback",
