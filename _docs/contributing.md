@@ -18,3 +18,17 @@ Never commit secrets, `.env`, SQLite databases, generated browser state, screens
 Local development and ordinary CI use gitignored SQLite databases and need no PostgreSQL service.
 An ambient `DATABASE_URL` cannot switch ordinary tests away from SQLite. Deployed settings remain
 fail-closed and require PostgreSQL for the bounded migration/readiness/smoke path.
+
+## Working on the community-base dependency
+
+`community-base` is pinned to a released `vX.Y.Z` tag of DataTalksClub/community-base in
+`pyproject.toml` and `uv.lock`. `make lock-check`, CI and Deploy Dev run
+`scripts/check_community_base_source.py` before dependencies are installed; a local path,
+editable, branch, registry, or pyproject/lock tag mismatch fails closed.
+
+To edit the package while working here, clone DataTalksClub/community-base next to this
+checkout (as a sibling directory) and run `make core-link`. Linking requires clean
+`pyproject.toml` and `uv.lock`, snapshots their exact bytes under `.tmp/core-link/`, and
+installs the sibling editable. `make core-unlink` restores the pinned dependency from the
+snapshot and refuses conflicting manual edits. Never commit a linked tree: the source guard
+rejects it and a branch/path source would ship unreviewed package code.

@@ -122,6 +122,10 @@ INSTALLED_APPS = [
     "django.contrib.sites",
     "loginas",
     "django_q",
+    # Shared DataTalks.Club kernel only (no models, no ready() side effects).
+    # Jobs/mail/Studio/API packages install in later, separately reviewed
+    # adoption issues; see _docs/audits/2026-09-06-community-base-migration-plan.md.
+    "community_base.kernel.apps.KernelConfig",
     "management_auth.apps.ManagementAuthConfig",
     "core.apps.CoreConfig",
     "accounts.apps.AccountsConfig",
@@ -240,6 +244,19 @@ UNFOLD = {
     "SITE_SYMBOL": "school",
 }
 SHOW_WRAPPED = False
+
+# Package settings read by community_base.kernel.conf for the installed kernel.
+# Declarations only: backend and policy names are recorded here, but nothing in
+# this site resolves JOBS_BACKEND/MAIL_BACKEND yet, so no Relay client is built,
+# no network call happens and no credential is required. Runtime owners stay the
+# existing jobs/email_app apps until the adoption issues cut over.
+COMMUNITY_BASE = {
+    "SITE_KEY": "dtc",
+    "ACCESS_POLICY": "community_base.kernel.access.RegisteredOnlyPolicy",
+    "JOBS_BACKEND": "relay",
+    "MAIL_BACKEND": "relay",
+    "STUDIO_TITLE": "DataTalks.Club Studio",
+}
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"

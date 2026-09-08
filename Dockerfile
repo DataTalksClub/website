@@ -2,6 +2,13 @@
 FROM ghcr.io/astral-sh/uv:0.10.11 AS uv
 
 FROM python:3.13-slim AS builder
+# uv needs git to fetch the pinned community-base git dependency
+# (community-base @ git+...@vX.Y.Z). Only this build stage resolves
+# dependencies; the runtime stage never installs packages, so git never
+# ships in the image.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=uv /uv /uvx /bin/
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 WORKDIR /app

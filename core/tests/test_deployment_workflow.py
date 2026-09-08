@@ -68,11 +68,13 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # the Ruff and mypy exclusions to studio_courses. Issue #141 additionally raises
 # cryptography to >=50,<51 after pip-audit reported four advisories in 46.0.7, and the
 # sqlparse bump to 0.6.0 clears four 2026 advisories the same way; the Django 6.0.8
-# bump for issue #201 clears PYSEC-2026-3717 the same way. Keep both workflow-isolation
-# seals pinned to this exact reviewed dependency policy.
-STUDIO_COURSES_PYPROJECT_SHA256 = "832e5a9f985b840dc401b1fb563e0f3366c16c7387d0ec6763940100aa6f1956"
+# bump for issue #201 clears PYSEC-2026-3717 the same way. Issue #318 (community-base
+# D0.1a) pins community-base to the released v0.3.0 git tag, adds a mypy override for
+# its not-yet-typed kernel, and locks the resolved package set. Keep both
+# workflow-isolation seals pinned to this exact reviewed dependency policy.
+STUDIO_COURSES_PYPROJECT_SHA256 = "c4e8ef54d19f2d910b63700d34ef350f964520d4d20a0807a00ed7e2b39e816d"
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "19c4d94ddfb753e5a1b85fc817a268d23ec6829162400c14734119915f00e458"
+    "67815bd8f2f15185cb04def1f411400d5b561efb41e524298f4d19dd4d1349b1"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"

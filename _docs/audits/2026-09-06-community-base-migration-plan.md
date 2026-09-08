@@ -130,6 +130,8 @@ Read: pyproject.toml, Makefile, website/settings/base.py, core/tests/test_settin
 
 Write: dependency manifests, local link targets, fail-closed pin guard wired into existing checks, base settings and one meaningful core integration contract. New helper files must have a real invoked use.
 
+Status 2026-09-08: implemented for issue #318. Published tag v0.3.0 resolved to commit `fae109b4e34c0afe20c935c6778a476eb968e9cb`; the pinned dependency is the direct tagged git ref (the playbook P1 link guard rejects a committed `[tool.uv.sources]` entry, so the bounded `>=0.3.0,<0.4` form is expressed by the tag pin plus the guard instead). Local link targets and the parsed guard are wired into `make lock-check`, ci.yml and deploy-dev.yml. Development deployment evidence is recorded by the site release process when the approved work reaches `main`.
+
 Steps:
 
 1. Verify published tag and release asset. Add community-base>=0.3.0,<0.4 with git source tag v0.3.0; run `uv lock` then `uv sync --frozen`.

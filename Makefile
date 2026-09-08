@@ -1,4 +1,4 @@
-.PHONY: setup lock-check lint format format-check typecheck migrations-check django-check deployment-check \
+.PHONY: setup lock-check check-community-base-source core-link core-unlink lint format format-check typecheck migrations-check django-check deployment-check \
 	test-core test test-django-full test-ci test-ci-focused \
 	test-content test-factories test-migrations test-playwright-core test-playwright test-browser \
 	test-accessibility test-playwright-smoke test-playwright-quarantined \
@@ -78,8 +78,29 @@ setup:
 	mkdir -p .tmp/screenshots
 	uv run playwright install chromium
 
-lock-check:
+# The source guard is stdlib-only on purpose: it must run before dependencies
+# are installed, so it uses the interpreter directly instead of the project
+# environment it is guarding. `make lock-check` therefore fails closed on a
+# local path, editable, branch, or otherwise mismatched community-base source
+# before `uv lock --check` is even attempted.
+lock-check: check-community-base-source
 	uv lock --check
+
+check-community-base-source:
+	python3 scripts/check_community_base_source.py
+
+# Point the pinned community-base dependency at a local sibling checkout for
+# development (community-base playbook P1). Requires clean pyproject.toml and
+# uv.lock; their exact bytes are snapshotted under .tmp/core-link/. Package
+# edits become visible without reinstall. Never commit a linked tree.
+core-link:
+	uv run python scripts/community_base_link.py link
+
+# Restore the pinned community-base dependency captured by core-link. Refuses
+# on conflicting pyproject.toml edits or missing recovery state instead of a
+# blanket git restore.
+core-unlink:
+	uv run python scripts/community_base_link.py unlink
 
 lint:
 	uv run ruff check . $(ADOPTION_INTEGRATION_PYTHON) $(PRODUCTION_IMPORT_PYTHON)
