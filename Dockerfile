@@ -3,6 +3,12 @@ FROM ghcr.io/astral-sh/uv:0.10.11 AS uv
 
 FROM python:3.13-slim AS builder
 COPY --from=uv /uv /uvx /bin/
+# The pinned community-base dependency is a git source (D0.1a): uv needs git
+# to materialize it during the locked sync. The runtime stage never syncs
+# (--no-sync) and keeps the prebuilt venv.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
