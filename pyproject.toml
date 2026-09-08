@@ -85,6 +85,12 @@ module = [
 ]
 ignore_errors = true
 
+# The pinned community-base release ships no py.typed marker; treat its
+# imports like any other untyped third-party package (D0.1a).
+[[tool.mypy.overrides]]
+module = ["community_base.*"]
+ignore_missing_imports = true
+
 [tool.django-stubs]
 django_settings_module = "website.settings.test"
 
