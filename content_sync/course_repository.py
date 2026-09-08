@@ -1409,9 +1409,7 @@ class _Parser:
             seen_slugs[key] = homework.source_path
 
 
-def _peek_schema_version(
-    snapshot: Mapping[str, bytes], *, limits: CourseRepositoryLimits
-) -> int:
+def _peek_schema_version(snapshot: Mapping[str, bytes], *, limits: CourseRepositoryLimits) -> int:
     """Return the declared course-manifest schema version, defaulting to 1.
 
     The peek is deliberately forgiving: a missing, unreadable, or malformed
@@ -1450,9 +1448,7 @@ def parse_course_repository(
     if _peek_schema_version(validated, limits=limits) == 2:
         from content_sync.course_repository_v2 import parse_course_repository_v2
 
-        return parse_course_repository_v2(
-            validated, commit_sha=commit_sha, limits=limits
-        )
+        return parse_course_repository_v2(validated, commit_sha=commit_sha, limits=limits)
     return _Parser(validated, commit_sha=commit_sha, limits=limits).parse()
 
 

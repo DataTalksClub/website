@@ -247,9 +247,7 @@ class SharedCurriculumParserV2:
                 required=frozenset({"content_id", "title", "path"}),
             )
             unit_id = _content_id(unit["content_id"], path=path, pointer=f"{pointer}/content_id")
-            declared_path = _string(
-                unit["path"], path=path, pointer=f"{pointer}/path", maximum=512
-            )
+            declared_path = _string(unit["path"], path=path, pointer=f"{pointer}/path", maximum=512)
             if "/" in declared_path or V2_LESSON_FILE.fullmatch(declared_path) is None:
                 _fail("numbered_lesson_required", path, f"{pointer}/path")
             source_path = _relative_source_path(
@@ -483,15 +481,11 @@ class SharedCurriculumParserV2:
             homework_bindings=bindings,
         )
 
-    def _parse_archive_block(
-        self, path: str, mapping: dict[str, Any], directory: str
-    ) -> str:
+    def _parse_archive_block(self, path: str, mapping: dict[str, Any], directory: str) -> str:
         raw = mapping.get("archive")
         if not isinstance(raw, dict) or set(raw) != {"notice_path"}:
             _fail("archive_notice_missing", path, "/archive")
-        notice = _string(
-            raw["notice_path"], path=path, pointer="/archive/notice_path", maximum=512
-        )
+        notice = _string(raw["notice_path"], path=path, pointer="/archive/notice_path", maximum=512)
         if (
             notice.startswith("/")
             or ".." in PurePosixPath(notice).parts
@@ -522,9 +516,7 @@ class SharedCurriculumParserV2:
             if not isinstance(item, dict) or set(item) != {"module", "source"}:
                 _fail("homework_mapping_invalid", path, pointer)
             module = item["module"]
-            source = _string(
-                item["source"], path=path, pointer=f"{pointer}/source", maximum=1024
-            )
+            source = _string(item["source"], path=path, pointer=f"{pointer}/source", maximum=1024)
             if archive:
                 if module is not None:
                     _fail("archive_module_reference", path, f"{pointer}/module")
@@ -536,9 +528,7 @@ class SharedCurriculumParserV2:
                 if module in seen_modules:
                     _fail("duplicate_homework_module", path, pointer)
                 seen_modules.add(module)
-                expected = (
-                    f"{COHORTS_ROOT}/{identifier}/homework/{module}/{HOMEWORK_MANIFEST_NAME}"
-                )
+                expected = f"{COHORTS_ROOT}/{identifier}/homework/{module}/{HOMEWORK_MANIFEST_NAME}"
                 if source != expected:
                     _fail("homework_path_outside_cohort", path, f"{pointer}/source")
             if not source.startswith(directory) or PurePosixPath(source).name != (
@@ -623,10 +613,7 @@ class SharedCurriculumParserV2:
             course=course,
             cohorts=tuple(sorted(cohorts, key=lambda cohort: cohort.identifier)),
             modules=tuple(modules),
-            homeworks=tuple(
-                homework
-                for _, homework in sorted(self.homework_by_path.items())
-            ),
+            homeworks=tuple(homework for _, homework in sorted(self.homework_by_path.items())),
         )
 
 

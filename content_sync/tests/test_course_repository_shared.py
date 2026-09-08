@@ -31,12 +31,8 @@ from content_sync.course_repository_layout import (
     check_root_modules,
 )
 
-FIXTURE_ROOT = (
-    Path(__file__).parent / "fixtures" / "course_repository" / "llm_zoomcamp_shared"
-)
-V1_FIXTURE_ROOT = (
-    Path(__file__).parent / "fixtures" / "course_repository" / "llm_zoomcamp_2026"
-)
+FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "course_repository" / "llm_zoomcamp_shared"
+V1_FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "course_repository" / "llm_zoomcamp_2026"
 COMMIT_SHA = "b" * 40
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "verify_course_repository_curriculum.py"
 
@@ -57,9 +53,7 @@ def v1_snapshot() -> dict[str, bytes]:
     }
 
 
-def replace_bytes(
-    snapshot: dict[str, bytes], path: str, old: str, new: str
-) -> None:
+def replace_bytes(snapshot: dict[str, bytes], path: str, old: str, new: str) -> None:
     text = snapshot[path].decode("utf-8")
     assert old in text, (path, old)
     snapshot[path] = text.replace(old, new, 1).encode("utf-8")
@@ -140,13 +134,11 @@ def test_archive_descendants_stay_opaque_but_mapped_homework_imports() -> None:
     # duplicate_content_id fires.
     assert archive_ids == {"22222222-2222-4222-8222-222222222222"}
 
-    archive_cohort = next(
-        cohort for cohort in source.cohorts if cohort.identifier == "2025"
-    )
+    archive_cohort = next(cohort for cohort in source.cohorts if cohort.identifier == "2025")
     assert archive_cohort.archive_notice_path == "cohorts/2025/README.md"
-    assert [
-        (binding.module, binding.source) for binding in archive_cohort.homework_bindings
-    ] == [(None, "cohorts/2025/01-old-module/homework.yaml")]
+    assert [(binding.module, binding.source) for binding in archive_cohort.homework_bindings] == [
+        (None, "cohorts/2025/01-old-module/homework.yaml")
+    ]
     # Exactly one archive homework record is admitted, by explicit mapping.
     assert [
         homework.source_path
@@ -163,9 +155,7 @@ def test_rejects_self_paced_cohort_with_authored_assignment() -> None:
     snapshot["cohorts/self-paced/homework/01-agentic-rag/homework.yaml"] = snapshot[
         "cohorts/2026/homework/01-agentic-rag/homework.yaml"
     ]
-    snapshot["cohorts/self-paced/cohort.yaml"] = snapshot[
-        "cohorts/self-paced/cohort.yaml"
-    ].replace(
+    snapshot["cohorts/self-paced/cohort.yaml"] = snapshot["cohorts/self-paced/cohort.yaml"].replace(
         b"homework: []",
         (
             b"homework:\n"
@@ -253,9 +243,7 @@ def test_rejects_a_v1_cohort_manifest_inside_a_v2_source() -> None:
 
 def test_rejects_a_module_manifest_inside_a_current_cohort() -> None:
     snapshot = shared_snapshot()
-    snapshot["cohorts/2026/01-private/module.yaml"] = snapshot[
-        "01-agentic-rag/module.yaml"
-    ]
+    snapshot["cohorts/2026/01-private/module.yaml"] = snapshot["01-agentic-rag/module.yaml"]
 
     with pytest.raises(CourseRepositoryValidationError) as raised:
         parse_course_repository(snapshot)
@@ -267,9 +255,7 @@ def test_rejects_an_unnumbered_root_module() -> None:
     snapshot = shared_snapshot()
     for path in list(snapshot):
         if path.startswith("01-agentic-rag/"):
-            snapshot["intro-module/" + path.removeprefix("01-agentic-rag/")] = (
-                snapshot.pop(path)
-            )
+            snapshot["intro-module/" + path.removeprefix("01-agentic-rag/")] = snapshot.pop(path)
     snapshot["course.yaml"] = snapshot["course.yaml"]  # unchanged
 
     with pytest.raises(CourseRepositoryValidationError) as raised:
@@ -424,21 +410,28 @@ def test_both_transports_parse_the_shared_fixture_identically(tmp_path: Path) ->
     )
 
     checkout = tmp_path / "course"
-    subprocess.run(
-        ["cp", "-r", str(FIXTURE_ROOT), str(checkout)], check=True
-    )
+    subprocess.run(["cp", "-r", str(FIXTURE_ROOT), str(checkout)], check=True)
     (checkout / "expected-v2.json").unlink()
     subprocess.run(
         ["git", "-C", str(checkout), "init", "--quiet"],
         check=True,
         capture_output=True,
     )
+    subprocess.run(["git", "-C", str(checkout), "add", "--all"], check=True, capture_output=True)
     subprocess.run(
-        ["git", "-C", str(checkout), "add", "--all"], check=True, capture_output=True
-    )
-    subprocess.run(
-        ["git", "-C", str(checkout), "-c", "user.email=f@example.invalid",
-         "-c", "user.name=F", "commit", "--quiet", "-m", "fixture"],
+        [
+            "git",
+            "-C",
+            str(checkout),
+            "-c",
+            "user.email=f@example.invalid",
+            "-c",
+            "user.name=F",
+            "commit",
+            "--quiet",
+            "-m",
+            "fixture",
+        ],
         check=True,
         capture_output=True,
     )
@@ -478,9 +471,7 @@ def test_both_transports_parse_the_shared_fixture_identically(tmp_path: Path) ->
     assert from_checkout == from_codeload_shape
 
     checkout_source = parse_course_repository(from_checkout, commit_sha=commit_sha)
-    codeload_source = parse_course_repository(
-        from_codeload_shape, commit_sha=commit_sha
-    )
+    codeload_source = parse_course_repository(from_codeload_shape, commit_sha=commit_sha)
     assert checkout_source == codeload_source
     assert checkout_source.schema_version == 2
 
@@ -497,6 +488,7 @@ def _git_checkout(tmp_path: Path) -> tuple[Path, str]:
     checkout.rename(tmp_path / "course-tree")
     checkout = tmp_path / "course-tree"
     (checkout / "expected-v2.json").unlink()
+
     def git(*arguments: str) -> str:
         return subprocess.run(
             ["git", *arguments],
@@ -580,14 +572,10 @@ def test_script_rejects_a_drifted_checkout_against_the_expected_fixture(
 """,
         encoding="utf-8",
     )
-    (checkout / "01-agentic-rag" / "03-added.md").write_text(
-        "# Added\n", encoding="utf-8"
-    )
+    (checkout / "01-agentic-rag" / "03-added.md").write_text("# Added\n", encoding="utf-8")
 
     def git(*arguments: str) -> None:
-        subprocess.run(
-            ["git", *arguments], cwd=checkout, check=True, capture_output=True
-        )
+        subprocess.run(["git", *arguments], cwd=checkout, check=True, capture_output=True)
 
     git("add", "-A")
     git("commit", "-q", "-m", "drift")

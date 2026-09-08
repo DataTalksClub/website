@@ -534,9 +534,7 @@ class MemberFacingPageWalkTests(TestCase):
                 "cohort_homework_statistics",
                 kwargs={**route_kwargs, "homework_slug": self.homework.slug},
             ),
-            reverse(
-                "cohort_project", kwargs={**route_kwargs, "project_slug": self.project.slug}
-            ),
+            reverse("cohort_project", kwargs={**route_kwargs, "project_slug": self.project.slug}),
             reverse(
                 "cohort_project_list", kwargs={**route_kwargs, "project_slug": self.project.slug}
             ),
