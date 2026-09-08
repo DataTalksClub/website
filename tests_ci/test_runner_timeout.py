@@ -36,6 +36,25 @@ from tests_ci.helpers import repository_with_change, selection_for
 assert DEFAULT_COMPONENT_TIMEOUT_SECONDS == 3600.0
 
 
+@pytest.fixture(autouse=True)
+def local_synthetic_execution(monkeypatch):
+    """Bind every plan in this module to the host that executes it.
+
+    These are local synthetic execution scenarios: ``run_plan`` runs every
+    component on this machine, never on the container job's remote runner.  A
+    shell that exports the real workflow's target declarations (or the ci.yml
+    job environment itself, which sets them workflow-wide) would otherwise make
+    ``build_plan`` authorize the remote aarch64 container runner and every
+    ``run_plan`` scenario here would fail its own environment comparison.  The
+    monkeypatch deletion restores the ambient environment after every test; the
+    declared-target acceptance and rejection contracts stay in
+    ``tests_ci/test_verification.py`` and are not weakened here.
+    """
+
+    monkeypatch.delenv("VERIFICATION_CONTAINER_ARCHITECTURE", raising=False)
+    monkeypatch.delenv("VERIFICATION_CONTAINER_RUNNER_IMAGE", raising=False)
+
+
 def plan_for(tmp_path: Path, changed: dict[str, str]):
     repository, base, head = repository_with_change(tmp_path, changed)
     selection, records = selection_for(tuple(changed), base=base, head=head)
