@@ -21,7 +21,13 @@ from ci.evidence import (
     utc_now,
     worktree_manifest,
 )
-from ci.verification import AUTOMATED_COMPONENTS, dump_json, load_plan
+from ci.verification import (
+    AUTOMATED_COMPONENTS,
+    COMPONENT_ARCHITECTURE_VARIABLE,
+    COMPONENT_RUNNER_IMAGE_VARIABLE,
+    dump_json,
+    load_plan,
+)
 
 RUN_ORDER = (
     "selector",
@@ -30,6 +36,20 @@ RUN_ORDER = (
     "django",
     "playwright",
     "container",
+)
+
+# The declared-execution variables name the machine and hosted image family a
+# component is authorized to run on.  They are planning-time review inputs:
+# `ci.verification` reads them while a plan is built and seals the authorized
+# values into the plan's component environment, and they are never runtime
+# configuration.  An execution always fingerprints its real host, so the runner
+# strips them the same way it strips ambient allowlisted config before the
+# component inherits the environment or that fingerprint is computed; a plan
+# that authorized a machine or image this host is not on still fails the
+# comparison closed.
+DECLARED_EXECUTION_VARIABLES = (
+    *COMPONENT_ARCHITECTURE_VARIABLE.values(),
+    *COMPONENT_RUNNER_IMAGE_VARIABLE.values(),
 )
 
 
@@ -233,7 +253,7 @@ def run_plan(
             continue
         command = command_for(plan, component)
         environment = os.environ.copy()
-        for name in ALLOWLISTED_CONFIG:
+        for name in (*ALLOWLISTED_CONFIG, *DECLARED_EXECUTION_VARIABLES):
             environment.pop(name, None)
         environment.update(item["environment"]["allowlisted_config"])
         if component == "django":
