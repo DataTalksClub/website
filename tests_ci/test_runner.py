@@ -12,6 +12,22 @@ from ci.verification import build_plan
 from tests_ci.helpers import repository_with_change, selection_for
 
 
+@pytest.fixture(autouse=True)
+def _bind_the_container_component_to_the_planning_host(monkeypatch):
+    """Plan the container component for this host, matching how it executes.
+
+    The real workflow declares a foreign runner for the container component
+    (``VERIFICATION_CONTAINER_*``), and the runner then rejects any execution
+    whose real host does not match. These tests execute every component
+    in-process on the planner's own machine, so the workflow-level declarations
+    must not leak into the synthetic plans; the declared-authorization path is
+    covered in ``test_verification.py``.
+    """
+
+    monkeypatch.delenv("VERIFICATION_CONTAINER_ARCHITECTURE", raising=False)
+    monkeypatch.delenv("VERIFICATION_CONTAINER_RUNNER_IMAGE", raising=False)
+
+
 def plan_for(tmp_path, changed):
     repository, base, head = repository_with_change(tmp_path, changed)
     selection, records = selection_for(tuple(changed), base=base, head=head)
