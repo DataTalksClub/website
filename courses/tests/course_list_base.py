@@ -155,7 +155,7 @@ class CourseListViewTestBase(TestCase):
 
     def course_card_html(self, content, course):
         course_url = reverse(
-            "course",
+            "cohort",
             kwargs={
                 "course_slug": course.course.slug,
                 "cohort_identifier": course.identifier,
@@ -168,7 +168,7 @@ class CourseListViewTestBase(TestCase):
 
     def course_archive_row_html(self, content, course):
         archive_url = reverse(
-            "course",
+            "cohort",
             kwargs={
                 "course_slug": course.course.slug,
                 "cohort_identifier": course.identifier,
