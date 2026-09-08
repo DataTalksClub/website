@@ -1,0 +1,66 @@
+{% extends "core/content_page.html" %}
+{% load breadcrumbs seo %}
+
+{% block document_title %}{{ module.title }} — {{ course_family.title }} — DataTalks.Club{% endblock %}
+
+{% block metadata %}
+    {% canonical_link canonical_url %}
+    <meta name="description" content="Lessons for {{ module.title }}, part of the current {{ course_family.title }} curriculum.">
+{% endblock %}
+
+{% block page_styles %}
+      :root {
+        --page: var(--lavender);
+      }
+
+      .module-hero .breadcrumbs {
+        margin-bottom: 0.35rem;
+        margin-top: -0.85rem;
+      }
+
+      .module-section + .module-section {
+        margin-top: 2rem;
+      }
+{% endblock %}
+
+{% block header_band_class %}module-hero{% endblock %}
+{% block header_attributes %}aria-labelledby="module-heading"{% endblock %}
+
+{% block page_header %}
+        {% url 'course_list' as course_list_url %}
+        {% url 'course_family' course_family.slug as course_family_url %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url %}
+        <div class="module-hero-inner">
+          <h1 id="module-heading">{{ module.title }}</h1>
+          <p class="module-hero-sub">Current curriculum · free to read</p>
+        </div>
+{% endblock %}
+
+{% block page_content %}
+      <section aria-label="Module content">
+        <div class="module-layout shell-breakout">
+          <div class="module-main">
+            <section class="module-section" aria-labelledby="lessons-heading">
+              <div class="module-section-heading">
+                <h2 id="lessons-heading">Lessons</h2>
+                <span class="module-count">{{ lessons|length }} lesson{{ lessons|length|pluralize }}</span>
+              </div>
+              {% if lessons %}
+                <ol class="lesson-list">
+                  {% for lesson in lessons %}
+                    <li class="lesson-row">
+                      <span class="lesson-position" aria-hidden="true">{{ forloop.counter }}</span>
+                      <a class="lesson-link" href="{% url 'shared_lesson' course_family.slug module.slug lesson.slug %}{{ context_q }}">{{ lesson.title }}</a>
+                    </li>
+                  {% endfor %}
+                </ol>
+              {% else %}
+                <div class="card"><p>This module does not have any lessons yet.</p></div>
+              {% endif %}
+            </section>
+
+            {% include "courses/_delivery_panel.html" %}
+          </div>
+        </div>
+      </section>
+{% endblock %}

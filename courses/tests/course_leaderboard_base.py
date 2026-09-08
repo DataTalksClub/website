@@ -216,10 +216,10 @@ class CourseLeaderboardViewTestBase(TestCase):
 
     def leaderboard_url(self):
         return reverse(
-            "leaderboard",
+            "cohort_leaderboard",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
             },
         )
 
@@ -227,18 +227,18 @@ class CourseLeaderboardViewTestBase(TestCase):
         target_enrollment = enrollment or self.enrollment
         kwargs = {
             "course_slug": self.course.course.slug,
-            "cohort_year": self.course.year,
+            "cohort_identifier": self.course.identifier,
             "enrollment_id": target_enrollment.id,
         }
-        return reverse("leaderboard_score_breakdown", kwargs=kwargs)
+        return reverse("cohort_leaderboard_score_breakdown", kwargs=kwargs)
 
     def leaderboard_complaint_url(self, enrollment):
         kwargs = {
             "course_slug": self.course.course.slug,
-            "cohort_year": self.course.year,
+            "cohort_identifier": self.course.identifier,
             "enrollment_id": enrollment.id,
         }
-        return reverse("leaderboard_complaint", kwargs=kwargs)
+        return reverse("cohort_leaderboard_complaint", kwargs=kwargs)
 
     def assert_leaderboard_order(self, response, expected_order):
         enrollments = response.context["enrollments"]

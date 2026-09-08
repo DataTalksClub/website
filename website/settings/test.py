@@ -56,3 +56,7 @@ STORAGES = {
     **STORAGES,  # noqa: F405
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
+
+# Schema-2 importer asset bytes land here during tests: project-local,
+# gitignored, never the source tree root.
+MEDIA_ROOT = BASE_DIR / ".tmp" / "test-media"

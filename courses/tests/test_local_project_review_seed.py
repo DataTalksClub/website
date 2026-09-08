@@ -115,7 +115,7 @@ class LocalProjectReviewSeedTests(TestCase):
 
         project_response = self.client.get(
             reverse(
-                "project",
+                "cohort_project",
                 kwargs={
                     "course_slug": self.course.slug,
                     "project_slug": self.project.slug,
@@ -129,7 +129,7 @@ class LocalProjectReviewSeedTests(TestCase):
 
         list_response = self.client.get(
             reverse(
-                "project_list",
+                "cohort_project_list",
                 kwargs={
                     "course_slug": self.course.slug,
                     "project_slug": self.project.slug,
@@ -143,7 +143,7 @@ class LocalProjectReviewSeedTests(TestCase):
 
         eval_response = self.client.get(
             reverse(
-                "projects_eval",
+                "cohort_projects_eval",
                 kwargs={
                     "course_slug": self.course.slug,
                     "project_slug": self.project.slug,
@@ -165,7 +165,7 @@ class LocalProjectReviewSeedTests(TestCase):
         assert review is not None
         review_response = self.client.get(
             reverse(
-                "projects_eval_submit",
+                "cohort_projects_eval_submit",
                 kwargs={
                     "course_slug": self.course.slug,
                     "project_slug": self.project.slug,

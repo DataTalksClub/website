@@ -77,7 +77,7 @@ class PublicUnitPageTests(TestCase):
             "unit_slug": unit.slug,
         }
         kwargs.update(overrides)
-        return reverse("unit", kwargs=kwargs)
+        return reverse("cohort_unit", kwargs=kwargs)
 
     def test_renders_markdown_and_course_hierarchy(self):
         url = self.unit_url(self.first_unit)
@@ -85,7 +85,7 @@ class PublicUnitPageTests(TestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(resolve(url).url_name, "unit")
+        self.assertEqual(resolve(url).url_name, "cohort_unit")
         self.assertEqual(response.context["unit"], self.first_unit)
         self.assertContains(response, "<h2>Welcome</h2>", html=True)
         self.assertContains(response, "<strong>agent</strong>", html=True)
@@ -326,7 +326,7 @@ class PublicUnitPageTests(TestCase):
         self.client.force_login(user)
         unit_url = self.unit_url(self.middle_unit)
         read_state_url = reverse(
-            "unit_read_state",
+            "cohort_unit_read_state",
             kwargs={
                 "course_slug": self.course_family.slug,
                 "cohort_identifier": self.cohort.identifier,
@@ -343,7 +343,7 @@ class PublicUnitPageTests(TestCase):
         user = get_user_model().objects.create_user(username="reader")
         self.client.force_login(user)
         read_state_url = reverse(
-            "unit_read_state",
+            "cohort_unit_read_state",
             kwargs={
                 "course_slug": self.course_family.slug,
                 "cohort_identifier": self.cohort.identifier,
@@ -352,7 +352,7 @@ class PublicUnitPageTests(TestCase):
             },
         )
         module_url = reverse(
-            "module",
+            "cohort_module",
             kwargs={
                 "course_slug": self.course_family.slug,
                 "cohort_identifier": self.cohort.identifier,
@@ -451,10 +451,10 @@ class PublicUnitPageTests(TestCase):
     def test_final_unit_links_to_homework_with_a_button(self):
         response = self.client.get(self.unit_url(self.final_unit))
         homework_url = reverse(
-            "homework",
+            "cohort_homework",
             kwargs={
                 "course_slug": self.course_family.slug,
-                "cohort_year": self.cohort.identifier,
+                "cohort_identifier": self.cohort.identifier,
                 "homework_slug": self.homework.slug,
             },
         )
@@ -499,7 +499,7 @@ class PublicUnitPageTests(TestCase):
 
         self.assertEqual(
             url,
-            "/courses/llm-zoomcamp/spring-2026/modules/01-agentic-rag/01-intro",
+            "/courses/llm-zoomcamp/cohorts/spring-2026/modules/01-agentic-rag/01-intro",
         )
         self.assertEqual(self.client.get(url).status_code, 200)
 

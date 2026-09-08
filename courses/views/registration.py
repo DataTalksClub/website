@@ -25,7 +25,7 @@ from courses.registration import (
     youtube_embed_url,
 )
 from courses.services.registration_counts import public_course_registration_count
-from courses.views.url_utils import cohort_url_kwargs
+from courses.views.url_utils import canonical_cohort_url_kwargs
 
 from .registration_form import (
     CourseRegistrationForm,
@@ -127,7 +127,7 @@ def _start_course_url(campaign: RegistrationCampaign) -> str:
 
     return reverse(
         "course",
-        kwargs=cohort_url_kwargs(campaign.current_course),
+        kwargs=canonical_cohort_url_kwargs(campaign.current_course),
     )
 
 

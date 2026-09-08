@@ -160,8 +160,8 @@ class HomeworkQuestionStatsTestCase(TestCase):
         self.create_answers(1, "99")
 
         url = reverse(
-            "homework_statistics",
-            args=[self.course.slug, self.homework.slug],
+            "cohort_homework_statistics",
+            args=[self.course.course.slug, self.course.identifier, self.homework.slug],
         )
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -189,8 +189,8 @@ class HomeworkQuestionStatsTestCase(TestCase):
             submission.save()
 
         url = reverse(
-            "homework_statistics",
-            args=[self.course.slug, self.homework.slug],
+            "cohort_homework_statistics",
+            args=[self.course.course.slug, self.course.identifier, self.homework.slug],
         )
         response = self.client.get(url)
 

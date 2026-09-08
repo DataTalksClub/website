@@ -111,9 +111,9 @@
   <div class="project-toolbar">
     {% if project.state == 'CO' %}
       {% if course.course %}
-        {% url 'project_statistics' course.course.slug course.identifier project.slug as project_statistics_url %}
+        {% url 'cohort_project_statistics' course.course.slug course.identifier project.slug as project_statistics_url %}
       {% else %}
-        {% url 'project_statistics' course.slug project.slug as project_statistics_url %}
+        {% url 'cohort_project_statistics' course.slug project.slug as project_statistics_url %}
       {% endif %}
       {% include "core/_button.html" with href=project_statistics_url label="Project statistics" variant="subtle" compact=True %}
     {% endif %}
@@ -140,9 +140,9 @@
       {% if has_submission %}
         {% if project.state == 'PR' %}
           {% if course.course %}
-            {% url 'projects_eval' course.course.slug course.identifier project.slug as project_eval_url %}
+            {% url 'cohort_projects_eval' course.course.slug course.identifier project.slug as project_eval_url %}
           {% else %}
-            {% url 'projects_eval' course.slug project.slug as project_eval_url %}
+            {% url 'cohort_projects_eval' course.slug project.slug as project_eval_url %}
           {% endif %}
           {% include "core/_callout.html" with tone="attention" title="The project is currently in the peer-reviewing phase." message="This form is no longer accepting modifications." link_url=project_eval_url link_label="Evaluate your peers here." %}
         {% endif %}

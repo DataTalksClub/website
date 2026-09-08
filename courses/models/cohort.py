@@ -24,6 +24,17 @@ User = CustomUser
 class CurriculumFormat(models.TextChoices):
     LEGACY = "legacy", "Legacy"
     MODULES = "modules", "Modules"
+    SHARED = "shared", "Shared current curriculum"
+
+
+class DeliveryMode(models.TextChoices):
+    LIVE = "live", "Live"
+    SELF_PACED = "self_paced", "Self-paced"
+
+
+class CurriculumSource(models.TextChoices):
+    CURRENT = "current", "Current"
+    GITHUB_ARCHIVE = "github_archive", "GitHub archive"
 
 
 class Course(SourceProvenanceModel):
@@ -124,6 +135,66 @@ class Cohort(SourceProvenanceModel):
         db_default=CurriculumFormat.LEGACY,
         help_text="The curriculum presentation used by this cohort.",
     )
+    delivery_mode = models.CharField(
+        max_length=12,
+        choices=DeliveryMode.choices,
+        default=DeliveryMode.LIVE,
+        db_default=DeliveryMode.LIVE,
+        help_text=(
+            "How this cohort is delivered. A self-paced cohort reads the "
+            "shared current curriculum with ungraded practice only; delivery "
+            "is never overloaded with an archive value."
+        ),
+    )
+    curriculum_source = models.CharField(
+        max_length=15,
+        choices=CurriculumSource.choices,
+        default=CurriculumSource.CURRENT,
+        db_default=CurriculumSource.CURRENT,
+        help_text=(
+            "Whether this cohort follows the current curriculum or is a "
+            "GitHub-only archive of materially different, older material."
+        ),
+    )
+    shared_curriculum = models.ForeignKey(
+        "courses.SharedCurriculum",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="cohorts",
+        help_text=(
+            "The course's current shared graph, used only by "
+            "curriculum_format=shared cohorts and validated to belong to "
+            "the cohort's course."
+        ),
+    )
+    archive_notice_path = models.CharField(
+        max_length=1024,
+        blank=True,
+        default="",
+        validators=[],
+        help_text=(
+            "Repository-relative POSIX path of the archive notice Markdown. "
+            "Required together with the derived URL and commit for "
+            "github_archive cohorts; absent for current ones."
+        ),
+    )
+    archive_url = models.URLField(
+        max_length=2048,
+        blank=True,
+        default="",
+        help_text=(
+            "The immutable GitHub blob URL of the archive notice, derived by "
+            "the importer from the validated repository, the full incoming "
+            "commit SHA, and the notice path."
+        ),
+    )
+    archive_commit_sha = models.CharField(
+        max_length=40,
+        blank=True,
+        default="",
+        help_text="The full lowercase commit SHA the archive URL was derived from.",
+    )
 
     description = models.TextField()
     outcome = models.TextField(blank=True, default="", db_default="")
@@ -223,7 +294,7 @@ class Cohort(SourceProvenanceModel):
 
     @property
     def canonical_url_path(self) -> str:
-        return f"/courses/{self.course.slug}/{self.identifier}"
+        return f"/courses/{self.course.slug}/cohorts/{self.identifier}"
 
     def save(self, *args, **kwargs):
         # Existing copied fixtures create Cohort rows directly.  Keep that
@@ -260,6 +331,43 @@ class Cohort(SourceProvenanceModel):
                         )
                     }
                 )
+        errors: dict[str, str] = {}
+        if self.shared_curriculum_id:
+            if self.curriculum_format != CurriculumFormat.SHARED:
+                errors["shared_curriculum"] = (
+                    "Only shared-format cohorts reference the shared curriculum."
+                )
+            elif self.course_id and self.shared_curriculum.course_id != self.course_id:
+                errors["shared_curriculum"] = (
+                    "The shared curriculum must belong to the cohort's course."
+                )
+        if self.curriculum_format == CurriculumFormat.SHARED:
+            if not self.shared_curriculum_id:
+                errors["shared_curriculum"] = (
+                    "A shared-format cohort names its course's shared curriculum."
+                )
+            if self.curriculum_source != CurriculumSource.CURRENT:
+                errors["curriculum_source"] = (
+                    "A shared-format cohort follows the current curriculum."
+                )
+        if self.curriculum_source == CurriculumSource.GITHUB_ARCHIVE:
+            if not (self.archive_notice_path and self.archive_url and self.archive_commit_sha):
+                errors["archive_notice_path"] = (
+                    "A github_archive cohort stores its notice path plus the "
+                    "derived archive URL and commit SHA."
+                )
+            if self.pk and self.shared_module_placements.exists():
+                errors["curriculum_source"] = (
+                    "An archive cohort has no shared module placements."
+                )
+        elif any(
+            (self.archive_notice_path, self.archive_url, self.archive_commit_sha)
+        ):
+            errors["archive_notice_path"] = (
+                "Archive identity fields belong only to github_archive cohorts."
+            )
+        if errors:
+            raise ValidationError(errors)
 
     class Meta:
         db_table = "courses_course"
@@ -275,6 +383,31 @@ class Cohort(SourceProvenanceModel):
             models.CheckConstraint(
                 condition=Q(curriculum_format__in=CurriculumFormat.values),
                 name="courses_cohort_curriculum_format_valid",
+            ),
+            models.CheckConstraint(
+                condition=Q(delivery_mode__in=DeliveryMode.values),
+                name="courses_cohort_delivery_mode_valid",
+            ),
+            models.CheckConstraint(
+                condition=Q(curriculum_source__in=CurriculumSource.values),
+                name="courses_cohort_curriculum_source_valid",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    (
+                        Q(curriculum_source=CurriculumSource.GITHUB_ARCHIVE)
+                        & ~Q(archive_notice_path="")
+                        & ~Q(archive_url="")
+                        & Q(archive_commit_sha__regex="^[0-9a-f]{40}$")
+                    )
+                    | (
+                        Q(curriculum_source=CurriculumSource.CURRENT)
+                        & Q(archive_notice_path="")
+                        & Q(archive_url="")
+                        & Q(archive_commit_sha="")
+                    )
+                ),
+                name="courses_cohort_archive_identity_ck",
             ),
             source_provenance_constraint(name="courses_cohort_source_complete"),
             models.UniqueConstraint(

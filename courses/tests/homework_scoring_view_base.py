@@ -140,10 +140,10 @@ class HomeworkScoringViewBase(TestCase):
     def homework_url(self):
         kwargs = {
             "course_slug": self.course.course.slug,
-            "cohort_year": self.course.year,
+            "cohort_identifier": self.course.identifier,
             "homework_slug": self.homework.slug,
         }
-        return reverse("homework", kwargs=kwargs)
+        return reverse("cohort_homework", kwargs=kwargs)
 
     def get_homework_response(self, login=False):
         if login:

@@ -30,7 +30,7 @@ def registration_confirmation_urls(campaign, course) -> dict[str, str]:
     course_url = ""
     if course is not None:
         course_kwargs = cohort_route_kwargs(course)
-        course_url = public_route_url("course", course_kwargs)
+        course_url = public_route_url("cohort", course_kwargs)
     profile_url = public_route_url("account_settings")
     return {
         "registration_url": registration_url,

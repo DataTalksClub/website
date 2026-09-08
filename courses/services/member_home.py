@@ -40,7 +40,7 @@ from courses.services.registration_campaigns import next_edition_campaign_for_co
 from courses.views.course_homeworks import get_homeworks_for_course
 from courses.views.course_list import course_family_cards, prepare_course_list_courses
 from courses.views.course_projects import get_projects_for_course
-from courses.views.url_utils import cohort_url, cohort_url_kwargs
+from courses.views.url_utils import cohort_url, canonical_cohort_url_kwargs
 
 # The onboarding checklist's server-persisted keys are owned by ``accounts``
 # (``accounts/home_dismissals.py``), since ``home_dismissals`` is an accounts
@@ -149,7 +149,7 @@ def resume_target(user, cohort: Cohort) -> tuple[str, str]:
     any_read = UnitReadState.objects.filter(user=user, unit__module__cohort=cohort).exists()
     label = "Continue" if any_read else "Start course"
     unit_url = reverse(
-        "unit",
+        "cohort_unit",
         kwargs={
             "course_slug": cohort.course.slug,
             "cohort_identifier": cohort.identifier,
@@ -204,13 +204,13 @@ def deadline_items_for_cohort(user, cohort: Cohort, now) -> list[DeadlineItem]:
     """Every actionable deadline for one cohort (§4), state-filtered like the reminders."""
 
     items: list[DeadlineItem] = []
-    kwargs = cohort_url_kwargs(cohort)
+    kwargs = canonical_cohort_url_kwargs(cohort)
     for homework in _open_homework_candidates(user, cohort, now):
         items.append(
             DeadlineItem(
                 due=homework.due_date,
                 title=homework.title,
-                url=reverse("homework", kwargs={**kwargs, "homework_slug": homework.slug}),
+                url=reverse("cohort_homework", kwargs={**kwargs, "homework_slug": homework.slug}),
                 cohort_title=cohort.title,
             )
         )
@@ -219,7 +219,7 @@ def deadline_items_for_cohort(user, cohort: Cohort, now) -> list[DeadlineItem]:
             DeadlineItem(
                 due=project.submission_due_date,
                 title=project.title,
-                url=reverse("project", kwargs={**kwargs, "project_slug": project.slug}),
+                url=reverse("cohort_project", kwargs={**kwargs, "project_slug": project.slug}),
                 cohort_title=cohort.title,
             )
         )
@@ -228,7 +228,7 @@ def deadline_items_for_cohort(user, cohort: Cohort, now) -> list[DeadlineItem]:
             DeadlineItem(
                 due=project.peer_review_due_date,
                 title=project.title,
-                url=reverse("projects_eval", kwargs={**kwargs, "project_slug": project.slug}),
+                url=reverse("cohort_projects_eval", kwargs={**kwargs, "project_slug": project.slug}),
                 cohort_title=cohort.title,
             )
         )

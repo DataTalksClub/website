@@ -159,9 +159,10 @@ class ProjectEvaluationTestBase(TestCase):
 
     def eval_submit_url(self):
         return reverse(
-            "projects_eval_submit",
+            "cohort_projects_eval_submit",
             args=[
-                self.course.slug,
+                self.course.course.slug,
+                self.course.identifier,
                 self.project.slug,
                 self.peer_review.id,
             ],
@@ -169,8 +170,8 @@ class ProjectEvaluationTestBase(TestCase):
 
     def eval_view_url(self):
         return reverse(
-            "projects_eval",
-            args=[self.course.slug, self.project.slug],
+            "cohort_projects_eval",
+            args=[self.course.course.slug, self.course.identifier, self.project.slug],
         )
 
     def get_eval_submit_response(self):

@@ -80,8 +80,8 @@ class ProjectVotingBase(TestCase):
 
     def project_list_url(self):
         return reverse(
-            "project_list",
-            args=[self.course.slug, self.project.slug],
+            "cohort_project_list",
+            args=[self.course.course.slug, self.course.identifier, self.project.slug],
         )
 
     def post_vote(self, submission):
@@ -223,7 +223,7 @@ class ProjectVotingAllSubmissionsTestCase(ProjectVotingBase):
             submission=self.submission,
             voter=self.voter,
         )
-        url = reverse("list_all_project_submissions", args=[self.course.slug])
+        url = reverse("cohort_projects", args=[self.course.course.slug, self.course.identifier])
 
         response = self.client.get(url)
 

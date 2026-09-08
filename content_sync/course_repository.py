@@ -973,7 +973,13 @@ class _Parser:
         frozen = {key: answer[key] for key in answer}
         return MappingProxyType(frozen)
 
-    def _parse_homework(self, path: str, *, course_slug: str) -> HomeworkSource:
+    def _parse_homework(
+        self,
+        path: str,
+        *,
+        course_slug: str,
+        schema_versions: frozenset[int] = frozenset({SCHEMA_VERSION}),
+    ) -> HomeworkSource:
         mapping = _strict_mapping(
             _load_yaml_mapping(self.snapshot[path], path=path, limits=self.limits),
             path=path,
@@ -1005,7 +1011,9 @@ class _Parser:
                 }
             ),
         )
-        _schema(mapping, path=path)
+        version = mapping.get("schema_version")
+        if type(version) is not int or version not in schema_versions:
+            _fail("unsupported_schema_version", path, "/schema_version")
         content_id = _content_id(mapping["content_id"], path=path, pointer="/content_id")
         self._register_content_id(content_id, kind="homework", path=path, pointer="/content_id")
         slug = _slug(mapping["slug"], path=path, pointer="/slug")
@@ -1401,6 +1409,29 @@ class _Parser:
             seen_slugs[key] = homework.source_path
 
 
+def _peek_schema_version(
+    snapshot: Mapping[str, bytes], *, limits: CourseRepositoryLimits
+) -> int:
+    """Return the declared course-manifest schema version, defaulting to 1.
+
+    The peek is deliberately forgiving: a missing, unreadable, or malformed
+    ``course.yaml`` returns 1 so the version-one parser produces its own
+    precise diagnostic instead of this dispatch inventing a second one.
+    """
+
+    raw = snapshot.get("course.yaml")
+    if raw is None:
+        return 1
+    try:
+        mapping = _load_yaml_mapping(raw, path="course.yaml", limits=limits)
+    except CourseRepositoryValidationError:
+        return 1
+    version = mapping.get("schema_version")
+    if type(version) is int and version == 2:
+        return 2
+    return 1
+
+
 def parse_course_repository(
     snapshot: Mapping[str, bytes],
     *,
@@ -1410,10 +1441,19 @@ def parse_course_repository(
     """Parse and validate one immutable repository snapshot.
 
     ``commit_sha`` is provenance only.  When supplied it must be a full lowercase
-    Git SHA; this pure parser does not prove repository reachability.
+    Git SHA; this pure parser does not prove repository reachability.  The
+    declared ``course.yaml:schema_version`` selects the contract: schema 1 keeps
+    the cohort-owned parser, schema 2 selects the shared-curriculum parser.
     """
 
-    return _Parser(snapshot, commit_sha=commit_sha, limits=limits).parse()
+    validated = _validated_snapshot(snapshot, limits=limits)
+    if _peek_schema_version(validated, limits=limits) == 2:
+        from content_sync.course_repository_v2 import parse_course_repository_v2
+
+        return parse_course_repository_v2(
+            validated, commit_sha=commit_sha, limits=limits
+        )
+    return _Parser(validated, commit_sha=commit_sha, limits=limits).parse()
 
 
 __all__ = [

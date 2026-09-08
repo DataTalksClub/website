@@ -115,7 +115,18 @@ Three properties keep this from being a file-backed fallback in disguise:
   `ContentDocument`, `ContentRelation`, `ContentAsset`, and `ActiveContentPath`.
 - Events: `Event` and `EventAlias` for identity, `EventContent` with `EventSpeaker`
   and `EventLink` for what the page says. Nothing joins to JSON.
-- Courses and curriculum: existing course-platform models.
+- Courses and curriculum: existing course-platform models. The shared current
+  curriculum (added 2026-09-07 under #320) is part of this read path:
+  `SharedCurriculum`, `SharedModule`, `SharedLesson`, `CohortSharedModule`, and
+  `SharedLessonReadState` are what shared course pages read. Raw GitHub is an
+  import input and an archive link only — a schema-2 archive cohort renders a
+  notice plus its derived immutable GitHub URL, never imported lesson bodies.
+  Current relative lesson images and code files are imported into managed storage
+  with database rows (`SharedCurriculumAsset`); a shared lesson page resolves
+  assets through that database row and the managed store, never a mutable GitHub
+  branch URL and never a request-time fetch. Test fixtures under
+  `content_sync/tests/fixtures/` are test data only and are never a runtime
+  content fallback.
 - Sponsors and testimonials: existing core/course database models.
 - Navigation and other editable site records: database models such as
   `SiteNavigationEntry`.

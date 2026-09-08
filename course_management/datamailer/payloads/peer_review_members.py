@@ -67,7 +67,7 @@ def assigned_review_eval_url(review, course, project) -> str:
         "project_slug": project.slug,
         "review_id": review.id,
     }
-    eval_url = public_route_url("projects_eval_submit", eval_kwargs)
+    eval_url = public_route_url("cohort_projects_eval_submit", eval_kwargs)
     return eval_url
 
 
@@ -115,7 +115,7 @@ def peer_review_assignment_evaluations_url(project) -> str:
         **cohort_route_kwargs(project.course),
         "project_slug": project.slug,
     }
-    evaluations_url = public_route_url("projects_eval", evaluations_kwargs)
+    evaluations_url = public_route_url("cohort_projects_eval", evaluations_kwargs)
     return evaluations_url
 
 

@@ -17,7 +17,7 @@ def _homework_score_notification_context(homework):
     urls = score_notification_urls(
         course,
         homework,
-        "homework",
+        "cohort_homework",
         "homework_slug",
     )
     homework_url = urls["assignment_url"]

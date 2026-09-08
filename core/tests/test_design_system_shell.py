@@ -203,7 +203,7 @@ class DesignFiveAShellTests(TestCase):
                 "course",
                 kwargs={
                     "course_slug": self.course.course.slug,
-                    "cohort_year": self.course.identifier,
+                    "cohort_identifier": self.course.identifier,
                 },
             ),
             "events index": reverse("events"),

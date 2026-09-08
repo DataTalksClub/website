@@ -32,9 +32,13 @@ and rollback.
 
 Resolved: copied the existing course-management Django apps, migrations, behavior, compatibility APIs, and tests into this repository as-is from clean commit `98a235283904b4ef9ad29e196298540756cf1bcc`. Evolve them in place instead of reimplementing the platform. Implementation tracked in #30.
 
-## 3. Course curriculum and cohorts (resolved by #14)
+## 3. Course curriculum and cohorts (resolved by #14; amended for the shared current curriculum, 2026-09-07)
 
-Resolved: new Course owns reusable family identity. The current edition-like Course becomes Cohort and keeps its current homework, projects, criteria, enrollments, submissions, scores, and certificates. Cohort duplication workflow implemented (`courses/tests/test_course_duplication.py`). Reusable/versioned curriculum remains deferred.
+Resolved: new Course owns reusable family identity. The current edition-like Course becomes Cohort and keeps its current homework, projects, criteria, enrollments, submissions, scores, and certificates. Cohort duplication workflow implemented (`courses/tests/test_course_duplication.py`).
+
+Amendment (shared current curriculum, planned under #320): the earlier deferral of reusable curriculum is superseded by the one-current-shared-graph decision. Each `Course` owns exactly one current curriculum graph of shared modules and lessons, stored once and referenced by every delivery. A `Cohort` stores only its placement/order of shared modules and optional terminal-homework mappings; it never stores a divergent lesson list, a custom teaching order, or an annual/self-paced copy of current lessons. Assessment ownership remains entirely cohort-specific: homework, questions, projects, submissions, scores, peer review, leaderboard state, certificates, deadlines, and enrollments stay attached to one `Cohort`, and a shared lesson reaches a cohort's assignment only through an explicit stable-ID mapping — never by matching numbers, titles, or slugs.
+
+Self-paced phase-one boundary: a v2 source cohort with `delivery=self_paced` and `curriculum=current` is a first-class context for reading, shared lesson-read progress, and clearly ungraded practice. Delivery has exactly the values `live` and `self_paced`; an archive is represented by `curriculum=github_archive`, not by an archive delivery value. Self-paced reading never invents a deadline, leaderboard, peer-review availability, score, certificate, or annual schedule; a self-paced cohort requires `homework: []` in this slice, and grading/certificates remain an owner decision before those capabilities exist. There is no public release/version selector and no historical lesson viewer: a previous import may remain as inactive database rows for rollback/audit, but no route selects it.
 
 ## 4. Current course data grouping (resolved by #15)
 
@@ -58,14 +62,39 @@ through `courses/models/cohort.py`'s regex year-stripping fallback in `Cohort.sa
 must be removed once the explicit mapping entries exist, and `ml-zoomcamp-2021` certificates still
 need locating/importing. Tracked in #224.
 
-## 5. Course URL consolidation (resolved by #16)
+## 5. Course URL consolidation (resolved by #16; canonical route table amended 2026-09-07)
 
-Approved: new canonical pages live under `datatalks.club/courses/<course>/<cohort>/` (no
-`cohorts/` segment — matches the routes already implemented in `courses/urls.py`).
+Approved: new canonical pages live under `datatalks.club/courses/<course>/<cohort>/` and, as
+amended below, shared current teaching pages under `datatalks.club/courses/<course>/<module>…`.
 Static SEO articles preserve their established `/blog/<slug>.html` canonicals. Their clean
 `/blog/<slug>` and trailing-slash aliases redirect directly to the `.html` final while preserving
 the raw query. Route the old course hostname to compatibility views until all consumers migrate,
 then replace it with a Terraform-managed redirect Lambda using an explicit path map.
+
+Amendment (2026-09-07, planned under #320): the earlier "no `cohorts/` segment" sentence is
+replaced by the canonical route table below, which `02-url-link-seo-compatibility.md` repeats
+normatively. The shared current teaching routes carry no cohort, year, or `modules` segment; every
+cohort-specific operations route is explicitly namespaced under `cohorts/<identifier>/`.
+
+| Canonical route | Meaning |
+| --- | --- |
+| `/courses/<family>` | course family landing page |
+| `/courses/<family>/<module-slug>` | shared current module (numbered slug, e.g. `01-agentic-rag`) |
+| `/courses/<family>/<module-slug>/<lesson-slug>` | shared current lesson |
+| `/courses/<family>/cohorts/<identifier>` | cohort landing page |
+| `/courses/<family>/cohorts/<identifier>/homework/<homework-slug>` | one cohort's assignment |
+| `/courses/<family>/cohorts/<identifier>/leaderboard` | cohort leaderboard |
+| `/courses/<family>/cohorts/<identifier>/dashboard` | cohort dashboard |
+| `/courses/<family>/cohorts/<identifier>/projects` | cohort projects |
+| `/courses/<family>/cohorts/<identifier>/calendar.ics` | cohort calendar feed |
+
+Cohort identifiers are stable slug-like values (`2026`, `spring-2027`, `self-paced`); `year` is
+schedule/display metadata and never identity. Legacy compatibility: the old two-segment
+`/courses/<family>/<identifier>` cohort pages and their operation children, the old
+`/courses/<family>/<identifier>/modules/<module>/<lesson>` lesson pages, and legacy edition slugs
+(`/courses/llm-zoomcamp-2026/...`) remain as explicit one-hop redirect aliases recorded in
+`_docs/compatibility/course-route-contracts.json` with owner, reason, and status. No wildcard
+redirect is permitted, and a shared module/lesson path never doubles as a cohort identifier.
 
 Owner input received: no known external/third-party API consumers of `courses.datatalks.club`
 beyond browsers and the known internal paths already catalogued in

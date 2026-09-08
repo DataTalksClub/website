@@ -40,6 +40,21 @@ PRIVATE_ROUTE_NAMES = frozenset(
         "projects_eval_submit",
         "registration_campaign",
         "update_enrollment_toggle",
+        # The canonical ``cohorts/<identifier>`` namespace carries the same
+        # privacy class as the legacy names above; every learner-specific
+        # operation is private whichever route shape served it.
+        "cohort_dashboard",
+        "cohort_enrollment",
+        "cohort_homework_submissions",
+        "cohort_leaderboard_complaint",
+        "cohort_leaderboard_score_breakdown",
+        "cohort_project_submissions",
+        "cohort_project_results",
+        "cohort_projects_eval",
+        "cohort_projects_eval_add",
+        "cohort_projects_eval_delete",
+        "cohort_projects_eval_submit",
+        "cohort_update_enrollment_toggle",
         # One member's year in review, readable by that member and by staff.
         "user_wrapped",
     }
@@ -315,6 +330,8 @@ def _is_private_surface(request: HttpRequest) -> bool:
     return request.method not in {"GET", "HEAD", "OPTIONS"} and match.url_name in {
         "homework",
         "project",
+        "cohort_homework",
+        "cohort_project",
     }
 
 

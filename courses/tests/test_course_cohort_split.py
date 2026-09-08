@@ -27,8 +27,8 @@ class CourseCohortModelTests(TestCase):
         )
 
         self.assertEqual(list(family.cohorts.order_by("year")), [first, second])
-        self.assertEqual(first.canonical_url_path, "/courses/de-zoomcamp/2025")
-        self.assertEqual(second.canonical_url_path, "/courses/de-zoomcamp/2026")
+        self.assertEqual(first.canonical_url_path, "/courses/de-zoomcamp/cohorts/2025")
+        self.assertEqual(second.canonical_url_path, "/courses/de-zoomcamp/cohorts/2026")
         self.assertIsNotNone(first.uuid)
         self.assertIsNotNone(second.uuid)
 
@@ -67,14 +67,14 @@ class CourseCohortModelTests(TestCase):
         self.assertEqual(cohort.identifier, "spring-2026")
         self.assertEqual(
             cohort.canonical_url_path,
-            "/courses/ml-zoomcamp/spring-2026",
+            "/courses/ml-zoomcamp/cohorts/spring-2026",
         )
         self.assertEqual(
             reverse(
                 "course",
                 kwargs={
                     "course_slug": family.slug,
-                    "cohort_year": cohort.identifier,
+                    "cohort_identifier": cohort.identifier,
                 },
             ),
             "/courses/ml-zoomcamp/spring-2026",
@@ -95,11 +95,15 @@ class CourseCohortModelTests(TestCase):
         )
         response = self.client.get("/courses/ml-zoomcamp/spring-2026")
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "/courses/ml-zoomcamp/spring-2026/homework/homework-01")
-        self.assertContains(response, "/courses/ml-zoomcamp/spring-2026/project/project-01")
+        self.assertContains(
+            response, "/courses/ml-zoomcamp/cohorts/spring-2026/homework/homework-01"
+        )
+        self.assertContains(
+            response, "/courses/ml-zoomcamp/cohorts/spring-2026/project/project-01"
+        )
         self.assertContains(
             response,
-            '<link rel="canonical" href="https://datatalks.club/courses/ml-zoomcamp/spring-2026">',
+            '<link rel="canonical" href="https://datatalks.club/courses/ml-zoomcamp/cohorts/spring-2026">',
         )
 
         reserved = Cohort.objects.create(
@@ -118,16 +122,16 @@ class CourseCohortModelTests(TestCase):
             peer_review_due_date=timezone.now() + timezone.timedelta(days=8),
         )
         reserved_project_url = reverse(
-            "project",
+            "cohort_project",
             kwargs={
                 "course_slug": family.slug,
-                "cohort_year": reserved.identifier,
+                "cohort_identifier": reserved.identifier,
                 "project_slug": "project-01",
             },
         )
         self.assertEqual(
             reserved_project_url,
-            "/courses/ml-zoomcamp/project/project/project-01",
+            "/courses/ml-zoomcamp/cohorts/project/project/project-01",
         )
         self.assertEqual(self.client.get(reserved_project_url).status_code, 200)
 
@@ -147,10 +151,17 @@ class CanonicalCourseRouteTests(TestCase):
             description="Practical data engineering.",
         )
 
-    def test_public_route_names_reverse_to_family_year_paths(self):
+    def test_legacy_route_names_still_reverse_to_the_old_family_paths(self):
+        """Inbound-only legacy names keep their two-segment paths.
+
+        No generator may use them (the kwarg window is closed); they exist so
+        old copied links and fixtures keep resolving while the canonical
+        ``cohorts/<identifier>`` namespace carries every generated URL.
+        """
+
         cohort_kwargs = {
             "course_slug": "de-zoomcamp",
-            "cohort_year": 2026,
+            "cohort_identifier": 2026,
         }
         expected = {
             "course": "/courses/de-zoomcamp/2026",
@@ -189,16 +200,138 @@ class CanonicalCourseRouteTests(TestCase):
             "/courses/de-zoomcamp",
         )
 
+    def test_canonical_namespace_route_names_reverse_to_cohort_paths(self):
+        cohort_kwargs = {
+            "course_slug": "de-zoomcamp",
+            "cohort_identifier": 2026,
+        }
+        expected = {
+            "cohort": "/courses/de-zoomcamp/cohorts/2026",
+            "cohort_calendar": "/courses/de-zoomcamp/cohorts/2026/calendar.ics",
+            "cohort_dashboard": "/courses/de-zoomcamp/cohorts/2026/dashboard",
+            "cohort_enrollment": "/courses/de-zoomcamp/cohorts/2026/enrollment",
+            "cohort_leaderboard": "/courses/de-zoomcamp/cohorts/2026/leaderboard",
+            "cohort_projects": "/courses/de-zoomcamp/cohorts/2026/projects",
+            "cohort_homework": "/courses/de-zoomcamp/cohorts/2026/homework/hw-01",
+            "cohort_project": "/courses/de-zoomcamp/cohorts/2026/project/project-01",
+        }
+        route_kwargs = {
+            **cohort_kwargs,
+            "homework_slug": "hw-01",
+        }
+        self.assertEqual(reverse("cohort", kwargs=cohort_kwargs), expected["cohort"])
+        for name in (
+            "cohort_calendar",
+            "cohort_dashboard",
+            "cohort_enrollment",
+            "cohort_leaderboard",
+            "cohort_projects",
+        ):
+            with self.subTest(route=name):
+                self.assertEqual(reverse(name, kwargs=cohort_kwargs), expected[name])
+        self.assertEqual(reverse("cohort_homework", kwargs=route_kwargs), expected["cohort_homework"])
+        self.assertEqual(
+            reverse(
+                "cohort_project",
+                kwargs={**cohort_kwargs, "project_slug": "project-01"},
+            ),
+            expected["cohort_project"],
+        )
+
+    def test_canonical_namespace_route_names_reverse_to_cohort_paths(self):
+        """Generated URLs use the canonical ``cohorts/<identifier>`` namespace."""
+
+        cohort_kwargs = {
+            "course_slug": "de-zoomcamp",
+            "cohort_identifier": 2026,
+        }
+        expected = {
+            "cohort": "/courses/de-zoomcamp/cohorts/2026",
+            "cohort_calendar": "/courses/de-zoomcamp/cohorts/2026/calendar.ics",
+            "cohort_dashboard": "/courses/de-zoomcamp/cohorts/2026/dashboard",
+            "cohort_enrollment": "/courses/de-zoomcamp/cohorts/2026/enrollment",
+            "cohort_leaderboard": "/courses/de-zoomcamp/cohorts/2026/leaderboard",
+            "cohort_projects": "/courses/de-zoomcamp/cohorts/2026/projects",
+            "cohort_homework": "/courses/de-zoomcamp/cohorts/2026/homework/hw-01",
+            "cohort_project": "/courses/de-zoomcamp/cohorts/2026/project/project-01",
+        }
+        route_kwargs = {
+            **cohort_kwargs,
+            "homework_slug": "hw-01",
+        }
+        self.assertEqual(reverse("cohort", kwargs=cohort_kwargs), expected["cohort"])
+        for name in (
+            "cohort_calendar",
+            "cohort_dashboard",
+            "cohort_enrollment",
+            "cohort_leaderboard",
+            "cohort_projects",
+        ):
+            with self.subTest(route=name):
+                self.assertEqual(reverse(name, kwargs=cohort_kwargs), expected[name])
+        self.assertEqual(
+            reverse("cohort_homework", kwargs=route_kwargs), expected["cohort_homework"]
+        )
+        self.assertEqual(
+            reverse(
+                "cohort_project",
+                kwargs={**cohort_kwargs, "project_slug": "project-01"},
+            ),
+            expected["cohort_project"],
+        )
+
+    def test_canonical_namespace_route_names_reverse_to_cohort_paths(self):
+        """Generated URLs use the canonical ``cohorts/<identifier>`` namespace."""
+
+        cohort_kwargs = {
+            "course_slug": "de-zoomcamp",
+            "cohort_identifier": 2026,
+        }
+        expected = {
+            "cohort": "/courses/de-zoomcamp/cohorts/2026",
+            "cohort_calendar": "/courses/de-zoomcamp/cohorts/2026/calendar.ics",
+            "cohort_dashboard": "/courses/de-zoomcamp/cohorts/2026/dashboard",
+            "cohort_enrollment": "/courses/de-zoomcamp/cohorts/2026/enrollment",
+            "cohort_leaderboard": "/courses/de-zoomcamp/cohorts/2026/leaderboard",
+            "cohort_projects": "/courses/de-zoomcamp/cohorts/2026/projects",
+            "cohort_homework": "/courses/de-zoomcamp/cohorts/2026/homework/hw-01",
+            "cohort_project": "/courses/de-zoomcamp/cohorts/2026/project/project-01",
+        }
+        route_kwargs = {
+            **cohort_kwargs,
+            "homework_slug": "hw-01",
+        }
+        self.assertEqual(reverse("cohort", kwargs=cohort_kwargs), expected["cohort"])
+        for name in (
+            "cohort_calendar",
+            "cohort_dashboard",
+            "cohort_enrollment",
+            "cohort_leaderboard",
+            "cohort_projects",
+        ):
+            with self.subTest(route=name):
+                self.assertEqual(reverse(name, kwargs=cohort_kwargs), expected[name])
+        self.assertEqual(
+            reverse("cohort_homework", kwargs=route_kwargs), expected["cohort_homework"]
+        )
+        self.assertEqual(
+            reverse(
+                "cohort_project",
+                kwargs={**cohort_kwargs, "project_slug": "project-01"},
+            ),
+            expected["cohort_project"],
+        )
+
     def test_family_landing_and_cohort_detail_use_the_canonical_contract(self):
         family_response = self.client.get("/courses/de-zoomcamp")
         self.assertEqual(family_response.status_code, 200)
-        self.assertContains(family_response, "/courses/de-zoomcamp/2026")
+        self.assertContains(family_response, "/courses/de-zoomcamp/cohorts/2026")
 
         cohort_response = self.client.get("/courses/de-zoomcamp/2026")
         self.assertEqual(cohort_response.status_code, 200)
         self.assertContains(
             cohort_response,
-            '<link rel="canonical" href="https://datatalks.club/courses/de-zoomcamp/2026">',
+            '<link rel="canonical" href="https://datatalks.club/courses/de-zoomcamp/cohorts/2026">',
         )
 
     def test_course_catalog_cards_are_clickable_and_have_no_redundant_open_button(self):
@@ -206,7 +339,7 @@ class CanonicalCourseRouteTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         content = response.content.decode()
-        canonical = "/courses/de-zoomcamp/2026"
+        canonical = "/courses/de-zoomcamp/cohorts/2026"
         self.assertIn(
             f'role="link"\n                             tabindex="0"',
             content,

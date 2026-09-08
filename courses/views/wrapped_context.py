@@ -2,7 +2,7 @@ from django.urls import reverse
 
 from courses.models import Cohort, Enrollment
 from courses.models.wrapped import UserWrappedStatistics, WrappedStatistics
-from courses.views.url_utils import cohort_url_kwargs
+from courses.views.url_utils import canonical_cohort_url_kwargs
 
 # The label a Wrapped page falls back to when no pseudonym is available.  It
 # must stay free of anything that identifies the account.
@@ -17,7 +17,8 @@ def _wrapped_course_records(records: list[dict]) -> list[dict]:
         str(record["slug"])
         for record in normalized
         if record.get("slug")
-        and (not record.get("course_slug") or not record.get("cohort_year"))
+        and (not record.get("course_slug")
+            or not (record.get("cohort_year") or record.get("cohort_identifier")))
     }
     cohorts = {
         cohort.slug: cohort
@@ -26,21 +27,21 @@ def _wrapped_course_records(records: list[dict]) -> list[dict]:
 
     for record in normalized:
         course_slug = record.get("course_slug")
-        cohort_year = record.get("cohort_year")
-        if not course_slug or not cohort_year:
+        cohort_identifier = record.get("cohort_year") or record.get("cohort_identifier")
+        if not course_slug or not cohort_identifier:
             cohort = cohorts.get(str(record.get("slug", "")))
             if cohort is not None:
-                route_kwargs = cohort_url_kwargs(cohort)
+                route_kwargs = canonical_cohort_url_kwargs(cohort)
                 course_slug = route_kwargs["course_slug"]
-                cohort_year = route_kwargs["cohort_year"]
+                cohort_identifier = route_kwargs["cohort_identifier"]
                 record.update(route_kwargs)
 
-        if course_slug and cohort_year:
+        if course_slug and cohort_identifier:
             record["course_url"] = reverse(
-                "course",
+                "cohort",
                 kwargs={
                     "course_slug": course_slug,
-                    "cohort_year": cohort_year,
+                    "cohort_identifier": cohort_identifier,
                 },
             )
         elif record.get("slug"):
@@ -56,12 +57,12 @@ def _wrapped_course_records(records: list[dict]) -> list[dict]:
         enrollment_id = record.get("enrollment_id")
         if enrollment_id is None:
             continue
-        if course_slug and cohort_year:
+        if course_slug and cohort_identifier:
             record["leaderboard_url"] = reverse(
-                "leaderboard_score_breakdown",
+                "cohort_leaderboard_score_breakdown",
                 kwargs={
                     "course_slug": course_slug,
-                    "cohort_year": cohort_year,
+                    "cohort_identifier": cohort_identifier,
                     "enrollment_id": enrollment_id,
                 },
             )

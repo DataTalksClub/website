@@ -17,7 +17,7 @@ from courses.views.submission_formatting import (
     build_account_settings_url,
     request_base_url,
 )
-from courses.views.url_utils import absolute_url_with_fallback, cohort_url_kwargs
+from courses.views.url_utils import absolute_url_with_fallback, canonical_cohort_url_kwargs
 
 
 @dataclass(frozen=True)
@@ -132,9 +132,9 @@ def build_homework_update_url(
     homework: Homework,
 ) -> str:
     path = reverse(
-        "homework",
+        "cohort_homework",
         kwargs={
-            **cohort_url_kwargs(course),
+            **canonical_cohort_url_kwargs(course),
             "homework_slug": homework.slug,
         },
     )

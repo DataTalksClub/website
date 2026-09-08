@@ -516,27 +516,27 @@ class MemberFacingPageWalkTests(TestCase):
         cache.clear()
 
     def member_facing_paths(self) -> list[str]:
-        route_kwargs = {"course_slug": self.course.slug, "cohort_year": "2026"}
+        route_kwargs = {"course_slug": self.course.slug, "cohort_identifier": "2026"}
         return [
             reverse("home"),
             reverse("course_list"),
             reverse("course", kwargs=route_kwargs),
-            reverse("leaderboard", kwargs=route_kwargs),
-            reverse("dashboard", kwargs=route_kwargs),
+            reverse("cohort_leaderboard", kwargs=route_kwargs),
+            reverse("cohort_dashboard", kwargs=route_kwargs),
             reverse(
-                "leaderboard_score_breakdown",
+                "cohort_leaderboard_score_breakdown",
                 kwargs={**route_kwargs, "enrollment_id": self.enrollment.id},
             ),
-            reverse("homework", kwargs={**route_kwargs, "homework_slug": self.homework.slug}),
+            reverse("cohort_homework", kwargs={**route_kwargs, "homework_slug": self.homework.slug}),
             reverse(
-                "homework_statistics",
+                "cohort_homework_statistics",
                 kwargs={**route_kwargs, "homework_slug": self.homework.slug},
             ),
-            reverse("project", kwargs={**route_kwargs, "project_slug": self.project.slug}),
-            reverse("project_list", kwargs={**route_kwargs, "project_slug": self.project.slug}),
-            reverse("list_all_project_submissions", kwargs=route_kwargs),
+            reverse("cohort_project", kwargs={**route_kwargs, "project_slug": self.project.slug}),
+            reverse("cohort_project_list", kwargs={**route_kwargs, "project_slug": self.project.slug}),
+            reverse("cohort_projects", kwargs=route_kwargs),
             reverse(
-                "project_statistics",
+                "cohort_project_statistics",
                 kwargs={**route_kwargs, "project_slug": self.project.slug},
             ),
             reverse("wrapped", args=[2026]),
@@ -569,8 +569,8 @@ class MemberFacingPageWalkTests(TestCase):
         # nothing.  The leaderboard must render the pseudonym the member has.
         response = self.client.get(
             reverse(
-                "leaderboard",
-                kwargs={"course_slug": self.course.slug, "cohort_year": "2026"},
+                "cohort_leaderboard",
+                kwargs={"course_slug": self.course.slug, "cohort_identifier": "2026"},
             )
         )
 

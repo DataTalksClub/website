@@ -23,7 +23,7 @@ from courses.views.project_eval_submit_save import (
     ProjectCriteriaValidationError,
     project_eval_post_submission,
 )
-from courses.views.url_utils import cohort_url_kwargs, get_cohort_or_404
+from courses.views.url_utils import canonical_cohort_url_kwargs, get_cohort_or_404
 
 
 def project_eval_vote_response(
@@ -31,7 +31,7 @@ def project_eval_vote_response(
     course_slug,
     project_slug,
     review,
-    cohort_year=None,
+    cohort_identifier=None,
 ):
     action = request.POST.get("action", "vote")
     update_project_vote(
@@ -51,8 +51,8 @@ def project_eval_vote_response(
         },
     )
     response = redirect(
-        "projects_eval_submit",
-        **cohort_url_kwargs(get_cohort_or_404(course_slug, cohort_year)),
+        "cohort_projects_eval_submit",
+        **canonical_cohort_url_kwargs(get_cohort_or_404(course_slug, cohort_identifier)),
         project_slug=project_slug,
         review_id=review.id,
     )
@@ -111,8 +111,8 @@ def project_eval_submission_response(
             error,
         )
     response = redirect(
-        "projects_eval",
-        **cohort_url_kwargs(page.course),
+        "cohort_projects_eval",
+        **canonical_cohort_url_kwargs(page.course),
         project_slug=page.project.slug,
     )
     return response
@@ -121,7 +121,7 @@ def project_eval_submission_response(
 def projects_eval_submit_post_response(
     request,
     page: ProjectEvalSubmitPage,
-    cohort_year=None,
+    cohort_identifier=None,
 ):
     if request.POST.get("form_action") == "vote":
         return project_eval_vote_response(
@@ -129,7 +129,7 @@ def projects_eval_submit_post_response(
             page.course.slug,
             page.project.slug,
             page.review,
-            cohort_year=cohort_year,
+            cohort_identifier=cohort_identifier,
         )
 
     if page.project.state != ProjectState.PEER_REVIEWING.value:
@@ -149,9 +149,9 @@ def project_eval_submit_page(
     course_slug,
     project_slug,
     review,
-    cohort_year=None,
+    cohort_identifier=None,
 ) -> ProjectEvalSubmitPage:
-    course = get_cohort_or_404(course_slug, cohort_year)
+    course = get_cohort_or_404(course_slug, cohort_identifier)
     project = get_object_or_404(
         Project, slug=project_slug, course=course
     )
@@ -168,7 +168,7 @@ def project_eval_unauthorized_response(
     request,
     course_slug,
     project_slug,
-    cohort_year=None,
+    cohort_identifier=None,
 ):
     messages.error(
         request,
@@ -176,8 +176,8 @@ def project_eval_unauthorized_response(
         extra_tags="homework",
     )
     response = redirect(
-        "projects_eval",
-        **cohort_url_kwargs(get_cohort_or_404(course_slug, cohort_year)),
+        "cohort_projects_eval",
+        **canonical_cohort_url_kwargs(get_cohort_or_404(course_slug, cohort_identifier)),
         project_slug=project_slug,
     )
     return response
@@ -189,7 +189,7 @@ def projects_eval_submit(
     course_slug,
     project_slug,
     review_id,
-    cohort_year=None,
+    cohort_identifier=None,
 ):
     review = get_object_or_404(PeerReview, id=review_id)
 
@@ -207,7 +207,7 @@ def projects_eval_submit(
             request,
             course_slug,
             project_slug,
-            cohort_year,
+            cohort_identifier,
         )
         return response
 
@@ -215,14 +215,14 @@ def projects_eval_submit(
         course_slug,
         project_slug,
         review,
-        cohort_year,
+        cohort_identifier,
     )
 
     if request.method == "POST":
         return projects_eval_submit_post_response(
             request,
             page,
-            cohort_year,
+            cohort_identifier,
         )
 
     context = project_eval_submit_context(

@@ -211,9 +211,9 @@ def homework_detail_build_context_authenticated(data) -> dict:
 def homework_detail_objects(
     course_slug: str,
     homework_slug: str,
-    cohort_year: str | int | None = None,
+    cohort_identifier: str | int | None = None,
 ):
-    course = get_cohort_or_404(course_slug, cohort_year)
+    course = get_cohort_or_404(course_slug, cohort_identifier)
     homework = get_object_or_404(
         Homework,
         course=course,
@@ -234,15 +234,26 @@ def authenticated_homework_context(
     course: Cohort,
     homework: Homework,
     questions: list[Question],
+    *,
+    create_enrollment: bool = False,
 ):
     submission = Submission.objects.filter(
         homework=homework,
         student=user,
     ).first()
-    enrollment, _ = Enrollment.objects.get_or_create(
-        student=user,
-        course=course,
-    )
+    if create_enrollment:
+        # Only the authorized mutation path (an actual POST submission) may
+        # create the enrollment it submits against.  A GET/HEAD render, a
+        # copied URL, or a context preference never enrolls the reader.
+        enrollment, _ = Enrollment.objects.get_or_create(
+            student=user,
+            course=course,
+        )
+    else:
+        enrollment = Enrollment.objects.filter(
+            student=user,
+            course=course,
+        ).first()
     context_data = HomeworkDetailContextData(
         course=course,
         homework=homework,

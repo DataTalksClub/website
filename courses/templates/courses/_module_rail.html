@@ -70,7 +70,7 @@
         <li class="rail-unit{% if rail_unit.is_current %} is-current{% endif %}{% if rail_unit.is_read %} is-read{% endif %}">
           <a
             class="rail-unit-link"
-            href="{% url 'unit' course_family.slug cohort.identifier module.slug rail_unit.slug %}"
+            href="{% url 'cohort_unit' course_family.slug cohort.identifier module.slug rail_unit.slug %}"
             {% if rail_unit.is_current %}aria-current="page"{% endif %}
           >
             {% comment %}
@@ -93,7 +93,7 @@
   {% if module.terminal_homework %}
     <a
       class="rail-unit-link rail-homework"
-      href="{% url 'homework' course_family.slug cohort.identifier module.terminal_homework.slug %}"
+      href="{% url 'cohort_homework' course_family.slug cohort.identifier module.terminal_homework.slug %}"
     >
       {% comment %}
         The syllabus accordion's drawn bubble mark, reused, so the same mark

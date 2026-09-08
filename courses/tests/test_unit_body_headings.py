@@ -64,7 +64,7 @@ class UnitLeadingHeadingTests(TestCase):
             fields.append("title")
         self.unit.save(update_fields=fields)
         url = reverse(
-            "unit",
+            "cohort_unit",
             kwargs={
                 "course_slug": self.course_family.slug,
                 "cohort_identifier": self.cohort.identifier,

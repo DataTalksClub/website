@@ -137,10 +137,10 @@ class LeaderboardTestBase(TestCase):
 
     def leaderboard_url(self):
         return reverse(
-            "leaderboard",
+            "cohort_leaderboard",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
             },
         )
 
@@ -195,10 +195,10 @@ class LeaderboardTestBase(TestCase):
 
     def score_breakdown_url(self, enrollment):
         return reverse(
-            "leaderboard_score_breakdown",
+            "cohort_leaderboard_score_breakdown",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
                 "enrollment_id": enrollment.id,
             },
         )

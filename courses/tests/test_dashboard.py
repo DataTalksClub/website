@@ -8,10 +8,10 @@ from courses.tests.dashboard_view_base import DashboardViewTestBase
 class DashboardViewTestCase(DashboardViewTestBase):
     def dashboard_url(self):
         return reverse(
-            "dashboard",
+            "cohort_dashboard",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
             },
         )
 

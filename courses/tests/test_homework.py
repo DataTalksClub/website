@@ -196,18 +196,18 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
 
         response = self.get_homework_response()
         previous_url = reverse(
-            "homework",
+            "cohort_homework",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.identifier,
+                "cohort_identifier": self.course.identifier,
                 "homework_slug": previous_homework.slug,
             },
         )
         next_url = reverse(
-            "homework",
+            "cohort_homework",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.identifier,
+                "cohort_identifier": self.course.identifier,
                 "homework_slug": next_homework.slug,
             },
         )

@@ -80,7 +80,7 @@
 {% endblock %}
 
 {% block breadcrumb_trail %}
-  {% url 'project' course_slug=course.course.slug cohort_year=course.identifier project_slug=project.slug as project_url %}
+  {% url 'cohort_project' course_slug=course.course.slug cohort_identifier=course.identifier project_slug=project.slug as project_url %}
   {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url project.title project_url current="Results" %}
 {% endblock %}
 
@@ -93,16 +93,16 @@
     </p>
     <div class="project-toolbar">
       {% if user.is_staff %}
-        <a class="cta cta-compact cta-secondary interactive-lift" href="{% url 'project_submissions' course.course.slug course.identifier project.slug %}">
+        <a class="cta cta-compact cta-secondary interactive-lift" href="{% url 'cohort_project_submissions' course.course.slug course.identifier project.slug %}">
           All submissions
         </a>
       {% endif %}
       <a
         class="cta cta-compact cta-secondary interactive-lift"
-        href="{% url 'project_list' course_slug=course.course.slug cohort_year=course.identifier project_slug=project.slug %}"
+        href="{% url 'cohort_project_list' course_slug=course.course.slug cohort_identifier=course.identifier project_slug=project.slug %}"
       >See all projects</a>
       {% if project.state == 'CO' %}
-        <a class="cta cta-compact cta-secondary interactive-lift" href="{% url 'project_statistics' course.course.slug course.identifier project.slug %}">
+        <a class="cta cta-compact cta-secondary interactive-lift" href="{% url 'cohort_project_statistics' course.course.slug course.identifier project.slug %}">
           Project statistics
         </a>
       {% endif %}

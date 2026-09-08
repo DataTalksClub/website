@@ -7,7 +7,7 @@ from django.views.decorators.http import require_POST
 
 from course_management.observability import record_event
 from courses.models.cohort import Cohort, Enrollment
-from courses.views.url_utils import cohort_url_kwargs, get_cohort_or_404
+from courses.views.url_utils import canonical_cohort_url_kwargs, get_cohort_or_404
 
 from .course_leaderboard_data import invalidate_leaderboard_cache
 from .forms import EnrollmentForm
@@ -28,8 +28,8 @@ class EnrollmentToggleUpdate:
 
 @login_required
 @require_POST
-def update_enrollment_toggle(request, course_slug, cohort_year=None):
-    course = get_cohort_or_404(course_slug, cohort_year)
+def update_enrollment_toggle(request, course_slug, cohort_identifier=None):
+    course = get_cohort_or_404(course_slug, cohort_identifier)
     enrollment, created = Enrollment.objects.get_or_create(
         student=request.user,
         course=course,
@@ -53,7 +53,7 @@ def update_enrollment_toggle(request, course_slug, cohort_year=None):
         request=request,
         properties={
             "course_slug": course.course.slug,
-            "cohort_year": course.year,
+            "cohort_identifier": course.identifier,
             "enrollment_id": enrollment.id,
             "field": toggle_update.field,
             "enabled": toggle_update.enabled,
@@ -129,7 +129,7 @@ def record_enrollment_created(request, course, enrollment):
         request=request,
         properties={
             "course_slug": course.course.slug,
-            "cohort_year": course.year,
+            "cohort_identifier": course.identifier,
             "enrollment_id": enrollment.id,
         },
     )
@@ -148,19 +148,19 @@ def _handle_enrollment_post(request, course, enrollment):
             request=request,
             properties={
                 "course_slug": course.course.slug,
-                "cohort_year": course.year,
+                "cohort_identifier": course.identifier,
                 "enrollment_id": enrollment.id,
             },
         )
-        response = redirect("course", **cohort_url_kwargs(course))
+        response = redirect("cohort", **canonical_cohort_url_kwargs(course))
         return response
 
     return _render_enrollment_form(request, course, enrollment, form)
 
 
 @login_required
-def enrollment_view(request, course_slug, cohort_year=None):
-    course = get_cohort_or_404(course_slug, cohort_year)
+def enrollment_view(request, course_slug, cohort_identifier=None):
+    course = get_cohort_or_404(course_slug, cohort_identifier)
 
     enrollment, created = Enrollment.objects.get_or_create(
         student=request.user,

@@ -12,9 +12,9 @@ PROJECT_SUBMISSIONS_PAGE_SIZE = 25
 def list_all_project_submissions_view(
     request,
     course_slug: str,
-    cohort_year: str | int | None = None,
+    cohort_identifier: str | int | None = None,
 ):
-    course = get_cohort_or_404(course_slug, cohort_year)
+    course = get_cohort_or_404(course_slug, cohort_identifier)
     submissions_page = _all_project_submissions_page(course, request)
     projects = _projects_with_submission_counts(course)
     page_range = submissions_page.paginator.get_elided_page_range(

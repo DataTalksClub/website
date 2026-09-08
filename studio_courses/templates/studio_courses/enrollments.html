@@ -56,7 +56,7 @@
       <a href="{% url 'studio_courses_course' course.slug %}" class="cta cta-secondary cta-compact">
         Back to Courses
       </a>
-      <a href="{% url 'leaderboard' course.course.slug course.identifier %}" class="cta cta-secondary cta-compact">
+      <a href="{% url 'cohort_leaderboard' course.course.slug course.identifier %}" class="cta cta-secondary cta-compact">
         View Leaderboard
       </a>
     </div>
@@ -204,7 +204,7 @@
                     <a href="{% url 'studio_courses_enrollment_edit' course.slug enrollment.id %}" title="Manage enrollment">
                       Manage
                     </a>
-                    <a href="{% url 'leaderboard_score_breakdown' course_slug=course.course.slug cohort_year=course.identifier enrollment_id=enrollment.id %}" title="Scores">
+                    <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=course.course.slug cohort_identifier=course.identifier enrollment_id=enrollment.id %}" title="Scores">
                       Scores
                     </a>
                   </span>

@@ -83,7 +83,7 @@ class CourseListOrderingTest(CourseListViewTestBase):
             "course",
             kwargs={
                 "course_slug": shared_course.course.slug,
-                "cohort_year": shared_course.identifier,
+                "cohort_identifier": shared_course.identifier,
             },
         )
 
@@ -121,7 +121,7 @@ class CourseListOrderingTest(CourseListViewTestBase):
             "course",
             kwargs={
                 "course_slug": active.course.slug,
-                "cohort_year": active.identifier,
+                "cohort_identifier": active.identifier,
             },
         )
         active_family_url = reverse(
@@ -132,7 +132,7 @@ class CourseListOrderingTest(CourseListViewTestBase):
             "course",
             kwargs={
                 "course_slug": finished.course.slug,
-                "cohort_year": finished.identifier,
+                "cohort_identifier": finished.identifier,
             },
         )
 

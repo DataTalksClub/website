@@ -171,6 +171,13 @@ ALLOWED_MARKDOWN_ATTRIBUTES = {
 ALLOWED_MARKDOWN_PROTOCOLS = ["http", "https", "mailto"]
 
 _PUBLIC_IMAGE_SOURCE_RE = re.compile(r"\Ahttps?://[^\s]+\Z", re.IGNORECASE)
+# Managed shared-curriculum assets are served from this site under a
+# content-addressed public path that only the schema-2 importer can create
+# (the row, not the URL, is the authority).  A stored HTML fragment may
+# reference exactly this prefix and nothing else that is site-relative.
+_MANAGED_COURSE_ASSET_RE = re.compile(
+    r"\A/course-assets/lessons/[0-9a-f-]{36}/[0-9a-f]{64}/[A-Za-z0-9][A-Za-z0-9._-]*\Z"
+)
 _CODE_LANGUAGE_CLASS_RE = re.compile(r"\Alanguage-[a-z0-9][a-z0-9+#._-]{0,31}\Z", re.IGNORECASE)
 # Bleach can drop a rejected attribute but not the element that carried it.  An
 # ``<img>`` that lost its source would still paint an empty bordered box, so the
@@ -191,8 +198,14 @@ def _allowed_markdown_attribute(tag: str, name: str, value: str) -> bool:
     if tag == "img" and name == "src":
         # Repository-relative sources are resolved before rendering.  Anything
         # still relative here cannot be fetched from this site, and ``data:``
-        # or ``javascript:`` sources are never course content.
-        return bool(_PUBLIC_IMAGE_SOURCE_RE.match(value.strip()))
+        # or ``javascript:`` sources are never course content.  The managed
+        # course-asset prefix is the one site-relative exception: those paths
+        # exist only as importer-created database rows.
+        value = value.strip()
+        return bool(
+            _PUBLIC_IMAGE_SOURCE_RE.match(value)
+            or _MANAGED_COURSE_ASSET_RE.match(value)
+        )
     return True
 
 

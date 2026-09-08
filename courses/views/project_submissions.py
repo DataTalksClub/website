@@ -14,11 +14,11 @@ from courses.views.project_submission_viewer import project_viewer_state
 from courses.views.project_submission_votes import (
     project_vote_response,
 )
-from courses.views.url_utils import cohort_url_kwargs, get_cohort_or_404
+from courses.views.url_utils import canonical_cohort_url_kwargs, get_cohort_or_404
 
 
-def projects_list_view(request, course_slug, project_slug, cohort_year=None):
-    course = get_cohort_or_404(course_slug, cohort_year)
+def projects_list_view(request, course_slug, project_slug, cohort_identifier=None):
+    course = get_cohort_or_404(course_slug, cohort_identifier)
     project = get_object_or_404(Project, course=course, slug=project_slug)
 
     if request.method == "POST":
@@ -33,8 +33,8 @@ def projects_list_view(request, course_slug, project_slug, cohort_year=None):
     return response
 
 
-def project_submissions(request, course_slug, project_slug, cohort_year=None):
-    course = get_cohort_or_404(course_slug, cohort_year)
+def project_submissions(request, course_slug, project_slug, cohort_identifier=None):
+    course = get_cohort_or_404(course_slug, cohort_identifier)
     if not can_access_course_studio(request.user):
         messages.error(
             request,
@@ -42,8 +42,8 @@ def project_submissions(request, course_slug, project_slug, cohort_year=None):
             extra_tags="project",
         )
         response = redirect(
-            "project",
-            **cohort_url_kwargs(course),
+            "cohort_project",
+            **canonical_cohort_url_kwargs(course),
             project_slug=project_slug,
         )
         return response

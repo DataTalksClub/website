@@ -393,6 +393,7 @@ def ingest_course_repository_snapshot(
                 repository_name=source.repository_name,
                 repository_branch=source.branch,
                 commit_sha=commit_sha,
+                snapshot=snapshot,
             )
         )
     except CurriculumImportError as error:

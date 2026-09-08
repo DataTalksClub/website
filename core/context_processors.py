@@ -18,17 +18,33 @@ EXPLICIT_PUBLIC_CANONICALS = {
 
 PUBLIC_COURSE_COHORT_ROUTE_NAMES = frozenset(
     {
+        "cohort",
+        "cohort_calendar",
+        "cohort_dashboard",
+        "cohort_enrollment",
+        "cohort_update_enrollment_toggle",
+        "cohort_homework",
+        "cohort_homework_statistics",
+        "cohort_homework_submissions",
+        "cohort_leaderboard",
+        "cohort_leaderboard_score_breakdown",
+        "cohort_leaderboard_complaint",
+        "cohort_projects",
+        "cohort_project",
+        "cohort_project_list",
+        "cohort_projects_eval",
+        "cohort_project_results",
+        "cohort_project_statistics",
+        "cohort_project_submissions",
+        "cohort_projects_eval_submit",
+        "cohort_projects_eval_add",
+        "cohort_projects_eval_delete",
+        "cohort_module",
+        "cohort_unit",
+        "cohort_unit_read_state",
+        "shared_module",
+        "shared_lesson",
         "course",
-        "course_calendar",
-        "dashboard",
-        "enrollment",
-        "update_enrollment_toggle",
-        "leaderboard",
-        "leaderboard_score_breakdown",
-        "leaderboard_complaint",
-        "list_all_project_submissions",
-        "homework",
-        "homework_statistics",
         "homework_submissions",
         "project",
         "project_list",
@@ -82,7 +98,7 @@ def site_context(request: HttpRequest) -> dict[str, Any]:
         and resolver_match.url_name in PUBLIC_COURSE_COHORT_ROUTE_NAMES
     ):
         course_slug = resolver_match.kwargs.get("course_slug")
-        cohort_identifier = resolver_match.kwargs.get("cohort_year")
+        cohort_identifier = resolver_match.kwargs.get("cohort_identifier")
         if course_slug:
             if cohort_identifier is None:
                 cohort = Cohort.objects.filter(slug=course_slug).first()

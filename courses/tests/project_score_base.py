@@ -262,8 +262,8 @@ class ProjectEvaluationTestBase(TestCase):
     def project_results_response(self):
         self.client.login(**credentials)
         results_url = reverse(
-            "project_results",
-            args=[self.course.slug, self.project.slug],
+            "cohort_project_results",
+            args=[self.course.course.slug, self.course.identifier, self.project.slug],
         )
         return self.client.get(results_url)
 

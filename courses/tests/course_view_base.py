@@ -192,7 +192,7 @@ class CourseDetailViewTestBase(TestCase):
             "course",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
             },
         )
 
@@ -256,10 +256,10 @@ class CourseDetailViewTestBase(TestCase):
         )
         self.assertContains(response, "Edit course profile")
         enrollment_url = reverse(
-            "enrollment",
+            "cohort_enrollment",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
             },
         )
         self.assertContains(
@@ -273,10 +273,10 @@ class CourseDetailViewTestBase(TestCase):
         self.assertNotContains(response, "None")
         self.assertNotContains(response, "Edit course profile")
         enrollment_url = reverse(
-            "enrollment",
+            "cohort_enrollment",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
             },
         )
         self.assertNotContains(

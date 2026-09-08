@@ -18,10 +18,10 @@ def _peer_review_assignment_urls(course, project) -> dict[str, str]:
         **cohort_route_kwargs(course),
         "project_slug": project.slug,
     }
-    course_url = public_route_url("course", course_kwargs)
-    project_url = public_route_url("project", project_kwargs)
-    evaluations_url = public_route_url("projects_eval", project_kwargs)
-    leaderboard_url = public_route_url("leaderboard", course_kwargs)
+    course_url = public_route_url("cohort", course_kwargs)
+    project_url = public_route_url("cohort_project", project_kwargs)
+    evaluations_url = public_route_url("cohort_projects_eval", project_kwargs)
+    leaderboard_url = public_route_url("cohort_leaderboard", course_kwargs)
     profile_url = public_route_url("account_settings")
 
     return {

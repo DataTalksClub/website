@@ -66,7 +66,7 @@ class ModulePageTests(TestCase):
             "module_slug": self.module.slug,
         }
         kwargs.update(overrides)
-        return reverse("module", kwargs=kwargs)
+        return reverse("cohort_module", kwargs=kwargs)
 
     def read_state_url(self, unit=None, **overrides):
         unit = unit or self.units[0]
@@ -77,7 +77,7 @@ class ModulePageTests(TestCase):
             "unit_slug": unit.slug,
         }
         kwargs.update(overrides)
-        return reverse("unit_read_state", kwargs=kwargs)
+        return reverse("cohort_unit_read_state", kwargs=kwargs)
 
     def test_module_page_lists_units_homework_and_side_panel(self):
         response = self.client.get(self.module_url())
@@ -96,7 +96,7 @@ class ModulePageTests(TestCase):
             self.assertContains(
                 response,
                 reverse(
-                    "unit",
+                    "cohort_unit",
                     kwargs={
                         "course_slug": self.course.slug,
                         "cohort_identifier": self.cohort.identifier,
@@ -128,7 +128,7 @@ class ModulePageTests(TestCase):
 
     def test_module_and_unit_links_keep_numeric_source_slugs(self):
         module_url = reverse(
-            "module",
+            "cohort_module",
             kwargs={
                 "course_slug": self.course.slug,
                 "cohort_identifier": self.cohort.identifier,
@@ -136,7 +136,7 @@ class ModulePageTests(TestCase):
             },
         )
         unit_url = reverse(
-            "unit",
+            "cohort_unit",
             kwargs={
                 "course_slug": self.course.slug,
                 "cohort_identifier": self.cohort.identifier,

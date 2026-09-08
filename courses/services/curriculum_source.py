@@ -59,6 +59,12 @@ class ModuleSource:
     title: str
     source_path: str
     units: tuple[UnitSource, ...]
+    # ``shared`` marks one root module of the one current graph (schema 2);
+    # ``cohort`` is a schema-1 module owned by one cohort.
+    scope: Literal["shared", "cohort"] = "cohort"
+    # Optional module README index, imported as an overview/intro only.  It is
+    # never a lesson and never a fallback for a missing lesson.
+    overview_markdown: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,6 +127,18 @@ type CurriculumFlowSource = ModuleFlowSource | ProjectFlowSource
 
 
 @dataclass(frozen=True, slots=True)
+class HomeworkBindingSource:
+    """One explicit cohort-to-homework mapping from a schema-2 manifest.
+
+    ``module`` is the root shared module slug, or ``None`` for an archive
+    homework that keeps operating without a shared-module placement.
+    """
+
+    module: str | None
+    source: str
+
+
+@dataclass(frozen=True, slots=True)
 class CohortSource:
     identifier: str
     format: Literal["legacy", "modules"]
@@ -136,6 +154,12 @@ class CohortSource:
     end_date: date | None
     flow: tuple[CurriculumFlowSource, ...]
     is_implicit_legacy: bool
+    # Schema-2 discriminators.  ``None`` marks a schema-1 cohort; the shared
+    # projection must never infer them from years, folders, or slugs.
+    delivery: Literal["live", "self_paced"] | None = None
+    curriculum: Literal["current", "github_archive"] | None = None
+    archive_notice_path: str | None = None
+    homework_bindings: tuple[HomeworkBindingSource, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -155,6 +179,7 @@ __all__ = (
     "CourseRepositorySource",
     "CourseSource",
     "CurriculumFlowSource",
+    "HomeworkBindingSource",
     "HomeworkFormSource",
     "HomeworkOptionSource",
     "HomeworkQuestionSource",

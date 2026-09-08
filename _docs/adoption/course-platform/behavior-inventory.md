@@ -183,6 +183,8 @@ Mounted from `courses.urls`.
 | `datamailer_status` | `courses` | Look up Datamailer contact sendability and recent send history. |
 | `import_development_course_content` | `courses` | Import the one approved sanitized CMP public-content artifact into development |
 | `monitoring_datamailer_health` | `data` | Emit compact Datamailer health observability events. |
+| `migrate_shared_curriculum` | `courses` | Backfill the one current shared curriculum graph from cohort-owned module rows (dry-run by default, `--apply` to write). |
+| `shared_curriculum_inventory` | `courses` | Emit the bounded per-cohort rollout inventory and optionally validate reviewed keep-current/become-archive decisions. |
 | `preview_peer_review_email` | `courses` | Preview the peer-review-assignment email for a project. |
 | `process_datamailer_outbox` | `data` | Dispatch pending/retrying Datamailer outbox events. |
 | `seed_local_courses` | `courses` | Seed the local development database with the pinned public course catalog so / and /courses show the same real courses. |

@@ -90,20 +90,20 @@ class HomeworkSubmissionsViewTestBase(TestCase):
 
     def submissions_url(self):
         return reverse(
-            "homework_submissions",
+            "cohort_homework_submissions",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
                 "homework_slug": self.homework.slug,
             },
         )
 
     def homework_url(self):
         return reverse(
-            "homework",
+            "cohort_homework",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
                 "homework_slug": self.homework.slug,
             },
         )

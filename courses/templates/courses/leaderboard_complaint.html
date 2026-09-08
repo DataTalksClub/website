@@ -95,15 +95,15 @@
 {% block page_header %}
         {% url 'course_list' as course_list_url %}
         {% url 'course_family' course_family.slug as course_family_url %}
-        {% url 'course' course_family.slug course.identifier as cohort_url %}
-        {% url 'leaderboard' course_family.slug course.identifier as leaderboard_url %}
-        {% url 'leaderboard_score_breakdown' course.course.slug course.identifier enrollment.id as record_url %}
+        {% url 'cohort' course_family.slug course.identifier as cohort_url %}
+        {% url 'cohort_leaderboard' course_family.slug course.identifier as leaderboard_url %}
+        {% url 'cohort_leaderboard_score_breakdown' course.course.slug course.identifier enrollment.id as record_url %}
         {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url "Leaderboard" leaderboard_url enrollment.display_name record_url current="Flag record" %}
         <div class="complaint-hero-inner">
           <p class="mono-label mono-label-indigo">{{ course.title }}</p>
           <h1 id="complaint-heading">Flag leaderboard record</h1>
           <p class="mono-note">{{ enrollment.display_name }} · {{ enrollment.total_score }} points</p>
-          {% url 'leaderboard_score_breakdown' course.course.slug course.identifier enrollment.id as score_breakdown_url %}
+          {% url 'cohort_leaderboard_score_breakdown' course.course.slug course.identifier enrollment.id as score_breakdown_url %}
           {% include "core/_button.html" with href=score_breakdown_url label="Back to record" variant="secondary" compact=True %}
         </div>
 {% endblock %}

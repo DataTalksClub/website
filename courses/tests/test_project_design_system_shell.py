@@ -140,23 +140,23 @@ class ProjectDesignFiveAShellTests(TestCase):
         project_slug = self.project.slug
         return {
             "project": reverse(
-                "project",
+                "cohort_project",
                 kwargs={**route_kwargs, "project_slug": project_slug},
             ),
             "project submissions list": reverse(
-                "project_list",
+                "cohort_project_list",
                 kwargs={**route_kwargs, "project_slug": project_slug},
             ),
             "all project submissions": reverse(
-                "list_all_project_submissions",
+                "cohort_projects",
                 kwargs=route_kwargs,
             ),
             "peer evaluations": reverse(
-                "projects_eval",
+                "cohort_projects_eval",
                 kwargs={**route_kwargs, "project_slug": project_slug},
             ),
             "peer review form": reverse(
-                "projects_eval_submit",
+                "cohort_projects_eval_submit",
                 kwargs={
                     **route_kwargs,
                     "project_slug": project_slug,
@@ -164,7 +164,7 @@ class ProjectDesignFiveAShellTests(TestCase):
                 },
             ),
             "project results": reverse(
-                "project_results",
+                "cohort_project_results",
                 kwargs={**route_kwargs, "project_slug": project_slug},
             ),
         }
@@ -173,7 +173,7 @@ class ProjectDesignFiveAShellTests(TestCase):
         if self.course._meta.model_name == "cohort":
             return {
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
             }
         return {"course_slug": self.course.slug}
 
@@ -182,7 +182,7 @@ class ProjectDesignFiveAShellTests(TestCase):
         self.project.state = ProjectState.COMPLETED.value
         self.project.save(update_fields=["state"])
         return reverse(
-            "project_statistics",
+            "cohort_project_statistics",
             kwargs={
                 **self.course_route_kwargs(),
                 "project_slug": self.project.slug,
@@ -232,7 +232,7 @@ class ProjectDesignFiveAShellTests(TestCase):
                 self.assertEqual(body.count("<h1"), 1)
 
     def test_every_project_page_carries_the_trail_back_to_the_course(self) -> None:
-        course_url = reverse("course", kwargs=self.course_route_kwargs())
+        course_url = reverse("cohort", kwargs=self.course_route_kwargs())
         family_url = reverse(
             "course_family", kwargs={"course_slug": self.course.course.slug}
         )

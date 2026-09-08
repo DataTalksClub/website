@@ -91,7 +91,7 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
 
         self.assertNotIn("you'll ship:", body)
 
-    def test_course_page_does_not_render_a_cohort_year_eyebrow(self):
+    def test_course_page_does_not_render_a_cohort_identifier_eyebrow(self):
         body = self.client.get(self.course_url()).content.decode()
         hero_match = re.search(r"<section[^>]*\bcourse-hero\b[^>]*>", body)
         self.assertIsNotNone(hero_match)
@@ -188,10 +188,10 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
         body = self.client.get(self.course_url()).content.decode()
 
         profile_url = reverse(
-            "enrollment",
+            "cohort_enrollment",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
             },
         )
         self.assertLess(body.index('class="course-actions"'), body.index(profile_url))
@@ -236,10 +236,10 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
             self.assertContains(
                 response,
                 reverse(
-                    "homework",
+                    "cohort_homework",
                     kwargs={
                         "course_slug": self.course.course.slug,
-                        "cohort_year": self.course.year,
+                        "cohort_identifier": self.course.identifier,
                         "homework_slug": homework.slug,
                     },
                 ),
@@ -255,10 +255,10 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
         self.assertContains(
             response,
             reverse(
-                "project",
+                "cohort_project",
                 kwargs={
                     "course_slug": self.course.course.slug,
-                    "cohort_year": self.course.year,
+                    "cohort_identifier": self.course.identifier,
                     "project_slug": self.completed_project.slug,
                 },
             ),

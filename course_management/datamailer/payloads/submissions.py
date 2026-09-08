@@ -68,7 +68,7 @@ def homework_public_url(homework):
         **cohort_route_kwargs(homework.course),
         "homework_slug": homework.slug,
     }
-    homework_url = public_route_url("homework", homework_kwargs)
+    homework_url = public_route_url("cohort_homework", homework_kwargs)
     return homework_url
 
 
@@ -137,7 +137,7 @@ def project_public_url(project):
         **cohort_route_kwargs(project.course),
         "project_slug": project.slug,
     }
-    project_url = public_route_url("project", project_kwargs)
+    project_url = public_route_url("cohort_project", project_kwargs)
     return project_url
 
 

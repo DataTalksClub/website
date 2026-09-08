@@ -34,10 +34,10 @@ class CourseLeaderboardScoreBreakdownTests(CourseLeaderboardViewTestBase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Show public profile")
         enrollment_url = reverse(
-            "enrollment",
+            "cohort_enrollment",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
             },
         )
         self.assertContains(response, f'href="{enrollment_url}"')

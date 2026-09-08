@@ -59,7 +59,7 @@ class CoursePageCurriculumRenderingTests(TestCase):
                 "course",
                 kwargs={
                     "course_slug": cohort.course.slug,
-                    "cohort_year": cohort.year,
+                    "cohort_identifier": cohort.identifier,
                 },
             )
         )
@@ -204,10 +204,10 @@ class CoursePageCurriculumRenderingTests(TestCase):
         self.assertContains(
             response,
             reverse(
-                "homework",
+                "cohort_homework",
                 kwargs={
                     "course_slug": cohort.course.slug,
-                    "cohort_year": cohort.year,
+                    "cohort_identifier": cohort.identifier,
                     "homework_slug": homework_a.slug,
                 },
             ),
@@ -215,7 +215,7 @@ class CoursePageCurriculumRenderingTests(TestCase):
         self.assertContains(
             response,
             reverse(
-                "module",
+                "cohort_module",
                 kwargs={
                     "course_slug": cohort.course.slug,
                     "cohort_identifier": cohort.identifier,
@@ -226,10 +226,10 @@ class CoursePageCurriculumRenderingTests(TestCase):
         self.assertContains(
             response,
             reverse(
-                "project",
+                "cohort_project",
                 kwargs={
                     "course_slug": cohort.course.slug,
-                    "cohort_year": cohort.year,
+                    "cohort_identifier": cohort.identifier,
                     "project_slug": project_x.slug,
                 },
             ),
@@ -237,10 +237,10 @@ class CoursePageCurriculumRenderingTests(TestCase):
         self.assertContains(
             response,
             reverse(
-                "project_results",
+                "cohort_project_results",
                 kwargs={
                     "course_slug": cohort.course.slug,
-                    "cohort_year": cohort.year,
+                    "cohort_identifier": cohort.identifier,
                     "project_slug": project_y.slug,
                 },
             ),

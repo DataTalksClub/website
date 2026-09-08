@@ -35,7 +35,7 @@ class CourseListVisibilityTest(CourseListViewTestBase):
             "course",
             kwargs={
                 "course_slug": hidden_course.course.slug,
-                "cohort_year": hidden_course.identifier,
+                "cohort_identifier": hidden_course.identifier,
             },
         )
         response = self.client.get(url)

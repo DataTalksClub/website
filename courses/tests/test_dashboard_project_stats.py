@@ -145,10 +145,10 @@ class DashboardProjectStatsTestCase(TestCase):
 
     def dashboard_response(self):
         url = reverse(
-            "dashboard",
+            "cohort_dashboard",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
             },
         )
         return self.client.get(url)

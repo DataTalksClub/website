@@ -92,7 +92,7 @@ class PeerReviewBadgeTests(TestCase):
             "course",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.identifier,
+                "cohort_identifier": self.course.identifier,
             },
         )
         response = self.client.get(course_url)
@@ -153,7 +153,7 @@ class PeerReviewBadgeTests(TestCase):
             "course",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.identifier,
+                "cohort_identifier": self.course.identifier,
             },
         )
         with CaptureQueriesContext(connection) as ctx:
@@ -289,7 +289,7 @@ class PeerReviewBadgeEndToEndTests(TestCase):
             "course",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.identifier,
+                "cohort_identifier": self.course.identifier,
             },
         )
         response = self.client.get(course_url)

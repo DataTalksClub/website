@@ -158,7 +158,7 @@ class CourseListViewTestBase(TestCase):
             "course",
             kwargs={
                 "course_slug": course.course.slug,
-                "cohort_year": course.year,
+                "cohort_identifier": course.identifier,
             },
         )
         link_position = content.index(f'href="{course_url}"')
@@ -171,7 +171,7 @@ class CourseListViewTestBase(TestCase):
             "course",
             kwargs={
                 "course_slug": course.course.slug,
-                "cohort_year": course.year,
+                "cohort_identifier": course.identifier,
             },
         )
         link_position = content.index(f'href="{archive_url}"')
@@ -229,7 +229,7 @@ class CourseListViewTestBase(TestCase):
             "course",
             kwargs={
                 "course_slug": course.course.slug,
-                "cohort_year": course.year,
+                "cohort_identifier": course.identifier,
             },
         )
         course_link_position = content.index(f'href="{course_url}"')

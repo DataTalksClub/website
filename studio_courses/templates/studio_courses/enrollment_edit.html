@@ -30,15 +30,15 @@
     <div class="admin-toolbar">
       <form method="post" action="{% url 'loginas-user-login' enrollment.student.id %}">
         {% csrf_token %}
-        <input type="hidden" name="next" value="{% url 'course' course.course.slug course.identifier %}">
+        <input type="hidden" name="next" value="{% url 'cohort' course.course.slug course.identifier %}">
         <button type="submit" class="cta cta-secondary cta-compact">
           Log in as student
         </button>
       </form>
-      <a href="{% url 'leaderboard_score_breakdown' course_slug=course.course.slug cohort_year=course.identifier enrollment_id=enrollment.id %}" class="cta cta-secondary cta-compact">
+      <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=course.course.slug cohort_identifier=course.identifier enrollment_id=enrollment.id %}" class="cta cta-secondary cta-compact">
         View Score Breakdown
       </a>
-      <a href="{% url 'leaderboard' course.course.slug course.identifier %}" class="cta cta-secondary cta-compact">
+      <a href="{% url 'cohort_leaderboard' course.course.slug course.identifier %}" class="cta cta-secondary cta-compact">
         View Leaderboard
       </a>
       <a href="{% url 'studio_courses_enrollments' course.slug %}" class="cta cta-secondary cta-compact">

@@ -180,7 +180,7 @@ def course_page_context(data: CoursePageData) -> dict:
         "course": data.course,
         "course_family": data.course.course,
         "course_slug": data.course.course.slug,
-        "cohort_year": data.course.identifier,
+        "cohort_identifier": data.course.identifier,
         "homeworks": data.homeworks,
         "projects": data.projects,
         "course_modules": modules,
@@ -224,9 +224,9 @@ def course_page_context(data: CoursePageData) -> dict:
 def course_page_data(
     course_slug: str,
     user,
-    cohort_year: str | int | None = None,
+    cohort_identifier: str | int | None = None,
 ) -> CoursePageData:
-    course = get_cohort_or_404(course_slug, cohort_year)
+    course = get_cohort_or_404(course_slug, cohort_identifier)
     now = timezone.now()
     add_course_homepage_info(course, now)
     homeworks = get_homeworks_for_course(course, user)

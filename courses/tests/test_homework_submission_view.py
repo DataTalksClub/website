@@ -99,9 +99,10 @@ class HomeworkSubmissionViewTests(HomeworkDetailViewTestBase):
         self.client.login(**credentials)
         post_data = {f"answer_{self.question1.id}": ["1\r\n"]}
         url = reverse(
-            "homework",
+            "cohort_homework",
             kwargs={
                 "course_slug": self.course.slug,
+                "cohort_identifier": self.course.identifier,
                 "homework_slug": self.homework.slug,
             },
         )

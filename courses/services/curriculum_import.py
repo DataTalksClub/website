@@ -4,16 +4,20 @@ from __future__ import annotations
 
 import hashlib
 import json
+import posixpath
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass, fields, is_dataclass
 from datetime import date, datetime
+from pathlib import PurePosixPath
 from types import MappingProxyType
 from typing import Any
 from urllib.parse import urlsplit
 from uuid import UUID
 
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.db import IntegrityError, transaction
 from django.db.models import F, Max
 from django.utils import timezone
@@ -22,16 +26,23 @@ from courses.course_family_catalog import canonical_family_slug, family_slug_var
 from courses.models import (
     AnswerTypes,
     Cohort,
+    CohortSharedModule,
     Course,
     CourseCurriculumImportRun,
     CurriculumFlowItem,
     CurriculumFormat,
+    CurriculumSource,
+    DeliveryMode,
     Homework,
     HomeworkState,
     Module,
     Project,
     Question,
     QuestionTypes,
+    SharedCurriculum,
+    SharedCurriculumAsset,
+    SharedLesson,
+    SharedModule,
     Submission,
     Unit,
 )
@@ -75,6 +86,37 @@ _HOMEWORK_STATES = {
     "open": HomeworkState.OPEN.value,
     "scored": HomeworkState.SCORED.value,
 }
+
+_ASSET_CONTENT_TYPES = {
+    ".svg": "image/svg+xml",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".ipynb": "application/x-ipynb+json",
+    ".py": "text/x-python",
+}
+
+
+def _asset_content_type(filename: str) -> str:
+    suffix = PurePosixPath(filename).suffix.lower()
+    return _ASSET_CONTENT_TYPES.get(suffix, "application/octet-stream")
+
+
+def _rewrite_image_references(markdown: str, asset_paths: Mapping[str, str]) -> str:
+    """Point relative image references at their managed public paths."""
+
+    pattern = re.compile(r"!\[([^\]]*)\]\(([^)\s]+)\)")
+
+    def replace(match: re.Match[str]) -> str:
+        alt, target = match.group(1), match.group(2)
+        public = asset_paths.get(target)
+        if public is None:
+            return match.group(0)
+        return f"![{alt}]({public})"
+
+    return pattern.sub(replace, markdown)
 
 
 @dataclass(frozen=True, slots=True)
@@ -128,6 +170,10 @@ class CurriculumImportCommand:
     source_checksums: Mapping[str, str] | None = None
     manifest_checksum: str | None = None
     preserve_existing_records: bool = False
+    # Schema-2 imports carry the raw snapshot so current relative assets are
+    # validated and stored into managed storage from the same commit.  It is
+    # import input only: nothing on a request path ever reads it.
+    snapshot: Mapping[str, bytes] | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.source, CourseRepositorySource):
@@ -136,6 +182,8 @@ class CurriculumImportCommand:
             raise CurriculumImportError("invalid_source_uuid")
         if type(self.preserve_existing_records) is not bool:
             raise CurriculumImportError("invalid_preservation_mode")
+        if self.source.schema_version == 2 and not isinstance(self.snapshot, Mapping):
+            raise CurriculumImportError("shared_import_requires_snapshot")
         validators = (
             (self.source_stable_id, SOURCE_STABLE_ID_PATTERN, "invalid_source_stable_id"),
             (self.repository_owner, REPOSITORY_COMPONENT_PATTERN, "invalid_repository_owner"),
@@ -231,12 +279,32 @@ class _CurriculumImporter:
             "questions": 0,
             "flow_items": 0,
             "projects": 0,
+            "shared_modules": 0,
+            "shared_lessons": 0,
+            "placements": 0,
+            "archive_cohorts": 0,
         }
 
     def apply(self) -> tuple[Course, tuple[Cohort, ...], Mapping[str, int]]:
         self._validate_repository_identity()
         course = self._upsert_course()
         imported_cohorts: list[Cohort] = []
+        if self.command.source.schema_version == 2:
+            shared_curriculum = self._upsert_shared_curriculum(course)
+            self._import_shared_modules(shared_curriculum)
+            for source in self.command.source.cohorts:
+                cohort = self._upsert_cohort(
+                    course,
+                    source,
+                    shared_curriculum=shared_curriculum,
+                )
+                imported_cohorts.append(cohort)
+                self.counts["cohorts"] += 1
+                if source.curriculum == CurriculumSource.CURRENT:
+                    self._import_shared_placements(shared_curriculum, cohort, source)
+                else:
+                    self._import_archive_cohort(cohort, source)
+            return course, tuple(imported_cohorts), MappingProxyType(dict(self.counts))
         for source in self.command.source.cohorts:
             if source.is_implicit_legacy:
                 continue
@@ -372,7 +440,13 @@ class _CurriculumImporter:
             return f"{course.slug}-{source.legacy_slug.removeprefix(prefix)}"
         return source.legacy_slug
 
-    def _upsert_cohort(self, course: Course, source: CohortSource) -> Cohort:
+    def _upsert_cohort(
+        self,
+        course: Course,
+        source: CohortSource,
+        *,
+        shared_curriculum: SharedCurriculum | None = None,
+    ) -> Cohort:
         if source.content_id is None or source.source_path is None:
             raise CurriculumImportError("explicit_cohort_source_identity_missing")
         source_id = UUID(source.content_id)
@@ -416,12 +490,71 @@ class _CurriculumImporter:
             cohort.start_date = source.start_date
             cohort.end_date = source.end_date
             cohort.visible = bool(source.published)
-        cohort.curriculum_format = source.format
+        if source.delivery is not None:
+            # Schema-2 projection: the manifest discriminators map one way
+            # onto the database fields; nothing infers them back.
+            cohort.delivery_mode = source.delivery
+            cohort.curriculum_source = source.curriculum
+            if source.year is not None:
+                cohort.year = source.year
+            elif cohort.pk is None:
+                # ``year`` is display metadata, never identity.  A v2 manifest
+                # need not carry one, so new rows get a deterministic,
+                # collision-free value while the legacy (course, year)
+                # uniqueness stays intact.
+                cohort.year = self._display_year(course, source)
+            if source.curriculum == CurriculumSource.CURRENT:
+                cohort.curriculum_format = CurriculumFormat.SHARED
+                cohort.shared_curriculum = shared_curriculum
+                cohort.archive_notice_path = ""
+                cohort.archive_url = ""
+                cohort.archive_commit_sha = ""
+            else:
+                # A github_archive cohort keeps its existing curriculum
+                # format, has no shared placement, and stores only the
+                # notice path plus the importer-derived immutable URL.
+                cohort.shared_curriculum = None
+                cohort.archive_notice_path = source.archive_notice_path or ""
+                cohort.archive_commit_sha = self.commit_sha
+                cohort.archive_url = self._derived_archive_url(
+                    source.archive_notice_path,
+                    source_path=source.source_path or ".",
+                )
+        else:
+            cohort.curriculum_format = source.format
         for field, value in self._provenance(source, source.source_path, source.content_id).items():
             setattr(cohort, field, value)
         _validate_model(cohort)
         cohort.save()
         return cohort
+
+    def _display_year(self, course: Course, source: CohortSource) -> int:
+        if source.identifier.isdigit():
+            return int(source.identifier)
+        if source.start_date is not None:
+            return source.start_date.year
+        known = list(
+            Cohort.objects.filter(course=course).values_list("year", flat=True)
+        )
+        known.extend(
+            int(candidate.identifier)
+            for candidate in self.command.source.cohorts
+            if candidate.identifier.isdigit()
+        )
+        return (max(known) if known else 2026) + 1
+
+    def _derived_archive_url(self, notice_path: str | None, *, source_path: str) -> str:
+        """Derive the immutable GitHub blob URL for an archive notice.
+
+        The repository identity has already been validated against the import
+        command, and the commit is the incoming full SHA -- never a branch and
+        never a commit the manifest named itself.
+        """
+
+        if not notice_path:
+            raise CurriculumImportError("archive_notice_missing", source_path=source_path)
+        repository_url = self.command.source.course.repository_url.rstrip("/")
+        return f"{repository_url}/blob/{self.commit_sha}/{notice_path}"
 
     def _validate_legacy_transition(self, cohort: Cohort) -> None:
         if Module.objects.filter(cohort=cohort, source_content_id__isnull=False).exists():
@@ -430,6 +563,349 @@ class _CurriculumImporter:
                 source_path=cohort.source_path or ".",
                 pointer="/format",
             )
+
+    # -- schema-2 shared projection -----------------------------------------
+
+    _IMAGE_REFERENCE = re.compile(r"!\[[^\]]*\]\(([^)\s]+)\)")
+    _EXTERNAL_REFERENCE = re.compile(r"(?:[A-Za-z][A-Za-z0-9+.-]*:|//|/|#)")
+
+    def _upsert_shared_curriculum(self, course: Course) -> SharedCurriculum:
+        source = self.command.source.course
+        shared, created = SharedCurriculum.objects.get_or_create(
+            course=course,
+            defaults={
+                "parser_version": self.command.source.parser_version,
+                "updated_at": timezone.now(),
+                **self._provenance(source, source.source_path, source.content_id),
+            },
+        )
+        if not created:
+            shared.parser_version = self.command.source.parser_version
+            shared.updated_at = timezone.now()
+            for field, value in self._provenance(
+                source, source.source_path, source.content_id
+            ).items():
+                setattr(shared, field, value)
+            _validate_model(shared)
+            shared.save(
+                update_fields=(
+                    "parser_version",
+                    "updated_at",
+                    "source_content_id",
+                    "source_path",
+                    "source_commit_sha",
+                    "source_checksum",
+                )
+            )
+        return shared
+
+    def _import_shared_modules(self, shared_curriculum: SharedCurriculum) -> None:
+        incoming_ids: set[UUID] = set()
+        existing = SharedModule.objects.filter(
+            curriculum=shared_curriculum, source_content_id__isnull=False
+        )
+        offset = (
+            existing.aggregate(maximum=Max("position"))["maximum"] or 0
+        ) + existing.count() + 1_000
+        # Stage old positions out of the way so a reshuffle or a retirement
+        # cannot collide with an incoming module's position.
+        existing.update(position=F("position") + offset)
+        for position, module_source in enumerate(self.command.source.modules):
+            incoming_ids.add(UUID(module_source.content_id))
+            shared_module = self._upsert_shared_module(
+                shared_curriculum, module_source, position
+            )
+            self._upsert_shared_lessons(shared_module, module_source)
+        # Source-scoped soft retirement: removed modules stay as inactive rows
+        # for rollback/audit and never disappear under existing read state.
+        stale_modules = SharedModule.objects.filter(
+            curriculum=shared_curriculum,
+            source_content_id__isnull=False,
+        ).exclude(source_content_id__in=incoming_ids)
+        now = timezone.now()
+        stale_modules.update(published=False, retired_at=now)
+        stale_lessons = SharedLesson.objects.filter(
+            module__curriculum=shared_curriculum,
+            module__source_content_id__isnull=False,
+            source_content_id__isnull=False,
+        ).exclude(module__source_content_id__in=incoming_ids)
+        stale_lessons.update(published=False, retired_at=now)
+
+    def _upsert_shared_module(
+        self,
+        shared_curriculum: SharedCurriculum,
+        source: ModuleSource,
+        position: int,
+    ) -> SharedModule:
+        source_id = UUID(source.content_id)
+        shared_module, created = SharedModule.objects.update_or_create(
+            curriculum=shared_curriculum,
+            source_content_id=source_id,
+            defaults={
+                "slug": source.slug,
+                "title": source.title,
+                "position": position,
+                "overview_markdown": source.overview_markdown or "",
+                "overview_rendered_html": (
+                    render_markdown(source.overview_markdown)
+                    if source.overview_markdown
+                    else ""
+                ),
+                "published": True,
+                "retired_at": None,
+                **self._provenance(source, source.source_path, source.content_id),
+            },
+        )
+        if created:
+            self.counts["shared_modules"] += 1
+        return shared_module
+
+    def _upsert_shared_lessons(
+        self, shared_module: SharedModule, source: ModuleSource
+    ) -> None:
+        incoming_ids = {UUID(unit.content_id) for unit in source.units}
+        existing = SharedLesson.objects.filter(module=shared_module)
+        offset = (
+            existing.aggregate(maximum=Max("position"))["maximum"] or 0
+        ) + existing.count() + 1_000
+        existing.update(position=F("position") + offset)
+        for position, unit_source in enumerate(source.units):
+            self._upsert_shared_lesson(shared_module, unit_source, position)
+            self.counts["shared_lessons"] += 1
+        stale_lessons = SharedLesson.objects.filter(module=shared_module).exclude(
+            source_content_id__in=incoming_ids
+        )
+        stale_lessons.update(published=False, retired_at=timezone.now())
+
+    def _asset_references(self, unit_source: UnitSource) -> list[tuple[str, bool]]:
+        """Relative image references plus declared code sources of one lesson.
+
+        Image references are Markdown-relative to the lesson's module; the
+        parser already resolved code sources to repository-relative paths.
+        """
+
+        references: list[tuple[str, bool]] = []
+        for match in self._IMAGE_REFERENCE.finditer(unit_source.markdown):
+            target = match.group(1)
+            if self._EXTERNAL_REFERENCE.match(target):
+                # Absolute external HTTPS references stay external untouched.
+                continue
+            references.append((target, False))
+        for code in unit_source.metadata.code:
+            references.append((code.source_path, True))
+        return references
+
+    def _resolve_asset_source_path(
+        self, module_dir: str, reference: str, *, lesson_path: str
+    ) -> str:
+        resolved = posixpath.normpath(
+            (PurePosixPath(module_dir) / PurePosixPath(reference)).as_posix()
+        )
+        if resolved == "." or resolved.startswith("../"):
+            raise CurriculumImportError(
+                "shared_asset_reference_invalid",
+                source_path=lesson_path,
+            )
+        if resolved not in (self.command.snapshot or {}):
+            raise CurriculumImportError(
+                "shared_asset_reference_missing",
+                source_path=lesson_path,
+            )
+        return resolved
+
+    def _import_shared_assets(
+        self,
+        lesson: SharedLesson,
+        unit_source: UnitSource,
+        module_dir: str,
+    ) -> dict[str, str]:
+        """Validate, store, and register the lesson's relative assets.
+
+        Returns a mapping from repository-relative reference to stable public
+        path.  Storage keys embed the lesson's stable ID, the full commit SHA,
+        and the content checksum, so a re-import can never overwrite bytes
+        that are currently being served.
+        """
+
+        mapping: dict[str, str] = {}
+        resolved_paths: set[str] = set()
+        for reference, already_resolved in self._asset_references(unit_source):
+            source_path = (
+                reference
+                if already_resolved
+                else self._resolve_asset_source_path(
+                    module_dir, reference, lesson_path=unit_source.source_path
+                )
+            )
+            resolved_paths.add(source_path)
+        # A moved module directory changes resolved source paths; the old rows
+        # would collide on their content-addressed public paths, so they go
+        # first.  This is one transaction: a later failure restores them.  Row
+        # deletion never deletes stored bytes, which stay content-addressed
+        # for the commits that reference them.
+        SharedCurriculumAsset.objects.filter(lesson=lesson).exclude(
+            source_path__in=resolved_paths
+        ).delete()
+        for reference, already_resolved in self._asset_references(unit_source):
+            source_path = (
+                reference
+                if already_resolved
+                else self._resolve_asset_source_path(
+                    module_dir, reference, lesson_path=unit_source.source_path
+                )
+            )
+            raw = self.command.snapshot[source_path]
+            checksum = hashlib.sha256(raw).hexdigest()
+            filename = PurePosixPath(source_path).name
+            content_id = str(lesson.source_content_id)
+            storage_key = f"shared-lesson/{content_id}/{self.commit_sha}/{checksum}/{filename}"
+            public_path = f"/course-assets/lessons/{content_id}/{checksum}/{filename}"
+            SharedCurriculumAsset.objects.update_or_create(
+                lesson=lesson,
+                source_path=source_path,
+                defaults={
+                    "public_path": public_path,
+                    "storage_key": storage_key,
+                    "content_type": _asset_content_type(filename),
+                    "byte_size": len(raw),
+                    **self._provenance(
+                        unit_source, source_path, str(unit_source.content_id)
+                    ),
+                },
+            )
+            stored = default_storage.exists(storage_key)
+            if not stored:
+                default_storage.save(storage_key, ContentFile(raw))
+            mapping[reference] = public_path
+        return mapping
+
+    def _upsert_shared_lesson(
+        self,
+        shared_module: SharedModule,
+        unit_source: UnitSource,
+        position: int,
+    ) -> SharedLesson:
+        source_id = UUID(unit_source.content_id)
+        module_dir = str(PurePosixPath(unit_source.source_path).parent)
+        shared_lesson, _ = SharedLesson.objects.update_or_create(
+            module=shared_module,
+            source_content_id=source_id,
+            defaults={
+                "slug": unit_source.slug,
+                "title": unit_source.title,
+                "position": position,
+                "content_markdown": unit_source.markdown,
+                "video_url": unit_source.metadata.video_url or "",
+                "code_sources": [
+                    {"label": code.label, "source_path": code.source_path}
+                    for code in unit_source.metadata.code
+                ],
+                "published": True,
+                "retired_at": None,
+                **self._provenance(unit_source, unit_source.source_path, unit_source.content_id),
+            },
+        )
+        # Assets are validated and stored after the row exists (asset rows key
+        # on it) but before the rendered HTML is finalised: a missing or
+        # escaping reference fails the whole import atomically.
+        asset_paths = self._import_shared_assets(shared_lesson, unit_source, module_dir)
+        markdown = _rewrite_image_references(unit_source.markdown, asset_paths)
+        shared_lesson.content_markdown = markdown
+        shared_lesson.rendered_html = render_markdown(markdown)
+        shared_lesson.save(update_fields=("content_markdown", "rendered_html"))
+        return shared_lesson
+
+    def _import_shared_placements(
+        self,
+        shared_curriculum: SharedCurriculum,
+        cohort: Cohort,
+        source: CohortSource,
+    ) -> None:
+        homework_by_path = {
+            homework.source_path: homework for homework in self.command.source.homeworks
+        }
+        module_by_slug = {
+            module.slug: module for module in self.command.source.modules
+        }
+        incoming_module_ids = {
+            UUID(module.content_id) for module in self.command.source.modules
+        }
+        # Placements bound to modules this source no longer declares go first:
+        # their positions and module binding would collide with the incoming
+        # rows otherwise.  A self-paced cohort binds nothing, so it correctly
+        # ends with zero placements and zero manufactured homework rows.
+        CohortSharedModule.objects.filter(cohort=cohort).exclude(
+            shared_module__source_content_id__in=incoming_module_ids
+        ).delete()
+        kept_placements: set[int] = set()
+        for position, binding in enumerate(source.homework_bindings):
+            if binding.module is None:
+                raise CurriculumImportError(
+                    "archive_module_reference",
+                    source_path=source.source_path or ".",
+                )
+            module_source = module_by_slug.get(binding.module)
+            if module_source is None:
+                raise CurriculumImportError(
+                    "curriculum_source_mismatch",
+                    source_path=source.source_path or ".",
+                )
+            homework_source = homework_by_path.get(binding.source)
+            if homework_source is None:
+                raise CurriculumImportError(
+                    "homework_source_contract_invalid",
+                    source_path=source.source_path or ".",
+                )
+            homework = self._upsert_homework(cohort, homework_source)
+            shared_module = SharedModule.objects.filter(
+                curriculum=shared_curriculum,
+                source_content_id=UUID(module_source.content_id),
+            ).first()
+            if shared_module is None:
+                raise CurriculumImportError(
+                    "shared_module_missing",
+                    source_path=source.source_path or ".",
+                )
+            placement = CohortSharedModule.objects.update_or_create(
+                cohort=cohort,
+                shared_module=shared_module,
+                defaults={
+                    "position": position,
+                    "terminal_homework": homework,
+                },
+            )[0]
+            _validate_model(placement)
+            kept_placements.add(placement.pk)
+            self.counts["placements"] += 1
+        CohortSharedModule.objects.filter(cohort=cohort).exclude(
+            pk__in=kept_placements
+        ).delete()
+
+    def _import_archive_cohort(self, cohort: Cohort, source: CohortSource) -> None:
+        """An archive cohort never creates shared rows or placements.
+
+        Only an explicitly mapped ``module: null`` homework may be registered,
+        so historical submissions keep their operational assignment.
+        """
+
+        homework_by_path = {
+            homework.source_path: homework for homework in self.command.source.homeworks
+        }
+        for binding in source.homework_bindings:
+            if binding.module is not None:
+                raise CurriculumImportError(
+                    "archive_module_reference",
+                    source_path=source.source_path or ".",
+                )
+            homework_source = homework_by_path.get(binding.source)
+            if homework_source is None:
+                raise CurriculumImportError(
+                    "homework_source_contract_invalid",
+                    source_path=source.source_path or ".",
+                )
+            self._upsert_homework(cohort, homework_source)
+        CohortSharedModule.objects.filter(cohort=cohort).delete()
+        self.counts["archive_cohorts"] += 1
 
     def _import_modules_cohort(self, cohort: Cohort, source: CohortSource) -> None:
         project_by_position: dict[int, Project] = {}

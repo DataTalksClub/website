@@ -12,7 +12,7 @@ class CourseHomeworkDisplayTest(CourseDetailViewTestBase):
             "course",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
             },
         )
 

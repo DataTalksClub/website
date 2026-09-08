@@ -119,10 +119,10 @@ class WrappedViewTests(TestCase):
             response.context["leaderboard"], self.wrapped.leaderboard
         )
         expected_url = reverse(
-            "leaderboard_score_breakdown",
+            "cohort_leaderboard_score_breakdown",
             kwargs={
                 "course_slug": "wrapped-course",
-                "cohort_year": "2026",
+                "cohort_identifier": "2026",
                 "enrollment_id": 1,
             },
         )
@@ -151,14 +151,14 @@ class WrappedViewTests(TestCase):
         self.assertEqual(response.context["user_rank"], 1)
         course = response.context["user_stats"]["courses"][0]
         self.assertEqual(course["course_slug"], "wrapped-course")
-        self.assertEqual(course["cohort_year"], "2026")
+        self.assertEqual(course["cohort_identifier"], "2026")
         self.assertEqual(
             course["leaderboard_url"],
             reverse(
-                "leaderboard_score_breakdown",
+                "cohort_leaderboard_score_breakdown",
                 kwargs={
                     "course_slug": "wrapped-course",
-                    "cohort_year": "2026",
+                    "cohort_identifier": "2026",
                     "enrollment_id": 1,
                 },
             ),

@@ -238,10 +238,10 @@ class ProjectEvaluationSubmitPostTestCase(ProjectEvaluationTestBase):
         self.course.identifier = "spring-2026"
         self.course.save(update_fields=("course", "identifier"))
         eval_submit_url = reverse(
-            "projects_eval_submit",
+            "cohort_projects_eval_submit",
             kwargs={
                 "course_slug": family.slug,
-                "cohort_year": self.course.identifier,
+                "cohort_identifier": self.course.identifier,
                 "project_slug": self.project.slug,
                 "review_id": self.peer_review.id,
             },
@@ -392,8 +392,8 @@ class ProjectEvaluationSubmitVoteTestCase(ProjectEvaluationTestBase):
         self.client.login(**credentials)
 
         url = reverse(
-            "projects_eval_submit",
-            args=[self.course.slug, self.project.slug, self.peer_review.id],
+            "cohort_projects_eval_submit",
+            args=[self.course.course.slug, self.course.identifier, self.project.slug, self.peer_review.id],
         )
         response = self.client.post(
             url,

@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404, redirect
 from course_management.observability import record_event
 from courses.models.cohort import Cohort, Enrollment
 from courses.models.project import PeerReview, Project, ProjectSubmission
-from courses.views.url_utils import cohort_url_kwargs, get_cohort_or_404
+from courses.views.url_utils import canonical_cohort_url_kwargs, get_cohort_or_404
 
 
 def volunteer_review_submission_defaults():
@@ -73,9 +73,9 @@ def _create_optional_peer_review_if_allowed(
 
 @login_required
 def projects_eval_add(
-    request, course_slug, project_slug, submission_id, cohort_year=None
+    request, course_slug, project_slug, submission_id, cohort_identifier=None
 ):
-    course = get_cohort_or_404(course_slug, cohort_year)
+    course = get_cohort_or_404(course_slug, cohort_identifier)
     project = get_object_or_404(
         Project, course=course, slug=project_slug
     )
@@ -92,7 +92,7 @@ def projects_eval_add(
             request=request,
             properties={
                 "course_slug": course.course.slug,
-                "cohort_year": course.year,
+                "cohort_identifier": course.identifier,
                 "project_slug": project.slug,
                 "project_id": project.id,
                 "review_id": review.id,
@@ -102,8 +102,8 @@ def projects_eval_add(
         )
 
     response = redirect(
-        "project_list",
-        **cohort_url_kwargs(course),
+        "cohort_project_list",
+        **canonical_cohort_url_kwargs(course),
         project_slug=project.slug,
     )
     return response
@@ -115,9 +115,9 @@ def projects_eval_delete(
     course_slug,
     project_slug,
     review_id,
-    cohort_year=None,
+    cohort_identifier=None,
 ):
-    course = get_cohort_or_404(course_slug, cohort_year)
+    course = get_cohort_or_404(course_slug, cohort_identifier)
     project = get_object_or_404(
         Project, course=course, slug=project_slug
     )
@@ -141,7 +141,7 @@ def projects_eval_delete(
             request=request,
             properties={
                 "course_slug": course.course.slug,
-                "cohort_year": course.year,
+                "cohort_identifier": course.identifier,
                 "project_slug": project_slug,
                 "project_id": project.id,
                 "review_id": review_id,
@@ -149,8 +149,8 @@ def projects_eval_delete(
         )
 
     response = redirect(
-        "projects_eval",
-        **cohort_url_kwargs(course),
+        "cohort_projects_eval",
+        **canonical_cohort_url_kwargs(course),
         project_slug=project_slug,
     )
     return response

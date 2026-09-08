@@ -206,10 +206,10 @@
                     <div>
                       <p class="family-edition-label">Cohort {{ edition.cohort.identifier }}</p>
                       <h2 id="edition-{{ edition.cohort.identifier|slugify }}">
-                        <a href="{% url 'course' course_family.slug edition.cohort.identifier %}">{{ edition.cohort.title }}</a>
+                        <a href="{% url 'cohort' course_family.slug edition.cohort.identifier %}">{{ edition.cohort.title }}</a>
                       </h2>
                     </div>
-                    {% url 'course' course_family.slug edition.cohort.identifier as edition_url %}
+                    {% url 'cohort' course_family.slug edition.cohort.identifier as edition_url %}
                     {% include "core/_button.html" with href=edition_url label="View cohort" variant="secondary" compact=True %}
                   </div>
 
@@ -219,7 +219,7 @@
                       <ul class="row-list" role="list">
                         {% for project in edition.projects %}
                           <li class="list-row family-project">
-                            <a href="{% url 'project' course_slug=course_family.slug cohort_year=edition.cohort.identifier project_slug=project.slug %}">{{ project.title }}</a>
+                            <a href="{% url 'cohort_project' course_slug=course_family.slug cohort_identifier=edition.cohort.identifier project_slug=project.slug %}">{{ project.title }}</a>
                             <span class="family-project-state">{{ project.get_state_display }}</span>
                           </li>
                         {% endfor %}

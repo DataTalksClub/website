@@ -65,7 +65,7 @@
 
     <div class="admin-toolbar">
       <a href="{% url 'studio_courses_course' course.slug %}">Back to Courses</a>
-      <a href="{% url 'project' course.course.slug course.identifier project.slug %}" title="View public project page">Public</a>
+      <a href="{% url 'cohort_project' course.course.slug course.identifier project.slug %}" title="View public project page">Public</a>
       <a href="/admin/courses/project/{{ project.id }}/change/" title="Edit in Django Admin">Django</a>
     </div>
 
@@ -198,7 +198,7 @@
               {% for submission in submissions %}
                 <tr>
                   <td>
-                    <a href="{% url 'leaderboard_score_breakdown' course_slug=course.course.slug cohort_year=course.identifier enrollment_id=submission.enrollment.id %}">
+                    <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=course.course.slug cohort_identifier=course.identifier enrollment_id=submission.enrollment.id %}">
                       {% if submission.student.email %}
                         {{ submission.student.email }}
                       {% else %}

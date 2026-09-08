@@ -7,8 +7,8 @@ from courses.tests.dashboard_view_base import DashboardViewTestBase
 class DashboardEmptyStateTestCase(DashboardViewTestBase):
     def test_dashboard_with_invalid_course(self):
         url = reverse(
-            "dashboard",
-            kwargs={"course_slug": "non-existent-course", "cohort_year": 2026},
+            "cohort_dashboard",
+            kwargs={"course_slug": "non-existent-course", "cohort_identifier": 2026},
         )
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
@@ -21,10 +21,10 @@ class DashboardEmptyStateTestCase(DashboardViewTestBase):
         )
 
         url = reverse(
-            "dashboard",
+            "cohort_dashboard",
             kwargs={
                 "course_slug": empty_course.course.slug,
-                "cohort_year": empty_course.year,
+                "cohort_identifier": empty_course.year,
             },
         )
         response = self.client.get(url)

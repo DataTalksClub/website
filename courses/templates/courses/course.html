@@ -414,14 +414,14 @@
             {% if course.github_repo_url %}
               {% include "core/_button.html" with href=course.github_repo_url label="Course materials on GitHub" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
             {% endif %}
-            {% url 'leaderboard' course.course.slug course.identifier as course_leaderboard_url %}
+            {% url 'cohort_leaderboard' course.course.slug course.identifier as course_leaderboard_url %}
             {% include "core/_button.html" with href=course_leaderboard_url label="Course leaderboard" variant="secondary" compact=True %}
-            {% url 'dashboard' course.course.slug course.identifier as course_dashboard_url %}
+            {% url 'cohort_dashboard' course.course.slug course.identifier as course_dashboard_url %}
             {% include "core/_button.html" with href=course_dashboard_url label="Course dashboard" variant="secondary" compact=True %}
-            {% url 'list_all_project_submissions' course.course.slug course.identifier as project_submissions_url %}
+            {% url 'cohort_projects' course.course.slug course.identifier as project_submissions_url %}
             {% include "core/_button.html" with href=project_submissions_url label="Project submissions" variant="secondary" compact=True %}
             {% if is_authenticated and has_enrollment %}
-              {% url 'enrollment' course.course.slug course.identifier as enrollment_url %}
+              {% url 'cohort_enrollment' course.course.slug course.identifier as enrollment_url %}
               {% include "core/_button.html" with href=enrollment_url label="Edit course profile" variant="secondary" compact=True %}
             {% endif %}
             {% if is_authenticated and certificate_url %}
@@ -507,7 +507,7 @@
                       <li class="list-row course-flow-module">
                         <div>
                           <h3>
-                            {% url 'module' course.course.slug course.identifier flow_item.module.slug as module_url %}
+                            {% url 'cohort_module' course.course.slug course.identifier flow_item.module.slug as module_url %}
                             <a class="band-link" href="{{ module_url }}">{{ flow_item.module.title }}</a>
                           </h3>
                           <div class="course-flow-terminal">
@@ -521,7 +521,7 @@
                                     {% else %}
                                       <a
                                         class="course-row-title band-link"
-                                        href="{% url 'homework' course.course.slug course.identifier hw.slug %}"
+                                        href="{% url 'cohort_homework' course.course.slug course.identifier hw.slug %}"
                                       >{{ hw.title }}</a>
                                     {% endif %}
                                   </div>
@@ -553,17 +553,17 @@
                             {% if project.state == 'CS' %}
                               <a
                                 class="course-row-title band-link"
-                                href="{% url 'project' course_slug=course.course.slug cohort_year=course.identifier project_slug=project.slug %}"
+                                href="{% url 'cohort_project' course_slug=course.course.slug cohort_identifier=course.identifier project_slug=project.slug %}"
                               >{{ project.title }}</a>
                             {% elif project.state == 'PR' %}
                               <a
                                 class="course-row-title band-link"
-                                href="{% url 'projects_eval' course.course.slug course.identifier project.slug %}"
+                                href="{% url 'cohort_projects_eval' course.course.slug course.identifier project.slug %}"
                               >{{ project.title }}</a>
                             {% elif project.state == 'CO' %}
                               <a
                                 class="course-row-title band-link"
-                                href="{% url 'project_results' course.course.slug course.identifier project.slug %}"
+                                href="{% url 'cohort_project_results' course.course.slug course.identifier project.slug %}"
                               >{{ project.title }}</a>
                             {% else %}
                               <span class="course-row-title">{{ project.title }}</span>
@@ -599,7 +599,7 @@
                 </ol>
                 {% if has_completed_projects %}
                   <p class="course-more">
-                    <a class="band-link" href="{% url 'list_all_project_submissions' course.course.slug course.identifier %}">
+                    <a class="band-link" href="{% url 'cohort_projects' course.course.slug course.identifier %}">
                       See all submitted projects →
                     </a>
                   </p>
@@ -632,7 +632,7 @@
                       {% else %}
                         <a
                           class="course-row-title band-link"
-                          href="{% url 'homework' course.course.slug course.identifier hw.slug %}"
+                          href="{% url 'cohort_homework' course.course.slug course.identifier hw.slug %}"
                         >{{ hw.title }}</a>
                       {% endif %}
                     </div>
@@ -680,17 +680,17 @@
                       {% if project.state == 'CS' %}
                         <a
                           class="course-row-title band-link"
-                          href="{% url 'project' course_slug=course.course.slug cohort_year=course.identifier project_slug=project.slug %}"
+                          href="{% url 'cohort_project' course_slug=course.course.slug cohort_identifier=course.identifier project_slug=project.slug %}"
                         >{{ project.title }}</a>
                       {% elif project.state == 'PR' %}
                         <a
                           class="course-row-title band-link"
-                          href="{% url 'projects_eval' course.course.slug course.identifier project.slug %}"
+                          href="{% url 'cohort_projects_eval' course.course.slug course.identifier project.slug %}"
                         >{{ project.title }}</a>
                       {% elif project.state == 'CO' %}
                         <a
                           class="course-row-title band-link"
-                          href="{% url 'project_results' course.course.slug course.identifier project.slug %}"
+                          href="{% url 'cohort_project_results' course.course.slug course.identifier project.slug %}"
                         >{{ project.title }}</a>
                       {% else %}
                         <span class="course-row-title">{{ project.title }}</span>
@@ -724,7 +724,7 @@
               </div>
               {% if has_completed_projects %}
                 <p class="course-more">
-                  <a class="band-link" href="{% url 'list_all_project_submissions' course.course.slug course.identifier %}">
+                  <a class="band-link" href="{% url 'cohort_projects' course.course.slug course.identifier %}">
                     See all submitted projects →
                   </a>
                 </p>
@@ -748,7 +748,7 @@
               <div class="row-list course-rows">
                 {% for edition in other_course_editions %}
                   <div class="list-row">
-                    <a class="course-row-title band-link" href="{% url 'course' course_family.slug edition.identifier %}">{{ edition.title }}</a>
+                    <a class="course-row-title band-link" href="{% url 'cohort' course_family.slug edition.identifier %}">{{ edition.title }}</a>
                     <span class="mono-note">{{ edition.identifier }}</span>
                   </div>
                 {% endfor %}
@@ -810,7 +810,7 @@
               {% else %}
                 All deadlines are shown in your timezone.
               {% endif %}
-              <a class="band-link" href="{% url 'course_calendar' course.course.slug course.identifier %}">Calendar feed</a>
+              <a class="band-link" href="{% url 'cohort_calendar' course.course.slug course.identifier %}">Calendar feed</a>
             </p>
           </section>
 {% endblock %}

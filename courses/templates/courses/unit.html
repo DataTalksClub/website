@@ -147,8 +147,8 @@
         {% endcomment %}
         {% url 'course_list' as course_list_url %}
         {% url 'course_family' course_family.slug as course_family_url %}
-        {% url 'course' course_family.slug cohort.identifier as cohort_url %}
-        {% url 'module' course_family.slug cohort.identifier module.slug as module_url %}
+        {% url 'cohort' course_family.slug cohort.identifier as cohort_url %}
+        {% url 'cohort_module' course_family.slug cohort.identifier module.slug as module_url %}
         {% breadcrumbs "Courses" course_list_url course_family.title course_family_url cohort.identifier cohort_url module.title module_url %}
         <div class="unit-hero-inner">
           {% comment %}
@@ -205,7 +205,7 @@
                 <form
                   class="unit-read-state"
                   method="post"
-                  action="{% url 'unit_read_state' course_family.slug cohort.identifier module.slug unit.slug %}"
+                  action="{% url 'cohort_unit_read_state' course_family.slug cohort.identifier module.slug unit.slug %}"
                 >
                   {% csrf_token %}
                   <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -238,7 +238,7 @@
             {% endcomment %}
             <nav class="unit-navigation" aria-label="Unit navigation">
               {% if previous_unit %}
-                {% url 'unit' course_family.slug cohort.identifier module.slug previous_unit.slug as previous_unit_url %}
+                {% url 'cohort_unit' course_family.slug cohort.identifier module.slug previous_unit.slug as previous_unit_url %}
                 {% with previous_title=previous_unit.title|unit_display_title %}
                   {% include "core/_button.html" with href=previous_unit_url label="← "|add:previous_title variant="secondary" compact=True aria_label="Previous unit: "|add:previous_title %}
                 {% endwith %}
@@ -246,12 +246,12 @@
 
               <div class="unit-navigation-next">
                 {% if next_unit %}
-                  {% url 'unit' course_family.slug cohort.identifier module.slug next_unit.slug as next_unit_url %}
+                  {% url 'cohort_unit' course_family.slug cohort.identifier module.slug next_unit.slug as next_unit_url %}
                   {% with next_title=next_unit.title|unit_display_title %}
                     {% include "core/_button.html" with href=next_unit_url label=next_title|add:" →" variant="secondary" compact=True aria_label="Next unit: "|add:next_title %}
                   {% endwith %}
                 {% else %}
-                  {% url 'homework' course_family.slug cohort.identifier module.terminal_homework.slug as homework_url %}
+                  {% url 'cohort_homework' course_family.slug cohort.identifier module.terminal_homework.slug as homework_url %}
                   {% include "core/_button.html" with href=homework_url label="Continue to homework →" variant="primary" compact=True aria_label="Continue to homework: "|add:module.terminal_homework.title %}
                 {% endif %}
               </div>

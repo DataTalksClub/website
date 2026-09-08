@@ -66,7 +66,7 @@ class CourseTrailingSlashTests(TestCase):
                 response = self.client.get(alias)
 
                 self.assertEqual(response.status_code, 301)
-                self.assertEqual(response.headers["Location"], "/courses/slash-camp/2026")
+                self.assertEqual(response.headers["Location"], "/courses/slash-camp/cohorts/2026")
 
     def test_an_unknown_slug_with_a_trailing_slash_still_404s(self) -> None:
         for alias in ("/courses/no-such-course/", "/no-such-course/"):

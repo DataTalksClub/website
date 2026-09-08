@@ -439,20 +439,24 @@ class RealUrlAndCourseCanonicalTests(TestCase):
 
         detail_path = reverse(
             "course",
-            kwargs={"course_slug": hidden.course.slug, "cohort_year": hidden.identifier},
+            kwargs={"course_slug": hidden.course.slug, "cohort_identifier": hidden.identifier},
         )
         detail = self.client.get(detail_path)
         self.assertEqual(detail.status_code, 200)
+        canonical_cohort_path = reverse(
+            "cohort",
+            kwargs={"course_slug": hidden.course.slug, "cohort_identifier": hidden.identifier},
+        )
         self.assertContains(
             detail,
-            f'<link rel="canonical" href="https://datatalks.club{detail_path}">',
+            f'<link rel="canonical" href="https://datatalks.club{canonical_cohort_path}">',
             count=1,
         )
 
         enrollment = self.client.get(
             reverse(
-                "enrollment",
-                kwargs={"course_slug": hidden.course.slug, "cohort_year": hidden.identifier},
+                "cohort_enrollment",
+                kwargs={"course_slug": hidden.course.slug, "cohort_identifier": hidden.identifier},
             )
         )
         self.assertEqual(enrollment.status_code, 302)
@@ -477,8 +481,8 @@ class RealUrlAndCourseCanonicalTests(TestCase):
             "/cadmin",
             "/auth/logout",
             reverse(
-                "enrollment",
-                kwargs={"course_slug": course.course.slug, "cohort_year": course.identifier},
+                "cohort_enrollment",
+                kwargs={"course_slug": course.course.slug, "cohort_identifier": course.identifier},
             ),
             "/api/courses/missing/homeworks/missing/submissions",
         )
