@@ -74,3 +74,117 @@ No secret values are recorded — this inventory is structural only.
 str/int/bool); the mapping is tested in
 `core/tests/test_community_base_config_parity.py`, which also proves every row
 above is accepted by the released `declare` surface with synthetic values.
+
+## D0.1c implementation mapping (cutover)
+
+Cutover keeps the site surfaces (studio batch, admin API, runtime resolution)
+as adapters over the package storage. Writers are dual: the site
+`OperationalSetting` row stays the optimistic-revision and audit authority and
+is written first with its existing CAS semantics; the package `Setting` row is
+upserted in the same transaction (`core.settings_batch.upsert_package_setting`),
+so the two storages commit together or not at all.
+
+| Concern | Cutover owner | Where |
+|---|---|---|
+| Declaration of the 31 keys | site registry mirrors each registration into the package registry | `core.configuration._declare_in_package` |
+| Value-type vocabulary | `string/integer/boolean/string_list/json_object` maps onto `str/int/bool/list/json` | `core.configuration.PACKAGE_VALUE_TYPES` via `package_value_type()` |
+| Validation vocabulary | stays adapter-owned until GAP-1 (#358) lands | `core.operational_settings` validators run after package coercion |
+| Reads (batch/public) | package row first, site row fallback; value+source from the winning row, revision always from the site row | `core.settings_batch.query_settings` |
+| Reads (runtime cache) | package row first, site row fallback, per-resolution | `core.runtime_config._resolve_uncached` |
+| Cache stamp | unchanged: `OperationalSetting` aggregates still drive the stamp because site rows keep being written | `core.runtime_config` |
+| Grouped batch, revision, If-Match, idempotency | unchanged site code paths over dual writes | `core.settings_batch` |
+| Historical copy | data migration copies key/value/type/source, skips existing keys, single transaction, noop reverse | `core/migrations/0003_copy_operational_settings_to_cb_config.py` |
+| Audit/history | site `AuditEvent` rows unchanged; package `SettingChange` accrues for package-side writes | unchanged |
+
+Query count during cutover: batch and public reads issue one bounded query per
+storage (`assertNumQueries(2)` in `core/tests/test_site_settings.py`). The
+single-query contract returns in D0.1d when the site-table read is retired.
+
+## Copy migration rehearsal (synthetic development copy, 2026-09-08)
+
+Ran on a fresh SQLite database built from the checkout's own migrations with
+synthetic values only (`REHEARSAL` markers, no production data):
+
+- Seeded five `OperationalSetting` rows (string/integer/boolean, one malformed
+  integer value) plus two package rows preseeded for keys the site also holds.
+- Forward copy: exactly five rows in each storage; values and source badges
+  preserved; types mapped onto the package vocabulary; preseeded package rows
+  not clobbered; the malformed value copied verbatim (reads fail closed).
+- Reverse then reapply: reverse retains the copied rows (noop by design, the
+  drop is D0.1d's), the second copy adds zero rows.
+- Divergence: a studio batch write of two announcement keys leaves site and
+  package rows with identical values and sources; the revision lives only on
+  the site row.
+
+## Rollback runbook (settings cutover)
+
+1. Revert the deploy to the previous release tag; migrations run noop-reverse
+   for `core.0003_copy_operational_settings_to_cb_config` and leave both
+   storages in place.
+2. Readers fall back to site rows automatically while running cutover code.
+   On the reverted (pre-cutover) code, readers use site rows only; the site
+   rows were kept current by dual writes, so values, sources and revisions are
+   continuous.
+3. To undo a single bad value written after cutover, write through the studio
+   batch again (both storages update together). Do not edit one storage only:
+   single-storage edits create divergence the readers cannot arbitrate.
+4. Drop of `core_operationalsetting` and its history happens in D0.1d only
+   after the rollback window is explicitly closed; until then every rollback
+   path relies on the site table remaining populated.
+
+## D0.1c implementation mapping (cutover)
+
+Cutover keeps the site surfaces (studio batch, admin API, runtime resolution)
+as adapters over the package storage. Writers are dual: the site
+`OperationalSetting` row stays the optimistic-revision and audit authority and
+is written first with its existing CAS semantics; the package `Setting` row is
+upserted in the same transaction (`core.settings_batch.upsert_package_setting`),
+so the two storages commit together or not at all.
+
+| Concern | Cutover owner | Where |
+|---|---|---|
+| Declaration of the 31 keys | site registry mirrors each registration into the package registry | `core.configuration._declare_in_package` |
+| Value-type vocabulary | `string/integer/boolean/string_list/json_object` maps onto `str/int/bool/list/json` | `core.configuration.PACKAGE_VALUE_TYPES` via `package_value_type()` |
+| Validation vocabulary | stays adapter-owned until GAP-1 (#358) lands | `core.operational_settings` validators run after package coercion |
+| Reads (batch/public) | package row first, site row fallback; value+source from the winning row, revision always from the site row | `core.settings_batch.query_settings` |
+| Reads (runtime cache) | package row first, site row fallback, per-resolution | `core.runtime_config._resolve_uncached` |
+| Cache stamp | unchanged: `OperationalSetting` aggregates still drive the stamp because site rows keep being written | `core.runtime_config` |
+| Grouped batch, revision, If-Match, idempotency | unchanged site code paths over dual writes | `core.settings_batch` |
+| Historical copy | data migration copies key/value/type/source, skips existing keys, single transaction, noop reverse | `core/migrations/0003_copy_operational_settings_to_cb_config.py` |
+| Audit/history | site `AuditEvent` rows unchanged; package `SettingChange` accrues for package-side writes | unchanged |
+
+Query count during cutover: batch and public reads issue one bounded query per
+storage (`assertNumQueries(2)` in `core/tests/test_site_settings.py`). The
+single-query contract returns in D0.1d when the site-table read is retired.
+
+## Copy migration rehearsal (synthetic development copy, 2026-09-08)
+
+Ran on a fresh SQLite database built from the checkout's own migrations with
+synthetic values only (`REHEARSAL` markers, no production data):
+
+- Seeded five `OperationalSetting` rows (string/integer/boolean, one malformed
+  integer value) plus two package rows preseeded for keys the site also holds.
+- Forward copy: exactly five rows in each storage; values and source badges
+  preserved; types mapped onto the package vocabulary; preseeded package rows
+  not clobbered; the malformed value copied verbatim (reads fail closed).
+- Reverse then reapply: reverse retains the copied rows (noop by design, the
+  drop is D0.1d's), the second copy adds zero rows.
+- Divergence: a studio batch write of two announcement keys leaves site and
+  package rows with identical values and sources; the revision lives only on
+  the site row.
+
+## Rollback runbook (settings cutover)
+
+1. Revert the deploy to the previous release tag; migrations run noop-reverse
+   for `core.0003_copy_operational_settings_to_cb_config` and leave both
+   storages in place.
+2. Readers fall back to site rows automatically while running cutover code.
+   On the reverted (pre-cutover) code, readers use site rows only; the site
+   rows were kept current by dual writes, so values, sources and revisions are
+   continuous.
+3. To undo a single bad value written after cutover, write through the studio
+   batch again (both storages update together). Do not edit one storage only:
+   single-storage edits create divergence the readers cannot arbitrate.
+4. Drop of `core_operationalsetting` and its history happens in D0.1d only
+   after the rollback window is explicitly closed; until then every rollback
+   path relies on the site table remaining populated.

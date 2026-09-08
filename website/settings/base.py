@@ -138,6 +138,8 @@ INSTALLED_APPS = [
     # community-base kernel (D0.1a). D1.1 installs the package jobs app: the
     # site's jobs app and django_q are gone and durable intents run on Relay.
     "community_base.kernel.apps.KernelConfig",
+    "community_base.config",
+    "community_base.api",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
