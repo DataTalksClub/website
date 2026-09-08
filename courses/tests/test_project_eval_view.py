@@ -56,8 +56,8 @@ class ProjectEvaluationViewTestCase(ProjectEvaluationTestBase):
 
         self.client.login(**credentials)
         url = reverse(
-            "projects_eval",
-            args=[self.course.slug, self.project.slug],
+            "cohort_projects_eval",
+            args=[self.course.course.slug, self.course.identifier, self.project.slug],
         )
 
         response = self.client.get(url)
@@ -89,8 +89,8 @@ class ProjectEvaluationViewTestCase(ProjectEvaluationTestBase):
         self.project.save()
         self.client.login(**credentials)
         url = reverse(
-            "projects_eval",
-            args=[self.course.slug, self.project.slug],
+            "cohort_projects_eval",
+            args=[self.course.course.slug, self.course.identifier, self.project.slug],
         )
 
         response = self.client.get(url)
@@ -121,8 +121,8 @@ class ProjectEvaluationViewTestCase(ProjectEvaluationTestBase):
 
         self.client.login(**credentials)
         eval_url = reverse(
-            "projects_eval",
-            args=[self.course.slug, self.project.slug],
+            "cohort_projects_eval",
+            args=[self.course.course.slug, self.course.identifier, self.project.slug],
         )
         response = self.client.get(eval_url)
 
@@ -141,8 +141,8 @@ class ProjectEvaluationViewTestCase(ProjectEvaluationTestBase):
         self.project.save()
         self.client.login(**credentials)
         url = reverse(
-            "projects_eval",
-            args=[self.course.slug, self.project.slug],
+            "cohort_projects_eval",
+            args=[self.course.course.slug, self.course.identifier, self.project.slug],
         )
 
         response = self.client.get(url)
@@ -166,8 +166,8 @@ class ProjectEvaluationViewTestCase(ProjectEvaluationTestBase):
         self.submission.delete()
         self.client.login(**credentials)
         url = reverse(
-            "projects_eval",
-            args=[self.course.slug, self.project.slug],
+            "cohort_projects_eval",
+            args=[self.course.course.slug, self.course.identifier, self.project.slug],
         )
 
         response = self.client.get(url)

@@ -71,8 +71,8 @@ def student_project_eval_context(course, project, user, eval_closed):
     }
 
 
-def projects_eval_view(request, course_slug, project_slug, cohort_year=None):
-    course = get_cohort_or_404(course_slug, cohort_year)
+def projects_eval_view(request, course_slug, project_slug, cohort_identifier=None):
+    course = get_cohort_or_404(course_slug, cohort_identifier)
     project = get_object_or_404(
         Project, course=course, slug=project_slug
     )

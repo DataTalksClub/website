@@ -7,7 +7,7 @@ class CourseDashboardLinkTest(CourseDetailViewTestBase):
     def test_course_detail_keeps_dashboard_link_before_first_homework_scored(self):
         route_kwargs = {
             "course_slug": self.course.course.slug,
-            "cohort_year": self.course.year,
+            "cohort_identifier": self.course.identifier,
         }
         url = reverse("course", kwargs=route_kwargs)
 
@@ -16,7 +16,7 @@ class CourseDashboardLinkTest(CourseDetailViewTestBase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Course dashboard")
         dashboard_url = reverse(
-            "dashboard",
+            "cohort_dashboard",
             kwargs=route_kwargs,
         )
         self.assertContains(
@@ -29,7 +29,7 @@ class CourseDashboardLinkTest(CourseDetailViewTestBase):
         self.course.save()
         route_kwargs = {
             "course_slug": self.course.course.slug,
-            "cohort_year": self.course.year,
+            "cohort_identifier": self.course.identifier,
         }
         url = reverse("course", kwargs=route_kwargs)
 
@@ -38,7 +38,7 @@ class CourseDashboardLinkTest(CourseDetailViewTestBase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Course dashboard")
         dashboard_url = reverse(
-            "dashboard",
+            "cohort_dashboard",
             kwargs=route_kwargs,
         )
         self.assertContains(

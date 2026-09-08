@@ -35,7 +35,7 @@
     shared treatment the course, module and unit trails now use.  A homework
     with no module of its own names none, and the trail is the shell's three.
   {% endcomment %}
-  {% url 'module' course.course.slug course.identifier homework_module.slug as homework_module_url %}
+  {% url 'cohort_module' course.course.slug course.identifier homework_module.slug as homework_module_url %}
   {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url homework_module.title homework_module_url %}
 {% endblock %}
 
@@ -85,7 +85,7 @@
   {% if homework.is_scored or can_access_course_studio %}
     <div class="submission-actions">
       {% if homework.is_scored %}
-        {% url 'homework_statistics' course.course.slug course.identifier homework.slug as homework_statistics_url %}
+        {% url 'cohort_homework_statistics' course.course.slug course.identifier homework.slug as homework_statistics_url %}
         {% include "core/_button.html" with href=homework_statistics_url label="View public statistics" variant="secondary" compact=True %}
       {% endif %}
       {% if can_access_course_studio %}

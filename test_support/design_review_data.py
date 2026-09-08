@@ -148,7 +148,7 @@ def _route(name: str, cohort: Cohort, **extra: object) -> str:
         name,
         kwargs={
             "course_slug": cohort.course.slug,
-            "cohort_year": cohort.identifier,
+            "cohort_identifier": cohort.identifier,
             **extra,
         },
     )
@@ -836,7 +836,7 @@ def seed_design_review_data(*, execution_namespace: str = "local-review") -> Des
         ),
         ReviewSurface(
             "native-module-dense",
-            reverse("module", args=[native_family.slug, native.identifier, modules[2].slug]),
+            reverse("cohort_module", args=[native_family.slug, native.identifier, modules[2].slug]),
             "active-learner",
             "seven units, mixed read state",
             "DB-managed module curriculum",
@@ -844,7 +844,7 @@ def seed_design_review_data(*, execution_namespace: str = "local-review") -> Des
         ReviewSurface(
             "native-unit-rich",
             reverse(
-                "unit",
+                "cohort_unit",
                 args=[
                     native_family.slug,
                     native.identifier,
@@ -859,7 +859,7 @@ def seed_design_review_data(*, execution_namespace: str = "local-review") -> Des
         ReviewSurface(
             "native-unit-empty",
             reverse(
-                "unit", args=[native_family.slug, native.identifier, modules[0].slug, units[0].slug]
+                "cohort_unit", args=[native_family.slug, native.identifier, modules[0].slug, units[0].slug]
             ),
             "anonymous",
             "empty-content fallback",

@@ -14,10 +14,10 @@ class CourseEnrollmentDisplayTest(CourseDetailViewTestBase):
         self.client.login(**credentials)
 
         url = reverse(
-            "enrollment",
+            "cohort_enrollment",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
             },
         )
 
@@ -42,7 +42,7 @@ class CourseEnrollmentDisplayTest(CourseDetailViewTestBase):
             "course",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
             },
         )
         response = self.client.get(url)

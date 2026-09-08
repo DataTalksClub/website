@@ -1,0 +1,60 @@
+{% extends "core/content_page.html" %}
+{% load breadcrumbs seo %}
+
+{% block document_title %}{{ lesson.title }} — {{ course_family.title }} — DataTalks.Club{% endblock %}
+
+{% block metadata %}
+    {% canonical_link canonical_url %}
+    <meta name="description" content="{{ lesson.title }}, part of {{ module.title }} in the current {{ course_family.title }} curriculum.">
+{% endblock %}
+
+{% block page_styles %}
+      :root {
+        --page: var(--lavender);
+      }
+
+      .lesson-nav {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: space-between;
+        margin-top: 1.5rem;
+        flex-wrap: wrap;
+      }
+{% endblock %}
+
+{% block header_band_class %}unit-hero{% endblock %}
+{% block header_attributes %}aria-labelledby="lesson-heading"{% endblock %}
+
+{% block page_header %}
+        {% url 'course_list' as course_list_url %}
+        {% url 'course_family' course_family.slug as course_family_url %}
+        {% url 'shared_module' course_family.slug module.slug as module_link %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url module.title module_link %}
+        <div class="unit-hero-inner">
+          <h1 id="lesson-heading">{{ lesson.title }}</h1>
+          <p class="unit-hero-sub">Current curriculum · free to read</p>
+        </div>
+{% endblock %}
+
+{% block page_content %}
+      <section aria-label="Lesson content">
+        <div class="module-layout shell-breakout">
+          <div class="module-main">
+            <article class="module-section prose course-prose">
+              {{ lesson.rendered_html|safe }}
+            </article>
+
+            {% include "courses/_delivery_panel.html" with terminal_homework=terminal_homework %}
+
+            <nav class="lesson-nav" aria-label="Lesson navigation">
+              {% if previous_lesson %}
+                <a class="button button-secondary" href="{{ previous_lesson_url }}">← {{ previous_lesson.title }}</a>
+              {% endif %}
+              {% if next_lesson %}
+                <a class="button button-secondary" href="{{ next_lesson_url }}">{{ next_lesson.title }} →</a>
+              {% endif %}
+            </nav>
+          </div>
+        </div>
+      </section>
+{% endblock %}

@@ -179,6 +179,38 @@ Exit gate: all release criteria pass on `web.dtcdev.click`, open exceptions have
 
 Permanent redirects are enabled only after destinations pass production smoke tests.
 
+## Shared current curriculum rollout (added 2026-09-07)
+
+The LLM/ML Zoomcamp shared-curriculum delivery (tracked under website issue #320) follows these
+gates in addition to the controls above:
+
+- **Checker before source move.** A source repository moves its current teaching tree to numbered
+  root folders only after the website's schema-2 parser and the no-network layout checker pass on
+  a rehearsal of the exact planned commit, and the website consumer (schema, importer, routes) is
+  deployed and green. A v2 source commit never goes live before its consumer. No source move is
+  allowed while the parser or checker is failing.
+- **Additive schema first.** The shared-graph migration (`SharedCurriculum`, `SharedModule`,
+  `SharedLesson`, `CohortSharedModule`, `SharedLessonReadState`, cohort discriminators) runs
+  against a production-like copy before any source move. The backfill service supports
+  `--dry-run`/`--apply`, reads existing cohort-owned Module/Unit rows by stable source content ID,
+  creates one shared graph plus placements, copies the earliest read timestamps per stable ID, and
+  stops with a bounded conflict report when one stable ID maps to rows with different content or
+  provenance — no fuzzy title or year matching.
+- **Cohort inventory and keep/archive decisions.** Before cutover, an operator inventory records
+  every current-linked cohort of the family: identifier, delivery, curriculum source, mapped
+  homework, enrollment and submitted-assessment counts, stable IDs, and route aliases, with an
+  explicit reviewed keep-current or become-archive decision per row. An ongoing self-paced cohort
+  is never archived or changed by silence, and a new delivery gets a new identifier — never a
+  reused one.
+- **Failure and replay.** Import runs stay atomic, replayable, and failure-safe: a failed import
+  leaves the previous current graph, mappings, and assets visible; replay is idempotent; submitted
+  assessments and read evidence are never deleted to complete an import.
+- **Rollback and retention.** Rollback restores route readers to the old cohort-owned rows without
+  deleting new shared rows: old `Module`/`Unit`/`UnitReadState` rows are retained through the
+  rollout window, aliases keep old lesson URLs resolving, and read state migrates forward by
+  stable ID only. Retired shared rows and managed assets are retained until a later reviewed
+  retention policy; automated cleanup must not create a public historical viewer.
+
 ## Rollback
 
 Preferred rollback is an immutable application-image rollback with the new database and dynamic endpoints retained. Database changes follow expand/migrate/contract rules so the previous release can read newly written data.

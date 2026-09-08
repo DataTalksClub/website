@@ -68,19 +68,19 @@ class CourseFamilyNavigationTest(TestCase):
 
     def course_url(self, cohort):
         return reverse(
-            "course",
+            "cohort",
             kwargs={
                 "course_slug": self.family.slug,
-                "cohort_year": cohort.identifier,
+                "cohort_identifier": cohort.identifier,
             },
         )
 
     def project_url(self, cohort, project):
         return reverse(
-            "project",
+            "cohort_project",
             kwargs={
                 "course_slug": self.family.slug,
-                "cohort_year": cohort.identifier,
+                "cohort_identifier": cohort.identifier,
                 "project_slug": project.slug,
             },
         )
@@ -130,17 +130,17 @@ class CourseFamilyNavigationTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         for route_name in (
-            "dashboard",
-            "leaderboard",
-            "list_all_project_submissions",
-            "course_calendar",
+            "cohort_dashboard",
+            "cohort_leaderboard",
+            "cohort_projects",
+            "cohort_calendar",
         ):
             with self.subTest(route=route_name):
                 route_url = reverse(
                     route_name,
                     kwargs={
                         "course_slug": self.family.slug,
-                        "cohort_year": self.current.identifier,
+                        "cohort_identifier": self.current.identifier,
                     },
                 )
                 self.assertContains(response, f'href="{route_url}"')
@@ -153,10 +153,10 @@ class CourseFamilyNavigationTest(TestCase):
     def test_learner_only_navigation_is_hidden_from_anonymous_visitors(self):
         response = self.client.get(self.course_url(self.current))
         enrollment_url = reverse(
-            "enrollment",
+            "cohort_enrollment",
             kwargs={
                 "course_slug": self.family.slug,
-                "cohort_year": self.current.identifier,
+                "cohort_identifier": self.current.identifier,
             },
         )
 
@@ -178,10 +178,10 @@ class CourseFamilyNavigationTest(TestCase):
         self.client.force_login(user)
         response = self.client.get(self.course_url(self.current))
         enrollment_url = reverse(
-            "enrollment",
+            "cohort_enrollment",
             kwargs={
                 "course_slug": self.family.slug,
-                "cohort_year": self.current.identifier,
+                "cohort_identifier": self.current.identifier,
             },
         )
 

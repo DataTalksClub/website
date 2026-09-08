@@ -39,7 +39,7 @@ def _is_external(target: str) -> bool:
 def _unit_url(unit: Unit) -> str:
     cohort = unit.module.cohort
     return reverse(
-        "unit",
+        "cohort_unit",
         kwargs={
             "course_slug": cohort.course.slug,
             "cohort_identifier": cohort.identifier,
@@ -52,7 +52,7 @@ def _unit_url(unit: Unit) -> str:
 def _module_url(module) -> str:
     cohort = module.cohort
     return reverse(
-        "module",
+        "cohort_module",
         kwargs={
             "course_slug": cohort.course.slug,
             "cohort_identifier": cohort.identifier,
@@ -70,10 +70,10 @@ def _repository_root_relative(resolved_path: str) -> str:
 def _homework_url(homework) -> str:
     cohort = homework.course
     return reverse(
-        "homework",
+        "cohort_homework",
         kwargs={
             "course_slug": cohort.course.slug,
-            "cohort_year": cohort.identifier,
+            "cohort_identifier": cohort.identifier,
             "homework_slug": homework.slug,
         },
     )

@@ -9,8 +9,8 @@ def score_notification_urls(course, assignment, route_name, slug_kwarg):
     assignment_url = public_route_url(route_name, assignment_kwargs)
 
     course_kwargs = cohort_route_kwargs(course)
-    course_url = public_route_url("course", course_kwargs)
-    leaderboard_url = public_route_url("leaderboard", course_kwargs)
+    course_url = public_route_url("cohort", course_kwargs)
+    leaderboard_url = public_route_url("cohort_leaderboard", course_kwargs)
     profile_url = public_route_url("account_settings")
 
     return {

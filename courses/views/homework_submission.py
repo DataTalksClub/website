@@ -27,7 +27,7 @@ from courses.views.homework_submission_fields import (
     HomeworkSubmissionFieldData,
     apply_homework_submission_fields,
 )
-from courses.views.url_utils import cohort_url_kwargs
+from courses.views.url_utils import canonical_cohort_url_kwargs
 
 
 @dataclass(frozen=True)
@@ -118,8 +118,8 @@ def homework_submission_success_response(request, course, homework):
         extra_tags="homework",
     )
     response = redirect(
-        "homework",
-        **cohort_url_kwargs(course),
+        "cohort_homework",
+        **canonical_cohort_url_kwargs(course),
         homework_slug=homework.slug,
     )
     return response

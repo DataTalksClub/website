@@ -1,0 +1,64 @@
+{% comment %}
+One delivery panel for the shared current-curriculum pages.
+
+Precedence (courses/services/course_context.py): explicit ?cohort=, remembered
+preference, sole enrollment, chooser.  The panel never changes the lesson body
+or the canonical path: it only links the selected delivery.
+{% endcomment %}
+<section class="card delivery-panel" aria-labelledby="delivery-heading">
+  <h2 id="delivery-heading">How are you taking this course?</h2>
+  {% if delivery_cohort %}
+    {% if archive_cohort %}
+      <p class="delivery-note">
+        <strong>Older curriculum.</strong>
+        The {{ delivery_cohort.identifier }} delivery is preserved on GitHub:
+        its lessons, code, and assets live in the
+        <a href="{{ delivery_cohort.archive_url }}">{{ delivery_cohort.identifier }} archive</a>
+        and are not shown on this site.
+      </p>
+    {% else %}
+      <p class="delivery-note">
+        {% if self_paced %}
+          Viewing the <strong>{{ delivery_cohort.identifier }}</strong> delivery:
+          ungraded practice, no deadlines{% if delivery_source == "remembered" %} (remembered){% endif %}.
+        {% else %}
+          Viewing with the <strong>{{ delivery_cohort.identifier }}</strong>
+          cohort delivery{% if delivery_source == "remembered" %} (remembered){% endif %}.
+        {% endif %}
+      </p>
+      {% if terminal_homework %}
+        <p>
+          <a href="{% url 'cohort_homework' course_family.slug delivery_cohort.identifier terminal_homework.slug %}{{ context_q }}">
+            {{ terminal_homework.title }}</a>
+          {% if self_paced %}— practice stays ungraded for self-paced deliveries.{% endif %}
+        </p>
+      {% elif self_paced %}
+        <p>Self-paced practice is ungraded: read the material, follow along, no deadlines.</p>
+      {% endif %}
+      {% if delivery_cohort.start_date and delivery_cohort.end_date and not self_paced %}
+        <p class="delivery-meta">{{ delivery_cohort.start_date|date:"M j, Y" }} – {{ delivery_cohort.end_date|date:"M j, Y" }}</p>
+      {% endif %}
+    {% endif %}
+    <p>
+      <a href="{% url 'cohort' course_family.slug delivery_cohort.identifier %}">Open the cohort page →</a>
+    </p>
+  {% elif delivery_multiple_enrollments %}
+    <p class="delivery-note">You are enrolled in more than one delivery. Pick one for this visit:</p>
+    {% if delivery_choices %}
+      <ul class="delivery-choices">
+        {% for choice in delivery_choices %}
+          <li><a href="{{ course_family.get_absolute_url }}{{ choice.identifier|default:'' }}?cohort={{ choice.identifier }}">{{ choice.identifier }}</a></li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% elif delivery_choices %}
+    <p class="delivery-note">Choose a delivery to see its assignments:</p>
+    <ul class="delivery-choices">
+      {% for choice in delivery_choices %}
+        <li><a href="?cohort={{ choice.identifier }}">{{ choice.identifier }}</a></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="delivery-note">No deliveries are open right now — the current material is free to read.</p>
+  {% endif %}
+</section>

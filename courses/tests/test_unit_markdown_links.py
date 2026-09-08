@@ -91,7 +91,7 @@ class UnitMarkdownLinkTests(TestCase):
 
     def unit_url(self, unit):
         return reverse(
-            "unit",
+            "cohort_unit",
             kwargs={
                 "course_slug": self.course.slug,
                 "cohort_identifier": self.cohort.identifier,
@@ -133,7 +133,7 @@ class UnitMarkdownLinkTests(TestCase):
         self.assertContains(
             response,
             reverse(
-                "module",
+                "cohort_module",
                 kwargs={
                     "course_slug": self.course.slug,
                     "cohort_identifier": self.cohort.identifier,
@@ -151,10 +151,10 @@ class UnitMarkdownLinkTests(TestCase):
 
     def homework_url(self, homework):
         return reverse(
-            "homework",
+            "cohort_homework",
             kwargs={
                 "course_slug": self.course.slug,
-                "cohort_year": self.cohort.identifier,
+                "cohort_identifier": self.cohort.identifier,
                 "homework_slug": homework.slug,
             },
         )

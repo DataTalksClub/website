@@ -360,7 +360,7 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
                 "course",
                 kwargs={
                     "course_slug": cohort.course.slug,
-                    "cohort_year": cohort.year,
+                    "cohort_identifier": cohort.identifier,
                 },
             )
         )
@@ -374,10 +374,10 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
 
         homework_page = client.get(
             reverse(
-                "homework",
+                "cohort_homework",
                 kwargs={
                     "course_slug": cohort.course.slug,
-                    "cohort_year": cohort.year,
+                    "cohort_identifier": cohort.identifier,
                     "homework_slug": history["homework"].slug,
                 },
             )

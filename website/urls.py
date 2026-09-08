@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
-from django.urls import include, path
+from django.urls import include, path, re_path
 
 from accounts import api as account_api
 from accounts.views.continuity import explicit_reauthentication
@@ -9,6 +9,7 @@ from content import public_views, review_views
 from core import views as core_views
 from courses import urls as course_urls
 from courses.views import course_aliases, course_list
+from courses.views.shared_course_assets import shared_course_asset
 from studio_courses import urls as studio_course_urls
 
 #: The media kit is published from its own repository, DataTalksClub/mediakit,
@@ -58,6 +59,16 @@ urlpatterns = [
         name="media-kit-slash-redirect",
     ),
     path("", include("content.public_urls")),
+    # Managed shared-curriculum lesson assets (schema-2 imports).  The path is
+    # content-addressed, so the row lookup plus the managed store are the only
+    # authorities; see courses/views/shared_course_assets.py.
+    re_path(
+        r"^course-assets/lessons/"
+        r"(?P<lesson_id>[0-9a-f-]{36})/(?P<checksum>[0-9a-f]{64})/"
+        r"(?P<filename>[A-Za-z0-9][A-Za-z0-9._-]*)$",
+        shared_course_asset,
+        name="shared-course-asset",
+    ),
     path("unified/", core_views.home, name="unified-home"),
     path("docs/", review_views.docs_home, name="docs-home"),
     path("docs", public_views.permanent_public_redirect, {"target": "/docs/"}),

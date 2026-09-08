@@ -213,8 +213,8 @@
 {% block page_header %}
         {% url 'course_list' as course_list_url %}
         {% url 'course_family' enrollment.course.course.slug as course_family_url %}
-        {% url 'course' enrollment.course.course.slug enrollment.course.identifier as cohort_url %}
-        {% url 'leaderboard' enrollment.course.course.slug enrollment.course.identifier as leaderboard_url %}
+        {% url 'cohort' enrollment.course.course.slug enrollment.course.identifier as cohort_url %}
+        {% url 'cohort_leaderboard' enrollment.course.course.slug enrollment.course.identifier as leaderboard_url %}
         {% breadcrumbs "Courses" course_list_url enrollment.course.course.title course_family_url enrollment.course.identifier cohort_url "Leaderboard" leaderboard_url current=enrollment.display_name %}
         <div class="record-hero-inner">
           <p class="mono-label mono-label-indigo">{{ enrollment.course.title }}</p>
@@ -250,15 +250,15 @@
               {% include "core/_button.html" with href=admin_enrollment_url label="Admin" variant="secondary" compact=True title="Admin: Edit Enrollment" %}
             {% endif %}
             {% if show_public_profile_settings_link %}
-              {% url 'enrollment' enrollment.course.course.slug enrollment.course.identifier as public_profile_url %}
+              {% url 'cohort_enrollment' enrollment.course.course.slug enrollment.course.identifier as public_profile_url %}
               {% include "core/_button.html" with href=public_profile_url label="Show public profile" variant="secondary" compact=True %}
             {% endif %}
-            {% url 'leaderboard' enrollment.course.course.slug enrollment.course.identifier as leaderboard_url %}
+            {% url 'cohort_leaderboard' enrollment.course.course.slug enrollment.course.identifier as leaderboard_url %}
             {% include "core/_button.html" with href=leaderboard_url label="Back to Leaderboard" variant="secondary" compact=True %}
             <button
               class="leaderboard-flag-button cta cta-compact cta-secondary interactive-lift"
               type="button"
-              data-flag-url="{% url 'leaderboard_complaint' course_slug=enrollment.course.course.slug cohort_year=enrollment.course.identifier enrollment_id=enrollment.id %}"
+              data-flag-url="{% url 'cohort_leaderboard_complaint' course_slug=enrollment.course.course.slug cohort_identifier=enrollment.course.identifier enrollment_id=enrollment.id %}"
               data-flag-name="{{ enrollment.display_name }}"
             >Flag this record</button>
           </div>

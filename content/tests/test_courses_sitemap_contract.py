@@ -70,6 +70,81 @@ class CoursesSitemapContractTests(TestCase):
         self.assertNotIn(f"{PRODUCTION_ORIGIN}/courses/{HIDDEN_SLUG}", locations)
         self._assert_index_and_sibling_remain_valid()
 
+    def test_shared_curriculum_paths_are_published_without_private_or_query_urls(self) -> None:
+        from django.utils import timezone
+
+        from courses.models import (
+            Cohort,
+            Course,
+            SharedCurriculum,
+            SharedLesson,
+            SharedModule,
+        )
+
+        family = Course.objects.create(slug="sm-zoomcamp", title="SM Zoomcamp")
+        cohort = Cohort.objects.create(
+            course=family,
+            slug="sm-zoomcamp-2026",
+            title="SM Zoomcamp 2026",
+            description="visible cohort",
+            visible=True,
+        )
+        self.assertIsNotNone(cohort.pk)
+        shared = SharedCurriculum.objects.create(
+            course=family,
+            parser_version="course-repository-v2",
+            source_content_id="12345678-1234-4123-8123-123456789012",
+            source_path="course.yaml",
+            source_commit_sha="a" * 40,
+            source_checksum="b" * 64,
+        )
+        module = SharedModule.objects.create(
+            curriculum=shared,
+            position=0,
+            slug="01-agentic-rag",
+            title="Agentic RAG",
+            source_content_id="22345678-1234-4123-8123-123456789012",
+            source_path="01-agentic-rag/module.yaml",
+            source_commit_sha="a" * 40,
+            source_checksum="b" * 64,
+        )
+        SharedLesson.objects.create(
+            module=module,
+            position=0,
+            slug="01-lesson",
+            title="Introduction",
+            source_content_id="33345678-1234-4123-8123-123456789012",
+            source_path="01-agentic-rag/01-lesson.md",
+            source_commit_sha="a" * 40,
+            source_checksum="b" * 64,
+        )
+        SharedLesson.objects.create(
+            module=module,
+            position=1,
+            slug="02-retired",
+            title="Retired Lesson",
+            published=False,
+            retired_at=timezone.now(),
+            source_content_id="34456789-1234-4123-8123-123456789012",
+            source_path="01-agentic-rag/02-retired.md",
+            source_commit_sha="a" * 40,
+            source_checksum="b" * 64,
+        )
+
+        locations = self._courses_sitemap_locations()
+
+        self.assertIn(f"{PRODUCTION_ORIGIN}/courses/sm-zoomcamp", locations)
+        self.assertIn(f"{PRODUCTION_ORIGIN}/courses/sm-zoomcamp/01-agentic-rag", locations)
+        self.assertIn(
+            f"{PRODUCTION_ORIGIN}/courses/sm-zoomcamp/01-agentic-rag/01-lesson", locations
+        )
+        # Retired lessons, cohort landings, and query-context forms stay out.
+        self.assertNotIn(
+            f"{PRODUCTION_ORIGIN}/courses/sm-zoomcamp/01-agentic-rag/02-retired", locations
+        )
+        self.assertNotIn(f"{PRODUCTION_ORIGIN}/courses/sm-zoomcamp/cohorts/2026", locations)
+        self.assertFalse(any("?" in location or "cohort=" in location for location in locations))
+
     def _courses_sitemap_locations(self) -> list[str]:
         response = self.client.get("/sitemaps/courses.xml")
         self.assertEqual(response.status_code, 200)

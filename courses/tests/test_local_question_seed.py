@@ -190,7 +190,7 @@ class LocalQuestionSeedTests(TestCase):
 
         response = self.client.get(
             reverse(
-                "homework",
+                "cohort_homework",
                 kwargs={
                     "course_slug": self.cohort.slug,
                     "homework_slug": self.homework.slug,

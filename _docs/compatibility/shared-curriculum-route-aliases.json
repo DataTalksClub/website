@@ -1,0 +1,229 @@
+{
+  "schema_version": 1,
+  "title": "Shared current curriculum route map",
+  "decided": "2026-09-07",
+  "owner": "website PM (issue #320 / W0)",
+  "purpose": "Freeze the canonical shared-curriculum route table and every legacy alias before any route code moves. Spec authority: _docs/specs/02-url-link-seo-compatibility.md and open-decisions.md #5.",
+  "canonical_routes": [
+    {
+      "pattern": "/courses/<family>",
+      "route_name": "course_family",
+      "kind": "canonical",
+      "notes": "Course family landing page. Self-canonical, public-cache eligible when anonymous and context-free."
+    },
+    {
+      "pattern": "/courses/<family>/<module-slug>",
+      "route_name": "shared_module",
+      "kind": "canonical",
+      "notes": "Shared current module of the family's one current curriculum. Numbered slug; no cohort, year, or modules segment."
+    },
+    {
+      "pattern": "/courses/<family>/<module-slug>/<lesson-slug>",
+      "route_name": "shared_lesson",
+      "kind": "canonical",
+      "notes": "Shared current lesson. Canonical never carries a cohort query; ?cohort=<identifier> is a private response variant only."
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>",
+      "route_name": "cohort",
+      "kind": "canonical",
+      "notes": "Cohort landing page. identifier is a stable slug-like value; year is display metadata and never identity."
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/homework/<homework-slug>",
+      "route_name": "cohort_homework",
+      "kind": "canonical"
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/homework/<homework-slug>/stats",
+      "route_name": "cohort_homework_statistics",
+      "kind": "canonical"
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/homework/<homework-slug>/submissions",
+      "route_name": "cohort_homework_submissions",
+      "kind": "canonical"
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/leaderboard",
+      "route_name": "cohort_leaderboard",
+      "kind": "canonical"
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/leaderboard/<enrollment-id>/",
+      "route_name": "cohort_leaderboard_score_breakdown",
+      "kind": "canonical"
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/leaderboard/<enrollment-id>/report",
+      "route_name": "cohort_leaderboard_complaint",
+      "kind": "canonical"
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/enrollment",
+      "route_name": "cohort_enrollment",
+      "kind": "canonical"
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/enrollment/toggle",
+      "route_name": "cohort_update_enrollment_toggle",
+      "kind": "canonical",
+      "notes": "Mutation route: never redirected; keeps its exact path-cohort authorization."
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/dashboard",
+      "route_name": "cohort_dashboard",
+      "kind": "canonical"
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/projects",
+      "route_name": "cohort_projects",
+      "kind": "canonical"
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/project/<project-slug>",
+      "route_name": "cohort_project",
+      "kind": "canonical"
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/project/<project-slug>/list",
+      "route_name": "cohort_project_list",
+      "kind": "canonical"
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/project/<project-slug>/eval",
+      "route_name": "cohort_projects_eval",
+      "kind": "canonical"
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/project/<project-slug>/results",
+      "route_name": "cohort_project_results",
+      "kind": "canonical"
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/project/<project-slug>/stats",
+      "route_name": "cohort_project_statistics",
+      "kind": "canonical"
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/project/<project-slug>/submissions",
+      "route_name": "cohort_project_submissions",
+      "kind": "canonical"
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/project/<project-slug>/eval/<review-id>",
+      "route_name": "cohort_projects_eval_submit",
+      "kind": "canonical",
+      "notes": "Mutation route: compatibility adapter, never redirected."
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/project/<project-slug>/eval/add/<submission-id>",
+      "route_name": "cohort_projects_eval_add",
+      "kind": "canonical",
+      "notes": "Mutation route: compatibility adapter, never redirected."
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/project/<project-slug>/eval/delete/<review-id>",
+      "route_name": "cohort_projects_eval_delete",
+      "kind": "canonical",
+      "notes": "Mutation route: compatibility adapter, never redirected."
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/calendar.ics",
+      "route_name": "cohort_calendar",
+      "kind": "canonical"
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/modules/<module-slug>",
+      "route_name": "cohort_module",
+      "kind": "redirect-only",
+      "notes": "Retained module/lesson shape resolves against the cohort's own module-format rows for cohorts that still use them; for shared-format cohorts it is a one-hop redirect to the cohort-free shared module path. Never a canonical."
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/modules/<module-slug>/<lesson-slug>",
+      "route_name": "cohort_unit",
+      "kind": "redirect-only",
+      "notes": "Same policy as the module shape, one level deeper, including the /read toggle child."
+    },
+    {
+      "pattern": "/courses/<family>/cohorts/<identifier>/modules/<module-slug>/<lesson-slug>/read",
+      "route_name": "cohort_unit_read_state",
+      "kind": "canonical",
+      "notes": "Mutation route (POST, authenticated): exact cohort authorization, never redirected."
+    }
+  ],
+  "legacy_aliases": [
+    {
+      "old_pattern": "/courses/<family>/<identifier>",
+      "target": "/courses/<family>/cohorts/<identifier>",
+      "route_name_prefix": "legacy_",
+      "owner": "website compatibility engineer (W6)",
+      "reason": "Old two-segment cohort page shape generated before the cohorts/ namespace existed; bookmarks, sent links, and indexed URLs still use it.",
+      "status": "planned",
+      "methods": "GET,HEAD",
+      "query": "preserve raw query byte-for-byte",
+      "notes": "One hop, permanent. Legacy edition slugs (for example /courses/llm-zoomcamp-2026) resolve through the reviewed family mapping in courses/course_family_catalog.py, never year stripping. Never a wildcard: one explicit pattern per old shape, unknown identifiers are real 404s."
+    },
+    {
+      "old_pattern": "/courses/<family>/<identifier>/calendar.ics",
+      "target": "/courses/<family>/cohorts/<identifier>/calendar.ics",
+      "route_name_prefix": "legacy_",
+      "owner": "website compatibility engineer (W6)",
+      "reason": "Old operation child of the two-segment cohort shape; calendar clients follow redirects but ICS UIDs are unchanged.",
+      "status": "planned",
+      "methods": "GET,HEAD",
+      "query": "preserve raw query byte-for-byte"
+    },
+    {
+      "old_pattern": "/courses/<family>/<identifier>/modules/<module-slug>",
+      "target": "/courses/<family>/<module-slug>",
+      "route_name_prefix": "legacy_",
+      "owner": "website compatibility engineer (W6)",
+      "reason": "Old cohort-scoped lesson path; the current shared lesson is canonical at the cohort-free path once the cohort is shared-format.",
+      "status": "planned",
+      "methods": "GET,HEAD",
+      "query": "preserve raw query byte-for-byte",
+      "notes": "Redirect target is generated from the reviewed module mapping only. A cohort that keeps its own modules-format rows is not redirected: the alias policy applies to shared-format cohorts."
+    },
+    {
+      "old_pattern": "/courses/<family>/<identifier>/modules/<module-slug>/<lesson-slug>",
+      "target": "/courses/<family>/<module-slug>/<lesson-slug>",
+      "route_name_prefix": "legacy_",
+      "owner": "website compatibility engineer (W6)",
+      "reason": "Old cohort-scoped lesson path, lesson level.",
+      "status": "planned",
+      "methods": "GET,HEAD",
+      "query": "preserve raw query byte-for-byte",
+      "notes": "A github_archive cohort never redirects its old lesson paths to a newer lesson; archived material stays at its exact GitHub archive link."
+    },
+    {
+      "old_pattern": "/courses/<legacy-edition-slug>",
+      "target": "reviewed family mapping target",
+      "route_name_prefix": "legacy_",
+      "owner": "website compatibility engineer (W6)",
+      "reason": "Legacy edition slugs such as /courses/llm-zoomcamp-2026/... predate the family/identifier split.",
+      "status": "planned",
+      "methods": "GET,HEAD",
+      "query": "preserve raw query byte-for-byte",
+      "notes": "Each edition slug is an explicit entry resolved through courses/course_family_catalog.py; unmapped slugs are real 404s. See also _docs/compatibility/development-legacy-identifiers.md."
+    },
+    {
+      "old_pattern": "courses.datatalks.club HTML paths",
+      "target": "per _docs/compatibility/course-route-contracts.json (115 routes, classification preserve)",
+      "route_name_prefix": null,
+      "owner": "website compatibility engineer (host migration contract)",
+      "reason": "Old course host remains on compatibility views until every consumer migrates, then moves to the Terraform redirect Lambda with an explicit path map.",
+      "status": "governed-elsewhere",
+      "methods": "GET,HEAD for HTML; API routes are compatibility endpoints, never redirected cross-host",
+      "query": "preserve raw query byte-for-byte"
+    }
+  ],
+  "invariants": {
+    "no_wildcard_redirects": "Every alias is an explicit pattern. A catch-all (*, .* or equivalent) redirect entry is forbidden and the contract test fails on one.",
+    "archive_urls_require_full_commit_sha": "A GitHub archive URL is derived only from a validated HTTPS repository URL, a full lowercase 40-character commit SHA, and a cohort-relative notice path: blob/<sha>/<path> for a Markdown notice, tree/<sha>/<path> for a directory. A branch name (main, master) or a self-referential future SHA is forbidden as archive identity.",
+    "canonical_shared_urls_forbid_cohort_query": "Canonical shared module/lesson URLs never contain a cohort segment or a ?cohort= query. Context is a private response variant with private, no-store, never a canonical or sitemap location.",
+    "mutations_never_redirected": "Enrollment toggle, submissions, eval mutations, and the read-state toggle keep direct compatibility adapters with the same path-cohort authorization; no POST is replaced by a redirect or a 405 as a side effect of moving HTML routes.",
+    "unknown_identifiers_are_404": "Malformed or unknown cohort identifiers and unmapped legacy slugs are real 404s with no nearest-match fallback.",
+    "kwarg_compatibility_window": "CLOSED 2026-09-07 (W6): the cohort_year kwarg adapter and cohort_url_kwargs() are removed. Every route converter and view parameter is cohort_identifier, and every generated URL (templates, services, deadlines, calendar, wrapped) reverses the canonical cohorts/<identifier> namespace. Legacy two-segment route names (course, homework, leaderboard, ...) remain registered for inbound old paths only; no generator uses them."
+  }
+}

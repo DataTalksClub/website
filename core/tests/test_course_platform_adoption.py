@@ -18,6 +18,14 @@ from scripts.verify_course_platform_adoption import (
     verify_cadmin_reference_allowlist,
 )
 
+
+def callback_name_of(match) -> str:
+    return f"{match.func.__module__}.{match.func.__name__}"
+
+
+def callback_name_of(match) -> str:
+    return f"{match.func.__module__}.{match.func.__name__}"
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ADOPTION_DIR = REPO_ROOT / "_docs/adoption/course-platform"
 MANIFEST_PATH = ADOPTION_DIR / "copied-files.tsv"
@@ -29,6 +37,10 @@ EXPECTED_COMMANDS = {
     # the block a reader actually meets can be built and reviewed locally.
     "seed_local_social_providers": "accounts",
     "bootstrap_development_owner": "accounts",
+    # Shared-current-curriculum backfill operator command (issue #320).
+    "migrate_shared_curriculum": "courses",
+    # Shared-curriculum rollout operator inventory (issue #320).
+    "shared_curriculum_inventory": "courses",
     "datamailer_callback_status": "data",
     "datamailer_campaign": "courses",
     "datamailer_outbox_status": "data",
@@ -55,6 +67,16 @@ EXPECTED_APP_MODULES = {
     "data": "data",
 }
 EXPECTED_UNIFIED_ROUTE_CALLBACK_OVERRIDES: dict[tuple[str, str], str] = {}
+# The generic two-segment course route intentionally shadows the shared
+# module route and dispatches to it (see
+# _docs/compatibility/shared-curriculum-route-aliases.json), so the walk
+# observes the dispatcher rather than the shared view itself.
+DISPATCHED_SHARED_ROUTE_NAMES = {"shared_module"}
+# The generic two-segment course route intentionally shadows the shared
+# module route and dispatches to it (see
+# _docs/compatibility/shared-curriculum-route-aliases.json), so the walk
+# observes the dispatcher rather than the shared view itself.
+DISPATCHED_SHARED_ROUTE_NAMES = {"shared_module"}
 PROTECTED_COURSE_TEMPLATE_PREFIX = "courses/templates/"
 
 
@@ -128,7 +150,7 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                 if route.surface == "Public courses" and route.name == "course":
                     route_kwargs = {"course_slug": "example-course"}
                     if "<slug:cohort_" in route.route:
-                        route_kwargs["cohort_year"] = "2026"
+                        route_kwargs["cohort_identifier"] = "2026"
                         example_path = reverse("course", kwargs=route_kwargs)
                     else:
                         example_path = reverse("courses:course", kwargs=route_kwargs)
@@ -139,8 +161,13 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                     # only for this resolver smoke test.
                     example_path = "/courses" + example_path
                 match = resolve(example_path)
+                if route.name in DISPATCHED_SHARED_ROUTE_NAMES:
+                    self.assertEqual(match.url_name, "course")
+                    expected_callback = "courses.views.course.course_view"
+                    self.assertEqual(callback_name_of(match), expected_callback)
+                    continue
                 self.assertEqual(match.url_name, route.name or None)
-                callback_name = f"{match.func.__module__}.{match.func.__name__}"
+                callback_name = callback_name_of(match)
                 expected_callback = EXPECTED_UNIFIED_ROUTE_CALLBACK_OVERRIDES.get(
                     (route.surface, route.name), route.callback
                 )

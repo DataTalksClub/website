@@ -133,7 +133,7 @@ class HomeworkOptionalFieldsBase(TestCase):
 
     def homework_url(self):
         return reverse(
-            "homework",
+            "cohort_homework",
             kwargs={
                 "course_slug": self.course.slug,
                 "homework_slug": self.homework.slug,

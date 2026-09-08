@@ -100,7 +100,7 @@ class CoursePlatformRenderedVendorAssetTests(TestCase):
         responses = (
             self.client.get(
                 reverse(
-                    "project",
+                    "cohort_project",
                     kwargs={
                         "course_slug": self.course.slug,
                         "project_slug": self.project.slug,

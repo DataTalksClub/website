@@ -3,17 +3,17 @@ from django.http import HttpRequest
 from django.shortcuts import redirect
 
 from accounts.navigation import can_access_course_studio
-from courses.views.url_utils import cohort_url_kwargs, get_cohort_or_404
+from courses.views.url_utils import canonical_cohort_url_kwargs, get_cohort_or_404
 
 
 def homework_submissions(
     request: HttpRequest,
     course_slug: str,
     homework_slug: str,
-    cohort_year: str | int | None = None,
+    cohort_identifier: str | int | None = None,
 ):
     user = request.user
-    course = get_cohort_or_404(course_slug, cohort_year)
+    course = get_cohort_or_404(course_slug, cohort_identifier)
 
     if not can_access_course_studio(user):
         messages.error(
@@ -22,8 +22,8 @@ def homework_submissions(
             extra_tags="homework",
         )
         response = redirect(
-            "homework",
-            **cohort_url_kwargs(course),
+            "cohort_homework",
+            **canonical_cohort_url_kwargs(course),
             homework_slug=homework_slug,
         )
         return response

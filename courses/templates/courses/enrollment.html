@@ -203,7 +203,7 @@
         {% endcomment %}
         {% url 'course_list' as course_list_url %}
         {% url 'course_family' course_family.slug as course_family_url %}
-        {% url 'course' course_family.slug course.identifier as cohort_url %}
+        {% url 'cohort' course_family.slug course.identifier as cohort_url %}
         {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url current="Enrollment" %}
         <div>
           <p class="mono-label mono-label-indigo">{{ course.title }}</p>
@@ -213,7 +213,7 @@
             Certificate name is managed in account settings.
           </p>
           <p class="enrollment-back">
-            <a class="cta cta-compact cta-secondary interactive-lift" href="{% url 'course' course.course.slug course.identifier %}">
+            <a class="cta cta-compact cta-secondary interactive-lift" href="{% url 'cohort' course.course.slug course.identifier %}">
               Back to course
             </a>
           </p>
@@ -267,7 +267,7 @@
             <div class="toggle-list">
               <label
                 class="toggle-row js-immediate-toggle-row"
-                data-toggle-url="{% url 'update_enrollment_toggle' course.course.slug course.identifier %}"
+                data-toggle-url="{% url 'cohort_update_enrollment_toggle' course.course.slug course.identifier %}"
               >
                 {{ form.display_on_leaderboard }}
                 <span class="toggle-copy">
@@ -281,7 +281,7 @@
               </label>
               <label
                 class="toggle-row js-immediate-toggle-row"
-                data-toggle-url="{% url 'update_enrollment_toggle' course.course.slug course.identifier %}"
+                data-toggle-url="{% url 'cohort_update_enrollment_toggle' course.course.slug course.identifier %}"
               >
                 {{ form.display_public_profile }}
                 <span class="toggle-copy">

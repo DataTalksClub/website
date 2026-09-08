@@ -391,7 +391,7 @@
                       the active state, so the card repeats no "active" pill.
                     {% endcomment %}
                     {% url 'course_family' card.family.slug as family_url %}
-                    {% url 'course' card.family.slug card.cohort.identifier as edition_url %}
+                    {% url 'cohort' card.family.slug card.cohort.identifier as edition_url %}
                     <article class="card active-card interactive-card interactive-lift"
                              role="link"
                              tabindex="0"
@@ -450,7 +450,7 @@
             <div class="card-grid card-grid-2">
               {% for card in open_registration_course_cards %}
                   {% url 'course_family' card.family.slug as family_url %}
-                  {% url 'course' card.family.slug card.cohort.identifier as edition_url %}
+                  {% url 'cohort' card.family.slug card.cohort.identifier as edition_url %}
                   <article class="card course-card interactive-card interactive-lift"
                            role="link"
                            tabindex="0"
@@ -514,7 +514,7 @@
                         balance against.
                       {% endcomment %}
                       {% url 'course_family' card.family.slug as family_url %}
-                      {% url 'course' card.family.slug card.cohort.identifier as edition_url %}
+                      {% url 'cohort' card.family.slug card.cohort.identifier as edition_url %}
                       <div class="list-row" style="--row-cols: minmax(0, 1fr) auto auto">
                         <div>
                           <h4 class="course-row-title">

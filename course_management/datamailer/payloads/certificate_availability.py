@@ -12,7 +12,7 @@ def _certificate_availability_urls(enrollment):
     certificate_path = enrollment.certificate_url.strip()
     certificate_url = public_url(certificate_path)
     course_kwargs = cohort_route_kwargs(course)
-    course_url = public_route_url("course", course_kwargs)
+    course_url = public_route_url("cohort", course_kwargs)
     profile_url = public_route_url("account_settings")
     return {
         "course_url": course_url,

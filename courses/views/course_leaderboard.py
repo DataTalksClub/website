@@ -12,15 +12,15 @@ from courses.views.course_leaderboard_breakdown import (
     leaderboard_score_breakdown_context,
 )
 from courses.views.course_leaderboard_data import leaderboard_context
-from courses.views.url_utils import cohort_url_kwargs, get_cohort_or_404
+from courses.views.url_utils import canonical_cohort_url_kwargs, get_cohort_or_404
 
 from .forms import LeaderboardComplaintForm
 
 logger = logging.getLogger(__name__)
 
 
-def leaderboard_view(request, course_slug: str, cohort_year: str | int | None = None):
-    course = get_cohort_or_404(course_slug, cohort_year)
+def leaderboard_view(request, course_slug: str, cohort_identifier: str | int | None = None):
+    course = get_cohort_or_404(course_slug, cohort_identifier)
     page_number = request.GET.get("page")
     context = leaderboard_context(course, request.user, page_number)
 
@@ -32,12 +32,12 @@ def leaderboard_score_breakdown_view(
     request,
     course_slug: str,
     enrollment_id: int,
-    cohort_year: str | int | None = None,
+    cohort_identifier: str | int | None = None,
 ):
     enrollment = leaderboard_enrollment(
         course_slug,
         enrollment_id,
-        cohort_year,
+        cohort_identifier,
     )
     context = leaderboard_score_breakdown_context(enrollment, request.user)
 
@@ -68,8 +68,8 @@ def _leaderboard_complaint_post_response(
         "Thanks. The course team will review this leaderboard record.",
     )
     response = redirect(
-        "leaderboard_score_breakdown",
-        **cohort_url_kwargs(enrollment.course),
+        "cohort_leaderboard_score_breakdown",
+        **canonical_cohort_url_kwargs(enrollment.course),
         enrollment_id=enrollment.id,
     )
     return response
@@ -88,9 +88,9 @@ def leaderboard_complaint_context(enrollment, form):
 def leaderboard_enrollment(
     course_slug: str,
     enrollment_id: int,
-    cohort_year: str | int | None = None,
+    cohort_identifier: str | int | None = None,
 ):
-    course = get_cohort_or_404(course_slug, cohort_year)
+    course = get_cohort_or_404(course_slug, cohort_identifier)
     enrollments = Enrollment.objects.select_related("course", "student")
     enrollment = get_object_or_404(
         enrollments,
@@ -105,12 +105,12 @@ def leaderboard_complaint_view(
     request,
     course_slug: str,
     enrollment_id: int,
-    cohort_year: str | int | None = None,
+    cohort_identifier: str | int | None = None,
 ):
     enrollment = leaderboard_enrollment(
         course_slug,
         enrollment_id,
-        cohort_year,
+        cohort_identifier,
     )
 
     if request.method == "POST":

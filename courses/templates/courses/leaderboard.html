@@ -235,7 +235,7 @@
 {% block page_header %}
         {% url 'course_list' as course_list_url %}
         {% url 'course_family' course_family.slug as course_family_url %}
-        {% url 'course' course_family.slug course.identifier as cohort_url %}
+        {% url 'cohort' course_family.slug course.identifier as cohort_url %}
         {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url current="Leaderboard" %}
         <div class="leaderboard-hero-inner">
           <p class="mono-label mono-label-indigo">{{ course.title }}</p>
@@ -247,12 +247,12 @@
             <aside class="panel panel-mint panel-outlined leaderboard-you" aria-labelledby="your-record-heading">
               <h2 id="your-record-heading">Your Record</h2>
               <p class="leaderboard-you-score">
-                <a class="band-link" href="{% url 'leaderboard_score_breakdown' course_slug=course.course.slug cohort_year=course.identifier enrollment_id=current_student_enrollment.id %}">Your total score: {{ current_student_enrollment.total_score }}</a>
+                <a class="band-link" href="{% url 'cohort_leaderboard_score_breakdown' course_slug=course.course.slug cohort_identifier=course.identifier enrollment_id=current_student_enrollment.id %}">Your total score: {{ current_student_enrollment.total_score }}</a>
                 <span class="status-pill">Position: {{ current_student_enrollment.position_on_leaderboard }}</span>
               </p>
               <p class="leaderboard-note">
                 Display name: {{ current_student_enrollment.display_name }}
-                <a class="band-link" href="{% url 'enrollment' course.course.slug course.identifier %}">(change)</a>
+                <a class="band-link" href="{% url 'cohort_enrollment' course.course.slug course.identifier %}">(change)</a>
               </p>
               {% if not current_student_enrollment.display_on_leaderboard %}
                 <p class="leaderboard-note">Your record is hidden from the public leaderboard.</p>
@@ -317,7 +317,7 @@
                     {{ enrollment.position_on_leaderboard }}
                   </p>
                   <p class="leaderboard-name">
-                    <a href="{% url 'leaderboard_score_breakdown' course_slug=course.course.slug cohort_year=course.identifier enrollment_id=enrollment.id %}">{{ enrollment.display_name }}</a>
+                    <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=course.course.slug cohort_identifier=course.identifier enrollment_id=enrollment.id %}">{{ enrollment.display_name }}</a>
                     {% if enrollment.id == current_student_enrollment_id %}
                       <span class="status-pill status-pill-open">you</span>
                     {% endif %}

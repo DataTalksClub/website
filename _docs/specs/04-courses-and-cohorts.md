@@ -104,18 +104,66 @@ Lifecycle: `draft -> registration_open -> active -> grading -> completed -> arch
 ### Curriculum ownership
 
 Homework, questions, projects, and the curriculum presentation remain Cohort-owned. A Cohort
-explicitly selects one of two presentations through `curriculum_format`:
+explicitly selects one of three presentations through `curriculum_format`:
 
 - `legacy` preserves the established Homework table followed by the separate Projects table;
 - `modules` adds ordered Cohort-owned Modules and title/slug/link Units. Each Module ends in one
-  terminal Homework, while Projects are top-level ordered flow entries placed between Modules.
+  terminal Homework, while Projects are top-level ordered flow entries placed between Modules;
+- `shared` references the Course's one current shared curriculum graph (below). A shared-format
+  Cohort stores placement rows only.
 
 The migration and application default is `legacy`; existing Cohorts are not inferred or converted
 from their content. A reviewed explicit allow-list may opt selected existing Cohorts into `modules`,
-and new Cohorts choose their format at creation. Both formats may coexist under one reusable Course.
+and new Cohorts choose their format at creation. All three formats may coexist under one reusable
+Course.
 Legacy Cohorts do not publish module rows, and module pages render one deterministic flow with no
 second Projects section. Existing Homework, Project, submission, review, scoring, and result
 destinations remain unchanged.
+
+### Shared current curriculum (added 2026-09-07)
+
+Each Course owns exactly one current curriculum graph, imported from a schema-2 course repository:
+
+- `SharedCurriculum` is the one current graph per Course. It is not a version selector; there is
+  no public release/version selector and no historical lesson viewer anywhere in this contract. A
+  replaced import may remain as inactive database rows for rollback/audit, but no route selects it.
+- `SharedModule`/`SharedLesson` store the numbered slug, title, position, source Markdown,
+  sanitized HTML, video URL, declared code sources, publication/retirement state, and complete
+  source provenance. Stable source content IDs are the identity; positions and titles may change
+  only through an explicit import/alias check. A module `README.md` may be imported into a separate
+  overview field; it is never a lesson and never a fallback for a missing lesson.
+- `CohortSharedModule` is a Cohort's delivery placement of one shared module: position plus an
+  optional terminal-homework binding by stable IDs. A placement never references a module or
+  homework from another course or cohort, and a self-paced placement has no homework. Shared
+  lessons reach a cohort's assignment only through this explicit mapping — never by matching
+  numbers, titles, or slugs.
+- `SharedLessonReadState` keeps one read marker per user and shared lesson; the migration copies
+  the earliest read timestamp per stable source content ID from old `UnitReadState` rows. Old
+  `Unit`/`UnitReadState` rows remain during the rollback/audit window and are not used by shared
+  public reads after cutover.
+
+Cohort discriminator fields: `delivery_mode` is exactly `live` or `self_paced` (existing rows
+default `live`); `curriculum_source` is exactly `current` or `github_archive` (existing rows
+default `current` while their legacy/module format remains supported). `delivery_mode` is never
+overloaded with an archive value.
+
+`curriculum_source=github_archive` declares a materially different older curriculum (for example
+LLM Zoomcamp 2025) that stays complete in GitHub under `cohorts/<identifier>/` with its code,
+assets, and links. The website stores the archive notice path plus the derived immutable GitHub
+URL (validated HTTPS repository + full incoming commit SHA + notice path, `blob/<sha>/<path>` for
+a Markdown notice, `tree/<sha>/<path>` for a directory) and may render an archive notice and that
+exact link. It never parses or renders historical lesson bodies or assets as a website revision,
+never imports archive descendants into current rows, and a closed/archive cohort never redirects
+to a newer assignment.
+
+Self-paced phase one (see `open-decisions.md` §3): reading, shared read progress, and clearly
+ungraded practice only. No deadline, leaderboard, peer review, score, certificate, or annual
+schedule is invented for a self-paced delivery, and no shared lesson is copied per delivery.
+
+Current relative images and code files of shared lessons are imported into managed storage with
+database rows and stable public paths; a shared lesson page resolves assets through the database,
+never a mutable GitHub branch URL and never a request-time GitHub fetch. Absolute external HTTPS
+references stay external.
 
 Review criterion definitions are independent records. Ordered Project-to-criterion assignments are
 the source of truth for a Project's rubric; one definition may be assigned to multiple Projects in
@@ -126,7 +174,8 @@ for audit. No consumer may reconstruct a rubric by taking every criterion in a C
 A “duplicate cohort” service copies the selected format, Module/Unit/flow structure, Projects,
 criterion definitions, and Project-to-criterion assignments while preserving sharing inside the
 duplicate. Learners and lifecycle history are not copied, and copied curriculum has no links back
-to the source Cohort. Reusable/versioned curriculum shared across Cohorts remains out of scope.
+to the source Cohort. Versioned/historical curriculum copies remain out of scope: the one current
+shared graph (above) is referenced, never duplicated, by a duplicate cohort.
 
 ### Enrollment and certificates
 

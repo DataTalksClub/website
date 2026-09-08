@@ -65,7 +65,7 @@ class ModuleRailCollapseTests(TestCase):
 
     def unit_url(self):
         return reverse(
-            "unit",
+            "cohort_unit",
             kwargs={
                 "course_slug": self.course_family.slug,
                 "cohort_identifier": self.cohort.identifier,
@@ -76,7 +76,7 @@ class ModuleRailCollapseTests(TestCase):
 
     def module_url(self):
         return reverse(
-            "module",
+            "cohort_module",
             kwargs={
                 "course_slug": self.course_family.slug,
                 "cohort_identifier": self.cohort.identifier,

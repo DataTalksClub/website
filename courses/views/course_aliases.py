@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_safe
 
 from courses.models import Cohort, Course
-from courses.views.url_utils import cohort_url_kwargs
+from courses.views.url_utils import canonical_cohort_url_kwargs
 
 
 def _permanent_redirect(request: HttpRequest, target: str) -> HttpResponse:
@@ -35,7 +35,7 @@ def legacy_course_redirect(request: HttpRequest, course_slug: str) -> HttpRespon
 
     cohort = Cohort.objects.filter(slug=course_slug).first()
     if cohort is not None:
-        return _permanent_redirect(request, reverse("course", kwargs=cohort_url_kwargs(cohort)))
+        return _permanent_redirect(request, reverse("cohort", kwargs=canonical_cohort_url_kwargs(cohort)))
 
     if Course.objects.filter(slug=course_slug, visible=True).exists():
         return _permanent_redirect(

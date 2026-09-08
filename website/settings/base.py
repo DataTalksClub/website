@@ -251,6 +251,12 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# Managed shared-curriculum assets are written through the default storage by
+# the schema-2 importer.  Production points MEDIA_ROOT at a durable,
+# non-source location via the environment; the default keeps developer bytes
+# out of the source tree.
+MEDIA_ROOT = Path(os.getenv("MEDIA_ROOT") or (BASE_DIR / ".local-media"))
+MEDIA_URL = "/media/"
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},

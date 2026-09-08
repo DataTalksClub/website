@@ -236,7 +236,7 @@
         {% endcomment %}
         {% url 'course_list' as course_list_url %}
         {% url 'course_family' course_family.slug as course_family_url %}
-        {% url 'course' course_family.slug course.identifier as cohort_url %}
+        {% url 'cohort' course_family.slug course.identifier as cohort_url %}
         {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url current="Dashboard" %}
         <div>
           <p class="mono-label mono-label-indigo">{{ course.title }}</p>
@@ -246,7 +246,7 @@
           </p>
           {% if course.first_homework_scored %}
             <div class="dashboard-actions">
-              <a class="cta cta-compact cta-secondary interactive-lift" href="{% url 'leaderboard' course.course.slug course.identifier %}">
+              <a class="cta cta-compact cta-secondary interactive-lift" href="{% url 'cohort_leaderboard' course.course.slug course.identifier %}">
                 View Leaderboard
               </a>
             </div>
@@ -328,7 +328,7 @@
                 </div>
               </dl>
               <p class="dashboard-card-link">
-                <a class="band-link" href="{% url 'list_all_project_submissions' course.course.slug course.identifier %}">
+                <a class="band-link" href="{% url 'cohort_projects' course.course.slug course.identifier %}">
                   View All Project Submissions →
                 </a>
               </p>

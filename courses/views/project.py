@@ -18,7 +18,7 @@ from courses.views.project_submission_edit import (
     project_submission_from_post,
     project_submit_post,
 )
-from courses.views.url_utils import cohort_url_kwargs, get_cohort_or_404
+from courses.views.url_utils import canonical_cohort_url_kwargs, get_cohort_or_404
 logger = logging.getLogger(__name__)
 
 PROJECT_SUBMISSION_DELETED_MESSAGE = (
@@ -38,8 +38,8 @@ def project_login_required_response(
         extra_tags="homework",
     )
     response = redirect(
-        "project",
-        **cohort_url_kwargs(course),
+        "cohort_project",
+        **canonical_cohort_url_kwargs(course),
         project_slug=project.slug,
     )
     return response
@@ -89,8 +89,8 @@ def delete_project_submission_response(
         extra_tags="homework",
     )
     response = redirect(
-        "project",
-        **cohort_url_kwargs(course),
+        "cohort_project",
+        **canonical_cohort_url_kwargs(course),
         project_slug=project.slug,
     )
     return response
@@ -109,7 +109,7 @@ def save_project_submission_response(
             request=request,
             properties={
                 "course_slug": course.course.slug,
-                "cohort_year": course.year,
+                "cohort_identifier": course.identifier,
                 "project_slug": project.slug,
                 "project_id": project.id,
                 "error_count": len(error.messages),
@@ -128,8 +128,8 @@ def save_project_submission_response(
         extra_tags="homework",
     )
     response = redirect(
-        "project",
-        **cohort_url_kwargs(course),
+        "cohort_project",
+        **canonical_cohort_url_kwargs(course),
         project_slug=project.slug,
     )
     return response
@@ -161,8 +161,8 @@ def handle_project_post(request: HttpRequest, course: Cohort, project: Project):
     return response
 
 
-def project_view(request, course_slug, project_slug, cohort_year=None):
-    course = get_cohort_or_404(course_slug, cohort_year)
+def project_view(request, course_slug, project_slug, cohort_identifier=None):
+    course = get_cohort_or_404(course_slug, cohort_identifier)
     project = get_object_or_404(
         Project, course=course, slug=project_slug
     )

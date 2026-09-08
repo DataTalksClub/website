@@ -9,7 +9,7 @@ from courses.votes import (
     get_voted_submission_ids,
     update_project_vote,
 )
-from courses.views.url_utils import cohort_url_kwargs
+from courses.views.url_utils import canonical_cohort_url_kwargs
 
 
 def project_vote_response(request, course, project):
@@ -31,8 +31,8 @@ def project_vote_response(request, course, project):
         return response
 
     response = redirect(
-        "project_list",
-        **cohort_url_kwargs(course),
+        "cohort_project_list",
+        **canonical_cohort_url_kwargs(course),
         project_slug=project.slug,
     )
     return response

@@ -39,7 +39,7 @@ def _project_score_notification_urls(course, project):
     urls = score_notification_urls(
         course,
         project,
-        "project",
+        "cohort_project",
         "project_slug",
     )
     project_url = urls["assignment_url"]
@@ -47,8 +47,7 @@ def _project_score_notification_urls(course, project):
         **cohort_route_kwargs(course),
         "project_slug": project.slug,
     }
-    project_results_url = public_route_url(
-        "project_results",
+    project_results_url = public_route_url("cohort_project_results",
         project_results_kwargs,
     )
 

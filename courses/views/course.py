@@ -29,9 +29,44 @@ def course_registration_redirect_response(data: CoursePageData):
 def course_view(
     request: HttpRequest,
     course_slug: str,
-    cohort_year: str | int | None = None,
+    cohort_identifier: str | int | None = None,
 ) -> HttpResponse:
-    data = course_page_data(course_slug, request.user, cohort_year)
+    if cohort_identifier is not None:
+        # The two-segment shape dispatches for shared-curriculum families: a
+        # shared module slug serves the cohort-free shared page, and a cohort
+        # identifier of a moved family one-hop redirects to the canonical
+        # ``cohorts/<identifier>`` namespace.  Families still entirely on the
+        # legacy contract keep rendering the cohort page here.
+        from .shared_course import dispatch_two_segment_path
+
+        dispatched = dispatch_two_segment_path(request, course_slug, str(cohort_identifier))
+        if dispatched is not None:
+            return dispatched
+
+    return _render_cohort_page(request, course_slug, cohort_identifier)
+
+
+def cohort_page_view(
+    request: HttpRequest,
+    course_slug: str,
+    cohort_identifier: str,
+) -> HttpResponse:
+    """The canonical ``/courses/<family>/cohorts/<identifier>`` landing page.
+
+    The kwarg adapter keeps the existing cohort-page data pipeline untouched
+    while the canonical public path carries the semantic identifier name.
+    This entry never re-dispatches: the path is already canonical.
+    """
+
+    return _render_cohort_page(request, course_slug, cohort_identifier)
+
+
+def _render_cohort_page(
+    request: HttpRequest,
+    course_slug: str,
+    cohort_identifier: str | int | None,
+) -> HttpResponse:
+    data = course_page_data(course_slug, request.user, cohort_identifier)
     redirect_response = course_registration_redirect_response(data)
     if redirect_response is not None:
         return redirect_response

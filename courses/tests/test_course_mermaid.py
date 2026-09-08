@@ -114,7 +114,7 @@ class PublicCourseMermaidPageTests(TestCase):
     def test_unit_page_includes_mermaid_runtime_only_for_unit_surface(self):
         response = self.client.get(
             reverse(
-                "unit",
+                "cohort_unit",
                 kwargs={
                     "course_slug": "mermaid-course",
                     "cohort_identifier": "2026",

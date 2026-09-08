@@ -16,7 +16,7 @@ def module_url(module: Module) -> str:
 
     cohort = module.cohort
     return reverse(
-        "module",
+        "cohort_module",
         kwargs={
             "course_slug": cohort.course.slug,
             "cohort_identifier": cohort.identifier,

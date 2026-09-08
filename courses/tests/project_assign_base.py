@@ -16,7 +16,7 @@ from courses.models import (
     User,
 )
 from courses.project_assignment import assign_peer_reviews_for_project
-from courses.views.url_utils import cohort_url_kwargs
+from courses.views.url_utils import canonical_cohort_url_kwargs
 
 credentials = dict(
     username="test@test.com",
@@ -108,18 +108,18 @@ class ProjectActionsTestBase(TestCase):
 
     def project_list_url(self):
         return reverse(
-            "project_list",
+            "cohort_project_list",
             kwargs={
-                **cohort_url_kwargs(self.course),
+                **canonical_cohort_url_kwargs(self.course),
                 "project_slug": self.project.slug,
             },
         )
 
     def add_eval_url(self, submission_id):
         return reverse(
-            "projects_eval_add",
+            "cohort_projects_eval_add",
             kwargs={
-                **cohort_url_kwargs(self.course),
+                **canonical_cohort_url_kwargs(self.course),
                 "project_slug": self.project.slug,
                 "submission_id": submission_id,
             },
@@ -127,9 +127,9 @@ class ProjectActionsTestBase(TestCase):
 
     def delete_eval_url(self, peer_review_id):
         return reverse(
-            "projects_eval_delete",
+            "cohort_projects_eval_delete",
             kwargs={
-                **cohort_url_kwargs(self.course),
+                **canonical_cohort_url_kwargs(self.course),
                 "project_slug": self.project.slug,
                 "review_id": peer_review_id,
             },
@@ -137,9 +137,9 @@ class ProjectActionsTestBase(TestCase):
 
     def projects_eval_url(self):
         return reverse(
-            "projects_eval",
+            "cohort_projects_eval",
             kwargs={
-                **cohort_url_kwargs(self.course),
+                **canonical_cohort_url_kwargs(self.course),
                 "project_slug": self.project.slug,
             },
         )

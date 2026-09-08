@@ -30,10 +30,10 @@ class ProjectListLinkViewTests(ProjectListViewTestBase):
 
         self.assertEqual(response.status_code, 200)
         leaderboard_url = reverse(
-            "leaderboard_score_breakdown",
+            "cohort_leaderboard_score_breakdown",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
                 "enrollment_id": self.enrollment.id,
             },
         )
@@ -41,10 +41,10 @@ class ProjectListLinkViewTests(ProjectListViewTestBase):
         self.assertContains(response, self.submission.github_link)
         self.assertContains(response, 'aria-label="Open repository"')
         submissions_url = reverse(
-            "list_all_project_submissions",
+            "cohort_projects",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
             },
         )
         self.assertContains(response, submissions_url)

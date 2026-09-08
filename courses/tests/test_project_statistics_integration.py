@@ -14,7 +14,7 @@ from courses.models import (
     ProjectSubmission,
     User,
 )
-from courses.views.url_utils import cohort_url_kwargs
+from courses.views.url_utils import canonical_cohort_url_kwargs
 
 credentials = dict(
     username="test@test.com",
@@ -202,9 +202,9 @@ class ProjectStatisticsIntegrationTestCase(TestCase):
 
     def project_statistics_url(self):
         return reverse(
-            "project_statistics",
+            "cohort_project_statistics",
             kwargs={
-                **cohort_url_kwargs(self.course),
+                **canonical_cohort_url_kwargs(self.course),
                 "project_slug": self.project.slug,
             },
         )
@@ -229,16 +229,16 @@ class ProjectStatisticsIntegrationTestCase(TestCase):
 
     def assert_statistics_link_absent(self, project, view_name):
         stats_url = reverse(
-            "project_statistics",
+            "cohort_project_statistics",
             kwargs={
-                **cohort_url_kwargs(self.course),
+                **canonical_cohort_url_kwargs(self.course),
                 "project_slug": project.slug,
             },
         )
         page_url = reverse(
             view_name,
             kwargs={
-                **cohort_url_kwargs(self.course),
+                **canonical_cohort_url_kwargs(self.course),
                 "project_slug": project.slug,
             },
         )
@@ -259,9 +259,9 @@ class ProjectStatisticsIntegrationTestCase(TestCase):
         self.assert_statistics_view_content(response)
 
         project_url = reverse(
-            "project",
+            "cohort_project",
             kwargs={
-                **cohort_url_kwargs(self.course),
+                **canonical_cohort_url_kwargs(self.course),
                 "project_slug": self.project.slug,
             },
         )
@@ -272,17 +272,17 @@ class ProjectStatisticsIntegrationTestCase(TestCase):
     def test_statistics_links_in_navigation(self):
         """Test that statistics links appear in appropriate navigation areas"""
         stats_url = reverse(
-            "project_statistics",
+            "cohort_project_statistics",
             kwargs={
-                **cohort_url_kwargs(self.course),
+                **canonical_cohort_url_kwargs(self.course),
                 "project_slug": self.project.slug,
             },
         )
 
         results_url = reverse(
-            "project_results",
+            "cohort_project_results",
             kwargs={
-                **cohort_url_kwargs(self.course),
+                **canonical_cohort_url_kwargs(self.course),
                 "project_slug": self.project.slug,
             },
         )
@@ -291,9 +291,9 @@ class ProjectStatisticsIntegrationTestCase(TestCase):
         self.assertContains(results_response, stats_url)
 
         list_url = reverse(
-            "project_list",
+            "cohort_project_list",
             kwargs={
-                **cohort_url_kwargs(self.course),
+                **canonical_cohort_url_kwargs(self.course),
                 "project_slug": self.project.slug,
             },
         )

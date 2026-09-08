@@ -25,10 +25,10 @@ class CourseCalendarLinkTest(CourseDetailViewTestBase):
             account_settings_url,
         )
         calendar_url = reverse(
-            "course_calendar",
+            "cohort_calendar",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
             },
         )
         self.assertContains(
@@ -40,10 +40,10 @@ class CourseCalendarLinkTest(CourseDetailViewTestBase):
 class CourseCalendarFeedTest(CourseDetailViewTestBase):
     def test_course_calendar_feed(self):
         url = reverse(
-            "course_calendar",
+            "cohort_calendar",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
             },
         )
 

@@ -12,42 +12,81 @@ from courses.models import Cohort
 logger = logging.getLogger(__name__)
 
 
-def cohort_url_kwargs(cohort: Cohort) -> dict[str, object]:
-    """Return the canonical public route arguments for a cohort."""
+def canonical_cohort_url_kwargs(cohort: Cohort) -> dict[str, object]:
+    """Route arguments for the canonical ``cohorts/<identifier>`` namespace."""
 
     return {
         "course_slug": cohort.course.slug,
-        "cohort_year": cohort.identifier,
+        "cohort_identifier": cohort.identifier,
     }
 
 
-def cohort_url(cohort: Cohort, route_name: str = "course", **kwargs) -> str:
-    """Build a public cohort URL without reusing the legacy edition slug."""
+def course_family_url(course) -> str:
+    """The canonical course family landing path."""
+
+    return reverse("course_family", kwargs={"course_slug": course.slug})
+
+
+def shared_module_url(module) -> str:
+    """The canonical, cohort-free shared module path."""
+
+    return reverse(
+        "shared_module",
+        kwargs={
+            "course_slug": module.curriculum.course.slug,
+            "module_slug": module.slug,
+        },
+    )
+
+
+def shared_lesson_url(lesson, *, cohort: Cohort | None = None) -> str:
+    """The canonical shared lesson path, with optional explicit context."""
+
+    path = reverse(
+        "shared_lesson",
+        kwargs={
+            "course_slug": lesson.module.curriculum.course.slug,
+            "module_slug": lesson.module.slug,
+            "lesson_slug": lesson.slug,
+        },
+    )
+    if cohort is not None:
+        return f"{path}?cohort={cohort.identifier}"
+    return path
+
+
+def cohort_url(cohort: Cohort, route_name: str = "cohort", **kwargs) -> str:
+    """Build a canonical ``cohorts/<identifier>`` public URL for a cohort.
+
+    The identifier, not a legacy edition slug and not the calendar year, is
+    the route identity.  Callers that still need the old two-segment shape
+    reverse the legacy route names explicitly (W6 retires that surface).
+    """
 
     return reverse(
         route_name,
-        kwargs={**cohort_url_kwargs(cohort), **kwargs},
+        kwargs={**canonical_cohort_url_kwargs(cohort), **kwargs},
     )
 
 
 def get_cohort_or_404(
     course_slug: str,
-    cohort_year: str | int | None = None,
+    cohort_identifier: str | int | None = None,
     **filters,
 ) -> Cohort:
     """Resolve a canonical family/cohort-identifier route.
 
-    ``cohort_year`` is retained as the route argument name for the existing
+    ``cohort_identifier`` is retained as the route argument name for the existing
     view contract, but its value is a slug-like cohort identifier rather than
     necessarily a calendar year.
     """
 
-    if cohort_year is None:
+    if cohort_identifier is None:
         return get_object_or_404(Cohort, slug=course_slug, **filters)
     return get_object_or_404(
         Cohort,
         course__slug=course_slug,
-        identifier=str(cohort_year),
+        identifier=str(cohort_identifier),
         **filters,
     )
 

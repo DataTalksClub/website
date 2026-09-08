@@ -31,7 +31,7 @@ from core.runtime_config import get_str_setting
 from core.services import ServiceContext
 from core.sponsors import public_events_hub_sponsors
 from course_management.observability import record_event
-from courses.models import Cohort
+from courses.models import Cohort, SharedLesson, SharedModule
 from events.identity import (
     EventIdentityNotFound,
     canonical_detail_path,
@@ -1300,16 +1300,40 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
             for record in published_event_records()
         )
     if section == "courses":
-        return (
-            ("/courses", ""),
-            *(
-                (f"/courses/{slug}", "")
-                for slug in Cohort.objects.filter(visible=True, course__visible=True)
-                .order_by("course__slug")
-                .values_list("course__slug", flat=True)
-                .distinct()
-            ),
+        family_slugs = (
+            Cohort.objects.filter(visible=True, course__visible=True)
+            .order_by("course__slug")
+            .values_list("course__slug", flat=True)
+            .distinct()
         )
+        entries = [("/courses", "")]
+        entries.extend((f"/courses/{slug}", "") for slug in family_slugs)
+        # Families with a shared current curriculum also publish their
+        # cohort-free module and lesson paths.  Query-context URLs, cohort
+        # landings, homework/operations, and GitHub archives stay out.
+        shared_modules = (
+            SharedModule.objects.filter(
+                published=True,
+                curriculum__course__visible=True,
+            )
+            .order_by("curriculum__course__slug", "position", "id")
+            .values_list("curriculum__course__slug", "slug")
+        )
+        entries.extend((f"/courses/{course}/{module}", "") for course, module in shared_modules)
+        shared_lessons = (
+            SharedLesson.objects.filter(
+                published=True,
+                module__published=True,
+                module__curriculum__course__visible=True,
+            )
+            .order_by("module__curriculum__course__slug", "module__slug", "position", "id")
+            .values_list("module__curriculum__course__slug", "module__slug", "slug")
+        )
+        entries.extend(
+            (f"/courses/{course}/{module}/{lesson}", "")
+            for course, module, lesson in shared_lessons
+        )
+        return tuple(entries)
     if section == "wiki":
         discovery = (
             ("/wiki", ""),

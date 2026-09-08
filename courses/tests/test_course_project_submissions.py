@@ -100,10 +100,10 @@ class CourseProjectSubmissionsViewBase(TestCase):
 
     def submissions_url(self):
         return reverse(
-            "list_all_project_submissions",
+            "cohort_projects",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
             },
         )
 
@@ -146,10 +146,10 @@ class CourseProjectSubmissionsViewBase(TestCase):
 
     def assert_leaderboard_link(self, response):
         leaderboard_url = reverse(
-            "leaderboard_score_breakdown",
+            "cohort_leaderboard_score_breakdown",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
                 "enrollment_id": self.enrollment.id,
             },
         )
@@ -158,19 +158,19 @@ class CourseProjectSubmissionsViewBase(TestCase):
     def assert_project_links(self, response):
         self.assertContains(response, "Project lists")
         completed_project_url = reverse(
-            "project_list",
+            "cohort_project_list",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
                 "project_slug": self.completed_project.slug,
             },
         )
         self.assertContains(response, completed_project_url)
         open_project_url = reverse(
-            "project_list",
+            "cohort_project_list",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
                 "project_slug": self.open_project.slug,
             },
         )

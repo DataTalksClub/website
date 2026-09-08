@@ -1,0 +1,16 @@
+schema_version: 2
+content_id: "95555555-5555-4555-8555-555555555555"
+course: llm-zoomcamp
+identifier: "2025"
+delivery: live
+curriculum: github_archive
+published: true
+start_date: "2025-05-05"
+end_date: "2025-07-14"
+title: LLM Zoomcamp 2025
+description: The 2025 delivery is a complete GitHub-only archive.
+archive:
+  notice_path: cohorts/2025/README.md
+homework:
+  - module: null
+    source: cohorts/2025/01-old-module/homework.yaml

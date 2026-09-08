@@ -21,7 +21,7 @@ from courses.views.url_utils import get_cohort_or_404
 def _unit_url(unit: Unit) -> str:
     cohort = unit.module.cohort
     return reverse(
-        "unit",
+        "cohort_unit",
         kwargs={
             "course_slug": cohort.course.slug,
             "cohort_identifier": cohort.identifier,

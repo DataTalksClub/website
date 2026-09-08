@@ -1,0 +1,33 @@
+schema_version: 1
+content_id: "52222222-2222-4222-8222-222222222222"
+slug: hw-old
+title: "Homework 1 (2025)"
+instructions_path: homework.md
+due_at: 2025-05-18T21:59:00Z
+initial_state: scored
+form:
+  homework_url: true
+  time_spent_lectures: true
+  time_spent_homework: true
+  faq_contribution: true
+  learning_in_public_cap: 5
+questions:
+  - content_id: "63333333-3333-4333-8333-333333333333"
+    id: old-question
+    type: multiple_choice
+    prompt: Historical question?
+    options:
+      - id: "yes"
+        label: "Yes"
+      - id: "no"
+        label: "No"
+    points: 1
+    answer:
+      version: 1
+      algorithm: A256GCM
+      kdf: HKDF-SHA256
+      key_id: hw-answer-2025-01
+      salt: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      nonce: AAAAAAAAAAAAAAAA
+      ciphertext: AAAAAAAAAAAAAAAAAAAAAA
+      context_sha256: 84c7f0af2560e839867bf428128c8cf738cf70c26700d7b6054b301c3eeb0dea

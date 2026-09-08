@@ -232,8 +232,8 @@
 {% block page_header %}
         {% url 'course_list' as course_list_url %}
         {% url 'course_family' course_family.slug as course_family_url %}
-        {% url 'course' course_family.slug course.identifier as cohort_url %}
-        {% url 'homework' course_family.slug course.identifier homework.slug as homework_url %}
+        {% url 'cohort' course_family.slug course.identifier as cohort_url %}
+        {% url 'cohort_homework' course_family.slug course.identifier homework.slug as homework_url %}
         {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url homework.title homework_url current="Statistics" %}
         <div class="stats-hero-inner">
           <p class="mono-label mono-label-indigo">{{ course.title }}</p>

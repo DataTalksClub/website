@@ -97,8 +97,8 @@ class ProjectStatisticsViewTestCase(TestCase):
 
     def project_statistics_url(self, project=None):
         return reverse(
-            "project_statistics",
-            args=[self.course.slug, (project or self.project).slug],
+            "cohort_project_statistics",
+            args=[self.course.course.slug, self.course.identifier, (project or self.project).slug],
         )
 
     def test_project_statistics_view_success(self):
@@ -125,10 +125,10 @@ class ProjectStatisticsViewTestCase(TestCase):
         response = self.client.get(url, follow=True)
 
         project_url = reverse(
-            "project",
+            "cohort_project",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
                 "project_slug": self.incomplete_project.slug,
             },
         )
@@ -148,7 +148,7 @@ class ProjectStatisticsViewTestCase(TestCase):
     def test_project_statistics_view_nonexistent_project(self):
         """Test project statistics view with non-existent project"""
         url = reverse(
-            "project_statistics", args=[self.course.slug, "nonexistent"]
+            "cohort_project_statistics", args=[self.course.course.slug, self.course.identifier, "nonexistent"]
         )
         response = self.client.get(url)
 
@@ -157,8 +157,8 @@ class ProjectStatisticsViewTestCase(TestCase):
     def test_project_statistics_view_nonexistent_course(self):
         """Test project statistics view with non-existent course"""
         url = reverse(
-            "project_statistics",
-            args=["nonexistent", self.project.slug],
+            "cohort_project_statistics",
+            args=["nonexistent", self.course.identifier, self.project.slug],
         )
         response = self.client.get(url)
 

@@ -11,9 +11,9 @@ from courses.views.url_utils import get_cohort_or_404
 def course_calendar_view(
     request: HttpRequest,
     course_slug: str,
-    cohort_year: str | int | None = None,
+    cohort_identifier: str | int | None = None,
 ) -> HttpResponse:
-    course = get_cohort_or_404(course_slug, cohort_year, visible=True)
+    course = get_cohort_or_404(course_slug, cohort_identifier, visible=True)
     dtstamp = timezone.now()
     event_lines = course_calendar_event_lines(request, course, dtstamp)
     calendar_lines = course_calendar_lines(course, event_lines)

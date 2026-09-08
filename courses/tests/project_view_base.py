@@ -53,10 +53,10 @@ class ProjectViewTestBase(TestCase):
 
     def project_url(self):
         return reverse(
-            "project",
+            "cohort_project",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
+                "cohort_identifier": self.course.identifier,
                 "project_slug": self.project.slug,
             },
         )

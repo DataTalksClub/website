@@ -37,6 +37,9 @@ def authenticated_homework_response(data: HomeworkRequestData):
         course=data.course,
         homework=data.homework,
         questions=data.questions,
+        # A POST submission is the only path that may enroll; a read render
+        # of the page must never create an Enrollment as a side effect.
+        create_enrollment=data.request.method == "POST",
     )
 
     if data.request.method != "POST":
@@ -77,12 +80,12 @@ def homework_view(
     request: HttpRequest,
     course_slug: str,
     homework_slug: str,
-    cohort_year: str | int | None = None,
+    cohort_identifier: str | int | None = None,
 ):
     detail_objects = homework_detail_objects(
         course_slug,
         homework_slug,
-        cohort_year,
+        cohort_identifier,
     )
     course = detail_objects.course
     homework = detail_objects.homework
