@@ -146,21 +146,30 @@ def projects_eval_submit_post_response(
 
 
 def project_eval_submit_page(
-    course_slug,
-    project_slug,
-    review,
-    cohort_identifier=None,
+    project: Project,
+    review: PeerReview,
 ) -> ProjectEvalSubmitPage:
-    course = get_cohort_or_404(course_slug, cohort_identifier)
-    project = get_object_or_404(
-        Project, slug=project_slug, course=course
-    )
-    review_criteria = criteria_for_project(project)
     return ProjectEvalSubmitPage(
-        course=course,
+        course=project.course,
         project=project,
         review=review,
-        review_criteria=review_criteria,
+        review_criteria=criteria_for_project(project),
+    )
+
+
+def project_eval_review_matches_project(
+    review: PeerReview,
+    project: Project,
+) -> bool:
+    """A review is only reachable through its own project's URL.
+
+    Both the reviewer's submission and the evaluated submission must belong
+    to the resolved project; the URL project alone grants no authority.
+    """
+
+    return (
+        review.reviewer.project_id == project.pk
+        and review.submission_under_evaluation.project_id == project.pk
     )
 
 
@@ -191,7 +200,17 @@ def projects_eval_submit(
     review_id,
     cohort_identifier=None,
 ):
-    review = get_object_or_404(PeerReview, id=review_id)
+    course = get_cohort_or_404(course_slug, cohort_identifier)
+    project = get_object_or_404(
+        Project, slug=project_slug, course=course
+    )
+    review = get_object_or_404(
+        PeerReview.objects.select_related(
+            "reviewer__student",
+            "submission_under_evaluation",
+        ),
+        id=review_id,
+    )
 
     if review.reviewer.student != request.user:
         record_event(
@@ -211,11 +230,31 @@ def projects_eval_submit(
         )
         return response
 
+    if not project_eval_review_matches_project(review, project):
+        record_event(
+            "project.review_project_mismatch",
+            request=request,
+            properties={
+                "course_slug": course_slug,
+                "project_slug": project_slug,
+                "review_id": review.id,
+                "reviewer_project_id": review.reviewer.project_id,
+                "evaluated_project_id": (
+                    review.submission_under_evaluation.project_id
+                ),
+            },
+        )
+        response = project_eval_unauthorized_response(
+            request,
+            course_slug,
+            project_slug,
+            cohort_identifier,
+        )
+        return response
+
     page = project_eval_submit_page(
-        course_slug,
-        project_slug,
+        project,
         review,
-        cohort_identifier,
     )
 
     if request.method == "POST":

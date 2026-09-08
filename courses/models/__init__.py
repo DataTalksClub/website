@@ -55,6 +55,7 @@ from .homework import (
 )
 from .project import (
     CriteriaResponse,
+    InvalidCriteriaAnswerError,
     PeerReview,
     PeerReviewState,
     Project,
@@ -94,6 +95,7 @@ __all__ = (
     "Homework",
     "HomeworkState",
     "HomeworkStatistics",
+    "InvalidCriteriaAnswerError",
     "LeaderboardComplaint",
     "PeerReview",
     "PeerReviewState",

@@ -13,6 +13,7 @@ from course_management.datamailer.sync.memberships import (
 )
 
 from courses.models.project import (
+    InvalidCriteriaAnswerError,
     Project,
     ProjectSubmission,
     PeerReview,
@@ -123,7 +124,14 @@ def _project_scoreable_peer_reviews(project):
 
 
 def _score_project_with_reviews(project, peer_reviews):
-    calculation = calculate_project_scoring(project, peer_reviews)
+    try:
+        calculation = calculate_project_scoring(project, peer_reviews)
+    except InvalidCriteriaAnswerError as error:
+        # A stored response cannot be scored: fail the whole run with a
+        # diagnostic instead of silently grading from partial data.
+        logger.error("Project %s scoring failed: %s", project.id, error)
+        raise
+
     passed_ratio = calculation.passed_count / len(calculation.submissions)
 
     _complete_scored_project(
@@ -145,6 +153,10 @@ def score_project(
     with transaction.atomic():
         t0 = time()
 
+        # Serialize against the review-submit path, which rechecks the state
+        # under the same row lock before saving a review.
+        project = Project.objects.select_for_update().get(pk=project.pk)
+
         peer_reviews, error = _project_scoreable_peer_reviews(project)
         if error is not None:
             record_event(
@@ -158,7 +170,19 @@ def score_project(
             )
             return (project_assignment.ProjectActionStatus.FAIL, error)
 
-        success_message = _score_project_with_reviews(project, peer_reviews)
+        try:
+            success_message = _score_project_with_reviews(project, peer_reviews)
+        except InvalidCriteriaAnswerError as error:
+            record_event(
+                "project.scoring_failed",
+                properties={
+                    "course_slug": project.course.slug,
+                    "project_slug": project.slug,
+                    "project_id": project.id,
+                    "reason": str(error),
+                },
+            )
+            return (project_assignment.ProjectActionStatus.FAIL, str(error))
 
         t_end = time()
 

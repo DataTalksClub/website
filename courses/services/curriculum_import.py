@@ -32,7 +32,6 @@ from courses.models import (
     CurriculumFlowItem,
     CurriculumFormat,
     CurriculumSource,
-    DeliveryMode,
     Homework,
     HomeworkState,
     Module,
@@ -533,9 +532,7 @@ class _CurriculumImporter:
             return int(source.identifier)
         if source.start_date is not None:
             return source.start_date.year
-        known = list(
-            Cohort.objects.filter(course=course).values_list("year", flat=True)
-        )
+        known = list(Cohort.objects.filter(course=course).values_list("year", flat=True))
         known.extend(
             int(candidate.identifier)
             for candidate in self.command.source.cohorts
@@ -605,16 +602,14 @@ class _CurriculumImporter:
             curriculum=shared_curriculum, source_content_id__isnull=False
         )
         offset = (
-            existing.aggregate(maximum=Max("position"))["maximum"] or 0
-        ) + existing.count() + 1_000
+            (existing.aggregate(maximum=Max("position"))["maximum"] or 0) + existing.count() + 1_000
+        )
         # Stage old positions out of the way so a reshuffle or a retirement
         # cannot collide with an incoming module's position.
         existing.update(position=F("position") + offset)
         for position, module_source in enumerate(self.command.source.modules):
             incoming_ids.add(UUID(module_source.content_id))
-            shared_module = self._upsert_shared_module(
-                shared_curriculum, module_source, position
-            )
+            shared_module = self._upsert_shared_module(shared_curriculum, module_source, position)
             self._upsert_shared_lessons(shared_module, module_source)
         # Source-scoped soft retirement: removed modules stay as inactive rows
         # for rollback/audit and never disappear under existing read state.
@@ -647,9 +642,7 @@ class _CurriculumImporter:
                 "position": position,
                 "overview_markdown": source.overview_markdown or "",
                 "overview_rendered_html": (
-                    render_markdown(source.overview_markdown)
-                    if source.overview_markdown
-                    else ""
+                    render_markdown(source.overview_markdown) if source.overview_markdown else ""
                 ),
                 "published": True,
                 "retired_at": None,
@@ -660,14 +653,12 @@ class _CurriculumImporter:
             self.counts["shared_modules"] += 1
         return shared_module
 
-    def _upsert_shared_lessons(
-        self, shared_module: SharedModule, source: ModuleSource
-    ) -> None:
+    def _upsert_shared_lessons(self, shared_module: SharedModule, source: ModuleSource) -> None:
         incoming_ids = {UUID(unit.content_id) for unit in source.units}
         existing = SharedLesson.objects.filter(module=shared_module)
         offset = (
-            existing.aggregate(maximum=Max("position"))["maximum"] or 0
-        ) + existing.count() + 1_000
+            (existing.aggregate(maximum=Max("position"))["maximum"] or 0) + existing.count() + 1_000
+        )
         existing.update(position=F("position") + offset)
         for position, unit_source in enumerate(source.units):
             self._upsert_shared_lesson(shared_module, unit_source, position)
@@ -768,9 +759,7 @@ class _CurriculumImporter:
                     "storage_key": storage_key,
                     "content_type": _asset_content_type(filename),
                     "byte_size": len(raw),
-                    **self._provenance(
-                        unit_source, source_path, str(unit_source.content_id)
-                    ),
+                    **self._provenance(unit_source, source_path, str(unit_source.content_id)),
                 },
             )
             stored = default_storage.exists(storage_key)
@@ -824,12 +813,8 @@ class _CurriculumImporter:
         homework_by_path = {
             homework.source_path: homework for homework in self.command.source.homeworks
         }
-        module_by_slug = {
-            module.slug: module for module in self.command.source.modules
-        }
-        incoming_module_ids = {
-            UUID(module.content_id) for module in self.command.source.modules
-        }
+        module_by_slug = {module.slug: module for module in self.command.source.modules}
+        incoming_module_ids = {UUID(module.content_id) for module in self.command.source.modules}
         # Placements bound to modules this source no longer declares go first:
         # their positions and module binding would collide with the incoming
         # rows otherwise.  A self-paced cohort binds nothing, so it correctly
@@ -877,9 +862,7 @@ class _CurriculumImporter:
             _validate_model(placement)
             kept_placements.add(placement.pk)
             self.counts["placements"] += 1
-        CohortSharedModule.objects.filter(cohort=cohort).exclude(
-            pk__in=kept_placements
-        ).delete()
+        CohortSharedModule.objects.filter(cohort=cohort).exclude(pk__in=kept_placements).delete()
 
     def _import_archive_cohort(self, cohort: Cohort, source: CohortSource) -> None:
         """An archive cohort never creates shared rows or placements.
@@ -1206,8 +1189,7 @@ class _CurriculumImporter:
         # read these columns can only lose them.
         unit.video_url = source.metadata.video_url or ""
         unit.code_sources = [
-            {"label": code.label, "source_path": code.source_path}
-            for code in source.metadata.code
+            {"label": code.label, "source_path": code.source_path} for code in source.metadata.code
         ]
         for field, value in self._provenance(source, source.source_path, source.content_id).items():
             setattr(unit, field, value)
