@@ -10,17 +10,20 @@ from __future__ import annotations
 
 import json
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
 
 from content_sync.course_repository import (
     DEFAULT_LIMITS,
-    PARSER_VERSION as V1_PARSER_VERSION,
-    SCHEMA_VERSION as V1_SCHEMA_VERSION,
     CourseRepositoryValidationError,
     parse_course_repository,
+)
+from content_sync.course_repository import (
+    PARSER_VERSION as V1_PARSER_VERSION,
+)
+from content_sync.course_repository import (
+    SCHEMA_VERSION as V1_SCHEMA_VERSION,
 )
 from content_sync.course_repository_layout import (
     CourseRepositoryLayoutError,

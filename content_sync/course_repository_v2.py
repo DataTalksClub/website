@@ -27,10 +27,9 @@ from courses.services.curriculum_source import (
 )
 
 from .course_repository import (
-    CourseRepositoryLimits,
-    DEFAULT_LIMITS,
     _COMMIT_SHA,
-    _Parser,
+    DEFAULT_LIMITS,
+    CourseRepositoryLimits,
     _boolean,
     _content_id,
     _date,
@@ -40,6 +39,7 @@ from .course_repository import (
     _integer,
     _load_yaml_mapping,
     _parse_lesson_frontmatter,
+    _Parser,
     _relative_source_path,
     _sequence,
     _slug,
