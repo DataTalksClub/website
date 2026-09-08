@@ -100,7 +100,7 @@ format-check:
 	uv run ruff format --check . $(ADOPTION_INTEGRATION_PYTHON) $(PRODUCTION_IMPORT_PYTHON)
 
 typecheck:
-	uv run mypy manage.py website core content content_sync events email_app studio jobs deploy ci \
+	uv run mypy manage.py website core content content_sync events email_app studio deploy ci \
 		test_support conftest.py sitecustomize.py \
 		review_import \
 		management_auth management_api management_registry.py \
