@@ -208,9 +208,9 @@ def test_operations_have_distinct_lease_result_and_terminal_scenario_states() ->
         result = identities["operations_jobs.job_result"].value
         assert len({lease.pk, result.pk, durable_jobs[-1].pk}) == 3
         assert lease.status == "running" and lease.lease_token is not None
-        assert result.status in result.TERMINAL_STATUSES and result.completed_at is not None
+        assert result.status in result.TERMINAL_STATUSES
     assert any(job.status == "running" and job.lease_token is not None for job in durable_jobs)
-    assert any(job.status == "failed" and job.completed_at is not None for job in durable_jobs)
+    assert any(job.status == "dead" for job in durable_jobs)
 
 
 @pytest.mark.django_db

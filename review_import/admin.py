@@ -30,8 +30,8 @@ def _assert_side_effects_disabled() -> None:
         "django.core.mail.backends.locmem.EmailBackend",
     }:
         raise RuntimeError("local review email backend is not inert")
-    if not settings.Q_CLUSTER.get("sync") or settings.Q_CLUSTER.get("scheduler"):
-        raise RuntimeError("local review background jobs are not disabled")
+    if settings.COMMUNITY_BASE.get("JOBS_BACKEND") != "sync":
+        raise RuntimeError("local review background jobs are not on the sync backend")
     if not getattr(settings, "LOCAL_REVIEW_OUTBOUND_NETWORK_DISABLED", False):
         raise RuntimeError("local review outbound network is not disabled")
     if any(

@@ -10,8 +10,8 @@ from __future__ import annotations
 import re
 import uuid
 
-from jobs.execution import PermanentJobError
-from jobs.registry import JobContext, JobPayload, register_handler
+from community_base.jobs.registry import JobContext, JobPayload, register_handler
+from community_base.jobs.runner import PermanentJobError
 
 from .qna.services import PROVISION_VERSION, ensure_native_event_qna
 

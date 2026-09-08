@@ -962,11 +962,14 @@ class TaskDefinitionBuilderTests(SimpleTestCase):
             environments.append(environment)
             secrets.append(container["secrets"])
             if workload == "migration":
+                self.assertEqual(container["entryPoint"], ["/bin/sh", "-lc"])
                 self.assertEqual(
-                    container["entryPoint"],
-                    ["uv", "run", "--no-sync", "python", "manage.py"],
+                    container["command"],
+                    [
+                        "uv run --no-sync python manage.py migrate --noinput"
+                        " && uv run --no-sync python manage.py sync_relay_schedules"
+                    ],
                 )
-                self.assertEqual(container["command"], ["migrate", "--noinput"])
             else:
                 self.assertNotIn("entryPoint", container)
                 self.assertEqual(container["command"], [workload])

@@ -214,10 +214,8 @@ SENSITIVE_PREFIXES = (
     "content_sync_",
     "core_",
     "data_",
-    "django_q_",
     "email_app_",
     "events_",
-    "jobs_",
     "management_auth_",
 )
 

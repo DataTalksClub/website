@@ -1025,9 +1025,7 @@ def _operations(context: FactoryContext, state: str) -> dict[str, object]:
     Setting = _model("core.OperationalSetting")
     Idempotency = _model("core.IdempotencyRecord")
     Operation = _model("core.Operation")
-    DurableJob = _model("jobs.DurableJob")
-    Heartbeat = _model("jobs.WorkerHeartbeat")
-    SchedulerLease = _model("jobs.SchedulerLease")
+    JobIntent = _model("cb_jobs.JobIntent")
     prefix = "operations_jobs"
     audit = AuditEvent.objects.create(
         id=_uuid(context, f"{prefix}.audit_event", state),
@@ -1096,42 +1094,34 @@ def _operations(context: FactoryContext, state: str) -> dict[str, object]:
         operation.refresh_from_db()
     job_states: dict[str, dict[str, Any]] = {
         "minimal_valid": {"status": "pending"},
-        "complete_valid": {
-            "status": "succeeded",
-            "attempt_count": 1,
-            "completed_at": context.frozen_at,
-        },
+        "complete_valid": {"status": "succeeded", "attempts": 1},
         "boundary_valid": {
             "status": "running",
-            "attempt_count": 1,
+            "attempts": 1,
             "lease_token": _uuid(context, f"{prefix}.durable_job", state, "lease"),
             "lease_expires_at": context.frozen_at + timedelta(minutes=1),
-            "claimed_by": "synthetic-boundary-worker",
         },
         "invalid_rejected": {
-            "status": "failed",
-            "attempt_count": 3,
-            "completed_at": context.frozen_at,
-            "last_error_code": "synthetic_terminal_failure",
+            "status": "dead",
+            "attempts": 3,
+            "last_error": "synthetic_terminal_failure",
         },
         "stale_conflict": {
-            "status": "retry_wait",
-            "attempt_count": 1,
-            "last_error_code": "synthetic_retry",
+            "status": "failed",
+            "attempts": 1,
+            "last_error": "synthetic_retry",
         },
         "privacy_redaction": {
-            "status": "failed",
-            "attempt_count": 3,
-            "completed_at": context.frozen_at,
-            "last_error_code": "redacted_failure",
+            "status": "dead",
+            "attempts": 3,
+            "last_error": "redacted_failure",
         },
     }
     job_state = job_states[state]
-    job = DurableJob.objects.create(
+    job = JobIntent.objects.create(
         id=_uuid(context, f"{prefix}.durable_job", state),
-        operation=operation,
         handler="synthetic.handler",
-        deduplication_key_hash=_physical_digest(
+        key_hash=_physical_digest(
             context,
             f"{prefix}.durable_job",
             state,
@@ -1140,60 +1130,42 @@ def _operations(context: FactoryContext, state: str) -> dict[str, object]:
         payload_hash=canonical_sha256({"factory": "job-payload", "state": state}),
         payload={"kind": "[REDACTED]" if state == "privacy_redaction" else "synthetic"},
         status=job_state["status"],
-        attempt_count=job_state.get("attempt_count", 0),
+        attempts=job_state.get("attempts", 0),
         max_attempts=3,
         available_at=context.frozen_at,
-        next_wakeup_at=context.frozen_at + timedelta(minutes=1),
         lease_token=job_state.get("lease_token"),
         lease_expires_at=job_state.get("lease_expires_at"),
-        claimed_by=job_state.get("claimed_by", ""),
-        last_error_code=job_state.get("last_error_code", ""),
-        completed_at=job_state.get("completed_at"),
+        last_error=job_state.get("last_error", ""),
     )
-    lease_job = DurableJob.objects.create(
+    lease_job = JobIntent.objects.create(
         id=_uuid(context, f"{prefix}.job_lease", state),
-        operation=operation,
         handler=f"synthetic.lease.{_key(context, f'{prefix}.job_lease', state)}",
-        deduplication_key_hash=_physical_digest(context, f"{prefix}.job_lease", state, "key"),
+        key_hash=_physical_digest(context, f"{prefix}.job_lease", state, "key"),
         payload_hash=canonical_sha256({"factory": "job-lease", "state": state}),
         payload={"kind": "synthetic-lease"},
         status="running",
-        attempt_count=1,
+        attempts=1,
         max_attempts=3,
         available_at=context.frozen_at,
-        next_wakeup_at=context.frozen_at + timedelta(minutes=1),
         lease_token=_uuid(context, f"{prefix}.job_lease", state, "lease"),
         lease_expires_at=context.frozen_at + timedelta(minutes=1),
-        claimed_by="synthetic-lease-worker",
     )
-    result_job = DurableJob.objects.create(
+    result_job = JobIntent.objects.create(
         id=_uuid(context, f"{prefix}.job_result", state),
-        operation=operation,
         handler=f"synthetic.result.{_key(context, f'{prefix}.job_result', state)}",
-        deduplication_key_hash=_physical_digest(context, f"{prefix}.job_result", state, "key"),
+        key_hash=_physical_digest(context, f"{prefix}.job_result", state, "key"),
         payload_hash=canonical_sha256({"factory": "job-result", "state": state}),
         payload={"result": "[REDACTED]" if state == "privacy_redaction" else "synthetic-result"},
-        status="failed" if state in {"invalid_rejected", "privacy_redaction"} else "succeeded",
-        attempt_count=1,
+        status="dead" if state in {"invalid_rejected", "privacy_redaction"} else "succeeded",
+        attempts=1,
         max_attempts=3,
         available_at=context.frozen_at,
-        next_wakeup_at=context.frozen_at + timedelta(minutes=1),
-        last_error_code=(
+        last_error=(
             "synthetic_terminal_failure"
             if state in {"invalid_rejected", "privacy_redaction"}
             else ""
         ),
-        completed_at=context.frozen_at,
     )
-    heartbeat = Heartbeat.objects.create(
-        worker_id=f"synthetic-{_key(context, f'{prefix}.worker_heartbeat', state)}",
-        lease_token=_uuid(context, f"{prefix}.worker_heartbeat", state),
-        started_at=context.frozen_at,
-        heartbeat_at=context.frozen_at,
-        expires_at=context.frozen_at + timedelta(minutes=1),
-        metadata={"kind": "synthetic"},
-    )
-    scheduler, _created = SchedulerLease.objects.get_or_create(key="default")
     operation_value: object = operation
     if state == "invalid_rejected":
         invalid = Operation(kind="Invalid kind", progress_total=0)
@@ -1212,8 +1184,6 @@ def _operations(context: FactoryContext, state: str) -> dict[str, object]:
         f"{prefix}.durable_job": job,
         f"{prefix}.job_lease": lease_job,
         f"{prefix}.job_result": result_job,
-        f"{prefix}.worker_heartbeat": heartbeat,
-        f"{prefix}.scheduler_lease": scheduler,
     }
 
 

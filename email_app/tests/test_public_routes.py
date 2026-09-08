@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from unittest import mock
 
+from community_base.jobs.models import JobIntent
 from django.test import TestCase, override_settings
 
 from email_app import relay_links
 from email_app.models import PendingUnsubscribe
 from email_app.relay_links import TRANSPARENT_GIF
 from email_app.tests.support import FakeRelay, timing_out_relay, unreachable_relay
-from jobs.models import DurableJob
 
 RELAY = "http://relay.website.internal:8000"
 TOKEN = "kD3Yy8x-Ug2f_QwErTyUiOpAsDfGhJkLzXcVbNm1234"
@@ -181,7 +181,7 @@ class PublicUnsubscribeTests(BridgeClientMixin, TestCase):
         self.assertEqual(pending.status, PendingUnsubscribe.Status.PENDING)
         self.assertEqual(pending.token_fingerprint, relay_links.token_fingerprint(TOKEN))
         self.assertTrue(
-            DurableJob.objects.filter(handler="email.unsubscribe-replay").exists(),
+            JobIntent.objects.filter(handler="email.unsubscribe-replay").exists(),
             "the accepted opt-out must be handed to a durable job",
         )
 

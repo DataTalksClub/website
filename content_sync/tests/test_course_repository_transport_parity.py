@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
+from community_base.jobs.registry import JobContext
 from django.db import transaction
 from django.test import TestCase
 from django.utils import timezone
@@ -46,7 +47,6 @@ from courses.models import (
     Question,
     Unit,
 )
-from jobs.registry import JobContext
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "course_repository"
@@ -112,10 +112,8 @@ def job_context() -> JobContext:
 
     return JobContext(
         job_id=uuid.uuid4(),
-        operation_id=None,
-        request_id=None,
         correlation_id=None,
-        attempt_count=1,
+        attempt=1,
         worker_id="transport-parity",
         lease_token=uuid.uuid4(),
     )

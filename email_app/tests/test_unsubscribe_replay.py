@@ -10,15 +10,19 @@ from __future__ import annotations
 import uuid
 from unittest import mock
 
+from community_base.jobs.models import JobIntent
+from community_base.jobs.registry import (
+    JobContext,
+    registered_handler_names,
+    validate_payload,
+)
+from community_base.jobs.runner import PermanentJobError, RetryableJobError
 from django.test import TestCase, override_settings
 
 from email_app import relay_links, services
 from email_app.jobs import replay_unsubscribe
 from email_app.models import PendingUnsubscribe
 from email_app.tests.support import FakeRelay, unreachable_relay
-from jobs.execution import PermanentJobError, RetryableJobError
-from jobs.models import DurableJob
-from jobs.registry import JobContext, registered_handler_names, validate_payload
 
 RELAY = "http://relay.website.internal:8000"
 TOKEN = "kD3Yy8x-Ug2f_QwErTyUiOpAsDfGhJkLzXcVbNm1234"
@@ -27,10 +31,8 @@ TOKEN = "kD3Yy8x-Ug2f_QwErTyUiOpAsDfGhJkLzXcVbNm1234"
 def job_context() -> JobContext:
     return JobContext(
         job_id=uuid.uuid4(),
-        operation_id=None,
-        request_id=None,
         correlation_id=None,
-        attempt_count=1,
+        attempt=1,
         worker_id="test",
         lease_token=uuid.uuid4(),
     )
@@ -43,7 +45,7 @@ class AcceptanceTests(TestCase):
         pending = PendingUnsubscribe.objects.get(pk=accepted.pending_id)
         self.assertEqual(pending.scope, "audience")
         self.assertEqual(pending.unsubscribe_token, TOKEN)
-        jobs = DurableJob.objects.filter(handler=services.UNSUBSCRIBE_REPLAY_HANDLER)
+        jobs = JobIntent.objects.filter(handler=services.UNSUBSCRIBE_REPLAY_HANDLER)
         self.assertEqual(jobs.count(), 1)
         self.assertEqual(jobs.get().max_attempts, services.UNSUBSCRIBE_REPLAY_MAX_ATTEMPTS)
 
@@ -54,7 +56,7 @@ class AcceptanceTests(TestCase):
         self.assertEqual(PendingUnsubscribe.objects.count(), 1)
         self.assertEqual(PendingUnsubscribe.objects.get().scope, "global")
         self.assertEqual(
-            DurableJob.objects.filter(handler=services.UNSUBSCRIBE_REPLAY_HANDLER).count(), 1
+            JobIntent.objects.filter(handler=services.UNSUBSCRIBE_REPLAY_HANDLER).count(), 1
         )
 
     def test_a_malformed_request_is_never_made_durable(self) -> None:
@@ -66,7 +68,7 @@ class AcceptanceTests(TestCase):
 
     def test_the_job_payload_carries_an_identifier_and_never_the_token(self) -> None:
         accepted = services.accept_unsubscribe_for_replay(token=TOKEN, scope="client")
-        payload = DurableJob.objects.get(handler=services.UNSUBSCRIBE_REPLAY_HANDLER).payload
+        payload = JobIntent.objects.get(handler=services.UNSUBSCRIBE_REPLAY_HANDLER).payload
         self.assertEqual(payload, {"pending_unsubscribe_id": str(accepted.pending_id)})
         self.assertNotIn(TOKEN, str(payload))
         # The durable payload contract rejects a protected value outright; this

@@ -24,7 +24,7 @@ from content_sync.course_repository_webhook import (
 )
 from core.models import IdempotencyRecord
 from courses.models import Cohort, Course, Module, Project
-from jobs.models import DurableJob
+from community_base.jobs.models import JobIntent
 
 SECRET = "test-course-repository-webhook-secret"
 COMMIT_SHA = "a" * 40
@@ -98,7 +98,7 @@ class CourseRepositoryWebhookTests(TestCase):
 
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.json()["error"], "course_repository_webhook_not_configured")
-        self.assertFalse(DurableJob.objects.exists())
+        self.assertFalse(JobIntent.objects.exists())
         self.assertFalse(
             IdempotencyRecord.objects.filter(scope=COURSE_REPOSITORY_WEBHOOK_NAMESPACE).exists()
         )
@@ -109,7 +109,7 @@ class CourseRepositoryWebhookTests(TestCase):
 
         self.assertEqual(response.status_code, 202)
         self.assertEqual(response.json()["outcome"], "accepted")
-        job = DurableJob.objects.get(handler=COURSE_REPOSITORY_JOB_HANDLER)
+        job = JobIntent.objects.get(handler=COURSE_REPOSITORY_JOB_HANDLER)
         self.assertEqual(
             set(job.payload),
             {"source_uuid", "commit_sha", "delivery_record_id"},
@@ -127,7 +127,7 @@ class CourseRepositoryWebhookTests(TestCase):
         self.assertEqual(first.status_code, 202)
         self.assertEqual(second.status_code, 202)
         self.assertEqual(second.json()["outcome"], "replayed")
-        self.assertEqual(DurableJob.objects.count(), 1)
+        self.assertEqual(JobIntent.objects.count(), 1)
 
     @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
     def test_delivery_id_conflict_does_not_enqueue_or_mutate(self) -> None:
@@ -139,19 +139,19 @@ class CourseRepositoryWebhookTests(TestCase):
         response = self.post(changed)
 
         self.assertEqual(response.status_code, 409)
-        self.assertEqual(DurableJob.objects.count(), 1)
+        self.assertEqual(JobIntent.objects.count(), 1)
 
     @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
     def test_signature_is_verified_before_json_and_unregistered_sources_are_rejected(self) -> None:
         malformed = b"not-json"
         response = self.post(malformed)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(DurableJob.objects.count(), 0)
+        self.assertEqual(JobIntent.objects.count(), 0)
 
         self.source.delete()
         response = self.post(github_payload(), delivery_id="delivery-unregistered")
         self.assertEqual(response.status_code, 404)
-        self.assertEqual(DurableJob.objects.count(), 0)
+        self.assertEqual(JobIntent.objects.count(), 0)
 
     @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
     def test_invalid_push_metadata_is_rejected_without_a_fence(self) -> None:
@@ -164,7 +164,7 @@ class CourseRepositoryWebhookTests(TestCase):
             with self.subTest(index=index):
                 response = self.post(body, delivery_id=f"delivery-invalid-{index}")
                 self.assertEqual(response.status_code, 400)
-        self.assertEqual(DurableJob.objects.count(), 0)
+        self.assertEqual(JobIntent.objects.count(), 0)
 
     def test_push_parser_requires_consistent_repository_identity(self) -> None:
         payload = json.loads(github_payload())

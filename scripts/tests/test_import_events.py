@@ -833,7 +833,7 @@ class RunAtomicityTests(TestCase):
             HistoricalRegistrationAggregateRevision,
             HistoricalRegistrationSourceRun,
         )
-        from jobs.models import DurableJob
+        from community_base.jobs.models import JobIntent
         from scripts.prod.import_events import EventImportError
 
         def counts() -> tuple[int, ...]:
@@ -843,7 +843,7 @@ class RunAtomicityTests(TestCase):
                 EventContent.objects.count(),
                 HistoricalRegistrationSourceRun.objects.count(),
                 HistoricalRegistrationAggregateRevision.objects.count(),
-                DurableJob.objects.count(),
+                JobIntent.objects.count(),
             )
 
         before = counts()
