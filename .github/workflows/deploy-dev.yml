@@ -17,6 +17,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Check community-base dependency source
+        # D0.1a: fail closed before anything installs if community-base is no
+        # longer the pinned tagged git release in pyproject.toml/uv.lock (a
+        # local path, editable, or branch source would ship unreviewed
+        # package code). Stdlib-only; runs with the runner's python3.
+        run: python3 scripts/check_community_base_source.py
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.10.11"

@@ -1,4 +1,4 @@
-.PHONY: setup lock-check lint format format-check typecheck migrations-check django-check deployment-check \
+.PHONY: setup lock-check core-source-check core-link core-unlink lint format format-check typecheck migrations-check django-check deployment-check \
 	test-core test test-django-full test-ci test-ci-focused \
 	test-content test-factories test-migrations test-playwright-core test-playwright test-browser \
 	test-accessibility test-playwright-smoke test-playwright-quarantined \
@@ -80,6 +80,15 @@ setup:
 
 lock-check:
 	uv lock --check
+
+core-source-check:
+	uv run python scripts/check_community_base_source.py
+
+core-link:
+	uv run python scripts/community_base_link.py link
+
+core-unlink:
+	uv run python scripts/community_base_link.py unlink
 
 lint:
 	uv run ruff check . $(ADOPTION_INTEGRATION_PYTHON) $(PRODUCTION_IMPORT_PYTHON)

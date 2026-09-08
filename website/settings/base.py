@@ -136,6 +136,9 @@ INSTALLED_APPS = [
     "jobs.apps.JobsConfig",
     "data.apps.DataConfig",
     "studio_courses.apps.StudioCoursesConfig",
+    # community-base kernel (D0.1a). Declarations only: jobs and mail keep their
+    # existing runtime owners, and no other shared app is installed yet.
+    "community_base.kernel.apps.KernelConfig",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
@@ -366,3 +369,15 @@ SESSION_COOKIE_DOMAIN = None
 # CMP's preserved loginas/browser flows read Django's CSRF cookie and submit it
 # through the standard X-CSRFToken header.
 CSRF_COOKIE_HTTPONLY = False
+
+# community-base kernel declarations (D0.1a). JOBS_BACKEND and MAIL_BACKEND name
+# the intended Relay direction but install nothing: no Relay contact, no jobs or
+# mail adoption, and no credentials. Settings writers stay site-owned until the
+# D0.1b/D0.1c adoption cards.
+COMMUNITY_BASE = {
+    "SITE_KEY": "dtc",
+    "ACCESS_POLICY": "community_base.kernel.access.RegisteredOnlyPolicy",
+    "JOBS_BACKEND": "relay",
+    "MAIL_BACKEND": "relay",
+    "STUDIO_TITLE": "DataTalks.Club Studio",
+}
