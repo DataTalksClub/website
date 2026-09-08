@@ -1137,6 +1137,7 @@ jobs:
           set -euo pipefail
           docker run --detach --name dtc-web \
             --env DJANGO_SETTINGS_MODULE=website.settings.local \
+            --env DTC_SQLITE_PATH=/tmp/smoke.sqlite3 \
             --env "VERSION=$VERSION" \
             --env "SOURCE_SHA=$RELEASE_SHA" \
             --env "IMAGE_DIGEST=$TEST_IMAGE_DIGEST" \
@@ -1146,6 +1147,11 @@ jobs:
             if curl --fail --silent http://127.0.0.1:8000/health/live | jq -e \
               --arg version "$VERSION" --arg sha "$RELEASE_SHA" --arg digest "$TEST_IMAGE_DIGEST" \
               '. == {status: "ok", version: $version, source_sha: $sha, image_digest: $digest}' > /dev/null; then
+              # The home route reads events from the database (issue #337), so the
+              # smoke gives its throwaway sqlite file a schema before serving.
+              # This orchestrates the smoke container only; the serving entrypoint
+              # still never runs migrations.
+              docker exec dtc-web uv run --no-sync python manage.py migrate --noinput
               curl --fail --silent --output /dev/null http://127.0.0.1:8000/unified/
               printf '%s\n' health_live_exact_release_identity unified_route_responds >> \
                 .tmp/ci-controller/.tmp/components-container/container-assertions.txt
