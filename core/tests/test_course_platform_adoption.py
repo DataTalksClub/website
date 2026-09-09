@@ -28,25 +28,22 @@ ADOPTION_DIR = REPO_ROOT / "_docs/adoption/course-platform"
 MANIFEST_PATH = ADOPTION_DIR / "copied-files.tsv"
 EXPECTED_COMMANDS = {
     "account_identity_inventory": "accounts",
-    # The entrance pages draw one button per configured provider, and a fresh
-    # local database has none; this writes obviously-fake placeholder apps so
-    # the block a reader actually meets can be built and reviewed locally.
-    "seed_local_social_providers": "accounts",
     "bootstrap_development_owner": "accounts",
-    # Shared-current-curriculum backfill operator command (issue #320).
-    "migrate_shared_curriculum": "courses",
-    # Shared-curriculum rollout operator inventory (issue #320).
-    "shared_curriculum_inventory": "courses",
     "datamailer_callback_status": "data",
     "datamailer_outbox_status": "data",
     "datamailer_send_status": "data",
     "import_development_course_content": "courses",
+    "import_mail_category_optouts": "courses",
+    "learner_duplicate_preflight": "courses",
+    "migrate_shared_curriculum": "courses",
     "monitoring_datamailer_health": "data",
     "preview_peer_review_email": "courses",
     "seed_local_courses": "courses",
     "seed_local_project_review": "courses",
     "seed_local_questions": "courses",
+    "seed_local_social_providers": "accounts",
     "send_deadline_reminders": "courses",
+    "shared_curriculum_inventory": "courses",
     "verify_development_course_content": "courses",
 }
 EXPECTED_APP_MODULES = {

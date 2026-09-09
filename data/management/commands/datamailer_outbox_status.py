@@ -1,10 +1,40 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from course_management.datamailer_outbox_status import (
-    datamailer_outbox_status_summary,
+from data.models import (
+    DatamailerOutboxDispatchRun,
+    DatamailerOutboxDispatchRunStatus,
+    DatamailerOutboxEvent,
+    DatamailerOutboxStatus,
 )
-from data.models import DatamailerOutboxStatus
+
+
+def datamailer_outbox_status_summary():
+    now = timezone.now()
+    due_events = DatamailerOutboxEvent.objects.filter(
+        status__in=(DatamailerOutboxStatus.PENDING, DatamailerOutboxStatus.RETRYING),
+        next_attempt_at__lte=now,
+    )
+    event_counts = {
+        status: DatamailerOutboxEvent.objects.filter(status=status).count()
+        for status in DatamailerOutboxStatus.values
+    }
+    ordered_due_events = due_events.order_by("next_attempt_at", "created_at", "id")
+    last_successful_run = DatamailerOutboxDispatchRun.objects.filter(
+        status=DatamailerOutboxDispatchRunStatus.SUCCESS,
+    ).first()
+    return {
+        "event_counts": event_counts,
+        "due_count": due_events.count(),
+        "oldest_due": ordered_due_events.first(),
+        "last_successful_run": last_successful_run,
+        "last_run": DatamailerOutboxDispatchRun.objects.first(),
+        "last_error_event": (
+            DatamailerOutboxEvent.objects.exclude(last_error="")
+            .order_by("-last_attempt_at", "-updated_at", "-id")
+            .first()
+        ),
+    }
 
 
 class Command(BaseCommand):
