@@ -1,6 +1,5 @@
 import logging
 
-from functools import partial
 from time import time
 
 from django.db import transaction
@@ -78,7 +77,6 @@ def _complete_scored_project(
     calculation,
 ):
     _bulk_update_project_submissions(calculation.submissions_to_update)
-    _sync_project_submissions_after_commit(calculation.submissions_to_update)
     submission_ids = calculation.submissions.keys()
     _replace_project_evaluation_scores(
         submission_ids,
