@@ -34,7 +34,9 @@ def _validate_project_scoreable(project: Project) -> str | None:
         return "Project is not in 'PEER_REVIEWING' state"
 
     if project.peer_review_due_date > timezone.now():
-        return "The peer review due date is in the future. Update the due date to score the project."
+        return (
+            "The peer review due date is in the future. Update the due date to score the project."
+        )
 
     return None
 
@@ -67,9 +69,7 @@ def _bulk_update_project_submissions(submissions_to_update):
 
 
 def _replace_project_evaluation_scores(submission_ids, all_scores):
-    ProjectEvaluationScore.objects.filter(
-        submission_id__in=submission_ids
-    ).delete()
+    ProjectEvaluationScore.objects.filter(submission_id__in=submission_ids).delete()
     ProjectEvaluationScore.objects.bulk_create(all_scores)
 
 
@@ -165,9 +165,7 @@ def score_project(
 
         t_end = time()
 
-        logger.info(
-            f"Project {project.id} scored in {t_end - t0:.2f} seconds."
-        )
+        logger.info(f"Project {project.id} scored in {t_end - t0:.2f} seconds.")
         submissions_count = project.projectsubmission_set.count()
         passed_count = project.projectsubmission_set.filter(
             passed=True,

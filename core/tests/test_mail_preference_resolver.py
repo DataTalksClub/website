@@ -6,13 +6,11 @@ while sends run through the package, and the read-only outbox storage
 still reports its summary for rollback monitoring.
 """
 
-from io import StringIO
 from unittest.mock import patch
 
-from django.core.management import call_command
+from community_base.mail.models import EmailDelivery
 from django.test import TestCase
 
-from community_base.mail.models import EmailDelivery
 from course_management.mail_preferences import resolve_mail_preference
 from course_management.package_mail import send_package_mail
 
@@ -32,7 +30,8 @@ class OutboxEnqueueGateTest(TestCase):
         offenders = [
             str(path)
             for path in repository_python_files()
-            if "enqueue_datamailer_outbox_event" in path.read_text(
+            if "enqueue_datamailer_outbox_event"
+            in path.read_text(
                 encoding="utf-8",
             )
         ]
@@ -56,8 +55,7 @@ class MailPreferenceResolverTest(TestCase):
         self.assertTrue(self._resolver(category="", user=user))
 
     @patch(
-        "course_management.datamailer.preferences."
-        "get_email_preferences_for_user",
+        "course_management.datamailer.preferences.get_email_preferences_for_user",
     )
     def test_a_datamailer_opt_out_suppresses_its_category(
         self,
@@ -70,8 +68,7 @@ class MailPreferenceResolverTest(TestCase):
         self.assertEqual(decision, "opted out of email_deadline_reminders")
 
     @patch(
-        "course_management.datamailer.preferences."
-        "get_email_preferences_for_user",
+        "course_management.datamailer.preferences.get_email_preferences_for_user",
     )
     def test_opted_in_and_unknown_categories_are_allowed(
         self,
@@ -83,8 +80,7 @@ class MailPreferenceResolverTest(TestCase):
         self.assertTrue(self._resolver(user=_FakeUser()))
 
     @patch(
-        "course_management.datamailer.preferences."
-        "get_email_preferences_for_user",
+        "course_management.datamailer.preferences.get_email_preferences_for_user",
     )
     def test_an_unreachable_datamailer_fails_open(self, get_preferences):
         get_preferences.side_effect = OSError("external DNS resolution denied")

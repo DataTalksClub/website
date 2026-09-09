@@ -240,9 +240,7 @@ class DatamailerProjectScoreTestBase(TestCase):
         self.assertEqual(expectation.result, {"enqueued_count": 1})
         self.assertEqual(expectation.bulk_upsert.call_count, 2)
         expectation.send_list.assert_called_once()
-        project_submitters_key = project_submitters_list_key(
-            expectation.project
-        )
+        project_submitters_key = project_submitters_list_key(expectation.project)
         self.assertEqual(
             expectation.send_list.call_args.args[0],
             project_submitters_key,

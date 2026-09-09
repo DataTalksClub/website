@@ -173,9 +173,7 @@ def registration_campaign_view(
         context = _registration_context(request, campaign, None, None)
         return render(request, "courses/register.html", context)
 
-    existing_registration = _existing_user_registration(
-        request, campaign
-    )
+    existing_registration = _existing_user_registration(request, campaign)
     form = _registration_form(request, campaign)
 
     registration = None

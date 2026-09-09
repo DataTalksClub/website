@@ -75,14 +75,10 @@ def sync_members_before_recipient_list_send_or_audit(data):
     return False
 
 
-def send_recipient_list_transactional_and_audit(
-    config, list_key, payload
-):
+def send_recipient_list_transactional_and_audit(config, list_key, payload):
     client = DatamailerClient(config)
     send_payload = recipient_list_send_payload(payload)
-    response = client.recipient_lists.sends.send_to_list(
-        list_key, send_payload
-    )
+    response = client.recipient_lists.sends.send_to_list(list_key, send_payload)
     audit_data = DatamailerSendAuditData(
         send_type=DatamailerSendAuditType.RECIPIENT_LIST,
         payload=payload,

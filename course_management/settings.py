@@ -84,9 +84,7 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
 ]
 
-STATICFILES_STORAGE = (
-    "whitenoise.storage.CompressedManifestStaticFilesStorage"
-)
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 
 ROOT_URLCONF = "course_management.urls"
@@ -171,9 +169,7 @@ is_test = (
 )
 
 if is_test:
-    STATICFILES_STORAGE = (
-        "django.contrib.staticfiles.storage.StaticFilesStorage"
-    )
+    STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 
 
 # Default primary key field type
@@ -181,9 +177,7 @@ if is_test:
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-VERSION = os.getenv(
-    "VERSION", "local-development-build-version-not-configured"
-)
+VERSION = os.getenv("VERSION", "local-development-build-version-not-configured")
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
 
 
@@ -199,11 +193,7 @@ def env_bool(name, default=False):
 
 def env_list(name, default):
     raw_value = os.getenv(name, default)
-    return [
-        item.strip()
-        for item in raw_value.split(",")
-        if item.strip()
-    ]
+    return [item.strip() for item in raw_value.split(",") if item.strip()]
 
 
 OBSERVABILITY_ENVIRONMENT = os.getenv(
@@ -215,9 +205,7 @@ OBSERVABILITY_EVENT_SCHEMA_VERSION = os.getenv(
     "1",
 )
 DEFAULT_OBSERVABILITY_BACKENDS = ["noop" if is_test else "log"]
-DEFAULT_OBSERVABILITY_EVENT_BACKENDS = ",".join(
-    DEFAULT_OBSERVABILITY_BACKENDS
-)
+DEFAULT_OBSERVABILITY_EVENT_BACKENDS = ",".join(DEFAULT_OBSERVABILITY_BACKENDS)
 OBSERVABILITY_EVENT_BACKENDS = env_list(
     "OBSERVABILITY_EVENT_BACKENDS",
     DEFAULT_OBSERVABILITY_EVENT_BACKENDS,
@@ -237,31 +225,23 @@ DATAMAILER_CLIENT = os.getenv("DATAMAILER_CLIENT", "")
 DATAMAILER_AUDIENCE = os.getenv("DATAMAILER_AUDIENCE", "")
 DATAMAILER_FROM_EMAIL = os.getenv("DATAMAILER_FROM_EMAIL", "")
 DATAMAILER_STRICT = os.getenv("DATAMAILER_STRICT", "0") == "1"
-DATAMAILER_TIMEOUT_SECONDS = float(
-    os.getenv("DATAMAILER_TIMEOUT_SECONDS", "60")
-)
+DATAMAILER_TIMEOUT_SECONDS = float(os.getenv("DATAMAILER_TIMEOUT_SECONDS", "60"))
 # When enabled, transactional sends carry Datamailer's "dry_run" flag: the full
 # prod send path runs (/api/transactional/send -> audit) but
 # Datamailer renders the email and returns it inline without delivering. Used by
 # the e2e smoke suite (and any non-delivering deployment) to mimic prod safely.
-DATAMAILER_TRANSACTIONAL_DRY_RUN = (
-    os.getenv("DATAMAILER_TRANSACTIONAL_DRY_RUN", "0") == "1"
-)
+DATAMAILER_TRANSACTIONAL_DRY_RUN = os.getenv("DATAMAILER_TRANSACTIONAL_DRY_RUN", "0") == "1"
 DATAMAILER_WEBHOOK_TOKEN = os.getenv("DATAMAILER_WEBHOOK_TOKEN", "")
 DATAMAILER_IMPORT_S3_BUCKET = os.getenv("DATAMAILER_IMPORT_S3_BUCKET", "")
-DATAMAILER_IMPORT_S3_PREFIX = os.getenv(
-    "DATAMAILER_IMPORT_S3_PREFIX", "datamailer-imports"
-).strip("/")
+DATAMAILER_IMPORT_S3_PREFIX = os.getenv("DATAMAILER_IMPORT_S3_PREFIX", "datamailer-imports").strip(
+    "/"
+)
 DATAMAILER_IMPORT_URL_EXPIRES_SECONDS_VALUE = os.getenv(
     "DATAMAILER_IMPORT_URL_EXPIRES_SECONDS", "3600"
 )
-DATAMAILER_IMPORT_URL_EXPIRES_SECONDS = int(
-    DATAMAILER_IMPORT_URL_EXPIRES_SECONDS_VALUE
-)
+DATAMAILER_IMPORT_URL_EXPIRES_SECONDS = int(DATAMAILER_IMPORT_URL_EXPIRES_SECONDS_VALUE)
 DATAMAILER_IMPORT_S3_REGION = os.getenv("DATAMAILER_IMPORT_S3_REGION", "")
-DATAMAILER_SYNC_ON_USER_CREATE = (
-    os.getenv("DATAMAILER_SYNC_ON_USER_CREATE", "1") == "1"
-)
+DATAMAILER_SYNC_ON_USER_CREATE = os.getenv("DATAMAILER_SYNC_ON_USER_CREATE", "1") == "1"
 # Cache configuration
 CACHES = {
     "default": {
@@ -377,9 +357,7 @@ ACCOUNT_ALLOW_REGISTRATION = False
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # consolidate multiple social accounts with the same email into one user
-SOCIALACCOUNT_ADAPTER = (
-    "accounts.auth.ConsolidatingSocialAccountAdapter"
-)
+SOCIALACCOUNT_ADAPTER = "accounts.auth.ConsolidatingSocialAccountAdapter"
 
 # Skip intermediate confirmation page - direct OAuth redirect
 SOCIALACCOUNT_LOGIN_ON_GET = True

@@ -19,9 +19,7 @@ from courses.tests.datamailer_homework_score_base import (
 )
 
 
-class DatamailerHomeworkScoreSendSuccessTest(
-    DatamailerHomeworkScoreTestBase
-):
+class DatamailerHomeworkScoreSendSuccessTest(DatamailerHomeworkScoreTestBase):
     @override_settings(**DATAMAILER_SETTINGS)
     @patch(
         "course_management.datamailer.client_recipient_lists.DatamailerRecipientListSendClient.send_to_list"
@@ -60,9 +58,7 @@ class DatamailerHomeworkScoreSendSuccessTest(
         self.assert_homework_score_list_send(expectation)
 
 
-class DatamailerHomeworkScoreSendFailureTest(
-    DatamailerHomeworkScoreTestBase
-):
+class DatamailerHomeworkScoreSendFailureTest(DatamailerHomeworkScoreTestBase):
     @override_settings(**DATAMAILER_SETTINGS)
     @patch(
         "course_management.datamailer.client_recipient_lists.DatamailerRecipientListSendClient.send_to_list"

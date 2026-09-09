@@ -14,10 +14,7 @@ from courses.tests.deadline_reminder_base import (
 )
 
 
-SEND_TARGET = (
-    "courses.management.commands.send_deadline_reminders."
-    "send_deadline_reminder_mail"
-)
+SEND_TARGET = "courses.management.commands.send_deadline_reminders.send_deadline_reminder_mail"
 
 
 class DeadlineReminderFailureIsolationTest(DeadlineReminderTestBase):

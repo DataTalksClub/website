@@ -388,9 +388,7 @@ COMMUNITY_BASE = {
     "MAIL_TEMPLATE_DIR": str(BASE_DIR / "email_templates"),
     # D1.2b: the datamailer preference store keeps holding opt-outs while
     # the five purposes send through the package; D1.2c replaces the store.
-    "MAIL_PREFERENCE_RESOLVER": (
-        "course_management.mail_preferences.resolve_mail_preference"
-    ),
+    "MAIL_PREFERENCE_RESOLVER": ("course_management.mail_preferences.resolve_mail_preference"),
     "RELAY_BASE_URL": os.getenv("RELAY_BASE_URL", ""),
     "RELAY_API_KEY": os.getenv("RELAY_API_KEY", ""),
     "RELAY_WEBHOOK_SECRET": os.getenv("RELAY_WEBHOOK_SECRET", ""),

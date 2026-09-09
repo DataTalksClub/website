@@ -30,9 +30,7 @@ def resolve_mail_preference(*, purpose: str, category: str, to: str, user):
     except Exception:
         # Fail open: an unreachable datamailer (including the test
         # runtime's network guard) must not silently drop a confirmation.
-        logger.exception(
-            "mail preference lookup failed for user_id=%s", user.pk
-        )
+        logger.exception("mail preference lookup failed for user_id=%s", user.pk)
         return True
     if preferences is None:
         return True

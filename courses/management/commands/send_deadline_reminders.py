@@ -41,11 +41,7 @@ def reminder_users(events):
     studio views and the preference resolver both read.
     """
 
-    ids = {
-        user_id
-        for event in events
-        for user_id in member_user_ids(event)
-    }
+    ids = {user_id for event in events for user_id in member_user_ids(event)}
     if not ids:
         return {}
     users = get_user_model().objects.filter(pk__in=ids)
@@ -99,10 +95,7 @@ class Command(BaseCommand):
             course_slug=options["course_slug"],
         )
         total_members = reminder_event_member_count(events)
-        self.stdout.write(
-            f"Prepared {len(events)} reminder event(s), "
-            f"{total_members} member(s)."
-        )
+        self.stdout.write(f"Prepared {len(events)} reminder event(s), {total_members} member(s).")
 
         if options["dry_run"]:
             self.write_dry_run_events(events)
@@ -112,9 +105,7 @@ class Command(BaseCommand):
 
     def write_dry_run_events(self, events):
         for event in events:
-            self.stdout.write(
-                f"{event.list_key}: {len(event.members)} member(s)"
-            )
+            self.stdout.write(f"{event.list_key}: {len(event.members)} member(s)")
 
     def send_events(self, events):
         users = reminder_users(events)
@@ -125,19 +116,14 @@ class Command(BaseCommand):
             if failures:
                 for member, error in failures:
                     self.stderr.write(
-                        f"Failed {event.list_key} "
-                        f"{member.get('source_object_key')}: {error}"
+                        f"Failed {event.list_key} {member.get('source_object_key')}: {error}"
                     )
                 continue
-            self.stdout.write(
-                f"Sent {event.list_key}: {len(event.members)} member(s)"
-            )
+            self.stdout.write(f"Sent {event.list_key}: {len(event.members)} member(s)")
 
         if not total_failures:
             return
 
         # Raise only after every event has been attempted, so the task
         # still exits non-zero and surfaces in CloudWatch.
-        raise CommandError(
-            f"{total_failures} reminder member(s) failed to record."
-        )
+        raise CommandError(f"{total_failures} reminder member(s) failed to record.")

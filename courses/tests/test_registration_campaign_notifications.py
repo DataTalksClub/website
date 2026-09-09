@@ -13,9 +13,7 @@ class RegistrationCampaignNotificationTests(RegistrationCampaignBase):
         DATAMAILER_CLIENT="dtc-courses",
         DATAMAILER_AUDIENCE="dtc-courses",
     )
-    @patch(
-        "courses.views.registration.send_registration_confirmation_mail"
-    )
+    @patch("courses.views.registration.send_registration_confirmation_mail")
     def test_registration_sends_confirmation(self, send_confirmation):
         url = self.campaign_url()
         payload = self.registration_payload()

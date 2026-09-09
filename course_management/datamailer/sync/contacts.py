@@ -42,16 +42,12 @@ def sync_contact(user, course=None) -> None:
         handle_contact_sync_error(config, user)
 
 
-def erase_contact_from_datamailer(
-    user=None, *, user_id=None, email=None
-) -> None:
+def erase_contact_from_datamailer(user=None, *, user_id=None, email=None) -> None:
     config = DatamailerConfig.from_settings()
     if config is None:
         return
 
-    user_id, email = contact_erase_target(
-        user, user_id=user_id, email=email
-    )
+    user_id, email = contact_erase_target(user, user_id=user_id, email=email)
     if not email:
         return
 

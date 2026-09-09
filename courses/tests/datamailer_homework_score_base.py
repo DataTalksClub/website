@@ -117,9 +117,7 @@ class DatamailerHomeworkScoreTestBase(TestCase):
         )
         self.assertEqual(member["email"], "learner@example.com")
         self.assertEqual(member["metadata"]["questions_score"], 6)
-        self.assertEqual(
-            member["metadata"]["learning_in_public_score"], 2
-        )
+        self.assertEqual(member["metadata"]["learning_in_public_score"], 2)
         self.assertEqual(member["metadata"]["faq_score"], 1)
         self.assertEqual(member["metadata"]["total_score"], 9)
         self.assertEqual(
@@ -194,9 +192,7 @@ class DatamailerHomeworkScoreTestBase(TestCase):
     def assert_homework_score_client_calls(self, expectation):
         expectation.bulk_upsert.assert_called_once()
         expectation.send_list.assert_called_once()
-        expected_list_key = homework_submitters_list_key(
-            expectation.homework
-        )
+        expected_list_key = homework_submitters_list_key(expectation.homework)
         self.assertEqual(
             expectation.send_list.call_args.args[0],
             expected_list_key,

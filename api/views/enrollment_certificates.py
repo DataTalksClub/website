@@ -56,9 +56,7 @@ def _certificate_request_updates(request):
         return None, error_response
 
     if not certificate_updates:
-        error_payload = {
-            "error": "At least one certificate update is required"
-        }
+        error_payload = {"error": "At least one certificate update is required"}
         error_response = JsonResponse(error_payload, status=400)
         return None, error_response
 

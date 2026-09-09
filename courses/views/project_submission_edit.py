@@ -21,9 +21,7 @@ from courses.views.project_confirmation import (
 from courses.views.submission_formatting import tryparsefloat
 
 
-def project_submission_from_post(
-    request: HttpRequest, project: Project
-) -> ProjectSubmission:
+def project_submission_from_post(request: HttpRequest, project: Project) -> ProjectSubmission:
     user = request.user
     project_submission = project_submission_for_update(project, user)
 
@@ -59,9 +57,7 @@ def project_submit_post(request: HttpRequest, project: Project) -> None:
             "is_update": is_update,
         },
     )
-    update_url = build_project_update_url(
-        request, project.course, project
-    )
+    update_url = build_project_update_url(request, project.course, project)
     confirmation_data = ProjectConfirmationEmailData(
         user=request.user,
         course=project.course,
@@ -90,9 +86,7 @@ def clean_project_faq_contribution_url(
     )
 
 
-def project_delete_submission(
-    request: HttpRequest, project: Project
-) -> None:
+def project_delete_submission(request: HttpRequest, project: Project) -> None:
     project_submission = ProjectSubmission.objects.filter(
         project=project,
         student=request.user,
@@ -200,7 +194,5 @@ def apply_project_learning_in_public_links(
     project_submission: ProjectSubmission,
 ) -> None:
     links = request.POST.getlist("learning_in_public_links[]")
-    cleaned_links = clean_learning_in_public_links(
-        links, project.learning_in_public_cap_project
-    )
+    cleaned_links = clean_learning_in_public_links(links, project.learning_in_public_cap_project)
     project_submission.learning_in_public_links = cleaned_links
