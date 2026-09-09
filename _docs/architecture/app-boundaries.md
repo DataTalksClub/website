@@ -34,7 +34,11 @@ email_app/jobs may receive identifiers from domains, but domains do not import w
 - `email_app`: logical `EmailDelivery` intents, Relay idempotency/correlation metadata, redacted
   transport projections, and callback/reconciliation commands. It owns no canonical template body,
   renderer, provider adapter, provider attempt/event stack, suppression engine, or sender worker.
-  It additionally owns the Relay recipient-link ingress described below.
+  It additionally owns the Relay recipient-link ingress described below. D1.2a installs the
+  package mail app (`community_base.mail`) alongside it: the package callback ingress and studio
+  routes are mounted, `email_templates/` is the template source of truth mirrored into Relay by
+  the deploy's `import_mail_templates` step, and the send paths still run through `email_app`
+  until D1.2b switches them.
 - `studio`: staff HTML presentation only; mutations call owning application services.
 - `api`: versioned admin JSON presentation only; mutations call the same services as Studio.
 - `jobs`: queue wrappers, scheduling, leases/fences, heartbeat, and operator diagnostics. A leased

@@ -104,9 +104,17 @@ urlpatterns = [
     # PUBLIC_BASE_URL. They are declared before the course aliases so a legacy
     # slug can never shadow a live unsubscribe link.
     path("", include("email_app.urls")),
+    # The package mail app (D1.2a) owns the same three recipient-link routes and
+    # the signed callback ingress. email_app stays mounted first so it keeps
+    # serving the recipient links until D1.2c retires it; the callback route is
+    # new here and live immediately.
+    path("", include("community_base.mail.urls")),
     path("health/live", core_views.liveness, name="health-live"),
     path("health/ready", core_views.readiness, name="health-ready"),
     path("studio", core_views.management_slash_redirect, name="studio-slash-redirect"),
+    # Package studio mail routes (D1.2a) mount before the site studio shell so
+    # their exact paths are owned by the package delivery and catalog views.
+    path("studio/mail/", include("community_base.mail.studio_urls")),
     path("studio/", include("studio.urls")),
     studio_course_urls.canonical_root_pattern("studio/courses"),
     # The exact copied CMP shell still emits this route name for its staff menu.  Keep the

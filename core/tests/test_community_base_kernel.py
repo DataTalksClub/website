@@ -1,7 +1,8 @@
-"""Kernel-only community-base installation contract (D0.1a).
+"""Community-base installation contract (D0.1a, extended by D1.1 and D1.2a).
 
-The released kernel is installed with declarations only: no other shared app,
-no jobs/mail adoption, no schema change, and the site user model stays
+The released kernel, jobs app and mail app are installed. D1.1 moved durable
+intents onto the package jobs app; D1.2a installs the mail app without
+switching any send path yet. The site user model stays
 ``accounts.CustomUser``. The configured RegisteredOnlyPolicy must gate levels
 exactly as the site's tier model does today.
 """
@@ -19,21 +20,30 @@ class _AuthenticatedUser:
 
 
 class KernelInstallationTests(SimpleTestCase):
-    def test_kernel_and_jobs_apps_are_installed(self):
+    def test_community_base_apps_are_installed(self):
         installed = [app for app in settings.INSTALLED_APPS if app.startswith("community_base.")]
         self.assertEqual(
             installed,
-            ["community_base.jobs", "community_base.kernel.apps.KernelConfig"],
+            [
+                "community_base.jobs",
+                "community_base.mail",
+                "community_base.kernel.apps.KernelConfig",
+                "community_base.config",
+                "community_base.api",
+            ],
         )
         self.assertEqual(apps.get_app_config("cb_kernel").name, "community_base.kernel")
+        self.assertEqual(apps.get_app_config("cb_mail").name, "community_base.mail")
 
     def test_site_declarations(self):
         self.assertEqual(kernel_get("SITE_KEY"), "dtc")
         self.assertEqual(
             kernel_get("ACCESS_POLICY"), "community_base.kernel.access.RegisteredOnlyPolicy"
         )
-        self.assertEqual(kernel_get("JOBS_BACKEND"), "relay")
-        self.assertEqual(kernel_get("MAIL_BACKEND"), "relay")
+        # Test settings pin both backends to their process-local loops; base.py
+        # declares the relay direction development and production run.
+        self.assertEqual(kernel_get("JOBS_BACKEND"), "sync")
+        self.assertEqual(kernel_get("MAIL_BACKEND"), "memory")
         self.assertEqual(kernel_get("STUDIO_TITLE"), "DataTalks.Club Studio")
 
     def test_auth_user_model_is_unchanged(self):

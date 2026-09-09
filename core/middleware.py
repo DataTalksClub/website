@@ -24,6 +24,7 @@ PRIVATE_PREFIXES = (
     "/auth/logout/",
     "/cadmin/",
     "/internal/jobs/",
+    "/internal/mail/",
     "/studio/",
 )
 PRIVATE_ROUTE_NAMES = frozenset(
