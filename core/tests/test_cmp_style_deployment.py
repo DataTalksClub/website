@@ -48,7 +48,33 @@ class CmpStyleDeploymentWorkflowTests(TestCase):
         self.assertIn('["prepare_deployment"]', script)
         self.assertLess(script.index("aws ecs run-task"), script.index("aws ecs update-service"))
         self.assertIn("aws ecs wait services-stable", script)
-        self.assertIn('curl --fail --silent --show-error "${BASE_URL}/"', script)
+        # REL-06 pins the promoted-release verification to three bounded curls
+        # inside one retry loop. The script wraps them across lines, so match
+        # against a whitespace-normalized copy with continuations flattened.
+        flattened = " ".join(script.replace("\\\n", " ").split())
+        self.assertIn(
+            'curl --fail --silent --show-error --connect-timeout "$HEALTH_CONNECT_TIMEOUT"'
+            ' --max-time "$HEALTH_MAX_TIME" "${BASE_URL}/api/health/"'
+            ' --output "$WORKDIR/health.json"',
+            flattened,
+        )
+        self.assertIn(
+            'curl --fail --silent --show-error --connect-timeout "$HEALTH_CONNECT_TIMEOUT"'
+            ' --max-time "$HEALTH_MAX_TIME" "${BASE_URL}/health/ready"'
+            ' --output "$WORKDIR/ready.json"',
+            flattened,
+        )
+        self.assertIn(
+            'curl --fail --silent --show-error --connect-timeout "$HEALTH_CONNECT_TIMEOUT"'
+            ' --max-time "$HEALTH_MAX_TIME" "${BASE_URL}/"'
+            ' --output "$WORKDIR/home.html"',
+            flattened,
+        )
+        self.assertIn(
+            '.status == "ok" and .version == $version'
+            " and .source_sha == $source_sha and .image_digest == $image_digest",
+            script,
+        )
 
 
 class TaskDefinitionImageUpdateTests(TestCase):
