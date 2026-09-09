@@ -1135,6 +1135,12 @@ jobs:
           TEST_IMAGE_DIGEST: sha256:2222222222222222222222222222222222222222222222222222222222222222
         run: |
           set -euo pipefail
+          # website.settings.local creates /app/.tmp at import time, and the
+          # runtime user (10001) cannot create it under the root-owned /app:
+          # make it first as root and hand it to the runtime user (issue #337
+          # family; the scheduled smoke gives it a full chowned volume).
+          docker run --rm --entrypoint sh --user 0:0 \
+            "dtc-website:$RELEASE_SHA" -c 'mkdir -p /app/.tmp && chown 10001:10001 /app/.tmp'
           docker run --detach --name dtc-web \
             --env DJANGO_SETTINGS_MODULE=website.settings.local \
             --env DTC_SQLITE_PATH=/tmp/smoke.sqlite3 \
