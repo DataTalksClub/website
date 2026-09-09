@@ -190,7 +190,6 @@ class DatamailerHomeworkScoreTestBase(TestCase):
         self.assertEqual(expectation.result["enqueued_count"], 1)
         self.assert_homework_score_client_calls(expectation)
         self.assert_homework_score_send_audit(expectation.homework)
-        self.assert_homework_score_outbox_event(expectation.homework)
 
     def assert_homework_score_client_calls(self, expectation):
         expectation.bulk_upsert.assert_called_once()

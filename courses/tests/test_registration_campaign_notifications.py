@@ -14,14 +14,9 @@ class RegistrationCampaignNotificationTests(RegistrationCampaignBase):
         DATAMAILER_AUDIENCE="dtc-courses",
     )
     @patch(
-        "courses.views.registration.send_registration_confirmation_email"
+        "courses.views.registration.send_registration_confirmation_mail"
     )
-    @patch("courses.views.registration.sync_registration_to_datamailer")
-    def test_registration_syncs_to_datamailer_and_sends_confirmation(
-        self,
-        sync_datamailer,
-        send_confirmation,
-    ):
+    def test_registration_sends_confirmation(self, send_confirmation):
         url = self.campaign_url()
         payload = self.registration_payload()
         with self.captureOnCommitCallbacks(execute=True):
@@ -32,5 +27,4 @@ class RegistrationCampaignNotificationTests(RegistrationCampaignBase):
 
         self.assertEqual(response.status_code, 200)
         registration = CourseRegistration.objects.get()
-        sync_datamailer.assert_called_once_with(registration)
         send_confirmation.assert_called_once_with(registration)

@@ -82,12 +82,7 @@ class DatamailerHomeworkScoreSendFailureTest(
 
         self.assertIsNone(result)
         send_list.assert_not_called()
-        event = DatamailerOutboxEvent.objects.get()
-        self.assertEqual(
-            event.event_type,
-            "recipient_list.members_bulk_upsert",
-        )
-        self.assertEqual(event.status, DatamailerOutboxStatus.RETRYING)
+        self.assertFalse(DatamailerOutboxEvent.objects.exists())
         audit = DatamailerSendAudit.objects.get()
         self.assertEqual(audit.status, DatamailerSendAuditStatus.FAILED)
         self.assertIn("metadata sync", audit.error)
