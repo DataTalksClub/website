@@ -69,9 +69,7 @@ def _normalize_remote(url: str) -> str:
     return url.strip().rstrip("/").removesuffix(".git")
 
 
-def refresh_one(
-    *, host: str, repository: str, branch: str, checkout: Path
-) -> str:
+def refresh_one(*, host: str, repository: str, branch: str, checkout: Path) -> str:
     """Clone or refresh one checkout; return the commit it now names."""
     resolved = checkout.expanduser().resolve()
     try:
@@ -104,8 +102,13 @@ def refresh_one(
         resolved.parent.mkdir(parents=True, exist_ok=True)
         completed = subprocess.run(
             [
-                "git", "clone", "--quiet", "--branch", branch,
-                f"{host.rstrip('/')}/{repository}", str(resolved),
+                "git",
+                "clone",
+                "--quiet",
+                "--branch",
+                branch,
+                f"{host.rstrip('/')}/{repository}",
+                str(resolved),
             ],
             check=False,
             capture_output=True,

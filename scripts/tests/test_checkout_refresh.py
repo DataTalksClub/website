@@ -18,7 +18,6 @@ origin head before the real ``reset --hard``/``clean`` run.
 
 from __future__ import annotations
 
-import os
 import subprocess
 from pathlib import Path
 from unittest import mock
@@ -48,69 +47,44 @@ def _commit(root: Path, filename: str, content: str, message: str) -> str:
     return _git(root, "rev-parse", "HEAD")
 
 
-def _advance_bare_origin(origin: Path, filename: str, content: str) -> str:
-    """Move a bare origin's ``main`` forward with plumbing (no push/fetch)."""
-    parent = _git(origin, "rev-parse", "main")
-    blob = subprocess.run(
-        ["git", "hash-object", "-w", "--stdin"],
-        input=content,
-        check=True,
-        capture_output=True,
-        text=True,
-        cwd=origin,
-    ).stdout.strip()
-    tree = subprocess.run(
-        ["git", "mktree"],
-        input=f"100644 blob {blob}\t{filename}\n",
-        check=True,
-        capture_output=True,
-        text=True,
-        cwd=origin,
-    ).stdout.strip()
-    new_head = subprocess.run(
-        ["git", "commit-tree", tree, "-p", parent, "-m", "advance"],
-        check=True,
-        capture_output=True,
-        text=True,
-        cwd=origin,
-        env={
-            **os.environ,
-            "GIT_AUTHOR_NAME": "Fixture",
-            "GIT_AUTHOR_EMAIL": "fixture@example.invalid",
-            "GIT_COMMITTER_NAME": "Fixture",
-            "GIT_COMMITTER_EMAIL": "fixture@example.invalid",
-        },
-    ).stdout.strip()
-    _git(origin, "update-ref", "refs/heads/main", new_head)
-    return new_head
+def _advance_locally(checkout: Path, filename: str, content: str) -> str:
+    """Create a downstream commit the refresh can reset onto, then return
+    the checkout to its previous head.
+
+    A real fetch transfers the upstream objects; the test runtime denies
+    ``git fetch`` outright, so the advancing commit is built in the checkout's
+    own object store (normal porcelain on a temp branch) and handed to the
+    helper through the emulated ``FETCH_HEAD``.  What is exercised is the
+    helper's contract: reset a clean, owned checkout onto a *new* head.
+    """
+    detached = _git(checkout, "rev-parse", "HEAD")
+    _git(checkout, "checkout", "-q", "-b", "advance-temp")
+    head = _commit(checkout, filename, content, "advance")
+    _git(checkout, "checkout", "-q", "main")
+    _git(checkout, "branch", "-q", "-D", "advance-temp")
+    del detached
+    return head
 
 
 def _local_refresh(
     host: str,
     checkout: Path,
-    origin: Path,
+    fetch_head: str,
     *,
     repository: str = REPO_NAME,
     branch: str = "main",
 ) -> str:
-    """Refresh with the fetch step emulated against the local bare origin."""
+    """Refresh with the fetch step emulated by a prepared FETCH_HEAD."""
     real_git = checkout_refresh._git
 
     def local_git(checkout_path: Path, *arguments: str) -> str:
         if arguments[0] == "fetch":
-            origin_head = _git(origin, "rev-parse", branch)
-            # FETCH_HEAD is a pseudo-ref update-ref refuses to lock; writing
-            # the file is exactly what a real fetch does for one branch.
-            (checkout_path / ".git" / "FETCH_HEAD").write_text(
-                f"{origin_head}\n", encoding="utf-8"
-            )
-            return origin_head
+            (checkout_path / ".git" / "FETCH_HEAD").write_text(f"{fetch_head}\n", encoding="utf-8")
+            return fetch_head
         return real_git(checkout_path, *arguments)
 
     with mock.patch.object(checkout_refresh, "_git", local_git):
-        return refresh_one(
-            host=host, repository=repository, branch=branch, checkout=checkout
-        )
+        return refresh_one(host=host, repository=repository, branch=branch, checkout=checkout)
 
 
 @pytest.fixture()
@@ -131,12 +105,8 @@ def upstream(tmp_path: Path) -> tuple[Path, str]:
     return origin, str(tmp_path)
 
 
-def refresh(
-    host: str, checkout: Path, *, repository: str = REPO_NAME, branch: str = "main"
-) -> str:
-    return refresh_one(
-        host=host, repository=repository, branch=branch, checkout=checkout
-    )
+def refresh(host: str, checkout: Path, *, repository: str = REPO_NAME, branch: str = "main") -> str:
+    return refresh_one(host=host, repository=repository, branch=branch, checkout=checkout)
 
 
 def test_a_fresh_clone_writes_the_ownership_marker(
@@ -154,13 +124,13 @@ def test_a_fresh_clone_writes_the_ownership_marker(
 def test_an_owned_clean_checkout_refreshes_to_the_new_upstream_head(
     upstream: tuple[Path, str], tmp_path: Path
 ) -> None:
-    origin, host = upstream
+    _origin, host = upstream
     checkout = tmp_path / "course-checkouts" / REPO_NAME
     refresh(host, checkout)
 
-    new_head = _advance_bare_origin(origin, "lesson.md", "new lesson\n")
+    new_head = _advance_locally(checkout, "lesson.md", "new lesson\n")
 
-    refreshed = _local_refresh(host, checkout, origin)
+    refreshed = _local_refresh(host, checkout, new_head)
 
     assert refreshed == new_head
     assert (checkout / "lesson.md").read_text() == "new lesson\n"
@@ -183,13 +153,13 @@ def test_tracked_edits_survive_the_default_refresh_refusal(
 def test_untracked_and_ignored_files_survive_the_refusal(
     upstream: tuple[Path, str], tmp_path: Path
 ) -> None:
-    origin, host = upstream
+    _origin, host = upstream
     checkout = tmp_path / "course-checkouts" / REPO_NAME
     refresh(host, checkout)
 
-    # Teach the upstream about .env, so it is genuinely ignored locally.
-    _advance_bare_origin(origin, ".gitignore", ".env\n")
-    _local_refresh(host, checkout, origin)
+    # Teach the checkout about .env, so it is genuinely ignored locally.
+    ignored_head = _advance_locally(checkout, ".gitignore", ".env\n")
+    _local_refresh(host, checkout, ignored_head)
 
     (checkout / "notes.txt").write_text("untracked\n", encoding="utf-8")
     (checkout / ".env").write_text("ignored\n", encoding="utf-8")
@@ -232,9 +202,7 @@ def test_a_wrong_origin_is_refused_before_any_fetch(
         refresh(host, checkout)
 
 
-def test_a_linked_worktree_is_refused(
-    upstream: tuple[Path, str], tmp_path: Path
-) -> None:
+def test_a_linked_worktree_is_refused(upstream: tuple[Path, str], tmp_path: Path) -> None:
     _origin, host = upstream
     checkout = tmp_path / "course-checkouts" / REPO_NAME
     refresh(host, checkout)
@@ -256,9 +224,7 @@ def test_a_path_outside_the_scratch_root_is_refused_before_any_git_call(
     _origin, host = upstream
     escape = Path("/tmp/dtc-rel10-escape-check")
     try:
-        with pytest.raises(
-            CheckoutRefused, match="checkout-outside-scratch-root"
-        ):
+        with pytest.raises(CheckoutRefused, match="checkout-outside-scratch-root"):
             refresh(host, escape)
         # The refusal preceded every mutation: nothing was created.
         assert not escape.exists()
