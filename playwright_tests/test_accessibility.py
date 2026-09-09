@@ -27,9 +27,7 @@ from core.accessibility_registry import (
     PUBLIC_TEST,
 )
 from core.models import AuditEvent
-from course_management.datamailer_templates.accessibility import (
-    render_current_transactional_email,
-)
+from core.mail_render_fixtures import render_package_template
 from courses.models import Cohort, HomeworkState, ProjectState, RegistrationCampaign
 from events.identity import canonical_detail_path
 from events.models import (
@@ -701,14 +699,14 @@ def test_accessibility_visual_evidence(
         SCREENSHOTS / f"credential-fixture-empty-{suffix}.png",
     )
 
-    rendered_email = render_current_transactional_email("registration-confirmation")
+    rendered_email = render_package_template("course-registration-confirmation")
     page.set_content(rendered_email.html, wait_until="domcontentloaded")
     assert axe_issues(page, "transactional-email.registration-confirmation") == []
     _capture_deterministic_screenshot(
         page,
         SCREENSHOTS / f"transactional-email-registration-html-images-disabled-{suffix}.png",
     )
-    score_email = render_current_transactional_email("homework-score-notification")
+    score_email = render_package_template("homework-score-notification")
     page.set_content(score_email.html, wait_until="domcontentloaded")
     assert axe_issues(page, "transactional-email.homework-score-notification") == []
     _capture_deterministic_screenshot(

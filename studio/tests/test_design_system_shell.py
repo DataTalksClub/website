@@ -198,8 +198,6 @@ class StudioDesignFiveAShellTests(TestCase):
                     "submission_id": self.project_submission.id,
                 },
             ),
-            "datamailer operations": reverse("studio_courses_datamailer_operations"),
-            "datamailer events": reverse("studio_courses_datamailer_events"),
         }
 
     def rendered_pages(self) -> dict[str, str]:

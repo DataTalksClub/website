@@ -100,26 +100,30 @@ class RuntimeSettingResolutionTests(TestCase):
         with mock.patch.dict(
             os.environ,
             {
-                "DATAMAILER_STRICT": "yes",
-                "DATAMAILER_TIMEOUT_SECONDS": "45",
-                "DATAMAILER_CLIENT": "  spaced  ",
+                "PUBLIC_MEDIA_S3_TIMEOUT_SECONDS": "45",
+                "PUBLIC_MEDIA_S3_ENDPOINT_URL": " https://media.example.com ",
             },
         ):
             reset_runtime_settings_cache()
-            self.assertIs(get_setting("datamailer.strict"), True)
-            self.assertEqual(get_setting("datamailer.timeout_seconds"), 45)
-            self.assertEqual(get_setting("datamailer.client"), "spaced")
+            self.assertEqual(
+                get_setting("public_media.s3_timeout_seconds"),
+                45,
+            )
+            self.assertEqual(
+                get_setting("public_media.s3_endpoint_url"),
+                "https://media.example.com",
+            )
 
     def test_float_settings_value_is_read_as_the_declared_integer(self) -> None:
-        with override_settings(DATAMAILER_TIMEOUT_SECONDS=90.0):
+        with override_settings(PUBLIC_MEDIA_S3_TIMEOUT_SECONDS=90.0):
             reset_runtime_settings_cache()
-            value = get_setting("datamailer.timeout_seconds")
+            value = get_setting("public_media.s3_timeout_seconds")
         self.assertEqual(value, 90)
         self.assertIsInstance(value, int)
 
     def test_unregistered_key_raises_rather_than_guessing(self) -> None:
         with self.assertRaises(UnknownOperationalSetting):
-            get_setting("datamailer.not_a_setting")
+            get_setting("public_media.not_a_setting")
 
     def test_public_announcement_keys_are_not_runtime_resolvable(self) -> None:
         # They are ``uncached``: a banner is read straight from the database on
@@ -128,10 +132,10 @@ class RuntimeSettingResolutionTests(TestCase):
             get_setting("site.announcement.enabled")
 
     def test_malformed_environment_value_falls_through_instead_of_raising(self) -> None:
-        with mock.patch.dict(os.environ, {"DATAMAILER_TIMEOUT_SECONDS": "not-a-number"}):
-            with override_settings(DATAMAILER_TIMEOUT_SECONDS=30.0):
+        with mock.patch.dict(os.environ, {"PUBLIC_MEDIA_S3_TIMEOUT_SECONDS": "not-a-number"}):
+            with override_settings(PUBLIC_MEDIA_S3_TIMEOUT_SECONDS=30.0):
                 reset_runtime_settings_cache()
-                resolution = resolve_runtime_setting("datamailer.timeout_seconds")
+                resolution = resolve_runtime_setting("public_media.s3_timeout_seconds")
         self.assertEqual(resolution.value, 30)
         self.assertEqual(resolution.layer, runtime_config.SETTINGS_LAYER)
 
@@ -289,8 +293,6 @@ class EndpointSettingTests(TestCase):
     def test_an_ordinary_url_and_address_are_stored_as_themselves(self) -> None:
         accepted = {
             "site.origin.canonical": "https://datatalks.club",
-            "datamailer.url": "https://mailer.example.com/api",
-            "datamailer.from_email": "noreply@datatalks.club",
             "public_media.s3_endpoint_url": "https://storage.example.com",
             # Relay has no public listener; in-VPC it is plain http.
             "relay.link_bridge.base_url": "http://relay.internal:8000",
@@ -310,36 +312,17 @@ class EndpointSettingTests(TestCase):
         refused = (
             # The two shapes a token travels in.
             ("site.origin.canonical", "https://operator:hunter2@datatalks.club"),
-            ("datamailer.url", "https://mailer.example.com/api?access=abc"),
             ("relay.link_bridge.base_url", "http://relay.internal:8000/#abc"),
             # An origin is a scheme and a host: a path here would be appended to
             # every canonical link on the site.
             ("site.origin.canonical", "https://datatalks.club/courses"),
             ("site.origin.canonical", "http://datatalks.club"),
             ("site.origin.canonical", "datatalks.club"),
-            # A list and a display name are not one sender.
-            ("datamailer.from_email", "noreply@datatalks.club, other@datatalks.club"),
-            ("datamailer.from_email", "DataTalks <noreply@datatalks.club>"),
-            ("datamailer.from_email", "noreply@datatalks.club\nBcc: other@example.test"),
         )
         for key, value in refused:
             with self.subTest(key=key, value=value):
                 with self.assertRaises(InvalidOperationalSetting):
                     validate_operational_setting_value(key, value)
-
-    def test_the_named_sender_the_mailer_resolves_is_still_a_sender(self) -> None:
-        """``courses`` is what this deployment configures, and it must survive.
-
-        The mailer resolves a named sender of its own.  A validator that
-        insisted on ``mailbox@domain`` would refuse it, and a refused
-        environment value falls through to the next layer -- so course mail
-        would go out with no sender at all rather than fail loudly.
-        """
-
-        self.assertEqual(
-            validate_operational_setting_value("datamailer.from_email", "courses"),
-            "courses",
-        )
 
     def test_they_resolve_through_the_same_four_layers_as_any_other_key(self) -> None:
         key = "site.origin.canonical"
@@ -364,8 +347,8 @@ class EndpointSettingTests(TestCase):
         with".  The ordinary resolution order gives it for free.
         """
 
-        key = "datamailer.url"
-        with mock.patch.dict(os.environ, {"DATAMAILER_URL": "https://booted.example"}):
+        key = "relay.link_bridge.base_url"
+        with mock.patch.dict(os.environ, {"RELAY_LINK_BRIDGE_BASE_URL": "https://booted.example"}):
             row = _store(key, OperationalSetting.ValueType.STRING, "https://written.example")
             reset_runtime_settings_cache()
             self.assertEqual(get_setting(key), "https://written.example")

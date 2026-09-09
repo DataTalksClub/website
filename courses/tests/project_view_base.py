@@ -188,27 +188,7 @@ class ProjectViewTestBase(TestCase):
         self.assertNotEqual(submission.commit_id, data["commit_id"])
         self.assertNotEqual(submission.learning_in_public_links, links)
 
-    def assert_project_confirmation_payload(self, payload, submission):
-        self.assertEqual(payload["email"], "test@test.com")
-        self.assertEqual(
-            payload["template_key"],
-            "project-submission-confirmation",
-        )
-        self.assertEqual(payload["category_tag"], "submission-results")
-        self.assertEqual(
-            payload["idempotency_key"],
-            (
-                f"project-submission:{submission.id}:"
-                f"{submission.submitted_at.isoformat()}"
-            ),
-        )
-        self.assertEqual(
-            payload["metadata"]["event"],
-            "project_submission",
-        )
-
-    def assert_project_confirmation_context(self, payload, submission):
-        context = payload["context"]
+    def assert_project_confirmation_context(self, context, submission):
         self.assertEqual(context["submission_id"], submission.id)
         self.assertEqual(context["course_slug"], "test-course")
         self.assertEqual(context["project_slug"], "test-project")
@@ -290,9 +270,9 @@ class ProjectViewTestBase(TestCase):
             fields.append(field)
         return fields
 
-    def assert_project_submission_fields(self, payload):
+    def assert_project_submission_fields(self, context):
         expected_fields = self.expected_project_submission_fields()
-        actual_fields = payload["context"]["submission_fields"]
+        actual_fields = context["submission_fields"]
         self.assertEqual(actual_fields, expected_fields)
 
     def assert_save_submission_copy(self, response):

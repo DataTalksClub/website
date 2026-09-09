@@ -14,7 +14,7 @@ from core.context import (
     is_safe_external_context_id,
     reset_context,
 )
-from core.security import MAX_REQUEST_BODY_BYTES, MAX_WEBHOOK_BODY_BYTES
+from core.security import MAX_REQUEST_BODY_BYTES
 
 REQUEST_ID_PATTERN = CONTEXT_ID_PATTERN
 PRIVATE_PREFIXES = (
@@ -167,7 +167,7 @@ class RequestBoundaryMiddleware:
             if content_length is not None and content_length < 0:
                 content_length = None
                 length_missing = False
-            limit = MAX_WEBHOOK_BODY_BYTES if webhook_path else MAX_REQUEST_BODY_BYTES
+            limit = MAX_REQUEST_BODY_BYTES
             if content_length is not None and content_length > limit:
                 return self._too_large()
             stream_seekable, stream_size = self._seekable_stream_size(request)
@@ -192,22 +192,6 @@ class RequestBoundaryMiddleware:
                 ):
                     return self._too_large()
 
-        if webhook_path:
-            authorization = request.headers.get("Authorization", "")
-            legacy_token = request.headers.get("X-Datamailer-Webhook-Token", "")
-            if authorization and legacy_token:
-                return self._webhook_rejected()
-            if authorization:
-                scheme, separator, token = authorization.partition(" ")
-                if (
-                    scheme.casefold() != "bearer"
-                    or not separator
-                    or not token
-                    or token != token.strip()
-                ):
-                    return self._webhook_rejected()
-            if request.content_type != "application/json":
-                return self._webhook_rejected(status=415)
         return self.get_response(request)
 
     @staticmethod
@@ -244,14 +228,6 @@ class RequestBoundaryMiddleware:
             status=413,
         )
         response["Cache-Control"] = "private, no-store, max-age=0"
-        return response
-
-    @staticmethod
-    def _webhook_rejected(*, status: int = 401) -> JsonResponse:
-        response = JsonResponse({"error": "Webhook request rejected."}, status=status)
-        response["Cache-Control"] = "private, no-store, max-age=0"
-        if status == 401:
-            response["WWW-Authenticate"] = "Bearer"
         return response
 
 

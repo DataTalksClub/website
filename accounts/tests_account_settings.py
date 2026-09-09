@@ -210,18 +210,15 @@ class AccountSettingsOverviewViewTestCase(AccountSettingsViewTestBase):
         self.assertContains(response, f'href="{studio_url}">Studio</a>')
         self.assertNotContains(response, courses_studio_url)
 
-    @patch("accounts.views.email_preferences.get_email_preferences_for_user")
-    def test_account_settings_does_not_block_on_datamailer_preferences(
-        self,
-        get_email_preferences,
-    ):
+    def test_account_settings_renders_with_local_email_preferences(self):
+        self.user.email_course_updates = False
+        self.user.save(update_fields=["email_course_updates"])
         self.client.force_login(self.user)
         account_settings_url = reverse("account_settings")
 
         response = self.client.get(account_settings_url)
 
         self.assertEqual(response.status_code, 200)
-        get_email_preferences.assert_not_called()
         self.assertNotIn(
             "email_submission_confirmations",
             response.context["form"].fields,

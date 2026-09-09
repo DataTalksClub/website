@@ -45,14 +45,14 @@ def synthetic_email_preferences(request):
             {
                 "field": request.POST.get("field", ""),
                 "value": request.POST.get("value") == "true",
-                "datamailer_synced": True,
+                "stored": True,
             }
         )
     return JsonResponse(
         {
             "preferences": {
-                "email_submission_confirmations": False,
-                "email_deadline_reminders": False,
+                "email_submission_confirmations": True,
+                "email_deadline_reminders": True,
                 "email_course_updates": False,
             }
         }

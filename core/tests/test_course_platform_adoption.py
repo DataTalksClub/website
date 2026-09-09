@@ -28,7 +28,6 @@ ADOPTION_DIR = REPO_ROOT / "_docs/adoption/course-platform"
 MANIFEST_PATH = ADOPTION_DIR / "copied-files.tsv"
 EXPECTED_COMMANDS = {
     "account_identity_inventory": "accounts",
-    "audit_datamailer_recipient_lists": "courses",
     # The entrance pages draw one button per configured provider, and a fresh
     # local database has none; this writes obviously-fake placeholder apps so
     # the block a reader actually meets can be built and reviewed locally.
@@ -39,10 +38,8 @@ EXPECTED_COMMANDS = {
     # Shared-curriculum rollout operator inventory (issue #320).
     "shared_curriculum_inventory": "courses",
     "datamailer_callback_status": "data",
-    "datamailer_campaign": "courses",
     "datamailer_outbox_status": "data",
     "datamailer_send_status": "data",
-    "datamailer_status": "courses",
     "import_development_course_content": "courses",
     "monitoring_datamailer_health": "data",
     "preview_peer_review_email": "courses",
@@ -50,9 +47,6 @@ EXPECTED_COMMANDS = {
     "seed_local_project_review": "courses",
     "seed_local_questions": "courses",
     "send_deadline_reminders": "courses",
-    "sync_datamailer_contacts": "courses",
-    "sync_datamailer_recipient_lists": "courses",
-    "upsert_datamailer_templates": "courses",
     "verify_development_course_content": "courses",
 }
 EXPECTED_APP_MODULES = {

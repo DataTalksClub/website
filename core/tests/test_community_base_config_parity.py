@@ -34,8 +34,7 @@ def _value_type(definition):
 
 
 # The one site validator with a package-side equivalent: the mailbox sender
-# check on datamailer.from_email maps onto declare(is_email=True).
-EMAIL_VALIDATOR_KEYS = {"datamailer.from_email"}
+EMAIL_VALIDATOR_KEYS = set()
 
 
 def package_kwargs(definition):
@@ -81,7 +80,6 @@ class SettingsContractParityTest(SimpleTestCase):
         # Every declaration with a site-side callable validator is recorded as
         # adapter-owned; today that is every validated key except the email one.
         self.assertGreaterEqual(len(adapter_owned), 5)
-        self.assertNotIn("datamailer.from_email", adapter_owned)
 
     def test_value_type_vocabulary_covers_every_site_type(self):
         used = {

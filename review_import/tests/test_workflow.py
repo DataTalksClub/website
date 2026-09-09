@@ -503,15 +503,6 @@ def seed_synthetic_snapshot(path: Path) -> None:
             },
         ),
         (
-            "data_datamaileroutboxevent",
-            {
-                "id": 9001,
-                "payload": json.dumps({"body": CANARIES["rendered"]}),
-                "response_payload": json.dumps({"canary": CANARIES["payload"]}),
-                "last_error": CANARIES["error"],
-            },
-        ),
-        (
             "cb_jobs_jobintent",
             {
                 "id": "9001",
@@ -762,10 +753,6 @@ class ReviewImportWorkflowTests(TestCase):
                 0,
             )
             self.assertEqual(
-                connection.execute("SELECT COUNT(*) FROM data_datamaileroutboxevent").fetchone()[0],
-                0,
-            )
-            self.assertEqual(
                 connection.execute(
                     "SELECT seq FROM sqlite_sequence WHERE name = 'courses_course'"
                 ).fetchone()[0],
@@ -918,47 +905,16 @@ import django
 django.setup()
 
 from django.conf import settings
-from course_management.datamailer.client import DatamailerConfig
 from data.models import DatamailerOutboxEvent
 from community_base.jobs.models import JobIntent
 from review_import.admin import create_synthetic_admin
 
-empty_settings = (
-    'DATAMAILER_URL',
-    'DATAMAILER_API_KEY',
-    'DATAMAILER_CLIENT',
-    'DATAMAILER_AUDIENCE',
-    'DATAMAILER_FROM_EMAIL',
-    'DATAMAILER_WEBHOOK_TOKEN',
-    'DATAMAILER_IMPORT_S3_BUCKET',
-    'DATAMAILER_IMPORT_S3_PREFIX',
-    'DATAMAILER_IMPORT_S3_REGION',
-)
-if any(getattr(settings, name) for name in empty_settings):
-    raise SystemExit(10)
-if settings.DATAMAILER_SYNC_ON_USER_CREATE:
-    raise SystemExit(11)
-if not settings.DATAMAILER_TRANSACTIONAL_DRY_RUN:
-    raise SystemExit(13)
-if settings.DATAMAILER_STRICT:
-    raise SystemExit(14)
-if settings.DATAMAILER_TIMEOUT_SECONDS != 0.0:
-    raise SystemExit(15)
-if settings.DATAMAILER_IMPORT_URL_EXPIRES_SECONDS != 0:
-    raise SystemExit(16)
 if settings.EMAIL_BACKEND != 'django.core.mail.backends.dummy.EmailBackend':
     raise SystemExit(17)
 if settings.COMMUNITY_BASE.get('JOBS_BACKEND') != 'sync':
     raise SystemExit(18)
-if DatamailerConfig.from_settings() is not None:
-    raise SystemExit(19)
 
 with (
-    patch('courses.signals.sync_contact', side_effect=AssertionError('sync attempted')) as sync,
-    patch(
-        'course_management.datamailer.client.DatamailerClient.request',
-        side_effect=AssertionError('provider transport attempted'),
-    ) as transport,
     patch(
         'django.core.mail.message.EmailMessage.send',
         side_effect=AssertionError('email attempted'),
@@ -970,7 +926,7 @@ with (
 ):
     create_synthetic_admin(os.environ['REVIEW_ADMIN_PASSWORD'])
 
-if sync.called or transport.called or email_send.called or job_submit.called:
+if email_send.called or job_submit.called:
     raise SystemExit(20)
 if DatamailerOutboxEvent.objects.count() != 0:
     raise SystemExit(21)
@@ -1012,10 +968,6 @@ if JobIntent.objects.count() != 0:
                     ("review-admin@example.invalid",),
                 ).fetchone()[0],
                 1,
-            )
-            self.assertEqual(
-                connection.execute("SELECT COUNT(*) FROM data_datamaileroutboxevent").fetchone()[0],
-                0,
             )
             self.assertEqual(
                 connection.execute("SELECT COUNT(*) FROM cb_jobs_jobintent").fetchone()[0],
@@ -1085,10 +1037,6 @@ with (
         side_effect=AssertionError('HTTP provider attempted'),
     ) as requests_transport,
     patch(
-        'course_management.datamailer.client.DatamailerClient.request',
-        side_effect=AssertionError('Datamailer attempted'),
-    ) as datamailer,
-    patch(
         'socket.create_connection',
         side_effect=AssertionError('socket connection attempted'),
     ) as create_connection,
@@ -1102,31 +1050,21 @@ with (
         raise SystemExit(34)
     if b'/studio/courses/cloudwatch/' not in admin_index.content:
         raise SystemExit(35)
-    if b'/studio/courses/datamailer/' not in admin_index.content:
-        raise SystemExit(36)
 
     cloudwatch = client.get('/studio/courses/cloudwatch/')
     if cloudwatch.status_code != 200 or b'disabled' not in cloudwatch.content.lower():
         raise SystemExit(37)
-    if client.get('/studio/courses/datamailer/').status_code != 200:
-        raise SystemExit(38)
     if client.get('/accounts/github/login/').status_code != 403:
         raise SystemExit(39)
-    if client.post('/studio/courses/datamailer/', {'action': 'requeue'}).status_code != 403:
-        raise SystemExit(40)
 
     legacy_checks = (
         ('/cadmin/?source=review', '/studio/courses?source=review'),
         ('/cadmin/cloudwatch/?source=review', '/studio/courses/cloudwatch/?source=review'),
-        ('/cadmin/datamailer/?source=review', '/studio/courses/datamailer/?source=review'),
     )
     for legacy, canonical in legacy_checks:
         response = client.get(legacy)
         if response.status_code != 302 or response.headers.get('Location') != canonical:
             raise SystemExit(41)
-    legacy_post = client.post('/cadmin/datamailer/?source=review', {'action': 'requeue'})
-    if legacy_post.status_code != 403 or legacy_post.headers.get('Location'):
-        raise SystemExit(42)
     for path in ordinary_paths:
         if client.get(path, follow=True).status_code != 200:
             raise SystemExit(43)
@@ -1137,7 +1075,6 @@ if any(
         boto,
         botocore,
         requests_transport,
-        datamailer,
         create_connection,
         socket_connect,
     )

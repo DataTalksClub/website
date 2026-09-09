@@ -62,14 +62,9 @@ def provisioner(api: CmpApiClient) -> Provisioner:
 
 @pytest.fixture(scope="session")
 def send_audits(api: CmpApiClient) -> CmpApiClient:
-    """Reader for CMP's own Datamailer send audits.
+    """API client fixture for the e2e suite.
 
     Email verification no longer polls a mock/real inbox. Instead it reads
-    CMP's ``DatamailerSendAudit`` rows over HTTP: the real prod path runs
-    (outbox -> dispatch -> /api/transactional/send -> audit), but with
-    ``DATAMAILER_TRANSACTIONAL_DRY_RUN=1`` the render is returned inline and
-    nothing is delivered. This fixture is the same ``CmpApiClient`` used for
-    provisioning; it exposes ``datamailer_send_audits`` / ``wait_for_send_audit``.
     """
     return api
 

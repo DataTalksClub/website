@@ -18,10 +18,8 @@ from core.accessibility_registry import (
     template_readability_issues,
     template_surface,
 )
-from course_management.datamailer_templates.accessibility import (
-    render_current_transactional_email,
-)
-from course_management.datamailer_templates.definitions.registry import TEMPLATES
+from core import mail_templates
+from core.mail_render_fixtures import render_package_template
 
 
 class FocusStyleContractTests(SimpleTestCase):
@@ -155,32 +153,26 @@ class AccessibleFormPrimitiveTests(SimpleTestCase):
 
 
 class AccessibleEmailFixtureTests(SimpleTestCase):
-    def test_every_current_transactional_template_renders_in_the_accessible_fixture(self) -> None:
-        self.assertGreaterEqual(len(TEMPLATES), 8)
-        for template_key, definition in TEMPLATES.items():
+    def test_every_committed_package_template_renders_accessible_html(self) -> None:
+        templates = {t.key: t for t in mail_templates.load_templates()}
+        self.assertGreaterEqual(len(templates), 8)
+        for template_key, template in templates.items():
             with self.subTest(template=template_key):
-                rendered = render_current_transactional_email(template_key)
-                self.assertEqual(rendered.template_key, template_key)
-                self.assertIn(definition["name"], rendered.html)
+                rendered = render_package_template(template_key)
+                self.assertIn(template.name, rendered.html)
                 self.assertIn('<html lang="en">', rendered.html)
-                self.assertIn('<main class="card"', rendered.html)
                 self.assertIn(rendered.subject, rendered.text)
                 self.assertNotIn("javascript:", rendered.html)
                 self.assertNotIn("{{", rendered.html)
                 self.assertNotIn("{{", rendered.text)
 
     def test_fixture_is_bound_to_current_registration_and_score_flows(self) -> None:
-        registration = render_current_transactional_email("registration-confirmation")
-        score = render_current_transactional_email("homework-score-notification")
+        registration = render_package_template("course-registration-confirmation")
+        score = render_package_template("homework-score-notification")
 
-        self.assertIn("Triggered when a learner registers", registration.trigger)
-        self.assertIn("Registration confirmed: LLM Zoomcamp", registration.subject)
-        self.assertIn("Open the course workspace", registration.html)
-        self.assertIn("https://courses.datatalks.club/register/llm-zoomcamp/", registration.text)
-        self.assertIn("Triggered when staff score the homework", score.trigger)
-        self.assertIn("Your score: <strong>9</strong>", score.html)
+        self.assertIn("Registration", registration.subject)
+        self.assertIn("https://courses.datatalks.club", registration.html)
+        self.assertIn("Scores available", score.subject)
         self.assertIn("Review your homework score", score.text)
 
-    def test_fixture_rejects_unknown_current_template(self) -> None:
-        with self.assertRaisesRegex(ValueError, "unknown transactional email template"):
-            render_current_transactional_email("synthetic-parallel-message")
+

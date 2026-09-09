@@ -22,7 +22,6 @@ from core.source_policy import (
     validate_development_source,
     validate_gunicorn_entrypoint,
 )
-from course_management.datamailer.client import DEFAULT_TIMEOUT_SECONDS
 from course_management.observability.events import event_properties
 from courses.validators.url_status_transport import URL_VALIDATION_TIMEOUT
 from deploy.contracts import ReleaseContractError
@@ -194,7 +193,8 @@ class ApplicationSourcePolicyTests(SimpleTestCase):
 
         timeout = parse_gunicorn_timeout(source)
         self.assertEqual(timeout, GUNICORN_WEB_TIMEOUT_SECONDS)
-        self.assertGreaterEqual(timeout, DEFAULT_TIMEOUT_SECONDS + 10)
+        # The retired mailer's 60s default is the historical floor.
+        self.assertGreaterEqual(timeout, 60 + 10)
         self.assertLessEqual(REQUEST_TIMEOUT_SECONDS, timeout)
         self.assertLessEqual(URL_VALIDATION_TIMEOUT, timeout)
 
