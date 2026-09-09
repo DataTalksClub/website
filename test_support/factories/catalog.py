@@ -87,8 +87,6 @@ BUNDLE_LEAVES: dict[str, tuple[str, ...]] = {
         "durable_job",
         "job_lease",
         "job_result",
-        "worker_heartbeat",
-        "scheduler_lease",
     ),
     "provider_neutral_messaging": (
         "captured_message",
