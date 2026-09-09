@@ -9,7 +9,6 @@ still reports its summary for rollback monitoring.
 from io import StringIO
 from unittest.mock import patch
 
-import requests
 from django.core.management import call_command
 from django.test import TestCase
 
@@ -88,7 +87,7 @@ class MailPreferenceResolverTest(TestCase):
         "get_email_preferences_for_user",
     )
     def test_an_unreachable_datamailer_fails_open(self, get_preferences):
-        get_preferences.side_effect = requests.ConnectionError("down")
+        get_preferences.side_effect = OSError("external DNS resolution denied")
 
         self.assertTrue(self._resolver(user=_FakeUser()))
 

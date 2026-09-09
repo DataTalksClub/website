@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from community_base.mail import MailError
+from community_base.mail.service import MailError
 from course_management.datamailer.client import DatamailerConfig
 from course_management.package_mail import send_deadline_reminder_mail
 from courses.deadline_reminder_events import (

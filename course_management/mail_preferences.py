@@ -12,8 +12,6 @@ from __future__ import annotations
 
 import logging
 
-import requests
-
 logger = logging.getLogger(__name__)
 
 
@@ -29,7 +27,9 @@ def resolve_mail_preference(*, purpose: str, category: str, to: str, user):
 
     try:
         preferences = get_email_preferences_for_user(user)
-    except requests.RequestException:
+    except Exception:
+        # Fail open: an unreachable datamailer (including the test
+        # runtime's network guard) must not silently drop a confirmation.
         logger.exception(
             "mail preference lookup failed for user_id=%s", user.pk
         )

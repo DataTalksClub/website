@@ -2,7 +2,7 @@ from datetime import timedelta
 from io import StringIO
 from unittest.mock import patch
 
-from community_base.mail import MailError
+from community_base.mail.service import MailError
 from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
 

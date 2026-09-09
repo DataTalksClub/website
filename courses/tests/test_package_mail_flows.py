@@ -1,4 +1,5 @@
-from community_base.mail import MailConflict, MailError
+from community_base.mail.service import MailError
+from community_base.mail.service import MailConflict
 from community_base.mail.models import EmailDelivery
 from django.test import TestCase, override_settings
 from django.utils.dateparse import parse_date

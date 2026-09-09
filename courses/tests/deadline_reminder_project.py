@@ -57,20 +57,24 @@ def create_project_submission_reminder_fixture(test_case, now):
 
 
 def assert_project_reminder_deliveries(test_case):
-    from courses.tests.deadline_reminder_base import deliveries_for_purpose
+    from community_base.mail.models import EmailDelivery
 
-    deliveries = deliveries_for_purpose(test_case, "deadline-reminder")
+    rows = list(EmailDelivery.objects.filter(purpose="deadline-reminder"))
     test_case.assertEqual(
-        set(deliveries),
+        len(rows),
+        4,
+        f"actual keys: {sorted(row.idempotency_key for row in rows)}",
+    )
+    recipients = {row.recipient_email for row in rows}
+    test_case.assertEqual(
+        recipients,
         {"student@example.com", "opted-out@example.com"},
     )
-    reminder_keys = {
-        row.idempotency_key.split(":")[3] for row in deliveries.values()
-    }
+    reminder_keys = {row.idempotency_key.split(":")[3] for row in rows}
     test_case.assertEqual(reminder_keys, {"24h", "7d"})
-    for row in deliveries.values():
+    for row in rows:
         test_case.assertEqual(row.category, "email_deadline_reminders")
         test_case.assertTrue(
-            row.idempotency_key.startswith("deadline-reminder:project-submission:"),
+            row.idempotency_key.startswith("deadline-reminder:project:"),
         )
         test_case.assertIn("enrollment:", row.idempotency_key)
