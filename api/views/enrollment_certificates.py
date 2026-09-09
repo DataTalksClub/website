@@ -7,8 +7,8 @@ from django.views.decorators.http import require_POST
 
 from accounts.auth import token_required
 from api.safety import require_staff_token
-from course_management.datamailer.sync.certificates import (
-    send_certificate_availability_notification,
+from course_management.package_mail import (
+    send_certificate_ready_mail,
 )
 from courses.models.cohort import Cohort
 
@@ -35,7 +35,7 @@ def bulk_update_enrollment_certificates_view(request, course_slug: str):
         course,
         course_slug,
         certificate_updates,
-        send_certificate_availability_notification,
+        send_certificate_ready_mail,
     )
 
     return _certificate_update_response(updated, errors)

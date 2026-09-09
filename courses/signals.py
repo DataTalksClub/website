@@ -10,24 +10,8 @@ from course_management.datamailer.sync.contacts import (
     erase_contact_from_datamailer,
     sync_contact,
 )
-from course_management.datamailer.sync.membership_removals import (
-    remove_enrollment_from_datamailer as remove_enrollment_recipient_list,
-)
-from course_management.datamailer.sync.membership_removals import (
-    remove_homework_submission_from_datamailer as remove_homework_submission_recipient_list,
-)
-from course_management.datamailer.sync.membership_removals import (
-    remove_project_submission_from_datamailer as remove_project_submission_recipient_list,
-)
-from course_management.datamailer.sync.membership_removals import (
-    remove_registration_from_datamailer as remove_registration_recipient_list,
-)
-from course_management.datamailer.sync.memberships import (
-    sync_enrollment_to_datamailer as sync_enrollment_recipient_list,
-)
-from courses.models.cohort import CourseRegistration, Enrollment
-from courses.models.homework import Submission
-from courses.models.project import ProjectSubmission
+from course_management.package_mail import send_enrollment_confirmation_mail
+from courses.models.cohort import Enrollment
 
 
 @receiver(post_save, sender=CustomUser)
@@ -55,33 +39,9 @@ def erase_user_from_datamailer(sender, instance, **kwargs):
 
 
 @receiver(post_save, sender=Enrollment)
-def sync_enrollment_to_datamailer(sender, instance, created, **kwargs):
+def send_enrollment_confirmation(sender, instance, created, **kwargs):
     if not created:
         return
 
-    callback = partial(sync_enrollment_recipient_list, instance)
-    transaction.on_commit(callback)
-
-
-@receiver(post_delete, sender=CourseRegistration)
-def remove_registration_from_datamailer(sender, instance, **kwargs):
-    callback = partial(remove_registration_recipient_list, instance)
-    transaction.on_commit(callback)
-
-
-@receiver(post_delete, sender=Enrollment)
-def remove_enrollment_from_datamailer(sender, instance, **kwargs):
-    callback = partial(remove_enrollment_recipient_list, instance)
-    transaction.on_commit(callback)
-
-
-@receiver(post_delete, sender=Submission)
-def remove_homework_submission_from_datamailer(sender, instance, **kwargs):
-    callback = partial(remove_homework_submission_recipient_list, instance)
-    transaction.on_commit(callback)
-
-
-@receiver(post_delete, sender=ProjectSubmission)
-def remove_project_submission_from_datamailer(sender, instance, **kwargs):
-    callback = partial(remove_project_submission_recipient_list, instance)
+    callback = partial(send_enrollment_confirmation_mail, instance)
     transaction.on_commit(callback)

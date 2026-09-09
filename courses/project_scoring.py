@@ -7,11 +7,6 @@ from django.db import transaction
 from django.utils import timezone
 
 from course_management.observability import record_event
-from course_management.datamailer.sync.memberships import (
-    sync_project_passed_outcome_to_datamailer,
-    sync_project_submission_to_datamailer,
-)
-
 from courses.models.project import (
     Project,
     ProjectSubmission,
@@ -44,11 +39,6 @@ def _validate_project_scoreable(project: Project) -> str | None:
     return None
 
 
-def _sync_scored_project_submission_to_datamailer(submission):
-    sync_project_submission_to_datamailer(submission)
-    sync_project_passed_outcome_to_datamailer(submission)
-
-
 def _peer_reviews_for_project(project):
     return PeerReview.objects.filter(
         submission_under_evaluation__project=project,
@@ -74,15 +64,6 @@ def _bulk_update_project_submissions(submissions_to_update):
             "passed",
         ],
     )
-
-
-def _sync_project_submissions_after_commit(submissions_to_update):
-    for submission in submissions_to_update:
-        callback = partial(
-            _sync_scored_project_submission_to_datamailer,
-            submission,
-        )
-        transaction.on_commit(callback)
 
 
 def _replace_project_evaluation_scores(submission_ids, all_scores):

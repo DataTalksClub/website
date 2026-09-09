@@ -4,9 +4,6 @@ from django.db import transaction
 from django.http import HttpRequest
 from django.utils import timezone
 
-from course_management.datamailer.sync.memberships import (
-    sync_project_submission_to_datamailer,
-)
 from course_management.observability import record_event
 from courses.models.cohort import Enrollment, User
 from courses.models.project import Project, ProjectSubmission
@@ -72,15 +69,10 @@ def project_submit_post(request: HttpRequest, project: Project) -> None:
         submission=project_submission,
         update_url=update_url,
     )
-    sync_callback = partial(
-        sync_project_submission_to_datamailer,
-        project_submission,
-    )
     email_callback = partial(
         send_project_confirmation_email,
         confirmation_data,
     )
-    transaction.on_commit(sync_callback)
     transaction.on_commit(email_callback)
 
 

@@ -2,12 +2,19 @@ from typing import Any
 
 from django.utils import timezone
 
-from course_management.datamailer_outbox import RETRYABLE_STATUSES
 from data.models import (
     DatamailerOutboxDispatchRun,
     DatamailerOutboxDispatchRunStatus,
     DatamailerOutboxEvent,
     DatamailerOutboxStatus,
+)
+
+#: The statuses a due event could still leave the read-only storage in.
+#: Nothing processes them since D1.2b retired the enqueue path; the
+#: summary exists for rollback monitoring.
+RETRYABLE_STATUSES = (
+    DatamailerOutboxStatus.PENDING,
+    DatamailerOutboxStatus.RETRYING,
 )
 
 

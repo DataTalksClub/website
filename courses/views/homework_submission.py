@@ -7,9 +7,6 @@ from django.http import HttpRequest
 from django.shortcuts import redirect
 from django.utils import timezone
 
-from course_management.datamailer.sync.memberships import (
-    sync_homework_submission_to_datamailer,
-)
 from course_management.observability import record_event
 from courses.models.cohort import Cohort, Enrollment
 from courses.models.homework import (
@@ -98,12 +95,7 @@ def register_homework_submission_callbacks(data, submission):
         send_homework_confirmation_email,
         confirmation_data,
     )
-    sync_callback = partial(
-        sync_homework_submission_to_datamailer,
-        submission,
-    )
     transaction.on_commit(email_callback)
-    transaction.on_commit(sync_callback)
 
 
 def homework_submission_success_response(request, course, homework):
