@@ -26,8 +26,8 @@ from core.accessibility_registry import (
     NO_JAVASCRIPT_PUBLIC_STATE_IDS,
     PUBLIC_TEST,
 )
-from core.models import AuditEvent
 from core.mail_render_fixtures import render_package_template
+from core.models import AuditEvent
 from courses.models import Cohort, HomeworkState, ProjectState, RegistrationCampaign
 from events.identity import canonical_detail_path
 from events.models import (

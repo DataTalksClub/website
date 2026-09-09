@@ -127,9 +127,8 @@ class BootstrapParserTests(SimpleTestCase):
 
     def test_deployed_settings_accept_exact_task_definition_boolean_literals(self) -> None:
         task_booleans = {
-            "DATAMAILER_SYNC_ON_USER_CREATE": "0",
-            "DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY": "0",
-            "DATAMAILER_TRANSACTIONAL_DRY_RUN": "1",
+            "REGISTRATION_REQUIRES_ACCOUNT": "0",
+            "DJANGO_ADMIN_BREAK_GLASS": "0",
         }
         for module in ("development", "production"):
             with self.subTest(module=module):
@@ -183,11 +182,11 @@ class BootstrapParserTests(SimpleTestCase):
             with self.subTest(module=module):
                 result = self.import_deployed_settings(
                     module,
-                    overrides={"DATAMAILER_TRANSACTIONAL_DRY_RUN": rejected},
+                    overrides={"REGISTRATION_REQUIRES_ACCOUNT": rejected},
                 )
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn(
-                    "Invalid bootstrap setting DATAMAILER_TRANSACTIONAL_DRY_RUN",
+                    "Invalid bootstrap setting REGISTRATION_REQUIRES_ACCOUNT",
                     result.stderr,
                 )
                 self.assertNotIn(rejected, result.stderr)

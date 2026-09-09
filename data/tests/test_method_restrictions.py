@@ -82,10 +82,8 @@ class DataEndpointMethodRestrictionTest(TestCase):
             "api_course_certificates",
             kwargs={"course_slug": self.course.slug},
         )
-        datamailer_events_url = reverse("api_datamailer_events")
         return [
             certificates_url,
-            datamailer_events_url,
         ]
 
     def assert_method_rejected(self, method, url, allowed_method):

@@ -1,7 +1,7 @@
 ---
 name: Project score notification
 subject: "Scores available: {{ project_title }}"
-footer_note: "If you don't want to receive homework/project submission and score emails, turn off homework and project submission emails in your profile: {{ profile_url }}"
+footer_note: "You receive homework and project submission emails because you submitted; opt out on your profile settings page."
 ---
 
 Hi {{ user_name }},

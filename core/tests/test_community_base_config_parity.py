@@ -34,7 +34,7 @@ def _value_type(definition):
 
 
 # The one site validator with a package-side equivalent: the mailbox sender
-EMAIL_VALIDATOR_KEYS = set()
+EMAIL_VALIDATOR_KEYS: set[str] = set()
 
 
 def package_kwargs(definition):
