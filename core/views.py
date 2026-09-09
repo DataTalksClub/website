@@ -102,6 +102,7 @@ def home(request: HttpRequest):
         "core/home.html",
         {
             "canonical_url": "https://datatalks.club/",
+            "hide_tour_cta": True,
             "upcoming_events": upcoming,
             "recent_events": events.recent[:1],
             "featured_cohort_path": featured_cohort_path,
@@ -134,6 +135,37 @@ def sponsors(request: HttpRequest) -> HttpResponse:
             "canonical_url": "https://datatalks.club/sponsors",
             "sponsors": public_sponsors(),
             "past_supporters": public_supporter_history(),
+        },
+    )
+
+
+@require_safe
+def tour(request: HttpRequest) -> HttpResponse:
+    """The community tour: one page describing what DataTalks.Club offers.
+
+    Every section is database rows the site already publishes elsewhere --
+    the course catalogue, upcoming events, member stories, sponsors -- so the
+    page can only promise what the database holds. An empty database renders
+    the page with its sections dropped, never with invented copy.
+    """
+
+    events = event_groups()
+    catalog = course_catalog()
+    upcoming = tuple(
+        {**event, "home_time": event_time_display(event["starts_at"])}
+        for event in events.upcoming[:3]
+    )
+    return render(
+        request,
+        "core/tour.html",
+        {
+            "canonical_url": "https://datatalks.club/tour",
+            "hide_tour_cta": True,
+            "catalog_courses": catalog,
+            "course_family_count": len(catalog),
+            "upcoming_events": upcoming,
+            "member_stories": homepage_testimonials(),
+            "sponsors": public_sponsors(),
         },
     )
 
