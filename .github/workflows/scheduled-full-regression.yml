@@ -268,9 +268,12 @@ jobs:
     if: needs.selector.outputs.decision == 'run_full'
     needs: selector
     runs-on: ubuntu-latest
-    # Keep the scheduled full browser backstop subject to the same outer bound
-    # as the deployment workflow's Playwright job.
-    timeout-minutes: 45
+    # The verified full-profile suite currently takes ~49-52m on the hosted
+    # runner (issue #206; ci.yml keeps the same reserve on its Playwright
+    # job). A 45m bound killed healthy runs at ~80% completion, so keep a
+    # bounded reserve above the measurement while a wedged test still cannot
+    # hold the runner forever.
+    timeout-minutes: 60
     env:
       DJANGO_ALLOW_ASYNC_UNSAFE: "true"
       DJANGO_SETTINGS_MODULE: website.settings.test
