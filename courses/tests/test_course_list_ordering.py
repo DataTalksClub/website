@@ -86,6 +86,13 @@ class CourseListOrderingTest(CourseListViewTestBase):
                 "cohort_identifier": shared_course.identifier,
             },
         )
+        catalogue_path = reverse(
+            "cohort",
+            kwargs={
+                "course_slug": shared_course.course.slug,
+                "cohort_identifier": shared_course.identifier,
+            },
+        )
 
         self.assertEqual(
             course_list_response.context["featured_course"],
@@ -96,7 +103,7 @@ class CourseListOrderingTest(CourseListViewTestBase):
             shared_course,
         )
         self.assertContains(homepage_response, f'href="{shared_path}"')
-        self.assertContains(course_list_response, f'href="{shared_path}"')
+        self.assertContains(course_list_response, f'href="{catalogue_path}"')
 
     def test_active_and_finished_cards_link_to_their_cohort_routes(self):
         today = timezone.localdate()
@@ -118,7 +125,7 @@ class CourseListOrderingTest(CourseListViewTestBase):
         content = response.content.decode()
         active_card = self.course_card_html(content, active)
         active_url = reverse(
-            "course",
+            "cohort",
             kwargs={
                 "course_slug": active.course.slug,
                 "cohort_identifier": active.identifier,
@@ -129,7 +136,7 @@ class CourseListOrderingTest(CourseListViewTestBase):
             kwargs={"course_slug": active.course.slug},
         )
         finished_url = reverse(
-            "course",
+            "cohort",
             kwargs={
                 "course_slug": finished.course.slug,
                 "cohort_identifier": finished.identifier,
@@ -188,7 +195,16 @@ class CourseListOrderingTest(CourseListViewTestBase):
         self.assertContains(response, family.outcome)
         self.assertNotContains(response, "Catalogue Course 2025")
         self.assertIn('/courses/catalogue-course"', content)
-        self.assertIn('/courses/catalogue-course/2026', content)
+        self.assertIn(
+            reverse(
+                "cohort",
+                kwargs={
+                    "course_slug": family.slug,
+                    "cohort_identifier": current.identifier,
+                },
+            ),
+            content,
+        )
 
     def test_empty_family_outcome_is_rendered_as_empty_without_boilerplate(self):
         family = Course.objects.create(
