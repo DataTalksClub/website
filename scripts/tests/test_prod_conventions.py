@@ -17,6 +17,7 @@ from django.test import TestCase
 
 import scripts.prod
 from scripts.prod import (
+    MAKE_TARGET_EXCLUSIONS,
     BOOTSTRAPPING_ENTRY_POINTS,
     COURSE_CATALOGUE_ORDER,
     SYNC_MODELS,
@@ -26,16 +27,17 @@ PROD_ROOT = Path(scripts.prod.__file__).resolve().parent
 
 
 def _entry_point_names() -> list[str]:
-    """The sync_/import_ modules the naming convention governs.
+    """Every on-disk module the entry-point conventions govern.
 
-    Shared library modules (``reviewed_release.py`` and friends) are imported
-    by entry points, never run as one, so they carry no SYNC_MODEL.
+    Modules carrying a MAKE_TARGET_EXCLUSIONS entry are deliberately not
+    runbook entry points (shared libraries, credentials-gated runs), so the
+    naming and SYNC_MODEL conventions do not bind them.
     """
 
     return sorted(
         module.name
         for module in pkgutil.iter_modules([str(PROD_ROOT)])
-        if not module.ispkg and module.name.startswith(("import_", "sync_"))
+        if not module.ispkg and module.name not in MAKE_TARGET_EXCLUSIONS
     )
 
 

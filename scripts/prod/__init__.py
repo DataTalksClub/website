@@ -143,6 +143,11 @@ CMP_LEARNER_ORDER = (
 # Modules that deliberately have no Makefile target: module name -> why. An entry
 # here is a decision someone has to argue with, not an omission.
 MAKE_TARGET_EXCLUSIONS: dict[str, str] = {
+    "reviewed_release": (
+        "Not an entry point at all: it is the shared library behind the "
+        "editorial importers (import_public_content, import_faq, import_docs) "
+        "and is only ever imported by them, never run directly."
+    ),
     "import_event_registrants": (
         "Reads attendee-level personal data and provider credentials, so it stays a "
         "deliberate, separately invoked run rather than something a local rebuild "

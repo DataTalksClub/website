@@ -73,7 +73,9 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # (fae109b4e34c0afe20c935c6778a476eb968e9cb) with a fail-closed source guard, plus a
 # mypy ignore_missing_imports override because that release ships no py.typed marker.
 # Keep both workflow-isolation seals pinned to this exact reviewed dependency policy.
-STUDIO_COURSES_PYPROJECT_SHA256 = "d30e34bd18617270ad94a8e2aa3c205676bbd9ef6cb04607a695907f72b836b7"
+# 7a1b3f04 retired the jobs lineage from typecheck opt-ins (config only, no
+# dependency change); the seal below moves with that reviewed commit.
+STUDIO_COURSES_PYPROJECT_SHA256 = "93c4c2a1475cd48cec010fe5536f34bfbe71573dfb0d39861b1e82edb29127d8"
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
     "67815bd8f2f15185cb04def1f411400d5b561efb41e524298f4d19dd4d1349b1"
 )
