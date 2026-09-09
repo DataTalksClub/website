@@ -272,6 +272,11 @@ def seed_synthetic_snapshot(path: Path) -> None:
             "project_passing_score": 7,
             "visible": 1,
             "course_id": "00000000000000000000000000000001",
+            # NOT NULL columns without a SQL default since migration
+            # 0005_shared_current_curriculum; a current cohort keeps them empty.
+            "archive_commit_sha": "",
+            "archive_notice_path": "",
+            "archive_url": "",
         },
     )
     _insert(
@@ -298,6 +303,9 @@ def seed_synthetic_snapshot(path: Path) -> None:
             "project_passing_score": 10,
             "visible": 1,
             "course_id": "00000000000000000000000000000002",
+            "archive_commit_sha": "",
+            "archive_notice_path": "",
+            "archive_url": "",
         },
     )
     _insert(
@@ -507,10 +515,9 @@ def seed_synthetic_snapshot(path: Path) -> None:
             {
                 "id": "9001",
                 "payload": json.dumps({"canary": CANARIES["payload"]}),
-                "last_error_code": CANARIES["error"],
+                "last_error": CANARIES["error"],
                 "max_attempts": 1,
                 "status": "pending",
-                "claimed_by": "",
             },
         ),
     )

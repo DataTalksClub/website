@@ -152,7 +152,11 @@ COPY_ORDER = tuple(ALLOWLIST)
 # default the model declares.  A path invented here would be a link to a file that does
 # not exist; ``courses/services/unit_links.py`` reads the column as "no source file"
 # when it is empty, which is exactly what a CMP-copied row means.  ``leaderboard`` is a
-# derived local column with the same story.
+# derived local column with the same story.  The cohort archive identity
+# (``archive_commit_sha``/``archive_notice_path``/``archive_url``) is derived by
+# ``courses/services/curriculum_import.py`` from a validated repository and commit, so a
+# CMP-copied cohort is a current one and the honest value is the empty identity the
+# model's check constraint requires for ``curriculum_source='current'``.
 #
 # Anything not listed here and not in ``ALLOWLIST`` is refused before the INSERT runs,
 # so a later migration that adds a required column asks for a decision instead of
@@ -160,6 +164,11 @@ COPY_ORDER = tuple(ALLOWLIST)
 TARGET_ONLY_COLUMNS: dict[str, dict[str, object]] = {
     "courses_homework": {"instructions_markdown": "", "instructions_source_path": ""},
     "courses_wrappedstatistics": {"leaderboard": "[]"},
+    "courses_course": {
+        "archive_commit_sha": "",
+        "archive_notice_path": "",
+        "archive_url": "",
+    },
 }
 
 # This schema splits a CMP course row into a course family and a cohort. These are the
