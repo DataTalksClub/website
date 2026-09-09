@@ -100,6 +100,10 @@ ADOPTION_INTEGRATION_PYTHON = \
 	scripts/tests/test_scoring_import_atomicity.py \
 	scripts/tests/test_certificate_matching.py \
 	scripts/tests/test_reviewed_release_import.py \
+	scripts/checkout_refresh.py \
+	scripts/tests/test_checkout_refresh.py \
+	scripts/checkout_refresh.py \
+	scripts/tests/test_checkout_refresh.py \
 	accounts/tests/test_username_allocation.py
 
 # Entry points for imports that read real production data.  ``scripts/**`` is excluded
