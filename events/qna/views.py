@@ -22,7 +22,7 @@ from accounts.studio_authorization import (
 )
 from accounts.studio_sessions import session_reference
 from core.audit import AuditWriteContext
-from core.capabilities import CAPABILITY_REGISTRY
+from management_registry import CAPABILITY_REGISTRY
 from studio.auth import audit_capability_denial
 
 from . import qr, security, services
