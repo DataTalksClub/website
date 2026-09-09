@@ -28,6 +28,11 @@ does) or declares the strict shape the supplied value must have
 (:data:`SUPPLIED_IDENTIFIERS`), scoped to that target's own account, region and
 namespace.  Supplying another deployment's subnet or a wrong-account key ARN is
 therefore still rejected.
+
+This module is the single target-definition owner of the release pipeline
+(audit REL-19): the deploy orchestrator (``deploy/deploy_website.sh``) is a
+transport that reads its physical values from the ``profile`` command below and
+holds no target literals of its own.
 """
 
 from __future__ import annotations
@@ -36,6 +41,7 @@ import argparse
 import json
 import os
 import re
+import shlex
 import sys
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -209,6 +215,13 @@ class DeploymentTarget:
     #: already been applied and verified.  Anything absent here must be supplied
     #: at deploy time and is shape-validated instead.
     pinned_identifiers: Mapping[str, str] = field(default_factory=dict)
+    #: Names of physical infrastructure another reviewed target owns but this
+    #: target's workloads share (the development service rides the production
+    #: root's ECS cluster and publishes to its ECR repository).  ``None``
+    #: derives the identifier from ``resource_namespace``; a value here is the
+    #: reviewed shared name.
+    shared_ecs_cluster_name: str | None = None
+    shared_ecr_repository_name: str | None = None
 
     def __post_init__(self) -> None:
         unknown = sorted(set(self.pinned_identifiers) - set(_SUPPLIED_BY_NAME))
@@ -262,7 +275,7 @@ class DeploymentTarget:
 
     @property
     def ecr_repository_name(self) -> str:
-        return self.resource_namespace
+        return self.shared_ecr_repository_name or self.resource_namespace
 
     @property
     def ecr_repository_uri(self) -> str:
@@ -272,9 +285,15 @@ class DeploymentTarget:
         )
 
     @property
+    def ecs_cluster_name(self) -> str:
+        """The ECS cluster this target's services run in (shared or owned)."""
+
+        return self.shared_ecs_cluster_name or self.resource_namespace
+
+    @property
     def ecs_cluster_arn(self) -> str:
         return (
-            f"arn:aws:ecs:{self.aws_region}:{self.aws_account_id}:cluster/{self.resource_namespace}"
+            f"arn:aws:ecs:{self.aws_region}:{self.aws_account_id}:cluster/{self.ecs_cluster_name}"
         )
 
     @property
@@ -492,9 +511,40 @@ _WEBSITE_PRODUCTION = DeploymentTarget(
     resource_environment_tag="production",
 )
 
+# The development stack.  It has no Terraform root of its own: dev.datatalks.club
+# is the minimal second environment riding the production website root's ALB,
+# VPC and database through host routing
+# (_docs/runbooks/production-hosting-and-dns-migration.md §9.2), so its
+# services, task families and secrets live in the ``website-dev`` namespace
+# inside the production cluster and its releases publish to the shared
+# website-production ECR repository.  Like prod.datatalks.club it stays
+# non-indexable and declares the production apex canonical (spec 02).
+_WEBSITE_DEVELOPMENT = DeploymentTarget(
+    name="website-development",
+    aws_account_id="387546586013",
+    aws_region="eu-west-1",
+    hostname="dev.datatalks.club",
+    resource_namespace="website-dev",
+    settings_module="website.settings.development",
+    dtc_environment="development",
+    canonical_origin="https://datatalks.club",
+    robots_noindex=True,
+    github_environment="development",
+    terraform_root="main/website",
+    terraform_state_bucket="dtc-terraform-state-387546586013",
+    task_cpu_architecture="ARM64",
+    assign_public_ip=False,
+    web_desired_count=1,
+    worker_desired_count=0,
+    resource_project_tag="dtc-website",
+    resource_environment_tag="dev",
+    shared_ecs_cluster_name="website-production",
+    shared_ecr_repository_name="website-production",
+)
+
 #: Every reviewed deployment target, deployable or retired.
 DEPLOYMENT_TARGETS: Mapping[str, DeploymentTarget] = {
-    target.name: target for target in (_WEBSITE_PRODUCTION, _WEBSITE_SANDBOX)
+    target.name: target for target in (_WEBSITE_DEVELOPMENT, _WEBSITE_PRODUCTION, _WEBSITE_SANDBOX)
 }
 
 
@@ -756,11 +806,52 @@ def architecture_fields(target: DeploymentTarget | None = None) -> dict[str, str
     return {name: str(getattr(resolved, name)) for name in ARCHITECTURE_FIELDS}
 
 
+#: The physical values the deploy orchestrator (``deploy/deploy_website.sh``)
+#: reads from the registry instead of pinning literals of its own (REL-19: one
+#: target-definition owner).  Order is presentation only.
+_PROFILE_FIELDS: tuple[tuple[str, str], ...] = (
+    ("AWS_REGION", "aws_region"),
+    ("CLUSTER_NAME", "ecs_cluster_name"),
+    ("ECR_REPOSITORY_URI", "ecr_repository_uri"),
+    ("WEB_SERVICE_NAME", "web_service_name"),
+    ("WORKER_SERVICE_NAME", "worker_service_name"),
+    ("WEB_FAMILY", "web_task_family"),
+    ("WORKER_FAMILY", "worker_task_family"),
+    ("MIGRATION_FAMILY", "migration_task_family"),
+    ("RUNTIME_ENVIRONMENT", "dtc_environment"),
+    ("SETTINGS_MODULE", "settings_module"),
+    ("BASE_URL", "origin"),
+    ("WEB_DESIRED_COUNT", "web_desired_count"),
+    ("WORKER_DESIRED_COUNT", "worker_desired_count"),
+    ("PROJECT_TAG", "resource_project_tag"),
+    ("ENVIRONMENT_TAG", "resource_environment_tag"),
+)
+
+
+def profile_fields(target: DeploymentTarget | None = None) -> dict[str, str]:
+    """Return the shell-facing profile of one deployment target.
+
+    ``DEVELOPMENT_HOSTNAME`` is the one derived member: the deployed
+    development tasks must pin their host (``deploy.development_target``
+    defaults to the destroyed sandbox host when the variable is absent), while
+    production tasks must not carry the variable at all.
+    """
+
+    resolved = SELECTED_TARGET if target is None else target
+    fields = {name: str(getattr(resolved, attribute)) for name, attribute in _PROFILE_FIELDS}
+    fields["DEVELOPMENT_HOSTNAME"] = (
+        resolved.hostname if resolved.settings_module == "website.settings.development" else ""
+    )
+    return fields
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Validate deployment variables against the selected deployment target"
     )
-    parser.add_argument("command", choices=[*ROLE_PROFILES, "architecture", "release-record"])
+    parser.add_argument(
+        "command", choices=[*ROLE_PROFILES, "architecture", "release-record", "profile"]
+    )
     parser.add_argument(
         "--field",
         choices=ARCHITECTURE_FIELDS,
@@ -778,6 +869,10 @@ def main() -> None:
             else:
                 for name, value in fields.items():
                     print(f"{name}={value}")
+        elif arguments.command == "profile":
+            # shell-quoted so the deploy orchestrator can `eval` this output
+            for name, value in profile_fields().items():
+                print(f"{name}={shlex.quote(value)}")
         elif arguments.command == "release-record":
             validate_release_record(json.load(sys.stdin))
         else:

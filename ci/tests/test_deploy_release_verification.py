@@ -9,6 +9,14 @@ task on the promoted worker definition executes a synthetic durable job
 inside the fixed tasks-stopped budget, and the HTTP checks carry connect and
 overall deadlines plus the database-backed readiness endpoint.  Each fault is
 driven end to end through a stateful fake ``aws``/``curl`` on ``PATH``.
+
+REL-08 additions: the orchestrator promotes the task definition each service
+is running (its ``:revision`` ARN) instead of the family's latest registered
+revision -- the fake keeps a poisoned *latest* family document that would be
+refused, so a regression to family-latest selection fails the deployment --
+and it validates every source document against the reviewed deployment target
+before the first registration, so a sidecar, a foreign role or another
+architecture fails the deployment before any mutation.
 """
 
 from __future__ import annotations
@@ -22,6 +30,9 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+
+from deploy.deployment_targets import registered_target
+from deploy.task_definitions import COMMANDS, config_for_target
 
 ROOT = Path(__file__).resolve().parents[2]
 IMAGE = "387546586013.dkr.ecr.eu-west-1.amazonaws.com/website-production@sha256:" + "c" * 64
@@ -38,48 +49,68 @@ WEB_ARN_NEW = f"arn:aws:ecs:{REGION}:387546586013:task-definition/{WEB}:42"
 WORKER_ARN_NEW = f"arn:aws:ecs:{REGION}:387546586013:task-definition/{WORKER}:18"
 OLD_COUNTS = {WEB: {"desired": 1, "running": 1}, WORKER: {"desired": 0, "running": 0}}
 
+DEV_TARGET = registered_target("website-development")
+DEV_CONFIG = config_for_target(DEV_TARGET)
 
-def task_document(family: str, revision: int) -> str:
-    container = family.rsplit("-", 1)[-1]
-    return json.dumps(
-        {
-            "taskDefinition": {
-                "family": family,
-                "revision": revision,
-                "status": "ACTIVE",
-                "taskDefinitionArn": (
-                    f"arn:aws:ecs:{REGION}:387546586013:task-definition/{family}:{revision}"
+
+def task_document(family: str, revision: int, **overrides: Any) -> str:
+    """A task definition satisfying the reviewed website-development contract.
+
+    ``overrides`` replaces top-level task fields, so a test can poison exactly
+    one expectation.
+    """
+
+    workload = family.rsplit("-", 1)[-1]
+    container: dict[str, Any] = {
+        "name": workload,
+        "image": "old-image:tag",
+        "command": list(COMMANDS[workload]["command"]) if workload != "migration" else ["legacy"],
+        "environment": [
+            {"name": name, "value": value}
+            for name, value in sorted(DEV_TARGET.fixed_nonsecret_environment.items())
+        ],
+        "secrets": [
+            {
+                "name": "DATABASE_URL",
+                "valueFrom": (
+                    "arn:aws:secretsmanager:eu-west-1:387546586013"
+                    ":secret:website-dev/database-url-abc123"
                 ),
-                "requiresAttributes": [],
-                "compatibilities": ["FARGATE"],
-                "registeredAt": 0,
-                "registeredBy": "fixture",
-                "cpu": "512",
-                "memory": "1024",
-                "networkMode": "awsvpc",
-                "requiresCompatibilities": ["FARGATE"],
-                "executionRoleArn": "arn:aws:iam::387546586013:role/execution",
-                "taskRoleArn": "arn:aws:iam::387546586013:role/task",
-                "containerDefinitions": [
-                    {
-                        "name": container,
-                        "image": "old-image:tag",
-                        "essential": True,
-                        "environment": [{"name": "PREFILL", "value": "keep-me"}],
-                        "secrets": [
-                            {
-                                "name": "DATABASE_URL",
-                                "valueFrom": (
-                                    "arn:aws:secretsmanager:eu-west-1:387546586013:secret:x"
-                                ),
-                            }
-                        ],
-                        "portMappings": [{"containerPort": 8000}],
-                    }
-                ],
-            }
-        }
-    )
+            },
+            {
+                "name": "DJANGO_SECRET_KEY",
+                "valueFrom": (
+                    "arn:aws:secretsmanager:eu-west-1:387546586013"
+                    ":secret:website-dev/django-secret-key-abc123"
+                ),
+            },
+        ],
+        "portMappings": [{"containerPort": 8000}],
+    }
+    task: dict[str, Any] = {
+        "family": family,
+        "revision": revision,
+        "status": "ACTIVE",
+        "taskDefinitionArn": (
+            f"arn:aws:ecs:{REGION}:387546586013:task-definition/{family}:{revision}"
+        ),
+        "requiresAttributes": [],
+        "compatibilities": ["FARGATE"],
+        "registeredAt": 0,
+        "registeredBy": "fixture",
+        "cpu": "512",
+        "memory": "1024",
+        "networkMode": "awsvpc",
+        "requiresCompatibilities": ["FARGATE"],
+        "runtimePlatform": {"cpuArchitecture": "ARM64", "operatingSystemFamily": "LINUX"},
+        "executionRoleArn": DEV_TARGET.execution_role_arn,
+        "taskRoleArn": DEV_TARGET.task_role_arn,
+        "containerDefinitions": [container],
+    }
+    if workload == "migration":
+        container["entryPoint"] = ["/bin/sh", "-lc"]
+    task.update(overrides)
+    return json.dumps({"taskDefinition": task})
 
 
 FAKE_AWS = r"""#!/usr/bin/env python3
@@ -163,8 +194,18 @@ if command == "describe-services":
     names = args[args.index("--services") + 1:]
     print(json.dumps({"failures": [], "services": [service_view(name, updates) for name in names]}))
 elif command == "describe-task-definition":
-    family = flag_value("--task-definition").split("/")[-1].split(":")[0]
-    print((state / f"taskdef-{family}.json").read_text())
+    reference = flag_value("--task-definition").split("/")[-1]
+    family = reference.split(":")[0]
+    # A revision-pinned reference (the orchestrator promotes the service's
+    # active ARN) prefers that revision's document; a bare family name (the
+    # migration source) reads the family's latest registered revision.
+    if ":" in reference:
+        pinned = state / f"taskdef-{family}-{reference.split(':')[1]}.json"
+        path = pinned if pinned.exists() else state / f"taskdef-{family}.json"
+    else:
+        latest = state / f"taskdef-{family}-latest.json"
+        path = latest if latest.exists() else state / f"taskdef-{family}.json"
+    print(path.read_text())
 elif command == "register-task-definition":
     document = next(
         json.loads(Path(arg[7:]).read_text())
@@ -337,14 +378,33 @@ class VerificationHarness:
         python3.symlink_to(sys.executable)
 
         (self.state / "describe-services.json").write_text("{}")
+        # The service-active revisions are the promotion sources (REL-08); the
+        # family-latest documents for the long-running services are POISONED
+        # with a foreign task role, so any regression to family-latest
+        # selection is refused and fails the deployment.
+        foreign_role = "arn:aws:iam::387546586013:role/website-production-task-application"
         for family, revision in (
             (WEB, 41),
             (WORKER, 17),
-            ("website-dev-migration", 7),
         ):
-            (self.state / f"taskdef-{family}.json").write_text(task_document(family, revision))
+            (self.state / f"taskdef-{family}-{revision}.json").write_text(
+                task_document(family, revision)
+            )
+            latest = json.loads(task_document(family, 999))
+            latest["taskDefinition"]["taskRoleArn"] = foreign_role
+            (self.state / f"taskdef-{family}-latest.json").write_text(json.dumps(latest))
+        (self.state / "taskdef-website-dev-migration-latest.json").write_text(
+            task_document("website-dev-migration", 7)
+        )
         (self.state / "revisions.json").write_text(
             json.dumps({WEB: 41, WORKER: 17, "website-dev-migration": 7})
+        )
+
+    def write_task_document(self, family: str, revision: int, **overrides: Any) -> None:
+        """Replace the service-active document for one family (fault setup)."""
+
+        (self.state / f"taskdef-{family}-{revision}.json").write_text(
+            task_document(family, revision, **overrides)
         )
 
     def env(self, **overrides: str) -> dict[str, str]:
@@ -427,6 +487,83 @@ def test_a_clean_rollout_verifies_tasks_selfcheck_and_readiness(
     assert overrides["containerOverrides"][0]["name"] == "worker"
     receipt = harness.receipt()
     assert receipt["outcome"] == "promoted"
+
+
+def test_the_promotion_sources_are_the_service_active_revisions(tmp_path: Path) -> None:
+    """REL-08: services are promoted from their own ARN, migration from family."""
+
+    harness = VerificationHarness(tmp_path)
+
+    completed = harness.deploy()
+
+    assert completed.returncode == 0, completed.stderr
+    described = {
+        args[args.index("--task-definition") + 1]
+        for args in harness.calls()
+        if args[:2] == ["ecs", "describe-task-definition"]
+    }
+    assert WEB_OLD in described
+    assert WORKER_OLD in described
+    assert "website-dev-migration" in described
+    # The poisoned family-latest documents were never read.
+    registered = [
+        args[args.index("--task-definition") + 1]
+        for args in harness.calls()
+        if args[:2] == ["ecs", "update-service"]
+    ]
+    assert WEB_ARN_NEW in registered
+    assert WORKER_ARN_NEW in registered
+
+
+def test_a_sidecar_in_the_active_definition_fails_before_any_mutation(
+    tmp_path: Path,
+) -> None:
+    harness = VerificationHarness(tmp_path)
+    harness.write_task_document(
+        WEB,
+        41,
+        containerDefinitions=[
+            {
+                "name": "web",
+                "image": "old-image:tag",
+                "command": ["web"],
+                "environment": [],
+                "secrets": [],
+            },
+            {"name": "log-router", "image": "log-agent:1"},
+        ],
+    )
+
+    completed = harness.deploy()
+
+    assert completed.returncode != 0
+    assert "exactly one container" in completed.stderr
+    commands = [args[1] for args in harness.calls() if len(args) > 1]
+    assert "register-task-definition" not in commands
+    assert "update-service" not in commands
+
+
+def test_a_foreign_role_in_the_active_worker_definition_fails_before_registration(
+    tmp_path: Path,
+) -> None:
+    harness = VerificationHarness(tmp_path)
+    harness.write_task_document(
+        WORKER,
+        17,
+        taskRoleArn="arn:aws:iam::387546586013:role/website-production-task-application",
+    )
+
+    completed = harness.deploy()
+
+    assert completed.returncode != 0
+    assert "task role" in completed.stderr
+    commands = [args[1] for args in harness.calls() if len(args) > 1]
+    # The refusal stops the flow between the worker's describe and its
+    # registration: web (validated first) registered, the worker did not, and
+    # no service was mutated.
+    assert commands.count("register-task-definition") == 1
+    assert "update-service" not in commands
+    assert "run-task" not in commands
 
 
 def test_an_old_stable_worker_prevents_the_success_record(tmp_path: Path) -> None:

@@ -6,27 +6,64 @@
 # locked project environment is first on PATH, so python3 resolves to the
 # pinned interpreter (REL-19). ci/tests/test_deploy_release_verification.py
 # pins the same seam by symlinking python3 to the test interpreter.
+#
+# Every physical value -- cluster, repository, services, families, counts,
+# tags, URLs -- is read from the reviewed deployment target registry
+# (deploy/deployment_targets.py, the single target-definition owner, REL-19);
+# this script is only the transport that shells out to AWS. DTC_DEPLOYMENT_
+# TARGET selects the reviewed profile before the profile is read, so nothing
+# here can deploy to an unreviewed stack.
 
 set -euo pipefail
+
+# Receipts and scratch land in the caller's .tmp/ (the workflows run from the
+# checkout root), and the deploy package must import as a module even when the
+# caller's cwd is elsewhere, so the checkout root goes on PYTHONPATH.
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+export PYTHONPATH="$REPO_ROOT${PYTHONPATH:+:$PYTHONPATH}"
 
 TARGET="${1:?usage: deploy_website.sh <dev|production> <repo@sha256:digest> <version> <source-sha>}"
 IMAGE="${2:?image digest reference is required}"
 VERSION="${3:?version is required}"
 SOURCE_SHA="${4:?source SHA is required}"
+
+case "$TARGET" in
+  dev) DTC_DEPLOYMENT_TARGET="website-development" ;;
+  production) DTC_DEPLOYMENT_TARGET="website-production" ;;
+  *)
+    echo "target must be dev or production" >&2
+    exit 1
+    ;;
+esac
+export DTC_DEPLOYMENT_TARGET
+
+# The reviewed profile. Fails closed on a retired or unknown target; every
+# value below is shell-quoted registry output.
+eval "$(python3 -m deploy.deployment_targets profile)"
+
+: "${AWS_REGION:?profile did not provide AWS_REGION}" \
+  "${CLUSTER_NAME:?profile did not provide CLUSTER_NAME}" \
+  "${ECR_REPOSITORY_URI:?profile did not provide ECR_REPOSITORY_URI}" \
+  "${WEB_SERVICE_NAME:?profile did not provide WEB_SERVICE_NAME}" \
+  "${WORKER_SERVICE_NAME:?profile did not provide WORKER_SERVICE_NAME}" \
+  "${WEB_FAMILY:?profile did not provide WEB_FAMILY}" \
+  "${WORKER_FAMILY:?profile did not provide WORKER_FAMILY}" \
+  "${MIGRATION_FAMILY:?profile did not provide MIGRATION_FAMILY}" \
+  "${BASE_URL:?profile did not provide BASE_URL}" \
+  "${WEB_DESIRED_COUNT:?profile did not provide WEB_DESIRED_COUNT}" \
+  "${WORKER_DESIRED_COUNT:?profile did not provide WORKER_DESIRED_COUNT}" \
+  "${PROJECT_TAG:?profile did not provide PROJECT_TAG}" \
+  "${ENVIRONMENT_TAG:?profile did not provide ENVIRONMENT_TAG}"
+
 CLUSTER="${ECS_CLUSTER_NAME:?ECS_CLUSTER_NAME must be set}"
-
-AWS_REGION="eu-west-1"
-EXPECTED_CLUSTER="website-production"
-REPOSITORY="387546586013.dkr.ecr.eu-west-1.amazonaws.com/website-production"
-
-if [[ "$CLUSTER" != "$EXPECTED_CLUSTER" ]]; then
-  echo "ECS_CLUSTER_NAME must be ${EXPECTED_CLUSTER}" >&2
+if [[ "$CLUSTER" != "$CLUSTER_NAME" ]]; then
+  echo "ECS_CLUSTER_NAME must be ${CLUSTER_NAME}" >&2
   exit 1
 fi
 IMAGE_REPOSITORY="${IMAGE%@*}"
 IMAGE_DIGEST="${IMAGE##*@}"
-if [[ "$IMAGE_REPOSITORY" != "$REPOSITORY" || ! "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
-  echo "image must be an immutable digest in ${REPOSITORY}" >&2
+if [[ "$IMAGE_REPOSITORY" != "$ECR_REPOSITORY_URI" || ! "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+  echo "image must be an immutable digest in ${ECR_REPOSITORY_URI}" >&2
   exit 1
 fi
 if [[ ! "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
@@ -38,41 +75,6 @@ if [[ ! "$VERSION" =~ ^[0-9]{8}-[0-9]{6}-[0-9a-f]{7}$ ]] ||
   echo "version must be a UTC release timestamp ending in the source SHA prefix" >&2
   exit 1
 fi
-
-case "$TARGET" in
-  dev)
-    NAMESPACE="website-dev"
-    RUNTIME_ENVIRONMENT="development"
-    SETTINGS_MODULE="website.settings.development"
-    DEVELOPMENT_HOSTNAME="dev.datatalks.club"
-    ENVIRONMENT_TAG="dev"
-    PROJECT_TAG="dtc-website"
-    BASE_URL="https://dev.datatalks.club"
-    WEB_DESIRED_COUNT=1
-    WORKER_DESIRED_COUNT=0
-    ;;
-  production)
-    NAMESPACE="website-production"
-    RUNTIME_ENVIRONMENT="production"
-    SETTINGS_MODULE="website.settings.production"
-    DEVELOPMENT_HOSTNAME=""
-    ENVIRONMENT_TAG="production"
-    PROJECT_TAG="website"
-    BASE_URL="https://prod.datatalks.club"
-    WEB_DESIRED_COUNT=2
-    WORKER_DESIRED_COUNT=1
-    ;;
-  *)
-    echo "target must be dev or production" >&2
-    exit 1
-    ;;
-esac
-
-WEB_SERVICE="${NAMESPACE}-web"
-WORKER_SERVICE="${NAMESPACE}-worker"
-WEB_FAMILY="${NAMESPACE}-web"
-WORKER_FAMILY="${NAMESPACE}-worker"
-MIGRATION_FAMILY="${NAMESPACE}-migration"
 
 mkdir -p .tmp
 WORKDIR="$(mktemp -d ".tmp/deploy-${TARGET}.XXXXXX")"
@@ -99,18 +101,38 @@ recover_or_clean() {
 }
 trap recover_or_clean EXIT
 
+# $1 = workload name, $2 = the describe-task-definition source: the service's
+# active task-definition ARN for the long-running services (REL-08: never the
+# most recently registered family revision) or the migration family, whose
+# tasks are one-off and therefore have no service to read an accepted revision
+# from -- that family's latest registered revision is its only possible source,
+# so it is validated content-wise like the others instead.
 register_family() {
-  local family="$1"
-  local current="$WORKDIR/${family}-current.json"
-  local updated="$WORKDIR/${family}-updated.json"
-  local registered="$WORKDIR/${family}-registered.json"
+  local workload="$1"
+  local source="$2"
+  local current="$WORKDIR/${workload}-current.json"
+  local updated="$WORKDIR/${workload}-updated.json"
+  local registered="$WORKDIR/${workload}-registered.json"
 
-  echo "Describing ${family}" >&2
+  echo "Describing ${workload} source: ${source}" >&2
   aws ecs describe-task-definition --region "$AWS_REGION" \
-    --task-definition "$family" > "$current"
-  python3 "$(dirname "$0")/update_task_definition_image.py" \
-    "$current" "$IMAGE" "$VERSION" "$SOURCE_SHA" "$IMAGE_DIGEST" \
-    "$RUNTIME_ENVIRONMENT" "$SETTINGS_MODULE" "$DEVELOPMENT_HOSTNAME" "$updated"
+    --task-definition "$source" > "$current"
+  # This function runs inside $( ) command substitution, where set -e does
+  # not apply, so the promotion gate is enforced explicitly: a refused source
+  # must stop the deployment before register-task-definition (REL-08).
+  if ! python3 -m deploy.update_task_definition_image \
+      "$current" "$IMAGE" "$VERSION" "$SOURCE_SHA" "$IMAGE_DIGEST" \
+      "$workload" "$updated"; then
+    echo "${workload} source was refused; nothing was registered" >&2
+    return 1
+  fi
+
+  local family
+  case "$workload" in
+    web) family="$WEB_FAMILY" ;;
+    worker) family="$WORKER_FAMILY" ;;
+    migration) family="$MIGRATION_FAMILY" ;;
+  esac
 
   echo "Registering ${family} for ${VERSION}" >&2
   aws ecs register-task-definition --region "$AWS_REGION" \
@@ -125,16 +147,21 @@ register_family() {
 
 echo "Discovering the migration network and the current service state"
 # Both services are described in one call, requested web-first so
-# services[0] below is the web service.
+# services[0] below is the web service. Their current taskDefinition ARNs are
+# the promotion sources for REL-08.
 aws ecs describe-services --region "$AWS_REGION" \
-  --cluster "$CLUSTER" --services "$WEB_SERVICE" "$WORKER_SERVICE" > "$WORKDIR/service.json"
+  --cluster "$CLUSTER" --services "$WEB_SERVICE_NAME" "$WORKER_SERVICE_NAME" > "$WORKDIR/service.json"
 jq -e '
   (.failures | length) == 0 and
   (.services | length) == 2 and
+  (.services[0].taskDefinition | startswith("arn:aws:ecs:")) and
+  (.services[1].taskDefinition | startswith("arn:aws:ecs:")) and
   (.services[0].networkConfiguration.awsvpcConfiguration.subnets | length) > 0 and
   (.services[0].networkConfiguration.awsvpcConfiguration.securityGroups | length) > 0
 ' "$WORKDIR/service.json" > /dev/null
 NETWORK_CONFIGURATION="$(jq -c '.services[0].networkConfiguration' "$WORKDIR/service.json")"
+WEB_SOURCE="$(jq -er '.services[0].taskDefinition' "$WORKDIR/service.json")"
+WORKER_SOURCE="$(jq -er '.services[1].taskDefinition' "$WORKDIR/service.json")"
 
 echo "Capturing the redacted recovery receipt before any mutation: ${RECEIPT}"
 python3 "$(dirname "$0")/recovery_receipt.py" capture \
@@ -144,14 +171,14 @@ python3 "$(dirname "$0")/recovery_receipt.py" capture \
   --version "$VERSION" \
   --source-sha "$SOURCE_SHA" \
   --image "$IMAGE" \
-  --service "$WEB_SERVICE" \
-  --service "$WORKER_SERVICE" \
+  --service "$WEB_SERVICE_NAME" \
+  --service "$WORKER_SERVICE_NAME" \
   --services-json "$WORKDIR/service.json" \
   --output "$RECEIPT"
 
-WEB_TASK_DEFINITION="$(register_family "$WEB_FAMILY")"
-WORKER_TASK_DEFINITION="$(register_family "$WORKER_FAMILY")"
-MIGRATION_TASK_DEFINITION="$(register_family "$MIGRATION_FAMILY")"
+WEB_TASK_DEFINITION="$(register_family web "$WEB_SOURCE")"
+WORKER_TASK_DEFINITION="$(register_family worker "$WORKER_SOURCE")"
+MIGRATION_TASK_DEFINITION="$(register_family migration "$MIGRATION_FAMILY")"
 
 echo "Running migrations and loading required code-owned data before either service is promoted"
 aws ecs run-task --region "$AWS_REGION" \
@@ -179,18 +206,18 @@ fi
 # recovery against the captured receipt.
 MUTATION_STARTED=1
 
-echo "Promoting ${WEB_SERVICE}"
+echo "Promoting ${WEB_SERVICE_NAME}"
 aws ecs update-service --region "$AWS_REGION" \
-  --cluster "$CLUSTER" --service "$WEB_SERVICE" \
+  --cluster "$CLUSTER" --service "$WEB_SERVICE_NAME" \
   --task-definition "$WEB_TASK_DEFINITION" --desired-count "$WEB_DESIRED_COUNT" > /dev/null
 
-echo "Promoting ${WORKER_SERVICE}"
+echo "Promoting ${WORKER_SERVICE_NAME}"
 aws ecs update-service --region "$AWS_REGION" \
-  --cluster "$CLUSTER" --service "$WORKER_SERVICE" \
+  --cluster "$CLUSTER" --service "$WORKER_SERVICE_NAME" \
   --task-definition "$WORKER_TASK_DEFINITION" --desired-count "$WORKER_DESIRED_COUNT" > /dev/null
 
 aws ecs wait services-stable --region "$AWS_REGION" \
-  --cluster "$CLUSTER" --services "$WEB_SERVICE" "$WORKER_SERVICE"
+  --cluster "$CLUSTER" --services "$WEB_SERVICE_NAME" "$WORKER_SERVICE_NAME"
 
 # REL-06: services-stable alone does not prove a coherent release.  Every
 # check below is fail-closed -- a stale worker, a mixed web rollout, a
@@ -198,11 +225,11 @@ aws ecs wait services-stable --region "$AWS_REGION" \
 # record (and the EXIT trap treats any of them as a failed deployment).
 echo "Verifying both services are on the promoted definitions"
 aws ecs describe-services --region "$AWS_REGION" \
-  --cluster "$CLUSTER" --services "$WEB_SERVICE" "$WORKER_SERVICE" \
+  --cluster "$CLUSTER" --services "$WEB_SERVICE_NAME" "$WORKER_SERVICE_NAME" \
   > "$WORKDIR/promoted.json"
 jq -e \
-  --arg web "$WEB_SERVICE" --arg web_arn "$WEB_TASK_DEFINITION" --argjson web_desired "$WEB_DESIRED_COUNT" \
-  --arg worker "$WORKER_SERVICE" --arg worker_arn "$WORKER_TASK_DEFINITION" --argjson worker_desired "$WORKER_DESIRED_COUNT" '
+  --arg web "$WEB_SERVICE_NAME" --arg web_arn "$WEB_TASK_DEFINITION" --argjson web_desired "$WEB_DESIRED_COUNT" \
+  --arg worker "$WORKER_SERVICE_NAME" --arg worker_arn "$WORKER_TASK_DEFINITION" --argjson worker_desired "$WORKER_DESIRED_COUNT" '
   ([.services[] | select(.serviceName == $web)][0]) as $web_svc |
   ([.services[] | select(.serviceName == $worker)][0]) as $worker_svc |
   ($web_svc.taskDefinition == $web_arn) and
@@ -238,9 +265,9 @@ verify_running_tasks() {
 }
 
 echo "Verifying every running web task carries the promoted definition"
-verify_running_tasks "$WEB_SERVICE" "$WEB_TASK_DEFINITION"
+verify_running_tasks "$WEB_SERVICE_NAME" "$WEB_TASK_DEFINITION"
 echo "Verifying every running worker task carries the promoted definition"
-verify_running_tasks "$WORKER_SERVICE" "$WORKER_TASK_DEFINITION"
+verify_running_tasks "$WORKER_SERVICE_NAME" "$WORKER_TASK_DEFINITION"
 
 echo "Running the bounded worker self-check on the promoted worker definition"
 # One-off task on the exact definition the worker service runs: a system.noop

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import json
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any
 
 from deploy.contracts import ReleaseContractError, ReleaseIdentity
-from deploy.deployment_targets import SELECTED_TARGET
+from deploy.deployment_targets import CONTAINER_NAMES, SELECTED_TARGET, DeploymentTarget
 
 WORKLOADS = ("web", "worker", "migration")
 REGISTERABLE_FIELDS = {
@@ -68,6 +69,75 @@ class TaskDefinitionConfig:
         ):
             if set(values) != set(WORKLOADS) or any(not value for value in values.values()):
                 raise ReleaseContractError(f"{name} must define web, worker, and migration")
+
+
+def config_for_target(target: DeploymentTarget | None = None) -> TaskDefinitionConfig:
+    """Derive the release contract from one reviewed deployment target.
+
+    The reviewed target is the single owner of the families, container names
+    and role ARNs a release must present (REL-19), so both the legacy
+    ``deploy.cli`` controller and the active shell orchestrator build their
+    expectations here instead of carrying their own copies.
+    """
+
+    resolved = SELECTED_TARGET if target is None else target
+    return TaskDefinitionConfig(
+        families={
+            "web": resolved.web_task_family,
+            "worker": resolved.worker_task_family,
+            "migration": resolved.migration_task_family,
+        },
+        container_names=dict(json.loads(CONTAINER_NAMES)),
+        task_role_arn=resolved.task_role_arn,
+        execution_role_arn=resolved.execution_role_arn,
+    )
+
+
+def validate_source_workload(
+    task: dict[str, Any],
+    workload: str,
+    config: TaskDefinitionConfig,
+    target: DeploymentTarget | None = None,
+) -> None:
+    """Fail closed when a described task definition cannot carry this release.
+
+    The active shell orchestrator promotes the task definition each service is
+    running right now (REL-08) -- never whichever revision of the family was
+    registered most recently -- and validates that source against the reviewed
+    target before mutating anything: the exact family and a task-definition
+    ARN inside the target's namespace, the exact roles, the target's runtime
+    platform, a single application container with the workload's own name (the
+    architecture forbids sidecars), and the target-scoped secret references.
+    The long-running services must also carry their reviewed command; the
+    migration task is exempt because the orchestrator overrides its command at
+    ``run-task`` time, so its registered command is not what executes.
+    """
+
+    if workload not in WORKLOADS:
+        raise ReleaseContractError(f"unknown workload {workload!r}")
+    resolved = SELECTED_TARGET if target is None else target
+    if task.get("family") != config.families[workload]:
+        raise ReleaseContractError(
+            f"{workload} task definition is not the {config.families[workload]} family"
+        )
+    arn = task.get("taskDefinitionArn")
+    if not isinstance(arn, str) or not arn.startswith(
+        resolved.task_definition_arn_prefix(config.families[workload])
+    ):
+        raise ReleaseContractError(
+            f"{workload} task definition ARN is outside the {resolved.name} target"
+        )
+    if task.get("taskRoleArn") != config.task_role_arn:
+        raise ReleaseContractError(f"{workload} task role differs from the expected exact ARN")
+    if task.get("executionRoleArn") != config.execution_role_arn:
+        raise ReleaseContractError(f"{workload} execution role differs from the expected exact ARN")
+    _assert_runtime_platform(task, workload)
+    container = _only_container(task, config.container_names[workload])
+    _secrets(container)
+    if workload != "migration":
+        for field, expected in COMMANDS[workload].items():
+            if container.get(field) != expected:
+                raise ReleaseContractError(f"{workload} {field} mismatch")
 
 
 def _assert_runtime_platform(task: dict[str, Any], workload: str) -> None:
