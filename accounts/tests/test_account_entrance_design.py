@@ -76,7 +76,13 @@ class AccountEntranceDocumentTests(TestCase):
             with self.subTest(page=name):
                 grounds = BAND.findall(body)
                 self.assertEqual(grounds[0], "band-cream")
-                self.assertEqual([g for g in grounds[1:] if g != "band-lavender"], [])
+                # The site-wide tour stripe adds one closing band-ink section
+                # above the footer; every other band stays on the content ground.
+                self.assertEqual(
+                    [g for g in grounds[1:] if g not in {"band-lavender", "band-ink"}],
+                    [],
+                )
+                self.assertEqual(grounds.count("band-ink"), 1)
 
     def test_every_entrance_page_has_exactly_one_first_level_heading(self) -> None:
         for name, body in self.rendered_pages().items():
