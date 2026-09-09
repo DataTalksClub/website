@@ -236,20 +236,20 @@
                   {% url 'studio_courses_homework_extend_deadline' course.slug hw.slug as hw_extend_url %}
                   {% include 'studio_courses/_extend_deadline_menu.html' with extend_url=hw_extend_url title=hw.title deadline_label='the deadline' %}
                 {% endif %}
-                <form method="post" action="{% url 'studio_courses_homework_set_correct_answers' course.slug hw.slug %}" onsubmit="return confirm('Set missing correct answers for {{ hw.title }} to the most frequent submitted answers?');">
+                <form method="post" action="{% url 'studio_courses_homework_set_correct_answers' course.slug hw.slug %}" data-confirm-message="Set missing correct answers for {{ hw.title }} to the most frequent submitted answers?">
                   {% csrf_token %}
                   <button type="submit" class="admin-menu-item">
                     Select most frequent answer
                   </button>
                 </form>
-                <form method="post" action="{% url 'studio_courses_homework_clear_correct_answers' course.slug hw.slug %}" onsubmit="return confirm('Clear all correct answers for {{ hw.title }}? Scores will need to be recalculated after setting answers again.');">
+                <form method="post" action="{% url 'studio_courses_homework_clear_correct_answers' course.slug hw.slug %}" data-confirm-message="Clear all correct answers for {{ hw.title }}? Scores will need to be recalculated after setting answers again.">
                   {% csrf_token %}
                   <button type="submit" class="admin-menu-item">
                     Clear correct answers
                   </button>
                 </form>
                 {% if hw.can_score %}
-                  <form method="post" action="{% url 'studio_courses_homework_score' course.slug hw.slug %}" onsubmit="return confirm('Score all submissions for {{ hw.title }}?');">
+                  <form method="post" action="{% url 'studio_courses_homework_score' course.slug hw.slug %}" data-confirm-message="Score all submissions for {{ hw.title }}?">
                     {% csrf_token %}
                     <button type="submit" class="admin-menu-item">
                       Score submissions
@@ -257,7 +257,7 @@
                   </form>
                 {% endif %}
                 {% if hw.can_notify_scores %}
-                  <form method="post" action="{% url 'studio_courses_homework_notify_scores' course.slug hw.slug %}" onsubmit="return confirm('Email score notifications to all students who submitted {{ hw.title }}?');">
+                  <form method="post" action="{% url 'studio_courses_homework_notify_scores' course.slug hw.slug %}" data-confirm-message="Email score notifications to all students who submitted {{ hw.title }}?">
                     {% csrf_token %}
                     <button type="submit" class="admin-menu-item">
                       Notify students of scores
@@ -328,7 +328,7 @@
                   {% include 'studio_courses/_extend_deadline_menu.html' with extend_url=proj_extend_url title=proj.title deadline_label=proj.extend_deadline_label %}
                 {% endif %}
                 {% if proj.needs_review_assignment %}
-                  <form method="post" action="{% url 'studio_courses_project_assign_reviews' course.slug proj.slug %}" onsubmit="return confirm('Assign peer reviews for {{ proj.title }}?');">
+                  <form method="post" action="{% url 'studio_courses_project_assign_reviews' course.slug proj.slug %}" data-confirm-message="Assign peer reviews for {{ proj.title }}?">
                     {% csrf_token %}
                     <button type="submit" class="admin-menu-item">
                       Assign peer reviews
@@ -336,7 +336,7 @@
                   </form>
                 {% endif %}
                 {% if proj.needs_scoring %}
-                  <form method="post" action="{% url 'studio_courses_project_score' course.slug proj.slug %}" onsubmit="return confirm('Score all submissions for {{ proj.title }}?');">
+                  <form method="post" action="{% url 'studio_courses_project_score' course.slug proj.slug %}" data-confirm-message="Score all submissions for {{ proj.title }}?">
                     {% csrf_token %}
                     <button type="submit" class="admin-menu-item">
                       Score projects

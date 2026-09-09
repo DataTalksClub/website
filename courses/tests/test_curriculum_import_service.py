@@ -64,9 +64,7 @@ def fixture_source(*, commit_sha: str = FIRST_COMMIT) -> CourseRepositorySource:
     return parse_course_repository(snapshot, commit_sha=commit_sha)
 
 
-def source_without_site_description(
-    *, commit_sha: str = FIRST_COMMIT
-) -> CourseRepositorySource:
+def source_without_site_description(*, commit_sha: str = FIRST_COMMIT) -> CourseRepositorySource:
     """Parse the fixture repository as if it published no ``SITE.md``."""
 
     snapshot = {
@@ -144,7 +142,6 @@ class CurriculumImportServiceTests(TestCase):
         cohort.refresh_from_db()
         project.refresh_from_db()
         return result, course, cohort, project
-
 
     def test_adopts_the_course_description_the_repository_publishes_in_site_md(self):
         _, course, _, _ = self.import_fixture_with_project()

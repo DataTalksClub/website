@@ -66,7 +66,7 @@
     <div class="admin-toolbar">
       <form method="post"
             action="{% url 'studio_courses_homework_set_correct_answers' course.slug homework.slug %}"
-            onsubmit="return confirm('Set missing correct answers for {{ homework.title }} to the most frequent submitted answers?');">
+            data-confirm-message="Set missing correct answers for {{ homework.title }} to the most frequent submitted answers?">
         {% csrf_token %}
         <input type="hidden"
                name="next"
@@ -75,7 +75,7 @@
       </form>
       <form method="post"
             action="{% url 'studio_courses_homework_clear_correct_answers' course.slug homework.slug %}"
-            onsubmit="return confirm('Clear all correct answers for {{ homework.title }}? Scores will need to be recalculated after setting answers again.');">
+            data-confirm-message="Clear all correct answers for {{ homework.title }}? Scores will need to be recalculated after setting answers again.">
         {% csrf_token %}
         <input type="hidden"
                name="next"
@@ -85,7 +85,7 @@
       {% if not homework.is_scored %}
         <form method="post"
               action="{% url 'studio_courses_homework_score' course.slug homework.slug %}"
-              onsubmit="return confirm('Score all submissions for {{ homework.title }}?');">
+              data-confirm-message="Score all submissions for {{ homework.title }}?">
           {% csrf_token %}
           <input type="hidden"
                  name="next"
@@ -95,7 +95,7 @@
       {% else %}
         <form method="post"
               action="{% url 'studio_courses_homework_rescore' course.slug homework.slug %}"
-              onsubmit="return confirm('Rescore {{ homework.title }}? This will recalculate all scores with the current correct answers.');">
+              data-confirm-message="Rescore {{ homework.title }}? This will recalculate all scores with the current correct answers.">
           {% csrf_token %}
           <input type="hidden"
                  name="next"
@@ -104,7 +104,7 @@
         </form>
         <form method="post"
               action="{% url 'studio_courses_homework_notify_scores' course.slug homework.slug %}"
-              onsubmit="return confirm('Email score notifications to all students who submitted {{ homework.title }}?');">
+              data-confirm-message="Email score notifications to all students who submitted {{ homework.title }}?">
           {% csrf_token %}
           <input type="hidden"
                  name="next"

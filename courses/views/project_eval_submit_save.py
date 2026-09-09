@@ -1,3 +1,4 @@
+import re
 from collections.abc import Iterable
 
 from django.contrib import messages
@@ -12,7 +13,9 @@ from courses.models.project import (
     PeerReview,
     PeerReviewState,
     Project,
+    ProjectState,
     ReviewCriteria,
+    ReviewCriteriaTypes,
 )
 from courses.views.homework_learning_links import (
     clean_learning_in_public_links,
@@ -21,6 +24,23 @@ from courses.views.homework_learning_links import (
 
 class ProjectCriteriaValidationError(ValidationError):
     """A safe, atomic rejection of criteria outside the current project."""
+
+
+POSTED_ANSWER_INDEX_PATTERN = re.compile(r"[1-9][0-9]*")
+
+
+def locked_peer_reviewing_project(project: Project) -> Project:
+    """Re-read the project under row lock and require an open review form.
+
+    The view-level state gate is advisory UI; this check inside the mutation
+    transaction rejects a review that races the project being closed or
+    scored.
+    """
+
+    locked = Project.objects.select_for_update().get(pk=project.pk)
+    if locked.state != ProjectState.PEER_REVIEWING.value:
+        raise ValidationError("Peer review form is closed.")
+    return locked
 
 
 def project_eval_post_submission(
@@ -34,6 +54,7 @@ def project_eval_post_submission(
     validate_project_criteria_answers(review_criteria, answers_by_field)
 
     with transaction.atomic():
+        project = locked_peer_reviewing_project(project)
         save_project_eval_criteria_responses(
             review,
             review_criteria,
@@ -88,17 +109,81 @@ def project_eval_answers_from_post(post_data):
 
 
 def validate_project_criteria_answers(review_criteria, answers_by_field):
-    """Reject forged, stale, or cross-project criterion identifiers upfront."""
+    """Reject forged, stale, or cross-project criterion identifiers upfront,
+    and reject answer values the rubric cannot score."""
 
-    allowed_ids = {str(criteria.id) for criteria in review_criteria}
+    allowed_ids = {str(criteria.id): criteria for criteria in review_criteria}
     posted_ids = {
         field_name.removeprefix("answer_")
         for field_name in answers_by_field
     }
-    if posted_ids - allowed_ids:
+    if posted_ids - allowed_ids.keys():
         raise ProjectCriteriaValidationError(
             "The review contains a criterion that is not assigned to this project."
         )
+    for criteria_id in posted_ids:
+        validate_criteria_answer_value(
+            allowed_ids[criteria_id],
+            answers_by_field[f"answer_{criteria_id}"],
+        )
+
+
+def validate_criteria_answer_value(criteria, raw_answer):
+    """Validate one posted answer against its criterion definition.
+
+    Values must be canonical 1-based option indexes without repeats; a radio
+    criterion takes exactly one choice, a checkbox criterion any distinct
+    subset. An empty or absent value means "not answered" and stays allowed
+    for optional answers.
+    """
+
+    indexes = _posted_answer_indexes(criteria, raw_answer)
+    if not indexes:
+        return
+
+    if (
+        criteria.review_criteria_type
+        == ReviewCriteriaTypes.RADIO_BUTTONS.value
+    ):
+        if len(indexes) != 1:
+            raise ValidationError(
+                f"Select exactly one option for '{criteria.description}'."
+            )
+    elif (
+        criteria.review_criteria_type
+        != ReviewCriteriaTypes.CHECKBOXES.value
+    ):
+        raise ValidationError(
+            f"'{criteria.description}' has an unsupported criterion type."
+        )
+
+
+def _posted_answer_indexes(criteria, raw_answer):
+    if raw_answer is None or raw_answer == "":
+        return []
+
+    indexes = []
+    seen = set()
+    for token in raw_answer.split(","):
+        if not POSTED_ANSWER_INDEX_PATTERN.fullmatch(token):
+            raise ValidationError(
+                f"The selected options for '{criteria.description}' "
+                "are not valid choices."
+            )
+        index = int(token)
+        if not 1 <= index <= len(criteria.options):
+            raise ValidationError(
+                f"The selected option for '{criteria.description}' "
+                "is not one of the available choices."
+            )
+        if index in seen:
+            raise ValidationError(
+                f"Select each option at most once for "
+                f"'{criteria.description}'."
+            )
+        seen.add(index)
+        indexes.append(index)
+    return indexes
 
 
 def save_project_eval_criteria_responses(
