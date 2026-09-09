@@ -241,7 +241,7 @@ DATAMAILER_TIMEOUT_SECONDS = float(
     os.getenv("DATAMAILER_TIMEOUT_SECONDS", "60")
 )
 # When enabled, transactional sends carry Datamailer's "dry_run" flag: the full
-# prod send path runs (outbox -> dispatch -> /api/transactional/send -> audit) but
+# prod send path runs (/api/transactional/send -> audit) but
 # Datamailer renders the email and returns it inline without delivering. Used by
 # the e2e smoke suite (and any non-delivering deployment) to mimic prod safely.
 DATAMAILER_TRANSACTIONAL_DRY_RUN = (
@@ -262,13 +262,6 @@ DATAMAILER_IMPORT_S3_REGION = os.getenv("DATAMAILER_IMPORT_S3_REGION", "")
 DATAMAILER_SYNC_ON_USER_CREATE = (
     os.getenv("DATAMAILER_SYNC_ON_USER_CREATE", "1") == "1"
 )
-# Dispatch outbox events inline (True) or defer to the scheduled processor
-# (False, the production default). Tests set this to True so sync helpers fire
-# without an explicit process_due_datamailer_outbox call.
-DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY = (
-    os.getenv("DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY", "0") == "1"
-)
-
 # Cache configuration
 CACHES = {
     "default": {

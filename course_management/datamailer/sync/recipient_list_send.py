@@ -60,8 +60,6 @@ def sync_members_before_recipient_list_send_or_audit(data):
         config=data.config,
         list_key=data.list_key,
         payload=data.payload,
-        idempotency_key=data.idempotency_key,
-        ordering_key=data.ordering_key,
     )
     synced = bulk_upsert_recipient_list_members_before_send(bulk_data)
     if synced:

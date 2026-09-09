@@ -23,8 +23,6 @@ def _assert_side_effects_disabled() -> None:
         raise RuntimeError("local review provider settings are not disabled")
     if getattr(settings, "DATAMAILER_SYNC_ON_USER_CREATE", True):
         raise RuntimeError("local review contact synchronization is not disabled")
-    if getattr(settings, "DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY", True):
-        raise RuntimeError("local review immediate dispatch is not disabled")
     if settings.EMAIL_BACKEND not in {
         "django.core.mail.backends.dummy.EmailBackend",
         "django.core.mail.backends.locmem.EmailBackend",

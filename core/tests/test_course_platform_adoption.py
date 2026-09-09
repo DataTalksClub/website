@@ -46,7 +46,6 @@ EXPECTED_COMMANDS = {
     "import_development_course_content": "courses",
     "monitoring_datamailer_health": "data",
     "preview_peer_review_email": "courses",
-    "process_datamailer_outbox": "data",
     "seed_local_courses": "courses",
     "seed_local_project_review": "courses",
     "seed_local_questions": "courses",

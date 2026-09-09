@@ -172,35 +172,26 @@ def create_pending_peer_review(author_submission, reviewer):
     )
 
 
-def assert_peer_review_reminder_payload(test_case, payload, expectation):
+def assert_peer_review_reminder_deliveries(test_case, expectation):
+    from courses.tests.deadline_reminder_base import deliveries_for_purpose
+
+    deliveries = deliveries_for_purpose(test_case, "deadline-reminder")
     test_case.assertEqual(
-        payload["list"]["key"],
-        "deadline-reminders:peer-review:ml-zoomcamp-2026:project-1:24h",
-    )
-    members_by_email = test_case.members_by_email(payload)
-    member_emails = set(members_by_email)
-    test_case.assertEqual(
-        member_emails,
+        set(deliveries),
         {
             "reviewer@example.com",
             "opted-out-reviewer@example.com",
         },
     )
+    reviewer = deliveries["reviewer@example.com"]
     test_case.assertEqual(
-        members_by_email["reviewer@example.com"]["source_object_key"],
-        f"project-submission:{expectation.reviewer_submission.pk}",
+        reviewer.idempotency_key,
+        (
+            f"deadline-reminder:peer-review:{expectation.project.pk}:24h"
+            f":project-submission:{expectation.reviewer_submission.pk}"
+        ),
     )
     test_case.assertEqual(
-        members_by_email["opted-out-reviewer@example.com"][
-            "source_object_key"
-        ],
-        f"project-submission:{expectation.opted_out_submission.pk}",
-    )
-    test_case.assertEqual(
-        payload["idempotency_key"],
-        f"deadline-reminder:peer-review:{expectation.project.pk}:24h",
-    )
-    test_case.assertEqual(
-        payload["context"]["action_url"],
+        reviewer.context_data["course_url"],
         "https://courses.example.com/courses/ml-zoomcamp/cohorts/2026/project/project-1/eval",
     )

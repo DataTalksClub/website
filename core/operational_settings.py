@@ -346,17 +346,6 @@ DATAMAILER_SYNC_ON_USER_CREATE = _declare(
     settings_attr="DATAMAILER_SYNC_ON_USER_CREATE",
 )
 
-DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY = _declare(
-    key="datamailer.outbox_dispatch_immediately",
-    group=DATAMAILER_GROUP,
-    label="Dispatch the outbox in-process",
-    description="Deliver queued mail as soon as it is written instead of waiting for a worker.",
-    value_type=BOOLEAN,
-    default=False,
-    env_var="DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY",
-    settings_attr="DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY",
-)
-
 DATAMAILER_IMPORT_S3_BUCKET = _declare(
     key="datamailer.import_s3_bucket",
     group=DATAMAILER_GROUP,
@@ -658,7 +647,6 @@ OPERATIONAL_SETTING_KEYS: tuple[str, ...] = (
     DATAMAILER_IMPORT_S3_PREFIX.key,
     DATAMAILER_IMPORT_S3_REGION.key,
     DATAMAILER_IMPORT_URL_EXPIRES_SECONDS.key,
-    DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY.key,
     DATAMAILER_STRICT.key,
     DATAMAILER_SYNC_ON_USER_CREATE.key,
     DATAMAILER_TIMEOUT_SECONDS.key,

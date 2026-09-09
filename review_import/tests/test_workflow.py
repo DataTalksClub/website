@@ -69,7 +69,6 @@ HOSTILE_PROVIDER_ENVIRONMENT = {
     "DATAMAILER_IMPORT_URL_EXPIRES_SECONDS": "900",
     "DATAMAILER_IMPORT_S3_REGION": "synthetic-region",
     "DATAMAILER_SYNC_ON_USER_CREATE": "1",
-    "DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY": "1",
     "AWS_ACCESS_KEY_ID": "synthetic-access-key",
     "AWS_SECRET_ACCESS_KEY": "synthetic-secret-key",
     "AWS_SESSION_TOKEN": "synthetic-session-token",
@@ -930,8 +929,6 @@ if any(getattr(settings, name) for name in empty_settings):
     raise SystemExit(10)
 if settings.DATAMAILER_SYNC_ON_USER_CREATE:
     raise SystemExit(11)
-if settings.DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY:
-    raise SystemExit(12)
 if not settings.DATAMAILER_TRANSACTIONAL_DRY_RUN:
     raise SystemExit(13)
 if settings.DATAMAILER_STRICT:
