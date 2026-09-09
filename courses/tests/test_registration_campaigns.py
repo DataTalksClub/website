@@ -263,10 +263,8 @@ class RegistrationCampaignMalformedEmailTests(RegistrationCampaignBase):
         with (
             patch("courses.views.registration.record_event") as record_event,
             patch(
-                "courses.views.registration.sync_registration_to_datamailer"
-            ) as sync_registration,
-            patch(
-                "courses.views.registration.send_registration_confirmation_email"
+                "courses.views.registration."
+                "send_registration_confirmation_mail"
             ) as send_confirmation,
             self.captureOnCommitCallbacks(execute=True) as callbacks,
         ):
@@ -277,7 +275,6 @@ class RegistrationCampaignMalformedEmailTests(RegistrationCampaignBase):
         self.assertEqual(CourseRegistration.objects.count(), 0)
         self.assertEqual(callbacks, [])
         record_event.assert_not_called()
-        sync_registration.assert_not_called()
         send_confirmation.assert_not_called()
 
     def test_registration_rejects_email_missing_at_sign(self):

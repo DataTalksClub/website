@@ -21,12 +21,10 @@ class ProjectSubmissionViewTestBase(ProjectViewTestBase):
     def assert_project_confirmation_email(
         self,
         response,
-        sync_submission,
         send_email,
     ):
         self.assertEqual(response.status_code, 302)
         submission = self.get_project_submission()
-        sync_submission.assert_called_once_with(submission)
         send_email.assert_called_once()
         payload = send_email.call_args.args[0]
 
