@@ -156,7 +156,7 @@ class ProjectStudioCoursesViewTestBase(TestCase):
             "cohort_identifier": self.course.identifier,
             "project_slug": self.project.slug,
         }
-        return reverse("project_submissions", kwargs=kwargs)
+        return reverse("cohort_project_submissions", kwargs=kwargs)
 
     def project_url(self):
         kwargs = {

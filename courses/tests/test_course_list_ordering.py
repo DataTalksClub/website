@@ -93,6 +93,13 @@ class CourseListOrderingTest(CourseListViewTestBase):
                 "cohort_identifier": shared_course.identifier,
             },
         )
+        catalogue_path = reverse(
+            "cohort",
+            kwargs={
+                "course_slug": shared_course.course.slug,
+                "cohort_identifier": shared_course.identifier,
+            },
+        )
 
         self.assertEqual(
             course_list_response.context["featured_course"],

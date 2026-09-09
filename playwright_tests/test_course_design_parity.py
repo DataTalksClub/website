@@ -283,10 +283,10 @@ def test_database_course_catalog_renders_the_design_system_index(
         role: assert_copied_course_catalog_link(
             page,
             path=reverse(
-                "course",
+                "cohort",
                 kwargs={
                     "course_slug": course.course.slug,
-                    "cohort_year": course.identifier,
+                    "cohort_identifier": course.identifier,
                 },
             ),
             title=course.course.title,
@@ -344,10 +344,10 @@ def test_database_course_catalog_renders_the_design_system_index(
     page.keyboard.press("Enter")
     expect(page.locator("#main-content")).to_be_focused()
     detail_path = reverse(
-        "course",
+        "cohort",
         kwargs={
             "course_slug": cmp_course_catalog["active"].course.slug,
-            "cohort_year": cmp_course_catalog["active"].identifier,
+            "cohort_identifier": cmp_course_catalog["active"].identifier,
         },
     )
     # The active card now offers its title and its CTA as two real links to the

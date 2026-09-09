@@ -311,11 +311,11 @@ def accessibility_environment() -> AccessibilityEnvironment:
     faq = _faq_anchor_sample()
     course_route = {
         "course_slug": course.course.slug,
-        "cohort_year": course.identifier,
+        "cohort_identifier": course.identifier,
     }
     empty_course_route = {
         "course_slug": empty_course.course.slug,
-        "cohort_year": empty_course.identifier,
+        "cohort_identifier": empty_course.identifier,
     }
 
     surfaces = {
@@ -384,53 +384,53 @@ def accessibility_environment() -> AccessibilityEnvironment:
             actor="learner",
         ),
         "dashboard": Surface(
-            reverse("dashboard", kwargs=course_route),
+            reverse("cohort_dashboard", kwargs=course_route),
             actor="learner",
         ),
         "enrollment": Surface(
-            reverse("enrollment", kwargs=course_route),
+            reverse("cohort_enrollment", kwargs=course_route),
             actor="learner",
         ),
         "homework": Surface(
             reverse(
-                "homework",
+                "cohort_homework",
                 kwargs={**course_route, "homework_slug": homework.slug},
             ),
             actor="learner",
         ),
         "project": Surface(
             reverse(
-                "project",
+                "cohort_project",
                 kwargs={**course_route, "project_slug": project.slug},
             ),
             actor="learner",
         ),
         "peer-review": Surface(
             reverse(
-                "projects_eval",
+                "cohort_projects_eval",
                 kwargs={**course_route, "project_slug": project.slug},
             ),
             actor="reviewer",
         ),
         "score": Surface(
             reverse(
-                "leaderboard_score_breakdown",
+                "cohort_leaderboard_score_breakdown",
                 kwargs={**course_route, "enrollment_id": enrollment.id},
             ),
             actor="learner",
         ),
         "leaderboard": Surface(
-            reverse("leaderboard", kwargs=course_route),
+            reverse("cohort_leaderboard", kwargs=course_route),
             actor="learner",
         ),
         "complaint": Surface(
             reverse(
-                "leaderboard_complaint",
+                "cohort_leaderboard_complaint",
                 kwargs={**course_route, "enrollment_id": enrollment.id},
             ),
             actor="reviewer",
         ),
-        "course-empty": Surface(reverse("course", kwargs=empty_course_route)),
+        "course-empty": Surface(reverse("cohort", kwargs=empty_course_route)),
         "studio-courses": Surface(reverse("studio_courses_course_list"), actor="site-admin"),
         "studio-course-form": Surface(
             reverse("studio_courses_campaign_create"),
