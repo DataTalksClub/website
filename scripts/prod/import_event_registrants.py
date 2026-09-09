@@ -53,7 +53,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -97,7 +96,12 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Report what a run would find, using the same discovery pass. Writes nothing.",
+        help=(
+            "Validate every selected event through the real row readers and"
+            " resolution gates, and report the counts (for --refresh, the"
+            " predicted registration diff) that apply would carry out."
+            " Writes nothing; malformed input exits nonzero."
+        ),
     )
     parser.add_argument(
         "--refresh",
@@ -118,7 +122,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     configure_target(parser, args)
 
-    from events.registrant_import import RegistrantImportError, import_registrants
+    from events.registrant_import import (
+        RegistrantImportError,
+        import_registrants,
+        plan_registrants,
+    )
 
     # The events app owns no provider file format, so the reader that knows what
     # a Luma export looks like is supplied here, by the ingestion layer.
@@ -131,16 +139,21 @@ def main(argv: list[str] | None = None) -> int:
     try:
         pending = luma_registrant_sources(source)
         if args.dry_run:
-            report: dict[str, object] = {
-                "provider": PROVIDER,
-                "events_total": len(pending),
+            # The real plan pass: every selected event's rows go through the
+            # same reader and the same resolution gates apply uses, so a bad
+            # header, a mismatched event id, an oversized file, or an
+            # unresolved target is refused here with the identical refusal --
+            # and a valid refresh plan predicts the aggregate diff -- all
+            # without a single write (audit REL-11).
+            report = {
+                **plan_registrants(
+                    provider=PROVIDER, pending=pending, refresh=args.refresh
+                ).as_dict(),
                 "refresh": args.refresh,
                 "applied": False,
             }
         else:
-            result = import_registrants(
-                provider=PROVIDER, pending=pending, refresh=args.refresh
-            )
+            result = import_registrants(provider=PROVIDER, pending=pending, refresh=args.refresh)
             report = {**result.as_dict(), "refresh": args.refresh, "applied": True}
     except RegistrantImportError as error:
         # The error carries a condition code, never a source value.

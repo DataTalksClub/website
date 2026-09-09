@@ -415,3 +415,216 @@ def import_registrants(
         matched_prior_identity_total=matched_prior,
         new_identity_total=new_identity,
     )
+
+
+@dataclass(frozen=True, slots=True)
+class EventPlanOutcome:
+    """What one event's dry-run decided, mirroring :func:`_import_one_event`.
+
+    Same gates in the same order: a completed event (without refresh) is
+    ``already_completed`` and its rows are never read; an event whose identity
+    has not been discovered is ``no_identity_yet`` and its rows are never read;
+    only past both gates is the real reader invoked, so a malformed file fails
+    here exactly as it would during apply.  Nothing is written: identities are
+    classified with the same lookups :func:`resolve_registrant_identity` uses,
+    minus the create, and refresh diffs are computed from reads.
+    """
+
+    external_event_identifier: str
+    status: str  # "planned", "already_completed", "no_identity_yet"
+    rows_total: int = 0
+    rows_writable: int = 0
+    rows_skipped: int = 0
+    registrations_removed: int = 0
+    registrations_unchanged: int = 0
+    registrations_changed: int = 0
+    matched_account_total: int = 0
+    matched_prior_identity_total: int = 0
+    new_identity_total: int = 0
+
+
+def _plan_one_event(
+    *,
+    provider: str,
+    external_event_identifier: str,
+    read_rows: Callable[[], tuple[RegistrantRow, ...]],
+    refresh: bool = False,
+) -> EventPlanOutcome:
+    progress = EventRegistrantImportProgress.objects.filter(
+        provider=provider, external_event_identifier=external_event_identifier
+    ).first()
+    if progress is not None and progress.completed and not refresh:
+        return EventPlanOutcome(
+            external_event_identifier=external_event_identifier,
+            status="already_completed",
+        )
+
+    source = provider_source_identity(
+        provider=provider, external_event_identifier=external_event_identifier
+    )
+    try:
+        event = resolve_source_identity(
+            repository=source.repository,
+            revision=source.revision,
+            source_key=source.source_key,
+        )
+    except EventIdentityNotFound:
+        return EventPlanOutcome(
+            external_event_identifier=external_event_identifier,
+            status="no_identity_yet",
+        )
+
+    rows = read_rows()
+
+    writable = skipped = matched_account = matched_prior = new_identity = 0
+    proposed: dict[str, str] = {}
+    for row in rows:
+        email = row.normalized_email
+        if email is None:
+            skipped += 1
+            continue
+        writable += 1
+        account = CustomUser.objects.filter(normalized_email=email).order_by("pk").first()
+        if account is not None:
+            matched_account += 1
+            # An account's normalized_email is the consolidation key; the
+            # empty fallback can never match a proposed row (none is empty).
+            key = account.normalized_email or email
+        else:
+            prior = (
+                EventRegistrantIdentity.objects.filter(normalized_email=email, account__isnull=True)
+                .order_by("id")
+                .first()
+            )
+            if prior is not None:
+                matched_prior += 1
+            else:
+                new_identity += 1
+            key = email
+        proposed[key] = row.status
+
+    removed = unchanged = changed = 0
+    if progress is not None and progress.completed and refresh:
+        existing: dict[str, str] = {}
+        for registration in EventRegistration.objects.filter(
+            event=event, provider=provider
+        ).select_related("identity__account"):
+            identity = registration.identity
+            if identity.account_id is not None and identity.account is not None:
+                existing_key = identity.account.normalized_email
+            else:
+                existing_key = identity.normalized_email
+            if existing_key:
+                existing[existing_key] = registration.status
+        removed = len(existing)
+        for email, status in proposed.items():
+            if existing.get(email) == status:
+                unchanged += 1
+            else:
+                changed += 1
+
+    return EventPlanOutcome(
+        external_event_identifier=external_event_identifier,
+        status="planned",
+        rows_total=len(rows),
+        rows_writable=writable,
+        rows_skipped=skipped,
+        registrations_removed=removed,
+        registrations_unchanged=unchanged,
+        registrations_changed=changed,
+        matched_account_total=matched_account,
+        matched_prior_identity_total=matched_prior,
+        new_identity_total=new_identity,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class PlanReport:
+    """The dry-run's aggregate: counts and event ids, never attendee values."""
+
+    provider: str
+    events_total: int
+    events_planned: int
+    events_already_completed: int
+    events_awaiting_identity: int
+    awaiting_identity_events: tuple[str, ...]
+    rows_total: int
+    rows_writable: int
+    rows_skipped: int
+    matched_account_total: int
+    matched_prior_identity_total: int
+    new_identity_total: int
+    registrations_removed: int
+    registrations_unchanged: int
+    registrations_changed: int
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "provider": self.provider,
+            "events_total": self.events_total,
+            "events_planned": self.events_planned,
+            "events_already_completed": self.events_already_completed,
+            "events_awaiting_identity": self.events_awaiting_identity,
+            "awaiting_identity_events": list(self.awaiting_identity_events),
+            "rows_total": self.rows_total,
+            "rows_writable": self.rows_writable,
+            "rows_skipped": self.rows_skipped,
+            "matched_account_total": self.matched_account_total,
+            "matched_prior_identity_total": self.matched_prior_identity_total,
+            "new_identity_total": self.new_identity_total,
+            "registrations_removed": self.registrations_removed,
+            "registrations_unchanged": self.registrations_unchanged,
+            "registrations_changed": self.registrations_changed,
+        }
+
+
+def plan_registrants(
+    *, provider: str, pending: Iterable[PendingEventRegistrants], refresh: bool = False
+) -> PlanReport:
+    """Dry-run companion to :func:`import_registrants`: validate, compute, write nothing.
+
+    Every gate and every reader call is the apply path's own -- the same
+    progress skip, the same identity resolution, the same row reader -- so a
+    malformed export or unresolved target is refused here with the identical
+    refusal apply would raise, and a valid refresh plan's aggregate diff
+    (added as ``registrations_changed`` minus re-presented unchanged rows,
+    plus genuinely new addresses; removed; unchanged) is what apply would
+    carry out.  Only reads happen: no identity is created, no registration or
+    progress row is touched.
+    """
+
+    outcomes = [
+        _plan_one_event(
+            provider=provider,
+            external_event_identifier=pending_event.external_event_identifier,
+            read_rows=pending_event.read_rows,
+            refresh=refresh,
+        )
+        for pending_event in pending
+    ]
+    awaiting = tuple(
+        outcome.external_event_identifier
+        for outcome in outcomes
+        if outcome.status == "no_identity_yet"
+    )
+    return PlanReport(
+        provider=provider,
+        events_total=len(outcomes),
+        events_planned=sum(1 for outcome in outcomes if outcome.status == "planned"),
+        events_already_completed=sum(
+            1 for outcome in outcomes if outcome.status == "already_completed"
+        ),
+        events_awaiting_identity=len(awaiting),
+        awaiting_identity_events=awaiting,
+        rows_total=sum(outcome.rows_total for outcome in outcomes),
+        rows_writable=sum(outcome.rows_writable for outcome in outcomes),
+        rows_skipped=sum(outcome.rows_skipped for outcome in outcomes),
+        matched_account_total=sum(outcome.matched_account_total for outcome in outcomes),
+        matched_prior_identity_total=sum(
+            outcome.matched_prior_identity_total for outcome in outcomes
+        ),
+        new_identity_total=sum(outcome.new_identity_total for outcome in outcomes),
+        registrations_removed=sum(outcome.registrations_removed for outcome in outcomes),
+        registrations_unchanged=sum(outcome.registrations_unchanged for outcome in outcomes),
+        registrations_changed=sum(outcome.registrations_changed for outcome in outcomes),
+    )

@@ -507,3 +507,159 @@ class ModelConstraintTests(TestCase):
         EventRegistrantIdentity.objects.create(normalized_email="shared@example.invalid")
         with self.assertRaises(IntegrityError):
             EventRegistrantIdentity.objects.create(normalized_email="shared@example.invalid")
+
+
+class PlanRegistrantsTests(RegistrantImportTestCase):
+    """The dry-run makes the apply path's decisions without writing (REL-11)."""
+
+    def _plan(self, *, refresh: bool = False):
+        from events.registrant_import import plan_registrants
+
+        return plan_registrants(provider=PROVIDER, pending=tuple(self.pending), refresh=refresh)
+
+    def test_the_plan_makes_no_write_of_any_kind(self) -> None:
+        self._mint_event(event_id="evt-1", title="Planned")
+        self._add_event(
+            event_id="evt-1",
+            rows=[
+                self._row(guest_id="g1", email="planned@example.invalid"),
+                self._row(guest_id="g2", email=None),
+            ],
+        )
+        registrations_before = EventRegistration.objects.count()
+        identities_before = EventRegistrantIdentity.objects.count()
+        progress_before = EventRegistrantImportProgress.objects.count()
+
+        report = self._plan()
+
+        self.assertEqual(report.events_planned, 1)
+        self.assertEqual(report.rows_writable, 1)
+        self.assertEqual(report.rows_skipped, 1)
+        self.assertEqual(EventRegistration.objects.count(), registrations_before)
+        self.assertEqual(EventRegistrantIdentity.objects.count(), identities_before)
+        self.assertEqual(EventRegistrantImportProgress.objects.count(), progress_before)
+
+    def test_plan_counts_match_what_apply_then_reports(self) -> None:
+        self._mint_event(event_id="evt-1", title="Predicted")
+        account = CustomUser.objects.create_user(
+            username="known",
+            email="known@example.invalid",
+        )
+        del account
+        self._add_event(
+            event_id="evt-1",
+            rows=[
+                self._row(guest_id="g1", email="known@example.invalid"),
+                self._row(guest_id="g2", email="fresh@example.invalid"),
+                self._row(guest_id="g3", email=None),
+            ],
+        )
+
+        report = self._plan()
+
+        self.assertEqual(report.rows_writable, 2)
+        self.assertEqual(report.matched_account_total, 1)
+        self.assertEqual(report.new_identity_total, 1)
+        self.assertEqual(report.rows_skipped, 1)
+
+        result = self._run()
+        self.assertEqual(result.rows_written, report.rows_writable)
+        self.assertEqual(result.rows_skipped, report.rows_skipped)
+        self.assertEqual(result.matched_account_total, report.matched_account_total)
+        self.assertEqual(result.new_identity_total, report.new_identity_total)
+
+    def test_a_completed_event_is_skipped_and_its_rows_never_read(self) -> None:
+        self._mint_event(event_id="evt-1", title="Done already")
+        self._add_event(
+            event_id="evt-1", rows=[self._row(guest_id="g1", email="a@example.invalid")]
+        )
+        self._run()
+        self.read_calls.clear()
+
+        report = self._plan()
+
+        self.assertEqual(report.events_already_completed, 1)
+        self.assertEqual(report.events_planned, 0)
+        self.assertEqual(report.rows_total, 0)
+        self.assertNotIn("evt-1", self.read_calls)
+
+    def test_an_unresolved_event_is_counted_and_its_rows_never_read(self) -> None:
+        self._add_event(
+            event_id="evt-ghost", rows=[self._row(guest_id="g1", email="a@example.invalid")]
+        )
+
+        report = self._plan()
+
+        self.assertEqual(report.events_awaiting_identity, 1)
+        self.assertEqual(report.awaiting_identity_events, ("evt-ghost",))
+        self.assertEqual(report.rows_total, 0)
+        self.assertNotIn("evt-ghost", self.read_calls)
+
+    def test_a_malformed_reader_fails_the_plan_exactly_as_apply(self) -> None:
+        from events.registrant_import import RegistrantImportError
+
+        def broken_rows() -> tuple[RegistrantRow, ...]:
+            raise RegistrantImportError("unsupported_luma_schema")
+
+        # The event identity resolves, so the plan gets past both gates and
+        # actually invokes the reader -- the same point apply would fail at.
+        self._mint_event(event_id="evt-1", title="Malformed")
+        self.pending.append(
+            PendingEventRegistrants(external_event_identifier="evt-1", read_rows=broken_rows)
+        )
+
+        with self.assertRaises(RegistrantImportError):
+            self._plan()
+
+    def test_the_refresh_plan_predicts_the_applied_diff(self) -> None:
+        self._mint_event(event_id="evt-1", title="Refreshed")
+        self._add_event(
+            event_id="evt-1",
+            rows=[
+                self._row(guest_id="g1", email="kept@example.invalid", status="approved"),
+                self._row(guest_id="g2", email="changed@example.invalid", status="approved"),
+                self._row(guest_id="g3", email="leaving@example.invalid", status="approved"),
+            ],
+        )
+        self._run()
+
+        self._next_export()
+        self._add_event(
+            event_id="evt-1",
+            rows=[
+                # Same person, same status: unchanged.
+                self._row(guest_id="g1", email="kept@example.invalid", status="approved"),
+                # Same person, new status: changed.
+                self._row(guest_id="g2", email="changed@example.invalid", status="declined"),
+                # New address: an addition, counted as changed in the diff.
+                self._row(guest_id="g4", email="arriving@example.invalid", status="approved"),
+            ],
+        )
+
+        report = self._plan(refresh=True)
+
+        self.assertEqual(report.events_planned, 1)
+        self.assertEqual(report.rows_writable, 3)
+        self.assertEqual(report.registrations_removed, 3)
+        self.assertEqual(report.registrations_unchanged, 1)
+        self.assertEqual(report.registrations_changed, 2)
+
+        # Apply carries out exactly the predicted diff.
+        result = self._run(refresh=True)
+        self.assertEqual(result.events_refreshed, 1)
+        self.assertEqual(result.rows_replaced, report.registrations_removed)
+        self.assertEqual(result.rows_written, report.rows_writable)
+
+        # And a second plan against the applied state predicts all unchanged.
+        self._next_export()
+        self._add_event(
+            event_id="evt-1",
+            rows=[
+                self._row(guest_id="g1", email="kept@example.invalid", status="approved"),
+                self._row(guest_id="g2", email="changed@example.invalid", status="declined"),
+                self._row(guest_id="g4", email="arriving@example.invalid", status="approved"),
+            ],
+        )
+        steady = self._plan(refresh=True)
+        self.assertEqual(steady.registrations_unchanged, 3)
+        self.assertEqual(steady.registrations_changed, 0)
