@@ -7,6 +7,7 @@ from typing import Any
 
 from core.capabilities import Capability
 
+from .identity_resolution import identity_state_eligible
 from .studio_sessions import (
     DatabaseStaffSessionAdapter,
     StaffSessionAdapter,
@@ -64,7 +65,14 @@ def authorize_studio_request(
     if not bool(getattr(request_user, "is_authenticated", False)):
         raise StudioAuthenticationRequired
     user = refresh_user(getattr(request_user, "pk", None))
-    if user is None or not user.is_active or not user.is_staff:
+    if (
+        user is None
+        or not user.is_active
+        or not user.is_staff
+        # A quarantined staff account loses Studio authority too; the denial
+        # is the same generic StudioAuthorizationDenied (audit BE-08).
+        or not identity_state_eligible(user)
+    ):
         raise StudioAuthorizationDenied
     if not has_explicit_permission(user, capability.django_permission):
         raise StudioAuthorizationDenied

@@ -158,6 +158,15 @@ COPY_ORDER = tuple(ALLOWLIST)
 # so a later migration that adds a required column asks for a decision instead of
 # failing mid-rebuild on a NOT NULL constraint.
 TARGET_ONLY_COLUMNS: dict[str, dict[str, object]] = {
+    "courses_course": {
+        # Archive identity is derived by the shared-curriculum importer from a
+        # validated course repository, so a CMP snapshot has no value for it. The
+        # empty values are what the archive-identity check constraint requires of a
+        # curriculum_source='current' cohort, which is what every copied row is.
+        "archive_commit_sha": "",
+        "archive_notice_path": "",
+        "archive_url": "",
+    },
     "courses_homework": {"instructions_markdown": "", "instructions_source_path": ""},
     "courses_wrappedstatistics": {"leaderboard": "[]"},
 }

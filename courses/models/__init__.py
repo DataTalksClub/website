@@ -11,7 +11,11 @@ from . import (  # noqa: F401
     testimonial,
     wrapped,
 )
-from .cmp_import import CmpHistoryImportProgress
+from .cmp_import import (
+    CmpHistoryClaim,
+    CmpHistoryImportBinding,
+    CmpHistoryImportProgress,
+)
 from .cohort import (
     Cohort,
     CohortBuildItem,
@@ -33,15 +37,6 @@ from .curriculum import (
     UnitReadState,
 )
 from .curriculum_import import CourseCurriculumImportRun
-from .shared_curriculum import (
-    CohortSharedModule,
-    CurriculumRouteAlias,
-    SharedCurriculum,
-    SharedCurriculumAsset,
-    SharedLesson,
-    SharedLessonReadState,
-    SharedModule,
-)
 from .homework import (
     QUESTION_ANSWER_DELIMITER,
     Answer,
@@ -69,6 +64,15 @@ from .project import (
     ReviewCriteriaTypes,
     criteria_for_project,
 )
+from .shared_curriculum import (
+    CohortSharedModule,
+    CurriculumRouteAlias,
+    SharedCurriculum,
+    SharedCurriculumAsset,
+    SharedLesson,
+    SharedLessonReadState,
+    SharedModule,
+)
 from .testimonial import Testimonial, TestimonialPlacement
 from .wrapped import UserWrappedStatistics, WrappedStatistics
 
@@ -77,6 +81,8 @@ User = get_user_model()
 __all__ = (
     "Answer",
     "AnswerTypes",
+    "CmpHistoryClaim",
+    "CmpHistoryImportBinding",
     "CmpHistoryImportProgress",
     "Cohort",
     "CohortBuildItem",

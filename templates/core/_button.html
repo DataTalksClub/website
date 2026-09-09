@@ -15,7 +15,7 @@
     {% if aria_label %}aria-label="{{ aria_label }}"{% endif %}
     {% if aria_describedby %}aria-describedby="{{ aria_describedby }}"{% endif %}
     {% if title %}title="{{ title }}"{% endif %}
-    {% if onclick_url %}onclick="confirmRemove('{{ onclick_url }}')"{% elif onclick %}onclick="{{ onclick }}"{% endif %}
+    {% if onclick %}onclick="{{ onclick }}"{% endif %}
     {% if disabled %}disabled{% endif %}
   >{{ label }}</button>
 {% else %}

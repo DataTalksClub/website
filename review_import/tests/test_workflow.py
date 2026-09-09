@@ -271,6 +271,13 @@ def seed_synthetic_snapshot(path: Path) -> None:
             "project_passing_score": 7,
             "visible": 1,
             "course_id": "00000000000000000000000000000001",
+            # Raw SQL skips Django field defaults: migration 0005 made the archive
+            # identity columns NOT NULL without SQL defaults, and the
+            # courses_cohort_archive_identity_ck constraint requires them empty for
+            # a curriculum_source='current' cohort (the db_default).
+            "archive_commit_sha": "",
+            "archive_notice_path": "",
+            "archive_url": "",
         },
     )
     _insert(
@@ -297,6 +304,9 @@ def seed_synthetic_snapshot(path: Path) -> None:
             "project_passing_score": 10,
             "visible": 1,
             "course_id": "00000000000000000000000000000002",
+            "archive_commit_sha": "",
+            "archive_notice_path": "",
+            "archive_url": "",
         },
     )
     _insert(
@@ -506,10 +516,9 @@ def seed_synthetic_snapshot(path: Path) -> None:
             {
                 "id": "9001",
                 "payload": json.dumps({"canary": CANARIES["payload"]}),
-                "last_error_code": CANARIES["error"],
+                "last_error": CANARIES["error"],
                 "max_attempts": 1,
                 "status": "pending",
-                "claimed_by": "",
             },
         ),
     )

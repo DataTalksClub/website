@@ -80,7 +80,7 @@ class CourseListOrderingTest(CourseListViewTestBase):
         course_list_response = self.course_list_response()
         homepage_response = self.client.get(reverse("home"))
         shared_path = reverse(
-            "course",
+            "cohort",
             kwargs={
                 "course_slug": shared_course.course.slug,
                 "cohort_identifier": shared_course.identifier,

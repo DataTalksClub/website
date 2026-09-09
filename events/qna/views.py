@@ -192,9 +192,7 @@ def _route_session(
 ) -> tuple[Any, ModerationActor | None]:
     session = services._qna_session(event.id)  # shared service boundary; no direct mutation
     actor = (
-        _moderation_actor(request, session, capability_key=actor_capability)
-        if allow_host
-        else None
+        _moderation_actor(request, session, capability_key=actor_capability) if allow_host else None
     )
     if actor is not None:
         return session, actor
@@ -244,9 +242,7 @@ def public_qna(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
                     {
                         "event": event,
                         "session": session,
-                        "qna_config": _config(
-                            session, moderator=actor is not None
-                        ),
+                        "qna_config": _config(session, moderator=actor is not None),
                         "moderator": actor is not None,
                     },
                 )
@@ -267,9 +263,7 @@ def _api_context(
     event, redirect = _event(event_id, slug)
     if redirect is not None:
         raise QnaError(404, "not_found", "The Q&A resource was not found.")
-    session, actor = _route_session(
-        event, request, actor_capability=actor_capability
-    )
+    session, actor = _route_session(event, request, actor_capability=actor_capability)
     return event, session, actor
 
 
@@ -436,9 +430,7 @@ def _host_page(
         if redirect is not None:
             return redirect
         session = services._qna_session(event.id)
-        actor = _moderation_actor(
-            request, session, capability_key="events.qna.read"
-        )
+        actor = _moderation_actor(request, session, capability_key="events.qna.read")
         if actor is None:
             raise QnaError(403, "forbidden", "A co-host grant or Studio authorization is required.")
         template = "events/qna/present.html" if presentation else "events/qna/host.html"

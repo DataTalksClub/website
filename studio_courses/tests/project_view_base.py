@@ -149,9 +149,11 @@ class ProjectStudioCoursesViewTestBase(TestCase):
         return reverse("studio_courses_project_submissions", kwargs=kwargs)
 
     def project_submissions_url(self):
+        # The studio redirect is a property of the legacy inbound-only
+        # project submissions route, so this test targets that compat route.
         kwargs = {
             "course_slug": self.course.course.slug,
-            "cohort_year": self.course.identifier,
+            "cohort_identifier": self.course.identifier,
             "project_slug": self.project.slug,
         }
         return reverse("project_submissions", kwargs=kwargs)
@@ -159,18 +161,18 @@ class ProjectStudioCoursesViewTestBase(TestCase):
     def project_url(self):
         kwargs = {
             "course_slug": self.course.course.slug,
-            "cohort_year": self.course.identifier,
+            "cohort_identifier": self.course.identifier,
             "project_slug": self.project.slug,
         }
-        return reverse("project", kwargs=kwargs)
+        return reverse("cohort_project", kwargs=kwargs)
 
     def leaderboard_score_breakdown_url(self, enrollment):
         kwargs = {
             "course_slug": self.course.course.slug,
-            "cohort_year": self.course.identifier,
+            "cohort_identifier": self.course.identifier,
             "enrollment_id": enrollment.id,
         }
-        return reverse("leaderboard_score_breakdown", kwargs=kwargs)
+        return reverse("cohort_leaderboard_score_breakdown", kwargs=kwargs)
 
     def project_submission_edit_url(self, submission):
         kwargs = {

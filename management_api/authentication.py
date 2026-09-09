@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from django.http import HttpRequest
 from django.utils import timezone
 
+from accounts.identity_resolution import identity_state_eligible
 from management_auth.models import APICredential, APIPrincipal
 from management_auth.rate_limits import (
     RateLimitExceeded,
@@ -95,7 +96,11 @@ def authenticate(request: HttpRequest) -> APIIdentity:
         credential.overlap_expires_at is None or credential.overlap_expires_at <= now
     )
     linked_user_disabled = principal.kind == APIPrincipal.Kind.HUMAN and (
-        principal.user is None or not principal.user.is_active
+        principal.user is None
+        or not principal.user.is_active
+        # Quarantine revokes the human management credential path too; the
+        # denial is the same generic authentication_required (audit BE-08).
+        or not identity_state_eligible(principal.user)
     )
     if (
         credential.digest_algorithm != "pbkdf2_sha256"

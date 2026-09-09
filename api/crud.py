@@ -12,7 +12,7 @@ from api.safety import (
     delete_object_or_error,
     require_staff_token,
 )
-from api.utils import parse_json_body
+from api.utils import parse_json_object
 
 
 @dataclass(frozen=True)
@@ -35,17 +35,17 @@ class DetailResponseConfig:
     delete: DeleteResponseConfig
 
 
-def single_or_list(data):
-    if isinstance(data, list):
-        return data
-    item_list = [data]
-    return item_list
+def bulk_create_response(items, create_item, *create_args, name_field="name"):
+    """Create one entry per pre-validated item, collecting per-item errors.
 
-
-def bulk_create_response(data, create_item, *create_args, name_field="name"):
+    ``items`` comes from ``parse_json_object_list``: every member is already a
+    dict and the count is bounded, so the shape errors that would have made
+    this loop crash (or persist early items beside a malformed later one) are
+    rejected before any mutation.  Per-item business errors stay indexed and
+    named — never a reflected payload value.
+    """
     created = []
     errors = []
-    items = single_or_list(data)
     for item in items:
         item_dict, error = create_item(*create_args, item)
         if error:
@@ -117,6 +117,7 @@ def detail_response(
         config.patch,
     )
 
+
 def detail_delete_response(
     instance,
     config,
@@ -136,7 +137,7 @@ def detail_patch_response(
     instance,
     config,
 ):
-    data, err = parse_json_body(request)
+    data, err = parse_json_object(request)
     if err:
         return err
 

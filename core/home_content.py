@@ -160,7 +160,7 @@ def course_catalog() -> tuple[CatalogCourse, ...]:
     for family in sorted(collapsed, key=_catalog_order):
         cohort = collapsed[family]
         try:
-            public_path = reverse("course", args=[cohort.course.slug, cohort.identifier])
+            public_path = reverse("cohort", args=[cohort.course.slug, cohort.identifier])
         except NoReverseMatch:
             continue
         catalog.append(

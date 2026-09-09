@@ -123,6 +123,7 @@ INSTALLED_APPS = [
     "loginas",
     "management_auth.apps.ManagementAuthConfig",
     "core.apps.CoreConfig",
+    "website.apps.WebsiteConfig",
     "accounts.apps.AccountsConfig",
     "content.apps.ContentConfig",
     "content_sync.apps.ContentSyncConfig",
@@ -168,6 +169,8 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "accounts.middleware.DurableAccountSessionMiddleware",
+    # BE-01: production /admin/ passes only for a break-glass principal.
+    "website.admin_gate.BreakGlassAdminGateMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
@@ -241,6 +244,12 @@ SOCIALACCOUNT_PROVIDERS = {
     "github": {"SCOPE": ["user:email"]},
 }
 CAN_LOGIN_AS = can_login_as
+
+# The built-in Django admin and the loginas impersonation routes form a second
+# management authority outside the Studio capability boundary (audit BE-01).
+# They mount only in break-glass mode; production enables it solely through an
+# explicit, reviewed DJANGO_ADMIN_BREAK_GLASS environment decision.
+ADMIN_BREAK_GLASS = env_flag("DJANGO_ADMIN_BREAK_GLASS", default=True)
 
 UNFOLD = {
     "SITE_HEADER": "DataTalks.Club Django admin",

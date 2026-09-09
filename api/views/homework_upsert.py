@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404
 
 from api.crud import PatchResponseConfig
 from api.safety import PatchFieldRules, require_staff_token
-from api.utils import parse_json_body
+from api.utils import parse_json_object
 from api.views.homework_serializers import homework_to_dict
 from api.views.homework_upsert_common import (
     HomeworkUpsertData,
@@ -80,7 +80,7 @@ def saved_homework_upsert(course, homework_slug, data):
 
 def upsert_homework_by_slug(request, course_slug, homework_slug):
     course = get_object_or_404(Cohort, slug=course_slug)
-    data, err = parse_json_body(request)
+    data, err = parse_json_object(request)
     if err:
         return err
 

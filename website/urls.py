@@ -1,9 +1,11 @@
+from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import include, path, re_path
 
 from accounts import api as account_api
 from accounts.views.continuity import explicit_reauthentication
+from accounts.views.impersonation import admin_impersonation_exit
 from cadmin.legacy_urls import legacy_course_list_redirect
 from content import public_views, review_views
 from core import views as core_views
@@ -17,6 +19,22 @@ from studio_courses import urls as studio_course_urls
 #: the legacy DataTalksClub/datatalksclub.github.io repository that shares the
 #: hostname, so retiring the legacy site does not take this target down.
 MEDIA_KIT_URL = "https://datatalksclub.github.io/mediakit/"
+
+# BE-01: the built-in admin and loginas are a management authority outside the
+# Studio capability boundary, so they mount only in explicit break-glass mode.
+# The block keeps the admin paths' historical list position: the legacy course
+# catch-all later in urlpatterns would otherwise shadow "/admin/" with a 404.
+# The shadow logout route enforces POST/CSRF ahead of the package's unguarded
+# /admin/logout/ exit.
+break_glass_admin_patterns = (
+    [
+        path("admin/logout/", admin_impersonation_exit),
+        path("admin/", include("loginas.urls")),
+        path("admin/", admin.site.urls),
+    ]
+    if settings.ADMIN_BREAK_GLASS
+    else []
+)
 
 course_patterns = [
     pattern
@@ -129,8 +147,7 @@ urlpatterns = [
     path("studio/courses/", include(studio_course_urls.child_urlpatterns)),
     path("api/v1/admin/", include("website.admin_api_urls")),
     path("admin", core_views.management_slash_redirect, name="admin-slash-redirect"),
-    path("admin/", include("loginas.urls")),
-    path("admin/", admin.site.urls),
+    *break_glass_admin_patterns,
     path("internal/jobs/", include("community_base.jobs.urls")),
     path(
         "accounts/continue/",

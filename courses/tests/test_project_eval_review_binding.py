@@ -41,9 +41,7 @@ class ReviewProjectBindingTestBase(ProjectEvaluationTestBase):
         self.close_own_project()
 
     def close_own_project(self):
-        Project.objects.filter(pk=self.project.pk).update(
-            state=ProjectState.COMPLETED.value
-        )
+        Project.objects.filter(pk=self.project.pk).update(state=ProjectState.COMPLETED.value)
         self.project.refresh_from_db()
 
     def eval_submit_url_for(self, project_slug, review_id=None):
@@ -62,9 +60,7 @@ class ReviewProjectBindingTestBase(ProjectEvaluationTestBase):
         self.assertEqual(review.state, PeerReviewState.TO_REVIEW.value)
         self.assertIsNone(review.submitted_at)
         self.assertEqual(review.note_to_peer, "")
-        self.assertFalse(
-            CriteriaResponse.objects.filter(review=review).exists()
-        )
+        self.assertFalse(CriteriaResponse.objects.filter(review=review).exists())
 
 
 class CrossProjectReviewUrlDeniedTests(ReviewProjectBindingTestBase):
@@ -121,9 +117,7 @@ class CrossProjectReviewUrlDeniedTests(ReviewProjectBindingTestBase):
         self.assert_review_unchanged()
 
     def test_other_learner_cannot_read_or_write_review(self):
-        self.client.login(
-            username="student", email="email@email.com", password="12345"
-        )
+        self.client.login(username="student", email="email@email.com", password="12345")
         url = self.eval_submit_url_for(self.project.slug)
         get_response = self.client.get(url)
         post_response = self.client.post(url, self.review_post_data())
@@ -155,18 +149,14 @@ class DistinctRubricBindingTests(ReviewProjectBindingTestBase):
         return criteria
 
     def test_open_project_answers_never_reach_closed_project_review(self):
-        criteria_b = self.create_project_criteria(
-            self.project_b, "Project B quality"
-        )
+        criteria_b = self.create_project_criteria(self.project_b, "Project B quality")
         post_data = {
             "note_to_peer": "Smuggled via project B",
             f"answer_{criteria_b.id}": "2",
         }
 
         self.client.login(**credentials)
-        response = self.client.post(
-            self.eval_submit_url_for(self.project_b.slug), post_data
-        )
+        response = self.client.post(self.eval_submit_url_for(self.project_b.slug), post_data)
 
         self.assertEqual(response.status_code, 302)
         self.assert_review_unchanged()
@@ -199,9 +189,7 @@ class ScoreProjectStateRecheckTests(ReviewProjectBindingTestBase):
         # The caller's instance still claims PEER_REVIEWING; the database row
         # has already been moved to COMPLETED.
         self.project.state = ProjectState.PEER_REVIEWING.value
-        Project.objects.filter(pk=self.project.pk).update(
-            state=ProjectState.COMPLETED.value
-        )
+        Project.objects.filter(pk=self.project.pk).update(state=ProjectState.COMPLETED.value)
 
         status, message = score_project(self.project)
 

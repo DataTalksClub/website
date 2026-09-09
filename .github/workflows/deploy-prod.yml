@@ -67,6 +67,23 @@ jobs:
               (.version | endswith($short_sha)) and
               (.image | test("^" + $repository + "@sha256:[0-9a-f]{64}$"))
             ' "$release" > /dev/null
+      - name: Require the application CI verdict for the selected source
+        # REL-01: the dev release record binds the image to one source SHA;
+        # that same SHA must also carry a green CI aggregate (the ci.yml
+        # `ci-gate` job) before production may take it.  A proven dev release
+        # already has a completed verdict, so the bounded poll only covers the
+        # rare still-running race -- and never invents a second, reduced
+        # acceptance policy.  Decision logic: deploy/ci_verdict.py.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SOURCE_SHA: ${{ steps.dev-run.outputs.source_sha }}
+        run: >-
+          python3 -m deploy.ci_verdict require
+          --workflow ci.yml
+          --repository "$GITHUB_REPOSITORY"
+          --sha "$EXPECTED_SOURCE_SHA"
+          --timeout-seconds 600
+          --interval-seconds 30
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::387546586013:role/website-production-github-deployer
@@ -74,3 +91,13 @@ jobs:
           role-session-name: website-production-deployer-${{ github.run_id }}
       - name: Promote the dev-proven release to production
         run: bash deploy/deploy_prod.sh .tmp/promotion/dev-release.json
+      - name: Upload the redacted deploy recovery receipts
+        # REL-02, same contract as the dev workflow: durable, redacted
+        # pre-mutation service state plus the recovery outcome on failure.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-recovery-receipts-production-${{ github.run_id }}
+          path: .tmp/deploy-receipts/
+          if-no-files-found: ignore
+          retention-days: 90

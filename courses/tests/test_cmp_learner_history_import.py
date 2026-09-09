@@ -20,6 +20,7 @@ from django.test import TestCase
 from accounts.models import CustomUser
 from courses.models import (
     Answer,
+    CmpHistoryClaim,
     CmpHistoryImportProgress,
     Cohort,
     Course,
@@ -298,7 +299,6 @@ class HistoryImportFixture(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.claims_directory = Path(tempfile.mkdtemp(prefix="cmp-history-claims-"))
         self.family = Course.objects.create(slug="de-zoomcamp", title="Data Engineering Zoomcamp")
         self.cohort = Cohort.objects.create(
             course=self.family, slug="de-zoomcamp-2025", identifier="2025", year=2025
@@ -353,12 +353,11 @@ class HistoryImportFixture(TestCase):
             source,
             user_claims=kwargs.pop("user_claims", self.user_claims),
             batch_size=batch_size,
-            claims_directory=self.claims_directory,
             **kwargs,
         )
 
     def claims(self, table: str) -> dict[int, int]:
-        return CmpHistoryClaims(directory=self.claims_directory).table(table)
+        return CmpHistoryClaims().table(table)
 
     def report(self, result: Any, table: str) -> dict[str, Any]:
         return next(row for row in result.summary()["tables"] if row["table"] == table)
@@ -604,7 +603,7 @@ class ReplayAndResumeTests(HistoryImportFixture):
         source = self._source(3)
         self.run_import(source, batch_size=100)
 
-        (self.claims_directory / "courses_courseregistration.json").unlink()
+        CmpHistoryClaim.objects.filter(table="courses_courseregistration").delete()
         progress = CmpHistoryImportProgress.objects.get(table="courses_courseregistration")
         progress.last_source_id = 0
         progress.completed = False
@@ -625,7 +624,7 @@ class ReportingTests(HistoryImportFixture):
             courses_courseregistration=[registration_row(1), registration_row(2)],
             courses_enrollment=[enrollment_row(1)],
         )
-        report = dry_run_counts(source, claims_directory=self.claims_directory)
+        report = dry_run_counts(source)
 
         self.assertFalse(report["applied"])
         self.assertEqual(report["source_total"], 3)
@@ -636,7 +635,7 @@ class ReportingTests(HistoryImportFixture):
         source = self.source(courses_enrollment=[enrollment_row(1)])
         self.run_import(source)
 
-        status = progress_status(claims_directory=self.claims_directory)
+        status = progress_status()
         enrollment = next(row for row in status["progress"] if row["table"] == "courses_enrollment")
         self.assertTrue(enrollment["completed"])
         self.assertEqual(enrollment["created"], 1)

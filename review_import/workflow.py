@@ -464,7 +464,13 @@ def _private_umask() -> Iterator[None]:
 
 def _django_environment(db_path: Path) -> dict[str, str]:
     environment = os.environ.copy()
+    # The workstation `.env` leaks into this process through
+    # `website.settings.local`'s load_dotenv. A developer's deploy-oriented host
+    # list excludes Django's test host, so a copied value would 400 every
+    # review-browsing request with DisallowedHost.
     environment.pop("DATABASE_URL", None)
+    environment.pop("DJANGO_ALLOWED_HOSTS", None)
+    environment.pop("DJANGO_CSRF_TRUSTED_ORIGINS", None)
     disable_local_review_provider_environment(environment)
     environment.update(
         {

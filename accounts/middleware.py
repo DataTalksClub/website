@@ -6,23 +6,31 @@ from django.contrib.auth import HASH_SESSION_KEY, SESSION_KEY
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpRequest, HttpResponse
 
-from accounts.identity_resolution import resolve_durable_user
+from accounts.identity_resolution import (
+    identity_state_eligible,
+    resolve_durable_user,
+)
 from accounts.models import CustomUser
 from course_management.observability import record_event
 
 
 class DurableAccountSessionMiddleware:
-    """Resolve a reviewed absorbed ID without flushing unrelated sessions."""
+    """Resolve a reviewed absorbed ID without flushing unrelated sessions.
+
+    Identity-state eligibility is rechecked on every request (audit BE-08):
+    quarantine is an immediate containment control, so a session whose owner
+    becomes quarantined is flushed here, not merely blocked at the next login.
+    A disabled account keeps Django's own separate inactive-session denial.
+    """
 
     def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
         user = getattr(request, "user", None)
-        if (
-            getattr(user, "is_authenticated", False)
-            and user.identity_state == CustomUser.IdentityState.ABSORBED
-        ):
+        if user is None or not getattr(user, "is_authenticated", False):
+            return self.get_response(request)
+        if user.identity_state == CustomUser.IdentityState.ABSORBED:
             source_user_id = user.pk
             survivor = resolve_durable_user(user)
             if survivor is None or not survivor.is_active:
@@ -48,6 +56,20 @@ class DurableAccountSessionMiddleware:
                     user=survivor,
                     properties={"account_created": False},
                 )
+        elif not identity_state_eligible(user):
+            source_user_id = user.pk
+            request.session.flush()
+            request.user = AnonymousUser()
+            if hasattr(request, "_cached_user"):
+                del request._cached_user  # type: ignore[attr-defined]
+            record_event(
+                "auth.session_failure",
+                request=request,
+                properties={
+                    "reason": "identity_quarantined",
+                    "source_user_id": source_user_id,
+                },
+            )
         return self.get_response(request)
 
 

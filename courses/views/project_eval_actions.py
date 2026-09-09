@@ -1,8 +1,10 @@
 from django.contrib.auth.decorators import login_required
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
+from django.views.decorators.http import require_POST
 
 from course_management.observability import record_event
-from courses.models.cohort import Cohort, Enrollment
+from courses.models.cohort import Enrollment
 from courses.models.project import PeerReview, Project, ProjectSubmission
 from courses.views.url_utils import canonical_cohort_url_kwargs, get_cohort_or_404
 
@@ -49,19 +51,29 @@ def _create_optional_peer_review_if_allowed(
     user,
     submission_id,
 ):
+    # Validate the target before any write: a missing, cross-project, or
+    # self target must leave the learner's enrollment and volunteer
+    # submission untouched (audit BE-07).
+    submission_under_evaluation = ProjectSubmission.objects.filter(
+        id=submission_id,
+        project=project,
+        volunteer_review_only=False,
+    ).first()
+    if submission_under_evaluation is None:
+        raise Http404("No submission matches the given query.")
+
+    own_submission = ProjectSubmission.objects.filter(
+        project=project,
+        student=user,
+        volunteer_review_only=False,
+    ).first()
+    if own_submission is not None and own_submission.id == submission_under_evaluation.id:
+        return None
+
     student_submission = _project_eval_student_submission(
         course,
         project,
         user,
-    )
-
-    if student_submission.id == submission_id:
-        return
-
-    submission_under_evaluation = ProjectSubmission.objects.get(
-        id=submission_id,
-        project=project,
-        volunteer_review_only=False,
     )
     review, created = PeerReview.objects.get_or_create(
         submission_under_evaluation=submission_under_evaluation,
@@ -72,6 +84,7 @@ def _create_optional_peer_review_if_allowed(
 
 
 @login_required
+@require_POST
 def projects_eval_add(
     request, course_slug, project_slug, submission_id, cohort_identifier=None
 ):
@@ -110,6 +123,7 @@ def projects_eval_add(
 
 
 @login_required
+@require_POST
 def projects_eval_delete(
     request,
     course_slug,

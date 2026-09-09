@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from django.db import transaction
 from django.utils import timezone
 
 from courses.models import (
@@ -93,9 +94,7 @@ def ensure_cohort(edition: EditionSource) -> Cohort:
         slug=edition.cohort_slug,
         defaults={
             "title": f"{edition.course_title} {edition.year}",
-            "description": (
-                f"{edition.course_title}, {edition.year} cohort. {IMPORTED_NOTE}"
-            ),
+            "description": (f"{edition.course_title}, {edition.year} cohort. {IMPORTED_NOTE}"),
             "start_date": start_date,
             "end_date": end_date,
             "finished": True,
@@ -176,41 +175,51 @@ def _import_homework(
         source_key = row.get("email", "").strip()
         if not source_key:
             continue
-        user, _ = get_or_create_learner(source_key, hash_to_email.get(source_key))
-        enrollment, _ = get_or_create_enrollment(user, cohort)
 
-        per_question_scores = {
-            column: _to_int(row.get(column)) for column in question_columns
-        }
+        # Parsed and validated before any write, so a malformed row can never
+        # leave a half-applied one behind.
+        per_question_scores = {column: _to_int(row.get(column)) for column in question_columns}
         questions_score = sum(per_question_scores.values())
         lip_score = _to_int(row.get("learning_in_public"))
         faq_score = _to_int(row.get("faq_score"))
         total_score = _to_int(row.get("total_score", questions_score + lip_score + faq_score))
 
-        submission, _ = Submission.objects.update_or_create(
-            homework=homework,
-            enrollment=enrollment,
-            defaults={
-                "student": user,
-                "problems_comments": "",
-                "questions_score": questions_score,
-                "faq_score": faq_score,
-                "learning_in_public_score": lip_score,
-                "total_score": total_score,
-            },
-        )
-        submission_count += 1
+        # The learner association, the submission update, and the answer
+        # replacement are one unit.  A process failure or database error
+        # between the answer deletion and the re-insertion used to leave a
+        # previously populated submission with no answers and moved score
+        # totals (audit REL-16).  The transaction is bounded to this one
+        # submission -- deliberately not one transaction for the whole
+        # historical migration -- so a failed row leaves every earlier row
+        # committed and a re-run repairs only what is missing.
+        with transaction.atomic():
+            user, _ = get_or_create_learner(source_key, hash_to_email.get(source_key))
+            enrollment, _ = get_or_create_enrollment(user, cohort)
 
-        Answer.objects.filter(submission=submission).delete()
-        Answer.objects.bulk_create(
-            Answer(
-                submission=submission,
-                question=question,
-                answer_text=str(per_question_scores[column]),
-                is_correct=per_question_scores[column] >= points,
+            submission, _ = Submission.objects.update_or_create(
+                homework=homework,
+                enrollment=enrollment,
+                defaults={
+                    "student": user,
+                    "problems_comments": "",
+                    "questions_score": questions_score,
+                    "faq_score": faq_score,
+                    "learning_in_public_score": lip_score,
+                    "total_score": total_score,
+                },
             )
-            for column, (question, points) in questions.items()
-        )
+            submission_count += 1
+
+            Answer.objects.filter(submission=submission).delete()
+            Answer.objects.bulk_create(
+                Answer(
+                    submission=submission,
+                    question=question,
+                    answer_text=str(per_question_scores[column]),
+                    is_correct=per_question_scores[column] >= points,
+                )
+                for column, (question, points) in questions.items()
+            )
 
     return homework, submission_count
 
@@ -302,7 +311,9 @@ def _import_project(
     return project, submission_count
 
 
-def import_edition_scoring(edition: EditionSource, course_repos_dir: Path | None = None) -> EditionImportResult:
+def import_edition_scoring(
+    edition: EditionSource, course_repos_dir: Path | None = None
+) -> EditionImportResult:
     cohort = ensure_cohort(edition)
     hash_to_email = build_hash_to_email_map(edition.email_source_csvs)
     topics = (

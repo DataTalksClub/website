@@ -236,18 +236,16 @@ def run(*, path: Path | None = None, apply: bool = True) -> dict[str, Any]:
     import uuid
 
     from django.db import transaction
-    from django.utils import timezone
 
     from content.docs_projection import DOCS_SOURCE_STABLE_ID
     from content.models import (
         ContentAsset,
         ContentDocument,
-        ContentRelease,
-        ContentSource,
         expected_storage_prefix,
     )
     from content.services import (
         ActivateContentRelease,
+        ContentLifecycleError,
         MarkReleaseReady,
         TransitionContentRelease,
         activate_content_release,
@@ -255,40 +253,37 @@ def run(*, path: Path | None = None, apply: bool = True) -> dict[str, Any]:
         begin_release_validation,
         mark_release_ready,
     )
+    from core.models import RevisionConflict
     from core.services import ServiceContext
+    from scripts.prod.reviewed_release import canonical_digest, open_reviewed_release
+
+    source, release, created = open_reviewed_release(
+        stable_id=DOCS_SOURCE_STABLE_ID,
+        display_name="DataTalks.Club documentation",
+        repository=DOCS_REPOSITORY,
+        path_allowlist=["/docs/"],
+        adapter_type="reviewed-docs-v1",
+        mount_path="/docs/",
+        parser_version="reviewed-docs-v1",
+        rendering_version="reviewed-docs-v1",
+        artifact_fingerprint=canonical_digest(payload),
+        artifact_description={"pages": len(pages), "assets": len(assets)},
+        request_provenance={"kind": "import", "source_file": source_file.name},
+    )
+    if not created:
+        # Replay receipt: the identical reviewed artifact already owns a
+        # release; building another set of rows would only duplicate it
+        # (audit REL-18).
+        return {
+            "pages": len(pages),
+            "assets": len(assets),
+            "release": str(release.id),
+            "sequence": release.sequence,
+            "applied": False,
+            "replay": True,
+        }
 
     with transaction.atomic():
-        source, _ = ContentSource.objects.get_or_create(
-            stable_id=DOCS_SOURCE_STABLE_ID,
-            defaults={
-                "display_name": "DataTalks.Club documentation",
-                "repository_owner": DOCS_REPOSITORY.split("/")[0],
-                "repository_name": DOCS_REPOSITORY.split("/")[1],
-                "branch": "main",
-                "path_allowlist": ["/docs/"],
-                "adapter_type": "reviewed-docs-v1",
-                "mount_path": "/docs/",
-                "enabled": True,
-            },
-        )
-        sequence = (
-            ContentRelease.objects.filter(source=source)
-            .order_by("-sequence")
-            .values_list("sequence", flat=True)
-            .first()
-            or 0
-        ) + 1
-        release = ContentRelease.objects.create(
-            source=source,
-            sequence=sequence,
-            based_on_release_id=source.active_release_id,
-            commit_sha=f"{sequence:040x}",
-            parser_version="reviewed-docs-v1",
-            rendering_version="reviewed-docs-v1",
-            status=ContentRelease.Status.FETCHING,
-            requested_at=timezone.now(),
-            request_provenance={"kind": "import", "source_file": source_file.name},
-        )
         ContentDocument.objects.bulk_create(_document_rows(pages, release=release))
         ContentAsset.objects.bulk_create(
             [
@@ -325,21 +320,34 @@ def run(*, path: Path | None = None, apply: bool = True) -> dict[str, Any]:
         context=context,
     )
     source.refresh_from_db()
-    activate_content_release(
-        ActivateContentRelease(
-            source_id=source.id,
-            release_id=release.id,
-            expected_source_revision=source.revision,
-            expected_release_revision=release.revision,
-            reason="import-docs",
-        ),
-        context=context,
-    )
+    try:
+        activate_content_release(
+            ActivateContentRelease(
+                source_id=source.id,
+                release_id=release.id,
+                expected_source_revision=source.revision,
+                expected_release_revision=release.revision,
+                reason="import-docs",
+            ),
+            context=context,
+        )
+    except (ContentLifecycleError, RevisionConflict):
+        # A competing import of this source won the activation race; this
+        # candidate stays ready-but-unactivated and the import result is
+        # bounded and explains the loss (audit REL-18).
+        return {
+            "pages": len(pages),
+            "assets": len(assets),
+            "release": str(release.id),
+            "sequence": release.sequence,
+            "applied": False,
+            "activation": "superseded",
+        }
     return {
         "pages": len(pages),
         "assets": len(assets),
         "release": str(release.id),
-        "sequence": sequence,
+        "sequence": release.sequence,
         "applied": True,
     }
 

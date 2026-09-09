@@ -7,6 +7,9 @@ on:
 
 permissions:
   contents: read
+  # The verify-ci job reads the application CI workflow's runs for this exact
+  # source SHA (REL-01); it never mutates anything.
+  actions: read
 
 concurrency:
   group: deploy-dev
@@ -31,8 +34,35 @@ jobs:
       - name: Test the deployment contract
         run: uv run --frozen python -m unittest core.tests.test_cmp_style_deployment
 
+  verify-ci:
+    # REL-01: the deployment-contract checks in `test` are not application
+    # verification.  Automatic delivery waits for the CI workflow's aggregate
+    # `ci-gate` job (quality, Django, Playwright, screenshots, container) to
+    # conclude success for this exact source SHA, and fails closed on missing,
+    # pending, canceled, or unsuccessful verdicts.  The decision logic is
+    # code-owned in deploy/ci_verdict.py and exercised by
+    # ci/tests/test_deploy_ci_gate.py.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # The full CI profile (including the hosted Playwright suite) currently
+    # fits inside one hour; this bounded reserve covers it while keeping a
+    # wedged verification from holding the serialized deploy queue forever.
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require a green CI verdict for this exact source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 -m deploy.ci_verdict require
+          --workflow ci.yml
+          --repository "$GITHUB_REPOSITORY"
+          --sha "$GITHUB_SHA"
+          --timeout-seconds 5400
+          --interval-seconds 60
+
   publish:
-    needs: test
+    needs: [test, verify-ci]
     runs-on: ubuntu-24.04-arm
     if: github.ref == 'refs/heads/main'
     permissions:
@@ -111,6 +141,19 @@ jobs:
           "${{ needs.publish.outputs.image }}"
           "${{ needs.publish.outputs.version }}"
           "${{ needs.publish.outputs.source_sha }}"
+      - name: Upload the redacted deploy recovery receipts
+        # REL-02: the orchestrator writes a redacted pre-mutation service
+        # snapshot to .tmp/deploy-receipts/ before its first update-service and
+        # appends the recovery outcome on a post-mutation failure.  Uploading
+        # with always() is what keeps recovery evidence alive when the job is
+        # red.  Only allowlisted identifiers/counts are in these files.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-recovery-receipts-${{ needs.publish.outputs.source_sha }}
+          path: .tmp/deploy-receipts/
+          if-no-files-found: ignore
+          retention-days: 90
       - name: Record the release proven in dev
         env:
           IMAGE: ${{ needs.publish.outputs.image }}

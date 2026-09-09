@@ -1,5 +1,3 @@
-import json
-
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
@@ -7,9 +5,8 @@ from django.views.decorators.http import require_POST
 
 from accounts.auth import token_required
 from api.safety import require_staff_token
-from course_management.package_mail import (
-    send_certificate_ready_mail,
-)
+from api.utils import parse_json_body
+from course_management.package_mail import send_certificate_ready_mail
 from courses.models.cohort import Cohort
 
 from .enrollment_certificate_updates import process_certificate_updates
@@ -42,12 +39,11 @@ def bulk_update_enrollment_certificates_view(request, course_slug: str):
 
 
 def _certificate_request_updates(request):
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        error_payload = {"error": "Invalid JSON"}
-        error_response = JsonResponse(error_payload, status=400)
-        return None, error_response
+    # The shared strict parse: also rejects bare NaN/Infinity constants
+    # that Python's parser would otherwise accept into certificate fields.
+    data, error = parse_json_body(request)
+    if error is not None:
+        return None, error
 
     certificate_updates = _extract_certificate_updates(data)
     if not isinstance(certificate_updates, list):

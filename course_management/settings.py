@@ -12,12 +12,10 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 import os
 import sys
-
 from pathlib import Path
 
 import dj_database_url
 from django.utils.translation import gettext_lazy as _
-
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -373,22 +371,9 @@ SOCIALACCOUNT_PROVIDERS = {
 
 
 # django-loginas settings
-def can_login_as(request, target_user):
-    """
-    Determine if the current user can impersonate another user.
-
-    Staff users can impersonate regular users (students) but cannot
-    impersonate other staff members or superusers for security reasons.
-
-    Args:
-        request: The current HTTP request
-        target_user: The user to be impersonated
-
-    Returns:
-        bool: True if impersonation is allowed, False otherwise
-    """
-    return request.user.is_staff and not target_user.is_staff
-
+# The one hardened impersonation policy lives in website.loginas_policy; both
+# settings modules must serve the identical answer.
+from website.loginas_policy import can_login_as  # noqa: E402
 
 CAN_LOGIN_AS = can_login_as
 

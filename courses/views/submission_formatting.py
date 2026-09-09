@@ -1,3 +1,4 @@
+import math
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
@@ -51,6 +52,15 @@ def parse_time_spent_hours(
     value: str | None,
     field_label: str,
 ) -> float | None:
+    """Parse one optional hours field for all submission forms.
+
+    The single domain rule: an empty value means "not answered"; anything
+    else must be a finite, nonnegative number of hours, with the existing
+    decimal-comma convention.  Malformed, non-finite (nan/inf), and negative
+    input raise a field-specific :class:`ValidationError`, so homework,
+    project, and review forms reject the same table of inputs identically.
+    """
+
     if value is None:
         return None
 
@@ -60,10 +70,14 @@ def parse_time_spent_hours(
 
     normalized_value = value.replace(",", ".")
     parsed = tryparsefloat(normalized_value)
-    if parsed is None:
+    if parsed is None or not math.isfinite(parsed):
         raise ValidationError(
             f"Please enter a valid number of hours for {field_label} "
             "(for example, 2 or 2.5)."
+        )
+    if parsed < 0:
+        raise ValidationError(
+            f"Hours for {field_label} cannot be negative."
         )
     return parsed
 

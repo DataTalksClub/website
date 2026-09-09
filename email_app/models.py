@@ -31,12 +31,20 @@ class PendingUnsubscribe(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # Opaque Relay-minted token.  Unique so that a recipient who submits twice
-    # during one outage produces one replay rather than two.
+    # during one outage updates one opt-out intent rather than forking a second
+    # one; the generation field below records which submission is newest.
     unsubscribe_token = models.CharField(max_length=128, unique=True)
     # A stable, non-reversible handle for the same token, so operational queries
     # and diagnostics never need to select the token column.
     token_fingerprint = models.CharField(max_length=32, db_index=True)
     scope = models.CharField(max_length=16)
+    # Which revision of the recipient's choice this row carries.  It changes
+    # every time the recipient re-submits against a still-pending row, and the
+    # durable job's deduplication key is derived from it -- so a fresh request
+    # always produces fresh runnable work, even when the generation it replaced
+    # already exhausted its job (audit BE-10), and a worker finishing an old
+    # generation can never settle the newer choice (audit BE-11).
+    generation = models.PositiveIntegerField(default=1)
     status = models.CharField(
         max_length=16,
         choices=Status.choices,

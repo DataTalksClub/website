@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from functools import wraps
-from typing import Any
+from typing import Any, NoReturn
 
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.account.models import EmailAddress
@@ -11,10 +12,13 @@ from allauth.socialaccount.models import SocialAccount
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 
-from accounts.identity_resolution import resolve_durable_user
+from accounts.identity_resolution import (
+    identity_state_eligible,
+    resolve_durable_user,
+)
 from accounts.identity_values import normalize_account_email, sha256_text
 from accounts.models import AccountIdentityQuarantine, Token
 from course_management.observability import record_event
@@ -25,7 +29,10 @@ LIVE_CONFLICT_SNAPSHOT_ID = sha256_text("live-account-link-conflict-v1")
 
 def verified_social_emails(email_addresses: object) -> tuple[str, ...]:
     normalized: set[str] = set()
-    for email_address in email_addresses or ():
+    # Callers hand this either an EmailAddress queryset or None; ``object`` is
+    # the honest annotation, so the iterable is narrowed explicitly.
+    entries = email_addresses if isinstance(email_addresses, Iterable) else ()
+    for email_address in entries:
         if not bool(getattr(email_address, "verified", False)):
             continue
         email = normalize_account_email(getattr(email_address, "email", None))
@@ -159,7 +166,7 @@ def _record_link_conflict(
     )
 
 
-def _conflict_response(request: object, reason: str) -> HttpResponse:
+def _conflict_response(request: HttpRequest | None, reason: str) -> HttpResponse:
     context = {"reason": reason}
     if request is None:
         return HttpResponse(
@@ -177,11 +184,12 @@ def _conflict_response(request: object, reason: str) -> HttpResponse:
 
 def _deny_link(
     *,
-    request: object,
+    request: HttpRequest | None,
     sociallogin: object,
     reason: str,
     user_ids: tuple[int, ...] = (),
-) -> None:
+) -> NoReturn:
+    """Record the conflict, then always abort the sign-in flow."""
     _record_link_conflict(
         sociallogin=sociallogin,
         reason=reason,
@@ -491,7 +499,10 @@ def token_required(view):
             try:
                 token = Token.objects.select_related("user").get(key=token_key)
                 user = resolve_durable_user(token.user)
-                if user is None or not user.is_active:
+                # Identity-state eligibility rides along with the is_active
+                # check: a quarantined account loses token access too, and the
+                # denial is the same generic invalid-token response (BE-08).
+                if user is None or not user.is_active or not identity_state_eligible(user):
                     raise Token.DoesNotExist
                 request.user = user
             except Token.DoesNotExist:
@@ -514,5 +525,7 @@ def token_required(view):
 
         return view(request, *args, **kwargs)
 
-    decorated.requires_token_auth = True
+    # The API views introspect this marker; the narrow ignore is the
+    # reviewed exemption for setting an attribute on a plain function.
+    decorated.requires_token_auth = True  # type: ignore[attr-defined]
     return decorated

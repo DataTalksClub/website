@@ -369,8 +369,8 @@ Six tables are explicitly never read at all: `django_session`,
 ([`accounts/migrations/0002_cmp_learner_import_progress.py`](../../accounts/migrations/0002_cmp_learner_import_progress.py)) —
 proven with a real `kill -9` mid-run and clean resume. Which `CustomUser`
 this importer already created or attached for a given CMP source id is
-tracked by `CmpClaimsStore`, a `--claims-file` JSON file this importer owns
-(default: project-local `.tmp/`) — not a column on `CustomUser`. An earlier
+tracked by `CmpClaimsStore`, backed by the importer-owned
+`accounts.CmpLearnerClaim` table — not a column on `CustomUser`. An earlier
 revision carried that id as `CustomUser.cmp_source_user_id`; it is gone,
 along with the migration that added it, following this inventory's own main
 design principle above.
@@ -392,8 +392,9 @@ Transform, exactly: it **reconciles and never invents**. Neither 3.1 nor 4.1
 keeps a CMP row id on the rows it writes, so a cohort resolves by slug, a
 homework and a project by `(cohort, slug)`, a question by its text within its
 homework, a review criterion by `(cohort, description)`, a campaign by slug, a
-Wrapped parent by year, an account through 4.1's claims file
-(`--user-claims-file`), and an enrollment, submission, project submission or
+Wrapped parent by year, an account through 4.1's claims
+(`accounts.CmpLearnerClaim`, read from this database), and an enrollment,
+submission, project submission or
 peer review through this importer's own claims, written by an earlier stage of
 the same run. A row whose parent does not resolve is counted under a named
 bucket and skipped; no placeholder parent is ever created to hang a child off,
@@ -417,9 +418,9 @@ Resumable per batch per table, via a persisted high-water mark
 ([`courses/migrations/0004_cmphistoryimportprogress.py`](../../courses/migrations/0004_cmphistoryimportprogress.py))
 that advances inside the same transaction as the batch it counts — proven with
 a real `kill -9` mid-run and a clean resume that reached byte-identical counts.
-Which target row it created for a given CMP source id is tracked in a
-`--claims-dir` of one JSON file per table that this importer owns (default:
-project-local `.tmp/`), never a column on a live model. `--status` reports
+Which target row it created for a given CMP source id is tracked in the
+importer-owned `courses.CmpHistoryClaim` table, committed inside the batch
+transaction, never a column on a live model. `--status` reports
 progress without opening the export; `--dry-run` reports counts without writing.
 Reports carry counts and bounded bucket names only — the payload is learner
 answers, names and addresses, and none of it is printed or logged.

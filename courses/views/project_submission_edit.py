@@ -18,7 +18,7 @@ from courses.views.project_confirmation import (
     build_project_update_url,
     send_project_confirmation_email,
 )
-from courses.views.submission_formatting import tryparsefloat
+from courses.views.submission_formatting import parse_time_spent_hours
 
 
 def project_submission_from_post(request: HttpRequest, project: Project) -> ProjectSubmission:
@@ -41,10 +41,14 @@ def project_submit_post(request: HttpRequest, project: Project) -> None:
         student=request.user,
         volunteer_review_only=False,
     ).exists()
-    project_submission = project_submission_from_post(request, project)
-    clean_project_faq_contribution_url(project, project_submission)
-    project_submission.full_clean()
-    project_submission.save()
+    # Parse, validate, and persist as one unit: a rejected field must not
+    # leave the enrollment creation, the certificate-name change, or any
+    # submission write behind (audit BE-06).
+    with transaction.atomic():
+        project_submission = project_submission_from_post(request, project)
+        clean_project_faq_contribution_url(project, project_submission)
+        project_submission.full_clean()
+        project_submission.save()
     record_event(
         "project.submitted",
         request=request,
@@ -108,6 +112,29 @@ def project_delete_submission(request: HttpRequest, project: Project) -> None:
                 "enrollment_id": enrollment_id,
             },
         )
+
+
+def project_submission_display_from_post(
+    request: HttpRequest, project: Project
+) -> ProjectSubmission:
+    """A write-free stand-in for re-rendering a rejected submission.
+
+    Carries the raw POST values so the form echoes back what the student
+    actually typed.  Building the error response must never re-run the
+    persisting parser: that used to save enrollment and certificate-name
+    changes again, and re-raise on invalid learning links (audit BE-06).
+    """
+
+    return ProjectSubmission(
+        project=project,
+        student=request.user,
+        github_link=request.POST.get("github_link", ""),
+        commit_id=request.POST.get("commit_id", ""),
+        time_spent=request.POST.get("time_spent") or None,
+        learning_in_public_links=request.POST.getlist(
+            "learning_in_public_links[]"
+        ),
+    )
 
 
 def project_submission_for_update(
@@ -175,9 +202,16 @@ def apply_project_submission_optional_post_fields(
         )
 
     if project.time_spent_project_field:
-        time_spent = request.POST.get("time_spent")
-        if time_spent is not None and time_spent != "":
-            project_submission.time_spent = tryparsefloat(time_spent)
+        # The shared optional-hours parser: a ValidationError here is caught
+        # by the submit view's handler and re-rendered with the raw values.
+        # (The mutation-into-error-rendering defect on this flow is BE-06
+        # and is owned separately.)
+        time_spent = parse_time_spent_hours(
+            request.POST.get("time_spent"),
+            "time spent on project",
+        )
+        if time_spent is not None:
+            project_submission.time_spent = time_spent
 
     if project.problems_comments_field:
         problems_comments = request.POST.get("problems_comments", "")

@@ -29,12 +29,14 @@ Keep all existing homepage assets unchanged.
 Generate the dark companion in a separate pass using the accepted light file
 as its composition reference. Follow [illustration-assets.md](illustration-assets.md):
 image generation produces the finished drawing. Prefer native transparency; if
-the output is opaque, generate a solid magenta outer backdrop and remove only
-that key locally. The lilac watercolor blur is part of the artwork and must stay,
-along with the robot, book and white interiors. Encode the accepted PNG as
-lossless WebP, preserving alpha. Proportional canvas sizing is allowed; recoloring,
-CSS filtering and mechanically derived dark companions remain prohibited. The
-linked guide provides the finishing review and 1024 × 1024 encoding checks.
+the output is opaque or its alpha is unreliable, use a solid magenta outer
+backdrop and remove only the key pixels connected to the outer canvas. Never
+blur, recolour, invent an alpha mask, or remove the lilac watercolor cloud. The
+cloud is part of the artwork and must stay, along with the robot, book and white
+interiors. Encode the accepted PNG as lossless WebP, preserving alpha.
+Proportional canvas sizing is allowed; CSS filtering and mechanically derived
+dark companions remain prohibited. The linked guide provides the finishing
+review and 1024 × 1024 encoding checks.
 
 ## Light-generation prompt
 
@@ -87,21 +89,24 @@ in the native PNG. This is an independent generation, not a filtered, inverted o
 tinted version of the light bitmap.
 ```
 
-For an opaque result, use the candidate and the relevant style/composition
-references in a new imagegen pass. Replace the native-transparency background
-instructions with this outer-key request:
+For an opaque or alpha-unstable result, use the candidate and the relevant
+style/composition references in a new imagegen pass. Replace the
+native-transparency background instructions with this outer-key request:
 
 ```text
 Preserve the entire drawing, including its lilac or indigo watercolor cloud and
 soft edge, and all white robot and book interiors. Change only the outer backdrop
-to perfectly uniform saturated magenta #ff00ff. This key color must occur nowhere
-inside the artwork. No checkerboard, gradient, added decoration or changed pose.
-The watercolor cloud is artwork; do not remove it with the surrounding backdrop.
+to one perfectly uniform chroma-key color: saturated magenta #ff00ff. This key
+color must occur nowhere inside the artwork. No checkerboard, gradient, texture,
+added decoration or changed pose. The watercolor cloud is artwork; do not remove
+it with the surrounding backdrop.
 ```
 
-Remove only the outer magenta locally and inspect the cloud and interior fills
-on the actual page surfaces. Keep the accepted light drawing as the anchor for
-the separately generated dark companion.
+Remove only outer-connected magenta locally, then verify that no key-colored
+pixels remain, the outside is genuinely transparent, and the foreground still
+matches the anchor's registration. Inspect the cloud and interior fills on the
+actual page surfaces. Keep the accepted light drawing as the anchor for the
+separately generated dark companion.
 
 ## Accepted finishing recipe
 

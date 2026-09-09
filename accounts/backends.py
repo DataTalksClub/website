@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from allauth.account.auth_backends import AuthenticationBackend
 from django.conf import settings
+from django.db.models import Q
 
 from accounts.identity_values import normalize_account_email
 from accounts.models import CustomUser
@@ -31,16 +32,43 @@ class DurableAccountBackend(AuthenticationBackend):
             ),
         )
 
+    #: One matching account authenticates; two is enough to see the address
+    #: is ambiguous and deny. The lookup never materializes more.
+    _MAX_EMAIL_CANDIDATES = 2
+
     def _email_candidates(self, email):
+        """Match against the indexed ``normalized_email`` column.
+
+        Every attempt used to normalize and compare every eligible account in
+        Python (audit BE-09); the database now does the matching against the
+        indexed key with a bounded result set.  Rows without a normalized key
+        yet are the only population a Python-side comparison may still scan,
+        and only that population -- it shrinks to empty as backfill covers
+        them.
+        """
+
         normalized = normalize_account_email(email)
         if normalized is None:
             return ()
-        candidates = []
-        for user in self._eligible().order_by("pk").iterator():
-            candidate_email = user.normalized_email or normalize_account_email(user.email)
-            if candidate_email == normalized:
-                candidates.append(user)
-        return tuple(candidates)
+        candidates = tuple(
+            self._eligible()
+            .filter(normalized_email=normalized)
+            .order_by("pk")[: self._MAX_EMAIL_CANDIDATES]
+        )
+        if candidates:
+            return candidates
+        matches = []
+        for user in (
+            self._eligible()
+            .filter(Q(normalized_email="") | Q(normalized_email__isnull=True))
+            .order_by("pk")
+            .iterator()
+        ):
+            if normalize_account_email(user.email) == normalized:
+                matches.append(user)
+                if len(matches) >= self._MAX_EMAIL_CANDIDATES:
+                    break
+        return tuple(matches)
 
     def _authenticate_by_username(self, username, password, *, request):
         candidates = tuple(self._eligible().filter(username__iexact=username).order_by("pk")[:2])
