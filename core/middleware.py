@@ -152,12 +152,6 @@ class RequestBoundaryMiddleware:
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
-        webhook_path = request.path_info.rstrip("/") == "/api/datamailer/events"
-        # Let Django's existing @require_POST guard unsupported methods first.
-        # This preserves the explicit 405/Allow contract without allowing an
-        # unsupported request to reach webhook authentication or JSON parsing.
-        if webhook_path and request.method != "POST":
-            return self.get_response(request)
 
         if request.method in _BODY_METHODS:
             raw_length: str | bytes | int | None = request.META.get("CONTENT_LENGTH")
@@ -359,21 +353,6 @@ class ResponsePolicyMiddleware:
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
         response = self.get_response(request)
-        if (
-            request.path_info.rstrip("/") == "/api/datamailer/events"
-            and response.status_code >= 400
-        ):
-            preserved_headers = {
-                name: response.headers[name]
-                for name in ("Allow", "WWW-Authenticate", "X-Request-ID", "X-Correlation-ID")
-                if name in response.headers
-            }
-            response = JsonResponse(
-                {"error": "Webhook request rejected."},
-                status=response.status_code,
-            )
-            for name, value in preserved_headers.items():
-                response[name] = value
         response = _sanitize_mutation_error(request, response)
         apply_security_headers(response)
         private_surface = _is_private_surface(request)

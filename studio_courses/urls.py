@@ -7,7 +7,6 @@ from django.urls import URLPattern, path
 from .views import (
     campaigns,
     course_admin,
-    datamailer,
     enrollment,
     homework,
     observability,
@@ -30,8 +29,6 @@ ROUTE_DEFINITIONS: tuple[RouteDefinition, ...] = (
         campaigns.campaign_registrations,
         "campaign_registrations",
     ),
-    ("datamailer/", datamailer.datamailer_operations, "datamailer_operations"),
-    ("datamailer/events/", datamailer.datamailer_events, "datamailer_events"),
     (
         "cloudwatch/",
         observability.cloudwatch_dashboard,

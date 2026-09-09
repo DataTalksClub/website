@@ -40,11 +40,6 @@ DEFAULT_DASHBOARD_EVENTS = [
         "Project peer reviews submitted.",
     ),
     (
-        "datamailer.health_warning",
-        "Health warnings",
-        "Datamailer health warnings.",
-    ),
-    (
         "exception",
         "Exceptions",
         "Unhandled Django exceptions reported through observability.",

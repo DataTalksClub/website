@@ -13,15 +13,14 @@ import json
 
 from django.core.management.base import BaseCommand, CommandError
 
+from accounts.services.timezones import format_deadline_for_user
 from courses.models.cohort import Cohort
 from courses.models.project import Project
-from course_management.datamailer.payloads.peer_review_members import (
+from courses.package_notifications import (
     assigned_review_links,
+    latest_submissions_per_student,
+    peer_review_assignment_context,
 )
-from course_management.datamailer.payloads.peer_review import (
-    peer_review_assignment_notification_payload,
-)
-from accounts.services.timezones import format_deadline_for_user
 
 
 class Command(BaseCommand):
@@ -33,8 +32,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--json",
             action="store_true",
-            help="Also print the full Datamailer payload (needs Datamailer "
-            "settings).",
+            help="Also print the full per-recipient package mail context.",
         )
 
     def handle(self, *args, **options):
@@ -88,7 +86,7 @@ class Command(BaseCommand):
         submissions = latest_student_submissions(project)
         for submission in submissions:
             recipients += 1
-            preview_lines = submission_preview_lines(submission)
+            preview_lines = submission_preview_lines(submission, course, project)
             for line in preview_lines:
                 out.write(line)
 
@@ -105,18 +103,18 @@ class Command(BaseCommand):
     def write_json_payload(self, project):
         out = self.stdout
         out.write("")
-        list_payload = peer_review_assignment_notification_payload(project)
-        if list_payload is None:
-            message = self.style.WARNING(
-                "Datamailer not configured - no payload to show."
+        for submission in latest_submissions_per_student(
+            project.projectsubmission_set.select_related("student")
+        ):
+            context = peer_review_assignment_context(submission)
+            out.write(f"recipient: {submission.student.email}")
+            context_json = json.dumps(
+                context,
+                indent=2,
+                sort_keys=True,
+                default=str,
             )
-            out.write(message)
-            return
-
-        list_key, payload = list_payload
-        out.write(f"list_key: {list_key}")
-        payload_json = json.dumps(payload, indent=2, sort_keys=True)
-        out.write(payload_json)
+            out.write(context_json)
 
 
 def ordered_project_submissions(project):
@@ -128,21 +126,15 @@ def ordered_project_submissions(project):
 
 
 def latest_student_submissions(project):
-    seen = set()
-    submissions = ordered_project_submissions(project)
-    for submission in submissions:
-        if submission.student_id in seen:
-            continue
-        seen.add(submission.student_id)
-        yield submission
+    return latest_submissions_per_student(ordered_project_submissions(project))
 
 
-def submission_preview_lines(submission):
+def submission_preview_lines(submission, course, project):
     lines = [
         f"- {submission.student.email}",
         f"    submitted: {submission_submitted_at(submission)}",
     ]
-    links = assigned_review_links(submission)
+    links = assigned_review_links(submission, course, project)
     lines.append(f"    you were assigned {len(links)} projects to review:")
     for i, link in enumerate(links, start=1):
         lines.append(f"      {i}. {link['eval_url']}")

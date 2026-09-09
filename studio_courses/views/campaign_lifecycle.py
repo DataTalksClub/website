@@ -38,7 +38,6 @@ def _unchanged_result(campaign, *, open_new_cohort_form=None):
     return CampaignEditPostResult(
         response=None,
         form=RegistrationCampaignForm(instance=campaign),
-        datamailer_preview=None,
         campaign=None,
         open_new_cohort_form=open_new_cohort_form,
     )
@@ -60,7 +59,6 @@ def _handle_stop_registration(request, campaign):
     return CampaignEditPostResult(
         response=None,
         form=RegistrationCampaignForm(instance=updated),
-        datamailer_preview=None,
         campaign=updated,
         open_new_cohort_form=None,
     )
@@ -88,7 +86,6 @@ def _handle_open_new_cohort(request, campaign):
     return CampaignEditPostResult(
         response=None,
         form=RegistrationCampaignForm(instance=updated),
-        datamailer_preview=None,
         campaign=updated,
         open_new_cohort_form=None,
     )

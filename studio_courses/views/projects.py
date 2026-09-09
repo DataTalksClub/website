@@ -1,12 +1,10 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 
-from course_management.datamailer.sync.peer_review_notifications import (
+from courses.package_notifications import (
     send_peer_review_assignment_notification,
 )
-from course_management.datamailer.sync.score_notifications import (
-    send_project_score_notification,
-)
+from courses.package_notifications import send_project_score_notification
 from courses.models.cohort import Cohort
 from courses.models.project import Project
 from courses.project_assignment import (

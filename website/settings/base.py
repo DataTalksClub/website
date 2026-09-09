@@ -314,26 +314,6 @@ PUBLIC_MEDIA_MAX_OBJECT_BYTES = int(
     os.getenv("PUBLIC_MEDIA_MAX_OBJECT_BYTES", str(8 * 1024 * 1024))
 )
 
-DATAMAILER_URL = os.getenv("DATAMAILER_URL", "")
-DATAMAILER_API_KEY = os.getenv("DATAMAILER_API_KEY", "")
-DATAMAILER_CLIENT = os.getenv("DATAMAILER_CLIENT", "")
-DATAMAILER_AUDIENCE = os.getenv("DATAMAILER_AUDIENCE", "")
-DATAMAILER_FROM_EMAIL = os.getenv("DATAMAILER_FROM_EMAIL", "")
-DATAMAILER_STRICT = env_flag("DATAMAILER_STRICT")
-DATAMAILER_TIMEOUT_SECONDS = float(os.getenv("DATAMAILER_TIMEOUT_SECONDS", "60"))
-DATAMAILER_TRANSACTIONAL_DRY_RUN = env_flag("DATAMAILER_TRANSACTIONAL_DRY_RUN")
-DATAMAILER_WEBHOOK_TOKEN = os.getenv("DATAMAILER_WEBHOOK_TOKEN", "")
-DATAMAILER_IMPORT_S3_BUCKET = os.getenv("DATAMAILER_IMPORT_S3_BUCKET", "")
-DATAMAILER_IMPORT_S3_PREFIX = os.getenv("DATAMAILER_IMPORT_S3_PREFIX", "datamailer-imports").strip(
-    "/"
-)
-DATAMAILER_IMPORT_URL_EXPIRES_SECONDS = int(
-    os.getenv("DATAMAILER_IMPORT_URL_EXPIRES_SECONDS", "3600")
-)
-DATAMAILER_IMPORT_S3_REGION = os.getenv("DATAMAILER_IMPORT_S3_REGION", "")
-DATAMAILER_SYNC_ON_USER_CREATE = env_flag("DATAMAILER_SYNC_ON_USER_CREATE", True)
-DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY = env_flag("DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY")
-
 # Relay recipient-link bridge.  Relay renders open, click and unsubscribe links
 # from its own ``PUBLIC_BASE_URL``; that value points at this site, so this site
 # has to answer ``/t/o/<token>.gif``, ``/t/c/<token>`` and ``/unsubscribe/<token>``
@@ -395,7 +375,8 @@ COMMUNITY_BASE = {
     # DTC mail purposes; the ses_local renderer reads it and the deploy's
     # import_mail_templates step mirrors it into the Relay catalog.
     "MAIL_TEMPLATE_DIR": str(BASE_DIR / "email_templates"),
-    # D1.2b: the datamailer preference store keeps holding opt-outs while
+    # D1.2ca: category opt-outs are fields on the site user and the
+    # resolver reads them directly.
     # the five purposes send through the package; D1.2c replaces the store.
     "MAIL_PREFERENCE_RESOLVER": ("course_management.mail_preferences.resolve_mail_preference"),
     "RELAY_BASE_URL": os.getenv("RELAY_BASE_URL", ""),

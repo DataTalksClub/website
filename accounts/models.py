@@ -9,6 +9,31 @@ from accounts.identity_values import normalize_account_email
 
 
 class CustomUser(AbstractUser):
+    email_submission_confirmations = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Mail category opt-out for submission confirmations and score "
+            "emails. Unset means allowed."
+        ),
+    )
+    email_deadline_reminders = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Mail category opt-out for deadline reminders. Unset means "
+            "allowed."
+        ),
+    )
+    email_course_updates = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Mail category opt-out for general course-related emails. "
+            "Unset means allowed."
+        ),
+    )
+
     class IdentityState(models.TextChoices):
         LEGACY = 'legacy', 'Legacy-compatible'
         ACTIVE = 'active', 'Verified active identity'

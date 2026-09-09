@@ -1,21 +1,18 @@
+"""The account email-category preferences API (D1.2ca).
+
+The three opt-out categories are fields on the user; this view reads and
+writes them. Unset counts as allowed, so GET reports every field as an
+explicit boolean.
+"""
+
 from dataclasses import dataclass
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 
+from accounts.email_preferences import EMAIL_PREFERENCE_FIELDS
 from course_management.observability import record_event
-from course_management.datamailer.preferences import (
-    get_email_preferences_for_user,
-    update_email_preferences_for_user,
-)
-
-
-EMAIL_PREFERENCE_FIELDS = {
-    "email_submission_confirmations",
-    "email_deadline_reminders",
-    "email_course_updates",
-}
 
 
 @dataclass(frozen=True)
@@ -33,21 +30,16 @@ def account_email_preferences(request):
     return _account_email_preferences_update_response(request)
 
 
-def _email_preferences_unavailable_response():
-    response = JsonResponse(
-        {"error": "Email preferences are unavailable."},
-        status=503,
-    )
-    return response
+def _stored_preferences(user) -> dict[str, bool]:
+    return {
+        field: getattr(user, field) is not False
+        for field in sorted(EMAIL_PREFERENCE_FIELDS)
+    }
 
 
 def _account_email_preferences_get_response(user):
-    preferences = get_email_preferences_for_user(user)
-    if preferences is None:
-        return _email_preferences_unavailable_response()
-    payload = {"preferences": preferences}
-    response = JsonResponse(payload)
-    return response
+    payload = {"preferences": _stored_preferences(user)}
+    return JsonResponse(payload)
 
 
 def _email_preference_update_payload(request):
@@ -70,13 +62,8 @@ def _account_email_preferences_update_response(request):
     if error_response:
         return error_response
 
-    preferences = {update.field: update.enabled}
-    datamailer_synced = update_email_preferences_for_user(
-        request.user,
-        preferences,
-    )
-    if not datamailer_synced:
-        return _email_preferences_unavailable_response()
+    setattr(request.user, update.field, update.enabled)
+    request.user.save(update_fields=[update.field])
     record_event(
         "account.email_preference_updated",
         request=request,
@@ -89,7 +76,7 @@ def _account_email_preferences_update_response(request):
     payload = {
         "field": update.field,
         "value": update.enabled,
-        "datamailer_synced": True,
+        "stored": True,
     }
     response = JsonResponse(payload)
     return response

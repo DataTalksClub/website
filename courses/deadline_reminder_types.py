@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from course_management.datamailer.client import DatamailerConfig
 from courses.models.cohort import Cohort
 
 
@@ -57,7 +56,6 @@ class ReminderTemplateContextData:
 
 @dataclass(frozen=True)
 class ReminderEventData:
-    config: DatamailerConfig | None
     spec: ReminderSpec
     item: ReminderItemData
     members: list[dict[str, Any]]

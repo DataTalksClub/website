@@ -8,17 +8,11 @@ from django.shortcuts import redirect
 from courses.models.cohort import Cohort
 from studio_courses.forms import OpenNewCohortForm, RegistrationCampaignForm
 
-from .campaign_datamailer import (
-    datamailer_campaign_context,
-    handle_datamailer_campaign_action,
-)
-
 
 @dataclass(frozen=True)
 class CampaignEditPostResult:
     response: object
     form: object
-    datamailer_preview: object
     # Only set by a registration-status action that actually changed
     # ``current_course`` -- ``None`` means the caller's own campaign object
     # is still current.  See campaign_lifecycle.py.
@@ -97,29 +91,6 @@ def campaign_form_course(form):
     return course
 
 
-def handle_campaign_datamailer_post(request, campaign):
-    datamailer_preview, should_redirect = (
-        handle_datamailer_campaign_action(request, campaign)
-    )
-    if should_redirect:
-        response = redirect(
-            "studio_courses_campaign_edit",
-            campaign_slug=campaign.slug,
-        )
-        return CampaignEditPostResult(
-            response=response,
-            form=None,
-            datamailer_preview=None,
-        )
-
-    form = RegistrationCampaignForm(instance=campaign)
-    return CampaignEditPostResult(
-        response=None,
-        form=form,
-        datamailer_preview=datamailer_preview,
-    )
-
-
 def handle_campaign_form_post(request, campaign):
     form = RegistrationCampaignForm(request.POST, instance=campaign)
     if form.is_valid():
@@ -132,26 +103,20 @@ def handle_campaign_form_post(request, campaign):
         return CampaignEditPostResult(
             response=response,
             form=None,
-            datamailer_preview=None,
-        )
+                )
 
     return CampaignEditPostResult(
         response=None,
         form=form,
-        datamailer_preview=None,
-    )
+        )
 
 
-def campaign_edit_context(campaign, form, datamailer_preview, open_new_cohort_form=None):
-    datamailer_context = datamailer_campaign_context(campaign)
-    context = {
+def campaign_edit_context(campaign, form, open_new_cohort_form=None):
+    return {
         "form": form,
         "campaign": campaign,
         "course": campaign.current_course,
         "page_title": "Edit registration landing page",
         "submit_label": "Save changes",
-        "datamailer_preview": datamailer_preview,
         "open_new_cohort_form": open_new_cohort_form or OpenNewCohortForm(),
     }
-    context.update(datamailer_context)
-    return context
