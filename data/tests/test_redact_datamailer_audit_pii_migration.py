@@ -20,7 +20,7 @@ import importlib
 from django.apps import apps as django_apps
 from django.test import TestCase
 
-from course_management.datamailer.sync.audit_redaction import (
+from course_management.audit_redaction import (
     audit_error_text,
     audit_response_payload,
     recipient_fingerprint,

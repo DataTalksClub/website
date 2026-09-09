@@ -116,8 +116,6 @@ def send_homework_score_notification(homework) -> int:
         "student", "homework__course",
     )
     for submission in latest_submissions_per_student(submissions):
-        if submission.total_score is None:
-            continue
         learner_context = context | {
             "questions_score": submission.questions_score,
             "learning_in_public_score": submission.learning_in_public_score,
@@ -169,8 +167,6 @@ def send_project_score_notification(project) -> int:
         "student", "project__course",
     )
     for submission in latest_submissions_per_student(submissions):
-        if submission.total_score is None:
-            continue
         learner_context = context | {
             "project_score": submission.project_score,
             "project_learning_in_public_score": (

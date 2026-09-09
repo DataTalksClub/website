@@ -40,7 +40,7 @@ class Command(BaseCommand):
 
         self.write_project_summary(course, project)
         self.write_deadline(project)
-        recipients = self.write_submission_previews(project)
+        recipients = self.write_submission_previews(course, project)
         self.write_recipient_count(recipients)
 
         if options["json"]:
@@ -80,7 +80,7 @@ class Command(BaseCommand):
         out.write(f"  {deadline['deadline_summary']}")
         out.write("")
 
-    def write_submission_previews(self, project):
+    def write_submission_previews(self, course, project):
         out = self.stdout
         recipients = 0
         submissions = latest_student_submissions(project)

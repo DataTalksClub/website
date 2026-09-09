@@ -839,7 +839,6 @@
           },
           "group": {
             "enum": [
-              "datamailer",
               "observability",
               "public_media",
               "relay.link_bridge",
@@ -850,18 +849,6 @@
           "key": {
             "enum": [
               "site.origin.canonical",
-              "datamailer.audience",
-              "datamailer.client",
-              "datamailer.from_email",
-              "datamailer.import_s3_bucket",
-              "datamailer.import_s3_prefix",
-              "datamailer.import_s3_region",
-              "datamailer.import_url_expires_seconds",
-              "datamailer.strict",
-              "datamailer.sync_on_user_create",
-              "datamailer.timeout_seconds",
-              "datamailer.transactional_dry_run",
-              "datamailer.url",
               "observability.cloudwatch_metric_namespace",
               "observability.cloudwatch_metric_region",
               "observability.event_schema_version",
@@ -981,7 +968,6 @@
           },
           "group": {
             "enum": [
-              "datamailer",
               "observability",
               "public_media",
               "relay.link_bridge",
@@ -992,18 +978,6 @@
           "key": {
             "enum": [
               "site.origin.canonical",
-              "datamailer.audience",
-              "datamailer.client",
-              "datamailer.from_email",
-              "datamailer.import_s3_bucket",
-              "datamailer.import_s3_prefix",
-              "datamailer.import_s3_region",
-              "datamailer.import_url_expires_seconds",
-              "datamailer.strict",
-              "datamailer.sync_on_user_create",
-              "datamailer.timeout_seconds",
-              "datamailer.transactional_dry_run",
-              "datamailer.url",
               "observability.cloudwatch_metric_namespace",
               "observability.cloudwatch_metric_region",
               "observability.event_schema_version",
@@ -1092,8 +1066,8 @@
             "items": {
               "$ref": "#/components/schemas/OperationalSetting"
             },
-            "maxItems": 28,
-            "minItems": 28,
+            "maxItems": 16,
+            "minItems": 16,
             "type": "array"
           }
         },
@@ -1116,18 +1090,6 @@
                 "key": {
                   "enum": [
                     "site.origin.canonical",
-                    "datamailer.audience",
-                    "datamailer.client",
-                    "datamailer.from_email",
-                    "datamailer.import_s3_bucket",
-                    "datamailer.import_s3_prefix",
-                    "datamailer.import_s3_region",
-                    "datamailer.import_url_expires_seconds",
-                    "datamailer.strict",
-                    "datamailer.sync_on_user_create",
-                    "datamailer.timeout_seconds",
-                    "datamailer.transactional_dry_run",
-                    "datamailer.url",
                     "observability.cloudwatch_metric_namespace",
                     "observability.cloudwatch_metric_region",
                     "observability.event_schema_version",
@@ -1161,7 +1123,7 @@
               ],
               "type": "object"
             },
-            "maxItems": 28,
+            "maxItems": 16,
             "minItems": 1,
             "type": "array"
           }
@@ -1181,7 +1143,7 @@
             "items": {
               "$ref": "#/components/schemas/OperationalSettingResult"
             },
-            "maxItems": 28,
+            "maxItems": 16,
             "minItems": 1,
             "type": "array"
           }
