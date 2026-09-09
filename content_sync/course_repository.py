@@ -356,11 +356,15 @@ def _slug(value: object, *, path: str, pointer: str, maximum: int = 100) -> str:
 
 
 def _content_id(value: object, *, path: str, pointer: str) -> str:
-    result = _string(value, path=path, pointer=pointer, maximum=36)
+    result = _string(value, path=path, pointer=pointer, maximum=255)
     try:
         parsed = UUID(result)
     except ValueError:
-        _fail("invalid_content_id", path, pointer)
+        # Compound ID: slug segments namespaced by the course slug, e.g.
+        # "ai-dev-tools-zoomcamp/2026/02-development/hw02/reflection".
+        if any(_SLUG.fullmatch(segment) is None for segment in result.split("/")):
+            _fail("invalid_content_id", path, pointer)
+        return result
     if str(parsed) != result:
         _fail("invalid_content_id", path, pointer)
     return result

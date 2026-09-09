@@ -14,6 +14,7 @@ from courses.curriculum_source_validators import validate_source_path
 
 SHA1_PATTERN = r"^[0-9a-f]{40}$"
 SHA256_PATTERN = r"^[0-9a-f]{64}$"
+SOURCE_CONTENT_ID_PATTERN = r"^[a-z0-9]+(?:-[a-z0-9]+)*(?:/[a-z0-9]+(?:-[a-z0-9]+)*)*$"
 SOURCE_STABLE_ID_PATTERN = r"^[a-z0-9][a-z0-9._-]{0,127}$"
 SOURCE_VERSION_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
 REPOSITORY_COMPONENT_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
@@ -34,6 +35,11 @@ sha1_validator = RegexValidator(
 sha256_validator = RegexValidator(
     SHA256_PATTERN,
     "Enter a lowercase SHA-256 digest.",
+)
+source_content_id_validator = RegexValidator(
+    SOURCE_CONTENT_ID_PATTERN,
+    "Enter a lowercase compound content ID: slug segments separated by slashes, "
+    "namespaced by the course slug.",
 )
 source_stable_id_validator = RegexValidator(
     SOURCE_STABLE_ID_PATTERN,
@@ -78,7 +84,12 @@ def source_provenance_constraint(
 class SourceProvenanceModel(models.Model):
     """Nullable provenance shared by source-managed curriculum records."""
 
-    source_content_id = models.UUIDField(null=True, blank=True)
+    source_content_id = models.CharField(  # noqa: DJ001 -- null identifies DB-managed rows.
+        max_length=255,
+        null=True,
+        blank=True,
+        validators=[source_content_id_validator],
+    )
     source_path = models.CharField(  # noqa: DJ001 -- null identifies DB-managed rows.
         max_length=1024,
         null=True,
