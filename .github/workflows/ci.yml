@@ -1136,19 +1136,24 @@ jobs:
         run: |
           set -euo pipefail
           # website.settings.local creates /app/.tmp at import time, and the
-          # runtime user (10001) cannot create it under the root-owned /app:
-          # make it first as root and hand it to the runtime user (issue #337
-          # family; the scheduled smoke gives it a full chowned volume).
+          # runtime user (10001) cannot create it under the root-owned /app.
+          # The directory has to live on a volume shared between the chown
+          # one-shot and the serving container: a one-shot without the volume
+          # only fixes its own throwaway layer (issue #337 family; same
+          # treatment as the scheduled smoke).
+          docker volume create dtc-web-smoke-data
+          trap 'docker logs dtc-web 2>/dev/null; docker rm --force dtc-web 2>/dev/null; docker volume rm --force dtc-web-smoke-data 2>/dev/null' EXIT
           docker run --rm --entrypoint sh --user 0:0 \
-            "dtc-website:$RELEASE_SHA" -c 'mkdir -p /app/.tmp && chown 10001:10001 /app/.tmp'
+            --volume dtc-web-smoke-data:/app/.tmp \
+            "dtc-website:$RELEASE_SHA" -c 'chown 10001:10001 /app/.tmp'
           docker run --detach --name dtc-web \
             --env DJANGO_SETTINGS_MODULE=website.settings.local \
             --env DTC_SQLITE_PATH=/tmp/smoke.sqlite3 \
+            --volume dtc-web-smoke-data:/app/.tmp \
             --env "VERSION=$VERSION" \
             --env "SOURCE_SHA=$RELEASE_SHA" \
             --env "IMAGE_DIGEST=$TEST_IMAGE_DIGEST" \
             --publish 8000:8000 "dtc-website:$RELEASE_SHA" web
-          trap 'docker logs dtc-web; docker rm --force dtc-web' EXIT
           for _ in $(seq 1 30); do
             if curl --fail --silent http://127.0.0.1:8000/health/live | jq -e \
               --arg version "$VERSION" --arg sha "$RELEASE_SHA" --arg digest "$TEST_IMAGE_DIGEST" \
