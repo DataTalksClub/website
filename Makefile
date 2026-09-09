@@ -548,9 +548,8 @@ production-prep-course-sources: production-prep-course-registry
 
 # Stage 3. Build the dataset offline from those checkouts.
 production-prep-dataset:
-	rm -f "$(PRODUCTION_PREP_DATASET_DATABASE)" \
-		"$(PRODUCTION_PREP_DATASET_DATABASE)-shm" \
-		"$(PRODUCTION_PREP_DATASET_DATABASE)-wal"
+	@uv run --frozen python scripts/rebuild_gate.py \
+		"$(PRODUCTION_PREP_DATASET_DATABASE)"
 	$(MAKE) production-prep-course-sources
 	$(MAKE) production-prep-local \
 		PRODUCTION_PREP_DATABASE="$(PRODUCTION_PREP_DATASET_DATABASE)" \
@@ -789,9 +788,8 @@ production-prep-bootstrap:
 		echo "or set it empty to skip the pre-2024 editions deliberately." >&2; \
 		exit 2; \
 	fi
-	rm -f "$(PRODUCTION_PREP_DATASET_DATABASE)" \
-		"$(PRODUCTION_PREP_DATASET_DATABASE)-shm" \
-		"$(PRODUCTION_PREP_DATASET_DATABASE)-wal"
+	@uv run --frozen python scripts/rebuild_gate.py \
+		"$(PRODUCTION_PREP_DATASET_DATABASE)"
 	$(MAKE) production-prep-course-sources
 	@if test -n "$(LEGACY_ZOOMCAMP_SOURCE)"; then \
 		echo "$(MAKE) import-legacy-zoomcamp"; \
