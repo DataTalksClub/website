@@ -1,0 +1,274 @@
+{
+  "date": "2026-09-09",
+  "tool": "built-in imagegen",
+  "scope": "Homepage illustrations only: light Steps 1 and 3, and dark Steps 1 through 3.",
+  "operation": "Each target supplies its own registration anchor and separately generated cloud; original foreground RGBA is copied back without translation or resampling.",
+  "transparency": "Raw cloud PNGs are opaque. Final alpha comes from removing the generated key backdrop. It is estimated alpha, not native imagegen transparency.",
+  "edge_reference": {
+    "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/anchors/home-step-2.webp",
+    "sha256": "e51e4610490150ae78d5e01262dcd822e308f58662bf9872cb0dbabd181fa4b8"
+  },
+  "source_archive": ".tmp/illustration-sources/blurb-repair-2026-09-09",
+  "assets": [
+    {
+      "output": {
+        "path": "core/static/core/illustrations/home-stuck.webp",
+        "sha256": "aef88e58ed302c4ec7a5d4ed2b7d7c17a051d06573747aee94286a187823b118"
+      },
+      "canvas": [
+        957,
+        532
+      ],
+      "registration_anchor": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/anchors/home-stuck.webp",
+        "sha256": "74cd4b7c05a68a46cf2d76138f79a73396f121c51477da930c4bcc08f07739a3"
+      },
+      "raw_cloud": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/step1-light-cloud-key.png",
+        "sha256": "c7afe1d06f03bccdf4bf6a73dbfe582568fd438609ba5cafd2e643ec8618d3db"
+      },
+      "prompt": "Edit target Image 1: pale lavender watercolor cloud on magenta. Images 2 and 3: original Step1 registration anchor and Step2 watercolor edge style reference.\nFix Image 1's CLIPPING: topmost paint and leftmost paint are CUT OFF. Regenerate the entire cloud with its complete irregular granular contour FULLY VISIBLE. All paint must fit inside a safe rectangle leaving a uniform magenta gutter of at least 5% canvas width on BOTH sides and 7% canvas height at TOP and BOTTOM. This margin requirement is mandatory. Output aspect ratio 957:532 landscape, NOT auto-trimmed to the paint.\nKeep the cloud's own distinctive Image2-based silhouette, quiet pale-lavender center, fine granular wash edges matching Image3. Only the cloud layer, no foreground people, cards, letters, laptop, icons or black ink. Those will be retained separately from the unchanged original.\nThe background is perfectly flat #ff00ff. Lavender watercolor pigment is painted directly over this magenta surface. As pigment density fades its composite blends directly to magenta: no white paper underpainting, white fringe, whitish opaque outline, glow, shadow, blur or checkerboard. Make the entire blurb complete and uncut, surrounded by magenta on every side.",
+      "foreground": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/foreground/home-stuck-foreground.png",
+        "sha256": "dc4e8627d0776085aa23a2f398fa001537e2ac43bf9d4e8bd9fa97ab61128266"
+      },
+      "foreground_selection": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/foreground/home-stuck-foreground-mask.png",
+        "sha256": "cb268e2ed36d8ae4a0486a256993887e3d3e506fe6cddd8913ab4a995dc9b512"
+      },
+      "finishing_script": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/finish-cloud.sh",
+        "sha256": "2fe348b027ae9191d04139904030b691f55e6fd72202bbac624ede679f16d4fc"
+      },
+      "finishing_parameters": {
+        "key": "#ff00ff",
+        "key_residual_tolerance": 0.25
+      },
+      "finishing_commands": [
+        "bash .tmp/illustration-sources/blurb-repair-2026-09-09/finish-cloud.sh .tmp/illustration-sources/blurb-repair-2026-09-09/step1-light-cloud-key.png .tmp/illustration-sources/blurb-repair-2026-09-09/foreground/home-stuck-foreground.png 957 532 .tmp/illustration-sources/blurb-repair-2026-09-09/step1-light-candidate",
+        "cp .tmp/illustration-sources/blurb-repair-2026-09-09/step1-light-candidate.webp core/static/core/illustrations/home-stuck.webp"
+      ],
+      "additional_reference": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/rejected-step1-cloud-clipped.png",
+        "sha256": "c8c859c7d48663ed3d047923a744d87fa413c515b5605204486cad84523cfba4"
+      }
+    },
+    {
+      "output": {
+        "path": "core/static/core/illustrations/home-step-3.webp",
+        "sha256": "a92a57786679894be91f4d4e9fa1d0aeee26af0a11134a7a34c9fdfdea4e8914"
+      },
+      "canvas": [
+        957,
+        532
+      ],
+      "registration_anchor": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/anchors/home-step-3.webp",
+        "sha256": "e0f44b4c26848ff6e915322972291ed1c0292ade06c562e5cc0cc056738037e2"
+      },
+      "raw_cloud": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/step3-light-cloud-key.png",
+        "sha256": "6d6d3ae6030f162bc6df71d341df560b1e47449e61b81670a7a686a521d007cc"
+      },
+      "prompt": "Use case: precise-object-edit; watercolor background layer for an existing illustration.\nImage 1 is the exact canvas and composition anchor for LIGHT STEP 3, an illustration containing two people and a flowchart. Image 2 is ONLY the reference for fine granular watercolor edge quality.\nGenerate ONLY Image1's pale lavender watercolor background blurb, with NO foreground figures, ink, words, cards, laptop, table, icons or diagrams. All original foreground pixels will be retained separately and must not be redrawn.\nPreserve Image1's distinctive silhouette: irregular broad lavender cloud with rounded rising lobes along the upper edge above the big white flowchart, broad left bulge behind the sitting presenter, tall right lobe behind the standing person, and a deep irregular valley on the lower edge between the two figures. Its shape must belong to this composition, not to step 1 or image2. Quiet lavender/periwinkle wash center close to #b8bffc, natural pigment texture. Match Image2's fine granulation and delicate dissolving watercolor boundary.\nOutput full landscape 957:532 canvas ratio, no cropping or trim. Entire cloud must fit inside canvas: clear magenta border at least 3% WIDTH each side and 4% HEIGHT above and below. Keep every outer particle visible. Preserve large overall cloud extent and original location; only its outermost edge retreats enough to avoid clipping.\nPerfectly uniform saturated magenta #ff00ff outer backdrop, never a checkerboard or fake transparency. Thin lavender pigment should mix DIRECTLY with magenta at the irregular fading boundary. NO WHITE UNDERPAINTING or white intermediate fringe. No halo, luminous outline, dark contour, shadow, smooth vector edge, hard staircase pixels, gradient backdrop or key-colored marks in cloud interior. Output one standalone watercolor layer only.",
+      "foreground": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/foreground/home-step-3-foreground.png",
+        "sha256": "22978de4ad4e86da1d9f99bd5e1674ff20eb99f463f3c1bb01d2d9a08e793205"
+      },
+      "foreground_selection": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/foreground/home-step-3-foreground-mask.png",
+        "sha256": "992f255b8beedcc39626f0cb7d88ac72985f6e457325dda5490ede294d4ec58f"
+      },
+      "finishing_script": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/finish-cloud.sh",
+        "sha256": "2fe348b027ae9191d04139904030b691f55e6fd72202bbac624ede679f16d4fc"
+      },
+      "finishing_parameters": {
+        "key": "#ff00ff",
+        "key_residual_tolerance": 0.25
+      },
+      "finishing_commands": [
+        "bash .tmp/illustration-sources/blurb-repair-2026-09-09/finish-cloud.sh .tmp/illustration-sources/blurb-repair-2026-09-09/step3-light-cloud-key.png .tmp/illustration-sources/blurb-repair-2026-09-09/foreground/home-step-3-foreground.png 957 532 .tmp/illustration-sources/blurb-repair-2026-09-09/step3-light-candidate",
+        "cp .tmp/illustration-sources/blurb-repair-2026-09-09/step3-light-candidate.webp core/static/core/illustrations/home-step-3.webp"
+      ]
+    },
+    {
+      "output": {
+        "path": "core/static/core/illustrations/home-stuck-dark.webp",
+        "sha256": "62359b90a9f50834798bb14ce42dac325b56d638ae04d793d7878697c2389188"
+      },
+      "canvas": [
+        957,
+        532
+      ],
+      "registration_anchor": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/anchors/home-stuck-dark.webp",
+        "sha256": "4cc68a7f62b9f383d29fe94af2a0dad1f5dc2837e46902a29f3aa70f8507ff8a"
+      },
+      "raw_cloud": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/step1-dark-white-key.png",
+        "sha256": "9012c2e410fc2a298913ebbd103319b1c398fb553eb10d980555ee4175471d07"
+      },
+      "prompt": "Image1 is the edit target, a dark indigo cloud on white. Its TOP, LEFT AND BOTTOM paint are CLIPPED. Repair that clipping and keep the full cloud visible with a GENEROUS completely empty pure white border on all sides. The entire cloud must occupy no more than 88% of canvas width and 84% of canvas height, centered. Do not auto-crop canvas to the cloud.\nImage2 is the original Step1 illustration registration/own cloudshape reference; Image3 is the fine watercolor edge texture reference. Keep the target cloud's own distinctive shape, not another step's shape. Foreground is retained separately; output NO person, card, laptop, line, icon or text.\nPreserve dark slate-indigo pigment #353b5e, subdued gentle texture, with fine porous edge dissolving directly into pure #ffffff. Outside has no color, texture, gradient or shadow. Edge uses the same pigment with lower density, no darker outer contour or differently colored rim.\nRetain landscape957:532 canvas aspect. Restore the missing outer contour, with all grains fully inside the generous white margins.",
+      "foreground": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/foreground-dark/home-stuck-dark-foreground.png",
+        "sha256": "1e168b60cd283516f74af14feaf9df48772bf2232da119cd2d1db724f944a3d2"
+      },
+      "foreground_selection": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/foreground-dark/home-stuck-dark-foreground-mask.png",
+        "sha256": "3ee2bb8ed9111e8369bf6625f05c4dd3c5d228d2ed89cd3f55bb8fdb18e74343"
+      },
+      "finishing_script": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/finish-white-cloud.sh",
+        "sha256": "b79e0c09ad27446381cf7ef7e51cfab6341462e14ba86bb042c195082e9d00d0"
+      },
+      "finishing_parameters": {
+        "key": "#ffffff",
+        "pigment_red": 53,
+        "key_residual_tolerance": 0.1
+      },
+      "finishing_commands": [
+        "bash .tmp/illustration-sources/blurb-repair-2026-09-09/finish-white-cloud.sh .tmp/illustration-sources/blurb-repair-2026-09-09/step1-dark-white-key.png .tmp/illustration-sources/blurb-repair-2026-09-09/foreground-dark/home-stuck-dark-foreground.png .tmp/illustration-sources/blurb-repair-2026-09-09/step1-dark-white-candidate",
+        "cp .tmp/illustration-sources/blurb-repair-2026-09-09/step1-dark-white-candidate.webp core/static/core/illustrations/home-stuck-dark.webp"
+      ],
+      "additional_reference": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/step1-dark-white-clipped.png",
+        "sha256": "754a5efcf921f7b89492009d40f57cdf712eb9f6df12e0c6d1bf9fd8e59c310f"
+      }
+    },
+    {
+      "output": {
+        "path": "core/static/core/illustrations/home-step-2-dark.webp",
+        "sha256": "06a5787ff7e5bdc51071be2882759a5632f546162236e84af3ef870e1ab69ac9"
+      },
+      "canvas": [
+        957,
+        532
+      ],
+      "registration_anchor": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/anchors/home-step-2-dark.webp",
+        "sha256": "6748f43e5cf6172b88bbf9d3ead1dfc5a5d1a73c90f1bcaccfe596956785ded1"
+      },
+      "raw_cloud": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/step2-dark-white-key.png",
+        "sha256": "d9e09c46bab962d58e088a93b27032ea82dd970013076064f73db54ad278ad5f"
+      },
+      "prompt": "Use case: precise-object-edit, cloud-only watercolor layer for DARK STEP 2.\nImage 1 is the original dark illustration, used ONLY as the registration anchor for its own watercolor cloud's broad shape, lobes, position and proportions. Image 2 is the approved LIGHT STEP 2 artwork, used ONLY as the reference for natural fine granular watercolor edge behavior. Generate this step's own distinct cloud; do not copy the second image's cloud silhouette.\nReturn ONLY a watercolor blurb. REMOVE all foreground people, drawing lines, boards, cards, laptops, icons, symbols, text, and objects. Those original pixels will be preserved separately. Landscape full-canvas ratio 957:532 (about1.799:1). Keep the whole cloud inside the full canvas with clearly pure white space on all four edges; no clipping, zooming or cropped lobes.\nUse exactly ONE muted dark slate-indigo pigment #353b5e, RGB(53,59,94), painted against a perfectly uniform PURE WHITE #ffffff key backdrop. The entire layer uses only this single pigment plus its dilution against the white backdrop. Pigment hue must stay constant. Conceptually each pixel is coverage*(53,59,94)+(1-coverage)*(255,255,255). Changes in tone come ONLY from pigment coverage, never from adding pale or blue paint.\nMake a gently textured watercolor stain with fine natural granular paper detail. The outer 20\u201330 pixels at the original957x532 scale must dissolve gradually and irregularly all the way into clean white through diminishing pigment coverage. Tiny porous detail should ride inside that soft fade. Use a wet watercolor diffusion edge, not a hard stamp. No coarse grunge, disconnected splatter dots, dark freckles, jagged pixel contours or dry-brush crust. Never pool darker pigment into a boundary stroke. No separate lighter pigment rim, no bright blue or lavender speckles, no halo, lighting, bevel, shadow or glow.\nThe white key is perfectly neutral and uniform: no paper texture outside the pigment, no grey rectangle, no checkerboard, no colored key or tint. All texture and softness are generated in the watercolor itself. Keep small pure-white margins around the entire cloud and retain the full canvas.\n",
+      "foreground": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/foreground-dark/home-step-2-dark-foreground.png",
+        "sha256": "776bf096fb9ecceb6a79b113f89c39bac8a36b15dc1ca04fc7bafb13a7e27848"
+      },
+      "foreground_selection": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/foreground-dark/home-step-2-dark-foreground-mask.png",
+        "sha256": "5e9da1a979c6bc88ab4d2967ad51cfcd181932ebea14c0c9f05782ee4b3d4c81"
+      },
+      "finishing_script": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/finish-white-cloud.sh",
+        "sha256": "b79e0c09ad27446381cf7ef7e51cfab6341462e14ba86bb042c195082e9d00d0"
+      },
+      "finishing_parameters": {
+        "key": "#ffffff",
+        "pigment_red": 53,
+        "key_residual_tolerance": 0.1
+      },
+      "finishing_commands": [
+        "bash .tmp/illustration-sources/blurb-repair-2026-09-09/finish-white-cloud.sh .tmp/illustration-sources/blurb-repair-2026-09-09/step2-dark-white-key.png .tmp/illustration-sources/blurb-repair-2026-09-09/foreground-dark/home-step-2-dark-foreground.png .tmp/illustration-sources/blurb-repair-2026-09-09/step2-dark-white-candidate",
+        "cp .tmp/illustration-sources/blurb-repair-2026-09-09/step2-dark-white-candidate.webp core/static/core/illustrations/home-step-2-dark.webp"
+      ]
+    },
+    {
+      "output": {
+        "path": "core/static/core/illustrations/home-step-3-dark.webp",
+        "sha256": "6131a111585cdaad8156fe36cec538ea1f50724e56acde67a3490e179993c802"
+      },
+      "canvas": [
+        957,
+        532
+      ],
+      "registration_anchor": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/anchors/home-step-3-dark.webp",
+        "sha256": "0716a5feff94d7d184c4a323cc068a8c9600649984005d893d28bb2dee05b438"
+      },
+      "raw_cloud": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/step3-dark-white-key.png",
+        "sha256": "f16ff4f21c67ce5595b3ffd5f87318d0a1ec3e9db91b55d19fc05b31b8fdaa61"
+      },
+      "prompt": "Use case: precise-object-edit, cloud-only watercolor layer for DARK STEP 3.\nImage 1 is the original dark illustration, used ONLY as the registration anchor for its own watercolor cloud's broad shape, lobes, position and proportions. Image 2 is the approved LIGHT STEP 2 artwork, used ONLY as the reference for natural fine granular watercolor edge behavior. Generate this step's own distinct cloud; do not copy the second image's cloud silhouette.\nReturn ONLY a watercolor blurb. REMOVE all foreground people, drawing lines, boards, cards, laptops, icons, symbols, text, and objects. Those original pixels will be preserved separately. Landscape full-canvas ratio 957:532 (about1.799:1). Keep the whole cloud inside the full canvas with clearly pure white space on all four edges; no clipping, zooming or cropped lobes.\nUse exactly ONE muted dark slate-indigo pigment #353b5e, RGB(53,59,94), painted against a perfectly uniform PURE WHITE #ffffff key backdrop. The entire layer uses only this single pigment plus its dilution against the white backdrop. Pigment hue must stay constant. Conceptually each pixel is coverage*(53,59,94)+(1-coverage)*(255,255,255). Changes in tone come ONLY from pigment coverage, never from adding pale or blue paint.\nMake a gently textured watercolor stain with fine natural granular paper detail. The outer 20\u201330 pixels at the original957x532 scale must dissolve gradually and irregularly all the way into clean white through diminishing pigment coverage. Tiny porous detail should ride inside that soft fade. Use a wet watercolor diffusion edge, not a hard stamp. No coarse grunge, disconnected splatter dots, dark freckles, jagged pixel contours or dry-brush crust. Never pool darker pigment into a boundary stroke. No separate lighter pigment rim, no bright blue or lavender speckles, no halo, lighting, bevel, shadow or glow.\nThe white key is perfectly neutral and uniform: no paper texture outside the pigment, no grey rectangle, no checkerboard, no colored key or tint. All texture and softness are generated in the watercolor itself. Keep small pure-white margins around the entire cloud and retain the full canvas.\n",
+      "foreground": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/foreground-dark/home-step-3-dark-foreground.png",
+        "sha256": "729a396f162d88ad8652e391e3c3dea20bc0f57bc89c7950f25195005a8f871d"
+      },
+      "foreground_selection": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/foreground-dark/home-step-3-dark-foreground-mask.png",
+        "sha256": "d37ad02335b87b095a092f4dc67b98d1345fa9d014b9005ad13adc7a4b4441ab"
+      },
+      "finishing_script": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/finish-white-cloud.sh",
+        "sha256": "b79e0c09ad27446381cf7ef7e51cfab6341462e14ba86bb042c195082e9d00d0"
+      },
+      "finishing_parameters": {
+        "key": "#ffffff",
+        "pigment_red": 53,
+        "key_residual_tolerance": 0.1,
+        "cloud_padding_pixels": 2
+      },
+      "finishing_commands": [
+        "bash .tmp/illustration-sources/blurb-repair-2026-09-09/finish-white-cloud.sh .tmp/illustration-sources/blurb-repair-2026-09-09/step3-dark-white-key.png .tmp/illustration-sources/blurb-repair-2026-09-09/foreground-dark/home-step-3-dark-foreground.png .tmp/illustration-sources/blurb-repair-2026-09-09/step3-dark-white-candidate 2",
+        "cp .tmp/illustration-sources/blurb-repair-2026-09-09/step3-dark-white-candidate.webp core/static/core/illustrations/home-step-3-dark.webp"
+      ]
+    }
+  ],
+  "unchanged": [
+    {
+      "path": "core/static/core/illustrations/home-hero.webp",
+      "sha256": "d3d9e9f7958fbc0da62cfc752b16c517f79519187a020589220a5e789f23ad87"
+    },
+    {
+      "path": "core/static/core/illustrations/home-hero-dark.webp",
+      "sha256": "9e1abd1b18e802de4a385e623d0a56b65bbcf987f292d49bd3045f6a0b9b6535"
+    },
+    {
+      "path": "core/static/core/illustrations/home-step-2.webp",
+      "sha256": "e51e4610490150ae78d5e01262dcd822e308f58662bf9872cb0dbabd181fa4b8"
+    },
+    {
+      "path": "core/static/core/illustrations/course-learning.webp",
+      "sha256": "e69d680752baae0b0d2efc0c9edc5574586c6a26c3e715c4c04b58a356d17826"
+    },
+    {
+      "path": "core/static/core/illustrations/course-learning-dark.webp",
+      "sha256": "39dfe89caf30f76265fe7083f366d90a7fef42dc667dbad80b681196c51dd14d"
+    }
+  ],
+  "recipes": {
+    "finish-cloud.sh": "#!/usr/bin/env bash\nset -euo pipefail\nkey=\"$1\"\nforeground=\"$2\"\nwidth=\"$3\"\nheight=\"$4\"\noutput=\"$5\"\n# Recover only the generated magenta backdrop. No blur or synthetic watercolor mask.\n# The key contributes equal red/blue excess over green. Native lavender has no excess.\nconvert \"$key\" -alpha on \\\n  -channel A -fx 'max(0,min(1,1-max(0,min(r,b)-g)))' \\\n  -channel R -fx 'a>0.003 ? max(0,min(1,(r-(1-a))/a)) : 0' \\\n  -channel G -fx 'a>0.003 ? max(0,min(1,g/a)) : 0' \\\n  -channel B -fx 'a>0.003 ? max(0,min(1,(b-(1-a))/a)) : 0' \\\n  -channel A -fx 'max(0,min(1,(a-0.25)/0.75))' \\\n  +channel -resize \"${width}x${height}\" -gravity center -background none \\\n  -extent \"${width}x${height}\" \"${output}-cloud.png\"\n# Original foreground is already on its unchanged source canvas, copied at +0+0.\nconvert \"${output}-cloud.png\" \"$foreground\" -alpha on -channel RGBA \\\n  -fx 'u[1].a>0 ? u[1] : u[0]' +channel \\\n  -define webp:lossless=true \"${output}.webp\"\n",
+    "finish-white-cloud.sh": "#!/usr/bin/env bash\nset -euo pipefail\nkey=\"$1\"\nforeground=\"$2\"\noutput=\"$3\"\npadding=\"${4:-0}\"\ncloud_width=$((957 - 2 * padding))\ncloud_height=$((532 - 2 * padding))\n# A neutral white key is safe for a cloud-only source. Recover coverage from\n# the requested single dark pigment's red level (53/255), then unmix white.\nconvert \"$key\" -alpha on -channel A -fx 'max(0,min(1,(1-min(r,min(g,b)))/(1-53/255)))' \\\n  -channel RGB -fx 'a>0.003 ? max(0,min(1,(u-(1-a))/a)) : 0' \\\n  -channel A -fx 'max(0,min(1,(a-0.10)/0.90))' +channel \\\n  -background none -resize \"${cloud_width}x${cloud_height}\" -gravity center -extent 957x532 \"${output}-cloud.png\"\nconvert \"${output}-cloud.png\" \"$foreground\" -alpha on -channel RGBA \\\n  -fx 'u[1].a>0 ? u[1] : u[0]' +channel -define webp:lossless=true \"${output}.webp\"\n",
+    "foreground/extract-foreground.sh": "#!/usr/bin/env bash\nset -euo pipefail\n\n# Run from the repository root. This preserves original foreground pixels only.\n# All watercolor pixels in the final background must come from imagegen.\nforeground_output=.tmp/illustration-sources/blurb-repair-2026-09-09/foreground\nmkdir -p \"$foreground_output\"\nfor illustration in home-stuck home-step-3; do\n  source_image=\".tmp/illustration-sources/blurb-repair-2026-09-09/anchors/$illustration.webp\"\n  convert \"$source_image\" \\\n    -background white -alpha remove -alpha off \\\n    -fx 'max(r,max(g,b))<0.45?1:0' -colorspace Gray \\\n    -morphology Close Disk:1 \\\n    -write \"$foreground_output/$illustration-ink-mask.png\" \\\n    -bordercolor black -border 1 -fill white \\\n    -draw 'color 0,0 floodfill' -negate -shave 1x1 \\\n    \"$foreground_output/$illustration-holes-mask.png\"\n  convert \"$foreground_output/$illustration-ink-mask.png\" \\\n    \"$foreground_output/$illustration-holes-mask.png\" \\\n    -evaluate-sequence max -morphology Dilate Disk:1 \\\n    \"$foreground_output/$illustration-foreground-mask.png\"\n  convert \"$source_image\" \\\n    \\( \"$source_image\" -alpha extract \\\n      \"$foreground_output/$illustration-foreground-mask.png\" \\\n      -compose Multiply -composite \\) \\\n    -alpha off -compose CopyOpacity -composite \\\n    \"$foreground_output/$illustration-foreground.png\"\n  convert \"$foreground_output/$illustration-foreground.png\" \\\n    -background '#ff00ff' -alpha remove -alpha off \\\n    \"$foreground_output/$illustration-foreground-magenta.png\"\ndone\n",
+    "foreground-dark/extract-foreground-dark.sh": "#!/usr/bin/env bash\nset -euo pipefail\n\ndark_foreground_output=.tmp/illustration-sources/blurb-repair-2026-09-09/foreground-dark\ndark_anchor_input=.tmp/illustration-sources/blurb-repair-2026-09-09/anchors\nmkdir -p \"$dark_foreground_output\"\n\nfor illustration in home-stuck-dark home-step-2-dark home-step-3-dark course-learning-dark; do\n  ink_threshold=0.10\n  if [[ \"$illustration\" == course-learning-dark ]]; then ink_threshold=0.20; fi\n  source_image=\"$dark_anchor_input/$illustration.webp\"\n  convert \"$source_image\" \\\n    -fx \"(a>0 && (max(r,max(g,b))<$ink_threshold || (g>r*1.4 && g>=b*0.95 && g>0.12)))?1:0\" \\\n    -alpha off -colorspace Gray -morphology Close Disk:1 \\\n    -write \"$dark_foreground_output/$illustration-ink-mask.png\" \\\n    -bordercolor black -border 1 -fill white \\\n    -draw 'color 0,0 floodfill' -negate -shave 1x1 \\\n    \"$dark_foreground_output/$illustration-holes-mask.png\"\n  convert \"$dark_foreground_output/$illustration-ink-mask.png\" \\\n    \"$dark_foreground_output/$illustration-holes-mask.png\" \\\n    -evaluate-sequence max -morphology Dilate Disk:1 \\\n    \"$dark_foreground_output/$illustration-foreground-mask.png\"\n  if [[ \"$illustration\" == home-step-3-dark ]]; then\n    # Broad ROIs exclude damaged dark source-cloud pixels. Final foreground\n    # geometry remains selected exclusively from this target's own dark ink.\n    convert -size 957x532 xc:black -fill white \\\n      -draw 'rectangle 289,76 765,311 rectangle 50,172 473,482 rectangle 721,160 928,460 polygon 801,446 816,449 802,526 796,531 752,531 752,514 787,514 polygon 857,446 877,446 892,514 928,514 928,531 873,531' \\\n      -fill black -draw 'rectangle 52,439 56,443 rectangle 62,459 66,463 rectangle 0,529 956,531' \\\n      -threshold 50% \\\n      \"$dark_foreground_output/$illustration-semantic-roi.png\"\n    convert \"$dark_foreground_output/$illustration-foreground-mask.png\" \\\n      \"$dark_foreground_output/$illustration-semantic-roi.png\" \\\n      -compose Multiply -composite \\\n      \"$dark_foreground_output/$illustration-foreground-mask.png\"\n  fi\n  if [[ \"$illustration\" == home-step-3-dark || \"$illustration\" == course-learning-dark ]]; then\n    # These two anchors have detached source-cloud ink-colored debris. Their\n    # actual foregrounds are large connected shapes, with no detached props.\n    convert \"$dark_foreground_output/$illustration-foreground-mask.png\" \\\n      -threshold 50% -define connected-components:area-threshold=100 \\\n      -define connected-components:mean-color=true -connected-components 8 \\\n      -threshold 50% \"$dark_foreground_output/$illustration-foreground-mask.png\"\n  fi\n  convert \"$source_image\" \\\n    \\( \"$source_image\" -alpha extract \\\n      \"$dark_foreground_output/$illustration-foreground-mask.png\" \\\n      -compose Multiply -composite \\) \\\n    -alpha off -compose CopyOpacity -composite \\\n    \"$dark_foreground_output/$illustration-foreground.png\"\n  convert \"$dark_foreground_output/$illustration-foreground.png\" \\\n    -background '#ff00ff' -alpha remove -alpha off \\\n    \"$dark_foreground_output/$illustration-foreground-magenta.png\"\ndone\n"
+  },
+  "limitations": "Generation is not deterministic. Key removal estimates coverage. Foreground masks protect source drawing only; no watercolor alpha is borrowed across assets or blurred locally. Full cloud canvases are proportionally normalized with transparent padding; original foregrounds retain their exact canvas coordinates.",
+  "preparatory_sources": [
+    {
+      "raw": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/rejected-step1-cloud-clipped.png",
+        "sha256": "c8c859c7d48663ed3d047923a744d87fa413c515b5605204486cad84523cfba4"
+      },
+      "prompt": "Use case: precise-object-edit; isolated watercolor background layer for an existing illustration.\nImage 1 is the exact REGISTRATION AND SILHOUETTE ANCHOR for a 957x532 light Step 1 illustration. Image 2 is ONLY the edge texture reference.\nDeliver ONLY the pale lavender watercolor BLURB behind image 1 as its own layer. Remove ALL foreground ink, text, cards, person, clothes, laptop, and table from your output, filling their occupied area with the same existing lavender wash. They will be retained as the untouched original layer separately; do not draw any of them.\nKeep Image 1's own asymmetric broad cloud shape and exact canvas registration. The top cloud scallops are large and irregular, the left juts out at middle height, and the right rounds around the laptop. Do not use image 2's cloud silhouette. Preserve full 957x532 canvas ratio (output 1914x1064 or exact ratio), do not crop/trim/zoom. Only the background wash boundary may retreat by about 8 original pixels to ensure no paint touches the outer canvas.\nColor: pale periwinkle/lavender approximately #b6bffc across the center, matching Image 1. Natural fine watercolor granulation, quiet interior. At the boundary, replicate image 2's fine rough granular fading pigment, no coarse stair steps, no straight cuts.\nIMPORTANT OUTPUT: one perfectly uniform saturated magenta #ff00ff backdrop outside the lavender cloud, absent from the interior. No transparency simulation, NO checkerboard. Paint a translucent lavender wash physically over magenta: where the lavender pigment thins, the visible composite smoothly/granularly becomes saturated magenta. The last edge particles must mix lavender directly with magenta. There must be NO WHITE UNDERPAINTING, no pale white paper or cream fringe, no white intermediate outline, no shadow, halo, glow or opaque edge band. Key-colored magenta will be removed later to recover the translucent pigment edge. Full cloud visible with at least 8 original pixels clear magenta surrounding every side. Output only this single background layer, no diagram, label or annotation.",
+      "references": [
+        "anchors/home-stuck.webp",
+        "anchors/home-step-2.webp"
+      ]
+    },
+    {
+      "raw": {
+        "path": ".tmp/illustration-sources/blurb-repair-2026-09-09/step1-dark-white-clipped.png",
+        "sha256": "754a5efcf921f7b89492009d40f57cdf712eb9f6df12e0c6d1bf9fd8e59c310f"
+      },
+      "prompt": "Edit only the watercolor background BLURB of Image1, DARK STEP1. Image1 is exact composition and cloud-silhouette anchor. Image2 is ONLY the reference for natural fine granular watercolor edge.\nOutput ONLY the isolated dark cloud layer. Remove the entire foreground person, cards, lettering, icons, laptop, table and all ink from output, filling those areas with the same watercolor pigment. The original foreground is retained separately without redrawing.\nKeep the full landscape 957:532 canvas, cloud's own broad asymmetric outline and location, and at least 15 original pixels empty margin on every side. Entire cloud visible, no clipping.\nIMPORTANT BACKDROP: perfectly solid pure WHITE #ffffff outside the cloud, no transparency, no checkerboard, no gray paper texture or shadow. White is a removable color key because this output contains no foreground white objects.\nPaint a flat, restrained watercolor wash in ONE dark slate-indigo pigment #353b5e. The middle uses this pigment; the last 20-30 original pixels toward the irregular edge use the SAME pigment increasingly diluted on white, dissolving through tiny fine porous grains until they vanish. This creates a neutral transition to pure white. No dark ink contour, no pooled pigment at the edge, no separate colored rim, no added blue/purple/lavender colors, no lighting or glow. Granulation must be fine and delicate like Image2, not coarse crumpled paper, worms, pixels or stippled outline.\nOptical density must fall gradually near boundary instead of a solid stain ending suddenly. Keep internal variation subtle and even. Single pigment #353b5e plus white only, including edge. White background will be removed to recover clean alpha; do not create a halo or differently colored border.",
+      "references": [
+        "anchors/home-stuck-dark.webp",
+        "anchors/home-step-2.webp"
+      ]
+    }
+  ]
+}

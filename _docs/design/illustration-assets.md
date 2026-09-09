@@ -107,6 +107,32 @@ requested canvas so resizing is unnecessary.
 companion that was produced by inverting, tinting, or filtering a light bitmap is
 wrong and must be regenerated, not corrected.
 
+### Repairing a homepage cloud edge without redrawing the foreground
+
+An explicitly requested homepage edge repair may replace the defective cloud behind an
+approved drawing. Use that exact theme's original illustration as the registration
+anchor and `home-step-2.webp` as the granular edge reference. Generate a separate
+cloud for each composition; neither cloud pixels nor watercolor alpha may be
+borrowed from another illustration. Keep the hero pair and the light Step 2
+reference unchanged.
+
+Whole-image edits can move lettering, people or props. For this repair, imagegen
+may instead return only the anchored cloud layer. Preserve the original target's
+foreground pixels separately, including its ink, enclosed fills and antialiasing,
+and copy them back at the original canvas coordinates. A foreground selection
+mask protects existing drawing pixels; it must never manufacture the watercolor
+edge. Preserve original partial alpha as well as RGB. Do not resize or translate
+the foreground, trim the source canvas, or regenerate its text or icons.
+
+Prefer native alpha. For a generated chroma backdrop, remove only that backdrop
+and its contaminated fringe. Check the actual key color: nominal magenta output
+can vary and leave a faint rectangular plate after naive key removal. Neither
+`opaque=false` nor transparent corners alone proves a clean edge. Inspect all
+four borders and the complete boundary on the actual desktop and mobile surfaces,
+including enlarged views. Reject pooled dark contours, bright rims, key spill and
+clipping. Keep raw sources, prompts and finishing commands with the
+[edge-repair generation record](references/blurb-edge-repair.json).
+
 ImageMagick may encode the accepted drawing as lossless WebP, resize it without
 stretching, center it on a transparent canvas, or trim surplus transparent margins
 from an external source. It may also flatten throwaway edge-review previews.
@@ -197,7 +223,10 @@ filter or a recolour of the light bitmap.
 
 These decisions came from the illustration review and are part of the asset
 specification. They apply to the regenerated dark companions unless explicitly
-marked as a light-anchor constraint. The approved light files must not be edited.
+marked as a light-anchor constraint. The approved light files must not be edited
+as part of that dark-companion generation. The explicit cloud-edge repair above
+separately permits changes to light Step 1 and Step 3 backgrounds while preserving
+their foregrounds.
 
 - **Scope:** regenerate the hero and Steps 1–3 as four dark assets. Keep the
   approved light assets byte-for-byte unchanged and use them as the composition
