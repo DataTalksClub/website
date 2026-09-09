@@ -967,6 +967,43 @@ Rules for editing:
         border-bottom: 0;
       }
 
+      /* Site-wide tour stripe: the black closing band above the footer on
+         every shared-shell page. It reuses the homepage closing band's ink
+         surface and type scale, owned here (not per page) so all pages share
+         one shape. Pages that already end with their own closing band, and
+         the tour page itself, set `hide_tour_cta`. */
+      .tour-cta {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem 2rem;
+        justify-content: space-between;
+      }
+
+      .tour-cta > div {
+        flex: 1 1 26rem;
+      }
+
+      .tour-cta > .cta {
+        flex: none;
+      }
+
+      .tour-cta h2 {
+        color: #ffffff;
+        font-size: clamp(1.15rem, 2.4vw, 1.55rem);
+      }
+
+      .tour-cta p {
+        color: #d7d9e6;
+        font-size: 0.88rem;
+        margin-top: 0.5rem;
+      }
+
+      .tour-cta .cta-primary {
+        border-color: #ffffff;
+        box-shadow: none;
+      }
+
       /* Stacked by default; the action or kicker only moves onto the heading's own row
          once the row is wide enough to hold both without squeezing the heading. */
       .band-head {

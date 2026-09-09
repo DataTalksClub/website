@@ -1,0 +1,25 @@
+{% comment %}
+  Site-wide tour stripe: the black closing band above the footer. It renders
+  on every page that includes the shared shell foot, inviting visitors to
+  learn more about the community on the tour page.
+
+  A page that already ends with its own closing band (the homepage), and the
+  tour page itself, set `hide_tour_cta` to True. The flag is opt-out so new
+  pages get the stripe without touching every view.
+
+  The destination is a literal path, not a `{% url %}` tag: this footer also
+  renders under the compatibility urlconf (`course_management.urls`), which
+  carries no `tour` route, and a reversing tag would 500 there. The legal
+  links below hardcode for the same reason.
+{% endcomment %}
+{% if not hide_tour_cta %}
+  <section class="band band-ink" aria-labelledby="tour-cta-heading">
+    <div class="shell tour-cta">
+      <div>
+        <h2 id="tour-cta-heading">Want to learn more about our community?</h2>
+        <p>Take the tour — courses, events, Slack, and everything DataTalks.Club.</p>
+      </div>
+      <a class="cta cta-primary interactive-lift" href="/tour">Take the tour</a>
+    </div>
+  </section>
+{% endif %}

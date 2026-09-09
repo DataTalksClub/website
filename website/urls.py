@@ -42,6 +42,7 @@ urlpatterns = [
     ),
     path("", core_views.home, name="home"),
     path("sponsors", core_views.sponsors, name="sponsors"),
+    path("tour", core_views.tour, name="tour"),
     # The media kit is not a page of this site. Keeping a second copy here
     # meant it drifted: it advertised a course start month the database
     # contradicted, listed an edition that does not exist, and omitted a
