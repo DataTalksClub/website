@@ -857,7 +857,6 @@
               "datamailer.import_s3_prefix",
               "datamailer.import_s3_region",
               "datamailer.import_url_expires_seconds",
-              "datamailer.outbox_dispatch_immediately",
               "datamailer.strict",
               "datamailer.sync_on_user_create",
               "datamailer.timeout_seconds",
@@ -1000,7 +999,6 @@
               "datamailer.import_s3_prefix",
               "datamailer.import_s3_region",
               "datamailer.import_url_expires_seconds",
-              "datamailer.outbox_dispatch_immediately",
               "datamailer.strict",
               "datamailer.sync_on_user_create",
               "datamailer.timeout_seconds",
@@ -1094,8 +1092,8 @@
             "items": {
               "$ref": "#/components/schemas/OperationalSetting"
             },
-            "maxItems": 29,
-            "minItems": 29,
+            "maxItems": 28,
+            "minItems": 28,
             "type": "array"
           }
         },
@@ -1125,7 +1123,6 @@
                     "datamailer.import_s3_prefix",
                     "datamailer.import_s3_region",
                     "datamailer.import_url_expires_seconds",
-                    "datamailer.outbox_dispatch_immediately",
                     "datamailer.strict",
                     "datamailer.sync_on_user_create",
                     "datamailer.timeout_seconds",
@@ -1164,7 +1161,7 @@
               ],
               "type": "object"
             },
-            "maxItems": 29,
+            "maxItems": 28,
             "minItems": 1,
             "type": "array"
           }
@@ -1184,7 +1181,7 @@
             "items": {
               "$ref": "#/components/schemas/OperationalSettingResult"
             },
-            "maxItems": 29,
+            "maxItems": 28,
             "minItems": 1,
             "type": "array"
           }
