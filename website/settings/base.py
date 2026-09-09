@@ -133,10 +133,14 @@ INSTALLED_APPS = [
     "management_api.apps.ManagementAPIConfig",
     "api.apps.ApiConfig",
     "community_base.jobs",
+    "community_base.mail",
     "data.apps.DataConfig",
     "studio_courses.apps.StudioCoursesConfig",
     # community-base kernel (D0.1a). D1.1 installs the package jobs app: the
     # site's jobs app and django_q are gone and durable intents run on Relay.
+    # D1.2a installs the package mail app: nothing sends through it until the
+    # D1.2b call-site switch, but its callback ingress and studio routes are
+    # live and email_templates/ is its template source of truth.
     "community_base.kernel.apps.KernelConfig",
     "community_base.config",
     "community_base.api",
@@ -378,6 +382,10 @@ COMMUNITY_BASE = {
     # values come from the deployment environment and the run-due/sweep
     # schedules sync through manage.py sync_relay_schedules.
     "SITE_URL": CANONICAL_ORIGIN,
+    # D1.2a: email_templates/ in the repository is the source of truth for the
+    # DTC mail purposes; the ses_local renderer reads it and the deploy's
+    # import_mail_templates step mirrors it into the Relay catalog.
+    "MAIL_TEMPLATE_DIR": str(BASE_DIR / "email_templates"),
     "RELAY_BASE_URL": os.getenv("RELAY_BASE_URL", ""),
     "RELAY_API_KEY": os.getenv("RELAY_API_KEY", ""),
     "RELAY_WEBHOOK_SECRET": os.getenv("RELAY_WEBHOOK_SECRET", ""),

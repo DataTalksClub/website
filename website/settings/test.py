@@ -46,7 +46,13 @@ TEST_PROGRAMMATIC_STAFF_PASSWORD_AUTHENTICATION = True
 HISTORICAL_REGISTRATION_ALLOW_SYNTHETIC_PROFILE = True
 NOINDEX = True
 OBSERVABILITY_EVENT_BACKENDS = ["noop"]
-COMMUNITY_BASE = {**COMMUNITY_BASE, "JOBS_BACKEND": "sync"}  # noqa: F405
+COMMUNITY_BASE = {
+    **COMMUNITY_BASE,
+    "JOBS_BACKEND": "sync",
+    # The mail app is installed (D1.2a) but nothing in the suite sends mail;
+    # the package memory backend keeps an accidental send process-local.
+    "MAIL_BACKEND": "memory",
+}  # noqa: F405
 MIDDLEWARE = [
     middleware
     for middleware in MIDDLEWARE  # noqa: F405
