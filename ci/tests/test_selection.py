@@ -48,6 +48,7 @@ def test_every_reviewed_application_closure_is_exact(root: str, labels: tuple[st
 @pytest.mark.parametrize(
     ("changed_root", "importing_label"),
     [
+        ("jobs", "events"),
         ("management_api", "studio"),
         ("management_auth", "accounts"),
         ("review_import", "courses"),

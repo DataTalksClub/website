@@ -74,7 +74,7 @@
         {% if project.needs_review_assignment %}
           <form method="post"
                 action="{% url 'studio_courses_project_assign_reviews' course.slug project.slug %}"
-                onsubmit="return confirm('Assign peer reviews for {{ project.title }}?');">
+                data-confirm-message="Assign peer reviews for {{ project.title }}?">
             {% csrf_token %}
             <input type="hidden"
                    name="next"
@@ -85,7 +85,7 @@
         {% if project.needs_scoring %}
           <form method="post"
                 action="{% url 'studio_courses_project_score' course.slug project.slug %}"
-                onsubmit="return confirm('Score all submissions for {{ project.title }}?');">
+                data-confirm-message="Score all submissions for {{ project.title }}?">
             {% csrf_token %}
             <input type="hidden"
                    name="next"

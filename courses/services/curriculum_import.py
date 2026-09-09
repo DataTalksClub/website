@@ -32,7 +32,6 @@ from courses.models import (
     CurriculumFlowItem,
     CurriculumFormat,
     CurriculumSource,
-    DeliveryMode,
     Homework,
     HomeworkState,
     Module,
@@ -51,6 +50,7 @@ from courses.models.curriculum_import import (
     REPOSITORY_COMPONENT_PATTERN,
     SHA1_PATTERN,
     SHA256_PATTERN,
+    SOURCE_CONTENT_ID_PATTERN,
     SOURCE_STABLE_ID_PATTERN,
     SOURCE_VERSION_PATTERN,
     validate_source_path,
@@ -318,8 +318,17 @@ class _CurriculumImporter:
         return course, tuple(imported_cohorts), MappingProxyType(dict(self.counts))
 
     def _provenance(self, source: object, path: str, content_id: str) -> dict[str, object]:
+        if (
+            not isinstance(content_id, str)
+            or re.fullmatch(SOURCE_CONTENT_ID_PATTERN, content_id) is None
+        ):
+            raise CurriculumImportError(
+                "invalid_source_content_id",
+                source_path=path,
+                pointer="/content_id",
+            )
         return {
-            "source_content_id": UUID(content_id),
+            "source_content_id": content_id,
             "source_path": path,
             "source_commit_sha": self.commit_sha,
             "source_checksum": self.checksums.get(path, _checksum(source)),
@@ -349,7 +358,7 @@ class _CurriculumImporter:
         # manifest, keeps the fix alive across a manifest regeneration and covers
         # every future course whose repository name differs from its family slug.
         family_slug = canonical_family_slug(source.slug)
-        source_id = UUID(source.content_id)
+        source_id = source.content_id
         by_stable = Course.objects.filter(source_stable_id=self.command.source_stable_id).first()
         by_content = Course.objects.filter(source_content_id=source_id).first()
         if by_stable is not None and by_content is not None and by_stable.pk != by_content.pk:
@@ -449,7 +458,7 @@ class _CurriculumImporter:
     ) -> Cohort:
         if source.content_id is None or source.source_path is None:
             raise CurriculumImportError("explicit_cohort_source_identity_missing")
-        source_id = UUID(source.content_id)
+        source_id = source.content_id
         target_slug = self._cohort_slug(course, source)
         by_content = Cohort.objects.filter(course=course, source_content_id=source_id).first()
         by_identifier = Cohort.objects.filter(course=course, identifier=source.identifier).first()
@@ -533,9 +542,7 @@ class _CurriculumImporter:
             return int(source.identifier)
         if source.start_date is not None:
             return source.start_date.year
-        known = list(
-            Cohort.objects.filter(course=course).values_list("year", flat=True)
-        )
+        known = list(Cohort.objects.filter(course=course).values_list("year", flat=True))
         known.extend(
             int(candidate.identifier)
             for candidate in self.command.source.cohorts
@@ -600,21 +607,19 @@ class _CurriculumImporter:
         return shared
 
     def _import_shared_modules(self, shared_curriculum: SharedCurriculum) -> None:
-        incoming_ids: set[UUID] = set()
+        incoming_ids: set[str] = set()
         existing = SharedModule.objects.filter(
             curriculum=shared_curriculum, source_content_id__isnull=False
         )
         offset = (
-            existing.aggregate(maximum=Max("position"))["maximum"] or 0
-        ) + existing.count() + 1_000
+            (existing.aggregate(maximum=Max("position"))["maximum"] or 0) + existing.count() + 1_000
+        )
         # Stage old positions out of the way so a reshuffle or a retirement
         # cannot collide with an incoming module's position.
         existing.update(position=F("position") + offset)
         for position, module_source in enumerate(self.command.source.modules):
-            incoming_ids.add(UUID(module_source.content_id))
-            shared_module = self._upsert_shared_module(
-                shared_curriculum, module_source, position
-            )
+            incoming_ids.add(module_source.content_id)
+            shared_module = self._upsert_shared_module(shared_curriculum, module_source, position)
             self._upsert_shared_lessons(shared_module, module_source)
         # Source-scoped soft retirement: removed modules stay as inactive rows
         # for rollback/audit and never disappear under existing read state.
@@ -637,7 +642,7 @@ class _CurriculumImporter:
         source: ModuleSource,
         position: int,
     ) -> SharedModule:
-        source_id = UUID(source.content_id)
+        source_id = source.content_id
         shared_module, created = SharedModule.objects.update_or_create(
             curriculum=shared_curriculum,
             source_content_id=source_id,
@@ -647,9 +652,7 @@ class _CurriculumImporter:
                 "position": position,
                 "overview_markdown": source.overview_markdown or "",
                 "overview_rendered_html": (
-                    render_markdown(source.overview_markdown)
-                    if source.overview_markdown
-                    else ""
+                    render_markdown(source.overview_markdown) if source.overview_markdown else ""
                 ),
                 "published": True,
                 "retired_at": None,
@@ -660,14 +663,12 @@ class _CurriculumImporter:
             self.counts["shared_modules"] += 1
         return shared_module
 
-    def _upsert_shared_lessons(
-        self, shared_module: SharedModule, source: ModuleSource
-    ) -> None:
-        incoming_ids = {UUID(unit.content_id) for unit in source.units}
+    def _upsert_shared_lessons(self, shared_module: SharedModule, source: ModuleSource) -> None:
+        incoming_ids = {unit.content_id for unit in source.units}
         existing = SharedLesson.objects.filter(module=shared_module)
         offset = (
-            existing.aggregate(maximum=Max("position"))["maximum"] or 0
-        ) + existing.count() + 1_000
+            (existing.aggregate(maximum=Max("position"))["maximum"] or 0) + existing.count() + 1_000
+        )
         existing.update(position=F("position") + offset)
         for position, unit_source in enumerate(source.units):
             self._upsert_shared_lesson(shared_module, unit_source, position)
@@ -768,9 +769,7 @@ class _CurriculumImporter:
                     "storage_key": storage_key,
                     "content_type": _asset_content_type(filename),
                     "byte_size": len(raw),
-                    **self._provenance(
-                        unit_source, source_path, str(unit_source.content_id)
-                    ),
+                    **self._provenance(unit_source, source_path, str(unit_source.content_id)),
                 },
             )
             stored = default_storage.exists(storage_key)
@@ -785,7 +784,7 @@ class _CurriculumImporter:
         unit_source: UnitSource,
         position: int,
     ) -> SharedLesson:
-        source_id = UUID(unit_source.content_id)
+        source_id = unit_source.content_id
         module_dir = str(PurePosixPath(unit_source.source_path).parent)
         shared_lesson, _ = SharedLesson.objects.update_or_create(
             module=shared_module,
@@ -824,12 +823,8 @@ class _CurriculumImporter:
         homework_by_path = {
             homework.source_path: homework for homework in self.command.source.homeworks
         }
-        module_by_slug = {
-            module.slug: module for module in self.command.source.modules
-        }
-        incoming_module_ids = {
-            UUID(module.content_id) for module in self.command.source.modules
-        }
+        module_by_slug = {module.slug: module for module in self.command.source.modules}
+        incoming_module_ids = {module.content_id for module in self.command.source.modules}
         # Placements bound to modules this source no longer declares go first:
         # their positions and module binding would collide with the incoming
         # rows otherwise.  A self-paced cohort binds nothing, so it correctly
@@ -859,7 +854,7 @@ class _CurriculumImporter:
             homework = self._upsert_homework(cohort, homework_source)
             shared_module = SharedModule.objects.filter(
                 curriculum=shared_curriculum,
-                source_content_id=UUID(module_source.content_id),
+                source_content_id=module_source.content_id,
             ).first()
             if shared_module is None:
                 raise CurriculumImportError(
@@ -877,9 +872,7 @@ class _CurriculumImporter:
             _validate_model(placement)
             kept_placements.add(placement.pk)
             self.counts["placements"] += 1
-        CohortSharedModule.objects.filter(cohort=cohort).exclude(
-            pk__in=kept_placements
-        ).delete()
+        CohortSharedModule.objects.filter(cohort=cohort).exclude(pk__in=kept_placements).delete()
 
     def _import_archive_cohort(self, cohort: Cohort, source: CohortSource) -> None:
         """An archive cohort never creates shared rows or placements.
@@ -922,25 +915,25 @@ class _CurriculumImporter:
             project_by_position[position] = project
 
         module_items = [item for item in source.flow if isinstance(item, ModuleFlowSource)]
-        incoming_module_ids = {UUID(item.module.content_id) for item in module_items}
-        incoming_homework_ids = {UUID(item.homework.content_id) for item in module_items}
+        incoming_module_ids = {item.module.content_id for item in module_items}
+        incoming_homework_ids = {item.homework.content_id for item in module_items}
         self._validate_removals(cohort, incoming_module_ids, incoming_homework_ids)
         CurriculumFlowItem.objects.filter(cohort=cohort).delete()
         self._stage_positions(Module, cohort=cohort)
 
-        module_by_source_id: dict[UUID, Module] = {}
+        module_by_source_id: dict[str, Module] = {}
         for module_position, item in enumerate(module_items):
             homework = self._upsert_homework(cohort, item.homework)
             module = self._upsert_module(cohort, item.module, homework, module_position)
             self._upsert_units(module, item.module)
-            module_by_source_id[UUID(item.module.content_id)] = module
+            module_by_source_id[item.module.content_id] = module
 
         if not self.command.preserve_existing_records:
             self._delete_stale_source_rows(cohort, incoming_module_ids, incoming_homework_ids)
 
         for flow_position, item in enumerate(source.flow):
             if isinstance(item, ModuleFlowSource):
-                module = module_by_source_id[UUID(item.module.content_id)]
+                module = module_by_source_id[item.module.content_id]
                 CurriculumFlowItem.objects.create(
                     cohort=cohort,
                     position=flow_position,
@@ -962,7 +955,7 @@ class _CurriculumImporter:
         queryset.update(position=F("position") + maximum + queryset.count() + 1_000)
 
     def _upsert_homework(self, cohort: Cohort, source: HomeworkSource) -> Homework:
-        source_id = UUID(source.content_id)
+        source_id = source.content_id
         homework = Homework.objects.filter(course=cohort, source_content_id=source_id).first()
         slug_match = Homework.objects.filter(course=cohort, slug=source.slug).first()
         if slug_match is not None and slug_match.source_content_id not in {None, source_id}:
@@ -1052,7 +1045,7 @@ class _CurriculumImporter:
         return homework
 
     def _upsert_questions(self, homework: Homework, source: HomeworkSource) -> None:
-        incoming_ids = {UUID(question.content_id) for question in source.questions}
+        incoming_ids = {question.content_id for question in source.questions}
         stale = Question.objects.filter(
             homework=homework,
             source_content_id__isnull=False,
@@ -1073,7 +1066,7 @@ class _CurriculumImporter:
         source_path: str,
         source: HomeworkQuestionSource,
     ) -> Question:
-        source_id = UUID(source.content_id)
+        source_id = source.content_id
         question = Question.objects.filter(homework=homework, source_content_id=source_id).first()
         stable_match = Question.objects.filter(
             homework=homework, source_question_id=source.id
@@ -1136,7 +1129,7 @@ class _CurriculumImporter:
         homework: Homework,
         position: int,
     ) -> Module:
-        source_id = UUID(source.content_id)
+        source_id = source.content_id
         module = Module.objects.filter(cohort=cohort, source_content_id=source_id).first()
         slug_match = Module.objects.filter(cohort=cohort, slug=source.slug).first()
         if module is None:
@@ -1168,7 +1161,7 @@ class _CurriculumImporter:
         return module
 
     def _upsert_units(self, module: Module, source: ModuleSource) -> None:
-        incoming_ids = {UUID(unit.content_id) for unit in source.units}
+        incoming_ids = {unit.content_id for unit in source.units}
         if not self.command.preserve_existing_records:
             Unit.objects.filter(module=module, source_content_id__isnull=False).exclude(
                 source_content_id__in=incoming_ids
@@ -1179,7 +1172,7 @@ class _CurriculumImporter:
             self.counts["units"] += 1
 
     def _upsert_unit(self, module: Module, source: UnitSource, position: int) -> Unit:
-        source_id = UUID(source.content_id)
+        source_id = source.content_id
         unit = Unit.objects.filter(module=module, source_content_id=source_id).first()
         slug_match = Unit.objects.filter(module=module, slug=source.slug).first()
         if unit is None:
@@ -1206,8 +1199,7 @@ class _CurriculumImporter:
         # read these columns can only lose them.
         unit.video_url = source.metadata.video_url or ""
         unit.code_sources = [
-            {"label": code.label, "source_path": code.source_path}
-            for code in source.metadata.code
+            {"label": code.label, "source_path": code.source_path} for code in source.metadata.code
         ]
         for field, value in self._provenance(source, source.source_path, source.content_id).items():
             setattr(unit, field, value)
@@ -1218,8 +1210,8 @@ class _CurriculumImporter:
     @staticmethod
     def _validate_removals(
         cohort: Cohort,
-        incoming_module_ids: set[UUID],
-        incoming_homework_ids: set[UUID],
+        incoming_module_ids: set[str],
+        incoming_homework_ids: set[str],
     ) -> None:
         stale_homeworks = Homework.objects.filter(
             course=cohort,
@@ -1242,8 +1234,8 @@ class _CurriculumImporter:
     @staticmethod
     def _delete_stale_source_rows(
         cohort: Cohort,
-        incoming_module_ids: set[UUID],
-        incoming_homework_ids: set[UUID],
+        incoming_module_ids: set[str],
+        incoming_homework_ids: set[str],
     ) -> None:
         Module.objects.filter(cohort=cohort, source_content_id__isnull=False).exclude(
             source_content_id__in=incoming_module_ids
@@ -1307,7 +1299,7 @@ def _result_for_replay(
     if course is None:
         raise CurriculumImportError("idempotent_projection_missing")
     content_ids = [
-        UUID(source.content_id)
+        source.content_id
         for source in command.source.cohorts
         if not source.is_implicit_legacy and source.content_id is not None
     ]

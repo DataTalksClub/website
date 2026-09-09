@@ -19,7 +19,7 @@ Context:
   </summary>
   <div class="admin-submenu-panel">
     {% for option in extension_options %}
-      <form method="post" action="{{ extend_url }}" onsubmit="return confirm('Extend {{ deadline_label }} for {{ title }} by {{ option.label }}?');">
+      <form method="post" action="{{ extend_url }}" data-confirm-message="Extend {{ deadline_label }} for {{ title }} by {{ option.label }}?">
         {% csrf_token %}
         <input type="hidden" name="days" value="{{ option.days }}">
         <button type="submit" class="admin-menu-item">

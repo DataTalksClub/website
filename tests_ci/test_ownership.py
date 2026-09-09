@@ -120,6 +120,7 @@ def test_graph_is_valid_deterministic_and_preserves_reviewed_closures() -> None:
             "studio_courses",
         ),
         "data": ("api", "courses", "data", "studio_courses"),
+        "jobs": ("api", "content_sync", "events", "jobs"),
         "management_api": ("api", "management_api", "studio"),
         "management_auth": (
             "accounts",

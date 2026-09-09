@@ -1,4 +1,5 @@
 import math
+import re
 import statistics
 from enum import Enum
 
@@ -390,6 +391,25 @@ class PeerReview(models.Model):
         return PEER_REVIEW_STATE_LABELS.get(self.state, self.state)
 
 
+class InvalidCriteriaAnswerError(Exception):
+    """A stored response cannot be scored against its criterion's options.
+
+    Raised instead of letting malformed stored values crash scoring with a
+    generic ``ValueError``/``IndexError``; the scoring run must fail with a
+    diagnostic keyed by review and criterion rather than declare success.
+    """
+
+    def __init__(self, response, reason: str):
+        self.response_id = response.pk
+        self.review_id = response.review_id
+        self.criteria_id = response.criteria_id
+        super().__init__(
+            f"Criteria response {response.pk} for review "
+            f"{response.review_id} and criterion {response.criteria_id} "
+            f"cannot be scored: {reason}"
+        )
+
+
 class CriteriaResponse(models.Model):
     review = models.ForeignKey(
         PeerReview,
@@ -401,23 +421,45 @@ class CriteriaResponse(models.Model):
     )
     answer = models.CharField(max_length=255, blank=True, null=True)
 
-    def get_scores(self):
-        criteria = self.criteria
+    STORED_INDEX_PATTERN = re.compile(r"[0-9]+")
+
+    def parse_answer_indexes(self):
+        """Return the stored 1-based option indexes, refusing invalid data.
+
+        An empty answer means "not answered" and scores zero. Anything else
+        must be a comma-separated list of indexes that address this
+        criterion's options; unreadable or out-of-range stored values raise
+        :class:`InvalidCriteriaAnswerError` so scoring fails loudly instead
+        of crashing or misreading the recorded choice.
+        """
 
         if not self.answer:
-            return [0]
+            return []
 
-        answers = self.answer.split(",")
-        answer_indices = []
-        for answer in answers:
-            answer_index = int(answer) - 1
-            answer_indices.append(answer_index)
+        indexes = []
+        for token in self.answer.split(","):
+            if not self.STORED_INDEX_PATTERN.fullmatch(token):
+                raise InvalidCriteriaAnswerError(
+                    self, f"invalid choice {token!r}"
+                )
+            index = int(token)
+            if not 1 <= index <= len(self.criteria.options):
+                raise InvalidCriteriaAnswerError(
+                    self,
+                    f"choice {index} is outside the criterion's options",
+                )
+            indexes.append(index)
+        return indexes
 
+    def get_scores(self):
         scores = []
-        for answer_index in answer_indices:
-            option = criteria.options[answer_index]
+        for answer_index in self.parse_answer_indexes():
+            option = self.criteria.options[answer_index - 1]
             score = option["score"]
             scores.append(score)
+
+        if not scores:
+            return [0]
 
         return scores
 

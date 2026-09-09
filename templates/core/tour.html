@@ -1,0 +1,153 @@
+{% extends "core/content_page.html" %}
+
+{% block document_title %}Take the tour — DataTalks.Club{% endblock %}
+
+{% block metadata %}
+  {{ block.super }}
+  <meta name="description" content="Take a tour of DataTalks.Club: free courses, weekly events, member stories, and the community around them.">
+{% endblock %}
+
+{% block page_styles %}
+  .tour-section + .tour-section {
+    border-top: 2px solid color-mix(in srgb, var(--line) 55%, transparent);
+    margin-top: clamp(2.5rem, 7vw, 5rem);
+    padding-top: clamp(2.5rem, 7vw, 5rem);
+  }
+  .tour-section-heading { max-width: 46rem; margin-bottom: 1.5rem; }
+  .tour-section-heading h2 { font-size: clamp(1.55rem, 4vw, 2.35rem); margin: 0 0 0.65rem; }
+  .tour-section-heading p { color: var(--muted); margin: 0; }
+  .tour-grid { display: grid; gap: 1.25rem; }
+  @media (min-width: 44rem) {
+    .tour-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (min-width: 70rem) {
+    .tour-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  .tour-card h3 { font-size: 1.15rem; margin: 0; }
+  .tour-card .tour-cohort { color: var(--muted); margin: 0; }
+  .tour-card .tour-counts { color: var(--muted); margin: 0; }
+  .tour-event time { color: var(--indigo); font-family: var(--font-mono); font-size: 0.85rem; }
+  .tour-event h3 { font-size: 1.1rem; margin: 0.25rem 0 0; }
+  .tour-quote { font-size: 1.05rem; margin: 0; }
+  .tour-person { color: var(--muted); margin: 0; }
+  .tour-sponsors { display: flex; flex-wrap: wrap; gap: 0.55rem; list-style: none; margin: 0; padding: 0; }
+  .tour-sponsors li {
+    background: color-mix(in srgb, var(--paper) 75%, transparent);
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    font-weight: 700;
+    padding: 0.5rem 0.85rem;
+  }
+  .tour-actions { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem; }
+{% endblock %}
+
+{% block page_header %}
+  <h1>Take the tour</h1>
+  <p>DataTalks.Club is a free learning community: practical courses with homework and peer review, weekly events, and members building in public together. Here is everything in one page.</p>
+{% endblock %}
+
+{% block page_content %}
+  {% if catalog_courses %}
+    <section class="tour-section" aria-labelledby="tour-courses-heading">
+      <div class="tour-section-heading">
+        <h2 id="tour-courses-heading">Learn by building</h2>
+        <p>Free cohorts with homework, projects, and a certificate of completion.</p>
+      </div>
+      <div class="tour-grid tour-grid-3">
+        {% for course in catalog_courses %}
+          <article class="card tour-card stretched-card-link">
+            <h3>{{ course.title }}</h3>
+            <p class="tour-cohort">{{ course.cohort_label }}</p>
+            <p class="tour-counts">
+              {% if course.module_count %}{{ course.module_count }} module{{ course.module_count|pluralize }} · {% endif %}
+              {% if course.homework_count %}{{ course.homework_count }} homework assignment{{ course.homework_count|pluralize }} · {% endif %}
+              {% if course.project_count %}{{ course.project_count }} project{{ course.project_count|pluralize }}{% endif %}
+            </p>
+            <a class="band-link course-link" href="{{ course.public_path }}">View course</a>
+          </article>
+        {% endfor %}
+      </div>
+      <p class="band-more">
+        <a class="band-link" href="{% url 'course_list' %}">all courses →</a>
+      </p>
+    </section>
+  {% endif %}
+
+  {% if upcoming_events %}
+    <section class="tour-section" aria-labelledby="tour-events-heading">
+      <div class="tour-section-heading">
+        <h2 id="tour-events-heading">Meet every week</h2>
+        <p>Live events with practitioners — join, ask, and learn what the community is working on.</p>
+      </div>
+      <div class="tour-grid tour-grid-3">
+        {% for event in upcoming_events %}
+          <article class="card tour-event">
+            <time datetime="{{ event.starts_at }}">{{ event.home_time }}</time>
+            <h3>
+              <a href="{{ event.public_path }}">{{ event.title }}</a>
+            </h3>
+          </article>
+        {% endfor %}
+      </div>
+      <p class="band-more">
+        <a class="band-link" href="{% url 'events' %}">see all events →</a>
+      </p>
+    </section>
+  {% endif %}
+
+  <section class="tour-section" aria-labelledby="tour-community-heading">
+    <div class="tour-section-heading">
+      <h2 id="tour-community-heading">Build in public, together</h2>
+      <p>One free account for homework, leaderboards, and events — and the Slack whenever you want it.</p>
+    </div>
+    <div class="tour-actions">
+      <a class="cta cta-primary interactive-lift" href="{% url 'account_signup' %}">Create your free account</a>
+      <a class="cta cta-secondary interactive-lift" href="{% url 'slack' %}">Join the Slack</a>
+    </div>
+  </section>
+
+  {% if member_stories %}
+    <section class="tour-section" aria-labelledby="tour-stories-heading">
+      <div class="tour-section-heading">
+        <h2 id="tour-stories-heading">What members say</h2>
+      </div>
+      <div class="tour-grid">
+        {% for story in member_stories %}
+          <figure class="card">
+            <blockquote class="tour-quote">“{{ story.quote }}”</blockquote>
+            <figcaption class="tour-person">
+              {% if story.source_url %}
+                <a href="{{ story.source_url }}" target="_blank" rel="noopener noreferrer">
+                  {{ story.name }}<span class="sr-only"> (opens in a new tab)</span>
+                </a>
+              {% else %}
+                {{ story.name }}
+              {% endif %}
+            </figcaption>
+          </figure>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {% if sponsors %}
+    <section class="tour-section" aria-labelledby="tour-sponsors-heading">
+      <div class="tour-section-heading">
+        <h2 id="tour-sponsors-heading">Kept free by sponsors</h2>
+        <p>Organizations that help keep practical learning free and open.</p>
+      </div>
+      <ul class="tour-sponsors">
+        {% for sponsor in sponsors %}
+          <li>
+            <a href="{{ sponsor.url }}" target="_blank" rel="sponsored noopener noreferrer">
+              {{ sponsor.name }}<span class="sr-only"> (opens in a new tab)</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+      <p class="band-more">
+        <a class="band-link" href="{% url 'sponsors' %}">meet our sponsors →</a>
+      </p>
+    </section>
+  {% endif %}
+{% endblock %}

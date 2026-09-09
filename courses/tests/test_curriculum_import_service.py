@@ -64,9 +64,7 @@ def fixture_source(*, commit_sha: str = FIRST_COMMIT) -> CourseRepositorySource:
     return parse_course_repository(snapshot, commit_sha=commit_sha)
 
 
-def source_without_site_description(
-    *, commit_sha: str = FIRST_COMMIT
-) -> CourseRepositorySource:
+def source_without_site_description(*, commit_sha: str = FIRST_COMMIT) -> CourseRepositorySource:
     """Parse the fixture repository as if it published no ``SITE.md``."""
 
     snapshot = {
@@ -145,7 +143,6 @@ class CurriculumImportServiceTests(TestCase):
         project.refresh_from_db()
         return result, course, cohort, project
 
-
     def test_adopts_the_course_description_the_repository_publishes_in_site_md(self):
         _, course, _, _ = self.import_fixture_with_project()
 
@@ -178,9 +175,7 @@ class CurriculumImportServiceTests(TestCase):
         self.assertFalse(result.replayed)
         self.assertEqual(result.course.slug, "llm-zoomcamp")
         self.assertEqual(result.course.source_stable_id, "llm-zoomcamp")
-        self.assertEqual(
-            result.course.source_content_id, UUID("11111111-1111-4111-8111-111111111111")
-        )
+        self.assertEqual(result.course.source_content_id, "11111111-1111-4111-8111-111111111111")
         cohort = Cohort.objects.get(course=result.course)
         self.assertEqual(cohort.identifier, "2025")
         self.assertEqual(cohort.curriculum_format, CurriculumFormat.LEGACY)
@@ -232,7 +227,7 @@ class CurriculumImportServiceTests(TestCase):
         self.assertEqual(cohort.curriculum_format, CurriculumFormat.MODULES)
         module = Module.objects.get(cohort=cohort)
         self.assertEqual(module.terminal_homework.slug, "hw1")
-        self.assertEqual(module.source_content_id, UUID("21111111-1111-4111-8111-111111111111"))
+        self.assertEqual(module.source_content_id, "21111111-1111-4111-8111-111111111111")
         units = list(Unit.objects.filter(module=module))
         self.assertEqual([unit.slug for unit in units], ["01-intro", "02-environment"])
         self.assertIn("The first lesson in the Agentic RAG", units[0].content_markdown)
