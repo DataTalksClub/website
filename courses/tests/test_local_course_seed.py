@@ -157,7 +157,7 @@ class LocalCourseSeedTests(TestCase):
         for entry in course_catalog():
             with self.subTest(course=entry.slug):
                 family_slug, year = cohort_family_identity(entry.slug)
-                self.assertEqual(entry.public_path, f"/courses/{family_slug}/{year}")
+                self.assertEqual(entry.public_path, f"/courses/{family_slug}/cohorts/{year}")
                 course = Cohort.objects.get(slug=entry.slug)
                 self.assertEqual(
                     Homework.objects.filter(course=course).count(),

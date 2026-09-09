@@ -26,8 +26,16 @@ PROD_ROOT = Path(scripts.prod.__file__).resolve().parent
 
 
 def _entry_point_names() -> list[str]:
+    """The sync_/import_ modules the naming convention governs.
+
+    Shared library modules (``reviewed_release.py`` and friends) are imported
+    by entry points, never run as one, so they carry no SYNC_MODEL.
+    """
+
     return sorted(
-        module.name for module in pkgutil.iter_modules([str(PROD_ROOT)]) if not module.ispkg
+        module.name
+        for module in pkgutil.iter_modules([str(PROD_ROOT)])
+        if not module.ispkg and module.name.startswith(("import_", "sync_"))
     )
 
 
