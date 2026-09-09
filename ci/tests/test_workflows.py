@@ -102,7 +102,10 @@ def test_issue_205_bounds_the_push_and_scheduled_long_running_jobs() -> None:
         "selector": "10",
         "quality": "15",
         "django": "30",
-        "playwright": "45",
+        # 53399ea8: the same 60-minute bound CI uses -- every scheduled run
+        # since 34188009197 died at ~46m at the old 45m bound with tests
+        # still passing.
+        "playwright": "60",
     }
 
 
