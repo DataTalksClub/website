@@ -45,10 +45,30 @@ def _table_exists(schema_editor, table: str) -> bool:
     )
 
 
+def _column_lists(schema_editor, target: str) -> tuple[str, str]:
+    """Insert/select column lists, adding the donor-only generation column.
+
+    The opt-out generation (D1.2b) postdates the copied columns; a row
+    restored from the package starts at the model's initial generation.
+    """
+
+    columns = {
+        column.name
+        for column in schema_editor.connection.introspection.get_table_description(
+            schema_editor.connection.cursor(),
+            target,
+        )
+    }
+    if "generation" in columns:
+        return f"{COLUMNS}, generation", f"{COLUMNS}, 1"
+    return COLUMNS, COLUMNS
+
+
 def _copy_batches(schema_editor, source: str, target: str) -> int:
+    insert_columns, select_columns = _column_lists(schema_editor, target)
     insert = (
-        f"INSERT INTO {target} ({COLUMNS}) "
-        f"SELECT {COLUMNS} FROM {source} "
+        f"INSERT INTO {target} ({insert_columns}) "
+        f"SELECT {select_columns} FROM {source} "
         f"WHERE id NOT IN (SELECT id FROM {target}) LIMIT {BATCH_SIZE}"
     )
     copied = 0
