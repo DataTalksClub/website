@@ -50,11 +50,19 @@ jobs:
     timeout-minutes: 100
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
       - name: Require a green CI verdict for this exact source
         env:
           GH_TOKEN: ${{ github.token }}
+        # The verdict module is stdlib-only, but it runs through the locked
+        # environment like every other Python entry point in this repository
+        # (REL-19): no release tooling on the runner's unpinned interpreter.
         run: >-
-          python3 -m deploy.ci_verdict require
+          uv run --frozen python -m deploy.ci_verdict require
           --workflow ci.yml
           --repository "$GITHUB_REPOSITORY"
           --sha "$GITHUB_SHA"
@@ -130,14 +138,23 @@ jobs:
       ECS_CLUSTER_NAME: ${{ vars.ECS_CLUSTER_NAME }}
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::387546586013:role/website-dev-github-deployer
           aws-region: eu-west-1
           role-session-name: website-dev-deployer-${{ github.run_id }}
       - name: Deploy the exact published release
+        # `uv run` puts the locked project environment first on PATH, so every
+        # python3 call inside deploy_website.sh (REL-02's receipt capture and
+        # bounded recovery, the task-definition promotion) resolves to the
+        # pinned interpreter rather than the runner's (REL-19).
         run: >-
-          bash deploy/deploy_dev.sh
+          uv run --frozen bash deploy/deploy_dev.sh
           "${{ needs.publish.outputs.image }}"
           "${{ needs.publish.outputs.version }}"
           "${{ needs.publish.outputs.source_sha }}"

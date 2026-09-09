@@ -71,7 +71,9 @@ def test_dev_publish_depends_on_the_ci_verdict_gate() -> None:
     assert dev["permissions"].get("actions") == "read"
 
     script = runs(verify)
-    assert "python3 -m deploy.ci_verdict require" in script
+    # REL-19: the gate runs through the locked environment, not the runner's
+    # unpinned python3.
+    assert "uv run --frozen python -m deploy.ci_verdict require" in script
     assert "--workflow ci.yml" in script
     assert '--repository "$GITHUB_REPOSITORY"' in script
     # The authorized source is this run's checkout SHA -- the same value the

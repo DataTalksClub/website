@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 # Deploy one immutable image to the reviewed dev or production website service.
+#
+# The python3 calls below are deliberately bare of any interpreter pin HERE:
+# both deploying workflows start this script through `uv run --frozen`, whose
+# locked project environment is first on PATH, so python3 resolves to the
+# pinned interpreter (REL-19). ci/tests/test_deploy_release_verification.py
+# pins the same seam by symlinking python3 to the test interpreter.
 
 set -euo pipefail
 

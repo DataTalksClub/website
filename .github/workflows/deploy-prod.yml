@@ -33,6 +33,11 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
       - id: dev-run
         name: Select the latest successful dev deployment from main
         run: |
@@ -77,8 +82,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_SOURCE_SHA: ${{ steps.dev-run.outputs.source_sha }}
+        # The verdict module is stdlib-only, but it runs through the locked
+        # environment like every other Python entry point in this repository
+        # (REL-19): no release tooling on the runner's unpinned interpreter.
         run: >-
-          python3 -m deploy.ci_verdict require
+          uv run --frozen python -m deploy.ci_verdict require
           --workflow ci.yml
           --repository "$GITHUB_REPOSITORY"
           --sha "$EXPECTED_SOURCE_SHA"
@@ -90,7 +98,12 @@ jobs:
           aws-region: eu-west-1
           role-session-name: website-production-deployer-${{ github.run_id }}
       - name: Promote the dev-proven release to production
-        run: bash deploy/deploy_prod.sh .tmp/promotion/dev-release.json
+        # `uv run` puts the locked project environment first on PATH, so every
+        # python3 call inside deploy_website.sh (REL-02's receipt capture and
+        # bounded recovery, the task-definition promotion) resolves to the
+        # pinned interpreter rather than the runner's (REL-19).
+        run: >-
+          uv run --frozen bash deploy/deploy_prod.sh .tmp/promotion/dev-release.json
       - name: Upload the redacted deploy recovery receipts
         # REL-02, same contract as the dev workflow: durable, redacted
         # pre-mutation service state plus the recovery outcome on failure.
