@@ -1,5 +1,18 @@
 # Production deployment bootstrap
 
+> **ARCHIVED EVIDENCE — NOT A CURRENT PROCEDURE (REL-19).** This is the
+> one-time bootstrap that stood the production pipeline up in September 2026;
+> it describes GitHub and AWS state as measured on 2026-09-03 and procedures
+> that have since been executed or superseded. It cites `deploy.cli promote`
+> and a `ci.yml`-only deploying workflow, neither of which is the supported
+> path today. The supported dev-then-production workflow, its gates, recovery
+> receipts and command inventory live in
+> [`release-deployments.md`](release-deployments.md). Keep this document for
+> interpreting how the current stack and its identifiers were created — its
+> Terraform steps, OIDC-claim verification and failure catalogue (§5) remain
+> the record of that bootstrap and of why the trust boundaries look the way
+> they do.
+
 Status: procedure, ready to execute once its three prerequisites in §3 are closed
 Date: 2026-09-03
 Scope: turning `DataTalksClub/website`'s release pipeline from "cannot deploy" into "deploys on

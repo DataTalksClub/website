@@ -73,7 +73,7 @@ in these bounded categories:
 | Category | Paths | Reason |
 | --- | --- | --- |
 | Deployed bootstrap and release | `core/bootstrap.py`, `website/settings/base.py`, `Makefile`, `deploy/`, release workflow evidence, and their focused tests | Fail-closed RDS configuration, task-secret wiring, migration/readiness/smoke, and rollback evidence |
-| Infrastructure specification and operations | `_docs/specs/08-aws-development-terraform.md`, deployed sections of the architecture/specs, and `_docs/runbooks/development-release.md` | The deployed database remains private RDS PostgreSQL |
+| Infrastructure specification and operations | `_docs/specs/08-aws-development-terraform.md`, deployed sections of the architecture/specs, and `_docs/runbooks/development-release.md` (archived sandbox-era evidence; the current release path is `_docs/runbooks/release-deployments.md`) | The deployed database remains private RDS PostgreSQL |
 | Runtime dependency | `pyproject.toml` and `uv.lock` | `psycopg` is required by deployed Django processes |
 | Redaction and compatibility fixtures | `core/redaction.py`, compatibility tests, bootstrap/settings tests, and deployment tests | Prove database URLs are rejected or redacted without exposing credentials |
 | Preserved CMP or migration tooling | `course_management/settings.py`, the production importers under `scripts/prod/`, and adoption provenance records | Byte-preserved historical code, or a migration path that reads a SQLite export in place; no ordinary Make/CI entry point uses it. `scripts/load_rds_export.py` was retired here: its `main()` was disabled, but its copy plan skipped only `sqlite_sequence` and `django_migrations`, so re-enabling it would have copied live sessions and OAuth rows out of a production export |

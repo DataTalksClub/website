@@ -1,5 +1,16 @@
 # Development immutable release runbook
 
+> **ARCHIVED EVIDENCE — NO EXECUTABLE CURRENT PROCEDURE (REL-19).** This is
+> the sandbox-era release runbook: the deployment it was executed against
+> (`web.dtcdev.click`, the `website-sandbox` stack, account `817685572750`)
+> was destroyed on 2026-09-02, and the `website-sandbox` deployment target is
+> retired — it can be read for historical evidence but can never be selected
+> again. The Gate-B capture/simulator procedures and the sandbox release
+> mechanics below are the recorded evidence that was verified against that
+> stack; they are not runnable today and must not be adapted in place to
+> another environment. The supported release path, its single controller and
+> its command inventory live in [`release-deployments.md`](release-deployments.md).
+
 This runbook covers application release control for a development deployment. Issue #69
 defines and tests the mechanism. Issue #70 owns the first authorized Terraform apply, secret
 population, image publication, ECS mutation, and live rollback evidence.
