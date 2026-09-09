@@ -74,12 +74,12 @@ def send_registration_confirmation_mail(registration):
     ``email_course_updates`` preference category.
     """
 
+    from course_management.datamailer.payloads.registration_common import (
+        registration_email,
+    )
     from course_management.datamailer.payloads.registration_confirmations import (
         registration_confirmation_course_context,
         registration_confirmation_urls,
-    )
-    from course_management.datamailer.payloads.registration_common import (
-        registration_email,
     )
 
     email = registration_email(registration)

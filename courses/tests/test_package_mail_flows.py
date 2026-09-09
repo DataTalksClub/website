@@ -1,6 +1,7 @@
-from community_base.mail.service import MailError
-from community_base.mail.service import MailConflict
+from typing import Any
+
 from community_base.mail.models import EmailDelivery
+from community_base.mail.service import MailConflict, MailError
 from django.test import TestCase, override_settings
 from django.utils.dateparse import parse_date
 
@@ -8,7 +9,6 @@ from accounts.models import CustomUser
 from course_management.package_mail import (
     mail_idempotency_key,
     send_certificate_ready_mail,
-    send_enrollment_confirmation_mail,
     send_package_mail,
     send_registration_confirmation_mail,
 )
@@ -19,7 +19,6 @@ from courses.models import (
     Enrollment,
     RegistrationCampaign,
 )
-
 
 FLOW_SETTINGS = {
     "PUBLIC_BASE_URL": "https://courses.example.com",
@@ -208,7 +207,7 @@ class PackageMailAdapterTest(TestCase):
 
     def test_conflicting_replay_is_rejected(self):
         create_user("conflict@example.com")
-        base = {
+        base: dict[str, Any] = {
             "to": "conflict@example.com",
             "idempotency_key": "slack-access:conflict",
             "context": {
