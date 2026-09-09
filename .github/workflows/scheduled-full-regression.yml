@@ -493,10 +493,16 @@ jobs:
           set -euo pipefail
           docker run --detach --name dtc-web-scheduled \
             --env DJANGO_SETTINGS_MODULE=website.settings.local \
+            --env DTC_SQLITE_PATH=/tmp/smoke.sqlite3 \
             --publish 8000:8000 "dtc-website:${{ github.sha }}" web
           trap 'docker logs dtc-web-scheduled; docker rm --force dtc-web-scheduled' EXIT
           for _ in $(seq 1 30); do
             if test "$(curl --fail --silent http://127.0.0.1:8000/health/live)" = '{"status": "ok", "version": "local-development-build-version-not-configured", "source_sha": null, "image_digest": null}'; then
+              # The home route reads events from the database (issue #337), so the
+              # smoke gives its throwaway sqlite file a schema before serving.
+              # This orchestrates the smoke container only; the serving entrypoint
+              # still never runs migrations.
+              docker exec dtc-web-scheduled uv run --no-sync python manage.py migrate --noinput
               curl --fail --silent --output /dev/null http://127.0.0.1:8000/unified/
               printf '%s\n' health_live_local_identity unified_route_responds >> \
                 .tmp/evidence/container-assertions.txt
