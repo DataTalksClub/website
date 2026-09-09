@@ -82,7 +82,7 @@ class CurriculumModelTests(TestCase):
         )
         self.assertEqual(
             {value for value, _label in Cohort._meta.get_field("curriculum_format").choices},
-            {CurriculumFormat.LEGACY, CurriculumFormat.MODULES},
+            {CurriculumFormat.LEGACY, CurriculumFormat.MODULES, CurriculumFormat.SHARED},
         )
 
     def test_project_criteria_assignments_are_ordered_and_can_share_definitions(self):

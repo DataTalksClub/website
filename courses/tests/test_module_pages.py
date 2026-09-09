@@ -145,10 +145,12 @@ class ModulePageTests(TestCase):
             },
         )
 
-        self.assertEqual(module_url, "/courses/llm-zoomcamp/2026/modules/01-agentic-rag")
+        self.assertEqual(
+            module_url, "/courses/llm-zoomcamp/cohorts/2026/modules/01-agentic-rag"
+        )
         self.assertEqual(
             unit_url,
-            "/courses/llm-zoomcamp/2026/modules/01-agentic-rag/01-intro",
+            "/courses/llm-zoomcamp/cohorts/2026/modules/01-agentic-rag/01-intro",
         )
         response = self.client.get(module_url)
         self.assertContains(response, unit_url)
