@@ -811,11 +811,9 @@ scripts/tests/test_scratch_staging.py
 scripts/tests/test_sync_content_verify.py
 scripts/tests/test_sync_course_platform.py
 scripts/tests/test_sync_public_media_hydrate.py
-scripts/tests/test_verify_local_dataset.py
 scripts/verify_course_platform_vendor_assets.py
 scripts/verify_course_repository_curriculum.py
 scripts/verify_development_seo_terraform.py
-scripts/verify_local_dataset.py
 scripts/verify_static_manifest.py
 scripts/wrapped.py
 studio_courses/__init__.py

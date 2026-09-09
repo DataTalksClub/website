@@ -104,6 +104,8 @@ ADOPTION_INTEGRATION_PYTHON = \
 	scripts/tests/test_checkout_refresh.py \
 	scripts/rebuild_gate.py \
 	scripts/tests/test_rebuild_gate.py \
+	scripts/verify_local_dataset.py \
+	scripts/tests/test_verify_local_dataset.py \
 	course_management/mail_preferences.py \
 	course_management/package_mail.py \
 	courses/tests/test_package_mail_flows.py \

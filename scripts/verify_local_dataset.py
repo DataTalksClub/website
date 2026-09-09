@@ -294,7 +294,77 @@ def _failures(report: dict[str, Any]) -> list[str]:
             "homework exists but no question was imported, so the CMP import wrote nothing"
         )
     failures.extend(_editorial_failures(report["editorial"]))
+    failures.extend(_media_store_failures(report["media_store"]))
     return failures
+
+
+def _media_store_report(*, store: Any | None = None) -> dict[str, Any]:
+    """Verify the configured media store against the active release's records.
+
+    The editorial gate above proves the catalogue *rows* exist; this proves the
+    bytes a public image request would read are actually there and are the
+    reviewed ones (audit REL-14).  Records are resolved from the active
+    database release -- the same read a public request makes -- and compared
+    against the store the deployment is configured with, byte-for-byte via the
+    records' own provenance checksums.  Verification is read-only against the
+    store: hydration and publishing stay the separate, explicitly invoked
+    commands.
+
+    A ``memory`` backend is the deterministic offline test fixture: it serves
+    minimal synthetic images derived from the records themselves, so its
+    report is labelled ``synthetic_fixture`` and gates nothing -- passing it is
+    not evidence that any reviewed artwork exists anywhere.
+    """
+
+    from content import catalogue
+    from content.media_store import media_store
+    from content.media_tooling import verify_media
+
+    if store is None:
+        store = media_store()
+    records = catalogue.media()
+    report = verify_media(store=store, records=records)
+    synthetic = store.name == "memory"
+    payload: dict[str, Any] = {
+        "backend": store.name,
+        "synthetic_fixture": synthetic,
+        "record_total": len(records),
+        **report.as_dict(),
+    }
+    if report.missing and not synthetic:
+        payload["recovery_command"] = (
+            "uv run --frozen python scripts/prod/sync_public_media_hydrate.py"
+        )
+    return payload
+
+
+def _media_store_failures(media: dict[str, Any]) -> list[str]:
+    """The store side of dataset acceptance: real bytes, or an explicit refusal.
+
+    A real store holding missing, checksum-mismatched, or unreadable objects
+    fails the gate and names the bounded recovery command.  The synthetic
+    memory fixture never fails and never claims to have verified production
+    media; its report exists so the deployment knows verification was skipped
+    rather than passed.
+    """
+
+    if media.get("synthetic_fixture"):
+        return []
+    problems: list[str] = []
+    for field, noun in (
+        ("missing_count", "missing"),
+        ("mismatched_count", "checksum-mismatched"),
+        ("unreadable_count", "unreadable"),
+    ):
+        if media.get(field):
+            problems.append(f"{media[field]} {noun}")
+    if not problems:
+        return []
+    recovery = media.get("recovery_command")
+    message = "media store does not match the active release (" + ", ".join(problems) + " objects)"
+    if recovery:
+        message = f"{message}; hydrate it with {recovery}"
+    return [message]
 
 
 def _editorial_failures(editorial: dict[str, Any]) -> list[str]:
@@ -342,6 +412,7 @@ def main(argv: list[str] | None = None) -> int:
         "content": _content_report(),
         "editorial": _editorial_content_report(),
         "events": _event_report(),
+        "media_store": _media_store_report(),
     }
     failures = _failures(report)
     report["failures"] = failures

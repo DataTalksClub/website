@@ -131,6 +131,8 @@ module = [
     "scripts.tests.test_reviewed_release_import",
     "scripts.checkout_refresh",
     "scripts.tests.test_checkout_refresh",
+    "scripts.verify_local_dataset",
+    "scripts.tests.test_verify_local_dataset",
     "scripts.rebuild_gate",
     "scripts.tests.test_rebuild_gate",
     "course_management.mail_preferences",
