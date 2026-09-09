@@ -1,0 +1,77 @@
+# Weekly community-base release inspection (plan issue D0.2).
+#
+# Read-only inspection: it compares the pinned tag with the latest upstream
+# release and opens exactly one deduplicated advisory issue when a newer
+# release exists. It never edits pyproject.toml or uv.lock, and it never
+# selects or applies an adoption decision — the advisory feeds the ordinary
+# PM / engineer / tester / PM-acceptance / local-merge pipeline. A lookup
+# failure fails the run loudly instead of silently skipping, because a quiet
+# skip would hide new releases forever.
+name: Community-base Release Advisory
+
+on:
+  schedule:
+    - cron: "37 6 * * 1" # Mondays 06:37 UTC, off the hour
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Compare the pinned tag with the latest release
+        id: compare
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          OUT=$(uv run --no-sync python scripts/check_community_base_release.py)
+          STATUS=$?
+          set -e
+          echo "$OUT"
+          if [ "$STATUS" -eq 0 ]; then
+            echo "result=already" >> "$GITHUB_OUTPUT"
+          elif [ "$STATUS" -eq 2 ]; then
+            echo "result=newer" >> "$GITHUB_OUTPUT"
+            echo "latest=$(echo "$OUT" | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+          fi
+          exit $STATUS
+
+      - name: Already latest
+        if: steps.compare.outputs.result == 'already'
+        run: echo "The pinned community-base release is the latest; nothing to advise."
+
+      - name: Open or update the deduplicated advisory issue
+        if: failure() && steps.compare.outputs.result == 'newer'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          LATEST="${{ steps.compare.outputs.latest }}"
+          TITLE="community-base release ${LATEST} is available: review the adoption pin"
+          BODY=$(cat <<'EOM'
+          A newer community-base release is available (see the run output for the pinned vs latest tags).
+
+          Per the dependency-update operator instructions, this advisory feeds the ordinary pipeline — it does not change the pin:
+
+          1. PM: review the release notes and decide whether the release is adoption-compatible (no incompatible domain bump).
+          2. Engineer: bump `community-base @ git+…@vX.Y.Z` in `pyproject.toml`, run `uv lock`, and run `make core-source-check` plus the focused suites.
+          3. Tester: verify the acceptance evidence for the dependency change.
+          4. PM acceptance, then local merge/push per `_docs/PROCESS.md` — no pull requests.
+
+          `scripts/check_community_base_source.py` stays green throughout: the pin must remain the tagged git release.
+          EOM
+          )
+          NUMBER=$(gh issue list --repo "${{ github.repository }}" --search "${TITLE} in:title" --state open --json number --jq '.[].number' | head -1)
+          if [ -n "$NUMBER" ]; then
+            gh issue comment "$NUMBER" --repo "${{ github.repository }}" --body "$BODY"
+            echo "Updated existing advisory #$NUMBER"
+          else
+            gh issue create --repo "${{ github.repository }}" --title "$TITLE" --body "$BODY" --label foundation
+            echo "Opened a new advisory issue"
+          fi

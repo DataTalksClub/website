@@ -15,6 +15,9 @@ from __future__ import annotations
 import logging
 from uuid import UUID
 
+from community_base.jobs.registry import JobContext, JobPayload, register_handler
+from community_base.jobs.runner import PermanentJobError, RetryableJobError
+
 from content.models import ContentSource
 from content_sync.course_repository_ingest import (
     COMMIT_PATTERN,
@@ -30,8 +33,6 @@ from content_sync.course_repository_webhook import (
     COURSE_REPOSITORY_ADAPTER_TYPE,
     COURSE_REPOSITORY_JOB_HANDLER,
 )
-from jobs.execution import PermanentJobError, RetryableJobError
-from jobs.registry import JobContext, JobPayload, register_handler
 
 logger = logging.getLogger(__name__)
 

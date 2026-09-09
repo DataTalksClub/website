@@ -19,12 +19,14 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
+from community_base.config.models import Setting as PackageSetting
 from django.db import IntegrityError, transaction
 
 from core.audit import AuditWriteContext, record_audit_event
 from core.configuration import (
     InvalidOperationalSetting,
     OperationalSettingDefinition,
+    package_value_type,
     registered_operational_settings,
     validate_operational_setting_value,
 )
@@ -49,6 +51,24 @@ SETTINGS_SOURCES = frozenset({"studio", "admin_api"})
 
 class InvalidSettingsBatch(ValueError):
     """A complete settings batch failed before mutation."""
+
+
+def upsert_package_setting(key: str, value, site_value_type: str, source: str) -> None:
+    """Mirror one committed setting row into ``cb_config.Setting``.
+
+    Runs inside the caller's transaction, so the package table and the
+    revision bookkeeping row commit together or not at all. The package row
+    carries the live value; the site row keeps the optimistic revision.
+    """
+
+    PackageSetting.objects.update_or_create(
+        key=key,
+        defaults={
+            "value": value,
+            "value_type": package_value_type(site_value_type),
+            "source": source,
+        },
+    )
 
 
 class SettingsRevisionConflict(RuntimeError):
@@ -147,18 +167,26 @@ def scope_definitions(scope: SettingsScope) -> tuple[OperationalSettingDefinitio
 
 
 def query_settings(scope: SettingsScope, *, using: str = "default") -> JsonObject:
-    """Resolve every setting in the scope with one bounded database query."""
+    """Resolve the scope with one bounded query per storage.
+
+    Cutover reads the package table first with the site table as
+    fallback; D0.1d retires the site query and restores a single
+    bounded read.
+    """
 
     definitions = scope_definitions(scope)
-    stored = {
+    keys = tuple(definition.key for definition in definitions)
+    package_rows = {
+        setting.key: setting for setting in PackageSetting.objects.using(using).filter(key__in=keys)
+    }
+    site_rows = {
         setting.key: setting
-        for setting in OperationalSetting.objects.using(using).filter(
-            key__in=tuple(definition.key for definition in definitions)
-        )
+        for setting in OperationalSetting.objects.using(using).filter(key__in=keys)
     }
     resolved: list[JsonValue] = []
     for definition in definitions:
-        setting = stored.get(definition.key)
+        site_row = site_rows.get(definition.key)
+        setting = package_rows.get(definition.key) or site_row
         if setting is None:
             item = ResolvedSetting(
                 definition=definition,
@@ -167,7 +195,7 @@ def query_settings(scope: SettingsScope, *, using: str = "default") -> JsonObjec
                 revision=0,
             )
         else:
-            if setting.value_type != definition.value_type:
+            if package_value_type(setting.value_type) != package_value_type(definition.value_type):
                 raise InvalidOperationalSetting(
                     f"stored setting {definition.key} has an invalid type"
                 )
@@ -179,7 +207,7 @@ def query_settings(scope: SettingsScope, *, using: str = "default") -> JsonObjec
                 definition=definition,
                 value=validate_operational_setting_value(definition.key, setting.value),
                 source=setting.source,
-                revision=setting.revision,
+                revision=site_row.revision if site_row is not None else 0,
             )
         resolved.append(item.as_dict())
     return {"settings": [item for item in resolved]}
@@ -302,6 +330,7 @@ def _apply_settings_batch(
                     actual=error.actual,
                 ) from error
         if changed and setting is not None:
+            upsert_package_setting(setting.key, setting.value, setting.value_type, source)
             changed_rows.append((setting, previous_revision, setting.revision))
         result_items.append(
             {

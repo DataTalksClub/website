@@ -30,3 +30,6 @@ CSRF_COOKIE_SECURE = True
 SECURE_SSL_REDIRECT = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_REDIRECT_EXEMPT = [r"^health/ready$"]
+
+# Durable jobs run on Relay; the ingress at internal/jobs/run receives callbacks.
+COMMUNITY_BASE = {**COMMUNITY_BASE, "JOBS_BACKEND": "relay"}  # noqa: F405

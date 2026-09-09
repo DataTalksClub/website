@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from typing import Any
 
 from django.http import (
@@ -13,6 +14,16 @@ from django.http import (
 )
 from django.shortcuts import render
 from django.views.decorators.csrf import ensure_csrf_cookie
+
+from accounts.studio_authorization import (
+    StudioAuthenticationRequired,
+    StudioAuthorizationDenied,
+    authorize_studio_request,
+)
+from accounts.studio_sessions import session_reference
+from core.audit import AuditWriteContext
+from core.capabilities import CAPABILITY_REGISTRY
+from studio.auth import audit_capability_denial
 
 from . import qr, security, services
 from .errors import QnaError
@@ -60,22 +71,93 @@ def _event(event_id: str, slug: str, *, redirect: bool = False) -> tuple[Any, Ht
     return event, None
 
 
-def _moderator(request: HttpRequest, session: Any) -> bool:
+@dataclass(frozen=True, slots=True)
+class ModerationActor:
+    """A resolved privileged actor for one public Q&A request.
+
+    Exactly one identity kind is set: staff actors carry their user id and
+    co-host actors the opaque invite reference of their redeemed grant.
+    Neither carries credentials, cookies, names, or question text.
+    """
+
+    user_id: Any | None = None
+    cohost_invite_id: str | None = None
+
+    @property
+    def audit_context(self) -> AuditWriteContext:
+        if self.user_id is not None:
+            return AuditWriteContext(
+                actor_id=self.user_id,
+                actor_ref=f"user:{self.user_id}",
+            )
+        return AuditWriteContext(actor_ref=f"cohost:{self.cohost_invite_id}")
+
+
+def _staff_principal(request: HttpRequest, *, capability_key: str) -> Any | None:
+    """Resolve staff authority through the canonical Studio boundary.
+
+    Returns the Studio principal only when the refreshed account holds the
+    explicit permission and a live StaffSession; a revoked, idle-expired, or
+    absolute-expired staff session never escalates the ordinary
+    authenticated cookie. Anonymous and non-staff visitors resolve to None
+    without database work.
+    """
+
     user = getattr(request, "user", None)
-    if (
-        user is not None
-        and getattr(user, "is_authenticated", False)
-        and getattr(user, "is_active", False)
-        and getattr(user, "is_staff", False)
-        and user.has_perm("events.manage_event_qna")
-    ):
-        return True
-    return (
-        services.cohost_for_request(
-            session.id,
-            request.COOKIES.get(security.COHOST_COOKIE),
+    if user is None or not getattr(user, "is_authenticated", False):
+        return None
+    try:
+        return authorize_studio_request(
+            request_user=user,
+            session_reference=session_reference(request),
+            capability=CAPABILITY_REGISTRY.require(capability_key),
         )
-        is not None
+    except (StudioAuthenticationRequired, StudioAuthorizationDenied):
+        return None
+
+
+def _moderation_actor(
+    request: HttpRequest,
+    session: Any,
+    *,
+    capability_key: str,
+) -> ModerationActor | None:
+    """Resolve the current privileged actor, or None.
+
+    Staff authority and room-scoped co-host grants are distinct adapters:
+    a co-host grant never implies a website staff session, and staff
+    authorization is rechecked on every request.
+    """
+
+    principal = _staff_principal(request, capability_key=capability_key)
+    if principal is not None:
+        return ModerationActor(user_id=principal.user.pk)
+    invite = services.cohost_for_request(
+        session.id,
+        request.COOKIES.get(security.COHOST_COOKIE),
+    )
+    if invite is not None:
+        return ModerationActor(cohost_invite_id=str(invite.invite_id))
+    return None
+
+
+def _audit_denied_staff_moderation(request: HttpRequest) -> None:
+    """Record one denial audit for a plausible staff actor whose elevation
+    failed. Ordinary participant traffic — anonymous cookies or accounts
+    without a staff-session reference — is never audited here."""
+
+    user = getattr(request, "user", None)
+    if not (
+        getattr(user, "is_authenticated", False)
+        and getattr(user, "is_staff", False)
+        and session_reference(request) is not None
+    ):
+        return
+    audit_capability_denial(
+        request,
+        capability_key="events.qna.moderate",
+        reason="moderation_denied",
+        actor=user,
     )
 
 
@@ -102,19 +184,27 @@ def _with_participant(response: HttpResponse, token: str | None) -> HttpResponse
 
 
 def _route_session(
-    event: Any, request: HttpRequest, *, allow_host: bool = True
-) -> tuple[Any, bool]:
+    event: Any,
+    request: HttpRequest,
+    *,
+    actor_capability: str = "events.qna.read",
+    allow_host: bool = True,
+) -> tuple[Any, ModerationActor | None]:
     session = services._qna_session(event.id)  # shared service boundary; no direct mutation
-    moderator = _moderator(request, session) if allow_host else False
-    if moderator:
-        return session, True
+    actor = (
+        _moderation_actor(request, session, capability_key=actor_capability)
+        if allow_host
+        else None
+    )
+    if actor is not None:
+        return session, actor
     if event.lifecycle not in services.PUBLIC_EVENT_LIFECYCLES:
         raise services.QnaNotFound()
     if session.state == services.EventQnaSession.State.ARCHIVED:
         raise services.QnaArchived()
     if session.state == services.EventQnaSession.State.DRAFT:
         raise services.QnaNotFound()
-    return session, False
+    return session, None
 
 
 def _config(session: Any, *, moderator: bool) -> dict[str, Any]:
@@ -143,7 +233,7 @@ def public_qna(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
         event, redirect = _event(event_id, slug, redirect=request.method in {"GET", "HEAD"})
         if redirect is not None:
             return redirect
-        session, moderator = _route_session(event, request)
+        session, actor = _route_session(event, request)
         if request.method not in {"GET", "HEAD"}:
             return _private(HttpResponse("Method not allowed", status=405))
         return _with_participant(
@@ -154,8 +244,10 @@ def public_qna(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
                     {
                         "event": event,
                         "session": session,
-                        "qna_config": _config(session, moderator=moderator),
-                        "moderator": moderator,
+                        "qna_config": _config(
+                            session, moderator=actor is not None
+                        ),
+                        "moderator": actor is not None,
                     },
                 )
             ),
@@ -165,12 +257,20 @@ def public_qna(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
         return _json_error(error)
 
 
-def _api_context(request: HttpRequest, event_id: str, slug: str) -> tuple[Any, Any, bool]:
+def _api_context(
+    request: HttpRequest,
+    event_id: str,
+    slug: str,
+    *,
+    actor_capability: str = "events.qna.read",
+) -> tuple[Any, Any, ModerationActor | None]:
     event, redirect = _event(event_id, slug)
     if redirect is not None:
         raise QnaError(404, "not_found", "The Q&A resource was not found.")
-    session, moderator = _route_session(event, request)
-    return event, session, moderator
+    session, actor = _route_session(
+        event, request, actor_capability=actor_capability
+    )
+    return event, session, actor
 
 
 def _rate(request: HttpRequest, scope: str, *, window: int, limit: int) -> None:
@@ -184,7 +284,7 @@ def _rate(request: HttpRequest, scope: str, *, window: int, limit: int) -> None:
 
 def qna_questions(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
     try:
-        event, session, moderator = _api_context(request, event_id, slug)
+        event, session, actor = _api_context(request, event_id, slug)
         if request.method in {"GET", "HEAD"}:
             unknown = set(request.GET) - {"sort", "status"}
             if unknown:
@@ -196,7 +296,7 @@ def qna_questions(request: HttpRequest, event_id: str, slug: str) -> HttpRespons
             items, counts, etag, current = services.list_questions(
                 event.id,
                 participant=participant,
-                moderator=moderator,
+                moderator=actor is not None,
                 sort=sort,
                 statuses=statuses,
             )
@@ -234,7 +334,9 @@ def qna_questions(request: HttpRequest, event_id: str, slug: str) -> HttpRespons
 
 def qna_question(request: HttpRequest, event_id: str, slug: str, question_id: str) -> HttpResponse:
     try:
-        event, session, moderator = _api_context(request, event_id, slug)
+        event, session, actor = _api_context(
+            request, event_id, slug, actor_capability="events.qna.moderate"
+        )
         if request.method != "PATCH":
             response = HttpResponse("Method not allowed", status=405)
             response["Allow"] = "PATCH"
@@ -242,13 +344,19 @@ def qna_question(request: HttpRequest, event_id: str, slug: str, question_id: st
         participant = security.participant_from_token(
             request.COOKIES.get(security.PARTICIPANT_COOKIE)
         )
-        question = services.update_question(
-            event.id,
-            question_id,
-            _body(request),
-            participant=participant,
-            moderator=moderator,
-        )
+        try:
+            question = services.update_question(
+                event.id,
+                question_id,
+                _body(request),
+                participant=participant,
+                moderator=actor is not None,
+                audit_context=actor.audit_context if actor is not None else None,
+            )
+        except QnaError as error:
+            if actor is None and error.status == 403:
+                _audit_denied_staff_moderation(request)
+            raise
         return _private(
             JsonResponse(
                 services.serialize_question(question, participant=participant),
@@ -260,7 +368,7 @@ def qna_question(request: HttpRequest, event_id: str, slug: str, question_id: st
 
 def qna_vote(request: HttpRequest, event_id: str, slug: str, question_id: str) -> HttpResponse:
     try:
-        event, _session, _moderator = _api_context(request, event_id, slug)
+        event, _session, _actor = _api_context(request, event_id, slug)
         if request.method not in {"POST", "DELETE"}:
             response = HttpResponse("Method not allowed", status=405)
             response["Allow"] = "POST, DELETE"
@@ -328,7 +436,10 @@ def _host_page(
         if redirect is not None:
             return redirect
         session = services._qna_session(event.id)
-        if not _moderator(request, session):
+        actor = _moderation_actor(
+            request, session, capability_key="events.qna.read"
+        )
+        if actor is None:
             raise QnaError(403, "forbidden", "A co-host grant or Studio authorization is required.")
         template = "events/qna/present.html" if presentation else "events/qna/host.html"
         return _private(

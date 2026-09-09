@@ -44,8 +44,11 @@ COMMANDS = {
     "web": {"command": ["web"]},
     "worker": {"command": ["worker"]},
     "migration": {
-        "entryPoint": ["uv", "run", "--no-sync", "python", "manage.py"],
-        "command": ["migrate", "--noinput"],
+        "entryPoint": ["/bin/sh", "-lc"],
+        "command": [
+            "uv run --no-sync python manage.py migrate --noinput"
+            " && uv run --no-sync python manage.py sync_relay_schedules",
+        ],
     },
 }
 

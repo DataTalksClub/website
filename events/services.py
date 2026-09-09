@@ -10,6 +10,7 @@ from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from community_base.jobs.dispatch import dispatch_after_commit
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import Q
@@ -17,7 +18,6 @@ from django.db.models import Q
 from core.audit import AuditWriteContext, record_audit_event
 from core.models import AuditEvent, RevisionConflict
 from core.services import ServiceContext
-from jobs.dispatch import dispatch_after_commit
 
 from .identity import (
     EventIdentityError,
@@ -791,8 +791,8 @@ def _bump_public_total(
     except (EventIdentityError, EventIdentityNotFound) as exc:
         raise HistoricalRegistrationConflict("event_identity_unmapped") from exc
     dispatch_after_commit(
-        handler="events.registration_total.invalidate",
-        deduplication_key=f"event-total-{event_hash}-{total.revision}",
+        "events.registration_total.invalidate",
+        f"event-total-{event_hash}-{total.revision}",
         payload={
             "total_state_id": str(total.id),
             "total_revision": total.revision,

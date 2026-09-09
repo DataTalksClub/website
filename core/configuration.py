@@ -258,7 +258,51 @@ def register_operational_setting(
         validation=cast(JsonObject, validation),
     )
     _registry[definition.key] = normalized_definition
+    _declare_in_package(normalized_definition)
     return _definition_copy(normalized_definition)
+
+
+#: The site value-type vocabulary translated onto the package's.  Unmapped
+#: values pass through unchanged so package-native spellings compare equal.
+PACKAGE_VALUE_TYPES = {
+    "string": "str",
+    "integer": "int",
+    "boolean": "bool",
+    "string_list": "list",
+    "json_object": "json",
+}
+
+
+def package_value_type(value_type: str) -> str:
+    """Translate one value type between the site and package vocabularies."""
+
+    return PACKAGE_VALUE_TYPES.get(value_type, value_type)
+
+
+def _declare_in_package(definition: OperationalSettingDefinition) -> None:
+    """Mirror one site declaration into the package config registry (D0.1c).
+
+    The site validator callables stay authoritative (GAP-1, #358): the package
+    only coerces types. The ``value_type`` vocabularies differ in spelling
+    only. Identical re-registration is accepted by the package; a conflicting
+    one raises, the same fail-closed contract the site registry enforces.
+    """
+
+    from community_base.config import registry as package_registry
+
+    raw_type = str(getattr(definition.value_type, "value", definition.value_type)).lower()
+    package_registry.declare(
+        key=definition.key,
+        group=definition.group,
+        label=definition.label,
+        description=definition.description,
+        value_type=package_value_type(raw_type),
+        default=definition.default,
+        is_email=definition.key == "datamailer.from_email",
+        env_var=definition.env_var or None,
+        django_settings_fallback=definition.settings_attr or False,
+        docs_url=definition.docs_reference,
+    )
 
 
 def registered_operational_settings() -> tuple[OperationalSettingDefinition, ...]:

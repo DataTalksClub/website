@@ -25,7 +25,7 @@ from content_sync.webhook_delivery import (
 )
 from core.idempotency import hash_idempotency_key
 from core.models import IdempotencyRecord
-from jobs.dispatch import dispatch_after_commit
+from community_base.jobs.dispatch import dispatch_after_commit
 
 
 def _error(code: str, status: int) -> JsonResponse:
@@ -86,10 +86,8 @@ def github_course_repository_webhook(request):
     def enqueue_job() -> None:
         delivery_record_id = _delivery_record_id(delivery_id)
         dispatch_after_commit(
-            handler=COURSE_REPOSITORY_JOB_HANDLER,
-            deduplication_key=(
-                f"course-source:{source.id}:{push.commit_sha}:{COURSE_REPOSITORY_PARSER_VERSION}"
-            ),
+            COURSE_REPOSITORY_JOB_HANDLER,
+            f"course-source:{source.id}:{push.commit_sha}:{COURSE_REPOSITORY_PARSER_VERSION}",
             payload={
                 "source_uuid": str(source.id),
                 "commit_sha": push.commit_sha,

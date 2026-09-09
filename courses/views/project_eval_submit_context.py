@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
 
@@ -15,6 +16,9 @@ from courses.votes import (
     get_project_vote_counts,
     get_voted_submission_ids,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -143,9 +147,20 @@ def criteria_response_answer_indexes(response):
     answers = stripped_answer.split(",")
     answer_indexes = set()
     for answer in answers:
-        if answer:
+        if not answer:
+            continue
+        try:
             answer_index = int(answer)
-            answer_indexes.add(answer_index)
+        except ValueError:
+            # Rendering only pre-selects options; an unreadable stored value
+            # selects nothing here. Scoring refuses it via the model parser.
+            logger.warning(
+                "Ignoring unparsable answer %r on criteria response %s",
+                answer,
+                response.pk,
+            )
+            continue
+        answer_indexes.add(answer_index)
     return answer_indexes
 
 

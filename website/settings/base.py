@@ -121,7 +121,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.sites",
     "loginas",
-    "django_q",
     "management_auth.apps.ManagementAuthConfig",
     "core.apps.CoreConfig",
     "accounts.apps.AccountsConfig",
@@ -133,12 +132,14 @@ INSTALLED_APPS = [
     "studio.apps.StudioConfig",
     "management_api.apps.ManagementAPIConfig",
     "api.apps.ApiConfig",
-    "jobs.apps.JobsConfig",
+    "community_base.jobs",
     "data.apps.DataConfig",
     "studio_courses.apps.StudioCoursesConfig",
-    # community-base kernel (D0.1a). Declarations only: jobs and mail keep their
-    # existing runtime owners, and no other shared app is installed yet.
+    # community-base kernel (D0.1a). D1.1 installs the package jobs app: the
+    # site's jobs app and django_q are gone and durable intents run on Relay.
     "community_base.kernel.apps.KernelConfig",
+    "community_base.config",
+    "community_base.api",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
@@ -344,20 +345,6 @@ RELAY_LINK_BRIDGE_UNSUBSCRIBE_TIMEOUT_SECONDS = float(
 )
 RELAY_LINK_BRIDGE_POOL_SIZE = int(os.getenv("RELAY_LINK_BRIDGE_POOL_SIZE", "16"))
 
-Q_CLUSTER = {
-    "name": "dtc-website",
-    "workers": 2,
-    # Recurring schedules are registered and evaluated only by the leased
-    # scheduler-owner command. Ordinary qclusters must never contend as
-    # implicit scheduler owners.
-    "scheduler": False,
-    "timeout": 300,
-    "retry": 360,
-    "max_attempts": 3,
-    "queue_limit": 50,
-    "save_limit": 250,
-    "orm": "default",
-}
 
 NOINDEX = False
 COMPATIBILITY_CONTRACT_PATHS: dict[str, str] = {}
@@ -386,4 +373,12 @@ COMMUNITY_BASE = {
     "JOBS_BACKEND": "relay",
     "MAIL_BACKEND": "relay",
     "STUDIO_TITLE": "DataTalks.Club Studio",
+    # D1.1: the jobs half goes live. Durable intents submit to Relay and the
+    # signed ingress at internal/jobs/run receives the callbacks; the client
+    # values come from the deployment environment and the run-due/sweep
+    # schedules sync through manage.py sync_relay_schedules.
+    "SITE_URL": CANONICAL_ORIGIN,
+    "RELAY_BASE_URL": os.getenv("RELAY_BASE_URL", ""),
+    "RELAY_API_KEY": os.getenv("RELAY_API_KEY", ""),
+    "RELAY_WEBHOOK_SECRET": os.getenv("RELAY_WEBHOOK_SECRET", ""),
 }

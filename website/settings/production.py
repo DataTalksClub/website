@@ -41,3 +41,6 @@ SECURE_REDIRECT_EXEMPT = [r"^health/ready$"]
 SECURE_HSTS_SECONDS = 31_536_000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
+
+# Durable jobs run on Relay; the ingress at internal/jobs/run receives callbacks.
+COMMUNITY_BASE = {**COMMUNITY_BASE, "JOBS_BACKEND": "relay"}  # noqa: F405

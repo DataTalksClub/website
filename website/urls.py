@@ -122,6 +122,7 @@ urlpatterns = [
     path("admin", core_views.management_slash_redirect, name="admin-slash-redirect"),
     path("admin/", include("loginas.urls")),
     path("admin/", admin.site.urls),
+    path("internal/jobs/", include("community_base.jobs.urls")),
     path(
         "accounts/continue/",
         explicit_reauthentication,

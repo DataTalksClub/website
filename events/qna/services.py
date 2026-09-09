@@ -16,6 +16,8 @@ from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from typing import Any
 
+from community_base.jobs.dispatch import dispatch_after_commit
+from community_base.jobs.models import JobIntent
 from django.conf import settings
 from django.db import DEFAULT_DB_ALIAS, IntegrityError, transaction
 from django.db.models import F
@@ -25,9 +27,6 @@ from django.utils.dateparse import parse_datetime
 from core.audit import AuditWriteContext, record_audit_event
 from core.models import RevisionConflict
 from core.runtime_config import get_str_setting
-from jobs.clock import database_now
-from jobs.dispatch import best_effort_wake, dispatch_after_commit
-from jobs.models import DurableJob
 
 from ..models import (
     Event,
@@ -91,7 +90,7 @@ class QnaProvisioningState(StrEnum):
 @dataclass(frozen=True, slots=True)
 class EventQnaProvisioning:
     session: EventQnaSession
-    job: DurableJob
+    job: JobIntent
     session_created: bool
     job_created: bool
 
@@ -161,9 +160,9 @@ def _ensure_provisioning(
         return session
 
     job, job_created = dispatch_after_commit(
-        handler=PROVISION_HANDLER,
-        deduplication_key=provisioning_deduplication_key(event.id),
-        payload=provisioning_payload(event.id),
+        PROVISION_HANDLER,
+        provisioning_deduplication_key(event.id),
+        provisioning_payload(event.id),
         using=using,
     )
     if session.provisioning_job_id not in {None, job.id}:
@@ -232,15 +231,13 @@ def provisioning_state(session: EventQnaSession) -> QnaProvisioningState:
     job = session.provisioning_job
     if job is None:
         return QnaProvisioningState.PENDING
-    if job.status == DurableJob.Status.SUCCEEDED:
+    if job.status == JobIntent.Status.SUCCEEDED:
         return QnaProvisioningState.READY
-    if job.status in {
-        DurableJob.Status.PENDING,
-        DurableJob.Status.RUNNING,
-        DurableJob.Status.RETRY_WAIT,
-    }:
-        return QnaProvisioningState.RETRYING
-    return QnaProvisioningState.BLOCKED
+    if job.status in JobIntent.TERMINAL_STATUSES:
+        return QnaProvisioningState.BLOCKED
+    # PENDING, SUBMITTED and FAILED-with-attempts-left are all re-claimable
+    # under the package runner, so the learner-visible state is "retrying".
+    return QnaProvisioningState.RETRYING
 
 
 def retry_event_qna_provision(
@@ -255,33 +252,21 @@ def retry_event_qna_provision(
     with transaction.atomic(using=using):
         result = ensure_event_qna(parsed, using=using)
         job = result.job
-        if job.status in {DurableJob.Status.FAILED, DurableJob.Status.CANCELLED}:
-            now = database_now(using=using)
+        if job.status == JobIntent.Status.DEAD:
+            now = timezone.now()
             reset = (
-                DurableJob.objects.using(using)
-                .filter(
-                    id=job.id,
-                    status__in=(DurableJob.Status.FAILED, DurableJob.Status.CANCELLED),
-                )
+                JobIntent.objects.using(using)
+                .filter(id=job.id, status=JobIntent.Status.DEAD)
                 .update(
-                    status=DurableJob.Status.PENDING,
-                    attempt_count=0,
+                    status=JobIntent.Status.PENDING,
+                    attempts=0,
                     available_at=now,
-                    next_wakeup_at=now,
                     lease_token=None,
                     lease_expires_at=None,
-                    claimed_by="",
-                    last_error_code="",
-                    completed_at=None,
-                    updated_at=now,
+                    last_error="",
                 )
             )
-            if reset == 1:
-                transaction.on_commit(
-                    lambda: best_effort_wake(job.id, using=using),
-                    using=using,
-                    robust=True,
-                )
+            del reset  # A lost race means the intent already left DEAD.
         job.refresh_from_db(using=using)
         if audit_context is not None:
             _audit(

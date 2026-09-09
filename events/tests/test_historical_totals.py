@@ -8,6 +8,7 @@ import uuid
 from pathlib import Path
 from unittest.mock import patch
 
+from community_base.jobs.models import JobIntent
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
@@ -35,7 +36,6 @@ from events.services import (
     stage_registered_source,
     validate_source,
 )
-from jobs.models import DurableJob
 from scripts.prod.registration_sources import register_source_readers
 
 
@@ -157,7 +157,7 @@ class HistoricalRegistrationTotalTests(TestCase):
             actor=self.user,
             context=self.context,
         )
-        with patch("django_q.tasks.async_task"):
+        with patch("community_base.jobs.dispatch.get_backend"):
             activate_source(
                 run.id,
                 reason_code="approved_activation",
@@ -344,8 +344,8 @@ class HistoricalRegistrationTotalTests(TestCase):
 
         hub = self.client.get("/events")
         self.assertNotContains(hub, "data-registration-total-revision")
-        self.assertEqual(DurableJob.objects.count(), 1)
-        intent = DurableJob.objects.get()
+        self.assertEqual(JobIntent.objects.count(), 1)
+        intent = JobIntent.objects.get()
         self.assertEqual(intent.handler, "events.registration_total.invalidate")
         self.assertEqual(intent.payload["path"], self.event["public_path"])
         self.assertEqual(intent.payload["total_revision"], total.revision)
@@ -355,7 +355,7 @@ class HistoricalRegistrationTotalTests(TestCase):
         run, _mapping, _registry = self._map_validate_activate(("declined",))
         response = self.client.get(self.event["public_path"])
         self.assertContains(response, "0 registered")
-        with patch("django_q.tasks.async_task"):
+        with patch("community_base.jobs.dispatch.get_backend"):
             rollback_source(
                 run.id,
                 reason_code="operator_rollback",
@@ -365,7 +365,7 @@ class HistoricalRegistrationTotalTests(TestCase):
         self.assertIsNone(public_registration_total(self.event))
         response = self.client.get(self.event["public_path"])
         self.assertNotContains(response, "registered")
-        self.assertEqual(DurableJob.objects.count(), 2)
+        self.assertEqual(JobIntent.objects.count(), 2)
 
     def test_past_event_labels_the_registration_count_as_registered(self) -> None:
         self.event = event_groups().recent[-1]
@@ -391,7 +391,7 @@ class HistoricalRegistrationTotalTests(TestCase):
             combination_policy="replacement",
             suffix="replacement-second",
         )
-        with patch("django_q.tasks.async_task"):
+        with patch("community_base.jobs.dispatch.get_backend"):
             activate_source(
                 first.id,
                 reason_code="first_activation",
@@ -415,7 +415,7 @@ class HistoricalRegistrationTotalTests(TestCase):
             1,
         )
 
-        with patch("django_q.tasks.async_task"):
+        with patch("community_base.jobs.dispatch.get_backend"):
             rollback_source(
                 second.id,
                 reason_code="replacement_rollback",
@@ -446,7 +446,7 @@ class HistoricalRegistrationTotalTests(TestCase):
             combination_policy="replacement",
             suffix="replacement-over-additive-set",
         )
-        with patch("django_q.tasks.async_task"):
+        with patch("community_base.jobs.dispatch.get_backend"):
             activate_source(
                 luma.id,
                 reason_code="first_disjoint",
@@ -464,7 +464,7 @@ class HistoricalRegistrationTotalTests(TestCase):
         assert before is not None
         self.assertEqual(before.count, 8)
 
-        with patch("django_q.tasks.async_task"):
+        with patch("community_base.jobs.dispatch.get_backend"):
             activate_source(
                 replacement.id,
                 reason_code="replace_additive_set",
@@ -478,7 +478,7 @@ class HistoricalRegistrationTotalTests(TestCase):
         replacement_aggregate = replacement.aggregate_revisions.get()
         self.assertEqual(replacement_aggregate.pointer_displacements.count(), 2)
 
-        with patch("django_q.tasks.async_task"):
+        with patch("community_base.jobs.dispatch.get_backend"):
             rollback_source(
                 replacement.id,
                 reason_code="restore_additive_set",
@@ -550,7 +550,7 @@ class HistoricalRegistrationTotalTests(TestCase):
             aggregate_checksum=hashlib.sha256(b"same-run-second-replacement").hexdigest(),
             state=HistoricalRegistrationAggregateRevision.State.VALIDATED,
         )
-        with patch("django_q.tasks.async_task"):
+        with patch("community_base.jobs.dispatch.get_backend"):
             activate_source(
                 luma.id,
                 reason_code="first_disjoint",
@@ -569,7 +569,7 @@ class HistoricalRegistrationTotalTests(TestCase):
         self.assertEqual(before.count, 8)
 
         with (
-            patch("django_q.tasks.async_task"),
+            patch("community_base.jobs.dispatch.get_backend"),
             self.assertRaisesMessage(HistoricalRegistrationConflict, "same_run_slot_collision"),
         ):
             activate_source(
@@ -617,7 +617,7 @@ class HistoricalRegistrationTotalTests(TestCase):
             combination_policy="additive_disjoint",
             suffix="additive-rolled-back",
         )
-        with patch("django_q.tasks.async_task"):
+        with patch("community_base.jobs.dispatch.get_backend"):
             activate_source(
                 first.id,
                 reason_code="first_disjoint",
@@ -658,7 +658,7 @@ class HistoricalRegistrationTotalTests(TestCase):
             combination_policy="replacement",
             suffix="aggregate-over-row-pointer",
         )
-        with patch("django_q.tasks.async_task"):
+        with patch("community_base.jobs.dispatch.get_backend"):
             activate_source(
                 aggregate_run.id,
                 reason_code="aggregate_activation",
@@ -667,7 +667,7 @@ class HistoricalRegistrationTotalTests(TestCase):
             )
         slot = HistoricalRegistrationAggregateSlot.objects.get(active_revision__isnull=False)
         row_revision = uuid.uuid4()
-        with patch("django_q.tasks.async_task"):
+        with patch("community_base.jobs.dispatch.get_backend"):
             replace_aggregate_with_row_projection(
                 event_id=self.event["identity_id"],
                 provider="luma",
@@ -714,7 +714,7 @@ class HistoricalRegistrationTotalTests(TestCase):
             combination_policy="additive_disjoint",
             suffix="additive-second",
         )
-        with patch("django_q.tasks.async_task"):
+        with patch("community_base.jobs.dispatch.get_backend"):
             activate_source(
                 first.id,
                 reason_code="first_disjoint",
@@ -739,7 +739,7 @@ class HistoricalRegistrationTotalTests(TestCase):
             combination_policy="replacement",
             suffix="row-replacement",
         )
-        with patch("django_q.tasks.async_task"):
+        with patch("community_base.jobs.dispatch.get_backend"):
             activate_source(
                 run.id,
                 reason_code="aggregate_activation",
@@ -750,7 +750,7 @@ class HistoricalRegistrationTotalTests(TestCase):
         aggregate_id = slot.active_revision_id
         assert aggregate_id is not None
         replacement_id = uuid.uuid4()
-        with patch("django_q.tasks.async_task"):
+        with patch("community_base.jobs.dispatch.get_backend"):
             replaced = replace_aggregate_with_row_projection(
                 event_id=self.event["identity_id"],
                 provider="luma",
@@ -774,7 +774,7 @@ class HistoricalRegistrationTotalTests(TestCase):
         assert total is not None
         self.assertEqual(total.count, 4)
 
-        with patch("django_q.tasks.async_task"):
+        with patch("community_base.jobs.dispatch.get_backend"):
             restored = restore_aggregate_from_row_projection(
                 event_id=self.event["identity_id"],
                 provider="luma",

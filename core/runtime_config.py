@@ -71,6 +71,7 @@ from core.configuration import (
     InvalidOperationalSetting,
     OperationalSettingDefinition,
     UnknownOperationalSetting,
+    package_value_type,
     registered_operational_settings,
     validate_operational_setting_value,
 )
@@ -263,13 +264,21 @@ def _resolve_uncached(
     using: str,
 ) -> tuple[JsonValue, str]:
     try:
-        stored = OperationalSetting.objects.using(using).filter(key=definition.key).first()
+        from community_base.config.models import Setting as PackageSetting
+
+        stored = (
+            PackageSetting.objects.using(using).filter(key=definition.key).first()
+        ) or OperationalSetting.objects.using(using).filter(key=definition.key).first()
     except Exception as error:
         if not _database_unreachable(error):
             raise
         stored = None
     if stored is not None:
-        if stored.value_type != definition.value_type:
+        expected = package_value_type(
+            str(getattr(definition.value_type, "value", definition.value_type)).lower()
+        )
+        actual = package_value_type(stored.value_type)
+        if actual != expected:
             raise InvalidOperationalSetting(
                 f"stored setting {definition.key} has type {stored.value_type}, "
                 f"expected {definition.value_type}"

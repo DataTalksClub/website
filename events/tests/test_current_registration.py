@@ -7,6 +7,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
+from community_base.jobs.models import JobIntent
 from django.conf import settings
 from django.test import SimpleTestCase, TestCase
 
@@ -24,7 +25,6 @@ from events.services import (
     public_registration_total,
     stage_derived_source,
 )
-from jobs.models import DurableJob
 from scripts.prod.registration_sources.luma import derive_luma
 
 
@@ -230,7 +230,7 @@ class ExplicitCurrentRegistrationTests(TestCase):
         self.assertNotIn("current-private", repr(run))
         self.assertNotIn("legacy-private", repr(run))
 
-        with patch("django_q.tasks.async_task"):
+        with patch("community_base.jobs.dispatch.get_backend"):
             activated = activate_explicit_current_source(
                 run.id,
                 external_event_identifiers=(current_id,),
@@ -262,7 +262,7 @@ class ExplicitCurrentRegistrationTests(TestCase):
         ):
             self.assertNotIn(forbidden, body)
 
-        with patch("django_q.tasks.async_task"):
+        with patch("community_base.jobs.dispatch.get_backend"):
             replay, replay_created = stage_derived_source(
                 provider="luma",
                 derived=derived,
@@ -284,7 +284,7 @@ class ExplicitCurrentRegistrationTests(TestCase):
         self.assertEqual(replay_activated.id, run.id)
         self.assertEqual(HistoricalRegistrationSourceRun.objects.count(), 1)
         self.assertEqual(run.aggregate_revisions.count(), 2)
-        self.assertEqual(DurableJob.objects.count(), 1)
+        self.assertEqual(JobIntent.objects.count(), 1)
         self.assertEqual(public_registration_total(self.event), total)
 
     def test_explicit_mapping_cannot_retarget_an_existing_provider_identity(self) -> None:
