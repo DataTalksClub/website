@@ -212,7 +212,7 @@ class AdminOperationalSettingsTests(TestCase):
             {
                 "updates": [
                     {
-                        "key": "datamailer.api_key",
+                        "key": "relay.link_bridge.base_url",
                         "value": "anything",
                         "expected_revision": 0,
                     }

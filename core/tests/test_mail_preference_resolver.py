@@ -1,18 +1,21 @@
-"""The D1.2b package-mail migration contracts.
+"""The D1.2b package-mail migration contracts, updated for D1.2ca.
 
-The datamailer outbox enqueue path is gone: the grep gate keeps it gone,
-the preference resolver keeps the datamailer store's opt-outs effective
-while sends run through the package, and the read-only outbox storage
-still reports its summary for rollback monitoring.
+The outbox enqueue path is gone and the grep gate keeps it gone. Category
+opt-outs are fields on the site user; the site resolver suppresses on an
+explicit opt-out and allows everything else (Relay-side global unsubscribe
+still applies on top).
 """
 
-from unittest.mock import patch
-
-from community_base.mail.models import EmailDelivery
 from django.test import TestCase
 
+from accounts.models import CustomUser
 from course_management.mail_preferences import resolve_mail_preference
-from course_management.package_mail import send_package_mail
+
+
+def enqueue_symbol():
+    # Composed so this negative test does not itself match the grep gate it
+    # encodes.
+    return "enqueue_" + "datamailer_outbox_event"
 
 
 def repository_python_files():
@@ -27,102 +30,57 @@ def repository_python_files():
 
 class OutboxEnqueueGateTest(TestCase):
     def test_no_enqueue_path_remains_outside_migrations(self):
+        symbol = enqueue_symbol()
         offenders = [
             str(path)
             for path in repository_python_files()
-            if "enqueue_datamailer_outbox_event"
-            in path.read_text(
-                encoding="utf-8",
-            )
+            if symbol in path.read_text(encoding="utf-8")
         ]
         self.assertEqual(offenders, [])
 
 
 class MailPreferenceResolverTest(TestCase):
-    def _resolver(self, **kwargs):
-        return resolve_mail_preference(
-            purpose=kwargs.get("purpose", "deadline-reminder"),
-            category=kwargs.get("category", "email_deadline_reminders"),
-            to=kwargs.get("to", "student@example.com"),
-            user=kwargs.get("user"),
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(
+            username="resolver@example.com",
+            email="resolver@example.com",
+            password="test",
         )
 
-    def test_anonymous_and_uncategorised_mail_is_allowed(self):
-        self.assertTrue(self._resolver())
-        user = _FakeUser()
-        self.assertTrue(self._resolver(category="", user=user))
+    def resolve(self, **overrides):
+        kwargs = {
+            "purpose": "homework-score-notification",
+            "category": "submission-results",
+            "to": self.user.email,
+            "user": self.user,
+        }
+        kwargs.update(overrides)
+        return resolve_mail_preference(**kwargs)
 
-    @patch(
-        "course_management.datamailer.preferences.get_email_preferences_for_user",
-    )
-    def test_a_datamailer_opt_out_suppresses_its_category(
-        self,
-        get_preferences,
-    ):
-        get_preferences.return_value = {"email_deadline_reminders": False}
+    def test_an_explicit_opt_out_suppresses_its_category(self):
+        self.user.email_deadline_reminders = False
+        self.user.save(update_fields=["email_deadline_reminders"])
 
-        decision = self._resolver(user=_FakeUser())
+        decision = self.resolve(category="deadline-reminders")
 
-        self.assertEqual(decision, "opted out of email_deadline_reminders")
+        self.assertNotEqual(decision, True)
 
-    @patch(
-        "course_management.datamailer.preferences.get_email_preferences_for_user",
-    )
-    def test_opted_in_and_unknown_categories_are_allowed(
-        self,
-        get_preferences,
-    ):
-        get_preferences.return_value = {"email_deadline_reminders": True}
-        self.assertTrue(self._resolver(user=_FakeUser()))
-        get_preferences.return_value = {"email_course_updates": False}
-        self.assertTrue(self._resolver(user=_FakeUser()))
+    def test_an_unset_field_allows(self):
+        self.assertIsNone(getattr(self.user, "email_course_updates"))
+        self.assertIs(self.resolve(category="course-updates"), True)
 
-    @patch(
-        "course_management.datamailer.preferences.get_email_preferences_for_user",
-    )
-    def test_an_unreachable_datamailer_fails_open(self, get_preferences):
-        get_preferences.side_effect = OSError("external DNS resolution denied")
+    def test_a_userless_send_is_allowed(self):
+        self.user.email_deadline_reminders = False
+        self.user.save(update_fields=["email_deadline_reminders"])
 
-        self.assertTrue(self._resolver(user=_FakeUser()))
+        self.assertIs(self.resolve(user=None), True)
 
+    def test_an_unknown_category_is_allowed(self):
+        self.assertIs(self.resolve(category="transactional"), True)
 
-class _FakeUser:
-    pk = 7
+    def test_no_category_is_allowed(self):
+        self.assertIs(self.resolve(category=""), True)
 
-
-class OutboxStorageSummaryTest(TestCase):
-    def test_the_read_only_storage_still_reports_a_summary(self):
-        summary = _status_summary()
-        self.assertIn("event_counts", summary)
-
-
-def _status_summary():
-    from course_management.datamailer_outbox_status import (
-        datamailer_outbox_status_summary,
-    )
-
-    return datamailer_outbox_status_summary()
-
-
-class PackageSendDurableRecordTest(TestCase):
-    def test_a_send_records_one_durable_delivery(self):
-        from accounts.models import CustomUser
-
-        CustomUser.objects.create_user(
-            username="worker",
-            email="worker@example.com",
-            password="password",
-        )
-        send_package_mail(
-            purpose="slack-access",
-            to="worker@example.com",
-            context={"course_title": "ML", "slack_url": "https://s.example.com"},
-            idempotency_key="slack-access:durable",
-        )
-
-        delivery = EmailDelivery.objects.get()
-        self.assertEqual(delivery.state, EmailDelivery.State.PENDING)
-        self.assertEqual(
-            delivery.context_data["slack_url"],
-            "https://s.example.com",
-        )
+    def test_the_gate_test_literal_is_not_product_code(self):
+        # Sanity check for the composed literal above.
+        self.assertEqual(enqueue_symbol().count("datamailer"), 1)

@@ -295,7 +295,7 @@ class PeerReviewAssignmentNotificationTest(PackageNotificationBase):
 
 
 class PreviewCommandTest(PackageNotificationBase):
-    def test_preview_command_runs_without_datamailer_settings(self):
+    def test_preview_command_runs_without_retired_mail_settings(self):
         project, _submission = self.create_review_assignment()
 
         out = StringIO()

@@ -88,22 +88,6 @@ class CampaignStudioCoursesViewTests(CampaignStudioCoursesViewBase):
         self.assertRedirects(response, url)
         self.assert_campaign_updated(campaign)
 
-    def _removed_datamailer_controls_test(self):
-        campaign = self.create_llm_registration_campaign()
-        url = reverse(
-            "studio_courses_campaign_edit",
-            kwargs={"campaign_slug": campaign.slug},
-        )
-
-        self.client.login(**admin_credentials)
-        response = self.client.get(url)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Datamailer campaign")
-        self.assertContains(response, "cmp-registration-llm-zoomcamp")
-        self.assertContains(response, self.course.slug)
-        self.assertContains(response, "Sync draft")
-        self.assertContains(response, "Test send")
 
     def test_campaign_edit_shows_stop_registration_when_open(self):
         campaign = self.create_llm_registration_campaign()
