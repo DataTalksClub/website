@@ -173,11 +173,6 @@ TARGET_ONLY_COLUMNS: dict[str, dict[str, object]] = {
     },
     "courses_homework": {"instructions_markdown": "", "instructions_source_path": ""},
     "courses_wrappedstatistics": {"leaderboard": "[]"},
-    "courses_course": {
-        "archive_commit_sha": "",
-        "archive_notice_path": "",
-        "archive_url": "",
-    },
 }
 
 # This schema splits a CMP course row into a course family and a cohort. These are the
