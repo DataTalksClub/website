@@ -9,11 +9,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from course_management.datamailer.sync.memberships import (
-    sync_registration_to_datamailer,
-)
-from course_management.datamailer.sync.notifications import (
-    send_registration_confirmation_email,
+from course_management.package_mail import (
+    send_registration_confirmation_mail,
 )
 from course_management.observability import record_event
 from courses.models.cohort import CourseRegistration, RegistrationCampaign
@@ -108,15 +105,10 @@ def _save_registration_if_valid(
         return None
 
     registration = form.save()
-    sync_callback = partial(
-        sync_registration_to_datamailer,
-        registration,
-    )
     email_callback = partial(
-        send_registration_confirmation_email,
+        send_registration_confirmation_mail,
         registration,
     )
-    transaction.on_commit(sync_callback)
     transaction.on_commit(email_callback)
     return registration
 
@@ -181,9 +173,7 @@ def registration_campaign_view(
         context = _registration_context(request, campaign, None, None)
         return render(request, "courses/register.html", context)
 
-    existing_registration = _existing_user_registration(
-        request, campaign
-    )
+    existing_registration = _existing_user_registration(request, campaign)
     form = _registration_form(request, campaign)
 
     registration = None

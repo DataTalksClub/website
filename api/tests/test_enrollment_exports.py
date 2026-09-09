@@ -38,7 +38,7 @@ class EnrollmentExportSuccessAPITestCase(EnrollmentExportsAPITestBase):
 
         with patch(
             "api.views.enrollment_certificates."
-            "send_certificate_availability_notification"
+            "send_certificate_ready_mail"
         ) as send_notification:
             with self.captureOnCommitCallbacks(execute=True):
                 payload = self.single_certificate_payload()

@@ -1,17 +1,11 @@
 import logging
 
-from functools import partial
 from time import time
 
 from django.db import transaction
 from django.utils import timezone
 
 from course_management.observability import record_event
-from course_management.datamailer.sync.memberships import (
-    sync_project_passed_outcome_to_datamailer,
-    sync_project_submission_to_datamailer,
-)
-
 from courses.models.project import (
     InvalidCriteriaAnswerError,
     Project,
@@ -40,14 +34,11 @@ def _validate_project_scoreable(project: Project) -> str | None:
         return "Project is not in 'PEER_REVIEWING' state"
 
     if project.peer_review_due_date > timezone.now():
-        return "The peer review due date is in the future. Update the due date to score the project."
+        return (
+            "The peer review due date is in the future. Update the due date to score the project."
+        )
 
     return None
-
-
-def _sync_scored_project_submission_to_datamailer(submission):
-    sync_project_submission_to_datamailer(submission)
-    sync_project_passed_outcome_to_datamailer(submission)
 
 
 def _peer_reviews_for_project(project):
@@ -77,19 +68,8 @@ def _bulk_update_project_submissions(submissions_to_update):
     )
 
 
-def _sync_project_submissions_after_commit(submissions_to_update):
-    for submission in submissions_to_update:
-        callback = partial(
-            _sync_scored_project_submission_to_datamailer,
-            submission,
-        )
-        transaction.on_commit(callback)
-
-
 def _replace_project_evaluation_scores(submission_ids, all_scores):
-    ProjectEvaluationScore.objects.filter(
-        submission_id__in=submission_ids
-    ).delete()
+    ProjectEvaluationScore.objects.filter(submission_id__in=submission_ids).delete()
     ProjectEvaluationScore.objects.bulk_create(all_scores)
 
 
@@ -98,7 +78,6 @@ def _complete_scored_project(
     calculation,
 ):
     _bulk_update_project_submissions(calculation.submissions_to_update)
-    _sync_project_submissions_after_commit(calculation.submissions_to_update)
     submission_ids = calculation.submissions.keys()
     _replace_project_evaluation_scores(
         submission_ids,
@@ -186,9 +165,7 @@ def score_project(
 
         t_end = time()
 
-        logger.info(
-            f"Project {project.id} scored in {t_end - t0:.2f} seconds."
-        )
+        logger.info(f"Project {project.id} scored in {t_end - t0:.2f} seconds.")
         submissions_count = project.projectsubmission_set.count()
         passed_count = project.projectsubmission_set.filter(
             passed=True,

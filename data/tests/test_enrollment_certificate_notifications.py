@@ -38,7 +38,7 @@ class EnrollmentCertificateNotificationAPITestCase(EnrollmentDataAPIBase):
 
     @patch(
         "api.views.enrollment_certificates."
-        "send_certificate_availability_notification"
+        "send_certificate_ready_mail"
     )
     def test_bulk_update_enrollment_certificates_sends_new_certificate_notifications(
         self,

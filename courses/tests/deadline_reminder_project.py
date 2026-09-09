@@ -56,58 +56,25 @@ def create_project_submission_reminder_fixture(test_case, now):
     create_project(project_day)
 
 
-def assert_project_reminder_payloads(test_case, send_transient):
-    test_case.assertEqual(send_transient.call_count, 2)
-    send_payloads = sent_reminder_payloads(send_transient)
-    assert_project_reminder_list_keys(test_case, send_payloads)
-    assert_project_reminder_keys(test_case, send_payloads)
-    assert_project_reminder_members(test_case, send_payloads)
+def assert_project_reminder_deliveries(test_case):
+    from community_base.mail.models import EmailDelivery
 
-
-def sent_reminder_payloads(send_transient):
-    send_payloads = []
-    send_calls = send_transient.call_args_list
-    for call in send_calls:
-        payload = call.args[0]
-        send_payloads.append(payload)
-    return send_payloads
-
-
-def assert_project_reminder_list_keys(test_case, send_payloads):
-    list_keys = []
-    for payload in send_payloads:
-        list_key = payload["list"]["key"]
-        list_keys.append(list_key)
+    rows = list(EmailDelivery.objects.filter(purpose="deadline-reminder"))
     test_case.assertEqual(
-        list_keys,
-        [
-            "deadline-reminders:project-submission:"
-            "ml-zoomcamp-2026:project-day:24h",
-            "deadline-reminders:project-submission:"
-            "ml-zoomcamp-2026:project-week:7d",
-        ],
+        len(rows),
+        4,
+        f"actual keys: {sorted(row.idempotency_key for row in rows)}",
     )
-
-
-def assert_project_reminder_keys(test_case, send_payloads):
-    reminder_keys = []
-    for payload in send_payloads:
-        reminder_key = payload["context"]["reminder_key"]
-        reminder_keys.append(reminder_key)
+    recipients = {row.recipient_email for row in rows}
     test_case.assertEqual(
-        reminder_keys,
-        ["24h", "7d"],
+        recipients,
+        {"student@example.com", "opted-out@example.com"},
     )
-
-
-def assert_project_reminder_members(test_case, send_payloads):
-    for payload in send_payloads:
-        member_emails = set()
-        members = payload["members"]
-        for member in members:
-            email = member["email"]
-            member_emails.add(email)
-        test_case.assertEqual(
-            member_emails,
-            {"student@example.com", "opted-out@example.com"},
+    reminder_keys = {row.idempotency_key.split(":")[3] for row in rows}
+    test_case.assertEqual(reminder_keys, {"24h", "7d"})
+    for row in rows:
+        test_case.assertEqual(row.category, "email_deadline_reminders")
+        test_case.assertTrue(
+            row.idempotency_key.startswith("deadline-reminder:project:"),
         )
+        test_case.assertIn("enrollment:", row.idempotency_key)

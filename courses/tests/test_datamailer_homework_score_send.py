@@ -19,9 +19,7 @@ from courses.tests.datamailer_homework_score_base import (
 )
 
 
-class DatamailerHomeworkScoreSendSuccessTest(
-    DatamailerHomeworkScoreTestBase
-):
+class DatamailerHomeworkScoreSendSuccessTest(DatamailerHomeworkScoreTestBase):
     @override_settings(**DATAMAILER_SETTINGS)
     @patch(
         "course_management.datamailer.client_recipient_lists.DatamailerRecipientListSendClient.send_to_list"
@@ -60,9 +58,7 @@ class DatamailerHomeworkScoreSendSuccessTest(
         self.assert_homework_score_list_send(expectation)
 
 
-class DatamailerHomeworkScoreSendFailureTest(
-    DatamailerHomeworkScoreTestBase
-):
+class DatamailerHomeworkScoreSendFailureTest(DatamailerHomeworkScoreTestBase):
     @override_settings(**DATAMAILER_SETTINGS)
     @patch(
         "course_management.datamailer.client_recipient_lists.DatamailerRecipientListSendClient.send_to_list"
@@ -82,12 +78,7 @@ class DatamailerHomeworkScoreSendFailureTest(
 
         self.assertIsNone(result)
         send_list.assert_not_called()
-        event = DatamailerOutboxEvent.objects.get()
-        self.assertEqual(
-            event.event_type,
-            "recipient_list.members_bulk_upsert",
-        )
-        self.assertEqual(event.status, DatamailerOutboxStatus.RETRYING)
+        self.assertFalse(DatamailerOutboxEvent.objects.exists())
         audit = DatamailerSendAudit.objects.get()
         self.assertEqual(audit.status, DatamailerSendAuditStatus.FAILED)
         self.assertIn("metadata sync", audit.error)

@@ -109,100 +109,42 @@ def create_homework_reminder_fixture(test_case, now):
     )
 
 
-def assert_homework_reminder_list(test_case, payload):
+def assert_homework_reminder_deliveries(test_case, expectation):
+    from courses.tests.deadline_reminder_base import deliveries_for_purpose
+
+    deliveries = deliveries_for_purpose(test_case, "deadline-reminder")
     test_case.assertEqual(
-        payload["list"]["key"],
-        "deadline-reminders:homework:ml-zoomcamp-2026:homework-1:24h",
+        set(deliveries),
+        {"eligible@example.com", "opted-out@example.com"},
+    )
+    eligible = deliveries["eligible@example.com"]
+    opted_out = deliveries["opted-out@example.com"]
+    test_case.assertEqual(
+        eligible.idempotency_key,
+        (
+            f"deadline-reminder:homework:{expectation.homework.pk}:24h"
+            f":enrollment:{expectation.eligible_enrollment.pk}"
+        ),
     )
     test_case.assertEqual(
-        payload["list"]["name"],
-        "ML Zoomcamp 2026 Homework 1 24h deadline reminders",
+        opted_out.idempotency_key,
+        (
+            f"deadline-reminder:homework:{expectation.homework.pk}:24h"
+            f":enrollment:{expectation.opted_out_enrollment.pk}"
+        ),
     )
+    for row in (eligible, opted_out):
+        test_case.assertEqual(row.category, "email_deadline_reminders")
+        test_case.assertEqual(row.context_data["course_title"], "ML Zoomcamp 2026")
+        test_case.assertEqual(
+            row.context_data["course_url"],
+            "https://courses.example.com/courses/ml-zoomcamp/cohorts/2026/homework/homework-1",
+        )
     test_case.assertEqual(
-        payload["list"]["metadata"]["deadline_kind"],
-        "homework",
-    )
-
-
-def assert_homework_reminder_members(
-    test_case,
-    members_by_email,
-    expectation,
-):
-    expected_emails = {"eligible@example.com", "opted-out@example.com"}
-    actual_emails = set(members_by_email)
-    test_case.assertEqual(actual_emails, expected_emails)
-    eligible_member = members_by_email["eligible@example.com"]
-    opted_out_member = members_by_email["opted-out@example.com"]
-    test_case.assertEqual(
-        eligible_member["source_object_key"],
-        f"enrollment:{expectation.eligible_enrollment.pk}",
-    )
-    test_case.assertEqual(
-        opted_out_member["source_object_key"],
-        f"enrollment:{expectation.opted_out_enrollment.pk}",
-    )
-
-
-def assert_homework_reminder_idempotency(test_case, payload, expectation):
-    test_case.assertEqual(
-        payload["idempotency_key"],
-        f"deadline-reminder:homework:{expectation.homework.pk}:24h",
-    )
-
-
-def assert_homework_reminder_payload(test_case, payload, expectation):
-    assert_homework_reminder_list(test_case, payload)
-    members_by_email = test_case.members_by_email(payload)
-    assert_homework_reminder_members(
-        test_case,
-        members_by_email,
-        expectation,
-    )
-    assert_homework_reminder_context(test_case, payload, members_by_email)
-    assert_homework_reminder_idempotency(test_case, payload, expectation)
-
-
-def assert_homework_reminder_context(test_case, payload, members_by_email):
-    test_case.assertEqual(
-        members_by_email["eligible@example.com"]["metadata"]["deadline_at"],
+        eligible.context_data["deadline"],
         "Thursday, 18 June 2026, 01:00 Europe/Berlin",
     )
     test_case.assertEqual(
-        members_by_email["eligible@example.com"]["metadata"][
-            "deadline_timezone"
-        ],
-        "Europe/Berlin",
-    )
-    test_case.assertEqual(payload["template_key"], "deadline-reminder")
-    test_case.assertEqual(payload["category_tag"], "deadline-reminders")
-    test_case.assertEqual(
-        payload["context"]["action_url"],
-        "https://courses.example.com/courses/ml-zoomcamp/cohorts/2026/homework/homework-1",
-    )
-    test_case.assertEqual(
-        payload["context"]["deadline_at"],
+        opted_out.context_data["deadline"],
         "Wednesday, 17 June 2026, 23:00 UTC",
     )
-
-
-def assert_homework_reminder_audit(test_case, homework):
-    audit = DatamailerSendAudit.objects.get()
-    test_case.assertEqual(
-        audit.send_type,
-        DatamailerSendAuditType.TRANSIENT_RECIPIENT_LIST,
-    )
-    test_case.assertEqual(audit.status, DatamailerSendAuditStatus.SUCCEEDED)
-    test_case.assertEqual(
-        audit.idempotency_key,
-        f"deadline-reminder:homework:{homework.pk}:24h",
-    )
-    test_case.assertEqual(audit.template_key, "deadline-reminder")
-    test_case.assertEqual(audit.category_tag, "deadline-reminders")
-    test_case.assertEqual(audit.event, "deadline_reminder")
-    test_case.assertEqual(
-        audit.list_key,
-        "deadline-reminders:homework:ml-zoomcamp-2026:homework-1:24h",
-    )
-    test_case.assertEqual(audit.intended_count, 2)
-    test_case.assertEqual(audit.enqueued_count, 1)

@@ -18,8 +18,6 @@ def deadline_send_payload(
     metadata,
 ):
     payload = {
-        "audience": config.audience,
-        "client": config.client,
         "template_key": email_templates.DEADLINE_REMINDER,
         "category_tag": "deadline-reminders",
         "idempotency_key": event_key,
@@ -30,8 +28,11 @@ def deadline_send_payload(
             "event": "deadline_reminder",
         },
     }
-    if config.from_email:
-        payload["from_email"] = config.from_email
+    if config is not None:
+        payload["audience"] = config.audience
+        payload["client"] = config.client
+        if config.from_email:
+            payload["from_email"] = config.from_email
     return payload
 
 

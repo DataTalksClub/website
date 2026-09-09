@@ -14,10 +14,6 @@ class ProjectSubmissionConfirmationTestCase(ProjectSubmissionViewTestBase):
             mock.patch("requests.get") as mock_get,
             mock.patch("requests.head") as mock_head,
             mock.patch(
-                "courses.views.project_submission_edit."
-                "sync_project_submission_to_datamailer"
-            ) as sync_submission,
-            mock.patch(
                 "courses.views.project_confirmation.send_transactional_email"
             ) as send_email,
         ):
@@ -28,7 +24,6 @@ class ProjectSubmissionConfirmationTestCase(ProjectSubmissionViewTestBase):
 
         self.assert_project_confirmation_email(
             response,
-            sync_submission,
             send_email,
         )
 
@@ -36,10 +31,6 @@ class ProjectSubmissionConfirmationTestCase(ProjectSubmissionViewTestBase):
         with (
             mock.patch("requests.get") as mock_get,
             mock.patch("requests.head") as mock_head,
-            mock.patch(
-                "courses.views.project_submission_edit."
-                "sync_project_submission_to_datamailer"
-            ) as sync_submission,
             mock.patch(
                 "courses.views.project_confirmation.send_transactional_email"
             ) as send_email,
@@ -50,8 +41,6 @@ class ProjectSubmissionConfirmationTestCase(ProjectSubmissionViewTestBase):
             response = self.post_project(data, execute_callbacks=True)
 
         self.assertEqual(response.status_code, 302)
-        submission = self.get_project_submission()
-        sync_submission.assert_called_once_with(submission)
         send_email.assert_called_once()
         payload = send_email.call_args.args[0]
         self.assertEqual(payload["email"], "test@test.com")

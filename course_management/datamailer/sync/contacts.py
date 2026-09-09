@@ -2,11 +2,6 @@ import logging
 
 import requests
 
-from course_management.datamailer_outbox import (
-    DatamailerOutboxEventData,
-    enqueue_datamailer_outbox_event,
-)
-
 from ..client import DatamailerClient, DatamailerConfig
 from ..payloads.base import contact_payload_for_user
 
@@ -47,26 +42,16 @@ def sync_contact(user, course=None) -> None:
         handle_contact_sync_error(config, user)
 
 
-def erase_contact_from_datamailer(
-    user=None, *, user_id=None, email=None
-) -> None:
+def erase_contact_from_datamailer(user=None, *, user_id=None, email=None) -> None:
     config = DatamailerConfig.from_settings()
     if config is None:
         return
 
-    user_id, email = contact_erase_target(
-        user, user_id=user_id, email=email
-    )
+    user_id, email = contact_erase_target(user, user_id=user_id, email=email)
     if not email:
         return
 
-    ordering_key = contact_erase_ordering_key(user_id, email)
-    enqueue_contact_erase_event(
-        config,
-        user_id=user_id,
-        email=email,
-        ordering_key=ordering_key,
-    )
+    erase_contact_now(config, user_id=user_id, email=email)
 
 
 def contact_erase_target(user, *, user_id, email):
@@ -96,16 +81,17 @@ def contact_erase_ordering_key(user_id, email):
     return f"email:{email}"
 
 
-def enqueue_contact_erase_event(config, *, user_id, email, ordering_key):
-    event_data = DatamailerOutboxEventData(
-        event_type="contact.erase",
-        idempotency_key=f"contact.erase:{ordering_key}:{email}",
-        ordering_key=ordering_key,
-        payload={
-            "email": email,
-            "audience": config.audience,
-            "client": config.client,
-            "user_id": user_id,
-        },
-    )
-    enqueue_datamailer_outbox_event(event_data)
+def erase_contact_now(config, *, user_id, email):
+    """Erase the contact directly, best-effort like the upsert.
+
+    The outbox that used to carry this erase is gone (D1.2b); the row is
+    recipient-identifying, so the erase retries on the next deletion
+    attempt rather than living in a queue. ``user_id`` is kept in the
+    signature for the erase audit callers.
+    """
+
+    client = DatamailerClient(config)
+    try:
+        client.contacts.erase_contact(email)
+    except requests.RequestException:
+        handle_contact_sync_error(config, type("E", (), {"pk": user_id})())

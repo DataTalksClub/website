@@ -53,25 +53,6 @@ class ProjectScoreOutcomeTestCase(ProjectEvaluationTestBase):
             review_count=review_count,
         )
 
-    @patch("courses.project_scoring._sync_scored_project_submission_to_datamailer")
-    def test_project_scoring_syncs_datamailer_after_commit(self, sync):
-        other_prs = self.create_reverse_assignments(self.peer_reviews)
-        self.submit_peer_review(other_prs[0], "4")
-        self.submit_peer_review(other_prs[1], "3")
-        self.submit_peer_review(other_prs[2], "3")
-        answers_and_scores = [("4", 3), ("4", 3), ("3", 2)]
-
-        with self.captureOnCommitCallbacks(execute=True):
-            self.assert_evaluation_score(answers_and_scores, 3)
-
-        self.assertEqual(sync.call_count, 4)
-        synced_submission_ids = set()
-        sync_calls = sync.call_args_list
-        for call in sync_calls:
-            submission_id = call.args[0].pk
-            synced_submission_ids.add(submission_id)
-        self.assertIn(self.submission.pk, synced_submission_ids)
-
     def test_project_not_passed(self):
         other_prs = self.submit_required_reverse_reviews()
         review_count = len(other_prs)

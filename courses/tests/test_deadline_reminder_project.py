@@ -1,13 +1,12 @@
-from unittest.mock import patch
-
 from django.test import override_settings
 
 from courses.tests.deadline_reminder_base import (
     DATAMAILER_SETTINGS,
+    NO_PREFERENCE_LOOKUP,
     DeadlineReminderTestBase,
 )
 from courses.tests.deadline_reminder_project import (
-    assert_project_reminder_payloads,
+    assert_project_reminder_deliveries,
     create_project_submission_reminder_fixture,
 )
 
@@ -15,19 +14,15 @@ from courses.tests.deadline_reminder_project import (
 class ProjectSubmissionDeadlineReminderCommandTest(DeadlineReminderTestBase):
     @override_settings(
         **DATAMAILER_SETTINGS,
+        **NO_PREFERENCE_LOOKUP,
         PUBLIC_BASE_URL="https://courses.example.com",
-    )
-    @patch(
-        "course_management.datamailer.client_recipient_lists.DatamailerRecipientListSendClient.send_to_transient_list"
     )
     def test_project_deadline_reminders_use_7d_and_24h_windows(
         self,
-        send_transient,
-        ):
+    ):
         now = self.reminder_run_time()
-        send_transient.return_value = {"enqueued_count": 1}
         create_project_submission_reminder_fixture(self, now)
 
         self.run_deadline_reminders(now)
 
-        assert_project_reminder_payloads(self, send_transient)
+        assert_project_reminder_deliveries(self)

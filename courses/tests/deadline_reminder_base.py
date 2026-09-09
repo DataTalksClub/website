@@ -1,10 +1,34 @@
 from datetime import datetime, timezone as datetime_timezone
 
+from community_base.mail.models import EmailDelivery
+from django.conf import settings
 from django.core.management import call_command
 from django.test import TestCase
 
 from accounts.models import CustomUser
 from courses.models import Cohort, Enrollment
+
+
+#: The fake datamailer URLs these tests configure must not be consulted
+#: for preference lookups: the site resolver would try HTTP against them.
+#: Overriding the hook with the package's allow-all default keeps these
+#: command tests about delivery recording, not preference filtering; the
+#: datamailer never applied preferences at send time before D1.2b either,
+#: it did so server-side.
+NO_PREFERENCE_LOOKUP = {
+    "COMMUNITY_BASE": {
+        **settings.COMMUNITY_BASE,
+        "MAIL_PREFERENCE_RESOLVER": "community_base.mail.preferences.allow_all",
+    },
+}
+
+
+def deliveries_for_purpose(test_case, purpose):
+    rows = EmailDelivery.objects.filter(purpose=purpose).order_by(
+        "recipient_email",
+    )
+    test_case.assertTrue(rows.exists(), f"no {purpose} deliveries recorded")
+    return {row.recipient_email: row for row in rows}
 
 
 DATAMAILER_SETTINGS = {

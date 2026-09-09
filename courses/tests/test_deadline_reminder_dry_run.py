@@ -7,19 +7,19 @@ from django.test import override_settings
 from courses.models import Homework
 from courses.tests.deadline_reminder_base import (
     DATAMAILER_SETTINGS,
+    NO_PREFERENCE_LOOKUP,
     DeadlineReminderTestBase,
 )
 
 
 class DeadlineReminderDryRunCommandTest(DeadlineReminderTestBase):
-    @override_settings(**DATAMAILER_SETTINGS)
-    @patch(
-        "course_management.datamailer.client_recipient_lists.DatamailerRecipientListSendClient.send_to_transient_list"
+    @override_settings(
+        **DATAMAILER_SETTINGS,
+        **NO_PREFERENCE_LOOKUP,
+        PUBLIC_BASE_URL="https://courses.example.com",
     )
-    def test_deadline_reminder_dry_run_does_not_call_datamailer(
-        self,
-        send_transient,
-    ):
+    @patch("courses.management.commands.send_deadline_reminders.send_deadline_reminder_mail")
+    def test_deadline_reminder_dry_run_does_not_send(self, send_mail):
         now = self.reminder_run_time()
         course = self.create_course()
         user = self.create_user("student", "student@example.com")
@@ -39,4 +39,4 @@ class DeadlineReminderDryRunCommandTest(DeadlineReminderTestBase):
             "deadline-reminders:homework:ml-zoomcamp-2026:homework-1:24h: 1 member(s)",
             output,
         )
-        send_transient.assert_not_called()
+        send_mail.assert_not_called()

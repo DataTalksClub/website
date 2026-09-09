@@ -7,7 +7,7 @@ from .base import normalized_email
 from .urls import cohort_route_kwargs, public_route_url
 
 
-def _certificate_availability_urls(enrollment):
+def certificate_availability_urls(enrollment):
     course = enrollment.course
     certificate_path = enrollment.certificate_url.strip()
     certificate_url = public_url(certificate_path)
@@ -76,7 +76,7 @@ def _certificate_availability_base_payload(
     enrollment,
     email: str,
 ) -> dict[str, Any]:
-    urls = _certificate_availability_urls(enrollment)
+    urls = certificate_availability_urls(enrollment)
     context = _certificate_availability_context(enrollment, urls)
     metadata = _certificate_availability_metadata(enrollment)
     return {

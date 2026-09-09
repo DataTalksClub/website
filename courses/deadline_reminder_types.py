@@ -57,7 +57,7 @@ class ReminderTemplateContextData:
 
 @dataclass(frozen=True)
 class ReminderEventData:
-    config: DatamailerConfig
+    config: DatamailerConfig | None
     spec: ReminderSpec
     item: ReminderItemData
     members: list[dict[str, Any]]

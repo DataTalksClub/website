@@ -6,9 +6,7 @@ from django.views.decorators.http import require_POST
 from accounts.auth import token_required
 from api.safety import require_staff_token
 from api.utils import parse_json_body
-from course_management.datamailer.sync.certificates import (
-    send_certificate_availability_notification,
-)
+from course_management.package_mail import send_certificate_ready_mail
 from courses.models.cohort import Cohort
 
 from .enrollment_certificate_updates import process_certificate_updates
@@ -34,7 +32,7 @@ def bulk_update_enrollment_certificates_view(request, course_slug: str):
         course,
         course_slug,
         certificate_updates,
-        send_certificate_availability_notification,
+        send_certificate_ready_mail,
     )
 
     return _certificate_update_response(updated, errors)
@@ -54,9 +52,7 @@ def _certificate_request_updates(request):
         return None, error_response
 
     if not certificate_updates:
-        error_payload = {
-            "error": "At least one certificate update is required"
-        }
+        error_payload = {"error": "At least one certificate update is required"}
         error_response = JsonResponse(error_payload, status=400)
         return None, error_response
 
