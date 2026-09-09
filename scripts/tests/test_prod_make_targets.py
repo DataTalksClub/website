@@ -83,7 +83,9 @@ REBUILD_TARGETS = (
 
 def _entry_point_names() -> list[str]:
     return sorted(
-        module.name for module in pkgutil.iter_modules([str(PROD_ROOT)]) if not module.ispkg
+        module.name
+        for module in pkgutil.iter_modules([str(PROD_ROOT)])
+        if not module.ispkg and module.name not in scripts.prod.LIBRARY_MODULES
     )
 
 
@@ -655,6 +657,20 @@ class RebuildExclusionTests(SimpleTestCase):
             *_reachable_targets("production-prep-bootstrap"),
         }
         self.assertNotIn("import-cmp-content", reachable)
+
+    def test_the_event_import_is_not_invoked_a_second_time(self) -> None:
+        """`prepare_local_data.py` already runs the whole §11 step-5 pipeline.
+
+        It composes `import_events.run()` itself, so a second `import-events`
+        call after it re-parsed both provider exports and re-ran every leg to
+        compensate for drift the first pass had not produced.
+        """
+
+        reachable = {
+            "production-prep-bootstrap",
+            *_reachable_targets("production-prep-bootstrap"),
+        }
+        self.assertNotIn("import-events", reachable)
 
     def test_the_bootstrap_comment_records_what_is_left_out_and_why(self) -> None:
         preamble = MAKEFILE.read_text(encoding="utf-8").split("production-prep-bootstrap:")[0]

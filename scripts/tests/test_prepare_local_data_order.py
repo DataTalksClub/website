@@ -74,3 +74,47 @@ class LocalPreparationOrderTests(TestCase):
             editorial,
             "the reviewed editorial inputs are step 4, after the catalogue in step 3",
         )
+
+    def test_the_event_stage_is_one_composed_pipeline_after_editorial(self) -> None:
+        """§11 step 5 runs whole, last, through the production entry point.
+
+        The rehearsal used to run two of the five event legs before the
+        catalogue and the registration legs after the editorial block, outside
+        any transaction -- a shape the production importer had specifically
+        fixed: new events never appeared, and a refused registration leg left
+        the earlier event writes committed.
+        """
+
+        editorial = self.source.index("editorial_content = _import_editorial_content()")
+        event_stage = self.source.index("event_pipeline = run_event_pipeline(")
+        self.assertLess(
+            editorial,
+            event_stage,
+            "the event pipeline is §11 step 5 and runs after the editorial block",
+        )
+        self.assertEqual(
+            self.source.count("run_event_pipeline("),
+            1,
+            "the event stage is one composed pipeline, not a leg list",
+        )
+
+    def test_the_orchestrator_composes_no_private_event_leg(self) -> None:
+        """Reaching into one leg reorders the pipeline around this caller."""
+
+        for leg in (
+            "import_identities(",
+            "import_content(",
+            "import_new_content(",
+            "discover_new_luma_event_identities(",
+            "derive_registration_sources(",
+            "stage_registration_aggregates(",
+            "activate_unambiguous_mappings(",
+            "activation_coverage(",
+            "load_current_registration_input(",
+        ):
+            with self.subTest(leg=leg):
+                self.assertNotIn(
+                    leg,
+                    self.source,
+                    "the orchestrator must run the whole pipeline, not pick legs",
+                )

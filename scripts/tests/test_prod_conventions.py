@@ -27,7 +27,9 @@ PROD_ROOT = Path(scripts.prod.__file__).resolve().parent
 
 def _entry_point_names() -> list[str]:
     return sorted(
-        module.name for module in pkgutil.iter_modules([str(PROD_ROOT)]) if not module.ispkg
+        module.name
+        for module in pkgutil.iter_modules([str(PROD_ROOT)])
+        if not module.ispkg and module.name not in scripts.prod.LIBRARY_MODULES
     )
 
 

@@ -1414,10 +1414,14 @@ What genuinely differs, and needs care rather than a separate pipeline:
    see "Not in the bootstrap order, and why" below.
 
 `make production-prep-dataset` runs stages 1–3 plus `scripts/prepare_local_data.py` and
-`scripts/verify_local_dataset.py`; that orchestrator also runs the event identity and
-content imports in production order, and `verify_local_dataset.py` reports
-`database_event_identities` and `database_event_content` separately, because an identity
-alone publishes no page. Read
+`scripts/verify_local_dataset.py`; that orchestrator runs the whole of step 5 by
+composing `import_events.run()` itself — one call, all five legs, in the fixed order,
+under its single transaction, after the editorial block — and `verify_local_dataset.py`
+reports `database_event_identities` and `database_event_content` separately, because an
+identity alone publishes no page. `make production-prep-bootstrap` therefore has no
+`import-events` call of its own: the rehearsal already ran the pipeline, and a second
+pass would re-parse both provider exports and re-run every leg to compensate for drift
+the first pass had not produced. Read
 `_docs/runbooks/local-course-modules-preparation.md` for prerequisites.
 
 ### Not in the bootstrap order, and why

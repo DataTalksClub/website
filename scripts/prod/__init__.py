@@ -179,10 +179,19 @@ MAKE_TARGET_EXCLUSIONS: dict[str, str] = {
     ),
 }
 
+# Modules under scripts/prod that are libraries, not entry points: other
+# importers compose them, so the entry-point conventions -- SYNC_MODEL, the
+# shared target selection, a Makefile target or a MAKE_TARGET_EXCLUSIONS
+# reason -- do not apply. `reviewed_release` allocates sequences and resolves
+# replay receipts inside the composition of the reviewed editorial importers;
+# a target of its own would write a release nothing reviewed describes.
+LIBRARY_MODULES = frozenset({"reviewed_release"})
+
 __all__ = [
     "BOOTSTRAPPING_ENTRY_POINTS",
     "CMP_LEARNER_ORDER",
     "COURSE_CATALOGUE_ORDER",
+    "LIBRARY_MODULES",
     "MAKE_TARGET_EXCLUSIONS",
     "SYNC_MODELS",
 ]

@@ -285,7 +285,7 @@ class SharedSelectionTests(SimpleTestCase):
 
     def test_no_entry_point_configures_its_own_database(self) -> None:
         for module in pkgutil.iter_modules([str(PROD_ROOT)]):
-            if module.ispkg:
+            if module.ispkg or module.name in scripts.prod.LIBRARY_MODULES:
                 continue
             with self.subTest(module=module.name):
                 source = (PROD_ROOT / f"{module.name}.py").read_text(encoding="utf-8")

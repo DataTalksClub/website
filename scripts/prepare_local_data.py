@@ -4,14 +4,19 @@
 This command composes the existing local-only preparation seams.  It writes only to an
 explicit SQLite database below ``.tmp/`` and never connects to a deployed database.
 
-The public event identity manifest and course catalog are imported into the database.  The
-reviewed editorial inputs under ``temporary/content/`` -- the public catalogue, the FAQ, the
-documentation, the sponsor directory and the homepage testimonials -- are imported after the
-course catalogue, which is step 4 of the bootstrap order in
-``_docs/runbooks/data-ingest.md`` §11.  The protected Eventbrite and Luma exports are parsed and
-reconciled against their recorded safe facts.  Legacy candidates remain review-required; an
-optional explicit current-event mapping input can stage and activate only those exact provider
-identities so a fresh database can render their aggregate count without a title/date guess.
+The public event pipeline is `scripts/prod/import_events.py`'s own `run()` -- all
+five legs (reviewed identities, reviewed content, new-event discovery, staged
+descriptions for discovered events, registration-aggregate derivation and
+staging plus the automatic mapping resolution) in their fixed order under its
+one transaction. The course catalog is imported first and the reviewed editorial
+inputs after it, which is the bootstrap order in
+`_docs/runbooks/data-ingest.md` §11; the event stage is §11 step 5 and runs
+last, through the same function the production entry point calls. The protected
+Eventbrite and Luma exports are parsed and reconciled against their recorded safe
+facts. Legacy candidates remain review-required; an optional explicit
+current-event mapping input can stage and activate only those exact provider
+identities so a fresh database can render their aggregate count without a
+title/date guess.
 """
 
 from __future__ import annotations
@@ -32,20 +37,18 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-# The event legs live in scripts/prod/import_events.py, which is also their own
-# entry point. This orchestrator composes that module rather than keeping a
-# second copy of the same parsing, staging and activation code.
+# The event pipeline lives in scripts/prod/import_events.py, which is also its
+# own entry point. This orchestrator composes that module's run() -- all five
+# legs, in their fixed order, inside its one transaction -- rather than keeping
+# a second, shorter copy of the same parsing, staging and activation code.
 from scripts.prod.import_events import (  # noqa: E402
     EVENTBRITE_RELATIVE_SOURCE,
     IDENTITY_MANIFEST_PATH,
     LUMA_RELATIVE_SOURCE,
     EventImportError,
-    activation_coverage,
-    derive_registration_sources,
-    import_content,
-    import_identities,
-    load_current_registration_input,
-    stage_registration_aggregates,
+)
+from scripts.prod.import_events import (  # noqa: E402
+    run as run_event_pipeline,
 )
 from scripts.prod.sync_course_repositories import (  # noqa: E402
     SyncCourseRepositoriesError,
@@ -63,7 +66,7 @@ from scripts.prod.sync_course_repository_sources import (  # noqa: E402
     sync as sync_course_repository_sources,
 )
 
-ORCHESTRATOR_SCHEMA_VERSION = 1
+ORCHESTRATOR_SCHEMA_VERSION = 2
 
 
 class LocalPreparationError(RuntimeError):
@@ -188,39 +191,6 @@ def _import_editorial_content() -> dict[str, Any]:
     return reports
 
 
-def _load_current_registration_input(path: Path | None):
-    with _event_import_refusals():
-        return load_current_registration_input(path)
-
-
-def _registration_source_report(
-    *,
-    luma_source: Path,
-    eventbrite_source: Path,
-    current_input=None,
-) -> dict[str, Any]:
-    report, _derived = _registration_source_derivations(
-        luma_source=luma_source,
-        eventbrite_source=eventbrite_source,
-        current_input=current_input,
-    )
-    return report
-
-
-def _registration_source_derivations(
-    *,
-    luma_source: Path,
-    eventbrite_source: Path,
-    current_input=None,
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    with _event_import_refusals():
-        return derive_registration_sources(
-            luma_source=luma_source,
-            eventbrite_source=eventbrite_source,
-            current_input=current_input,
-        )
-
-
 def run(
     *,
     database: Path,
@@ -255,16 +225,7 @@ def run(
 
     django.setup()
 
-    current_input = _load_current_registration_input(current_registration_input)
-
     migrations = _json_management_command("migrate", interactive=False)
-    # Same function `scripts/prod/import_events.py` calls for identity import: one
-    # implementation, not a management command wrapping a second copy of it.
-    with _event_import_refusals():
-        identities = import_identities(manifest=identity_manifest, apply=True)
-        # Content reconciles against the identities just written, so it follows
-        # them here for the same reason it follows them in production.
-        event_content = import_content(apply=True)
     catalog = _json_management_command("seed_local_courses")
     # Which repositories exist is registered data, so the rehearsal registers the
     # pinned sources and then runs the one ingestion the signed push webhook runs.
@@ -308,41 +269,79 @@ def run(
             cmp_content = import_cmp_course_content(cmp_source_db).summary()
         except CmpContentImportError as error:
             raise LocalPreparationError(f"cmp_content_{error}") from error
-    # Step 4, after the catalogue and before the registration legs: real reviewed
+    # Step 4, after the catalogue and before the event stage: real reviewed
     # content from the production importers rather than a seeder, so the rehearsal
     # database holds the same editorial catalogue a production database does.
     editorial_content = _import_editorial_content()
-    registration_sources, derived_sources = _registration_source_derivations(
-        luma_source=luma_source,
-        eventbrite_source=eventbrite_source,
-        current_input=current_input,
-    )
+    # Step 5, and the rehearsal's one event stage: `import_events.run()` itself,
+    # all five legs in their fixed order under its one transaction. The
+    # rehearsal used to run only the identity and content legs before the
+    # catalogue and the registration legs after this block, outside any
+    # transaction -- so a new event the discovery leg would have created, or an
+    # aggregate the automatic resolution would have mapped, silently never
+    # appeared, and a refused registration leg left the earlier event writes
+    # committed with their queued wakeups pointing at them.
     with _event_import_refusals():
-        registration_import = stage_registration_aggregates(
-            derived_sources=derived_sources,
-            source_report=registration_sources,
-            current_input=current_input,
+        event_pipeline = run_event_pipeline(
+            identity_manifest=identity_manifest,
+            luma_source=luma_source,
+            eventbrite_source=eventbrite_source,
+            current_registration_input=current_registration_input,
             correlation_id="local-production-prep",
         )
-        coverage = activation_coverage(
-            source_report=registration_sources, staged=registration_import
-        )
+    return _orchestrator_report(
+        fresh=fresh,
+        migrations=migrations,
+        catalog=catalog,
+        course_sources=course_sources,
+        modules=modules,
+        cmp_content=cmp_content,
+        editorial_content=editorial_content,
+        event_pipeline=event_pipeline,
+    )
+
+
+def _orchestrator_report(
+    *,
+    fresh: bool,
+    migrations: dict[str, Any],
+    catalog: dict[str, Any],
+    course_sources: dict[str, Any],
+    modules: dict[str, Any],
+    cmp_content: dict[str, Any],
+    editorial_content: dict[str, Any],
+    event_pipeline: dict[str, Any],
+) -> dict[str, Any]:
+    """The rehearsal report: course/editorial under ``steps``, the event
+    stage's own structured result at top level.
+
+    The event keys are carried over key for key from ``import_events.run()``:
+    the reviewed-manifest identities, the automatic Luma discovery, the
+    reviewed content records, the staged descriptions for discovered events,
+    the registration derivation/staging, the narrower automatic mapping
+    resolution and the explicit-input activation coverage each stay under
+    their own name. Merging any two would hide which of them moved.
+    """
+
     return {
         "schema_version": ORCHESTRATOR_SCHEMA_VERSION,
         "database": {"environment": "local", "sqlite": True, "fresh_requested": fresh},
         "steps": {
             "migrations": {"completed": True, "report": migrations},
-            "event_identities": identities,
-            "event_content": event_content,
             "course_catalog": catalog,
             "course_repository_sources": course_sources,
             "course_modules": modules,
             "cmp_content": cmp_content,
             "editorial_content": editorial_content,
         },
-        "registration_sources": registration_sources,
-        "registration_import": registration_import,
-        "activation_coverage": coverage,
+        "event_identities": event_pipeline["identities"],
+        "new_event_identities": event_pipeline["new_event_identities"],
+        "event_content": event_pipeline["event_content"],
+        "new_event_content": event_pipeline["new_event_content"],
+        "registration_sources": event_pipeline["registration_sources"],
+        "registration_import": event_pipeline["registration_import"],
+        "aggregate_auto_resolution": event_pipeline["aggregate_auto_resolution"],
+        "activation_coverage": event_pipeline["activation_coverage"],
     }
 
 
