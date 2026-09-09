@@ -40,14 +40,12 @@ class OutboxEnqueueGateTest(TestCase):
 
 class MailPreferenceResolverTest(TestCase):
     def _resolver(self, **kwargs):
-        defaults = {
-            "purpose": "deadline-reminder",
-            "category": "email_deadline_reminders",
-            "to": "student@example.com",
-            "user": None,
-        }
-        defaults.update(kwargs)
-        return resolve_mail_preference(**defaults)
+        return resolve_mail_preference(
+            purpose=kwargs.get("purpose", "deadline-reminder"),
+            category=kwargs.get("category", "email_deadline_reminders"),
+            to=kwargs.get("to", "student@example.com"),
+            user=kwargs.get("user"),
+        )
 
     def test_anonymous_and_uncategorised_mail_is_allowed(self):
         self.assertTrue(self._resolver())
