@@ -9,7 +9,11 @@ from courses.models.homework import HomeworkState
 
 from api.crud import bulk_create_response
 from api.safety import require_staff_token
-from api.utils import instructions_url_error, parse_date, parse_json_body
+from api.utils import (
+    instructions_url_error,
+    parse_date,
+    parse_json_object_list,
+)
 from api.views.homework_serializers import homework_to_dict
 
 
@@ -157,12 +161,12 @@ def homeworks_create_response(request, course):
     if staff_error:
         return staff_error
 
-    data, err = parse_json_body(request)
+    items, err = parse_json_object_list(request)
     if err:
         return err
 
     response = bulk_create_response(
-        data,
+        items,
         create_homework,
         course,
     )

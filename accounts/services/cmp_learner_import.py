@@ -82,33 +82,26 @@ this migration. (An earlier revision of this importer *did* carry the id as
 along with the migration that added it, once every caller here moved to the claims
 store below.)
 
-The store is a flat ``{"<cmp_source_id>": <user_pk>, ...}`` JSON object, held in
-memory during a run and rewritten to disk -- atomically, a temp file plus
-``os.replace`` -- immediately after each committed batch in :func:`_import_accounts`,
-the only phase that adds claims. It is not scratch: it is this importer's own
-durable resumability state, the same role ``CmpLearnerImportProgress`` plays for
-the per-table watermark, just script-owned file state instead of a database row
-(see ``accounts.models.CmpLearnerImportProgress`` -- that table is unaffected by
-this change; it is not a field on a live domain model, so the same principle that
-moved the source id off ``CustomUser`` does not ask it to move).
+The store is the script-owned ``CmpLearnerClaim`` table: one row per imported
+source id, written *inside* the same database transaction as the batch that
+created the account (:func:`_import_accounts`, the only phase that adds
+claims). It is not scratch: it is this importer's own durable resumability
+state, the same role ``CmpLearnerImportProgress`` plays for the per-table
+watermark. Because a database row can join the batch's transaction, the
+claim-and-watermark durability unit is atomic by construction -- there is no
+commit-then-write window in which a kill can leave a committed account with
+no recorded claim (audit REL-04).
 
-Writing the claims file happens *after* the database transaction that created the
-claim commits, never before and never as part of it -- a JSON file cannot join a
-database transaction. A process killed in the narrow window between the two is the
-one case this design does not make byte-for-byte atomic with the database. It is
-still safe: the watermark (committed atomically with the row, inside the same
-transaction) has already advanced past that source id, so an ordinary resume never
-revisits it. Only a *second*, independent fault -- the watermark itself lost or
-reset -- would cause this importer to reconsider that source id, and even then the
-outcome is a safe idempotent re-attach (:func:`_attach_existing_account` onto the
-row this importer already created, matched by its own ``normalized_email`), not a
-duplicate account -- unless that exact source id is also the one CMP row half of
-the export's one known same-address collision (ids 2/15515), in which case a
-reconciliation-worthy misattribution becomes possible instead of impossible. Given
-how narrow that compound window is -- a kill in a few milliseconds of file I/O,
-on a watermark that has already independently failed, on the one specific already-
-flagged row pair -- this is the accepted trade-off of keeping claim tracking as
-ingestion-scoped script state rather than a permanent column, not an oversight.
+The whole run is bound to its inputs before the first write
+(:func:`_open_run_binding`): the export file's SHA-256 digest plus this
+importer's schema and importer versions are recorded once and must match on
+every later run, including a kill-and-resume (audit REL-03). Claims therefore
+cannot be carried from one export snapshot to another, and a rebuilt target
+database -- no binding row, no claims, no watermark -- can only begin a fresh
+import, never resume a different database's. Pre-binding JSON claims files
+from earlier revisions of this importer are deliberately not adopted: they
+carry no provenance, and adopting them would be inferring ownership from
+matching ids.
 
 Cross-source deduplication
 ---------------------------
@@ -159,11 +152,9 @@ is skipped and counted, not re-created, regardless of what the watermark says.
 
 from __future__ import annotations
 
-import json
-import os
+import hashlib
 import re
 import sqlite3
-import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, NoReturn
@@ -173,13 +164,17 @@ from django.db import IntegrityError, transaction
 from django.utils.dateparse import parse_datetime
 
 from accounts.identity_values import normalize_account_email
-from accounts.models import CmpLearnerImportProgress, CustomUser
+from accounts.models import (
+    CmpLearnerClaim,
+    CmpLearnerImportBinding,
+    CmpLearnerImportProgress,
+    CustomUser,
+)
 
 __all__ = [
     "CmpClaimsStore",
     "CmpLearnerImportError",
     "DEFAULT_BATCH_SIZE",
-    "DEFAULT_CLAIMS_PATH",
     "FORBIDDEN_TABLES",
     "LearnerImportPhaseReport",
     "LearnerImportResult",
@@ -244,8 +239,10 @@ _NULLABLE_TEXT_FIELDS = frozenset(
 
 _USERNAME_SANITIZE_RE = re.compile(r"[^\w.@+-]")
 _MAX_USERNAME_LENGTH = 150
-
-DEFAULT_CLAIMS_PATH = Path(".tmp/cmp_learner_import_claims.json")
+# Bounded username allocation (audit REL-12): at most this many sequential
+# suffixes after the unsuffixed candidate, then one deterministic source-key
+# suffix, then a safe refusal -- never an unbounded loop.
+_MAX_USERNAME_COLLISIONS = 100
 
 
 class CmpLearnerImportError(RuntimeError):
@@ -256,91 +253,109 @@ def _refuse(code: str) -> NoReturn:
     raise CmpLearnerImportError(code)
 
 
-@dataclass(slots=True)
+SCHEMA_VERSION = 2
+IMPORTER_VERSION = "cmp-learner-import-2"
+BINDING_KIND = "learner-accounts"
+
+
 class CmpClaimsStore:
     """This importer's own durable "CMP source id -> CustomUser pk" record.
 
-    See the module docstring's "Claim tracking" section for why this exists as
-    script-owned file state instead of a field on ``CustomUser``, and for the
-    exact durability reasoning. Not thread- or process-safe for concurrent
-    writers -- this importer is a single-threaded, one-time script, the same
-    assumption ``CmpLearnerImportProgress`` already makes.
+    Backed by the script-owned ``CmpLearnerClaim`` table: :meth:`record` is
+    called inside the batch's ``transaction.atomic()`` block, so a claim is
+    committed atomically with the account row it maps and the watermark that
+    counts it -- there is no separate file that can fall behind a commit
+    (audit REL-04). See the module docstring's "Claim tracking" section.
+    Not thread- or process-safe for concurrent writers -- this importer is a
+    single-threaded, one-time script, the same assumption
+    ``CmpLearnerImportProgress`` already makes.
     """
 
-    path: Path
-    _by_source: dict[int, int] = field(default_factory=dict)
-    _by_user: dict[int, int] = field(default_factory=dict)
+    def __init__(self) -> None:
+        self._by_source: dict[int, int] | None = None
+
+    @property
+    def _cache(self) -> dict[int, int]:
+        if self._by_source is None:
+            self._by_source = dict(CmpLearnerClaim.objects.values_list("source_id", "user_id"))
+        return self._by_source
 
     @classmethod
-    def load(cls, path: Path) -> CmpClaimsStore:
-        try:
-            raw_text = path.read_text(encoding="utf-8")
-        except FileNotFoundError:
-            return cls(path=path)
-        except OSError:
-            _refuse("claims-file-unreadable")
-        try:
-            raw = json.loads(raw_text)
-        except json.JSONDecodeError:
-            _refuse("claims-file-malformed")
-        if not isinstance(raw, dict):
-            _refuse("claims-file-malformed")
-        by_source: dict[int, int] = {}
-        for key, value in raw.items():
-            try:
-                by_source[int(key)] = int(value)
-            except (TypeError, ValueError):
-                _refuse("claims-file-malformed")
-        store = cls(path=path, _by_source=by_source)
-        store._by_user = {user_id: source_id for source_id, user_id in by_source.items()}
-        return store
+    def load(cls) -> CmpClaimsStore:
+        return cls()
 
     def is_claimed(self, source_id: int) -> bool:
-        return source_id in self._by_source
+        return source_id in self._cache
 
     def is_claimed_user(self, user_id: int) -> bool:
-        return user_id in self._by_user
+        return user_id in set(self._cache.values())
 
     def user_id_for_source(self, source_id: int) -> int | None:
-        return self._by_source.get(source_id)
+        return self._cache.get(source_id)
 
     def source_id_for_user(self, user_id: int) -> int | None:
-        return self._by_user.get(user_id)
+        for source_id, claimed_user_id in self._cache.items():
+            if claimed_user_id == user_id:
+                return source_id
+        return None
 
     def claimed_user_ids(self) -> frozenset[int]:
-        return frozenset(self._by_user)
+        return frozenset(self._cache.values())
 
     def sorted_claims(self) -> list[tuple[int, int]]:
-        return sorted(self._by_source.items())
+        return sorted(self._cache.items())
 
     def record(self, *, source_id: int, user_id: int) -> None:
-        self._by_source[source_id] = user_id
-        self._by_user[user_id] = source_id
+        """Persist one claim in the caller's transaction.
 
-    def flush(self) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        payload = json.dumps(
-            {str(source_id): user_id for source_id, user_id in self._by_source.items()},
-            sort_keys=True,
-        )
-        descriptor, tmp_name = tempfile.mkstemp(
-            dir=self.path.parent,
-            prefix=".cmp-learner-claims-",
-            suffix=".tmp",
-        )
-        try:
-            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
-                handle.write(payload)
-            os.replace(tmp_name, self.path)
-        except BaseException:
-            try:
-                os.unlink(tmp_name)
-            except OSError:
-                pass
-            raise
+        Must run inside the same ``transaction.atomic()`` block as the write
+        that created ``user_id``; a rolled-back batch discards this insert
+        along with everything else it did.
+        """
+
+        CmpLearnerClaim.objects.create(source_id=source_id, user_id=user_id)
+        self._cache[source_id] = user_id
 
     def __len__(self) -> int:
-        return len(self._by_source)
+        return len(self._cache)
+
+
+def _source_digest(source: Path) -> str:
+    digest = hashlib.sha256()
+    try:
+        with source.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+    except OSError:
+        _refuse("source-unreadable")
+    return digest.hexdigest()
+
+
+def _open_run_binding(source: Path) -> None:
+    """Bind this run to the exact export, or refuse before any write.
+
+    The first run records the export's digest and this importer's versions;
+    every later run -- a resume included -- must present the same triple.
+    The binding row carries a per-database UUID, so two databases can never
+    share one, and a rebuilt database (no row) can only start fresh (audit
+    REL-03).
+    """
+
+    digest = _source_digest(source)
+    binding, created = CmpLearnerImportBinding.objects.get_or_create(
+        kind=BINDING_KIND,
+        defaults={
+            "schema_version": SCHEMA_VERSION,
+            "importer_version": IMPORTER_VERSION,
+            "source_sha256": digest,
+        },
+    )
+    if created:
+        return
+    if binding.schema_version != SCHEMA_VERSION or (binding.importer_version != IMPORTER_VERSION):
+        _refuse("run-bound-to-different-importer-version")
+    if binding.source_sha256 != digest:
+        _refuse("run-bound-to-different-source")
 
 
 def _readonly(source_db: Path) -> sqlite3.Connection:
@@ -443,20 +458,61 @@ def _username_candidate(email: str) -> str:
     return (sanitized or "learner")[: _MAX_USERNAME_LENGTH - 6]
 
 
-def _unique_username(preferred: str) -> str:
+def _unique_username(preferred: str, source_id: int | None = None) -> str:
+    """A unique username within the field limit, allocated in bounded time.
+
+    The first candidate is the unsuffixed value.  On a collision the base is
+    truncated to leave room for the suffix *before* appending it, so every
+    candidate is distinct and within the field limit -- truncating after the
+    append, as this used to, made every candidate identical for a full-length
+    base and looped forever (audit REL-12).  Sequential suffixes are bounded;
+    past the bound the row's CMP source id is the deterministic suffix of
+    last resort, and exhausting even that is a fail-closed refusal rather
+    than another spin.
+    """
+
     base = (preferred or "learner")[:_MAX_USERNAME_LENGTH]
-    candidate = base
-    suffix = 1
-    while CustomUser.objects.filter(username=candidate).exists():
-        suffix += 1
-        candidate = f"{base}-{suffix}"[:_MAX_USERNAME_LENGTH]
-    return candidate
+
+    def with_suffix(suffix: str) -> str:
+        return f"{base[: _MAX_USERNAME_LENGTH - len(suffix)]}{suffix}"
+
+    candidates = [base]
+    candidates.extend(
+        with_suffix(f"-{number}") for number in range(1, _MAX_USERNAME_COLLISIONS + 1)
+    )
+    if source_id is not None:
+        candidates.append(with_suffix(f"-cmp-{source_id}"))
+    for candidate in candidates:
+        if not CustomUser.objects.filter(username=candidate).exists():
+            return candidate
+    _refuse("username-unallocatable")
+
+
+def _save_new_account(account: CustomUser, source_id: int) -> None:
+    """Save one fresh account, retrying a username race once, deterministically.
+
+    The pre-insert existence check does not reserve the name: a concurrent
+    writer could take it between the check and the save, however unlikely for
+    this documented single-threaded importer.  One re-resolution -- which now
+    sees the taken name and moves on -- handles that; a second failure is a
+    real write error and rolls the batch back like any other.  The nested
+    atomic block is the savepoint that keeps the outer batch transaction
+    usable after the caught integrity error (audit REL-12).
+    """
+
+    try:
+        with transaction.atomic():
+            account.save()
+    except IntegrityError:
+        account.username = _unique_username(account.username, source_id=source_id)
+        with transaction.atomic():
+            account.save()
 
 
 def _resolve_username(row: sqlite3.Row) -> str:
     source_username = (row["username"] or "").strip()
     preferred = source_username or _username_candidate((row["email"] or "").strip())
-    return _unique_username(preferred)
+    return _unique_username(preferred, source_id=int(row["id"]))
 
 
 def _populate_profile_fields(user: CustomUser, row: sqlite3.Row) -> None:
@@ -561,9 +617,7 @@ def _import_accounts(
         if not rows:
             progress.completed = True
             _save_progress(progress)
-            claims.flush()
             break
-        batch_had_new_claims = False
         with transaction.atomic():
             written = 0
             skipped = 0
@@ -579,29 +633,19 @@ def _import_accounts(
                     cross_source_matches.append(row["id"])
                 else:
                     account = _build_account(row)
-                    account.save()
-                # Recorded in memory immediately -- a later row in this same
-                # batch sharing this row's email (the export's one known
-                # same-address pair, ids 2/15515) must see this claim to
-                # correctly treat it as CMP-claimed, not as an unclaimed
-                # cross-source match to attach onto. If this transaction
-                # rolls back (the batch fails), this in-memory update is
-                # discarded along with it -- the exception propagates out of
-                # this whole function uncaught, so execution never reaches
-                # the claims-file flush below for this batch.
+                    _save_new_account(account, source_id=int(row["id"]))
+                # Persisted inside this transaction, so the claim, the
+                # account row and the watermark commit or roll back as one.
+                # A later row in this same batch sharing this row's email
+                # (the export's one known same-address pair, ids 2/15515)
+                # must see this claim to correctly treat it as CMP-claimed,
+                # not as an unclaimed cross-source match to attach onto.
                 claims.record(source_id=row["id"], user_id=account.pk)
-                batch_had_new_claims = True
                 written += 1
             progress.last_source_id = max_id
             progress.rows_written += written
             progress.rows_skipped += skipped
             _save_progress(progress)
-        # The claims file is written only after the database transaction
-        # above has really committed -- see the module docstring's "Claim
-        # tracking" section for why the order matters and what a crash in
-        # between costs.
-        if batch_had_new_claims:
-            claims.flush()
     return _phase_report(progress, source_total), tuple(cross_source_matches)
 
 
@@ -727,7 +771,7 @@ def _synthesize_missing_email_addresses(
     return _phase_report(progress, source_total), tuple(collisions)
 
 
-def dry_run_counts(source: Path, *, claims_path: Path = DEFAULT_CLAIMS_PATH) -> dict[str, Any]:
+def dry_run_counts(source: Path) -> dict[str, Any]:
     """Report counts without writing anything."""
 
     _assert_forbidden_tables_untouched()
@@ -737,7 +781,7 @@ def dry_run_counts(source: Path, *, claims_path: Path = DEFAULT_CLAIMS_PATH) -> 
         emails_total = _count(connection, EMAIL_ADDRESS_TABLE)
     finally:
         connection.close()
-    claims = CmpClaimsStore.load(claims_path)
+    claims = CmpClaimsStore.load()
     already_imported = len(claims)
     already_imported_emails = EmailAddress.objects.filter(
         user_id__in=claims.claimed_user_ids()
@@ -751,7 +795,7 @@ def dry_run_counts(source: Path, *, claims_path: Path = DEFAULT_CLAIMS_PATH) -> 
     }
 
 
-def progress_status(*, claims_path: Path = DEFAULT_CLAIMS_PATH) -> dict[str, Any]:
+def progress_status() -> dict[str, Any]:
     """Report accumulated progress without touching the source export."""
 
     rows = {
@@ -766,19 +810,24 @@ def progress_status(*, claims_path: Path = DEFAULT_CLAIMS_PATH) -> dict[str, Any
             table__in=(ACCOUNTS_TABLE, EMAIL_ADDRESS_TABLE, SYNTHESIZED_EMAIL_ADDRESS_TABLE)
         )
     }
-    return {"progress": rows, "claims_recorded": len(CmpClaimsStore.load(claims_path))}
+    return {"progress": rows, "claims_recorded": len(CmpClaimsStore.load())}
 
 
 def import_cmp_learners(
     source: Path,
     *,
     batch_size: int = DEFAULT_BATCH_SIZE,
-    claims_path: Path = DEFAULT_CLAIMS_PATH,
 ) -> LearnerImportResult:
-    """Import the CMP export's learner accounts. Safe to kill and re-run."""
+    """Import the CMP export's learner accounts. Safe to kill and re-run.
+
+    The run is bound to this exact export before the first write; a source
+    file that differs from the one the recorded claims and watermarks were
+    built from is refused (``run-bound-to-different-source``).
+    """
 
     _assert_forbidden_tables_untouched()
-    claims = CmpClaimsStore.load(claims_path)
+    _open_run_binding(source)
+    claims = CmpClaimsStore.load()
     connection = _readonly(source)
     try:
         accounts_report, cross_source_matches = _import_accounts(

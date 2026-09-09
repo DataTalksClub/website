@@ -86,10 +86,56 @@ module = [
 ignore_errors = true
 
 # The pinned community-base release ships no py.typed marker; treat its
-# imports like any other untyped third-party package (D0.1a).
+# imports like any other untyped third-party package (D0.1a).  django-allauth
+# and django-loginas are in the same situation (audit BE-16 opt-ins import
+# them directly).
 [[tool.mypy.overrides]]
-module = ["community_base.*"]
+module = ["community_base.*", "allauth.*", "loginas.*"]
 ignore_missing_imports = true
+
+# Audit BE-16: the per-app ``ignore_errors = true`` overrides above are the
+# historical adopted-source baseline.  Modules opted back into the gates after
+# that baseline -- newly authored or substantively changed files, listed in
+# Make's ADOPTION_INTEGRATION_PYTHON -- are checked strictly: this later block
+# wins for exactly these modules, so a new file can never ride a directory's
+# historical exemption.  Keep it in sync with the Makefile list;
+# ci/tests/test_adoption_gate_coverage.py enforces that.
+[[tool.mypy.overrides]]
+module = [
+    "accounts.backends",
+    "accounts.identity_resolution",
+    "accounts.middleware",
+    "accounts.studio_authorization",
+    "accounts.auth",
+    "accounts.views.impersonation",
+    "accounts.tests.test_identity_quarantine_revocation",
+    "accounts.tests.test_email_authentication_lookup",
+    "accounts.tests.test_cmp_learner_import_run_binding",
+    "api.utils",
+    "api.crud",
+    "api.tests.test_json_body_shapes",
+    "courses.votes",
+    "courses.services.learner_duplicate_preflight",
+    "courses.management.commands.learner_duplicate_preflight",
+    "courses.tests.test_enrollment_mutation_safety",
+    "courses.tests.test_project_vote_budget",
+    "courses.tests.test_learner_duplicate_preflight",
+    "courses.tests.test_time_spent_parsing_conventions",
+    "courses.tests.test_project_submission_error_containment",
+    "courses.tests.test_project_eval_review_binding",
+    "courses.tests.test_cmp_learner_history_run_binding",
+    "scripts.tests.test_sync_course_repositories_cli",
+    "scripts.tests.test_legacy_zoomcamp_username_allocation",
+    "scripts.tests.test_scoring_import_atomicity",
+    "scripts.tests.test_certificate_matching",
+    "scripts.tests.test_reviewed_release_import",
+    "ci.tests.test_deploy_release_verification",
+    "ci.tests.test_deploy_release_verification",
+    "scripts.prod.reviewed_release",
+    "scripts.prod.legacy_zoomcamp.identity",
+    "accounts.tests.test_username_allocation",
+]
+ignore_errors = false
 
 [tool.django-stubs]
 django_settings_module = "website.settings.test"

@@ -1,7 +1,7 @@
 from django.core.exceptions import ValidationError
 
 from api.safety import error_response
-from api.utils import parse_json_body
+from api.utils import parse_json_object
 from courses.models.cohort import Cohort, RegistrationCampaign
 from courses.services.registration_campaigns import (
     RegistrationCampaignStateError,
@@ -28,7 +28,7 @@ _CURRENT_COURSE_UNSET = object()
 
 
 def clean_campaign_payload(request, *, action):
-    data, err = parse_json_body(request)
+    data, err = parse_json_object(request)
     if err:
         return None, err
 

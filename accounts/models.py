@@ -331,3 +331,54 @@ class CmpLearnerImportProgress(models.Model):
 
     def __str__(self):
         return f"cmp-learner-import-progress:{self.table}"
+
+
+class CmpLearnerImportBinding(models.Model):
+    """Script-owned binding of the resumable CMP learner-account import to its
+    exact inputs.
+
+    One singleton row (``kind`` is unique): the first run records the export's
+    SHA-256 digest plus the schema and importer versions it is running; every
+    later run -- including a kill-and-resume -- must present the same triple or
+    the service refuses before any write. Claims and watermarks from one export
+    can therefore never be applied against a different snapshot, and a rebuilt
+    target database starts with no row at all, so it can only ever begin a
+    fresh import rather than resume someone else's.
+
+    This is the database-side half of the REL-03/REL-04 fix in
+    ``_docs/audits/2026-09-07-backend-security-audit.md``: the claims
+    themselves live in :class:`CmpLearnerClaim`, in the same transaction as
+    the rows they map, so no separate file can fall behind a commit.
+    """
+
+    kind = models.CharField(max_length=32, unique=True)
+    schema_version = models.IntegerField()
+    importer_version = models.CharField(max_length=64)
+    source_sha256 = models.CharField(max_length=64)
+    target_uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"cmp-import-binding:{self.kind}"
+
+
+class CmpLearnerClaim(models.Model):
+    """One "CMP source account id -> CustomUser pk" mapping, per imported row.
+
+    This is the durable claims store the learner-account importer reads and
+    writes; it replaced the earlier JSON file so that a claim commits inside
+    the same transaction as the batch that created the account (audit
+    REL-04). A claim that survives is always backed by a committed account
+    row; a rolled-back batch leaves no claim behind.
+    """
+
+    source_id = models.BigIntegerField(unique=True)
+    user_id = models.BigIntegerField(db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("source_id",)
+
+    def __str__(self):
+        return f"cmp-learner-claim:{self.source_id}"

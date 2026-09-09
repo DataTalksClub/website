@@ -186,13 +186,17 @@
                   {% elif submission.own %}
                     <span class="status-pill">Your project</span>
                   {% else %}
-                    <button
-                      type="button"
-                      onclick="confirmEvaluation('{% url 'cohort_projects_eval_add' course_slug=course.course.slug cohort_identifier=course.identifier project_slug=project.slug submission_id=submission.id %}')"
-                      class="cta cta-compact cta-secondary interactive-lift"
-                      title="Add to evaluation"
-                      aria-label="Add to evaluation"
-                    >Review</button>
+                    <form method="post"
+                          action="{% url 'cohort_projects_eval_add' course_slug=course.course.slug cohort_identifier=course.identifier project_slug=project.slug submission_id=submission.id %}"
+                          data-confirm-message="Are you sure you want to add this project to the list of projects you need to evaluate?">
+                      {% csrf_token %}
+                      <button
+                        type="submit"
+                        class="cta cta-compact cta-secondary interactive-lift"
+                        title="Add to evaluation"
+                        aria-label="Add to evaluation"
+                      >Review</button>
+                    </form>
                   {% endif %}
                 {% elif project.state == 'CO' %}
                   <span class="mono-note">{{ submission.project_score }} score</span>
@@ -225,11 +229,15 @@
 
 {% block extra_js %}
   <script>
-    function confirmEvaluation(url) {
-      if (confirm('Are you sure you want to add this project to the list of projects you need to evaluate?')) {
-        window.location.href = url;
-      }
-    }
+    // The "add to evaluation" mutation is a POST with CSRF; this listener
+    // keeps its confirm prompt as a pure cancel gate (audit BE-07).
+    document.querySelectorAll('form[data-confirm-message]').forEach((form) => {
+      form.addEventListener('submit', (event) => {
+        if (!window.confirm(form.dataset.confirmMessage)) {
+          event.preventDefault();
+        }
+      });
+    });
 
     function voteLabel(count) {
       return `${count} vote${count === 1 ? '' : 's'}`;

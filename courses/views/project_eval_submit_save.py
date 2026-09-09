@@ -20,6 +20,7 @@ from courses.models.project import (
 from courses.views.homework_learning_links import (
     clean_learning_in_public_links,
 )
+from courses.views.submission_formatting import parse_time_spent_hours
 
 
 class ProjectCriteriaValidationError(ValidationError):
@@ -215,6 +216,13 @@ def apply_review_time_spent(request, project, review):
     if not project.time_spent_evaluation_field:
         return
 
-    time_spent_reviewing = request.POST.get("time_spent_reviewing")
-    if time_spent_reviewing is not None and time_spent_reviewing != "":
-        review.time_spent_reviewing = float(time_spent_reviewing)
+    # The shared optional-hours parser raises ValidationError for malformed,
+    # non-finite, or negative input; the submit view's handler re-renders the
+    # form and the enclosing transaction rolls back, so nothing partial is
+    # saved.
+    time_spent_reviewing = parse_time_spent_hours(
+        request.POST.get("time_spent_reviewing"),
+        "time spent reviewing",
+    )
+    if time_spent_reviewing is not None:
+        review.time_spent_reviewing = time_spent_reviewing

@@ -14,13 +14,20 @@ or a ``SocialAccount`` row -- see ``accounts.services.cmp_learner_import`` for
 the full contract and why.
 
 Resumable.  Progress is tracked per table in ``CmpLearnerImportProgress``, in
-batches whose writes and watermark advance share one transaction, so a process
-killed mid-run can be re-run and picks up where it left off -- see
+batches whose writes, watermark advance and claims all share one transaction,
+so a process killed mid-run can be re-run and picks up where it left off -- see
 ``--status`` to check how far a run got without touching the source export.
 Which ``CustomUser`` this importer already created or attached for a given CMP
-source id is tracked the same way every other source-system id in this
-migration is: script-owned state, not a column on the live model -- see
-``--claims-file`` and ``accounts.services.cmp_learner_import.CmpClaimsStore``.
+source id is script-owned state in the same database
+(``accounts.models.CmpLearnerClaim``), never a column on the live model -- so
+claims, watermark and rows commit or roll back as one.
+
+The first run also records a binding (``accounts.models.CmpLearnerImportBinding``):
+the export file's SHA-256 digest plus the importer's versions.  A later run
+against a different export -- or a different database -- is refused before any
+write.  Claims files written by earlier revisions of this importer are not
+adopted: they carry no provenance, and adopting them would be inferring
+ownership from matching ids.
 
     uv run --frozen python scripts/prod/import_cmp_learners.py \\
         --database .tmp/production-prep-current.sqlite3 \\
@@ -38,7 +45,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -78,18 +84,6 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Report accumulated progress. Does not open --source at all.",
     )
-    parser.add_argument(
-        "--claims-file",
-        type=Path,
-        default=None,
-        help=(
-            "Where this importer records which CustomUser it already created "
-            "or attached for a given CMP source id (default: the service's "
-            "own default, project-local .tmp/). Durable resumability state -- "
-            "keep it alongside --database across a kill-and-resume, never "
-            "delete it between runs of the same import."
-        ),
-    )
     return parser
 
 
@@ -100,25 +94,19 @@ def main(argv: list[str] | None = None) -> int:
 
     from accounts.services.cmp_learner_import import (
         DEFAULT_BATCH_SIZE,
-        DEFAULT_CLAIMS_PATH,
         CmpLearnerImportError,
         dry_run_counts,
         import_cmp_learners,
         progress_status,
     )
 
-    claims_path = (
-        args.claims_file.resolve()
-        if args.claims_file is not None
-        else (PROJECT_ROOT / DEFAULT_CLAIMS_PATH).resolve()
-    )
     try:
         if args.status:
-            report = progress_status(claims_path=claims_path)
+            report = progress_status()
         elif args.dry_run:
             if args.source is None:
                 parser.error("--dry-run requires --source")
-            report = dry_run_counts(args.source.resolve(), claims_path=claims_path)
+            report = dry_run_counts(args.source.resolve())
         else:
             if args.source is None:
                 parser.error("--source is required unless --status is given")
@@ -126,7 +114,6 @@ def main(argv: list[str] | None = None) -> int:
             result = import_cmp_learners(
                 args.source.resolve(),
                 batch_size=batch_size,
-                claims_path=claims_path,
             )
             report = result.summary()
     except CmpLearnerImportError as error:

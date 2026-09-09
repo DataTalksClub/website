@@ -10,7 +10,11 @@ from courses.models.project import ProjectState
 
 from api.crud import bulk_create_response
 from api.safety import require_staff_token
-from api.utils import instructions_url_error, parse_date, parse_json_body
+from api.utils import (
+    instructions_url_error,
+    parse_date,
+    parse_json_object_list,
+)
 from api.views.project_serializers import project_to_dict
 
 
@@ -176,9 +180,9 @@ def projects_create_response(request, course):
     if staff_error:
         return staff_error
 
-    data, err = parse_json_body(request)
+    items, err = parse_json_object_list(request)
     if err:
         return err
 
-    response = bulk_create_response(data, create_project, course)
+    response = bulk_create_response(items, create_project, course)
     return response

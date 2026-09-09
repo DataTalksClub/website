@@ -16,6 +16,25 @@ class AccountEmailResolutionStatus(StrEnum):
     AMBIGUOUS = "ambiguous"
 
 
+#: The identity states that may hold or acquire access at all. Quarantine is
+#: an immediate containment control (audit BE-08): it does not only block new
+#: logins, it ends every existing session, token, and credential path, so the
+#: predicate is shared by the login backend, the session middleware, the alias
+#: resolver, the legacy token decorator, and the management credential checks.
+IDENTITY_ELIGIBLE_STATES = frozenset(
+    {
+        CustomUser.IdentityState.LEGACY,
+        CustomUser.IdentityState.ACTIVE,
+    }
+)
+
+
+def identity_state_eligible(user: Any) -> bool:
+    """True when ``user``'s identity state may hold or acquire access."""
+
+    return getattr(user, "identity_state", None) in IDENTITY_ELIGIBLE_STATES
+
+
 @dataclass(frozen=True)
 class AccountEmailResolution:
     normalized_email: str
@@ -147,7 +166,10 @@ def resolve_durable_user_id(user_id: int) -> int | None:
     if alias is None:
         return user_id
     survivor = alias.survivor
-    if not survivor.is_active or survivor.identity_state == CustomUser.IdentityState.ABSORBED:
+    if not survivor.is_active or survivor.identity_state not in IDENTITY_ELIGIBLE_STATES:
+        # A quarantined survivor is just as unavailable as a disabled or
+        # absorbed one: alias continuity never rescues a quarantined account
+        # back into access (audit BE-08).
         return None
     return survivor.pk
 

@@ -55,14 +55,40 @@ def _username_candidate(email: str) -> str:
     return (sanitized or "learner")[: _MAX_USERNAME_LENGTH - 6]
 
 
-def _unique_username(email: str) -> str:
+#: Bounded username allocation (audit REL-12): at most this many sequential
+#: suffixes after the unsuffixed candidate, then the deterministic source-key
+#: username, then a safe refusal -- never an unbounded loop.
+_MAX_USERNAME_COLLISIONS = 100
+
+
+def _unique_username(email: str, source_key: str | None = None) -> str:
+    """A unique username within the field limit, allocated in bounded time.
+
+    On a collision the base is truncated to leave room for the suffix
+    *before* appending it, so every candidate is distinct and within the
+    field limit -- truncating after the append, as this used to, made every
+    candidate identical once the suffix outgrew the remaining space and
+    looped forever (audit REL-12).  Past the bounded sequential scan, the
+    deterministic ``username_for_key`` name for this learner's recovered
+    email is the last candidate; exhausting even that is a refusal, never
+    another spin.
+    """
+
     base = _username_candidate(email)
-    candidate = base
-    suffix = 1
-    while User.objects.filter(username=candidate).exists():
-        suffix += 1
-        candidate = f"{base}-{suffix}"[:_MAX_USERNAME_LENGTH]
-    return candidate
+
+    def with_suffix(suffix: str) -> str:
+        return f"{base[: _MAX_USERNAME_LENGTH - len(suffix)]}{suffix}"
+
+    candidates = [base]
+    candidates.extend(
+        with_suffix(f"-{number}") for number in range(1, _MAX_USERNAME_COLLISIONS + 1)
+    )
+    if source_key is not None:
+        candidates.append(username_for_key(source_key)[:_MAX_USERNAME_LENGTH])
+    for candidate in candidates:
+        if not User.objects.filter(username=candidate).exists():
+            return candidate
+    raise RuntimeError("username-unallocatable")
 
 
 def _get_or_create_by_real_email(real_email: str) -> tuple[UserType, bool]:
@@ -74,7 +100,10 @@ def _get_or_create_by_real_email(real_email: str) -> tuple[UserType, bool]:
     if existing is not None:
         return existing, False
 
-    user = User(username=_unique_username(normalized), email=real_email.strip())
+    user = User(
+        username=_unique_username(normalized, source_key=sha1_hex(real_email)),
+        email=real_email.strip(),
+    )
     user.set_unusable_password()
     user.save()
     return user, True

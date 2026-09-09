@@ -11,6 +11,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from accounts.identity_resolution import identity_state_eligible
 from accounts.studio_authorization import has_explicit_permission
 from core.audit import AuditWriteContext, record_audit_event
 from core.capabilities import Capability
@@ -284,7 +285,14 @@ def principal_has_permission(principal: APIPrincipal, permission: str) -> bool:
     if principal.kind == APIPrincipal.Kind.SERVICE:
         return principal.user_id is None
     user = principal.user
-    return bool(user is not None and user.is_active and has_explicit_permission(user, permission))
+    return bool(
+        user is not None
+        and user.is_active
+        # Quarantined linked users fail the capability policy like disabled
+        # ones (audit BE-08).
+        and identity_state_eligible(user)
+        and has_explicit_permission(user, permission)
+    )
 
 
 def _reload_linked_user(principal: APIPrincipal, *, using: str) -> None:

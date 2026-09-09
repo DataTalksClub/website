@@ -49,4 +49,10 @@
   {% endcomment %}
   <script src="{% static 'local_date.js' %}"></script>
   <script src="{% static 'time_left.js' %}"></script>
+  {% comment %}
+    Forms that need a submit confirmation carry their message as a
+    data-confirm-message attribute; confirm_submit.js turns it into a
+    confirm() prompt, so titles never land inside executable JavaScript.
+  {% endcomment %}
+  <script src="{% static 'confirm_submit.js' %}"></script>
 {% endblock %}

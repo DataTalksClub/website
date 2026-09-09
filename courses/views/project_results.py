@@ -63,7 +63,7 @@ def _score_option_vote_counts(score, option_votes):
     vote_counts = []
     for index, option in enumerate(score.review_criteria.options):
         option_vote_count = option.copy()
-        option_vote_count["votes"] = option_votes[index]
+        option_vote_count["votes"] = option_votes.get(index, 0)
         vote_counts.append(option_vote_count)
     return vote_counts
 
@@ -75,9 +75,13 @@ def annotate_scores_with_option_votes(
     responses = _criteria_responses_for_scores(submission, scores)
     votes_by_criteria = _option_votes_by_criteria(responses)
     for score in scores:
+        # A criterion can legitimately have no responses: the no-review
+        # fallback saves median evaluation scores without any submitted
+        # review.  Missing votes render as zero per option; they do not
+        # change the awarded score.
         score.option_vote_counts = _score_option_vote_counts(
             score,
-            votes_by_criteria[score.review_criteria_id],
+            votes_by_criteria.get(score.review_criteria_id, {}),
         )
 
 
@@ -107,6 +111,20 @@ def _project_results_context(course, project, user):
         volunteer_review_only=False,
     )
     submission = submissions.first()
+    if submission is None:
+        # Legitimate state: an enrolled reader who did not submit (or only
+        # volunteered to review).  The template owns the empty state; querying
+        # results with a null submission here would crash on
+        # submission.project instead of reaching it.
+        return {
+            "course": course,
+            "course_family": course.course,
+            "project": project,
+            "submission": None,
+            "scores": [],
+            "feedback": [],
+            "is_authenticated": True,
+        }
     scores = _project_results_scores(submission)
     feedback = _project_results_feedback(submission)
     return {

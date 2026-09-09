@@ -178,17 +178,8 @@
         <dd>{{ total_homework_lip_score|add:total_project_lip_score }}</dd>
       </div>
     </dl>
-    <form class="admin-form" method="post" onsubmit="return confirm('Are you sure you want to
-                                                  {% if enrollment.disable_learning_in_public %}
-                                                    enable
-                                                  {% else %}
-                                                    disable
-                                                  {% endif %}
-                                                  learning in public for this student?
-                                                  {% if not enrollment.disable_learning_in_public %}
-                                                    This will zero out all their learning in public scores and recalculate the leaderboard.
-                                                  {% endif %}
-                                                  ');">
+    <form class="admin-form" method="post"
+          data-confirm-message="Are you sure you want to {% if enrollment.disable_learning_in_public %}enable{% else %}disable{% endif %} learning in public for this student?{% if not enrollment.disable_learning_in_public %} This will zero out all their learning in public scores and recalculate the leaderboard.{% endif %}">
       {% csrf_token %}
       <input type="hidden" name="action" value="toggle_learning_in_public">
       <p class="admin-lede">

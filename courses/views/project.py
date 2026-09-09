@@ -15,7 +15,7 @@ from courses.views.project_page_context import (
 )
 from courses.views.project_submission_edit import (
     project_delete_submission,
-    project_submission_from_post,
+    project_submission_display_from_post,
     project_submit_post,
 )
 from courses.views.url_utils import canonical_cohort_url_kwargs, get_cohort_or_404
@@ -72,7 +72,12 @@ def project_validation_error_response(
             extra_tags="alert-danger",
         )
     context = project_build_context(request, course, project)
-    context["submission"] = project_submission_from_post(request, project)
+    # Re-render from the raw POST values.  Re-running the persisting parser
+    # here used to save enrollment and certificate-name changes a second time
+    # and re-raise on invalid learning links, escaping the handler (BE-06).
+    context["submission"] = project_submission_display_from_post(
+        request, project
+    )
     response = render(request, "projects/project.html", context)
     return response
 

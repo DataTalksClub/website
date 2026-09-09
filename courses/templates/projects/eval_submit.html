@@ -158,7 +158,11 @@
       {% else %}
         {% url 'cohort_projects_eval_delete' course.slug project.slug review.id as remove_review_url %}
       {% endif %}
-      {% include "core/_button.html" with tag="button" type="button" label="Remove review" variant="subtle" compact=True onclick_url=remove_review_url %}
+      <form method="post" action="{{ remove_review_url }}"
+            data-confirm-message="Are you sure you want to remove this project from your evaluation list?">
+        {% csrf_token %}
+        {% include "core/_button.html" with tag="button" type="submit" label="Remove review" variant="subtle" compact=True %}
+      </form>
     {% endif %}
   </div>
   {% if review.optional %}
@@ -268,10 +272,14 @@
   <script src="{% static 'learning_in_public.js' %}"></script>
   <script src="{% static 'homework.js' %}"></script>
   <script>
-    function confirmRemove(url) {
-      if (confirm('Are you sure you want to remove this project from your evaluation list?')) {
-        window.location.href = url;
-      }
-    }
+    // The "remove review" mutation is a POST with CSRF; this listener keeps
+    // its confirm prompt as a pure cancel gate (audit BE-07).
+    document.querySelectorAll('form[data-confirm-message]').forEach((form) => {
+      form.addEventListener('submit', (event) => {
+        if (!window.confirm(form.dataset.confirmMessage)) {
+          event.preventDefault();
+        }
+      });
+    });
   </script>
 {% endblock %}

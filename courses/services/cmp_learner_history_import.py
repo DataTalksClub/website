@@ -35,7 +35,8 @@ already wrote, through :class:`Resolution`, built once per run from natural keys
 * a review criterion by ``(cohort, description)``, unique within a course in the
   export;
 * a registration campaign by slug, and a Wrapped year by year;
-* an account through the claims file ``import_cmp_learners`` left behind;
+* an account through the claims ``import_cmp_learners`` recorded in the
+  target database (``accounts.models.CmpLearnerClaim``);
 * an enrollment, submission, project submission or peer review through this
   importer's own claims, written by the earlier stage of the same run.
 
@@ -73,16 +74,25 @@ state, not a column on a live model -- the same rule
 source-system row id is provenance of a one-time import, and the permanent
 schema carries only what the running application reads.
 
-:class:`CmpHistoryClaims` keeps one JSON file per table under a claims directory,
-so a batch flushes only the table it is working on rather than rewriting every
-claim in the migration.  A file is written atomically (temp file plus
-``os.replace``) *after* the transaction that created the claims commits, never
-inside it: a JSON file cannot join a database transaction.  A process killed in
-that window is still safe, because the watermark committed with the rows has
-already advanced past those source ids, so an ordinary resume never revisits
-them; and if the claims were lost outright, a re-run re-resolves each row's
-natural key and *attaches* to the row already there (``rows_attached``) instead
-of duplicating it, wherever the target model has a natural key to attach by.
+:class:`CmpHistoryClaims` keeps one ``CmpHistoryClaim`` row per imported source
+id, in this database.  :meth:`CmpHistoryClaims.record` runs *inside* the batch's
+transaction, so a claim is committed atomically with the row it maps and the
+watermark that counts it -- there is no separate file that can fall behind a
+commit (audit REL-04).  If claims are lost outright (rows deleted while the
+watermark survived), a re-run re-resolves each row's natural key and *attaches*
+to the row already there (``rows_attached``) instead of duplicating it, wherever
+the target model has a natural key to attach by.
+
+Before the first write, the run is bound to its exact inputs
+(:func:`_open_run_binding`): the export file's SHA-256 digest plus this
+importer's schema and importer versions are recorded once and must match on
+every later run, including a kill-and-resume (audit REL-03).  The user claims
+this importer reconciles against are read from the same database, so they
+cannot describe a different one; a rebuilt target database starts with no
+binding, no claims and no watermark, and can only begin a fresh import.
+Pre-binding JSON claims files from earlier revisions are deliberately not
+adopted: they carry no provenance, and adopting them would be inferring
+ownership from matching ids.
 
 Timestamps
 ----------
@@ -98,13 +108,12 @@ is copied as the export has it.
 
 from __future__ import annotations
 
+import hashlib
 import json
-import os
 import sqlite3
-import tempfile
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, NoReturn
@@ -112,8 +121,11 @@ from typing import Any, NoReturn
 from django.db import models, transaction
 from django.utils.dateparse import parse_datetime
 
+from accounts.models import CustomUser
 from courses.models import (
     Answer,
+    CmpHistoryClaim,
+    CmpHistoryImportBinding,
     CmpHistoryImportProgress,
     Cohort,
     CourseRegistration,
@@ -135,7 +147,6 @@ from courses.models import (
 __all__ = [
     "CONTENT_TABLES",
     "DEFAULT_BATCH_SIZE",
-    "DEFAULT_CLAIMS_DIRECTORY",
     "FORBIDDEN_TABLES",
     "LEARNER_TABLES",
     "READ_TABLES",
@@ -152,7 +163,10 @@ __all__ = [
 ]
 
 DEFAULT_BATCH_SIZE = 2000
-DEFAULT_CLAIMS_DIRECTORY = Path(".tmp/cmp_learner_history_claims")
+
+SCHEMA_VERSION = 2
+IMPORTER_VERSION = "cmp-learner-history-import-2"
+BINDING_KIND = "learner-history"
 
 # This importer's own never-import set. Deliberately not review_import's
 # SENSITIVE_TABLES -- see the module docstring.
@@ -238,63 +252,42 @@ class _Unresolved(Exception):
 class CmpHistoryClaims:
     """This importer's own durable "CMP source id -> target pk" record, per table.
 
-    One file per table, so a batch rewrites only the table it is working on.
-    Not thread- or process-safe for concurrent writers: this is a single-threaded
-    one-time script, the same assumption ``CmpHistoryImportProgress`` makes.
+    Backed by the script-owned ``CmpHistoryClaim`` table: :meth:`record` is
+    called inside the batch's ``transaction.atomic()`` block, so a claim is
+    committed atomically with the row it maps and the watermark that counts it
+    (audit REL-04).  Not thread- or process-safe for concurrent writers: this
+    is a single-threaded one-time script, the same assumption
+    ``CmpHistoryImportProgress`` makes.
     """
 
-    directory: Path
-    _tables: dict[str, dict[int, int]] = field(default_factory=dict)
+    _tables: dict[str, dict[int, int]]
 
-    def _path(self, table: str) -> Path:
-        return self.directory / f"{table}.json"
+    def __init__(self) -> None:
+        self._tables = {}
+
+    @classmethod
+    def load(cls) -> CmpHistoryClaims:
+        return cls()
 
     def table(self, table: str) -> dict[int, int]:
         cached = self._tables.get(table)
         if cached is not None:
             return cached
-        try:
-            raw_text = self._path(table).read_text(encoding="utf-8")
-        except FileNotFoundError:
-            loaded: dict[int, int] = {}
-        except OSError:
-            _refuse("claims-file-unreadable")
-        else:
-            try:
-                raw = json.loads(raw_text)
-            except json.JSONDecodeError:
-                _refuse("claims-file-malformed")
-            if not isinstance(raw, dict):
-                _refuse("claims-file-malformed")
-            try:
-                loaded = {int(key): int(value) for key, value in raw.items()}
-            except (TypeError, ValueError):
-                _refuse("claims-file-malformed")
+        rows = CmpHistoryClaim.objects.filter(table=table).values_list("source_id", "target_id")
+        loaded = {int(source_id): int(target_id) for source_id, target_id in rows}
         self._tables[table] = loaded
         return loaded
 
     def record(self, table: str, source_id: int, target_id: int) -> None:
-        self.table(table)[source_id] = target_id
+        """Persist one claim in the caller's transaction.
 
-    def flush(self, table: str) -> None:
-        payload = json.dumps(
-            {str(source_id): target_id for source_id, target_id in self.table(table).items()},
-            sort_keys=True,
-        )
-        self.directory.mkdir(parents=True, exist_ok=True)
-        descriptor, tmp_name = tempfile.mkstemp(
-            dir=self.directory, prefix=f".{table}-", suffix=".tmp"
-        )
-        try:
-            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
-                handle.write(payload)
-            os.replace(tmp_name, self._path(table))
-        except BaseException:
-            try:
-                os.unlink(tmp_name)
-            except OSError:
-                pass
-            raise
+        Must run inside the same ``transaction.atomic()`` block as the write
+        that created or attached ``target_id``; a rolled-back batch discards
+        this insert along with everything else it did.
+        """
+
+        CmpHistoryClaim.objects.create(table=table, source_id=source_id, target_id=target_id)
+        self.table(table)[source_id] = target_id
 
     def counts(self) -> dict[str, int]:
         return {table: len(self.table(table)) for table in TABLE_ORDER}
@@ -1125,7 +1118,6 @@ def _import_table(
         if not rows:
             progress.completed = True
             _save_progress(progress)
-            claims.flush(plan.table)
             break
         pending: list[tuple[int, Any]] = []
         stamps: list[dict[str, Any]] = []
@@ -1173,17 +1165,73 @@ def _import_table(
             progress.rows_attached += len(attached_to_row) + len(attached_to_pending)
             progress.rows_skipped += skipped
             progress.unresolved = dict(Counter(progress.unresolved) + unresolved)
+            # The claims are written inside this same transaction: a claim,
+            # the row it maps and the watermark commit or roll back as one,
+            # so no separate file can fall behind a commit (audit REL-04).
+            for (source_id, _unsaved), instance in zip(pending, created, strict=True):
+                claims.record(plan.table, source_id, int(instance.pk))
+            for source_id, index in attached_to_pending:
+                claims.record(plan.table, source_id, int(created[index].pk))
+            for source_id, target_id in attached_to_row:
+                claims.record(plan.table, source_id, target_id)
             _save_progress(progress)
-        # Only after the transaction above has really committed: a JSON file
-        # cannot join it, so the order is what makes a killed run recoverable.
-        for (source_id, _unsaved), instance in zip(pending, created, strict=True):
-            claims.record(plan.table, source_id, int(instance.pk))
-        for source_id, index in attached_to_pending:
-            claims.record(plan.table, source_id, int(created[index].pk))
-        for source_id, target_id in attached_to_row:
-            claims.record(plan.table, source_id, target_id)
-        claims.flush(plan.table)
     return _report(progress, source_total)
+
+
+def _source_digest(source: Path) -> str:
+    digest = hashlib.sha256()
+    try:
+        with source.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+    except OSError:
+        _refuse("source-unreadable")
+    return digest.hexdigest()
+
+
+def _open_run_binding(source: Path) -> None:
+    """Bind this run to the exact export, or refuse before any write.
+
+    The first run records the export's digest and this importer's versions;
+    every later run -- a resume included -- must present the same triple.  The
+    binding row carries a per-database UUID, so two databases can never share
+    one, and a rebuilt database (no row) can only start fresh (audit REL-03).
+    """
+
+    digest = _source_digest(source)
+    binding, created = CmpHistoryImportBinding.objects.get_or_create(
+        kind=BINDING_KIND,
+        defaults={
+            "schema_version": SCHEMA_VERSION,
+            "importer_version": IMPORTER_VERSION,
+            "source_sha256": digest,
+        },
+    )
+    if created:
+        return
+    if binding.schema_version != SCHEMA_VERSION or (binding.importer_version != IMPORTER_VERSION):
+        _refuse("run-bound-to-different-importer-version")
+    if binding.source_sha256 != digest:
+        _refuse("run-bound-to-different-source")
+
+
+def _existing_user_claims(user_claims: Mapping[int, int]) -> dict[int, int]:
+    """Keep only claimed target pks that exist in this database.
+
+    A user-claims mapping is trusted for the account rows the learner-account
+    importer actually wrote here and nowhere else: a claimed pk with no
+    ``CustomUser`` row -- a mapping carried from another database, or a
+    forged one -- resolves as an ordinary unresolved parent instead of
+    inventing a foreign key (audit REL-03).
+    """
+
+    target_ids = set(user_claims.values())
+    existing = set(CustomUser.objects.filter(pk__in=target_ids).values_list("pk", flat=True))
+    return {
+        source_id: target_id
+        for source_id, target_id in user_claims.items()
+        if target_id in existing
+    }
 
 
 def import_cmp_learner_history(
@@ -1191,17 +1239,25 @@ def import_cmp_learner_history(
     *,
     user_claims: Mapping[int, int],
     batch_size: int = DEFAULT_BATCH_SIZE,
-    claims_directory: Path = DEFAULT_CLAIMS_DIRECTORY,
     tables: Iterable[str] | None = None,
 ) -> HistoryImportResult:
-    """Import the CMP export's learner history. Safe to kill and re-run."""
+    """Import the CMP export's learner history. Safe to kill and re-run.
+
+    The run is bound to this exact export before the first write; a source
+    file that differs from the one the recorded claims and watermarks were
+    built from is refused (``run-bound-to-different-source``).  ``user_claims``
+    maps a CMP account id to the ``CustomUser`` pk the learner-account
+    importer recorded for it in this same database.
+    """
 
     _assert_forbidden_tables_untouched()
+    _open_run_binding(source)
     wanted = set(tables) if tables is not None else set(TABLE_ORDER)
     unknown = wanted - LEARNER_TABLES
     if unknown:
         _refuse("table-not-in-this-import")
-    claims = CmpHistoryClaims(directory=claims_directory)
+    claims = CmpHistoryClaims.load()
+    user_claims = _existing_user_claims(user_claims)
     connection = _readonly(source)
     try:
         resolution = _build_resolution(connection, users=user_claims, claims=claims)
@@ -1221,13 +1277,11 @@ def import_cmp_learner_history(
     return HistoryImportResult(tables=tuple(reports))
 
 
-def dry_run_counts(
-    source: Path, *, claims_directory: Path = DEFAULT_CLAIMS_DIRECTORY
-) -> dict[str, Any]:
+def dry_run_counts(source: Path) -> dict[str, Any]:
     """Report source and already-claimed counts. Writes nothing."""
 
     _assert_forbidden_tables_untouched()
-    claims = CmpHistoryClaims(directory=claims_directory)
+    claims = CmpHistoryClaims.load()
     connection = _readonly(source)
     try:
         rows = {table: _count(connection, table) for table in TABLE_ORDER}
@@ -1244,11 +1298,11 @@ def dry_run_counts(
     }
 
 
-def progress_status(*, claims_directory: Path = DEFAULT_CLAIMS_DIRECTORY) -> dict[str, Any]:
+def progress_status() -> dict[str, Any]:
     """Report accumulated progress without touching the source export."""
 
     stored = {row.table: row for row in CmpHistoryImportProgress.objects.all()}
-    claims = CmpHistoryClaims(directory=claims_directory)
+    claims = CmpHistoryClaims.load()
     return {
         "progress": [
             {

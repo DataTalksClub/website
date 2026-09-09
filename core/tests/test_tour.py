@@ -30,10 +30,12 @@ UPCOMING = (
 
 
 def _event_groups():
-    upcoming, recent = list(UPCOMING), []
+    upcoming: list = list(UPCOMING)
+    recent: list = []
 
     class Groups:
-        pass
+        upcoming: list
+        recent: list
 
     groups = Groups()
     groups.upcoming = upcoming

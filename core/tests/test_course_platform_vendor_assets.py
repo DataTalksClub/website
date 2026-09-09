@@ -102,7 +102,8 @@ class CoursePlatformRenderedVendorAssetTests(TestCase):
                 reverse(
                     "cohort_project",
                     kwargs={
-                        "course_slug": self.course.slug,
+                        "course_slug": self.course.course.slug,
+                        "cohort_identifier": self.course.identifier,
                         "project_slug": self.project.slug,
                     },
                 )

@@ -17,7 +17,6 @@ from courses.votes import (
     get_voted_submission_ids,
 )
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -32,10 +31,14 @@ class ProjectEvalSubmitPage:
 def project_eval_submit_context(
     request: HttpRequest, page: ProjectEvalSubmitPage
 ):
-    enrollment, _ = Enrollment.objects.get_or_create(
+    # Read-only by contract (audit BE-07): building the review page must not
+    # create an enrollment.  The resolved review already carries the
+    # authoritative participation relations; a missing enrollment renders
+    # with learning-in-public enabled.
+    enrollment = Enrollment.objects.filter(
         student=request.user,
         course=page.course,
-    )
+    ).first()
     context = project_eval_build_context(
         page.project,
         page.review,

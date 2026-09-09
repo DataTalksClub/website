@@ -23,10 +23,12 @@ CLI.
    `home-step-2.webp` for style and the historical robot-reading course image for
    the subject; exclude the historical banner's lettering.
 2. Review the light result's composition, dimensions and actual alpha channel.
-   If its outer canvas is opaque, use the outer-background workflow below before
-   accepting it. The lilac watercolor cloud is part of the drawing and stays.
-   Keep that accepted light file as the fixed anchor. For corrections, pass the
-   previous candidate as an edit target and state what must remain unchanged.
+   If its outer canvas is opaque or the returned alpha is unreliable, use the
+   outer-background workflow below before accepting it. Do not simulate a soft
+   watercolor edge by blurring, recolouring, or inventing an alpha mask locally.
+   The lilac watercolor cloud is part of the drawing and stays. Keep that
+   accepted light file as the fixed anchor. For corrections, pass the previous
+   candidate as an edit target and state what must remain unchanged.
 3. Generate the **dark companion second**, passing the accepted light file as
    the reference image. Tune the cloud and palette for the actual dark page
    through imagegen while preserving the light composition. Do not independently
@@ -62,24 +64,32 @@ a transparent final WebP alone does not establish native alpha generation.
 
 ### Remove only the outer backdrop when needed
 
-If imagegen returns an opaque image, a solid chroma-key backdrop followed by local
-removal is allowed. The lilac watercolor blur is artwork: retain its shape, color,
-texture and soft edge. Remove only the surrounding backdrop.
+If imagegen cannot produce reliable transparency, ask it for a solid chroma-key
+backdrop and remove that backdrop locally. This is the fallback for a fully
+opaque result, a fake checkerboard, or an unstable/haloed alpha edge. Do not
+replace a generated edge with a blur or a hand-made alpha mask. The lilac
+watercolor cloud is artwork: retain its shape, color, texture and soft edge.
+Remove only the surrounding backdrop.
 
 1. Use imagegen with actual reference images to produce the same drawing against
-   one perfectly uniform key color absent from the artwork. Saturated magenta
-   (`#ff00ff`) is suitable for the green course robot; green would conflict with
-   its forearms and side panels. Keep the cloud and all interior white fills.
-   Ask for no checkerboard, gradient or key-colored details inside the drawing.
+   one perfectly uniform key color absent from the artwork. Ask explicitly for
+   "a single, perfectly uniform chroma-key background, #ff00ff, with no
+   checkerboard, gradient, texture, or key-colored details inside the drawing".
+   Saturated magenta (`#ff00ff`) is suitable for the green course robot; choose
+   another key color only when magenta occurs in the artwork. Keep the cloud and
+   all interior white fills unchanged.
 2. Save the untouched output under `.tmp/illustration-sources/`. Work on a copy
-   and remove only the outer key color. Preserve the watercolor cloud, robot,
-   book, white interiors and their intended soft or crisp edges. Do not treat
-   pale lilac or white as disposable background, or copy alpha from another image.
+   and remove only the key-colored pixels connected to the outer canvas. Preserve
+   the watercolor cloud, robot, book, white interiors and their intended soft or
+   crisp edges. Do not globally threshold the image, treat pale lilac or white
+   as disposable background, blur the boundary, or copy alpha from another image.
 3. Inspect the result on the actual light and dark page surfaces, including the
    cloud boundary at 200%. Check for remaining key-colored fringe, clipped ink,
    missing watercolor, holes in white fills, halos and visible canvas edges.
-   If key removal damages the artwork, revise the finishing or regenerate the
-   keyed source; do not disguise damage by blurring or recoloring the drawing.
+   Verify that no key-colored pixels remain, the outside is genuinely transparent,
+   and the foreground registration matches the edit target. If key removal
+   damages the artwork, revise the finishing or regenerate the keyed source; do
+   not disguise damage by blurring or recoloring the drawing.
 4. Accept the light image only after these checks, then generate its dark
    companion from that accepted light through imagegen. Finish the dark image's
    own outer key if needed and repeat the checks. Record the exact accepted

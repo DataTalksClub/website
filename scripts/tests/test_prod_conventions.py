@@ -94,11 +94,17 @@ class ProdEntryPointConventionTests(TestCase):
         self.assertEqual(COURSE_CATALOGUE_ORDER[0], "import_legacy_zoomcamp")
 
     def test_no_entry_point_imports_a_placeholder_seeder(self) -> None:
-        """The split is by what data a module touches; seeders invent rows."""
+        """The split is by what data a module touches; seeders invent rows.
+
+        The bare module name is forbidden, not just the ``import X`` form: a
+        lazy ``from courses.services.local_course_seed import ...`` used to
+        slip past an import-shaped substring check and put a local-only guard
+        into the production pull (audit REL-05).
+        """
 
         forbidden = ("local_course_seed", "local_question_seed", "local_project_review_seed")
         for path in sorted(PROD_ROOT.rglob("*.py")):
             source = path.read_text(encoding="utf-8")
             for seeder in forbidden:
                 with self.subTest(module=path.name, seeder=seeder):
-                    self.assertNotIn(f"import {seeder}", source)
+                    self.assertNotIn(seeder, source)

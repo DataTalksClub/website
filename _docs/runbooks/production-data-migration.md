@@ -709,24 +709,24 @@ exists to prevent).
 (`accounts_customuser`, `account_emailaddress`);
 `scripts/prod/import_cmp_learner_history.py` writes the other nine tables and
 resolves every foreign key against what it and `import_cmp_content` already
-wrote.  The history importer reads the account claims file the first one leaves
-behind, through `--user-claims-file`, so pointing the second run at the first
-run's `--claims-file` is not optional.  Everything below is the specification
+wrote.  The history importer reads the account claims the first one recorded
+in the target database (`accounts.CmpLearnerClaim`), so the second run points
+at the same database, never at a file.  Each run is bound to its exact export
+before the first write -- a changed source, importer version or database is
+refused (`accounts.CmpLearnerImportBinding`,
+`courses.CmpHistoryImportBinding`).  Everything below is the specification
 they satisfy, and the checkpoints they pass.
 
 ```
 uv run --frozen python scripts/prod/import_cmp_learners.py \
-    <target> --source $EXPORT --claims-file <claims>
+    <target> --source $EXPORT
 
 uv run --frozen python scripts/prod/import_cmp_learner_history.py \
-    <target> --source $EXPORT --claims-dir <claims-dir> \
-    --user-claims-file <claims>
+    <target> --source $EXPORT
 ```
 
-`make import-cmp-learner-data IMPORT_LEARNER_DATABASE=<path> CMP_EXPORT=$EXPORT
-CMP_CLAIMS_FILE=<claims> CMP_CLAIMS_DIR=<claims-dir>` is the rehearsal shorthand for
-both commands, in that order; it threads `CMP_CLAIMS_FILE` into the second run's
-`--user-claims-file` so the pairing above is not something to remember. The legs are
+`make import-cmp-learner-data IMPORT_LEARNER_DATABASE=<path> CMP_EXPORT=$EXPORT`
+is the rehearsal shorthand for both commands, in that order. The legs are
 also available singly as `make import-cmp-learners` and
 `make import-cmp-learner-history`, and `make import-cmp-learners-status` /
 `make import-cmp-learner-history-status` report how far a killed run got without
@@ -929,12 +929,16 @@ one batch of one table: the rows and the table's watermark
 (`courses.CmpHistoryImportProgress`, `accounts.CmpLearnerImportProgress`) commit
 together, so a process killed mid-batch leaves nothing half-written and a plain
 re-run resumes from the last committed batch. `--status` reports how far a run
-got without opening the export. Both importers keep their own claims files
-(`--claims-file`, `--claims-dir`) mapping a CMP source id to the row they
-created; those files are durable resumability state, not scratch, and must
-travel with the database across a kill-and-resume. Losing one is still
-recoverable: every table with a natural key re-attaches to the row already there
-rather than duplicating it, and reports the count as `attached`.
+got without opening the export. Both importers record their own claims in
+the target database (`accounts.CmpLearnerClaim`,
+`courses.CmpHistoryClaim`), inside the same transaction as the batch that
+created each row -- so claims, watermark and rows commit or roll back as
+one, and no file can fall behind a commit. Losing claim rows outright is
+still recoverable: every table with a natural key re-attaches to the row
+already there rather than duplicating it, and reports the count as
+`attached`. Claims files written by earlier revisions of these importers
+are not adopted -- they carry no binding, and adopting them would be
+inferring ownership from matching ids.
 
 **Duration.** **Measured** on 2026-09-05, SQLite, against the day's export:
 85 s for the 20,469 accounts and 45 s for the 472,690 history rows — about two
@@ -2574,7 +2578,7 @@ cheapest thing in this document and the most useful at 2am.
 | 1 | `$TARGET make import-legacy-zoomcamp IMPORT_DATABASE=$REHEARSAL` | none — real `zoomcamp-scoring` clone | No |
 | 2 | `$TARGET make content-sources` → `content-checkouts` → `content-pull` | none — real repositories | No |
 | 3 | `$TARGET uv run … scripts/prod/import_cmp_content.py --database $REHEARSAL --source $EXPORT` | none — the real export, read in place | No |
-| 4 | `$TARGET uv run … scripts/prod/import_cmp_learners.py --database $REHEARSAL --source $EXPORT --claims-file …` then `… scripts/prod/import_cmp_learner_history.py --database $REHEARSAL --source $EXPORT --claims-dir … --user-claims-file …` | none — the real export, read in place | No — **verified end to end** on 2026-09-05: 20,469 accounts and 414,768 history rows in about two minutes, replay a no-op, SIGKILL-and-resume identical |
+| 4 | `$TARGET uv run … scripts/prod/import_cmp_learners.py --database $REHEARSAL --source $EXPORT` then `… scripts/prod/import_cmp_learner_history.py --database $REHEARSAL --source $EXPORT` | none — the real export, read in place | No — **verified end to end** on 2026-09-05: 20,469 accounts and 414,768 history rows in about two minutes, replay a no-op, SIGKILL-and-resume identical |
 | 5 | `$TARGET make import-events IMPORT_DATABASE=$REHEARSAL` | Luma/Eventbrite archives from `.local/migration-data` | No — **verified end to end**: 421 events, allocator at 422 |
 | 6 | `scripts/prod/sync_public_media_verify.py`, `manage.py check`, `python -m ci.content_update` | the committed projection instead of a rebuild | **Yes.** A full rebuild needs three pinned checkouts and is not reproducible today (#253). The rehearsal checks the artifacts, not the build. |
 | 7 | `scripts/prod/sync_public_media_hydrate.py` → `sync_public_media_publish.py` → `sync_public_media_verify.py` | a `local` store instead of `s3` | **Yes.** The rehearsal proves the counts and the incrementality, not the bucket |
@@ -2655,7 +2659,7 @@ Say these out loud rather than letting a green rehearsal imply them.
 | 1 Legacy | none (per row) | that edition partial, statistics stale | Re-run the edition. Import one edition at a time |
 | 2 Repositories | per repository | earlier repositories complete | Re-run; expect `replayed`. A checksum/identity conflict means stop |
 | 3 CMP content | **per cohort** | earlier cohorts complete | Re-run; no-op on the done ones |
-| 4 CMP learners | **per batch, per table** | earlier batches and tables complete | Re-run; it resumes from the watermark. Keep the claims files with the database |
+| 4 CMP learners | **per batch, per table** | earlier batches and tables complete | Re-run; it resumes from the watermark. Claims live in the database |
 | 5 Events | atomic (identity); staged revisions (aggregates) | nothing half-written | Re-run |
 | 6 Content | build writes files | committed projection unchanged, so the site is unaffected | Re-run the build; it needs three pinned checkouts and is not reproducible (#253) |
 | 7 Media | per object | bucket holds a subset; every unpublished image is broken on the page | Re-run. Publish is incremental and skips a matching checksum, so a re-run completes rather than re-uploads |
@@ -2666,8 +2670,8 @@ Say these out loud rather than letting a green rehearsal imply them.
 table, so a half-imported learner set is a re-run rather than a rebuild from
 step 0 — the difference, at 510,519 rows, between a short recovery and a lost
 maintenance window. The one thing that must survive the failure alongside the
-database is the pair of claims files; treat them as part of the rehearsal
-artifacts, not as scratch.
+database is nothing outside it: the claims are rows in the same database,
+committed with the batches they describe.
 
 ---
 

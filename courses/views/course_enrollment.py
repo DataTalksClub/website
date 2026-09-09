@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from course_management.observability import record_event
@@ -30,22 +30,28 @@ class EnrollmentToggleUpdate:
 @require_POST
 def update_enrollment_toggle(request, course_slug, cohort_identifier=None):
     course = get_cohort_or_404(course_slug, cohort_identifier)
-    enrollment, created = Enrollment.objects.get_or_create(
-        student=request.user,
-        course=course,
-    )
-    if created:
-        record_enrollment_created(request, course, enrollment)
-
-    toggle_update = enrollment_toggle_update_from_post(
-        request,
-        course,
-        enrollment,
-    )
-    if toggle_update is None:
+    # Parse and allowlist the toggle input before any lookup or write: an
+    # unsupported field is a 400 that leaves the tables unchanged (BE-07).
+    toggle_input = enrollment_toggle_input_from_post(request)
+    if toggle_input is None:
         payload = {"error": "Unsupported enrollment setting."}
         response = JsonResponse(payload, status=400)
         return response
+
+    # A preference toggle requires an existing enrollment; it never creates
+    # one as a side effect of a rejected or missing-target request (BE-07).
+    enrollment = get_object_or_404(
+        Enrollment,
+        student=request.user,
+        course=course,
+    )
+    field, enabled = toggle_input
+    toggle_update = EnrollmentToggleUpdate(
+        enrollment=enrollment,
+        course=course,
+        field=field,
+        enabled=enabled,
+    )
 
     update_enrollment_toggle_value(toggle_update)
     record_event(
@@ -68,23 +74,16 @@ def update_enrollment_toggle(request, course_slug, cohort_identifier=None):
     return response
 
 
-def enrollment_toggle_update_from_post(
-    request,
-    course,
-    enrollment,
-) -> EnrollmentToggleUpdate | None:
+def enrollment_toggle_input_from_post(request):
+    """Return the allowlisted ``(field, enabled)`` pair, or None."""
+
     field = request.POST.get("field", "")
     if field not in ENROLLMENT_TOGGLE_FIELDS:
         return None
 
     value = request.POST.get("value", "")
     enabled = value.lower() in {"1", "true", "yes", "on"}
-    return EnrollmentToggleUpdate(
-        enrollment=enrollment,
-        course=course,
-        field=field,
-        enabled=enabled,
-    )
+    return field, enabled
 
 
 def update_enrollment_toggle_value(toggle_update):
@@ -142,7 +141,10 @@ def _handle_enrollment_post(request, course, enrollment):
         user=request.user,
     )
     if form.is_valid():
+        created = enrollment.pk is None
         _save_enrollment_form(form, course, enrollment)
+        if created:
+            record_enrollment_created(request, course, enrollment)
         record_event(
             "enrollment.updated",
             request=request,
@@ -162,12 +164,16 @@ def _handle_enrollment_post(request, course, enrollment):
 def enrollment_view(request, course_slug, cohort_identifier=None):
     course = get_cohort_or_404(course_slug, cohort_identifier)
 
-    enrollment, created = Enrollment.objects.get_or_create(
+    # Reading the settings page is a pure GET: it renders from an existing
+    # enrollment or an unsaved stand-in and creates nothing (audit BE-07).
+    # The POST below is the accepted enrollment mutation and the only place
+    # this view may persist a new enrollment.
+    enrollment = Enrollment.objects.filter(
         student=request.user,
         course=course,
-    )
-    if created:
-        record_enrollment_created(request, course, enrollment)
+    ).first()
+    if enrollment is None:
+        enrollment = Enrollment(student=request.user, course=course)
 
     if request.method == "POST":
         return _handle_enrollment_post(request, course, enrollment)

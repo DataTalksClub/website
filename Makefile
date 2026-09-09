@@ -52,6 +52,14 @@ SECURITY_ARTIFACT_INPUTS ?= .tmp/security/security-baseline.json .tmp/security/s
 SECURITY_ARTIFACT_CANARIES ?= synthetic-secret-canary synthetic-email@example.invalid synthetic-token-canary
 SECURITY_VULNERABILITY_EVIDENCE ?= .tmp/security/security-vulnerability-scan.json
 
+# Files re-included in the quality gates inside the trees that pyproject.toml
+# excludes.  Two kinds live here, and ci/tests/test_adoption_gate_coverage.py
+# holds the boundary: entries that predate this list (the reviewed adopted
+# baseline) and files authored or substantively changed after audit BE-16,
+# which must be added here rather than riding their directory's historical
+# exclusion.  Everything in this list is linted, formatted, and typechecked;
+# the mypy ``ignore_errors = false`` override block in pyproject.toml names
+# the modules this audit opted in, so they are checked strictly.
 ADOPTION_INTEGRATION_PYTHON = \
 	accounts/managers.py \
 	accounts/tests/test_user.py \
@@ -64,7 +72,35 @@ ADOPTION_INTEGRATION_PYTHON = \
 	scripts/render_course_platform_inventory.py \
 	scripts/verify_course_platform_adoption.py \
 	scripts/sync_course_platform.py \
-	scripts/prepare_course_platform_source.py
+	scripts/prepare_course_platform_source.py \
+	accounts/backends.py \
+	accounts/identity_resolution.py \
+	accounts/middleware.py \
+	accounts/studio_authorization.py \
+	accounts/auth.py \
+	accounts/views/impersonation.py \
+	accounts/tests/test_identity_quarantine_revocation.py \
+	accounts/tests/test_email_authentication_lookup.py \
+	accounts/tests/test_cmp_learner_import_run_binding.py \
+	api/utils.py \
+	api/crud.py \
+	api/tests/test_json_body_shapes.py \
+	courses/votes.py \
+	courses/services/learner_duplicate_preflight.py \
+	courses/management/commands/learner_duplicate_preflight.py \
+	courses/tests/test_enrollment_mutation_safety.py \
+	courses/tests/test_project_vote_budget.py \
+	courses/tests/test_learner_duplicate_preflight.py \
+	courses/tests/test_time_spent_parsing_conventions.py \
+	courses/tests/test_project_submission_error_containment.py \
+	courses/tests/test_project_eval_review_binding.py \
+	courses/tests/test_cmp_learner_history_run_binding.py \
+	scripts/tests/test_sync_course_repositories_cli.py \
+	scripts/tests/test_legacy_zoomcamp_username_allocation.py \
+	scripts/tests/test_scoring_import_atomicity.py \
+	scripts/tests/test_certificate_matching.py \
+	scripts/tests/test_reviewed_release_import.py \
+	accounts/tests/test_username_allocation.py
 
 # Entry points for imports that read real production data.  ``scripts/**`` is excluded
 # from the default ruff and mypy roots, so this package opts back in explicitly.
@@ -104,13 +140,8 @@ typecheck:
 		test_support conftest.py sitecustomize.py \
 		review_import \
 		management_auth management_api management_registry.py \
-			scripts/build_local_review_db.py scripts/capture_screenshots.py \
-		scripts/check_database_portability.py \
-		scripts/render_course_platform_inventory.py \
-	scripts/verify_course_platform_adoption.py \
-	scripts/sync_course_platform.py \
-	scripts/prepare_course_platform_source.py \
-	$(PRODUCTION_IMPORT_PYTHON)
+		$(ADOPTION_INTEGRATION_PYTHON) \
+		$(PRODUCTION_IMPORT_PYTHON)
 
 migrations-check:
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py makemigrations --check --dry-run
@@ -399,6 +430,10 @@ content-pull-plan:
 
 # Clone or refresh a checkout per registered source. This is the only step that
 # touches the network, and it is deliberately separate from the pull itself.
+# The refresh boundary is scripts/checkout_refresh.py: an existing checkout is
+# reset only when this tooling created it, its origin is the registered
+# repository, and it is completely clean -- anything else is refused before any
+# Git mutation (audit REL-10).
 content-checkouts:
 	@set -eu; \
 	mkdir -p "$(CONTENT_CHECKOUT_ROOT)"; \
@@ -406,18 +441,7 @@ content-checkouts:
 		--database "$(CONTENT_DATABASE)" \
 		--checkout-plan --from-disk "$(CONTENT_CHECKOUT_ROOT)")"; \
 	printf '%s\n' "$$plan" \
-	| while IFS="$$(printf '\t')" read -r stable repository branch checkout; do \
-		if test -d "$$checkout/.git"; then \
-			git -C "$$checkout" fetch --quiet origin "$$branch"; \
-			git -C "$$checkout" checkout --quiet "$$branch"; \
-			git -C "$$checkout" reset --hard --quiet FETCH_HEAD; \
-			git -C "$$checkout" clean --quiet -fdx; \
-		else \
-			git clone --quiet --branch "$$branch" \
-				"$(CONTENT_GIT_HOST)/$$repository" "$$checkout"; \
-		fi; \
-		echo "$$stable $$(git -C "$$checkout" rev-parse HEAD)"; \
-	done
+	| uv run --frozen python scripts/checkout_refresh.py --host "$(CONTENT_GIT_HOST)"
 
 # Ingest every registered source from its local checkout. Offline.
 content-pull:
@@ -445,7 +469,8 @@ CONTENT_CHECKOUT_ABS = $(abspath $(CONTENT_CHECKOUT))
 
 # Clone or refresh the editorial checkout, and print the HEAD it landed on. The
 # only target in this pair that touches the network, deliberately separate from
-# the check so a report is never quietly one round trip old.
+# the check so a report is never quietly one round trip old.  The refresh
+# boundary is scripts/checkout_refresh.py, exactly as for content-checkouts.
 content-checkout:
 	@set -eu; \
 	mkdir -p "$$(dirname "$(CONTENT_CHECKOUT_ABS)")"; \
@@ -454,18 +479,7 @@ content-checkout:
 		--checkout "$(CONTENT_CHECKOUT_ABS)" \
 		--checkout-plan)"; \
 	printf '%s\n' "$$plan" \
-	| while IFS="$$(printf '\t')" read -r stable repository branch checkout; do \
-		if test -d "$$checkout/.git"; then \
-			git -C "$$checkout" fetch --quiet origin "$$branch"; \
-			git -C "$$checkout" checkout --quiet "$$branch"; \
-			git -C "$$checkout" reset --hard --quiet FETCH_HEAD; \
-			git -C "$$checkout" clean --quiet -fdx; \
-		else \
-			git clone --quiet --branch "$$branch" \
-				"$(CONTENT_GIT_HOST)/$$repository" "$$checkout"; \
-		fi; \
-		echo "$$stable $$(git -C "$$checkout" rev-parse HEAD)"; \
-	done
+	| uv run --frozen python scripts/checkout_refresh.py --host "$(CONTENT_GIT_HOST)"
 
 # Report drift between what the database serves and that checkout. Offline,
 # read-only, and never invokes content-checkout: exit 1 means "we are behind",

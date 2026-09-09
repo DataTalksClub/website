@@ -458,18 +458,21 @@ class CmpTargetShapeTests(SimpleTestCase):
         self.assertIn("--status", printed)
         self.assertNotIn("--source", printed)
 
-    def test_the_history_target_pairs_the_claims_file_with_the_accounts_run(self) -> None:
+    def test_the_history_target_takes_the_same_database_as_the_accounts_run(self) -> None:
+        """The account claims live in the target database, so there is no
+        claims file to pair -- the two runs share the database instead."""
+
         result = _run_make(
             "-n",
             "import-cmp-learner-history",
             IMPORT_LEARNER_DATABASE=".tmp/does-not-exist.sqlite3",
             CMP_EXPORT="/nonexistent/export.db",
-            CMP_CLAIMS_FILE=".tmp/does-not-exist-claims.json",
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         printed = " ".join(result.stdout.split()).replace('"', "")
         self.assertIn("--source /nonexistent/export.db", printed)
-        self.assertIn("--user-claims-file .tmp/does-not-exist-claims.json", printed)
+        self.assertNotIn("--user-claims-file", printed)
+        self.assertNotIn("--claims-dir", printed)
         self.assertNotIn("--deployment-target", printed)
 
     def test_the_dry_run_target_writes_a_report_and_takes_no_mapping(self) -> None:
@@ -532,11 +535,12 @@ class CmpLearnerOrderTests(SimpleTestCase):
         commands = _logical_recipe_lines(_target_blocks()["import-cmp-learner-data"])
         accounts = next(command for command in commands if "import-cmp-learners" in command)
         history = next(command for command in commands if "import-cmp-learner-history" in command)
-        for variable in ("IMPORT_LEARNER_DATABASE", "CMP_EXPORT", "CMP_CLAIMS_FILE"):
+        # Claims are database rows now, so the only variables that matter are
+        # the shared database and the export.
+        for variable in ("IMPORT_LEARNER_DATABASE", "CMP_EXPORT"):
             with self.subTest(variable=variable):
                 self.assertIn(f'{variable}="$({variable})"', accounts)
                 self.assertIn(f'{variable}="$({variable})"', history)
-        self.assertIn('CMP_CLAIMS_DIR="$(CMP_CLAIMS_DIR)"', history)
 
     def test_no_target_runs_the_history_importer_before_the_accounts_importer(self) -> None:
         accounts = "scripts/prod/import_cmp_learners.py"

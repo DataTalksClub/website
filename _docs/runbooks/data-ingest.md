@@ -703,8 +703,9 @@ asserts its absence. `review_import/` imports a *sanitized* subset for local rev
 deliberately leaves the learner tables empty.
 
 So the run order is `import_cmp_content`, then `import_cmp_learners`, then
-`import_cmp_learner_history` — the third reads the account claims the second wrote,
-through `--user-claims-file`, so point it at the same file that run used. It still
+`import_cmp_learner_history` — the third reads the account claims the second wrote
+into the target database (`accounts.CmpLearnerClaim`), so point it at the same
+database. It still
 carries PII, so it stays under `production-data-migration.md` step 4's transforms and
 never-import list; that document's §8.3 step 4 records the verified end-to-end run
 (20,469 accounts and 414,768 history rows, replay a no-op, SIGKILL-and-resume
@@ -1690,8 +1691,8 @@ number can appear twice in this table for two unrelated defects.
 | Import pre-2024 Zoomcamp history | `make import-legacy-zoomcamp` |
 | Import events | `make import-events` |
 | Import CMP course content | `uv run --frozen python scripts/prod/import_cmp_content.py --database … --source …` |
-| Import CMP learner accounts | `uv run --frozen python scripts/prod/import_cmp_learners.py --database … --source … --claims-file …` (the account layer of step 4 — §8) |
-| Import CMP learner history | `uv run --frozen python scripts/prod/import_cmp_learner_history.py --database … --source … --claims-dir … --user-claims-file …` (the other nine tables; run it after the two above, and point `--user-claims-file` at the same file the accounts run wrote — §8) |
+| Import CMP learner accounts | `uv run --frozen python scripts/prod/import_cmp_learners.py --database … --source …` (the account layer of step 4 — §8) |
+| Import CMP learner history | `uv run --frozen python scripts/prod/import_cmp_learner_history.py --database … --source …` (the other nine tables; run it after the two above, against the same database — §8) |
 | Import the editorial catalogue | `uv run --frozen python scripts/prod/import_public_content.py --database …` |
 | Import the FAQ and the docs | `uv run --frozen python scripts/prod/import_faq.py --database …`, then `import_docs.py` |
 | Import sponsors and testimonials | `uv run --frozen python scripts/prod/import_sponsors.py --database …`, then `import_testimonials.py` |

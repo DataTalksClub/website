@@ -7,6 +7,9 @@ from .base import *  # noqa: F403
 require_environment(RUNTIME_ENVIRONMENT, RuntimeEnvironment.PRODUCTION)  # noqa: F405
 DEBUG = False
 ENVIRONMENT = "production"
+# BE-01: the built-in admin and loginas never mount unless an operator turns
+# break-glass mode on explicitly for a reviewed emergency window.
+ADMIN_BREAK_GLASS = env_flag("DJANGO_ADMIN_BREAK_GLASS", default=False)  # noqa: F405
 SECRET_KEY = secure_secret_from_environment()  # noqa: F405
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS")  # noqa: F405
 if not ALLOWED_HOSTS:

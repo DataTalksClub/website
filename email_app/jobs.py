@@ -27,7 +27,11 @@ def replay_unsubscribe(context: JobContext, payload: JobPayload) -> None:
         raise PermanentJobError("invalid_unsubscribe_replay_payload") from exc
 
     outcome = replay_pending_unsubscribe(pending_id)
-    if outcome in {"applied", "absent", "settled", "rejected"}:
+    if outcome in {"applied", "absent", "settled", "rejected", "superseded"}:
+        # "superseded": this attempt's generation was replaced while Relay was
+        # being called.  The newer choice stays pending for its own job, which
+        # is what keeps the recipient's latest decision authoritative; this
+        # job has nothing left to do.
         return
     if outcome == "not_configured":
         # No Relay is wired up in this deployment.  Retrying cannot help, and a

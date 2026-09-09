@@ -158,16 +158,16 @@ def run(*, path: Path | None = None, apply: bool = True) -> dict[str, Any]:
     import uuid
 
     from django.db import transaction
-    from django.utils import timezone
 
     from content.faq_data import (
         FAQ_CONTENT_KIND,
         FAQ_SOURCE_REPOSITORY,
         FAQ_SOURCE_STABLE_ID,
     )
-    from content.models import ContentDocument, ContentRelease, ContentSource
+    from content.models import ContentDocument
     from content.services import (
         ActivateContentRelease,
+        ContentLifecycleError,
         MarkReleaseReady,
         TransitionContentRelease,
         activate_content_release,
@@ -175,41 +175,38 @@ def run(*, path: Path | None = None, apply: bool = True) -> dict[str, Any]:
         begin_release_validation,
         mark_release_ready,
     )
+    from core.models import RevisionConflict
     from core.services import ServiceContext
+    from scripts.prod.reviewed_release import canonical_digest, open_reviewed_release
 
-    owner, name = FAQ_SOURCE_REPOSITORY.split("/")
+    source, release, created = open_reviewed_release(
+        stable_id=FAQ_SOURCE_STABLE_ID,
+        display_name="DataTalks.Club course FAQ",
+        repository=FAQ_SOURCE_REPOSITORY,
+        path_allowlist=["/faq/"],
+        adapter_type="reviewed-faq-v1",
+        mount_path="/faq/",
+        parser_version="reviewed-faq-v1",
+        rendering_version="reviewed-faq-v1",
+        artifact_fingerprint=canonical_digest(payload),
+        artifact_description={"courses": len(courses)},
+        request_provenance={"kind": "import", "source_file": source_file.name},
+    )
+    if not created:
+        # Replay receipt: the identical reviewed artifact already owns a
+        # release; building another set of rows would only duplicate it
+        # (audit REL-18).
+        return {
+            "courses": len(courses),
+            "sections": int(payload["counts"]["sections"]),
+            "questions": int(payload["counts"]["questions"]),
+            "release": str(release.id),
+            "sequence": release.sequence,
+            "applied": False,
+            "replay": True,
+        }
+
     with transaction.atomic():
-        source, _ = ContentSource.objects.get_or_create(
-            stable_id=FAQ_SOURCE_STABLE_ID,
-            defaults={
-                "display_name": "DataTalks.Club course FAQ",
-                "repository_owner": owner,
-                "repository_name": name,
-                "branch": "main",
-                "path_allowlist": ["/faq/"],
-                "adapter_type": "reviewed-faq-v1",
-                "mount_path": "/faq/",
-                "enabled": True,
-            },
-        )
-        sequence = (
-            ContentRelease.objects.filter(source=source)
-            .order_by("-sequence")
-            .values_list("sequence", flat=True)
-            .first()
-            or 0
-        ) + 1
-        release = ContentRelease.objects.create(
-            source=source,
-            sequence=sequence,
-            based_on_release_id=source.active_release_id,
-            commit_sha=f"{sequence:040x}",
-            parser_version="reviewed-faq-v1",
-            rendering_version="reviewed-faq-v1",
-            status=ContentRelease.Status.FETCHING,
-            requested_at=timezone.now(),
-            request_provenance={"kind": "import", "source_file": source_file.name},
-        )
         ContentDocument.objects.bulk_create(
             [
                 ContentDocument(
@@ -254,22 +251,36 @@ def run(*, path: Path | None = None, apply: bool = True) -> dict[str, Any]:
         context=context,
     )
     source.refresh_from_db()
-    activate_content_release(
-        ActivateContentRelease(
-            source_id=source.id,
-            release_id=release.id,
-            expected_source_revision=source.revision,
-            expected_release_revision=release.revision,
-            reason="import-faq",
-        ),
-        context=context,
-    )
+    try:
+        activate_content_release(
+            ActivateContentRelease(
+                source_id=source.id,
+                release_id=release.id,
+                expected_source_revision=source.revision,
+                expected_release_revision=release.revision,
+                reason="import-faq",
+            ),
+            context=context,
+        )
+    except (ContentLifecycleError, RevisionConflict):
+        # A competing import of this source won the activation race; this
+        # candidate stays ready-but-unactivated and the import result is
+        # bounded and explains the loss (audit REL-18).
+        return {
+            "courses": len(courses),
+            "sections": int(payload["counts"]["sections"]),
+            "questions": int(payload["counts"]["questions"]),
+            "release": str(release.id),
+            "sequence": release.sequence,
+            "applied": False,
+            "activation": "superseded",
+        }
     return {
         "courses": len(courses),
         "sections": int(payload["counts"]["sections"]),
         "questions": int(payload["counts"]["questions"]),
         "release": str(release.id),
-        "sequence": sequence,
+        "sequence": release.sequence,
         "applied": True,
     }
 

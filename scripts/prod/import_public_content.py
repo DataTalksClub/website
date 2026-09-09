@@ -124,12 +124,12 @@ def run(*, root: Path | None = None, apply: bool = True) -> dict[str, Any]:
     import uuid
 
     from django.db import transaction
-    from django.utils import timezone
 
     from content.catalogue import PUBLIC_CONTENT_STABLE_ID
-    from content.models import ContentDocument, ContentRelease, ContentSource
+    from content.models import ContentDocument
     from content.services import (
         ActivateContentRelease,
+        ContentLifecycleError,
         MarkReleaseReady,
         TransitionContentRelease,
         activate_content_release,
@@ -137,42 +137,36 @@ def run(*, root: Path | None = None, apply: bool = True) -> dict[str, Any]:
         begin_release_validation,
         mark_release_ready,
     )
+    from core.models import RevisionConflict
     from core.services import ServiceContext
+    from scripts.prod.reviewed_release import canonical_digest, open_reviewed_release
 
-    owner, name = PUBLIC_CONTENT_REPOSITORY.split("/")
+    source, release, created = open_reviewed_release(
+        stable_id=PUBLIC_CONTENT_STABLE_ID,
+        display_name="DataTalks.Club editorial content",
+        repository=PUBLIC_CONTENT_REPOSITORY,
+        path_allowlist=["/"],
+        adapter_type="reviewed-public-content-v1",
+        mount_path="/-/public-content/",
+        parser_version="reviewed-public-content-v1",
+        rendering_version="reviewed-public-content-v1",
+        artifact_fingerprint=canonical_digest({"catalogue": catalogue, "slack_page": slack_page}),
+        artifact_description={"collections": counts, "slack_page": True},
+        request_provenance={"kind": "import", "source": "public_projection"},
+    )
+    if not created:
+        # Replay receipt: the identical reviewed artifact already owns a
+        # release; building another set of rows would only duplicate it
+        # (audit REL-18).
+        return {
+            "collections": counts,
+            "release": str(release.id),
+            "sequence": release.sequence,
+            "applied": False,
+            "replay": True,
+        }
+
     with transaction.atomic():
-        source, _ = ContentSource.objects.get_or_create(
-            stable_id=PUBLIC_CONTENT_STABLE_ID,
-            defaults={
-                "display_name": "DataTalks.Club editorial content",
-                "repository_owner": owner,
-                "repository_name": name,
-                "branch": "main",
-                "path_allowlist": ["/"],
-                "adapter_type": "reviewed-public-content-v1",
-                "mount_path": "/-/public-content/",
-                "enabled": True,
-            },
-        )
-        sequence = (
-            ContentRelease.objects.filter(source=source)
-            .order_by("-sequence")
-            .values_list("sequence", flat=True)
-            .first()
-            or 0
-        ) + 1
-        release = ContentRelease.objects.create(
-            source=source,
-            sequence=sequence,
-            based_on_release_id=source.active_release_id,
-            commit_sha=f"{sequence:040x}",
-            parser_version="reviewed-public-content-v1",
-            rendering_version="reviewed-public-content-v1",
-            status=ContentRelease.Status.FETCHING,
-            requested_at=timezone.now(),
-            request_provenance={"kind": "import", "source": "public_projection"},
-        )
-
         documents: list[ContentDocument] = []
         for collection in COLLECTION_NAMES:
             kind = collection.rstrip("s") or collection
@@ -254,21 +248,35 @@ def run(*, root: Path | None = None, apply: bool = True) -> dict[str, Any]:
         context=context,
     )
     source.refresh_from_db()
-    activate_content_release(
-        ActivateContentRelease(
-            source_id=source.id,
-            release_id=release.id,
-            expected_source_revision=source.revision,
-            expected_release_revision=release.revision,
-            reason="import-public-content",
-        ),
-        context=context,
-    )
+    try:
+        activate_content_release(
+            ActivateContentRelease(
+                source_id=source.id,
+                release_id=release.id,
+                expected_source_revision=source.revision,
+                expected_release_revision=release.revision,
+                reason="import-public-content",
+            ),
+            context=context,
+        )
+    except (ContentLifecycleError, RevisionConflict):
+        # A competing import of this source won the activation race: its
+        # release is active and this candidate stays ready-but-unactivated.
+        # The import result is bounded and explains the loss instead of
+        # surfacing a raw traceback (audit REL-18).
+        return {
+            "collections": counts,
+            "documents": len(documents),
+            "release": str(release.id),
+            "sequence": release.sequence,
+            "applied": False,
+            "activation": "superseded",
+        }
     return {
         "collections": counts,
         "documents": len(documents),
         "release": str(release.id),
-        "sequence": sequence,
+        "sequence": release.sequence,
         "applied": True,
     }
 

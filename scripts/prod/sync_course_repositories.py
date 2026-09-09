@@ -22,13 +22,17 @@ register_course_repository``, not editing a list here or in the Makefile.
 
     uv run --frozen python scripts/prod/sync_course_repositories.py \\
         --database .tmp/local.sqlite3 --from-disk .tmp/course-checkouts
+
+Where the rows land is decided only by ``scripts.prod.target``: a local
+``--database`` path, or a reviewed ``--deployment-target`` named a second time
+in ``--allow-production-write``.  That selection is the write authorization;
+nothing here re-checks the engine or environment afterwards.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import subprocess
 import sys
 from collections.abc import Callable, Mapping, Sequence
@@ -404,24 +408,13 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{stable_id}\t{repository}\t{branch}\t{target}")
         return 0
 
-    from courses.services.local_course_seed import LocalCourseSeedError, assert_local_database
-
-    try:
-        assert_local_database()
-    except LocalCourseSeedError as error:
-        print(
-            json.dumps(
-                {
-                    "error": (
-                        "pulling content writes course rows and is refused outside a "
-                        f"local or test SQLite database ({error})."
-                    )
-                },
-                indent=2,
-            )
-        )
-        return 1
-
+    # configure_target() is this entry point's write authorization boundary: it
+    # resolved the target from --database or the paired --deployment-target /
+    # --allow-production-write flags before Django started, and refused
+    # anything short of a complete, self-consistent selection.  The local
+    # seeders keep their own local-only guard; this importer deliberately does
+    # not borrow it, so a reviewed production pull can run as documented in
+    # _docs/runbooks/production-data-migration.md.
     try:
         report = pull(
             sources=sources,

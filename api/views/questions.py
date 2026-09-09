@@ -10,7 +10,7 @@ from courses.models.homework import Homework, Question
 from api.safety import (
     require_staff_token,
 )
-from api.utils import parse_json_body, require_methods
+from api.utils import parse_json_object_list, require_methods
 
 from .question_mutations import (
     question_delete_response,
@@ -67,11 +67,11 @@ def questions_view(request, course_slug, homework_id):
     if request.method == "GET":
         return _questions_list_response(homework)
 
-    data, err = parse_json_body(request)
+    items, err = parse_json_object_list(request)
     if err:
         return err
 
-    return questions_create_response(homework, data)
+    return questions_create_response(homework, items)
 
 
 @token_required

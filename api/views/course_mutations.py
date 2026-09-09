@@ -2,7 +2,7 @@ from django.core.exceptions import ValidationError
 from django.utils.dateparse import parse_date
 
 from api.safety import error_response
-from api.utils import parse_json_body
+from api.utils import parse_json_object
 from courses.models.cohort import Cohort
 
 COURSE_PATCH_FIELDS = {
@@ -41,7 +41,7 @@ COURSE_CREATE_DEFAULTS = (
 
 
 def course_create_data_from_request(request):
-    data, err = parse_json_body(request)
+    data, err = parse_json_object(request)
     if err:
         return None, err
 
@@ -70,7 +70,7 @@ def validated_course_from_create_data(data):
 
 
 def course_patch_data_from_request(request):
-    data, err = parse_json_body(request)
+    data, err = parse_json_object(request)
     if err:
         return None, err
 

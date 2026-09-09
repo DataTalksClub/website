@@ -4,7 +4,7 @@ from api.safety import (
     error_response,
     ensure_no_related_records_for_delete,
 )
-from api.utils import parse_json_body
+from api.utils import parse_json_object
 from courses.models.homework import Question
 
 from .question_serializers import question_to_dict
@@ -47,24 +47,17 @@ def create_question(homework, question_data):
     return question_record, None
 
 
-def question_create_items(data):
-    if isinstance(data, list):
-        return data
-    item_list = [data]
-    return item_list
-
-
 def question_create_error(item, error):
     text = item.get("text", "unknown")
     return {"text": text, "error": error}
 
 
-def questions_create_response(homework, data):
+def questions_create_response(homework, items):
+    """Create one question per pre-validated item (see parse_json_object_list)."""
     created = []
     errors = []
 
-    question_items = question_create_items(data)
-    for item in question_items:
+    for item in items:
         question_record, error = create_question(homework, item)
         if error:
             question_error = question_create_error(item, error)
@@ -125,7 +118,7 @@ def apply_question_patch(question, data):
 
 
 def question_patch_response(question, request):
-    data, err = parse_json_body(request)
+    data, err = parse_json_object(request)
     if err:
         return err
 

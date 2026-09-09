@@ -17,7 +17,7 @@ from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount
 from django.test import TestCase
 
-from accounts.models import CmpLearnerImportProgress, CustomUser
+from accounts.models import CmpLearnerClaim, CmpLearnerImportProgress, CustomUser
 from accounts.services.cmp_learner_import import (
     FORBIDDEN_TABLES,
     READ_TABLES,
@@ -95,27 +95,19 @@ def _build_source(path: Path, accounts: list[tuple], emails: list[tuple]) -> Non
 
 
 class _ClaimsFixtureMixin:
-    """Every test gets its own claims file -- the default path is shared,
-    real resumability state, so a test using it would leak into siblings and
-    into a real ``.tmp/cmp_learner_import_claims.json`` left by an actual run.
+    """The claims store is the script-owned ``CmpLearnerClaim`` table, scoped
+    to the test database -- each test's transactional isolation is the
+    boundary, so no file fixture is needed.
     """
 
-    def setUp(self) -> None:
-        super().setUp()
-        tmp = tempfile.NamedTemporaryFile(suffix="-claims.json", delete=False)
-        tmp.close()
-        self.claims_path = Path(tmp.name)
-        self.claims_path.unlink()  # CmpClaimsStore.load tolerates "missing"
-        self.addCleanup(self.claims_path.unlink, missing_ok=True)
-
     def _user_for_source(self, source_id: int) -> CustomUser:
-        store = CmpClaimsStore.load(self.claims_path)
+        store = CmpClaimsStore.load()
         user_id = store.user_id_for_source(source_id)
         self.assertIsNotNone(user_id, f"source id {source_id} was never claimed")
         return CustomUser.objects.get(pk=user_id)
 
     def _import(self, source: Path, *, batch_size: int = 10):
-        return import_cmp_learners(source, batch_size=batch_size, claims_path=self.claims_path)
+        return import_cmp_learners(source, batch_size=batch_size)
 
 
 class CmpLearnerImportBasicsTests(_ClaimsFixtureMixin, TestCase):
@@ -328,7 +320,7 @@ class CmpLearnerImportBasicsTests(_ClaimsFixtureMixin, TestCase):
             [_account_row(1, email="one@example.com"), _account_row(2, email="two@example.com")],
             [(1, "one@example.com", 1, 1, 1)],
         )
-        report = dry_run_counts(source, claims_path=self.claims_path)
+        report = dry_run_counts(source)
         self.assertEqual(report["accounts_in_source"], 2)
         self.assertEqual(report["account_emailaddress_in_source"], 1)
         self.assertEqual(report["accounts_already_imported"], 0)
@@ -339,7 +331,7 @@ class CmpLearnerImportBasicsTests(_ClaimsFixtureMixin, TestCase):
         source = self._source([_account_row(1, email="one@example.com")], [])
         self._import(source)
 
-        status = progress_status(claims_path=self.claims_path)
+        status = progress_status()
         self.assertTrue(status["progress"]["accounts_customuser"]["completed"])
         self.assertEqual(status["progress"]["accounts_customuser"]["rows_written"], 1)
         self.assertEqual(status["claims_recorded"], 1)
@@ -403,13 +395,13 @@ class CmpLearnerImportResumabilityTests(_ClaimsFixtureMixin, TestCase):
         self.assertEqual(progress.rows_written, 10)
         self.assertFalse(progress.completed)
         self.assertEqual(CustomUser.objects.count(), 10)
-        self.assertEqual(len(CmpClaimsStore.load(self.claims_path)), 10)
+        self.assertEqual(len(CmpClaimsStore.load()), 10)
 
         # A normal resume: no --edition-style flag, just run it again.
         result = self._import(source, batch_size=5)
 
         self.assertEqual(CustomUser.objects.count(), 25)
-        claims = CmpClaimsStore.load(self.claims_path)
+        claims = CmpClaimsStore.load()
         self.assertEqual(len(claims), 25)
         self.assertEqual(
             sorted(source_id for source_id, _user_id in claims.sorted_claims()),
@@ -460,10 +452,10 @@ class CmpLearnerImportResumabilityTests(_ClaimsFixtureMixin, TestCase):
         self._import(source, batch_size=100)
         self.assertEqual(CustomUser.objects.count(), 3)
 
-        # Simulate the claims file being lost while the database (and its
-        # watermark) is intact -- a stronger fault than the narrow crash
-        # window the module docstring accepts as a residual risk.
-        self.claims_path.unlink()
+        # Simulate the claims being lost while the accounts (and their
+        # watermark) survive -- the damaged state a recovery has to cope
+        # with. With database claims this is row deletion, not a lost file.
+        CmpLearnerClaim.objects.all().delete()
         progress = CmpLearnerImportProgress.objects.get(table="accounts_customuser")
         progress.last_source_id = 0
         progress.completed = False
@@ -479,7 +471,7 @@ class CmpLearnerImportResumabilityTests(_ClaimsFixtureMixin, TestCase):
         self.assertEqual(CustomUser.objects.count(), 3)
         self.assertEqual(result.accounts.written, 6)
         self.assertEqual(result.cross_source_matches, (1, 2, 3))
-        claims = CmpClaimsStore.load(self.claims_path)
+        claims = CmpClaimsStore.load()
         self.assertEqual(len(claims), 3)
 
 

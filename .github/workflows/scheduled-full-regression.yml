@@ -491,10 +491,23 @@ jobs:
       - name: Smoke-test scheduled image liveness
         run: |
           set -euo pipefail
+          docker volume create dtc-web-scheduled-data
+          trap 'docker logs dtc-web-scheduled 2>/dev/null; docker rm --force dtc-web-scheduled 2>/dev/null; docker volume rm --force dtc-web-scheduled-data 2>/dev/null' EXIT
+          # /unified/ is database-backed, so image liveness needs a migrated SQLite
+          # database. The gitignored `.tmp/` is not in the image and a fresh volume
+          # mount is root-owned: chown it as root, then migrate as the runtime user
+          # so every file uv and Django write keeps the dtc ownership.
+          docker run --rm --entrypoint sh --user 0:0 \
+            --volume dtc-web-scheduled-data:/app/.tmp \
+            "dtc-website:${{ github.sha }}" -c 'chown 10001:10001 /app/.tmp'
+          docker run --rm --entrypoint sh --user 10001:10001 \
+            --env DJANGO_SETTINGS_MODULE=website.settings.local \
+            --volume dtc-web-scheduled-data:/app/.tmp \
+            "dtc-website:${{ github.sha }}" -c 'uv run --no-sync python manage.py migrate --noinput'
           docker run --detach --name dtc-web-scheduled \
             --env DJANGO_SETTINGS_MODULE=website.settings.local \
+            --volume dtc-web-scheduled-data:/app/.tmp \
             --publish 8000:8000 "dtc-website:${{ github.sha }}" web
-          trap 'docker logs dtc-web-scheduled; docker rm --force dtc-web-scheduled' EXIT
           for _ in $(seq 1 30); do
             if test "$(curl --fail --silent http://127.0.0.1:8000/health/live)" = '{"status": "ok", "version": "local-development-build-version-not-configured", "source_sha": null, "image_digest": null}'; then
               curl --fail --silent --output /dev/null http://127.0.0.1:8000/unified/
