@@ -44,6 +44,7 @@ EXPECTED_COMMANDS = {
     "datamailer_send_status": "data",
     "datamailer_status": "courses",
     "import_development_course_content": "courses",
+    "learner_duplicate_preflight": "courses",
     "monitoring_datamailer_health": "data",
     "preview_peer_review_email": "courses",
     "seed_local_courses": "courses",

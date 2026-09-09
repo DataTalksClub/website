@@ -34,6 +34,8 @@ from scripts.prod.target import (
 )
 
 PROD_ROOT = Path(scripts.prod.__file__).resolve().parent
+
+from scripts.prod import MAKE_TARGET_EXCLUSIONS
 PRODUCTION_TARGET = "website-production"
 RETIRED_TARGET = "website-sandbox"
 
@@ -284,8 +286,10 @@ class SharedSelectionTests(SimpleTestCase):
     """Thirteen copies of one four-line function is how this drifted."""
 
     def test_no_entry_point_configures_its_own_database(self) -> None:
+        # Only runnable entry points select a write target; excluded modules
+        # are libraries or deliberately gated runs (see MAKE_TARGET_EXCLUSIONS).
         for module in pkgutil.iter_modules([str(PROD_ROOT)]):
-            if module.ispkg:
+            if module.ispkg or module.name in MAKE_TARGET_EXCLUSIONS:
                 continue
             with self.subTest(module=module.name):
                 source = (PROD_ROOT / f"{module.name}.py").read_text(encoding="utf-8")
