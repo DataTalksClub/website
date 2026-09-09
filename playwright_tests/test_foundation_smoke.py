@@ -76,11 +76,12 @@ def test_public_home_and_hubs(
     expect(featured_course).to_have_count(1)
     expect(featured_course.get_by_role("heading", name="AI Dev Tools Zoomcamp")).to_be_visible()
     expect(featured_course.get_by_text("Starts August 31, 2026")).to_be_visible()
-    # The panel's call to action is the featured cohort's own course route, the same
-    # ``/courses/<family>/<identifier>`` page the catalogue cards link to.
+    # The panel's call to action is the featured cohort's own canonical route,
+    # the same ``/courses/<family>/cohorts/<identifier>`` page the catalogue
+    # cards link to.
     expect(featured_course.get_by_role("link", name="View the syllabus")).to_have_attribute(
         "href",
-        "/courses/ai-dev-tools-zoomcamp/2026",
+        "/courses/ai-dev-tools-zoomcamp/cohorts/2026",
     )
     expect(page.get_by_role("link", name="all courses")).to_have_attribute(
         "href",

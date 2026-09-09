@@ -10,6 +10,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.db import connections
+from django.db.migrations.exceptions import IrreversibleError
 from django.db.migrations.executor import MigrationExecutor
 
 from test_support.migrations import (
@@ -146,6 +147,17 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
         "management_auth",
     )
 
+    # Reviewed deliberately irreversible migrations. courses.0006_source_content_id_compound
+    # rebuilds source_content_id from UUID to compound slug form; compound IDs
+    # have no UUID representation, so the migration refuses unapplication up
+    # front instead of failing part way through the schema dance -- its
+    # docstring records that decision. Reversal plans that transitively cross
+    # it (any app whose tables courses depends on) stop there too; every other
+    # obstacle must still fail this test.
+    DELIBERATELY_IRREVERSIBLE = {
+        ("courses", "0006_source_content_id_compound"),
+    }
+
     def setUp(self) -> None:
         super().setUp()
         digest = hashlib.sha256(self.id().encode("utf-8")).hexdigest()[:12]
@@ -185,7 +197,22 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
         executor.migrate(executor.loader.graph.leaf_nodes())
         for app_label in reversed(self.FIRST_PARTY_APPS):
             with self.subTest(app=app_label):
-                MigrationExecutor(self.connection).migrate([(app_label, None)])
+                try:
+                    MigrationExecutor(self.connection).migrate([(app_label, None)])
+                except IrreversibleError as error:
+                    reviewed = ", ".join(
+                        f"{app_label_}.{name}"
+                        for app_label_, name in sorted(self.DELIBERATELY_IRREVERSIBLE)
+                    )
+                    self.assertTrue(
+                        any(
+                            f"{app}.{name}" in str(error)
+                            for app, name in self.DELIBERATELY_IRREVERSIBLE
+                        ),
+                        f"an unreviewed irreversible migration blocks {app_label}"
+                        f" (reviewed: {reviewed}): {error}",
+                    )
+                    return
                 applied = MigrationExecutor(self.connection).loader.applied_migrations
                 self.assertFalse(
                     [node for node in applied if node[0] == app_label],
