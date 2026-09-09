@@ -19,10 +19,10 @@ class HomeworkStudioCoursesSubmissionViewTests(HomeworkStudioCoursesViewTestBase
         """Homework submissions redirect to the Studio course workspace."""
         self.client.login(username="admin@test.com", password="admin123")
         url = reverse(
-            "homework_submissions",
+            "cohort_homework_submissions",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.identifier,
+                "cohort_identifier": self.course.identifier,
                 "homework_slug": self.homework.slug,
             },
         )

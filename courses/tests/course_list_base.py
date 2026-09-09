@@ -226,7 +226,7 @@ class CourseListViewTestBase(TestCase):
     def course_card_for(self, response, course):
         content = response.content.decode()
         course_url = reverse(
-            "course",
+            "cohort",
             kwargs={
                 "course_slug": course.course.slug,
                 "cohort_identifier": course.identifier,

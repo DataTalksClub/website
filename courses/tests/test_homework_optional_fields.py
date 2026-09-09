@@ -135,7 +135,8 @@ class HomeworkOptionalFieldsBase(TestCase):
         return reverse(
             "cohort_homework",
             kwargs={
-                "course_slug": self.course.slug,
+                "course_slug": self.course.course.slug,
+                "cohort_identifier": self.course.identifier,
                 "homework_slug": self.homework.slug,
             },
         )

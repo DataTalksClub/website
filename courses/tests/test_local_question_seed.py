@@ -192,7 +192,8 @@ class LocalQuestionSeedTests(TestCase):
             reverse(
                 "cohort_homework",
                 kwargs={
-                    "course_slug": self.cohort.slug,
+                    "course_slug": self.cohort.course.slug,
+                    "cohort_identifier": self.cohort.identifier,
                     "homework_slug": self.homework.slug,
                 },
             )

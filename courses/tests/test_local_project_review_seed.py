@@ -117,7 +117,8 @@ class LocalProjectReviewSeedTests(TestCase):
             reverse(
                 "cohort_project",
                 kwargs={
-                    "course_slug": self.course.slug,
+                    "course_slug": self.course.course.slug,
+                    "cohort_identifier": self.course.identifier,
                     "project_slug": self.project.slug,
                 },
             )
@@ -131,7 +132,8 @@ class LocalProjectReviewSeedTests(TestCase):
             reverse(
                 "cohort_project_list",
                 kwargs={
-                    "course_slug": self.course.slug,
+                    "course_slug": self.course.course.slug,
+                    "cohort_identifier": self.course.identifier,
                     "project_slug": self.project.slug,
                 },
             )
@@ -145,7 +147,8 @@ class LocalProjectReviewSeedTests(TestCase):
             reverse(
                 "cohort_projects_eval",
                 kwargs={
-                    "course_slug": self.course.slug,
+                    "course_slug": self.course.course.slug,
+                    "cohort_identifier": self.course.identifier,
                     "project_slug": self.project.slug,
                 },
             )
@@ -167,7 +170,8 @@ class LocalProjectReviewSeedTests(TestCase):
             reverse(
                 "cohort_projects_eval_submit",
                 kwargs={
-                    "course_slug": self.course.slug,
+                    "course_slug": self.course.course.slug,
+                    "cohort_identifier": self.course.identifier,
                     "project_slug": self.project.slug,
                     "review_id": review.id,
                 },

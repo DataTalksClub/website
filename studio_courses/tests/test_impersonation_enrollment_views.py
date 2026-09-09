@@ -25,10 +25,10 @@ class ImpersonationEnrollmentStudioCoursesViewTests(
         )
         login_url = self.login_as_user_url()
         course_url = reverse(
-            "course",
+            "cohort",
             kwargs={
                 "course_slug": self.course.course.slug,
-                "cohort_year": self.course.identifier,
+                "cohort_identifier": self.course.identifier,
             },
         )
 
