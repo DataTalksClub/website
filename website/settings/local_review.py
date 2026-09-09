@@ -38,6 +38,11 @@ DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY = False
 CLOUDWATCH_APP_METRIC_REGION = ""
 AWS_REGION = ""
 AWS_DEFAULT_REGION = ""
+# Django's test client browses as host "testserver", and the workstation `.env`
+# loaded by `website.settings.local` supplies a deploy-oriented host list without
+# it. Pin the canonical local list so review browsing ignores both the shell and
+# the `.env`, like the provider pins above.
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]", "testserver", "web.dtcdev.click"]
 COMMUNITY_BASE = {**COMMUNITY_BASE, "JOBS_BACKEND": "sync"}  # noqa: F405
 LOCAL_REVIEW_OUTBOUND_NETWORK_DISABLED = True
 _AUTH_MIDDLEWARE = "django.contrib.auth.middleware.AuthenticationMiddleware"
