@@ -73,7 +73,16 @@ BACKEND_TEST_PATTERNS = (
     "connection.vendor",
     "has_select_for_update",
 )
-BACKEND_PATTERN_EXCEPTIONS: dict[Path, frozenset[str]] = {}
+# The vote-budget and project-scoring paths serialize concurrent writers on a
+# single project row. On the deployed PostgreSQL engine that is
+# ``select_for_update``; on SQLite (tests, local) the database-level write
+# lock serializes the same transaction, so the behavior stays portable and
+# only the token is backend-specific.
+BACKEND_PATTERN_EXCEPTIONS: dict[Path, frozenset[str]] = {
+    Path("courses/votes.py"): frozenset({"select_for_update"}),
+    Path("courses/project_scoring.py"): frozenset({"select_for_update"}),
+    Path("courses/views/project_eval_submit_save.py"): frozenset({"select_for_update"}),
+}
 DATABASE_REFERENCE = re.compile(
     r"\b(?:postgres(?:ql)?|psycopg|database_url)\b",
     re.IGNORECASE,
