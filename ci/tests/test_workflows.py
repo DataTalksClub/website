@@ -90,7 +90,7 @@ def test_issue_205_bounds_the_push_and_scheduled_long_running_jobs() -> None:
         "classification": "10",
         "quality": "15",
         "django": "30",
-        "playwright": "60",
+        "playwright": "90",
         "screenshots": "30",
     }
 
@@ -102,10 +102,10 @@ def test_issue_205_bounds_the_push_and_scheduled_long_running_jobs() -> None:
         "selector": "10",
         "quality": "15",
         "django": "30",
-        # 53399ea8: the same 60-minute bound CI uses -- every scheduled run
-        # since 34188009197 died at ~46m at the old 45m bound with tests
-        # still passing.
-        "playwright": "60",
+        # 53399ea8 gave the scheduled run the same bound CI uses; the 2026-09-09
+        # remediation wave outgrew 60 minutes (both full runs died at the cap
+        # with every test still passing), so both move to 90 together.
+        "playwright": "90",
     }
 
 
@@ -220,7 +220,7 @@ def test_aggregate_gate_is_the_release_dependency() -> None:
             assert "needs.ci-gate.result == 'success'" in jobs[name]["if"]
     playwright = jobs["playwright"]
     assert set(playwright["needs"]) == {"resolve-release", "classification"}
-    assert playwright["timeout-minutes"] == "60"
+    assert playwright["timeout-minutes"] == "90"
     assert "make test-playwright-smoke" in runs(playwright)
     assert "make test-playwright-core" in runs(playwright)
     assert "make test-playwright" in runs(playwright)

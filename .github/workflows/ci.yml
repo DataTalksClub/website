@@ -751,11 +751,14 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: [resolve-release, classification]
     runs-on: ubuntu-latest
-    # The verified full-profile suite currently takes 48m51s on the hosted
-    # runner (issue #206). Keep a bounded reserve above that measurement so a
-    # healthy release reaches ci-gate, while a wedged test still cannot hold
-    # the serialized release group for GitHub's 360-minute default (issue #193).
-    timeout-minutes: 60
+    # The full-profile suite outgrew its 48m51s measurement (issue #206): the
+    # September 9 remediation wave added browser contracts (tour page, identity
+    # reconciliation, management credentials) and both September 9 full runs
+    # were killed at this cap while every test was still passing (issue #351
+    # follow-up). Keep a bounded reserve above the observed pace so a healthy
+    # release reaches ci-gate, while a wedged test still cannot hold the
+    # serialized release group for GitHub's 360-minute default (issue #193).
+    timeout-minutes: 90
     env:
       DJANGO_ALLOW_ASYNC_UNSAFE: "true"
       DJANGO_SETTINGS_MODULE: website.settings.test
