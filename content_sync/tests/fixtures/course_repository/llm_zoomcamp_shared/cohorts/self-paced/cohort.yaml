@@ -5,6 +5,4 @@ identifier: self-paced
 delivery: self_paced
 curriculum: current
 published: true
-title: LLM Zoomcamp Self-Paced
-description: Read the current curriculum at your own pace; practice is ungraded.
 homework: []

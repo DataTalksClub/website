@@ -7,8 +7,6 @@ curriculum: current
 published: true
 start_date: "2026-06-08"
 end_date: "2026-08-17"
-title: LLM Zoomcamp 2026
-description: The 2026 live delivery of LLM Zoomcamp.
 homework:
   - module: 01-agentic-rag
     source: cohorts/2026/homework/01-agentic-rag/homework.yaml

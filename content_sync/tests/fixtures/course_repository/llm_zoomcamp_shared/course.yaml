@@ -2,9 +2,20 @@ schema_version: 2
 content_id: "11111111-1111-4111-8111-111111111111"
 slug: llm-zoomcamp
 title: LLM Zoomcamp
+current_cohort: "2026"
+cohorts:
+  - identifier: "2026"
+    content: root
+  - identifier: self-paced
+    content: root
+  - identifier: "2025"
+    content: cohorts/2025
+    legacy: true
+description: A free course about building LLM applications, RAG, agents, and evaluation.
 outcome: Build, evaluate, and monitor production-style LLM applications.
-repository_url: https://github.com/DataTalksClub/llm-zoomcamp
-docs_url: https://datatalks.club/docs/courses/llm-zoomcamp/
-faq_url: https://datatalks.club/faq/llm-zoomcamp.html
+urls:
+  repository: https://github.com/DataTalksClub/llm-zoomcamp
+  docs: https://datatalks.club/docs/courses/llm-zoomcamp/
+  faq: https://datatalks.club/faq/llm-zoomcamp.html
 hashtag: llmzoomcamp
 published: true
