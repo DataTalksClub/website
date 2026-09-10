@@ -2,11 +2,6 @@ from dataclasses import dataclass
 from datetime import timedelta
 
 from courses.models import Enrollment, Homework, Submission
-from data.models import (
-    DatamailerSendAudit,
-    DatamailerSendAuditStatus,
-    DatamailerSendAuditType,
-)
 
 
 @dataclass(frozen=True)

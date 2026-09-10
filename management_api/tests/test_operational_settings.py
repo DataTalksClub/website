@@ -212,7 +212,7 @@ class AdminOperationalSettingsTests(TestCase):
             {
                 "updates": [
                     {
-                        "key": "relay.link_bridge.base_url",
+                        "key": "site.origin.canonical",
                         "value": "anything",
                         "expected_revision": 0,
                     }

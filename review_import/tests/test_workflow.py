@@ -905,7 +905,6 @@ import django
 django.setup()
 
 from django.conf import settings
-from data.models import DatamailerOutboxEvent
 from community_base.jobs.models import JobIntent
 from review_import.admin import create_synthetic_admin
 
@@ -928,8 +927,6 @@ with (
 
 if email_send.called or job_submit.called:
     raise SystemExit(20)
-if DatamailerOutboxEvent.objects.count() != 0:
-    raise SystemExit(21)
 if JobIntent.objects.count() != 0:
     raise SystemExit(22)
 """

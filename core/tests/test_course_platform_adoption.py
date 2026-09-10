@@ -29,14 +29,10 @@ MANIFEST_PATH = ADOPTION_DIR / "copied-files.tsv"
 EXPECTED_COMMANDS = {
     "account_identity_inventory": "accounts",
     "bootstrap_development_owner": "accounts",
-    "datamailer_callback_status": "data",
-    "datamailer_outbox_status": "data",
-    "datamailer_send_status": "data",
     "import_development_course_content": "courses",
     "import_mail_category_optouts": "courses",
     "learner_duplicate_preflight": "courses",
     "migrate_shared_curriculum": "courses",
-    "monitoring_datamailer_health": "data",
     "preview_peer_review_email": "courses",
     "seed_local_courses": "courses",
     "seed_local_project_review": "courses",
@@ -51,7 +47,6 @@ EXPECTED_APP_MODULES = {
     "api": "api",
     "studio_courses": "studio_courses",
     "courses": "courses",
-    "data": "data",
 }
 EXPECTED_UNIFIED_ROUTE_CALLBACK_OVERRIDES: dict[tuple[str, str], str] = {}
 # The generic two-segment course route intentionally shadows the shared

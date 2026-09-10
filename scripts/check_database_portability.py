@@ -49,8 +49,6 @@ APPLICATION_ROOTS = (
     "core",
     "course_management",
     "courses",
-    "data",
-    "email_app",
     "events",
     "jobs",
     "management_api",

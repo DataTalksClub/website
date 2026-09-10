@@ -12,9 +12,7 @@ from accounts.services.timezones import format_deadline_for_user
 from course_management.public_urls import (
     cohort_route_kwargs,
     public_route_url,
-    public_url,
 )
-
 from courses.models.project import PeerReview
 
 SUBMISSION_RESULTS_CATEGORY = "submission-results"
@@ -113,7 +111,8 @@ def send_homework_score_notification(homework) -> int:
     context = homework_score_shared_context(homework)
     sent = 0
     submissions = homework.submission_set.select_related(
-        "student", "homework__course",
+        "student",
+        "homework__course",
     )
     for submission in latest_submissions_per_student(submissions):
         learner_context = context | {
@@ -164,14 +163,13 @@ def send_project_score_notification(project) -> int:
     context = project_score_shared_context(project)
     sent = 0
     submissions = project.projectsubmission_set.select_related(
-        "student", "project__course",
+        "student",
+        "project__course",
     )
     for submission in latest_submissions_per_student(submissions):
         learner_context = context | {
             "project_score": submission.project_score,
-            "project_learning_in_public_score": (
-                submission.project_learning_in_public_score
-            ),
+            "project_learning_in_public_score": (submission.project_learning_in_public_score),
             "project_faq_score": submission.project_faq_score,
             "peer_review_score": submission.peer_review_score,
             "peer_review_learning_in_public_score": (
@@ -220,8 +218,7 @@ def assigned_review_links(submission, course, project) -> list[dict]:
         target = review.submission_under_evaluation
         eval_url = public_route_url(
             "cohort_projects_eval_submit",
-            cohort_route_kwargs(course)
-            | {"project_slug": project.slug, "review_id": review.id},
+            cohort_route_kwargs(course) | {"project_slug": project.slug, "review_id": review.id},
         )
         items.append(
             {
@@ -253,9 +250,7 @@ def peer_review_assignment_context(submission) -> dict:
         "project_slug": project.slug,
         "project_title": project.title,
         "submission_id": submission.pk,
-        "submitted_at": (
-            submission.submitted_at.isoformat() if submission.submitted_at else ""
-        ),
+        "submitted_at": (submission.submitted_at.isoformat() if submission.submitted_at else ""),
         "deadline_summary": deadline["deadline_summary"],
         "number_of_peers_to_evaluate": num_peers,
         "assigned_reviews": reviews,
@@ -283,12 +278,10 @@ def peer_review_assignment_context(submission) -> dict:
 
 def send_peer_review_assignment_notification(project) -> int:
     sent = 0
-    submissions = (
-        project.projectsubmission_set.select_related(
-            "student", "project__course",
-        )
-        .prefetch_related(assigned_reviews_prefetch())
-    )
+    submissions = project.projectsubmission_set.select_related(
+        "student",
+        "project__course",
+    ).prefetch_related(assigned_reviews_prefetch())
     for submission in latest_submissions_per_student(submissions):
         if _send_notification(
             purpose="peer-review-assignment",

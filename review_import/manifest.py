@@ -226,8 +226,6 @@ SENSITIVE_PREFIXES = (
     "api_",
     "content_sync_",
     "core_",
-    "data_",
-    "email_app_",
     "events_",
     "management_auth_",
 )

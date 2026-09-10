@@ -58,7 +58,6 @@ from core.models import OperationalSetting
 OPERATIONAL_SETTINGS_DOCS_REFERENCE = "_docs/specs/01-platform-architecture.md"
 
 PUBLIC_MEDIA_GROUP = "public_media"
-RELAY_LINK_BRIDGE_GROUP = "relay.link_bridge"
 OBSERVABILITY_GROUP = "observability"
 SITE_ORIGIN_GROUP = "site.origin"
 
@@ -334,78 +333,6 @@ PUBLIC_MEDIA_MAX_OBJECT_BYTES = _declare(
 )
 
 
-# -- the relay's link bridge -------------------------------------------------
-
-RELAY_LINK_BRIDGE_BASE_URL = _declare(
-    key="relay.link_bridge.base_url",
-    group=RELAY_LINK_BRIDGE_GROUP,
-    label="Relay link bridge base URL",
-    description=(
-        "Base URL of the relay that resolves open, click and unsubscribe links. "
-        "Relay has no public listener, so this is the private in-VPC address and "
-        "http is allowed. Empty means no relay, and the three public routes 404."
-    ),
-    value_type=STRING,
-    default="",
-    env_var="RELAY_LINK_BRIDGE_BASE_URL",
-    settings_attr="RELAY_LINK_BRIDGE_BASE_URL",
-    validation={"url": True, "schemes": ["https", "http"], "trim": True},
-    validator=_url("https", "http"),
-)
-
-RELAY_LINK_BRIDGE_OPEN_TIMEOUT_SECONDS = _declare(
-    key="relay.link_bridge.open_timeout_seconds",
-    group=RELAY_LINK_BRIDGE_GROUP,
-    label="Open beacon timeout",
-    description="Seconds an open beacon may take before the pixel is served anyway.",
-    value_type=INTEGER,
-    default=2,
-    env_var="RELAY_LINK_BRIDGE_OPEN_TIMEOUT_SECONDS",
-    settings_attr="RELAY_LINK_BRIDGE_OPEN_TIMEOUT_SECONDS",
-    validation={"minimum": 1, "maximum": 30},
-    validator=_bounded_int(minimum=1, maximum=30),
-)
-
-RELAY_LINK_BRIDGE_CLICK_TIMEOUT_SECONDS = _declare(
-    key="relay.link_bridge.click_timeout_seconds",
-    group=RELAY_LINK_BRIDGE_GROUP,
-    label="Click resolution timeout",
-    description="Seconds a click resolution may take before the reader is redirected anyway.",
-    value_type=INTEGER,
-    default=3,
-    env_var="RELAY_LINK_BRIDGE_CLICK_TIMEOUT_SECONDS",
-    settings_attr="RELAY_LINK_BRIDGE_CLICK_TIMEOUT_SECONDS",
-    validation={"minimum": 1, "maximum": 30},
-    validator=_bounded_int(minimum=1, maximum=30),
-)
-
-RELAY_LINK_BRIDGE_UNSUBSCRIBE_TIMEOUT_SECONDS = _declare(
-    key="relay.link_bridge.unsubscribe_timeout_seconds",
-    group=RELAY_LINK_BRIDGE_GROUP,
-    label="Unsubscribe timeout",
-    description="Seconds an unsubscribe may take before the reader is answered anyway.",
-    value_type=INTEGER,
-    default=10,
-    env_var="RELAY_LINK_BRIDGE_UNSUBSCRIBE_TIMEOUT_SECONDS",
-    settings_attr="RELAY_LINK_BRIDGE_UNSUBSCRIBE_TIMEOUT_SECONDS",
-    validation={"minimum": 1, "maximum": 60},
-    validator=_bounded_int(minimum=1, maximum=60),
-)
-
-RELAY_LINK_BRIDGE_POOL_SIZE = _declare(
-    key="relay.link_bridge.pool_size",
-    group=RELAY_LINK_BRIDGE_GROUP,
-    label="Relay connection pool size",
-    description="Connections kept open to the relay.",
-    value_type=INTEGER,
-    default=16,
-    env_var="RELAY_LINK_BRIDGE_POOL_SIZE",
-    settings_attr="RELAY_LINK_BRIDGE_POOL_SIZE",
-    validation={"minimum": 1, "maximum": 256},
-    validator=_bounded_int(minimum=1, maximum=256),
-)
-
-
 # -- observability -----------------------------------------------------------
 
 CLOUDWATCH_APP_METRIC_NAMESPACE = _declare(
@@ -487,9 +414,4 @@ OPERATIONAL_SETTING_KEYS: tuple[str, ...] = (
     PUBLIC_MEDIA_S3_REGION.key,
     PUBLIC_MEDIA_S3_TIMEOUT_SECONDS.key,
     PUBLIC_MEDIA_STORE_BACKEND.key,
-    RELAY_LINK_BRIDGE_BASE_URL.key,
-    RELAY_LINK_BRIDGE_CLICK_TIMEOUT_SECONDS.key,
-    RELAY_LINK_BRIDGE_OPEN_TIMEOUT_SECONDS.key,
-    RELAY_LINK_BRIDGE_POOL_SIZE.key,
-    RELAY_LINK_BRIDGE_UNSUBSCRIBE_TIMEOUT_SECONDS.key,
 )

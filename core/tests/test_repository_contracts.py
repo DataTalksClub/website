@@ -19,7 +19,6 @@ class RepositoryContractTests(SimpleTestCase):
             "content_sync",
             "courses",
             "events",
-            "email_app",
             "studio",
             "api",
             "community_base.jobs",

@@ -93,7 +93,12 @@ def noop(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [
         ("events", "0005_eventcontent_eventlink_eventspeaker_and_more"),
-        ("data", "0003_copy_durable_jobs_to_job_intents"),
+        # Formerly ("data", "0003_copy_durable_jobs_to_job_intents"): that
+        # migration guaranteed the cb_jobs tables existed before the foreign
+        # key below is added, and preserved the durable-job ids the deployed
+        # rows point at. The data app is retired in D1.2cb, so the guarantee
+        # is taken directly from the package migration it chained through.
+        ("cb_jobs", "0002_jobintent_cb_jobs_external_id_unique"),
     ]
 
     operations = [

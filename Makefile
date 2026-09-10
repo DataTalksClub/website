@@ -106,9 +106,16 @@ ADOPTION_INTEGRATION_PYTHON = \
 	scripts/tests/test_rebuild_gate.py \
 	scripts/verify_local_dataset.py \
 	scripts/tests/test_verify_local_dataset.py \
+	course_management/audit_redaction.py \
+	course_management/mail_payloads.py \
 	course_management/mail_preferences.py \
 	course_management/package_mail.py \
+	course_management/public_urls.py \
+	accounts/email_preferences.py \
+	courses/management/commands/import_mail_category_optouts.py \
+	courses/package_notifications.py \
 	courses/tests/test_package_mail_flows.py \
+	courses/tests/test_package_notifications.py \
 	accounts/tests/test_username_allocation.py
 
 # Entry points for imports that read real production data.  ``scripts/**`` is excluded
@@ -145,7 +152,7 @@ format-check:
 	uv run ruff format --check . $(ADOPTION_INTEGRATION_PYTHON) $(PRODUCTION_IMPORT_PYTHON)
 
 typecheck:
-	uv run mypy manage.py website core content content_sync events email_app studio deploy ci \
+	uv run mypy manage.py website core content content_sync events studio deploy ci \
 		test_support conftest.py sitecustomize.py \
 		review_import \
 		management_auth management_api management_registry.py \

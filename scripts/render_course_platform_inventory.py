@@ -29,8 +29,8 @@ URL_SURFACES = (
     ("Studio Courses", "studio_courses.urls", "studio/courses"),
     ("Public courses", "courses.urls", ""),
 )
-SOURCE_APP_LABELS = ("accounts", "api", "studio_courses", "courses", "data")
-SOURCE_COMMAND_APPS = {"accounts", "api", "studio_courses", "courses", "data"}
+SOURCE_APP_LABELS = ("accounts", "api", "studio_courses", "courses")
+SOURCE_COMMAND_APPS = {"accounts", "api", "studio_courses", "courses"}
 CONVERTER_TOKEN = re.compile(r"<(?:(?P<converter>[^:>]+):)?(?P<name>[^>]+)>")
 
 

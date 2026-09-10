@@ -7,16 +7,14 @@ instead of duplicating mail.
 
 from datetime import timedelta
 from io import StringIO
-from unittest.mock import patch
 
+from community_base.mail.models import EmailDelivery
+from community_base.testing import mail_outbox
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from accounts.models import CustomUser
-from accounts.models import CustomUser
-from community_base.mail.models import EmailDelivery
-from community_base.testing import mail_outbox
 from courses.models import (
     Cohort,
     Enrollment,
@@ -25,6 +23,9 @@ from courses.models import (
     ProjectState,
     ProjectSubmission,
     Submission,
+)
+from courses.package_notifications import (
+    send_homework_score_notification,
 )
 
 
@@ -84,13 +85,6 @@ class PackageNotificationBase(TestCase):
         return project, reviewer_submission
 
 
-
-from courses.package_notifications import send_homework_score_notification
-
-
-from courses.package_notifications import send_homework_score_notification
-
-
 class HomeworkScoreNotificationTest(PackageNotificationBase):
     def create_scored_homework(self):
         course = self.create_course()
@@ -143,15 +137,15 @@ class HomeworkScoreNotificationTest(PackageNotificationBase):
             self.assertEqual(sent, 2)
             self.assertEqual(len(outbox), 2)
             latest = EmailDelivery.objects.get(
-                idempotency_key=(
-                    f"homework-score:ml-zoomcamp-2026:homework-1:{resubmission.pk}"
-                ),
+                idempotency_key=(f"homework-score:ml-zoomcamp-2026:homework-1:{resubmission.pk}"),
             )
         self.assertEqual(latest.purpose, "homework-score-notification")
         self.assertEqual(latest.category, "submission-results")
         self.assertEqual(latest.context_data["total_score"], 8)
-        self.assertEqual(latest.context_data["scores_url"],
-                         "https://courses.example.com/courses/ml-zoomcamp/cohorts/2026/homework/homework-1")
+        self.assertEqual(
+            latest.context_data["scores_url"],
+            "https://courses.example.com/courses/ml-zoomcamp/cohorts/2026/homework/homework-1",
+        )
         stale = EmailDelivery.objects.filter(
             recipient_email="scored@example.com",
         )
@@ -248,12 +242,13 @@ class ProjectScoreNotificationTest(PackageNotificationBase):
         context = delivery.context_data
         self.assertEqual(context["total_score"], 98)
         self.assertEqual(context["github_link"], "https://github.com/example/project")
-        self.assertEqual(context["scores_url"],
-                         "https://courses.example.com/courses/ml-zoomcamp/cohorts/2026/project/midterm/results")
+        self.assertEqual(
+            context["scores_url"],
+            "https://courses.example.com/courses/ml-zoomcamp/cohorts/2026/project/midterm/results",
+        )
 
 
 class PeerReviewAssignmentNotificationTest(PackageNotificationBase):
-
     @override_settings(PUBLIC_BASE_URL="https://courses.example.com")
     def test_review_assignment_names_the_reviews_and_deadline(self):
         from courses.package_notifications import (
@@ -272,8 +267,7 @@ class PeerReviewAssignmentNotificationTest(PackageNotificationBase):
             self.assertEqual(len(outbox), 2)
             reviewer_delivery = EmailDelivery.objects.get(
                 idempotency_key=(
-                    "peer-review-assignment:ml-zoomcamp-2026:capstone:"
-                    f"{reviewer_submission.pk}"
+                    f"peer-review-assignment:ml-zoomcamp-2026:capstone:{reviewer_submission.pk}"
                 ),
             )
             self.assertEqual(

@@ -75,7 +75,10 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # Keep both workflow-isolation seals pinned to this exact reviewed dependency policy.
 # 7a1b3f04 retired the jobs lineage from typecheck opt-ins (config only, no
 # dependency change); the seal below moves with that reviewed commit.
-STUDIO_COURSES_PYPROJECT_SHA256 = "93c4c2a1475cd48cec010fe5536f34bfbe71573dfb0d39861b1e82edb29127d8"
+# D1.2ca/D1.2cb move it again for config-only edits: strict-mypy opt-ins for
+# the package-mail modules, and the typecheck target losing the retired
+# email_app tree. No dependency changed.
+STUDIO_COURSES_PYPROJECT_SHA256 = "dfa62b84bea73f63ad446b03249e9006cbd778e5ed7747ef8fa794c164f3d433"
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
     "67815bd8f2f15185cb04def1f411400d5b561efb41e524298f4d19dd4d1349b1"
 )
