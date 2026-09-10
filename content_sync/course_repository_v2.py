@@ -36,7 +36,6 @@ from .course_repository import (
     _decode_utf8,
     _fail,
     _https_url,
-    _integer,
     _load_yaml_mapping,
     _parse_lesson_frontmatter,
     _Parser,
@@ -53,6 +52,11 @@ PARSER_VERSION = "course-repository-v2"
 
 V2_MODULE_DIR = re.compile(r"[0-9]{2,}-[a-z0-9]+(?:-[a-z0-9]+)*")
 V2_LESSON_FILE = re.compile(r"[0-9]{2,}-[a-z0-9]+(?:-[a-z0-9]+)*\.md")
+# Grandfathered exception, documented in zoomcamp-ops/STRUCTURE.md: a module
+# with exactly one lesson may name it the fixed "lesson.md" instead of a
+# numbered file -- ai-dev-tools-zoomcamp is the one repository that does this
+# today. Never a choice for a new module or a multi-lesson one.
+V2_SINGLE_LESSON_FILE = "lesson.md"
 
 COHORTS_ROOT = "cohorts"
 MODULE_MANIFEST_NAME = "module.yaml"
@@ -77,6 +81,7 @@ class SharedCurriculumParserV2:
             _fail("source_commit_invalid")
         self.commit_sha = commit_sha
         self.content_ids: dict[str, tuple[str, str]] = {}
+        self.declared_cohorts: dict[str, str] = {}
         # A v1 reader instance supplies the shared lesson-frontmatter and
         # homework-manifest readers.  Its own content-ID registry is unused:
         # every ID is re-registered in this parser's namespace so duplicates
@@ -141,11 +146,11 @@ class SharedCurriculumParserV2:
                     "content_id",
                     "slug",
                     "title",
-                    "description_path",
+                    "current_cohort",
+                    "cohorts",
+                    "description",
                     "outcome",
-                    "repository_url",
-                    "docs_url",
-                    "faq_url",
+                    "urls",
                     "hashtag",
                     "published",
                 }
@@ -156,10 +161,11 @@ class SharedCurriculumParserV2:
                     "content_id",
                     "slug",
                     "title",
+                    "current_cohort",
+                    "cohorts",
+                    "description",
                     "outcome",
-                    "repository_url",
-                    "docs_url",
-                    "faq_url",
+                    "urls",
                     "hashtag",
                     "published",
                 }
@@ -168,12 +174,27 @@ class SharedCurriculumParserV2:
         version = mapping.get("schema_version")
         if type(version) is not int or version != SCHEMA_VERSION:
             _fail("unsupported_schema_version", path, "/schema_version")
-        declared = mapping.get("description_path")
-        if declared is not None and declared != "SITE.md":
-            _fail("course_description_path_not_site_md", path, "/description_path")
         content_id = _content_id(mapping["content_id"], path=path, pointer="/content_id")
         self._register_content_id(content_id, kind="course", path=path, pointer="/content_id")
-        description, description_source_path = self._reader._parse_site_description()
+        description = _string(
+            mapping["description"],
+            path=path,
+            pointer="/description",
+            maximum=self.limits.max_site_description_chars,
+        )
+        current_cohort = _slug(
+            mapping["current_cohort"], path=path, pointer="/current_cohort", maximum=80
+        )
+        self.declared_cohorts = self._parse_cohorts_index(
+            path, mapping.get("cohorts"), current_cohort=current_cohort
+        )
+        urls = _strict_mapping(
+            mapping.get("urls"),
+            path=path,
+            pointer="/urls",
+            allowed=frozenset({"repository", "docs", "faq"}),
+            required=frozenset({"repository", "docs", "faq"}),
+        )
         hashtag = _string(mapping["hashtag"], path=path, pointer="/hashtag", maximum=100)
         if hashtag.startswith("#") or re.fullmatch(r"[A-Za-z0-9_]+", hashtag) is None:
             _fail("invalid_hashtag", path, "/hashtag")
@@ -182,17 +203,72 @@ class SharedCurriculumParserV2:
             slug=_slug(mapping["slug"], path=path, pointer="/slug"),
             title=_string(mapping["title"], path=path, pointer="/title", maximum=200),
             description=description,
-            description_source_path=description_source_path,
+            description_source_path=path,
             outcome=_string(mapping["outcome"], path=path, pointer="/outcome"),
             repository_url=_https_url(
-                mapping["repository_url"], path=path, pointer="/repository_url"
+                urls["repository"], path=path, pointer="/urls/repository"
             ),
-            docs_url=_https_url(mapping["docs_url"], path=path, pointer="/docs_url"),
-            faq_url=_https_url(mapping["faq_url"], path=path, pointer="/faq_url"),
+            docs_url=_https_url(urls["docs"], path=path, pointer="/urls/docs"),
+            faq_url=_https_url(urls["faq"], path=path, pointer="/urls/faq"),
             hashtag=hashtag,
             published=_boolean(mapping["published"], path=path, pointer="/published"),
             source_path=path,
+            current_cohort=current_cohort,
         )
+
+    def _parse_cohorts_index(
+        self, path: str, raw: Any, *, current_cohort: str
+    ) -> dict[str, str]:
+        """Parse and structurally validate course.yaml's ``cohorts`` index.
+
+        Returns ``{identifier: content}``.  Cross-validation against the
+        cohorts actually discovered on disk happens later in ``parse()``,
+        once every ``cohort.yaml`` has been read.
+        """
+
+        if not isinstance(raw, list) or not raw:
+            _fail("cohorts_index_required", path, "/cohorts")
+        declared: dict[str, str] = {}
+        root_identifiers: set[str] = set()
+        for index, entry in enumerate(raw):
+            pointer = f"/cohorts/{index}"
+            item = _strict_mapping(
+                entry,
+                path=path,
+                pointer=pointer,
+                allowed=frozenset({"identifier", "content", "legacy"}),
+                required=frozenset({"identifier", "content"}),
+            )
+            identifier = _slug(
+                item["identifier"], path=path, pointer=f"{pointer}/identifier", maximum=80
+            )
+            content = _string(item["content"], path=path, pointer=f"{pointer}/content", maximum=200)
+            if identifier in declared:
+                _fail("duplicate_cohort_index_entry", path, pointer)
+            legacy = item.get("legacy", False)
+            if "legacy" in item and type(legacy) is not bool:
+                _fail("boolean_required", path, f"{pointer}/legacy")
+            if content == "root":
+                # More than one cohort may share root: a live delivery and a
+                # permanent self-paced one commonly reference the identical
+                # current module graph side by side. ``current_cohort`` names
+                # the headline one; every ``content: root`` entry is still a
+                # real curriculum: current cohort.
+                root_identifiers.add(identifier)
+                if legacy is True:
+                    _fail("current_cohort_cannot_be_legacy", path, f"{pointer}/legacy")
+            elif content != f"{COHORTS_ROOT}/{identifier}":
+                # A cohort's content may only be its own directory -- never a
+                # path into a different cohort.  Sharing content across
+                # cohort years is the design this schema deliberately
+                # forecloses: a published cohort's tree stays immutable.
+                _fail("cohort_content_path_invalid", path, f"{pointer}/content")
+            declared[identifier] = content
+        if not root_identifiers:
+            _fail("current_cohort_entry_missing", path, "/cohorts")
+        if current_cohort not in root_identifiers:
+            _fail("current_cohort_mismatch", path, "/current_cohort")
+        return declared
 
     def _parse_module(self, directory: str) -> ModuleSource:
         path = f"{directory}/{MODULE_MANIFEST_NAME}"
@@ -231,13 +307,13 @@ class SharedCurriculumParserV2:
                 limits=self.limits,
             )
 
+        raw_units = _sequence(mapping["units"], path=path, pointer="/units", minimum=1)
+        single_lesson_module = len(raw_units) == 1
         units: list[UnitSource] = []
         unit_ids: set[str] = set()
         unit_slugs: set[str] = set()
         unit_paths: set[str] = set()
-        for index, raw_unit in enumerate(
-            _sequence(mapping["units"], path=path, pointer="/units", minimum=1)
-        ):
+        for index, raw_unit in enumerate(raw_units):
             pointer = f"/units/{index}"
             unit = _strict_mapping(
                 raw_unit,
@@ -248,7 +324,13 @@ class SharedCurriculumParserV2:
             )
             unit_id = _content_id(unit["content_id"], path=path, pointer=f"{pointer}/content_id")
             declared_path = _string(unit["path"], path=path, pointer=f"{pointer}/path", maximum=512)
-            if "/" in declared_path or V2_LESSON_FILE.fullmatch(declared_path) is None:
+            is_grandfathered_single_lesson = (
+                single_lesson_module and declared_path == V2_SINGLE_LESSON_FILE
+            )
+            if (
+                not is_grandfathered_single_lesson
+                and ("/" in declared_path or V2_LESSON_FILE.fullmatch(declared_path) is None)
+            ):
                 _fail("numbered_lesson_required", path, f"{pointer}/path")
             source_path = _relative_source_path(
                 unit["path"],
@@ -351,10 +433,6 @@ class SharedCurriculumParserV2:
                     "content_id",
                     "course",
                     "identifier",
-                    "legacy_slug",
-                    "year",
-                    "title",
-                    "description",
                     "delivery",
                     "published",
                     "start_date",
@@ -438,26 +516,6 @@ class SharedCurriculumParserV2:
         if curriculum == "current":
             self._reject_unreferenced_current_homework(identifier, bindings)
 
-        year = (
-            _integer(mapping["year"], path=path, pointer="/year", minimum=2000, maximum=9999)
-            if mapping.get("year") is not None
-            else None
-        )
-        title = (
-            _string(mapping["title"], path=path, pointer="/title", maximum=200)
-            if mapping.get("title") is not None
-            else None
-        )
-        description = (
-            _string(mapping["description"], path=path, pointer="/description")
-            if mapping.get("description") is not None
-            else None
-        )
-        legacy_slug = (
-            _slug(mapping["legacy_slug"], path=path, pointer="/legacy_slug")
-            if mapping.get("legacy_slug") is not None
-            else None
-        )
         return CohortSource(
             identifier=identifier,
             # The source graph keeps the v1 vocabulary; the shared projection
@@ -466,10 +524,14 @@ class SharedCurriculumParserV2:
             source_path=path,
             content_id=content_id,
             course_slug=course_slug,
-            legacy_slug=legacy_slug,
-            year=year,
-            title=title,
-            description=description,
+            # legacy_slug/year/title/description no longer exist in any v2
+            # cohort.yaml -- the shared projection already derives all four
+            # (cohort.py:_cohort_slug/_display_year and the `or` fallbacks in
+            # _upsert_cohort) when the source leaves them None.
+            legacy_slug=None,
+            year=None,
+            title=None,
+            description=None,
             published=published,
             start_date=start_date,
             end_date=end_date,
@@ -584,6 +646,33 @@ class SharedCurriculumParserV2:
                 continue
             _fail("cohort_manifest_missing", path)
 
+    # -- cohorts index cross-validation --------------------------------------
+
+    def _check_declared_cohorts_against_reality(self, cohorts: list[CohortSource]) -> None:
+        """course.yaml:cohorts must exactly match the cohort.yaml files on
+        disk, and each entry's declared ``content`` must agree with that
+        cohort's own ``curriculum`` discriminator. ``_parse_course`` already
+        checked the index is internally well-formed (exactly one ``root``
+        entry, matching ``current_cohort``); this is the second half, run
+        once every cohort.yaml has actually been read.
+        """
+
+        actual = {cohort.identifier for cohort in cohorts}
+        declared = set(self.declared_cohorts)
+        missing = sorted(actual - declared)
+        if missing:
+            _fail("cohort_not_listed_in_index", f"{COHORTS_ROOT}/{missing[0]}/{COHORT_MANIFEST_NAME}")
+        stale = sorted(declared - actual)
+        if stale:
+            _fail("cohort_index_entry_not_found", "course.yaml", f"/cohorts[{stale[0]!r}]")
+        for cohort in cohorts:
+            content = self.declared_cohorts[cohort.identifier]
+            is_current = cohort.curriculum == "current"
+            if is_current and content != "root":
+                _fail("cohort_index_content_mismatch", cohort.source_path or "course.yaml")
+            if not is_current and content == "root":
+                _fail("cohort_index_content_mismatch", cohort.source_path or "course.yaml")
+
     # -- entry point -------------------------------------------------------------
 
     def parse(self) -> CourseRepositorySource:
@@ -606,6 +695,7 @@ class SharedCurriculumParserV2:
         self._reject_manifestless_cohort_dirs(
             {PurePosixPath(path).parts[1] for path in cohort_paths}
         )
+        self._check_declared_cohorts_against_reality(cohorts)
         return CourseRepositorySource(
             schema_version=SCHEMA_VERSION,
             parser_version=PARSER_VERSION,
