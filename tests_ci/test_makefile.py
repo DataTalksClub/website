@@ -25,16 +25,22 @@ def test_makefile_only_exposes_the_local_development_entry_points() -> None:
 
 
 def test_makefile_entry_points_delegate_to_the_expected_commands() -> None:
-    result = subprocess.run(
-        ["make", "-n", "run", "migrate", "data"],
-        cwd=ROOT,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
+    def dry_run(target: str) -> list[str]:
+        result = subprocess.run(
+            ["make", "-n", target],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout.splitlines()
 
-    assert result.stdout.splitlines() == [
+    assert dry_run("run") == [
+        "uv run python manage.py migrate",
         "uv run python manage.py runserver 0.0.0.0:8000",
+    ]
+    assert dry_run("migrate") == ["uv run python manage.py migrate"]
+    assert dry_run("data") == [
         "uv run python manage.py migrate",
         "uv run python scripts/seed_local_data.py",
     ]
