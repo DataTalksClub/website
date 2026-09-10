@@ -8,9 +8,9 @@ disjoint groups live in that vocabulary:
 
 1. **Course-cohort tags** (e.g. ``de-zoomcamp-2026``, ``llm-zoomcamp-2025``) --
    completely out of scope for this module. They are blocked on a separate,
-   unresolved decision gate about how course-tag history should map onto
-   ``courses.course_family_catalog``, and nothing here reads, stores, or
-   otherwise references them. A tag not present as a key in
+   unresolved decision gate about how course-tag history should map onto the
+   course family catalogue, and nothing here reads, stores, or otherwise
+   references them. A tag not present as a key in
    :data:`MAILCHIMP_EVENT_TAG_CATEGORIES` or as a member of
    :data:`DROPPED_MAILCHIMP_TAGS` is, by construction, one of these -- silently
    ignored by every caller of this module, not specially detected.

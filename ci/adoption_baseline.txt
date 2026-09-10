@@ -268,7 +268,6 @@ courses/admin/testimonial.py
 courses/admin/wrapped.py
 courses/apps.py
 courses/assignment_statistics.py
-courses/course_family_catalog.py
 courses/course_page_content.py
 courses/course_page_contract.py
 courses/coursework_badges.py
@@ -304,7 +303,6 @@ courses/management/commands/sync_datamailer_contacts.py
 courses/management/commands/sync_datamailer_recipient_lists.py
 courses/management/commands/upsert_datamailer_templates.py
 courses/management/commands/verify_development_course_content.py
-courses/migration_family_identity.py
 courses/models/__init__.py
 courses/models/cmp_import.py
 courses/models/cohort.py

@@ -58,9 +58,21 @@ code.
 
 Implementation gap (not part of this decision, but required to satisfy it): the historical import
 added in `2032ceb` still creates pre-2024 cohorts without an explicit `course=`, so it still runs
-through `courses/models/cohort.py`'s regex year-stripping fallback in `Cohort.save()`. That fallback
-must be removed once the explicit mapping entries exist, and `ml-zoomcamp-2021` certificates still
-need locating/importing. Tracked in #224.
+through `courses/models/cohort.py`'s regex year-stripping fallback in `Cohort.save()`. `ml-zoomcamp-2021`
+certificates still need locating/importing. Tracked in #224.
+
+Amendment (2026-09-10): superseded. `courses/course_family_catalog.py`'s reviewed mapping is
+gone -- a hardcoded Python table is exactly what `AGENTS.md`'s database-only-content rule forbids,
+and the site has no real production data this mapping was ever protecting. Every current course
+family slug is now read directly from its own repository's `course.yaml` (`ai-dev-tools-zoomcamp`
+keeps its repository's own name, the same as the other five), so `curriculum_import.py` needs no
+normalization step at all. `Cohort.save()`'s year-stripping fallback in `courses/models/cohort.py`
+is the permanent, intended mechanism now, not a gap to close -- it derives a family slug/title
+mechanically from the cohort's own slug/title, never from a table. The one genuinely irreducible
+fact -- CMP's pre-2024 export spelling the AI Dev Tools family without its `-zoomcamp` suffix --
+is a small, explicit `family_slug_overrides` correction living next to its one-time caller,
+`scripts/prod/import_cmp_content.py`, not shared runtime data. See
+`courses/services/course_family_identity.py`.
 
 ## 5. Course URL consolidation (resolved by #16; canonical route table amended 2026-09-07)
 
