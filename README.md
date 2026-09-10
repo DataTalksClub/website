@@ -13,8 +13,10 @@ This repository is the deliberately small Django foundation for the unified Data
 ```bash
 cp .env.example .env
 # Replace the local secret placeholder, then:
-make setup
+uv sync --locked
+uv run playwright install chromium
 make migrate
+make data
 make run
 ```
 
@@ -37,11 +39,18 @@ GitHub, and Slack buttons on the local sign-in and sign-up pages using inert
 placeholder OAuth credentials. The buttons are for visual testing and intentionally
 cannot complete authentication with the external providers.
 
-### Local course data
+### Local seed data
 
-A freshly migrated database has no courses, while the homepage renders its course
-catalogue from the checked public projection in `content/public_projection/courses.json`.
-Seed the database so `/` and `/courses` show the same real courses:
+A freshly migrated database has no local course rows. Seed the local database with
+the public course catalogue, representative homework questions, and inert social
+provider previews with:
+
+```bash
+make data
+```
+
+The same individual management commands remain available when a narrower seed is
+useful:
 
 ```bash
 uv run python manage.py seed_local_courses          # write the catalogue
@@ -93,16 +102,14 @@ Local development and ordinary CI require no PostgreSQL installation or service.
 ## Common commands
 
 ```bash
-make lint
-make format-check
-make typecheck
-make migrations-check
-make deployment-check
-make content-update-check
-make test-core
-make test-playwright-core
-make test
-make worker
+uv run --frozen python scripts/ci.py lint
+uv run --frozen python scripts/ci.py format-check
+uv run --frozen python scripts/ci.py typecheck
+uv run --frozen python scripts/ci.py migrations-check
+uv run --frozen python scripts/ci.py test-core
+uv run --frozen python scripts/ci.py test-playwright-core
+uv run --frozen python scripts/ci.py test
+uv run python manage.py run_job_worker
 ```
 
 Every Python command is run through `uv`, either directly or by these Make targets. Do not use `pip` for this project. Temporary artifacts belong under `.tmp/`; `.env`, databases, screenshots, browser state, and secrets are gitignored.
