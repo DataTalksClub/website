@@ -32,6 +32,7 @@ from courses.models import (
     CurriculumFlowItem,
     CurriculumFormat,
     CurriculumSource,
+    DeliveryMode,
     Homework,
     HomeworkState,
     Module,
@@ -512,6 +513,14 @@ class _CurriculumImporter:
                 # collision-free value while the legacy (course, year)
                 # uniqueness stays intact.
                 cohort.year = self._display_year(course, source)
+            # title/description are retired v2 cohort.yaml fields, same as
+            # year/legacy_slug: no manifest states them, so a blank value
+            # (new row, or an old row that never had one) gets a derived
+            # one rather than failing Cohort.full_clean's non-blank check.
+            if not cohort.title:
+                cohort.title = self._display_cohort_title(course, source)
+            if not cohort.description:
+                cohort.description = self._display_cohort_description(course, source)
             if source.curriculum == CurriculumSource.CURRENT:
                 cohort.curriculum_format = CurriculumFormat.SHARED
                 cohort.shared_curriculum = shared_curriculum
@@ -549,6 +558,16 @@ class _CurriculumImporter:
             if candidate.identifier.isdigit()
         )
         return (max(known) if known else 2026) + 1
+
+    def _display_cohort_title(self, course: Course, source: CohortSource) -> str:
+        if source.delivery == DeliveryMode.SELF_PACED:
+            return f"{course.title} (self-paced)"
+        return f"{course.title} {source.identifier}"
+
+    def _display_cohort_description(self, course: Course, source: CohortSource) -> str:
+        if source.delivery == DeliveryMode.SELF_PACED:
+            return f"The self-paced delivery of {course.title}."
+        return f"The {source.identifier} live delivery of {course.title}."
 
     def _derived_archive_url(self, notice_path: str | None, *, source_path: str) -> str:
         """Derive the immutable GitHub blob URL for an archive notice.
