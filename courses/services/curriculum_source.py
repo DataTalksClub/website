@@ -13,8 +13,9 @@ class CourseSource:
     content_id: str
     slug: str
     title: str
-    # ``None`` means the repository published no ``SITE.md``.  The importer leaves
-    # the existing description untouched rather than blanking curated copy.
+    # ``None`` means the repository published no ``SITE.md`` (schema 1) and no
+    # inline ``description`` (schema 2 requires one). The importer leaves the
+    # existing description untouched rather than blanking curated copy.
     description: str | None
     description_source_path: str | None
     outcome: str
@@ -24,6 +25,10 @@ class CourseSource:
     hashtag: str
     published: bool
     source_path: str
+    # Schema-2 only: the identifier of the one cohort whose own cohort.yaml
+    # declares curriculum: current -- validated against course.yaml:cohorts
+    # and the cohorts actually discovered on disk. None for schema 1.
+    current_cohort: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
