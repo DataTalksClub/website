@@ -87,17 +87,16 @@ import, accounts from the learner import -- and it resolves its learners through
 accounts claims file ``import_cmp_learners`` leaves behind, which it is pointed at
 with ``--user-claims-file``.  So a reordered run is not an error: it is a silent
 partial import that reports success while skipping every row whose parent is not
-there yet.  ``scripts/tests/test_prod_make_targets.py`` checks the Makefile runs the
-two learner legs in this order.
+there yet.  The explicit production-data runner owns this order.
 
-Reachable from the Makefile, or excluded with a reason
-------------------------------------------------------
+Explicit entry points and exclusions
+------------------------------------
 
-Every module here is either invoked by a Makefile recipe or named in
-:data:`MAKE_TARGET_EXCLUSIONS` with the reason it is deliberately reachable only by
-a typed command.  ``scripts/tests/test_prod_make_targets.py`` checks the closure, so
-the next entry point that lands cannot quietly become runbook-only prose that nothing
-executes and nothing holds to an order.
+Every module here is either an explicit script entry point or named in
+:data:`SCRIPT_COMMAND_EXCLUSIONS` with the reason it is deliberately reachable only by
+a typed command.  An importer that reads attendee-level personal data or merges real
+accounts must remain a consciously started operation rather than part of a local
+dataset rebuild.
 
 Being excluded is a statement about *who may start the run*, not about safety: an
 importer that reads attendee-level personal data or merges real accounts should cost
@@ -140,40 +139,38 @@ CMP_LEARNER_ORDER = (
     "import_cmp_learner_history",
 )
 
-# Modules that deliberately have no Makefile target: module name -> why. An entry
+# Modules that deliberately have no general script command: module name -> why. An entry
 # here is a decision someone has to argue with, not an omission.
-MAKE_TARGET_EXCLUSIONS: dict[str, str] = {
+SCRIPT_COMMAND_EXCLUSIONS: dict[str, str] = {
     "import_event_registrants": (
         "Reads attendee-level personal data and provider credentials, so it stays a "
         "deliberate, separately invoked run rather than something a local rebuild "
-        "does on its way past. Same reason the Makefile records above "
-        "production-prep-bootstrap for step 6."
+        "does on its way past."
     ),
     "import_mailchimp_event_tags": (
         "Needs Mailchimp provider credentials and reads subscriber-level personal "
-        "data. Step 6, excluded for the reason above production-prep-bootstrap."
+        "data. Step 6, excluded from the local dataset runner."
     ),
     "import_mailchimp_subscriptions": (
         "Needs Mailchimp provider credentials and reads subscriber-level personal "
-        "data. Step 6, excluded for the reason above production-prep-bootstrap."
+        "data. Step 6, excluded from the local dataset runner."
     ),
     "sync_content": (
-        "Not decided yet. Its absence from the Makefile is recorded here rather "
+        "Not decided yet. Its absence from the general script command is recorded here rather "
         "than left silent; deciding whether it gets a target belongs to the ingest "
         "consolidation epic, DataTalksClub/website#310."
     ),
     "sync_public_media_hydrate": (
-        "Not decided yet. The Makefile names it only in a comment, which is not a "
-        "way to run it; deciding whether it gets a target belongs to the ingest "
+        "Not decided yet. It is not a general script command; deciding whether it gets one belongs to the ingest "
         "consolidation epic, DataTalksClub/website#310."
     ),
     "sync_public_media_publish": (
-        "Not decided yet. Its absence from the Makefile is recorded here rather "
+        "Not decided yet. Its absence from the general script command is recorded here rather "
         "than left silent; deciding whether it gets a target belongs to the ingest "
         "consolidation epic, DataTalksClub/website#310."
     ),
     "sync_public_media_verify": (
-        "Not decided yet. Its absence from the Makefile is recorded here rather "
+        "Not decided yet. Its absence from the general script command is recorded here rather "
         "than left silent; deciding whether it gets a target belongs to the ingest "
         "consolidation epic, DataTalksClub/website#310."
     ),
@@ -181,7 +178,7 @@ MAKE_TARGET_EXCLUSIONS: dict[str, str] = {
 
 # Modules under scripts/prod that are libraries, not entry points: other
 # importers compose them, so the entry-point conventions -- SYNC_MODEL, the
-# shared target selection, a Makefile target or a MAKE_TARGET_EXCLUSIONS
+# shared target selection, a script command or a SCRIPT_COMMAND_EXCLUSIONS
 # reason -- do not apply. `reviewed_release` allocates sequences and resolves
 # replay receipts inside the composition of the reviewed editorial importers;
 # a target of its own would write a release nothing reviewed describes.
@@ -192,6 +189,6 @@ __all__ = [
     "CMP_LEARNER_ORDER",
     "COURSE_CATALOGUE_ORDER",
     "LIBRARY_MODULES",
-    "MAKE_TARGET_EXCLUSIONS",
+    "SCRIPT_COMMAND_EXCLUSIONS",
     "SYNC_MODELS",
 ]
