@@ -5,14 +5,13 @@ for them with per-package ``ignore_errors`` overrides -- the reviewed adoption
 baseline.  That directory-wide history must not silently exempt future code:
 every Python file under an excluded tree is either listed in the frozen
 baseline manifest (``ci/adoption_baseline.txt``, the reviewed state at the
-BE-16 decision) or named in Make's ``ADOPTION_INTEGRATION_PYTHON`` /
-``PRODUCTION_IMPORT_PYTHON`` opt-in lists, where lint, format, and typecheck
-actually reach it (strictly, via the ``ignore_errors = false`` override block
-in pyproject.toml).
+BE-16 decision) or named in ``scripts/ci.py``'s quality-gate input lists, where
+lint, format, and typecheck actually reach it (strictly, via the
+``ignore_errors = false`` override block in pyproject.toml).
 
-Adding a file under ``accounts/`` without adding it to a Makefile list fails
-this test with the exact line to change.  Removing or gutting the lists, or
- deleting baseline entries to dodge the gate, also fails.
+Adding a file under ``accounts/`` without adding it to the quality script fails
+this test with the exact file to change.  Removing or gutting the lists, or
+deleting baseline entries to dodge the gate, also fails.
 """
 
 from __future__ import annotations
@@ -20,15 +19,11 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
+from scripts.ci import ADOPTION_INTEGRATION_PYTHON, PRODUCTION_IMPORT_PYTHON
+
 ROOT = Path(__file__).resolve().parents[2]
-MAKEFILE = ROOT / "Makefile"
 BASELINE = ROOT / "ci" / "adoption_baseline.txt"
 PYPROJECT = ROOT / "pyproject.toml"
-
-OPT_IN_VARIABLES = (
-    "ADOPTION_INTEGRATION_PYTHON",
-    "PRODUCTION_IMPORT_PYTHON",
-)
 
 #: The ADOPTION_INTEGRATION_PYTHON / PRODUCTION_IMPORT_PYTHON entries as they
 #: stood at the BE-16 decision (git 39844ab8), reviewed under the per-package
@@ -68,25 +63,10 @@ TREE_EXCLUDE_GLOB_PREFIXES = (
 )
 
 
-def makefile_opt_ins() -> set[str]:
-    """Parse the two opt-in variable continuations out of the Makefile."""
+def quality_script_opt_ins() -> set[str]:
+    """Return the files explicitly included by the quality script."""
 
-    text = MAKEFILE.read_text(encoding="utf-8")
-    entries: set[str] = set()
-    for variable in OPT_IN_VARIABLES:
-        marker = f"{variable} ="
-        start = text.index(marker)
-        block_lines = text[start:].splitlines()
-        continuation = [block_lines[0][len(marker) :].strip()]
-        for line in block_lines[1:]:
-            if not line.startswith("\t"):
-                break
-            continuation.append(line.strip())
-        for entry in continuation:
-            cleaned = entry.removesuffix("\\").strip()
-            if cleaned:
-                entries.add(cleaned)
-    return entries
+    return set((*ADOPTION_INTEGRATION_PYTHON, *PRODUCTION_IMPORT_PYTHON))
 
 
 def excluded_tree_files() -> set[str]:
@@ -119,13 +99,13 @@ def strict_mypy_modules() -> set[str]:
 
 
 def test_every_excluded_tree_file_is_baseline_or_opted_in() -> None:
-    opt_ins = makefile_opt_ins()
+    opt_ins = quality_script_opt_ins()
     covered = baseline_entries() | opt_ins
     unaccounted = sorted(excluded_tree_files() - covered)
 
     assert not unaccounted, (
         "New Python files under an excluded app tree must be added to one of "
-        f"{', '.join(OPT_IN_VARIABLES)} in the Makefile so lint, format, and "
+        "scripts/ci.py so lint, format, and "
         "typecheck reach them (audit BE-16), or, only for a file that is "
         "historical adopted source rather than new integration code, to "
         f"ci/adoption_baseline.txt. Unaccounted files: {unaccounted}"
@@ -133,7 +113,7 @@ def test_every_excluded_tree_file_is_baseline_or_opted_in() -> None:
 
 
 def test_opt_in_entries_exist_and_are_outside_the_baseline() -> None:
-    opt_ins = makefile_opt_ins()
+    opt_ins = quality_script_opt_ins()
 
     missing = sorted(
         # ``scripts/prod`` is a directory entry; ruff and mypy walk it.
@@ -165,12 +145,12 @@ def test_opted_in_app_modules_are_typechecked_strictly() -> None:
 
     strict = strict_mypy_modules()
     unenforced: list[str] = []
-    for entry in sorted(makefile_opt_ins()):
+    for entry in sorted(quality_script_opt_ins()):
         posix = Path(entry).as_posix()
         if not posix.startswith(TREE_EXCLUDE_GLOB_PREFIXES):
             continue
         dotted = posix.removesuffix(".py").replace("/", ".").replace(".__init__", "")
-        # The pre-BE-16 entries below (verbatim from the HEAD Makefile at the
+        # The pre-BE-16 entries below (verbatim from the adopted baseline at the
         # BE-16 decision) were reviewed under the per-package exemptions and
         # are not retroactively strict; everything opted in afterwards must be
         # named in the override block.

@@ -11,6 +11,7 @@ from ci.quality_contract import (
     LEGACY_QUALITY_TARGETS,
     QUALITY_TARGETS,
     QualityContractError,
+    inspect_ci_script,
     inspect_makefile,
     load_contract,
     run_quality_contract,
@@ -52,8 +53,8 @@ def test_exact_a220728_historical_makefile_uses_the_legacy_compatible_contract()
     assert "verification-quality:" not in body.decode("utf-8")
 
 
-def test_current_aggregate_dependencies_cannot_drift_from_the_versioned_contract() -> None:
-    contract = inspect_makefile((ROOT / "Makefile").read_text(encoding="utf-8"))
+def test_current_ci_commands_cannot_drift_from_the_versioned_contract() -> None:
+    contract = inspect_ci_script((ROOT / "scripts" / "ci.py").read_text(encoding="utf-8"))
 
     assert contract.aggregate_present
     assert contract.targets == QUALITY_TARGETS

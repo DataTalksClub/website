@@ -80,8 +80,8 @@ COMPONENT_RUNNER_IMAGE_VARIABLE = {"container": "VERIFICATION_CONTAINER_RUNNER_I
 REVIEWED_ARCHITECTURES = frozenset({"aarch64", "x86_64"})
 #: GitHub-hosted ``ImageOS`` families a component may be authorized to execute on.
 REVIEWED_RUNNER_IMAGES = frozenset({"ubuntu24", "ubuntu24-arm64"})
-DEFAULT_FULL_DJANGO_COMMAND = "make test-django-full"
-FULL_DJANGO_COMMANDS = ("make test", DEFAULT_FULL_DJANGO_COMMAND)
+DEFAULT_FULL_DJANGO_COMMAND = "scripts/ci.py test-django-full"
+FULL_DJANGO_COMMANDS = ("scripts/ci.py test", DEFAULT_FULL_DJANGO_COMMAND)
 FULL_RISK_FLAGS = frozenset(
     {
         "auth_security_privacy",
@@ -1633,12 +1633,12 @@ def _component_command(
     if component == "selector" and source_mode == "commit":
         return "ci.classifier select and ci.verification plan"
     if component == "django":
-        return full_django_command if profile == "full" else "make test-ci-focused"
+        return full_django_command if profile == "full" else "scripts/ci.py test-ci-focused"
     if component == "playwright":
         return {
-            "smoke": "make test-playwright-smoke",
-            "core": "make test-playwright-core",
-            "full": "make test-playwright",
+            "smoke": "scripts/ci.py test-playwright-smoke",
+            "core": "scripts/ci.py test-playwright-core",
+            "full": "scripts/ci.py test-playwright",
         }[browser_profile]
     if component == "container" and release_requires_image:
         return "exact release image verification"

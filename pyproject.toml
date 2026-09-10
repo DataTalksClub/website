@@ -96,9 +96,9 @@ ignore_missing_imports = true
 # Audit BE-16: the per-app ``ignore_errors = true`` overrides above are the
 # historical adopted-source baseline.  Modules opted back into the gates after
 # that baseline -- newly authored or substantively changed files, listed in
-# Make's ADOPTION_INTEGRATION_PYTHON -- are checked strictly: this later block
+# scripts/ci.py's ADOPTION_INTEGRATION_PYTHON -- are checked strictly: this later block
 # wins for exactly these modules, so a new file can never ride a directory's
-# historical exemption.  Keep it in sync with the Makefile list;
+# historical exemption.  Keep it in sync with scripts/ci.py's opt-in list;
 # ci/tests/test_adoption_gate_coverage.py enforces that.
 [[tool.mypy.overrides]]
 module = [
@@ -129,6 +129,9 @@ module = [
     "scripts.tests.test_scoring_import_atomicity",
     "scripts.tests.test_certificate_matching",
     "scripts.tests.test_reviewed_release_import",
+    "scripts.ci",
+    "scripts.seed_local_data",
+    "scripts.tests.test_seed_local_data",
     "scripts.checkout_refresh",
     "scripts.tests.test_checkout_refresh",
     "scripts.verify_local_dataset",

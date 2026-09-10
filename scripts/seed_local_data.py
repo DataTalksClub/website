@@ -12,7 +12,6 @@ import os
 import sys
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SEED_COMMANDS = (
     "seed_local_courses",

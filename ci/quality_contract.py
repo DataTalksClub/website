@@ -9,7 +9,8 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-QUALITY_CONTRACT_VERSION = 2
+QUALITY_CONTRACT_VERSION = 3
+MAKEFILE_QUALITY_CONTRACT_VERSION = 2
 QUALITY_TARGETS = (
     "database-portability-check",
     "security-check",
@@ -45,6 +46,7 @@ LEGACY_HISTORICAL_MAKEFILE_SHA256 = (
 )
 AGGREGATE_TARGET = "verification-quality"
 MAX_MAKEFILE_BYTES = 256 * 1024
+MAX_CI_SCRIPT_BYTES = 256 * 1024
 TARGET_NAME = r"[A-Za-z0-9][A-Za-z0-9_.-]*"
 TARGET_HEADER_RE = re.compile(rf"^(?P<targets>{TARGET_NAME}(?:[ \t]+{TARGET_NAME})*)[ \t]*:(?!=)")
 
@@ -94,7 +96,9 @@ def inspect_makefile(text: str, *, allow_legacy: bool = False) -> QualityContrac
         LEGACY_HISTORICAL_MAKEFILE_SHA256
     )
     expected_targets = LEGACY_QUALITY_TARGETS if legacy else QUALITY_TARGETS
-    expected_version = LEGACY_QUALITY_CONTRACT_VERSION if legacy else QUALITY_CONTRACT_VERSION
+    expected_version = (
+        LEGACY_QUALITY_CONTRACT_VERSION if legacy else MAKEFILE_QUALITY_CONTRACT_VERSION
+    )
     missing = tuple(target for target in expected_targets if target not in definitions)
     if missing:
         raise QualityContractError(
@@ -111,7 +115,25 @@ def inspect_makefile(text: str, *, allow_legacy: bool = False) -> QualityContrac
     return QualityContract(
         aggregate_present=aggregate_present,
         targets=expected_targets,
-        version=LEGACY_QUALITY_CONTRACT_VERSION if legacy else QUALITY_CONTRACT_VERSION,
+        version=LEGACY_QUALITY_CONTRACT_VERSION if legacy else MAKEFILE_QUALITY_CONTRACT_VERSION,
+    )
+
+
+def inspect_ci_script(text: str) -> QualityContract:
+    """Validate the script that owns the current quality command set."""
+
+    if "\x00" in text:
+        raise QualityContractError("selected release CI script contains a NUL byte")
+    missing = tuple(target for target in QUALITY_TARGETS if f'"{target}"' not in text)
+    if missing:
+        raise QualityContractError(
+            f"selected release cannot satisfy quality-contract-v{QUALITY_CONTRACT_VERSION}; "
+            "missing CI commands: " + ", ".join(missing)
+        )
+    return QualityContract(
+        aggregate_present=True,
+        targets=QUALITY_TARGETS,
+        version=QUALITY_CONTRACT_VERSION,
     )
 
 
@@ -119,6 +141,19 @@ def load_contract(repository: str | Path) -> tuple[Path, QualityContract]:
     root = Path(repository).resolve(strict=True)
     if not root.is_dir():
         raise QualityContractError("selected release repository is not a directory")
+    ci_script = root / "scripts" / "ci.py"
+    if ci_script.exists():
+        if ci_script.is_symlink() or not ci_script.is_file():
+            raise QualityContractError(
+                "selected release CI script must be a regular non-symlink file"
+            )
+        if ci_script.stat().st_size > MAX_CI_SCRIPT_BYTES:
+            raise QualityContractError("selected release CI script is too large")
+        try:
+            text = ci_script.read_text(encoding="utf-8")
+        except UnicodeError as error:
+            raise QualityContractError("selected release CI script is not UTF-8") from error
+        return root, inspect_ci_script(text)
     makefile = root / "Makefile"
     if makefile.is_symlink() or not makefile.is_file():
         raise QualityContractError("selected release Makefile must be a regular non-symlink file")
@@ -145,8 +180,13 @@ def run_quality_contract(
         + " ".join(contract.targets),
         flush=True,
     )
+    command = (
+        ["uv", "run", "--frozen", "python", "scripts/ci.py", "quality"]
+        if contract.version == QUALITY_CONTRACT_VERSION
+        else ["make", "--no-print-directory", *contract.targets]
+    )
     result = runner(
-        ["make", "--no-print-directory", *contract.targets],
+        command,
         cwd=root,
         env=environment,
         check=False,
