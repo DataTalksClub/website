@@ -4,6 +4,7 @@ from django.test import Client, TestCase
 from django.utils import timezone
 
 from accounts.models import CustomUser, Token
+from api.tests.staff_credentials import issue_staff_bearer
 from courses.models import Cohort, Homework, Project
 from courses.models.homework import HomeworkState
 from courses.models.project import ProjectState
@@ -17,9 +18,8 @@ class CourseAPITestBase(TestCase):
             password="password",
             is_staff=True,
         )
-        self.token = Token.objects.create(user=self.user)
         self.client = Client()
-        self.client.defaults["HTTP_AUTHORIZATION"] = f"Token {self.token.key}"
+        self.client.defaults["HTTP_AUTHORIZATION"] = issue_staff_bearer(self.user)
 
         start_date = timezone.datetime(2026, 1, 15).date()
         end_date = timezone.datetime(2026, 4, 15).date()

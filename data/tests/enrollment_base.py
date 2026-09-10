@@ -10,7 +10,8 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from accounts.models import CustomUser, Token
+from accounts.models import CustomUser
+from api.tests.staff_credentials import issue_staff_bearer
 from courses.models import (
     Cohort,
     Enrollment,
@@ -261,8 +262,6 @@ class EnrollmentDataAPIBase(TestCase):
             password="password",
             is_staff=True,
         )
-        self.token = Token.objects.create(user=self.api_operator)
-
         self.course = Cohort.objects.create(title="Test Course", slug="test-course")
 
         self.enrollment = Enrollment.objects.create(
@@ -271,4 +270,6 @@ class EnrollmentDataAPIBase(TestCase):
         )
 
         self.client = Client()
-        self.client.defaults["HTTP_AUTHORIZATION"] = f"Token {self.token.key}"
+        self.client.defaults["HTTP_AUTHORIZATION"] = issue_staff_bearer(
+            self.api_operator
+        )

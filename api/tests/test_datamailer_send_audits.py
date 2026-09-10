@@ -1,6 +1,7 @@
 from django.test import Client, TestCase
 
-from accounts.models import CustomUser, Token
+from accounts.models import CustomUser
+from api.tests.staff_credentials import issue_staff_bearer
 from core.redaction import REDACTED
 from course_management.datamailer.sync.audit_redaction import (
     audit_response_payload,
@@ -22,11 +23,11 @@ class DatamailerSendAuditsAPITestCase(TestCase):
             email="staff@example.com",
             is_staff=True,
         )
-        self.token = Token.objects.create(user=self.staff)
+        self.bearer = issue_staff_bearer(self.staff)
         self.client = Client()
 
     def _auth(self):
-        return {"HTTP_AUTHORIZATION": f"Token {self.token.key}"}
+        return {"HTTP_AUTHORIZATION": self.bearer}
 
     def _create_audit(
         self,

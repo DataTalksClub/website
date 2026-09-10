@@ -5,7 +5,10 @@ Only the endpoints the suite actually needs are wrapped. Each call raises
 ``ApiError`` with a clear, scenario-friendly message on unexpected status
 codes so failures point straight at the broken step.
 
-Auth: ``Authorization: Token <token>`` (staff token). See endpoints.md.
+Auth: staff API token via ``E2E_API_TOKEN``/``DEV_AUTH_TOKEN``. A scoped
+management credential (``dtca_v1_...``) is sent as ``Authorization: Bearer ...``;
+a legacy dev ``Token`` value is sent as ``Authorization: Token ...``. Staff
+operations require the scoped credential. See endpoints.md.
 """
 
 import json
@@ -53,10 +56,13 @@ class CmpApiClient:
     def __init__(self, base_url: str, token: str, *, timeout: float = 30.0):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
+        # Scoped management credentials (dtca_v1_...) ride as Bearer; a bare
+        # legacy dev Token value keeps its historical header scheme.
+        scheme = "Bearer" if token.startswith("dtca_v1_") else "Token"
         self.session = requests.Session()
         self.session.headers.update(
             {
-                "Authorization": f"Token {token}",
+                "Authorization": f"{scheme} {token}",
                 "Content-Type": "application/json",
                 "Accept": "application/json",
             }

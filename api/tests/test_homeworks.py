@@ -41,6 +41,9 @@ class HomeworksAPITestCase(HomeworkAPITestBase):
         """The list endpoint must not run counts per homework row."""
         self._seed_homework_with_counts("hw1")
         self._seed_homework_with_counts("hw2")
+        # Prime once so the credential's first-use `last_used` write and any
+        # other one-time setup leave both measured requests equally warm.
+        self._list_query_count()
         baseline = self._list_query_count()
 
         for index in range(3, 9):

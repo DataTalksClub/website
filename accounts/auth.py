@@ -490,10 +490,56 @@ class ConsolidatingSocialAccountAdapter(DefaultSocialAccountAdapter):
         sociallogin.user = user
 
 
+def _bearer_error_response(error) -> JsonResponse:
+    # The compatibility API keeps its flat error envelope; 401 stays a generic
+    # invalid-token body with no reflected header or credential material.
+    body = {"error": error.message} if error.status == 429 else {"error": "Invalid token"}
+    response = JsonResponse(body, status=error.status)
+    for name, value in error.headers.items():
+        response[name] = value
+    return response
+
+
+def _run_with_management_credential(view, request, *args, **kwargs):
+    # BE-02: `Bearer` tokens are scoped, expiring, revocable management
+    # credentials (`management_auth.APICredential`).  The import is local
+    # because `management_api.authentication` imports `accounts` modules.
+    from management_api.authentication import (
+        APIError,
+        mark_used,
+    )
+    from management_api.authentication import (
+        authenticate as authenticate_management_credential,
+    )
+
+    try:
+        identity = authenticate_management_credential(
+            request,
+            reject_alternate_sources=False,
+        )
+    except APIError as error:
+        record_event(
+            "api.auth_failed",
+            request=request,
+            properties={"reason": "invalid_management_credential"},
+        )
+        return _bearer_error_response(error)
+    # Staff authority is decided later from this identity (api.safety), never
+    # from the linked user's is_staff flag alone.
+    request.management_identity = identity  # type: ignore[attr-defined]
+    principal = identity.principal
+    if principal.kind == principal.Kind.HUMAN and principal.user is not None:
+        request.user = principal.user
+    mark_used(identity)
+    return view(request, *args, **kwargs)
+
+
 def token_required(view):
     @wraps(view)
     def decorated(request, *args, **kwargs):
         token_key = request.headers.get("Authorization")
+        if token_key is not None and token_key.startswith("Bearer "):
+            return _run_with_management_credential(view, request, *args, **kwargs)
         if token_key:
             token_key = token_key.replace("Token ", "", 1)
             try:

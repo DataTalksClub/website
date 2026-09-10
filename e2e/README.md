@@ -52,7 +52,8 @@ there is no inbox client:
   audit rows. Each row exposes `send_type`, `status`, `template_key`,
   `idempotency_key`, `occurred_at`, `would_deliver`, `rendered`
   (`subject`/`html_body`/`text_body`), `message`, and the raw `response_payload`.
-- Auth is the same staff `Authorization: Token <token>` as the rest of the API.
+- Auth is the same scoped staff credential as the rest of the API
+  (`Authorization: Bearer <dtca_v1_...>`).
 
 `CmpApiClient` (`e2e/api_client.py`) exposes `datamailer_send_audits(...)` and a
 short poll helper `wait_for_send_audit(email, template_key, body_contains=...)`.
@@ -141,7 +142,7 @@ secrets. The suite also falls back to the **repo-root `.env`** for
 | Var | Required for | Notes |
 |-----|--------------|-------|
 | `E2E_BASE_URL` | all | Defaults to `https://dev.courses.datatalks.club` (or `PUBLIC_BASE_URL`). |
-| `E2E_API_TOKEN` | provisioning/scoring/teardown | Staff token. Falls back to `DEV_AUTH_TOKEN`. |
+| `E2E_API_TOKEN` | provisioning/scoring/teardown | Scoped staff credential (`dtca_v1_...`, from `.tmp/dev-api-token.txt` after re-running `scripts/add_data.py`). Falls back to `DEV_AUTH_TOKEN`. A legacy `Token` value authenticates learner-level reads but can no longer provision or score. |
 | `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD` | browser flows + teardown | Staff account; logs in via the admin form (no OAuth). Teardown deletes the course through the admin UI with this session; without it, teardown only parks the course hidden. |
 | `E2E_STUDENT_EMAIL` / `E2E_STUDENT_PASSWORD` | optional | If unset, a per-run `<namespace>@example.com` student is created admin-side. With dry-run nothing is delivered, so no special address is needed. |
 | `E2E_EXPECTED_VERSION` | optional | If set, asserts `/api/health/` version matches the just-deployed build. |

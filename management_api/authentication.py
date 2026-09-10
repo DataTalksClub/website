@@ -53,8 +53,17 @@ def _dummy_rejected(secret: str) -> bool:
     return False
 
 
-def authenticate(request: HttpRequest) -> APIIdentity:
-    _reject_alternate_sources(request)
+def authenticate(
+    request: HttpRequest,
+    *,
+    reject_alternate_sources: bool = True,
+) -> APIIdentity:
+    # The compatibility API reuses this authentication for its Bearer scheme
+    # but keeps its historical form-encoded POST bodies, which carry no token
+    # material (the header is the only accepted source), so it opts out of the
+    # form content-type part of the alternate-source guard.
+    if reject_alternate_sources:
+        _reject_alternate_sources(request)
     header = request.META.get("HTTP_AUTHORIZATION", "")
     if not isinstance(header, str) or "," in header or not header.startswith("Bearer "):
         raise authentication_required()

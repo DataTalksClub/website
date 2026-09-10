@@ -2,7 +2,16 @@ from dataclasses import dataclass
 
 from django.http import JsonResponse
 
+from accounts.navigation import can_access_course_studio
+from accounts.studio_roles import STUDIO_ACCESS
 from api.utils import parse_date
+from management_auth.models import APIPrincipal
+from management_auth.services import principal_has_permission
+
+# The one scope that authorizes compatibility-API course operations.  It is
+# deliberately separate from every management-API capability key: a credential
+# minted for reading studio health must not silently operate course data here.
+STAFF_OPERATION_SCOPE = "compatibility.course_operations"
 
 
 @dataclass(frozen=True)
@@ -31,13 +40,41 @@ def error_response(message, code, status=400, details=None):
 
 
 def require_staff_token(request):
-    if request.user.is_staff or request.user.is_superuser:
-        return None
-    return error_response(
-        "Staff token required",
-        "staff_token_required",
-        status=403,
-    )
+    """Require course-operations authority from a scoped management credential.
+
+    Legacy raw ``Token`` keys keep learner-level compatibility access but no
+    longer carry management authority (audit BE-02): staff operations need an
+    authenticated ``management_auth.APICredential`` riding on the request.
+    Human principals pass the same course-studio role gate as Studio course
+    operations; service principals need the explicit Studio-access permission.
+    Either way the credential must carry the compatibility course-operations
+    scope, so a read-only or unrelated management credential fails closed.
+    """
+    identity = getattr(request, "management_identity", None)
+    if identity is None:
+        return error_response(
+            "Staff token required",
+            "staff_token_required",
+            status=403,
+        )
+    principal = identity.principal
+    if STAFF_OPERATION_SCOPE not in identity.credential.scopes:
+        return error_response(
+            "Staff token required",
+            "staff_token_required",
+            status=403,
+        )
+    if principal.kind == APIPrincipal.Kind.SERVICE:
+        allowed = principal_has_permission(principal, STUDIO_ACCESS)
+    else:
+        allowed = principal.user is not None and can_access_course_studio(principal.user)
+    if not allowed:
+        return error_response(
+            "Staff token required",
+            "staff_token_required",
+            status=403,
+        )
+    return None
 
 
 def ensure_closed_for_delete(instance, closed_state, noun):

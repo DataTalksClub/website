@@ -87,7 +87,50 @@ if created:
     admin_user.save()
 
     TOKEN = "TEST_TOKEN"
-    Token.objects.get_or_create(key=TOKEN, user=admin_user)  
+    Token.objects.get_or_create(key=TOKEN, user=admin_user)
+
+
+def ensure_scoped_api_credential(admin_user):
+    """Issue (once) a scoped Bearer credential for local staff API calls.
+
+    Staff operations on the compatibility API no longer accept the legacy
+    ``Token`` row (BE-02): they need a management credential.  The raw secret
+    goes to .tmp/dev-api-token.txt for local tooling and is never printed.
+    """
+    from django.utils import timezone
+
+    from accounts.studio_roles import set_single_studio_role
+    from management_auth.models import APICredential, APIPrincipal
+    from management_auth.services import create_principal
+    from management_auth.tokens import encode_secret, generate_token
+
+    set_single_studio_role(admin_user, "site_admin")
+    principal = create_principal(
+        kind=APIPrincipal.Kind.HUMAN,
+        name="local development admin",
+        identity_snapshot="local-dev:admin",
+        user=admin_user,
+    )
+    if APICredential.objects.filter(revoked_at=None, principal=principal).exists():
+        return
+    token = generate_token()
+    APICredential.objects.create(
+        principal=principal,
+        name="local development credential",
+        prefix=token.prefix,
+        secret_digest=encode_secret(token.secret),
+        digest_algorithm="pbkdf2_sha256",
+        digest_version=1,
+        scopes=["compatibility.course_operations"],
+        expires_at=timezone.now() + timedelta(days=30),
+    )
+    scratch = project_root / ".tmp"
+    scratch.mkdir(exist_ok=True)
+    (scratch / "dev-api-token.txt").write_text(token.raw + "\n")
+    print("Scoped API credential written to .tmp/dev-api-token.txt (local only)")
+
+
+ensure_scoped_api_credential(admin_user)
 
 today = datetime.now().date()
 
