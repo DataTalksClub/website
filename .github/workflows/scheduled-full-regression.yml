@@ -273,7 +273,7 @@ jobs:
     # job). A 45m bound killed healthy runs at ~80% completion, so keep a
     # bounded reserve above the measurement while a wedged test still cannot
     # hold the runner forever.
-    timeout-minutes: 60
+    timeout-minutes: 90
     env:
       DJANGO_ALLOW_ASYNC_UNSAFE: "true"
       DJANGO_SETTINGS_MODULE: website.settings.test
