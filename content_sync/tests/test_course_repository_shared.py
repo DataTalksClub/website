@@ -148,7 +148,125 @@ def test_archive_descendants_stay_opaque_but_mapped_homework_imports() -> None:
     ] == ["cohorts/2025/01-old-module/homework.yaml"]
 
 
+def test_course_yaml_current_cohort_and_urls() -> None:
+    source = parse_course_repository(shared_snapshot(), commit_sha=COMMIT_SHA)
+
+    assert source.course.current_cohort == "2026"
+    assert source.course.description == (
+        "A free course about building LLM applications, RAG, agents, and evaluation."
+    )
+    assert source.course.description_source_path == "course.yaml"
+    assert source.course.repository_url == "https://github.com/DataTalksClub/llm-zoomcamp"
+    assert source.course.docs_url == "https://datatalks.club/docs/courses/llm-zoomcamp/"
+    assert source.course.faq_url == "https://datatalks.club/faq/llm-zoomcamp.html"
+
+
 # -- refusals ----------------------------------------------------------------
+
+
+def test_rejects_a_course_yaml_urls_missing_a_key() -> None:
+    snapshot = shared_snapshot()
+    replace_bytes(
+        snapshot,
+        "course.yaml",
+        "  faq: https://datatalks.club/faq/llm-zoomcamp.html\n",
+        "",
+    )
+
+    with pytest.raises(CourseRepositoryValidationError) as raised:
+        parse_course_repository(snapshot)
+
+    assert diagnostic_code(raised) == "required_key_missing"
+
+
+def test_rejects_current_cohort_not_matching_any_root_entry() -> None:
+    snapshot = shared_snapshot()
+    replace_bytes(snapshot, "course.yaml", 'current_cohort: "2026"', 'current_cohort: "2099"')
+
+    with pytest.raises(CourseRepositoryValidationError) as raised:
+        parse_course_repository(snapshot)
+
+    assert diagnostic_code(raised) == "current_cohort_mismatch"
+
+
+def test_rejects_a_cohorts_index_entry_pointing_at_a_different_cohort() -> None:
+    snapshot = shared_snapshot()
+    replace_bytes(snapshot, "course.yaml", "content: cohorts/2025", "content: cohorts/2026")
+
+    with pytest.raises(CourseRepositoryValidationError) as raised:
+        parse_course_repository(snapshot)
+
+    assert diagnostic_code(raised) == "cohort_content_path_invalid"
+
+
+def test_rejects_a_cohort_directory_not_listed_in_the_cohorts_index() -> None:
+    snapshot = shared_snapshot()
+    replace_bytes(
+        snapshot,
+        "course.yaml",
+        """  - identifier: "2025"
+    content: cohorts/2025
+    legacy: true
+""",
+        "",
+    )
+
+    with pytest.raises(CourseRepositoryValidationError) as raised:
+        parse_course_repository(snapshot)
+
+    assert diagnostic_code(raised) == "cohort_not_listed_in_index"
+
+
+def test_rejects_a_cohorts_index_entry_with_no_matching_directory() -> None:
+    snapshot = shared_snapshot()
+    replace_bytes(
+        snapshot,
+        "course.yaml",
+        """  - identifier: self-paced
+    content: root
+""",
+        """  - identifier: self-paced
+    content: root
+  - identifier: "2099"
+    content: cohorts/2099
+    legacy: true
+""",
+    )
+
+    with pytest.raises(CourseRepositoryValidationError) as raised:
+        parse_course_repository(snapshot)
+
+    assert diagnostic_code(raised) == "cohort_index_entry_not_found"
+
+
+def test_rejects_the_current_cohort_marked_legacy() -> None:
+    snapshot = shared_snapshot()
+    replace_bytes(
+        snapshot,
+        "course.yaml",
+        '  - identifier: "2026"\n    content: root\n',
+        '  - identifier: "2026"\n    content: root\n    legacy: true\n',
+    )
+
+    with pytest.raises(CourseRepositoryValidationError) as raised:
+        parse_course_repository(snapshot)
+
+    assert diagnostic_code(raised) == "current_cohort_cannot_be_legacy"
+
+
+def test_rejects_a_legacy_cohort_yaml_field() -> None:
+    snapshot = shared_snapshot()
+    replace_bytes(
+        snapshot,
+        "cohorts/2025/cohort.yaml",
+        "curriculum: github_archive\n",
+        'curriculum: github_archive\ntitle: "LLM Zoomcamp 2025"\n',
+    )
+
+    with pytest.raises(CourseRepositoryValidationError) as raised:
+        parse_course_repository(snapshot)
+
+    assert diagnostic_code(raised) == "unknown_key"
 
 
 def test_rejects_self_paced_cohort_with_authored_assignment() -> None:
@@ -273,6 +391,49 @@ def test_rejects_an_unnumbered_lesson_path() -> None:
         "path: 02-practice.md",
         "path: practice.md",
     )
+
+    with pytest.raises(CourseRepositoryValidationError) as raised:
+        parse_course_repository(snapshot)
+
+    assert diagnostic_code(raised) == "numbered_lesson_required"
+
+
+def test_accepts_the_grandfathered_single_lesson_filename() -> None:
+    # ai-dev-tools-zoomcamp's one-lesson-per-module shape: no numbered
+    # prefix, the fixed name "lesson.md", documented in
+    # zoomcamp-ops/STRUCTURE.md as grandfathered -- never a choice for a
+    # new or multi-lesson module.
+    snapshot = shared_snapshot()
+    del snapshot["01-agentic-rag/02-practice.md"]
+    replace_bytes(
+        snapshot,
+        "01-agentic-rag/module.yaml",
+        """  - content_id: "33333333-3333-4333-8333-333333333333"
+    title: Introduction to Agentic RAG
+    path: 01-lesson.md
+  - content_id: "34444444-4444-4444-8444-444444444444"
+    title: Practice
+    path: 02-practice.md
+""",
+        """  - content_id: "33333333-3333-4333-8333-333333333333"
+    title: Introduction to Agentic RAG
+    path: lesson.md
+""",
+    )
+    snapshot["01-agentic-rag/lesson.md"] = snapshot.pop("01-agentic-rag/01-lesson.md")
+
+    source = parse_course_repository(snapshot, commit_sha=COMMIT_SHA)
+
+    (module,) = source.modules
+    (unit,) = module.units
+    assert unit.slug == "lesson"
+    assert unit.source_path == "01-agentic-rag/lesson.md"
+
+
+def test_rejects_lesson_md_when_the_module_has_more_than_one_unit() -> None:
+    snapshot = shared_snapshot()
+    replace_bytes(snapshot, "01-agentic-rag/module.yaml", "path: 01-lesson.md", "path: lesson.md")
+    snapshot["01-agentic-rag/lesson.md"] = snapshot.pop("01-agentic-rag/01-lesson.md")
 
     with pytest.raises(CourseRepositoryValidationError) as raised:
         parse_course_repository(snapshot)
