@@ -1,0 +1,103 @@
+{
+  "date": "2026-09-10",
+  "tool": "built-in imagegen",
+  "scope": "Only the outer watercolor borders of homepage light Steps 1 and 3. Each retains its own distinct blurb; foreground and interior RGBA are preserved.",
+  "workflow": ".agents/skills/website-illustrations/SKILL.md",
+  "prompt": "Use case: precise-object-edit.\nImage 1 is the COMPLETE ILLUSTRATION TO EDIT. Image 2 is ONLY the reference for edge smoothness.\nModify ONLY the outer border of Image 1's lavender watercolor blurb to have the delicate smooth fade of Image 2. Keep the complete drawing: every character, expression, gesture, word, letter, icon, diagram, object, contour and fill EXACTLY unchanged in appearance, scale and position. Keep all interior watercolor pixels unchanged. Keep Image 1's OWN DISTINCTIVE CLOUD SHAPE and lobes, original canvas, full 957:532 landscape ratio and existing margins. Do not copy Image 2's cloud or illustration.\nThe blurb's perimeter currently has a brittle crust of coarse dry-brush specks and an abrupt jagged boundary. In ONLY the outermost 15–20 pixels at original 957x532 scale, make that edge a soft wet watercolor fade, very fine subtle texture with continuously decreasing coverage. Match Image 2's smooth feathering without a rough stippled edge, detached pixel noise, hard contour, white rim or halo. Do not change the shape or location of the broad lobes.\nCHROMA OUTPUT: Return the complete original illustration, including its own integrated watercolor blurb, on a SINGLE PERFECTLY UNIFORM SATURATED MAGENTA #ff00ff chroma backdrop. The lavender edge thins DIRECTLY into magenta. No white paper underpainting or intermediate white fringe. Do not use white background, black background, transparency simulation or checkerboard. No magenta in the illustration's interior.\nPreserve white fills of faces, cards and diagrams. No added people, text, props, shadow, glow or decoration. Do not crop, move, stretch, resize, or clip anything. The ONLY visible edit is smoother watercolor perimeter.",
+  "reference_roles": {
+    "edit_target": "Each current complete illustration flattened onto magenta without changing canvas or registration.",
+    "style_reference": ".tmp/light-border-20260910/work/step2-style-reference.png; approved light Step 2, edge appearance only. No shared cloud or alpha."
+  },
+  "source_archive": ".tmp/light-border-20260910",
+  "transparency": {
+    "raw": "Opaque chroma. Transparency is recovered locally, not native imagegen alpha.",
+    "requested_key": "#ff00ff",
+    "measured_key": "#fc05fc",
+    "pigment": "#b8bffc",
+    "recovery": "Estimate coverage from the measured key/pigment red-green difference, then unmix measured key RGB. No alpha cutoff or blur. Apply only within the original target's border selection; all protected pixels come from the original.",
+    "selection": "Original cloud geometry selects up to 8 pixels outside and 28 pixels inside the perimeter; the inner 14–28 pixel band blends back to the untouched original. Original foreground selection is protected everywhere. Selection limits edits and never supplies the generated fade."
+  },
+  "assets": [
+    {
+      "output": "core/static/core/illustrations/home-stuck.webp",
+      "sha256": "82ca55b86d635208983b68e3deb90927ca98bcbe5ac738ff746d5dc910f031c3",
+      "canvas": [
+        957,
+        532
+      ],
+      "anchor": ".tmp/light-border-20260910/work/step1-full-chroma-anchor.png",
+      "raw": ".tmp/light-border-20260910/generated/step1-full-chroma.png",
+      "raw_sha256": "9b1ae821899bbc118829a5ecabf329f9cbf596adbb9718d379fc73ce93308d56"
+    },
+    {
+      "output": "core/static/core/illustrations/home-step-3.webp",
+      "sha256": "274ae7526d271f6cf642c86300c31da2f2fbd15cf5786e917e623c4c3edd4c66",
+      "canvas": [
+        957,
+        532
+      ],
+      "anchor": ".tmp/light-border-20260910/work/step3-full-chroma-anchor.png",
+      "raw": ".tmp/light-border-20260910/generated/step3-full-chroma.png",
+      "raw_sha256": "2b6f8b9515011a7e2632e62a48efa43ebbc0a688184b7c6f1b3230993518c6df"
+    }
+  ],
+  "finishing_script": {
+    "path": ".tmp/light-border-20260910/finish-border.sh",
+    "sha256": "4819c00eeeb67dd7460ab86d1cd51308e5725a43f1a85c0fdac0529d9a6f72b0",
+    "source": "#!/usr/bin/env bash\nset -euo pipefail\n\nstep=\"$1\"\nname=\"$2\"\nraw=\"$3\"\ntask_dir=\".tmp/light-border-20260910\"\nold_dir=\".tmp/illustration-sources/blurb-repair-2026-09-09\"\nwork=\"$task_dir/work/$name\"\nmkdir -p \"$work\"\n\n# Remove the generated magenta key, retaining its generated watercolor falloff.\n# Recover coverage from the key/pigment red-green difference, then unmix only\n# that key. Measured exterior key is approximately #fc05fc (not exact ff00ff).\n# The prompt specifies the original light lavender, #b8bffc.\n# No blur, alpha threshold, or synthetic fade is applied to the new edge.\nconvert \"$raw\" -alpha on \\\n  -channel A -fx 'max(0,min(1,(247/255-r+g)/(254/255)))' \\\n  -channel R -fx 'a>0 ? max(0,min(1,(r-(1-a)*252/255)/a)) : 0' \\\n  -channel G -fx 'a>0 ? max(0,min(1,(g-(1-a)*5/255)/a)) : 0' \\\n  -channel B -fx 'a>0 ? max(0,min(1,(b-(1-a)*252/255)/a)) : 0' \\\n  +channel -background none -resize 957x532 -gravity center -extent 957x532 \\\n  \"$work/generated-cloud.png\"\n\n# These masks select what original artwork to protect. They do not create the\n# watercolor perimeter: that perimeter and its falloff come from imagegen above.\nconvert \"$old_dir/step${step}-light-candidate-cloud.png\" -alpha extract \\\n  -threshold 5% \"$work/original-cloud-area.png\"\nconvert \"$work/original-cloud-area.png\" -morphology Dilate Disk:8 \\\n  \"$work/allowed-extent.png\"\nfor radius in 14 16 18 20 22 24 26 28; do\n  convert \"$work/original-cloud-area.png\" -morphology Erode \"Disk:$radius\" \\\n    \"$work/protected-interior-$radius.png\"\ndone\nconvert \"$work\"/protected-interior-*.png -evaluate-sequence mean \\\n  \"$work/protected-interior.png\"\nconvert \"$work/protected-interior.png\" -negate \\\n  \"$work/allowed-extent.png\" -compose Multiply -composite \\\n  \"$old_dir/foreground/$name-foreground-mask.png\" \\\n  -fx 'u[1]>0 ? 0 : u[0]' \"$work/border-selection.png\"\n\n# Blend only the selected border band. Foreground, interior, and outer canvas\n# are taken from the current original at their exact original coordinates.\nconvert \"$task_dir/before/$name.webp\" \"$work/generated-cloud.png\" \\\n  \"$work/border-selection.png\" -alpha on -channel RGBA \\\n  -fx 'u[2].r*u[1]+(1-u[2].r)*u[0]' +channel \\\n  -define webp:lossless=true \"$task_dir/$name.webp\"\nconvert \"$task_dir/$name.webp\" -background '#f0f0fc' -alpha remove -alpha off \\\n  \"$task_dir/$name-preview.png\"\n"
+  },
+  "commands": [
+    "bash .tmp/light-border-20260910/finish-border.sh 1 home-stuck .tmp/light-border-20260910/generated/step1-full-chroma.png",
+    "bash .tmp/light-border-20260910/finish-border.sh 3 home-step-3 .tmp/light-border-20260910/generated/step3-full-chroma.png",
+    "uv run --frozen python .tmp/light-border-20260910/check-preservation.py"
+  ],
+  "pixel_validation": {
+    "assets": {
+      "home-stuck": {
+        "before_sha256": "aef88e58ed302c4ec7a5d4ed2b7d7c17a051d06573747aee94286a187823b118",
+        "after_sha256": "82ca55b86d635208983b68e3deb90927ca98bcbe5ac738ff746d5dc910f031c3",
+        "dimensions": "957x532",
+        "changed_visible_pixels": 65743,
+        "protected_visible_pixels": 289359,
+        "changed_pixels_outside_border_selection": 0,
+        "protected_foreground_pixels": 157666,
+        "changed_foreground_pixels": 0,
+        "visible_key_spill_pixels": 0
+      },
+      "home-step-3": {
+        "before_sha256": "a92a57786679894be91f4d4e9fa1d0aeee26af0a11134a7a34c9fdfdea4e8914",
+        "after_sha256": "274ae7526d271f6cf642c86300c31da2f2fbd15cf5786e917e623c4c3edd4c66",
+        "dimensions": "957x532",
+        "changed_visible_pixels": 83419,
+        "protected_visible_pixels": 307218,
+        "changed_pixels_outside_border_selection": 0,
+        "protected_foreground_pixels": 206204,
+        "changed_foreground_pixels": 0,
+        "visible_key_spill_pixels": 0
+      }
+    },
+    "unchanged": {
+      "home-step-2": true,
+      "home-stuck-dark": true,
+      "home-step-2-dark": true,
+      "home-step-3-dark": true
+    },
+    "failures": []
+  },
+  "rendered_validation": {
+    "host": "http://127.0.0.1:8000/",
+    "widths": [
+      1440,
+      390,
+      320
+    ],
+    "screenshots": [
+      ".tmp/screenshots/light-border-20260910/after-light-1440.png",
+      ".tmp/screenshots/light-border-20260910/after-light-390.png",
+      ".tmp/screenshots/light-border-20260910/after-light-320.png"
+    ],
+    "verdict": "Parent and independent tester visually inspected all three light screenshots: smooth distinct watercolor borders, no visible key rim, halo, checkerboard or clipping; unchanged geometry and no horizontal overflow. All three dark screenshots are byte-identical to baseline.",
+    "focused_homepage_tests": "34 passed, 84 subtests passed. Explicit isolated test settings; no application code or template changes."
+  },
+  "limitations": "Image generation is nondeterministic. This is an accepted pixel and rendered-asset recipe, not a full CI or deployment sign-off. Measured key values are specific to these generated sources."
+}
