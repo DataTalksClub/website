@@ -14,14 +14,16 @@ Scope, deliberately narrow:
   through this path at all.  A ``RegistrationCampaign`` is the marketing definition of an
   open registration -- its slug, copy, dates and the cohort it promotes.  The learner
   rows that hang off it live in ``courses_courseregistration`` and are never touched.
-* **Reviewed cohort identity only.**  A cohort is matched by slug against the rows the
-  local database already has.  When the local catalogue is missing a cohort whose slug the
-  reviewed ``COHORT_FAMILY_IDENTITIES`` mapping already names, the cohort is created under
-  that reviewed identity, and its family row with it when the reviewed
-  ``COURSE_FAMILY_TITLES`` catalogue names the title.  Both facts are read from the
-  reviewed catalogue: this service still never *derives* a family, invents a year, or
-  builds a slug, which is what split the AI Dev Tools family and needed migration ``0052``
-  to repair.  A cohort slug the reviewers have not ruled on stays missing and is reported.
+* **Derived cohort identity, mechanically.**  A cohort is matched by slug against the
+  rows the local database already has.  When the local catalogue is missing a cohort,
+  its family and year are parsed from the edition slug itself (``"de-zoomcamp-2022"``
+  -> family ``"de-zoomcamp"``, year ``2022``); the family's title, when the family row
+  does not exist yet either, is read from CMP's own cohort title with the year
+  stripped.  Nothing is invented.  The one exception is a small, explicit
+  ``family_slug_overrides`` correction the caller supplies for an edition slug CMP
+  exports under an irregular family spelling (``"ai-dev-tools-2025"``, which omits the
+  ``-zoomcamp`` its real family carries) -- see ``scripts/prod/import_cmp_content.py``.
+  A slug that doesn't parse as ``<family>-<year>`` at all stays missing and is reported.
 * **CMP owns homework identity.**  A homework's slug is whatever CMP says it is, copied
   verbatim, including on the modules-format cohorts whose repositories declare a
   different one.  Nothing is derived, mapped or rewritten.
@@ -51,11 +53,16 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, NoReturn
 
 from django.db import transaction
 
-from courses.course_family_catalog import COHORT_FAMILY_IDENTITIES, COURSE_FAMILY_TITLES
+from courses.services.course_family_identity import (
+    UnparseableEditionSlug,
+    family_and_year_from_edition_slug,
+    family_title_from_edition_title,
+)
 from courses.models import (
     Cohort,
     Homework,
@@ -83,12 +90,7 @@ class CmpContentImportError(RuntimeError):
 # Cohorts the owner has decided not to publish yet.  They are listed by name with the
 # reason attached, rather than left to fall through an unmatched branch: a cohort that
 # vanishes because no rule matched is indistinguishable from a bug, while a cohort on
-# this list is a decision someone can revisit.  Three of the five need only an entry in
-# ``COHORT_FAMILY_IDENTITIES`` to return.
-#
-# ``sma-zoomcamp-2026`` used to be here.  It is visible and active in CMP and its family
-# ``sma-zoomcamp`` is already reviewed, so the only thing it ever needed was the identity
-# entry it now has; deferring it left the local catalogue one edition short of CMP.
+# this list is a decision someone can revisit.
 SKIPPED_COHORTS: Mapping[str, str] = {
     "ai-bootcamp-2025": "owner deferred; needs a reviewed family, title and publication state",
     "ai-hero-2025": "owner deferred; needs a reviewed family, title and publication state",
@@ -406,8 +408,17 @@ def import_cmp_course_content(
     source_db: Path,
     *,
     cohort_slugs: Sequence[str] | None = None,
+    family_slug_overrides: Mapping[str, str] = MappingProxyType({}),
 ) -> CmpContentImportResult:
-    """Copy real CMP content onto the local catalogue's existing legacy cohorts."""
+    """Copy real CMP content onto the local catalogue's existing legacy cohorts.
+
+    ``family_slug_overrides`` corrects a CMP edition slug whose family portion does not
+    match its real repository family (for example ``ai-dev-tools-2025``, which CMP
+    exports without the ``-zoomcamp`` suffix the real ``ai-dev-tools-zoomcamp`` family
+    carries).  Every other edition slug's family and year are derived mechanically from
+    the slug itself.  The caller -- ``scripts/prod/import_cmp_content.py`` -- owns this
+    small, reviewed correction; this function does not guess.
+    """
 
     connection = _readonly(source_db)
     try:
@@ -437,15 +448,18 @@ def import_cmp_course_content(
                 continue
             cohort = local.get(slug)
             if cohort is None:
-                cohort = _adopt_reviewed_cohort(slug, row, created_families=created_families)
+                cohort = _adopt_reviewed_cohort(
+                    slug, row, created_families=created_families, overrides=family_slug_overrides
+                )
                 if cohort is None:
                     missing.append(slug)
                     dependent[slug] = _dependent_row_total(connection, row["id"])
                     continue
                 local[slug] = cohort
                 created.append(slug)
-            if slug in COHORT_FAMILY_IDENTITIES:
-                family_slug, _year = COHORT_FAMILY_IDENTITIES[slug]
+            identity = _family_and_year(slug, family_slug_overrides)
+            if identity is not None:
+                family_slug, _year = identity
                 if cohort.course.slug != family_slug:
                     _refuse("cohort-family-mismatch")
             with transaction.atomic():
@@ -470,37 +484,58 @@ def import_cmp_course_content(
         connection.close()
 
 
+def _family_and_year(
+    slug: str, overrides: Mapping[str, str]
+) -> tuple[str, int] | None:
+    """Derive a CMP edition slug's family and year, applying known corrections.
+
+    Almost every CMP edition slug's family is exactly its own de-suffixed form
+    (``"de-zoomcamp-2022"`` -> ``"de-zoomcamp"``), so that is derived mechanically.  The
+    handful CMP exports under an irregular family spelling are corrected by
+    ``overrides`` (a family-slug replacement keyed by the *mechanically derived* family),
+    supplied by the caller -- see ``scripts/prod/import_cmp_content.py``.  Returns
+    ``None`` for a slug that does not even parse as ``<family>-<year>`` -- e.g. an
+    edition-number slug like ``"ai-buildcamp-2"`` -- since there is nothing to correct.
+    """
+
+    try:
+        family_slug, year = family_and_year_from_edition_slug(slug)
+    except UnparseableEditionSlug:
+        return None
+    return overrides.get(family_slug, family_slug), year
+
+
 def _adopt_reviewed_cohort(
     slug: str,
     row: Any,
     *,
     created_families: list[str] | None = None,
+    overrides: Mapping[str, str] = MappingProxyType({}),
 ) -> Cohort | None:
     """Create a local cohort CMP publishes and the local catalogue is missing.
 
-    Only a slug the reviewed ``COHORT_FAMILY_IDENTITIES`` mapping already names can be
-    adopted.  Nothing is derived: the family slug, the family title and the year all
-    come from the reviewed catalogue, so this cannot mint the second family for one
-    course that migration ``0052`` had to repair.  A slug the reviewers have not ruled
-    on stays missing and is reported.
+    Only a slug this module can parse as ``<family>-<year>`` (after ``overrides``
+    corrects a known irregular family spelling) can be adopted.  A slug that doesn't
+    parse -- an edition-number slug like ``"ai-buildcamp-2"``, or anything genuinely
+    unrecognisable -- stays missing and is reported rather than guessed at.
 
-    The family row is created when it is absent and the reviewed catalogue names its
-    title.  Requiring a pre-existing family made a production ingest impossible: on an
-    empty database no family exists, so every cohort was reported missing and the
-    import wrote nothing at all unless a placeholder seeder had run first.  Reading the
-    title from ``COURSE_FAMILY_TITLES`` keeps that a reviewed fact rather than one
-    derived from a source value.
+    The family row is created when it is absent, with a title derived mechanically from
+    this row's own ``title`` (the same trailing-year strip ``Cohort.save()`` uses for a
+    cohort's own family).  Requiring a pre-existing family made a production ingest
+    impossible: on an empty database no family exists, so every cohort was reported
+    missing and the import wrote nothing at all unless a placeholder seeder had run
+    first.
     """
 
-    identity = COHORT_FAMILY_IDENTITIES.get(slug)
+    identity = _family_and_year(slug, overrides)
     if identity is None:
         return None
     family_slug, year = identity
     family = Course.objects.filter(slug=family_slug).first()
     if family is None:
-        title = COURSE_FAMILY_TITLES.get(family_slug)
-        if title is None:
-            return None
+        title = family_title_from_edition_title(str(row["title"] or "")) or family_slug.replace(
+            "-", " "
+        ).title()
         family = Course.objects.create(slug=family_slug, title=title)
         if created_families is not None:
             created_families.append(family_slug)

@@ -15,7 +15,6 @@ from pathlib import Path
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from courses.course_family_catalog import COURSE_FAMILY_TITLES
 from courses.models import (
     Cohort,
     Course,
@@ -524,10 +523,10 @@ class CmpContentImportTests(TestCase):
         self.assertNotIn(str(missing), str(raised.exception))
 
 
-class CmpReviewedCohortAdoptionTests(CmpContentImportTests):
-    """A cohort CMP publishes and the local catalogue lacks, under a reviewed identity."""
+class CmpDerivedCohortAdoptionTests(CmpContentImportTests):
+    """A cohort CMP publishes and the local catalogue lacks, under a derived identity."""
 
-    def test_creates_a_missing_cohort_under_its_reviewed_family_and_year(self) -> None:
+    def test_creates_a_missing_cohort_under_its_derived_family_and_year(self) -> None:
         family = Course.objects.create(slug="sma-zoomcamp", title="Stock Markets Zoomcamp")
         _build_source(self.source, cohort_slugs=("sma-zoomcamp-2026",))
 
@@ -551,8 +550,8 @@ class CmpReviewedCohortAdoptionTests(CmpContentImportTests):
         self.assertEqual(Cohort.objects.filter(slug="sma-zoomcamp-2026").count(), 1)
         self.assertEqual(second.created_cohorts, ())
 
-    def test_creates_the_reviewed_family_when_it_adopts_a_cohort(self) -> None:
-        """Slug, title and year all come from the reviewed catalogue; none is derived."""
+    def test_derives_the_family_title_from_the_cmp_row_when_it_creates_the_family(self) -> None:
+        """Slug and year are parsed from the edition slug; the title comes from CMP's own row."""
 
         _build_source(self.source, cohort_slugs=("sma-zoomcamp-2026",))
 
@@ -562,30 +561,35 @@ class CmpReviewedCohortAdoptionTests(CmpContentImportTests):
         self.assertEqual(result.created_families, ("sma-zoomcamp",))
         self.assertEqual(result.created_cohorts, ("sma-zoomcamp-2026",))
         family = Course.objects.get(slug="sma-zoomcamp")
-        self.assertEqual(family.title, COURSE_FAMILY_TITLES["sma-zoomcamp"])
+        self.assertEqual(family.title, "Title sma-zoomcamp-2026")
         cohort = Cohort.objects.get(slug="sma-zoomcamp-2026")
         self.assertEqual(cohort.course_id, family.id)
         self.assertEqual(cohort.year, 2026)
 
-    def test_never_mints_a_family_the_reviewers_have_not_named(self) -> None:
-        """An unreviewed family title would be a derived value, so nothing is written."""
+    def test_reports_a_slug_that_does_not_parse_as_family_and_year(self) -> None:
+        """A slug with no trailing year is left missing rather than guessed at."""
 
-        _build_source(self.source, cohort_slugs=("unreviewed-2026",))
+        _build_source(self.source, cohort_slugs=("totally-unparseable",))
 
         result = import_cmp_course_content(self.source)
 
-        self.assertEqual(result.skipped_not_in_local_catalogue, ("unreviewed-2026",))
+        self.assertEqual(result.skipped_not_in_local_catalogue, ("totally-unparseable",))
         self.assertFalse(Course.objects.exists())
         self.assertFalse(Cohort.objects.exists())
 
-    def test_never_adopts_a_slug_the_reviewers_have_not_ruled_on(self) -> None:
-        Course.objects.create(slug="unreviewed", title="Unreviewed")
-        _build_source(self.source, cohort_slugs=("unreviewed-2026",))
+    def test_applies_the_family_slug_override_for_an_irregular_cmp_slug(self) -> None:
+        """The caller's override corrects a family CMP exports under the wrong spelling."""
 
-        result = import_cmp_course_content(self.source)
+        _build_source(self.source, cohort_slugs=("ai-dev-tools-2025",))
 
-        self.assertEqual(result.skipped_not_in_local_catalogue, ("unreviewed-2026",))
-        self.assertFalse(Cohort.objects.exists())
+        result = import_cmp_course_content(
+            self.source, family_slug_overrides={"ai-dev-tools": "ai-dev-tools-zoomcamp"}
+        )
+
+        self.assertEqual(result.created_families, ("ai-dev-tools-zoomcamp",))
+        self.assertEqual(result.created_cohorts, ("ai-dev-tools-2025",))
+        cohort = Cohort.objects.get(slug="ai-dev-tools-2025")
+        self.assertEqual(cohort.course.slug, "ai-dev-tools-zoomcamp")
 
 
 class CmpRegistrationCampaignImportTests(CmpContentImportTests):

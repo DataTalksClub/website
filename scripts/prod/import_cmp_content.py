@@ -26,11 +26,21 @@ if str(PROJECT_ROOT) not in sys.path:
 from scripts.prod.target import add_target_arguments, configure_target  # noqa: E402
 
 SYNC_MODEL = "one-time"
-# It creates a cohort, and its family, from the reviewed catalogue when CMP
+# It creates a cohort, and its family, from the edition slug itself when CMP
 # publishes one the database does not have, so it no longer needs a seeded
 # catalogue to write into. It still reconciles everything else against the rows
 # the course repositories wrote, which is why it runs last.
 BOOTSTRAPS_EMPTY_DATABASE = True
+
+# The one reviewed correction this importer needs: CMP exports the AI Dev Tools
+# editions as "ai-dev-tools-<year>", but the real course-repository family is
+# "ai-dev-tools-zoomcamp" (its course.yaml declares that slug directly, matching
+# its own repository name, same as every other course family). Every other CMP
+# edition slug's family is already exactly its own de-suffixed form and needs no
+# correction. Keyed by the mechanically-derived family, not the raw edition slug.
+FAMILY_SLUG_OVERRIDES: dict[str, str] = {
+    "ai-dev-tools": "ai-dev-tools-zoomcamp",
+}
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -57,7 +67,9 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     try:
-        result = import_cmp_course_content(args.source, cohort_slugs=args.cohort)
+        result = import_cmp_course_content(
+            args.source, cohort_slugs=args.cohort, family_slug_overrides=FAMILY_SLUG_OVERRIDES
+        )
     except CmpContentImportError as error:
         # The error carries a code, never a source value.
         print(json.dumps({"error": str(error)}, indent=2))
