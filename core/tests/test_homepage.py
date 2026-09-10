@@ -207,10 +207,10 @@ class MainHomepageRoutingTests(TestCase):
             f'href="{reverse("account_signup")}">Join the community</a>',
             html=True,
         )
-        self.assertContains(response, "From “What does that mean?” to “Let me show you.”")
-        self.assertContains(response, "I don’t know where to start")
-        self.assertContains(response, "I’m connecting the pieces")
-        self.assertContains(response, "I can talk through my project")
+        self.assertContains(response, "From following tutorials to building your own projects.")
+        self.assertContains(response, "Where do I go from here?")
+        self.assertContains(response, "I’m building, with help along the way")
+        self.assertContains(response, "I built this. What’s next?")
         self.assertContains(response, "Courses")
         self.assertContains(response, "AI Dev Tools Zoomcamp")
         self.assertContains(response, "Starts August 31")
