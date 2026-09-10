@@ -2,7 +2,13 @@
 
 ## Rule
 
-All public website content is loaded from the database.
+Public website content is loaded from the database, with the homepage exception below.
+
+The home landing page’s fixed presentation copy — including the hero, illustrated
+learner journey, benefit blurbs and closing call to action — may live directly in
+its templates. Its illustrations remain static design assets. This exception does
+not cover database-owned course, event, testimonial or other published records
+displayed on the homepage.
 
 Runtime views, templates, services, startup checks, and deployment commands must
 not load public content from:
