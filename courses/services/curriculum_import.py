@@ -22,7 +22,6 @@ from django.db import IntegrityError, transaction
 from django.db.models import F, Max
 from django.utils import timezone
 
-from courses.course_family_catalog import canonical_family_slug, family_slug_variants
 from courses.models import (
     AnswerTypes,
     Cohort,
@@ -354,11 +353,10 @@ class _CurriculumImporter:
 
     def _upsert_course(self) -> Course:
         source = self.command.source.course
-        # The repository names itself after its GitHub repository; the family row
-        # carries the published slug.  Normalizing here, rather than in the
-        # manifest, keeps the fix alive across a manifest regeneration and covers
-        # every future course whose repository name differs from its family slug.
-        family_slug = canonical_family_slug(source.slug)
+        # The course.yaml the repository publishes declares its own family slug
+        # directly (e.g. ai-dev-tools-zoomcamp keeps its repository's own name,
+        # same as every other course family) -- no normalization needed.
+        family_slug = source.slug
         source_id = source.content_id
         by_stable = Course.objects.filter(source_stable_id=self.command.source_stable_id).first()
         by_content = Course.objects.filter(source_content_id=source_id).first()
@@ -388,20 +386,6 @@ class _CurriculumImporter:
         if slug_collision:
             raise CurriculumImportError(
                 "course_slug_collision", source_path=source.source_path, pointer="/slug"
-            )
-        # One course owns exactly one family row.  Refuse loudly instead of
-        # publishing a second catalogue entry whose slug differs only by the
-        # repository's ``-zoomcamp`` suffix.
-        identity_collision = (
-            Course.objects.filter(slug__in=family_slug_variants(family_slug))
-            .exclude(pk=course.pk)
-            .exists()
-        )
-        if identity_collision:
-            raise CurriculumImportError(
-                "course_family_identity_conflict",
-                source_path=source.source_path,
-                pointer="/slug",
             )
         if (
             course.pk

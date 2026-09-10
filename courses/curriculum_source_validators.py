@@ -3,8 +3,8 @@
 Django serializes a field's validators by import path, so a migration that
 validates a column keeps importing the module the callable lives in forever.
 Keeping these callables out of the model modules -- the same reason
-``content.migration_validators`` and ``courses.migration_family_identity``
-exist -- means a later model refactor cannot break a historical migration.
+``content.migration_validators`` exists -- means a later model refactor
+cannot break a historical migration.
 """
 
 from __future__ import annotations
