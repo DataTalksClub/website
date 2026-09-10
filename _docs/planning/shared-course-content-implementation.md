@@ -344,6 +344,17 @@ The first schema migration adds these models in `courses/models/shared_curriculu
 `courses/models/__init__.py`. The migration must be additive and run against a
 production-like copy before any source move.
 
+**Source `content_id` (schema v2's canonical UUID) is never the Django primary
+key.** Every model below keeps Django's normal auto-incrementing integer `id`
+as its primary key and stores the source UUID in a separate, uniquely-indexed
+field (`source_content_id` below) used only for import-time reconciliation. A
+random UUID as a clustered/primary key fragments insert locality on every
+write; an ordinary integer PK with the UUID as a secondary unique index gets
+the same reconciliation guarantee (`get_or_create`/upsert by
+`source_content_id`) without paying that cost on every import. "Primary key"
+elsewhere in this document (e.g. "shared lesson primary keys are reused")
+always means this Django `id`, never the source `content_id`.
+
 ### Current shared graph
 
 `SharedCurriculum` is the one current graph for one `Course` (`OneToOneField`,
