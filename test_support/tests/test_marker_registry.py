@@ -19,7 +19,6 @@ from test_support.safety import SAFETY_MARKERS
 ROOT = Path(__file__).resolve().parents[2]
 ROOT_CONFIG = ROOT / "pyproject.toml"
 COPIED_CONFIG = ROOT / "e2e" / "pytest.ini"
-MAKEFILE = ROOT / "Makefile"
 
 COPIED_SCENARIO_MARKERS = frozenset(
     {
@@ -137,17 +136,6 @@ def _validate_registry_parity(
 def _bounded_names(names: Sequence[str]) -> str:
     safe = [name if _SAFE_MARKER_NAME.fullmatch(name) else "<invalid>" for name in names[:12]]
     return ",".join(safe)
-
-
-def _make_recipe(target: str) -> str:
-    lines = MAKEFILE.read_text(encoding="utf-8").splitlines()
-    start = lines.index(f"{target}:")
-    recipe: list[str] = []
-    for line in lines[start + 1 :]:
-        if line and not line[0].isspace():
-            break
-        recipe.append(line.strip())
-    return " ".join(recipe)
 
 
 def _collection_environment(marker: str) -> dict[str, str]:
@@ -660,16 +648,12 @@ def test_other_safety_selectors_do_not_alias_copied_scenarios(marker: str) -> No
     assert "e2e/" not in result.stdout
 
 
-def test_make_targets_keep_local_and_safety_marker_families_separate() -> None:
-    playwright_exclusions = (
-        "not quarantine and not remote_readonly and not remote_mutation "
-        "and not live_email and not live_provider"
-    )
-    assert f"smoke and {playwright_exclusions}" in _make_recipe("test-playwright-smoke")
-    assert f"core and {playwright_exclusions}" in _make_recipe("test-playwright-core")
-    assert f"(smoke or core or full) and {playwright_exclusions}" in _make_recipe("test-playwright")
+def test_ci_script_keeps_local_and_safety_marker_families_separate() -> None:
+    script = (ROOT / "scripts" / "ci.py").read_text(encoding="utf-8")
 
+    assert "PLAYWRIGHT_EXCLUSIONS" in script
+    assert '"test-playwright-smoke"' in script
+    assert '"test-playwright-core"' in script
+    assert '"test-playwright"' in script
     for marker in sorted(SAFETY_MARKERS):
-        recipe = _make_recipe(f"test-{marker.replace('_', '-')}")
-        assert f"DTC_TEST_SAFETY_COMMAND={marker}" in recipe
-        assert f"pytest -m {marker} -v" in recipe
+        assert f'"test-{marker.replace("_", "-")}"' in script

@@ -11,6 +11,8 @@ from ci.runner import RunnerError, command_for, run_plan
 from ci.verification import build_plan
 from tests_ci.helpers import repository_with_change, selection_for
 
+CI_SCRIPT = ("uv", "run", "--frozen", "python", "scripts/ci.py")
+
 
 @pytest.fixture(autouse=True)
 def local_synthetic_execution(monkeypatch):
@@ -47,14 +49,14 @@ def plan_for(tmp_path, changed):
 
 def test_runner_uses_only_allowlisted_argument_vectors(tmp_path) -> None:
     focused = plan_for(tmp_path, {"api/service.py": "changed\n"})
-    assert command_for(focused, "django") == ("make", "test-ci-focused")
-    assert command_for(focused, "playwright") == ("make", "test-playwright-smoke")
+    assert command_for(focused, "django") == (*CI_SCRIPT, "test-ci-focused")
+    assert command_for(focused, "playwright") == (*CI_SCRIPT, "test-playwright-smoke")
 
 
 def test_runner_uses_complete_suites_for_full_plan(tmp_path) -> None:
     full = plan_for(tmp_path, {"api/templates/api/page.html": "changed\n"})
-    assert command_for(full, "django") == ("make", "test-django-full")
-    assert command_for(full, "playwright") == ("make", "test-playwright")
+    assert command_for(full, "django") == (*CI_SCRIPT, "test-django-full")
+    assert command_for(full, "playwright") == (*CI_SCRIPT, "test-playwright")
 
 
 def test_runner_rejects_human_or_unknown_components(tmp_path) -> None:
@@ -107,10 +109,10 @@ def test_runner_records_the_selected_tester_role(monkeypatch, tmp_path) -> None:
         if command[:3] == ["git", "-C", str(tmp_path / "repository")]:
             return subprocess.CompletedProcess(command, 0, stdout=f"{plan['head']}\n")
         output = "2 passed in 0.01s\n"
-        if command[:2] in (
-            ["make", "test-playwright-smoke"],
-            ["make", "test-playwright-core"],
-            ["make", "test-playwright"],
+        if tuple(command) in (
+            (*CI_SCRIPT, "test-playwright-smoke"),
+            (*CI_SCRIPT, "test-playwright-core"),
+            (*CI_SCRIPT, "test-playwright"),
         ):
             output += (
                 "DTC_FLAKE_POLICY_V1 attempted=2 passed=2 failed=0 skipped=0 "
@@ -123,7 +125,7 @@ def test_runner_records_the_selected_tester_role(monkeypatch, tmp_path) -> None:
             self.args = tuple(command)
             self.pid = 424_242
             self.returncode = None
-            if tuple(command) == ("make", "verification-container"):
+            if tuple(command) == (*CI_SCRIPT, "verification-container"):
                 with open(
                     kwargs["env"]["VERIFY_CONTAINER_OUTPUT"], "w", encoding="utf-8"
                 ) as stream:
@@ -139,9 +141,9 @@ def test_runner_records_the_selected_tester_role(monkeypatch, tmp_path) -> None:
             elif kwargs.get("stdout") is not None:
                 output = "2 passed in 0.01s\n"
                 if self.args in {
-                    ("make", "test-playwright-smoke"),
-                    ("make", "test-playwright-core"),
-                    ("make", "test-playwright"),
+                    (*CI_SCRIPT, "test-playwright-smoke"),
+                    (*CI_SCRIPT, "test-playwright-core"),
+                    (*CI_SCRIPT, "test-playwright"),
                 }:
                     output += (
                         "DTC_FLAKE_POLICY_V1 attempted=2 passed=2 failed=0 skipped=0 "

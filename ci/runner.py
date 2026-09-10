@@ -100,7 +100,7 @@ def _terminate_process_group(
 
     Reaping the direct child does not mean the tree is gone: grandchildren die
     at different times and may still write to the shared output artifact (a
-    wrapping `make` prints its error line only after its own child dies).  The
+    wrapper command may print its error line only after its own child dies).  The
     group gets the same grace window to finish its SIGTERM teardown, is then
     killed, and is finally drained before the caller freezes the component's
     evidence digests.
