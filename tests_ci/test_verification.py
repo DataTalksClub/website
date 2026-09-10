@@ -209,10 +209,10 @@ def test_full_profile_distinguishes_push_and_scheduled_django_commands(
     }
 
     push_plan = build_plan(**common)
-    scheduled_plan = build_plan(**common, full_django_command="make test")
+    scheduled_plan = build_plan(**common, full_django_command="scripts/ci.py test")
 
-    assert push_plan["components"]["django"]["command"] == "make test-django-full"
-    assert scheduled_plan["components"]["django"]["command"] == "make test"
+    assert push_plan["components"]["django"]["command"] == "scripts/ci.py test-django-full"
+    assert scheduled_plan["components"]["django"]["command"] == "scripts/ci.py test"
 
 
 def test_cross_app_and_test_rename_or_delete_force_full(tmp_path: Path) -> None:
@@ -317,7 +317,7 @@ def test_empty_canonical_diff_uses_shared_planner_and_fails_closed_to_full(
     assert plan["profile"] == "full"
     assert plan["reason"] == "diff_empty"
     assert plan["changed_paths"] == []
-    assert plan["components"]["playwright"]["command"] == "make test-playwright"
+    assert plan["components"]["playwright"]["command"] == "scripts/ci.py test-playwright"
 
 
 def test_worktree_ci_records_keep_smoke_playwright_on_empty_committed_range(
@@ -339,7 +339,7 @@ def test_worktree_ci_records_keep_smoke_playwright_on_empty_committed_range(
     assert plan["direct_nodes"]
     assert plan["render"]["impact"] is False
     assert plan["browser_profile"] == "smoke"
-    assert plan["components"]["playwright"]["command"] == "make test-playwright-smoke"
+    assert plan["components"]["playwright"]["command"] == "scripts/ci.py test-playwright-smoke"
     assert plan["profile"] == "full"
     assert plan["reason"] == "test_infrastructure"
 

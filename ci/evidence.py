@@ -49,18 +49,28 @@ VALIDITY_SECONDS = {
     "volatile": 24 * 60 * 60,
 }
 ALLOWED_COMPONENT_COMMANDS = {
-    "container": frozenset({"make verification-container", "exact release image verification"}),
-    # `make test` remains the explicit local/scheduled aggregate; push full
-    # profile CI records the Django target separately.
-    "django": frozenset({"make test", "make test-django-full", "make test-ci-focused"}),
-    "evidence_validation": frozenset({"make test-ci"}),
+    "container": frozenset(
+        {"scripts/ci.py verification-container", "exact release image verification"}
+    ),
+    "django": frozenset(
+        {
+            "scripts/ci.py test",
+            "scripts/ci.py test-django-full",
+            "scripts/ci.py test-ci-focused",
+        }
+    ),
+    "evidence_validation": frozenset({"scripts/ci.py test-ci"}),
     "playwright": frozenset(
-        {"make test-playwright-smoke", "make test-playwright-core", "make test-playwright"}
+        {
+            "scripts/ci.py test-playwright-smoke",
+            "scripts/ci.py test-playwright-core",
+            "scripts/ci.py test-playwright",
+        }
     ),
     "quality": frozenset({"quality-contract-v3"}),
     "screenshots": frozenset({"independent tester desktop/mobile capture and inspection"}),
     "selector": frozenset(
-        {"make verification-plan", "ci.classifier select and ci.verification plan"}
+        {"scripts/ci.py verification-plan", "ci.classifier select and ci.verification plan"}
     ),
 }
 TEST_OUTPUT_COMPONENTS = frozenset({"django", "evidence_validation", "playwright", "quality"})
@@ -414,7 +424,14 @@ def input_group(path: str) -> str:
         return "tests"
     if set(parts) & {"fixtures", "golden", "snapshots"}:
         return "fixtures"
-    root_tools = {".python-version", "Dockerfile", "Makefile", "pyproject.toml", "uv.lock"}
+    root_tools = {
+        ".python-version",
+        "Dockerfile",
+        "Makefile",
+        "scripts/ci.py",
+        "pyproject.toml",
+        "uv.lock",
+    }
     if path in root_tools or path.startswith(".github/workflows/"):
         return "tools"
     if path.startswith("ci/") or "settings" in parts or name.endswith((".toml", ".yaml", ".yml")):

@@ -440,10 +440,10 @@ def test_content_update_action_delegates_common_work_to_the_script() -> None:
     assert "cat " not in runs
 
 
-def test_make_target_runs_all_four_families_or_one_explicit_family() -> None:
-    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+def test_ci_script_runs_all_four_families_or_one_explicit_family() -> None:
+    script = (ROOT / "scripts" / "ci.py").read_text(encoding="utf-8")
 
-    assert "content-update-check" in makefile
-    assert "CONTENT_UPDATE_FAMILY ?= all" in makefile
-    assert 'families="courses podwiki faq docs"' in makefile
-    assert '--family "$$family"' in makefile
+    assert "content-update-check" in script
+    assert 'os.environ.get("CONTENT_UPDATE_FAMILY", "all")' in script
+    assert '"courses podwiki faq docs"' in script
+    assert '"--family"' in script

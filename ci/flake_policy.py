@@ -8,7 +8,7 @@ from typing import Any
 
 FLAKE_POLICY_SCHEMA_VERSION = 1
 FLAKE_POLICY_LINE = "DTC_FLAKE_POLICY_V1"
-FLAKE_POLICY_COMMAND = "make test-playwright-quarantined"
+FLAKE_POLICY_COMMAND = "scripts/ci.py test-playwright-quarantined"
 FLAKE_POLICY_COUNT_FIELDS = (
     "attempted",
     "passed",

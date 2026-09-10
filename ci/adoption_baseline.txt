@@ -2,13 +2,13 @@
 # These files under the ruff-excluded app trees are historical adopted
 # source: they are NOT linted/typechecked unless separately listed in
 # Make's ADOPTION_INTEGRATION_PYTHON / PRODUCTION_IMPORT_PYTHON.  A NEW
-# file must never be added here -- add it to a Makefile list instead
+# file must never be added here -- add it to scripts/ci.py instead
 # (ci/tests/test_adoption_gate_coverage.py enforces both directions).
 # Reviewed adoption baseline at the BE-16 decision (git 39844ab8).
 # These files under the ruff-excluded app trees are historical adopted
 # source: they are NOT linted/typechecked unless separately listed in
 # Make's ADOPTION_INTEGRATION_PYTHON / PRODUCTION_IMPORT_PYTHON.  A NEW
-# file must never be added here -- add it to a Makefile list instead
+# file must never be added here -- add it to scripts/ci.py instead
 # (ci/tests/test_adoption_gate_coverage.py enforces both directions).
 accounts/__init__.py
 accounts/admin.py

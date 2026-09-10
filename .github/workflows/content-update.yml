@@ -7,7 +7,7 @@ on:
     paths:
       - .github/actions/content-update/action.yml
       - .github/workflows/content-update.yml
-      - Makefile
+      - scripts/ci.py
       - ci/content_update.py
       - ci/tests/test_content_update.py
       - content/**
@@ -32,7 +32,7 @@ on:
     paths:
       - .github/actions/content-update/action.yml
       - .github/workflows/content-update.yml
-      - Makefile
+      - scripts/ci.py
       - ci/content_update.py
       - ci/tests/test_content_update.py
       - content/**

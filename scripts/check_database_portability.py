@@ -39,7 +39,7 @@ AUTHORITATIVE_SPECIFICATIONS = (
 COMPATIBILITY_SPECIFICATIONS: tuple[str, ...] = ()
 EXPECTED_SPECIFICATIONS = AUTHORITATIVE_SPECIFICATIONS + COMPATIBILITY_SPECIFICATIONS
 ORDINARY_JOBS = ("quality", "django", "playwright", "container")
-FULL_DJANGO_COMMANDS = ("make test", "make test-django-full")
+FULL_DJANGO_COMMANDS = ("scripts/ci.py test", "scripts/ci.py test-django-full")
 APPLICATION_ROOTS = (
     "accounts",
     "api",
@@ -1259,16 +1259,24 @@ def check_workflow() -> list[str]:
         if isinstance(step, dict)
         for line in str(step.get("run", "")).splitlines()
     ]
-    required_full_commands = ("make test-factories", "make test-migrations")
+    required_full_commands = ("scripts/ci.py test-factories", "scripts/ci.py test-migrations")
     full_django_indices = tuple(
-        index for index, command in enumerate(command_lines) if command in FULL_DJANGO_COMMANDS
+        index
+        for index, command in enumerate(command_lines)
+        if any(command.endswith(target) for target in FULL_DJANGO_COMMANDS)
     )
     try:
         if len(full_django_indices) != 1:
             raise ValueError
-        full_indices = tuple(command_lines.index(command) for command in required_full_commands) + (
-            full_django_indices[0],
+        required_indices = tuple(
+            index
+            for target in required_full_commands
+            for index, command in enumerate(command_lines)
+            if command.endswith(target)
         )
+        if len(required_indices) != len(required_full_commands):
+            raise ValueError
+        full_indices = required_indices + (full_django_indices[0],)
     except (IndexError, ValueError):
         errors.append("ordinary Django CI does not run the owned full SQLite harness")
     else:

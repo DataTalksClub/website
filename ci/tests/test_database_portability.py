@@ -27,7 +27,9 @@ def test_ordinary_ci_guard_accepts_legacy_and_ci_full_django_commands(
 ) -> None:
     workflow = portability.WORKFLOW.read_text(encoding="utf-8")
     workflow_path = tmp_path / "ci.yml"
-    workflow_path.write_text(workflow.replace("make test-django-full", command), encoding="utf-8")
+    workflow_path.write_text(
+        workflow.replace("scripts/ci.py test-django-full", command), encoding="utf-8"
+    )
     monkeypatch.setattr(portability, "WORKFLOW", workflow_path)
 
     assert portability.check_workflow() == []

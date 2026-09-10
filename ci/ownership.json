@@ -1,33 +1,33 @@
 {
   "components": {
     "container": {
-      "command": "make verification-container",
+      "command": "scripts/ci.py verification-container",
       "environment_dimensions": ["architecture", "django", "operating_system", "python", "runner_image", "uv"],
-      "relevant_patterns": ["Dockerfile", "Makefile", "deploy/**", "website/**", "scripts/verify_static_manifest.py", "pyproject.toml", "uv.lock", ".python-version"],
+      "relevant_patterns": ["Dockerfile", "Makefile", "scripts/ci.py", "deploy/**", "website/**", "scripts/verify_static_manifest.py", "pyproject.toml", "uv.lock", ".python-version"],
       "validity_class": "volatile"
     },
     "django": {
-      "command": "make test-django-full",
+      "command": "scripts/ci.py test-django-full",
       "environment_dimensions": ["allowlisted_config", "architecture", "database", "django", "operating_system", "python", "runner_image", "uv"],
-      "relevant_patterns": ["accounts/**", "api/**", "cadmin/**", "content/**", "content_sync/**", "core/**", "course_management/**", "course_platform_templates/**", "courses/**", "data/**", "email_app/**", "events/**", "management_api/**", "management_auth/**", "review_import/**", "studio/**", "studio_courses/**", "website/**", "templates/**", "ci/**", "tests_ci/**", ".github/workflows/**", "**/fixtures/**", "pyproject.toml", "uv.lock", "manage.py", "Makefile"],
+      "relevant_patterns": ["accounts/**", "api/**", "cadmin/**", "content/**", "content_sync/**", "core/**", "course_management/**", "course_platform_templates/**", "courses/**", "data/**", "email_app/**", "events/**", "management_api/**", "management_auth/**", "review_import/**", "studio/**", "studio_courses/**", "website/**", "templates/**", "ci/**", "tests_ci/**", ".github/workflows/**", "**/fixtures/**", "pyproject.toml", "uv.lock", "manage.py", "Makefile", "scripts/ci.py"],
       "validity_class": "standard"
     },
     "evidence_validation": {
-      "command": "make test-ci",
+      "command": "scripts/ci.py test-ci",
       "environment_dimensions": ["architecture", "django", "operating_system", "python", "runner_image", "uv"],
-      "relevant_patterns": ["ci/**", "tests_ci/**", ".github/workflows/**", "Makefile"],
+      "relevant_patterns": ["ci/**", "tests_ci/**", ".github/workflows/**", "Makefile", "scripts/ci.py"],
       "validity_class": "standard"
     },
     "playwright": {
-      "command": "make test-playwright",
+      "command": "scripts/ci.py test-playwright",
       "environment_dimensions": ["allowlisted_config", "architecture", "browser", "django", "operating_system", "playwright", "python", "runner_image", "uv"],
       "relevant_patterns": ["playwright_tests/**", "**/templates/**", "**/static/**", "**/views.py", "**/urls.py", "**/context_processors.py", "**/serializers.py", "**/fixtures/**", "pyproject.toml", "uv.lock"],
       "validity_class": "volatile"
     },
     "quality": {
-      "command": "quality-contract-v2",
+      "command": "quality-contract-v3",
       "environment_dimensions": ["architecture", "django", "operating_system", "python", "runner_image", "uv"],
-      "relevant_patterns": ["**/*.py", "ci/**", "tests_ci/**", ".github/workflows/**", "Makefile", "pyproject.toml", "uv.lock", ".python-version", "manage.py"],
+      "relevant_patterns": ["**/*.py", "ci/**", "tests_ci/**", ".github/workflows/**", "Makefile", "scripts/ci.py", "pyproject.toml", "uv.lock", ".python-version", "manage.py"],
       "validity_class": "standard"
     },
     "screenshots": {
@@ -37,9 +37,9 @@
       "validity_class": "visual"
     },
     "selector": {
-      "command": "make verification-plan",
+      "command": "scripts/ci.py verification-plan",
       "environment_dimensions": ["architecture", "django", "operating_system", "python", "runner_image", "uv"],
-      "relevant_patterns": ["ci/**", "tests_ci/**", ".github/workflows/**", "Makefile"],
+      "relevant_patterns": ["ci/**", "tests_ci/**", ".github/workflows/**", "Makefile", "scripts/ci.py"],
       "validity_class": "standard"
     }
   },

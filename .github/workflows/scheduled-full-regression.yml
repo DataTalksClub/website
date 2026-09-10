@@ -65,7 +65,7 @@ jobs:
           uv run --frozen python -m ci.verification plan \
             --repository . --base "$GITHUB_SHA" --head "$GITHUB_SHA" \
             --selection .tmp/scheduled/ci-selection.json --consumer ci \
-            --full-django-command "make test" \
+            --full-django-command "scripts/ci.py test" \
             --output .tmp/scheduled/verification-plan.json \
             --summary "$GITHUB_STEP_SUMMARY"
           uv run --frozen python -m ci.history \
@@ -182,7 +182,7 @@ jobs:
           enable-cache: true
       - run: uv sync --locked
       - run: uv lock --check
-      - run: make test-factories
+      - run: uv run --frozen python scripts/ci.py test-factories
 
   migrations:
     if: needs.selector.outputs.decision == 'run_full'
@@ -201,7 +201,7 @@ jobs:
           enable-cache: true
       - run: uv sync --locked
       - run: uv lock --check
-      - run: make test-migrations
+      - run: uv run --frozen python scripts/ci.py test-migrations
 
   django:
     if: needs.selector.outputs.decision == 'run_full'
@@ -231,7 +231,7 @@ jobs:
           set -euo pipefail
           mkdir -p .tmp/evidence
           exec > >(tee .tmp/evidence/django-output.log) 2>&1
-          make test
+          uv run --frozen python scripts/ci.py test
       - name: Record shared Django envelope
         if: always()
         env:
@@ -245,7 +245,7 @@ jobs:
             --output .tmp/evidence/django-environment.json
           uv run --frozen python -m ci.verification record \
             --plan .tmp/input/verification-plan.json --component django \
-            --result "$JOB_STATUS" --command "make test" \
+            --result "$JOB_STATUS" --command "scripts/ci.py test" \
             --origin-kind github_actions --repository-id "$GITHUB_REPOSITORY" \
             --workflow .github/workflows/scheduled-full-regression.yml --ref "$GITHUB_REF" \
             --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
@@ -298,7 +298,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .tmp/evidence
-          make test-playwright 2>&1 | tee .tmp/evidence/playwright-output.log
+          uv run --frozen python scripts/ci.py test-playwright 2>&1 | tee .tmp/evidence/playwright-output.log
       - name: Record shared Playwright envelope
         if: always()
         env:
@@ -312,7 +312,7 @@ jobs:
             --output .tmp/evidence/playwright-environment.json
           uv run --frozen python -m ci.verification record \
             --plan .tmp/input/verification-plan.json --component playwright \
-            --result "$JOB_STATUS" --command "make test-playwright" \
+            --result "$JOB_STATUS" --command "scripts/ci.py test-playwright" \
             --origin-kind github_actions --repository-id "$GITHUB_REPOSITORY" \
             --workflow .github/workflows/scheduled-full-regression.yml --ref "$GITHUB_REF" \
             --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
@@ -359,7 +359,7 @@ jobs:
         run: |
           set +e
           mkdir -p .tmp/evidence
-          make test-playwright-quarantined 2>&1 | tee .tmp/evidence/playwright-quarantine-output.log
+          uv run --frozen python scripts/ci.py test-playwright-quarantined 2>&1 | tee .tmp/evidence/playwright-quarantine-output.log
           status=${PIPESTATUS[0]}
           printf '%s\n' "${status}" > .tmp/evidence/playwright-quarantine-exit-code
           exit "${status}"
@@ -543,7 +543,7 @@ jobs:
             --output .tmp/evidence/container-environment.json
           uv run --frozen python -m ci.verification record \
             --plan .tmp/input/verification-plan.json --component container \
-            --result "$JOB_STATUS" --command "make verification-container" \
+            --result "$JOB_STATUS" --command "scripts/ci.py verification-container" \
             --origin-kind github_actions --repository-id "$GITHUB_REPOSITORY" \
             --workflow .github/workflows/scheduled-full-regression.yml --ref "$GITHUB_REF" \
             --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \

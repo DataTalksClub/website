@@ -185,9 +185,9 @@ def command_for(plan: Mapping[str, Any], component: str) -> tuple[str, ...]:
     if component not in AUTOMATED_COMPONENTS:
         raise RunnerError("component is not an automated verification component")
     if component == "selector":
-        return ("make", "verification-plan")
+        return ("uv", "run", "--frozen", "python", "scripts/ci.py", "verification-plan")
     if component == "evidence_validation":
-        return ("make", "test-ci")
+        return ("uv", "run", "--frozen", "python", "scripts/ci.py", "test-ci")
     if component == "quality":
         return (
             "uv",
@@ -201,19 +201,19 @@ def command_for(plan: Mapping[str, Any], component: str) -> tuple[str, ...]:
         )
     if component == "django":
         if plan["profile"] == "full":
-            return ("make", "test-django-full")
+            return ("uv", "run", "--frozen", "python", "scripts/ci.py", "test-django-full")
         if not plan["test_labels"]:
             raise RunnerError("focused Django verification requires selected test labels")
-        return ("make", "test-ci-focused")
+        return ("uv", "run", "--frozen", "python", "scripts/ci.py", "test-ci-focused")
     if component == "playwright":
         target = {
             "smoke": "test-playwright-smoke",
             "core": "test-playwright-core",
             "full": "test-playwright",
         }[plan["browser_profile"]]
-        return ("make", target)
+        return ("uv", "run", "--frozen", "python", "scripts/ci.py", target)
     if component == "container":
-        return ("make", "verification-container")
+        return ("uv", "run", "--frozen", "python", "scripts/ci.py", "verification-container")
     raise RunnerError("component has no allowlisted local command")
 
 

@@ -530,7 +530,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .tmp/components-quality
-          make test-ci 2>&1 | tee .tmp/components-quality/evidence-validation-output.log
+          uv run --frozen python scripts/ci.py test-ci 2>&1 | tee .tmp/components-quality/evidence-validation-output.log
       - name: Record quality-job evidence with its actual environment
         if: always() && needs.classification.result == 'success'
         working-directory: .tmp/ci-controller
@@ -696,12 +696,12 @@ jobs:
           exec > >(tee ../ci-controller/.tmp/components-django/django-output.log) 2>&1
           case "$SELECTED_PROFILE" in
             focused)
-              make test-ci-focused
+              uv run --frozen python scripts/ci.py test-ci-focused
               ;;
             full)
-              make test-factories
-              make test-migrations
-              make test-django-full
+              uv run --frozen python scripts/ci.py test-factories
+              uv run --frozen python scripts/ci.py test-migrations
+              uv run --frozen python scripts/ci.py test-django-full
               ;;
             *)
               echo "Classifier emitted an unsupported profile" >&2
@@ -796,11 +796,11 @@ jobs:
           set -euo pipefail
           mkdir -p ../ci-controller/.tmp/components-playwright
           case "$BROWSER_PROFILE" in
-            full) make test-playwright 2>&1 | \
+            full) uv run --frozen python scripts/ci.py test-playwright 2>&1 | \
               tee ../ci-controller/.tmp/components-playwright/playwright-output.log ;;
-            core) make test-playwright-core 2>&1 | \
+            core) uv run --frozen python scripts/ci.py test-playwright-core 2>&1 | \
               tee ../ci-controller/.tmp/components-playwright/playwright-output.log ;;
-            smoke) make test-playwright-smoke 2>&1 | \
+            smoke) uv run --frozen python scripts/ci.py test-playwright-smoke 2>&1 | \
               tee ../ci-controller/.tmp/components-playwright/playwright-output.log ;;
             *) echo "Unsupported browser profile: $BROWSER_PROFILE" >&2; exit 2 ;;
           esac

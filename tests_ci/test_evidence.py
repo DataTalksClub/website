@@ -89,9 +89,13 @@ def test_full_django_evidence_uses_the_compatibility_free_ci_command(
 ) -> None:
     _repository, plan = plan_for_render_change(tmp_path)
 
-    assert plan["components"]["django"]["command"] == "make test-django-full"
+    assert plan["components"]["django"]["command"] == "scripts/ci.py test-django-full"
     assert ALLOWED_COMPONENT_COMMANDS["django"] == frozenset(
-        {"make test", "make test-django-full", "make test-ci-focused"}
+        {
+            "scripts/ci.py test",
+            "scripts/ci.py test-django-full",
+            "scripts/ci.py test-ci-focused",
+        }
     )
 
     with pytest.raises(EvidenceError, match="evidence command does not match"):
@@ -100,7 +104,7 @@ def test_full_django_evidence_uses_the_compatibility_free_ci_command(
             component="django",
             result="success",
             origin=local_origin(),
-            command="make test",
+            command="scripts/ci.py test",
             execution_environment=plan["components"]["django"]["environment"],
             completed_at=datetime(2026, 8, 9, 12, tzinfo=UTC),
         )
@@ -583,7 +587,7 @@ def test_success_envelope_is_digest_bound_and_strictly_validated(tmp_path: Path)
         component="container",
         result="success",
         origin=local_origin(),
-        command="make verification-container",
+        command="scripts/ci.py verification-container",
         execution_environment=plan["components"]["container"]["environment"],
         artifacts=records,
         machine_output=output,
@@ -734,7 +738,7 @@ def test_reuse_requires_success_trust_freshness_artifact_and_no_later_failure(
         component="container",
         result="success",
         origin=local_origin(),
-        command="make verification-container",
+        command="scripts/ci.py verification-container",
         execution_environment=plan["components"]["container"]["environment"],
         artifacts=records,
         machine_output=output,
@@ -815,7 +819,7 @@ def test_latest_non_success_never_falls_back_to_older_pass(
         component="playwright",
         result="success",
         origin=local_origin(),
-        command="make test-playwright-smoke",
+        command="scripts/ci.py test-playwright-smoke",
         execution_environment=plan["components"]["playwright"]["environment"],
         artifacts=records,
         machine_output=success_output,
@@ -829,7 +833,7 @@ def test_latest_non_success_never_falls_back_to_older_pass(
         component="playwright",
         result=latest_result,
         origin=local_origin(),
-        command="make test-playwright-smoke",
+        command="scripts/ci.py test-playwright-smoke",
         execution_environment=plan["components"]["playwright"]["environment"],
         artifacts=records,
         machine_output=failure_output,
@@ -869,7 +873,7 @@ def test_later_failed_actions_run_invalidates_older_success(tmp_path: Path) -> N
         component="container",
         result="success",
         origin=origin,
-        command="make verification-container",
+        command="scripts/ci.py verification-container",
         execution_environment=plan["components"]["container"]["environment"],
         artifacts=records,
         machine_output=output,

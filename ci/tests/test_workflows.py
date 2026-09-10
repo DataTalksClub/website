@@ -127,7 +127,7 @@ def test_selected_django_always_uses_fresh_sqlite_and_validated_closed_runner() 
     assert "--current-directory ../release-source/.tmp/ci-selection/current-payload" in script
     assert "--fallback-directory ../release-source/.tmp/ci-selection/attempt-1-payload" in script
     assert '--expected-selection-sha256 "$SELECTION_SHA256"' in script
-    assert "make test-ci-focused" in script
+    assert "scripts/ci.py test-ci-focused" in script
     selected_step = next(
         step
         for step in django["steps"]
@@ -136,11 +136,11 @@ def test_selected_django_always_uses_fresh_sqlite_and_validated_closed_runner() 
     assert (
         selected_step["env"]["CI_SELECTION_PATH"] == ".tmp/ci-selection/resolved/ci-selection.json"
     )
-    assert "make test-factories" in script
-    assert "make test-migrations" in script
+    assert "scripts/ci.py test-factories" in script
+    assert "scripts/ci.py test-migrations" in script
     full_commands = logical_shell_commands({"steps": [selected_step]})
-    assert "make test-django-full" in full_commands
-    assert "make test" not in full_commands
+    assert "uv run --frozen python scripts/ci.py test-django-full" in full_commands
+    assert "scripts/ci.py test" not in full_commands
     assert "postgres" not in script.lower()
     validation = next(
         step
@@ -221,9 +221,9 @@ def test_aggregate_gate_is_the_release_dependency() -> None:
     playwright = jobs["playwright"]
     assert set(playwright["needs"]) == {"resolve-release", "classification"}
     assert playwright["timeout-minutes"] == "60"
-    assert "make test-playwright-smoke" in runs(playwright)
-    assert "make test-playwright-core" in runs(playwright)
-    assert "make test-playwright" in runs(playwright)
+    assert "scripts/ci.py test-playwright-smoke" in runs(playwright)
+    assert "scripts/ci.py test-playwright-core" in runs(playwright)
+    assert "scripts/ci.py test-playwright" in runs(playwright)
     assert "playwright_mode == 'rerun'" in str(playwright)
     quality = jobs["quality"]
     assert quality["permissions"]["actions"] == "write"
@@ -321,7 +321,7 @@ def test_normal_workflow_uses_versioned_plan_and_trusted_evidence_artifact() -> 
     assert "--component selector" in classifier_script
     assert "ci.verification environment" in classifier_script
     assert "quality evidence_validation" in runs(jobs["quality"])
-    assert "quality-contract-v2" in (ROOT / "ci" / "ownership.json").read_text(encoding="utf-8")
+    assert "quality-contract-v3" in (ROOT / "ci" / "ownership.json").read_text(encoding="utf-8")
     workflow_text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     assert workflow_text.count("ci.verification record") == workflow_text.count("--machine-output")
     assert workflow_text.count("ci.verification record") == workflow_text.count(
@@ -546,8 +546,8 @@ def test_scheduled_playwright_executes_and_records_the_planner_full_command() ->
     planner_command = json.loads((ROOT / "ci" / "ownership.json").read_text(encoding="utf-8"))[
         "components"
     ]["playwright"]["command"]
-    assert planner_command == "make test-playwright"
-    command_pattern = re.compile(r"\bmake test-playwright(?:-(?:smoke|core))?\b")
+    assert planner_command == "scripts/ci.py test-playwright"
+    command_pattern = re.compile(r"\bscripts/ci\.py test-playwright(?:-(?:smoke|core))?\b")
 
     execution = next(
         step
@@ -572,7 +572,7 @@ def test_scheduled_quarantine_monitor_is_bounded_visible_and_non_blocking() -> N
     assert quarantine["continue-on-error"] == "true"
     assert quarantine["timeout-minutes"] == "45"
     script = runs(quarantine)
-    assert "make test-playwright-quarantined" in script
+    assert "scripts/ci.py test-playwright-quarantined" in script
     assert "ci.flake_policy report" in script
     assert "playwright-quarantine-report.json" in script
     assert "playwright-quarantine-${{ github.run_id }}-attempt-${{ github.run_attempt }}" in str(
@@ -597,19 +597,19 @@ def test_scheduled_full_marker_and_gate_cover_every_component_or_exact_skip() ->
     assert jobs["scheduled-gate"]["if"] == "always()"
     assert "ci.gate scheduled" in runs(jobs["scheduled-gate"])
     assert "DTC_SQLITE_PATH" not in jobs["django"]["env"]
-    assert "make test-factories" in runs(jobs["factories"])
-    assert "make test-migrations" in runs(jobs["migrations"])
+    assert "scripts/ci.py test-factories" in runs(jobs["factories"])
+    assert "scripts/ci.py test-migrations" in runs(jobs["migrations"])
     django_step = next(
         step
         for step in jobs["django"]["steps"]
         if step.get("name") == "Run and retain the complete Django output"
     )
     django_commands = logical_shell_commands({"steps": [django_step]})
-    assert "make test" in django_commands
-    assert "make test-django-full" not in django_commands
-    assert '--command "make test"' in runs(jobs["django"])
-    assert '--full-django-command "make test"' in runs(jobs["selector"])
-    assert "make test-playwright" in runs(jobs["playwright"])
+    assert "uv run --frozen python scripts/ci.py test" in django_commands
+    assert "scripts/ci.py test-django-full" not in django_commands
+    assert '--command "scripts/ci.py test"' in runs(jobs["django"])
+    assert '--full-django-command "scripts/ci.py test"' in runs(jobs["selector"])
+    assert "scripts/ci.py test-playwright" in runs(jobs["playwright"])
     assert "ci.quality_contract" in runs(jobs["quality"])
     assert "make verification-quality" not in runs(jobs["quality"])
     container = runs(jobs["container"])
