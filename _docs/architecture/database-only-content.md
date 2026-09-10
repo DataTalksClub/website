@@ -176,7 +176,7 @@ production, so running the ingest does not retire it.
    blocker and it is not an ingest question: deleting the tree without replacing
    this deletes the test corpus.
 2. **`ci/content_update.py`** shape-checks the staging artifacts per family and
-   is what `make content-update-check` and `.github/workflows/content-update.yml`
+   is what `uv run --frozen python scripts/ci.py content-update-check` and `.github/workflows/content-update.yml`
    run. Retire the contract or point it at the database.
 3. **`content_sync/dtc_content/parity.py`** compares an adapter bundle against
    the checked tree at one frozen commit, with its digests pinned in

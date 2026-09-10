@@ -63,9 +63,10 @@ short opaque snapshot identifier that contains no person, account, or secret inf
 First run the no-publish validation:
 
 ```bash
-make review-data-dry-run \
-    SOURCE_DB=/protected/path/to/converted-snapshot.sqlite3 \
-    SNAPSHOT_ID=cmp-2026-08-08
+uv run python scripts/build_local_review_db.py build \
+    --source-db /protected/path/to/converted-snapshot.sqlite3 \
+    --snapshot-id cmp-2026-08-08 \
+    --dry-run
 ```
 
 Dry run opens the source read-only, validates a private trial database, prints only safe aggregate
@@ -75,9 +76,9 @@ unchanged.
 Apply the same named snapshot:
 
 ```bash
-make review-data \
-    SOURCE_DB=/protected/path/to/converted-snapshot.sqlite3 \
-    SNAPSHOT_ID=cmp-2026-08-08
+uv run python scripts/build_local_review_db.py build \
+    --source-db /protected/path/to/converted-snapshot.sqlite3 \
+    --snapshot-id cmp-2026-08-08
 ```
 
 By default, apply creates or updates exactly one wholly synthetic local administrator:
@@ -175,7 +176,10 @@ contact sync, immediate outbox dispatch, provider configuration, and the job sch
 disabled regardless of shell or `.env` values:
 
 ```bash
-make run-review-data
+DTC_ENVIRONMENT=local \
+DTC_SQLITE_PATH=.tmp/review-data/review.sqlite3 \
+DJANGO_SETTINGS_MODULE=website.settings.local_review \
+uv run python manage.py runserver 0.0.0.0:8000
 ```
 
 Open `http://localhost:8000/courses/`. Sign in only with the synthetic administrator when a staff
@@ -194,13 +198,15 @@ invocation fails closed with `concurrent-operation`; retry it after the active c
 Remove one exact derived snapshot and report:
 
 ```bash
-make review-data-cleanup SNAPSHOT_ID=cmp-2026-08-08
+uv run python scripts/build_local_review_db.py cleanup \
+    --snapshot-id cmp-2026-08-08
 ```
 
 Removing the active local review database requires a separate explicit flag:
 
 ```bash
-make review-data-cleanup SNAPSHOT_ID=cmp-2026-08-08 INCLUDE_TARGET=true
+uv run python scripts/build_local_review_db.py cleanup \
+    --snapshot-id cmp-2026-08-08 --include-target
 ```
 
 Cleanup accepts no glob, traversal, broad directory, home directory, repository root, or source

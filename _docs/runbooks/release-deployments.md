@@ -128,8 +128,8 @@ content is database-owned: editorial, FAQ/docs, course and event registrations
 move through their own runbooks against a reviewed deployment target, never
 through the release pipeline. What a deploy requires is already in the image
 or the migration task — there is no deploy-time data handshake. The local
-equivalents (`make production-prep-*`, `scripts/prepare_local_data.py`,
-`scripts/verify_local_dataset.py`) rebuild and verify a dataset; they are not
+equivalents (`uv run --frozen python scripts/production_data.py`,
+`scripts/prepare_local_data.py`, `scripts/verify_local_dataset.py`) rebuild and verify a dataset; they are not
 part of a deployment.
 
 ## Failure recovery
@@ -160,7 +160,7 @@ Every supported entry point, its owner and the tests that pin it:
 | `deploy/update_task_definition_image.py` | promotion gate (REL-08) | `core/tests/test_cmp_style_deployment.py::TaskDefinitionImageUpdateTests` |
 | `core/management/commands/prepare_deployment.py` | migration task command | `tests_ci/test_management_commands.py` |
 | `scripts/prepare_local_data.py`, `scripts/verify_local_dataset.py` | local dataset build/verify (not a deployment step) | `scripts/tests/` |
-| `make production-prep-dataset` / `production-prep-bootstrap` | local dataset rebuild via the removal gate | `scripts/tests/test_rebuild_gate.py` |
+| `scripts/production_data.py dataset` / `bootstrap` | local dataset rebuild via the removal gate | `scripts/tests/test_rebuild_gate.py` |
 
 The workflows and the controller run release tooling through the locked
 environment (`astral-sh/setup-uv` + `uv sync --locked` + `uv run --frozen`,

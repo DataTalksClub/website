@@ -654,7 +654,7 @@ class WorkingCopyIndependenceTests(TestCase):
 
 
 class CheckoutPlanTests(TestCase):
-    """What `make content-checkout` consumes, and it writes nothing."""
+    """What `scripts/content.py checkout` consumes, and it writes nothing."""
 
     def test_the_plan_names_the_registered_source_and_exits_zero(self) -> None:
         register_source()

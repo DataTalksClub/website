@@ -264,20 +264,21 @@ profile PII, or Slack secret.
 
 ## CI stages
 
-Recommended Make targets:
+Recommended entry points:
 
-- `make setup`: `uv sync --locked` plus safe local bootstrap;
-- `make lint`: Ruff/format/static checks;
-- `make typecheck`;
-- `make test-core`: fast critical domain/permission/content contract subset;
-- `make test`: full Django suite against isolated SQLite in ordinary CI;
-- `make test-browser`: tagged local Playwright suite;
-- `make check-openapi`: generate and fail on schema drift/undocumented routes;
-- `make check-management-parity`;
+- `uv sync --locked` and `uv run playwright install chromium`: local tool setup;
+- `make migrate` and `make data`: local database and seed-data setup;
+- `uv run --frozen python scripts/ci.py lint`: Ruff checks;
+- `uv run --frozen python scripts/ci.py typecheck`;
+- `uv run --frozen python scripts/ci.py test-core`: fast critical domain/permission/content contract subset;
+- `uv run --frozen python scripts/ci.py test`: full Django suite against isolated SQLite in ordinary CI;
+- `uv run --frozen python scripts/ci.py test-browser`: tagged local Playwright suite;
+- `uv run --frozen python scripts/ci.py check-openapi`: generate and fail on schema drift/undocumented routes;
+- `uv run --frozen python scripts/ci.py check-management-parity`;
 - generated route-cache registry/policy parity, poisoning/WAF fixtures, and redacted cost-model
   checks introduced with the owning implementation issue;
-- `make test-migrations`;
-- `make test-all`.
+- `uv run --frozen python scripts/ci.py test-migrations`;
+- `uv run --frozen python scripts/ci.py test-all`.
 
 CI runs independent jobs where safe, publishes actionable artifacts, and blocks deployment on any
 release-critical failure. Accepted [change-selective CI](../ci/change-selective-ci.md) from issue 104

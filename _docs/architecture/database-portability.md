@@ -15,7 +15,7 @@ only by exact-image migration, database-aware readiness, and deployed smoke.
 - `website.settings.development` and `website.settings.production` require a valid PostgreSQL
   `DATABASE_URL` and never fall back to SQLite.
 
-`make database-portability-check` prevents PostgreSQL services or configuration from returning to
+`uv run --frozen python scripts/ci.py database-portability-check` prevents PostgreSQL services or configuration from returning to
 ordinary quality, Django, Playwright, or container CI jobs. It also rejects vendor branches,
 backend-feature skips, PostgreSQL-only test modules, raw migration SQL, triggers, advisory locks,
 and row-lock calls in maintained Django code. The same gate scans the authoritative specifications

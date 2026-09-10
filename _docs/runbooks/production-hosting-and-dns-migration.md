@@ -104,7 +104,7 @@ policy-scan sequencing, `modules/relay-host`, bastion retirement, design-doc hom
 - 0.6 **[P]** Record the live SES **sending quota and maximum send rate** (= E.1); production
   access already exists — this step establishes the two numbers a 130,000-recipient campaign
   has to clear
-- 0.7 Re-verify compatibility artifacts (`make compatibility-artifacts-check`)
+- 0.7 Re-verify the pinned route-contract artifacts described in `_docs/compatibility/README.md`
 
 **Phase 1 — DNS hosting moves to Route 53 (MAIN)** — details §6
 
@@ -684,15 +684,11 @@ If both clear the volume, nothing further is needed. If either does not, a quota
 AWS support request with multi-day external lead time and should be raised immediately — which is
 why the step still sits ahead of everything that does not depend on it.
 
-**0.7 [website] Re-verify the compatibility artifacts are intact** (they gate Phases 2 and 8):
-
-```console
-make compatibility-artifacts-check
-make compatibility-source-artifacts-check
-```
-
-*Expected:* both pass (checked digests per `_docs/compatibility/README.md:92-105`). *Duration:*
-minutes.
+**0.7 [website] Re-verify the pinned route-contract artifacts are intact** (they gate Phases 2
+and 8). The retired legacy compatibility corpus and its Make targets no longer exist; review the
+files and provenance listed in `_docs/compatibility/README.md` and run
+`uv run --frozen pytest content/tests/test_route_contracts.py content/tests/test_inventory.py -q`
+when those files change. *Duration:* minutes.
 
 ---
 
@@ -2182,7 +2178,7 @@ actually runs on migration day, **and it has never been exercised**.
 
 | Mode | Tool | Contents | Status |
 | --- | --- | --- | --- |
-| **Sanitized** | `review_import/` via `make review-data` (`Makefile:469`) | 0 enrollments, 0 submissions, 1 synthetic user (`review-admin@example.invalid`, `review_import/workflow.py:42`) | Working; correct for local dev, CI, design review — every rehearsal so far proved *this* path |
+| **Sanitized** | `review_import/` via `uv run python scripts/build_local_review_db.py build` | 0 enrollments, 0 submissions, 1 synthetic user (`review-admin@example.invalid`, `review_import/workflow.py:42`) | Working; correct for local dev, CI, design review — every rehearsal so far proved *this* path |
 | **Full fidelity** | — | the entire CMP **production** database: **20,009 accounts, 20,907 enrollments, 36,547 submissions**, all real PII (counts from the newest nightly production export — see the provenance block below; the 17,582/18,945/34,764 figures quoted in an earlier draft came from CMP's *dev* SQLite and are not the migration's numbers) | **Unbuilt. No tool, no runbook step, never run. A cutover blocker hiding in plain sight** |
 
 **Mechanism — what would actually perform it.** Two candidates examined, one eliminated:
@@ -2284,7 +2280,7 @@ checksums, and feed *that* artifact to the importer — the nightly run is the r
 mechanism, not the cutover artifact. The runbook step is "produce the export at the freeze",
 with the exact procedure documented in the importer's groomed issue.
 
-**The schema-drift blocker (verified).** `make review-data` currently **fails closed**:
+**The schema-drift blocker (verified).** `scripts/build_local_review_db.py build` currently **fails closed**:
 `category=schema-unknown-table table=courses_emailcampaign` (raised at
 `review_import/workflow.py:731`). Cause: the site's adopted CMP schema is pinned at `98a2352`
 (2026-08-04) while the dump is CMP HEAD `6d3cc0e`; three tables added upstream after the pin —
@@ -2746,7 +2742,7 @@ automating registrar changes adds risk instead of removing it.
 | 17 | Running everything at once during the migration. **Corrected upward:** the peak is ≈ **$597–665/mo** against a ≈ $325 steady state — roughly $305/mo of overlap, ≈ $915 for three months — not the ≈ $370–445 previously stated, which omitted Relay's real cost and retired sandbox Datamailer too early | Certain, bounded | Budget | Cost Explorer + budget alarm | §14.3c; compressing the overlap is worth more than any single sizing decision. Phase 7 harvest is scheduled, not aspirational — but `main/common` is not in it (AISL depends on it) and Datamailer lands after 7.1 |
 | 18 | **SES quota or send rate falls short of a 130,000-recipient campaign.** Downgraded: the main account has production access (`aws-infra/docs/aws-support/2026-08-09-ses-newsletter-quota-increase.md:19`) and the owner states the quota has been raised, so this is no longer a "sandbox mode" blocker. What is genuinely unverified is the **two live numbers** — the rolling-24-hour quota and the per-second send rate. A weekly newsletter is bursty: at 14/s a campaign takes ≈ 2.6 h, at 200/s ≈ 11 min | Low | E.6 stage 4 only (transactional stages are unaffected at any plausible quota) | E.1 / step 0.6 `aws sesv2 get-account --query 'SendQuota'`, recorded against the campaign size | Front-loaded into Phase 0; if either number falls short, the Service Quotas increase files immediately (multi-day external lead) and only the ramp waits. Record the approved values in the aws-support document, whose own follow-up item to do so was never completed |
 | 19 | **Events staleness at and after cutover** — the events pipeline is a manually-run local script in a personal temp dir (§13.8, D16/D17); already realised once: zero future-dated events in the projection on 2026-09-02 (newest = 2026-08-31), which would have shipped an empty upcoming-events section and superseded cohorts (#307) | High until D17 assigns ownership; certain without the gate | Day-one credibility of the new site's events/courses surface | §9.4 gate item 5 pre-swap; the same "≥ N future-dated events" check in post-swap monitoring | Mandatory ≤ 72 h pre-swap re-sync + freshness check; D16 (exporter into version control) and D17 (owner/cadence, later automation) remove the root cause |
-| 20 | **The cutover-day import path is unbuilt and unproven** — every rehearsal so far exercised the *sanitized* importer (0 enrollments, synthetic user); the full-fidelity path (**20,009 accounts / 20,907 enrollments / 36,547 submissions** in the newest production export, real PII) has no tool (`load_rds_export.py` empirically non-viable; `review_import` sanitizes by design) and is blocked by verified schema drift (`courses_emailcampaign` + two 0041 tables absent from the `98a2352`-pinned schema; `make review-data` fails closed at `review_import/workflow.py:731`). **Those three tables hold 1/1/11 production rows, not zero — there is no skip-empty escape hatch.** Also the least reversible step once DNS has moved and real writes land | Certain, until the §13.9 work is groomed, built, and rehearsed | Learner data integrity; cutover timeline; privacy (largest PII movement in the migration) | §9.4 gate item 6; drift re-check at freeze; import verification suite (counts/integrity/spot checks) | §13.9: build as a review_import extension via groomed issues; resolve drift properly (no hand-edits); fresh freeze-time export; pre-import target snapshot; disposable-target dry-run before the swap; intermediates deleted and recorded (no erasure reconciliation needed — CMP has no erasure feature, §13.9) |
+| 20 | **The cutover-day import path is unbuilt and unproven** — every rehearsal so far exercised the *sanitized* importer (0 enrollments, synthetic user); the full-fidelity path (**20,009 accounts / 20,907 enrollments / 36,547 submissions** in the newest production export, real PII) has no tool (`load_rds_export.py` empirically non-viable; `review_import` sanitizes by design) and is blocked by verified schema drift (`courses_emailcampaign` + two 0041 tables absent from the `98a2352`-pinned schema; `uv run --frozen python scripts/build_local_review_db.py build` fails closed at `review_import/workflow.py:731`). **Those three tables hold 1/1/11 production rows, not zero — there is no skip-empty escape hatch.** Also the least reversible step once DNS has moved and real writes land | Certain, until the §13.9 work is groomed, built, and rehearsed | Learner data integrity; cutover timeline; privacy (largest PII movement in the migration) | §9.4 gate item 6; drift re-check at freeze; import verification suite (counts/integrity/spot checks) | §13.9: build as a review_import extension via groomed issues; resolve drift properly (no hand-edits); fresh freeze-time export; pre-import target snapshot; disposable-target dry-run before the swap; intermediates deleted and recorded (no erasure reconciliation needed — CMP has no erasure feature, §13.9) |
 | 21 | **The aws-infra policy suite blocks every new root, fail-closed, in three independent ways** (§14.6): `SOURCE_DIRECTORY_SCOPES` is a literal four-element tuple containing none of them; `OIDC004`/`OIDC005` force any `DataTalksClub`-owned scanned root to declare sandbox claims; `aws_iam_instance_profile` has zero permitted owners so Relay cannot enter scope; and adding `main/dtc-website` converts its existing `cloudfront:CreateInvalidation` grant into a violation | Certain, until amended | The entire implementation schedule — every apply is gated on the delivery workflow | The suite itself; it fails before credentials are issued | Treat the amendment as **step 0**: credential-free, reviewable in parallel with everything else, and the longest pole. Scope, OIDC environment-awareness, and the IAM-ownership entries are three separate reviews (D33 sequences the fourth) |
 | 22 | **Relay's delivery history outgrows its storage, one-way.** 130k/week produces 0.65–1.04 GB per campaign and 34–54 GB/year unpruned; `prune_db_task_results` exists and has never been invoked, because Relay has never had a client. RDS storage autoscaling only ratchets upward | Certain at full volume without a pruning job | Relay availability (a full volume takes PostgreSQL read-only), then a permanent cost floor | Free-storage alarm + data-volume disk alarm (E.5b item 7) | Ship `pruning.tf` in the same change as `main/relay`; prove it before E.6 reaches full send volume. Storage starts at 50 GB with a 500 GB ceiling so the ramp cannot hit the wall mid-campaign |
 | 23 | **Relay sends with an empty suppression list.** Datamailer holds the unsubscribe/hard-bounce/complaint state; D15's clean start migrates nothing by default | High if D23's copy is treated as cleanup | SES reputation — i.e. all `@datatalks.club` mail, the same blast radius as risk 4 | Bounce/complaint alarms would catch it *after* the damage; the real detection is a pre-send reconciliation count | D23: the copy is a **precondition of the first production send**, before E.6 stage 1, and sandbox Datamailer stays alive until it is verified. Fallback: seed SES account-level suppression |

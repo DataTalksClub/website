@@ -321,19 +321,13 @@ Three conventions used throughout:
   refused by name before anything is written. `scripts/prod/target/__init__.py` is
   the authority.
 
-  Two consequences worth knowing before migration day. **No `make` wrapper in this
-  repository can write to production**, and that is now a checked property rather
-  than a claim about the wrappers that happen to exist: every one that invokes a
-  script hardcodes `--database`, `make import-cmp-learner-data` delegates to two
-  that do, and `scripts/tests/test_prod_make_targets.py` asserts that **no recipe
-  anywhere in the `Makefile`** passes `--deployment-target` or
-  `--allow-production-write`. A wrapper cannot quietly acquire the capability later.
-  So a production step calls the script directly — for `make import-legacy-zoomcamp`,
-  `make import-events`, `make content-sources` and `make content-pull`, and equally
-  for the CMP wrappers `make import-cmp-content`, `make import-cmp-learners`,
-  `make import-cmp-learner-history`, `make import-cmp-learner-data`, their two
-  `*-status` counterparts and `make import-account-reconciliation` with its
-  `-rollback-check` counterpart. And **a shell that already exports the production
+  Two consequences are worth knowing before migration day. **No local command in this
+  repository can write to production**: the local runners only accept SQLite paths,
+  while production requires the reviewed target flags below. The script conventions
+  and `scripts/tests/test_prod_write_target.py` keep that boundary explicit. A production
+  step calls its script directly — for the legacy, event, course-content, CMP, learner,
+  and reconciliation importers — and supplies the reviewed deployment target. And **a
+  shell that already exports the production
   `$TARGET` cannot run a rehearsal command**: a `--database` run in that shell is
   refused rather than quietly reinterpreted, so unset those values before going back
   to a scratch database.
@@ -426,8 +420,8 @@ uv run --frozen python scripts/prod/import_legacy_zoomcamp.py \
     <target> --source-repo ~/git/zoomcamp-scoring
 ```
 
-`make import-legacy-zoomcamp IMPORT_DATABASE=<path>` is the rehearsal shorthand for
-the second command; it hardcodes `--database`, so production runs the script itself.
+The second command is the rehearsal command; production supplies the reviewed
+deployment target flags instead of `--database`.
 
 Run `--list` first; it discovers the editions and writes nothing.
 
@@ -507,12 +501,11 @@ uv run --frozen python scripts/prod/sync_course_repositories.py <target> \
     --from-disk <dir>                     # offline
 ```
 
-The rehearsal shorthands are `make content-sources`, `make content-checkouts` and
-`make content-pull`, each taking `CONTENT_DATABASE=<path>` and the checkout ones
-`CONTENT_CHECKOUT_ROOT=<dir>`. `content-checkouts` is the git loop around the plan
-the second command prints; all three hardcode `--database`, so production runs the
-scripts directly. Every one of them reads the registered `ContentSource` rows, so
-the plan step needs the target too.
+The rehearsal commands are `uv run --frozen python scripts/content.py sources`,
+`checkouts`, and `pull`, with `CONTENT_DATABASE=<path>` and
+`CONTENT_CHECKOUT_ROOT=<dir>` when needed. `content.py checkouts` is the git loop
+around the plan the second command prints. Every one reads the registered
+`ContentSource` rows, so the plan step needs the target too.
 
 Three repositories are registered: `ai-dev-tools-zoomcamp`, `llm-zoomcamp`,
 `machine-learning-zoomcamp`. `mlops-zoomcamp` and
@@ -554,7 +547,8 @@ repository calls itself `ai-dev-tools-zoomcamp`; the published family is
 `ai-dev-tools`, and `curriculum_import` rewrites that one prefix. The other five
 families genuinely are `…-zoomcamp` and keep their slugs.
 
-Re-run `make content-pull` and confirm each source reports `replayed`.
+Re-run `uv run --frozen python scripts/content.py pull` and confirm each source reports
+`replayed`.
 
 **Failure and recovery.** **Recoverable by re-run.** The projection is
 transactional per repository (`curriculum_import`, `with transaction.atomic()`),
@@ -565,7 +559,7 @@ complete. `replayed` re-asserts the projection still exists and raises
 the same commit produces a different manifest — those mean *stop and
 investigate*, not *re-run*.
 
-**Duration.** Minutes. `make content-checkouts` is the only step that touches the
+**Duration.** Minutes. `scripts/content.py checkouts` is the only step that touches the
 network and its time is git clone time.
 
 ### Step 3 — CMP course content
@@ -725,19 +719,16 @@ uv run --frozen python scripts/prod/import_cmp_learner_history.py \
     <target> --source $EXPORT
 ```
 
-`make import-cmp-learner-data IMPORT_LEARNER_DATABASE=<path> CMP_EXPORT=$EXPORT`
-is the rehearsal shorthand for both commands, in that order. The legs are
-also available singly as `make import-cmp-learners` and
-`make import-cmp-learner-history`, and `make import-cmp-learners-status` /
-`make import-cmp-learner-history-status` report how far a killed run got without
-opening the export at all. All of them hardcode `--database`, so production runs the
-scripts directly.
+The rehearsal runs those two commands in the declared order. The legs are also
+available singly, and the same importer scripts with `--status` report how far a
+killed run got without opening the export at all. Production supplies the reviewed
+deployment target instead of `--database`.
 
-`CMP_EXPORT` and `IMPORT_LEARNER_DATABASE` have **no default value**, deliberately:
+The export and destination have **no default value**, deliberately:
 the export is not frozen (see the note above) and which database receives 20,009 real
 accounts is a decision typed once per run, not inherited. Every one of these targets
-refuses with exit 2, naming the variable, before any Python starts —
-`scripts/tests/test_prod_make_targets.py` runs them to prove it.
+refuses with exit 2 before any Python starts — `scripts/tests/test_prod_write_target.py`
+and the importer tests keep that boundary explicit.
 
 The export is 38 tables and **664,806** rows. Every one of those tables needs a
 declared fate; here is all 38, so nothing can be forgotten:
@@ -1047,8 +1038,8 @@ uv run --frozen python scripts/prod/import_events.py <target> \
     _docs/migration-data/local-current-registration-input.json
 ```
 
-`make import-events IMPORT_DATABASE=<path>` is the rehearsal shorthand for it; it
-hardcodes `--database`, so production runs the script itself. (`data-ingest.md` §11
+The direct script command is the rehearsal path; production supplies the reviewed
+deployment target. (`data-ingest.md` §11
 and §13 say that script does not exist; it landed on this branch on 2026-09-03 and
 `scripts/prepare_local_data.py` already composes it. The reference needs
 correcting, not the plan.)
@@ -1190,7 +1181,7 @@ three pinned checkouts and is not reproducible (#253).
 **Checkpoint**
 
 ```
-make content-update-check CONTENT_UPDATE_FAMILY=all  # committed artifacts vs manifest, one run per family
+CONTENT_UPDATE_FAMILY=all uv run --frozen python scripts/ci.py content-update-check  # committed artifacts vs manifest
 ```
 
 **The startup digest canary is gone.** `content.E002` no longer exists: the site
@@ -1198,7 +1189,7 @@ reads its catalogue from the database, so there is no projection file for a
 startup check to verify, and `content/apps.py`'s remaining checks
 (`content.E003`–`E005`, `content.W001`) cover only the media store. A hand-edit
 under `temporary/content/` is therefore carried silently into the database by the
-next import rather than refusing to boot. `make content-update-check` is the
+next import rather than refusing to boot. `uv run --frozen python scripts/ci.py content-update-check` is the
 checkpoint that still catches it, and it has to be run deliberately.
 
 **Failure and recovery.** **Recoverable, but not by re-run.** A full projection
@@ -2501,7 +2492,7 @@ registration**, **1 wrapped-statistics row** and **1 certificate**.
 
 ## 7. What the plan and the current local path do differently
 
-`scripts/prepare_local_data.py` (`make production-prep-dataset`) is the closest
+`scripts/prepare_local_data.py` (via `scripts/production_data.py dataset`) is the closest
 thing to a rehearsal that exists. Where it differs from this plan, **the plan is
 the decision and the difference is a work item.**
 
@@ -2514,7 +2505,7 @@ registration aggregates.
 | # | Difference | Consequence |
 | --- | --- | --- |
 | 1 | It runs `manage.py seed_local_courses` as its bootstrap — a **placeholder seeder** reading `scripts/production_like_course_specs.json`, which invents copy ("Practice assignment for …") and writes 16 cohorts as well as the 6 families. Production has no seeder at all. | `seed_local_courses` refuses to run outside local SQLite, so it never could be the production bootstrap. It is no longer needed anywhere: `import_cmp_content` mints its own reviewed families — §3.2. The rehearsal should stop using it so it exercises the production path. |
-| 2 | It does **not** run `import_legacy_zoomcamp` at all. | The rehearsal, as it stands, never exercises step 1 or the user-matching in step 4. `make import-legacy-zoomcamp` exists and is run separately. |
+| 2 | It does **not** run `import_legacy_zoomcamp` at all. | The rehearsal, as it stands, never exercises step 1 or the user-matching in step 4. `scripts/prod/import_legacy_zoomcamp.py` is run separately. |
 | 3 | It imports event identities **before** the course steps; the plan puts events at step 5. | Harmless — events depend on nothing else — but the rehearsal will not detect an ordering error the plan cares about. Either is safe. |
 | 4 | It uses `courses/services/local_cmp_content_import.py` (copies the protected snapshot, sanitizes, learner tables never read) rather than `scripts/prod/import_cmp_content.py` directly. | Two entry points onto one service. The plan uses the `scripts/prod/` one. |
 | 5 | It has no step 4, no step 6, no step 7 and no step 8. | The largest step, both content steps and media are unrehearsed. |
@@ -2535,15 +2526,15 @@ production. This section is how.
 
 ### 8.1 Relationship to the existing machinery
 
-`make production-prep-dataset` builds the *local development dataset*: a
+`uv run --frozen python scripts/production_data.py dataset` builds the *local development dataset*: a
 placeholder catalogue with real CMP content on top, no learners, no legacy
 history. It is a good target for a website and the wrong target for this
 rehearsal, because its bootstrap (`seed_local_courses`) is the very thing
 production cannot use.
 
 **The rehearsal supersedes it for migration purposes and reuses its parts.**
-`make content-sources`, `make content-checkouts`, `make content-pull`,
-`make import-legacy-zoomcamp` and `make import-events` are all shared; only the
+`scripts/content.py sources`, `checkouts`, `pull`,
+`scripts/prod/import_legacy_zoomcamp.py` and `scripts/prod/import_events.py` are all shared; only the
 orchestrator differs, because the rehearsal must bootstrap the way production
 bootstraps. `scripts/verify_local_dataset.py` remains useful as an extra gate
 after step 3.
@@ -2575,11 +2566,11 @@ cheapest thing in this document and the most useful at 2am.
 | Step | Rehearsal command | Source substitution | Does it weaken the rehearsal? |
 | --- | --- | --- | --- |
 | 0 | `$TARGET uv run --frozen python manage.py migrate --no-input` | SQLite instead of Postgres | **Yes, mildly.** SQLite will not catch a Postgres-only constraint or collation problem. The uniqueness and FK checks still run. |
-| 1 | `$TARGET make import-legacy-zoomcamp IMPORT_DATABASE=$REHEARSAL` | none — real `zoomcamp-scoring` clone | No |
-| 2 | `$TARGET make content-sources` → `content-checkouts` → `content-pull` | none — real repositories | No |
+| 1 | `uv run --frozen python scripts/prod/import_legacy_zoomcamp.py --database $REHEARSAL --source-repo ~/git/zoomcamp-scoring` | none — real `zoomcamp-scoring` clone | No |
+| 2 | `uv run --frozen python scripts/content.py sources` → `checkouts` → `pull` | none — real repositories | No |
 | 3 | `$TARGET uv run … scripts/prod/import_cmp_content.py --database $REHEARSAL --source $EXPORT` | none — the real export, read in place | No |
 | 4 | `$TARGET uv run … scripts/prod/import_cmp_learners.py --database $REHEARSAL --source $EXPORT` then `… scripts/prod/import_cmp_learner_history.py --database $REHEARSAL --source $EXPORT` | none — the real export, read in place | No — **verified end to end** on 2026-09-05: 20,469 accounts and 414,768 history rows in about two minutes, replay a no-op, SIGKILL-and-resume identical |
-| 5 | `$TARGET make import-events IMPORT_DATABASE=$REHEARSAL` | Luma/Eventbrite archives from `.local/migration-data` | No — **verified end to end**: 421 events, allocator at 422 |
+| 5 | `uv run --frozen python scripts/prod/import_events.py --database $REHEARSAL` | Luma/Eventbrite archives from `.local/migration-data` | No — **verified end to end**: 421 events, allocator at 422 |
 | 6 | `scripts/prod/sync_public_media_verify.py`, `manage.py check`, `python -m ci.content_update` | the committed projection instead of a rebuild | **Yes.** A full rebuild needs three pinned checkouts and is not reproducible today (#253). The rehearsal checks the artifacts, not the build. |
 | 7 | `scripts/prod/sync_public_media_hydrate.py` → `sync_public_media_publish.py` → `sync_public_media_verify.py` | a `local` store instead of `s3` | **Yes.** The rehearsal proves the counts and the incrementality, not the bucket |
 | 8 | `uv run … scripts/prod/import_testimonials.py --database $REHEARSAL` (sponsors: §11 B9) | none — the reviewed set is in this repository | No for testimonials; sponsors cannot be rehearsed yet |
@@ -3173,7 +3164,7 @@ Non-negotiable, and every one of these has a reason behind it.
 - In a log, identify a person by user id, never by email address.
 - Do not hand-edit anything under `temporary/content/`. Nothing refuses to boot over it
   any more (`content.E002` is gone); the next import carries the edit into the database
-  silently. `make content-update-check` is the check, and somebody has to run it.
+  silently. `uv run --frozen python scripts/ci.py content-update-check` is the check, and somebody has to run it.
 - Do not add a second entry point for course-repository ingest. There is one and
   both transports share it deliberately.
 - Plain scripts, direct ORM, no framework. Call the existing services rather than

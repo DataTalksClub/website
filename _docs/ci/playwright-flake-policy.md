@@ -35,9 +35,9 @@ failure bucket.
 The blocking commands are explicit and exclude quarantined tests:
 
 ```text
-make test-playwright-smoke
-make test-playwright-core
-make test-playwright
+uv run --frozen python scripts/ci.py test-playwright-smoke
+uv run --frozen python scripts/ci.py test-playwright-core
+uv run --frozen python scripts/ci.py test-playwright
 ```
 
 All three commands load `ci.playwright_flake_policy` and use `not quarantine` in their marker
@@ -48,7 +48,7 @@ cannot pass a partial or internally inconsistent successful run.
 The scheduled monitor is also explicit:
 
 ```text
-make test-playwright-quarantined
+uv run --frozen python scripts/ci.py test-playwright-quarantined
 ```
 
 The `playwright-quarantine` job in `.github/workflows/scheduled-full-regression.yml` runs

@@ -27,18 +27,19 @@ before removing the SQLite database and any WAL/SHM siblings; it never removes a
 The supported local entry points are:
 
 ```text
-make test-core
-make test
-make test-ci
-CI_SELECTION_PATH=.tmp/ci-selection/ci-selection.json make test-ci-focused
-make test-factories
-make migrations-check
-make test-migrations
-make test-playwright-smoke
-make test-playwright-core
-make test-playwright
-make test-browser
-make test-all
+uv run --frozen python scripts/ci.py test-core
+uv run --frozen python scripts/ci.py test
+uv run --frozen python scripts/ci.py test-ci
+CI_SELECTION_PATH=.tmp/ci-selection/ci-selection.json \
+  uv run --frozen python scripts/ci.py test-ci-focused
+uv run --frozen python scripts/ci.py test-factories
+uv run --frozen python scripts/ci.py migrations-check
+uv run --frozen python scripts/ci.py test-migrations
+uv run --frozen python scripts/ci.py test-playwright-smoke
+uv run --frozen python scripts/ci.py test-playwright-core
+uv run --frozen python scripts/ci.py test-playwright
+uv run --frozen python scripts/ci.py test-browser
+uv run --frozen python scripts/ci.py test-all
 ```
 
 `test-all` is the complete locked local acceptance aggregate. It never selects a remote/live test,

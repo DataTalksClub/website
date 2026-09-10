@@ -17,7 +17,7 @@ No ``INSERT``, ``UPDATE`` or ``DELETE``, no service call, no release transition,
 none of ``last_reconciled_at`` / ``pending_follow_up`` / ``last_successful_commit``.
 It also makes no call of its own over a network: every git invocation reads the
 checkout's own object database, and the revision it compares against is resolved
-locally.  Refreshing that checkout is ``make content-checkout``, deliberately a
+locally.  Refreshing that checkout is ``scripts/content.py checkout``, deliberately a
 separate step, so an answer is never quietly one round trip old.  Because the answer
 is only as fresh as that checkout, the report states the remote-tracking head it
 resolved, so an operator can tell how stale it is.
@@ -184,7 +184,7 @@ def resolve_commit(root: Path, revision: str) -> str:
         raise ContentDriftRefused(
             "revision-unresolvable",
             f"{revision!r} names no commit in the checkout; refresh it with "
-            "`make content-checkout`, or name a --revision it holds",
+            "`uv run --frozen python scripts/content.py checkout`, or name a --revision it holds",
         )
     return resolved
 

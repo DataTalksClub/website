@@ -431,7 +431,7 @@ natural image aspect ratios affect the climb-card rhythm:
 
 ```bash
 uv run pytest core/tests/test_homepage.py -q
-make test-playwright-core
+uv run --frozen python scripts/ci.py test-playwright-core
 ```
 
 The full illustration convention and accessibility contract are documented in

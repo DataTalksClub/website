@@ -1,7 +1,7 @@
 """Which repositories exist is registered data, and a fresh database can get it.
 
 Before this existed, `ContentSource` rows had to be typed in by hand on every
-machine, so `make content-pull` and the production-prep rebuild both failed on a
+machine, so the content pull and production-data rebuild both failed on a
 new checkout with "no enabled course-repository sources are registered".  The
 pinned input closes that without becoming a second source of truth: it only
 creates rows, never rewrites one, and every reader still reads the table.

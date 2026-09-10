@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Checked clone/refresh for the disposable content checkouts.
 
-``make content-checkouts`` and ``make content-checkout`` used to inline the
+The ``scripts/content.py checkouts`` and ``checkout`` commands used to inline the
 same two destructive loops: any directory with a ``.git`` subdirectory was
 reset with ``git reset --hard FETCH_HEAD`` and scrubbed with
 ``git clean -fdx``, with no check of which repository it belonged to, whose

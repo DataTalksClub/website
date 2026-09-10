@@ -58,7 +58,7 @@ needed).
 ## 1.1 Register sources
 
 [`scripts/prod/sync_course_repository_sources.py`](../../scripts/prod/sync_course_repository_sources.py)
-(`make content-sources`)
+(`uv run --frozen python scripts/content.py sources`)
 
 Source: [`content_sync/course_repository_sources.json`](../../content_sync/course_repository_sources.json),
 a pinned, checked-in registration input — not a list in code.
@@ -68,9 +68,9 @@ Destination: `content_sync.ContentSource`.
 
 ## 1.2 Checkout
 
-`make content-checkouts` (wraps
+`uv run --frozen python scripts/content.py checkouts` (wraps
 [`scripts/prod/sync_course_repositories.py`](../../scripts/prod/sync_course_repositories.py)
-`--checkout-plan` and `git clone`/`fetch` per source) — Makefile target
+`--checkout-plan` and `git clone`/`fetch` per source)
 
 Source: GitHub, live network — the only network step in this journey.
 Transform: clones a fresh repository or fast-forwards an existing one to the
@@ -118,7 +118,7 @@ description copy already written. The content exists; only the small
 structured file pointing at it is missing. See 1.4.
 
 Because both are registered in 1.1 (they're now registerable even though
-1.4's underlying fix hasn't landed), `make content-pull` with no filter
+1.4's underlying fix hasn't landed), `uv run --frozen python scripts/content.py pull` with no filter
 refuses the whole batch with a non-zero exit — every other registered
 repository still ingests and commits successfully underneath a red exit
 code. Pass `--stable-id` (see `sync_course_repositories.py`) to exclude the
@@ -828,19 +828,20 @@ request by [`content/catalogue.py`](../../content/catalogue.py).
 ## 8.3 Drift check — reports, never writes
 
 [`scripts/prod/sync_content_verify.py`](../../scripts/prod/sync_content_verify.py)
-(`make content-drift`), fed by `make content-checkout`
+(`uv run --frozen python scripts/content.py drift`), fed by
+`uv run --frozen python scripts/content.py checkout`
 
 Two targets, because only one of them touches the network.
 
-**`make content-checkout`** — Source: GitHub, live network. Transform: clones a
+**`scripts/content.py checkout`** — Source: GitHub, live network. Transform: clones a
 fresh checkout of `DataTalksClub/content` or fast-forwards an existing one to the
 registered branch, and prints the HEAD it landed on. Destination: a local git
 checkout at `$(CONTENT_CHECKOUT)` (default `.tmp/content-checkout`), on disk only.
-It exists because `make content-checkouts` (1.2) does **not** cover this
+It exists because `scripts/content.py checkouts` (1.2) does **not** cover this
 repository: that target selects only sources whose `adapter_type` is
 `course_repository_v1`, and the editorial source is not one.
 
-**`make content-drift`** — Source: the served catalogue in the database plus that
+**`scripts/content.py drift`** — Source: the served catalogue in the database plus that
 checkout's own object database, at a revision resolved locally (default the
 checkout's `refs/remotes/origin/<branch>`; override with
 `CONTENT_DRIFT_REVISION`). Transform: a set-diff plus a digest compare per family
@@ -855,8 +856,8 @@ transition, and none of `last_reconciled_at` / `pending_follow_up` /
 `2` refusal, so "we are behind" is distinguishable from "I could not look".
 
 Which repository is compared is a database question — the enabled `ContentSource`
-whose repository is `DataTalksClub/content` — never a name in the Makefile;
-`--checkout-plan` prints that selection and is what `make content-checkout`
+whose repository is `DataTalksClub/content` — never a name in a command wrapper;
+`--checkout-plan` prints that selection and is what `scripts/content.py checkout`
 consumes.
 
 Media is deliberately asymmetric: the served media set is the *referenced* subset

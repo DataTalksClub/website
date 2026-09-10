@@ -369,8 +369,8 @@ scripts/prod/                     # importable package; "prod" = touches real da
 scripts/tests/test_prod_*.py      # tests live where the repo already puts script tests
 ```
 
-Call sites to update in the same change as the move: `Makefile:392`, two call sites in
-`_docs/runbooks/local-course-modules-preparation.md`, and
+Call sites for the consolidated runner are `scripts/production_data.py`, the two runbook
+workflows in `_docs/runbooks/local-course-modules-preparation.md`, and
 `scripts/tests/test_prepare_local_data.py`. **Four call sites total — no shim needed.**
 
 ### The adapter contract, written down
@@ -577,10 +577,10 @@ independent and must not be conflated.)
 **Derived from the course-modules manifest, not hardcoded.** A cohort is modules-format iff
 the manifest contains a source for it.
 
-`TARGET_COHORTS` (`local_course_modules.py:47`) and `PRODUCTION_PREP_COURSE_REPOSITORIES`
-(`Makefile:426-429`) are today **two hardcoded lists of the same three courses that can
-drift apart** — the bug the brief flagged. The Makefile list is the *input* that produces
-the manifest, so the manifest is the single downstream fact. `TARGET_COHORTS` becomes a
+`TARGET_COHORTS` (`local_course_modules.py:47`) and the registered `ContentSource` rows
+were once **two hardcoded lists of the same three courses that could drift apart** — the bug
+the brief flagged. The database registration is now the *input* that produces the manifest,
+so it is the single downstream fact. `TARGET_COHORTS` becomes a
 **validation assertion against the manifest** rather than a second source of truth, so a
 drift between the two becomes a test failure instead of a silent miscategorisation.
 
@@ -666,7 +666,7 @@ and it is the difference the brief asked to be made visible before anyone starts
 | --- | --- | --- | --- | --- |
 | CMP production | newest `/data/tmp/rds-export/rds-prod-*.db` | 38 tables, 664,806 rows | `courses.*`, `accounts.*` | **Adapter + full-fidelity mode** |
 | Events + registrations | `<main checkout>/.local/migration-data/events/` — `luma/` 78 MB, `luma-aggregate-v1/` 13 MB, `eventbrite/` 2.1 MB | ~93 MB, ~174 Luma events | `events.*` (9 models exist) | **Adapters exist and are tested** (`events/importers.py`); register them |
-| Course curricula | three repos, `Makefile:426-429` | 20 modules, 181 units | `courses.Module/Unit` | **Working today.** Do not disturb |
+| Course curricula | registered course repositories | 20 modules, 181 units | `courses.Module/Unit` | **Working today.** Do not disturb |
 | Historical scoring | `zoomcamp-scoring` repo | pre-2024 cohorts, certificates | `courses.*` | Adapter exists (`scripts/historical_import/`); relocate |
 | Wiki / podwiki | `temporary/content/public_projection/wiki.json`, `wiki_graph.json`, `wiki_search.json`, `wiki_assets/` | 310 baseline rows | `content.ContentDocument` **(exists, empty)** | **Loader only** |
 | Podcast | `temporary/content/public_projection/podcasts.json`, `media/` | episodes + media | `content.ContentDocument` + `ContentAsset` **(exist, empty)** | **Loader only** |
@@ -745,7 +745,7 @@ Nobody re-imports 665k rows to fix one adapter.
 ### 8.5 Verification
 
 **Extend `scripts/verify_local_dataset.py`** (237 lines, already the acceptance gate for
-`make production-prep-dataset`) rather than writing a second verifier. It already reports
+`scripts/production_data.py dataset`) rather than writing a second verifier. It already reports
 aggregates only and explicitly reads no learner data — the right posture. Add:
 
 1. **Per-table row-count reconciliation**, source ↔ target, as a table of counts and a
@@ -823,8 +823,8 @@ plus re-export*, not a `git mv`, until the ledger issue lands.
    (§6.5, §7.3). **Behaviour changes here** — its own commit, family-description ownership
    flip called out explicitly.
 8. **Schema-drift adoption** (§6.4): `KNOWN_UNMAPPED_TABLES`, version bump.
-9. **`Makefile:408`** → newest `/data/tmp/rds-export/rds-prod-*.db`, resolved not
-    hardcoded, still overridable. *(This takes ownership of `Makefile`; see §12.)*
+9. **`scripts/production_data.py`** → newest `/data/tmp/rds-export/rds-prod-*.db`, resolved not
+    hardcoded, still overridable. *(The root Makefile remains limited to local development.)*
 10. **Homework binding** (§7.2): adopt CMP's slug verbatim and re-point the module
     binding; delete the regex. `homework_slug_overrides` becomes dead and is dropped
     under its own issue.
@@ -874,7 +874,7 @@ it is not this refactor.
    *Known follow-up, deliberately deferred:* `de-zoomcamp`, `mlops-zoomcamp` and
    `sma-zoomcamp` keep their curated text with no `SITE.md`; unifying the two sources is
    a later decision, not a temporary inconsistency to design around.
-3. **`Makefile` ownership.** Step 10 edits it. No other lane has claimed it; this plan
-   takes it.
+3. **Script ownership.** The production-data and content runners own these workflows; the
+   root Makefile exposes only local migration, seed-data, and server startup.
 4. **Reconciliation with `script-inventory.md`** (§4), which did not exist when this was
    written.

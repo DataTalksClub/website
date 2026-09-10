@@ -355,7 +355,7 @@ def _parser() -> argparse.ArgumentParser:
         type=Path,
         help=(
             "Directory holding one checkout per registered course-repository source, "
-            "named after the source stable id. `make content-checkouts` produces it."
+            "named after the source stable id. `scripts/content.py checkouts` produces it."
         ),
     )
     parser.add_argument(

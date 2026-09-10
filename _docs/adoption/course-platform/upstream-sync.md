@@ -68,7 +68,7 @@ Verify the result with the same gates used by the adoption contract:
 
 ```bash
 uv run python scripts/verify_course_platform_adoption.py
-make migrations-check
+uv run --frozen python scripts/ci.py migrations-check
 uv run pytest scripts/tests/test_sync_course_platform.py -q
 uv run python manage.py test courses --noinput
 ```
@@ -104,7 +104,7 @@ In a fresh website worktree, provision the exact checkout recorded in
 ```bash
 uv run python scripts/prepare_course_platform_source.py
 # equivalent Make target:
-make course-platform-source-checkout
+uv run --frozen python scripts/ci.py course-platform-source-checkout
 uv run python scripts/verify_course_platform_adoption.py
 ```
 
@@ -207,7 +207,7 @@ checks relevant to the changed paths:
 
 ```bash
 uv run python scripts/verify_course_platform_adoption.py
-make migrations-check
+uv run --frozen python scripts/ci.py migrations-check
 uv run pytest scripts/tests/test_sync_course_platform.py -q
 uv run python manage.py test courses --noinput
 ```

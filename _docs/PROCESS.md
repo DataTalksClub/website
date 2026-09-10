@@ -100,7 +100,9 @@ working around a dependency, merging before the independent gates pass, or hidin
 ## Engineering and verification gates
 
 - Read the issue and every linked specification before changing code.
-- Use `uv` and the repository Make targets. Do not install project dependencies with `pip`.
+- Use `uv` for Python commands. The root Makefile is limited to the local lifecycle commands
+  `make run`, `make migrate`, and `make data`; quality, test, content, and verification workflows
+  are explicit commands under `scripts/`. Do not install project dependencies with `pip`.
 - Implement only the issue scope and preserve unrelated worktree changes.
 - Add migrations for every model change and run the migration-drift check.
 - Add focused automated tests for every changed contract.
@@ -111,9 +113,10 @@ working around a dependency, merging before the independent gates pass, or hidin
   artifact; otherwise run the component. Unknown impact or evidence/history failure selects fresh
   full verification.
 - Template work must be verified at desktop and mobile sizes. The tester stores screenshots below `.tmp/screenshots/`, reads each image, and reports whether it contains the expected page rather than an error, debug page, or broken layout.
-- The tester runs focused Django tests plus the applicable Playwright tier: `make
-  test-playwright-smoke` for backend-only changes, `make test-playwright-core` for ordinary
-  render impact, and `make test-playwright` for template, browser-harness, or full-backstop work.
+- The tester runs focused Django tests plus the applicable Playwright tier: `uv run --frozen
+  python scripts/ci.py test-playwright-smoke` for backend-only changes, `uv run --frozen python
+  scripts/ci.py test-playwright-core` for ordinary render impact, and `uv run --frozen python
+  scripts/ci.py test-playwright` for template, browser-harness, or full-backstop work.
   Broader checks are added when shared infrastructure or fixtures change.
 - The tester independently recomputes the plan from the engineer's frozen base/head, validates
   every reused envelope and artifact, and explains any plan/digest drift before testing. The

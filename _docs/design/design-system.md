@@ -799,4 +799,4 @@ How an illustration is produced and processed is `_docs/design/illustration-asse
    alone on their line.
 8. Verify: both themes, 1440×900 and 390×844 screenshots, a keyboard pass (skip link,
    focus visible, menus operable), and the page-owning tests plus
-   `make lint format-check typecheck`.
+   `uv run --frozen python scripts/ci.py lint`, `format-check`, and `typecheck`.

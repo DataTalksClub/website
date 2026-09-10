@@ -50,8 +50,8 @@ covered by that set and are freely deletable from the registry's point of view.
 path, not from any of the scripts flagged as placeholder generators:
 
 ```
-make production-prep-dataset            Makefile:455
-  -> scripts/prepare_local_data.py      Makefile:392
+uv run --frozen python scripts/production_data.py dataset
+  -> scripts/prepare_local_data.py
      -> call_command("seed_local_courses")             scripts/prepare_local_data.py:290
         -> courses/services/local_course_seed.py:376
            homework_description()  -> "Practice assignment for {title}. …"
@@ -80,29 +80,29 @@ decision.
 | --- | --- | --- | --- |
 | `build_article_faq.py` | Recovers ten legacy blog-article FAQ sections from the legacy site repo into one provenance-carrying capture | Live (runbook) | `_docs/article-faq-recovery.md:37` |
 | `build_event_description_bridge.py` | Builds the reviewed public-safe event-description bridge from a local exporter snapshot | Live (runbook) + test import | `_docs/event-description-bridge.md:19`; `content/tests/test_event_description_bridge.py:25` |
-| `build_legacy_manifest.py` | Crawl/merge/compare/validate the versioned legacy SEO compatibility manifest | Live | `Makefile:299,301,306`; `_docs/compatibility/README.md:133-231` |
-| `build_local_review_db.py` | 19-line shim into `review_import.cli.main()` | Live | `Makefile:485,492,499` |
-| `build_pinned_legacy_sources.py` | Creates clean pinned legacy checkouts and deterministic generated-site inputs | Live | `Makefile:296`; `ci/tests/test_workflows.py:171` |
-| `build_public_projection.py` | Sole builder of the checked, network-free public content projection | Live | `.github/workflows/content-update.yml:18,43` |
+| `build_legacy_manifest.py` | Crawl/merge/compare/validate the versioned legacy SEO compatibility manifest | Live | `_docs/compatibility/README.md:133-231` |
+| `build_local_review_db.py` | 19-line shim into `review_import.cli.main()` | Live | `_docs/runbooks/local-course-content-review.md` |
+| `build_pinned_legacy_sources.py` | Creates clean pinned legacy checkouts and deterministic generated-site inputs | Live | `ci/tests/test_workflows.py:171` |
+| `build_public_projection.py` | Sole builder of the checked, network-free public content projection | Live | `.github/workflows/content-update.yml` |
 | `build_synthetic_design_review_db.py` | Builds a wholly synthetic issue-#237 design-review SQLite DB + manifest under `.tmp/` | Live (design contract) | `_docs/testing/issue-237-review-state-matrix.md:18` |
-| `capture_screenshots.py` | Playwright screenshotter for local pages, for the tester role | **Uncertain** — see §4 | lint/typecheck lists only (`Makefile:48,83`) |
-| `check_database_portability.py` | Fails when app code, CI or specs regain backend-specific behavior | Live (CI gate) | `Makefile:119`; `ci/tests/test_database_portability.py:8` |
+| `capture_screenshots.py` | Playwright screenshotter for local pages, for the tester role | **Uncertain** — see §4 | lint/typecheck lists only (`scripts/ci.py`, `pyproject.toml`) |
+| `check_database_portability.py` | Fails when app code, CI or specs regain backend-specific behavior | Live (CI gate) | `scripts/ci.py`; `ci/tests/test_database_portability.py:8` |
 | `create_local_admin.py` | Seeds the documented local admin + placeholder social providers (`website.settings.local`) | Live | `README.md:29` |
-| `prepare_course_platform_source.py` | Provisions the clean detached CMP checkout from `source-pin.json` | Live | `Makefile:167`; `.github/workflows/content-update.yml:19,44` |
+| `prepare_course_platform_source.py` | Provisions the clean detached CMP checkout from `source-pin.json` | Live | `.github/workflows/content-update.yml` |
 | `prepare_event_registration_sources.py` | Prepares protected Eventbrite/Luma exports for aggregate-only migration adapters | Live (migration) | `_docs/migration-checklist.md:94`; `events/tests/test_prepare_registration_sources.py:13` |
-| `prepare_local_data.py` | Composes the bounded local production-data rehearsal (migrate → CMP import → seed → modules) | Live | `Makefile:392`; absorbed by the import consolidation |
+| `prepare_local_data.py` | Composes the bounded local production-data rehearsal (migrate → CMP import → seed → modules) | Live | `scripts/production_data.py`; absorbed by the import consolidation |
 | `process_illustration.py` | Trims a transparent source image and exports a WebP illustration via ImageMagick | Live (documented procedure) | `_docs/design/illustration-assets.md:22,31` |
 | `render_course_platform_inventory.py` | Renders the adopted route + management-command inventory Markdown | Live | `scripts/build_pinned_legacy_sources.py:745`; `core/tests/test_course_platform_adoption.py:12` |
 | `repin_projection_digests.py` | Recomputes only the derived digest/scope fields of the checked projection manifest | Live (runbook) | `_docs/runbooks/public-media-objects.md:191-192` |
-| `security_artifact_scan.py` | Scans bounded artifacts for redaction canaries | Live (CI gate) | `Makefile:110` |
-| `security_baseline.py` | Non-identity security evidence gate | Live (CI gate) | `Makefile:101` |
-| `security_canary_artifact.py` | Writes the deterministic redacted canary artifact | Live (CI gate) | `Makefile:103` |
-| `security_vulnerability_scan.py` | Locked-environment `pip-audit` advisory scan | Live (CI gate) | `Makefile:102` |
-| `sync_course_platform.py` | Reports/applies a reviewed CMP upstream commit into this repo | Live | `Makefile:170,177`; `.github/workflows/content-update.yml:20,45` |
+| `security_artifact_scan.py` | Scans bounded artifacts for redaction canaries | Live (CI gate) | `scripts/ci.py` |
+| `security_baseline.py` | Non-identity security evidence gate | Live (CI gate) | `scripts/ci.py` |
+| `security_canary_artifact.py` | Writes the deterministic redacted canary artifact | Live (CI gate) | `scripts/ci.py` |
+| `security_vulnerability_scan.py` | Locked-environment `pip-audit` advisory scan | Live (CI gate) | `scripts/ci.py` |
+| `sync_course_platform.py` | Reports/applies a reviewed CMP upstream commit into this repo | Live | `scripts/ci.py`; `.github/workflows/content-update.yml` |
 | `verify_course_platform_adoption.py` | Verifies the 768-row CMP copy ledger and cadmin allowlist | Live | `scripts/sync_course_platform.py:37`; `_docs/adoption/course-platform/README.md:17` |
 | `verify_course_platform_vendor_assets.py` | Verifies locally served CMP vendor assets and their provenance | Test-only import | `core/tests/test_course_platform_vendor_assets.py:17` |
-| `verify_development_seo_terraform.py` | Verifies the trusted Terraform source for development SEO policy | Live | `Makefile:132` |
-| `verify_local_dataset.py` | Acceptance gate for `make production-prep-dataset` — aggregate cohort/module/event counts | Live | `Makefile:467` |
+| `verify_development_seo_terraform.py` | Verifies the trusted Terraform source for development SEO policy | Live | `scripts/ci.py` |
+| `verify_local_dataset.py` | Acceptance gate for `scripts/production_data.py dataset` — aggregate cohort/module/event counts | Live | `scripts/production_data.py` |
 | `verify_static_manifest.py` | Verifies a built image contains the runtime static manifest | Live (CI gate) | `.github/workflows/ci.yml:1078,1104` |
 | `podcast_platforms.json` | Podcast platform seed for the public projection | Live data | `scripts/build_public_projection.py:56` |
 | `production_like_course_specs.json` | SHA-256-pinned upstream course catalogue | Live data — **do not delete** | `courses/services/local_course_seed.py:68`; `scripts/build_public_projection.py:2918` |
@@ -132,7 +132,7 @@ decision.
 | --- | --- | --- |
 | `import_historical_zoomcamp_data.py` | Imports pre-2024 Zoomcamp scoring/certificate history from a `zoomcamp-scoring` checkout | Absorbed by the import consolidation. **Zero references** repo-wide, but it is the only entry point for its 6-module package |
 | `historical_import/editions.py`, `certificate_import.py`, `scoring_import.py`, `homework_content.py`, `email_recovery.py`, `identity.py` | Edition discovery, certificate/scoring import, homework text, email recovery, identity mapping | Absorbed by the import consolidation. Imported only from `import_historical_zoomcamp_data.py:61-63` and each other |
-| `review_import/` (`cli`, `workflow`, `manifest`, `admin`, `environment`, `middleware`) | The sanitized SQLite→SQLite local review-data import | **Live.** `Makefile:482-503` via `scripts/build_local_review_db.py`; `website/settings/local_review.py:48` |
+| `review_import/` (`cli`, `workflow`, `manifest`, `admin`, `environment`, `middleware`) | The sanitized SQLite→SQLite local review-data import | **Live.** `scripts/build_local_review_db.py`; `website/settings/local_review.py:48` |
 
 ---
 
@@ -150,8 +150,8 @@ noted.
 | `audit_datamailer_recipient_lists` | courses | Live | `studio_courses/views/datamailer_operations.py:51` |
 | `datamailer_campaign` / `datamailer_status` | courses | Live | Studio operations + tests |
 | `import_development_course_content` | courses | **Live, keep** | `courses/tests/test_development_content_import.py:310-320`; §0.2. Imports *real* course content, not placeholders |
-| `scripts/prod/sync_course_repositories.py` (was `pull_course_repositories`) | content_sync | Live | `scripts/prepare_local_data.py`; `Makefile` `content-pull`. The one route into the curriculum tables, shared with the signed GitHub push webhook |
-| `register_course_repository` / `scripts/prod/sync_course_repository_sources.py` (was `seed_course_repository_sources`) | content_sync | Live | `Makefile` `content-sources`; `_docs/runbooks/course-content-push-and-pull.md` |
+| `scripts/prod/sync_course_repositories.py` (was `pull_course_repositories`) | content_sync | Live | `scripts/content.py`; `_docs/runbooks/course-content-push-and-pull.md`. The one route into the curriculum tables, shared with the signed GitHub push webhook |
+| `register_course_repository` / `scripts/prod/sync_course_repository_sources.py` (was `seed_course_repository_sources`) | content_sync | Live | `scripts/content.py`; `_docs/runbooks/course-content-push-and-pull.md` |
 | `preview_peer_review_email` | courses | Live | `courses/tests/test_datamailer_peer_review.py:283` |
 | `seed_local_courses` | courses | **Live, keep** | `README.md:47`; `scripts/prepare_local_data.py:290`. Source of the "Practice assignment" text (§0.3) |
 | `seed_local_project_review` | courses | Live | `README.md:65`; `courses/tests/test_local_project_review_seed.py:101` |
@@ -165,16 +165,16 @@ noted.
 | `process_datamailer_outbox` | data | Live | `courses/tests/test_datamailer_outbox_memberships.py:62` |
 | `scripts/prod/sync_public_media_hydrate.py` / `sync_public_media_publish.py` / `sync_public_media_verify.py` (was `public_media_hydrate` / `public_media_publish` / `public_media_verify`) | content | Live (runbook) | `_docs/runbooks/public-media-objects.md:105,111,117` |
 | `register_course_repository` | content_sync | Test-only | `content_sync/tests/test_course_repository_registration.py:11` |
-| `verify_dtc_content` | content_sync | Live (CI gate) | `Makefile:124` |
-| `compatibility_gate` | core | Live (CI gate) | `Makefile:319` |
+| `verify_dtc_content` | content_sync | Live (CI gate) | `scripts/ci.py` |
+| `compatibility_gate` | core | Live (CI gate) | `scripts/ci.py` |
 | `sync_studio_roles` | core | Test-only | `accounts/tests/test_studio_foundation.py:68` |
 | `import_event_identities` | events | **Retired** | Redundant with `scripts/prod/import_events.py`'s `import_identities()`, which calls the same `events.identity.import_identity_manifest`. `scripts/prepare_local_data.py` now calls that function directly; the command and its `import_event_identity_manifest` alias are deleted |
 | `backfill_event_qna` | events | **Dead** | Zero references repo-wide |
 | `retry_event_qna` | events | Superseded | The service it wraps is reachable from Studio (`events/qna/studio_views.py:121`) and the admin API (`management_api/views.py:1091`); the CLI itself has no caller |
-| `run_job_worker` | jobs | Live (production) | `entrypoint.sh:11`; `Makefile:480` |
+| `run_job_worker` | jobs | Live (production) | `entrypoint.sh:11`; `uv run python manage.py run_job_worker` |
 | `run_job_scheduler` | jobs | **Superseded** | `run_job_worker` already runs `q2_scheduler` under a lease (`jobs/management/commands/run_job_worker.py:11,18-25`); zero references to the standalone |
 | `relay_durable_jobs` | jobs | **Uncertain** | Zero references, but it is the durable-job expiry/heartbeat sweep — likely intended for cron |
-| `check_management_parity` / `generate_admin_openapi` | management_api | Live (CI gates) | `Makefile:145,143` |
+| `check_management_parity` / `generate_admin_openapi` | management_api | Live (CI gates) | `scripts/ci.py` |
 
 ---
 
@@ -220,8 +220,8 @@ executable record of how a checked-in artifact was produced:
   constant (`_docs/compatibility/editorial-route-migration.schema.json:39`).
   `_docs/runbooks/production-hosting-and-dns-migration.md:1633` calls it "the sole builder".
 - `build_legacy_manifest.py` → `_docs/compatibility/legacy-manifest.jsonl`,
-  `legacy-manifest-differences.json`, `public-contracts.jsonl` (`Makefile:299-306`).
-- `build_pinned_legacy_sources.py` → the pinned legacy checkouts (`Makefile:296`).
+  `legacy-manifest-differences.json`, `public-contracts.jsonl` (compatibility runbook).
+- `build_pinned_legacy_sources.py` → the pinned legacy checkouts (compatibility runbook).
 - `repin_projection_digests.py` → the projection manifest's digest/scope fields; exists
   precisely because a full rebuild is not currently possible (issue #253, per its docstring).
 - Add to that list: `build_article_faq.py` → `content/article_faq.py:10` and
@@ -242,7 +242,7 @@ files with no reference, no ledger pin, and no registry pin at `fbab381`.
 | 2 | `jobs/management/commands/run_job_scheduler.py` | Zero references. Superseded: `run_job_worker` imports the same `q2_scheduler` and lease helpers (`jobs/management/commands/run_job_worker.py:11,18-25`) and is the only command in `entrypoint.sh:11` | If a future deployment topology wants a scheduler container separate from workers, this is the file that provided it. Confirm the deploy plan first |
 | 3 | `events/management/commands/import_event_identity_manifest.py` | **Done.** Deleted along with `import_event_identities.py` itself: `scripts/prepare_local_data.py` now calls `scripts/prod/import_events.py`'s `import_identities()` directly, the same function the alias's target ultimately called | n/a |
 | 4 | `events/management/commands/retry_event_qna.py` | Zero references to the command. Its service `retry_event_qna_provision` remains reachable from `events/qna/studio_views.py:121`, `management_api/views.py:1091` and `events/qna/capabilities.py:151` | Loses the CLI escape hatch for retrying a blocked provisioning when Studio is down. Lower priority than 1-3 for that reason |
-| 5 | `scripts/capture_screenshots.py` | No invocation anywhere. `Makefile:48` and `Makefile:83` list it only in the mypy/lint file sets, never in a recipe. No reference in `_docs/`, `.claude/`, or any workflow | This is the tester role's screenshot tool per `AGENTS.md`. If testers actually run it ad hoc, deleting it removes their tool. **Ask before deleting.** Also requires removing both `Makefile` lint entries |
+| 5 | `scripts/capture_screenshots.py` | No invocation anywhere. `scripts/ci.py` and `pyproject.toml` list it only in the lint/typecheck file sets, never in a recipe. No reference in `_docs/`, `.claude/`, or any workflow | This is the tester role's screenshot tool per `AGENTS.md`. If testers actually run it ad hoc, deleting it removes their tool. **Ask before deleting.** Also requires removing both quality-file entries |
 | 6 | `jobs/management/commands/relay_durable_jobs.py` | Zero references. Wraps `relay_due_jobs`, `sweep_expired_jobs`, `prune_stale_heartbeats` | **Weakest candidate.** This looks like a cron entry point for durable-job recovery that was never wired. If durable jobs rely on an external sweep, deleting it silently strands expired jobs. Confirm against the jobs spec before touching |
 
 Recommended: delete 1-3 now, ask the owner about 4-5, and leave 6 until the durable-jobs
@@ -266,7 +266,7 @@ where the volume is, and it is one issue, not nine.
 | `scripts/load_rds_export.py` | `main()` is disabled and returns 2 | Two test modules import its internals (§3). Also a named exception in `_docs/architecture/database-portability.md:79` |
 | `scripts/load_project_data.py` | Sibling of the unused `pull_project_data.py` | `courses/tests/test_load_project_data_script.py:9,25` imports it |
 | `scripts/production_like_course_specs.json` | Looks like fixture junk; source of "Project Attempt N" | SHA-256-pinned; read by `courses/services/local_course_seed.py:68` **and** `scripts/build_public_projection.py:2918`; asserted by `content/tests/test_public_projection_builder.py:26` |
-| `courses/.../seed_local_courses.py`, `seed_local_questions.py`, `import_development_course_content.py` | Named as placeholder generators | All three are pinned by `EXPECTED_COMMANDS` (§0.2) and covered by tests; `seed_local_courses` is a step in `make production-prep-*`. `import_development_course_content` imports real content, not placeholders |
+| `courses/.../seed_local_courses.py`, `seed_local_questions.py`, `import_development_course_content.py` | Named as placeholder generators | All three are pinned by `EXPECTED_COMMANDS` (§0.2) and covered by tests; `seed_local_courses` remains part of the explicit local production-data runner. `import_development_course_content` imports real content, not placeholders |
 | `scripts/generate_production_like_leaderboard_data.py` | Looks like a fixture generator | `README.md:59` names it the supported path, and `courses/services/local_course_seed.py:31` defers to it for participants. Ledger-pinned |
 | `scripts/build_synthetic_design_review_db.py` | Produces synthetic data | It is the durable build contract for the issue-#237 sitewide design review (`_docs/testing/issue-237-review-state-matrix.md:18`), and deliberately reads no production or pinned catalogue data |
 | `scripts/build_local_review_db.py` | 19-line shim | Three `Makefile` recipes call it (`485,492,499`), and `review_import/tests/test_workflow.py:2426` asserts the disabled loader points at it by name |

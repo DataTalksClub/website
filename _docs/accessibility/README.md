@@ -29,14 +29,14 @@ records fail the test suite.
 
 ## Run the gates
 
-Use the uv-backed targets from the repository root:
+Run the script entry points from the repository root:
 
 ```console
-make test-accessibility
-make test-playwright-core
+uv run --frozen python scripts/ci.py test-accessibility
+uv run --frozen python scripts/ci.py test-playwright-core
 ```
 
-`make test-accessibility` selects both the representative core smoke and the complete scheduled/full
+`scripts/ci.py test-accessibility` selects both the representative core smoke and the complete scheduled/full
 matrix. For focused diagnosis, use:
 
 ```console

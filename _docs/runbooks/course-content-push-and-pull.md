@@ -58,7 +58,7 @@ A fresh database has no rows, so it gets them from the pinned registration input
 at `content_sync/course_repository_sources.json`:
 
 ```sh
-make content-sources        # idempotent; leaves an already-registered source alone
+uv run --frozen python scripts/content.py sources  # idempotent; leaves an already-registered source alone
 ```
 
 That file is a registration input, not a second source of truth — the same
@@ -80,16 +80,17 @@ route; that is a change to make in the course repository, not here.
 ## Pulling locally
 
 ```sh
-make content-sources        # register the pinned sources into this database
-make content-pull-plan      # what is registered, and where each checkout is read from
-make content-checkouts      # clone or refresh a checkout per registered source (the only network step)
-make content-pull           # ingest every registered source, offline
+uv run --frozen python scripts/content.py sources     # register the pinned sources into this database
+uv run --frozen python scripts/content.py pull-plan   # what is registered and where each checkout is read from
+uv run --frozen python scripts/content.py checkouts    # clone or refresh each checkout (the only network step)
+uv run --frozen python scripts/content.py pull         # ingest every registered source, offline
 ```
 
 Point the pull at checkouts you already have:
 
 ```sh
-make content-pull CONTENT_CHECKOUT_ROOT=$HOME/git
+CONTENT_CHECKOUT_ROOT=$HOME/git \
+  uv run --frozen python scripts/content.py pull
 uv run --frozen python scripts/prod/sync_course_repositories.py \
     --database .tmp/local.sqlite3 \
     --checkout llm-zoomcamp=$HOME/git/llm-zoomcamp
@@ -110,7 +111,7 @@ the public GitHub repository. Imported pages link back to the commit they came
 from, so a commit only one machine has publishes source links, images and edit
 affordances that can only 404. Reachability is read from the checkout's own
 remote-tracking branches, so the check stays offline.
-`make production-prep-dataset` uses it; ad-hoc pulls do not, because a scratch
+`uv run --frozen python scripts/production_data.py dataset` uses it; ad-hoc pulls do not, because a scratch
 fixture checkout has no remote at all.
 
 ## Reading a refusal

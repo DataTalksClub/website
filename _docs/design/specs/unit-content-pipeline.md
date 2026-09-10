@@ -36,9 +36,8 @@ From a Markdown file in a course repository to rendered HTML at
 `/courses/<family>/<year>/modules/<module>/<unit>`.
 
 ```
- (1) CHECKOUT        Makefile:426-448  production-prep-course-sources
-     git clone/reset --hard the three repos from PRODUCTION_PREP_COURSE_REMOTE
-     (today $HOME/git, because the 2026 curricula are unpushed) onto main.
+ (1) CHECKOUT        scripts/content.py checkouts
+     clone or refresh the registered repositories under the local scratch root.
 
  (2) MANIFEST        scripts/build_course_modules_manifest.py
      _manifest_paths()      :102-120  select course.yaml, module.yaml, cohort.yaml,
@@ -379,7 +378,7 @@ repositories; each repository's move must be atomic *within itself*.
 
 | Step | Action | Owner | Breaks if skipped |
 | --- | --- | --- | --- |
-| 0 | Push llm-zoomcamp ×5, ml ×2, ai-dev-tools ×1 to `main` | owner (in flight) | Everything downstream — production ingests by webhook and cannot see unpushed commits. Until this lands, `PRODUCTION_PREP_UNPUBLISHED_COMMIT_REASON` (`Makefile:433-435`) is the only thing keeping the manifest builder from refusing. |
+| 0 | Push llm-zoomcamp ×5, ml ×2, ai-dev-tools ×1 to `main` | owner (in flight) | Everything downstream — production ingests by webhook and cannot see unpushed commits. Until this lands, the public-commit check in `scripts/content.py checkouts` is the only thing keeping the manifest builder from refusing. |
 | 1 | Add `SITE.md` to the manifest builder selection | the `SITE.md` agent | The three new `SITE.md` files stay inert (section 3) |
 | 2 | llm-zoomcamp: rewrite `cohorts/README.md` | content | Next author follows a false convention |
 | 3 | ai-dev-tools: `git mv` ×4 + 9 link repairs + homework dir decision, **one commit** | content | Split across commits, `main` carries broken links between them |

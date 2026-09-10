@@ -18,7 +18,7 @@ same kind of tar codeload serves the push route, so a repository's
 Which repositories exist is data, not code.  This iterates the registered
 ``ContentSource`` rows, so adding a course means registering a source with
 ``scripts/prod/sync_course_repository_sources.py`` or ``manage.py
-register_course_repository``, not editing a list here or in the Makefile.
+register_course_repository``, not editing a list here or in a command wrapper.
 
     uv run --frozen python scripts/prod/sync_course_repositories.py \\
         --database .tmp/local.sqlite3 --from-disk .tmp/course-checkouts
@@ -233,7 +233,7 @@ def describe_checkout(
             f"{source.stable_id}: {commit_sha} is not on a branch of "
             f"https://github.com/{source.repository_owner}/{source.repository_name} "
             f"in {checkout}; every source link the import publishes would 404. "
-            f"Push it, or refresh the checkout with `make content-checkouts`."
+            f"Push it, or refresh the checkout with `uv run --frozen python scripts/content.py checkouts`."
         )
     return commit_sha, waivers
 

@@ -51,7 +51,7 @@ leaderboard, Studio Courses, helper, and fallback-cleanup checks passed.
   upgrade and replay.
 - The bridge rollback/retry test forces a failed historical data operation, verifies the atomic
   rollback, then reruns the same candidate successfully. Fresh migration, migration import
-  isolation, `makemigrations --check --dry-run`, and `make test-migrations` are local-only checks;
+  isolation, `makemigrations --check --dry-run`, and `uv run --frozen python scripts/ci.py test-migrations` are local-only checks;
   no development or production database is used.
 - Exact-image populated deployment, readiness, deployed smoke, failure classification, and
   post-push CI/on-call evidence remain HUMAN gates for issue #220.

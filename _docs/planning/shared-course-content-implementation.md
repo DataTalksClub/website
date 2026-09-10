@@ -868,7 +868,7 @@ missing context, or error page.
 
 ```text
 uv run --frozen pytest courses/tests/test_content_page_shell.py content/tests/test_courses_sitemap_contract.py content/tests/test_public_routes_and_seo.py courses/tests/test_shared_course_seo.py -q
-make test-playwright-core
+uv run --frozen python scripts/ci.py test-playwright-core
 ```
 
 ### W6 — Compatibility, migration audit, and consumer parity
@@ -1022,7 +1022,7 @@ and leave the worktree uncommitted. No production conversion/deployment occurs i
 plan.
 
 **Tester gate:** independently recompute the plan, run focused Django plus
-`make test-playwright-core` (or `make test-playwright` if the changed harness/template
+`uv run --frozen python scripts/ci.py test-playwright-core` (or `uv run --frozen python scripts/ci.py test-playwright` if the changed harness/template
 classification requires it), inspect desktop/mobile screenshots under `.tmp/screenshots/`,
 and test anonymous, multi-enrollment, wrong-cohort, login-return, closed/archive,
 missing-mapping and mutation compatibility and read-only method-denial behavior. Required screenshots cannot be pending.
@@ -1081,7 +1081,7 @@ consumes it.
 
 | Component | Minimum evidence |
 | --- | --- |
-| Models/migrations | `make migrations-check`; `make test-migrations`; model constraints and backfill dry-run/idempotence tests |
+| Models/migrations | `uv run --frozen python scripts/ci.py migrations-check`; `uv run --frozen python scripts/ci.py test-migrations`; model constraints and backfill dry-run/idempotence tests |
 | Parser/transport | parser fixtures, push/pull parity, archive bounds, numbered paths, archive-only non-import, no execution |
 | Import | shared primary-key reuse, stable-ID/alias behavior, protected assessment/read state, atomic failure, asset checksum/path |
 | Routes/compatibility | canonical shared and `/cohorts/` paths, one-hop old aliases, legacy edition map, direct mutation compatibility/read-only 405, exact query preservation |

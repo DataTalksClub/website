@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check that a prepared local database matches the shape production will serve.
 
-This is the acceptance gate for ``make production-prep-dataset``.  It reports numbers
+This is the acceptance gate for ``scripts/production_data.py dataset``.  It reports numbers
 rather than prose: which cohorts exist, which of them carry module curricula and how
 large those curricula are, how many course families back them, whether any upstream test
 course leaked in, and how many future-dated events the public site would render.
@@ -382,7 +382,7 @@ def _editorial_failures(editorial: dict[str, Any]) -> list[str]:
         failures.append(
             "editorial catalogue publishes nothing for "
             f"{editorial['empty_collections']}: run the step 4 importers "
-            "(make import-editorial-content)"
+            "(run the editorial import scripts)"
         )
     if not editorial["content_asset_total"]:
         failures.append("no content assets, so scripts/prod/import_docs.py never ran")

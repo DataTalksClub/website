@@ -1,6 +1,6 @@
 """The checkout refresh boundary never destroys an unowned tree (audit REL-10).
 
-``make content-checkouts`` and ``make content-checkout`` used to reset and
+The content checkout commands used to reset and
 ``clean -fdx`` any directory that had a ``.git`` subdirectory.  The shared
 helper now refuses anything it did not create itself, anything whose origin is
 not the registered repository, any dirty worktree (tracked edits, untracked

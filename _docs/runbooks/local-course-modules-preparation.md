@@ -13,14 +13,14 @@ There is no separate local importer any more. The dataset pulls course repositor
 drives. `_docs/runbooks/course-content-push-and-pull.md` describes it; the only difference here
 is the transport and two options:
 
-- `--from-disk`, pointing at the checkouts `make content-checkouts` produced; and
+- `--from-disk`, pointing at the checkouts `scripts/content.py checkouts` produced; and
 - `--require-public-commit`, which refuses a HEAD that is not on a branch of the public GitHub
   repository, because every source-derived link the imported pages publish -- the edit link, the
   raw image URL, a source path a reader follows -- can only 404 while the commit is private.
   Reachability is read from the checkout's own remote-tracking branches, so the check needs no
   network.
 
-Which repositories exist is registered `ContentSource` data. `make content-sources` writes the
+Which repositories exist is registered `ContentSource` data. `scripts/content.py sources` writes the
 pinned registration input at `content_sync/course_repository_sources.json` into the database it
 is pointed at, and is idempotent.
 
@@ -113,21 +113,21 @@ the input, the sources are still staged for review and no public registration to
 It is a rehearsal tool, not a production importer; provider credentials, live registrations, and
 unreviewed mapping decisions must be supplied through a separately approved operational flow.
 
-## One command: `make production-prep-dataset`
+## One command: `scripts/production_data.py dataset`
 
 The steps above compose into a single rebuild, in three stages:
 
-1. `production-prep-course-registry` creates the dataset database and registers the course
+1. `production_data.py` creates the dataset database and registers the course
    repositories. This has to come first, because registered `ContentSource` rows are the only
    place the answer to "which repositories exist" lives.
-2. `production-prep-course-sources` clones or refreshes one checkout per registered source. It is
-   `make content-checkouts` pointed at the dataset root, and it is the only step that touches the
-   network.
-3. `production-prep-local` builds the database offline from those checkouts and gates the result.
+2. The `content.py checkouts` stage clones or refreshes one checkout per registered source. It is
+   the only stage that touches the network.
+3. The `production_data.py local` stage builds the database offline from those checkouts and gates
+   the result.
 
 ```bash
-make production-prep-dataset
-make run-production-prep-dataset      # serves it on :8001
+uv run --frozen python scripts/production_data.py dataset
+uv run --frozen python scripts/production_data.py run  # serves it on :8001
 ```
 
 Artifacts land under `.tmp/production-prep-dataset/`: `course-sources/` (one checkout per
@@ -149,18 +149,19 @@ source), `PRODUCTION_PREP_DATASET_PORT`, and `PRODUCTION_PREP_DATASET_REGISTRATI
   updated in the same change. These directories hold real registrations; they stay outside git.
 - **The registered course repositories.** Stage 2 clones them from `CONTENT_GIT_HOST`
   (`https://github.com` by default) using the owner and repository each registered source names,
-  so no repository identity is written in the Makefile. The 2026 module curricula are published
+  so no repository identity is written in a command wrapper. The 2026 module curricula are published
   upstream now, so a clean clone satisfies `--require-public-commit` on its own; a checkout that
   has run ahead of its remote will be refused by name until it is pushed.
 - **The protected CMP snapshot.** `PRODUCTION_PREP_CMP_SOURCE` defaults to
-  `$(HOME)/git/course-management-platform/db/db.sqlite3`. `make production-prep-local` copies that
+  `$(HOME)/git/course-management-platform/db/db.sqlite3`. The `production_data.py local` stage copies that
   file and runs the sanitizing importer before the catalogue seed and the course pull, so
   homework questions and project copy come from CMP rather than the placeholder seed. Learner
-  tables stay empty. `make review-data` remains the standalone review-database path.
+  tables stay empty. `scripts/build_local_review_db.py` remains the standalone review-database path.
 
 ### What the gate checks
 
-`make production-prep-dataset-verify` re-runs the checks on their own and prints an aggregate-only
+`uv run --frozen python scripts/production_data.py verify --database \
+.tmp/production-prep-dataset/dataset.sqlite3` re-runs the checks on their own and prints an aggregate-only
 JSON report: every expected 2026 cohort by slug, `curriculum_format = modules` for exactly the
 three converted cohorts with their module/unit counts, one family row per real course, the absence
 of the upstream `fake-course` rows, and the count of future-dated events the public site would

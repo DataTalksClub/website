@@ -38,7 +38,7 @@ PRODUCTION_TARGET = "website-production"
 RETIRED_TARGET = "website-sandbox"
 
 # Synthetic stand-ins with the exact shape the deployed contract requires. The
-# release identity is the one `make deployment-check` already uses; the URL and the
+# release identity is the one the deployment-check script uses; the URL and the
 # key are invented here and address nothing.
 SYNTHETIC_DEPLOYED_ENVIRONMENT = {
     "DATABASE_URL": "postgresql://check:check@127.0.0.1:5432/check",

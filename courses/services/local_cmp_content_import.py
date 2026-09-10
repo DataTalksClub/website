@@ -3,7 +3,7 @@
 ``review_import`` is the sanitizing reader: it copies only the versioned allowlist
 and leaves learner tables empty.  This service applies that dataset to the
 already-migrated local SQLite database that ``scripts/prepare_local_data.py``
-builds, which ``make review-data`` never writes.
+builds, which the local review database workflow never writes.
 
 It also applies one local-only cut the review snapshot itself does not: the
 upstream fixture rows ``fake-course`` and ``fake-course-2`` are dropped.

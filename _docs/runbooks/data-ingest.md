@@ -4,9 +4,9 @@ Every place data enters this repository, what brings it in, and what happens to 
 next. Written to be run from at 2am without asking anyone a question.
 
 Issue #310 (*Consolidate every data ingest into one clear set of prod scripts*) is
-the work this describes. `scripts/prod/` is where that consolidation is landing;
-it is **in flight while you read this**, so §11 records what exists today against
-what the Makefile already expects.
+the work this describes. `scripts/prod/` and the explicit runners
+`scripts/content.py` and `scripts/production_data.py` own the operational entry points;
+the root Makefile contains only local development lifecycle commands.
 
 Counts were measured on `main` on 2026-09-03 and re-checked on 2026-09-05. The
 2026-09-05 pass re-measured the CMP export, the `aisl` export, event identity,
@@ -153,8 +153,9 @@ the model every other source should be measured against.** Both transports
 converge on one function, the repository list is data rather than a hardcoded
 list, and the ingest is transactional. See §10.
 
-Ordering: `migrate` → `make content-sources` → `make content-checkouts` (the only
-networked step) → `make content-pull`.
+Ordering: `migrate` → `uv run --frozen python scripts/content.py sources` →
+`uv run --frozen python scripts/content.py checkouts` (the only networked step) →
+`uv run --frozen python scripts/content.py pull`.
 
 ---
 
@@ -185,7 +186,7 @@ A missing or moved checkout is a hard failure, not a warning.
 books from `--content-root`. `--mode fallback` takes them from the legacy repo
 instead; it is **not accepted** (`manifest.json` → `selection_rule.fallback_promoted: false`).
 
-**No Makefile target invokes this script.** It is referenced from
+**No general runner invokes this script.** It is referenced from
 `.github/workflows/content-update.yml` and the runbooks only. A full rebuild is
 currently **not reproducible** — see issue #253 and §11.
 
@@ -225,7 +226,7 @@ to boot, because an absent catalogue is a normal state. `content/apps.py`'s rema
 (`content.E003`–`E005`, `content.W001`) cover only the media store.
 
 The consequence for an operator: a hand-edit under `temporary/content/` is not
-caught at boot. It is caught by `make content-update-check`, and by the importers
+caught at boot. It is caught by `uv run --frozen python scripts/ci.py content-update-check`, and by the importers
 themselves — each refuses a reviewed file whose declared counts, digests or pinned
 revision do not match. Somebody has to run them.
 
@@ -717,7 +718,7 @@ identical).
 | --- | --- |
 | **Upstream** | `DataTalksClub/zoomcamp-scoring`, a **separate repository**, cloned locally. Never vendored |
 | **Script** | `scripts/prod/import_legacy_zoomcamp.py` + `scripts/prod/legacy_zoomcamp/` |
-| **Make** | `make import-legacy-zoomcamp` (`LEGACY_ZOOMCAMP_SOURCE ?= $(HOME)/git/zoomcamp-scoring`) |
+| **Command** | `uv run --frozen python scripts/prod/import_legacy_zoomcamp.py --database … --source-repo ~/git/zoomcamp-scoring` |
 | **Writes** | Cohorts, homeworks, projects, submissions, enrollments, certificates |
 | **Idempotency** | Safe. Every write keyed on a natural key; a replay reports the same counts and creates no duplicate |
 | **Bootstrap** | **Yes**, and it is the only source for the pre-2024 editions. `Cohort.save()` resolves the course family from the slug, so no catalogue need exist. Ten other modules bootstrap too (§11) |
@@ -1051,7 +1052,7 @@ date-and-title pass then resolves 99 Luma aggregates, and 276 stay unresolved an
 no count. Both sources finish `activated: false`. See §12 item 2 for the breakdown of
 why each one is unresolved.
 
-`make import-events` runs `scripts/prod/import_events.py` with
+`uv run --frozen python scripts/prod/import_events.py` runs with
 `--current-registration-input` pointed at
 `_docs/migration-data/local-current-registration-input.json`; set that variable empty to
 leave every mapping review-required.
@@ -1120,7 +1121,7 @@ the offline fixture store; the `/images/…` view resolves its record from the d
 
 So the database is the serving path, and the remaining gap is *continuous* ingest: a
 push to `DataTalksClub/content` changes nothing here today. The one-time importers filled
-the tables; nothing keeps them current. `make content-drift` (§10.3) now measures that
+the tables; nothing keeps them current. `uv run --frozen python scripts/content.py drift` (§10.3) now measures that
 gap on demand — it reports, it does not close it.
 
 ---
@@ -1130,7 +1131,7 @@ gap on demand — it reports, it does not close it.
 Once content is push-synchronised the operational question is *"is what we are
 serving actually what the content repository says?"* — at any moment, not only at
 import time. For `DataTalksClub/content` that check now exists and is
-`make content-drift` (§10.3). **The course repositories still have none**: nothing
+`uv run --frozen python scripts/content.py drift` (§10.3). **The course repositories still have none**: nothing
 compares a served curriculum against its repository out of band, and §10.3's second
 half is still a design rather than a tool.
 
@@ -1140,7 +1141,7 @@ Six mechanisms, each solving part of the problem for a different source.
 
 | Mechanism | Compares | Runs | Catches |
 | --- | --- | --- | --- |
-| `scripts/prod/sync_content_verify.py` | the **served editorial catalogue** against a `DataTalksClub/content` checkout at a named revision, **both directions** | `make content-drift`, by hand / ops | missing, extra and byte-mismatched records per family; a served revision that is behind upstream or not on it at all |
+| `scripts/prod/sync_content_verify.py` | the **served editorial catalogue** against a `DataTalksClub/content` checkout at a named revision, **both directions** | `scripts/content.py drift`, by hand / ops | missing, extra and byte-mismatched records per family; a served revision that is behind upstream or not on it at all |
 | `CourseCurriculumImportRun` + `replayed` | this commit against previously applied runs | during ingest | re-applying a commit; a commit that produces a different manifest checksum |
 | `manage.py verify_dtc_content` | a **checkout** against pinned contract constants | CI / by hand | wrong repo, wrong commit, dirty tree, content that fails the adapter |
 | `content_sync/dtc_content/parity.py` | adapter bundle against the committed projection | inside `verify_dtc_content`, **only at one frozen commit** | projection and content repo disagreeing |
@@ -1160,7 +1161,7 @@ already declares which repository owns it, which record it is, and what its sour
 hashed to. It writes nothing and makes no call over a network of its own: every git
 invocation is a local object-database read, and the comparison revision is resolved from
 the checkout's own remote-tracking branch. Refreshing that checkout is a separate,
-explicitly networked step (`make content-checkout`), which is why the report always
+explicitly networked step (`uv run --frozen python scripts/content.py checkout`), which is why the report always
 states the remote-tracking head it resolved — that is how stale the answer is.
 
 **`replayed`** (`courses/services/curriculum_import.py:876`) means *this exact commit
@@ -1205,7 +1206,7 @@ editorial repository today is the table below it.
 | **(a)** Upstream document never arrived | for every upstream path admitted by `path_allowlist`, a served record exists at its identity; report `upstream − served` | `parity.py:410-415` — but **inverted** and frozen-commit gated. Counts-only: `EXPECTED_COUNTS` + `_validate_collection` (`build_public_projection.py:2469`). Shape to copy: `verify_media` `report.missing` |
 | **(b)** We serve what upstream deleted | the reverse diff `served − upstream` | `curriculum_import.py:583-588, 697-699, 751-777` reconciles deletions **during** ingest (with `protected_question_removal` when submissions exist) but never detects out of band. `media_tooling.py:344-352` `report.extra` is the only orphan detector |
 | **(c)** Upstream changed, we did not re-ingest | recompute per-record digest from upstream, compare to stored | Course rows store `source_checksum` (`curriculum_import.py:257`) — but it digests the **parsed dataclass**, not file bytes, so comparison requires re-parsing. `manifest_checksum` conflict (`:876-877`) fires only inside an ingest of the same commit. Editorial: `provenance.checksum` is stored in every projection record and **nothing recomputes it from upstream** |
-| **(d)** Our commit is behind upstream HEAD | resolve `refs/heads/<branch>` upstream, compare to ingested commit, assert ancestry not fork | **Nothing does this.** No code path resolves an upstream ref. Closest: `course_repository_checkout.py:77` `commit_is_public` answers "is our commit on the public remote?" — one `git rev-parse <remote>/<branch>` from answering "is it the tip?". `make content-checkouts` already prints upstream HEAD per source and compares it to nothing |
+| **(d)** Our commit is behind upstream HEAD | resolve `refs/heads/<branch>` upstream, compare to ingested commit, assert ancestry not fork | **Nothing does this.** No code path resolves an upstream ref. Closest: `course_repository_checkout.py:77` `commit_is_public` answers "is our commit on the public remote?" — one `git rev-parse <remote>/<branch>` from answering "is it the tip?". `scripts/content.py checkouts` already prints upstream HEAD per source and compares it to nothing |
 
 **What answers each class today, for `DataTalksClub/content`.** The "closest existing"
 column above is the state before `sync_content_verify.py` landed; it is kept because it
@@ -1239,21 +1240,22 @@ only by the unused release pipeline — the course-repository route never sets i
 **For `DataTalksClub/content`: two commands, and only the first touches the network.**
 
 ```bash
-make content-checkout    # clone or refresh the editorial checkout; prints the resolved HEAD
-make content-drift       # offline, read-only; one JSON report on stdout
+uv run --frozen python scripts/content.py checkout    # clone or refresh the editorial checkout; prints the resolved HEAD
+uv run --frozen python scripts/content.py drift       # offline, read-only; one JSON report on stdout
 ```
 
-`make content-checkouts` — plural, §3 — does **not** cover this repository: it selects
+`scripts/content.py checkouts` — plural, §3 — does **not** cover this repository: it selects
 only sources whose `adapter_type` is `course_repository_v1`
 (`sync_course_repositories.py:73-80`), and the editorial source is not one. The singular
-`content-checkout` is the editorial one. Do not reach for one expecting the other.
+`scripts/content.py checkout` is the editorial one. Do not reach for it expecting the
+course-repository `checkouts` command.
 
 Neither target names a repository. Both read the registered enabled `ContentSource` whose
 repository is `DataTalksClub/content` — `dtc-public-content` on any database built by
 `scripts/prod/import_public_content.py` — and
 `sync_content_verify.py --checkout-plan` prints that selection, which is what
-`content-checkout` consumes. A database with no such enabled source is refused rather
-than falling back to a name written into the Makefile.
+`scripts/content.py checkout` consumes. A database with no such enabled source is refused rather
+than falling back to a name written into a command wrapper.
 
 | Override | Default | Means |
 | --- | --- | --- |
@@ -1270,8 +1272,8 @@ than falling back to a name written into the Makefile.
 | 2 | refusal — the run could not produce an answer; `{"condition": …, "error": …}` on stderr and **nothing on stdout** |
 
 One is reserved for a *report* so that "we are behind" is distinguishable from "I could
-not look" — which matters the day this becomes a scheduled job. GNU make collapses any
-failed recipe to its own exit 2, so `make content-drift` echoes the script's real code to
+not look" — which matters the day this becomes a scheduled job. The wrapper preserves the
+script's real exit code, so `scripts/content.py drift` echoes it to
 stderr; anything that has to tell the two apart runs
 `uv run --frozen python scripts/prod/sync_content_verify.py --database … --checkout …`
 directly.
@@ -1291,7 +1293,7 @@ schema slice belongs to **#273**, those four fields still have zero writers (§1
 a read-only report that writes is no longer a read-only report. `freshness_target_minutes`
 is likewise not consulted: the report states the remote-tracking head it resolved and
 lets the reader judge staleness, because the answer is only ever as fresh as the last
-`make content-checkout`.
+`uv run --frozen python scripts/content.py checkout`.
 
 A checkout with uncommitted changes, or with HEAD parked on some other branch, still
 produces a report. The answer comes from the named revision's tree read out of the object
@@ -1391,11 +1393,11 @@ What genuinely differs, and needs care rather than a separate pipeline:
    and reports success.
 3. **Course catalogue, in the declared order** (`COURSE_CATALOGUE_ORDER`, same module):
    `import_legacy_zoomcamp` (the frozen pre-2024 editions, which nothing else has), then
-   `make content-sources` / `make content-checkouts` / `make content-pull`
+   `scripts/content.py sources` / `checkouts` / `pull`
    (`sync_course_repositories` — the git-synchronized upstream, which owns module and
    unit curricula, and the only networked step), then
-   `scripts/prod/import_cmp_content.py`, which is `make import-cmp-content
-   CMP_EXPORT=<export> IMPORT_DATABASE=<database>`. **CMP runs last because it
+   `scripts/prod/import_cmp_content.py`, which is run directly with
+   `--database <database> --source <export>`. **CMP runs last because it
    reconciles.** It no longer needs a placeholder seeder to reconcile against — it
    mints its own cohort and family from the reviewed catalogue — but the reverse
    order still refuses on a homework slug collision the first time one cohort is
@@ -1413,12 +1415,12 @@ What genuinely differs, and needs care rather than a separate pipeline:
    reconcile against the events step 5 wrote. They have no Make target on purpose —
    see "Not in the bootstrap order, and why" below.
 
-`make production-prep-dataset` runs stages 1–3 plus `scripts/prepare_local_data.py` and
+`scripts/production_data.py dataset` runs stages 1–3 plus `scripts/prepare_local_data.py` and
 `scripts/verify_local_dataset.py`; that orchestrator runs the whole of step 5 by
 composing `import_events.run()` itself — one call, all five legs, in the fixed order,
 under its single transaction, after the editorial block — and `verify_local_dataset.py`
 reports `database_event_identities` and `database_event_content` separately, because an
-identity alone publishes no page. `make production-prep-bootstrap` therefore has no
+identity alone publishes no page. `scripts/production_data.py bootstrap` therefore has no
 `import-events` call of its own: the rehearsal already ran the pipeline, and a second
 pass would re-parse both provider exports and re-run every leg to compensate for drift
 the first pass had not produced. Read
@@ -1426,46 +1428,46 @@ the first pass had not produced. Read
 
 ### Not in the bootstrap order, and why
 
-`make production-prep-bootstrap` runs steps 1–5 and stops. Three groups of entry
+`scripts/production_data.py bootstrap` runs steps 1–5 and stops. Three groups of entry
 points are deliberately outside it, and the exclusions are checked by
-`scripts/tests/test_prod_make_targets.py` rather than left to prose.
+`scripts/tests/test_prod_conventions.py` rather than left to prose.
 
 - **Step 6** — `import_event_registrants`, `import_mailchimp_event_tags` and
   `import_mailchimp_subscriptions`. They read attendee-level personal data and need
   provider credentials, so they stay separately invoked runs.
-- **The CMP learner importers** — `make import-cmp-learners`,
-  `make import-cmp-learner-history`, and `make import-cmp-learner-data` for the pair
+- **The CMP learner importers** — `scripts/prod/import_cmp_learners.py`,
+  `scripts/prod/import_cmp_learner_history.py`, and the explicit ordered runner for the pair
   in order. Between them they write 20,009 real accounts and 472,690 learner rows. A
   local dataset rebuild is a routine developer action and must never pull real
   accounts into a dev SQLite file on its way past. The export is not frozen either —
   a new dump lands daily and there is no `latest` symlink — so an unattended rebuild
   could neither choose one deliberately nor record the choice in the run log, which
   `_docs/runbooks/production-data-migration.md` §4 step 4 requires. Use
-  `make import-cmp-learners-status` and `make import-cmp-learner-history-status` to
+  the same importer scripts with `--status` to
   read a resumable run's progress without opening the export at all.
-- **Account reconciliation** — `make import-account-reconciliation` (the dry run) and
-  `make import-account-reconciliation-rollback-check`. It merges real people, and
+- **Account reconciliation** — `scripts/prod/import_account_reconciliation.py` (the dry run)
+  and its `--rollback-check` mode. It merges real people, and
   `_docs/runbooks/account-reconciliation.md` §4 calls the apply out as the one step of
   the migration with no rollback. **There is no `--apply` target and there must never
   be one**: the apply stays a consciously typed command against a human-reviewed
   mapping document.
 
-`make import-cmp-content` is the exception that proves the shape. It reads content
+`scripts/prod/import_cmp_content.py` is the exception that proves the shape. It reads content
 only, so it is safe in a rebuild — and it is still not added to
-`production-prep-bootstrap`, because that target already runs it through
-`production-prep-local` → `prepare_local_data.py --cmp-source-db`, and a second call
+`production_data.py bootstrap`, because that runner already runs it through
+`production_data.py local` → `prepare_local_data.py --cmp-source-db`, and a second call
 would import it twice.
 
-`CMP_EXPORT` and `IMPORT_LEARNER_DATABASE` have no default value. Every one of these
-targets refuses with exit 2 and a message naming the variable before any Python
-starts; a missing variable is never a skip, a warning or a guess.
+`--source` and `--database` have no default value for these production importers. Every
+command refuses with exit 2 before any Python starts when its source or destination is
+missing; a missing value is never a skip, a warning or a guess.
 
 ### Where the consolidation got to
 
 As of 2026-09-05, `scripts/prod/` is the single set of production entry points and the
-Makefile targets resolve:
+explicit script commands resolve:
 
-- `make import-legacy-zoomcamp` and `make import-events` both run, against
+- `import_legacy_zoomcamp.py` and `import_events.py` both run, against
   `scripts/prod/import_legacy_zoomcamp.py` and `scripts/prod/import_events.py`. The
   window in which `import-events` pointed at a script that did not exist is over.
 - The provider export readers have left the `events` domain.
@@ -1477,13 +1479,13 @@ Makefile targets resolve:
 - The projection build helpers live in `scripts/projection_build/`, and the staging
   files they produce live under `temporary/content/`.
 - The four CMP entry points — `import_cmp_content`, `import_cmp_learners`,
-  `import_cmp_learner_history` and `import_account_reconciliation` — have Make targets
-  now, listed under "Not in the bootstrap order, and why" above. They were runbook-only
+  `import_cmp_learner_history` and `import_account_reconciliation` — have explicit script
+  commands, listed under "Not in the bootstrap order, and why" above. They were runbook-only
   prose that nothing executed and nothing held to an order. `scripts/prod/__init__.py`
-  declares `CMP_LEARNER_ORDER` for the run order and `MAKE_TARGET_EXCLUSIONS` for the
-  entry points that deliberately have no target, and
-  `scripts/tests/test_prod_make_targets.py` closes the set: a new `scripts/prod` module
-  is either invoked by a recipe or carries a written reason. `sync_content` and the
+  declares `CMP_LEARNER_ORDER` for the run order and `SCRIPT_COMMAND_EXCLUSIONS` for the
+  entry points that deliberately have no general runner, and
+  `scripts/tests/test_prod_conventions.py` closes the set: a new `scripts/prod` module
+  either has a script command or carries a written reason. `sync_content` and the
   three `sync_public_media_*` scripts are excluded pending #310, which is where that
   decision belongs.
 - `_docs/design/specs/script-inventory.md` is a point-in-time analysis pinned to an old
@@ -1518,7 +1520,7 @@ closed, so an old item number still leads somewhere.
    and two others are pieces of it: it makes item 4 unfixable rather than merely un-run,
    because a rebuild cannot obtain its inputs at all; and it makes item 13 an
    understatement for this source, because the content pin is not behind upstream, it is
-   off the upstream graph. It is no longer invisible: `make content-drift` reports it as
+   off the upstream graph. It is no longer invisible: `scripts/content.py drift` reports it as
    `revision_status.state = "unreachable"` and exits 1 (§10.3, §12.1 was item 10).
 
 2. **The mapping backlog: registration aggregates stage, mostly do not resolve, and
@@ -1627,7 +1629,7 @@ closed, so an old item number still leads somewhere.
     are against the legacy `datatalksclub.github.io` and podwiki pins; for
     `DataTalksClub/content` the problem is not drift but item 1. Not a defect in itself;
     it is the strongest practical argument for push-sync. **The editorial half is no
-    longer invisible** — `make content-drift` counts it per family (§10.3) — but the
+    longer invisible** — `scripts/content.py drift` counts it per family (§10.3) — but the
     legacy and podwiki pins in these figures still have no drift check of their own, so
     they stay hand-counted.
 
@@ -1671,7 +1673,7 @@ number can appear twice in this table for two unrelated defects.
 | 7 | "Sponsors have no ingest at all" | `scripts/prod/import_sponsors.py`, reading `temporary/content/sponsor_directory.json` through `core.sponsors`' shared services. `core/sponsor_history.py` and its hardcoded `FEATURED_SUPPORTERS` tuple are deleted |
 | 8 | "Testimonials arrive only through a data migration" | `scripts/prod/import_testimonials.py`, reading `temporary/content/homepage_testimonials.json`. The seeding migration is gone; the two `RunPython` migrations left repo-wide (`courses/0002_simplify_registration_counts.py` and `data/0002_redact_datamailer_audit_pii.py`) seed no content |
 | 10 | "`.local/migration-data/events/luma-aggregate-v1` has drifted off the pin — it holds 174 events against the 166 `_docs/migration-data/event-registration-sources.json` pins, so the default `--luma-source` fails, and somebody has to decide whether the pin moves or the directory is discarded" | The decision was taken and the pin moved: `f100d16d` (2026-09-06) re-pins `luma.event_total` to **174** and `luma.tree_sha256` to `2e18d184…`, the digest of that directory, with the row, registration and status totals moved together. Reviewed per [`event-registration-pull.md`](event-registration-pull.md) §4.3. *Closed on the pin file alone; no import was re-run for this pass* |
-| 10 | "No drift check exists for `DataTalksClub/content` — nothing in the repository compares what we serve against what the content repository says, at any moment" | `scripts/prod/sync_content_verify.py`, run as `make content-drift` over a checkout refreshed by `make content-checkout` (§10.1, §10.3) — issue #323. Read-only in both directions and offline: it diffs the five families `DataTalksClub/content` owns — articles, podcasts, podcast transcripts, books, media — keyed on `provenance.source_key` and digested against `provenance.checksum`, and reports `missing` / `extra` / `mismatched` per family plus `revision_status` for drift class (d). Exit 0 clean, 1 drift, 2 refusal. It writes nothing, including the `last_reconciled_at` / `pending_follow_up` this section's step 7 used to ask for — that slice is #273's. Two things it does **not** close: the course repositories still have no equivalent (§10.3), and no CI or scheduled job runs it, because against today's data it exits 1 by design (item 1) and `_docs/PROCESS.md` does not permit carrying a red required job |
+| 10 | "No drift check exists for `DataTalksClub/content` — nothing in the repository compares what we serve against what the content repository says, at any moment" | `scripts/prod/sync_content_verify.py`, run as `scripts/content.py drift` over a checkout refreshed by `scripts/content.py checkout` (§10.1, §10.3) — issue #323. Read-only in both directions and offline: it diffs the five families `DataTalksClub/content` owns — articles, podcasts, podcast transcripts, books, media — keyed on `provenance.source_key` and digested against `provenance.checksum`, and reports `missing` / `extra` / `mismatched` per family plus `revision_status` for drift class (d). Exit 0 clean, 1 drift, 2 refusal. It writes nothing, including the `last_reconciled_at` / `pending_follow_up` this section's step 7 used to ask for — that slice is #273's. Two things it does **not** close: the course repositories still have no equivalent (§10.3), and no CI or scheduled job runs it, because against today's data it exits 1 by design (item 1) and `_docs/PROCESS.md` does not permit carrying a red required job |
 | 15 | "The ingest contract's `path_allowlist` declares flat `podcasts/*.yaml` and `podcasts/transcripts/*.yaml` while the content repository's layout is season-hierarchical, so any push-sync built against it would match nothing" | The premise was wrong. `DataTalksClub/content` `main` is `8be8587c` and its layout is flat — checked 2026-09-07 through the API: `podcasts/` holds **205** `*.yaml` files plus one directory, `podcasts/transcripts/` holds **203**, which is exactly what `content_sync/dtc_content/contract.py:121-124` declares, what `ACCEPTED_SOURCE_COUNTS` records and what [`content-authoring.md`](../content-authoring.md) `:26-32` requires normatively. The season-hierarchical tree the entry described is what the unobtainable pinned revision `1375c506…` holds in an unpushed local clone (§6.1, and item 1) — not what a push-sync would be built against. The count half was already closed: `ACCEPTED_SOURCE_COUNTS` (205/203) and `ACCEPTED_COUNTS` (203/201) are two named constants with a comment explaining that they describe different commits |
 | 20 | "`content_sync`'s test suite fails wholesale on `main` — 104 failures and 8 errors, every one `DatabaseOperationForbidden`" | `a218361d` and `abc3890c` (both 2026-09-06): the adapter and repository suites moved from `SimpleTestCase` to `TestCase`, and the preparation suite stopped needing the one-time `dtc-public-content` source. Re-run on 2026-09-07 at `6899c616`: `manage.py test content_sync` → **`Ran 101 tests … OK (skipped=11)`**, exit 0. The two figures this entry carried alongside it were also wrong: `content.tests.test_editorial_route_migration_contract` is **not** failing (`Ran 5 tests … OK (expected failures=1)` — its human gate is encoded as an `expectedFailure`), and `content.tests.test_public_media_view` passes under the repository default `PUBLIC_MEDIA_STORE_BACKEND=memory`; forcing `local` against an unhydrated media root gives 6 failures and 3 errors, which is the condition `manage.py check` already reports as `content.W001` (`content/apps.py:59`, issue #301). What is left for **#324** is narrow: `content_sync/tests/test_dtc_content_accepted_checkout.py:95-96` is still a `SimpleTestCase` that reads the catalogue, but it is `@skipUnless(ACCEPTED_CHECKOUT, …)` and `DTC_CONTENT_ACCEPTED_CHECKOUT` is unset in every default environment, so the wall has never been observed |
 | — | "Event content has no importer" | `scripts/prod/import_events.py`'s `import_content()` over `events/content_import.py`. Measured 2026-09-05: 421 events, 159 described, 456 speakers, 682 links (§14.2) |
@@ -1683,17 +1685,17 @@ number can appear twice in this table for two unrelated defects.
 
 | I need to… | Run |
 | --- | --- |
-| Register **course** repositories | `make content-sources` |
-| Fetch the **course** checkouts, one per registered course repository (network) | `make content-checkout`**`s`** — plural. Course repositories only; it does **not** cover `DataTalksClub/content` |
-| Ingest curriculum from those checkouts (offline) | `make content-pull` |
-| Refresh the **editorial** checkout, `DataTalksClub/content` alone (network) | `make content-checkout` — singular. The only networked step of the drift check |
-| Ask whether we still serve what `DataTalksClub/content` says (offline, read-only) | `make content-drift` — exit 0 clean, 1 drift, 2 refusal (§10.3) |
-| Verify a content checkout | `make verify-dtc-content` |
-| Check the committed projections | `make content-update-check` |
-| Rebuild the whole local dataset | `make production-prep-dataset` |
-| Verify that dataset | `make production-prep-dataset-verify` |
-| Import pre-2024 Zoomcamp history | `make import-legacy-zoomcamp` |
-| Import events | `make import-events` |
+| Register **course** repositories | `scripts/content.py sources` |
+| Fetch the **course** checkouts, one per registered course repository (network) | `scripts/content.py checkouts` — plural. Course repositories only; it does **not** cover `DataTalksClub/content` |
+| Ingest curriculum from those checkouts (offline) | `scripts/content.py pull` |
+| Refresh the **editorial** checkout, `DataTalksClub/content` alone (network) | `scripts/content.py checkout` — singular. The only networked step of the drift check |
+| Ask whether we still serve what `DataTalksClub/content` says (offline, read-only) | `scripts/content.py drift` — exit 0 clean, 1 drift, 2 refusal (§10.3) |
+| Verify a content checkout | `uv run --frozen python scripts/ci.py verify-dtc-content` |
+| Check the committed projections | `uv run --frozen python scripts/ci.py content-update-check` |
+| Rebuild the whole local dataset | `uv run --frozen python scripts/production_data.py dataset` |
+| Verify that dataset | `uv run --frozen python scripts/production_data.py verify --database …` |
+| Import pre-2024 Zoomcamp history | `uv run --frozen python scripts/prod/import_legacy_zoomcamp.py` |
+| Import events | `uv run --frozen python scripts/prod/import_events.py` |
 | Import CMP course content | `uv run --frozen python scripts/prod/import_cmp_content.py --database … --source …` |
 | Import CMP learner accounts | `uv run --frozen python scripts/prod/import_cmp_learners.py --database … --source …` (the account layer of step 4 — §8) |
 | Import CMP learner history | `uv run --frozen python scripts/prod/import_cmp_learner_history.py --database … --source …` (the other nine tables; run it after the two above, against the same database — §8) |

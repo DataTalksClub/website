@@ -1,8 +1,8 @@
 """Link the pinned community-base dependency to a local sibling checkout.
 
 Implements playbook P1 from DataTalksClub/community-base (`docs/03-playbooks.md`):
-`make core-link` points the pinned git dependency at a local checkout for
-development, `make core-unlink` restores the pinned dependency exactly.
+`uv run python scripts/community_base_link.py link` points the pinned git dependency
+at a local checkout for development, and `... unlink` restores it exactly.
 
 Contract:
 
@@ -73,7 +73,7 @@ def assert_dependency_files_clean(repo: Path) -> None:
         if result.returncode != 0:
             raise LinkError(
                 "pyproject.toml/uv.lock have uncommitted changes. "
-                "Commit or stash them before running `make core-link`."
+                "Commit or stash them before running `uv run python scripts/community_base_link.py link`."
             )
 
 
@@ -136,8 +136,8 @@ def link_edit(pyproject_bytes: bytes, relative_path: str) -> bytes:
             lines.insert(index + 1, entry + "\n")
             return "".join(lines).encode()
     block = (
-        "\n# Added by `make core-link` (community-base playbook P1). "
-        "Remove with `make core-unlink`.\n"
+        "\n# Added by `community_base_link.py link` (community-base playbook P1). "
+        "Remove with `community_base_link.py unlink`.\n"
         f"{SOURCE_TABLE}\n"
         f"{entry}\n"
     )
@@ -155,7 +155,8 @@ def cmd_link(repo: Path, sibling_arg: Path | None) -> None:
     if target.exists():
         raise LinkError(
             f"{target} already exists; a link is already active. "
-            "Run `make core-unlink` first (recovery state is never overwritten)."
+            "Run `uv run python scripts/community_base_link.py unlink` first "
+            "(recovery state is never overwritten)."
         )
     sibling = resolve_sibling(repo, sibling_arg)
     relative_path = os.path.relpath(sibling, repo).replace(os.sep, "/")
@@ -164,7 +165,8 @@ def cmd_link(repo: Path, sibling_arg: Path | None) -> None:
     if existing is not None:
         raise LinkError(
             f"pyproject.toml already contains a [tool.uv.sources] entry for {PACKAGE_NAME} "
-            f"({existing!r}); remove it manually before running `make core-link`."
+            f"({existing!r}); remove it manually before running "
+            "`uv run python scripts/community_base_link.py link`."
         )
     target.mkdir(parents=True)
     try:

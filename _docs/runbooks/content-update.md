@@ -77,13 +77,13 @@ The source-specific additions are intentionally narrow:
 Run all four checks from the repository root:
 
 ```bash
-make content-update-check
+uv run --frozen python scripts/ci.py content-update-check
 ```
 
 Run one family while iterating:
 
 ```bash
-make content-update-check CONTENT_UPDATE_FAMILY=faq
+CONTENT_UPDATE_FAMILY=faq uv run --frozen python scripts/ci.py content-update-check
 ```
 
 The target accepts only the four family names (or its default `all`, which expands to all four)

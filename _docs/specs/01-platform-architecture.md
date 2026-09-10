@@ -298,4 +298,6 @@ Deployed settings fail closed on that fallback or an incomplete/mismatched tripl
   creates or infers an editorial Person.
 - The generated route registry, Django policy, Terraform assertions, and deployed smoke agree, and
   a public HIT cannot cross a credential/private boundary.
-- All Python setup, lint, test, migration, and run commands are available through `uv`-based Make targets.
+- Python setup, quality, test, and verification commands run through `uv` and explicit scripts;
+  local migration, seed-data, and server startup remain available as `make migrate`, `make data`,
+  and `make run`.

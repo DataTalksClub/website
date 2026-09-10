@@ -171,34 +171,37 @@ until all checks below pass.
 5. Bind the CI contract. Check the component commands, relevant input patterns, environment
    dimensions, and validity class in [`ci/ownership.json`](../../ci/ownership.json). Then verify
    the always-run policy in [`ci/quality_contract.py`](../../ci/quality_contract.py), the aggregate
-   gate in [`ci/gate.py`](../../ci/gate.py), the maintained targets in [`Makefile`](../../Makefile),
+   gate in [`ci/gate.py`](../../ci/gate.py), the maintained commands in [`scripts/ci.py`](../../scripts/ci.py),
    and the job configuration in
    [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml). A normal app addition doesn't
-   need a workflow or Makefile edit. If a command or contract changes, update its owning tests
+   need a workflow or script edit. If a command or contract changes, update its owning tests
    (for example `ci/tests/test_workflows.py` and `ci/tests/test_gate.py`) in the same issue.
 
 6. Run the focused graph and CI checks. From the candidate worktree, run these commands:
 
    ```bash
    uv run --frozen pytest ci/tests/test_selection.py tests_ci/test_ownership.py -q
-   make test-ci
-   make verification-plan
+   uv run --frozen python scripts/ci.py test-ci
+   uv run --frozen python scripts/ci.py verification-plan
    ```
 
-   Then run the profile-appropriate fresh commands: `make test-ci-focused` for the selected
-   closure, `make test-django-full` for the push full Django component,
-   `make test-playwright-smoke` for backend-only browser impact, `make test-playwright-core` for
-   ordinary render impact, or `make test-playwright` for template/browser-harness and full
-   backstop coverage. The local `make test` aggregate runs the complete Django suite; the scheduled
-   full-regression plan explicitly records and runs that aggregate. Use `make verification-quality` and `make verification-full` when the graph, policy,
+   Then run the profile-appropriate fresh commands: `uv run --frozen python scripts/ci.py
+   test-ci-focused` for the selected closure, `uv run --frozen python scripts/ci.py
+   test-django-full` for the push full Django component, `uv run --frozen python scripts/ci.py
+   test-playwright-smoke` for backend-only browser impact, `uv run --frozen python scripts/ci.py
+   test-playwright-core` for ordinary render impact, or `uv run --frozen python scripts/ci.py
+   test-playwright` for template/browser-harness and full backstop coverage. The local `scripts/ci.py
+   test` aggregate runs the complete Django suite; the scheduled full-regression plan explicitly
+   records and runs that aggregate. Use `uv run --frozen python scripts/ci.py verification-quality`
+   and `uv run --frozen python scripts/ci.py verification-full` when the graph, policy,
    shared infrastructure, or new app boundary warrants the broader contract.
 
 7. Record evidence and keep the backstop. Validate the plan with
    the following commands:
 
    ```text
-   make verification-evidence-check VERIFY_PLAN=.tmp/verification/verification-plan.json
-   make verification-report-check VERIFY_PLAN=.tmp/verification/verification-plan.json
+   uv run --frozen python scripts/ci.py verification-evidence-check
+   uv run --frozen python scripts/ci.py verification-report-check
    ```
 
    The evidence/reuse contract permits reuse only when its evidence is exact and validated.
@@ -229,14 +232,14 @@ a digest-bound artifact. Recording never copies the classifier job's environment
 `ImageVersion`, settings module, or other allowlisted execution value blocks the envelope and
 aggregate gate and cannot be accepted during replay, report validation, or evidence reuse.
 
-Manual promotion and rollback apply `quality-contract-v2` from the trusted current workflow
+Manual promotion and rollback apply `quality-contract-v3` from the trusted current workflow
 controller to the exact selected release checkout. The contract invokes the explicit maintained
-quality targets (`database-portability-check`, `security-check`, lint, format,
+quality tasks (`database-portability-check`, `security-check`, lint, format,
 type, migration, Django, deployment, and CI-policy checks) in that checkout. A pre-contract release such as
 `a220728` is valid when all primitive targets exist; it does not need the future aggregate
 `verification-quality` target. If an aggregate target is present, its declared prerequisites must
 match the versioned contract exactly. A missing primitive, altered aggregate, duplicate definition,
-unsafe Makefile, or failed target blocks quality and the aggregate release gate; no fallback or
+unsafe selected source, or failed task blocks quality and the aggregate release gate; no fallback or
 skip is allowed. This keeps historical-source execution isolated while preventing selected source
 from choosing or weakening the controller's quality policy.
 
@@ -285,7 +288,8 @@ caller-supplied count, missing output, or count/output mismatch is invalid evide
 
 Playwright uses the tracked quarantine policy in
 [`playwright-flake-policy.md`](playwright-flake-policy.md). Blocking targets exclude the
-`quarantine` marker, while the scheduled monitor runs `make test-playwright-quarantined`.
+`quarantine` marker, while the scheduled monitor runs `uv run --frozen python scripts/ci.py
+test-playwright-quarantined`.
 Playwright evidence records `attempted`, `passed`, `failed`, `rerun`, and `quarantined`
 alongside the existing test counts. A successful blocking run must contain the plugin's
 complete summary and a matching pytest summary; partial output, an unexpected rerun, or a
@@ -344,14 +348,13 @@ Generate and execute a local plan against the current committed `HEAD` plus its 
 candidate changes:
 
 ```text
-make verification-plan
-make verification-run
-make verification-evidence-check VERIFY_PLAN=.tmp/verification/verification-plan.json
-make verification-report-check VERIFY_PLAN=.tmp/verification/verification-plan.json \
-  VERIFY_REPORT=.tmp/verification/verification-report.json
-make verification-plan VERIFY_CONSUMER=tester
-make verification-run VERIFY_CONSUMER=tester VERIFY_PRODUCER_ROLE=tester \
-  VERIFY_PHASE=tester
+uv run --frozen python scripts/ci.py verification-plan
+uv run --frozen python scripts/ci.py verification-run
+uv run --frozen python scripts/ci.py verification-evidence-check
+uv run --frozen python scripts/ci.py verification-report-check
+VERIFY_CONSUMER=tester uv run --frozen python scripts/ci.py verification-plan
+VERIFY_CONSUMER=tester VERIFY_PRODUCER_ROLE=tester VERIFY_PHASE=tester \
+  uv run --frozen python scripts/ci.py verification-run
 ```
 
 `VERIFY_ISSUE` is optional. Pass it to attribute local evidence to an issue; leave it unset and
@@ -359,10 +362,9 @@ the evidence carries no issue. Override `VERIFY_BASE_SHA`, `VERIFY_HEAD_SHA`, `V
 with explicit reviewed paths/revisions. `verification-run` executes only allowlisted argument
 vectors and records each rerun result below `.tmp/verification/evidence/`.
 
-The full-profile Django command in a normal push plan is `make test-django-full`, which runs the
-complete Django suite. `make test` is the local aggregate and now resolves to the same suite;
-scheduled full regression passes `--full-django-command "make test"` to retain that explicit
-local/scheduled contract.
+The full-profile Django command in a normal push plan is `scripts/ci.py test-django-full`, which
+runs the complete Django suite. `scripts/ci.py test` is the local aggregate and resolves to the
+same suite; scheduled full regression records and runs that explicit local/scheduled command.
 
 Every component execution is bounded by an explicit per-component wall-clock timeout. The default
 is 3600 seconds (one hour), which exceeds the longest legitimate local suite: the full Django run,
@@ -373,22 +375,22 @@ with exit code 124 and the exact command, and continues with the remaining compo
 `verification-report-check` still emits `verification-report.json` with a `failure` verdict; a
 timed-out component is an executed rerun with a failing result, never a skip. Override the bound
 only for deliberate bounded-hang diagnostics by invoking the runner directly with
-`--component-timeout-seconds <positive-seconds>`; the Makefile target always uses the documented
+`--component-timeout-seconds <positive-seconds>`; the script command always uses the documented
 default. `verification-run` preserves the runner's nonzero status while allowing the report-check
 step to run, so the aggregate report remains the final failure evidence.
 
 The proportional fresh gates remain available:
 
 ```text
-make verification-quality
-make verification-container
-make verification-full
+uv run --frozen python scripts/ci.py verification-quality
+uv run --frozen python scripts/ci.py verification-container
+uv run --frozen python scripts/ci.py verification-full
 ```
 
 `verification-full` includes quality and CI contract checks, a fresh SQLite migration, the complete
 Django and Playwright suites, and the exact production-container build,
 static-manifest negative cases, runtime identity/provenance, and liveness checks. All dependencies
-run through uv-backed targets.
+run through the locked uv environment.
 
 The engineer posts the exact base/head, graph and plan digests, four-bucket report, commands/counts,
 artifact paths, and screenshot requirement, then freezes the uncommitted worktree. The independent

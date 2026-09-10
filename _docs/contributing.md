@@ -3,7 +3,8 @@
 Start with a groomed GitHub issue and follow [`PROCESS.md`](PROCESS.md). The authoritative implementation requirements are in [`specs/`](specs/README.md).
 
 1. Copy `.env.example` to `.env` and replace its placeholders.
-2. Run `make setup`, `make migrate`, and `make test-core`.
+2. Run `uv sync --locked`, `uv run playwright install chromium`, `make migrate`, `make data`, and
+   `uv run --frozen python scripts/ci.py test-core`.
 3. Implement and verify the assigned issue without committing.
 4. Put all scratch files and screenshots below `.tmp/`.
 5. Hand the uncommitted work to a separate tester, then to product acceptance.
