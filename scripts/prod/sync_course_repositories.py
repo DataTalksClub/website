@@ -233,7 +233,8 @@ def describe_checkout(
             f"{source.stable_id}: {commit_sha} is not on a branch of "
             f"https://github.com/{source.repository_owner}/{source.repository_name} "
             f"in {checkout}; every source link the import publishes would 404. "
-            f"Push it, or refresh the checkout with `uv run --frozen python scripts/content.py checkouts`."
+            "Push it, or refresh the checkout with "
+            "`uv run --frozen python scripts/content.py checkouts`."
         )
     return commit_sha, waivers
 

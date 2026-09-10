@@ -240,9 +240,7 @@ def _batches(files: Sequence[UpstreamFile]) -> Iterator[list[UpstreamFile]]:
         yield batch
 
 
-def iter_blobs(
-    root: Path, files: Sequence[UpstreamFile]
-) -> Iterator[tuple[UpstreamFile, bytes]]:
+def iter_blobs(root: Path, files: Sequence[UpstreamFile]) -> Iterator[tuple[UpstreamFile, bytes]]:
     """Yield every named blob's bytes, one bounded batch at a time.
 
     One ``git cat-file --batch`` per batch rather than one process per file -- a real

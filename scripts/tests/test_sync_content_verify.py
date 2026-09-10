@@ -110,16 +110,16 @@ def _digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _provenance(*, source_key: str, source_path: str, checksum: str, revision: str) -> dict[str, str]:
+def _provenance(
+    *, source_key: str, source_path: str, checksum: str, revision: str
+) -> dict[str, str]:
     return {
         "repository": EDITORIAL_REPOSITORY,
         "revision": revision,
         "source_path": source_path,
         "source_key": source_key,
         "checksum": checksum,
-        "source_url": (
-            f"https://github.com/{EDITORIAL_REPOSITORY}/blob/{revision}/{source_path}"
-        ),
+        "source_url": (f"https://github.com/{EDITORIAL_REPOSITORY}/blob/{revision}/{source_path}"),
     }
 
 
@@ -275,7 +275,9 @@ def report_for(root: Path, *, revision: str | None = None) -> dict[str, Any]:
     return build_report(source=select_editorial_source(), checkout=root, revision=revision)
 
 
-def _namespace(root: Path, *, revision: str | None = None, plan: bool = False) -> argparse.Namespace:
+def _namespace(
+    root: Path, *, revision: str | None = None, plan: bool = False
+) -> argparse.Namespace:
     return argparse.Namespace(checkout=root, revision=revision, checkout_plan=plan)
 
 
@@ -408,9 +410,7 @@ class DriftTests(TestCase):
     def test_a_transcript_drifts_independently_of_its_episode(self) -> None:
         with editorial_checkout() as (root, base):
             publish(walk_checkout(root, base))
-            transcript = (
-                root / "podcasts" / "transcripts" / "analytics-engineer-skills-tools.yaml"
-            )
+            transcript = root / "podcasts" / "transcripts" / "analytics-engineer-skills-tools.yaml"
             transcript.write_text(
                 transcript.read_text(encoding="utf-8").replace(
                     "header: Introductions", "header: Introduction"
@@ -435,9 +435,7 @@ class MediaAsymmetryTests(TestCase):
             records = walk_checkout(root, base)
             unreferenced = "images/books/20201214-ml-bookcamp/preview.jpg"
             published = [
-                record
-                for record in records
-                if record["provenance"]["source_path"] != unreferenced
+                record for record in records if record["provenance"]["source_path"] != unreferenced
             ]
             publish(published)
             status, stdout, _stderr = run_capturing(_namespace(root))
@@ -549,9 +547,10 @@ class ScopeTests(TestCase):
             report = report_for(root)
 
         self.assertTrue(report["clean"])
-        self.assertEqual(sorted(report["families"]), sorted(
-            ["articles", "books", "media", "podcast_transcripts", "podcasts"]
-        ))
+        self.assertEqual(
+            sorted(report["families"]),
+            sorted(["articles", "books", "media", "podcast_transcripts", "podcasts"]),
+        )
         self.assertEqual(report["served"]["revisions"], [base])
 
     def test_a_draft_upstream_is_not_reported_as_missing(self) -> None:
@@ -663,9 +662,7 @@ class CheckoutPlanTests(TestCase):
 
         self.assertEqual(status, 0)
         self.assertEqual(stderr, "")
-        self.assertEqual(
-            stdout, f"{SOURCE_STABLE_ID}\tDataTalksClub/content\tmain\t{checkout}\n"
-        )
+        self.assertEqual(stdout, f"{SOURCE_STABLE_ID}\tDataTalksClub/content\tmain\t{checkout}\n")
 
     def test_the_plan_works_on_a_database_with_no_active_release(self) -> None:
         source = register_source(active_release=None)

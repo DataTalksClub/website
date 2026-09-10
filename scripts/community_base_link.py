@@ -73,7 +73,8 @@ def assert_dependency_files_clean(repo: Path) -> None:
         if result.returncode != 0:
             raise LinkError(
                 "pyproject.toml/uv.lock have uncommitted changes. "
-                "Commit or stash them before running `uv run python scripts/community_base_link.py link`."
+                "Commit or stash them before running "
+                "`uv run python scripts/community_base_link.py link`."
             )
 
 

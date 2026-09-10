@@ -75,7 +75,8 @@ def check(repo: Path) -> int:
     if override is not None:
         return fail(
             f"[tool.uv.sources] overrides {PACKAGE_NAME} ({override!r}); this is a local "
-            "development link. Run `uv run python scripts/community_base_link.py unlink` before committing."
+            "development link. Run `uv run python scripts/community_base_link.py unlink` "
+            "before committing."
         )
 
     locked = [
