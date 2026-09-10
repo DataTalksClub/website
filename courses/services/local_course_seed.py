@@ -51,9 +51,9 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from core.bootstrap import RuntimeEnvironment
-from courses.course_family_catalog import (
-    COURSE_FAMILY_TITLES,
-    cohort_family_identity,
+from courses.services.course_family_identity import (
+    family_and_year_from_edition_slug,
+    family_title_from_edition_title,
 )
 from courses.models import (
     Cohort,
@@ -76,6 +76,20 @@ CATALOG_SOURCE_SHA256 = "34077cd485265ffcae96e9acdb06351ee5b6b3b6a5b370639525cc1
 CATALOG_SOURCE_REPOSITORY = "DataTalksClub/course-management-platform"
 CATALOG_SOURCE_REVISION = "98a235283904b4ef9ad29e196298540756cf1bcc"
 CATALOG_SOURCE_RELATIVE_PATH = "scripts/production_like_course_specs.json"
+
+# The one reviewed correction this pinned catalogue needs: it exports the AI Dev
+# Tools edition as "ai-dev-tools-2025", but the real course-repository family is
+# "ai-dev-tools-zoomcamp" (its course.yaml declares that slug directly, matching
+# its own repository name, same as every other course family). Every other
+# pinned edition slug's family is already exactly its own de-suffixed form.
+# Mirrors the same correction in scripts/prod/import_cmp_content.py, which reads
+# from the live CMP export rather than this frozen pin.
+_FAMILY_SLUG_OVERRIDES = {"ai-dev-tools": "ai-dev-tools-zoomcamp"}
+
+
+def _family_and_year(edition_slug: str) -> tuple[str, int]:
+    family_slug, year = family_and_year_from_edition_slug(edition_slug)
+    return _FAMILY_SLUG_OVERRIDES.get(family_slug, family_slug), year
 
 ALLOWED_ENVIRONMENTS = frozenset({RuntimeEnvironment.LOCAL, RuntimeEnvironment.TEST})
 SQLITE_ENGINE = "django.db.backends.sqlite3"
@@ -228,7 +242,7 @@ def assert_catalog_matches_projection(
     if sorted(map(_catalog_identity, specs)) != sorted(map(_projected_identity, projected)):
         raise LocalCourseSeedError("catalog-projection-drift")
     for record in projected:
-        family_slug, year = cohort_family_identity(str(record["slug"]))
+        family_slug, year = _family_and_year(str(record["slug"]))
         if str(record["public_path"]) != f"/courses/{family_slug}/{year}":
             raise LocalCourseSeedError("catalog-projection-path-drift")
 
@@ -293,12 +307,15 @@ def _project_state(due_date: datetime, now: datetime) -> str:
 def _seed_course(spec: dict[str, Any], now: datetime) -> SeededCourse:
     start_date, end_date = course_bounds(spec)
     slug = str(spec["slug"])
-    family_slug, year = cohort_family_identity(slug)
+    family_slug, year = _family_and_year(slug)
+    family_title = family_title_from_edition_title(str(spec["title"])) or family_slug.replace(
+        "-", " "
+    ).title()
     family, _ = Course.objects.update_or_create(
         slug=family_slug,
         defaults={
-            "title": COURSE_FAMILY_TITLES[family_slug],
-            "description": COURSE_FAMILY_TITLES[family_slug],
+            "title": family_title,
+            "description": family_title,
             "visible": True,
         },
     )

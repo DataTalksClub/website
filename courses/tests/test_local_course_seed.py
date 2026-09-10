@@ -13,11 +13,11 @@ from django.utils import timezone
 
 from core.bootstrap import RuntimeEnvironment
 from core.home_content import course_catalog
-from courses.course_family_catalog import cohort_family_identity
 from courses.models import Cohort, Course, Homework, Project
 from courses.services.local_course_seed import (
     CATALOG_SOURCE_SHA256,
     LocalCourseSeedError,
+    _family_and_year,
     assert_catalog_matches_projection,
     load_catalog_specs,
     load_projected_courses,
@@ -59,7 +59,7 @@ class LocalCourseSeedTests(TestCase):
         for slug, record in projected.items():
             with self.subTest(course=slug):
                 course = Cohort.objects.get(slug=slug)
-                family_slug, year = cohort_family_identity(slug)
+                family_slug, year = _family_and_year(slug)
                 self.assertEqual(course.course.slug, family_slug)
                 self.assertEqual(course.year, year)
                 self.assertEqual(course.title, record["title"])
@@ -156,7 +156,7 @@ class LocalCourseSeedTests(TestCase):
 
         for entry in course_catalog():
             with self.subTest(course=entry.slug):
-                family_slug, year = cohort_family_identity(entry.slug)
+                family_slug, year = _family_and_year(entry.slug)
                 self.assertEqual(entry.public_path, f"/courses/{family_slug}/{year}")
                 course = Cohort.objects.get(slug=entry.slug)
                 self.assertEqual(

@@ -54,7 +54,24 @@ from content.article_faq_format import (  # noqa: E402
     validate_faq_pairs,
 )
 from content.public_text import strip_target_attributes_from_links  # noqa: E402
-from courses.course_family_catalog import cohort_family_identity  # noqa: E402
+from courses.services.course_family_identity import (  # noqa: E402
+    family_and_year_from_edition_slug,
+)
+
+# The one reviewed correction this pinned catalogue needs: it exports the AI Dev
+# Tools edition as "ai-dev-tools-2025", but the real course-repository family is
+# "ai-dev-tools-zoomcamp" (its course.yaml declares that slug directly, matching
+# its own repository name, same as every other course family). Every other
+# pinned edition slug's family is already exactly its own de-suffixed form.
+# Mirrors the same correction in scripts/prod/import_cmp_content.py and
+# courses/services/local_course_seed.py.
+_FAMILY_SLUG_OVERRIDES = {"ai-dev-tools": "ai-dev-tools-zoomcamp"}
+
+
+def cohort_family_identity(edition_slug: str) -> tuple[str, int]:
+    family_slug, year = family_and_year_from_edition_slug(edition_slug)
+    return _FAMILY_SLUG_OVERRIDES.get(family_slug, family_slug), year
+
 from events.slugs import event_title_slug  # noqa: E402
 
 DEFAULT_OUTPUT = REPOSITORY_ROOT / "temporary" / "content" / "public_projection"

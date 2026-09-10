@@ -31,7 +31,7 @@
       "source_path": "scripts/production_like_course_specs.json",
       "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
     },
-    "public_path": "/courses/ai-dev-tools/2025",
+    "public_path": "/courses/ai-dev-tools-zoomcamp/2025",
     "slug": "ai-dev-tools-2025",
     "title": "AI Dev Tools Zoomcamp 2025"
   },
