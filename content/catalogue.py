@@ -23,12 +23,13 @@ import re
 from collections.abc import Mapping
 from functools import lru_cache
 from typing import Any
+from uuid import UUID
 
 from django.core.exceptions import ImproperlyConfigured
 from django.db import DatabaseError
-from django.db.models import Count, F, Max
+from django.db.models import Count, Max
 
-from .models import ContentDocument, ContentRelease, ContentSource
+from .models import ContentDocument, ContentSource
 from .public_graph import validate_wiki_graph
 from .public_text import strip_leaked_target_attributes, target_attribute_count
 
@@ -69,51 +70,62 @@ def active_release_id() -> str:
     when an import activates a new release, which is the only thing that can
     change what the catalogue holds, so a cached read follows an import instead
     of outliving it.
+
+    A missing source or pointer is a genuinely empty catalogue and reads as
+    ``""``; a database failure raises, so an outage can never enter the cache
+    below disguised as content (ARC-01).
     """
 
-    try:
-        active = (
-            ContentSource.objects.filter(stable_id=PUBLIC_CONTENT_STABLE_ID, enabled=True)
-            .values_list("active_release_id", flat=True)
-            .first()
-        )
-    except DatabaseError:
-        return ""
+    active = (
+        ContentSource.objects.filter(stable_id=PUBLIC_CONTENT_STABLE_ID, enabled=True)
+        .values_list("active_release_id", flat=True)
+        .first()
+    )
     return str(active or "")
 
 
 def records(kind: str) -> tuple[Record, ...]:
-    """Every published record of one kind, in the catalogue's own order."""
+    """Every published record of one kind, in the catalogue's own order.
+
+    A database failure raises here -- the ordinary request-failure path handles
+    it -- rather than resolving to an empty catalogue that a retry would then
+    serve from cache.
+    """
 
     return _records(active_release_id(), kind)
 
 
 @lru_cache(maxsize=64)
 def _records(release_id: str, kind: str) -> tuple[Record, ...]:
-    """Every published record of ``kind``, rebuilt only when the release changes.
+    """Every published record of ``kind`` in the release the key names.
 
-    ``release_id`` is the cache key, not an argument this reads: the query below
-    resolves the active release itself, and naming it here is what makes the
-    cached result follow an import.
+    The query is bound to the exact release the cache key names. Releases are
+    immutable published snapshots, so a key's answer cannot drift: an
+    activation racing the row read leaves the request finishing on the release
+    it resolved, and a rollback to a release seen before answers from an entry
+    that is still true.  Re-resolving the *current* pointer inside the query
+    instead was the defect this binding removed -- content from release B
+    could be built, and cached, under a key that was read as A.
+
+    An empty key is an absent active pointer -- an empty catalogue, not a
+    failure -- so it answers without touching the database.
 
     The order is the one stored beside each record. It is editorial -- newest
     first, season order, the sequence a hub lists in -- and no key the rows
     happen to sort by carries it.
     """
 
-    try:
-        rows = list(
-            ContentDocument.objects.filter(
-                content_kind=kind,
-                is_published=True,
-                release__status=ContentRelease.Status.ACTIVE,
-                release__source__enabled=True,
-                release__source__stable_id=PUBLIC_CONTENT_STABLE_ID,
-                release_id=F("release__source__active_release_id"),
-            ).values_list("adapter_metadata", flat=True)
-        )
-    except DatabaseError:
+    if not release_id:
         return ()
+    rows = list(
+        ContentDocument.objects.filter(
+            content_kind=kind,
+            is_published=True,
+            # The cache key is the release id as text; the lookup wants it as
+            # the UUID it names.
+            release_id=UUID(release_id),
+        ).values_list("adapter_metadata", flat=True)
+    )
     held = [
         (int((row or {}).get("position") or 0), (row or {}).get("record") or {}) for row in rows
     ]
