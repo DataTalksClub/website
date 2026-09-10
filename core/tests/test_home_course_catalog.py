@@ -74,12 +74,18 @@ class CourseCatalogSelectionTests(TestCase):
 
         by_family = {entry.family: entry for entry in course_catalog()}
 
-        self.assertEqual(by_family["ml-zoomcamp"].public_path, "/courses/ml-zoomcamp/2026")
+        self.assertEqual(by_family["ml-zoomcamp"].public_path, "/courses/ml-zoomcamp/cohorts/2026")
         self.assertEqual(by_family["ml-zoomcamp"].cohort_label, "2026 cohort")
-        self.assertEqual(by_family["llm-zoomcamp"].public_path, "/courses/llm-zoomcamp/2026")
-        self.assertEqual(by_family["de-zoomcamp"].public_path, "/courses/de-zoomcamp/2026")
-        self.assertEqual(by_family["mlops-zoomcamp"].public_path, "/courses/mlops-zoomcamp/2025")
-        self.assertEqual(by_family["sma-zoomcamp"].public_path, "/courses/sma-zoomcamp/2025")
+        self.assertEqual(
+            by_family["llm-zoomcamp"].public_path, "/courses/llm-zoomcamp/cohorts/2026"
+        )
+        self.assertEqual(by_family["de-zoomcamp"].public_path, "/courses/de-zoomcamp/cohorts/2026")
+        self.assertEqual(
+            by_family["mlops-zoomcamp"].public_path, "/courses/mlops-zoomcamp/cohorts/2025"
+        )
+        self.assertEqual(
+            by_family["sma-zoomcamp"].public_path, "/courses/sma-zoomcamp/cohorts/2025"
+        )
 
     def test_the_split_ai_dev_tools_family_collapses_to_one_2026_card(self) -> None:
         build_reviewed_catalog()
@@ -89,7 +95,7 @@ class CourseCatalogSelectionTests(TestCase):
 
         self.assertEqual(len(ai_dev_tools), 1)
         self.assertEqual(ai_dev_tools[0].slug, "ai-dev-tools-zoomcamp-2026")
-        self.assertEqual(ai_dev_tools[0].public_path, "/courses/ai-dev-tools-zoomcamp/2026")
+        self.assertEqual(ai_dev_tools[0].public_path, "/courses/ai-dev-tools-zoomcamp/cohorts/2026")
         self.assertEqual(len(catalog), 6)
         self.assertEqual([entry.title for entry in catalog].count("AI Dev Tools Zoomcamp"), 1)
 
@@ -100,7 +106,9 @@ class CourseCatalogSelectionTests(TestCase):
 
         by_family = {entry.family: entry for entry in course_catalog()}
 
-        self.assertEqual(by_family["solo-zoomcamp"].public_path, "/courses/solo-zoomcamp/2025")
+        self.assertEqual(
+            by_family["solo-zoomcamp"].public_path, "/courses/solo-zoomcamp/cohorts/2025"
+        )
 
     def test_a_hidden_course_leaves_the_catalogue_entirely(self) -> None:
         family = make_family("hidden-zoomcamp", "Hidden Zoomcamp", visible=False)
@@ -116,7 +124,7 @@ class CourseCatalogSelectionTests(TestCase):
 
         self.assertEqual(len(catalog), 1)
         self.assertEqual(catalog[0].title, "Newcomer Zoomcamp")
-        self.assertEqual(catalog[0].public_path, "/courses/newcomer-zoomcamp/2026")
+        self.assertEqual(catalog[0].public_path, "/courses/newcomer-zoomcamp/cohorts/2026")
 
     def test_two_cohorts_in_one_year_resolve_deterministically(self) -> None:
         family = make_family("twin-zoomcamp", "Twin Zoomcamp")
@@ -153,15 +161,18 @@ class HomepageCourseRenderingTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         for path in (
-            "/courses/ml-zoomcamp/2026",
-            "/courses/llm-zoomcamp/2026",
-            "/courses/de-zoomcamp/2026",
-            "/courses/mlops-zoomcamp/2025",
-            "/courses/sma-zoomcamp/2025",
+            "/courses/ml-zoomcamp/cohorts/2026",
+            "/courses/llm-zoomcamp/cohorts/2026",
+            "/courses/de-zoomcamp/cohorts/2026",
+            "/courses/mlops-zoomcamp/cohorts/2025",
+            "/courses/sma-zoomcamp/cohorts/2025",
         ):
             with self.subTest(path=path):
                 self.assertIn(f'href="{path}"', body)
-        for superseded in ("/courses/ml-zoomcamp/2025", "/courses/llm-zoomcamp/2025"):
+        for superseded in (
+            "/courses/ml-zoomcamp/cohorts/2025",
+            "/courses/llm-zoomcamp/cohorts/2025",
+        ):
             with self.subTest(superseded=superseded):
                 self.assertNotIn(f'href="{superseded}"', body)
 
