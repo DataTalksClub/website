@@ -3,7 +3,7 @@
 
 One-time import.  The six quotes are frozen: real posts by named members, each
 one recorded with the public link it was taken from, checked into
-``courses/homepage_testimonials.json``.  Nothing upstream is going to move --
+``temporary/content/homepage_testimonials.json``.  Nothing upstream is going to move --
 once they are in the database an editor curates them in the admin, and this
 script is only the way the first six get there.  See ``scripts/prod/__init__.py``
 for what the two sync models mean.
