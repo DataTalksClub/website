@@ -193,7 +193,15 @@ SCRIPT_COMMAND_EXCLUSIONS: dict[str, str] = {
 # and mints provider-discovered Event identities.  Both are domain logic real
 # entry points (`import_events.py`, `import_event_registrants.py`) compose --
 # neither opens a database connection or a provider export file of its own.
-LIBRARY_MODULES = frozenset({"identity_manifest", "registrant_import", "reviewed_release"})
+# `public_projection_source` reads and fully checks the built public
+# projection files; `import_public_content.py` is the real entry point that
+# composes it (moved here from the retired `scripts/projection_build/`
+# package, where it lived beside the same kind of build/validation helpers
+# rather than entry points -- see
+# `_docs/architecture/database-only-content.md`).
+LIBRARY_MODULES = frozenset(
+    {"identity_manifest", "registrant_import", "reviewed_release", "public_projection_source"}
+)
 
 __all__ = [
     "BOOTSTRAPPING_ENTRY_POINTS",
