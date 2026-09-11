@@ -144,8 +144,9 @@ describes, and a JSON file beside the script can.
 - **The prepared exports are protected data.** They live in the gitignored
   `.local/migration-data/events/` of the *main* checkout, and the durable copy
   lives outside any worktree at
-  `/data/tmp/luma-eventbrite-export/luma-aggregate-v1/` (`chmod 700` directory,
-  `600` files). Nothing here is ever copied into a worktree or committed.
+  `~/prod/dtc-data/luma-eventbrite-export/luma-aggregate-v1/` (`chmod 700`
+  directory, `600` files). Nothing here is ever copied into a worktree or
+  committed.
 - **There is no Luma API client in this repository and there must not be one.**
   Registration data arrives as an owner-provided file export. The seam is a
   reader in `scripts/prod/registration_sources/`, plugged into the
@@ -372,7 +373,7 @@ person reading a stale figure as a current one.
 | --- | --- | --- |
 | `registration_source_validation_failed` on the full run | The export disagrees with the pinned checksum or counts. The normal cause is a legitimately grown export. | §4.3. Do not point the run at the old directory to make it pass. |
 | `luma_registration_facts_mismatch` | Same, but the counts specifically. | §4.3, and explain the delta before editing. |
-| `registration_source_unavailable` | `--luma-source` is not a directory, or `--eventbrite-source` not a file. The default `--luma-source` is in the *main* checkout's `.local/`, so it is normally absent from a worktree. | Pass the path explicitly, or point at `/data/tmp/luma-eventbrite-export/luma-aggregate-v1/`. |
+| `registration_source_unavailable` | `--luma-source` is not a directory, or `--eventbrite-source` not a file. The default `--luma-source` is in the *main* checkout's `.local/`, so it is normally absent from a worktree. | Pass the path explicitly, or point at `~/prod/dtc-data/luma-eventbrite-export/luma-aggregate-v1/`. |
 | `luma_discovery_failed` | The export directory failed a structural check — a symlink, a hidden entry, a CSV with no JSON partner, a missing required column. | Re-prepare from the raw export (§4.1); the preparer reports the specific refusal. |
 | Discovery reports far more `created_events` than you expect | Almost always `--dry-run` against a database with no identities. | §4.2's warning. Point it at the real database. |
 | A second `Event` appears for an event we already had | The pre-2026-09-05 unguarded discovery did this — 144 duplicates against a 166-event export. | `--report-duplicate-identities` names them; `--remove-duplicate-identities` deletes only the ones carrying no alias, registration, aggregate revision, question or invite. Anything else is a merge and needs a person. |
@@ -420,7 +421,7 @@ contain is gone for good:
 | **Event descriptions** (`descriptions/*.md`) | Unobtainable. This is the only source of a page body for a discovered event; the reviewed 421-record artifact cannot grow to cover one. |
 | **Historical counts already ingested** | **Safe.** They are in `HistoricalRegistrationAggregateRevision` rows in our database, with the source-run provenance beside them. |
 | **Registrant identities and facts already imported** | **Safe.** `EventRegistrantIdentity` and `EventRegistration` are ours. |
-| **The prepared exports themselves** | Safe as long as `/data/tmp/luma-eventbrite-export/` survives — it is outside every worktree and gitignored everywhere, so nothing in this repository protects it. It is a single copy on one machine. |
+| **The prepared exports themselves** | Safe as long as `~/prod/dtc-data/luma-eventbrite-export/` survives — it is outside every worktree and gitignored everywhere, so nothing in this repository protects it. It is a single copy on one machine. |
 
 ### 7.2 What to capture before then, in priority order
 

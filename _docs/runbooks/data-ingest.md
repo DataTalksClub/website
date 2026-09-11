@@ -638,7 +638,7 @@ Things that will surprise you:
 
 | | |
 | --- | --- |
-| **Upstream** | A CMP production SQLite export, e.g. `/data/tmp/rds-export/cmp/rds-prod-20260905-182754.db` (235–250 MB). The exports are filed per product now: `cmp/` is ours, `aisl/` is not (§12 item 9) |
+| **Upstream** | A CMP production SQLite export, e.g. `~/prod/dtc-data/rds-export/cmp/rds-prod-20260905-182754.db` (235–250 MB). The exports are filed per product now: `cmp/` is ours, `aisl/` is not (§12 item 9) |
 | **Script** | `scripts/prod/import_cmp_content.py` → `courses/services/cmp_content_import.py` |
 | **Reads** | `courses_course`, `courses_homework`, `courses_question`, `courses_project`, `courses_reviewcriteria`, `courses_registrationcampaign` — enforced by `_assert_content_only()` at `cmp_content_import.py:312-340` |
 | **Refuses to read** | `courses_enrollment`, `courses_submission`, `courses_answer`, `courses_projectsubmission`, `courses_peerreview`, `courses_criteriaresponse`, `courses_courseregistration` |
@@ -649,13 +649,13 @@ Things that will surprise you:
 ```
 uv run --frozen python scripts/prod/import_cmp_content.py \
     --database .tmp/production-prep-current.sqlite3 \
-    --source /data/tmp/rds-export/cmp/rds-prod-20260905-182754.db
+    --source ~/prod/dtc-data/rds-export/cmp/rds-prod-20260905-182754.db
 ```
 
-> **The export is not frozen.** `/data/tmp/rds-export/` receives a **new dump every
-> day**. Treating this as "one-time" is a *decision about cutover*, not a property of
-> the source: CMP is still live and still being written to. Pick the export
-> deliberately and record which one you used.
+> **The export is not frozen.** `~/prod/dtc-data/rds-export/` receives a **new dump
+> every day**. Treating this as "one-time" is a *decision about cutover*, not a
+> property of the source: CMP is still live and still being written to. Pick the
+> export deliberately and record which one you used.
 
 ### 12 — CMP export, learner data — **two importers: accounts, then history**
 
@@ -1021,7 +1021,7 @@ recorded as `unsupported_xlsx_total: 1`.
 Both are `activation_state: mapping_review_required` — **staged but not activated.**
 Prepared bundles land in a gitignored `.local/migration-data`, never in the worktree.
 The durable protected copy a real run should point at lives outside any worktree, at
-`/data/tmp/luma-eventbrite-export/luma-aggregate-v1/`.
+`~/prod/dtc-data/luma-eventbrite-export/luma-aggregate-v1/`.
 
 > **The default `--luma-source` no longer validates.**
 > `.local/migration-data/events/luma-aggregate-v1` has grown to 174 events against the
@@ -1061,7 +1061,7 @@ leave every mapping review-required.
 
 | | |
 | --- | --- |
-| **Upstream** | The same Mailchimp subscribed-audience export `import_mailchimp_event_tags.py`/`import_mailchimp_subscriptions.py` read, e.g. `/data/tmp/mailchimp-export/` |
+| **Upstream** | The same Mailchimp subscribed-audience export `import_mailchimp_event_tags.py`/`import_mailchimp_subscriptions.py` read, e.g. `~/prod/dtc-data/mailchimp-export/` |
 | **Script** | `scripts/prod/import_mailchimp_course_tags.py` → `courses/services/mailchimp_course_tag_import.py` |
 | **Writes** | `courses.models.Enrollment` rows only — never `CourseRegistration`, never `CourseInterest` (that concept is gated by issue #286, a different thing: these tags name cohorts that already happened, not pre-cohort interest) |
 | **Reads** | Only rows carrying a reviewed course-cohort tag (`TAG_COHORT_MAP` in the service module) — the settled owner-approved edition→(family, year) table from issue #15, e.g. `de-zoomcamp-1`/`de-zoomcamp` → 2022, `ml-zoomcamp-2` → 2022; see that module's docstring for the full table |
@@ -1071,7 +1071,7 @@ leave every mapping review-required.
 ```
 uv run --frozen python scripts/prod/import_mailchimp_course_tags.py \
     --database .tmp/local.sqlite3 \
-    --export-dir /data/tmp/mailchimp-export
+    --export-dir ~/prod/dtc-data/mailchimp-export
 ```
 
 `--dry-run` computes cohort-match, account-match and enrollment counts through
@@ -1546,7 +1546,7 @@ Ordered by how much they will hurt. Every entry's **structural** claims — a fi
 or does not, a symbol is present, a repo-wide grep returns nothing, a cited line range
 still holds what it is cited for — were re-checked against the code on **2026-09-07** at
 `6899c616`. Figures measured over data outside this repository were **not** re-measured
-that day: the CMP and AISL exports under `/data/tmp/rds-export/`, anything from a full
+that day: the CMP and AISL exports under `~/prod/dtc-data/rds-export/`, anything from a full
 `import_events.py` run, the directories under `.local/migration-data/`, and the legacy
 upstream drift in §6.1. Each such figure keeps the date it was taken and says so, so a
 freshly checked line number never implies a freshly taken number. §12.1 records what
@@ -1633,17 +1633,18 @@ closed, so an old item number still leads somewhere.
    number of events we hold are no longer the same thing by construction.
 
 9. **The second production database is out of scope — decided 2026-09-05.**
-   `/data/tmp/rds-export/aisl/rds-aisl_prod-*.db` (the loose `rds-aisl_prod-*.db` files
-   at the top of `/data/tmp/rds-export/` are the same export before it was filed into
-   `aisl/`) is the database of **AI Shipping Labs, a different product**. Measured on
-   the 2026-09-04 export: 108 tables, **121,265 rows**, with its own `events`,
-   `content`, `payments`, `plans`, `questionnaires`, `bookclub`, `crm` and `analytics`
-   apps; the row count moves every day (151,402 on 2026-09-02), so treat any single
-   figure as a snapshot. **Owner ruling: it is not migrated here.** No script in this
-   repository reads it and none should — re-verified 2026-09-07: a repo-wide grep for
-   `aisl` matches no Python file. The entry stays so that the next person to find
-   a second `.db` under `/data/tmp/rds-export/` learns it was excluded deliberately
-   rather than rediscovering it. Full statement:
+   `~/prod/dtc-data/rds-export/aisl/rds-aisl_prod-*.db` (the loose
+   `rds-aisl_prod-*.db` files at the top of `~/prod/dtc-data/rds-export/` are the
+   same export before it was filed into `aisl/`) is the database of **AI Shipping
+   Labs, a different product**. Measured on the 2026-09-04 export: 108 tables,
+   **121,265 rows**, with its own `events`, `content`, `payments`, `plans`,
+   `questionnaires`, `bookclub`, `crm` and `analytics` apps; the row count moves
+   every day (151,402 on 2026-09-02), so treat any single figure as a snapshot.
+   **Owner ruling: it is not migrated here.** No script in this repository reads
+   it and none should — re-verified 2026-09-07: a repo-wide grep for `aisl`
+   matches no Python file. The entry stays so that the next person to find
+   a second `.db` under `~/prod/dtc-data/rds-export/` learns it was excluded
+   deliberately rather than rediscovering it. Full statement:
    `production-data-migration.md` §14. *The row figures are carried forward from
    2026-09-05 and were not re-measured.*
 
@@ -1762,7 +1763,10 @@ number can appear twice in this table for two unrelated defects.
   more — `content.E002` is gone and the app's remaining checks (`content/apps.py`,
   `content.E003`–`E005`, `content.W001`) only cover the media store — so an edit here
   is silently carried into the database by the next import instead of refusing to boot.
-- Do not copy `/data/tmp/rds-export/` into the worktree. Read it in place, read-only.
+- Do not copy `~/prod/dtc-data/rds-export/` into the worktree. Read it in place,
+  read-only. (This is the stable, protected location; the old `/data/tmp/rds-export/`
+  scratch copy still exists too, but `~/prod/dtc-data/` is what scripts should be
+  pointed at now.)
 - Do not add a second entry point for course-repository ingest. There is one, and
   both transports share it deliberately.
 - Do not trust `_docs/design/specs/script-inventory.md`. It is stale (§11).

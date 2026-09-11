@@ -2214,9 +2214,9 @@ working copy sits at `~/git/rds-export`). Terraform for the export role, bucket 
 `aws-infra/main/rds-export/`. AISL runs the same pipeline an hour later.
 
 **Which file to use, stated as a rule rather than a filename:** the production export is **the
-newest `/data/tmp/rds-export/rds-prod-*.db`**, produced by the nightly cron above. The directory
-holds six daily rotations, so a filename in this document is stale within 24 hours; always take
-the newest. As of 2026-09-02 that is:
+newest `~/prod/dtc-data/rds-export/rds-prod-*.db`**, produced by the nightly cron above. The
+directory holds six daily rotations, so a filename in this document is stale within 24 hours;
+always take the newest. As of 2026-09-02 that is:
 
 | | |
 | --- | --- |
@@ -2224,7 +2224,7 @@ the newest. As of 2026-09-02 that is:
 | Size / shape | 235 MiB (246,493,184 bytes) · 38 tables · 664,806 rows |
 | S3 copy | `s3://course-management-rds-backups-387546586013/sqlite/rds-prod-20260902-012536.db` |
 | Schema state | latest applied migration `0043_remove_registrationcampaign_email_body_markdown_and_more`, 2026-08-31 |
-| Retention on disk | six daily rotations in `/data/tmp/rds-export/`; **always take the newest** |
+| Retention on disk | six daily rotations in `~/prod/dtc-data/rds-export/`; **always take the newest** |
 
 Production row counts as of that export:
 

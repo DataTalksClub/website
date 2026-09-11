@@ -271,12 +271,12 @@ Three distinct journeys under this source — only the first reaches prod.
 (+ [`courses/services/cmp_content_import.py`](../../courses/services/cmp_content_import.py))
 
 Source: the CMP production export, read in place. **Precise path, not a
-directory**: `/data/tmp/rds-export/cmp/rds-prod-<YYYYMMDD>-<HHMMSS>.db` — a
-new file lands here daily (e.g. `rds-prod-20260903-182132.db`, the newest as
-of this writing). There is **no "latest" symlink**; `--source` is a required
-argument (`scripts/prod/import_cmp_content.py:47`) and the operator picks the
-newest file by the date in its name. Older snapshots also exist directly
-under `/data/tmp/rds-export/` without the `cmp/` subdirectory
+directory**: `~/prod/dtc-data/rds-export/cmp/rds-prod-<YYYYMMDD>-<HHMMSS>.db`
+— a new file lands here daily (e.g. `rds-prod-20260903-182132.db`, the
+newest as of this writing). There is **no "latest" symlink**; `--source` is a
+required argument (`scripts/prod/import_cmp_content.py:47`) and the operator
+picks the newest file by the date in its name. Older snapshots also exist
+directly under `~/prod/dtc-data/rds-export/` without the `cmp/` subdirectory
 (`rds-prod-20260902-012536.db` and earlier) — the `cmp/` subdirectory is the
 current location; confirm which is authoritative before using an old path
 verbatim from an earlier report.
@@ -343,8 +343,8 @@ Destination: a local dev database only.
 (+ [`accounts/services/cmp_learner_import.py`](../../accounts/services/cmp_learner_import.py))
 
 Source: the same CMP production export as 3.1 — same precise path convention,
-`/data/tmp/rds-export/cmp/rds-prod-<YYYYMMDD>-<HHMMSS>.db`, read in place,
-required `--source` argument, no default.
+`~/prod/dtc-data/rds-export/cmp/rds-prod-<YYYYMMDD>-<HHMMSS>.db`, read in
+place, required `--source` argument, no default.
 Transform, exactly:
 
 **Copied verbatim from the export's `email` column:** the address itself —
@@ -646,12 +646,16 @@ the durable copy below. Somebody has to decide whether the pin moves to the newe
 export or the newer directory is discarded.
 
 **The durable copy — the one a real migration run should point at — lives
-outside any worktree, at `/data/tmp/luma-eventbrite-export/luma-aggregate-v1/`**
+outside any worktree, at
+`~/prod/dtc-data/luma-eventbrite-export/luma-aggregate-v1/`**
 (`chmod 700` directory, `600` files, the same protected-export handling as
-`/data/tmp/rds-export/` and `/data/tmp/mailchimp-export/`). It was moved there
-from the now-unreliable worktree-scratch copy at
+`~/prod/dtc-data/rds-export/` and `~/prod/dtc-data/mailchimp-export/`). It was
+first staged at `/data/tmp/luma-eventbrite-export/luma-aggregate-v1/` — moved
+there from the now-unreliable worktree-scratch copy at
 `.tmp/luma-prepared-20260831/luma-aggregate-v1/` and verified byte-for-byte
-identical first (332 files, sha256 diff clean). Point `--luma-source` at it
+identical first (332 files, sha256 diff clean) — and later copied to the
+stable path above; the `/data/tmp/...` copy still exists but is scratch, not
+the reference location. Point `--luma-source` at it
 directly, or symlink/copy it to `.local/migration-data/events/luma-aggregate-v1`
 if a given worktree should resolve the default path automatically.
 Transform: aggregates to counts only — the module's own docstring states "no
@@ -704,7 +708,7 @@ owner can refresh it.** There is no live Luma API integration anywhere in
 this codebase (confirmed by grep across `*.py` for any Luma API call —
 none exists); registration data only ever arrives as an owner-provided
 export, prepared by 6.1 and durably staged at
-`/data/tmp/luma-eventbrite-export/luma-aggregate-v1/`. That export's newest
+`~/prod/dtc-data/luma-eventbrite-export/luma-aggregate-v1/`. That export's newest
 event is dated 2026-08-25, and the paired CSV/JSON checkpoints on disk cover
 166 events in total, none dated after 2026-08-29. Real Luma events after
 that date are not in this pipeline at all — a known example is several real
@@ -886,7 +890,7 @@ and writing via
 
 Source: the same prepared Luma export directory as 6.1/6.2 (attendee-level
 rows already present there, discarded by 6.2's aggregate-only adapters). The
-durable copy is `/data/tmp/luma-eventbrite-export/luma-aggregate-v1/`. Read by
+durable copy is `~/prod/dtc-data/luma-eventbrite-export/luma-aggregate-v1/`. Read by
 its own reader in
 [`scripts/prod/registration_sources/`](../../scripts/prod/registration_sources/),
 separate from the aggregate-only adapters beside it (`derive_luma`,
@@ -1331,21 +1335,24 @@ someone with real credentials to check. Tracked in
 
 **No script, and there will not be one. Owner ruling, 2026-09-05: this is a
 different product's database and nothing in it is migrated here.** The entry
-stays so the next person to find a second `.db` under `/data/tmp/rds-export/`
-reads a decision instead of raising the question again. Full statement:
+stays so the next person to find a second `.db` under
+`~/prod/dtc-data/rds-export/` reads a decision instead of raising the
+question again. Full statement:
 [`production-data-migration.md`](production-data-migration.md) §14.
 
-Precise path: `/data/tmp/rds-export/aisl/rds-aisl_prod-<YYYYMMDD>-<HHMMSS>.db`
-since the exports were filed per product; the loose `rds-aisl_prod-*.db` files
-still at the top of `/data/tmp/rds-export/` are the same export from before that
-move. It rotates daily alongside the CMP export, ~48–55 MB each, naming and
-rotation matching `rds-prod-*` exactly. 108 tables; the row count moves every day
-— 121,265 on the 2026-09-04 export, 151,402 on 2026-09-02 — so no single figure
-is the figure. It is the database of AI Shipping Labs.
+Precise path:
+`~/prod/dtc-data/rds-export/aisl/rds-aisl_prod-<YYYYMMDD>-<HHMMSS>.db` since
+the exports were filed per product; the loose `rds-aisl_prod-*.db` files
+still at the top of `~/prod/dtc-data/rds-export/` are the same export from
+before that move. It rotates daily alongside the CMP export, ~48–55 MB each,
+naming and rotation matching `rds-prod-*` exactly. 108 tables; the row count
+moves every day — 121,265 on the 2026-09-04 export, 151,402 on 2026-09-02 —
+so no single figure is the figure. It is the database of AI Shipping Labs.
 
 Two neighbours remain genuinely unexamined, flagged so they aren't lost:
-`/data/tmp/rds-export/relay/` holds a same-pattern `rds-relay-*.db` export, and
-`/data/tmp/rds-export/website/` now holds daily `rds-dtc_website-*.db` snapshots —
+`~/prod/dtc-data/rds-export/relay/` holds a same-pattern `rds-relay-*.db`
+export, and `~/prod/dtc-data/rds-export/website/` now holds daily
+`rds-dtc_website-*.db` snapshots —
 backups of **our own** deployed database rather than an upstream source, so they
 are a restore artifact and not an ingest source, but nobody has confirmed that in
 writing.

@@ -664,7 +664,7 @@ and it is the difference the brief asked to be made visible before anyone starts
 
 | Source | Location | Scale | Target model | Work |
 | --- | --- | --- | --- | --- |
-| CMP production | newest `/data/tmp/rds-export/rds-prod-*.db` | 38 tables, 664,806 rows | `courses.*`, `accounts.*` | **Adapter + full-fidelity mode** |
+| CMP production | newest `~/prod/dtc-data/rds-export/rds-prod-*.db` | 38 tables, 664,806 rows | `courses.*`, `accounts.*` | **Adapter + full-fidelity mode** |
 | Events + registrations | `<main checkout>/.local/migration-data/events/` — `luma/` 78 MB, `luma-aggregate-v1/` 13 MB, `eventbrite/` 2.1 MB | ~93 MB, ~174 Luma events | `events.*` (9 models exist) | **Adapters exist and are tested** (`events/importers.py`); register them |
 | Course curricula | registered course repositories | 20 modules, 181 units | `courses.Module/Unit` | **Working today.** Do not disturb |
 | Historical scoring | `zoomcamp-scoring` repo | pre-2024 cohorts, certificates | `courses.*` | Adapter exists (`scripts/historical_import/`); relocate |
@@ -823,8 +823,8 @@ plus re-export*, not a `git mv`, until the ledger issue lands.
    (§6.5, §7.3). **Behaviour changes here** — its own commit, family-description ownership
    flip called out explicitly.
 8. **Schema-drift adoption** (§6.4): `KNOWN_UNMAPPED_TABLES`, version bump.
-9. **`scripts/production_data.py`** → newest `/data/tmp/rds-export/rds-prod-*.db`, resolved not
-    hardcoded, still overridable. *(The root Makefile remains limited to local development.)*
+9. **`scripts/production_data.py`** → newest `~/prod/dtc-data/rds-export/rds-prod-*.db`, resolved
+    not hardcoded, still overridable. *(The root Makefile remains limited to local development.)*
 10. **Homework binding** (§7.2): adopt CMP's slug verbatim and re-point the module
     binding; delete the regex. `homework_slug_overrides` becomes dead and is dropped
     under its own issue.
