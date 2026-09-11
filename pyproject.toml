@@ -154,6 +154,8 @@ module = [
     "api.tests.staff_credentials",
     "api.tests.test_staff_authority_boundary",
     "courses.services.course_family_identity",
+    "scripts.tests.test_projection_marker_provenance",
+    "scripts.projection_build.public_projection_source",
 ]
 ignore_errors = false
 

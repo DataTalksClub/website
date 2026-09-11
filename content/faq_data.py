@@ -1,8 +1,11 @@
 """Validated, source-backed FAQ data and rendering helpers.
 
-The FAQ source is intentionally frozen into a projection.  Views never import the source
-checkout or evaluate answer text as a template; Markdown is rendered only after image tokens are
-resolved and the shared HTML allow-list has sanitized the result.
+FAQ courses are published documents of the active ``dtc-faq`` release.  Views never
+import the source checkout or evaluate answer text as a template; Markdown is
+rendered only after image tokens are resolved and the shared HTML allow-list has
+sanitized the result.  Cached read models are keyed by the release they were built
+from, so an activation or rollback rebuilds them instead of serving stale courses
+or stale question links (audit ARC-02).
 """
 
 from __future__ import annotations
@@ -15,12 +18,11 @@ from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.parse import urlsplit
+from uuid import UUID
 
 import mistune
-from django.db import DatabaseError
-from django.db.models import F
 
-from .models import ContentDocument, ContentRelease
+from .models import ContentDocument, ContentSource
 from .services import sanitize_rendered_html
 
 FAQ_ASSET_ROOT = Path(__file__).with_name("faq_assets")
@@ -123,13 +125,21 @@ def _add_faq_question_reference(
     references[key] = question_id
 
 
-@lru_cache(maxsize=len(FAQ_COURSE_ORDER))
+@lru_cache(maxsize=32)
 def _faq_question_reference_index(
+    release_id: str,
     course_slug: str,
 ) -> tuple[dict[str, str], dict[str, str]]:
-    """Build immutable-source, same-course lookup maps for one FAQ render."""
+    """Build same-course lookup maps for one FAQ render, bound to one release.
 
-    course = faq_course(course_slug)
+    The key names the release the maps were built from: releases are immutable
+    published snapshots, so a warmed index never resolves a link to a question
+    id that release does not publish, and an activation or rollback rebuilds the
+    maps instead of serving stale ones (audit ARC-02).
+    """
+
+    courses = _faq_release_catalogue(release_id)["courses"]
+    course = next((held for held in courses if held["slug"] == course_slug), None)
     if course is None:
         return {}, {}
 
@@ -210,31 +220,48 @@ def _resolve_faq_question_link(
     return f"/faq/{course_slug}.html#{question_id}"
 
 
-def _faq_catalogue() -> dict[str, Any]:
-    """Return the published FAQ courses, read from the database.
+def faq_active_release_id() -> str:
+    """The id of the release currently publishing the FAQ, or ``""``.
+
+    One cheap indexed lookup, with the same contract as
+    ``content.catalogue.active_release_id``: an absent source or pointer is a
+    genuinely empty FAQ and reads as ``""``; a database failure raises, so an
+    outage can never enter a cache below disguised as content.
+    """
+
+    active = (
+        ContentSource.objects.filter(stable_id=FAQ_SOURCE_STABLE_ID, enabled=True)
+        .values_list("active_release_id", flat=True)
+        .first()
+    )
+    return str(active or "")
+
+
+@lru_cache(maxsize=2)
+def _faq_release_catalogue(release_id: str) -> dict[str, Any]:
+    """The published FAQ courses of exactly one release.
 
     Each course is one published document: the page's own address and name are
     its columns, and the sections and questions beneath it are its structure,
     carried in the document's adapter metadata rather than spread over a table
     per nesting level. Courses come back in the order the source publishes them.
 
-    A database with no active FAQ release publishes nothing: the hub renders
-    empty and every course page 404s.
+    The query is bound to the release the cache key names; releases are
+    immutable published snapshots, so a warmed catalogue always answers for the
+    release it was built from, and an activation or rollback builds the next one
+    instead of serving stale courses.  An empty key is an absent pointer -- an
+    empty FAQ, not a failure -- so it answers without touching the database.
     """
 
-    try:
-        rows = list(
-            ContentDocument.objects.filter(
-                content_kind=FAQ_CONTENT_KIND,
-                is_published=True,
-                release__status=ContentRelease.Status.ACTIVE,
-                release__source__enabled=True,
-                release__source__stable_id=FAQ_SOURCE_STABLE_ID,
-                release_id=F("release__source__active_release_id"),
-            ).values("stable_key", "exact_public_path", "title", "adapter_metadata")
-        )
-    except DatabaseError:
+    if not release_id:
         return {"schema_version": 1, "courses": []}
+    rows = list(
+        ContentDocument.objects.filter(
+            content_kind=FAQ_CONTENT_KIND,
+            is_published=True,
+            release_id=UUID(release_id),
+        ).values("stable_key", "exact_public_path", "title", "adapter_metadata")
+    )
     by_slug = {
         str(row["stable_key"]): {
             "slug": str(row["stable_key"]),
@@ -252,7 +279,7 @@ def _faq_catalogue() -> dict[str, Any]:
 
 
 def faq_courses() -> tuple[dict[str, Any], ...]:
-    return tuple(_faq_catalogue()["courses"])
+    return tuple(_faq_release_catalogue(faq_active_release_id())["courses"])
 
 
 def faq_course(course_slug: str) -> dict[str, Any] | None:
@@ -501,7 +528,9 @@ def render_faq_answer(question: dict[str, Any]) -> str:
         markdown,
     )
     if isinstance(course_slug, str):
-        question_links, question_slugs = _faq_question_reference_index(course_slug)
+        question_links, question_slugs = _faq_question_reference_index(
+            faq_active_release_id(), course_slug
+        )
     else:
         course_slug = None
         question_links, question_slugs = {}, {}

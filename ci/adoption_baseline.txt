@@ -777,7 +777,6 @@ scripts/projection_build/__init__.py
 scripts/projection_build/event_description_bridge.py
 scripts/projection_build/event_description_link_policy.py
 scripts/projection_build/event_speaker_bio_normalization.py
-scripts/projection_build/public_projection_source.py
 scripts/pull_project_data.py
 scripts/repin_projection_digests.py
 scripts/score_project.py

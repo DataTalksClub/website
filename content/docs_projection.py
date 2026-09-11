@@ -32,13 +32,14 @@ from pathlib import Path, PurePosixPath
 from types import MappingProxyType
 from typing import Any
 from urllib.parse import urlsplit
+from uuid import UUID
 
 import mistune
 from django.core.exceptions import ImproperlyConfigured
 from django.db import DatabaseError
 from django.db.models import F
 
-from .models import ContentAsset, ContentDocument, ContentRelease
+from .models import ContentAsset, ContentDocument, ContentRelease, ContentSource
 from .services import sanitize_rendered_html
 
 DOCS_ASSET_ROOT = Path(__file__).with_name("docs_assets")
@@ -595,6 +596,52 @@ def _docs_release_filter() -> dict[str, Any]:
     }
 
 
+def docs_active_release_id() -> str:
+    """The id of the release currently publishing the docs, or ``""``.
+
+    One cheap indexed lookup, with the same contract as
+    ``content.catalogue.active_release_id``: an absent source or pointer is a
+    genuinely empty docs corpus and reads as ``""``; a database failure raises,
+    so an outage can never enter a cache below disguised as content.
+    """
+
+    active = (
+        ContentSource.objects.filter(stable_id=DOCS_SOURCE_STABLE_ID, enabled=True)
+        .values_list("active_release_id", flat=True)
+        .first()
+    )
+    return str(active or "")
+
+
+def release_pages(release_id: str) -> tuple[dict[str, Any], ...]:
+    """The documentation pages of exactly one release.
+
+    The query is bound to the release the caller's key names; releases are
+    immutable published snapshots, so a key's answer cannot drift. An empty id
+    is an absent pointer and answers empty without touching the database.
+    """
+
+    if not release_id:
+        return ()
+    return tuple(
+        _page_record(row)
+        for row in ContentDocument.objects.filter(
+            content_kind=DOCS_CONTENT_KIND,
+            is_published=True,
+            release_id=UUID(release_id),
+        ).values(
+            "exact_public_path",
+            "source_path",
+            "title",
+            "summary",
+            "raw_body",
+            "edit_url",
+            "checksum",
+            "adapter_metadata",
+        )
+    )
+
+
 def _page_record(row: Mapping[str, Any]) -> dict[str, Any]:
     """One documentation page, as the navigation and templates read it.
 
@@ -670,7 +717,7 @@ def docs_projection() -> dict[str, Any]:
 
 
 def docs_pages() -> tuple[dict[str, Any], ...]:
-    return tuple(dict(page) for page in docs_projection()["pages"])
+    return tuple(dict(page) for page in release_pages(docs_active_release_id()))
 
 
 def docs_page(public_path: str) -> dict[str, Any] | None:
@@ -785,11 +832,13 @@ __all__ = [
     "docs_asset_path",
     "docs_navigation",
     "docs_navigation_tree",
+    "docs_active_release_id",
     "docs_page",
     "docs_parent",
     "docs_pages",
     "docs_projection",
     "docs_sequential_navigation",
     "docs_sibling_navigation",
+    "release_pages",
     "render_docs_markdown",
 ]

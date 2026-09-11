@@ -16,15 +16,15 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
 from django.core.exceptions import ImproperlyConfigured
 
-from content.podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_canonical_path
 from content.podcast_content import ordered_podcasts
-from content.public_graph import safe_public_graph_url, validate_wiki_graph
+from content.podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_canonical_path
+from content.public_graph import validate_wiki_graph
+from content.public_text import target_attribute_count
 
 EXPECTED_SELECTION = "preferred"
 #: The collections the built files carry. Events are among them: the files were
@@ -41,7 +41,6 @@ COLLECTION_NAMES = (
     "media",
 )
 REQUIRED_COUNT_KEYS = frozenset({*COLLECTION_NAMES, "transcripts"})
-from content.public_text import strip_leaked_target_attributes, target_attribute_count
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PROJECTION_ROOT = REPOSITORY_ROOT / "temporary" / "content" / "public_projection"
@@ -300,6 +299,29 @@ def _validate_editorial_route_manifest(
         raise ImproperlyConfigured("Public projection editorial route content digest mismatch.")
 
 
+#: The accepted bootstrap's own provenance: exactly these supported legacy
+#: target-metadata tokens remain in the reviewed projection, per collection.
+#: The count is bound to this reviewed snapshot -- re-cutting the projection
+#: after cleaning a biography updates this pin as a deliberate, reviewed
+#: change, rather than a reader's request refusing to render (audit ARC-03).
+REVIEWED_TARGET_MARKER_COUNTS = {"articles": 0, "people": 10}
+
+
+def _validate_marker_provenance(projection: dict[str, Any]) -> None:
+    """Pin the accepted snapshot's legacy target-metadata tokens at build time."""
+
+    for name, expected in REVIEWED_TARGET_MARKER_COUNTS.items():
+        markers = 0
+        for record in projection[name]:
+            for block in record.get("blocks", ()):
+                if isinstance(block, dict) and isinstance(block.get("text"), str):
+                    markers += target_attribute_count(block["text"])
+        if markers != expected:
+            raise ImproperlyConfigured(
+                f"Public projection legacy target-marker provenance mismatch: {name}."
+            )
+
+
 def load_checked_projection(root: Path | None = None) -> dict[str, Any]:
     root = root or DEFAULT_PROJECTION_ROOT
     try:
@@ -363,6 +385,8 @@ def load_checked_projection(root: Path | None = None) -> dict[str, Any]:
         if len(records) != counts[name]:
             raise ImproperlyConfigured(f"Public projection declared count mismatch: {name}.")
         projection[name] = tuple(records)
+
+    _validate_marker_provenance(projection)
 
     # Every media reference a content record carries must resolve to a real media
     # object.  This is the referential check that a fixed media-object total only ever
@@ -461,5 +485,3 @@ def load_checked_projection(root: Path | None = None) -> dict[str, Any]:
         item["source_path"]: item for item in route_manifest["aliases"]
     }
     return projection
-
-

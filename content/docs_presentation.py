@@ -16,7 +16,8 @@ from typing import Any
 from .docs_projection import (
     DocsNavigationItem,
     DocsNavigationTree,
-    docs_pages,
+    docs_active_release_id,
+    release_pages,
     render_docs_markdown,
 )
 
@@ -230,19 +231,21 @@ class _DocsSearchDocument:
     haystack: str
 
 
-@lru_cache(maxsize=1)
-def _docs_search_corpus() -> tuple[_DocsSearchDocument, ...]:
-    """Build an in-process, title/description/body search corpus once per process.
+@lru_cache(maxsize=4)
+def _docs_search_corpus(release_id: str) -> tuple[_DocsSearchDocument, ...]:
+    """Build the title/description/body search corpus of exactly one release.
 
     Wiki search reads a checked ``wiki_search.json`` built ahead of time from the wiki
     projection.  Docs has no such build step yet (Pass 0 is presentation-only, no source
     or projection change), so this derives the same shape directly from the rendered
-    bodies the detail pages already produce, and caches it for the life of the process
-    rather than re-rendering 105 pages on every search request.
+    bodies the detail pages already produce.  The cache key is the release the corpus
+    was built from: releases are immutable published snapshots, so a warmed corpus
+    always answers for the release it names, and an activation or rollback builds the
+    next one instead of serving stale matches for the life of the process.
     """
 
     corpus: list[_DocsSearchDocument] = []
-    for page in docs_pages():
+    for page in release_pages(release_id):
         title = str(page["title"])
         description = str(page.get("description") or "")
         rendered, _headings = render_docs_markdown(page)
@@ -272,8 +275,11 @@ def docs_search_results(query: str) -> tuple[DocsSearchResult, ...]:
     terms = query.casefold().split()
     if not terms:
         return ()
+    release_id = docs_active_release_id()
+    if not release_id:
+        return ()
     results: list[DocsSearchResult] = []
-    for document in _docs_search_corpus():
+    for document in _docs_search_corpus(release_id):
         if all(term in document.haystack for term in terms):
             results.append(document.result)
             if len(results) == 100:

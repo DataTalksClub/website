@@ -25,13 +25,12 @@ from functools import lru_cache
 from typing import Any
 from uuid import UUID
 
-from django.core.exceptions import ImproperlyConfigured
 from django.db import DatabaseError
 from django.db.models import Count, Max
 
 from .models import ContentDocument, ContentSource
 from .public_graph import validate_wiki_graph
-from .public_text import strip_leaked_target_attributes, target_attribute_count
+from .public_text import strip_leaked_target_attributes
 
 #: One published record, exactly as the import stored it. The pages read these
 #: as mappings because that is what the catalogue's own records are: a book has
@@ -149,38 +148,21 @@ def _by_slug(collection: tuple[Record, ...], slug: str) -> Record | None:
     return next((record for record in collection if record.get("slug") == slug), None)
 
 
-#: The audit of the accepted catalogue found exactly these supported metadata
-#: markers left in published bodies. Cleaning them is a narrow, provenance-bound
-#: repair, so the count is a canary: if it moves, the allowlist has broadened or
-#: a body has drifted, and that is a refusal rather than a wider silent cleanup.
-#: Articles are zero because their bodies are built by the article block builder,
-#: which removes the legacy ``{:target="_blank"}`` directive before publication
-#: instead of leaving 270 of them for a reader's request to clean up. Person bios
-#: still take the older plain-text path, so their ten markers are removed here.
-_EXPECTED_LEAKED_TARGET_MARKERS = {"article": 0, "people": 10}
-
-
 @lru_cache(maxsize=8)
 def _cleaned_bodies(release_id: str, kind: str) -> tuple[Record, ...]:
     """Published records whose body blocks have had leaked link metadata removed.
 
     The stored records are left untouched: each cleaned record is a copy, so the
-    cache above still holds exactly what the database published.
-
-    A database publishing no records of this kind has nothing to canary. That is
-    an un-ingested database, not a drifted one, so it reads as an empty
-    collection rather than a refusal.
+    cache above still holds exactly what the database published.  The cleanup is
+    a narrow, idempotent per-block repair of one known legacy token; whether the
+    reviewed corpus still *contains* those tokens is a provenance question, and
+    it is asserted where that provenance lives -- the reviewed-projection build
+    contract -- not here at request time, where a frozen corpus-wide count once
+    turned one legitimate biography cleanup into a server error for every
+    person page (audit ARC-03).
     """
 
     held = _records(release_id, kind)
-    markers = sum(
-        target_attribute_count(block["text"])
-        for record in held
-        for block in record.get("blocks", ())
-        if isinstance(block, dict) and isinstance(block.get("text"), str)
-    )
-    if held and markers != _EXPECTED_LEAKED_TARGET_MARKERS[kind]:
-        raise ImproperlyConfigured("Public catalogue leaked target marker count mismatch.")
     return tuple(_cleaned_body(record) for record in held)
 
 
