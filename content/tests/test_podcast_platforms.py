@@ -103,9 +103,19 @@ class PodcastPlatformDataTests(TestCase):
             "https://creators.spotify.com/pod/profile/datatalksclub/",
         )
 
-    def test_episode_keeps_youtube_and_restores_creator_audio_without_creator_pill(
+    def test_episode_keeps_youtube_and_restores_open_spotify_audio_without_creator_pill(
         self,
     ) -> None:
+        """The player prefers ``open.spotify.com`` over the creator dashboard embed.
+
+        ``creators.spotify.com`` declares ``frame-ancestors https://creators.spotify.com``
+        on the internal auth frame its player bootstraps, so a real browser refuses to
+        load it from any third-party parent -- including this one -- and the audio
+        player renders as a blank box.  This episode has both a ``spotify`` (open)
+        link and a ``spotify_for_creators`` link; the validated, publicly embeddable
+        ``open.spotify.com`` player is the one that must render.
+        """
+
         episode = _episode("s24e06-how-to-build-ai-that-actually-ships-in-production")
         response = self.client.get(episode["public_path"])
         body = response.content.decode()
@@ -116,17 +126,15 @@ class PodcastPlatformDataTests(TestCase):
             response,
             'src="https://www.youtube-nocookie.com/embed/PosCx_4fwt0?enablejsapi=1&amp;rel=0"',
         )
-        creator_embed = (
-            "https://creators.spotify.com/pod/profile/datatalksclub/embed/episodes/"
-            "How-to-Build-AI-that-actually-Ships-in-Production---Aleksandr-Kim-e3l6hme"
-        )
+        open_embed = "https://open.spotify.com/embed/episode/1kwtGLI6dOq2HgKzJmLMkw"
         self.assertContains(response, 'id="podcast-audio-player"')
-        self.assertContains(response, f'src="{creator_embed}"')
+        self.assertContains(response, f'src="{open_embed}"')
         self.assertNotContains(response, "Spotify for Creators")
         self.assertNotContains(
             response,
             'href="https://creators.spotify.com/pod/profile/datatalksclub/episodes/',
         )
+        self.assertNotContains(response, "creators.spotify.com/pod/profile/datatalksclub/embed/")
         for provider in ("apple", "spotify", "youtube"):
             marker_start = body.index(f'data-podcast-platform="{provider}"')
             link_start = body.rfind("<a", 0, marker_start)

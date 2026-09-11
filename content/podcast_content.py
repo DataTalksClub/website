@@ -650,15 +650,25 @@ def _spotify_open_embed(url: str) -> SpotifyEmbed | None:
 
 
 def _spotify_embed(record: dict[str, Any]) -> SpotifyEmbed | None:
-    """Return a validated Spotify player from the record's stored platform links."""
+    """Return a validated Spotify player from the record's stored platform links.
+
+    ``open.spotify.com`` is tried first: it is Spotify's documented public embed,
+    designed to run on a third-party page.  ``creators.spotify.com`` (the legacy
+    Anchor dashboard preview, still reachable through the ``spotify_for_creators``
+    and ``anchor`` links) declares ``frame-ancestors https://creators.spotify.com``
+    on the internal auth frame its player bootstraps, which a real browser refuses
+    to load from any other parent origin -- including this one -- leaving a blank
+    player shell.  It stays as the fallback for the episodes that only ever had a
+    creator link, which still render something rather than nothing.
+    """
 
     links = record.get("links") or {}
     if not isinstance(links, dict):
         return None
     for key, parser in (
+        ("spotify", _spotify_open_embed),
         ("spotify_for_creators", _spotify_creator_embed),
         ("anchor", _spotify_creator_embed),
-        ("spotify", _spotify_open_embed),
     ):
         value = links.get(key)
         if not isinstance(value, str) or not value.strip():
