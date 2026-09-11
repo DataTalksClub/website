@@ -130,7 +130,7 @@ class NewEventContentImportTests(TestCase):
         self.assertEqual(EventContent.objects.get(event=self.event).updated_at, before)
 
     def test_a_record_naming_an_identity_we_do_not_hold_is_refused(self) -> None:
-        """Creating an event is events.identity's job, and only its job."""
+        """Creating an event is events.models.create_event_identity's job, and only its job."""
 
         record = _record(self.event, identity_id=str(uuid.uuid4()))
 

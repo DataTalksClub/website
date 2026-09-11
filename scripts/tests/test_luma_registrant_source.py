@@ -17,9 +17,12 @@ from django.conf import settings
 from django.test import SimpleTestCase, TestCase
 
 from accounts.models import CustomUser
-from events.identity import create_provider_event_identity
 from events.models import EventRegistrantIdentity, EventRegistration
-from events.registrant_import import RegistrantImportError, import_registrants
+from scripts.prod.registrant_import import (
+    RegistrantImportError,
+    create_provider_event_identity,
+    import_registrants,
+)
 from scripts.prod.registration_sources.luma_registrants import (
     PROVIDER,
     discover_luma_registrant_files,

@@ -3,7 +3,7 @@
 Eventbrite's real attendee-level export sat unread for a while -- not because
 of any deliberate policy, but because only Luma's export had ever been built
 into a reader (see the note this replaces in
-``events/registrant_import.py``'s module docstring history). The data was
+``scripts/prod/registrant_import.py``'s module docstring history). The data was
 there the whole time: ``.local/migration-data/events/eventbrite/aggregate-v1.zip``
 (the same archive :mod:`scripts.prod.registration_sources.eventbrite` already
 reads for registration *counts*, byte-identical to its ``export.zip`` twin,
@@ -20,11 +20,11 @@ deliberately separate, is where an attendee value -- an email, read only to
 normalize into the domain's consolidation key -- is allowed to cross at all.
 
 The one real difference from Luma's reader is *identity resolution*, and it is
-why :class:`events.registrant_import.PendingEventRegistrants` gained an
+why :class:`scripts.prod.registrant_import.PendingEventRegistrants` gained an
 optional ``resolve_event``. A discovered Luma event gets its own
-provider-minted source identity (``events.identity.provider_source_identity``,
+provider-minted source identity (``scripts.prod.registrant_import.provider_source_identity``,
 repository ``dtc-historical-source/luma``), so Luma's reader resolves through
-the same lookup ``events.registrant_import`` already used. Every Eventbrite
+the same lookup ``scripts.prod.registrant_import`` already used. Every Eventbrite
 event in this export, by contrast, is one of the 421 events the *reviewed
 legacy manifest* already describes -- Eventbrite was retired well before this
 migration and nothing here has ever run event discovery against it -- so its
@@ -61,7 +61,7 @@ from zipfile import BadZipFile, ZipFile
 
 from accounts.identity_values import normalize_account_email
 from events.models import Event, EventRegistration
-from events.registrant_import import (
+from scripts.prod.registrant_import import (
     PendingEventRegistrants,
     RegistrantImportError,
     RegistrantRow,
@@ -93,7 +93,7 @@ def _refuse(code: str) -> NoReturn:
 
 # --------------------------------------------------------------------------
 # Identity resolution -- via the reviewed eventbrite-event-identities.json
-# mapping, not events.identity.provider_source_identity. See the module
+# mapping, not scripts.prod.registrant_import.provider_source_identity. See the module
 # docstring for why.
 # --------------------------------------------------------------------------
 
@@ -143,7 +143,7 @@ def load_resolved_eventbrite_identities(
 
 
 def _resolve_canonical_event(identity: CanonicalEventbriteIdentity) -> Event | None:
-    from events.identity import EventIdentityNotFound, resolve_source_identity
+    from events.models import EventIdentityNotFound, resolve_source_identity
 
     try:
         return resolve_source_identity(
@@ -176,7 +176,7 @@ def discover_eventbrite_registrant_files(
     hidden entry -- the same shared guards every provider reader in this
     package uses. No pinned whole-archive checksum: unlike the aggregate-only
     reader this reads no public count, so there is nothing a silent drift
-    here could corrupt (see ``events.registrant_import``'s and
+    here could corrupt (see ``scripts.prod.registrant_import``'s and
     ``luma_registrants``'s own docstrings for why that pin is aggregate-only).
     """
 

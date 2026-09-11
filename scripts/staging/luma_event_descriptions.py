@@ -3,7 +3,7 @@
 The 421-record legacy corpus in ``temporary/content/public_projection/events.json``
 is a frozen one-time export: its descriptions come from the event description
 bridge, which matches entries on the legacy ``_data/events.yaml`` tuple. An event
-discovered in a Luma export has no such tuple -- ``events.identity`` gives it a
+discovered in a Luma export has no such tuple -- ``events.models.create_event_identity`` gives it a
 title and a canonical path and nothing else -- so the bridge structurally cannot
 carry its description, and rebuilding the corpus blanks any event it has no entry
 for.
@@ -50,7 +50,7 @@ approving one is an edit to
 never inferred here.
 
 *An event we do not already have.* This writes descriptions for identities that
-exist. Creating an event is ``events.identity``'s job, reached through
+exist. Creating an event is ``events.models.create_event_identity``'s job, reached through
 ``scripts/prod/import_events.py --discover-new-events-only``. An export whose event
 has no identity yet is reported under ``no_identity_yet``.
 

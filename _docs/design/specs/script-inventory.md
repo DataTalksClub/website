@@ -168,7 +168,7 @@ noted.
 | `verify_dtc_content` | content_sync | Live (CI gate) | `scripts/ci.py` |
 | `compatibility_gate` | core | Live (CI gate) | `scripts/ci.py` |
 | `sync_studio_roles` | core | Test-only | `accounts/tests/test_studio_foundation.py:68` |
-| `import_event_identities` | events | **Retired** | Redundant with `scripts/prod/import_events.py`'s `import_identities()`, which calls the same `events.identity.import_identity_manifest`. `scripts/prepare_local_data.py` now calls that function directly; the command and its `import_event_identity_manifest` alias are deleted |
+| `import_event_identities` | events | **Retired** | Redundant with `scripts/prod/import_events.py`'s `import_identities()`, which calls the same `scripts.prod.identity_manifest.import_identity_manifest`. `scripts/prepare_local_data.py` now calls that function directly; the command and its `import_event_identity_manifest` alias are deleted |
 | `backfill_event_qna` | events | **Dead** | Zero references repo-wide |
 | `retry_event_qna` | events | Superseded | The service it wraps is reachable from Studio (`events/qna/studio_views.py:121`) and the admin API (`management_api/views.py:1091`); the CLI itself has no caller |
 | `run_job_worker` | jobs | Live (production) | `entrypoint.sh:11`; `uv run python manage.py run_job_worker` |

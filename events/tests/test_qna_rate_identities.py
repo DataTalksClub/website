@@ -20,8 +20,12 @@ from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
 
-from events.identity import create_event_identity
-from events.models import EventQnaQuestion, EventQnaRateLimit, EventQnaSession
+from events.models import (
+    EventQnaQuestion,
+    EventQnaRateLimit,
+    EventQnaSession,
+    create_event_identity,
+)
 from events.qna import security, services
 
 IP_A = "203.0.113.10"

@@ -18,7 +18,7 @@ from django.test import SimpleTestCase, TestCase
 
 from content.models import ContentDocument
 from courses.models import Testimonial
-from events.models import Event, EventAlias
+from events.models import Event
 from test_support.django_runner import IsolatedSQLiteCreation
 
 
@@ -50,6 +50,5 @@ class ReferenceDataLoadOrderTests(SimpleTestCase):
 class ReferenceDataReachesThisWorkerTests(TestCase):
     def test_the_reviewed_rows_are_present_wherever_this_test_runs(self) -> None:
         self.assertEqual(Event.objects.count(), 421)
-        self.assertEqual(EventAlias.objects.count(), 1_684)
         self.assertEqual(Testimonial.objects.count(), 6)
         self.assertGreater(ContentDocument.objects.count(), 0)

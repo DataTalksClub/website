@@ -867,7 +867,7 @@ def _events(context: FactoryContext, state: str) -> dict[str, object]:
     )
     aggregate_factory = f"{prefix}.historical_aggregate_revision"
     aggregate_key = _key(context, aggregate_factory, state)
-    from events.identity import create_event_identity
+    from events.models import create_event_identity
 
     canonical_event = create_event_identity(
         event_id=_uuid(context, f"{prefix}.event", state),

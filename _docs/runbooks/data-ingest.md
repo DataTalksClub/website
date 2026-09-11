@@ -753,7 +753,7 @@ the same file into every test database, and the event content beside it.
 
 The former `manage.py import_event_identities` command (and its
 `import_event_identity_manifest` alias) are retired: they wrapped the exact
-same `events.identity.import_identity_manifest` call `import_events.py` already
+same `scripts.prod.identity_manifest.import_identity_manifest` call `import_events.py` already
 made, so once `scripts/prepare_local_data.py` was repointed at that function
 directly, nothing called the command anymore.
 
@@ -792,7 +792,7 @@ under `unchanged` and writes nothing.
 ### 14.3 — New-event identity discovery
 
 Until this leg existed, the manifest above (§14) was the **only** way an `Event` row
-could exist. `events.identity.create_event_identity()` — the atomic, allocator-safe
+could exist. `events.models.create_event_identity()` — the atomic, allocator-safe
 function that actually inserts one — had zero callers outside tests. A genuinely new
 event named in a fresh Luma export (one the manifest has never described, because it
 postdates the export the manifest was built from) had no path into the database at all.
@@ -800,7 +800,7 @@ postdates the export the manifest was built from) had no path into the database 
 **The mechanism**: `scripts/prod/import_events.py`'s
 `discover_new_luma_event_identities()` (orchestration) calls
 `scripts.prod.registration_sources.luma.discover_luma_events()` (the read) and
-`events.identity.create_provider_event_identity()` (the write, itself a thin wrapper
+`scripts.prod.registrant_import.create_provider_event_identity()` (the write, itself a thin wrapper
 around `create_event_identity()`; it does not reimplement allocation or path
 construction). Run it two ways:
 
@@ -834,7 +834,7 @@ An export event now matches an event we already have when **exactly one** existi
 shares its calendar date and, case/whitespace-normalized, its exact title — the same
 rule `events.services.resolve_unmatched_aggregates` already applies to the same problem,
 exact on both axes, so a merely similar title or a neighbouring date is not a match at
-all (`events.identity.ExistingEventIndex`). Several events sharing both is reported
+all (`scripts.prod.registrant_import.ExistingEventIndex`). Several events sharing both is reported
 under `ambiguous_total` and guessed at by nobody, because folding two real events into
 one is worse than a duplicate. Anything matching nothing is genuinely new and still gets
 an identity. Nothing is *attached* by title or date: a recognised event keeps its own

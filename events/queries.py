@@ -20,7 +20,7 @@ from typing import Any
 
 from django.db.models import Prefetch, Q
 
-from .models import Event, EventContent, EventLink, EventSpeaker
+from .models import Event, EventContent, EventIdentityNotFound, EventLink, EventSpeaker
 
 
 def _record(content: EventContent) -> dict[str, Any]:
@@ -79,6 +79,19 @@ def published_event_record(event_id: uuid.UUID | str) -> dict[str, Any] | None:
 
     content = _published().filter(event_id=event_id).first()
     return None if content is None else _record(content)
+
+
+def event_public_record(event: Event) -> dict[str, Any]:
+    """Return the public record for an Event, read from its own content rows.
+
+    An identity whose content has not been ingested yet publishes nothing, so
+    this raises rather than returning a record with an invented schedule.
+    """
+
+    record = published_event_record(event.id)
+    if record is None:
+        raise EventIdentityNotFound("event_content_unavailable")
+    return record
 
 
 def published_event_records_by_path(paths: Iterable[str]) -> dict[str, dict[str, Any]]:

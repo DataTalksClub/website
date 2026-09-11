@@ -28,9 +28,10 @@ not introduce registration, email, or provider mutations.
 
 The public ID alone selects a public Event; its title slug is cosmetic. Publication fails closed
 without a public ID. Imports and replays preserve the checked UUID/public-ID pair and reject missing,
-duplicate, ambiguous, or renumbered mappings atomically. The accepted UUID/current-slug, UUID-only,
-and reviewed date/title spellings remain exact one-hop aliases to the numeric/current-slug canonical.
-No public slug-only, date/title-derived, provider-ID, source-key, or numeric management lookup exists.
+duplicate, ambiguous, or renumbered mappings atomically. An Event is addressed publicly only by its
+id: the UUID/current-slug, UUID-only, and reviewed date/title spellings that once redirected to the
+numeric/current-slug canonical are retired and resolve to nothing. No public slug-only,
+date/title-derived, UUID, provider-ID, source-key, or numeric management lookup exists.
 
 Lifecycle: `draft -> published -> completed -> archived`, with `cancelled` reachable before completion. Registration availability is derived from publication, registration window, event time, and cancellation state.
 
@@ -325,7 +326,7 @@ Both interfaces can:
   Slack, or credentialed response.
 - Public Event links, canonical/OG/JSON-LD, breadcrumbs, registration/calendar builders, feeds, and
   sitemaps emit only `/events/<positive-public-id>/<current-title-slug>`; UUID remains management-only
-  identity and a retained public redirect source.
+  identity and is never a public redirect source.
 - Every event/email management action has Studio/admin API parity and negative authorization tests.
 - New website code has no direct Amazon SES or Datamailer send path, no canonical mutable template
   store, and no provider-attempt/event stack; every supported purpose uses approved Relay routing,

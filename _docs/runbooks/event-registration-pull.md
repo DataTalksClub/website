@@ -503,7 +503,7 @@ any Luma convenience:
 - `events/importers.py` is a provider-neutral port — a `SourceReader` contract, a
   registry, aggregate-only result types, bounded failure codes. **It knows no
   provider's file format and must not learn one.**
-- `events/registrant_import.py` is provider-generic in the same way: the provider
+- `scripts/prod/registrant_import.py` is provider-generic in the same way: the provider
   is an argument, not a constant, and it takes already-parsed `RegistrantRow`
   values.
 - Provider file formats live in `scripts/prod/registration_sources/`, one module

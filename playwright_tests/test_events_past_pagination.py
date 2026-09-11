@@ -361,8 +361,9 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
     assert post.headers["allow"] == "GET, HEAD"
     assert post.headers["cache-control"] == "no-store, max-age=0"
 
-    # A page-two row leads to its numeric/current-slug detail, self-canonical,
-    # and #173's UUID and dated aliases still reach it in one hop.
+    # A page-two row leads to its numeric/current-slug detail, self-canonical.
+    # Events are addressed only by id: the retired UUID and date/title paths
+    # (#173's aliases) no longer resolve to anything -- they are plain 404s.
     first_of_page_two = event_groups().recent[PUBLIC_PAGE_SIZE]
     canonical = str(first_of_page_two["public_path"])
     expect(page.get_by_role("link", name=first_of_page_two["title"], exact=True)).to_have_attribute(
@@ -375,15 +376,7 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
     )
 
     event = Event.objects.get(id=first_of_page_two["identity_id"])
-    uuid_alias = page.request.get(f"{origin}/events/{event.id}", max_redirects=0)
-    assert uuid_alias.status == 301
-    assert uuid_alias.headers["location"] == canonical
-    dated_alias = (
-        event.aliases.filter(kind="legacy_date_path")
-        .exclude(source_path__endswith="/")
-        .get()
-        .source_path
-    )
-    dated = page.request.get(f"{origin}{dated_alias}", max_redirects=0)
-    assert dated.status == 301
-    assert dated.headers["location"] == canonical
+    uuid_path = page.request.get(f"{origin}/events/{event.id}", max_redirects=0)
+    assert uuid_path.status == 404
+    dated_path = page.request.get(f"{origin}/events/{event.source_key}", max_redirects=0)
+    assert dated_path.status == 404

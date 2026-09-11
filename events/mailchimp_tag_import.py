@@ -9,7 +9,7 @@ this export leaves ``TAGS`` unread, by explicit design (see
 ``accounts.services.mailchimp_subscription_import``'s module docstring).
 
 **What a tag is, and is not.** A Luma/Eventbrite registrant row
-(``events.registrant_import``) names one specific event: "this identity
+(``scripts.prod.registrant_import``) names one specific event: "this identity
 registered for event X on date Y." A Mailchimp tag like ``event-podcast``
 names no event at all -- it is a self-selected or campaign-applied label
 meaning "this person is broadly associated with podcast-related events."
@@ -34,9 +34,9 @@ about that row is stored anywhere.
 
 **Matching.** For a row that does carry at least one of the 8 tags, the
 address is consolidated through the exact same discipline
-``events.registrant_import`` already established for Luma/Eventbrite rows --
+``scripts.prod.registrant_import`` already established for Luma/Eventbrite rows --
 reused, not reinvented, via
-:func:`events.registrant_import.resolve_registrant_identity`:
+:func:`scripts.prod.registrant_import.resolve_registrant_identity`:
 ``normalized_email`` against ``accounts_customuser`` first (an existing
 account always wins), then against an existing registrant-only
 ``EventRegistrantIdentity`` (from the Luma/Eventbrite import, or from an
@@ -49,7 +49,7 @@ Mailchimp-tag people; they resolve into the exact same pool source #9
 ``(identity, category, source)`` unique constraint; writing is always through
 ``get_or_create``, so a replayed row that resolves to the same identity and
 the same categories writes nothing new on its second pass. Identity
-resolution has been idempotent since ``events.registrant_import`` established
+resolution has been idempotent since ``scripts.prod.registrant_import`` established
 it: a second run's "new" identity lookups instead find the row the first run
 created.
 """
@@ -67,9 +67,10 @@ from django.db import transaction
 from accounts.identity_values import normalize_account_email
 from accounts.models import CustomUser
 
+from scripts.prod.registrant_import import resolve_registrant_identity
+
 from .mailchimp_event_tag_categories import MAILCHIMP_EVENT_TAG_CATEGORIES
 from .models import EventRegistrantIdentity, EventRegistrantInterestSignal
-from .registrant_import import resolve_registrant_identity
 
 __all__ = [
     "EMAIL_COLUMN",
@@ -188,7 +189,7 @@ def import_mailchimp_event_tags(
     computed against the real, current database state through read-only
     queries only (:func:`_classify_read_only`); nothing is written. With
     ``apply=True``, resolution goes through
-    :func:`events.registrant_import.resolve_registrant_identity`, the same
+    :func:`scripts.prod.registrant_import.resolve_registrant_identity`, the same
     function the Luma/Eventbrite importer uses, so a new identity created
     here is indistinguishable from one created there.
 

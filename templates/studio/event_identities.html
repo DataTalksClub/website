@@ -21,8 +21,8 @@
       Event identities
     </h1>
     <p class="admin-lede">
-      Reviewed UUID identities and retained aliases. The UUID is the only lookup key; slugs are
-      cosmetic and source provenance is visible only on this authorized page.
+      Reviewed UUID identities. The UUID is the only lookup key; slugs are cosmetic and source
+      provenance is visible only on this authorized page.
     </p>
   </div>
 {% endblock %}
@@ -45,9 +45,6 @@
               <h3>
                 <a href="{% url 'studio:event-identity-detail' event_id=identity.id %}">{{ identity.title }}</a>
               </h3>
-              <p class="admin-note">
-                {{ identity.aliases|length }} retained alias{{ identity.aliases|length|pluralize:"es" }}
-              </p>
             </div>
             <dl class="admin-facts">
               <div>

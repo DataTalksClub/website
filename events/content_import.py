@@ -1,6 +1,6 @@
 """Import the reviewed event content records into ``EventContent``.
 
-:mod:`events.identity` imports *identity* -- the uuid, public id and slug the
+:mod:`events.models` mints *identity* -- the uuid, public id and slug the
 URL is built from. This is the other half: the type, schedule, description,
 speakers and links one public event page prints.
 
@@ -404,7 +404,7 @@ def import_event_content(*, path: Path, dry_run: bool = False) -> EventContentIm
 
     This reconciles rather than bootstraps: identity is imported first, and a
     record naming an identity this database does not hold is a refusal, not a
-    new event. Creating events is :mod:`events.identity`'s job alone.
+    new event. Creating events is :func:`events.models.create_event_identity`'s job alone.
     """
 
     records = load_reviewed_event_content(path)

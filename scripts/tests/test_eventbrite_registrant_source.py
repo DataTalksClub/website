@@ -5,7 +5,7 @@ export is read or copied in this suite. The consolidation and write behaviour
 these rows feed is tested in ``events/tests/test_registrant_import.py``; what
 is tested here is the file half: identity resolution via the reviewed
 ``eventbrite-event-identities.json`` mapping (not
-``events.identity.provider_source_identity``, unlike Luma), archive discovery,
+``scripts.prod.registrant_import.provider_source_identity``, unlike Luma), archive discovery,
 safety refusals, and column handling.
 """
 
@@ -23,7 +23,7 @@ from django.conf import settings
 from django.test import SimpleTestCase, TestCase
 
 from events.models import Event, EventRegistrantIdentity, EventRegistration
-from events.registrant_import import RegistrantImportError, import_registrants
+from scripts.prod.registrant_import import RegistrantImportError, import_registrants
 from scripts.prod.registration_sources.eventbrite_registrants import (
     PROVIDER,
     CanonicalEventbriteIdentity,

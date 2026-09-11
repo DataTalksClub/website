@@ -16,8 +16,7 @@ import json
 
 from django.test import TestCase
 
-from events.identity import create_event_identity
-from events.models import EventQnaSession
+from events.models import EventQnaSession, create_event_identity
 from events.qna import security, services
 from events.qna.services import RevisionConflict
 

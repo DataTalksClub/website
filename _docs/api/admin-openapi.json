@@ -351,30 +351,6 @@
       "EventIdentity": {
         "additionalProperties": false,
         "properties": {
-          "aliases": {
-            "items": {
-              "additionalProperties": false,
-              "properties": {
-                "kind": {
-                  "type": "string"
-                },
-                "path": {
-                  "pattern": "^/events/",
-                  "type": "string"
-                },
-                "reason": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "path",
-                "kind",
-                "reason"
-              ],
-              "type": "object"
-            },
-            "type": "array"
-          },
           "canonical_path": {
             "pattern": "^/events/[1-9][0-9]*/[-a-z0-9]+$",
             "readOnly": true,
@@ -445,7 +421,6 @@
           "slug",
           "canonical_path",
           "registration_path",
-          "aliases",
           "provenance"
         ],
         "type": "object"
@@ -3238,7 +3213,7 @@
             ]
           }
         ],
-        "summary": "Inspect reviewed Event UUID identities and aliases",
+        "summary": "Inspect reviewed Event UUID identities",
         "x-audit-action": "events.identity.viewed",
         "x-capability-key": "events.identity.read",
         "x-concurrency": "none",
@@ -3380,7 +3355,7 @@
             ]
           }
         ],
-        "summary": "Inspect one reviewed Event UUID identity and aliases",
+        "summary": "Inspect one reviewed Event UUID identity",
         "x-audit-action": "events.identity.viewed",
         "x-capability-key": "events.identity.detail",
         "x-concurrency": "none",
@@ -4044,6 +4019,15 @@
               "minLength": 1,
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"rev-[1-9][0-9]*\"$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -4188,7 +4172,7 @@
         "summary": "Moderate, answer, delete, and pin Event-linked questions",
         "x-audit-action": "events_qna_moderate.audit",
         "x-capability-key": "events.qna.moderate",
-        "x-concurrency": "none",
+        "x-concurrency": "if_match",
         "x-django-permission": "events.manage_event_qna",
         "x-idempotency": "required",
         "x-rate-class": "write",

@@ -60,13 +60,17 @@ from core.sponsors import (
     SponsorNotFound,
     SponsorRevisionConflict,
 )
-from events.identity import EventIdentityNotFound, get_event_identity, list_event_identities
 from events.importers import (
     ProtectedSourceError,
     registered_source_options,
     resolve_registered_source_reference,
 )
-from events.models import HistoricalRegistrationSourceRun
+from events.models import (
+    EventIdentityNotFound,
+    HistoricalRegistrationSourceRun,
+    get_event_identity,
+    list_event_identities,
+)
 from events.services import (
     HistoricalRegistrationConflict,
     HistoricalRegistrationInvalid,

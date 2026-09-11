@@ -64,25 +64,30 @@ reused or renumbered. The current title-derived slug is cosmetic, contains at mo
 and is shortened at a whole-word boundary when possible; it never selects the Event. Event UUID
 remains the immutable internal identity and the only management-route lookup key.
 
-Exact numeric-only and known numeric/stale-slug `GET`/`HEAD` requests redirect permanently in one
-hop to the numeric/current-slug canonical with the raw query preserved. The accepted lowercase
-RFC 4122 UUID/current-slug and UUID-only public URLs are compatibility aliases with the same direct
-destination. Each reviewed date/title alias records both its clean and accepted trailing-slash
-spelling explicitly. Alias ownership and reason remain in the checked route manifest; resolution
-does not guess the opposite slash form, a nearby date/title, case, source/provider key, or slug.
+An Event is addressed publicly only by its id: exact numeric-only and known numeric/stale-slug
+`GET`/`HEAD` requests redirect permanently in one hop to the numeric/current-slug canonical with the
+raw query preserved. There is no other public lookup path. The UUID/current-slug and UUID-only
+public URLs that once served as compatibility aliases are retired, as is the pre-numeric checked
+date/title path from before this canonical existed; none of them resolve or redirect any more, and
+none of the retired alias kinds are recorded for a newly imported or created Event. The identity
+manifest may still record other reviewed aliases (a previous title slug, or an explicitly reviewed
+rename) for provenance; resolution never guesses a slash form, a nearby date/title, case, a
+source/provider key, or a slug.
 
 Canonical numeric `GET`/`HEAD` is terminal `200` and self-canonical. A query-bearing terminal detail
 remains `200` with a query-free production canonical but is `no-store`; approved redirects retain
-`public, max-age=300`. Zero, negative, signed, zero-padded, overlong/malformed, unknown, alternate-case
-UUID, canonical trailing-slash, unrecorded alias-slash, and other non-exact forms are rendered `404`
-without a redirect (`max-age=0` when query-free, otherwise `no-store`). Unsafe methods return `405`,
-exact `Allow: GET, HEAD`, and `no-store`. No public Event response falls back to a hub or homepage.
+`public, max-age=300`. Zero, negative, signed, zero-padded, overlong/malformed, a UUID in any
+spelling, a date/title path, canonical trailing-slash, and other non-exact forms are rendered `404`
+without a redirect. A path that still matches the numeric-ID route shape gets the bounded event-route
+`404` (`max-age=0` when query-free, otherwise `no-store`); every other unmatched spelling gets the
+ordinary site `404`. Unsafe methods on a route that still exists return `405`, exact
+`Allow: GET, HEAD`, and `no-store`. No public Event response falls back to a hub or homepage.
 
 Canonical, Open Graph, JSON-LD Event and breadcrumb URLs, internal links, registration/calendar
-builders, feeds, and sitemaps emit only the numeric/current-title-slug form. UUID/date paths are
-redirect sources only. The identity manifest separately records UUID/source provenance, numeric
-canonical, and exact aliases; a missing, duplicate, ambiguous, or renumbered UUID/public-ID mapping
-fails closed before activation. A deterministic replay preserves all reviewed assignments.
+builders, feeds, and sitemaps emit only the numeric/current-title-slug form; nothing else is ever a
+redirect source. The identity manifest separately records UUID/source provenance and numeric
+canonical; a missing, duplicate, ambiguous, or renumbered UUID/public-ID mapping fails closed before
+activation. A deterministic replay preserves all reviewed assignments.
 
 ### Podcast catalogue season navigation
 

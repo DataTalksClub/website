@@ -26,8 +26,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
-from events.identity import create_event_identity
-from events.models import EventQnaSession
+from events.models import EventQnaSession, create_event_identity
 from events.qna import security, services
 from management_auth.models import APIPrincipal
 from management_auth.services import create_principal, issue_credential_once

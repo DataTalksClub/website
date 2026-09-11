@@ -32,17 +32,14 @@ from core.services import ServiceContext
 from core.sponsors import public_events_hub_sponsors
 from course_management.observability import record_event
 from courses.models import Cohort, SharedLesson, SharedModule
-from events.identity import (
+from events.models import (
     EventIdentityNotFound,
+    EventQnaSession,
     canonical_detail_path,
-    event_public_record,
     redirect_for_supplied_slug,
-    resolve_legacy_path,
     resolve_public_id,
-    resolve_uuid,
 )
-from events.models import EventQnaSession
-from events.queries import published_event_records
+from events.queries import event_public_record, published_event_records
 from events.services import public_registration_total
 
 from . import catalogue, wiki_content
@@ -483,35 +480,6 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
 def event_detail_without_slug(request: HttpRequest, event_id: str) -> HttpResponse:
     try:
         target = canonical_detail_path(resolve_public_id(event_id).id)
-    except EventIdentityNotFound as exc:
-        raise Http404 from exc
-    return permanent_public_redirect(request, target=target)
-
-
-@_public_event_route
-def event_detail_legacy_uuid(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
-    try:
-        target = canonical_detail_path(resolve_uuid(event_id).id)
-    except EventIdentityNotFound as exc:
-        raise Http404 from exc
-    return permanent_public_redirect(request, target=target)
-
-
-@_public_event_route
-def event_detail_legacy_uuid_without_slug(request: HttpRequest, event_id: str) -> HttpResponse:
-    try:
-        target = canonical_detail_path(resolve_uuid(event_id).id)
-    except EventIdentityNotFound as exc:
-        raise Http404 from exc
-    return permanent_public_redirect(request, target=target)
-
-
-@_public_event_route
-def event_legacy_redirect(request: HttpRequest, legacy_path: str) -> HttpResponse:
-    del legacy_path
-    try:
-        event = resolve_legacy_path(request.path_info)
-        target = canonical_detail_path(event.id)
     except EventIdentityNotFound as exc:
         raise Http404 from exc
     return permanent_public_redirect(request, target=target)

@@ -6,10 +6,10 @@ import pytest
 from community_base.jobs.models import JobIntent
 from playwright.sync_api import Browser, expect
 
-from events.identity import load_identity_manifest
 from events.models import EventQnaSession
 from events.qna import security, services
 from events.queries import published_event_records
+from scripts.prod.identity_manifest import load_identity_manifest
 from test_support.design_review_data import ensure_checked_event_identity_snapshot
 from test_support.reference_data import EVENT_IDENTITY_MANIFEST
 

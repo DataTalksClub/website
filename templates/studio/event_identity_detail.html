@@ -3,11 +3,13 @@
 
 {% comment %}
   Design system (issue #179).  The record's h1 moved into the base's page_head, the
-  page slab became .admin-section, the credential-metadata lists became the
-  base's .admin-facts, and the bare alias list became .admin-list (the design
-  system drops list markers by default).  The trail back to the identity index
-  is the design system's .breadcrumbs primitive.  Every value shown is
-  unchanged.
+  page slab became .admin-section, and the credential-metadata lists became the
+  base's .admin-facts.  The trail back to the identity index is the design
+  system's .breadcrumbs primitive.  Every value shown is unchanged.
+
+  The retained-aliases section this page used to carry is gone: EventAlias (and
+  the whole retained-alias concept) was retired -- an Event is addressed only by
+  its id, and no alias table exists to read from any more.
 {% endcomment %}
 
 {% block title %}
@@ -116,30 +118,5 @@
         </dd>
       </div>
     </dl>
-  </section>
-
-  <section class="admin-section" aria-labelledby="event-identity-aliases-heading">
-    <div class="admin-section-head">
-      <h2 id="event-identity-aliases-heading">
-        Retained aliases
-      </h2>
-      <p class="mono-note">
-        {{ identity.aliases|length }} alias{{ identity.aliases|length|pluralize:"es" }}
-      </p>
-    </div>
-    {% if identity.aliases %}
-      <ul class="admin-list">
-        {% for alias in identity.aliases %}
-          <li>
-            <code class="mono-code">{{ alias.path }}</code>
-            · {{ alias.kind }} · {{ alias.reason }}
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p class="admin-empty">
-        No aliases are retained.
-      </p>
-    {% endif %}
   </section>
 {% endblock %}

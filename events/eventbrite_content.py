@@ -407,7 +407,7 @@ def apply_eventbrite_descriptions(
     blank out a real Jekyll one.
     """
 
-    from .identity import EventIdentityNotFound, resolve_source_identity
+    from .models import EventIdentityNotFound, resolve_source_identity
     from .models import EventContent
 
     records = load_eventbrite_description_records(path)

@@ -31,7 +31,6 @@ from course_management.datamailer_templates.accessibility import (
     render_current_transactional_email,
 )
 from courses.models import Cohort, HomeworkState, ProjectState, RegistrationCampaign
-from events.identity import canonical_detail_path
 from events.models import (
     Event,
     HistoricalRegistrationAggregateRevision,
@@ -39,6 +38,7 @@ from events.models import (
     HistoricalRegistrationPointerDisplacement,
     HistoricalRegistrationSourceRun,
     HistoricalRegistrationTotalState,
+    canonical_detail_path,
 )
 from events.queries import published_event_records
 from management_auth.models import APIPrincipal

@@ -12,7 +12,7 @@ from core.capabilities import (
     ServiceKind,
 )
 
-from .identity import get_event_identity, list_event_identities
+from .models import get_event_identity, list_event_identities
 from .qna.capabilities import QNA_CAPABILITIES
 from .services import (
     IMPORT_PERMISSION,
@@ -230,7 +230,7 @@ TOTAL_PREVIEW = _capability(
 
 IDENTITY_LIST = _capability(
     key="events.identity.read",
-    description="Inspect reviewed Event UUID identities and aliases",
+    description="Inspect reviewed Event UUID identities",
     service=list_event_identities,
     permission=MAPPING_PERMISSION,
     studio_route="studio:event-identity-list",
@@ -248,7 +248,7 @@ IDENTITY_LIST = _capability(
 
 IDENTITY_DETAIL = _capability(
     key="events.identity.detail",
-    description="Inspect one reviewed Event UUID identity and aliases",
+    description="Inspect one reviewed Event UUID identity",
     service=get_event_identity,
     permission=MAPPING_PERMISSION,
     studio_route="studio:event-identity-detail",

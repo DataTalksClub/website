@@ -19,17 +19,6 @@ from core.audit import AuditWriteContext, record_audit_event
 from core.models import AuditEvent, RevisionConflict
 from core.services import ServiceContext
 
-from .identity import (
-    EventIdentityError,
-    EventIdentityNotFound,
-    canonical_detail_path,
-    canonical_event_date,
-    event_public_record,
-    normalize_event_title,
-    provider_event_date,
-    resolve_source_identity,
-    resolve_uuid,
-)
 from .importers import (
     STATUS_POLICY_VERSION,
     AggregateCandidate,
@@ -41,12 +30,21 @@ from .importers import (
 )
 from .models import (
     Event,
+    EventIdentityError,
+    EventIdentityNotFound,
     HistoricalRegistrationAggregateRevision,
     HistoricalRegistrationAggregateSlot,
     HistoricalRegistrationPointerDisplacement,
     HistoricalRegistrationSourceRun,
     HistoricalRegistrationTotalState,
+    canonical_detail_path,
+    canonical_event_date,
+    normalize_event_title,
+    provider_event_date,
+    resolve_source_identity,
+    resolve_uuid,
 )
+from .queries import event_public_record
 
 MAPPING_PERMISSION = "events.historical_registration_mapping_manage"
 IMPORT_PERMISSION = "events.historical_registration_import_manage"
@@ -478,10 +476,10 @@ def dry_run_source(
 # its own reason so a human can go add the right entry to the
 # current-registration-input JSON file.
 #
-# The normalization and the date reads themselves live in ``events.identity``,
-# beside the duplicate-creation guard that applies the same rule to provider
-# discovery, so the two exact-match tests cannot drift into two different
-# notions of "equal".
+# The normalization and the date reads themselves live in ``events.models``,
+# beside ``scripts.prod.registrant_import``'s duplicate-creation guard that
+# applies the same rule to provider discovery, so the two exact-match tests
+# cannot drift into two different notions of "equal".
 
 
 @dataclass(frozen=True, slots=True)

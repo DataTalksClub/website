@@ -1,10 +1,10 @@
 """Reviewed reference data the whole test database starts from.
 
 Two sets of rows used to arrive in a test database because a migration inserted
-them: the 421 public event identities with their 1,684 aliases, and the six
-reviewed homepage testimonials.  Neither is schema, so neither belongs in a
-migration -- but both are *reviewed content the product is built around*, and
-hundreds of tests read them without creating them.
+them: the 421 public event identities and the six reviewed homepage
+testimonials.  Neither is schema, so neither belongs in a migration -- but both
+are *reviewed content the product is built around*, and hundreds of tests read
+them without creating them.
 
 Loading them here keeps that arrangement while moving the rows to where data
 belongs: this runs once, after ``migrate`` has built the test database, and
@@ -27,11 +27,11 @@ EVENT_IDENTITY_MANIFEST = (
 )
 
 
-def load_event_identities() -> tuple[int, int]:
+def load_event_identities() -> int:
     """Insert the reviewed event identity manifest exactly as it is checked in."""
 
-    from events.identity import ensure_public_id_sequence, load_identity_manifest
-    from events.models import Event, EventAlias
+    from events.models import Event, ensure_public_id_sequence
+    from scripts.prod.identity_manifest import load_identity_manifest
 
     manifest = load_identity_manifest(EVENT_IDENTITY_MANIFEST)
     events = [
@@ -48,23 +48,9 @@ def load_event_identities() -> tuple[int, int]:
         )
         for item in manifest.events
     ]
-    aliases = [
-        EventAlias(
-            event_id=item.id,
-            source_path=alias.source_path,
-            kind=alias.kind,
-            reason=alias.reason,
-            source_repository=alias.source.repository,
-            source_revision=alias.source.revision,
-            source_key=alias.source.source_key,
-        )
-        for item in manifest.events
-        for alias in item.aliases
-    ]
     Event.objects.bulk_create(events)
-    EventAlias.objects.bulk_create(aliases)
     ensure_public_id_sequence()
-    return len(events), len(aliases)
+    return len(events)
 
 
 def load_event_content() -> int:
@@ -125,11 +111,10 @@ def load_reviewed_reference_data() -> dict[str, int]:
     from events.models import Event
 
     if Event.objects.exists():
-        return {"events": 0, "aliases": 0, "testimonials": 0}
-    events, aliases = load_event_identities()
+        return {"events": 0, "testimonials": 0}
+    events = load_event_identities()
     return {
         "events": events,
-        "aliases": aliases,
         "event_content": load_event_content(),
         "docs": load_reviewed_docs(),
         "faq": load_reviewed_faq(),

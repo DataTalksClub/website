@@ -12,8 +12,7 @@ from content import catalogue, public_views
 from content.event_content import EventGroups, event_date_groups, event_groups
 from content.pagination import PUBLIC_PAGE_SIZE
 from content.public_routes import public_paths
-from events.identity import canonical_detail_path
-from events.models import Event
+from events.models import Event, canonical_detail_path
 from events.queries import published_event_records
 
 from .pagination_support import catalogue_page_bodies
@@ -67,38 +66,33 @@ class EventTimelineDataTests(StableEventClockTestCase):
 
 
 class EventTimelineRouteTests(StableEventClockTestCase):
-    def test_legacy_aliases_accept_trailing_slash_and_cache_redirects(self) -> None:
-        events = Event.objects.prefetch_related("aliases").order_by("source_key")
-        for event in events:
-            alias = (
-                event.aliases.filter(kind="legacy_date_path")
-                .exclude(source_path__endswith="/")
-                .get()
-            )
-            with self.subTest(alias=alias.source_path):
-                response = self.client.get(
-                    alias.source_path + "/?utm_source=qa",
-                    follow=False,
-                )
+    def test_retired_legacy_event_paths_are_plain_404s(self) -> None:
+        """Events are addressed only by id: no legacy date/title or UUID path resolves.
 
-                self.assertEqual(response.status_code, 301)
-                self.assertEqual(
-                    response.headers["Location"],
-                    canonical_detail_path(event.id) + "?utm_source=qa",
-                )
-                self.assertEqual(response.headers["Cache-Control"], "public, max-age=300")
+        A manifest-sourced event's ``source_key`` still carries the retired
+        date-prefixed spelling verbatim, so it stands in for the removed
+        ``legacy_date_path`` alias rows without depending on data that no longer
+        exists.
+        """
+
+        events = Event.objects.order_by("source_key")
+        for event in events:
+            for path in (
+                f"/events/{event.source_key}",
+                f"/events/{event.source_key}/",
+                f"/events/{event.id}",
+                f"/events/{event.id}/{event.slug}",
+            ):
+                with self.subTest(path=path):
+                    response = self.client.get(path, follow=False)
+                    self.assertEqual(response.status_code, 404)
+                    self.assertNotIn("Location", response.headers)
 
     def test_event_identity_errors_and_unsafe_methods_have_bounded_cache_headers(self) -> None:
         event = Event.objects.order_by("source_key").first()
         assert event is not None
         canonical = canonical_detail_path(event.id)
-        stale = f"/events/{event.id}/stale-title"
-        alias = (
-            event.aliases.filter(kind="legacy_date_path")
-            .exclude(source_path__endswith="/")
-            .get()
-            .source_path
-        )
+        stale = f"/events/{event.public_id}/stale-title"
 
         for path in (
             "/events/00000000-0000-4000-8000-000000000000/nope",
@@ -107,17 +101,16 @@ class EventTimelineRouteTests(StableEventClockTestCase):
             with self.subTest(path=path):
                 response = self.client.get(path, follow=False)
                 self.assertEqual(response.status_code, 404)
-                self.assertEqual(response.headers["Cache-Control"], "max-age=0")
                 self.assertContains(response, "Page not found", status_code=404)
 
-        for path in (canonical, stale, alias):
+        for path in (canonical, stale):
             with self.subTest(path=path):
                 response = self.client.post(path)
                 self.assertEqual(response.status_code, 405)
                 self.assertEqual(response.headers["Allow"], "GET, HEAD")
                 self.assertEqual(response.headers["Cache-Control"], "no-store, max-age=0")
 
-        for path in (canonical, stale, alias):
+        for path in (canonical, stale):
             with self.subTest(path=path):
                 response = self.client.get(path, follow=False)
                 self.assertEqual(response.status_code, 200 if path == canonical else 301)

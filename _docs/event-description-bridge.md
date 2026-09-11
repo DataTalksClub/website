@@ -91,4 +91,4 @@ title and the slug against the identity row already in the database and refuses 
 on any mismatch, so a missing, duplicated, or changed tuple blocks the import rather than landing a
 description on the wrong event. It also refuses a description that arrives without this bridge's
 provenance behind it. It never rereads the exporter and never creates an event -- including from any
-of the nine source gaps; identity import (`events.identity`) is the only thing that creates events.
+of the nine source gaps; identity import (`events.models`/`scripts.prod.identity_manifest`) is the only thing that creates events.

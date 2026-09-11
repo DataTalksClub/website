@@ -18,8 +18,7 @@ from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
 
-from events.identity import create_event_identity
-from events.models import EventQnaRateLimit, EventQnaSession
+from events.models import EventQnaRateLimit, EventQnaSession, create_event_identity
 from events.qna import services
 from events.qna.errors import QnaError
 

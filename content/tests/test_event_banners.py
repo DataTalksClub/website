@@ -6,8 +6,7 @@ from pathlib import Path
 from django.test import TestCase
 
 from content.event_banners import EVENT_BANNER_FILENAMES, event_banner_url
-from events.identity import canonical_detail_path
-from events.models import Event
+from events.models import Event, canonical_detail_path
 from events.queries import published_event_records
 from test_support.reference_data import load_reviewed_reference_data
 

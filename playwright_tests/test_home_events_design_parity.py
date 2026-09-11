@@ -10,7 +10,7 @@ from playwright.sync_api import Browser, Page, expect
 
 from content import public_views
 from content.event_content import EventGroups, event_groups
-from events.identity import load_identity_manifest
+from scripts.prod.identity_manifest import load_identity_manifest
 from test_support.reference_data import EVENT_IDENTITY_MANIFEST
 
 pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]

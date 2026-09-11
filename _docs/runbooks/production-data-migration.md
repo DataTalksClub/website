@@ -1090,7 +1090,7 @@ the singleton row happened to be created *after* the seeding migration ran, so
 `max + 1` came out at 422. On a database built from zero — the production case —
 the singleton would be created at 1, and the next event creation would raise
 `event_public_id_allocator_invalid`. Fixed by `ensure_public_id_sequence()`
-(`events/identity.py:290`), which parks the allocator above every ID that already
+(`events/models.py`), which parks the allocator above every ID that already
 exists and belongs with the code that writes events rather than in a migration.
 
 ```

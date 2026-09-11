@@ -526,7 +526,7 @@ replaces them wholesale rather than merging; an unchanged record reports
 `discover_new_luma_event_identities()` in
 [`scripts/prod/import_events.py`](../../scripts/prod/import_events.py), called
 from that module's own `run()` — live, not a gap. `create_event_identity()`
-in [`events/identity.py`](../../events/identity.py) is its one caller: for
+in [`events/models.py`](../../events/models.py) is its one caller: for
 each event in the real Luma export that no existing event accounts for, it creates
 one directly (never the reviewed-manifest path). "No existing event accounts for
 it" is decided on exact case/whitespace-normalized title plus the same calendar
@@ -886,7 +886,7 @@ reports it. No CI gate or scheduled job is wired for the same reason.
 reading via
 [`scripts/prod/registration_sources/luma_registrants.py`](../../scripts/prod/registration_sources/luma_registrants.py)
 and writing via
-[`events/registrant_import.py`](../../events/registrant_import.py).
+[`scripts/prod/registrant_import.py`](../../scripts/prod/registrant_import.py).
 
 Source: the same prepared Luma export directory as 6.1/6.2 (attendee-level
 rows already present there, discarded by 6.2's aggregate-only adapters). The
@@ -901,7 +901,7 @@ in its own module. The `events` app owns no provider file format at all: the
 reader hands it already-parsed, provider-neutral rows.
 
 Transform: per event, once 5.3 has ensured that event has an identity
-(`events.identity.resolve_source_identity`), parse its registrant rows —
+(`events.models.resolve_source_identity`), parse its registrant rows —
 an event with no identity yet is reported under `awaiting_identity_events`
 and skipped, never created here. Each row is consolidated against
 `accounts_customuser` by `normalized_email` first — the same table and field
@@ -956,7 +956,7 @@ going forward. Sequenced behind 5.3, which has landed.
 
 [`scripts/prod/registration_sources/eventbrite_registrants.py`](../../scripts/prod/registration_sources/eventbrite_registrants.py),
 same entry point (`import_event_registrants.py --eventbrite-source ... --eventbrite-identities ...`)
-and same domain writer (`events/registrant_import.py`) as 9.1. Landed
+and same domain writer (`scripts/prod/registrant_import.py`) as 9.1. Landed
 2026-09-11 — the "Eventbrite is not read yet" note that used to sit here was
 backlog, not a deliberate policy: the attendee-level data was present in the
 existing export the whole time, it simply had no attendee-level reader built
@@ -983,13 +983,13 @@ legacy manifest already describes (Eventbrite was retired before any
 provider-discovery ever ran against it), so its `Event` row carries the
 manifest's `DataTalksClub/datatalksclub.github.io` source identity, not a
 provider-minted one the way a Luma-discovered event's does. Resolving through
-`events.identity.provider_source_identity`/`resolve_source_identity` the way
+`scripts.prod.registrant_import.provider_source_identity`/`events.models.resolve_source_identity` the way
 9.1 does would find nothing. Instead this reader resolves through
 `~/prod/dtc-data/eventbrite-event-identities.json` — the same reviewed
 mapping (209 numeric Eventbrite ids → canonical `source_repository`/
 `source_revision`/`source_key`, 203 `resolved`) source #5.2's description
 work (`events.eventbrite_content`) already uses. That needed one small,
-backward-compatible addition to `events.registrant_import`:
+backward-compatible addition to `scripts.prod.registrant_import`:
 `PendingEventRegistrants` gained an optional `resolve_event` callable —
 `None` (the default, what 9.1's Luma reader still uses) keeps the original
 `provider_source_identity` lookup exactly as it was; a reader that supplies
@@ -1129,7 +1129,7 @@ depend on 10.1 having run first. It reads *after* source #9 conceptually,
 though not by file dependency: an identity this importer resolves is drawn
 from the exact same pool source #9 (Luma/Eventbrite registrants) already
 populates, via the shared, now-public
-[`events.registrant_import.resolve_registrant_identity`](../../events/registrant_import.py)
+[`scripts.prod.registrant_import.resolve_registrant_identity`](../../scripts/prod/registrant_import.py)
 (renamed from a module-private helper specifically so this importer could
 reuse it rather than reinvent it).
 

@@ -24,9 +24,9 @@ directly, the same function this script's own identity import calls.
 What lands in the database
 --------------------------
 
-**Identity** (``events/event_identity_manifest.json``, 421 events, 1684
-aliases): the uuid, public id, slug, title, source pointer and alias paths that
-make an event addressable.  Replaying reports ``replayed`` and creates nothing.
+**Identity** (``events/event_identity_manifest.json``, 421 events): the uuid,
+public id, slug, title, source pointer and checksum that make an event
+addressable.  Replaying reports ``replayed`` and creates nothing.
 
 **Registration aggregates** (Luma and Eventbrite): *counts only*.  No attendee
 row is read into the database by any path here -- the adapters reduce each
@@ -49,7 +49,7 @@ event renders no registration count at all.
 **New event identities** (``new_event_identities`` in the report): a genuinely
 new event -- one a fresh Luma export names that neither the reviewed manifest
 nor any prior provider-registration run has ever seen -- gets a real
-``Event`` row here, via ``events.identity.create_event_identity``.  This is
+``Event`` row here, via ``events.models.create_event_identity``.  This is
 title and a canonical path only; it never resolves or activates a
 registration count, and it never touches ``events/event_identity_manifest.json``.
 "Genuinely new" is decided against every event we already have: an export event
@@ -227,9 +227,10 @@ def _main_checkout_root() -> Path:
 
 
 def import_identities(*, manifest: Path | None = None, apply: bool = True) -> dict[str, Any]:
-    """Import the reviewed identity/alias manifest atomically."""
+    """Import the reviewed identity manifest atomically."""
 
-    from events.identity import EventIdentityError, import_identity_manifest
+    from events.models import EventIdentityError
+    from scripts.prod.identity_manifest import import_identity_manifest
 
     try:
         report = import_identity_manifest(
@@ -239,10 +240,8 @@ def import_identities(*, manifest: Path | None = None, apply: bool = True) -> di
         raise EventImportError("identity_manifest_invalid") from error
     return {
         "events": report.event_total,
-        "aliases": report.alias_total,
         "events_created": report.events_created,
         "events_updated": report.events_updated,
-        "aliases_created": report.aliases_created,
         "replayed": report.replayed,
         "applied": apply,
     }
@@ -386,7 +385,7 @@ def import_eventbrite_descriptions(
 # its own.  A genuinely new event -- one a fresh Luma/Eventbrite export names
 # that neither the manifest nor any prior provider-registration run has ever
 # seen -- previously had no path to becoming a real ``Event`` row at all:
-# ``events.identity.create_event_identity`` had zero callers anywhere outside
+# ``events.models.create_event_identity`` had zero callers anywhere outside
 # tests.  This section is that path.
 #
 # It is deliberately kept separate from ``activation_coverage`` below.  Minting
@@ -404,7 +403,7 @@ def import_eventbrite_descriptions(
 # and the aggregates are staged only afterwards.  So an export event the
 # reviewed manifest already describes -- under its legacy ``_data/events.yaml``
 # source key, which discovery has no way to guess -- got a second ``Event`` with
-# a second public id.  ``events.identity.ExistingEventIndex`` closes that: an
+# a second public id.  ``scripts.prod.registrant_import.ExistingEventIndex`` closes that: an
 # export event whose date and normalized title exactly match one event we
 # already have is recognised as that event and creates nothing.
 
@@ -449,19 +448,21 @@ def discover_new_provider_events(
     Everything else is genuinely new and gets an identity, exactly as before.
     """
 
-    from events.identity import (
+    from events.models import (
+        EventIdentityError,
+        EventIdentityNotFound,
+        HistoricalRegistrationAggregateRevision,
+        canonical_detail_path,
+        resolve_source_identity,
+    )
+    from scripts.prod.registrant_import import (
         EXISTING_EVENT_AMBIGUOUS,
         EXISTING_EVENT_DATE_UNUSABLE,
         EXISTING_EVENT_MATCHED,
-        EventIdentityError,
-        EventIdentityNotFound,
         ExistingEventIndex,
-        canonical_detail_path,
         create_provider_event_identity,
         provider_source_identity,
-        resolve_source_identity,
     )
-    from events.models import HistoricalRegistrationAggregateRevision
 
     index = ExistingEventIndex()
     created: list[dict[str, Any]] = []
@@ -630,17 +631,16 @@ def discover_new_luma_event_identities(*, luma_source: Path, apply: bool = True)
 # unreviewable after the fact, so this reports by default and removes only when
 # an operator asks *and* the row is provably inert.
 #
-# "Provably inert" is narrow on purpose: no alias, no registration aggregate
-# revision, no registration, and either no Q&A session or the untouched draft
-# session ``create_event_identity`` provisions -- no question, vote or co-host
-# invite row.  Anything else is reported as retained with the dependent rows
-# named, and a human decides.  There is no force flag: a duplicate carrying real
+# "Provably inert" is narrow on purpose: no registration aggregate revision, no
+# registration, and either no Q&A session or the untouched draft session
+# ``create_event_identity`` provisions -- no question, vote or co-host invite
+# row.  Anything else is reported as retained with the dependent rows named,
+# and a human decides.  There is no force flag: a duplicate carrying real
 # dependent data is a merge, and a merge is not something this script may guess
 # at.
 
 # One reverse relation per thing that would be destroyed with the Event.
 _DEPENDENT_RELATIONS = (
-    ("aliases", "alias"),
     ("historical_registration_aggregate_revisions", "registration_aggregate_revision"),
     ("registrant_registrations", "registration"),
 )
@@ -680,15 +680,17 @@ def reconcile_duplicate_provider_identities(
 
     from django.db import transaction
 
-    from events.identity import (
-        EXISTING_EVENT_MATCHED,
+    from events.models import (
+        Event,
         EventIdentityNotFound,
-        ExistingEventIndex,
         canonical_detail_path,
-        provider_source_identity,
         resolve_source_identity,
     )
-    from events.models import Event
+    from scripts.prod.registrant_import import (
+        EXISTING_EVENT_MATCHED,
+        ExistingEventIndex,
+        provider_source_identity,
+    )
 
     # Provider-minted events carry no date in their source key, so they are
     # already absent from the index and cannot be matched against each other.
@@ -810,7 +812,7 @@ def load_current_registration_input(path: Path | None):
 def mapping_bridges(current_input) -> tuple[dict[str, dict[str, dict[str, str]]], dict]:
     """Resolve input targets by exact Event source identity and build adapter bridges."""
 
-    from events.identity import EventIdentityNotFound, resolve_source_identity
+    from events.models import EventIdentityNotFound, resolve_source_identity
 
     bridges: dict[str, dict[str, dict[str, str]]] = {name: {} for name in PROVIDERS}
     target_events: dict[tuple[str, str, str], Any] = {}
@@ -910,7 +912,7 @@ def stage_registration_aggregates(
     """Stage each derived source and activate only the explicitly mapped events."""
 
     from core.services import ServiceContext
-    from events.identity import event_public_record
+    from events.queries import event_public_record
     from events.importers import source_reference_digest
     from events.services import (
         activate_explicit_current_source,
@@ -1080,9 +1082,9 @@ def run(
     leg validates its exports last and the four legs before it used to have
     committed already, so a refused run failed loudly and left state quietly:
     a "fresh" database that had just exited 1 with
-    ``registration_source_validation_failed`` still held 448 events, 1,684
-    aliases, 421 content rows and 448 queued Q2 wakeups, and the retry then
-    started from a half-populated database that looked populated.
+    ``registration_source_validation_failed`` still held 448 events, 421 content
+    rows and 448 queued Q2 wakeups, and the retry then started from a
+    half-populated database that looked populated.
 
     Validating every source up front instead was the other candidate and is
     not sufficient here.  It would catch the checksum and aggregate drift --
@@ -1280,7 +1282,7 @@ def _parser() -> argparse.ArgumentParser:
         "--remove-duplicate-identities",
         action="store_true",
         help=(
-            "Report the same duplicates and delete only those carrying no alias, "
+            "Report the same duplicates and delete only those carrying no "
             "registration, aggregate revision, Q&A question or co-host invite. "
             "Any duplicate with dependent rows is reported and kept."
         ),

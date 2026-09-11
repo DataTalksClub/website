@@ -5,12 +5,12 @@ it is deliberately a separate module from :mod:`luma`, whose contract is "no
 attendee value crosses this module boundary" and stays true.  Both know the same
 file format; only this one opens the columns a person is in.
 
-What leaves here is a provider-neutral :class:`events.registrant_import.RegistrantRow`:
+What leaves here is a provider-neutral :class:`scripts.prod.registrant_import.RegistrantRow`:
 a guest id, a normalized email, a status and a raw timestamp.  The email is the
 consolidation key the domain needs and nothing else -- a name, phone number,
 company or job title in the export is never read at all, and no value from any
 row is ever logged, printed, or put in an error.  Every refusal is a bounded
-:class:`~events.registrant_import.RegistrantImportError` code.
+:class:`~scripts.prod.registrant_import.RegistrantImportError` code.
 
 This does not reuse :func:`luma.derive_luma`'s checksum-pinned production-count
 safety net, for the same reason :func:`luma.discover_luma_events` does not:
@@ -22,7 +22,7 @@ bounded row count -- and no pinned checksum.
 
 Nothing on a request path imports this: ``scripts/prod/import_event_registrants.py``
 is the one entry point, and it hands the rows to
-:func:`events.registrant_import.import_registrants`, which writes them.  The
+:func:`scripts.prod.registrant_import.import_registrants`, which writes them.  The
 dependency runs adapter -> domain only.
 """
 
@@ -39,7 +39,7 @@ from typing import NoReturn
 from accounts.identity_values import normalize_account_email
 from events.importers import ProtectedSourceError
 from events.models import EventRegistration
-from events.registrant_import import (
+from scripts.prod.registrant_import import (
     PendingEventRegistrants,
     RegistrantImportError,
     RegistrantRow,
@@ -192,7 +192,7 @@ def luma_registrant_sources(root: Path) -> tuple[PendingEventRegistrants, ...]:
     """Discover the export's events without reading a single registrant row.
 
     Each entry's ``read_rows`` opens that one event's CSV when, and only when,
-    :func:`events.registrant_import.import_registrants` asks for it -- which it
+    :func:`scripts.prod.registrant_import.import_registrants` asks for it -- which it
     does not for an event already recorded as complete, so a resumed run never
     reopens a finished event's file.
     """

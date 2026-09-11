@@ -793,7 +793,6 @@ def generate_document() -> dict[str, Any]:
                         "slug",
                         "canonical_path",
                         "registration_path",
-                        "aliases",
                         "provenance",
                     ],
                     "properties": {
@@ -811,19 +810,6 @@ def generate_document() -> dict[str, Any]:
                             "type": "string",
                             "pattern": "^/events/[1-9][0-9]*/[-a-z0-9]+/register$",
                             "readOnly": True,
-                        },
-                        "aliases": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "additionalProperties": False,
-                                "required": ["path", "kind", "reason"],
-                                "properties": {
-                                    "path": {"type": "string", "pattern": "^/events/"},
-                                    "kind": {"type": "string"},
-                                    "reason": {"type": "string"},
-                                },
-                            },
                         },
                         "provenance": {
                             "type": "object",

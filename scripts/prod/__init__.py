@@ -188,7 +188,12 @@ SCRIPT_COMMAND_EXCLUSIONS: dict[str, str] = {
 # reason -- do not apply. `reviewed_release` allocates sequences and resolves
 # replay receipts inside the composition of the reviewed editorial importers;
 # a target of its own would write a release nothing reviewed describes.
-LIBRARY_MODULES = frozenset({"reviewed_release"})
+# `identity_manifest` parses and applies the reviewed Event identity manifest;
+# `registrant_import` consolidates registrant rows into identities and facts
+# and mints provider-discovered Event identities.  Both are domain logic real
+# entry points (`import_events.py`, `import_event_registrants.py`) compose --
+# neither opens a database connection or a provider export file of its own.
+LIBRARY_MODULES = frozenset({"identity_manifest", "registrant_import", "reviewed_release"})
 
 __all__ = [
     "BOOTSTRAPPING_ENTRY_POINTS",

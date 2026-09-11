@@ -12,7 +12,7 @@ Every registrant row is consolidated against ``accounts_customuser`` by
 ``normalized_email`` first, so a person who both took a course and registered
 for an event resolves to one account, never two.  An unmatched row becomes a
 new, login-incapable registrant-only identity in the same email-keyed space --
-never a second ``CustomUser`` row.  See ``events.registrant_import`` for the
+never a second ``CustomUser`` row.  See ``scripts.prod.registrant_import`` for the
 full matching contract and ``events.models.EventRegistrantIdentity`` /
 ``EventRegistration`` for the two tables this writes.
 
@@ -157,7 +157,7 @@ def _parser() -> argparse.ArgumentParser:
 def _run_provider(
     *, provider: str, pending: object, dry_run: bool, refresh: bool
 ) -> dict[str, object]:
-    from events.registrant_import import import_registrants, plan_registrants
+    from scripts.prod.registrant_import import import_registrants, plan_registrants
 
     if dry_run:
         # The real plan pass: every selected event's rows go through the
@@ -182,7 +182,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--eventbrite-source and --eventbrite-identities must be given together")
     configure_target(parser, args)
 
-    from events.registrant_import import RegistrantImportError
+    from scripts.prod.registrant_import import RegistrantImportError
 
     # The events app owns no provider file format, so the reader that knows what
     # a Luma/Eventbrite export looks like is supplied here, by the ingestion layer.

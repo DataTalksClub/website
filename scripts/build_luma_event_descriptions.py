@@ -97,11 +97,8 @@ def _configure(database: Path) -> None:
 
 
 def run(*, source_root: Path, event_types: Path, artifact: Path, apply: bool = False) -> dict:
-    from events.identity import (
-        EventIdentityNotFound,
-        provider_source_identity,
-        resolve_source_identity,
-    )
+    from events.models import EventIdentityNotFound, resolve_source_identity
+    from scripts.prod.registrant_import import provider_source_identity
 
     exports = discover_description_exports(source_root)
     reviewed = load_reviewed_event_types(event_types)

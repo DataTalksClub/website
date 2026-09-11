@@ -16,8 +16,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
-from events.identity import create_event_identity
-from events.models import EventQnaSession
+from events.models import EventQnaSession, create_event_identity
 from events.qna import services
 
 #: The exact participant-facing schema: contract, canonical paths, state,

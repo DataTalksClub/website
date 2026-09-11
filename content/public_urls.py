@@ -135,13 +135,6 @@ urlpatterns = [
     path("events/", public_views.legacy_events_redirect),
     path("events/past", public_views.events_past, name="events-past"),
     path("events/past/", public_views.permanent_public_redirect, {"target": "/events/past"}),
-    # The reviewed legacy map stores clean one-segment paths.  Keep the historical trailing-slash
-    # spelling as an explicit route so redirect behavior never depends on APPEND_SLASH.
-    re_path(
-        r"^events/(?P<legacy_path>[^/]+)/$",
-        public_views.event_legacy_redirect,
-        name="public-event-legacy-trailing-slash",
-    ),
     # Event-linked Q&A routes must precede the generic event detail route.  The
     # public numeric ID and current title slug remain the only Event lookup
     # inputs; the slug is cosmetic and stale spellings redirect on HTML only.
@@ -194,21 +187,6 @@ urlpatterns = [
         r"^events/(?P<event_id>[1-9][0-9]*)$",
         public_views.event_detail_without_slug,
         name="public-event-without-slug",
-    ),
-    re_path(
-        r"^events/(?P<event_id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/(?P<slug>[-a-zA-Z0-9_]+)$",
-        public_views.event_detail_legacy_uuid,
-        name="public-event-legacy-uuid",
-    ),
-    re_path(
-        r"^events/(?P<event_id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$",
-        public_views.event_detail_legacy_uuid_without_slug,
-        name="public-event-legacy-uuid-without-slug",
-    ),
-    path(
-        "events/<path:legacy_path>",
-        public_views.event_legacy_redirect,
-        name="public-event-legacy",
     ),
     path("wiki", public_views.wiki_hub, name="wiki-home"),
     path("wiki/", public_views.permanent_public_redirect, {"target": "/wiki"}),

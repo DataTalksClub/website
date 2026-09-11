@@ -34,17 +34,16 @@ class EventImportTests(TestCase):
     def test_the_identity_manifest_replays_without_creating_a_row(self) -> None:
         """The test database already holds the reviewed set, so importing is a reconcile."""
 
-        from events.models import Event, EventAlias
+        from events.models import Event
         from scripts.prod.import_events import import_identities
 
-        before = (Event.objects.count(), EventAlias.objects.count())
+        before = Event.objects.count()
 
         report = import_identities(apply=True)
 
         self.assertTrue(report["replayed"])
         self.assertEqual(report["events_created"], 0)
-        self.assertEqual(report["aliases_created"], 0)
-        self.assertEqual((Event.objects.count(), EventAlias.objects.count()), before)
+        self.assertEqual(Event.objects.count(), before)
 
     def test_a_dry_run_writes_nothing(self) -> None:
         from scripts.prod.import_events import import_identities
@@ -255,8 +254,7 @@ class NewEventIdentityDiscoveryTests(TestCase):
         )
 
     def test_creates_an_identity_for_a_genuinely_new_event(self) -> None:
-        from events.identity import canonical_detail_path
-        from events.models import Event
+        from events.models import Event, canonical_detail_path
         from scripts.prod.import_events import discover_new_luma_event_identities
 
         self._write_luma_event(
@@ -292,7 +290,7 @@ class NewEventIdentityDiscoveryTests(TestCase):
     def _canonical_event(self, *, title: str, source_key: str):
         """One event shaped like a reviewed-manifest entry: a dated legacy source key."""
 
-        from events.identity import create_event_identity
+        from events.models import create_event_identity
 
         return create_event_identity(
             title=title,
@@ -645,7 +643,8 @@ class DuplicateProviderIdentityReconciliationTests(TestCase):
     def _duplicate_pair(self):
         """One reviewed-manifest event and the duplicate an unguarded run minted."""
 
-        from events.identity import create_event_identity, create_provider_event_identity
+        from events.models import create_event_identity
+        from scripts.prod.registrant_import import create_provider_event_identity
 
         keep = create_event_identity(
             title="An Event We Already Have",
@@ -741,8 +740,8 @@ class DuplicateProviderIdentityReconciliationTests(TestCase):
     def test_a_provider_event_we_never_duplicated_is_not_reported(self) -> None:
         """Only an exact date-and-title twin counts; a genuinely new event is left alone."""
 
-        from events.identity import create_provider_event_identity
         from events.models import Event
+        from scripts.prod.registrant_import import create_provider_event_identity
         from scripts.prod.import_events import reconcile_duplicate_luma_identities
 
         created = create_provider_event_identity(
@@ -828,7 +827,6 @@ class RunAtomicityTests(TestCase):
     def test_a_refused_run_leaves_no_partial_row_behind(self) -> None:
         from events.models import (
             Event,
-            EventAlias,
             EventContent,
             HistoricalRegistrationAggregateRevision,
             HistoricalRegistrationSourceRun,
@@ -839,7 +837,6 @@ class RunAtomicityTests(TestCase):
         def counts() -> tuple[int, ...]:
             return (
                 Event.objects.count(),
-                EventAlias.objects.count(),
                 EventContent.objects.count(),
                 HistoricalRegistrationSourceRun.objects.count(),
                 HistoricalRegistrationAggregateRevision.objects.count(),
