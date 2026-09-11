@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timedelta
+from typing import Any
 
 from django.http import HttpRequest, JsonResponse
 from django.utils import timezone
@@ -63,6 +64,24 @@ def _idempotency_key(request: HttpRequest) -> str:
     if not isinstance(raw, str) or not raw or "," in raw or len(raw.encode("utf-8")) > 512:
         raise APIError(400, "invalid_idempotency_key", "A valid Idempotency-Key is required.")
     return raw
+
+
+def _idempotency_scope(request: HttpRequest, capability: Any) -> str:
+    """The capability's idempotency namespace, fenced per authenticated principal.
+
+    Client retry keys are local to each client's tool ("seq-1", a generated
+    UUID), so scoping only by capability key let one principal's key poison
+    another's retry space: a second, independently authorized principal sending
+    the same key received the first one's replay or a conflict against its
+    stored request instead of executing its own command (audit EVT-03).  The
+    principal's UUID -- never the bearer token -- fences the namespace.  The
+    request hash still carries target and payload, and authentication plus the
+    capability check run before any lookup, so a revoked or demoted credential
+    cannot reach a stored replay at all.
+    """
+
+    identity = request.api_identity  # type: ignore[attr-defined]
+    return f"{capability.key}.{identity.principal.id.hex}"
 
 
 def _enforce_fields(
@@ -800,7 +819,7 @@ def historical_import_create(request: HttpRequest) -> JsonResponse:
     capability = request.management_capability  # type: ignore[attr-defined]
     try:
         result = execute_idempotent(
-            scope=capability.key,
+            scope=_idempotency_scope(request, capability),
             key=_idempotency_key(request),
             request=payload,
             command=lambda: _stage_historical_api(payload, request),
@@ -859,7 +878,7 @@ def _historical_action(
 
     try:
         result = execute_idempotent(
-            scope=capability.key,
+            scope=_idempotency_scope(request, capability),
             key=_idempotency_key(request),
             request={"run_id": str(run_id), **payload},
             command=command,
@@ -954,7 +973,7 @@ def event_qna_manage(request: HttpRequest, event_id: str) -> JsonResponse:
     expected_revision = require_if_match(request)
     try:
         result = execute_idempotent(
-            scope=capability.key,
+            scope=_idempotency_scope(request, capability),
             key=key,
             request={"event_id": str(event_id), "expected_revision": expected_revision, **payload},
             command=lambda: _qna_update_result(request, event_id, payload, expected_revision),
@@ -993,7 +1012,7 @@ def event_qna_moderate(request: HttpRequest, event_id: str, question_id: str) ->
     try:
         key = _idempotency_key(request)
         result = execute_idempotent(
-            scope=capability.key,
+            scope=_idempotency_scope(request, capability),
             key=key,
             request={"event_id": str(event_id), "question_id": question_id, **payload},
             command=lambda: _qna_moderate_result(request, event_id, question_id, payload),
@@ -1029,7 +1048,7 @@ def event_qna_retry(request: HttpRequest, event_id: str) -> JsonResponse:
     try:
         key = _idempotency_key(request)
         result = execute_idempotent(
-            scope=capability.key,
+            scope=_idempotency_scope(request, capability),
             key=key,
             request={"event_id": str(event_id), "confirmed": True},
             command=lambda: _qna_retry_result(request, event_id),
@@ -1106,7 +1125,7 @@ def event_qna_cohost_revoke(request: HttpRequest, event_id: str, invite_id: str)
     try:
         key = _idempotency_key(request)
         result = execute_idempotent(
-            scope=capability.key,
+            scope=_idempotency_scope(request, capability),
             key=key,
             request={"event_id": str(event_id), "invite_id": invite_id, "confirmed": True},
             command=lambda: _qna_revoke_result(request, event_id, invite_id),
