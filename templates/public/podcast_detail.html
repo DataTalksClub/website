@@ -611,6 +611,7 @@
               class="player-frame episode-player episode-video episode-audio"
               data-video-provider="spotify"
               data-video-id="{{ episode.spotify.media_id }}"
+              data-video-state="loading"
             >
               <iframe
                 id="podcast-audio-player"
@@ -620,6 +621,14 @@
                 referrerpolicy="strict-origin-when-cross-origin"
                 allowfullscreen
               ></iframe>
+              <div class="episode-video-fallback" data-video-fallback role="status">
+                <div class="episode-video-fallback-copy">
+                  <p>
+                    <strong>{{ episode.spotify.media_label }} unavailable.</strong>
+                  </p>
+                  <p>Use one of the listening links below to hear this episode.</p>
+                </div>
+              </div>
             </div>
           {% endif %}
           {% if episode.listener_platform_links %}
@@ -883,6 +892,22 @@
          present, changing its source seeks to the same point. Spotify remains a
          responsive embedded player, but keeps native timestamp destinations. */
       (function () {
+        /* The secondary Spotify audio player (shown alongside a YouTube video) shares
+           the primary player's loading/unavailable CSS states, but is a second,
+           independent frame -- it needs its own load/error wiring, or it never leaves
+           the "loading" state and its iframe never becomes visible. */
+        var audioPlayer = document.getElementById('podcast-audio-player');
+        var audioFrame = audioPlayer ? audioPlayer.closest('[data-video-provider][data-video-id]') : null;
+        if (audioPlayer && audioFrame) {
+          audioPlayer.addEventListener('load', function () {
+            audioFrame.setAttribute('data-video-state', 'available');
+          });
+          audioPlayer.addEventListener('error', function () {
+            audioFrame.setAttribute('data-video-state', 'unavailable');
+            audioPlayer.remove();
+          });
+        }
+
         var links = document.querySelectorAll('[data-seconds]');
         var player = document.getElementById('podcast-video-player');
         var frame = document.querySelector('[data-video-provider][data-video-id]');
