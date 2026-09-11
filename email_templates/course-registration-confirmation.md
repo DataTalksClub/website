@@ -12,6 +12,8 @@ course page:
 
 [Open the course]({{ course_url }})
 
+{{ verify_email_prompt }}
+
 See you there,
 
 — {{ site_name }}

@@ -66,6 +66,34 @@ def send_package_mail(
         )
 
 
+def _registration_verify_email_prompt(registration, email: str) -> str:
+    """The "one last step" verify-your-email paragraph, or "" if none is due.
+
+    Course registration is a pragmatic slice of #243 (see
+    ``accounts.services.email_verification``): a registrant with no account
+    (the un-gated anonymous path) or an already-verified account address gets
+    nothing extra here, and this is folded into the one confirmation email
+    the flow already sends rather than a second, separate verification send.
+    """
+
+    if registration.user_id is None:
+        return ""
+
+    from accounts.services.email_verification import (
+        is_account_email_verified,
+        registration_verification_url,
+    )
+
+    if is_account_email_verified(registration.user, email):
+        return ""
+
+    verify_url = registration_verification_url(registration.user, email)
+    return (
+        "One last step: verify your email so we can email you when the "
+        f"course starts. [Verify your email]({verify_url})"
+    )
+
+
 def send_registration_confirmation_mail(registration):
     """Confirm a course registration through the package (D1.2b).
 
@@ -98,6 +126,9 @@ def send_registration_confirmation_mail(registration):
             "start_date": course_context["course_start_date"],
             "campaign_title": registration.campaign.title,
             "profile_url": urls["profile_url"],
+            "verify_email_prompt": _registration_verify_email_prompt(
+                registration, email
+            ),
         },
         idempotency_key=mail_idempotency_key(
             "registration-confirmation",
