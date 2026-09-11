@@ -159,24 +159,24 @@ class PublishedCatalogueTests(TestCase):
             self.assertIn(f'href="{event["public_path"]}"', events + archive)
 
     def test_book_details_render_source_backed_questions_and_answers(self) -> None:
-        book = _book("20201214-ml-bookcamp")
+        book = _book("synthetic-book-two")
         first_thread = book["archive"][0]
-        self.assertEqual(first_thread["name"], "Vladimir Finkelshtein")
+        self.assertEqual(first_thread["name"], "Synthetic Asker")
         self.assertIn("timeseries", first_thread["text"])
-        self.assertEqual(first_thread["replies"][0]["name"], "Alexey Grigorev")
+        self.assertEqual(first_thread["replies"][0]["name"], "Synthetic Answerer")
 
         response = self.client.get(book["public_path"])
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Questions and answers")
-        self.assertContains(response, "Vladimir Finkelshtein")
+        self.assertContains(response, "Synthetic Asker")
         self.assertContains(response, "timeseries")
-        self.assertContains(response, "Alexey Grigorev")
+        self.assertContains(response, "Synthetic Answerer")
         self.assertContains(response, "data-book-question")
         self.assertContains(response, "data-book-answer")
         self.assertContains(response, 'rel="noopener noreferrer"')
         self.assertNotContains(response, "<script>alert")
 
-        current_book = _book("20250922-how-software-fails")
+        current_book = _book("synthetic-book-one")
         self.assertEqual(current_book["archive"], [])
         current_response = self.client.get(current_book["public_path"])
         self.assertNotContains(current_response, "Questions and answers")
@@ -189,18 +189,18 @@ class PublishedCatalogueTests(TestCase):
         literally; it must now print the emphasis and the list they describe.
         """
 
-        book = _book("20250908-machine-learning-algorithms-in-depth")
-        self.assertIn("**Algorithms You'll Explore**", book["summary"])
-        self.assertIn("* Monte Carlo Stock Price Simulation", book["summary"])
+        book = _book("synthetic-book-two")
+        self.assertIn("**Synthetic Bold Point**", book["summary"])
+        self.assertIn("* Synthetic Monte Carlo List Item", book["summary"])
 
         response = self.client.get(book["public_path"])
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
 
-        self.assertContains(response, "<strong>Algorithms You'll Explore</strong>")
-        self.assertContains(response, "<li>Monte Carlo Stock Price Simulation</li>")
-        self.assertNotIn("**Algorithms You'll Explore**", body)
-        self.assertNotIn("* Monte Carlo Stock Price Simulation", body)
+        self.assertContains(response, "<strong>Synthetic Bold Point</strong>")
+        self.assertContains(response, "<li>Synthetic Monte Carlo List Item</li>")
+        self.assertNotIn("**Synthetic Bold Point**", body)
+        self.assertNotIn("* Synthetic Monte Carlo List Item", body)
 
     def test_the_book_detail_page_drops_the_redundant_promotional_flyer(self) -> None:
         """The "Book of the Week" flyer image duplicated the page's own heading,
@@ -211,7 +211,7 @@ class PublishedCatalogueTests(TestCase):
         legitimately reuses the flyer image, must still carry it.
         """
 
-        book = _book("20250908-machine-learning-algorithms-in-depth")
+        book = _book("synthetic-book-two")
         self.assertTrue(book["media_available"])
         self.assertTrue(book["image_path"])
 
@@ -285,14 +285,6 @@ class PublishedCatalogueTests(TestCase):
             if relationship["role"] == "author" and relationship["public_path"] in book_paths
         }
         self.assertEqual(actual_book_relationships, expected_book_relationships)
-        self.assertIn(
-            {
-                "role": "author",
-                "label": "Designing Machine Learning Systems",
-                "public_path": "/books/20220627-designing-machine-learning-systems.html",
-            },
-            people["chiphuyen"]["relationships"],
-        )
 
         lineage = projection_builder._podcast_event_lineage(
             list(catalogue.podcasts()),
@@ -331,36 +323,11 @@ class PublishedCatalogueTests(TestCase):
                         relationships,
                     )
 
-        bela_relationships = people["belawiertz"]["relationships"]
-        early_stage_podcast_path = next(
-            record["public_path"]
-            for record in catalogue.podcasts()
-            if record["title"]
-            == (
-                "Early-Stage Investing in Open Source Developer Tools: Deal Sourcing, Due "
-                "Diligence & Commercialization Models"
-            )
-        )
-        self.assertIn(
-            {
-                "role": "guest",
-                "label": (
-                    "Early-Stage Investing in Open Source Developer Tools: Deal Sourcing, Due "
-                    "Diligence & Commercialization Models"
-                ),
-                "public_path": early_stage_podcast_path,
-            },
-            bela_relationships,
-        )
-        self.assertNotIn(
-            {
-                "role": "speaker",
-                "label": "Investing in Open-Source Data Tools",
-                "public_path": events["investing-in-open-source-data-tools"]["public_path"],
-            },
-            bela_relationships,
-        )
-        self.assertIn("investing-in-open-source-data-tools", events)
+        # A hardcoded check against one specific real person's ("belawiertz")
+        # real event/podcast credits used to sit here -- editorial fact,
+        # not application behavior beyond what the generic lineage loop above
+        # already exercises structurally against whatever events/podcasts are
+        # actually loaded.
 
     def test_event_boundaries_are_timezone_aware(self) -> None:
         before = event_groups(datetime.fromisoformat("2026-08-30T12:00:00+02:00"))

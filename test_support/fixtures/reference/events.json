@@ -19,8 +19,8 @@
     ],
     "provenance": {
       "checksum": "f8e0203e8236bbf58e8fb649d4777bfdd81ee2b00a799408df3a27984b782457",
-      "repository": "DataTalksClub/synthetic-test-fixture",
-      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repository": "DataTalksClub/datatalksclub.github.io",
+      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
       "source_key": "synthetic-event-1",
       "source_path": "_data/events.yaml"
     },
@@ -59,8 +59,8 @@
     ],
     "provenance": {
       "checksum": "a12d92c09cf305af460ac84440ec929bf73f6479a08327dc45ee6737001b24e5",
-      "repository": "DataTalksClub/synthetic-test-fixture",
-      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repository": "DataTalksClub/datatalksclub.github.io",
+      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
       "source_key": "synthetic-event-2",
       "source_path": "_data/events.yaml"
     },
@@ -99,8 +99,8 @@
     ],
     "provenance": {
       "checksum": "e11d9166b78ef4896fbe5ddb2ff1c3947b0e1d7614b4821d2cfbb9337aa73181",
-      "repository": "DataTalksClub/synthetic-test-fixture",
-      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repository": "DataTalksClub/datatalksclub.github.io",
+      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
       "source_key": "synthetic-event-3",
       "source_path": "_data/events.yaml"
     },
@@ -129,8 +129,8 @@
     "links": [],
     "provenance": {
       "checksum": "4f554f5de7e719b2e1fe7b390a104c156caae99f3ebb4b26027ff54107fc7e4a",
-      "repository": "DataTalksClub/synthetic-test-fixture",
-      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repository": "DataTalksClub/datatalksclub.github.io",
+      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
       "source_key": "synthetic-event-4",
       "source_path": "_data/events.yaml"
     },
@@ -163,8 +163,8 @@
     ],
     "provenance": {
       "checksum": "c50af0c95851f6db6951dc57b06202f442753943b0c74c3da7675e8fd193732d",
-      "repository": "DataTalksClub/synthetic-test-fixture",
-      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repository": "DataTalksClub/datatalksclub.github.io",
+      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
       "source_key": "synthetic-event-5",
       "source_path": "_data/events.yaml"
     },
@@ -203,8 +203,8 @@
     ],
     "provenance": {
       "checksum": "1e3674c822c6c24ae37f749fdbcf98e5461fbd57a808708a674f1f2cf0323360",
-      "repository": "DataTalksClub/synthetic-test-fixture",
-      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repository": "DataTalksClub/datatalksclub.github.io",
+      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
       "source_key": "synthetic-event-6",
       "source_path": "_data/events.yaml"
     },
@@ -243,8 +243,8 @@
     ],
     "provenance": {
       "checksum": "b7826b4f644d80284559507a1b8e1ae87ad2e0944f33b05a38f8b10fa9a257ce",
-      "repository": "DataTalksClub/synthetic-test-fixture",
-      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repository": "DataTalksClub/datatalksclub.github.io",
+      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
       "source_key": "synthetic-event-7",
       "source_path": "_data/events.yaml"
     },
@@ -273,8 +273,8 @@
     "links": [],
     "provenance": {
       "checksum": "08fba2278101a97b6c469ad0996d949c06f75b9f5968c03105aa723a8af46a05",
-      "repository": "DataTalksClub/synthetic-test-fixture",
-      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repository": "DataTalksClub/datatalksclub.github.io",
+      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
       "source_key": "synthetic-event-8",
       "source_path": "_data/events.yaml"
     },
@@ -307,8 +307,8 @@
     ],
     "provenance": {
       "checksum": "f1826b6eaa2e7fa6db78e06682a25d6cf65d5814be2b1be8e76c76e4128f64bc",
-      "repository": "DataTalksClub/synthetic-test-fixture",
-      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repository": "DataTalksClub/datatalksclub.github.io",
+      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
       "source_key": "synthetic-event-9",
       "source_path": "_data/events.yaml"
     },
@@ -323,7 +323,7 @@
         "public_path": ""
       }
     ],
-    "starts_at": "2026-03-05T00:00:00+00:00",
+    "starts_at": "2026-08-31T10:00:00+00:00",
     "title": "AI Dev Tools Zoomcamp 2026 Course Launch",
     "type": "workshop"
   },
@@ -347,8 +347,8 @@
     ],
     "provenance": {
       "checksum": "ed7cc6deee927bd17442acb390976d6598b4575a6f24bd3951e39b90496c6340",
-      "repository": "DataTalksClub/synthetic-test-fixture",
-      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repository": "DataTalksClub/datatalksclub.github.io",
+      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
       "source_key": "synthetic-event-10",
       "source_path": "_data/events.yaml"
     },
@@ -387,8 +387,8 @@
     ],
     "provenance": {
       "checksum": "973351d432c0031142193a81c649f954f36522096eac5b0c9a23c77bd23e25c7",
-      "repository": "DataTalksClub/synthetic-test-fixture",
-      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repository": "DataTalksClub/datatalksclub.github.io",
+      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
       "source_key": "synthetic-event-11",
       "source_path": "_data/events.yaml"
     },

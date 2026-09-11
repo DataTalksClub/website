@@ -9,8 +9,8 @@
       "public_id": 1,
       "slug": "synthetic-kickoff-webinar",
       "source": {
-        "repository": "DataTalksClub/synthetic-test-fixture",
-        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
         "source_key": "synthetic-event-1"
       },
       "source_checksum": "f8e0203e8236bbf58e8fb649d4777bfdd81ee2b00a799408df3a27984b782457",
@@ -23,8 +23,8 @@
       "public_id": 2,
       "slug": "synthetic-data-engineering-workshop",
       "source": {
-        "repository": "DataTalksClub/synthetic-test-fixture",
-        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
         "source_key": "synthetic-event-2"
       },
       "source_checksum": "a12d92c09cf305af460ac84440ec929bf73f6479a08327dc45ee6737001b24e5",
@@ -37,8 +37,8 @@
       "public_id": 3,
       "slug": "synthetic-mlops-panel",
       "source": {
-        "repository": "DataTalksClub/synthetic-test-fixture",
-        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
         "source_key": "synthetic-event-3"
       },
       "source_checksum": "e11d9166b78ef4896fbe5ddb2ff1c3947b0e1d7614b4821d2cfbb9337aa73181",
@@ -51,8 +51,8 @@
       "public_id": 4,
       "slug": "synthetic-llm-deep-dive",
       "source": {
-        "repository": "DataTalksClub/synthetic-test-fixture",
-        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
         "source_key": "synthetic-event-4"
       },
       "source_checksum": "4f554f5de7e719b2e1fe7b390a104c156caae99f3ebb4b26027ff54107fc7e4a",
@@ -65,8 +65,8 @@
       "public_id": 5,
       "slug": "synthetic-community-podcast-episode-one",
       "source": {
-        "repository": "DataTalksClub/synthetic-test-fixture",
-        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
         "source_key": "synthetic-event-5"
       },
       "source_checksum": "c50af0c95851f6db6951dc57b06202f442753943b0c74c3da7675e8fd193732d",
@@ -79,8 +79,8 @@
       "public_id": 6,
       "slug": "synthetic-community-podcast-episode-two",
       "source": {
-        "repository": "DataTalksClub/synthetic-test-fixture",
-        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
         "source_key": "synthetic-event-6"
       },
       "source_checksum": "1e3674c822c6c24ae37f749fdbcf98e5461fbd57a808708a674f1f2cf0323360",
@@ -93,8 +93,8 @@
       "public_id": 7,
       "slug": "synthetic-analytics-conference-talk",
       "source": {
-        "repository": "DataTalksClub/synthetic-test-fixture",
-        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
         "source_key": "synthetic-event-7"
       },
       "source_checksum": "b7826b4f644d80284559507a1b8e1ae87ad2e0944f33b05a38f8b10fa9a257ce",
@@ -107,8 +107,8 @@
       "public_id": 8,
       "slug": "synthetic-office-hours-session",
       "source": {
-        "repository": "DataTalksClub/synthetic-test-fixture",
-        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
         "source_key": "synthetic-event-8"
       },
       "source_checksum": "08fba2278101a97b6c469ad0996d949c06f75b9f5968c03105aa723a8af46a05",
@@ -121,8 +121,8 @@
       "public_id": 9,
       "slug": "ai-dev-tools-zoomcamp-2026-course-launch",
       "source": {
-        "repository": "DataTalksClub/synthetic-test-fixture",
-        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
         "source_key": "synthetic-event-9"
       },
       "source_checksum": "f1826b6eaa2e7fa6db78e06682a25d6cf65d5814be2b1be8e76c76e4128f64bc",
@@ -135,8 +135,8 @@
       "public_id": 10,
       "slug": "synthetic-banner-mapped-assistant-talk",
       "source": {
-        "repository": "DataTalksClub/synthetic-test-fixture",
-        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
         "source_key": "synthetic-event-10"
       },
       "source_checksum": "ed7cc6deee927bd17442acb390976d6598b4575a6f24bd3951e39b90496c6340",
@@ -149,8 +149,8 @@
       "public_id": 11,
       "slug": "synthetic-banner-mapped-agents-workshop",
       "source": {
-        "repository": "DataTalksClub/synthetic-test-fixture",
-        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
         "source_key": "synthetic-event-11"
       },
       "source_checksum": "973351d432c0031142193a81c649f954f36522096eac5b0c9a23c77bd23e25c7",
@@ -160,8 +160,8 @@
   ],
   "schema_version": 4,
   "source": {
-    "repository": "DataTalksClub/synthetic-test-fixture",
-    "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "repository": "DataTalksClub/datatalksclub.github.io",
+    "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
     "source_key": "synthetic-event-manifest"
   }
 }

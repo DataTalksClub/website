@@ -1,9 +1,9 @@
 {
   "counts": {
-    "assets": 0,
+    "assets": 1,
     "courses": 6,
-    "questions": 6,
-    "sections": 6
+    "questions": 24,
+    "sections": 12
   },
   "courses": [
     {
@@ -16,15 +16,50 @@
             {
               "answer": "Synthetic answer for data-engineering-zoomcamp.",
               "course": "data-engineering-zoomcamp",
-              "edit_url": "https://example.invalid/edit/_questions/data-engineering-zoomcamp/synq000001.md",
+              "edit_url": "https://example.invalid/edit/_questions/data-engineering-zoomcamp/synq000001_synthetic-section-1.md",
               "id": "synq000001",
               "images": [],
               "question": "Synthetic question for data-engineering-zoomcamp?",
+              "section": "Synthetic Section",
               "section_id": "synthetic-section-1",
-              "source_path": "_questions/data-engineering-zoomcamp/synq000001.md"
+              "source_path": "_questions/data-engineering-zoomcamp/synq000001_synthetic-section-1.md"
             }
           ],
           "title": "Synthetic Section"
+        },
+        {
+          "id": "templating",
+          "questions": [
+            {
+              "answer": "Here is a Jinja macro example, kept as literal text:\n\n```\n{% macro greeting(name) %}\nHello, {{ name }}!\n{%- endmacro %}\n```\n",
+              "course": "data-engineering-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/data-engineering-zoomcamp/58586a16a6_templating.md",
+              "id": "58586a16a6",
+              "images": [],
+              "question": "Why does my answer show template syntax?",
+              "section": "Templating",
+              "section_id": "templating",
+              "source_path": "_questions/data-engineering-zoomcamp/58586a16a6_templating.md"
+            }
+          ],
+          "title": "Templating"
+        },
+        {
+          "id": "resources",
+          "questions": [
+            {
+              "answer": "See our [Slack setup guide](https://datatalks.club/docs/general/slack/) for details.",
+              "course": "data-engineering-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/data-engineering-zoomcamp/dedocslnk1_resources.md",
+              "id": "dedocslnk1",
+              "images": [],
+              "question": "Where can I find Slack help docs?",
+              "section": "Resources",
+              "section_id": "resources",
+              "source_path": "_questions/data-engineering-zoomcamp/dedocslnk1_resources.md"
+            }
+          ],
+          "title": "Resources"
         }
       ],
       "slug": "data-engineering-zoomcamp"
@@ -39,12 +74,13 @@
             {
               "answer": "Synthetic answer for stock-markets-analytics-zoomcamp.",
               "course": "stock-markets-analytics-zoomcamp",
-              "edit_url": "https://example.invalid/edit/_questions/stock-markets-analytics-zoomcamp/synq000002.md",
+              "edit_url": "https://example.invalid/edit/_questions/stock-markets-analytics-zoomcamp/synq000002_synthetic-section-2.md",
               "id": "synq000002",
               "images": [],
               "question": "Synthetic question for stock-markets-analytics-zoomcamp?",
+              "section": "Synthetic Section",
               "section_id": "synthetic-section-2",
-              "source_path": "_questions/stock-markets-analytics-zoomcamp/synq000002.md"
+              "source_path": "_questions/stock-markets-analytics-zoomcamp/synq000002_synthetic-section-2.md"
             }
           ],
           "title": "Synthetic Section"
@@ -62,15 +98,44 @@
             {
               "answer": "Synthetic answer for machine-learning-zoomcamp.",
               "course": "machine-learning-zoomcamp",
-              "edit_url": "https://example.invalid/edit/_questions/machine-learning-zoomcamp/synq000003.md",
+              "edit_url": "https://example.invalid/edit/_questions/machine-learning-zoomcamp/synq000003_synthetic-section-3.md",
               "id": "synq000003",
               "images": [],
               "question": "Synthetic question for machine-learning-zoomcamp?",
+              "section": "Synthetic Section",
               "section_id": "synthetic-section-3",
-              "source_path": "_questions/machine-learning-zoomcamp/synq000003.md"
+              "source_path": "_questions/machine-learning-zoomcamp/synq000003_synthetic-section-3.md"
             }
           ],
           "title": "Synthetic Section"
+        },
+        {
+          "id": "slack-help",
+          "questions": [
+            {
+              "answer": "Ask in our workspace: https://app.slack.com/client/T01ATQK62F8/C0288NJ5XSA",
+              "course": "machine-learning-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/machine-learning-zoomcamp/wkspslack0_slack-help.md",
+              "id": "wkspslack0",
+              "images": [],
+              "question": "Where do I ask questions about this course?",
+              "section": "Slack Help",
+              "section_id": "slack-help",
+              "source_path": "_questions/machine-learning-zoomcamp/wkspslack0_slack-help.md"
+            },
+            {
+              "answer": "See Slack's own guide: https://slack.com/help/articles/205239967-Join-a-channel",
+              "course": "machine-learning-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/machine-learning-zoomcamp/slackhelp1_slack-help.md",
+              "id": "slackhelp1",
+              "images": [],
+              "question": "How do I join a Slack channel?",
+              "section": "Slack Help",
+              "section_id": "slack-help",
+              "source_path": "_questions/machine-learning-zoomcamp/slackhelp1_slack-help.md"
+            }
+          ],
+          "title": "Slack Help"
         }
       ],
       "slug": "machine-learning-zoomcamp"
@@ -85,15 +150,105 @@
             {
               "answer": "Synthetic answer for llm-zoomcamp.",
               "course": "llm-zoomcamp",
-              "edit_url": "https://example.invalid/edit/_questions/llm-zoomcamp/synq000004.md",
+              "edit_url": "https://example.invalid/edit/_questions/llm-zoomcamp/synq000004_synthetic-section-4.md",
               "id": "synq000004",
               "images": [],
               "question": "Synthetic question for llm-zoomcamp?",
+              "section": "Synthetic Section",
               "section_id": "synthetic-section-4",
-              "source_path": "_questions/llm-zoomcamp/synq000004.md"
+              "source_path": "_questions/llm-zoomcamp/synq000004_synthetic-section-4.md"
             }
           ],
           "title": "Synthetic Section"
+        },
+        {
+          "id": "cross-references",
+          "questions": [
+            {
+              "answer": "Yes -- install the dependencies from the repository README and run everything locally instead of using Codespaces.",
+              "course": "llm-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/llm-zoomcamp/026_aa310de435_can-i-run-the-course-locally-instead-of-codespaces.md",
+              "id": "aa310de435",
+              "images": [],
+              "question": "Can I run the course locally instead of Codespaces?",
+              "section": "Cross References",
+              "section_id": "cross-references",
+              "source_path": "_questions/llm-zoomcamp/026_aa310de435_can-i-run-the-course-locally-instead-of-codespaces.md"
+            },
+            {
+              "answer": "You have hit the OpenAI rate limit; wait and retry, or lower concurrency.",
+              "course": "llm-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/llm-zoomcamp/005_152af39a53_openai-error-ratelimiterror-error-code-429.md",
+              "id": "152af39a53",
+              "images": [],
+              "question": "OpenAI: Error: RateLimitError: Error code: 429",
+              "section": "Cross References",
+              "section_id": "cross-references",
+              "source_path": "_questions/llm-zoomcamp/005_152af39a53_openai-error-ratelimiterror-error-code-429.md"
+            },
+            {
+              "answer": "Chunk your documents and index them before running retrieval.",
+              "course": "llm-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/llm-zoomcamp/023_649c280e6d_how-should-i-prepare-documents-for-rag.md",
+              "id": "649c280e6d",
+              "images": [],
+              "question": "How should I prepare documents for RAG?",
+              "section": "Cross References",
+              "section_id": "cross-references",
+              "source_path": "_questions/llm-zoomcamp/023_649c280e6d_how-should-i-prepare-documents-for-rag.md"
+            },
+            {
+              "answer": "See [Can I run the course locally instead of Codespaces?](026_aa310de435_can-i-run-the-course-locally-instead-of-codespaces.md) for local setup.",
+              "course": "llm-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/llm-zoomcamp/830f3d2018_cross-references.md",
+              "id": "830f3d2018",
+              "images": [],
+              "question": "How do I get set up without Codespaces?",
+              "section": "Cross References",
+              "section_id": "cross-references",
+              "source_path": "_questions/llm-zoomcamp/830f3d2018_cross-references.md"
+            },
+            {
+              "answer": "See [OpenAI: Error: RateLimitError: Error code: 429](openai-error-ratelimiterror-error-code-429) for details.",
+              "course": "llm-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/llm-zoomcamp/8e21752415_cross-references.md",
+              "id": "8e21752415",
+              "images": [],
+              "question": "Why am I hitting OpenAI rate limits?",
+              "section": "Cross References",
+              "section_id": "cross-references",
+              "source_path": "_questions/llm-zoomcamp/8e21752415_cross-references.md"
+            },
+            {
+              "answer": "See [How should I prepare documents for RAG?](../module-1-rag/023_649c280e6d_how-should-i-prepare-documents-for-rag.md) in the RAG module.",
+              "course": "llm-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/llm-zoomcamp/d8b28c47a0_cross-references.md",
+              "id": "d8b28c47a0",
+              "images": [],
+              "question": "How do I get my documents ready for the RAG module?",
+              "section": "Cross References",
+              "section_id": "cross-references",
+              "source_path": "_questions/llm-zoomcamp/d8b28c47a0_cross-references.md"
+            }
+          ],
+          "title": "Cross References"
+        },
+        {
+          "id": "slack-help",
+          "questions": [
+            {
+              "answer": "See the archive: https://datatalks-club.slack.com/archives/C0791HB4A58",
+              "course": "llm-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/llm-zoomcamp/llmwkspsl1_slack-help.md",
+              "id": "llmwkspsl1",
+              "images": [],
+              "question": "Where is the community discussion for this course?",
+              "section": "Slack Help",
+              "section_id": "slack-help",
+              "source_path": "_questions/llm-zoomcamp/llmwkspsl1_slack-help.md"
+            }
+          ],
+          "title": "Slack Help"
         }
       ],
       "slug": "llm-zoomcamp"
@@ -108,12 +263,13 @@
             {
               "answer": "Synthetic answer for ai-dev-tools-zoomcamp.",
               "course": "ai-dev-tools-zoomcamp",
-              "edit_url": "https://example.invalid/edit/_questions/ai-dev-tools-zoomcamp/synq000005.md",
+              "edit_url": "https://example.invalid/edit/_questions/ai-dev-tools-zoomcamp/synq000005_synthetic-section-5.md",
               "id": "synq000005",
               "images": [],
               "question": "Synthetic question for ai-dev-tools-zoomcamp?",
+              "section": "Synthetic Section",
               "section_id": "synthetic-section-5",
-              "source_path": "_questions/ai-dev-tools-zoomcamp/synq000005.md"
+              "source_path": "_questions/ai-dev-tools-zoomcamp/synq000005_synthetic-section-5.md"
             }
           ],
           "title": "Synthetic Section"
@@ -131,15 +287,135 @@
             {
               "answer": "Synthetic answer for mlops-zoomcamp.",
               "course": "mlops-zoomcamp",
-              "edit_url": "https://example.invalid/edit/_questions/mlops-zoomcamp/synq000006.md",
+              "edit_url": "https://example.invalid/edit/_questions/mlops-zoomcamp/synq000006_synthetic-section-6.md",
               "id": "synq000006",
               "images": [],
               "question": "Synthetic question for mlops-zoomcamp?",
+              "section": "Synthetic Section",
               "section_id": "synthetic-section-6",
-              "source_path": "_questions/mlops-zoomcamp/synq000006.md"
+              "source_path": "_questions/mlops-zoomcamp/synq000006_synthetic-section-6.md"
             }
           ],
           "title": "Synthetic Section"
+        },
+        {
+          "id": "images",
+          "questions": [
+            {
+              "answer": "Here's a screenshot: {IMAGE:image_1}",
+              "course": "mlops-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/mlops-zoomcamp/f74891d445_images.md",
+              "id": "f74891d445",
+              "images": [
+                {
+                  "description": "image #1",
+                  "id": "image_1",
+                  "public_path": "/faq/images/mlops-zoomcamp/image_09b2050c.png"
+                }
+              ],
+              "question": "What does the architecture diagram look like?",
+              "section": "Images",
+              "section_id": "images",
+              "source_path": "_questions/mlops-zoomcamp/f74891d445_images.md"
+            },
+            {
+              "answer": "See the screenshot: <{IMAGE:image_1}>",
+              "course": "mlops-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/mlops-zoomcamp/b4a5d32d6b_images.md",
+              "id": "b4a5d32d6b",
+              "images": [
+                {
+                  "description": "image #1",
+                  "id": "image_1",
+                  "public_path": "/faq/images/mlops-zoomcamp/image_09b2050c.png"
+                }
+              ],
+              "question": "Where can I find the setup screenshot?",
+              "section": "Images",
+              "section_id": "images",
+              "source_path": "_questions/mlops-zoomcamp/b4a5d32d6b_images.md"
+            },
+            {
+              "answer": "Malformed marker: <>{IMAGE:image_1}",
+              "course": "mlops-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/mlops-zoomcamp/c549d24645_images.md",
+              "id": "c549d24645",
+              "images": [
+                {
+                  "description": "image #1",
+                  "id": "image_1",
+                  "public_path": "/faq/images/mlops-zoomcamp/image_09b2050c.png"
+                }
+              ],
+              "question": "Why does the legacy marker look malformed?",
+              "section": "Images",
+              "section_id": "images",
+              "source_path": "_questions/mlops-zoomcamp/c549d24645_images.md"
+            },
+            {
+              "answer": "Bare marker: {IMAGE:image_1}",
+              "course": "mlops-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/mlops-zoomcamp/d01f2fb06b_images.md",
+              "id": "d01f2fb06b",
+              "images": [
+                {
+                  "description": "image #1",
+                  "id": "image_1",
+                  "public_path": "/faq/images/mlops-zoomcamp/image_09b2050c.png"
+                }
+              ],
+              "question": "What is a bare image marker?",
+              "section": "Images",
+              "section_id": "images",
+              "source_path": "_questions/mlops-zoomcamp/d01f2fb06b_images.md"
+            },
+            {
+              "answer": "Missing image marker: {IMAGE:missing}",
+              "course": "mlops-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/mlops-zoomcamp/bcd4190972_images.md",
+              "id": "bcd4190972",
+              "images": [],
+              "question": "What happens to a marker with no declared image?",
+              "section": "Images",
+              "section_id": "images",
+              "source_path": "_questions/mlops-zoomcamp/bcd4190972_images.md"
+            },
+            {
+              "answer": "Alternate marker: <{IMAGE:image_1}>",
+              "course": "mlops-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/mlops-zoomcamp/52d606a66e_images.md",
+              "id": "52d606a66e",
+              "images": [
+                {
+                  "description": "image #1",
+                  "id": "image_1",
+                  "public_path": "/faq/images/mlops-zoomcamp/image_09b2050c.png"
+                }
+              ],
+              "question": "What does an angle-bracket marker resolve to?",
+              "section": "Images",
+              "section_id": "images",
+              "source_path": "_questions/mlops-zoomcamp/52d606a66e_images.md"
+            },
+            {
+              "answer": "Legacy label marker: ![legacy](<{IMAGE:image_1}>)",
+              "course": "mlops-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/mlops-zoomcamp/3b76daefb2_images.md",
+              "id": "3b76daefb2",
+              "images": [
+                {
+                  "description": "image #1",
+                  "id": "image_1",
+                  "public_path": "/faq/images/mlops-zoomcamp/image_09b2050c.png"
+                }
+              ],
+              "question": "What does a legacy image wrapper render as?",
+              "section": "Images",
+              "section_id": "images",
+              "source_path": "_questions/mlops-zoomcamp/3b76daefb2_images.md"
+            }
+          ],
+          "title": "Images"
         }
       ],
       "slug": "mlops-zoomcamp"

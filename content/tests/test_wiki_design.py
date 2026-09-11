@@ -427,8 +427,11 @@ class WikiSearchTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "public/wiki_detail.html")
         self.assertIn("<title>Search — DataTalks.Club Wiki</title>", body)
+        # The real reviewed body copy is the actual page's own real-content
+        # words; test_support/fixtures/reference/'s synthetic wiki page at
+        # this same slug carries its own synthetic copy instead.
         self.assertIn(
-            "Search as the product system that turns retrieval, ranking, answers",
+            "search as the product system readers use to find a topic",
             body,
         )
         self.assertNotIn("results for", body)
