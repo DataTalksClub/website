@@ -27,15 +27,21 @@ What one run does, per raw content file whose Eventbrite id resolves:
    ``render_description_html``/``render_description_text``, the shapes
    ``EventContent.description_html``/``description_text`` already carry
    elsewhere in this codebase;
-3. writes the cleaned record to two places:
+3. writes the cleaned record to two places, both outside this repository, on
+   the owner's explicit instruction ("let's not have it in our code"):
    - back into the source data, as
      ``~/prod/dtc-data/eventbrite-content/cleaned/{id}.json`` (one file per
      event, so this does not need re-deriving next time);
-   - into this repository's staging artifact,
-     ``temporary/content/eventbrite_descriptions.json``, keyed by the
-     canonical source triple that
+   - the staging artifact
+     ``~/prod/dtc-data/eventbrite-content/staging/eventbrite_descriptions.json``
+     by default (``--staging-output`` to change it), keyed by the canonical
+     source triple that
      :func:`events.eventbrite_content.apply_eventbrite_descriptions` resolves
-     against at import time.
+     against at import time. Unlike the sibling
+     ``temporary/content/luma_event_descriptions.json`` staging artifact this
+     one is never inside the ``dtc-website`` checkout at all -- point
+     ``scripts/prod/import_events.py --eventbrite-descriptions`` at the same
+     path to consume it.
 
 An id with no ``resolved`` entry in the identities file, or with no raw content
 file at all, is reported and skipped -- never guessed at.
@@ -77,7 +83,6 @@ from events.eventbrite_content import (  # noqa: E402
     render_description_text,
 )
 
-STAGING_ARTIFACT_PATH = REPOSITORY_ROOT / "temporary" / "content" / "eventbrite_descriptions.json"
 _EVENT_ID = re.compile(r"^[0-9]{1,20}$")
 
 
@@ -245,7 +250,17 @@ def _parser() -> argparse.ArgumentParser:
         default=None,
         help="Defaults to <source-root>/cleaned/",
     )
-    parser.add_argument("--staging-output", type=Path, default=STAGING_ARTIFACT_PATH)
+    parser.add_argument(
+        "--staging-output",
+        type=Path,
+        default=None,
+        help=(
+            "Defaults to <source-root>/staging/eventbrite_descriptions.json -- "
+            "outside this repository, same as --cleaned-output-dir. Point "
+            "scripts/prod/import_events.py --eventbrite-descriptions at the "
+            "same path."
+        ),
+    )
     parser.add_argument("--write", action="store_true", help="Write both output artifacts.")
     return parser
 
@@ -255,6 +270,9 @@ def main(argv: list[str] | None = None) -> int:
     source_root = args.source_root.expanduser()
     identities_path = args.identities.expanduser()
     cleaned_output_dir = (args.cleaned_output_dir or (source_root / "cleaned")).expanduser()
+    staging_output = (
+        args.staging_output or (source_root / "staging" / "eventbrite_descriptions.json")
+    ).expanduser()
 
     try:
         result = build(source_root=source_root, identities_path=identities_path)
@@ -269,14 +287,14 @@ def main(argv: list[str] | None = None) -> int:
         "empty_after_clean": result["empty_after_clean"],
         "no_resolved_identity_total": result["no_resolved_identity_total"],
         "no_resolved_identity": result["no_resolved_identity"],
-        "staging_output": str(args.staging_output),
+        "staging_output": str(staging_output),
         "cleaned_output_dir": str(cleaned_output_dir),
         "applied": args.write,
     }
 
     if args.write:
-        args.staging_output.parent.mkdir(parents=True, exist_ok=True)
-        args.staging_output.write_text(
+        staging_output.parent.mkdir(parents=True, exist_ok=True)
+        staging_output.write_text(
             json.dumps(result["staging_artifact"], indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
         )

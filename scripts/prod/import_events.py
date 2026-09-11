@@ -135,19 +135,22 @@ this repository.  The content import re-checks that tuple against the identity
 row rather than trusting it, so a record can only land on the event it was
 reviewed against.
 
-**Description authoring precedence** (``temporary/content/eventbrite_descriptions.json``,
-absent until built): a third concern, distinct from bootstrapping content above
-and from the registration-count legs below.  Real, freshly-scraped Eventbrite
-page content exists for 226 of these events outside this repository, at
-``~/prod/dtc-data/eventbrite-content/``, and the product owner's ruling is that
-it wins outright over the Jekyll-sourced description for any event whose
-Eventbrite id resolves to a canonical Event -- full replacement, not
-fill-only-if-missing.  ``scripts/build_eventbrite_descriptions.py`` cleans it
-(strips the "about the speaker/guest/host" section and the DataTalks.Club
-footer, nothing else -- see :mod:`events.eventbrite_content`) and stages it;
-this runs the staged result straight after ``event_content`` above, since it
-overwrites a row that step just created.  See :func:`import_eventbrite_descriptions`
-and :func:`events.eventbrite_content.apply_eventbrite_descriptions`.
+**Description authoring precedence**
+(``~/prod/dtc-data/eventbrite-content/staging/eventbrite_descriptions.json``,
+outside this repository -- absent until built, and deliberately never
+committed, per explicit owner instruction): a third concern, distinct from
+bootstrapping content above and from the registration-count legs below.  Real,
+freshly-scraped Eventbrite page content exists for 226 of these events, also
+outside this repository, at ``~/prod/dtc-data/eventbrite-content/``, and the
+product owner's ruling is that it wins outright over the Jekyll-sourced
+description for any event whose Eventbrite id resolves to a canonical Event --
+full replacement, not fill-only-if-missing.
+``scripts/build_eventbrite_descriptions.py`` cleans it (strips the "about the
+speaker/guest/host" section and the DataTalks.Club footer, nothing else -- see
+:mod:`events.eventbrite_content`) and stages it there; this runs the staged
+result straight after ``event_content`` above, since it overwrites a row that
+step just created.  See :func:`import_eventbrite_descriptions` and
+:func:`events.eventbrite_content.apply_eventbrite_descriptions`.
 
     uv run --frozen python scripts/prod/import_events.py \\
         --database .tmp/local.sqlite3 \\
@@ -184,8 +187,14 @@ EVENT_CONTENT_PATH = (
     PROJECT_ROOT / "temporary" / "content" / "public_projection" / "events.json"
 )
 NEW_EVENT_CONTENT_PATH = PROJECT_ROOT / "temporary" / "content" / "luma_event_descriptions.json"
+# Deliberately *not* under temporary/content/, unlike every sibling staging
+# artifact above -- the owner's explicit instruction: "let's not have it in
+# our code. move it outside." Built by scripts/build_eventbrite_descriptions.py
+# from external raw Eventbrite content that never enters this repository
+# either; see that script's module docstring.
 EVENTBRITE_DESCRIPTIONS_PATH = (
-    PROJECT_ROOT / "temporary" / "content" / "eventbrite_descriptions.json"
+    Path.home() / "prod" / "dtc-data" / "eventbrite-content" / "staging"
+    / "eventbrite_descriptions.json"
 )
 
 PROVIDERS = ("luma", "eventbrite")
@@ -335,6 +344,14 @@ def import_eventbrite_descriptions(
     against the external raw Eventbrite content and identity resolution (both
     outside this repository, at ``~/prod/dtc-data/``), and is reported as
     ``absent`` when nobody has.
+
+    Expect ``event_content``'s own report, just above this leg's in the run
+    output, to show the same events as ``updated`` on every replay rather than
+    ``unchanged``: that step replays the *reviewed* Jekyll-sourced record,
+    which genuinely disagrees with a row this leg has already overridden, so
+    it correctly restores it -- and this leg then correctly overrides it back.
+    Final state after one full run is always the cleaned Eventbrite text; the
+    two legs simply keep re-asserting their own layer every time, by design.
     """
 
     from events.eventbrite_content import (
@@ -1203,9 +1220,11 @@ def _parser() -> argparse.ArgumentParser:
         default=EVENTBRITE_DESCRIPTIONS_PATH,
         help=(
             "Cleaned Eventbrite descriptions staged by "
-            "scripts/build_eventbrite_descriptions.py --write. When present, wins "
-            "outright over the Jekyll-sourced description for every event whose "
-            "Eventbrite id resolves. Absent until an operator has built it."
+            "scripts/build_eventbrite_descriptions.py --write, outside this "
+            "repository (~/prod/dtc-data/eventbrite-content/staging/ by "
+            "default on both ends). When present, wins outright over the "
+            "Jekyll-sourced description for every event whose Eventbrite id "
+            "resolves. Absent until an operator has built it."
         ),
     )
     parser.add_argument("--luma-source", type=Path, default=main_root / LUMA_RELATIVE_SOURCE)
