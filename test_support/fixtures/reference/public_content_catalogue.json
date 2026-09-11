@@ -444,8 +444,487 @@
     }
   ],
   "editorial_route_migration": {
-    "aliases": [],
-    "finals": [],
+    "aliases": [
+      {
+        "collection": "articles",
+        "final_path": "/blog/ai-dev-tools-zoomcamp.html",
+        "query_policy": "preserve_raw",
+        "record_key": "ai-dev-tools-zoomcamp",
+        "source_path": "/blog/ai-dev-tools-zoomcamp",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/ai-dev-tools-zoomcamp.html",
+        "query_policy": "preserve_raw",
+        "record_key": "ai-dev-tools-zoomcamp",
+        "source_path": "/blog/ai-dev-tools-zoomcamp/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-article-one.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-article-one",
+        "source_path": "/blog/synthetic-article-one",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-article-one.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-article-one",
+        "source_path": "/blog/synthetic-article-one/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-book-one.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-book-one",
+        "source_path": "/books/synthetic-book-one",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-book-one.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-book-one",
+        "source_path": "/books/synthetic-book-one/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-book-two.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-book-two",
+        "source_path": "/books/synthetic-book-two",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-book-two.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-book-two",
+        "source_path": "/books/synthetic-book-two/",
+        "status_code": 301
+      },
+      {
+        "collection": "people",
+        "final_path": "/people/synthetic-one.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-one",
+        "source_path": "/people/synthetic-one",
+        "status_code": 301
+      },
+      {
+        "collection": "people",
+        "final_path": "/people/synthetic-one.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-one",
+        "source_path": "/people/synthetic-one/",
+        "status_code": 301
+      },
+      {
+        "collection": "people",
+        "final_path": "/people/synthetic-two.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-two",
+        "source_path": "/people/synthetic-two",
+        "status_code": 301
+      },
+      {
+        "collection": "people",
+        "final_path": "/people/synthetic-two.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-two",
+        "source_path": "/people/synthetic-two/",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code",
+        "query_policy": "preserve_raw",
+        "record_key": "s24e05-ai-adoption-in-enterprise-beyond-writing-code",
+        "source_path": "/podcast/s24e05-ai-adoption-in-enterprise-beyond-writing-code",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code",
+        "query_policy": "preserve_raw",
+        "record_key": "s24e05-ai-adoption-in-enterprise-beyond-writing-code",
+        "source_path": "/podcast/s24e05-ai-adoption-in-enterprise-beyond-writing-code/",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/s24e06/how-to-build-ai-that-actually-ships-in-production",
+        "query_policy": "preserve_raw",
+        "record_key": "s24e06-how-to-build-ai-that-actually-ships-in-production",
+        "source_path": "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/s24e06/how-to-build-ai-that-actually-ships-in-production",
+        "query_policy": "preserve_raw",
+        "record_key": "s24e06-how-to-build-ai-that-actually-ships-in-production",
+        "source_path": "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production/",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-one.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-episode-one",
+        "source_path": "/podcast/synthetic-episode-one",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-one.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-episode-one",
+        "source_path": "/podcast/synthetic-episode-one/",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-s24e01.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-episode-s24e01",
+        "source_path": "/podcast/synthetic-episode-s24e01",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-s24e01.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-episode-s24e01",
+        "source_path": "/podcast/synthetic-episode-s24e01/",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-s24e02.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-episode-s24e02",
+        "source_path": "/podcast/synthetic-episode-s24e02",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-s24e02.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-episode-s24e02",
+        "source_path": "/podcast/synthetic-episode-s24e02/",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-s24e03.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-episode-s24e03",
+        "source_path": "/podcast/synthetic-episode-s24e03",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-s24e03.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-episode-s24e03",
+        "source_path": "/podcast/synthetic-episode-s24e03/",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-s24e04.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-episode-s24e04",
+        "source_path": "/podcast/synthetic-episode-s24e04",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-s24e04.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-episode-s24e04",
+        "source_path": "/podcast/synthetic-episode-s24e04/",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-s24e05.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-episode-s24e05",
+        "source_path": "/podcast/synthetic-episode-s24e05",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-s24e05.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-episode-s24e05",
+        "source_path": "/podcast/synthetic-episode-s24e05/",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-two.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-episode-two",
+        "source_path": "/podcast/synthetic-episode-two",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-two.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-episode-two",
+        "source_path": "/podcast/synthetic-episode-two/",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-spotify-creator-source.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-spotify-creator-source",
+        "source_path": "/podcast/synthetic-spotify-creator-source",
+        "status_code": 301
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-spotify-creator-source.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-spotify-creator-source",
+        "source_path": "/podcast/synthetic-spotify-creator-source/",
+        "status_code": 301
+      }
+    ],
+    "finals": [
+      {
+        "collection": "articles",
+        "final_path": "/blog/ai-dev-tools-zoomcamp.html",
+        "record_key": "ai-dev-tools-zoomcamp",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/ai-dev-tools-zoomcamp.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/ai-dev-tools-zoomcamp.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-article-one.html",
+        "record_key": "synthetic-article-one",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-article-one.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-article-one.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-book-one.html",
+        "record_key": "synthetic-book-one",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-book-one.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-book-one.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-book-two.html",
+        "record_key": "synthetic-book-two",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-book-two.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-book-two.md"
+        }
+      },
+      {
+        "collection": "people",
+        "final_path": "/people/synthetic-one.html",
+        "record_key": "synthetic-one",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/datatalksclub.github.io",
+          "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+          "source_key": "synthetic",
+          "source_path": "_people/synthetic-one.md",
+          "source_url": "https://github.com/DataTalksClub/datatalksclub.github.io/blob/ee43d3fa0929faf691178d79f19528e6f15a83e5/_people/synthetic-one.md"
+        }
+      },
+      {
+        "collection": "people",
+        "final_path": "/people/synthetic-two.html",
+        "record_key": "synthetic-two",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/datatalksclub.github.io",
+          "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+          "source_key": "synthetic",
+          "source_path": "_people/synthetic-two.md",
+          "source_url": "https://github.com/DataTalksClub/datatalksclub.github.io/blob/ee43d3fa0929faf691178d79f19528e6f15a83e5/_people/synthetic-two.md"
+        }
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/s24e04/from-genai-pilots-to-production",
+        "record_key": "s24e04-from-genai-pilots-to-production",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "podcasts/s24e04-from-genai-pilots-to-production.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/s24e04-from-genai-pilots-to-production.md"
+        }
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code",
+        "record_key": "s24e05-ai-adoption-in-enterprise-beyond-writing-code",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "podcasts/s24e05-ai-adoption-in-enterprise-beyond-writing-code.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/s24e05-ai-adoption-in-enterprise-beyond-writing-code.md"
+        }
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/s24e06/how-to-build-ai-that-actually-ships-in-production",
+        "record_key": "s24e06-how-to-build-ai-that-actually-ships-in-production",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "podcasts/s24e06-how-to-build-ai-that-actually-ships-in-production.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/s24e06-how-to-build-ai-that-actually-ships-in-production.md"
+        }
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-one.html",
+        "record_key": "synthetic-episode-one",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "podcasts/synthetic-episode-one.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-one.md"
+        }
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-s24e01.html",
+        "record_key": "synthetic-episode-s24e01",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "podcasts/synthetic-episode-s24e01.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-s24e01.md"
+        }
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-s24e02.html",
+        "record_key": "synthetic-episode-s24e02",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "podcasts/synthetic-episode-s24e02.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-s24e02.md"
+        }
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-s24e03.html",
+        "record_key": "synthetic-episode-s24e03",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "podcasts/synthetic-episode-s24e03.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-s24e03.md"
+        }
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-s24e04.html",
+        "record_key": "synthetic-episode-s24e04",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "podcasts/synthetic-episode-s24e04.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-s24e04.md"
+        }
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-s24e05.html",
+        "record_key": "synthetic-episode-s24e05",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "podcasts/synthetic-episode-s24e05.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-s24e05.md"
+        }
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-episode-two.html",
+        "record_key": "synthetic-episode-two",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "podcasts/synthetic-episode-two.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-two.md"
+        }
+      },
+      {
+        "collection": "podcasts",
+        "final_path": "/podcast/synthetic-spotify-creator-source.html",
+        "record_key": "synthetic-spotify-creator-source",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "podcasts/synthetic-spotify-creator-source.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-spotify-creator-source.md"
+        }
+      }
+    ],
     "schema_version": 1
   },
   "manifest": {
@@ -469,7 +948,7 @@
       "courses": 12,
       "media": 3,
       "people": 2,
-      "podcasts": 2,
+      "podcasts": 11,
       "transcripts": 0,
       "wiki": 78
     },
@@ -704,11 +1183,20 @@
       "blocks": [
         {
           "kind": "paragraph",
-          "text": "Synthetic author bio two."
+          "text": "Synthetic Guest Two, Senior Data Scientist at Synthetic Corp."
         }
       ],
       "image_path": "/images/authors/synthetic-two.jpg",
-      "links": [],
+      "links": [
+        {
+          "label": "Website",
+          "url": "https://example.invalid/synthetic-guest-two"
+        },
+        {
+          "label": "LinkedIn",
+          "url": "https://example.invalid/synthetic-guest-two-linkedin"
+        }
+      ],
       "media_available": true,
       "provenance": {
         "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -772,11 +1260,11 @@
   "podcasts": [
     {
       "description": "Synthetic podcast episode description.",
-      "episode": 1,
+      "episode": 6,
       "guest_profiles": [
         {
           "key": "synthetic-two",
-          "name": "Synthetic Author Two",
+          "name": "Synthetic Guest Two",
           "public_path": "/people/synthetic-two.html"
         }
       ],
@@ -784,7 +1272,9 @@
         "synthetic-two"
       ],
       "image_path": "",
-      "links": {},
+      "links": {
+        "youtube": "https://www.youtube.com/watch?v=aaaaaaaaaaa"
+      },
       "media_available": false,
       "provenance": {
         "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -795,15 +1285,169 @@
         "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-one.md"
       },
       "public_path": "/podcast/synthetic-episode-one.html",
-      "published": "2026-01-10",
-      "resources": [],
-      "season": 1,
+      "published": "",
+      "resources": [
+        {
+          "is_external": true,
+          "rel": "noopener noreferrer",
+          "target": "_blank",
+          "title": "Website",
+          "url": "https://example.invalid/synthetic-guest-two"
+        },
+        {
+          "is_external": true,
+          "rel": "noopener noreferrer",
+          "target": "_blank",
+          "title": "LinkedIn",
+          "url": "https://example.invalid/synthetic-guest-two-linkedin"
+        }
+      ],
+      "season": 20,
       "short": "A synthetic episode",
       "slug": "synthetic-episode-one",
       "title": "Synthetic Podcast Episode One",
-      "transcript": [],
-      "transcript_provenance": {},
-      "video": null
+      "transcript": [
+        {
+          "header": "Synthetic Chapter 1"
+        },
+        {
+          "line": "Synthetic transcript line for chapter 1.",
+          "sec": 0,
+          "time": "0:00",
+          "who": "Synthetic Host"
+        },
+        {
+          "line": "Synthetic transcript follow-up line for chapter 1.",
+          "who": "Synthetic Host"
+        },
+        {
+          "header": "Synthetic Chapter 2"
+        },
+        {
+          "line": "Synthetic transcript line for chapter 2.",
+          "sec": 60,
+          "time": "1:00",
+          "who": "Synthetic Host"
+        },
+        {
+          "line": "Synthetic transcript follow-up line for chapter 2.",
+          "who": "Synthetic Host"
+        },
+        {
+          "header": "Synthetic Chapter 3"
+        },
+        {
+          "line": "Synthetic transcript line for chapter 3.",
+          "sec": 120,
+          "time": "2:00",
+          "who": "Synthetic Host"
+        },
+        {
+          "line": "Synthetic transcript follow-up line for chapter 3.",
+          "who": "Synthetic Host"
+        },
+        {
+          "header": "Synthetic Chapter 4"
+        },
+        {
+          "line": "Synthetic transcript line for chapter 4.",
+          "sec": 180,
+          "time": "3:00",
+          "who": "Synthetic Host"
+        },
+        {
+          "line": "Synthetic transcript follow-up line for chapter 4.",
+          "who": "Synthetic Host"
+        },
+        {
+          "header": "Synthetic Chapter 5"
+        },
+        {
+          "line": "Synthetic transcript line for chapter 5.",
+          "sec": 240,
+          "time": "4:00",
+          "who": "Synthetic Host"
+        },
+        {
+          "line": "Synthetic transcript follow-up line for chapter 5.",
+          "who": "Synthetic Host"
+        },
+        {
+          "header": "Synthetic Chapter 6"
+        },
+        {
+          "line": "Synthetic transcript line for chapter 6.",
+          "sec": 300,
+          "time": "5:00",
+          "who": "Synthetic Host"
+        },
+        {
+          "line": "Synthetic transcript follow-up line for chapter 6.",
+          "who": "Synthetic Host"
+        },
+        {
+          "header": "Synthetic Chapter 7"
+        },
+        {
+          "line": "Synthetic transcript line for chapter 7.",
+          "sec": 360,
+          "time": "6:00",
+          "who": "Synthetic Host"
+        },
+        {
+          "line": "Synthetic transcript follow-up line for chapter 7.",
+          "who": "Synthetic Host"
+        },
+        {
+          "header": "Synthetic Chapter 8"
+        },
+        {
+          "line": "Synthetic transcript line for chapter 8.",
+          "sec": 420,
+          "time": "7:00",
+          "who": "Synthetic Host"
+        },
+        {
+          "line": "Synthetic transcript follow-up line for chapter 8.",
+          "who": "Synthetic Host"
+        },
+        {
+          "header": "Synthetic Chapter 9"
+        },
+        {
+          "line": "Synthetic transcript line for chapter 9.",
+          "sec": 480,
+          "time": "8:00",
+          "who": "Synthetic Host"
+        },
+        {
+          "line": "Synthetic transcript follow-up line for chapter 9.",
+          "who": "Synthetic Host"
+        },
+        {
+          "header": "Synthetic Chapter 10"
+        },
+        {
+          "line": "Synthetic transcript line for chapter 10.",
+          "sec": 540,
+          "time": "9:00",
+          "who": "Synthetic Host"
+        },
+        {
+          "line": "Synthetic transcript follow-up line for chapter 10.",
+          "who": "Synthetic Host"
+        }
+      ],
+      "transcript_provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_url": "https://example.invalid/synthetic-transcript"
+      },
+      "video": {
+        "id": "aaaaaaaaaaa",
+        "provider": "youtube"
+      }
     },
     {
       "description": "Second synthetic podcast episode description.",
@@ -831,6 +1475,295 @@
       "transcript": [],
       "transcript_provenance": {},
       "video": null
+    },
+    {
+      "description": "Synthetic season 24 episode 1 description.",
+      "episode": 1,
+      "guest_profiles": [],
+      "guests": [],
+      "image_path": "",
+      "links": {},
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "podcasts/synthetic-episode-s24e01.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-s24e01.md"
+      },
+      "public_path": "/podcast/synthetic-episode-s24e01.html",
+      "published": "2026-01-10",
+      "resources": [
+        {
+          "is_external": false,
+          "rel": "",
+          "target": "",
+          "title": "Related Episode",
+          "url": "/podcast/synthetic-episode-s24e02.html"
+        }
+      ],
+      "season": 20,
+      "short": "Synthetic season 24 episode 1.",
+      "slug": "synthetic-episode-s24e01",
+      "title": "Synthetic Season 24 Episode 1",
+      "transcript": [],
+      "transcript_provenance": {},
+      "video": null
+    },
+    {
+      "description": "Synthetic season 24 episode 2 description.",
+      "episode": 2,
+      "guest_profiles": [],
+      "guests": [],
+      "image_path": "",
+      "links": {},
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "podcasts/synthetic-episode-s24e02.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-s24e02.md"
+      },
+      "public_path": "/podcast/synthetic-episode-s24e02.html",
+      "published": "2026-01-11",
+      "resources": [],
+      "season": 20,
+      "short": "Synthetic season 24 episode 2.",
+      "slug": "synthetic-episode-s24e02",
+      "title": "Synthetic Season 24 Episode 2",
+      "transcript": [],
+      "transcript_provenance": {},
+      "video": null
+    },
+    {
+      "description": "Synthetic season 24 episode 3 description.",
+      "episode": 3,
+      "guest_profiles": [],
+      "guests": [],
+      "image_path": "",
+      "links": {},
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "podcasts/synthetic-episode-s24e03.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-s24e03.md"
+      },
+      "public_path": "/podcast/synthetic-episode-s24e03.html",
+      "published": "2026-01-12",
+      "resources": [],
+      "season": 20,
+      "short": "Synthetic season 24 episode 3.",
+      "slug": "synthetic-episode-s24e03",
+      "title": "Synthetic Season 24 Episode 3",
+      "transcript": [],
+      "transcript_provenance": {},
+      "video": null
+    },
+    {
+      "description": "Synthetic season 24 episode 4 description.",
+      "episode": 4,
+      "guest_profiles": [],
+      "guests": [],
+      "image_path": "",
+      "links": {},
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "podcasts/synthetic-episode-s24e04.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-s24e04.md"
+      },
+      "public_path": "/podcast/synthetic-episode-s24e04.html",
+      "published": "2026-01-13",
+      "resources": [],
+      "season": 20,
+      "short": "Synthetic season 24 episode 4.",
+      "slug": "synthetic-episode-s24e04",
+      "title": "Synthetic Season 24 Episode 4",
+      "transcript": [],
+      "transcript_provenance": {},
+      "video": null
+    },
+    {
+      "description": "Synthetic season 24 episode 5 description.",
+      "episode": 5,
+      "guest_profiles": [],
+      "guests": [],
+      "image_path": "",
+      "links": {},
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "podcasts/synthetic-episode-s24e05.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-s24e05.md"
+      },
+      "public_path": "/podcast/synthetic-episode-s24e05.html",
+      "published": "2026-01-14",
+      "resources": [],
+      "season": 20,
+      "short": "Synthetic season 24 episode 5.",
+      "slug": "synthetic-episode-s24e05",
+      "title": "Synthetic Season 24 Episode 5",
+      "transcript": [],
+      "transcript_provenance": {},
+      "video": null
+    },
+    {
+      "description": "Synthetic Spotify creator episode description.",
+      "episode": 1,
+      "guest_profiles": [],
+      "guests": [],
+      "image_path": "",
+      "links": {
+        "spotify_for_creators": "https://creators.spotify.com/pod/profile/synthetic-creator/episodes/Synthetic-Spotify-Creator-Episode-e0"
+      },
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "podcasts/synthetic-spotify-creator-source.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-spotify-creator-source.md"
+      },
+      "public_path": "/podcast/synthetic-spotify-creator-source.html",
+      "published": "2026-01-20",
+      "resources": [],
+      "season": 25,
+      "short": "A synthetic Spotify creator episode.",
+      "slug": "synthetic-spotify-creator-source",
+      "title": "Synthetic Spotify Creator Episode",
+      "transcript": [],
+      "transcript_provenance": {},
+      "video": null
+    },
+    {
+      "description": "Synthetic description for the from-genai-pilots-to-production episode.",
+      "episode": 4,
+      "guest_profiles": [],
+      "guests": [],
+      "image_path": "",
+      "links": {},
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "podcasts/s24e04-from-genai-pilots-to-production.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/s24e04-from-genai-pilots-to-production.md"
+      },
+      "public_path": "/podcast/s24e04/from-genai-pilots-to-production",
+      "published": "2026-01-26",
+      "resources": [],
+      "season": 24,
+      "short": "From GenAI pilots to production.",
+      "slug": "s24e04-from-genai-pilots-to-production",
+      "title": "Synthetic: From GenAI Pilots to Production",
+      "transcript": [],
+      "transcript_provenance": {},
+      "video": null
+    },
+    {
+      "description": "Synthetic description for the AI-adoption-in-enterprise episode.",
+      "episode": 5,
+      "guest_profiles": [],
+      "guests": [],
+      "image_path": "",
+      "links": {
+        "anchor": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/AI-Adoption-in-Enterprise-Beyond-Writing-Code---Ivan-Bilan-e3l6h0m",
+        "youtube": "https://www.youtube.com/watch?v=XzokRd_IPSc"
+      },
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "podcasts/s24e05-ai-adoption-in-enterprise-beyond-writing-code.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/s24e05-ai-adoption-in-enterprise-beyond-writing-code.md"
+      },
+      "public_path": "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code",
+      "published": "2026-02-02",
+      "resources": [],
+      "season": 24,
+      "short": "AI adoption in enterprise, beyond writing code.",
+      "slug": "s24e05-ai-adoption-in-enterprise-beyond-writing-code",
+      "title": "Synthetic: AI Adoption in Enterprise Beyond Writing Code",
+      "transcript": [],
+      "transcript_provenance": {},
+      "video": {
+        "id": "XzokRd_IPSc",
+        "provider": "youtube"
+      }
+    },
+    {
+      "description": "Synthetic description for how to build AI & ship it to production.",
+      "episode": 6,
+      "guest_profiles": [
+        {
+          "key": "synthetic-apostrophe-guest",
+          "name": "Synthetic O'Guest",
+          "public_path": "/people/synthetic-apostrophe-guest.html"
+        }
+      ],
+      "guests": [
+        "synthetic-apostrophe-guest"
+      ],
+      "image_path": "",
+      "links": {
+        "apple": "https://podcasts.apple.com/us/podcast/id1541710331",
+        "spotify": "https://open.spotify.com/episode/1kwtGLI6dOq2HgKzJmLMkw",
+        "spotify_for_creators": "https://creators.spotify.com/pod/profile/datatalksclub/episodes/How-to-Build-AI-That-Actually-Ships-in-Production",
+        "youtube": "https://www.youtube.com/watch?v=PosCx_4fwt0"
+      },
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "podcasts/s24e06-how-to-build-ai-that-actually-ships-in-production.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/s24e06-how-to-build-ai-that-actually-ships-in-production.md"
+      },
+      "public_path": "/podcast/s24e06/how-to-build-ai-that-actually-ships-in-production",
+      "published": "2026-02-09",
+      "resources": [],
+      "season": 24,
+      "short": "How to build AI that actually ships in production.",
+      "slug": "s24e06-how-to-build-ai-that-actually-ships-in-production",
+      "title": "Synthetic: How to Build AI That Actually Ships in Production & Beyond",
+      "transcript": [
+        {
+          "header": "Synthetic chapter"
+        },
+        {
+          "line": "A synthetic transcript line.",
+          "sec": 5,
+          "time": "0:05"
+        }
+      ],
+      "transcript_provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_url": "https://example.invalid/synthetic-s24e06-transcript"
+      },
+      "video": {
+        "id": "PosCx_4fwt0",
+        "provider": "youtube"
+      }
     }
   ],
   "wiki": [

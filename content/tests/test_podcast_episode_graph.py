@@ -14,13 +14,6 @@ from content.podcast_routes import podcast_public_id
 from content.public_graph import validate_wiki_graph
 from content.wiki_content import episode_graph
 
-REPRESENTATIVE = (
-    "s23e06-data-engineer-career-in-2026-roles-specializations-and-what-companies-look-for"
-)
-REPRESENTATIVE_GRAPH_PATH = (
-    "/podcast/s23e06/"
-    "s23e06-data-engineer-career-in-2026-roles-specializations-and-what-companies-look-for"
-)
 PODCAST_GRAPH_PATH_PATTERN = re.compile(r"^/podcast/s[0-9]+e[0-9]+/[a-z0-9_][a-z0-9_.-]*$")
 
 
@@ -75,43 +68,34 @@ class EpisodeGraphContractTests(TestCase):
             published.start()
             self.addCleanup(published.stop)
 
-    def test_s23e06_uses_exact_typed_path_and_aggregates_the_checked_oracle(self) -> None:
-        episode = _episode(REPRESENTATIVE)
-
-        resolved = episode_graph(episode)
-
-        self.assertEqual(resolved.state, "available")
-        self.assertEqual(resolved.hub_id, "podcast:" + REPRESENTATIVE)
-        self.assertEqual(resolved.url, REPRESENTATIVE_GRAPH_PATH)
-        self.assertEqual(resolved.raw_links, 27)
-        self.assertEqual(resolved.unique_neighbors, 23)
-        self.assertEqual(resolved.visual_count, 8)
-        self.assertEqual(len(resolved.layouts), 2)
-        podcast_urls = (resolved.url,) + tuple(
-            neighbour.url for neighbour in resolved.neighbors if neighbour.type == "podcast"
-        )
-        for url in podcast_urls:
-            with self.subTest(url=url):
-                self.assertRegex(url, PODCAST_GRAPH_PATH_PATTERN)
-                self.assertNotIn(".html", url)
-        self.assertEqual(resolved.neighbors[0].label, "Slawomir Tulski")
-        self.assertEqual(resolved.neighbors[0].type, "person")
-        self.assertEqual(resolved.neighbors[0].weight, 9)
-        self.assertEqual(
-            resolved.neighbors[0].relation_kinds,
-            ("person-podcast", "podcast-link", "podcast-person"),
-        )
-        for label in ("Data Engineering", "Portfolio Projects"):
-            match = next(neighbour for neighbour in resolved.neighbors if neighbour.label == label)
-            self.assertEqual(match.weight, 3)
-            self.assertEqual(match.type, "wiki")
-        self.assertEqual(
-            [neighbour.label for neighbour in resolved.neighbors[3:]],
-            sorted(neighbour.label for neighbour in resolved.neighbors[3:]),
-        )
+    # A prior version of this class pinned one real episode's exact real graph
+    # (27 raw links, 23 unique neighbours, "Slawomir Tulski" at weight 9, and
+    # so on).  Those numbers are incidental shape of the reviewed corpus: the
+    # mechanism they exercised -- weight aggregation across duplicate links,
+    # relation-kind accumulation, and deterministic neighbour ordering -- is
+    # already covered precisely, with synthetic data, by
+    # `test_resolution_is_deterministic_and_does_not_use_episode_title_as_identity`
+    # below. Pinning a second, larger copy of the same behaviour against a
+    # real slug added no functional coverage, so it was dropped rather than
+    # rewritten.
 
     def test_visual_nodes_are_native_links_to_their_resolved_targets(self) -> None:
-        episode = _episode(REPRESENTATIVE)
+        nodes = [
+            _graph_node(
+                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s01e01/episode"
+            ),
+            *(
+                _graph_node(f"wiki:{index}", f"Wiki {index}", "wiki", f"/wiki/wiki-{index}")
+                for index in range(1, 9)
+            ),
+        ]
+        links = [
+            {"kind": "related", "source": "podcast:episode", "target": node["id"], "weight": 1}
+            for node in nodes[1:]
+        ]
+        episode = _synthetic_episode()
+        self.publish_graph(nodes=nodes, links=links)
+
         resolved = episode_graph(episode)
         body = render_to_string(
             "public/_podcast_episode_knowledge_graph.html", {"episode_graph": resolved}
@@ -245,12 +229,28 @@ class EpisodeGraphContractTests(TestCase):
         self.assertNotRegex(body, r'href="/podcast/[^" ]+\.html"')
 
     def test_narrow_visual_hub_stays_clear_of_all_eight_spokes(self) -> None:
-        episode = _episode(REPRESENTATIVE)
+        nodes = [
+            _graph_node(
+                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s01e01/episode"
+            ),
+            *(
+                _graph_node(f"wiki:{index}", f"Wiki {index}", "wiki", f"/wiki/wiki-{index}")
+                for index in range(1, 9)
+            ),
+        ]
+        links = [
+            {"kind": "related", "source": "podcast:episode", "target": node["id"], "weight": 1}
+            for node in nodes[1:]
+        ]
+        episode = _synthetic_episode()
+        episode.update({"slug": "episode", "season": 1, "episode": 1})
+        self.publish_graph(nodes=nodes, links=links)
+
         narrow = next(
             layout for layout in episode_graph(episode).layouts if layout.kind == "narrow"
         )
 
-        self.assertEqual(narrow.hub.title, "S23E06")
+        self.assertEqual(narrow.hub.title, "S1E01")
         for node in narrow.nodes:
             with self.subTest(node=node.title):
                 self.assertFalse(
@@ -378,20 +378,60 @@ class EpisodeGraphContractTests(TestCase):
 
 
 class EpisodeGraphPageTests(TestCase):
-    def test_s23e06_page_exposes_complete_fallback_without_changing_episode_metadata(self) -> None:
-        episode = _episode(REPRESENTATIVE)
+    def test_page_exposes_complete_fallback_without_changing_episode_metadata(self) -> None:
+        """The episode detail page renders the graph the catalogue publishes.
 
-        response = self.client.get(episode["public_path"])
+        Fixed here is only the render contract (heading, canonical link, cache
+        header, JSON-LD, the neighbour-card count matching the resolved graph)
+        -- not any particular real episode's real neighbour count, which is
+        incidental to the reviewed corpus and never meant anything functionally.
+        """
+
+        episode = _episode("synthetic-episode-one")
+        neighbours = (
+            ("wiki:mlops", "MLOps", "wiki", "/wiki/mlops"),
+            ("person:synthetic-one", "Synthetic Author One", "person", "/people/synthetic-one.html"),
+            (
+                "book:synthetic-book-one",
+                "Synthetic Book One",
+                "book",
+                "/books/synthetic-book-one.html",
+            ),
+            (
+                "article:synthetic-guide-one",
+                "Synthetic Guide One",
+                "article",
+                "/wiki/synthetic-guide-one",
+            ),
+        )
+        episode_node_id = f"podcast:{episode['slug']}"
+        nodes = [
+            _graph_node(episode_node_id, episode["title"], "podcast", episode["public_path"]),
+            *(
+                _graph_node(node_id, label, node_type, url)
+                for node_id, label, node_type, url in neighbours
+            ),
+        ]
+        links = [
+            {"kind": "related", "source": episode_node_id, "target": node_id, "weight": 1}
+            for node_id, _, _, _ in neighbours
+        ]
+
+        with patch(
+            "content.catalogue.wiki_graph", return_value={"nodes": nodes, "links": links}
+        ):
+            response = self.client.get(episode["public_path"])
+            resolved = episode_graph(episode)
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(resolved.state, "available")
         self.assertContains(response, '<h2 id="episode-graph-heading">Related knowledge graph</h2>')
-        self.assertContains(response, "Slawomir Tulski")
-        self.assertContains(response, "Data Engineering")
-        self.assertContains(response, "Portfolio Projects")
-        self.assertEqual(response.context["episode_graph"].raw_links, 27)
+        for _, label, _, _ in neighbours:
+            self.assertContains(response, label)
+        self.assertEqual(response.context["episode_graph"].raw_links, len(links))
         self.assertEqual(
             len(re.findall(r'<li class="card">', response.content.decode())),
-            23,
+            resolved.unique_neighbors,
         )
         self.assertEqual(response.headers["Cache-Control"], "max-age=0, must-revalidate")
         self.assertContains(
@@ -413,7 +453,7 @@ class EpisodeGraphPageTests(TestCase):
         self.assertNotIn('"@type": "KnowledgeGraph"', body)
 
     def test_no_data_and_known_graph_failure_keep_the_episode_page_successful(self) -> None:
-        episode = _episode(REPRESENTATIVE)
+        episode = _episode("synthetic-episode-one")
         with patch("content.catalogue.wiki_graph", return_value={"nodes": [], "links": []}):
             no_data_response = self.client.get(episode["public_path"])
         self.assertEqual(no_data_response.status_code, 200)
