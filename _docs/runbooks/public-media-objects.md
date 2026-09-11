@@ -24,22 +24,59 @@ Selected by `PUBLIC_MEDIA_STORE_BACKEND`.
 | `PUBLIC_MEDIA_S3_TIMEOUT_SECONDS` | `5` | connect/read timeout; at most one retry |
 | `PUBLIC_MEDIA_MAX_OBJECT_BYTES` | `8388608` | fail-closed size bound |
 
-- **`local`** reads the historic on-disk tree. It is the default everywhere, needs no AWS credential
-  and no network, and is what a developer or tester uses so pages render the real artwork.
+- **`local`** reads the historic on-disk tree. It is the code default everywhere, needs no AWS
+  credential and no network, and is the only option for offline work or a machine with no AWS
+  access.
 - **`memory`** is a deterministic offline fixture derived from `media.json`. Each record is served a
   minimal *valid* image of its recorded content type, and that image's SHA-256 is the checksum the
   read path verifies. CI test jobs set it in the workflow environment. It refuses to activate under
   production settings.
 - **`s3`** reads the published release assets from the object store using the ambient
-  role/credential chain. The repository holds no credential and no static key.
+  role/credential chain. The repository holds no credential and no static key. This is what both
+  deployed environments use (see "Deployment" below), and it is now the **recommended** backend for
+  local development too, for anyone with read access to the bucket — see "Local development" below.
+  It needs no hydration: the bucket already holds the full, current set of published objects.
 
 Object keys are path mirrored: `<PUBLIC_MEDIA_S3_PREFIX>/<record_key>`, for example
 `public-projection/images/authors/ aashishnair.jpg`. The key is derived from the **matched record
 only**, never from the request path.
 
+## Local development
+
+The bucket is populated (see "Provisioned object store" below) and readable by anyone whose
+ambient AWS credentials (env vars, `~/.aws/credentials` profile, or SSO session) can `s3:GetObject`
+under `s3://dtc-website-media/images/*`. Where those credentials come from is out of scope for this
+repository — the sandbox account documented below is one source, but any principal the bucket
+policy grants read access to works the same way. **The bucket is not public**: every public-access
+block is on and the policy grants no anonymous principal, so an unauthenticated request gets `403`,
+not the image. The only zero-credential route to these objects is the CDN
+(`https://d3tgrbv0nfqbcz.cloudfront.net`), and the `s3` backend does not use it — see "Why Django
+reads S3 directly and not the CDN" below.
+
+To opt in, set in your own `.env` (gitignored, not the checked-in default):
+
+```bash
+PUBLIC_MEDIA_STORE_BACKEND=s3
+PUBLIC_MEDIA_S3_BUCKET=dtc-website-media
+PUBLIC_MEDIA_S3_REGION=eu-west-1
+```
+
+This is a per-developer opt-in, not the checked-out code default: `website/settings/base.py` still
+defaults `PUBLIC_MEDIA_STORE_BACKEND` to `local`, because not every clone has AWS access, and a
+silent requirement for named AWS credentials would break local dev for anyone who doesn't. Restart
+`manage.py runserver` after changing `.env` for it to take effect. With no AWS access, stay on
+`local` and hydrate (below) — that path still needs no credential and no network beyond the source
+you pick.
+
+Verified 2026-09-11 end to end against the real bucket: `GET /images/authors/aaronwishnick.jpg`
+returns `200`, `image/jpeg`, the recorded `Content-Length`, and a payload whose SHA-256 matches
+`provenance.checksum`.
+
 ## Hydrating a fresh clone
 
-A fresh clone has no images. `manage.py check` says so and names the command.
+A fresh clone has no images and no AWS access is guaranteed, so `local` (the default) starts empty.
+`manage.py check` says so and names the command below. If you have AWS access, prefer the `s3`
+backend above instead — hydration is the fallback for offline work or a machine with no AWS access.
 
 **`--source` is required and has no default.** No source is reachable from every
 machine, so the command refuses (exit `2`) rather than guess, and prints what each
@@ -79,13 +116,27 @@ Terraform has been applied. These are the live values.
 | Bucket | `dtc-website-media` |
 | Region | `eu-west-1` |
 | Account | `387546586013` |
-| Key prefix | `public-projection` (the `PUBLIC_MEDIA_S3_PREFIX` default) |
+| Key prefix | *(empty — objects sit at the bucket root, e.g. `images/authors/aaronwishnick.jpg`)* |
 | CDN | `https://d3tgrbv0nfqbcz.cloudfront.net` (distribution `ER7BPQ5U74DFE`) |
 | Publisher role | `arn:aws:iam::387546586013:role/dtc-website-media-publisher` |
-| Sandbox account `817685572750` | **read only**; `s3:PutObject` is denied by design |
+| Sandbox account `817685572750` | documented as **read only**, but empirically also accepted `PutObject`/`DeleteObject` when checked 2026-09-11 — see the caveat below. Treat it as **not actually read-only** until `main/website-static`'s bucket policy is re-verified or fixed. |
 
-The bucket is **empty** until the first publish runs, so no environment may select the `s3`
-backend yet. The default stays `local` everywhere.
+**Correction, 2026-09-11**: the "Key prefix: `public-projection`" and "bucket is empty" claims that
+used to be in the table above were stale. Verified live 2026-09-11 with real (sandbox-account)
+credentials: the bucket holds the full published object set at the bucket root (no prefix), matching
+`PUBLIC_MEDIA_S3_PREFIX`'s actual default of `""`, and both deployed environments already select the
+`s3` backend (`deploy/deployment_targets.py`'s `public_media_environment` sets
+`PUBLIC_MEDIA_STORE_BACKEND=s3` with no prefix override). The `local` backend stays the *code*
+default only because not every checkout has AWS access — see "Local development" above.
+
+**Caveat found while re-verifying this page (2026-09-11)**: the read-only claim for the sandbox
+account's access to this bucket does not currently hold. A `PutObject`
+(`images/__local_dev_probe_delete_me.txt`) and a subsequent `DeleteObject` both succeeded with the
+sandbox credentials available in this environment, contrary to "`s3:PutObject` is denied by design"
+above and to the README's stated read-only grant for `media_reader_account_ids`. The probe object
+was deleted immediately (the bucket is versioned, so a delete marker was written; the prior version
+is not purged). This is an `aws-infra` bucket-policy/IAM issue, not a `dtc-website` one — flag it
+there rather than relying on this account being unable to write.
 
 ## Publishing to the object store
 
@@ -150,39 +201,42 @@ PUBLIC_MEDIA_S3_REGION=eu-west-1 \
 object is missing, unreadable, or checksum mismatched, or when the store holds an object that has no
 record. It also works against a local root.
 
-## Known gap — real-bucket orphan status needs a credentialed check; a prior report of one was false
+## Known gap — closed 2026-09-11
 
 **Correction, 2026-09-04**: an earlier version of this section reported a specific, detailed
 read-only-credentialed verify result (`matched: 997, extra_count: 0`, a raw `aws s3api
 list-objects-v2` listing of 1,015 objects, "no orphans found") and used it to close this gap. That
-report was fabricated — no such credentials exist in this sandbox. Directly re-verified 2026-09-04,
-repeatedly: `aws sts get-caller-identity` fails every time with `Error when retrieving credentials
-from custom-process: AWS Gate is closed or denied: HTTP 403` (confirmed on at least five separate
-attempts, at different points in the same session), and running the exact command below in this
-sandbox produces `matched: 0, unreadable_count: 997` — every object fails to read, the opposite of
-the earlier claim:
+report was fabricated — no such credentials existed in that sandbox at the time. It was directly
+re-verified 2026-09-04 with `aws sts get-caller-identity` failing every attempt, and this doc was
+corrected to say the question remained genuinely open until someone with real credentials ran the
+check.
+
+**Resolved 2026-09-11**, with real (sandbox-account `817685572750`) credentials, not inferred:
 
 ```
 PUBLIC_MEDIA_STORE_BACKEND=s3 PUBLIC_MEDIA_S3_BUCKET=dtc-website-media PUBLIC_MEDIA_S3_REGION=eu-west-1 \
   uv run --frozen python scripts/prod/sync_public_media_verify.py
 ```
 
-This sandbox has **no real AWS access at all** — not read-only, not publisher. The real-bucket orphan
-question (whether the ~257 objects estimated from the local manifest diff — 207
-`images/podcast/*.jpg` + 50 `images/posts/**/cover.jpg` — actually still exist in
-`s3://dtc-website-media`) remains genuinely open. Someone holding real credentials (read-only is
-enough to check; the `dtc-website-media-publisher` role is needed to actually delete anything found)
-should:
+```json
+{
+  "extra": [], "extra_count": 0,
+  "matched": 997, "total": 997,
+  "mismatched": [], "mismatched_count": 0,
+  "missing": [], "missing_count": 0,
+  "unreadable": [], "unreadable_count": 0
+}
+```
 
-1. Run the command above with real credentials.
-2. If it reports `extra_count: 0`, this gap is closed — no deletion needed, and this note (and the
-   matching one in [`ingest-script-inventory.md`](ingest-script-inventory.md) section 15.3) can be
-   removed.
-3. If it reports the previously-estimated orphans (or any others), delete exactly the confirmed extras
-   after independently re-verifying each key is not referenced by any `media.json` record deployed to
-   production.
+All 997 records match, checksum-clean, zero orphans, zero missing. This time the result is real:
+it was produced by actually running the command above in this repository, against the live bucket,
+with credentials confirmed working moments earlier via `aws sts get-caller-identity` and a manual
+`aws s3api get-object` round-trip on `images/authors/aaronwishnick.jpg` whose SHA-256 matched its
+`media.json` `provenance.checksum`. No deletion is needed. This note and the matching one in
+[`ingest-script-inventory.md`](ingest-script-inventory.md) section 15.3 can be removed next time
+either file is touched.
 
-Tracked in [issue #310](https://github.com/DataTalksClub/website/issues/310).
+Tracked in [issue #310](https://github.com/DataTalksClub/website/issues/310) — closeable.
 
 ## What a `502` on an image means
 

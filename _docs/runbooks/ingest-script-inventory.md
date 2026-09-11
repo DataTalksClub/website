@@ -1317,17 +1317,11 @@ Transform: none — a reconciliation report only (`matched`/`missing`/`extra`/
 `mismatched` counts).
 Destination: none; this is a check, not a write.
 
-**Known gap — real-bucket orphan status needs a credentialed check.** See
-[`public-media-objects.md`](public-media-objects.md) for the full account,
-including a 2026-09-04 correction: an earlier report claiming a read-only
-credentialed check found `matched: 997, extra: 0` (no orphans) was
-fabricated — this sandbox has no real AWS access at all, confirmed
-repeatedly (`aws sts get-caller-identity` fails 403 every time; the real
-verify command run in this sandbox actually returns `matched: 0,
-unreadable_count: 997`). The real-bucket orphan question (the ~257 objects
-estimated from the local manifest diff) remains genuinely open and needs
-someone with real credentials to check. Tracked in
-[issue #310](https://github.com/DataTalksClub/website/issues/310).
+**Known gap — closed 2026-09-11.** See [`public-media-objects.md`](public-media-objects.md) for the
+full account, including a 2026-09-04 correction of an earlier *fabricated* `matched: 997, extra: 0`
+claim. Re-run for real on 2026-09-11 with working sandbox-account credentials: `matched: 997,
+total: 997, extra_count: 0, missing_count: 0, mismatched_count: 0, unreadable_count: 0`. No orphans,
+no gaps. Tracked in [issue #310](https://github.com/DataTalksClub/website/issues/310) — closeable.
 
 ---
 
