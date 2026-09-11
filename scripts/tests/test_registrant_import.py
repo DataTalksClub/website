@@ -13,18 +13,27 @@ from django.db import IntegrityError
 from django.test import TestCase
 
 from accounts.models import CustomUser
-from events.identity import create_provider_event_identity
 from events.models import (
     Event,
+    EventIdentityError,
     EventRegistrantIdentity,
     EventRegistrantImportProgress,
     EventRegistration,
+    create_event_identity,
+    resolve_source_identity,
 )
-from events.registrant_import import (
+from scripts.prod.registrant_import import (
+    EXISTING_EVENT_AMBIGUOUS,
+    EXISTING_EVENT_DATE_UNUSABLE,
+    EXISTING_EVENT_MATCHED,
+    EXISTING_EVENT_NONE,
+    ExistingEventIndex,
     PendingEventRegistrants,
     RegistrantRow,
     RunReport,
+    create_provider_event_identity,
     import_registrants,
+    provider_source_identity,
 )
 
 PROVIDER = EventRegistration.Provider.LUMA
@@ -513,7 +522,7 @@ class PlanRegistrantsTests(RegistrantImportTestCase):
     """The dry-run makes the apply path's decisions without writing (REL-11)."""
 
     def _plan(self, *, refresh: bool = False):
-        from events.registrant_import import plan_registrants
+        from scripts.prod.registrant_import import plan_registrants
 
         return plan_registrants(provider=PROVIDER, pending=tuple(self.pending), refresh=refresh)
 
@@ -596,7 +605,7 @@ class PlanRegistrantsTests(RegistrantImportTestCase):
         self.assertNotIn("evt-ghost", self.read_calls)
 
     def test_a_malformed_reader_fails_the_plan_exactly_as_apply(self) -> None:
-        from events.registrant_import import RegistrantImportError
+        from scripts.prod.registrant_import import RegistrantImportError
 
         def broken_rows() -> tuple[RegistrantRow, ...]:
             raise RegistrantImportError("unsupported_luma_schema")
@@ -663,3 +672,167 @@ class PlanRegistrantsTests(RegistrantImportTestCase):
         steady = self._plan(refresh=True)
         self.assertEqual(steady.registrations_unchanged, 3)
         self.assertEqual(steady.registrations_changed, 0)
+
+
+class ProviderEventIdentityTests(TestCase):
+    """Identity for a genuinely new provider event, created via the shared allocator."""
+
+    def test_creates_a_real_event_with_a_luma_source_identity(self) -> None:
+        event = create_provider_event_identity(
+            provider="luma",
+            external_event_identifier="evt-BrandNew",
+            title="A Brand New Event",
+        )
+
+        self.assertIsNotNone(event.public_id)
+        self.assertEqual(event.title, "A Brand New Event")
+        self.assertEqual(event.source_repository, "dtc-historical-source/luma")
+        self.assertEqual(event.source_revision, "luma-aggregate-v1")
+        self.assertEqual(event.source_key, "evt-BrandNew")
+        # Import at call time to avoid a hard dependency from this ingest-only
+        # suite's collection on events.models beyond what it already needs.
+        from events.models import canonical_detail_path
+
+        self.assertEqual(canonical_detail_path(event.id), f"/events/{event.public_id}/{event.slug}")
+
+    def test_resolve_source_identity_finds_it_by_provider_and_external_id(self) -> None:
+        created = create_provider_event_identity(
+            provider="luma",
+            external_event_identifier="evt-Findable",
+            title="Findable Event",
+        )
+        source = provider_source_identity(provider="luma", external_event_identifier="evt-Findable")
+
+        found = resolve_source_identity(
+            repository=source.repository,
+            revision=source.revision,
+            source_key=source.source_key,
+        )
+
+        self.assertEqual(found.id, created.id)
+
+    def test_luma_and_eventbrite_ids_never_collide(self) -> None:
+        luma_event = create_provider_event_identity(
+            provider="luma", external_event_identifier="shared-id", title="Luma Event"
+        )
+        eventbrite_event = create_provider_event_identity(
+            provider="eventbrite", external_event_identifier="shared-id", title="Eventbrite Event"
+        )
+
+        self.assertNotEqual(luma_event.id, eventbrite_event.id)
+
+    def test_unsupported_provider_is_rejected(self) -> None:
+        with self.assertRaisesMessage(EventIdentityError, "unsupported_provider"):
+            create_provider_event_identity(
+                provider="meetup", external_event_identifier="evt-1", title="Meetup Event"
+            )
+
+
+class ExistingEventIndexTests(TestCase):
+    """The exact date-and-title test that keeps discovery from minting a duplicate.
+
+    Exact on both axes, or no match: there is no fuzzy, ranked or partial branch
+    to test because there is none to have.
+    """
+
+    def _canonical(self, *, title: str, source_key: str) -> Event:
+        return create_event_identity(
+            title=title,
+            source_repository="DataTalksClub/datatalksclub.github.io",
+            source_revision="a" * 40,
+            source_key=source_key,
+        )
+
+    def test_the_same_date_and_the_same_title_is_the_same_event(self) -> None:
+        existing = self._canonical(
+            title="Workshop On Vector Search", source_key="2026-09-08-workshop-on-vector-search"
+        )
+
+        match = ExistingEventIndex().match(
+            title="Workshop On Vector Search", start_at="2026-09-08T18:00:00.000Z"
+        )
+
+        self.assertEqual(match.outcome, EXISTING_EVENT_MATCHED)
+        self.assertTrue(match.matched)
+        assert match.event is not None
+        self.assertEqual(match.event.id, existing.id)
+        self.assertEqual(match.date, "2026-09-08")
+
+    def test_case_and_whitespace_differences_are_not_title_differences(self) -> None:
+        existing = self._canonical(
+            title="Workshop On Vector Search", source_key="2026-09-08-workshop-on-vector-search"
+        )
+
+        match = ExistingEventIndex().match(
+            title="  workshop   on VECTOR search ", start_at="2026-09-08T18:00:00.000Z"
+        )
+
+        self.assertEqual(match.outcome, EXISTING_EVENT_MATCHED)
+        assert match.event is not None
+        self.assertEqual(match.event.id, existing.id)
+
+    def test_a_merely_similar_title_on_the_same_date_is_not_a_match(self) -> None:
+        self._canonical(
+            title="Workshop On Vector Search", source_key="2026-09-08-workshop-on-vector-search"
+        )
+
+        match = ExistingEventIndex().match(
+            title="Workshop on Vector Searching", start_at="2026-09-08T18:00:00.000Z"
+        )
+
+        self.assertEqual(match.outcome, EXISTING_EVENT_NONE)
+        self.assertIsNone(match.event)
+
+    def test_the_same_title_on_another_date_is_a_different_event(self) -> None:
+        self._canonical(title="Monthly Meetup", source_key="2026-09-08-monthly-meetup")
+
+        match = ExistingEventIndex().match(
+            title="Monthly Meetup", start_at="2026-10-08T18:00:00.000Z"
+        )
+
+        self.assertEqual(match.outcome, EXISTING_EVENT_NONE)
+        self.assertEqual(match.other_dates_with_this_title, ("2026-09-08",))
+
+    def test_two_events_sharing_the_date_and_the_title_are_ambiguous(self) -> None:
+        self._canonical(title="Office Hours", source_key="2026-09-08-office-hours")
+        self._canonical(title="Office Hours", source_key="2026-09-08-office-hours-second")
+
+        match = ExistingEventIndex().match(
+            title="Office Hours", start_at="2026-09-08T18:00:00.000Z"
+        )
+
+        self.assertEqual(match.outcome, EXISTING_EVENT_AMBIGUOUS)
+        self.assertIsNone(match.event)
+        self.assertEqual(match.candidate_total, 2)
+
+    def test_a_start_time_with_no_readable_date_matches_nothing(self) -> None:
+        self._canonical(
+            title="Workshop On Vector Search", source_key="2026-09-08-workshop-on-vector-search"
+        )
+
+        match = ExistingEventIndex().match(title="Workshop On Vector Search", start_at="")
+
+        self.assertEqual(match.outcome, EXISTING_EVENT_DATE_UNUSABLE)
+        self.assertIsNone(match.event)
+        self.assertIsNone(match.date)
+
+    def test_an_event_minted_from_a_provider_export_never_enters_the_index(self) -> None:
+        """Its source key is the provider's opaque id, so it carries no date.
+
+        This is what keeps a duplicate an earlier run wrote from being treated as
+        the event we already have.  Replay idempotency stays the source
+        identity's job.
+        """
+
+        create_provider_event_identity(
+            provider="luma",
+            external_event_identifier="evt-Undated",
+            title="An Undated Provider Event",
+        )
+
+        match = ExistingEventIndex().match(
+            title="An Undated Provider Event", start_at="2026-09-08T18:00:00.000Z"
+        )
+
+        self.assertEqual(match.outcome, EXISTING_EVENT_NONE)
+        self.assertEqual(match.other_dates_with_this_title, ())
