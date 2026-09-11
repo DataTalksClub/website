@@ -112,7 +112,6 @@ def extract_course_data(course):
         "social_media_hashtag": course.social_media_hashtag,
         "first_homework_scored": course.first_homework_scored,
         "finished": course.finished,
-        "faq_document_url": course.faq_document_url,
         "min_projects_to_pass": course.min_projects_to_pass,
         "homework_problems_comments_field": course.homework_problems_comments_field,
         "project_passing_score": course.project_passing_score,

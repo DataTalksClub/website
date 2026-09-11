@@ -49,7 +49,6 @@ def _course(*, course_id: int, slug: str) -> tuple[object, ...]:
             "social_media_hashtag": "",
             "first_homework_scored": 0,
             "finished": 0,
-            "faq_document_url": "",
             "min_projects_to_pass": 1,
             "homework_problems_comments_field": 0,
             "project_passing_score": 0,

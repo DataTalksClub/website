@@ -18,7 +18,7 @@ from courses.course_page_content import (
     course_specs,
     submission_progress,
 )
-from courses.models import HomeworkState, ProjectState
+from courses.models import Cohort, HomeworkState, ProjectState
 from courses.tests.course_view_base import CourseDetailViewTestBase, credentials
 
 
@@ -268,10 +268,44 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
         response = self.client.get(self.course_url())
         self.assertNotContains(response, "Questions before you start?")
 
-        self.course.faq_document_url = "https://example.invalid/course-faq"
-        self.course.save(update_fields=["faq_document_url"])
+        # The FAQ link is a family-level, database-owned fact -- not a per-cohort
+        # field -- so every edition of a family with one shows the same link.
+        self.course.course.faq_document_url = "https://example.invalid/course-faq"
+        self.course.course.save(update_fields=["faq_document_url"])
 
         response = self.client.get(self.course_url())
+
+        self.assertContains(response, "Questions before you start?")
+        self.assertContains(response, 'href="https://example.invalid/course-faq"')
+
+    def test_an_archived_edition_shows_the_same_family_faq_link(self):
+        """The FAQ link is a family fact, so every edition shows the same one.
+
+        There is no per-cohort override any more (``Cohort.faq_document_url`` is
+        gone): a finished, archived edition of the family renders the identical
+        link a current edition does, rather than some frozen edition-specific
+        value.
+        """
+
+        self.course.course.faq_document_url = "https://example.invalid/course-faq"
+        self.course.course.save(update_fields=["faq_document_url"])
+        archived_cohort = Cohort.objects.create(
+            course=self.course.course,
+            title="Test Course 2022",
+            slug="test-course-2022",
+            year=2022,
+            finished=True,
+        )
+
+        response = self.client.get(
+            reverse(
+                "course",
+                kwargs={
+                    "course_slug": self.course.course.slug,
+                    "cohort_identifier": archived_cohort.identifier,
+                },
+            )
+        )
 
         self.assertContains(response, "Questions before you start?")
         self.assertContains(response, 'href="https://example.invalid/course-faq"')

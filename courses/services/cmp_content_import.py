@@ -125,7 +125,6 @@ _COHORT_FIELDS = (
     "social_media_hashtag",
     "first_homework_scored",
     "finished",
-    "faq_document_url",
     "min_projects_to_pass",
     "homework_problems_comments_field",
     "project_passing_score",

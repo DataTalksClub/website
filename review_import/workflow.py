@@ -97,7 +97,6 @@ URL_COLUMNS = frozenset(
     {
         "registration_url",
         "github_repo_url",
-        "faq_document_url",
         "hero_image_url",
         "video_url",
         "instructions_url",
@@ -1094,7 +1093,11 @@ def _legacy_course_family_values(row: tuple[Any, ...]) -> dict[str, Any]:
         "outcome": "",
         "github_repo_url": str(values["github_repo_url"] or ""),
         "docs_url": "",
-        "faq_document_url": str(values["faq_document_url"] or ""),
+        # The cohort table no longer carries a per-edition FAQ value at all (it was
+        # this fix's own stale-link bug source); the family's real FAQ is a
+        # database-owned fact reviewed and set directly on ``courses_course_family``,
+        # not something this derivation can read off a cohort row.
+        "faq_document_url": "",
         "social_media_hashtag": str(values["social_media_hashtag"] or ""),
         "visible": values["visible"],
     }

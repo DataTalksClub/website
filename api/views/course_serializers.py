@@ -23,7 +23,6 @@ def course_to_dict(course):
         "finished": course.finished,
         "visible": course.visible,
         "social_media_hashtag": course.social_media_hashtag,
-        "faq_document_url": course.faq_document_url,
         "min_projects_to_pass": course.min_projects_to_pass,
         "homework_problems_comments_field": (
             course.homework_problems_comments_field
@@ -36,7 +35,6 @@ def course_summary_to_dict(course):
     result = course_to_dict(course)
     for field in (
         "social_media_hashtag",
-        "faq_document_url",
         "min_projects_to_pass",
         "homework_problems_comments_field",
         "project_passing_score",

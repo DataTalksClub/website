@@ -63,7 +63,6 @@ class CourseDuplicationTests(TestCase):
         self.course.slug = f"test-course-{year - 1}"
         self.course.year = year - 1
         self.course.social_media_hashtag = "#testcourse2023"
-        self.course.faq_document_url = "https://example.com/faq"
         self.course.project_passing_score = 75
         self.course.save()
 
@@ -90,9 +89,6 @@ class CourseDuplicationTests(TestCase):
         self.assertEqual(
             new_course.social_media_hashtag,
             self.course.social_media_hashtag,
-        )
-        self.assertEqual(
-            new_course.faq_document_url, self.course.faq_document_url
         )
         self.assertEqual(
             new_course.project_passing_score,

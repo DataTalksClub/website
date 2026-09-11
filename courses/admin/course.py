@@ -165,7 +165,6 @@ def _course_duplicate_fields(course, current_year, identifier):
         "social_media_hashtag": course.social_media_hashtag,
         "first_homework_scored": False,
         "finished": False,
-        "faq_document_url": course.faq_document_url,
         "project_passing_score": course.project_passing_score,
         "curriculum_format": course.curriculum_format,
         "visible": course.visible,

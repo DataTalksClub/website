@@ -143,7 +143,6 @@ def course_defaults(course_data):
     social_media_hashtag = course_data.get("social_media_hashtag", "")
     first_homework_scored = course_data.get("first_homework_scored", False)
     finished = course_data.get("finished", False)
-    faq_document_url = course_data.get("faq_document_url", "")
     min_projects_to_pass = course_data.get("min_projects_to_pass", 1)
     homework_problems_comments_field = course_data.get(
         "homework_problems_comments_field", False
@@ -156,7 +155,6 @@ def course_defaults(course_data):
         "social_media_hashtag": social_media_hashtag,
         "first_homework_scored": first_homework_scored,
         "finished": finished,
-        "faq_document_url": faq_document_url,
         "min_projects_to_pass": min_projects_to_pass,
         "homework_problems_comments_field": homework_problems_comments_field,
         "project_passing_score": project_passing_score,

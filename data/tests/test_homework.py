@@ -99,7 +99,6 @@ class HomeworkDataAPITestCase(TestCase):
             "title": self.course.title,
             "description": self.course.description,
             "social_media_hashtag": self.course.social_media_hashtag,
-            "faq_document_url": self.course.faq_document_url,
         }
 
     def expected_homework_data(self, homework):
