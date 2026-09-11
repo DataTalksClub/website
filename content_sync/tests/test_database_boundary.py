@@ -85,16 +85,6 @@ VERDICTS: dict[str, Verdict] = {
         "See SimpleTestCaseVerdictTests. It parses the probe fixture, which is never "
         "imported or collected, so its planted catalogue reads never execute.",
     ),
-    "RejectedBaselineDtcContentCheckoutTests": Verdict(
-        "The rejected baseline is asserted to fail closed at the first missing asset: "
-        "adapt_dtc_content_checkout raises referenced_asset_missing in "
-        "_preflight_asset_references (content_sync/dtc_content/adapter.py:1089) before it "
-        "calls _checked_contracts (:1323), and verify_initial_projection_parity runs only "
-        "for ACCEPTED_CONTENT_COMMIT (content_sync/dtc_content/repository.py:353), which "
-        "this test does not pass. The static reach below is real in the call graph and "
-        "unreachable in the executed path.",
-        allowed_reaches=("content_sync.dtc_content.repository.verify_dtc_content_checkout",),
-    ),
 }
 
 

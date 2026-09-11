@@ -4,9 +4,12 @@
 carries it is a written claim that the unit under test reads no row. That claim
 went stale when the course catalogue moved into the database underneath
 ``content_sync`` (#324), and the wall was only ever observed where a test
-actually ran. Two classes in this package are gated behind
-``DTC_CONTENT_ACCEPTED_CHECKOUT`` / ``DTC_CONTENT_BASELINE_CHECKOUT``, which no
-default environment and no CI job sets, so their claim was never tested at all.
+actually ran -- as it briefly was for a class gated behind
+``DTC_CONTENT_BASELINE_CHECKOUT``, which no default environment and no CI job
+sets, in ``content_sync/tests/test_dtc_content_accepted_checkout.py`` (removed:
+a one-off ingest-parity verification the owner ruled should not run as an
+ongoing regression test; see
+_docs/architecture/database-only-content.md).
 
 This module answers the question by reading the source instead of running it, so
 the check holds under a plain ``manage.py test content_sync`` with no checkout,
