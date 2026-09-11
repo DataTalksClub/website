@@ -96,9 +96,9 @@ Neither tier is a Studio page or a separate model: a human resolves an
 ambiguous case by adding the exact pair to the current-registration-input
 JSON file and re-running this script.
 
-**Event content** (``temporary/content/public_projection/events.json``, 421
-records): the type, schedule, description, speakers and links one public event
-page prints, as ``EventContent`` rows with their speakers and links.  See
+**Event content** (``~/prod/dtc-data/content-staging/public_projection/events.json``,
+421 records): the type, schedule, description, speakers and links one public
+event page prints, as ``EventContent`` rows with their speakers and links.  See
 :func:`import_content` and ``events.content_import``.
 
 That file is a staging artifact whose only purpose is this import.  It was
@@ -110,8 +110,8 @@ every link bound to a reviewed destination
 else, which is why it is the source.
 
 **Staged content for discovered events**
-(``temporary/content/luma_event_descriptions.json``, absent until built): the
-other half of the step above.  The 421-record file cannot grow -- its
+(``~/prod/dtc-data/content-staging/luma_event_descriptions.json``, absent
+until built): the other half of the step above.  The 421-record file cannot grow -- its
 descriptions come through the event description bridge, which matches on the
 legacy ``_data/events.yaml`` tuple that a discovered event does not have -- so
 an event created by ``new_event_identities`` above would otherwise reach the
@@ -123,17 +123,19 @@ and ``scripts/staging/luma_event_descriptions.py``.
 Its two gates stay human, and the builder reports both rather than resolving
 either: a description naming a destination nobody has reviewed is stopped and
 its URLs are named (approving one is an edit to
-``scripts/projection_build/event_description_link_policy.py``), and an event's
+``scripts/staging/event_description_link_policy.py``), and an event's
 ``type`` comes only from ``_docs/migration-data/local-event-type-input.json``,
 which a person maintains.  Nothing here infers either one.
 
 Note that both the identity manifest and the content records *record* the legacy
 repository as provenance (all 421 events carry ``source_repository =
-DataTalksClub/datatalksclub.github.io``).  That is history written into a
-checked-in file, not a live dependency: importing either reads nothing outside
-this repository.  The content import re-checks that tuple against the identity
-row rather than trusting it, so a record can only land on the event it was
-reviewed against.
+DataTalksClub/datatalksclub.github.io``).  That is history recorded in a
+reviewed file, not a live dependency on that repository: importing either reads
+no upstream source, only the checked-review staging file at
+``~/prod/dtc-data/content-staging/`` (outside this repository -- see
+``_docs/architecture/database-only-content.md``).  The content import re-checks
+that tuple against the identity row rather than trusting it, so a record can
+only land on the event it was reviewed against.
 
 **Description authoring precedence**
 (``~/prod/dtc-data/eventbrite-content/staging/eventbrite_descriptions.json``,
@@ -179,14 +181,18 @@ BOOTSTRAPS_EMPTY_DATABASE = False
 REGISTRATION_FACTS_PATH = (
     PROJECT_ROOT / "_docs" / "migration-data" / "event-registration-sources.json"
 )
-IDENTITY_MANIFEST_PATH = PROJECT_ROOT / "temporary" / "content" / "event_identity_manifest.json"
+# These reviewed staging inputs live outside this repository, at
+# ~/prod/dtc-data/content-staging/ -- the owner's explicit instruction: "let's
+# not have it in our code. move it outside." (issue #253 discussion; see the
+# eventbrite descriptions leg below for the earlier instance of the same move,
+# and _docs/architecture/database-only-content.md for the full picture).
+_CONTENT_STAGING_ROOT = Path.home() / "prod" / "dtc-data" / "content-staging"
+IDENTITY_MANIFEST_PATH = _CONTENT_STAGING_ROOT / "event_identity_manifest.json"
 LUMA_RELATIVE_SOURCE = Path(".local/migration-data/events/luma-aggregate-v1")
 EVENTBRITE_RELATIVE_SOURCE = Path(".local/migration-data/events/eventbrite/aggregate-v1.zip")
 
-EVENT_CONTENT_PATH = (
-    PROJECT_ROOT / "temporary" / "content" / "public_projection" / "events.json"
-)
-NEW_EVENT_CONTENT_PATH = PROJECT_ROOT / "temporary" / "content" / "luma_event_descriptions.json"
+EVENT_CONTENT_PATH = _CONTENT_STAGING_ROOT / "public_projection" / "events.json"
+NEW_EVENT_CONTENT_PATH = _CONTENT_STAGING_ROOT / "luma_event_descriptions.json"
 # Deliberately *not* under temporary/content/, unlike every sibling staging
 # artifact above -- the owner's explicit instruction: "let's not have it in
 # our code. move it outside." Built by scripts/build_eventbrite_descriptions.py

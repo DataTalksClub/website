@@ -47,13 +47,15 @@ from core.runtime_config import get_int_setting, get_str_setting
 #: here; ``scripts/prod/sync_public_media_hydrate.py`` fills it, and the default
 #: is overridable through ``PUBLIC_MEDIA_LOCAL_ROOT``.
 PROJECTION_ROOT = Path(__file__).with_name("public_projection")
-#: The reviewed projection tree, ingest input under temporary/content/. Only the
-#: operator tooling reads it, to learn which objects should exist; the public
-#: /images/ route resolves its records from the database and its bytes from the
-#: configured store.
-REVIEWED_PROJECTION_ROOT = (
-    Path(__file__).resolve().parents[1] / "temporary" / "content" / "public_projection"
-)
+#: The reviewed projection tree, ingest input kept outside this repository at
+#: ``~/prod/dtc-data/content-staging/`` (moved out of ``temporary/content/`` --
+#: see ``_docs/architecture/database-only-content.md``). Only the operator
+#: tooling reads it, to learn which objects should exist; the public /images/
+#: route resolves its records from the database and its bytes from the
+#: configured store. Nothing in the ordinary test suite reads this path directly
+#: any more -- ``content/tests/test_public_media_store.py``'s ``MemoryMediaStoreTests``
+#: carries its own small synthetic record set instead of this real one.
+REVIEWED_PROJECTION_ROOT = Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
 MEDIA_RECORDS_FILENAME = "media.json"
 #: Every projection media record key is path-mirrored below this segment, which is also
 #: the public URL prefix.  The historic on-disk tree drops it, because the local root is

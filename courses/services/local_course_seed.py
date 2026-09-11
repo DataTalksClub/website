@@ -66,9 +66,9 @@ from courses.models import (
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 CATALOG_SOURCE_PATH = REPOSITORY_ROOT / "scripts" / "production_like_course_specs.json"
-PUBLIC_PROJECTION_PATH = (
-    REPOSITORY_ROOT / "temporary" / "content" / "public_projection" / "courses.json"
-)
+#: Outside this repository, at ~/prod/dtc-data/content-staging/ -- see
+#: _docs/architecture/database-only-content.md.
+PUBLIC_PROJECTION_PATH = Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection" / "courses.json"
 
 # The same pin ``scripts/build_public_projection.py`` verifies before projecting the
 # catalogue, and the checksum recorded in every projected course's provenance.

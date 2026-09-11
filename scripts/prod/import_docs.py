@@ -5,7 +5,8 @@ One-time import.  The documentation is 106 pages and 39 images taken from a
 pinned revision of ``DataTalksClub/docs``.  They used to be served straight out
 of ``content/docs_projection.json``, which meant the running site read public
 content from a file in its own source tree; the reviewed file is now ingest
-input and lives with the other one-time inputs under ``temporary/content/``.
+input and lives with the other one-time inputs outside this repository, at
+``~/prod/dtc-data/content-staging/``.
 See ``scripts/prod/__init__.py`` for what the two sync models mean.
 
 Everything the file claims is checked before anything is written: the schema
@@ -41,7 +42,7 @@ from scripts.prod.target import add_target_arguments, configure_target  # noqa: 
 SYNC_MODEL = "one-time"
 BOOTSTRAPS_EMPTY_DATABASE = True
 
-REVIEWED_PATH = PROJECT_ROOT / "temporary" / "content" / "docs_projection.json"
+REVIEWED_PATH = Path.home() / "prod" / "dtc-data" / "content-staging" / "docs_projection.json"
 #: Where the reviewed images sit. They are read to verify the digests the file
 #: records; the site serves them from this same tree by source path.
 ASSET_ROOT = PROJECT_ROOT / "content" / "docs_assets"

@@ -5,7 +5,8 @@ One-time import.  Six courses, seventy sections and 1,401 questions taken from
 a pinned revision of ``DataTalksClub/faq``.  They used to be served straight out
 of ``content/faq_projection.json``, which meant the running site read public
 content from a file in its own source tree; the reviewed file is now ingest
-input and lives with the other one-time inputs under ``temporary/content/``.
+input and lives with the other one-time inputs outside this repository, at
+``~/prod/dtc-data/content-staging/``.
 See ``scripts/prod/__init__.py`` for what the two sync models mean.
 
 Each course becomes one published document, because each course is one public
@@ -40,7 +41,7 @@ from scripts.prod.target import add_target_arguments, configure_target  # noqa: 
 SYNC_MODEL = "one-time"
 BOOTSTRAPS_EMPTY_DATABASE = True
 
-REVIEWED_PATH = PROJECT_ROOT / "temporary" / "content" / "faq_projection.json"
+REVIEWED_PATH = Path.home() / "prod" / "dtc-data" / "content-staging" / "faq_projection.json"
 
 _QUESTION_ID = re.compile(r"^[A-Za-z0-9]{10}$", re.ASCII)
 

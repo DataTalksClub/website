@@ -1,6 +1,8 @@
 """Turn a Luma description export into reviewed content records for events we hold.
 
-The 421-record legacy corpus in ``temporary/content/public_projection/events.json``
+The 421-record legacy corpus in
+``~/prod/dtc-data/content-staging/public_projection/events.json`` (outside this
+repository -- see ``_docs/architecture/database-only-content.md``)
 is a frozen one-time export: its descriptions come from the event description
 bridge, which matches entries on the legacy ``_data/events.yaml`` tuple. An event
 discovered in a Luma export has no such tuple -- ``events.models.create_event_identity`` gives it a
@@ -76,7 +78,11 @@ from pathlib import Path
 from typing import Any
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-ARTIFACT_PATH = REPOSITORY_ROOT / "temporary" / "content" / "luma_event_descriptions.json"
+#: Lives outside this repository, at ~/prod/dtc-data/content-staging/ -- like
+#: every sibling reviewed staging artifact (see
+#: _docs/architecture/database-only-content.md), except that this one is not
+#: one-time: it grows every time a fresh Luma export is processed.
+ARTIFACT_PATH = Path.home() / "prod" / "dtc-data" / "content-staging" / "luma_event_descriptions.json"
 #: A description export root holds ``descriptions/*.md`` beside ``_json/*.json``,
 #: one pair per event, named alike. Both are read; only the pair is trusted.
 DEFAULT_DESCRIPTION_ROOT = Path(".local") / "migration-data" / "events" / "luma"

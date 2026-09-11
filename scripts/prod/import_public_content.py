@@ -41,11 +41,15 @@ from scripts.prod.target import add_target_arguments, configure_target  # noqa: 
 SYNC_MODEL = "one-time"
 BOOTSTRAPS_EMPTY_DATABASE = True
 
-REVIEWED_ROOT = PROJECT_ROOT / "temporary" / "content" / "public_projection"
+#: These reviewed staging inputs live outside this repository, at
+#: ~/prod/dtc-data/content-staging/ -- see
+#: _docs/architecture/database-only-content.md.
+_CONTENT_STAGING_ROOT = Path.home() / "prod" / "dtc-data" / "content-staging"
+REVIEWED_ROOT = _CONTENT_STAGING_ROOT / "public_projection"
 #: The Slack landing page. It sits beside the projection rather than inside it
 #: because the built tree never carried it -- it came from the review projection,
 #: whose only public surface this page was.
-REVIEWED_SLACK_PAGE = PROJECT_ROOT / "temporary" / "content" / "slack_page.json"
+REVIEWED_SLACK_PAGE = _CONTENT_STAGING_ROOT / "slack_page.json"
 
 PUBLIC_CONTENT_REPOSITORY = "DataTalksClub/content"
 
