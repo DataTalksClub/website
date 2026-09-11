@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-09-02",
+  "source": {
+    "export": "rds-prod-20260902-012536",
+    "note": "The reviewed production export this dataset was cut from. Every expectation below is a fact about that snapshot: re-cutting the dataset from a newer export means re-reviewing and updating this file, deliberately and in review, rather than editing literals in the verifier."
+  },
+  "cohorts": {
+    "note": "The reviewed 2026 delivery. Legacy cohorts are checked separately: their presence is expected but their exact set follows the pinned upstream catalogue. The published family is 'ai-dev-tools', not the repository's own name: the repository calls itself 'ai-dev-tools-zoomcamp' and declares that as the cohort's legacy_slug; curriculum_import rewrites the one prefix and migration 0052 repaired the rows that predate it.",
+    "expected": [
+      "ai-dev-tools-2026",
+      "de-zoomcamp-2026",
+      "llm-zoomcamp-2026",
+      "ml-zoomcamp-2026"
+    ],
+    "module_curricula": {
+      "ai-dev-tools-2026": {"modules": 4, "units": 4},
+      "llm-zoomcamp-2026": {"modules": 7, "units": 72},
+      "ml-zoomcamp-2026": {"modules": 9, "units": 105}
+    }
+  }
+}

@@ -13,6 +13,7 @@ import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import pytest
 from django.test import TestCase
 
 if TYPE_CHECKING:
@@ -332,3 +333,135 @@ class CompleteObjectPassesTests(TestCase):
 
         self.assertTrue(report.clean)
         self.assertEqual(report.matched, 1)
+
+
+def _write_manifest(directory: Path, payload: Any) -> Path:
+    import json
+
+    path = directory / "expectations.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return path
+
+
+def _manifest(**overrides: Any) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "schema_version": 1,
+        "as_of": "2026-09-02",
+        "source": {"export": "rds-prod-synthetic"},
+        "cohorts": {
+            "expected": ["ai-dev-tools-2026", "de-zoomcamp-2026"],
+            "module_curricula": {"de-zoomcamp-2026": {"modules": 7, "units": 72}},
+        },
+    }
+    payload.update(overrides)
+    return payload
+
+
+def _base_report() -> dict[str, Any]:
+    return {
+        "courses": {
+            "missing_expected_cohorts": [],
+            "modules_format_unexpected": [],
+            "curriculum_count_mismatches": {},
+            "forbidden_cohorts_present": [],
+            "split_course_families": {},
+            "empty_course_families": [],
+        },
+        "content": {
+            "practice_assignment_homeworks": 0,
+            "generated_project_descriptions": 0,
+            "homework_total": 1,
+            "question_total": 1,
+        },
+        "editorial": {
+            "empty_collections": [],
+            "content_asset_total": 1,
+            "faq_section_total": 1,
+            "sponsor_total": 1,
+            "testimonial_total": 1,
+        },
+        "media_store": {"synthetic_fixture": True},
+    }
+
+
+def test_the_reviewed_manifest_loads(tmp_path: Path) -> None:
+    """The reviewed manifest drives the gate, not code literals (REL-15)."""
+
+    from scripts.verify_local_dataset import _load_expectations
+
+    expectations = _load_expectations(_write_manifest(tmp_path, _manifest()))
+
+    assert expectations["as_of"].isoformat() == "2026-09-02"
+    assert expectations["module_curricula"]["de-zoomcamp-2026"] == (7, 72)
+
+
+def test_an_unknown_schema_is_refused_clearly(tmp_path: Path) -> None:
+    from scripts.verify_local_dataset import ExpectationError, _load_expectations
+
+    with pytest.raises(ExpectationError, match="schema_version"):
+        _load_expectations(_write_manifest(tmp_path, _manifest(schema_version=2)))
+
+
+def test_malformed_manifests_are_refused_with_the_exact_problem(tmp_path: Path) -> None:
+    from scripts.verify_local_dataset import ExpectationError, _load_expectations
+
+    bad_as_of = _manifest()
+    bad_as_of["as_of"] = "September 2, 2026"
+    missing_block = _manifest()
+    del missing_block["cohorts"]["module_curricula"]
+    unlisted = _manifest()
+    unlisted["cohorts"]["module_curricula"]["unknown-2027"] = {"modules": 1, "units": 1}
+    negative = _manifest()
+    negative["cohorts"]["module_curricula"]["de-zoomcamp-2026"] = {"modules": -1, "units": 0}
+
+    for name, payload in (
+        ("bad as_of", bad_as_of),
+        ("missing block", missing_block),
+        ("curriculum for an unlisted cohort", unlisted),
+        ("negative total", negative),
+    ):
+        manifest_path = _write_manifest(tmp_path / name.replace(" ", "-"), payload)
+        with pytest.raises(ExpectationError):
+            _load_expectations(manifest_path)
+
+
+def test_a_new_delivery_year_is_accepted_by_a_manifest_edit_alone(tmp_path: Path) -> None:
+    from scripts.verify_local_dataset import _failures, _load_expectations
+
+    manifest = _manifest()
+    manifest["cohorts"]["expected"] = [
+        "ai-dev-tools-2026",
+        "de-zoomcamp-2026",
+        "de-zoomcamp-2027",
+    ]
+    manifest["cohorts"]["module_curricula"]["de-zoomcamp-2027"] = {
+        "modules": 9,
+        "units": 105,
+    }
+    expectations = _load_expectations(_write_manifest(tmp_path, manifest))
+    report = _base_report()
+    report["events"] = {"events_on_or_after_as_of": 3}
+
+    assert _failures(report, expectations) == []
+
+
+def test_the_event_horizon_gate_binds_to_as_of_never_to_the_wall_clock(
+    tmp_path: Path,
+) -> None:
+    from scripts.verify_local_dataset import _failures, _load_expectations
+
+    expectations = _load_expectations(_write_manifest(tmp_path, _manifest()))
+
+    # Everything has already happened relative to today -- and that must not
+    # fail: the gate asks about the reviewed snapshot's horizon.
+    aged = _base_report()
+    aged["events"] = {"future_dated_events": 0, "events_on_or_after_as_of": 3}
+    assert _failures(aged, expectations) == []
+
+    # The import that never carried a forward horizon is the failure.
+    horizon_less = _base_report()
+    horizon_less["events"] = {"future_dated_events": 0, "events_on_or_after_as_of": 0}
+    failures = _failures(horizon_less, expectations)
+    assert len(failures) == 1
+    assert "2026-09-02" in failures[0]

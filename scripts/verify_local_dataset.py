@@ -26,6 +26,15 @@ present rather than pinned to a count: the importers themselves refuse a reviewe
 whose declared counts or digests do not match, so what this gate is for is the importer
 that never ran at all, and a count frozen here would only fail later for being right.
 
+**Expectations live in a reviewed manifest, not in this code.**  The cohort slugs and
+curriculum totals come from ``scripts/expectations/local-dataset.json``, a versioned
+file bound to the export snapshot the dataset was cut from (its ``as_of`` date).  A new
+delivery year or an upstream lesson addition is accepted by updating that file in review --
+never by editing literals here, and never by silently widening the check (audit REL-15).
+The same binding fixes the freshness gate: "an event horizon exists" is judged against the
+snapshot's ``as_of`` date, so a correct ingest does not start failing next year merely
+because time passed.
+
 Every check is aggregate-only.  Nothing here reads or prints learner data.
 """
 
@@ -35,6 +44,7 @@ import argparse
 import json
 import os
 import sys
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -44,24 +54,79 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-# The reviewed 2026 delivery. Legacy cohorts are checked separately: their presence is
-# expected but their exact set follows the pinned upstream catalogue, not this list.
-# The published family is `ai-dev-tools`, not the repository's own name. The
-# repository calls itself `ai-dev-tools-zoomcamp` and declares that as the
-# cohort's legacy_slug; `curriculum_import` rewrites the one prefix, and
-# migration 0052 repaired the rows that predate it. These literals were written
-# before that normalization landed and named the repository instead.
-EXPECTED_2026_COHORTS = (
-    "ai-dev-tools-2026",
-    "de-zoomcamp-2026",
-    "llm-zoomcamp-2026",
-    "ml-zoomcamp-2026",
-)
-EXPECTED_MODULE_CURRICULA = {
-    "ml-zoomcamp-2026": (9, 105),
-    "llm-zoomcamp-2026": (7, 72),
-    "ai-dev-tools-2026": (4, 4),
-}
+DEFAULT_EXPECTATIONS_PATH = Path(__file__).resolve().parent / "expectations" / "local-dataset.json"
+
+
+class ExpectationError(ValueError):
+    """The expectation manifest is missing, malformed, or from an unknown schema."""
+
+
+def _load_expectations(path: str | Path = DEFAULT_EXPECTATIONS_PATH) -> dict[str, Any]:
+    """Load and fully validate the reviewed dataset expectation manifest.
+
+    Every field is checked here so a drifted or partially edited manifest fails
+    with the exact problem instead of silently narrowing the gate.  An unknown
+    ``schema_version`` is refused outright: this verifier only knows how to read
+    the schema it was reviewed against.
+    """
+
+    manifest_path = Path(path)
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise ExpectationError(f"expectation manifest is absent: {manifest_path}") from exc
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ExpectationError(f"expectation manifest is unreadable: {manifest_path}") from exc
+    if not isinstance(payload, dict) or set(payload) != {
+        "as_of",
+        "cohorts",
+        "schema_version",
+        "source",
+    }:
+        raise ExpectationError("expectation manifest shape is invalid")
+    if payload["schema_version"] != 1 or isinstance(payload["schema_version"], bool):
+        raise ExpectationError(
+            "expectation manifest schema_version is unknown to this verifier: "
+            f"{payload['schema_version']!r}"
+        )
+    try:
+        as_of = date.fromisoformat(payload["as_of"])
+    except (TypeError, ValueError) as exc:
+        raise ExpectationError("expectation manifest as_of must be an ISO date") from exc
+    cohorts = payload["cohorts"]
+    if not isinstance(cohorts, dict) or set(cohorts) != {"expected", "module_curricula"}:
+        raise ExpectationError("expectation manifest cohorts block is invalid")
+    expected = cohorts["expected"]
+    if (
+        not isinstance(expected, list)
+        or not expected
+        or any(not isinstance(slug, str) or not slug for slug in expected)
+        or expected != sorted(set(expected))
+    ):
+        raise ExpectationError("expectation manifest cohort list must be sorted unique slugs")
+    curricula = cohorts["module_curricula"]
+    if not isinstance(curricula, dict):
+        raise ExpectationError("expectation manifest module_curricula must be an object")
+    for slug, totals in curricula.items():
+        if (
+            slug not in expected
+            or not isinstance(totals, dict)
+            or set(totals) != {"modules", "units"}
+            or any(
+                isinstance(value, bool) or not isinstance(value, int) or value < 0
+                for value in totals.values()
+            )
+        ):
+            raise ExpectationError(f"expectation manifest curriculum totals are invalid: {slug}")
+    return {
+        "as_of": as_of,
+        "expected_cohorts": tuple(expected),
+        "module_curricula": {
+            slug: (totals["modules"], totals["units"]) for slug, totals in curricula.items()
+        },
+    }
+
+
 # Upstream test rows that must never reach a public catalogue.
 FORBIDDEN_COHORT_SLUGS = ("fake-course", "fake-course-2")
 # The published collections step 4 of the bootstrap order fills, and the reader
@@ -89,7 +154,7 @@ def _configure(database: Path) -> None:
     django.setup()
 
 
-def _cohort_report() -> dict[str, Any]:
+def _cohort_report(expectations: dict[str, Any]) -> dict[str, Any]:
     from django.db.models import Count
 
     from courses.models import Cohort, Course
@@ -117,18 +182,24 @@ def _cohort_report() -> dict[str, Any]:
     modules_format = sorted(
         slug for slug, cohort in cohorts.items() if cohort.curriculum_format == "modules"
     )
+    module_curricula = expectations["module_curricula"]
     return {
         "cohort_total": len(cohorts),
         "cohort_slugs": sorted(cohorts),
-        "missing_2026_cohorts": [slug for slug in EXPECTED_2026_COHORTS if slug not in cohorts],
+        "expected_cohorts": sorted(expectations["expected_cohorts"]),
+        "missing_expected_cohorts": [
+            slug for slug in sorted(expectations["expected_cohorts"]) if slug not in cohorts
+        ],
         "modules_format_cohorts": modules_format,
-        "modules_format_unexpected": sorted(set(modules_format) - set(EXPECTED_MODULE_CURRICULA)),
+        # A modules-format cohort the reviewed manifest does not name is a
+        # reviewed-manifest edit away from acceptance -- never a code change.
+        "modules_format_unexpected": sorted(set(modules_format) - set(module_curricula)),
         "curriculum_counts": {
             slug: {
                 "modules": module_counts.get(slug, (0, 0))[0],
                 "units": module_counts.get(slug, (0, 0))[1],
             }
-            for slug in EXPECTED_MODULE_CURRICULA
+            for slug in module_curricula
         },
         "curriculum_count_mismatches": {
             slug: {
@@ -138,7 +209,7 @@ def _cohort_report() -> dict[str, Any]:
                     "units": module_counts.get(slug, (0, 0))[1],
                 },
             }
-            for slug, expected in EXPECTED_MODULE_CURRICULA.items()
+            for slug, expected in module_curricula.items()
             if module_counts.get(slug, (0, 0)) != expected
         },
         "course_families": families,
@@ -232,17 +303,23 @@ def _editorial_content_report() -> dict[str, Any]:
     }
 
 
-def _event_report() -> dict[str, Any]:
+def _event_report(as_of: date) -> dict[str, Any]:
     from django.utils import timezone
 
     from content.event_content import event_groups
     from events.models import Event, EventContent
 
     groups = event_groups()
+    # The freshness fact that cannot rot: did the import carry an event horizon
+    # beyond the reviewed snapshot at all?  ``future_dated_events`` is reported
+    # for operational context, but it decays as time passes and must never gate.
+    events_on_or_after_as_of = EventContent.objects.filter(starts_at__date__gte=as_of).count()
     return {
         "checked_at": timezone.now().isoformat(),
+        "as_of": as_of.isoformat(),
         "projection_event_total": len(groups.upcoming) + len(groups.recent),
         "future_dated_events": len(groups.upcoming),
+        "events_on_or_after_as_of": events_on_or_after_as_of,
         "next_event_starts_at": groups.upcoming[0]["starts_at"] if groups.upcoming else None,
         "database_event_identities": Event.objects.count(),
         # Identity alone publishes no page, so the two counts are reported
@@ -252,11 +329,11 @@ def _event_report() -> dict[str, Any]:
     }
 
 
-def _failures(report: dict[str, Any]) -> list[str]:
+def _failures(report: dict[str, Any], expectations: dict[str, Any]) -> list[str]:
     courses = report["courses"]
     failures: list[str] = []
-    if courses["missing_2026_cohorts"]:
-        failures.append(f"missing 2026 cohorts: {courses['missing_2026_cohorts']}")
+    if courses["missing_expected_cohorts"]:
+        failures.append(f"missing expected cohorts: {courses['missing_expected_cohorts']}")
     if courses["modules_format_unexpected"]:
         failures.append(
             f"unexpected modules-format cohorts: {courses['modules_format_unexpected']}"
@@ -274,8 +351,16 @@ def _failures(report: dict[str, Any]) -> list[str]:
         )
     if courses["empty_course_families"]:
         failures.append(f"course families with no cohorts: {courses['empty_course_families']}")
-    if not report["events"]["future_dated_events"]:
-        failures.append("no future-dated events (issue #307 data-freshness gate)")
+    # Bound to the manifest's as_of, not the wall clock: a correct ingest
+    # carried an event horizon beyond the reviewed snapshot, and that stays true
+    # next year.  "How many events are still upcoming today" is report context,
+    # because it decays no matter what the database holds.
+    if not report["events"]["events_on_or_after_as_of"]:
+        failures.append(
+            "no events on or after the expectation manifest's as_of "
+            f"({expectations['as_of'].isoformat()}), so the event import never "
+            "carried a forward horizon (issue #307 data-freshness gate)"
+        )
     content = report["content"]
     if content["practice_assignment_homeworks"]:
         failures.append(
@@ -399,22 +484,33 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--database", type=Path, required=True)
     parser.add_argument(
+        "--expectations",
+        type=Path,
+        default=DEFAULT_EXPECTATIONS_PATH,
+        help="The reviewed expectation manifest this run is judged against.",
+    )
+    parser.add_argument(
         "--allow-failures",
         action="store_true",
         help="Print the report and exit 0 even when a check fails.",
     )
     args = parser.parse_args(argv)
+    expectations = _load_expectations(args.expectations)
     _configure(args.database.resolve())
 
     report = {
         "database": str(args.database.resolve()),
-        "courses": _cohort_report(),
+        "expectations": {
+            "as_of": expectations["as_of"].isoformat(),
+            "path": str(args.expectations),
+        },
+        "courses": _cohort_report(expectations),
         "content": _content_report(),
         "editorial": _editorial_content_report(),
-        "events": _event_report(),
+        "events": _event_report(expectations["as_of"]),
         "media_store": _media_store_report(),
     }
-    failures = _failures(report)
+    failures = _failures(report, expectations)
     report["failures"] = failures
     print(json.dumps(report, indent=2, sort_keys=True))
     if failures and not args.allow_failures:
