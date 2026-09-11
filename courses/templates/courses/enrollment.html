@@ -268,6 +268,9 @@
               <label
                 class="toggle-row js-immediate-toggle-row"
                 data-toggle-url="{% url 'cohort_update_enrollment_toggle' course.course.slug course.identifier %}"
+                data-privacy-toggle
+                data-toggle-on-text="Your record is still shown on the public leaderboard."
+                data-toggle-off-text="Your record is still hidden from the public leaderboard."
               >
                 {{ form.display_on_leaderboard }}
                 <span class="toggle-copy">
@@ -282,6 +285,9 @@
               <label
                 class="toggle-row js-immediate-toggle-row"
                 data-toggle-url="{% url 'cohort_update_enrollment_toggle' course.course.slug course.identifier %}"
+                data-privacy-toggle
+                data-toggle-on-text="Your public profile data is still shown on your leaderboard record."
+                data-toggle-off-text="Your public profile data is still hidden from your leaderboard record."
               >
                 {{ form.display_public_profile }}
                 <span class="toggle-copy">

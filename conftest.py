@@ -76,6 +76,20 @@ EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
         (re.compile(r"^/deliberate-missing$"), 404),
     ),
     "test_wiki_search_graph_and_removed_mount": ((re.compile(r"^/podwiki$"), 404),),
+    # UX-02: the failed-toggle scenarios deliberately refuse the toggle POST
+    # so the page's own failure status region is what the member sees.
+    "test_a_rejected_privacy_save_reverts_and_says_what_still_holds": (
+        (
+            re.compile(r"^/courses/toggle-reject/cohorts/[^/]+/enrollment/toggle$"),
+            500,
+        ),
+    ),
+    "test_an_ended_session_is_named_as_the_reason": (
+        (
+            re.compile(r"^/courses/toggle-session/cohorts/[^/]+/enrollment/toggle$"),
+            403,
+        ),
+    ),
     "test_no_database_course_catalog_uses_the_design_system_empty_state": (
         (re.compile(r"^/courses/de-zoomcamp/2026$"), 404),
     ),
