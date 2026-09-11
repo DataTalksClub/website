@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
+from accounts.services.email_verification import is_account_email_verified
 from course_management.package_mail import (
     send_registration_confirmation_mail,
 )
@@ -123,6 +124,25 @@ def _start_course_url(campaign: RegistrationCampaign) -> str:
     )
 
 
+def _registration_email_verified(registration: CourseRegistration | None) -> bool:
+    """Whether the "what to do next" screen's verify-email step is done.
+
+    A pragmatic slice of #243 (`accounts.services.email_verification`): no
+    registration yet, or no account behind it (the un-gated anonymous path),
+    means there is nothing to verify, so the step is treated as satisfied
+    rather than shown.
+    """
+
+    if registration is None or registration.user_id is None:
+        return True
+    email = registration.email_normalized or registration.email
+    return is_account_email_verified(registration.user, email)
+
+
+def _registration_share_text(campaign: RegistrationCampaign) -> str:
+    return f"I just registered for {campaign.title} on DataTalks.Club!"
+
+
 def _registration_context(
     request: HttpRequest,
     campaign: RegistrationCampaign,
@@ -152,6 +172,8 @@ def _registration_context(
         "registration_gate": registration_is_gated(request),
         "profile_identity": authenticated_registration_identity(user),
         "missing_profile_fields": missing_profile_field_names(user),
+        "registration_email_verified": _registration_email_verified(registration),
+        "registration_share_text": _registration_share_text(campaign),
     }
 
 

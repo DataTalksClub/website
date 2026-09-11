@@ -1,5 +1,10 @@
 {% comment %}
-  The registered state, with the hand-off §8.2 adds.
+  The registered state, with the hand-off §8.2 adds, plus the "what to do
+  next" list (issue #373): the community prompts the old per-course
+  `after-sign-up.md` files used to carry, built into this live screen instead
+  of a static file nobody linked to.  This is the pragmatic slice — sitewide
+  prompts only, no per-course Slack/Telegram links, since those need a
+  `course.yaml`/`Course` schema addition #373 leaves for grooming to decide.
 
   Registering used to end here: the page said "You are registered" and left the
   member on a marketing page that knew nothing about it.  "Go to your home"
@@ -18,6 +23,77 @@
     <p class="registration-note">
       We will send course updates to {{ registration.email_normalized }}.
     </p>
+  </div>
+  <div class="registration-next-steps">
+    <p class="mono-label" id="registration-next-steps-heading">What to do next</p>
+    <div class="row-list" aria-labelledby="registration-next-steps-heading">
+      {% comment %}
+        A real conditional on the account's current verification state
+        (`registration_email_verified`, from `accounts.services.email_verification`
+        via the view), not reordered static copy: a registrant whose email is
+        already verified never sees this row, and nothing above it shifts to
+        fill a gap because there never was one.
+      {% endcomment %}
+      {% if not registration_email_verified %}
+        <div class="list-row registration-next-step-row">
+          <div>
+            <p class="registration-next-step-title">One last step: verify your email</p>
+            <p class="registration-next-step-description">
+              Check your inbox for the confirmation email and click the
+              verify link, so we can email you when the course starts.
+            </p>
+          </div>
+          <div class="registration-next-step-actions">
+            <span class="mono-note">Check your inbox</span>
+          </div>
+        </div>
+      {% endif %}
+      <div class="list-row registration-next-step-row">
+        <div>
+          <p class="registration-next-step-title">Join the DataTalks.Club Slack</p>
+          <p class="registration-next-step-description">
+            Where course questions get asked and answered.
+          </p>
+        </div>
+        <div class="registration-next-step-actions">
+          <a class="cta cta-compact cta-secondary interactive-lift" href="{% url 'slack' %}">Join Slack</a>
+        </div>
+      </div>
+      <div class="list-row registration-next-step-row">
+        <div>
+          <p class="registration-next-step-title">Tell people you're in</p>
+          <p class="registration-next-step-description">
+            Share that you signed up for {{ campaign.title }}.
+          </p>
+        </div>
+        <div class="registration-next-step-actions">
+          {% with share_text=registration_share_text|urlencode %}
+            <a
+              class="cta cta-compact cta-secondary interactive-lift"
+              href="https://twitter.com/intent/tweet?text={{ share_text }}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >Tweet about it</a>
+          {% endwith %}
+        </div>
+      </div>
+      <div class="list-row registration-next-step-row">
+        <div>
+          <p class="registration-next-step-title">Subscribe on YouTube</p>
+          <p class="registration-next-step-description">
+            Course videos and live streams land there first.
+          </p>
+        </div>
+        <div class="registration-next-step-actions">
+          <a
+            class="cta cta-compact cta-secondary interactive-lift"
+            href="https://www.youtube.com/c/DataTalksClub"
+            target="_blank"
+            rel="noopener noreferrer"
+          >Subscribe</a>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="registration-handoff">
     {% if course_is_open and start_course_url %}
