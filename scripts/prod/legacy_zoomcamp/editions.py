@@ -325,6 +325,15 @@ def _build_ml_zoomcamp_2021(repo_root: Path) -> EditionSource:
         if (course_dir / results_name).exists()
     )
 
+    # 2021 predates zoomcamp-scoring's plaintext graduates.csv convention and
+    # has no current-format courses/mlzoomcamp-2021/graduates.json -- but it
+    # does have graduates (issue #15), and a real roster: the exact
+    # email,name pairs the actual 2022-02 certificate batch run used, still
+    # present (moved, not deleted) at its current path below.
+    certificate_csvs = (
+        repo_root / "courses" / "mlzoomcamp-2021" / "mlzoomcamp-2021-names.csv",
+    )
+
     return EditionSource(
         cohort_slug="ml-zoomcamp-2021",
         course_slug="ml-zoomcamp",
@@ -333,16 +342,16 @@ def _build_ml_zoomcamp_2021(repo_root: Path) -> EditionSource:
         start_month=START_MONTH_BY_COURSE["ml-zoomcamp"],
         homeworks=homeworks,
         projects=projects,
-        # 2021 predates zoomcamp-scoring's plaintext graduates.csv convention
-        # and has no current-format courses/mlzoomcamp-2021/graduates.json --
-        # but it does have graduates (issue #15), and a real roster: the exact
-        # email,name pairs the actual 2022-02 certificate batch run used,
-        # still present (moved, not deleted) at its current path below.
-        certificate_csvs=(
-            repo_root / "courses" / "mlzoomcamp-2021" / "mlzoomcamp-2021-names.csv",
-        ),
+        certificate_csvs=certificate_csvs,
         certificates_json=(),
-        email_source_csvs=tuple(sorted(course_dir.glob("*.csv"))),
+        # Same shape as ``_build_pipeline_edition``: the real roster is a
+        # plaintext-email source in its own right, not just a certificate
+        # source, and must be scanned for email recovery too -- otherwise a
+        # graduate whose real email lives only on the roster (never matched
+        # by a hash in the raw weekly exports) gets a synthetic scoring
+        # identity and a second, real-email-backed certificate identity for
+        # the same person instead of one merged account.
+        email_source_csvs=(*sorted(course_dir.glob("*.csv")), *certificate_csvs),
         certificate_hash_suffix="_",
     )
 
