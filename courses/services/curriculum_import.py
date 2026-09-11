@@ -87,6 +87,37 @@ _HOMEWORK_STATES = {
     "scored": HomeworkState.SCORED.value,
 }
 
+# The one reviewed course-scoped correction the continuous course-repository
+# sync needs: ai-dev-tools-zoomcamp's own course.yaml declares its family slug
+# as "ai-dev-tools-zoomcamp" (matching its own repository name, like every
+# other course family), but the owner ruled the site's canonical family slug
+# drops the "-zoomcamp" suffix -- matching how courses.datatalks.club already
+# published it (.../ai-dev-tools-2026/) and how
+# scripts/prod/import_cmp_content.py's CMP import already derives it
+# mechanically. Applying this on every sync (not just once) keeps the
+# incoming value matching the Course.slug stored by the one-time data
+# migration that renamed the existing row, so ``protected_course_slug_change``
+# below never trips. Every other course family's course.yaml slug already
+# matches the site's canonical family slug and needs no entry here.
+FAMILY_SLUG_OVERRIDES: dict[str, str] = {
+    "ai-dev-tools-zoomcamp": "ai-dev-tools",
+}
+
+# A second, independent course-scoped correction, narrowly for the same one
+# family: ai-dev-tools-zoomcamp's schema-2 module directories are numbered
+# ("01-ai-native-workflow", "02-development", ...), and the parser
+# (content_sync/course_repository_v2.py's ``_parse_module``) uses the whole
+# directory name as the module's source slug. The owner asked for the numeric
+# prefix stripped from the *published* module slug for this family only, so a
+# module page reads /courses/ai-dev-tools/ai-native-workflow instead of
+# /courses/ai-dev-tools/01-ai-native-workflow -- every other schema-2 course
+# keeps its numeric prefix. This never interacts with the
+# ``module_slug_path_mismatch`` guard: that guard runs inside the parser,
+# purely against the raw directory name and module.yaml's own ``slug:``
+# field, before either ever reaches this importer.
+MODULE_SLUG_PREFIX_STRIP_FAMILIES: frozenset[str] = frozenset(FAMILY_SLUG_OVERRIDES)
+_MODULE_SLUG_NUMERIC_PREFIX = re.compile(r"^[0-9]{2,}-")
+
 _ASSET_CONTENT_TYPES = {
     ".svg": "image/svg+xml",
     ".png": "image/png",
@@ -353,10 +384,11 @@ class _CurriculumImporter:
 
     def _upsert_course(self) -> Course:
         source = self.command.source.course
-        # The course.yaml the repository publishes declares its own family slug
-        # directly (e.g. ai-dev-tools-zoomcamp keeps its repository's own name,
-        # same as every other course family) -- no normalization needed.
-        family_slug = source.slug
+        # The course.yaml the repository publishes usually declares its own
+        # family slug directly, matching its own repository name -- same as
+        # every other course family.  ai-dev-tools-zoomcamp is the one
+        # reviewed exception; see FAMILY_SLUG_OVERRIDES above.
+        family_slug = FAMILY_SLUG_OVERRIDES.get(source.slug, source.slug)
         source_id = source.content_id
         by_stable = Course.objects.filter(source_stable_id=self.command.source_stable_id).first()
         by_content = Course.objects.filter(source_content_id=source_id).first()
@@ -639,6 +671,18 @@ class _CurriculumImporter:
         ).exclude(module__source_content_id__in=incoming_ids)
         stale_lessons.update(published=False, retired_at=now)
 
+    def _shared_module_slug(self, source: ModuleSource) -> str:
+        """Return the published slug for one shared module.
+
+        Scoped to MODULE_SLUG_PREFIX_STRIP_FAMILIES by the raw (un-overridden)
+        course.yaml slug, so this stays keyed the same way
+        FAMILY_SLUG_OVERRIDES is, and applies on every sync.
+        """
+
+        if self.command.source.course.slug not in MODULE_SLUG_PREFIX_STRIP_FAMILIES:
+            return source.slug
+        return _MODULE_SLUG_NUMERIC_PREFIX.sub("", source.slug)
+
     def _upsert_shared_module(
         self,
         shared_curriculum: SharedCurriculum,
@@ -650,7 +694,7 @@ class _CurriculumImporter:
             curriculum=shared_curriculum,
             source_content_id=source_id,
             defaults={
-                "slug": source.slug,
+                "slug": self._shared_module_slug(source),
                 "title": source.title,
                 "position": position,
                 "overview_markdown": source.overview_markdown or "",
