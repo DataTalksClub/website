@@ -743,6 +743,7 @@ def vote_question(
             .filter(question=question, participant_digest=digest)
             .first()
         )
+        changed = False
         if add and existing is None:
             try:
                 with transaction.atomic(using=using):
@@ -754,12 +755,19 @@ def vote_question(
             else:
                 question.score = F("score") + 1
                 question.save(using=using, update_fields=("score",))
+                changed = True
         elif not add and existing is not None:
             existing.delete()
             question.score = max(0, question.score - 1)
             question.save(using=using, update_fields=("score",))
+            changed = True
         question.refresh_from_db(using=using)
-        _bump_session(session)
+        # A repeated identical vote is a true no-op: the session revision is
+        # the concurrency resource every adapter preconditions on, so burning
+        # it on nothing would invalidate other actors' forms and ETags for no
+        # state change (audit EVT-08).
+        if changed:
+            _bump_session(session)
         voted = (
             EventQnaVote.objects.using(using)
             .filter(question=question, participant_digest=digest)

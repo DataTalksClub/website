@@ -22,6 +22,7 @@ from accounts.studio_authorization import (
 )
 from accounts.studio_sessions import session_reference
 from core.audit import AuditWriteContext
+from core.models import RevisionConflict
 from management_registry import CAPABILITY_REGISTRY
 from studio.auth import audit_capability_denial
 
@@ -35,7 +36,23 @@ def _private(response: HttpResponse) -> HttpResponse:
     return response
 
 
-def _json_error(error: QnaError) -> HttpResponse:
+def _json_error(error: QnaError | RevisionConflict) -> HttpResponse:
+    if isinstance(error, RevisionConflict):
+        # EVT-08: a concurrent session write lost the optimistic CAS.  The
+        # client's copy is stale, not forbidden: a bounded safe 409 with a
+        # retry cue replaces what used to be an unhandled exception.  The
+        # envelope carries no revision numbers or session detail.
+        response = JsonResponse(
+            {
+                "error": {
+                    "code": "revision_conflict",
+                    "message": "The session just changed; refresh and try again.",
+                }
+            },
+            status=409,
+        )
+        response["Retry-After"] = "1"
+        return _private(response)
     response = JsonResponse(
         {"error": {"code": error.code, "message": error.message}},
         status=error.status,
@@ -250,7 +267,7 @@ def public_qna(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
             ),
             _participant(request)[1],
         )
-    except QnaError as error:
+    except (QnaError, RevisionConflict) as error:
         return _json_error(error)
 
 
@@ -352,7 +369,7 @@ def qna_questions(request: HttpRequest, event_id: str, slug: str) -> HttpRespons
         response = HttpResponse("Method not allowed", status=405)
         response["Allow"] = "GET, HEAD, POST"
         return _private(response)
-    except QnaError as error:
+    except (QnaError, RevisionConflict) as error:
         return _json_error(error)
 
 
@@ -386,7 +403,7 @@ def qna_question(request: HttpRequest, event_id: str, slug: str, question_id: st
                 services.serialize_question(question, participant=participant),
             )
         )
-    except QnaError as error:
+    except (QnaError, RevisionConflict) as error:
         return _json_error(error)
 
 
@@ -403,7 +420,7 @@ def qna_vote(request: HttpRequest, event_id: str, slug: str, question_id: str) -
             event.id, question_id, participant=participant, add=request.method == "POST"
         )
         return _with_participant(_private(JsonResponse({"score": score, "voted": voted})), token)
-    except QnaError as error:
+    except (QnaError, RevisionConflict) as error:
         return _json_error(error)
 
 
@@ -449,7 +466,7 @@ def qna_cohost_gate(request: HttpRequest, event_id: str, slug: str, name: str) -
             path="/",
         )
         return response
-    except QnaError as error:
+    except (QnaError, RevisionConflict) as error:
         return _json_error(error)
 
 
@@ -477,7 +494,7 @@ def _host_page(
                 },
             )
         )
-    except QnaError as error:
+    except (QnaError, RevisionConflict) as error:
         return _json_error(error)
 
 
@@ -515,7 +532,7 @@ def qna_qr(request: HttpRequest, event_id: str, slug: str, kind: str) -> HttpRes
             raise QnaError(404, "not_found", "The QR resource was not found.")
         response["Cache-Control"] = "public, max-age=300"
         return response
-    except QnaError as error:
+    except (QnaError, RevisionConflict) as error:
         return _json_error(error)
     except qr.QRCodeUnavailable:
         response = HttpResponse("The Q&A share code is temporarily unavailable.", status=503)
