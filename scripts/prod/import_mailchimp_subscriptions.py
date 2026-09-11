@@ -17,11 +17,11 @@ so a second run changes nothing.
 
     uv run --frozen python scripts/prod/import_mailchimp_subscriptions.py \\
         --database .tmp/local.sqlite3 \\
-        --export-dir /data/tmp/mailchimp-export
+        --export-dir ~/prod/dtc-data/mailchimp-export
 
     uv run --frozen python scripts/prod/import_mailchimp_subscriptions.py \\
         --database .tmp/local.sqlite3 \\
-        --export-dir /data/tmp/mailchimp-export --dry-run
+        --export-dir ~/prod/dtc-data/mailchimp-export --dry-run
 """
 
 from __future__ import annotations
