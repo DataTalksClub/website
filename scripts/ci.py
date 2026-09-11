@@ -152,7 +152,6 @@ TASKS: Final = {
     "check-management-parity",
     "test-content",
     "test-course-platform-sync",
-    "content-update-check",
     "course-platform-source-checkout",
     "course-platform-sync-dry-run",
     "course-platform-sync",
@@ -671,28 +670,6 @@ def _run_verification_container() -> None:
     _run(_module("ci.container_check", "--repository", ".", "--output", output))
 
 
-def _run_content_update_check() -> None:
-    family_value = os.environ.get("CONTENT_UPDATE_FAMILY", "all")
-    families = "courses podwiki faq docs" if family_value == "all" else family_value.split()
-    output_root = Path(os.environ.get("CONTENT_UPDATE_OUTPUT_DIR", ".tmp/content-update"))
-    environment = _test_environment()
-    for family in families:
-        output = output_root / family / "report.json"
-        output.parent.mkdir(parents=True, exist_ok=True)
-        _run(
-            _module(
-                "ci.content_update",
-                "--family",
-                family,
-                "--repository",
-                ".",
-                "--output",
-                str(output),
-            ),
-            environment=environment,
-        )
-
-
 def _run_course_platform_sync(*, apply: bool) -> None:
     command = [
         *_python("scripts/sync_course_platform.py"),
@@ -777,9 +754,6 @@ def _run_task(task: str, *, profile: str | None = None) -> int:
         "test-live-provider",
     }:
         return _run_test_task(task, profile=profile)
-    if task == "content-update-check":
-        _run_content_update_check()
-        return 0
     if task == "course-platform-source-checkout":
         _run(_python("scripts/prepare_course_platform_source.py"))
         return 0

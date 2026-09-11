@@ -1044,7 +1044,6 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         for workflow_name in (
             ".github/workflows/ci.yml",
             ".github/workflows/scheduled-full-regression.yml",
-            ".github/workflows/content-update.yml",
         ):
             document = yaml.safe_load((ROOT / workflow_name).read_text())
             for job_name, job in document["jobs"].items():
