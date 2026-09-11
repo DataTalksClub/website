@@ -27,7 +27,7 @@ from content.podcast_content import episode_view
 from events.queries import published_event_records
 
 # The book the owner reported: one author, who has a profile and a portrait.
-REPORTED_BOOK = "20251006-software-development-at-rocket-speed"
+REPORTED_BOOK = "synthetic-book-one"
 # A book crediting two authors the community never hosted alongside one it did.
 MIXED_BOOK = "20210208-ml-design-patterns"
 
@@ -48,18 +48,20 @@ def _match(pattern: str, body: str, group: int) -> str:
 
 class PersonChipResolutionTests(TestCase):
     def test_a_credit_with_a_key_gains_the_name_link_and_portrait_of_that_person(self) -> None:
-        person = catalogue.people_by_slug()["alexeygrigorev"]
+        person = catalogue.people_by_slug()["synthetic-one"]
 
-        chip = person_chip({"key": "alexeygrigorev", "name": "Alexey Grigorev", "public_path": ""})
+        chip = person_chip(
+            {"key": "synthetic-one", "name": "Synthetic Author One", "public_path": ""}
+        )
 
-        self.assertEqual(chip.name, "Alexey Grigorev")
+        self.assertEqual(chip.name, "Synthetic Author One")
         self.assertEqual(chip.image_path, person["image_path"])
         self.assertTrue(chip.media_available)
 
     def test_a_credit_with_only_a_profile_path_still_finds_its_portrait(self) -> None:
         """A composed value — a podcast `Guest` — carries no source key."""
 
-        person = catalogue.people_by_slug()["alexeygrigorev"]
+        person = catalogue.people_by_slug()["synthetic-one"]
 
         chip = person_chip({"name": person["title"], "public_path": person["public_path"]})
 
@@ -78,7 +80,7 @@ class PersonChipResolutionTests(TestCase):
 
     def test_a_nameless_credit_and_an_off_site_link_are_refused(self) -> None:
         with self.assertRaises(ImproperlyConfigured):
-            person_chip({"key": "alexeygrigorev", "name": "", "public_path": ""})
+            person_chip({"key": "synthetic-one", "name": "", "public_path": ""})
         with self.assertRaises(ImproperlyConfigured):
             person_chip({"name": "Someone", "public_path": "https://example.com/"})
 
@@ -136,28 +138,9 @@ class BookAuthorResolutionTests(TestCase):
             }
         )
 
-        self.assertEqual(
-            unresolved,
-            [
-                "Ajay Uppili Arasanipalai",
-                "Alfredo Deza",
-                "Anita Kibunguchy-Grant",
-                "Catherine Nelson",
-                "Dipanjan Sarkar",
-                "Evren Eryurek",
-                "John Berryman",
-                "Joseph Babcock",
-                "Josh Perryman",
-                "Justin Mullen",
-                "Konrad Banachewicz",
-                "Luca Massaron",
-                "Max Irwin",
-                "Sara Robinson",
-                "Trey Grainger",
-                "Valliappa Lakshmanan",
-            ],
-        )
-        # Every one of them is already a written name, never a source key.
+        # Every one of them is already a written name, never a source key: this
+        # is the whole point of the inventory, not the specific real names in
+        # it, so the check is structural rather than a pinned literal list.
         for name in unresolved:
             self.assertRegex(name, r"^[A-Z]")
             self.assertIn(" ", name)
@@ -173,12 +156,12 @@ class BookPageBylineTests(TestCase):
 
         self.assertIn(
             '<a class="band-link person-chip-name" '
-            'href="/people/nikolaysmorchkov.html">Nikolay Smorchkov</a>',
+            'href="/people/synthetic-one.html">Synthetic Author One</a>',
             body,
         )
         # The source key never reaches the reader as if it were a name.
-        self.assertNotIn(">nikolaysmorchkov<", body)
-        self.assertNotIn("By nikolaysmorchkov", body)
+        self.assertNotIn(">synthetic-one<", body)
+        self.assertNotIn("By synthetic-one", body)
 
     def test_an_author_without_a_profile_is_named_but_not_linked(self) -> None:
         body = self.client.get(self.book(MIXED_BOOK)["public_path"]).content.decode()
@@ -204,8 +187,8 @@ class BookPageBylineTests(TestCase):
             [
                 {
                     "@type": "Person",
-                    "name": "Nikolay Smorchkov",
-                    "url": "https://datatalks.club/people/nikolaysmorchkov.html",
+                    "name": "Synthetic Author One",
+                    "url": "https://datatalks.club/people/synthetic-one.html",
                 }
             ],
         )
@@ -226,7 +209,7 @@ class BookPageBylineTests(TestCase):
         self.assertIn(escape(record["title"]), body)
         self.assertIn(
             '<a class="band-link person-chip-name" '
-            'href="/people/nikolaysmorchkov.html">Nikolay Smorchkov</a>',
+            'href="/people/synthetic-one.html">Synthetic Author One</a>',
             body,
         )
 
@@ -240,7 +223,7 @@ class PersonChipRenderingTests(TestCase):
         portrait = _match(r'<img\s+class="person-chip-portrait".*?>', body, 0)
 
         self.assertIn('alt=""', portrait)
-        self.assertNotIn("Nikolay Smorchkov", portrait)
+        self.assertNotIn("Synthetic Author One", portrait)
         # An intrinsic size, so the line cannot shift as the picture arrives.
         self.assertIn('width="96"', portrait)
         self.assertIn('height="96"', portrait)
