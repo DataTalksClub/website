@@ -497,6 +497,62 @@ class EnrollmentImportTests(HistoryImportFixture):
         self.assertEqual(Enrollment.objects.count(), 1)
 
 
+class CohortFamilySlugOverrideTests(HistoryImportFixture):
+    """A CMP edition slug whose family was renamed locally still resolves.
+
+    Regression test: ``import_cmp_content`` already corrects
+    ai-dev-tools-zoomcamp's cohorts, stored locally as
+    ``ai-dev-tools-zoomcamp-<year>``, against CMP's own pre-rename
+    ``ai-dev-tools-<year>`` export slug (see ``bfa2ac6d``). This importer's own
+    cohort lookup did not carry the same correction, so every row belonging to
+    one of those cohorts silently landed in the ``cohort``/``homework``
+    unresolved buckets instead of being written.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.renamed_family = Course.objects.create(
+            slug="ai-dev-tools-zoomcamp", title="AI Dev Tools Zoomcamp"
+        )
+        self.renamed_cohort = Cohort.objects.create(
+            course=self.renamed_family,
+            slug="ai-dev-tools-zoomcamp-2026",
+            identifier="2026",
+            year=2026,
+        )
+
+    def test_an_enrollment_resolves_against_the_corrected_family_slug(self) -> None:
+        source = self.source(
+            courses_course=[(1, "de-zoomcamp-2025"), (2, "ai-dev-tools-2026")],
+            courses_enrollment=[enrollment_row(1), enrollment_row(2, course_id=2)],
+        )
+
+        result = self.run_import(
+            source, family_slug_overrides={"ai-dev-tools": "ai-dev-tools-zoomcamp"}
+        )
+
+        report = self.report(result, "courses_enrollment")
+        self.assertEqual(report["created"], 2)
+        self.assertEqual(report["unresolved"], {})
+        self.assertTrue(
+            Enrollment.objects.filter(course=self.renamed_cohort, student=self.learner).exists()
+        )
+
+    def test_without_the_override_the_renamed_family_s_rows_are_unresolved(self) -> None:
+        """Same source, no correction supplied: the gap this regression closes."""
+
+        source = self.source(
+            courses_course=[(1, "de-zoomcamp-2025"), (2, "ai-dev-tools-2026")],
+            courses_enrollment=[enrollment_row(1), enrollment_row(2, course_id=2)],
+        )
+
+        result = self.run_import(source)
+
+        report = self.report(result, "courses_enrollment")
+        self.assertEqual(report["created"], 1)
+        self.assertEqual(report["unresolved"], {"cohort": 1})
+
+
 class NaturalKeyCollapseTests(HistoryImportFixture):
     def test_two_cmp_enrollments_for_one_target_account_collapse_onto_one_row(self) -> None:
         """``import_cmp_learners`` folds two CMP accounts onto one target

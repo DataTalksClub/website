@@ -61,6 +61,14 @@ SYNC_MODEL = "one-time"
 # which is the silent no-op scripts/prod/__init__.py exists to warn about.
 BOOTSTRAPS_EMPTY_DATABASE = False
 
+# The same reviewed correction import_cmp_content.py applies: CMP still exports the AI
+# Dev Tools editions as "ai-dev-tools-<year>", but their real, locally-stored family is
+# "ai-dev-tools-zoomcamp". Without it, this importer's own cohort lookup misses every
+# ai-dev-tools-zoomcamp edition and reports its whole learner history unresolved.
+FAMILY_SLUG_OVERRIDES: dict[str, str] = {
+    "ai-dev-tools": "ai-dev-tools-zoomcamp",
+}
+
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -131,6 +139,7 @@ def main(argv: list[str] | None = None) -> int:
                 user_claims=user_claims,
                 batch_size=args.batch_size or DEFAULT_BATCH_SIZE,
                 tables=args.table,
+                family_slug_overrides=FAMILY_SLUG_OVERRIDES,
             )
             report = result.summary()
     except (CmpHistoryImportError, CmpLearnerImportError) as error:

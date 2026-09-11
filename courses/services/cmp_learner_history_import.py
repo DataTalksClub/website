@@ -116,12 +116,17 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, NoReturn
 
 from django.db import models, transaction
 from django.utils.dateparse import parse_datetime
 
 from accounts.models import CustomUser
+from courses.services.course_family_identity import (
+    UnparseableEditionSlug,
+    family_and_year_from_edition_slug,
+)
 from courses.models import (
     Answer,
     CmpHistoryClaim,
@@ -456,11 +461,33 @@ class Resolution:
         return self._claimed("courses_peerreview", source_id, "peer_review")
 
 
-def _cohort_map(connection: sqlite3.Connection) -> dict[int, int]:
+def _cohort_map(
+    connection: sqlite3.Connection,
+    family_slug_overrides: Mapping[str, str] = MappingProxyType({}),
+) -> dict[int, int]:
+    """Source ``courses_course`` id -> target Cohort pk, by slug.
+
+    Almost every edition's local slug is exactly the CMP slug, so that raw match is
+    tried first.  A course whose family was renamed after CMP's own export (the same
+    ``family_slug_overrides`` correction ``import_cmp_content`` applies -- for example
+    ai-dev-tools-zoomcamp, which CMP still exports as ``ai-dev-tools-<year>``) is stored
+    locally under the *corrected* slug, so a row that misses the raw match is retried
+    against the correction before its whole learner history is reported unresolved.
+    """
+
     local = dict(Cohort.objects.values_list("slug", "pk"))
     resolved = {}
     for row in _rows(connection, "courses_course", "select id, slug from courses_course"):
-        target = local.get(str(row["slug"]))
+        slug = str(row["slug"])
+        target = local.get(slug)
+        if target is None:
+            try:
+                family_slug, year = family_and_year_from_edition_slug(slug)
+            except UnparseableEditionSlug:
+                pass
+            else:
+                corrected = family_slug_overrides.get(family_slug, family_slug)
+                target = local.get(f"{corrected}-{year}")
         if target is not None:
             resolved[int(row["id"])] = target
     return resolved
@@ -621,9 +648,13 @@ def _wrapped_map(connection: sqlite3.Connection) -> dict[int, int]:
 
 
 def _build_resolution(
-    connection: sqlite3.Connection, *, users: Mapping[int, int], claims: CmpHistoryClaims
+    connection: sqlite3.Connection,
+    *,
+    users: Mapping[int, int],
+    claims: CmpHistoryClaims,
+    family_slug_overrides: Mapping[str, str] = MappingProxyType({}),
 ) -> Resolution:
-    cohorts = _cohort_map(connection)
+    cohorts = _cohort_map(connection, family_slug_overrides)
     homework = _homework_map(connection, cohorts)
     return Resolution(
         users=users,
@@ -1240,6 +1271,7 @@ def import_cmp_learner_history(
     user_claims: Mapping[int, int],
     batch_size: int = DEFAULT_BATCH_SIZE,
     tables: Iterable[str] | None = None,
+    family_slug_overrides: Mapping[str, str] = MappingProxyType({}),
 ) -> HistoryImportResult:
     """Import the CMP export's learner history. Safe to kill and re-run.
 
@@ -1247,7 +1279,10 @@ def import_cmp_learner_history(
     file that differs from the one the recorded claims and watermarks were
     built from is refused (``run-bound-to-different-source``).  ``user_claims``
     maps a CMP account id to the ``CustomUser`` pk the learner-account
-    importer recorded for it in this same database.
+    importer recorded for it in this same database.  ``family_slug_overrides``
+    is the same reviewed correction ``import_cmp_content`` takes, for a cohort
+    whose CMP edition slug names a family that was since renamed locally --
+    see ``_cohort_map``.
     """
 
     _assert_forbidden_tables_untouched()
@@ -1260,7 +1295,12 @@ def import_cmp_learner_history(
     user_claims = _existing_user_claims(user_claims)
     connection = _readonly(source)
     try:
-        resolution = _build_resolution(connection, users=user_claims, claims=claims)
+        resolution = _build_resolution(
+            connection,
+            users=user_claims,
+            claims=claims,
+            family_slug_overrides=family_slug_overrides,
+        )
         reports = [
             _import_table(
                 connection,
