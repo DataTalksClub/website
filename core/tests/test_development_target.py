@@ -53,6 +53,35 @@ class DevelopmentTargetCoherenceTests(SimpleTestCase):
         self.assertEqual(REMOTE_HOSTS, PERMITTED_DEVELOPMENT_HOSTNAMES | deployable)
         self.assertIn(SELECTED_TARGET.hostname, REMOTE_HOSTS)
 
+    def test_remote_test_policy_classifies_every_host_explicitly(self) -> None:
+        # CI-05: adding a deployment target must not silently grant it remote
+        # test authority.  Every deployable host carries an explicit policy;
+        # only the disposable development stacks are isolated and only they
+        # may take mutation/live markers -- the shared production-stack
+        # staging hostname stays read-only until an owner decision records a
+        # namespace-isolation boundary here.
+        from test_support.safety import REMOTE_TARGET_POLICY, SAFETY_MARKERS
+
+        deployable = {
+            target.hostname for target in DEPLOYMENT_TARGETS.values() if not target.retired
+        }
+        self.assertEqual(set(REMOTE_TARGET_POLICY), PERMITTED_DEVELOPMENT_HOSTNAMES | deployable)
+        isolated = {
+            hostname
+            for hostname, policy in REMOTE_TARGET_POLICY.items()
+            if policy.isolation_class == "isolated_development"
+        }
+        self.assertEqual(isolated, set(PERMITTED_DEVELOPMENT_HOSTNAMES))
+        for hostname, policy in REMOTE_TARGET_POLICY.items():
+            with self.subTest(hostname=hostname):
+                self.assertLessEqual(policy.permitted_markers, SAFETY_MARKERS)
+                if hostname not in isolated:
+                    self.assertEqual(
+                        policy.permitted_markers,
+                        {"remote_readonly"},
+                        "a shared-stack host must stay read-only until its isolation is reviewed",
+                    )
+
     def test_task_definition_environment_follows_the_selected_deployment_target(self) -> None:
         self.assertEqual(
             FIXED_NONSECRET_ENVIRONMENT["DJANGO_ALLOWED_HOSTS"],

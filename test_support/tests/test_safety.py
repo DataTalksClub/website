@@ -32,6 +32,8 @@ from test_support.provenance import (
     validate_public_fixture,
 )
 from test_support.safety import (
+    REMOTE_TARGET_POLICY,
+    SAFETY_MARKERS,
     TestSafetyError,
     authorize_from_environment,
     django_test_safety,
@@ -576,6 +578,80 @@ def test_remote_readonly_allows_only_safe_methods_on_exact_origin() -> None:
         authorization.authorize_request("POST", "https://web.dtcdev.click/synthetic")
     with pytest.raises(TestSafetyError, match="allowlist|exact approved origin"):
         authorization.authorize_request("GET", "https://other.example.invalid/")
+
+
+@pytest.mark.parametrize("hostname", sorted(REMOTE_TARGET_POLICY))
+@pytest.mark.parametrize("marker", sorted(SAFETY_MARKERS))
+def test_markers_follow_the_registry_policy_per_host(hostname: str, marker: str) -> None:
+    """Every host-by-marker cell follows the registry, not the caller."""
+
+    policy = REMOTE_TARGET_POLICY[hostname]
+    environment = {
+        **_safe_environment(marker),
+        "DTC_TEST_BASE_URL": f"https://{hostname}",
+        "DTC_TEST_TARGET_CLASS": policy.isolation_class,
+    }
+    with patch.dict(os.environ, environment, clear=True):
+        if marker in policy.permitted_markers:
+            if marker == "live_email":
+                # The recipient material has its own dedicated tests; this
+                # matrix pins which hosts may ask for it at all.
+                pytest.skip("live_email recipient authority is tested separately")
+            authorization = authorize_from_environment(marker)
+            assert authorization.hostname == hostname
+        else:
+            with (
+                patch.object(socket, "getaddrinfo") as resolve,
+                patch.object(socket, "create_connection") as connect,
+                pytest.raises(TestSafetyError, match="not authorized against this target"),
+            ):
+                authorize_from_environment(marker)
+            resolve.assert_not_called()
+            connect.assert_not_called()
+
+
+def test_a_production_stack_host_never_inherits_isolated_development_authority() -> None:
+    # The audit's probe: copy a valid isolated-development remote_mutation
+    # environment and change only the base URL to the shared production-stack
+    # staging hostname.  The caller's isolated_development label must not
+    # establish authority the registry does not derive.
+    environment = {
+        **_safe_environment("remote_mutation"),
+        "DTC_TEST_BASE_URL": "https://prod.datatalks.club",
+    }
+    with (
+        patch.object(socket, "getaddrinfo") as resolve,
+        patch.object(socket, "create_connection") as connect,
+        patch.dict(os.environ, environment, clear=True),
+        pytest.raises(TestSafetyError),
+    ):
+        authorize_from_environment("remote_mutation")
+    resolve.assert_not_called()
+    connect.assert_not_called()
+
+
+def test_the_target_class_must_agree_with_the_derived_class() -> None:
+    dev = _safe_environment("remote_readonly") | {"DTC_TEST_TARGET_CLASS": "production"}
+    with (
+        patch.dict(os.environ, dev, clear=True),
+        pytest.raises(TestSafetyError, match="registry derives"),
+    ):
+        authorize_from_environment("remote_readonly")
+
+    staging = _safe_environment("remote_readonly") | {
+        "DTC_TEST_BASE_URL": "https://prod.datatalks.club",
+    }
+    # The isolated_development label does not turn the shared stack into an
+    # isolated one, even for a read-only marker.
+    with patch.dict(os.environ, staging, clear=True), pytest.raises(TestSafetyError):
+        authorize_from_environment("remote_readonly")
+
+    agreed = {**staging, "DTC_TEST_TARGET_CLASS": "production_stack_staging"}
+    with patch.dict(os.environ, agreed, clear=True):
+        authorization = authorize_from_environment("remote_readonly")
+    authorization.authorize_request("GET", "https://prod.datatalks.club/api/health/")
+    with pytest.raises(TestSafetyError, match="state-changing"):
+        authorization.authorize_request("POST", "https://prod.datatalks.club/synthetic")
 
 
 def test_live_email_requires_secret_recipient_reference_without_printing_it() -> None:

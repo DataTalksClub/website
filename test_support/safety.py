@@ -11,20 +11,56 @@ from urllib.parse import urlsplit
 
 SAFETY_MARKERS = frozenset({"remote_readonly", "remote_mutation", "live_email", "live_provider"})
 LOCAL_MARKERS = frozenset({"smoke", "core", "full"})
+
+
+@dataclass(frozen=True, slots=True)
+class RemoteTargetPolicy:
+    """What one reviewed remote origin is actually allowed to be used for.
+
+    The isolation class and permitted markers are code-owned facts about the
+    target, derived from the deployment registry's own review -- never from
+    what a test declares about itself (audit CI-05).  A host is
+    ``isolated_development`` only when its whole stack exists to be rewritten
+    by tests; otherwise it is ``production_stack_staging`` and at most
+    read-only diagnostics are authorized until an owner decision proves a
+    namespace-isolation boundary for mutations.
+    """
+
+    isolation_class: str
+    permitted_markers: frozenset[str]
+
+
+#: The one reviewed policy per remote origin.  ``web.dtcdev.click`` and
+#: ``dev.datatalks.club`` are disposable development stacks whose synthetic
+#: namespaces own what they touch.  ``prod.datatalks.club`` shares the
+#: production deployment stack (it is the reviewed staging hostname,
+#: non-indexable, per ``deploy.deployment_targets``): shared infrastructure is
+#: not isolation, so it is classified ``production_stack_staging`` and
+#: permitted read-only diagnostics only.  Granting it any further marker
+#: requires a reviewed owner decision recorded here, not an environment
+#: variable.
+REMOTE_TARGET_POLICY = {
+    "web.dtcdev.click": RemoteTargetPolicy(
+        isolation_class="isolated_development",
+        permitted_markers=SAFETY_MARKERS,
+    ),
+    "dev.datatalks.club": RemoteTargetPolicy(
+        isolation_class="isolated_development",
+        permitted_markers=SAFETY_MARKERS,
+    ),
+    "prod.datatalks.club": RemoteTargetPolicy(
+        isolation_class="production_stack_staging",
+        permitted_markers=frozenset({"remote_readonly"}),
+    ),
+}
 # Closed allowlist of hosts an opt-in remote test may address.  It is pinned here
 # as literals rather than read from the environment, or derived from the selected
 # deployment target, so that the value under test cannot also be the value that
 # authorises it.  It must stay equal to the union of
 # deploy.development_target.PERMITTED_DEVELOPMENT_HOSTNAMES and the hostname of
 # every deployable target in deploy.deployment_targets; core.tests
-# .test_development_target enforces that.
-REMOTE_HOSTS = frozenset(
-    {
-        "web.dtcdev.click",
-        "dev.datatalks.club",
-        "prod.datatalks.club",
-    }
-)
+# .test_development_target enforces that, together with the per-host policy.
+REMOTE_HOSTS = frozenset(REMOTE_TARGET_POLICY)
 #: Retained name for the same allowlist.
 DEVELOPMENT_HOSTS = REMOTE_HOSTS
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
@@ -94,8 +130,6 @@ def authorize_from_environment(marker: str) -> SafetyAuthorization:
     selected = os.environ.get("DTC_TEST_SAFETY_COMMAND", "")
     if selected != marker:
         raise TestSafetyError("safety marker requires its exact opt-in command")
-    if os.environ.get("DTC_TEST_TARGET_CLASS") != "isolated_development":
-        raise TestSafetyError("remote tests require the isolated_development target class")
     namespace = os.environ.get("DTC_TEST_REMOTE_NAMESPACE", "")
     if not _NAMESPACE_RE.fullmatch(namespace):
         raise TestSafetyError("remote tests require a bounded synthetic namespace")
@@ -103,6 +137,21 @@ def authorize_from_environment(marker: str) -> SafetyAuthorization:
     parsed = _parse_remote_url(base_url)
     if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
         raise TestSafetyError("remote base URL must be one exact origin")
+
+    # CI-05: the target class is a fact about the host, derived from the
+    # reviewed registry.  The environment may confirm it, never establish it:
+    # a caller-supplied label that disagrees with the registry refuses, so
+    # copying a valid remote-test environment onto another persistent stack
+    # cannot carry mutation or live-provider authority across.
+    policy = REMOTE_TARGET_POLICY.get(parsed.hostname or "")
+    if policy is None:
+        raise TestSafetyError("remote URL is not on the closed remote-host allowlist")
+    if os.environ.get("DTC_TEST_TARGET_CLASS") != policy.isolation_class:
+        raise TestSafetyError(
+            "remote tests require the target class the reviewed registry derives for the host"
+        )
+    if marker not in policy.permitted_markers:
+        raise TestSafetyError("this safety marker is not authorized against this target")
 
     recipient_reference = None
     if marker == "live_email":
