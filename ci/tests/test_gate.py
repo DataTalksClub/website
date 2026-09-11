@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -10,9 +11,11 @@ from ci.evidence import build_envelope
 from ci.gate import (
     NORMAL_REQUIRED_JOBS,
     SCHEDULE_COMPONENTS,
+    gate_summary,
     marker_gate,
     normal_gate,
     scheduled_gate,
+    verification_selection_identity,
 )
 from ci.provenance import (
     EvidenceResolution,
@@ -263,6 +266,239 @@ def test_normal_gate_requires_exact_ci_report_and_artifact_bound_evidence(
         verification_evidence_directory=evidence,
     )
     assert result["verdict"] == "failure"
+
+
+def _verified_bundle(root: Path, change: dict[str, str], *, run_attempt: int = 1) -> dict[str, Any]:
+    """A fully verified, internally consistent CI bundle for one repository.
+
+    This is the honest-bundle fixture the gate must keep accepting: a real
+    repository at one head, a selection for it, a plan embedding that
+    selection, retained success envelopes, and a matching report.
+    """
+
+    root.mkdir(parents=True, exist_ok=True)
+    repository, base, head = repository_with_change(root, change)
+    selection, records = selection_for(tuple(change), base=base, head=head)
+    plan = build_plan(
+        repository=repository,
+        repository_id="DataTalksClub/website",
+        base=base,
+        head=head,
+        selection=selection,
+        records=records,
+        now=datetime(2026, 8, 9, 12, tzinfo=UTC),
+    )
+    selection_path = root / "selection.json"
+    plan_path = root / "plan.json"
+    report_path = root / "report.json"
+    evidence = root / "evidence"
+    evidence.mkdir(parents=True, exist_ok=True)
+    dump_selection(selection, selection_path)
+    provenance = build_provenance(
+        selection,
+        run_id="7",
+        created_attempt=1,
+        controller_sha="3" * 40,
+        release_sha=head,
+        source_after_sha=head,
+        source_before_sha=base,
+    )
+    dump_provenance(provenance, evidence / "provenance.json")
+    resolution_path = evidence / "resolution"
+    dump_resolution(
+        EvidenceResolution(
+            selection=selection,
+            provenance=provenance,
+            mode="current_attempt",
+            resolved_attempt=1,
+        ),
+        resolution_path,
+    )
+    dump_json(plan, plan_path)
+    origins = {
+        "selector": ("classification", f"ci-selection-7-attempt-{run_attempt}"),
+        "evidence_validation": (
+            "quality",
+            f"verification-component-quality-7-attempt-{run_attempt}",
+        ),
+    }
+    for component, (job_id, artifact_id) in origins.items():
+        artifact = evidence / f"{component}-result.json"
+        artifact.write_text('{"status":"success"}\n', encoding="utf-8")
+        output_records, output = component_output(evidence, plan, component, path=artifact)
+        envelope = build_envelope(
+            plan=plan,
+            component=component,
+            result="success",
+            command=plan["components"][component]["command"],
+            execution_environment=plan["components"][component]["environment"],
+            origin={
+                "artifact_id": artifact_id,
+                "job_id": job_id,
+                "kind": "github_actions",
+                "ref": "refs/heads/main",
+                "repository": "DataTalksClub/website",
+                "run_attempt": run_attempt,
+                "run_id": 7,
+                "workflow": ".github/workflows/ci.yml",
+            },
+            artifacts=output_records,
+            machine_output=output,
+            completed_at=datetime(2026, 8, 9, 12, tzinfo=UTC),
+        )
+        dump_json(envelope, evidence / f"{component}-evidence.json")
+    report = create_report(plan=plan, result_directory=evidence, phase="ci")
+    dump_json(report, report_path)
+    return {
+        "base": base,
+        "head": head,
+        "selection_path": selection_path,
+        "resolution_path": resolution_path / "ci-selection-resolution.json",
+        "plan_path": plan_path,
+        "report_path": report_path,
+        "evidence": evidence,
+    }
+
+
+def test_normal_gate_refuses_a_verification_bundle_from_another_release(
+    tmp_path: Path,
+) -> None:
+    # CI-01: a valid bundle for commit A plus a valid selection/provenance for
+    # commit B used to pass the gate.  Each artifact is honest; the combination
+    # is not, so the gate must join them on the release identity.
+    outcomes = {name: "success" for name in NORMAL_REQUIRED_JOBS}
+    bundle_a = _verified_bundle(tmp_path / "a", {"README.md": "bundle a\n"})
+    bundle_b = _verified_bundle(tmp_path / "b", {"README.md": "bundle b\n"})
+    assert bundle_a["head"] != bundle_b["head"]
+
+    result = normal_gate(
+        bundle_b["selection_path"],
+        outcomes,
+        evidence_path=bundle_b["resolution_path"],
+        expected_event="push",
+        expected_source_after_sha=bundle_b["head"],
+        expected_source_before_sha=bundle_b["base"],
+        verification_plan_path=bundle_a["plan_path"],
+        verification_report_path=bundle_a["report_path"],
+        verification_evidence_directory=bundle_a["evidence"],
+    )
+
+    assert result["verdict"] == "failure"
+    assert result["verification_status"] == "invalid"
+    assert result["verification_rejection_reason"] == "verification_release_mismatch"
+    assert "verification_release_mismatch" in gate_summary(result)
+
+
+def test_normal_gate_refuses_a_same_head_bundle_from_a_different_selection(
+    tmp_path: Path,
+) -> None:
+    # Same head, same base, valid resolution -- but the plan was built from a
+    # different selection than the one the gate validated.  Matching profiles
+    # are not enough: the embedded selection must be the validated one.
+    outcomes = {name: "success" for name in NORMAL_REQUIRED_JOBS}
+    bundle = _verified_bundle(tmp_path, {"README.md": "changed\n"})
+    head, base = bundle["head"], bundle["base"]
+    other = classify_records(
+        (ChangeRecord("M", ("docs/guide.md",)),), event="push", base=base, head=head
+    )
+    # Same profile on purpose: the join must compare the selections themselves,
+    # not fall back to the profile they share.
+    assert (
+        other["profile"]
+        == classify_records(
+            (ChangeRecord("M", ("README.md",)),), event="push", base=base, head=head
+        )["profile"]
+    )
+    assert other["changed_path_count"] != 0
+    other_path = tmp_path / "other-selection.json"
+    dump_selection(other, other_path)
+    provenance = build_provenance(
+        other,
+        run_id="7",
+        created_attempt=1,
+        controller_sha="3" * 40,
+        release_sha=head,
+        source_after_sha=head,
+        source_before_sha=base,
+    )
+    other_resolution = tmp_path / "other-resolution"
+    dump_resolution(
+        EvidenceResolution(
+            selection=other,
+            provenance=provenance,
+            mode="current_attempt",
+            resolved_attempt=1,
+        ),
+        other_resolution,
+    )
+
+    result = normal_gate(
+        other_path,
+        outcomes,
+        evidence_path=other_resolution / "ci-selection-resolution.json",
+        expected_event="push",
+        expected_source_after_sha=head,
+        expected_source_before_sha=base,
+        verification_plan_path=bundle["plan_path"],
+        verification_report_path=bundle["report_path"],
+        verification_evidence_directory=bundle["evidence"],
+    )
+
+    assert result["verdict"] == "failure"
+    assert result["verification_rejection_reason"] == "verification_selection_mismatch"
+
+
+def test_normal_gate_binds_fresh_evidence_to_the_current_run_and_attempt(
+    tmp_path: Path,
+) -> None:
+    outcomes = {name: "success" for name in NORMAL_REQUIRED_JOBS}
+    # Components re-executed in attempt 2 of the same run cannot attest an
+    # attempt-1 gate decision, even though every envelope is honest.
+    rerun = _verified_bundle(tmp_path / "rerun", {"README.md": "changed\n"}, run_attempt=2)
+
+    wrong_attempt = normal_gate(
+        rerun["selection_path"],
+        outcomes,
+        evidence_path=rerun["resolution_path"],
+        expected_attempt=1,
+        verification_plan_path=rerun["plan_path"],
+        verification_report_path=rerun["report_path"],
+        verification_evidence_directory=rerun["evidence"],
+    )
+    assert wrong_attempt["verdict"] == "failure"
+    assert wrong_attempt["verification_rejection_reason"] == "verification_run_mismatch"
+
+    honest = _verified_bundle(tmp_path / "honest", {"README.md": "changed\n"})
+    result = normal_gate(
+        honest["selection_path"],
+        outcomes,
+        evidence_path=honest["resolution_path"],
+        expected_attempt=1,
+        verification_plan_path=honest["plan_path"],
+        verification_report_path=honest["report_path"],
+        verification_evidence_directory=honest["evidence"],
+    )
+    assert result["verdict"] == "success"
+    assert result["verification_rejection_reason"] is None
+
+
+def test_verification_selection_identity_normalizes_the_manual_dispatch_base() -> None:
+    # A manual dispatch selection legitimately has no base; its plan compares
+    # base == head.  Raw equality would reject every honest manual bundle.
+    selection = full_selection(
+        event="workflow_dispatch",
+        base=None,
+        head=HEAD,
+        reason="manual_dispatch",
+    )
+    resolution = {"release_sha": HEAD}
+    plan = {"head": HEAD, "base": HEAD, "legacy_selection": dict(selection)}
+
+    assert verification_selection_identity(selection, resolution, plan) is None
+    assert (
+        verification_selection_identity(selection, resolution, {**plan, "base": BASE})
+        == "verification_selection_mismatch"
+    )
 
 
 def test_normal_gate_fails_closed_for_missing_or_malformed_verification_report(

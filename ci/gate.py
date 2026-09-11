@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from ci.evidence import load_envelopes
 from ci.provenance import EvidenceError, load_resolution, selection_digest
 from ci.schedule import load_schedule_decision
 from ci.selection import SCHEMA_VERSION, load_selection
@@ -40,6 +41,78 @@ SCHEDULE_COMPONENTS = (
     "playwright",
     "container",
 )
+
+
+def verification_selection_identity(
+    selection: Mapping[str, Any],
+    resolution: Mapping[str, Any],
+    plan: Mapping[str, Any],
+) -> str | None:
+    """Reject a verification plan that does not belong to the validated selection.
+
+    CI-01: the plan, its embedded classifier selection, and the selection
+    evidence are each internally valid artifacts, and the gate used to accept
+    any combination of them.  The join is semantic:
+
+    * the plan's head, the selection's head, and the provenance resolution's
+      release SHA all name one commit;
+    * the plan's embedded ``legacy_selection`` is identical -- by canonical
+      digest -- to the validated selection, not merely the same profile;
+    * the plan's base honors the one documented normalization: a manual
+      dispatch selection legitimately has no base and its plan compares
+      ``base == head``; every other selection matches its plan exactly.
+
+    The expected workflow identity (controller, run, attempt, event, source
+    range) stays the resolution block's job; this helper only joins the
+    verification side to the selection it must describe.  Returns ``None``
+    when everything belongs to one release, else a stable rejection reason
+    for the gate artifact.
+    """
+
+    if plan["head"] != selection["head"] or plan["head"] != resolution["release_sha"]:
+        return "verification_release_mismatch"
+    try:
+        embedded = selection_digest(plan["legacy_selection"])
+        validated = selection_digest(dict(selection))
+    except (TypeError, ValueError, EvidenceError):
+        return "verification_selection_mismatch"
+    if embedded != validated:
+        return "verification_selection_mismatch"
+    if plan["base"] != (selection["base"] or plan["head"]):
+        return "verification_selection_mismatch"
+    return None
+
+
+def _rerun_evidence_run_mismatch(
+    report: Mapping[str, Any],
+    evidence_directory: str | Path,
+    *,
+    run_id: str,
+    attempt: int | None,
+) -> str | None:
+    """Bind fresh rerun evidence to the run being attested (CI-01).
+
+    A rerun envelope's origin is already validated for repository, workflow,
+    and artifact naming against its own values; this adds the join to the
+    current run (and attempt, when the caller supplies one), so a same-run
+    wrong-attempt envelope cannot attest this release.  Intentionally reused
+    historical evidence stays on its separately validated provenance/history
+    path and is exempt here.
+    """
+
+    envelopes: dict[str, dict[str, Any]] = {}
+    for _path, envelope in load_envelopes(evidence_directory):
+        envelopes.setdefault(envelope["evidence_id"], envelope)
+    for entry in report["buckets"]["rerun"]:
+        held = envelopes.get(entry["evidence"]["evidence_id"])
+        origin = held.get("origin") if held is not None else None
+        if not isinstance(origin, dict):
+            return "verification_run_mismatch"
+        if str(origin.get("run_id")) != str(run_id):
+            return "verification_run_mismatch"
+        if attempt is not None and origin.get("run_attempt") != attempt:
+            return "verification_run_mismatch"
+    return None
 
 
 def normal_gate(
@@ -134,6 +207,7 @@ def normal_gate(
     normalized = _normalize_outcomes(outcomes, NORMAL_REQUIRED_JOBS)
     verification_report: dict[str, Any] | None = None
     verification_status = "invalid"
+    verification_rejection_reason: str | None = None
     try:
         if (
             verification_plan_path is None
@@ -150,7 +224,22 @@ def normal_gate(
             allow_pending=False,
         )
         if verification_report["verdict"] == "success" and verification_report["phase"] == "ci":
-            verification_status = "valid"
+            # CI-01: each artifact above was valid in isolation.  The gate only
+            # accepts the bundle when all of it describes the one release the
+            # validated selection evidence names.
+            if selection is None or resolution is None:
+                verification_rejection_reason = "verification_release_mismatch"
+            else:
+                verification_rejection_reason = verification_selection_identity(
+                    selection, resolution, plan
+                ) or _rerun_evidence_run_mismatch(
+                    verification_report,
+                    verification_evidence_directory,
+                    run_id=str(resolution["run_id"]),
+                    attempt=expected_attempt,
+                )
+            if verification_rejection_reason is None:
+                verification_status = "valid"
     except (OSError, ValueError, json.JSONDecodeError):
         verification_report = None
     passed = (
@@ -181,6 +270,7 @@ def normal_gate(
         "selection_rejection_reason": selection_rejection_reason,
         "selection_status": selection_status,
         "verification_report": verification_report,
+        "verification_rejection_reason": verification_rejection_reason,
         "verification_status": verification_status,
         "verdict": "success" if passed else "failure",
     }
@@ -240,6 +330,8 @@ def gate_summary(payload: Mapping[str, Any]) -> str:
         lines.append(f"- Selection evidence rejection: `{payload['selection_rejection_reason']}`")
     if "verification_status" in payload:
         lines.append(f"- Verification evidence: `{payload['verification_status']}`")
+    if payload.get("verification_rejection_reason"):
+        lines.append(f"- Verification rejection: `{payload['verification_rejection_reason']}`")
     lines.append("")
     return "\n".join(lines)
 
