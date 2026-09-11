@@ -13,13 +13,57 @@
         --page: var(--lavender);
       }
 
-      .lesson-nav {
-        display: flex;
-        gap: 0.5rem;
-        justify-content: space-between;
-        margin-top: 1.5rem;
-        flex-wrap: wrap;
+      .unit-hero .breadcrumbs {
+        margin-bottom: 0.35rem;
+        margin-top: -0.85rem;
       }
+
+      .unit-hero-inner {
+        display: grid;
+        gap: 0.65rem;
+      }
+
+      .unit-hero h1 {
+        font-size: clamp(1.95rem, 4.4vw, 2.6rem);
+        letter-spacing: -0.03em;
+      }
+
+      .lesson-content {
+        min-height: 12rem;
+      }
+
+      .delivery-panel-link {
+        font-size: 0.9rem;
+        margin-top: 1.5rem;
+      }
+
+      .lesson-nav {
+        align-items: center;
+        border-top: 2px dashed var(--line-soft);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: space-between;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+      }
+
+      .lesson-nav-next {
+        margin-left: auto;
+      }
+
+      @media (max-width: 47.99rem) {
+        .lesson-nav {
+          align-items: stretch;
+          display: grid;
+        }
+
+        .lesson-nav-next {
+          margin-left: 0;
+        }
+      }
+
+      {% include "courses/_module_rail_styles.html" %}
 {% endblock %}
 
 {% block header_band_class %}unit-hero{% endblock %}
@@ -29,7 +73,7 @@
         {% url 'course_list' as course_list_url %}
         {% url 'course_family' course_family.slug as course_family_url %}
         {% url 'shared_module' course_family.slug module.slug as module_link %}
-        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url module.title module_link %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url module.title module_link|add:context_q %}
         <div class="unit-hero-inner">
           <h1 id="lesson-heading">{{ lesson.title }}</h1>
           <p class="unit-hero-sub">Current curriculum · free to read</p>
@@ -40,21 +84,26 @@
       <section aria-label="Lesson content">
         <div class="module-layout shell-breakout">
           <div class="module-main">
-            <article class="module-section prose course-prose">
+            <article class="prose prose-reading lesson-content">
               {{ lesson.rendered_html|safe }}
             </article>
 
             {% include "courses/_delivery_panel.html" with terminal_homework=terminal_homework %}
 
-            <nav class="lesson-nav" aria-label="Lesson navigation">
-              {% if previous_lesson %}
-                <a class="button button-secondary" href="{{ previous_lesson_url }}">← {{ previous_lesson.title }}</a>
-              {% endif %}
-              {% if next_lesson %}
-                <a class="button button-secondary" href="{{ next_lesson_url }}">{{ next_lesson.title }} →</a>
-              {% endif %}
-            </nav>
+            {% if previous_lesson or next_lesson %}
+              <nav class="lesson-nav" aria-label="Lesson navigation">
+                {% if previous_lesson %}
+                  {% include "core/_button.html" with href=previous_lesson_url label="← "|add:previous_lesson.title variant="secondary" compact=True aria_label="Previous lesson: "|add:previous_lesson.title %}
+                {% endif %}
+                {% if next_lesson %}
+                  <div class="lesson-nav-next">
+                    {% include "core/_button.html" with href=next_lesson_url label=next_lesson.title|add:" →" variant="secondary" compact=True aria_label="Next lesson: "|add:next_lesson.title %}
+                  </div>
+                {% endif %}
+              </nav>
+            {% endif %}
           </div>
+          {% include "courses/_shared_module_rail.html" with current_lesson=lesson %}
         </div>
       </section>
 {% endblock %}

@@ -1,0 +1,48 @@
+{% comment %}
+"In this module" navigation for the shared, cohort-free module and lesson
+pages.
+
+This restores the old cohort-bound module rail's layout and wayfinding
+(courses/templates/courses/_module_rail.html, styled by
+_module_rail_styles.html) with two deliberate omissions: no read-state (the
+shared pages carry no per-reader enrollment to track it against -- reading
+here is not gated to one cohort) and no collapse control (nothing stateful to
+restore before paint). A caller passing `current_lesson` gets the current-row
+highlight; the module index page passes none, matching how the old module
+page showed the same rail with nothing marked current.
+
+Homework only appears once a delivery cohort is actually resolved -- the
+rail is shared across every delivery, but the terminal homework it links to
+belongs to one cohort's assignment of this module.
+{% endcomment %}
+<nav class="module-sidebar module-rail" aria-labelledby="module-navigation-heading">
+  <h2 class="rail-heading" id="module-navigation-heading">In this module</h2>
+  {% if lessons %}
+    <ol class="rail-units">
+      {% for rail_lesson in lessons %}
+        <li class="rail-unit{% if rail_lesson.pk == current_lesson.pk %} is-current{% endif %}">
+          <a
+            class="rail-unit-link"
+            href="{% url 'shared_lesson' course_family.slug module.slug rail_lesson.slug %}{{ context_q }}"
+            {% if rail_lesson.pk == current_lesson.pk %}aria-current="page"{% endif %}
+          >
+            <span
+              class="read-indicator{% if rail_lesson.pk == current_lesson.pk %} is-current{% endif %}"
+              aria-hidden="true"
+            >{{ forloop.counter }}</span>
+            <span class="rail-unit-title">{{ rail_lesson.title }}</span>
+          </a>
+        </li>
+      {% endfor %}
+    </ol>
+  {% endif %}
+  {% if delivery_cohort and terminal_homework %}
+    <a
+      class="rail-unit-link rail-homework"
+      href="{% url 'cohort_homework' course_family.slug delivery_cohort.identifier terminal_homework.slug %}{{ context_q }}"
+    >
+      <span class="read-indicator rail-homework-mark" aria-hidden="true">HW</span>
+      <span class="rail-unit-title">{{ terminal_homework.title }}</span>
+    </a>
+  {% endif %}
+</nav>

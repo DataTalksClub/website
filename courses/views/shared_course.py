@@ -116,6 +116,10 @@ def shared_module_view(
         SharedLesson.objects.filter(module=module, published=True).order_by("position", "id")
     )
     panel = _delivery_panel(request, course, context)
+    placement_by_module: dict[int, CohortSharedModule] = {
+        placement.shared_module_id: placement for placement in panel["delivery_placements"]
+    }
+    placement = placement_by_module.get(module.pk)
     canonical_path = reverse(
         "shared_module", kwargs={"course_slug": course.slug, "module_slug": module.slug}
     )
@@ -126,6 +130,7 @@ def shared_module_view(
             "course_family": course,
             "module": module,
             "lessons": lessons,
+            "terminal_homework": placement.terminal_homework if placement else None,
             "canonical_url": f"https://datatalks.club{canonical_path}",
             **panel,
         },

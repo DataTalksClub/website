@@ -18,9 +18,93 @@
         margin-top: -0.85rem;
       }
 
+      .module-hero-inner {
+        display: grid;
+        gap: 0.65rem;
+      }
+
+      .module-hero h1 {
+        font-size: clamp(2rem, 4.6vw, 3rem);
+        letter-spacing: -0.035em;
+      }
+
       .module-section + .module-section {
         margin-top: 2rem;
       }
+
+      .module-section-heading {
+        align-items: baseline;
+        display: flex;
+        gap: 0.65rem;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+      }
+
+      .module-section-heading h2 {
+        font-size: 1.35rem;
+      }
+
+      .module-count {
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .lesson-list {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        overflow: hidden;
+      }
+
+      .lesson-row {
+        align-items: center;
+        display: grid;
+        gap: 0.9rem;
+        grid-template-columns: 2rem minmax(0, 1fr);
+        min-height: 4.5rem;
+        padding: 0.75rem 1rem;
+      }
+
+      .lesson-row + .lesson-row {
+        border-top: 1.5px solid var(--line-soft);
+      }
+
+      .lesson-position,
+      .read-indicator {
+        align-items: center;
+        border: 1.5px solid var(--line-soft);
+        border-radius: var(--drawn-circle);
+        color: var(--muted);
+        display: inline-flex;
+        flex: none;
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        font-weight: 700;
+        height: 2rem;
+        justify-content: center;
+        width: 2rem;
+      }
+
+      .lesson-link {
+        color: var(--ink);
+        font-weight: 700;
+        min-height: 2.75rem;
+        padding-block: 0.55rem;
+        text-decoration: none;
+      }
+
+      .lesson-link:hover {
+        color: var(--indigo);
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .delivery-panel-link {
+        font-size: 0.9rem;
+        margin-top: 1.5rem;
+      }
+
+      {% include "courses/_module_rail_styles.html" %}
 {% endblock %}
 
 {% block header_band_class %}module-hero{% endblock %}
@@ -61,6 +145,7 @@
 
             {% include "courses/_delivery_panel.html" %}
           </div>
+          {% include "courses/_shared_module_rail.html" %}
         </div>
       </section>
 {% endblock %}
