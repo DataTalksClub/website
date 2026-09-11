@@ -223,23 +223,9 @@ def _route_session(
 
 
 def _config(session: Any, *, moderator: bool) -> dict[str, Any]:
-    config = services.serialize_session(session, moderator=moderator)
-    event_path = services.event_qna_path(session.event)
-    config.update(
-        {
-            "api_base": f"{event_path}/api",
-            "can_ask": session.state == services.EventQnaSession.State.OPEN,
-            "can_vote": session.state == services.EventQnaSession.State.OPEN,
-            "banner": (
-                "Questions are closed for this session."
-                if session.state != services.EventQnaSession.State.OPEN
-                else ""
-            ),
-        }
-    )
-    if not moderator:
-        config.pop("host_links", None)
-    return config
+    # EVT-09: the public page embeds the allowlisted participant config, never
+    # the management serializer with its internal identifiers.
+    return services.serialize_public_config(session, moderator=moderator)
 
 
 @ensure_csrf_cookie

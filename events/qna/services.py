@@ -1205,6 +1205,51 @@ def event_qna_share_url(event: Event) -> str:
     return f"{get_str_setting('site.origin.canonical')}{event_qna_path(event)}/"
 
 
+def serialize_public_config(session: EventQnaSession, *, moderator: bool = False) -> dict[str, Any]:
+    """The exact participant-facing Q&A configuration (audit EVT-09).
+
+    The public frontend is coupled to this schema and nothing broader: an
+    explicit allowlist of the contract, canonical relative paths, the session
+    state and its public settings, the fixed text limit, and the capability
+    flags and banner the page renders.  Internal management identities (the
+    Event and Q&A session UUIDs), the revision, retention and expiry internals,
+    live counters, and every other management field are absent by construction
+    rather than popped off afterwards, so a future management serializer
+    expansion cannot silently widen public exposure.  The public identity of an
+    event stays its positive public id and slug, carried inside the paths.
+
+    An authorized host viewing a public surface gets exactly one permitted
+    addition -- the host links -- and nothing else from the management DTO.
+    """
+
+    event = session.event
+    open_now = session.state == EventQnaSession.State.OPEN
+    config: dict[str, Any] = {
+        "contract": "qna.v1",
+        "api_base": f"{event_qna_path(event)}/api",
+        "share_url": event_qna_share_url(event),
+        "qr_url": f"{event_qna_path(event)}/qr.svg",
+        "state": session.state,
+        "settings": {
+            "listed": session.listed,
+            "allow_names": session.allow_names,
+            "require_names": session.require_names,
+            "answered_placement": session.answered_placement,
+            "default_sort": session.default_sort,
+        },
+        "max_length": MAX_QUESTION_LENGTH,
+        "can_ask": open_now,
+        "can_vote": open_now,
+        "banner": "" if open_now else "Questions are closed for this session.",
+    }
+    if moderator:
+        config["host_links"] = {
+            "studio": f"/studio/events/{event.id}/qna/",
+            "api": f"{event_qna_path(event)}/api/questions/",
+        }
+    return config
+
+
 def serialize_session(
     session: EventQnaSession,
     *,
