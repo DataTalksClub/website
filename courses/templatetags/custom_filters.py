@@ -1,7 +1,7 @@
 from django import template
 from django.template.defaultfilters import stringfilter
-from django.utils.safestring import mark_safe
 from django.utils.html import urlize as urlize_impl
+from django.utils.safestring import mark_safe
 
 from accounts.services.timezones import format_user_datetime
 
@@ -35,3 +35,12 @@ def user_date_short(value, user):
     instant in the same timezone, written short enough to sit on one summary row.
     """
     return format_user_datetime(value, user, fmt="%b %-d")
+
+
+@register.filter
+def thousands(value):
+    """Render an integer with comma thousands separators ("8009" -> "8,009")."""
+    try:
+        return f"{int(value):,}"
+    except (TypeError, ValueError):
+        return value

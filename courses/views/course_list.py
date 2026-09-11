@@ -4,6 +4,7 @@ from datetime import date
 
 from django.conf import settings
 from django.shortcuts import render
+from django.urls import reverse
 from django.utils import timezone
 
 from core.course_index_content import (
@@ -205,9 +206,7 @@ def course_family_cards(course_groups: CourseListCourses) -> list[CourseFamilyCa
     cards = []
     for cohorts in cohorts_by_family.values():
         active = [cohort for cohort in cohorts if cohort.id in active_ids]
-        open_registration = [
-            cohort for cohort in cohorts if cohort.id in open_ids
-        ]
+        open_registration = [cohort for cohort in cohorts if cohort.id in open_ids]
         finished = [cohort for cohort in cohorts if cohort.id in finished_ids]
 
         if active:
@@ -325,9 +324,7 @@ def wrapped_entry_year():
         return None
 
     published_years = WrappedStatistics.objects.filter(is_visible=True)
-    published_year = (
-        published_years.order_by("-year").values_list("year", flat=True).first()
-    )
+    published_year = published_years.order_by("-year").values_list("year", flat=True).first()
     if published_year is None:
         return WRAPPED_ENTRY_FALLBACK_YEAR
     return published_year
@@ -352,6 +349,33 @@ def open_registration_registered_total(open_registration_family_cards):
     return sum(counts)
 
 
+# Decorative site illustrations for the hero collage, paired with the collage
+# captions (real family titles from the database).  The artwork is the shared
+# illustration set the homepage already carries; each entry names the
+# light/dark file pair rendered by the template.
+HERO_COLLAGE_ILLUSTRATIONS = ("reading", "pipeline", "shipping", "learner")
+
+
+def hero_collage_cards(active_family_cards, open_registration_family_cards):
+    """Pair up to four real family titles with the hero's decorative artwork."""
+
+    titles_by_slug = {}
+    for card in [*active_family_cards, *open_registration_family_cards]:
+        titles_by_slug.setdefault(card.family.slug, card.title)
+
+    ordered_titles = []
+    for family_slug, _title in COURSE_FAMILIES:
+        title = titles_by_slug.pop(family_slug, None)
+        if title:
+            ordered_titles.append(title)
+    ordered_titles.extend(titles_by_slug.values())
+
+    return [
+        {"title": title, "illustration": HERO_COLLAGE_ILLUSTRATIONS[index % 4]}
+        for index, title in enumerate(ordered_titles[:4])
+    ]
+
+
 def course_list_context(request):
     course_groups = prepare_course_list_courses(request.user)
     today = timezone.localdate()
@@ -361,25 +385,15 @@ def course_list_context(request):
         course.index_registered = registered_learner_count(course)
 
     family_cards = course_family_cards(course_groups)
-    active_family_cards = [
-        card for card in family_cards if card.status == "active"
-    ]
+    active_family_cards = [card for card in family_cards if card.status == "active"]
     open_registration_family_cards = [
         card for card in family_cards if card.status == "open_registration"
     ]
-    finished_family_cards = [
-        card for card in family_cards if card.status == "finished"
-    ]
+    finished_family_cards = [card for card in family_cards if card.status == "finished"]
 
-    selected_featured_course = featured_course(
-        [card.cohort for card in active_family_cards]
-    )
+    selected_featured_course = featured_course([card.cohort for card in active_family_cards])
     selected_featured_card = next(
-        (
-            card
-            for card in active_family_cards
-            if card.cohort == selected_featured_course
-        ),
+        (card for card in active_family_cards if card.cohort == selected_featured_course),
         None,
     )
     secondary_active_courses = other_active_courses(
@@ -405,16 +419,18 @@ def course_list_context(request):
     total_open_registration_count = open_registration_registered_total(
         open_registration_family_cards
     )
+    hero_register_url = None
+    for card in open_registration_family_cards:
+        campaign = getattr(card.cohort, "registration_campaign", None)
+        if campaign is not None:
+            hero_register_url = reverse("registration_campaign", args=[campaign.slug])
+            break
 
     context = {
         # Keep the cohort lists available to existing context consumers while
         # the page itself renders the family-card lists below.
-        "active_courses": [
-            card.cohort for card in displayed_active_family_cards
-        ],
-        "open_registration_courses": [
-            card.cohort for card in open_registration_family_cards
-        ],
+        "active_courses": [card.cohort for card in displayed_active_family_cards],
+        "open_registration_courses": [card.cohort for card in open_registration_family_cards],
         "archive_groups": archive_groups,
         "featured_course": selected_featured_course,
         "finished_courses": [card.cohort for card in finished_family_cards],
@@ -427,6 +443,11 @@ def course_list_context(request):
         "home_stats": home_stats,
         "course_family_count": course_family_count,
         "total_open_registration_count": total_open_registration_count,
+        "hero_collage": hero_collage_cards(
+            displayed_active_family_cards,
+            open_registration_family_cards,
+        ),
+        "hero_register_url": hero_register_url,
         "show_active_courses": True,
         "show_open_registration": True,
         "show_finished": True,

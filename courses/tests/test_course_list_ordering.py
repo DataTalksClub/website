@@ -37,9 +37,7 @@ class CourseListOrderingTest(CourseListViewTestBase):
 
         response = self.course_list_response()
         active = {c.slug for c in response.context["active_courses"]}
-        open_reg = {
-            c.slug for c in response.context["open_registration_courses"]
-        }
+        open_reg = {c.slug for c in response.context["open_registration_courses"]}
         finished = {c.slug for c in response.context["finished_courses"]}
 
         self.assertIn(started.slug, active)
@@ -60,9 +58,7 @@ class CourseListOrderingTest(CourseListViewTestBase):
 
         response = self.course_list_response()
         active = {c.slug for c in response.context["active_courses"]}
-        open_reg = {
-            c.slug for c in response.context["open_registration_courses"]
-        }
+        open_reg = {c.slug for c in response.context["open_registration_courses"]}
 
         self.assertIn(future_no_reg.slug, active)
         self.assertNotIn(future_no_reg.slug, open_reg)
@@ -187,11 +183,7 @@ class CourseListOrderingTest(CourseListViewTestBase):
         )
 
         response = self.course_list_response()
-        cards = [
-            card
-            for card in response.context["course_family_cards"]
-            if card.family == family
-        ]
+        cards = [card for card in response.context["course_family_cards"] if card.family == family]
         content = response.content.decode()
 
         self.assertEqual(len(cards), 1)
@@ -230,9 +222,7 @@ class CourseListOrderingTest(CourseListViewTestBase):
 
         response = self.course_list_response()
         card = next(
-            card
-            for card in response.context["course_family_cards"]
-            if card.family == family
+            card for card in response.context["course_family_cards"] if card.family == family
         )
 
         self.assertEqual(card.outcome, "")
@@ -254,7 +244,8 @@ class CourseListOrderingTest(CourseListViewTestBase):
         response = self.course_list_response()
         content = response.content.decode()
 
-        self.assertIn("Open registration", content)
+        # The owner's Courses_Landing mockup titles the band "Registration open".
+        self.assertIn("Registration open", content)
         # Design system marks the state with a mono status pill, uppercased in CSS.
         self.assertIn("registration open", content)
         family_url = reverse(

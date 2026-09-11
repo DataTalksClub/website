@@ -26,9 +26,9 @@ CMP_SOURCE_COMMIT = "98a235283904b4ef9ad29e196298540756cf1bcc"
 # and asserted by core/tests/test_course_platform_adoption.py.
 REPO_ROOT = Path(__file__).resolve().parents[1]
 COURSE_LIST_TEMPLATE = REPO_ROOT / "courses/templates/courses/course_list.html"
-ACTIVE_HEADING = "Active now — you can still join"
-OPEN_HEADING = "Open registration"
-FINISHED_HEADING = "Finished courses"
+ACTIVE_HEADING = "Running now — you can still join"
+OPEN_HEADING = "Registration open"
+FINISHED_HEADING = "Self-paced anytime"
 SCREENSHOTS = Path(".tmp/screenshots/issue-128-owner-remediation")
 VIEWPORTS = (
     ({"width": 1440, "height": 900}, "desktop"),
@@ -299,18 +299,22 @@ def test_database_course_catalog_renders_the_design_system_index(
         page.get_by_role("link", name=cmp_course_catalog["archived"].course.title, exact=True)
     ).to_have_count(1)
     expect(archived_link.locator("xpath=ancestor::article[@role='link']")).to_have_count(0)
+    # The archive years became one self-paced band (the owner's mockup); the finished
+    # family card lives there, not under a year rule.
     expect(
-        archived_link.locator("xpath=ancestor::section[1]").get_by_role(
-            "heading", name="2024", exact=True
+        page.locator("#selfpaced").get_by_role(
+            "link", name=cmp_course_catalog["archived"].course.title, exact=True
         )
-    ).to_be_visible()
+    ).to_have_count(1)
     expect(page.get_by_text("registration open", exact=True)).to_be_visible()
     # Active and registration cards are keyboard-accessible whole-card destinations;
     # their real title/action links remain the semantic targets.
     assert page.locator("#courses article[role='link']").count() == 2
     assert page.locator("#courses article.card").count() == 2
     section_order = [text.strip() for text in page.locator("#courses h2").all_text_contents()]
-    assert section_order == [ACTIVE_HEADING, OPEN_HEADING, FINISHED_HEADING]
+    # The mockup opens the catalogue with the cohort you can register for, then the
+    # ones already running, then the self-paced archive.
+    assert section_order == [OPEN_HEADING, ACTIVE_HEADING, FINISHED_HEADING]
     expect(
         page.locator("nav[aria-label='Primary navigation'] a[aria-current='page']")
     ).to_have_text("Courses")

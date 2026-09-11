@@ -29,337 +29,416 @@
 
 {% block page_styles %}
       /* ------------------------------------------------------------------ *
-       * Courses index, design system / mockup 6a (issue #179).  Like every
-       * rebuilt page it carries its complete stylesheet inline: the shared
-       * design system partial first, then this page's own layout.  It
-       * deliberately loads none of the older site CSS.
+       * Courses index, the owner's Courses_Landing mockup mapped onto this
+       * system.  Like every rebuilt page it carries its complete stylesheet
+       * inline: the shared design system partial first, then this page's own
+       * layout.  It deliberately loads none of the older site CSS.
        *
-       * The page sits at the shared reading measure like every other index,
-       * so every surface below is composed as one column: a card is the
-       * column, a finished course is one stacked row.  Nothing here asks for
-       * a second column that the measure cannot hold.
+       * The mockup composes at the full 76rem shell -- a two-column hero with
+       * an illustration collage, a full-width dark facts stripe, a featured
+       * open-registration slab and horizontal running-now cards.  Those are
+       * genuinely wide elements, so each one is a `.shell-breakout` section
+       * while the page underneath stays an ordinary content page: the cream
+       * hero band and the lavender content band remain the parent's.
        * ------------------------------------------------------------------ */
 
-      /* --page follows the cool ground, since that is what the tail below the
-         last band continues. */
+      /* --- the comp's tokens -------------------------------------------------
+         The owner's Courses_Landing comp carries its own palette and faces:
+         cream #FBF8EC ground, ink #1B1E35, green #2E6B36 actions, indigo
+         #4B4FC6 links, Nunito text and JetBrains Mono metadata.  They are
+         stated here as token overrides so every shared primitive the page
+         uses — bands, cards, chips, pills, buttons, masthead, footer —
+         adopts them at once.  body.dark-mode restates the palette in the
+         shared partial, so the dark theme keeps its own values and only the
+         faces carry over.  Both faces are self-hosted variable cuts, like
+         Quicksand, so the page still loads nothing external. */
+      @font-face {
+        font-family: "Nunito";
+        font-style: normal;
+        font-weight: 200 1000;
+        font-display: swap;
+        src: url("{% static 'core/fonts/nunito-latin-var.woff2' %}")
+          format("woff2");
+      }
+
+      @font-face {
+        font-family: "JetBrains Mono";
+        font-style: normal;
+        font-weight: 100 800;
+        font-display: swap;
+        src: url("{% static 'core/fonts/jetbrains-mono-latin-var.woff2' %}")
+          format("woff2");
+      }
+
       :root {
-        --page: var(--lavender);
+        --cream: #fbf8ec;
+        --lavender: #efeefb;
+        --mint: #e9f3e3;
+        --ink: #1b1e35;
+        --body-text: #4a4e68;
+        --muted: #5a5e7a;
+        --line: #1b1e35;
+        --green: #2e6b36;
+        --indigo: #4b4fc6;
+        --indigo-soft: #c9c8e8;
+        --lavender-deep: #e6e4f6;
+        --shadow-soft: rgba(27, 30, 53, 0.18);
+        --page: var(--cream);
+        --font-sans: "Nunito", ui-rounded, "Segoe UI", system-ui,
+          -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial,
+          sans-serif;
+        --font-mono: "JetBrains Mono", ui-monospace, "SF Mono",
+          "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace;
+        /* The comp's one-off colours, named so the dark theme can restate
+           them instead of each rule carrying a light-only literal. */
+        --cta-shadow: #16301a;
+        --hatch-line: #9a9dbb;
+        --logo-chip: #cfcff4;
+        --panel-line: #a9cfa0;
+        --rule-dashed: rgba(27, 30, 53, 0.28);
+        --stats-label: #b9bcd6;
       }
 
-      /* --- hero --------------------------------------------------------- */
+      body.dark-mode {
+        --cta-shadow: #060816;
+        --hatch-line: #7079b4;
+        --logo-chip: #3c4372;
+        --panel-line: #4e7d5b;
+        --rule-dashed: rgba(174, 181, 244, 0.34);
+        --stats-label: #a4a9bd;
+      }
 
-      /* Single column: the hero carries no artwork, so it is text only at
-         every width instead of a two-column grid with an empty second
-         track. */
-      .courses-hero-grid {
+      /* --- the comp's drawing habits -----------------------------------------
+         Hard vertical shadows instead of the system's diagonal offsets,
+         deeper card radii, a 1px dashed rule, display weight 900 and body
+         weight 400 — repeated by the comp on every surface. */
+      body {
+        font-weight: 400;
+      }
+
+      h1,
+      h2 {
+        font-weight: 900;
+        letter-spacing: -0.02em;
+      }
+
+      .cta {
+        border-radius: 0.875rem;
+        box-shadow: 0 4px 0 var(--shadow-soft);
+        font-weight: 800;
+      }
+
+      .cta-primary {
+        box-shadow: 0 4px 0 var(--cta-shadow);
+      }
+
+      .card {
+        border-radius: 1.25rem;
+        box-shadow: 0 5px 0 var(--shadow-soft);
+      }
+
+      .band,
+      .masthead {
+        border-bottom: 1px dashed var(--rule-dashed);
+      }
+
+      /* The comp's hero band breathes deeper than the shell's default, and
+         asymmetrically: taller air above the headline than below it
+         (5.25rem / 4rem at the shell's full width). */
+      .content-page-header {
+        padding-block: clamp(2.5rem, 5.9vw, 5.25rem) clamp(2.5rem, 4.5vw, 4rem);
+      }
+
+      .signup-button {
+        box-shadow: 0 3px 0 var(--cta-shadow);
+        font-weight: 800;
+      }
+
+      /* The comp's boxed mono logotype. */
+      .brand .brand-mark {
+        display: none;
+      }
+
+      .brand::before {
+        align-items: center;
+        background: var(--logo-chip);
+        border: 2px solid var(--ink);
+        border-radius: 0.75rem 0.75rem 0.75rem 0.25rem;
+        content: "DTC";
+        display: inline-flex;
+        flex: none;
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        font-weight: 700;
+        height: 2.125rem;
+        justify-content: center;
+        width: 2.125rem;
+      }
+
+      .brand-name {
+        margin-block-end: 0;
+      }
+
+      .brand {
+        font-size: 1.1875rem;
+      }
+
+      /* --- hero ----------------------------------------------------------- */
+
+      /* Text left, illustration collage right, like the mockup's opening
+         composition.  The two tracks collapse below 62rem, where a side-by-side
+         hero would squeeze both. */
+      .courses-hero-grid.shell-breakout {
+        align-items: center;
         display: grid;
-        gap: 1.5rem;
+        gap: 2.5rem 3.5rem;
+        grid-template-columns: minmax(0, 1fr);
       }
 
-      /* Balanced so the two lines break after "skills." rather than leaving
-         "For" hanging at the end of the first line. */
+      @media (min-width: 62rem) {
+        .courses-hero-grid.shell-breakout {
+          grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+        }
+      }
+
       .courses-hero h1 {
-        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
-        letter-spacing: -0.03em;
+        font-size: clamp(2.5rem, 5.6vw, 4.25rem);
+        letter-spacing: -0.02em;
+        line-height: 1.02;
         text-wrap: balance;
       }
 
       .courses-lede {
-        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        margin-top: 1rem;
-        max-width: 33rem;
+        font-size: clamp(1.02rem, 1.5vw, 1.2rem);
+        margin-top: 1.25rem;
+        max-width: 36ch;
       }
-
-      /* --- band heads --------------------------------------------------- */
-
-      /* The live dot rides inside the active heading, so all three band heads
-         keep the one shared .band-head shape and the dot stays with the first
-         line when the heading wraps on a phone. */
-      .live-dot {
-        margin-inline-end: 0.5rem;
-        vertical-align: middle;
-      }
-
-      .band-note {
-        color: var(--muted);
-        font-size: 0.9rem;
-        margin-top: 1rem;
-      }
-
-      /* --- wrapped entry point ------------------------------------------ */
-
-      /* This band holds nothing but its head, so the head keeps the band's own
-         padding instead of adding its usual gap to the section below it. */
-      .courses-wrapped .band-head {
-        margin-bottom: 0;
-      }
-
-      /* The action is the band's only control: it stays its own width and sits
-         on the middle of the heading block rather than stretching down it. */
-      .courses-wrapped-action {
-        align-self: center;
-        justify-self: start;
-      }
-
-      .content-page-content > .content-shell > #courses > section + section,
-      .content-page-content > .content-shell > #courses + .zoomcamp-steps,
-      .content-page-content > .content-shell > .zoomcamp-steps + .courses-faq {
-        border-top: 2px dashed var(--line-soft);
-        margin-top: 2.75rem;
-        padding-top: 2.75rem;
-      }
-
-      /* --- catalogue cards ---------------------------------------------- */
-
-      /* One column of cards at the measure, for the active band and the open
-         band alike. */
-      .course-list {
-        display: grid;
-        gap: 1.25rem;
-      }
-
-      .active-card,
-      .course-card {
-        font-size: 0.95rem;
-        padding: 1.25rem;
-      }
-
-      .course-card-head {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem 0.85rem;
-        justify-content: space-between;
-      }
-
-      /* One card title size for the whole catalogue. */
-      .active-card h3,
-      .course-card h3 {
-        font-size: 1.3rem;
-      }
-
-      .active-card h3 a,
-      .course-card h3 a,
-      .course-row-title a {
-        color: var(--ink);
-        text-decoration: none;
-      }
-
-      /* A finished row has no whole-row link around its title the way a card
-         has, so the title line itself is the 44px target: the same
-         comfortable line the row's actions already stand on. */
-      .course-row-title a {
-        align-items: center;
-        display: inline-flex;
-        min-height: 2.75rem;
-      }
-
-      .course-row-title a:hover {
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
-      }
-
-      .course-card[role="link"],
-      .active-card[role="link"] {
-        cursor: pointer;
-      }
-
-      .course-card[role="link"]:focus-visible,
-      .active-card[role="link"]:focus-visible {
-        outline: 3px solid var(--ink);
-        outline-offset: 4px;
-      }
-
-      /* --- actions ------------------------------------------------------ */
-
-      /* Every surface ends with one action row: the surface's own destination
-         first, then the quiet links.  The row pins to the card foot. */
-      .card-actions {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem 1.25rem;
-        margin-top: auto;
-        padding-top: 0.35rem;
-      }
-
-      /* Row and card links become flex items, which blockifies them; keeping
-         the comfortable target height is a deliberate deviation from the
-         export, where these read as bare inline links. */
-      .row-action {
-        align-items: center;
-        color: var(--indigo);
-        display: inline-flex;
-        font-size: 0.9rem;
-        font-weight: 600;
-        min-height: 2.75rem;
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
-      }
-
-      /* The register action holds the row's right edge whether or not the
-         count beside it could be published. */
-      .course-card-foot .cta {
-        margin-left: auto;
-      }
-
-      .course-card-foot {
-        border-top: 1.5px dashed var(--line-soft);
-        padding-top: 0.85rem;
-      }
-
-      .course-card-registered {
-        color: var(--muted);
-        font-size: 0.85rem;
-      }
-
-      /* The whole-card cue arrow lives in the card's bottom-right corner, which
-         is where Register sits once the foot is one line.  The card keeps that
-         corner free below the button rather than pushing the button off the
-         edge the date above it already holds. */
-      @media (min-width: 48rem) {
-        .course-card {
-          padding-bottom: 2.4rem;
-        }
-      }
-
-      /* --- next assignment panel ---------------------------------------- */
-
-      /* A full-width strip inside the card, sized to the card rather than to a
-         band: the shared .panel inset is for band-level modules. */
-      .assignment-panel {
-        border-radius: 0.9rem;
-        gap: 0.35rem;
-        margin-block: 0.35rem;
-        padding: 0.85rem 1rem;
-      }
-
-      .assignment-head {
-        align-items: baseline;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.35rem 0.85rem;
-        justify-content: space-between;
-      }
-
-      .assignment-title {
-        color: var(--ink);
-        font-weight: 700;
-        line-height: 1.3;
-      }
-
-      /* --- finished-course rows ----------------------------------------- */
-
-      .finished-group + .finished-group {
-        margin-top: 2rem;
-      }
-
-      /* The year is the list's own head: a mono subhead on its own dashed
-         rule, so the rows below it read as one dated group. */
-      .finished-year {
-        border-bottom: 1.5px dashed var(--line-soft);
-        color: var(--muted);
-        font-family: var(--font-mono);
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.1em;
-        padding-bottom: 0.6rem;
-        text-transform: uppercase;
-      }
-
-      /* A finished course is one stacked row: the fixed pill-and-actions
-         columns of the shared row left a three-word title wrapping one word
-         per line at the measure, so the row keeps its single track at every
-         width and the state sits on the title line instead. */
-      .course-row {
-        --row-cols: minmax(0, 1fr);
-        gap: 0.2rem;
-        padding-block: 0.65rem 1.1rem;
-      }
-
-      .course-row-head {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.35rem 0.85rem;
-        justify-content: space-between;
-      }
-
-      .course-row-title {
-        font-size: 1.1rem;
-      }
-
-      .course-row-length {
-        color: var(--muted);
-        font-family: var(--font-mono);
-        font-size: 0.78rem;
-      }
-
-      .course-row-description {
-        font-size: 0.95rem;
-        margin-top: 0.3rem;
-      }
-
-      .course-row .card-actions {
-        padding-top: 0.2rem;
-      }
-
-      /* --- narrow layout: reshape, not reflow ---------------------------- */
-
-      @media (max-width: 47.99rem) {
-        /* A card's own action takes the full width on a phone, and the quiet
-           links wrap on the row beneath it. */
-        .active-card .card-actions .cta,
-        .course-card-foot .cta {
-          flex-basis: 100%;
-        }
-
-        .course-card-foot .cta {
-          margin-left: 0;
-          order: -1;
-        }
-      }
-
-      /* ------------------------------------------------------------------ *
-       * Ambitious direction (issue owner's own mockup, mapped onto this
-       * system's tokens rather than its hardcoded hex/Nunito/JetBrains Mono).
-       * Nothing below invents a colour, a font or a number: every fact comes
-       * from the view's real context, and every surface reuses an existing
-       * component (`.stat-tile`, `.status-pill-live`, `.step-number`,
-       * `.faq-fold`) or the documented "featured slab" treatment
-       * (3px ink border, 1.5rem radius, 0.45rem hard shadow) that
-       * `_docs/design/design-system.md` already reserves for one wide,
-       * image-carrying card.
-       * ------------------------------------------------------------------ */
-
-      /* --- hero: live pill, CTAs, stat tiles ----------------------------- */
 
       .hero-live-pill {
-        margin-bottom: 0.25rem;
+        background: var(--mint);
+        border: 1.5px solid var(--green);
+        color: var(--green-text);
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.35rem;
       }
 
       .hero-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
-        margin-top: 0.25rem;
+        gap: 0.85rem;
+        margin-top: 1.7rem;
       }
 
-      .hero-stats {
-        margin-top: 0.5rem;
+      /* The mockup's quiet mono line under the actions. */
+      .hero-fineprint {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        margin-top: 1.1rem;
       }
 
-      /* --- open-registration: the wide featured card ---------------------
-         The mockup's "large featured card, cohort image on the side" is the
-         one element in this redesign genuinely too wide for the 40.5rem
-         reading measure -- a title, a description and an image side by side
-         need more like the shared 76rem shell.  The section's `.course-list`
-         carries `.shell-breakout`, the system's own escape hatch for that
-         ("a genuinely wide element"), rather than widening the whole page. */
+      /* --- hero collage ---------------------------------------------------- */
+
+      /* Four tilted cards, the mockup's mascot wall.  The artwork is the
+         site's own illustration set (light/dark pairs, decorative alt="");
+         the captions underneath are the real family titles from the
+         database, so the wall always names courses that exist. */
+      .hero-collage {
+        display: grid;
+        gap: 1.1rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .hero-collage-card {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 1.25rem;
+        box-shadow: 0 0.35rem 0 var(--shadow-soft);
+        padding: 0.85rem 0.85rem 0.65rem;
+        transform: rotate(-1.6deg);
+      }
+
+      .hero-collage-card:nth-child(2n) {
+        transform: rotate(1.8deg);
+        margin-top: 1.6rem;
+      }
+
+      @media (max-width: 47.99rem) {
+        .hero-collage-card:nth-child(2n) {
+          margin-top: 0.9rem;
+        }
+      }
+
+      .hero-collage-card .doodle {
+        aspect-ratio: 1;
+        height: auto;
+        object-fit: contain;
+        width: 100%;
+      }
+
+      .hero-collage-caption {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.08em;
+        margin: 0.6rem 0.1rem 0.1rem;
+        text-transform: uppercase;
+      }
+
+      /* --- dark facts stripe ------------------------------------------------
+         The mockup's ink band is full-bleed: edge to edge under the hero with
+         its facts grid capped at the shell.  The shared breakout stops at the
+         shell edge, so this section widens its own breakout target to the
+         viewport — the body clips overflow-x — and re-centres the grid. */
+      .courses-stats {
+        background: var(--band-ink-bg);
+        padding: clamp(1.75rem, 3.5vw, 2.75rem) 1rem;
+      }
+
+      .courses-stats.shell-breakout {
+        --breakout-width: 100vw;
+      }
+
+      .courses-stats-grid {
+        display: grid;
+        gap: 1.75rem 2rem;
+        grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+        margin-inline: auto;
+        max-width: var(--shell);
+      }
+
+      .courses-stats strong {
+        color: var(--cream);
+        display: block;
+        font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+
+      body.dark-mode .courses-stats strong {
+        color: var(--ink);
+      }
+
+      .courses-stats span {
+        color: var(--stats-label);
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        letter-spacing: 0.06em;
+        margin-top: 0.3rem;
+        text-transform: uppercase;
+      }
+
+      /* --- catalogue sections ------------------------------------------------ */
+
+      /* The shared band head reserves a second column for an action link;
+         these heads carry only a heading and a mono note, so they take one
+         column and the note rides the heading's own baseline row. */
+      .catalogue-section .band-head,
+      .zoomcamp-steps .band-head,
+      .courses-faq .band-head {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      /* The mockup separates its catalogue sections with air, not rules. */
+      .catalogue-section + .catalogue-section {
+        margin-top: clamp(2.75rem, 5vw, 4.25rem);
+      }
+
+      /* The cream steps band closes the lavender catalogue the way the
+         mockup draws it: the catalogue's own trailing air, then the band
+         seam.  The lavender FAQ band then sits flush against the cream,
+         like the mockup's two lavender bands sandwiching it. */
+      #courses + .zoomcamp-steps {
+        margin-top: clamp(3rem, 5.3vw, 4.75rem);
+      }
+
+      .zoomcamp-steps + .courses-faq {
+        margin-top: 0;
+      }
+
+      /* The facts stripe sits flush under the cream hero band, like the
+         mockup's dark band under its hero, and hands the air it saves to the
+         catalogue below. */
+      .courses-stats {
+        margin-top: -2.25rem;
+        margin-bottom: clamp(2.75rem, 5vw, 4.25rem);
+      }
+
+      /* Unless the Wrapped entry point sits between the seam and the stripe:
+         the stripe then stays in the flow the entry point already opened. */
+      .courses-wrapped + .courses-stats {
+        margin-top: 0;
+      }
+
+      /* Heading and its mono note share one baseline row, as the mockup draws
+         them; below the point where both fit they stack. */
+      .band-head-row {
+        align-items: baseline;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.9rem;
+      }
+
+      .band-head-row h2 {
+        font-size: clamp(1.75rem, 3.4vw, 3rem);
+        letter-spacing: -0.02em;
+      }
+
+      .band-head-note {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+      }
+
+      .band-head .band-head-sub {
+        font-size: 0.95rem;
+        margin-top: 0.6rem;
+        max-width: 44rem;
+      }
+
+      /* --- artwork slots ------------------------------------------------------
+         One treatment everywhere a course has no database-owned artwork: the
+         mockup's own hatched "mascot needed" tile.  A course that gains a
+         campaign hero image drops the hatch automatically. */
+      .mascot-slot {
+        align-items: center;
+        background: repeating-linear-gradient(
+          45deg,
+          var(--card),
+          var(--card) 0.375rem,
+          var(--lavender-deep) 0.375rem,
+          var(--lavender-deep) 0.75rem
+        );
+        border: 2px dashed var(--hatch-line);
+        border-radius: 1.1rem;
+        color: var(--muted);
+        display: flex;
+        justify-content: center;
+        text-align: center;
+      }
+
+      .mascot-slot span {
+        font-family: var(--font-mono);
+        font-size: 0.62rem;
+        letter-spacing: 0.06em;
+        line-height: 1.3;
+        padding: 0.5rem;
+      }
+
+      /* --- open registration: the featured slab ------------------------------- */
+
+      .course-list {
+        display: grid;
+        gap: 1.4rem;
+      }
+
       .open-card {
-        border-width: 3px;
-        border-radius: 1.5rem;
-        box-shadow: 0.45rem 0.45rem 0 var(--shadow-soft);
+        border-radius: 1.375rem;
+        border-width: 2px;
+        box-shadow: 0 0.4rem 0 var(--shadow-soft);
         display: flex;
         flex-direction: row;
         flex-wrap: wrap;
@@ -369,11 +448,53 @@
 
       .open-card-body {
         display: flex;
-        flex: 3 1 22rem;
+        flex: 3 1 24rem;
         flex-direction: column;
-        gap: 0.65rem;
+        gap: 0.7rem;
         min-width: 0;
-        padding: 1.75rem 2rem;
+        padding: clamp(1.4rem, 3vw, 2.25rem);
+      }
+
+      .open-card-head {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 0.8rem;
+      }
+
+      .open-card h3 {
+        font-size: clamp(1.6rem, 2.8vw, 2.25rem);
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        margin-top: 0.2rem;
+      }
+
+      .open-card h3 a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .open-card-body > p {
+        font-size: 1rem;
+        max-width: 52ch;
+      }
+
+      .open-card-facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      /* The comp's fact chips: soft rectangles on the band ground, not pills. */
+      .open-card-facts .chip {
+        background: var(--lavender);
+        border-color: var(--indigo-soft);
+        border-radius: 0.4375rem;
+        font-size: 0.78rem;
+      }
+
+      .chip-live {
+        border-radius: 0.375rem;
       }
 
       .open-card-media {
@@ -381,7 +502,7 @@
         background: var(--lavender);
         border-left: 2px dashed var(--line-soft);
         display: flex;
-        flex: 2 1 14rem;
+        flex: 1 1 15rem;
         justify-content: center;
         min-width: 0;
         padding: 1.5rem;
@@ -401,6 +522,14 @@
         width: 100%;
       }
 
+      .open-card-media .mascot-slot {
+        aspect-ratio: 1;
+        border-radius: 1rem;
+        height: auto;
+        max-width: 16rem;
+        width: 100%;
+      }
+
       @media (max-width: 47.99rem) {
         .open-card-media {
           border-left: 0;
@@ -408,27 +537,304 @@
         }
       }
 
-      .open-card-facts {
+      /* --- running now: horizontal cards -------------------------------------- */
+
+      .active-card {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 1.25rem;
+        padding: 1.4rem;
+      }
+
+      .active-card[role="link"] {
+        cursor: pointer;
+      }
+
+      .active-card-media {
+        display: flex;
+        flex: none;
+        height: 8.5rem;
+        width: 8.5rem;
+      }
+
+      .active-card-media img,
+      .selfpaced-card-media img {
+        background: var(--lavender);
+        border: 2px solid var(--line);
+        border-radius: 1.1rem;
+        height: 100%;
+        object-fit: cover;
+        object-position: left center;
+        width: 100%;
+      }
+
+      .active-card-media .mascot-slot,
+      .selfpaced-card-media .mascot-slot {
+        height: 100%;
+        width: 100%;
+      }
+
+      .active-card-info {
+        display: grid;
+        flex: 1 1 24rem;
+        gap: 0.55rem;
+        min-width: 0;
+      }
+
+      .active-card-info h3 {
+        font-size: clamp(1.4rem, 2.2vw, 1.75rem);
+        letter-spacing: -0.015em;
+      }
+
+      .active-card-info h3 a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .active-card-info > p {
+        font-size: 0.97rem;
+        max-width: 64ch;
+      }
+
+      .active-card-progress {
+        align-items: center;
+        color: var(--green-text);
+        display: flex;
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        font-weight: 700;
+        gap: 0.45rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .active-card-when {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+      }
+
+      .active-card-side {
+        align-content: start;
+        display: flex;
+        flex: 1 1 17rem;
+        flex-direction: column;
+        gap: 0.9rem;
+        min-width: 0;
+      }
+
+      /* --- next assignment panel ---------------------------------------------- */
+
+      /* A full-width strip inside the card's side column, sized to the card
+         rather than to a band: the shared .panel inset is for band-level
+         modules. */
+      .assignment-panel {
+        background: var(--mint);
+        border: 1.5px solid var(--panel-line);
+        border-radius: 0.75rem;
+        gap: 0.35rem;
+        margin-block: 0;
+        padding: 0.85rem 1rem;
+      }
+
+      .assignment-head {
+        align-items: baseline;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        gap: 0.35rem 0.85rem;
+        justify-content: space-between;
       }
 
-      /* --- active band: the "running now" pill ---------------------------
-         Independent of the viewer's own enrolment state (`index_enrolled_state`
-         stays empty for a signed-out reader), so every card in the active band
-         carries this regardless of who is looking. */
-      .status-pill-live.card-live-pill {
-        margin-right: 0.1rem;
+      .assignment-title {
+        color: var(--ink);
+        font-weight: 700;
+        line-height: 1.3;
       }
 
-      /* --- how a zoomcamp works ------------------------------------------- */
+      /* --- actions ------------------------------------------------------------- */
+
+      /* Every surface ends with one action row: the surface's own destination
+         first, then the quiet links.  The row pins to the card foot. */
+      .card-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.25rem;
+        margin-top: auto;
+        padding-top: 0.35rem;
+      }
+
+      .row-action {
+        align-items: center;
+        color: var(--indigo);
+        display: inline-flex;
+        font-size: 0.9rem;
+        font-weight: 600;
+        min-height: 2.75rem;
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .course-card-registered {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      /* --- wrapped entry point ------------------------------------------ */
+
+      /* This band holds nothing but its head, so the head keeps the band's own
+         padding instead of adding its usual gap to the section below it. */
+      .courses-wrapped .band-head {
+        margin-bottom: 0;
+      }
+
+      /* The action is the band's only control: it stays its own width and sits
+         on the middle of the heading block rather than stretching down it. */
+      .courses-wrapped-action {
+        align-self: center;
+        justify-self: start;
+      }
+
+      /* --- self-paced: cream cards ---------------------------------------------- */
+
+      /* Finished families stay public, so their band is the mockup's
+         "Self-paced anytime": warm cards on the lavender ground. */
+      .selfpaced-card {
+        align-items: flex-start;
+        background: var(--cream);
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 1.1rem 1.4rem;
+        padding: 1.4rem;
+      }
+
+      .selfpaced-card-media {
+        display: flex;
+        flex: none;
+        height: 6.5rem;
+        width: 6.5rem;
+      }
+
+      .selfpaced-card-media img {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 1rem;
+        height: 100%;
+        object-fit: cover;
+        object-position: left center;
+        width: 100%;
+      }
+
+      .selfpaced-card-body {
+        display: grid;
+        flex: 1 1 22rem;
+        gap: 0.55rem;
+        min-width: 0;
+      }
+
+      .selfpaced-card-body h3 {
+        font-size: clamp(1.3rem, 2vw, 1.6rem);
+        letter-spacing: -0.015em;
+      }
+
+      .selfpaced-card-body h3 a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .selfpaced-card-head {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 0.7rem;
+      }
+
+      /* The SELF-PACED pill: a lavender-deep chip with an ink border, the
+         mockup's own quiet badge for this band. */
+      .selfpaced-pill {
+        background: var(--lavender-deep);
+        border: 1.5px solid var(--line);
+        border-radius: 0.375rem;
+        color: var(--ink);
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        padding: 0.25rem 0.55rem;
+        text-transform: uppercase;
+      }
+
+      .selfpaced-card-body > p {
+        font-size: 0.95rem;
+        max-width: 62ch;
+      }
+
+      .selfpaced-card-actions {
+        align-items: center;
+        align-self: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem 1.1rem;
+      }
+
+      /* --- keyboard-reachable whole cards ---------------------------------------- */
+
+      .course-card[role="link"],
+      .active-card[role="link"] {
+        cursor: pointer;
+      }
+
+      .course-card[role="link"]:focus-visible,
+      .active-card[role="link"]:focus-visible {
+        outline: 3px solid var(--ink);
+        outline-offset: 4px;
+      }
+
+      /* --- narrow layout: reshape, not reflow ------------------------------------- */
+
+      @media (max-width: 47.99rem) {
+        .active-card .card-actions .cta,
+        .open-card .card-actions .cta {
+          flex-basis: 100%;
+        }
+      }
+
+      /* --- how a zoomcamp works ----------------------------------------------------
+         The mockup draws the four steps as one row of numbered columns, each
+         opened by a heavy ink rule and a green mono index.  The band itself
+         returns to cream, the same alternation the mockup draws between the
+         lavender catalogue and the lavender FAQ. */
+
+      /* The mockup draws this band full-bleed: edge-to-edge cream between the
+         two lavender bands, its columns still capped at the shell — the same
+         widening the facts stripe uses. */
+      .zoomcamp-steps.shell-breakout {
+        --breakout-width: 100vw;
+        background: var(--cream);
+        /* 100vw leaves the shell's own inline padding behind; the facts
+           stripe carries it back the same way, so the columns keep a
+           gutter on narrow viewports where the shell cap never binds. */
+        padding-inline: 1rem;
+        padding-block: clamp(2.25rem, 5.6vw, 5rem);
+      }
+
+      .zoomcamp-steps.shell-breakout .band-head,
+      .zoomcamp-steps .step-grid {
+        margin-inline: auto;
+        max-width: var(--shell);
+      }
+
+      .zoomcamp-steps.shell-breakout .band-head {
+        margin-bottom: 0;
+      }
 
       .step-grid {
         display: grid;
         gap: 1.5rem 2rem;
         grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-        margin-top: 0.5rem;
+        margin-top: 2rem;
       }
 
       .step {
@@ -438,40 +844,82 @@
         padding-top: 1rem;
       }
 
+      .step-no {
+        color: var(--green-text);
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+
       .step h3 {
-        font-size: 1.05rem;
+        font-size: 1.15rem;
       }
 
       .step p {
         color: var(--body-text);
-        font-size: 0.9rem;
+        font-size: 0.92rem;
       }
 
-      /* --- FAQ -------------------------------------------------------------
-         Two columns once the shell has room; the shared `.faq-fold` component
-         (already used by the article and course-FAQ surfaces) supplies the
-         disclosure behaviour and the dashed top rule. */
+      /* The FAQ is the mockup's second lavender band: a full-bleed surface
+         seated flush under the cream steps band, with the band's own air
+         around the shell-capped answers. */
+      .courses-faq.shell-breakout {
+        --breakout-width: 100vw;
+        background: var(--lavender);
+        padding-inline: 1rem;
+        padding-block: clamp(3.5rem, 5.4vw, 4.75rem) 3rem;
+      }
+
+      .courses-faq.shell-breakout .band-head,
+      .courses-faq.shell-breakout .faq-grid,
+      .courses-faq.shell-breakout .faq-note {
+        margin-inline: auto;
+        max-width: var(--shell);
+      }
+
+      /* --- FAQ ------------------------------------------------------------------------
+     The mockup shows the answers: two columns of question-and-answer pairs
+     divided by a thin rule, not disclosures. */
       .faq-grid {
         display: grid;
         gap: 0 3rem;
-        margin-top: 0.5rem;
+        margin-top: 1.5rem;
       }
 
-      .faq-note {
-        margin-top: 1.5rem;
+      .faq-item {
+        border-top: 1px solid var(--line-soft);
+        display: grid;
+        gap: 0.5rem;
+        padding: 1.35rem 0;
+      }
+
+      .faq-item h3 {
+        font-size: 1.15rem;
+        letter-spacing: -0.01em;
+        text-wrap: pretty;
+      }
+
+      .faq-item p {
+        color: var(--body-text);
+        font-size: 0.95rem;
+        line-height: 1.6;
+        text-wrap: pretty;
       }
 
       @media (min-width: 48rem) {
         .faq-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
+      }
 
-        /* The second column's first fold sits beside the first column's, so
-           it keeps no top rule either -- the pair of folds reads as one row,
-           not as a stray rule floating above only one of them. */
-        .faq-grid .faq-fold:nth-child(2) {
-          border-top: 0;
-        }
+      .faq-note {
+        margin-top: 1.5rem;
+      }
+
+      /* The mockup's ink CTA band keeps the same deep air as its other
+         full-bleed bands. */
+      .band-ink {
+        padding-block: 3.75rem;
       }
 {% endblock %}
 
@@ -483,40 +931,66 @@
 {% endblock %}
 
 {% block page_header %}
-        <div class="courses-hero-grid">
-          {% if home_stats.active_courses %}
-            <span class="status-pill status-pill-live hero-live-pill">
-              <span class="status-dot status-dot-pulse" aria-hidden="true"></span>{{ home_stats.active_courses }} cohort{{ home_stats.active_courses|pluralize }} running now
-            </span>
+        <div class="courses-hero-grid shell-breakout">
+          <div class="courses-hero-intro">
+            {% if home_stats.active_courses %}
+              <span class="status-pill status-pill-live hero-live-pill">
+                <span class="status-dot status-dot-pulse" aria-hidden="true"></span>{{ home_stats.active_courses }} cohort{{ home_stats.active_courses|pluralize }} running now
+              </span>
+            {% endif %}
+            <h1 id="courses-hero-heading">Learn data skills. For free. Together.</h1>
+            <p class="courses-lede">
+              Community-created zoomcamps with real projects, weekly deadlines and
+              thousands of classmates doing the homework at the same time as you.
+            </p>
+            <div class="hero-actions">
+              {% if hero_register_url %}
+                <a class="cta cta-primary interactive-lift" href="{{ hero_register_url }}">Register for the next cohort</a>
+              {% else %}
+                <a class="cta cta-primary interactive-lift" href="#courses">Explore the courses</a>
+              {% endif %}
+              <a class="cta cta-secondary interactive-lift" href="{% url 'slack' %}">Join the community →</a>
+            </div>
+            <p class="hero-fineprint">no payment · no application · join mid-cohort</p>
+          </div>
+          {% if hero_collage %}
+            <div class="hero-collage" aria-hidden="true">
+              {% for mascot in hero_collage %}
+                <div class="hero-collage-card">
+                  <span class="doodle-variants">
+                    {% if mascot.illustration == "reading" %}
+                      {% static "core/illustrations/course-learning.webp" as collage_light %}
+                      {% static "core/illustrations/course-learning-dark.webp" as collage_dark %}
+                    {% elif mascot.illustration == "pipeline" %}
+                      {% static "core/illustrations/home-step-2.webp" as collage_light %}
+                      {% static "core/illustrations/home-step-2-dark.webp" as collage_dark %}
+                    {% elif mascot.illustration == "shipping" %}
+                      {% static "core/illustrations/home-step-3.webp" as collage_light %}
+                      {% static "core/illustrations/home-step-3-dark.webp" as collage_dark %}
+                    {% else %}
+                      {% static "core/illustrations/home-hero.webp" as collage_light %}
+                      {% static "core/illustrations/home-hero-dark.webp" as collage_dark %}
+                    {% endif %}
+                    <img
+                      class="doodle doodle-light"
+                      src="{{ collage_light }}"
+                      alt=""
+                      decoding="async"
+                      loading="eager"
+                    >
+                    <img
+                      class="doodle doodle-dark"
+                      src="{{ collage_dark }}"
+                      alt=""
+                      decoding="async"
+                      loading="eager"
+                    >
+                  </span>
+                  <p class="hero-collage-caption">{{ mascot.title }}</p>
+                </div>
+              {% endfor %}
+            </div>
           {% endif %}
-          <h1 id="courses-hero-heading">Learn data skills. For free. Together.</h1>
-          <p class="courses-lede">
-            Community-created courses with practical homework, real projects, public
-            leaderboards and peer review. Join a cohort for the deadlines and the
-            classmates.
-          </p>
-          <div class="hero-actions">
-            <a class="cta cta-primary interactive-lift" href="#courses">Explore the courses</a>
-            <a class="cta cta-secondary interactive-lift" href="#how-it-works">How it works</a>
-          </div>
-          <div class="stat-tiles hero-stats">
-            <div class="stat-tile">
-              <strong>{{ course_family_count }}</strong>
-              <span>zoomcamp{{ course_family_count|pluralize }}</span>
-            </div>
-            <div class="stat-tile">
-              <strong>{{ home_stats.homeworks }}</strong>
-              <span>homework assignments</span>
-            </div>
-            <div class="stat-tile">
-              <strong>{{ home_stats.projects }}</strong>
-              <span>capstone projects</span>
-            </div>
-            <div class="stat-tile">
-              <strong>Free</strong>
-              <span>every video, every homework — no cost</span>
-            </div>
-          </div>
         </div>
 {% endblock %}
 
@@ -543,91 +1017,35 @@
           </div>
         </section>
       {% endif %}
-      <div id="courses">
-          <section class="courses-active" aria-labelledby="active-heading">
-            <div class="band-head">
-              <div>
-                <h2 id="active-heading">
-                  <span class="status-dot status-dot-pulse live-dot" aria-hidden="true"></span>Active now — you can still join
-                </h2>
-                <p>
-                  These cohorts are running right now. Join one, catch up on the recordings
-                  and submit the next homework with everyone else.
-                </p>
-              </div>
+      <section class="courses-stats shell-breakout" aria-label="Courses in numbers">
+        <div class="courses-stats-grid">
+          <div>
+            <strong>{{ course_family_count }}</strong>
+            <span>zoomcamps</span>
+          </div>
+          {% if total_open_registration_count %}
+            <div>
+              <strong>{{ total_open_registration_count|thousands }}</strong>
+              <span>registered for the open cohorts</span>
             </div>
-            {% if active_courses %}
-              <div class="course-list">
-                {% for card in active_course_cards %}
-                    {% comment %}
-                      One column at reading width: run facts (dates, enrolment) in the
-                      head row, the title as the link, the description, the deadline
-                      panel, and the actions last.  The band heading already announces
-                      the active state, so the card repeats no "active" pill.
-                    {% endcomment %}
-                    {% url 'course_family' card.family.slug as family_url %}
-                    {% url 'cohort' card.family.slug card.cohort.identifier as edition_url %}
-                    <article class="card active-card interactive-card interactive-lift"
-                             role="link"
-                             tabindex="0"
-                             onclick="if (!event.target.closest('a, button')) window.location.href='{{ edition_url }}'"
-                             onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{{ edition_url }}'; }">
-                      <div class="course-card-head">
-                        {% comment %}
-                          Unconditional: unlike index_enrolled_state (which is
-                          this viewer's own enrolment and stays empty for a
-                          signed-out reader), every card in this band is a
-                          cohort that is genuinely running right now.
-                        {% endcomment %}
-                        <span class="status-pill status-pill-live card-live-pill">cohort running</span>
-                        {% if card.cohort.index_when %}
-                          <span class="mono-note">{{ card.cohort.index_when }}</span>
-                        {% endif %}
-                        {% if card.cohort.index_enrolled_state %}
-                          <span class="status-pill">{{ card.cohort.index_enrolled_state }}</span>
-                        {% endif %}
-                      </div>
-                      <h3>
-                        <a href="{{ edition_url }}">{{ card.title }}</a>
-                      </h3>
-                      {% if card.outcome %}
-                        <p>{{ card.outcome }}</p>
-                      {% endif %}
-                      {% if card.cohort.home_current_assignment %}
-                        <div class="panel panel-mint panel-outlined assignment-panel">
-                          <div class="assignment-head">
-                            <span class="mono-label mono-label-green">{{ card.cohort.home_current_assignment_label }}</span>
-                            <span class="mono-note">due {{ card.cohort.home_current_assignment.due_date|user_datetime:request }}</span>
-                          </div>
-                          <span class="assignment-title">{{ card.cohort.home_current_assignment.label }}: {{ card.cohort.home_current_assignment.title }}</span>
-                        </div>
-                      {% endif %}
-                      <div class="card-actions">
-                        <a class="cta cta-secondary cta-compact interactive-lift" href="{{ edition_url }}">{{ card.edition_label }} · {{ card.cohort.identifier }} →</a>
-                        <a class="row-action" href="{{ family_url }}">All editions</a>
-                        {% if card.github_repo_url %}
-                          <a class="row-action" href="{{ card.github_repo_url }}">GitHub</a>
-                        {% endif %}
-                      </div>
-                    </article>
-                {% endfor %}
-              </div>
-            {% else %}
-              <p class="band-note">No active courses right now.</p>
-            {% endif %}
-        </section>
+          {% endif %}
+          <div>
+            <strong>€0</strong>
+            <span>now and always</span>
+          </div>
+          <div>
+            <strong>100%</strong>
+            <span>materials public on GitHub</span>
+          </div>
+        </div>
+      </section>
+      <div id="courses">
         {% if open_registration_courses %}
-          <section class="courses-open" aria-labelledby="open-heading">
+          <section class="catalogue-section courses-open shell-breakout" aria-labelledby="open-heading">
             <div class="band-head">
-              <div>
-                <h2 id="open-heading">Open registration</h2>
-                <p>
-                  These cohorts have not started yet. Register now and you get the schedule,
-                  the Slack channel and homework reminders.
-                  {% if total_open_registration_count %}
-                    {{ total_open_registration_count }} people have already registered.
-                  {% endif %}
-                </p>
+              <div class="band-head-row">
+                <h2 id="open-heading">Registration open</h2>
+                <span class="band-head-note">the next cohort you can start from day one</span>
               </div>
             </div>
             {% comment %}
@@ -638,7 +1056,7 @@
               invented one.  See `.open-card` in page_styles for why it
               breaks out of the reading measure.
             {% endcomment %}
-            <div class="course-list open-registration-list shell-breakout">
+            <div class="course-list open-registration-list">
               {% for card in open_registration_course_cards %}
                   {% url 'course_family' card.family.slug as family_url %}
                   {% url 'cohort' card.family.slug card.cohort.identifier as edition_url %}
@@ -649,8 +1067,8 @@
                              onclick="if (!event.target.closest('a, button')) window.location.href='{{ family_url }}'"
                              onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{{ family_url }}'; }">
                       <div class="open-card-body">
-                        <div class="course-card-head">
-                          <span class="status-pill status-pill-open">registration open</span>
+                        <div class="open-card-head">
+                          <span class="chip chip-live">registration open</span>
                           {% if card.cohort.index_dates %}
                             <span class="mono-note">{{ card.cohort.index_dates }}</span>
                           {% endif %}
@@ -661,19 +1079,17 @@
                         {% if card.outcome %}
                           <p>{{ card.outcome }}</p>
                         {% endif %}
-                        {% if card.cohort.index_length %}
+                        {% if card.cohort.index_length or card.cohort.index_registered %}
                           <div class="open-card-facts">
-                            <span class="chip chip-plain">{{ card.cohort.index_length }}</span>
+                            {% if card.cohort.index_length %}
+                              <span class="chip chip-plain">{{ card.cohort.index_length }}</span>
+                            {% endif %}
+                            {% if card.cohort.index_registered %}
+                              <span class="chip chip-plain">{{ card.cohort.index_registered|thousands }} registered</span>
+                            {% endif %}
                           </div>
                         {% endif %}
-                        <div class="card-actions course-card-foot">
-                          <a class="row-action" href="{{ edition_url }}">{{ card.edition_label }} · {{ card.cohort.identifier }} →</a>
-                          {% if card.github_repo_url %}
-                            <a class="row-action" href="{{ card.github_repo_url }}">GitHub</a>
-                          {% endif %}
-                          {% if card.cohort.index_registered %}
-                            <span class="course-card-registered">{{ card.cohort.index_registered }} registered</span>
-                          {% endif %}
+                        <div class="card-actions">
                           {% comment %}
                             Registration happens on this site.  A card offers it only when a
                             campaign promotes that edition; the CMP ``registration_url`` this
@@ -683,187 +1099,246 @@
                           {% if card.cohort.registration_campaign and not card.cohort.is_enrolled and not card.cohort.is_registered %}
                             <a class="cta cta-primary cta-compact interactive-lift" href="{% url 'registration_campaign' card.cohort.registration_campaign.slug %}">Register</a>
                           {% endif %}
+                          <a class="row-action" href="{{ edition_url }}">{{ card.edition_label }} · {{ card.cohort.identifier }} →</a>
+                          {% if card.github_repo_url %}
+                            <a class="row-action" href="{{ card.github_repo_url }}">GitHub</a>
+                          {% endif %}
                         </div>
                       </div>
-                      {% if campaign.hero_image_url %}
-                        <div class="open-card-media">
+                      <div class="open-card-media">
+                        {% if campaign.hero_image_url %}
                           <img src="{{ campaign.hero_image_url }}" alt="" loading="lazy" decoding="async">
-                        </div>
-                      {% endif %}
+                        {% else %}
+                          <div class="mascot-slot" aria-hidden="true">
+                            <span>mascot needed</span>
+                          </div>
+                        {% endif %}
+                      </div>
                     </article>
                   {% endwith %}
               {% endfor %}
             </div>
           </section>
         {% endif %}
-        {% if archive_groups %}
-          <section class="courses-finished" aria-labelledby="finished-heading">
+        <section class="catalogue-section courses-active shell-breakout" aria-labelledby="active-heading">
+          <div class="band-head">
+            <div class="band-head-row">
+              <h2 id="active-heading">Running now — you can still join</h2>
+              <span class="band-head-note">catch up on recordings, submit the next homework</span>
+            </div>
+            <p class="band-head-sub">
+              These cohorts are running right now. Join one, catch up on the recordings
+              and submit the next homework with everyone else.
+            </p>
+          </div>
+          {% if active_courses %}
+            <div class="course-list courses-active-list">
+              {% for card in active_course_cards %}
+                  {% url 'course_family' card.family.slug as family_url %}
+                  {% url 'cohort' card.family.slug card.cohort.identifier as edition_url %}
+                  <article class="card active-card interactive-card interactive-lift"
+                           role="link"
+                           tabindex="0"
+                           onclick="if (!event.target.closest('a, button')) window.location.href='{{ edition_url }}'"
+                           onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{{ edition_url }}'; }">
+                    <div class="active-card-media">
+                      {% with campaign=card.cohort.registration_campaign %}
+                        {% if campaign.hero_image_url %}
+                          <img src="{{ campaign.hero_image_url }}" alt="" loading="lazy" decoding="async">
+                        {% else %}
+                          <div class="mascot-slot" aria-hidden="true">
+                            <span>mascot needed</span>
+                          </div>
+                        {% endif %}
+                      {% endwith %}
+                    </div>
+                    <div class="active-card-info">
+                      {% comment %}
+                        Unconditional: unlike index_enrolled_state (which is
+                        this viewer's own enrolment and stays empty for a
+                        signed-out reader), every card in this band is a
+                        cohort that is genuinely running right now.
+                      {% endcomment %}
+                      <span class="active-card-progress">
+                        <span class="status-dot status-dot-pulse" aria-hidden="true"></span>in progress
+                      </span>
+                      <h3>
+                        <a href="{{ edition_url }}">{{ card.title }}</a>
+                      </h3>
+                      {% if card.cohort.index_when %}
+                        <span class="active-card-when">{{ card.cohort.index_when }}</span>
+                      {% endif %}
+                      {% if card.outcome %}
+                        <p>{{ card.outcome }}</p>
+                      {% endif %}
+                      {% if card.cohort.index_enrolled_state %}
+                        <span class="status-pill">{{ card.cohort.index_enrolled_state }}</span>
+                      {% endif %}
+                    </div>
+                    <div class="active-card-side">
+                      {% if card.cohort.home_current_assignment %}
+                        <div class="panel panel-mint panel-outlined assignment-panel">
+                          <div class="assignment-head">
+                            <span class="mono-label mono-label-green">{{ card.cohort.home_current_assignment_label }}</span>
+                            <span class="mono-note">due {{ card.cohort.home_current_assignment.due_date|user_datetime:request }}</span>
+                          </div>
+                          <span class="assignment-title">{{ card.cohort.home_current_assignment.label }}: {{ card.cohort.home_current_assignment.title }}</span>
+                        </div>
+                      {% endif %}
+                      <div class="card-actions">
+                        <a class="cta cta-secondary cta-compact interactive-lift" href="{{ edition_url }}">Join the cohort →</a>
+                        <a class="row-action" href="{{ family_url }}">All editions</a>
+                        {% if card.github_repo_url %}
+                          <a class="row-action" href="{{ card.github_repo_url }}">GitHub</a>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </article>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="band-note">No active courses right now.</p>
+          {% endif %}
+        </section>
+        {% if finished_course_cards %}
+          <section class="catalogue-section courses-finished shell-breakout" id="selfpaced" aria-labelledby="finished-heading">
             <div class="band-head">
-              <div>
-                <h2 id="finished-heading">Finished courses</h2>
-                <p>
-                  These cohorts have ended, and everything they produced stays public:
-                  videos, homework and solutions. There is nothing left to register for.
-                </p>
+              <div class="band-head-row">
+                <h2 id="finished-heading">Self-paced anytime</h2>
+                <span class="band-head-note">finished cohorts — videos, homework and solutions stay public</span>
               </div>
             </div>
-            {% for group in archive_groups %}
-              <section class="finished-group" aria-labelledby="finished-{{ group.year|slugify }}">
-                <h3 class="finished-year" id="finished-{{ group.year|slugify }}">{{ group.year }}</h3>
-                <div class="row-list">
-                  {% for card in group.courses %}
-                      {% comment %}
-                        One stacked row per family: the title line carries the
-                        state, then the length, the outcome, and the same action
-                        row the cards end with.
-                      {% endcomment %}
-                      {% url 'course_family' card.family.slug as family_url %}
-                      {% url 'cohort' card.family.slug card.cohort.identifier as edition_url %}
-                      <div class="list-row course-row">
-                        <div class="course-row-head">
-                          <h4 class="course-row-title">
-                            <a href="{{ edition_url }}">{{ card.title }}</a>
-                          </h4>
-                          {% if card.cohort.is_enrolled %}
-                            <span class="status-pill">enrolled</span>
-                          {% else %}
-                            <span class="status-pill status-pill-wait">finished</span>
-                          {% endif %}
-                        </div>
+            <div class="course-list">
+              {% for card in finished_course_cards %}
+                  {% comment %}
+                    One warm row per family: the latest finished edition is the
+                    route the card names, and everything the cohort produced
+                    stays public.
+                  {% endcomment %}
+                  {% url 'course_family' card.family.slug as family_url %}
+                  {% url 'cohort' card.family.slug card.cohort.identifier as edition_url %}
+                  <div class="card selfpaced-card">
+                    <div class="selfpaced-card-media">
+                      {% with campaign=card.cohort.registration_campaign %}
+                        {% if campaign.hero_image_url %}
+                          <img src="{{ campaign.hero_image_url }}" alt="" loading="lazy" decoding="async">
+                        {% else %}
+                          <div class="mascot-slot" aria-hidden="true">
+                            <span>mascot needed</span>
+                          </div>
+                        {% endif %}
+                      {% endwith %}
+                    </div>
+                    <div class="selfpaced-card-body">
+                      <div class="selfpaced-card-head">
+                        <span class="selfpaced-pill">self-paced</span>
                         {% if card.cohort.index_length %}
-                          <p class="course-row-length">{{ card.cohort.index_length }}</p>
+                          <span class="mono-note">{{ card.cohort.index_length }}</span>
                         {% endif %}
-                        {% if card.outcome %}
-                          <p class="course-row-description">{{ card.outcome }}</p>
-                        {% endif %}
-                        <div class="card-actions">
-                          <a class="row-action" href="{{ edition_url }}">{{ card.edition_label }} · {{ card.cohort.identifier }} →</a>
-                          <a class="row-action" href="{{ family_url }}">All editions</a>
-                          {% if card.github_repo_url %}
-                            <a class="row-action" href="{{ card.github_repo_url }}">GitHub</a>
-                          {% endif %}
-                        </div>
                       </div>
-                  {% endfor %}
-                </div>
-              </section>
-            {% endfor %}
+                      <h3>
+                        <a href="{{ edition_url }}">{{ card.title }}</a>
+                      </h3>
+                      {% if card.outcome %}
+                        <p>{{ card.outcome }}</p>
+                      {% endif %}
+                    </div>
+                    <div class="selfpaced-card-actions">
+                      <a class="cta cta-secondary cta-compact interactive-lift" href="{{ edition_url }}">Start now →</a>
+                      <a class="row-action" href="{{ family_url }}">All editions</a>
+                      {% if card.github_repo_url %}
+                        <a class="row-action" href="{{ card.github_repo_url }}">GitHub</a>
+                      {% endif %}
+                    </div>
+                  </div>
+              {% endfor %}
+            </div>
           </section>
         {% endif %}
       </div>
-      <section class="zoomcamp-steps" aria-labelledby="how-it-works-heading" id="how-it-works">
+      <section class="zoomcamp-steps shell-breakout" aria-labelledby="how-it-works-heading" id="how-it-works">
         <div class="band-head">
-          <div>
+          <div class="band-head-row">
             <h2 id="how-it-works-heading">How a zoomcamp works</h2>
-            <p>
-              The same rhythm in every course, whether you join a live cohort or
-              work through it on your own.
-            </p>
           </div>
+          <p class="band-head-sub">
+            The same rhythm in every course, whether you join a live cohort or
+            work through it on your own.
+          </p>
         </div>
         <div class="step-grid">
           <div class="step">
-            <span class="step-number" aria-hidden="true">1</span>
+            <span class="step-no" aria-hidden="true">01</span>
             <h3>Register, free</h3>
             <p>One form gets you the schedule, the Slack channel and homework reminders.</p>
           </div>
           <div class="step">
-            <span class="step-number step-number-2" aria-hidden="true">2</span>
+            <span class="step-no" aria-hidden="true">02</span>
             <h3>Watch and build weekly</h3>
             <p>Pre-recorded modules plus live office hours, at whatever pace you can keep.</p>
           </div>
           <div class="step">
-            <span class="step-number step-number-3" aria-hidden="true">3</span>
+            <span class="step-no" aria-hidden="true">03</span>
             <h3>Submit homework</h3>
             <p>Auto-graded answers, a public leaderboard, and deadlines that keep you honest.</p>
           </div>
           <div class="step">
-            <span class="step-number" aria-hidden="true">4</span>
+            <span class="step-no" aria-hidden="true">04</span>
             <h3>Ship a project</h3>
             <p>A peer-reviewed capstone and a certificate of completion for your portfolio.</p>
           </div>
         </div>
       </section>
-      <section class="courses-faq" aria-labelledby="courses-faq-heading">
+      <section class="courses-faq shell-breakout" aria-labelledby="courses-faq-heading">
         <div class="band-head">
-          <div>
+          <div class="band-head-row">
             <h2 id="courses-faq-heading">Questions people ask first</h2>
           </div>
         </div>
         <div class="faq-grid">
-          <details class="faq-fold" id="faq-free">
-            <summary class="faq-fold-summary">
-              <h3 class="faq-question-title">Is it really free?</h3>
-              <span class="faq-fold-marker" aria-hidden="true"></span>
-            </summary>
-            <div class="faq-answer">
-              <p>
-                Yes. Every video, homework and solution stays public — there is nothing
-                to pay and nothing to upsell.
-              </p>
-            </div>
-          </details>
-          <details class="faq-fold" id="faq-join-late">
-            <summary class="faq-fold-summary">
-              <h3 class="faq-question-title">Can I join after a cohort starts?</h3>
-              <span class="faq-fold-marker" aria-hidden="true"></span>
-            </summary>
-            <div class="faq-answer">
-              <p>
-                Yes, while it is still running. Catch up on the recordings and submit
-                whatever homework is still open.
-              </p>
-            </div>
-          </details>
-          <details class="faq-fold" id="faq-time">
-            <summary class="faq-fold-summary">
-              <h3 class="faq-question-title">How much time do I need?</h3>
-              <span class="faq-fold-marker" aria-hidden="true"></span>
-            </summary>
-            <div class="faq-answer">
-              <p>
-                Enough for the weekly videos plus hands-on practice. Most people do it
-                alongside a full-time job — each course's own syllabus lays out its pace.
-              </p>
-            </div>
-          </details>
-          <details class="faq-fold" id="faq-prerequisites">
-            <summary class="faq-fold-summary">
-              <h3 class="faq-question-title">What should I know beforehand?</h3>
-              <span class="faq-fold-marker" aria-hidden="true"></span>
-            </summary>
-            <div class="faq-answer">
-              <p>
-                Comfort with Python and the command line goes a long way. Each course
-                page lists its exact prerequisites.
-              </p>
-            </div>
-          </details>
-          <details class="faq-fold" id="faq-certificate">
-            <summary class="faq-fold-summary">
-              <h3 class="faq-question-title">Do I get a certificate?</h3>
-              <span class="faq-fold-marker" aria-hidden="true"></span>
-            </summary>
-            <div class="faq-answer">
-              <p>
-                Finish the homework and pass the peer-reviewed project, and you earn a
-                certificate of completion.
-              </p>
-            </div>
-          </details>
-          <details class="faq-fold" id="faq-which-course">
-            <summary class="faq-fold-summary">
-              <h3 class="faq-question-title">Which course should I start with?</h3>
-              <span class="faq-fold-marker" aria-hidden="true"></span>
-            </summary>
-            <div class="faq-answer">
-              <p>
-                Switching into data? Start with Data Engineering Zoomcamp or Machine
-                Learning Zoomcamp. Already shipping models? Try MLOps Zoomcamp or LLM
-                Zoomcamp.
-              </p>
-            </div>
-          </details>
+          <div class="faq-item">
+            <h3>Is it really free?</h3>
+            <p>
+              Yes. Every video, homework and solution stays public — there is nothing
+              to pay and nothing to upsell.
+            </p>
+          </div>
+          <div class="faq-item">
+            <h3>Can I join after a cohort starts?</h3>
+            <p>
+              Yes, while it is still running. Catch up on the recordings and submit
+              whatever homework is still open.
+            </p>
+          </div>
+          <div class="faq-item">
+            <h3>How much time do I need?</h3>
+            <p>
+              Enough for the weekly videos plus hands-on practice. Most people do it
+              alongside a full-time job — each course's own syllabus lays out its pace.
+            </p>
+          </div>
+          <div class="faq-item">
+            <h3>What should I know beforehand?</h3>
+            <p>
+              Comfort with Python and the command line goes a long way. Each course
+              page lists its exact prerequisites.
+            </p>
+          </div>
+          <div class="faq-item">
+            <h3>Do I get a certificate?</h3>
+            <p>
+              Finish the homework and pass the peer-reviewed project, and you earn a
+              certificate of completion.
+            </p>
+          </div>
+          <div class="faq-item">
+            <h3>Which course should I start with?</h3>
+            <p>
+              Switching into data? Start with Data Engineering Zoomcamp or Machine
+              Learning Zoomcamp. Already shipping models? Try MLOps Zoomcamp or LLM
+              Zoomcamp.
+            </p>
+          </div>
         </div>
         <p class="faq-note">
           Still unsure? <a class="band-link" href="{% url 'slack' %}">Join the community Slack</a>
