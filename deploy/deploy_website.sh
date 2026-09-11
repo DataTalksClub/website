@@ -164,6 +164,8 @@ WEB_SOURCE="$(jq -er '.services[0].taskDefinition' "$WORKDIR/service.json")"
 WORKER_SOURCE="$(jq -er '.services[1].taskDefinition' "$WORKDIR/service.json")"
 
 echo "Capturing the redacted recovery receipt before any mutation: ${RECEIPT}"
+# CONTROLLER_SHA/DEV_RUN_ID are the promotion's provenance bindings (REL-07);
+# the production workflow exports both, a local orchestrator run may omit them.
 python3 "$(dirname "$0")/recovery_receipt.py" capture \
   --target "$TARGET" \
   --cluster "$CLUSTER" \
@@ -171,6 +173,8 @@ python3 "$(dirname "$0")/recovery_receipt.py" capture \
   --version "$VERSION" \
   --source-sha "$SOURCE_SHA" \
   --image "$IMAGE" \
+  --controller-sha "${CONTROLLER_SHA:-}" \
+  --dev-run-id "${DEV_RUN_ID:-}" \
   --service "$WEB_SERVICE_NAME" \
   --service "$WORKER_SERVICE_NAME" \
   --services-json "$WORKDIR/service.json" \
@@ -326,7 +330,12 @@ for attempt in $(seq 1 "$HEALTH_MAX_ATTEMPTS"); do
        --connect-timeout "$HEALTH_CONNECT_TIMEOUT" --max-time "$HEALTH_MAX_TIME" \
        "${BASE_URL}/" \
        --output "$WORKDIR/home.html"; then
-    python3 "$(dirname "$0")/recovery_receipt.py" mark-promoted "$RECEIPT"
+    # The success receipt is written only here, after every terminal
+    # verification has passed, and names the ARNs the services were actually
+    # left on -- the observed pair, not just the requested one (REL-07).
+    python3 "$(dirname "$0")/recovery_receipt.py" mark-promoted "$RECEIPT" \
+      --web-task-definition "$WEB_TASK_DEFINITION" \
+      --worker-task-definition "$WORKER_TASK_DEFINITION"
     echo "${TARGET} deployment completed successfully"
     exit 0
   fi

@@ -59,20 +59,29 @@ order:
 
 ### 2. Dispatch Deploy Prod
 
-`.github/workflows/deploy-prod.yml` is dispatch-only and gated on the
-`confirm_production` input plus the `production` environment's protection
+`.github/workflows/deploy-prod.yml` is dispatch-only from `main` and gated on
+the `confirm_production` input plus the `production` environment's protection
 rules. It:
 
-1. selects the latest **successful** `deploy-dev.yml` run on `main` and
-   downloads its `dev-release-*` artifact;
-2. validates the record against that run's head SHA and the reviewed ECR
-   repository (a malformed or mismatched record aborts before any AWS call);
+1. selects the latest **successful** `deploy-dev.yml` run on `main` — or, when
+   the optional `dev_run_id` input names an earlier run, exactly that run,
+   which must itself be a completed, successful main deploy (explicit rollback
+   selection; nothing infers "latest" for you) — and downloads its
+   `dev-release-*` artifact;
+2. validates the record against that run's head SHA and run id, the
+   construction timestamp, and the reviewed ECR repository (a malformed,
+   mismatched, or wrong-run record aborts before any AWS call);
 3. re-runs `deploy.ci_verdict require` for that exact SHA (REL-01 — the same
    acceptance policy, never a reduced second one);
 4. assumes the production deployer role and runs
-   `deploy/deploy_prod.sh .tmp/promotion/dev-release.json`.
+   `deploy/deploy_prod.sh .tmp/promotion/dev-release.json`, which passes the
+   controller checkout SHA and the record's dev run id into the receipt (REL-07
+   provenance bindings).
 
-Production only ever receives the image digest that was proven in dev.
+Production only ever receives the image digest that was proven in dev. On
+success the receipt is flipped to `promoted` only after every terminal
+verification, and records `promoted_at` plus the observed pair — the
+task-definition ARNs the services were actually left on (REL-07).
 
 ## What one deploy does
 

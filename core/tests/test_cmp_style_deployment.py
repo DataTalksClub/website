@@ -81,6 +81,64 @@ class CmpStyleDeploymentWorkflowTests(TestCase):
         )
 
 
+class PromotionProvenanceTests(TestCase):
+    """REL-07: production promotion is pinned to main and carries full identity.
+
+    A production run must be traceable to the controller checkout whose
+    deployment code drove it, the dev run whose verification proved the
+    release, and the observed service pair it actually left behind -- and a
+    rollback must name its release explicitly rather than inferring one.
+    """
+
+    def test_production_promotion_runs_only_from_main(self) -> None:
+        prod = (ROOT / ".github" / "workflows" / "deploy-prod.yml").read_text(encoding="utf-8")
+        self.assertIn(
+            "if: inputs.confirm_production == true && github.ref == 'refs/heads/main'",
+            prod,
+        )
+
+    def test_the_dev_release_record_binds_the_proving_run(self) -> None:
+        dev = (ROOT / ".github" / "workflows" / "deploy-dev.yml").read_text(encoding="utf-8")
+        self.assertIn("dev_run_id", dev)
+        self.assertIn("constructed_at", dev)
+        # The record is written after the deploy step has succeeded.
+        record = dev[dev.index("Record the release proven in dev") :]
+        self.assertIn("github.run_id", record)
+
+    def test_the_promotion_validates_the_record_against_the_selected_run(
+        self,
+    ) -> None:
+        prod = (ROOT / ".github" / "workflows" / "deploy-prod.yml").read_text(encoding="utf-8")
+        self.assertIn(
+            'keys == ["constructed_at", "dev_run_id", "image", "source_sha", "version"]',
+            prod,
+        )
+        # The artifact's run binding must be the run the promotion selected.
+        self.assertIn(".dev_run_id == $run_id", prod)
+
+    def test_an_explicit_older_release_is_selected_verbatim(self) -> None:
+        prod = (ROOT / ".github" / "workflows" / "deploy-prod.yml").read_text(encoding="utf-8")
+        selection = prod[prod.index("Select the dev release to promote") :]
+        self.assertIn('[[ -n "$DEV_RUN_ID_INPUT" ]]', selection)
+        # A named run is accepted only as a completed, successful main deploy.
+        self.assertIn('.path == ".github/workflows/deploy-dev.yml"', selection)
+        self.assertIn('.head_branch == "main"', selection)
+        self.assertIn('.conclusion == "success"', selection)
+
+    def test_the_receipt_carries_the_provenance_and_observed_pair(self) -> None:
+        module = (ROOT / "deploy" / "recovery_receipt.py").read_text(encoding="utf-8")
+        self.assertIn("controller_sha", module)
+        self.assertIn("dev_run_id", module)
+        self.assertIn("promoted_at", module)
+        script = (ROOT / "deploy" / "deploy_website.sh").read_text(encoding="utf-8")
+        self.assertIn("--controller-sha", script)
+        self.assertIn("--web-task-definition", script)
+        self.assertIn("--worker-task-definition", script)
+        wrapper = (ROOT / "deploy" / "deploy_prod.sh").read_text(encoding="utf-8")
+        self.assertIn("CONTROLLER_SHA", wrapper)
+        self.assertIn("dev_run_id", wrapper)
+
+
 class TargetRegistryProfileTests(TestCase):
     """The registry is the single target-definition owner (REL-19)."""
 

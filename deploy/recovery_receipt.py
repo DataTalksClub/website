@@ -38,7 +38,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 #: The completion states a receipt's ``outcome`` field can carry.  ``capture``
 #: seeds ``in_progress``; the orchestrator flips it to ``promoted`` on success.
@@ -76,6 +76,8 @@ def build_receipt(
     image: str,
     service_names: list[str],
     services_document: dict[str, Any],
+    controller_sha: str = "",
+    dev_run_id: str = "",
     now: datetime | None = None,
 ) -> dict[str, Any]:
     """The allowlisted pre-mutation state of the requested services.
@@ -84,6 +86,12 @@ def build_receipt(
     digest-pinned image reference, and the run identity the orchestrator was
     already given on its command line.  No raw ``describe-services`` payload
     and no container definition ever reaches the receipt.
+
+    ``controller_sha`` and ``dev_run_id`` are the promotion's two provenance
+    bindings (REL-07): the checkout whose deployment code drove the mutation,
+    and the dev workflow run whose verified release is being promoted.  They
+    may be empty for local orchestrator runs; the production workflow always
+    supplies both.
     """
 
     by_name: dict[str, dict[str, Any]] = {}
@@ -121,6 +129,8 @@ def build_receipt(
         "version": version,
         "source_sha": source_sha,
         "image": image,
+        "controller_sha": controller_sha,
+        "dev_run_id": dev_run_id,
         # The mutation boundary this receipt guards: recovery runs only after
         # the first update-service, never for a pre-mutation failure.
         "first_mutation": "update-service",
@@ -138,6 +148,16 @@ def capture_command(argv: list[str] | None = None) -> int:
     parser.add_argument("--image", required=True)
     parser.add_argument("--service", action="append", required=True)
     parser.add_argument("--services-json", required=True)
+    parser.add_argument(
+        "--controller-sha",
+        default="",
+        help="Checkout SHA whose deployment code drives this promotion (REL-07)",
+    )
+    parser.add_argument(
+        "--dev-run-id",
+        default="",
+        help="Dev workflow run whose verified release is being promoted (REL-07)",
+    )
     parser.add_argument("--output", required=True)
     arguments = parser.parse_args(argv)
 
@@ -153,6 +173,8 @@ def capture_command(argv: list[str] | None = None) -> int:
         image=arguments.image,
         service_names=arguments.service,
         services_document=services_document,
+        controller_sha=arguments.controller_sha,
+        dev_run_id=arguments.dev_run_id,
     )
     output = Path(arguments.output)
     _write_atomic(output, receipt)
@@ -160,9 +182,27 @@ def capture_command(argv: list[str] | None = None) -> int:
     return 0
 
 
-def mark_promoted(receipt_path: Path) -> None:
+PROMOTED_ARN_PREFIX = "arn:aws:ecs:"
+
+#: The observed task-definition ARNs a successful promotion records, keyed by
+#: workload.  Written only by ``mark-promoted``, after every terminal
+#: verification has passed, so ``outcome == "promoted"`` always carries the
+#: pair the services were actually left on -- not just the requested one.
+ObservedPair = dict[str, str]
+
+
+def mark_promoted(
+    receipt_path: Path,
+    observed: ObservedPair | None = None,
+) -> None:
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    for workload, arn in (observed or {}).items():
+        if not arn.startswith(PROMOTED_ARN_PREFIX):
+            raise ValueError(f"promoted {workload} task definition is not an ECS ARN")
     receipt["outcome"] = OUTCOME_PROMOTED
+    receipt["promoted_at"] = datetime.now(UTC).isoformat()
+    if observed:
+        receipt["promoted"] = dict(observed)
     _write_atomic(receipt_path, receipt)
 
 
@@ -294,10 +334,28 @@ def main(argv: list[str] | None = None) -> int:
     if argv[0] == "capture":
         return capture_command(argv[1:])
     if argv[0] == "mark-promoted":
-        if len(argv) != 2:
-            print("usage: recovery_receipt.py mark-promoted RECEIPT", file=sys.stderr)
-            return 2
-        mark_promoted(Path(argv[1]))
+        parser = argparse.ArgumentParser(prog="recovery_receipt.py mark-promoted")
+        parser.add_argument("receipt")
+        parser.add_argument(
+            "--web-task-definition",
+            default="",
+            help="ARN the web service was actually left on after verification",
+        )
+        parser.add_argument(
+            "--worker-task-definition",
+            default="",
+            help="ARN the worker service was actually left on after verification",
+        )
+        promoted = parser.parse_args(argv[1:])
+        observed = {
+            workload: arn
+            for workload, arn in (
+                ("web", promoted.web_task_definition),
+                ("worker", promoted.worker_task_definition),
+            )
+            if arn
+        }
+        mark_promoted(Path(promoted.receipt), observed)
         return 0
     return recover_command(argv[1:])
 

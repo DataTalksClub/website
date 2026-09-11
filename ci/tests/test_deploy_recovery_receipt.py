@@ -22,6 +22,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+import pytest
 import yaml
 
 from ci.tests.test_deploy_release_verification import (
@@ -39,6 +40,7 @@ from ci.tests.test_deploy_release_verification import (
     WORKER_OLD as WORKER_ARN,
 )
 from deploy.recovery_receipt import (
+    OUTCOME_IN_PROGRESS,
     OUTCOME_PROMOTED,
     build_receipt,
     capture_command,
@@ -136,9 +138,13 @@ def test_capture_records_the_allowlisted_prior_state(tmp_path: Path) -> None:
 
     assert exit_code == 0
     receipt = json.loads(receipt_path.read_text())
-    assert receipt["schema"] == 1
+    assert receipt["schema"] == 2
     assert receipt["outcome"] == "in_progress"
     assert receipt["first_mutation"] == "update-service"
+    # A local orchestrator run supplies no provenance bindings; the production
+    # workflow always does (REL-07).
+    assert receipt["controller_sha"] == ""
+    assert receipt["dev_run_id"] == ""
     assert receipt["services"][WEB] == {
         "exists": True,
         "task_definition_arn": WEB_ARN,
@@ -146,6 +152,47 @@ def test_capture_records_the_allowlisted_prior_state(tmp_path: Path) -> None:
         "deployment_ids": ["ecs-svc/111", "ecs-svc/110"],
     }
     assert receipt["services"][WORKER]["desired_count"] == 0
+    assert_redacted(receipt)
+
+
+def test_capture_records_the_promotion_provenance(tmp_path: Path) -> None:
+    source = tmp_path / "services.json"
+    source.write_text(json.dumps(services_document()))
+    receipt_path = tmp_path / "receipt.json"
+
+    capture_command(
+        [
+            "--target",
+            "production",
+            "--cluster",
+            CLUSTER,
+            "--region",
+            REGION,
+            "--version",
+            VERSION,
+            "--source-sha",
+            SOURCE_SHA,
+            "--image",
+            IMAGE,
+            "--controller-sha",
+            "c" * 40,
+            "--dev-run-id",
+            "1234567890",
+            "--service",
+            WEB,
+            "--service",
+            WORKER,
+            "--services-json",
+            str(source),
+            "--output",
+            str(receipt_path),
+        ]
+    )
+
+    receipt = json.loads(receipt_path.read_text())
+    assert receipt["controller_sha"] == "c" * 40
+    assert receipt["dev_run_id"] == "1234567890"
+    assert receipt["target"] == "production"
     assert_redacted(receipt)
 
 
@@ -289,6 +336,30 @@ def test_mark_promoted_flips_the_outcome(tmp_path: Path) -> None:
 
     receipt = json.loads(receipt_path.read_text())
     assert receipt["outcome"] == OUTCOME_PROMOTED
+    assert receipt["promoted_at"]
+    assert "promoted" not in receipt
+
+
+def test_mark_promoted_records_the_observed_pair(tmp_path: Path) -> None:
+    receipt_path = write_receipt(tmp_path)
+    observed = {"web": WEB_ARN, "worker": WORKER_ARN}
+
+    mark_promoted(receipt_path, observed)
+
+    receipt = json.loads(receipt_path.read_text())
+    assert receipt["outcome"] == OUTCOME_PROMOTED
+    assert receipt["promoted"] == observed
+
+
+def test_mark_promoted_refuses_a_non_arn_observed_pair(tmp_path: Path) -> None:
+    receipt_path = write_receipt(tmp_path)
+
+    with pytest.raises(ValueError, match="not an ECS ARN"):
+        mark_promoted(receipt_path, {"web": "website-production-web:42"})
+
+    # The failed promotion left the receipt untouched: no success record.
+    receipt = json.loads(receipt_path.read_text())
+    assert receipt["outcome"] == OUTCOME_IN_PROGRESS
 
 
 def test_both_workflows_upload_the_receipts_with_always() -> None:

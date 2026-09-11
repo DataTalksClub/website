@@ -80,6 +80,7 @@ jobs:
       image: ${{ steps.push.outputs.image }}
       source_sha: ${{ steps.identity.outputs.source_sha }}
       version: ${{ steps.identity.outputs.version }}
+      constructed_at: ${{ steps.identity.outputs.constructed_at }}
     env:
       AWS_REGION: eu-west-1
       REPO_URI: 387546586013.dkr.ecr.eu-west-1.amazonaws.com/website-production
@@ -172,17 +173,25 @@ jobs:
           if-no-files-found: ignore
           retention-days: 90
       - name: Record the release proven in dev
+        # REL-07: the record binds the image to the run that proved it -- the
+        # dev run id and the construction timestamp -- so a production
+        # selection can be checked against the exact run it selected instead
+        # of trusting three image strings alone.
         env:
           IMAGE: ${{ needs.publish.outputs.image }}
           VERSION: ${{ needs.publish.outputs.version }}
           SOURCE_SHA: ${{ needs.publish.outputs.source_sha }}
+          CONSTRUCTED_AT: ${{ needs.publish.outputs.constructed_at }}
         run: |
           mkdir -p .tmp
           jq -n \
             --arg image "$IMAGE" \
             --arg version "$VERSION" \
             --arg source_sha "$SOURCE_SHA" \
-            '{image: $image, version: $version, source_sha: $source_sha}' \
+            --arg dev_run_id "${{ github.run_id }}" \
+            --arg constructed_at "$CONSTRUCTED_AT" \
+            '{image: $image, version: $version, source_sha: $source_sha,
+              dev_run_id: $dev_run_id, constructed_at: $constructed_at}' \
             > .tmp/dev-release.json
       - uses: actions/upload-artifact@v4
         with:

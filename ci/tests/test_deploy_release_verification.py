@@ -487,6 +487,13 @@ def test_a_clean_rollout_verifies_tasks_selfcheck_and_readiness(
     assert overrides["containerOverrides"][0]["name"] == "worker"
     receipt = harness.receipt()
     assert receipt["outcome"] == "promoted"
+    # REL-07: the success record carries the observed pair -- the ARNs the
+    # services were actually left on -- matching the promotion calls, plus a
+    # promotion timestamp.
+    promoted_arns = {arn for _service, arn, _count in harness.update_service_calls()}
+    assert set(receipt["promoted"].values()) == promoted_arns
+    assert set(receipt["promoted"]) == {"web", "worker"}
+    assert receipt["promoted_at"]
 
 
 def test_the_promotion_sources_are_the_service_active_revisions(tmp_path: Path) -> None:

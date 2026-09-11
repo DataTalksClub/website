@@ -8,6 +8,14 @@ on:
         required: true
         default: false
         type: boolean
+      dev_run_id:
+        description: >-
+          Promote this specific earlier successful dev run instead of the
+          latest proven release (explicit rollback selection; the run must be
+          a completed, successful main deploy). Leave empty for the latest.
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -19,7 +27,11 @@ concurrency:
 
 jobs:
   deploy:
-    if: inputs.confirm_production == true
+    # REL-07: production promotion runs only from main, so the deployment code
+    # driving the mutation is the reviewed controller -- a dispatch from a
+    # stale or foreign ref can never steer a production release.  The
+    # controller checkout SHA is recorded into the receipt.
+    if: inputs.confirm_production == true && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -39,12 +51,28 @@ jobs:
           enable-cache: true
       - run: uv sync --locked
       - id: dev-run
-        name: Select the latest successful dev deployment from main
+        name: Select the dev release to promote
+        env:
+          DEV_RUN_ID_INPUT: ${{ inputs.dev_run_id }}
         run: |
           set -euo pipefail
-          response="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/deploy-dev.yml/runs?branch=main&status=success&per_page=1")"
-          run_id="$(jq -er '.workflow_runs[0].id' <<< "$response")"
-          source_sha="$(jq -er '.workflow_runs[0].head_sha' <<< "$response")"
+          if [[ -n "$DEV_RUN_ID_INPUT" ]]; then
+            # REL-07: an explicit older-release selection names one run and is
+            # never silently upgraded to "latest" -- the named run must itself
+            # be a completed, successful deploy-dev run from main.
+            gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${DEV_RUN_ID_INPUT}" > .tmp/run.json
+            jq -e '
+              .path == ".github/workflows/deploy-dev.yml" and
+              .head_branch == "main" and
+              .status == "completed" and
+              .conclusion == "success"
+            ' .tmp/run.json > /dev/null
+          else
+            response="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/deploy-dev.yml/runs?branch=main&status=success&per_page=1")"
+            jq -er '.workflow_runs[0]' <<< "$response" > .tmp/run.json
+          fi
+          run_id="$(jq -er '.id' .tmp/run.json)"
+          source_sha="$(jq -er '.head_sha' .tmp/run.json)"
           echo "run_id=${run_id}" >> "$GITHUB_OUTPUT"
           echo "source_sha=${source_sha}" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
@@ -57,16 +85,25 @@ jobs:
       - name: Validate the dev release record before assuming AWS
         env:
           EXPECTED_SOURCE_SHA: ${{ steps.dev-run.outputs.source_sha }}
+          EXPECTED_RUN_ID: ${{ steps.dev-run.outputs.run_id }}
         run: |
           set -euo pipefail
           test "$(find .tmp/promotion -name dev-release.json -type f | wc -l)" = 1
           release=.tmp/promotion/dev-release.json
+          # REL-07: the record carries the full release identity -- the image
+          # triple plus the dev run id and construction timestamp that prove
+          # which run's verification this artifact is bound to.  A record
+          # whose dev_run_id differs from the selected run is refused: the
+          # artifact and the selection must be the same release.
           jq -e \
             --arg source_sha "$EXPECTED_SOURCE_SHA" \
+            --arg run_id "$EXPECTED_RUN_ID" \
             --arg repository "387546586013.dkr.ecr.eu-west-1.amazonaws.com/website-production" '
               .source_sha[0:7] as $short_sha |
-              keys == ["image", "source_sha", "version"] and
+              keys == ["constructed_at", "dev_run_id", "image", "source_sha", "version"] and
               .source_sha == $source_sha and
+              .dev_run_id == $run_id and
+              (.constructed_at | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")) and
               (.source_sha | test("^[0-9a-f]{40}$")) and
               (.version | test("^[0-9]{8}-[0-9]{6}-[0-9a-f]{7}$")) and
               (.version | endswith($short_sha)) and
@@ -102,6 +139,11 @@ jobs:
         # python3 call inside deploy_website.sh (REL-02's receipt capture and
         # bounded recovery, the task-definition promotion) resolves to the
         # pinned interpreter rather than the runner's (REL-19).
+        # CONTROLLER_SHA is this workflow's checkout -- the deployment code
+        # that drove the promotion -- recorded into the production receipt
+        # next to the release's own source SHA (REL-07).
+        env:
+          CONTROLLER_SHA: ${{ github.sha }}
         run: >-
           uv run --frozen bash deploy/deploy_prod.sh .tmp/promotion/dev-release.json
       - name: Upload the redacted deploy recovery receipts
