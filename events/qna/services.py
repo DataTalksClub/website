@@ -469,10 +469,20 @@ def update_session(
             fields.append("expires_at")
         if "retention_days" in payload:
             value = payload["retention_days"]
-            if value is not None and (
-                isinstance(value, bool) or not isinstance(value, int) or value < 1
-            ):
-                raise QnaError(400, "invalid_request", "retention_days must be at least 1 or null.")
+            # EVT-07: indefinite retention is not enabled by accident
+            # (event-qna-integration.md, "Retention").  The command boundary
+            # accepts only the finite reviewed class; a privacy-owner decision
+            # must precede any null/indefinite policy, so null is refused here
+            # rather than silently persisted.  Existing rows are untouched.
+            if value is None:
+                raise QnaError(
+                    400,
+                    "retention_policy_required",
+                    "retention_days must be a positive number of days; "
+                    "indefinite retention requires an approved policy decision.",
+                )
+            if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+                raise QnaError(400, "invalid_request", "retention_days must be at least 1.")
             session.retention_days = value
             fields.append("retention_days")
         if fields:
@@ -1085,6 +1095,90 @@ def admit_rate(
         if updated == 0:
             return max(1, window_seconds - (epoch % window_seconds))
     return None
+
+
+def prune_expired_rate_buckets(
+    *, now: datetime | None = None, using: str = DEFAULT_DB_ALIAS, batch_size: int = 5_000
+) -> int:
+    """Delete rate buckets whose window has fully elapsed; return the count.
+
+    EVT-07: an IP-derived identity is hashed, but hashing is not deletion --
+    without this, expired counters accumulate forever.  The policy derives
+    from each bucket's own window: a row is eligible exactly once its whole
+    window has passed (``window_started_at + window_seconds <= now``), so an
+    active window's counter is never altered and an in-flight admission never
+    loses its budget.  Bounded and resumable: one run deletes at most
+    ``batch_size`` rows across the distinct windows present, so a backlog
+    drains over scheduled runs instead of in one unbounded delete.
+    """
+
+    current = now or timezone.now()
+    total = 0
+    window_lengths = list(
+        EventQnaRateLimit.objects.using(using).values_list("window_seconds", flat=True).distinct()
+    )
+    for seconds in window_lengths:
+        if total >= batch_size:
+            break
+        horizon = current - timedelta(seconds=seconds)
+        stale_ids = list(
+            EventQnaRateLimit.objects.using(using)
+            .filter(window_seconds=seconds, window_started_at__lte=horizon)
+            .values_list("id", flat=True)[: batch_size - total]
+        )
+        if not stale_ids:
+            continue
+        deleted, _ = EventQnaRateLimit.objects.using(using).filter(id__in=stale_ids).delete()
+        total += deleted
+    return total
+
+
+def _expired_rate_bucket_count(now: datetime, *, using: str = DEFAULT_DB_ALIAS) -> int:
+    """How many buckets' whole window is over, per distinct window length."""
+
+    total = 0
+    window_lengths = (
+        EventQnaRateLimit.objects.using(using).values_list("window_seconds", flat=True).distinct()
+    )
+    for seconds in window_lengths:
+        total += (
+            EventQnaRateLimit.objects.using(using)
+            .filter(
+                window_seconds=seconds,
+                window_started_at__lte=now - timedelta(seconds=seconds),
+            )
+            .count()
+        )
+    return total
+
+
+def retention_inventory(*, using: str = DEFAULT_DB_ALIAS) -> dict[str, int]:
+    """Aggregate counts for the retention decision gate (EVT-07).
+
+    Dry-run visibility before any approved cleanup rollout: how many archived
+    sessions carry a delete deadline, how many of those are past due, how many
+    sessions hold indefinite retention, and how many rate buckets have fully
+    expired.  Aggregate-only -- no event, question, or participant material is
+    selected or returned.
+    """
+
+    current = timezone.now()
+    return {
+        "archived_with_delete_deadline": EventQnaSession.objects.using(using)
+        .filter(state=EventQnaSession.State.ARCHIVED, archive_delete_at__isnull=False)
+        .count(),
+        "archived_past_delete_deadline": EventQnaSession.objects.using(using)
+        .filter(
+            state=EventQnaSession.State.ARCHIVED,
+            archive_delete_at__isnull=False,
+            archive_delete_at__lte=current,
+        )
+        .count(),
+        "indefinite_retention_sessions": EventQnaSession.objects.using(using)
+        .filter(retention_days__isnull=True)
+        .count(),
+        "expired_rate_buckets": _expired_rate_bucket_count(current, using=using),
+    }
 
 
 def event_qna_path(event: Event) -> str:
