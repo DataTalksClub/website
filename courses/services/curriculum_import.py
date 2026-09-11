@@ -87,35 +87,36 @@ _HOMEWORK_STATES = {
     "scored": HomeworkState.SCORED.value,
 }
 
-# The one reviewed course-scoped correction the continuous course-repository
-# sync needs: ai-dev-tools-zoomcamp's own course.yaml declares its family slug
-# as "ai-dev-tools-zoomcamp" (matching its own repository name, like every
-# other course family), but the owner ruled the site's canonical family slug
-# drops the "-zoomcamp" suffix -- matching how courses.datatalks.club already
-# published it (.../ai-dev-tools-2026/) and how
-# scripts/prod/import_cmp_content.py's CMP import already derives it
-# mechanically. Applying this on every sync (not just once) keeps the
-# incoming value matching the Course.slug stored by the one-time data
-# migration that renamed the existing row, so ``protected_course_slug_change``
-# below never trips. Every other course family's course.yaml slug already
-# matches the site's canonical family slug and needs no entry here.
-FAMILY_SLUG_OVERRIDES: dict[str, str] = {
-    "ai-dev-tools-zoomcamp": "ai-dev-tools",
-}
+# ai-dev-tools-zoomcamp's own course.yaml declares its family slug as
+# "ai-dev-tools-zoomcamp" (matching its own repository name), and that is
+# also the site's canonical family slug -- the owner briefly ruled the site
+# should drop the "-zoomcamp" suffix, then reversed that call (zoomcamp is
+# treated as a trademark and as an SEO signal worth keeping), so the slug is
+# back to matching the raw course.yaml value with no correction needed. Every
+# other course family's course.yaml slug already matches the site's canonical
+# family slug too, so this map is currently empty. Keep it (rather than
+# deleting it) as the reviewed place a future one-off family-slug correction
+# would go, the same way it briefly held the ai-dev-tools-zoomcamp entry.
+FAMILY_SLUG_OVERRIDES: dict[str, str] = {}
 
-# A second, independent course-scoped correction, narrowly for the same one
-# family: ai-dev-tools-zoomcamp's schema-2 module directories are numbered
-# ("01-ai-native-workflow", "02-development", ...), and the parser
+# A course-scoped correction, narrowly for one family: ai-dev-tools-zoomcamp's
+# schema-2 module directories are numbered ("01-ai-native-workflow",
+# "02-development", ...), and the parser
 # (content_sync/course_repository_v2.py's ``_parse_module``) uses the whole
 # directory name as the module's source slug. The owner asked for the numeric
 # prefix stripped from the *published* module slug for this family only, so a
-# module page reads /courses/ai-dev-tools/ai-native-workflow instead of
-# /courses/ai-dev-tools/01-ai-native-workflow -- every other schema-2 course
-# keeps its numeric prefix. This never interacts with the
-# ``module_slug_path_mismatch`` guard: that guard runs inside the parser,
-# purely against the raw directory name and module.yaml's own ``slug:``
-# field, before either ever reaches this importer.
-MODULE_SLUG_PREFIX_STRIP_FAMILIES: frozenset[str] = frozenset(FAMILY_SLUG_OVERRIDES)
+# module page reads /courses/ai-dev-tools-zoomcamp/ai-native-workflow instead
+# of /courses/ai-dev-tools-zoomcamp/01-ai-native-workflow -- every other
+# schema-2 course keeps its numeric prefix. Deliberately independent of
+# FAMILY_SLUG_OVERRIDES (which is currently empty): this set is scoped by the
+# raw course.yaml slug, not by any family-slug remapping, so it must not be
+# derived from FAMILY_SLUG_OVERRIDES's keys -- doing so would silently drop
+# this family (and the fix it carries) whenever FAMILY_SLUG_OVERRIDES has no
+# entry for it. This never interacts with the ``module_slug_path_mismatch``
+# guard: that guard runs inside the parser, purely against the raw directory
+# name and module.yaml's own ``slug:`` field, before either ever reaches this
+# importer.
+MODULE_SLUG_PREFIX_STRIP_FAMILIES: frozenset[str] = frozenset({"ai-dev-tools-zoomcamp"})
 _MODULE_SLUG_NUMERIC_PREFIX = re.compile(r"^[0-9]{2,}-")
 
 _ASSET_CONTENT_TYPES = {
@@ -384,10 +385,11 @@ class _CurriculumImporter:
 
     def _upsert_course(self) -> Course:
         source = self.command.source.course
-        # The course.yaml the repository publishes usually declares its own
-        # family slug directly, matching its own repository name -- same as
-        # every other course family.  ai-dev-tools-zoomcamp is the one
-        # reviewed exception; see FAMILY_SLUG_OVERRIDES above.
+        # The course.yaml the repository publishes declares its own family
+        # slug directly, matching its own repository name -- true for every
+        # course family today, including ai-dev-tools-zoomcamp. See
+        # FAMILY_SLUG_OVERRIDES above for the reviewed override mechanism
+        # this falls back to when that isn't the case.
         family_slug = FAMILY_SLUG_OVERRIDES.get(source.slug, source.slug)
         source_id = source.content_id
         by_stable = Course.objects.filter(source_stable_id=self.command.source_stable_id).first()

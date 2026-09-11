@@ -17,7 +17,7 @@ from courses.services.public_course_catalog import (
     latest_visible_cohort_per_family,
 )
 
-FEATURED_FAMILY = "ai-dev-tools"
+FEATURED_FAMILY = "ai-dev-tools-zoomcamp"
 
 # Family slug prefix and catalogue title.  The cards used to carry a third value, a
 # short uppercase category pill ("Data Engineering", "LLMs", ...); the owner removed
@@ -28,7 +28,7 @@ FEATURED_FAMILY = "ai-dev-tools"
 # database holds and this table does not still renders, labelled with its own
 # ``Course.title`` and placed after the listed ones.
 COURSE_FAMILIES: tuple[tuple[str, str], ...] = (
-    ("ai-dev-tools", "AI Dev Tools Zoomcamp"),
+    ("ai-dev-tools-zoomcamp", "AI Dev Tools Zoomcamp"),
     ("de-zoomcamp", "Data Engineering Zoomcamp"),
     ("llm-zoomcamp", "LLM Zoomcamp"),
     ("ml-zoomcamp", "Machine Learning Zoomcamp"),
@@ -38,7 +38,7 @@ COURSE_FAMILIES: tuple[tuple[str, str], ...] = (
 
 # The designed landing page for the featured cohort.  It is a fixed route rather than a
 # course-page link, so it is named here instead of derived from the resolved cohort.
-FEATURED_COHORT_ROUTE_NAME = "course-cohort-ai-dev-tools-2026"
+FEATURED_COHORT_ROUTE_NAME = "course-cohort-ai-dev-tools-zoomcamp-2026"
 
 # The wiki hub the graph is drawn around, and the direct relations it is drawn to.  Every
 # slug is validated against the published wiki so a source change fails loudly instead of

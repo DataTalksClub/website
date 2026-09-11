@@ -170,7 +170,7 @@ TAG_COHORT_MAP: Mapping[str, tuple[str, int]] = {
     "llm-zoomcamp-2024": ("llm-zoomcamp", 2024),
     "llm-zoomcamp-2025": ("llm-zoomcamp", 2025),
     "llm-zoomcamp-2026": ("llm-zoomcamp", 2026),
-    "ai-dev-tools-zoomcamp-2025": ("ai-dev-tools", 2025),
+    "ai-dev-tools-zoomcamp-2025": ("ai-dev-tools-zoomcamp", 2025),
 }
 
 

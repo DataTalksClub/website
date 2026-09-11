@@ -97,7 +97,7 @@ class TagCohortMapTests(TestCase):
         "llm-zoomcamp-2024": ("llm-zoomcamp", 2024),
         "llm-zoomcamp-2025": ("llm-zoomcamp", 2025),
         "llm-zoomcamp-2026": ("llm-zoomcamp", 2026),
-        "ai-dev-tools-zoomcamp-2025": ("ai-dev-tools", 2025),
+        "ai-dev-tools-zoomcamp-2025": ("ai-dev-tools-zoomcamp", 2025),
     }
 
     def test_map_matches_the_settled_table_exactly(self) -> None:
@@ -226,7 +226,7 @@ class MailchimpCourseTagImportTests(TestCase):
         self.assertEqual(Enrollment.objects.filter(student=account, course=cohort).count(), 1)
 
     def test_dry_run_reports_without_writing(self) -> None:
-        _cohort("ai-dev-tools", 2025)
+        _cohort("ai-dev-tools-zoomcamp", 2025)
         CustomUser.objects.create(username="learner-f", email="learner-f@example.invalid")
         before = Enrollment.objects.count()
         result = self._run(

@@ -32,22 +32,27 @@ SYNC_MODEL = "one-time"
 # the course repositories wrote, which is why it runs last.
 BOOTSTRAPS_EMPTY_DATABASE = True
 
-# CMP exports the AI Dev Tools editions as "ai-dev-tools-<year>", which already
-# mechanically de-suffixes to family "ai-dev-tools" -- the site's canonical
-# family slug (see FAMILY_SLUG_OVERRIDES in courses/services/curriculum_import.py
-# for the matching correction on the course-repository sync side). No override
-# is needed here: every CMP edition slug's family, including this one, is
-# already exactly its own de-suffixed form.
-FAMILY_SLUG_OVERRIDES: dict[str, str] = {}
+# CMP exports the AI Dev Tools editions as "ai-dev-tools-<year>", which
+# mechanically de-suffixes to family "ai-dev-tools" -- but the site's
+# canonical family slug is "ai-dev-tools-zoomcamp" (see FAMILY_SLUG_OVERRIDES
+# in courses/services/curriculum_import.py for the matching correction on the
+# course-repository sync side, and its comment for why the "-zoomcamp" suffix
+# is kept). A reviewed override is needed here to re-add the suffix CMP's
+# mechanical de-suffixing drops. Every other CMP edition slug's family already
+# matches its own de-suffixed form and needs no entry here.
+FAMILY_SLUG_OVERRIDES: dict[str, str] = {
+    "ai-dev-tools": "ai-dev-tools-zoomcamp",
+}
 
-# A reviewed correction: ai-dev-tools's own repository still declares modules 3
-# and 4's homework files under a zero-padded slug ("hw03"/"hw04", left over
-# from before the assignments were finalized and re-titled for CMP) while CMP's copy of
-# the same two assignments uses "hw3"/"hw4". Modules 1 and 2 already agree with CMP
-# ("hw1"/"hw2") and need no correction. Every other course's repository and CMP slugs
-# already agree, so no other entry is needed here.
+# A reviewed correction: ai-dev-tools-zoomcamp's own repository still declares
+# modules 3 and 4's homework files under a zero-padded slug ("hw03"/"hw04",
+# left over from before the assignments were finalized and re-titled for CMP)
+# while CMP's copy of the same two assignments uses "hw3"/"hw4". Modules 1 and
+# 2 already agree with CMP ("hw1"/"hw2") and need no correction. Every other
+# course's repository and CMP slugs already agree, so no other entry is
+# needed here.
 HOMEWORK_SLUG_OVERRIDES: dict[str, dict[str, str]] = {
-    "ai-dev-tools": {"hw03": "hw3", "hw04": "hw4"},
+    "ai-dev-tools-zoomcamp": {"hw03": "hw3", "hw04": "hw4"},
 }
 
 

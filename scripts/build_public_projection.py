@@ -29,14 +29,14 @@ import yaml
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from scripts.projection_build.event_description_bridge import (  # noqa: E402
+from scripts.staging.event_description_bridge import (  # noqa: E402
     EVENT_RECORD_SCHEMA_VERSION,
     EventDescriptionBridgeError,
     apply_bridge_to_events,
     bridge_manifest_binding,
     load_event_description_bridge,
 )
-from scripts.projection_build.event_speaker_bio_normalization import (  # noqa: E402
+from scripts.staging.event_speaker_bio_normalization import (  # noqa: E402
     EventSpeakerBioNormalizationError,
     apply_event_speaker_bio_normalization,
     normalization_manifest_binding,
@@ -58,21 +58,27 @@ from courses.services.course_family_identity import (  # noqa: E402
     family_and_year_from_edition_slug,
 )
 
-# This pinned catalogue exports the AI Dev Tools edition as "ai-dev-tools-2025",
-# which already mechanically de-suffixes to family "ai-dev-tools" -- the site's
-# canonical family slug (see FAMILY_SLUG_OVERRIDES in
-# courses/services/curriculum_import.py for the matching correction on the
-# course-repository sync side, which reads a differently-spelled family slug
-# directly off course.yaml). No override is needed here: every pinned edition
-# slug's family, including this one, is already exactly its own de-suffixed form.
+# The one reviewed correction this pinned catalogue needs: it exports the AI Dev
+# Tools edition as "ai-dev-tools-2025", but the real course-repository family is
+# "ai-dev-tools-zoomcamp" (its course.yaml declares that slug directly, matching
+# its own repository name, same as every other course family). Every other
+# pinned edition slug's family is already exactly its own de-suffixed form.
+# Mirrors the same correction in scripts/prod/import_cmp_content.py and
+# courses/services/local_course_seed.py.
+_FAMILY_SLUG_OVERRIDES = {"ai-dev-tools": "ai-dev-tools-zoomcamp"}
 
 
 def cohort_family_identity(edition_slug: str) -> tuple[str, int]:
-    return family_and_year_from_edition_slug(edition_slug)
+    family_slug, year = family_and_year_from_edition_slug(edition_slug)
+    return _FAMILY_SLUG_OVERRIDES.get(family_slug, family_slug), year
 
 from events.slugs import event_title_slug  # noqa: E402
 
-DEFAULT_OUTPUT = REPOSITORY_ROOT / "temporary" / "content" / "public_projection"
+#: These reviewed inputs/outputs live outside this repository, at
+#: ~/prod/dtc-data/content-staging/ -- see
+#: _docs/architecture/database-only-content.md.
+_CONTENT_STAGING_ROOT = Path.home() / "prod" / "dtc-data" / "content-staging"
+DEFAULT_OUTPUT = _CONTENT_STAGING_ROOT / "public_projection"
 PODCAST_PLATFORM_SEED = REPOSITORY_ROOT / "scripts" / "podcast_platforms.json"
 PODCAST_PLATFORM_FILENAME = "podcast_platforms.json"
 SPOTIFY_FOR_CREATORS_URL = "https://creators.spotify.com/pod/profile/datatalksclub/"
@@ -81,10 +87,8 @@ EDITORIAL_ROUTE_MIGRATION_FILENAME = "editorial_route_migration.json"
 EDITORIAL_ROUTE_MIGRATION_SCHEMA = (
     REPOSITORY_ROOT / "_docs" / "compatibility" / "editorial-route-migration.schema.json"
 )
-EVENT_IDENTITY_MANIFEST = (
-    REPOSITORY_ROOT / "temporary" / "content" / "event_identity_manifest.json"
-)
-BRIDGE_INPUT = REPOSITORY_ROOT / "temporary" / "content" / "event_description_bridge.json"
+EVENT_IDENTITY_MANIFEST = _CONTENT_STAGING_ROOT / "event_identity_manifest.json"
+BRIDGE_INPUT = _CONTENT_STAGING_ROOT / "event_description_bridge.json"
 # The accordion marker still in ten article bodies: it contributes no block of
 # its own, so it stays purely as the FAQ section's position anchor while the
 # pairs themselves live in frontmatter.  Same shape scripts/build_article_faq.py

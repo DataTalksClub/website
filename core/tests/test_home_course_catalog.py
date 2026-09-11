@@ -28,7 +28,16 @@ from test_support.course_catalog import (
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-PROJECTION_COURSES = REPOSITORY_ROOT / "temporary/content/public_projection/courses.json"
+#: The real checked projection now lives outside this repository, at
+#: ~/prod/dtc-data/content-staging/ (see
+#: _docs/architecture/database-only-content.md). This test only needs *a*
+#: courses projection to exist and confirm nothing reads it -- the small
+#: checked fixture courses/tests/fixtures/public_projection_courses.json
+#: (a copy of what the real one holds for these same pinned editions) serves
+#: that just as well without needing the external tree.
+PROJECTION_COURSES = (
+    REPOSITORY_ROOT / "courses" / "tests" / "fixtures" / "public_projection_courses.json"
+)
 
 
 class CourseCatalogSourceTests(TestCase):
@@ -98,8 +107,10 @@ class CourseCatalogSelectionTests(TestCase):
         ai_dev_tools = [entry for entry in catalog if entry.family == FEATURED_FAMILY]
 
         self.assertEqual(len(ai_dev_tools), 1)
-        self.assertEqual(ai_dev_tools[0].slug, "ai-dev-tools-2026")
-        self.assertEqual(ai_dev_tools[0].public_path, "/courses/ai-dev-tools/cohorts/2026")
+        self.assertEqual(ai_dev_tools[0].slug, "ai-dev-tools-zoomcamp-2026")
+        self.assertEqual(
+            ai_dev_tools[0].public_path, "/courses/ai-dev-tools-zoomcamp/cohorts/2026"
+        )
         self.assertEqual(len(catalog), 6)
         self.assertEqual([entry.title for entry in catalog].count("AI Dev Tools Zoomcamp"), 1)
 
@@ -221,8 +232,8 @@ class HomepageCourseRenderingTests(TestCase):
     def test_the_featured_panel_omits_a_module_count_the_database_lacks(self) -> None:
         """A cohort whose curriculum is not imported yet claims no modules at all."""
 
-        drop_cohort("ai-dev-tools-2026")
-        family = Course.objects.get(slug="ai-dev-tools")
+        drop_cohort("ai-dev-tools-zoomcamp-2026")
+        family = Course.objects.get(slug="ai-dev-tools-zoomcamp")
         make_cohort(family, 2026, start_date=date(2026, 8, 31), homework_count=4)
 
         body = self.client.get(reverse("home")).content.decode()
@@ -234,8 +245,8 @@ class HomepageCourseRenderingTests(TestCase):
         self.assertIn("4 homework assignments", featured)
 
     def test_the_featured_panel_makes_a_single_count_singular(self) -> None:
-        drop_cohort("ai-dev-tools-2026")
-        family = Course.objects.get(slug="ai-dev-tools")
+        drop_cohort("ai-dev-tools-zoomcamp-2026")
+        family = Course.objects.get(slug="ai-dev-tools-zoomcamp")
         make_cohort(family, 2026, start_date=date(2026, 8, 31), homework_count=1, project_count=1)
 
         body = self.client.get(reverse("home")).content.decode()
@@ -246,13 +257,13 @@ class HomepageCourseRenderingTests(TestCase):
         self.assertIn("1 project ·", featured)
 
     def test_no_course_or_cohort_description_markup_reaches_the_page(self) -> None:
-        family = Course.objects.get(slug="ai-dev-tools")
+        family = Course.objects.get(slug="ai-dev-tools-zoomcamp")
         family.description = (
             '<img src="https://example.invalid/banner.png"> '
             "See https://courses.datatalks.club/ai-dev-tools-zoomcamp/"
         )
         family.save(update_fields=["description"])
-        cohort = Cohort.objects.get(slug="ai-dev-tools-2026")
+        cohort = Cohort.objects.get(slug="ai-dev-tools-zoomcamp-2026")
         cohort.description = "The 2026 live delivery of AI Dev Tools Zoomcamp."
         cohort.save(update_fields=["description"])
 

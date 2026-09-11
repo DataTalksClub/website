@@ -113,15 +113,16 @@ def build_reviewed_catalog() -> dict[str, Cohort]:
 
     AI Dev Tools used to arrive as two rows -- ``ai-dev-tools`` (CMP's 2025
     cohort) and ``ai-dev-tools-zoomcamp`` (the repository sync's 2026 one) --
-    until issue #308 merged them under the site's canonical ``ai-dev-tools``
-    slug.  This fixture reflects the merged, current shape: one family with
-    both cohorts.
+    until issue #308 merged them under the site's canonical
+    ``ai-dev-tools-zoomcamp`` slug (the owner kept the "-zoomcamp" suffix as
+    an SEO/trademark signal).  This fixture reflects the merged, current
+    shape: one family with both cohorts.
 
     Returns the newest cohort of every family, keyed by family slug.
     """
 
     newest: dict[str, Cohort] = {}
-    ai_dev_tools = make_family("ai-dev-tools", "AI Dev Tools Zoomcamp")
+    ai_dev_tools = make_family("ai-dev-tools-zoomcamp", "AI Dev Tools Zoomcamp")
     make_cohort(
         ai_dev_tools,
         2025,
@@ -129,7 +130,7 @@ def build_reviewed_catalog() -> dict[str, Cohort]:
         homework_count=3,
         project_count=2,
     )
-    newest["ai-dev-tools"] = make_cohort(
+    newest["ai-dev-tools-zoomcamp"] = make_cohort(
         ai_dev_tools,
         2026,
         start_date=date(2026, 8, 31),
