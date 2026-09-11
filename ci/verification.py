@@ -28,6 +28,7 @@ from ci.evidence import (
     isoformat,
     load_envelopes,
     machine_output_claim,
+    select_latest_evidence,
     sha256_json,
     utc_now,
     validate_artifact_files,
@@ -598,11 +599,18 @@ def create_report(
     if phase not in {"ci", "engineer", "tester"}:
         raise VerificationError("report phase is unsupported")
     result_envelopes = load_envelopes(result_directory) if result_directory is not None else []
-    latest_by_component: dict[str, tuple[Path, dict[str, Any]]] = {}
+    by_component: dict[str, list[tuple[Path, dict[str, Any]]]] = {}
     for path, envelope in result_envelopes:
-        current = latest_by_component.get(envelope["component"])
-        if current is None or envelope["produced_at"] > current[1]["produced_at"]:
-            latest_by_component[envelope["component"]] = (path, envelope)
+        by_component.setdefault(envelope["component"], []).append((path, envelope))
+    latest_by_component: dict[str, tuple[Path, dict[str, Any]]] = {}
+    for component, candidates in by_component.items():
+        # CI-03: the same shared selector reuse uses decides which result a
+        # component's report entry carries.  A same-instant disagreement fails
+        # closed instead of letting directory order pick the winner.
+        selected, ambiguity = select_latest_evidence(candidates)
+        if selected is None or ambiguity is not None:
+            raise VerificationError("ambiguous_latest_evidence")
+        latest_by_component[component] = selected
     buckets: dict[str, list[dict[str, Any]]] = {
         "not_applicable": [],
         "rerun": [],

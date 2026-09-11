@@ -124,11 +124,14 @@ class EvidenceError(ValueError):
 
 
 def utc_now() -> datetime:
-    return datetime.now(tz=UTC).replace(microsecond=0)
+    # CI-03: subsecond precision is preserved.  Whole-second timestamps made
+    # evidence selection order-dependent -- a same-second failure could not
+    # invalidate a success, and which one "won" depended on input order.
+    return datetime.now(tz=UTC)
 
 
 def isoformat(value: datetime) -> str:
-    return value.astimezone(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
 def parse_time(value: object, field: str) -> datetime:
@@ -1017,6 +1020,58 @@ def load_envelopes(directory: str | Path) -> list[tuple[Path, dict[str, Any]]]:
     return envelopes
 
 
+#: The stable rejection reason for equally ranked candidates that the shared
+#: selector cannot order: a same-instant disagreement on result or identity, or
+#: an unresolvable supersession cycle.  Callers must treat it as a required
+#: fresh run, never fall back to another candidate (audit CI-03).
+AMBIGUOUS_LATEST_EVIDENCE = "ambiguous_latest_evidence"
+
+
+def select_latest_evidence(
+    candidates: Sequence[tuple[Path, dict[str, Any]]],
+) -> tuple[tuple[Path, dict[str, Any]] | None, str | None]:
+    """The one newest envelope, or a fail-closed rejection reason.
+
+    This is the single ordering rule for evidence selection (CI-03), shared by
+    reuse selection and report-result collection.  Candidates are ordered by
+    ``produced_at``; every candidate at the newest instant forms the tie set.
+    Inside a tie, an explicit ``supersedes`` reference to another tied
+    envelope removes that target, exact duplicates (same evidence id, same
+    payload) collapse to one, and anything else -- distinct identities, a
+    result disagreement, or a supersession cycle -- is ambiguous and must
+    cause a fresh run.  Second-resolution envelopes from before subsecond
+    timestamps are kept parseable, but their missing ordering information is
+    never invented: a tie stays a tie.
+    """
+
+    if not candidates:
+        return None, "no_matching_evidence"
+    newest_time = max(
+        parse_time(envelope["produced_at"], "produced_at") for _path, envelope in candidates
+    )
+    tied = [
+        (path, dict(envelope))
+        for path, envelope in candidates
+        if parse_time(envelope["produced_at"], "produced_at") == newest_time
+    ]
+    unique: dict[str, tuple[Path, dict[str, Any]]] = {}
+    for path, envelope in tied:
+        held = unique.get(envelope["evidence_id"])
+        if held is not None and held[1] != envelope:
+            return None, AMBIGUOUS_LATEST_EVIDENCE
+        unique.setdefault(envelope["evidence_id"], (path, envelope))
+    tied_ids = set(unique)
+    superseded: set[str] = set()
+    for _path, envelope in unique.values():
+        target = envelope["supersedes"]
+        if target in tied_ids:
+            superseded.add(target)
+    survivors = [item for key, item in unique.items() if key not in superseded]
+    if len(survivors) != 1:
+        return None, AMBIGUOUS_LATEST_EVIDENCE
+    return survivors[0], None
+
+
 def choose_reusable_evidence(
     *,
     plan: Mapping[str, Any],
@@ -1062,8 +1117,14 @@ def choose_reusable_evidence(
         matching.append((path, envelope))
     if not matching:
         return None, invalid_reason
-    matching.sort(key=lambda item: parse_time(item[1]["produced_at"], "produced_at"), reverse=True)
-    path, newest = matching[0]
+    # CI-03: one shared selector owns "which evidence is newest".  A same-second
+    # disagreement (typically second-resolution envelopes written before
+    # subsecond timestamps) fails closed as ambiguous instead of letting input
+    # order decide whether an older success hides a newer failure.
+    selected, ambiguity = select_latest_evidence(matching)
+    if selected is None or ambiguity is not None:
+        return None, ambiguity or "no_matching_evidence"
+    path, newest = selected
     newest_time = parse_time(newest["produced_at"], "produced_at")
     for _candidate_path, candidate in component_candidates:
         if parse_time(candidate["produced_at"], "produced_at") <= newest_time:

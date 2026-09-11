@@ -1153,3 +1153,233 @@ def test_a_real_unittest_failure_is_still_counted(tmp_path: Path) -> None:
         result="failure",
     )
     assert output["counts"]["failed"] == 3
+
+
+def _playwright_envelope(
+    root: Path,
+    plan,
+    *,
+    result: str,
+    completed_at: datetime,
+    supersedes: str | None = None,
+    label: str | None = None,
+):
+    """One playwright envelope bound to the plan, with its own artifact file.
+
+    ``label`` varies the artifact bytes, producing a genuinely distinct
+    envelope identity at an otherwise identical timestamp.
+    """
+
+    name = label or f"{completed_at.microsecond}-{result}"
+    artifact = root / f"result-{name}.json"
+    artifact.write_text(f"result-{name}\n", encoding="utf-8")
+    records, output = component_output(root, plan, "playwright", result=result, path=artifact)
+    return build_envelope(
+        plan=plan,
+        component="playwright",
+        result=result,
+        origin=local_origin(),
+        command="scripts/ci.py test-playwright-smoke",
+        execution_environment=plan["components"]["playwright"]["environment"],
+        artifacts=records,
+        machine_output=output,
+        completed_at=completed_at,
+        supersedes=supersedes,
+    )
+
+
+def _reuse(plan, root, candidates, *, now):
+    return choose_reusable_evidence(
+        plan=plan,
+        component="playwright",
+        candidates=candidates,
+        evidence_root=root,
+        consumer="tester",
+        now=now,
+    )
+
+
+class TestSameInstantSelection:
+    """CI-03: equal-ranked evidence is never ordered by input position."""
+
+    def test_subsecond_failure_wins_over_earlier_success_in_both_orders(
+        self, tmp_path: Path
+    ) -> None:
+        _repository, plan = plan_for_api(tmp_path)
+        root = tmp_path / "evidence"
+        root.mkdir()
+        base = datetime(2026, 8, 9, 12, tzinfo=UTC)
+        success = _playwright_envelope(
+            root, plan, result="success", completed_at=base + timedelta(microseconds=100000)
+        )
+        failure = _playwright_envelope(
+            root, plan, result="failure", completed_at=base + timedelta(microseconds=900000)
+        )
+        now = base + timedelta(minutes=1)
+
+        success_first = _reuse(
+            plan, root, ((root / "a.json", success), (root / "b.json", failure)), now=now
+        )
+        failure_first = _reuse(
+            plan, root, ((root / "b.json", failure), (root / "a.json", success)), now=now
+        )
+
+        # The newer failure is visible to reuse in both input orders: input
+        # order can no longer hide it behind a same-second success.
+        for chosen, reason in (success_first, failure_first):
+            assert chosen is None
+            assert reason == "latest_result_failure"
+
+    def test_second_resolution_disagreement_is_ambiguous_in_both_orders(
+        self, tmp_path: Path
+    ) -> None:
+        _repository, plan = plan_for_api(tmp_path)
+        root = tmp_path / "evidence"
+        root.mkdir()
+        # Pre-subsecond envelopes: whole-second stamps carry no ordering
+        # information, and none is invented.
+        base = datetime(2026, 8, 9, 12, tzinfo=UTC)
+        success = _playwright_envelope(root, plan, result="success", completed_at=base)
+        failure = _playwright_envelope(root, plan, result="failure", completed_at=base)
+        now = base + timedelta(minutes=1)
+
+        for candidates in (
+            ((root / "a.json", success), (root / "b.json", failure)),
+            ((root / "b.json", failure), (root / "a.json", success)),
+        ):
+            chosen, reason = _reuse(plan, root, candidates, now=now)
+            assert chosen is None
+            assert reason == "ambiguous_latest_evidence"
+
+    def test_distinct_same_instant_successes_are_ambiguous(self, tmp_path: Path) -> None:
+        _repository, plan = plan_for_api(tmp_path)
+        root = tmp_path / "evidence"
+        root.mkdir()
+        base = datetime(2026, 8, 9, 12, tzinfo=UTC)
+        first = _playwright_envelope(
+            root,
+            plan,
+            result="success",
+            completed_at=base + timedelta(microseconds=1),
+            label="same-instant-a",
+        )
+        second = _playwright_envelope(
+            root,
+            plan,
+            result="success",
+            completed_at=base + timedelta(microseconds=1),
+            label="same-instant-b",
+        )
+        assert first["evidence_id"] != second["evidence_id"]
+
+        chosen, reason = _reuse(
+            plan,
+            root,
+            ((root / "a.json", first), (root / "b.json", second)),
+            now=base + timedelta(minutes=1),
+        )
+
+        assert chosen is None
+        assert reason == "ambiguous_latest_evidence"
+
+    def test_a_duplicate_identical_envelope_collapses_to_one(self, tmp_path: Path) -> None:
+        _repository, plan = plan_for_api(tmp_path)
+        root = tmp_path / "evidence"
+        root.mkdir()
+        base = datetime(2026, 8, 9, 12, tzinfo=UTC)
+        success = _playwright_envelope(
+            root, plan, result="success", completed_at=base + timedelta(microseconds=1)
+        )
+        path = root / "a.json"
+
+        chosen, reason = _reuse(
+            plan,
+            root,
+            ((path, success), (path, dict(success))),
+            now=base + timedelta(minutes=1),
+        )
+
+        assert chosen == success
+        assert reason == "exact_digest_match"
+
+    def test_same_instant_supersession_resolves_the_tie(self, tmp_path: Path) -> None:
+        _repository, plan = plan_for_api(tmp_path)
+        root = tmp_path / "evidence"
+        root.mkdir()
+        base = datetime(2026, 8, 9, 12, tzinfo=UTC)
+        original = _playwright_envelope(root, plan, result="success", completed_at=base)
+        replacement = _playwright_envelope(
+            root,
+            plan,
+            result="failure",
+            completed_at=base,
+            supersedes=original["evidence_id"],
+        )
+        now = base + timedelta(minutes=1)
+
+        chosen, reason = _reuse(
+            plan,
+            root,
+            ((root / "a.json", original), (root / "b.json", replacement)),
+            now=now,
+        )
+
+        # The explicit supersession statement orders the tie; the replacement's
+        # own non-success result is what reuse then sees.
+        assert chosen is None
+        assert reason == "latest_result_failure"
+
+    def test_a_genuinely_later_success_after_a_failure_is_reused(self, tmp_path: Path) -> None:
+        _repository, plan = plan_for_api(tmp_path)
+        root = tmp_path / "evidence"
+        root.mkdir()
+        base = datetime(2026, 8, 9, 12, tzinfo=UTC)
+        failure = _playwright_envelope(root, plan, result="failure", completed_at=base)
+        success = _playwright_envelope(
+            root, plan, result="success", completed_at=base + timedelta(minutes=1)
+        )
+
+        chosen, reason = _reuse(
+            plan,
+            root,
+            ((root / "a.json", failure), (root / "b.json", success)),
+            now=base + timedelta(minutes=2),
+        )
+
+        assert chosen == success
+        assert reason == "exact_digest_match"
+
+
+def test_report_collection_refuses_ambiguous_same_instant_results(
+    tmp_path: Path,
+) -> None:
+    """CI-03: report-result collection shares the reuse selector's ambiguity rule."""
+
+    from ci.verification import VerificationError
+
+    _repository, plan = plan_for_api(tmp_path)
+    root = tmp_path / "evidence"
+    root.mkdir()
+    base = datetime(2026, 8, 9, 12, tzinfo=UTC)
+    success = _playwright_envelope(root, plan, result="success", completed_at=base)
+    failure = _playwright_envelope(root, plan, result="failure", completed_at=base)
+
+    # Both permutations of the same two envelopes must produce the same
+    # outcome: no directory order can pick the winner.  The candidate list
+    # order differs per permutation; the on-disk layout stays a plain
+    # evidence directory.
+    permutations = (
+        ("success-first", [(success, "a.json"), (failure, "b.json")]),
+        ("failure-first", [(failure, "b.json"), (success, "a.json")]),
+    )
+    for name, placed in permutations:
+        directory = tmp_path / f"evidence-{name}"
+        directory.mkdir()
+        for envelope, filename in placed:
+            dump_json(envelope, directory / filename)
+            for artifact in envelope["artifacts"]:
+                destination = directory / artifact["path"]
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes((root / artifact["path"]).read_bytes())
+        with pytest.raises(VerificationError, match="ambiguous_latest_evidence"):
+            create_report(plan=plan, result_directory=directory, phase="tester")
