@@ -6,6 +6,13 @@ email picks the same real-email-backed account ``identity.py`` uses for
 scoring; the stored certificate name is always a freshly generated
 placeholder, never the real one.
 
+An edition with no such export at all (2021's ML Zoomcamp) instead derives
+its graduate list from a project-pass-count rule -- see
+``EditionSource.derive_certificates_from_project_passes`` and
+``_derive_graduates_from_project_passes`` below. These graduates carry no
+real email or name and so never match a certificate URL; only the fact of
+graduating (and a placeholder certificate name) is recorded for them.
+
 Matching is deliberately conservative (audit REL-17): a display name is the
 only field the two artifacts share, and two different graduates can share one.
 A certificate URL is attached only when the normalized name is unique on both
@@ -46,6 +53,36 @@ class CertificateImportResult:
     source_names_with_multiple_certificates: int = 0
 
 
+def _derive_graduates_from_project_passes(
+    edition: EditionSource,
+) -> dict[str, tuple[str | None, str]]:
+    """Graduates computed the way ``old/ml-zoomcamp/graduates.ipynb`` did.
+
+    Only set for an edition with no plaintext graduates export at all
+    (``EditionSource.derive_certificates_from_project_passes``, issue #15).
+    The source ``email`` column in these project-results CSVs is already
+    ``sha1(email)`` -- there is no raw address or display name to recover --
+    so each graduate is stored as ``(None, "")``, exactly like a synthetic
+    (non-real-email) learner elsewhere in this package.
+    """
+
+    threshold = edition.derive_certificates_from_project_passes
+    if threshold is None:
+        return {}
+    passes: dict[str, int] = {}
+    for project in edition.projects:
+        if not project.results_csv.exists():
+            continue
+        with project.results_csv.open(newline="", encoding="utf-8") as handle:
+            for row in csv.DictReader(handle):
+                source_key = (row.get("email") or "").strip()
+                if not source_key:
+                    continue
+                if (row.get("project_passed") or "").strip().lower() == "true":
+                    passes[source_key] = passes.get(source_key, 0) + 1
+    return {key: (None, "") for key, count in passes.items() if count >= threshold}
+
+
 def _load_certificate_candidates(certificates_json: tuple) -> dict[str, list[str]]:
     """Every certificate URL per normalized name, collisions preserved."""
 
@@ -71,7 +108,7 @@ def import_edition_certificates(cohort: Cohort, edition: EditionSource) -> Certi
     # graduate listed twice is one person), then group by normalized display
     # name: a name two graduates share must never match a certificate at all,
     # because either of them could be the right owner (audit REL-17).
-    graduates: dict[str, tuple[str, str]] = {}
+    graduates: dict[str, tuple[str | None, str]] = {}
     for csv_path in edition.certificate_csvs:
         with csv_path.open(newline="", encoding="utf-8") as handle:
             for row in csv.DictReader(handle):
@@ -80,6 +117,8 @@ def import_edition_certificates(cohort: Cohort, edition: EditionSource) -> Certi
                 if not email:
                     continue
                 graduates.setdefault(sha1_hex(email), (email, name))
+    for source_key, value in _derive_graduates_from_project_passes(edition).items():
+        graduates.setdefault(source_key, value)
 
     graduate_keys_by_name: dict[str, list[str]] = {}
     for source_key, (_email, name) in graduates.items():

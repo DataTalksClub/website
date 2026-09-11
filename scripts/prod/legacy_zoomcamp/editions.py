@@ -88,6 +88,18 @@ class EditionSource:
     # hash so historical learners can be attached to their own account; see
     # ``email_recovery.py``.
     email_source_csvs: tuple[Path, ...]
+    # Set only for an edition with no plaintext graduates export at all (2021's
+    # ML Zoomcamp): the minimum number of ``projects`` results with
+    # ``project_passed`` true that earns a certificate. Mirrors the exact rule
+    # ``old/ml-zoomcamp/graduates.ipynb`` in zoomcamp-scoring used at the time
+    # (>= 2 of 3 projects passed) -- see ``certificate_import.py`` for where
+    # this is applied. None for every other edition, which has a real export.
+    #
+    # Decision: issue #15 (closed) ruled explicitly that "ml-zoomcamp-2021
+    # does have certificates -- 'no certificates for this edition' is not an
+    # approved disposition; they must be located and imported like the other
+    # editions." This field is how that ruling is actually carried out.
+    derive_certificates_from_project_passes: int | None = None
 
 
 def _sorted_matches(directory: Path, pattern: re.Pattern) -> list[tuple[str, Path]]:
@@ -213,11 +225,15 @@ def _build_ml_zoomcamp_2021(repo_root: Path) -> EditionSource:
         homeworks=homeworks,
         projects=projects,
         # 2021 predates zoomcamp-scoring's plaintext graduates.csv convention
-        # and has no current-format courses/mlzoomcamp-2021/graduates.json;
-        # certificates are not imported for this edition.
+        # and has no current-format courses/mlzoomcamp-2021/graduates.json --
+        # but it does have graduates (issue #15). old/ml-zoomcamp/graduates.ipynb
+        # computes them directly from these same three project-results CSVs:
+        # a graduate is anyone with project_passed true on at least 2 of 3.
+        # derive_certificates_from_project_passes carries that rule forward.
         certificate_csvs=(),
         certificates_json=(),
         email_source_csvs=tuple(sorted(course_dir.glob("*.csv"))),
+        derive_certificates_from_project_passes=2,
     )
 
 
