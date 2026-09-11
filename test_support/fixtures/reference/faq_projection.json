@@ -9,6 +9,8 @@
     {
       "name": "Data Engineering Zoomcamp",
       "public_path": "/faq/data-engineering-zoomcamp.html",
+      "question_count": 3,
+      "section_count": 3,
       "sections": [
         {
           "id": "synthetic-section-1",
@@ -67,6 +69,8 @@
     {
       "name": "Stock Markets Analytics Zoomcamp",
       "public_path": "/faq/stock-markets-analytics-zoomcamp.html",
+      "question_count": 1,
+      "section_count": 1,
       "sections": [
         {
           "id": "synthetic-section-2",
@@ -91,6 +95,8 @@
     {
       "name": "Machine Learning Zoomcamp",
       "public_path": "/faq/machine-learning-zoomcamp.html",
+      "question_count": 3,
+      "section_count": 2,
       "sections": [
         {
           "id": "synthetic-section-3",
@@ -113,7 +119,7 @@
           "id": "slack-help",
           "questions": [
             {
-              "answer": "Ask in our workspace: https://app.slack.com/client/T01ATQK62F8/C0288NJ5XSA",
+              "answer": "Ask in [our workspace](https://app.slack.com/client/T01ATQK62F8/C0288NJ5XSA).",
               "course": "machine-learning-zoomcamp",
               "edit_url": "https://example.invalid/edit/_questions/machine-learning-zoomcamp/wkspslack0_slack-help.md",
               "id": "wkspslack0",
@@ -143,6 +149,8 @@
     {
       "name": "LLM Zoomcamp",
       "public_path": "/faq/llm-zoomcamp.html",
+      "question_count": 8,
+      "section_count": 3,
       "sections": [
         {
           "id": "synthetic-section-4",
@@ -237,7 +245,7 @@
           "id": "slack-help",
           "questions": [
             {
-              "answer": "See the archive: https://datatalks-club.slack.com/archives/C0791HB4A58",
+              "answer": "See [the archive](https://datatalks-club.slack.com/archives/C0791HB4A58).",
               "course": "llm-zoomcamp",
               "edit_url": "https://example.invalid/edit/_questions/llm-zoomcamp/llmwkspsl1_slack-help.md",
               "id": "llmwkspsl1",
@@ -256,6 +264,8 @@
     {
       "name": "AI Dev Tools Zoomcamp",
       "public_path": "/faq/ai-dev-tools-zoomcamp.html",
+      "question_count": 1,
+      "section_count": 1,
       "sections": [
         {
           "id": "synthetic-section-5",
@@ -280,6 +290,8 @@
     {
       "name": "MLOps Zoomcamp",
       "public_path": "/faq/mlops-zoomcamp.html",
+      "question_count": 8,
+      "section_count": 2,
       "sections": [
         {
           "id": "synthetic-section-6",

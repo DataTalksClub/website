@@ -32,8 +32,9 @@ TEMPLATE_SYNTAX = ("{#", "#}", "{%", "%}", "{{", "}}")
 
 def _reviewed_page() -> dict[str, Any]:
     from scripts.prod.import_public_content import load_reviewed_slack_page
+    from test_support.reference_data import SLACK_PAGE
 
-    return load_reviewed_slack_page()
+    return load_reviewed_slack_page(SLACK_PAGE)
 
 
 class SlackPageAbsentTests(TestCase):
