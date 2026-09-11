@@ -36,15 +36,6 @@ COURSE_FAMILIES: tuple[tuple[str, str], ...] = (
     ("sma-zoomcamp", "Stock Markets Analytics Zoomcamp"),
 )
 
-# Two visible ``Course`` rows currently carry the title "AI Dev Tools Zoomcamp":
-# ``ai-dev-tools`` (holding the 2025 cohort) and ``ai-dev-tools-zoomcamp`` (holding the
-# 2026 one).  Reading families straight from the database would therefore show the
-# course twice, and a family-keyed read would keep resolving AI Dev Tools to 2025.  This
-# alias collapses them onto one catalogue key so the homepage shows one card resolved to
-# the newest cohort across both.  It is presentation only: no row, no URL and no
-# migration changes, and it is deleted once issue #308 merges the two rows.
-FAMILY_ALIASES: dict[str, str] = {"ai-dev-tools-zoomcamp": "ai-dev-tools"}
-
 # The designed landing page for the featured cohort.  It is a fixed route rather than a
 # course-page link, so it is named here instead of derived from the resolved cohort.
 FEATURED_COHORT_ROUTE_NAME = "course-cohort-ai-dev-tools-2026"
@@ -151,10 +142,9 @@ def course_catalog() -> tuple[CatalogCourse, ...]:
 
     collapsed: dict[str, Any] = {}
     for family_slug, cohort in latest_visible_cohort_per_family().items():
-        key = FAMILY_ALIASES.get(family_slug, family_slug)
-        current = collapsed.get(key)
+        current = collapsed.get(family_slug)
         if current is None or cohort_recency_key(cohort) > cohort_recency_key(current):
-            collapsed[key] = cohort
+            collapsed[family_slug] = cohort
 
     catalog: list[CatalogCourse] = []
     for family in sorted(collapsed, key=_catalog_order):
