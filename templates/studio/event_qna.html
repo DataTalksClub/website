@@ -16,6 +16,9 @@
 {% endblock %}
 
 {% block content %}
+  {% if request.GET.saved or request.GET.retried %}
+  <p class="admin-status" role="status">Saved.</p>
+  {% endif %}
   <section class="admin-section" aria-labelledby="qna-summary-heading">
     <div class="admin-section-head"><h2 id="qna-summary-heading">Session</h2></div>
     <dl class="admin-facts">
@@ -54,7 +57,12 @@
             <input type="hidden" name="revision" value="{{ qna.revision }}">
             <button name="action" value="answer" type="submit">Answer</button>
             <button name="action" value="delete" type="submit">Delete</button>
+            {% if question.pinned %}
+            {# UX-12: the action/label pair follows the rendered server state, so a moderator can undo a pin here instead of hunting for another surface. #}
+            <button name="action" value="unpin" type="submit">Unpin</button>
+            {% else %}
             <button name="action" value="pin" type="submit">Pin</button>
+            {% endif %}
           </form>
         </li>
       {% empty %}<li>No questions yet.</li>{% endfor %}

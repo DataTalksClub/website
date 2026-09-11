@@ -218,6 +218,49 @@ class ManagementContractTests(TestCase):
         self.question.refresh_from_db()
         self.assertEqual(self.question.status, "answered")
 
+    def test_studio_pin_and_unpin_follow_the_rendered_state(self) -> None:
+        # UX-12: the Studio template once offered Pin unconditionally, so a
+        # pinned question had no way to be unpinned from this surface even
+        # though the view supported it.  The action/label pair must follow
+        # the rendered server state, and a moderator can undo a pin here.
+        detail_url = reverse("studio:event-qna-detail", kwargs={"event_id": self.event.id})
+        moderate_url = reverse(
+            "studio:event-qna-moderate",
+            kwargs={"event_id": self.event.id, "question_id": self.question.question_id},
+        )
+
+        def _moderate(action: str, key: str):
+            return self.studio_client.post(
+                moderate_url,
+                {
+                    "action": action,
+                    "revision": str(self._session().revision),
+                    "idempotency_key": key,
+                },
+            )
+
+        pinned = _moderate("pin", "pin-key-1")
+        self.assertEqual(pinned.status_code, 302, pinned.content)
+        self.question.refresh_from_db()
+        self.assertTrue(self.question.pinned)
+
+        rendered = self.studio_client.get(detail_url)
+        self.assertEqual(rendered.status_code, 200, rendered.content)
+        self.assertIn(b'value="unpin"', rendered.content)
+        self.assertNotIn(b'value="pin"', rendered.content)
+        # The saved redirect has a user-visible status.
+        saved_page = self.studio_client.get(detail_url, {"saved": "1"})
+        self.assertIn(b"Saved.", saved_page.content)
+
+        unpinned = _moderate("unpin", "unpin-key-1")
+        self.assertEqual(unpinned.status_code, 302, unpinned.content)
+        self.question.refresh_from_db()
+        self.assertFalse(self.question.pinned)
+
+        rendered = self.studio_client.get(detail_url)
+        self.assertIn(b'value="pin"', rendered.content)
+        self.assertNotIn(b'value="unpin"', rendered.content)
+
     # -- confirmation contracts ------------------------------------------
 
     def test_studio_retry_requires_explicit_confirmation(self) -> None:
