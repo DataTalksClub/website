@@ -25,6 +25,17 @@ from courses.services.local_project_review_seed import (
     LocalProjectReviewSeedError,
     seed_local_project_review,
 )
+from test_support.local_course_seed_fixture import patch_public_projection_path
+
+_projection_path_patcher = patch_public_projection_path()
+
+
+def setUpModule() -> None:
+    _projection_path_patcher.start()
+
+
+def tearDownModule() -> None:
+    _projection_path_patcher.stop()
 
 
 def cohort_model():

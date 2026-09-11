@@ -25,7 +25,6 @@ from content.media_store import (
     MemoryMediaStore,
     S3MediaStore,
     deterministic_fixture,
-    media_records,
     media_store,
     object_key,
     read_media_object,
@@ -159,11 +158,26 @@ class LocalMediaStoreTests(SimpleTestCase):
         )
 
 
+#: One synthetic record per content type ``deterministic_fixture`` supports. These
+#: tests exercise the fixture generator itself -- not the shape of the real,
+#: externally-hosted ``media.json`` (``~/prod/dtc-data/content-staging/``), which
+#: this checkout may not have -- so they carry their own small representative set
+#: rather than reading ``media_records()``.
+_SYNTHETIC_RECORDS_BY_CONTENT_TYPE = {
+    "image/jpeg": _record("images/authors/synthetic.jpg", payload=b"synthetic-jpeg"),
+    "image/png": _record("images/authors/synthetic.png", payload=b"synthetic-png"),
+    "image/gif": _record("images/authors/synthetic.gif", payload=b"synthetic-gif"),
+    "image/svg+xml": _record("images/authors/synthetic.svg", payload=b"synthetic-svg"),
+}
+for _content_type, _synthetic_record in _SYNTHETIC_RECORDS_BY_CONTENT_TYPE.items():
+    _synthetic_record["content_type"] = _content_type
+_SYNTHETIC_RECORDS = tuple(_SYNTHETIC_RECORDS_BY_CONTENT_TYPE.values())
+
+
 class MemoryMediaStoreTests(SimpleTestCase):
     def test_every_checked_record_resolves_to_a_verified_fixture(self) -> None:
         store = MemoryMediaStore()
-        records = media_records()
-        for record in records:
+        for record in _SYNTHETIC_RECORDS:
             payload = read_media_object(store, record)
             self.assertTrue(payload)
 
@@ -175,14 +189,10 @@ class MemoryMediaStoreTests(SimpleTestCase):
             "image/svg+xml": b"<svg",
         }
         seen = set()
-        for record in media_records():
+        for record in _SYNTHETIC_RECORDS:
             content_type = record["content_type"]
             seen.add(content_type)
-            if content_type in signatures and content_type not in ("image/jpeg", "image/png"):
-                self.assertTrue(deterministic_fixture(record).startswith(signatures[content_type]))
-        for content_type in ("image/jpeg", "image/png"):
-            sample = next(r for r in media_records() if r["content_type"] == content_type)
-            self.assertTrue(deterministic_fixture(sample).startswith(signatures[content_type]))
+            self.assertTrue(deterministic_fixture(record).startswith(signatures[content_type]))
         self.assertEqual(seen, set(signatures))
 
     def test_the_jpeg_fixture_keeps_a_valid_marker_chain(self) -> None:
@@ -199,7 +209,7 @@ class MemoryMediaStoreTests(SimpleTestCase):
         self.assertEqual(_BASE_JPEG[2:4], b"\xff\xe0")
         self.assertEqual(_JPEG_COMMENT_OFFSET, 4 + int.from_bytes(_BASE_JPEG[4:6], "big"))
 
-        sample = next(r for r in media_records() if r["content_type"] == "image/jpeg")
+        sample = _SYNTHETIC_RECORDS_BY_CONTENT_TYPE["image/jpeg"]
         payload = deterministic_fixture(sample)
         markers = []
         index = 2
@@ -217,9 +227,9 @@ class MemoryMediaStoreTests(SimpleTestCase):
         self.assertEqual(payload[-2:], b"\xff\xd9")
 
     def test_fixtures_are_deterministic_and_record_specific(self) -> None:
-        first = media_records()[0]
+        first = _SYNTHETIC_RECORDS[0]
         second = next(
-            record for record in media_records() if record["record_key"] != first["record_key"]
+            record for record in _SYNTHETIC_RECORDS if record["record_key"] != first["record_key"]
         )
         self.assertEqual(deterministic_fixture(first), deterministic_fixture(first))
         self.assertNotEqual(deterministic_fixture(first), deterministic_fixture(second))

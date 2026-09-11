@@ -23,6 +23,17 @@ from courses.services.local_course_seed import (
     load_projected_courses,
     seed_local_courses,
 )
+from test_support.local_course_seed_fixture import patch_public_projection_path
+
+_projection_path_patcher = patch_public_projection_path()
+
+
+def setUpModule() -> None:
+    _projection_path_patcher.start()
+
+
+def tearDownModule() -> None:
+    _projection_path_patcher.stop()
 
 
 class LocalCourseSeedSourceTests(TestCase):
