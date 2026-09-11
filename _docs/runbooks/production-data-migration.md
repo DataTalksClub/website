@@ -332,10 +332,10 @@ Three conventions used throughout:
   refused rather than quietly reinterpreted, so unset those values before going back
   to a scratch database.
 - **`$EXPORT`** is the chosen CMP export, e.g.
-  `~/prod/dtc-data/rds-export/cmp/rds-prod-20260905-182754.db`. Read in place,
+  `/data/tmp/rds-export/cmp/rds-prod-20260905-182754.db`. Read in place,
   read-only. Only `cmp/` is ours — see §14 for the one beside it.
 
-> **The export is not frozen.** `~/prod/dtc-data/rds-export/` receives a new dump
+> **The export is not frozen.** `/data/tmp/rds-export/` receives a new dump
 > every day. "One-time" is a decision about cutover, not a property of the source — CMP
 > is still live and still being written to. Pick one export deliberately, record
 > its filename in the run log, and use that same file for every step and every
@@ -995,7 +995,7 @@ Point `--luma-source` at whatever export is current on migration day — the
 durable copy today lives at
 `~/prod/dtc-data/luma-eventbrite-export/luma-aggregate-v1/`
 (`chmod 700`/`600`, the same protected-export handling as
-`~/prod/dtc-data/rds-export/` and `~/prod/dtc-data/mailchimp-export/`), not the
+`/data/tmp/rds-export/` and `~/prod/dtc-data/mailchimp-export/`), not the
 gitignored, worktree-local default
 path. `--discover-new-events-only` deliberately does not require the export to
 match the pinned checksum in `event-registration-sources.json` — that pin
@@ -2545,7 +2545,7 @@ after step 3.
 
 ```
 export REHEARSAL=.tmp/migration-rehearsal.sqlite3
-export EXPORT=~/prod/dtc-data/rds-export/cmp/rds-prod-20260905-182754.db
+export EXPORT=/data/tmp/rds-export/cmp/rds-prod-20260905-182754.db
 export TARGET="DTC_ENVIRONMENT=local DJANGO_SETTINGS_MODULE=website.settings.local \
                DTC_SQLITE_PATH=$REHEARSAL"
 
@@ -3154,7 +3154,7 @@ Recorded so they are not reopened.
 
 Non-negotiable, and every one of these has a reason behind it.
 
-- `~/prod/dtc-data/rds-export/` is read **in place**, read-only. Never copied
+- `/data/tmp/rds-export/` is read **in place**, read-only. Never copied
   into the worktree, never committed. (This is the stable, protected location;
   the old `/data/tmp/rds-export/` scratch copy still exists too, but
   `~/prod/dtc-data/` is what every step of this plan should point at.)
@@ -3182,8 +3182,8 @@ Non-negotiable, and every one of these has a reason behind it.
 Written down so nobody rediscovers these and re-raises them as gaps.
 
 **`rds-aisl_prod` — the second production database. Ruled out of scope 2026-09-05.**
-`~/prod/dtc-data/rds-export/aisl/rds-aisl_prod-*.db` — the loose
-`rds-aisl_prod-*.db` files at the top of `~/prod/dtc-data/rds-export/` are the
+`/data/tmp/rds-export/aisl/rds-aisl_prod-*.db` — the loose
+`rds-aisl_prod-*.db` files at the top of `/data/tmp/rds-export/` are the
 same export before it was filed per product. Refreshed daily alongside the CMP
 export: **108 tables**, with its own `events`, `content`, `payments`, `plans`,
 `questionnaires`, `bookclub`,
@@ -3193,7 +3193,7 @@ count moves every day — **121,265** on the 2026-09-04 export, 151,402 on
 Shipping Labs**, a different product (`~/git/ai-shipping-labs`). **Owner ruling:
 "this is a different website."**
 Nothing in it is migrated here, no script in this repository reads it, and the
-files in `~/prod/dtc-data/rds-export/` matching `rds-aisl_prod-*` are to be
+files in `/data/tmp/rds-export/` matching `rds-aisl_prod-*` are to be
 ignored by every step of this plan. Its content-sync design is still worth borrowing —
 §11.1 — but its data is not ours.
 
