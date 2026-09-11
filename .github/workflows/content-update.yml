@@ -16,6 +16,9 @@ on:
       - api/views/course_repository_webhooks.py
       - api/tests/test_course_repository_webhooks.py
       - scripts/build_public_projection.py
+      - scripts/projection_build/**
+      - scripts/prod/import_docs.py
+      - scripts/prod/import_faq.py
       - scripts/prepare_course_platform_source.py
       - scripts/sync_course_platform.py
       - scripts/verify_course_platform_adoption.py
@@ -26,6 +29,7 @@ on:
       - _docs/compatibility/**
       - _docs/ci/content-update.md
       - _docs/runbooks/content-update.md
+      - temporary/content/**
   push:
     branches:
       - main
@@ -41,6 +45,9 @@ on:
       - api/views/course_repository_webhooks.py
       - api/tests/test_course_repository_webhooks.py
       - scripts/build_public_projection.py
+      - scripts/projection_build/**
+      - scripts/prod/import_docs.py
+      - scripts/prod/import_faq.py
       - scripts/prepare_course_platform_source.py
       - scripts/sync_course_platform.py
       - scripts/verify_course_platform_adoption.py
@@ -51,6 +58,7 @@ on:
       - _docs/compatibility/**
       - _docs/ci/content-update.md
       - _docs/runbooks/content-update.md
+      - temporary/content/**
   workflow_dispatch:
 
 permissions:

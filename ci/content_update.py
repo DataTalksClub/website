@@ -47,6 +47,41 @@ _DECLARED_PROJECTION_PATHS = {
     "faq": ("temporary/content/faq_projection.json",),
     "docs": ("temporary/content/docs_projection.json",),
 }
+#: The one code-owned list of path filters the content-update workflow's
+#: ``pull_request`` and ``push`` sections must carry. The reviewed projection
+#: inputs under ``temporary/content/`` and the builder/validation package
+#: ``scripts/projection_build/`` were once missing from the handwritten YAML,
+#: so a projection-only update skipped the very workflow that validates it
+#: (audit CI-04). The YAML renders this list for both events, and the contract
+#: test proves the sections equal it and that every declared input matches.
+WORKFLOW_TRIGGER_PATHS = (
+    ".github/actions/content-update/action.yml",
+    ".github/workflows/content-update.yml",
+    "scripts/ci.py",
+    "ci/content_update.py",
+    "ci/tests/test_content_update.py",
+    "content/**",
+    "content_sync/**",
+    "courses/**",
+    "api/views/course_repository_webhooks.py",
+    "api/tests/test_course_repository_webhooks.py",
+    "scripts/build_public_projection.py",
+    "scripts/projection_build/**",
+    "scripts/prod/import_docs.py",
+    "scripts/prod/import_faq.py",
+    "scripts/prepare_course_platform_source.py",
+    "scripts/sync_course_platform.py",
+    "scripts/verify_course_platform_adoption.py",
+    "scripts/tests/test_sync_course_platform.py",
+    "templates/**",
+    "course_platform_templates/**",
+    "_docs/adoption/course-platform/**",
+    "_docs/compatibility/**",
+    "_docs/ci/content-update.md",
+    "_docs/runbooks/content-update.md",
+    "temporary/content/**",
+)
+
 _ASSET_ROOTS = {
     "courses": (),
     "podwiki": (),

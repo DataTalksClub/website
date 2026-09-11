@@ -38,7 +38,11 @@ The authoritative implementation is the matrix workflow
 [`ci.content_update`](../../ci/content_update.py). Every matrix entry uses the same contract:
 
 - **Trigger:** pull requests targeting `main`, pushes to `main`, and manual dispatch, limited to
-  the workflow, contract, adapter, projection, asset, and focused-test paths for this lane.
+  the workflow, contract, adapter, projection, asset, and focused-test paths for this lane. The
+  filter list is code-owned in `ci.content_update.WORKFLOW_TRIGGER_PATHS`: both event sections
+  render that one list, and the contract test proves they match it and that every declared
+  projection input (the reviewed files under `temporary/content/`), the
+  `scripts/projection_build/` builder package, and the FAQ/Docs reviewed loaders trigger the lane.
 - **Permissions:** `contents: read` at workflow and job scope. Checkout uses one shallow reviewed
   tree with `persist-credentials: false`; no deployment credentials or write authority is
   available.

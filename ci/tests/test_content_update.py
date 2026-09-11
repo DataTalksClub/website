@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Mapping
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -13,6 +14,7 @@ from ci.content_update import (
     _DECLARED_PROJECTION_PATHS,
     CONTRACT_VERSION,
     FAMILIES,
+    WORKFLOW_TRIGGER_PATHS,
     ContentUpdateError,
     _failed_report,
     _family_contract,
@@ -382,13 +384,7 @@ def test_content_update_workflow_has_one_common_matrix_contract() -> None:
     assert workflow["on"]["pull_request"]["branches"] == ["main"]
     assert workflow["on"]["push"]["branches"] == ["main"]
     assert workflow["on"]["pull_request"]["paths"] == workflow["on"]["push"]["paths"]
-    assert {
-        "content/**",
-        "content_sync/**",
-        "courses/**",
-        "api/views/course_repository_webhooks.py",
-        "ci/content_update.py",
-    }.issubset(workflow["on"]["push"]["paths"])
+    assert workflow["on"]["push"]["paths"] == list(WORKFLOW_TRIGGER_PATHS)
     assert workflow["permissions"] == {"contents": "read"}
     assert workflow["concurrency"] == {
         "cancel-in-progress": "false",
@@ -425,6 +421,70 @@ def test_content_update_workflow_has_one_common_matrix_contract() -> None:
     assert "secrets." not in json.dumps(workflow)
     assert "pull_request_target" not in json.dumps(workflow)
     assert "contents: write" not in json.dumps(workflow)
+
+
+def _path_filter_matches(pattern: str, path: str) -> bool:
+    """GitHub path-filter semantics for the pattern shapes this repo uses.
+
+    A literal pattern matches exactly; a ``**`` segment absorbs anything
+    including ``/``; a lone ``*`` stops at a segment boundary.
+    """
+
+    pieces = pattern.split("**")
+    regex = re.escape(pieces[0]).replace(r"\*", "[^/]*")
+    for piece in pieces[1:]:
+        regex += ".*" + re.escape(piece).replace(r"\*", "[^/]*")
+    return re.fullmatch(regex, path) is not None
+
+
+def _workflow_filters() -> tuple[str, ...]:
+    """The push event's path filters as the workflow actually ships them."""
+
+    return tuple(_workflow("content-update.yml")["on"]["push"]["paths"])
+
+
+def _triggered(path: str, filters: tuple[str, ...]) -> bool:
+    return any(_path_filter_matches(pattern, path) for pattern in filters)
+
+
+def test_every_declared_projection_input_triggers_the_workflow() -> None:
+    declared = sorted({path for paths in _DECLARED_PROJECTION_PATHS.values() for path in paths})
+    assert declared
+    filters = _workflow_filters()
+
+    for path in declared:
+        assert _triggered(path, filters), path
+
+
+def test_the_builder_and_the_contract_implementation_dependencies_trigger() -> None:
+    # The builder package, the FAQ/Docs reviewed loaders the contract calls,
+    # and the retained top-level wrapper (still a supported interface).
+    filters = _workflow_filters()
+    for path in (
+        "scripts/projection_build/public_projection_source.py",
+        "scripts/projection_build/__init__.py",
+        "scripts/prod/import_docs.py",
+        "scripts/prod/import_faq.py",
+        "scripts/build_public_projection.py",
+    ):
+        assert _triggered(path, filters), path
+
+
+def test_a_projection_rename_triggers_from_both_the_old_and_new_path() -> None:
+    filters = _workflow_filters()
+    for path in (
+        "temporary/content/public_projection/wiki.json",
+        "temporary/content/public_projection/wiki_graph.json",
+        "temporary/content/faq_projection.json",
+    ):
+        assert _triggered(path, filters), path
+
+
+def test_a_projection_unrelated_change_does_not_trigger_the_lane() -> None:
+    # Ordinary CI owns these; the content-update lane must not fan out on them.
+    filters = _workflow_filters()
+    for path in ("accounts/auth.py", "README.md", "_docs/architecture/app-boundaries.md"):
+        assert not _triggered(path, filters), path
 
 
 def test_content_update_action_delegates_common_work_to_the_script() -> None:
