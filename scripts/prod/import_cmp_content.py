@@ -42,6 +42,16 @@ FAMILY_SLUG_OVERRIDES: dict[str, str] = {
     "ai-dev-tools": "ai-dev-tools-zoomcamp",
 }
 
+# A second reviewed correction: ai-dev-tools-zoomcamp's own repository still declares
+# modules 3 and 4's homework files under a zero-padded slug ("hw03"/"hw04", left over
+# from before the assignments were finalized and re-titled for CMP) while CMP's copy of
+# the same two assignments uses "hw3"/"hw4". Modules 1 and 2 already agree with CMP
+# ("hw1"/"hw2") and need no correction. Every other course's repository and CMP slugs
+# already agree, so no other entry is needed here.
+HOMEWORK_SLUG_OVERRIDES: dict[str, dict[str, str]] = {
+    "ai-dev-tools-zoomcamp": {"hw03": "hw3", "hw04": "hw4"},
+}
+
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -68,7 +78,10 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         result = import_cmp_course_content(
-            args.source, cohort_slugs=args.cohort, family_slug_overrides=FAMILY_SLUG_OVERRIDES
+            args.source,
+            cohort_slugs=args.cohort,
+            family_slug_overrides=FAMILY_SLUG_OVERRIDES,
+            homework_slug_overrides=HOMEWORK_SLUG_OVERRIDES,
         )
     except CmpContentImportError as error:
         # The error carries a code, never a source value.

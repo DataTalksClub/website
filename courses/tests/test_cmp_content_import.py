@@ -17,6 +17,7 @@ from django.test import TestCase
 
 from courses.models import (
     Cohort,
+    CohortSharedModule,
     Course,
     Enrollment,
     Homework,
@@ -24,6 +25,8 @@ from courses.models import (
     Project,
     Question,
     ReviewCriteria,
+    SharedCurriculum,
+    SharedModule,
     Submission,
 )
 from courses.models.cohort import CourseRegistration, RegistrationCampaign
@@ -397,6 +400,82 @@ class CmpContentImportTests(TestCase):
 
         self.assertTrue(Homework.objects.filter(course=cohort, slug="homework-99").exists())
         self.assertEqual(result.summary()["unpaired_repository_homework"], ["homework-99"])
+
+    def _shared_cohort(self, repository_slug: str, repository_title: str) -> tuple[Cohort, CohortSharedModule]:
+        """Build a shared-curriculum cohort whose one placement terminates in
+        a repository-authored homework carrying an irregular slug/title."""
+
+        family, _ = Course.objects.get_or_create(
+            slug="llm-zoomcamp", defaults={"title": "LLM Zoomcamp"}
+        )
+        cohort = Cohort.objects.create(
+            course=family,
+            slug="llm-zoomcamp-2026",
+            identifier="2026",
+            year=2026,
+            title="Seeded llm-zoomcamp-2026",
+            description="Seeded description",
+            curriculum_format="shared",
+        )
+        curriculum = SharedCurriculum.objects.create(
+            course=family, parser_version="course-repository-v2"
+        )
+        shared_module = SharedModule.objects.create(
+            curriculum=curriculum, position=0, slug="01-module", title="Module 1"
+        )
+        homework = Homework.objects.create(
+            course=cohort,
+            slug=repository_slug,
+            title=repository_title,
+            description="From the course repository",
+            due_date=datetime.now(timezone.utc) + timedelta(days=7),
+        )
+        placement = CohortSharedModule.objects.create(
+            cohort=cohort, shared_module=shared_module, position=0, terminal_homework=homework
+        )
+        return cohort, placement
+
+    def test_reconciles_a_reviewed_homework_slug_override_on_a_shared_cohort(self) -> None:
+        """A repository slug/title CMP does not agree with can still be reconciled.
+
+        ai-dev-tools-zoomcamp's own repository still names two homework files
+        ``hw03``/``hw04`` (left over from before the assignments were finalized and
+        re-titled for CMP), so an exact-title match never fires for them. The
+        ``homework_slug_overrides`` correction reconciles the pairing explicitly instead
+        of leaving CMP's and the repository's rows permanently duplicated -- and, because
+        a ``CohortSharedModule`` placement is bound to the *row*, not a re-derived slug,
+        the placement keeps pointing at the right assignment once it is renamed in place.
+        """
+
+        cohort, placement = self._shared_cohort("hw01", "Homework 1: Real [DRAFT]")
+        _build_source(self.source, cohort_slugs=("llm-zoomcamp-2026",))
+
+        result = import_cmp_course_content(
+            self.source, homework_slug_overrides={"llm-zoomcamp": {"hw01": "hw1"}}
+        )
+
+        self.assertEqual(
+            list(Homework.objects.filter(course=cohort).values_list("slug", "title")),
+            [("hw1", "Homework 1: Real")],
+        )
+        placement.refresh_from_db()
+        self.assertEqual(placement.terminal_homework.slug, "hw1")
+        self.assertEqual(result.summary()["unpaired_cmp_homework"], [])
+        self.assertEqual(result.summary()["unpaired_repository_homework"], [])
+
+    def test_title_match_still_wins_over_a_slug_override(self) -> None:
+        """The override is a fallback: an exact title match is tried first."""
+
+        cohort, placement = self._shared_cohort("hw01", "Homework 1: Real")
+        _build_source(self.source, cohort_slugs=("llm-zoomcamp-2026",))
+
+        import_cmp_course_content(
+            self.source, homework_slug_overrides={"llm-zoomcamp": {"hw01": "hw1"}}
+        )
+
+        placement.refresh_from_db()
+        self.assertEqual(placement.terminal_homework.slug, "hw1")
+        self.assertEqual(Homework.objects.filter(course=cohort).count(), 1)
 
     def _own(self, homework: Homework, *, content_id: str) -> Homework:
         """Stamp the provenance a course-repository pull writes."""

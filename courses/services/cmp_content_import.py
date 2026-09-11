@@ -42,6 +42,13 @@ Scope, deliberately narrow:
   next pull with ``homework_slug_collision``, and which re-created the repository row
   beside it so the reconciliation undid itself on every replay.
 
+  A pairing whose repository title no longer matches CMP's exactly (a stale ``[DRAFT]``
+  marker, a title rewritten before launch) is left unbound by title alone -- guessing by
+  near-enough text is exactly the wrong-attachment risk this reconciliation refuses to
+  take.  ``homework_slug_overrides`` is the small, reviewed correction for that: an
+  explicit ``{repository_slug: cmp_slug}`` pair the caller already knows names the same
+  assignment, used only as a fallback when title matching finds nothing.
+
 Running it twice is a no-op: every write is keyed on a natural key, and a homework's
 questions are replaced as a set.
 """
@@ -409,6 +416,7 @@ def import_cmp_course_content(
     *,
     cohort_slugs: Sequence[str] | None = None,
     family_slug_overrides: Mapping[str, str] = MappingProxyType({}),
+    homework_slug_overrides: Mapping[str, Mapping[str, str]] = MappingProxyType({}),
 ) -> CmpContentImportResult:
     """Copy real CMP content onto the local catalogue's existing legacy cohorts.
 
@@ -418,6 +426,10 @@ def import_cmp_course_content(
     carries).  Every other edition slug's family and year are derived mechanically from
     the slug itself.  The caller -- ``scripts/prod/import_cmp_content.py`` -- owns this
     small, reviewed correction; this function does not guess.
+
+    ``homework_slug_overrides`` corrects a course whose repository declares a homework
+    slug CMP does not use for the same assignment (see ``_import_cohort``).  Keyed by
+    course slug, valued by a ``{repository_slug: cmp_slug}`` mapping.
     """
 
     connection = _readonly(source_db)
@@ -470,7 +482,9 @@ def import_cmp_course_content(
                 if cohort.course.slug != family_slug:
                     _refuse("cohort-family-mismatch")
             with transaction.atomic():
-                imported.append(_import_cohort(connection, row, cohort))
+                imported.append(
+                    _import_cohort(connection, row, cohort, homework_slug_overrides)
+                )
 
         campaigns, unlinked = _import_registration_campaigns(
             connection, source_cohorts, local, cohort_slugs
@@ -625,26 +639,28 @@ def _dependent_row_total(connection: sqlite3.Connection, course_id: Any) -> int:
 
 
 def _repository_pair(
-    by_title: dict[str, Homework],
-    title: Any,
+    candidates: dict[str, Homework],
+    key: Any,
     slug_match: Homework | None,
 ) -> Homework | None:
     """Return the repository row this CMP row is the same assignment as, if any.
 
-    The pairing is by exact title, and it is tried whether or not a row already carries
-    CMP's slug.  Trying it only on the create branch made the import order-dependent: an
-    assignment CMP and a repository both describe reconciled on a first run and stayed
-    permanently duplicated on every later one, because the CMP-slugged row from the
-    previous run matched first and the repository row was never looked at again.  The
-    local dataset copies CMP before it pulls a repository, so *every* pairing there hits
-    that branch.
+    ``candidates`` is keyed either by exact title (the general case) or, for a course
+    with a reviewed ``homework_slug_overrides`` entry, by the CMP slug its irregular
+    repository slug is known to mean.  Either way the pairing is tried whether or not a
+    row already carries CMP's slug.  Trying it only on the create branch made the import
+    order-dependent: an assignment CMP and a repository both describe reconciled on a
+    first run and stayed permanently duplicated on every later one, because the
+    CMP-slugged row from the previous run matched first and the repository row was never
+    looked at again.  The local dataset copies CMP before it pulls a repository, so
+    *every* pairing there hits that branch.
     """
 
-    paired = by_title.get(str(title))
+    paired = candidates.get(str(key))
     if paired is None:
         return None
     if slug_match is None:
-        return by_title.pop(str(title))
+        return candidates.pop(str(key))
     if paired.pk == slug_match.pk:
         return None
     # Two rows for one assignment: the repository's, and one already carrying CMP's slug.
@@ -654,7 +670,7 @@ def _repository_pair(
         return None
     if Submission.objects.filter(homework=slug_match).exists():
         return None
-    return by_title.pop(str(title))
+    return candidates.pop(str(key))
 
 
 def _adopt_repository_row(
@@ -689,7 +705,12 @@ def _adopt_repository_row(
     return paired
 
 
-def _import_cohort(connection: sqlite3.Connection, row: Any, cohort: Cohort) -> CohortReport:
+def _import_cohort(
+    connection: sqlite3.Connection,
+    row: Any,
+    cohort: Cohort,
+    homework_slug_overrides: Mapping[str, Mapping[str, str]] = MappingProxyType({}),
+) -> CohortReport:
     _apply(cohort, _values(row, _COHORT_FIELDS))
     course_id = row["id"]
 
@@ -706,6 +727,20 @@ def _import_cohort(connection: sqlite3.Connection, row: Any, cohort: Cohort) -> 
     by_title = {
         row.title: row for row in existing.values() if row.slug not in superseding and row.title
     }
+    # A handful of courses declare a repository homework slug CMP does not agree with
+    # (for example ai-dev-tools-zoomcamp's modules-3/4 files, still ``hw03``/``hw04``
+    # from before the assignments were finalized and re-titled for CMP, so their titles
+    # no longer match exactly either).  ``course_overrides`` is the small, reviewed
+    # correction the caller supplies for exactly that -- see
+    # ``scripts/prod/import_cmp_content.py`` -- keyed by the repository's own irregular
+    # slug, valued by the CMP slug it actually means.  It never guesses a pairing that
+    # title matching wouldn't also catch on its own; it only covers the reviewed cases.
+    course_overrides = homework_slug_overrides.get(cohort.course.slug, {})
+    by_corrected_slug = {
+        course_overrides[row.slug]: row
+        for row in existing.values()
+        if row.slug in course_overrides and row.slug not in superseding
+    }
 
     written = 0
     questions_written = 0
@@ -718,6 +753,8 @@ def _import_cohort(connection: sqlite3.Connection, row: Any, cohort: Cohort) -> 
         values = _values(source, _HOMEWORK_FIELDS)
         homework = existing.get(slug)
         paired = _repository_pair(by_title, values["title"], homework)
+        if paired is None:
+            paired = _repository_pair(by_corrected_slug, slug, homework)
         if paired is not None:
             homework = _adopt_repository_row(paired, homework, slug, values, rebound, existing)
         elif homework is not None:
