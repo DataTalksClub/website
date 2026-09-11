@@ -1032,13 +1032,19 @@
             <a class="band-link" href="{% url 'course_list' %}">all courses →</a>
           </div>
           {% if featured_catalog_entry %}
-          <div class="featured{% if not featured_build_items %} featured-solo{% endif %}" data-featured-course>
+          {% if featured_build_items %}
+          <div class="featured" data-featured-course>
+          {% else %}
+          <div class="featured featured-solo" data-featured-course>
+          {% endif %}
             <div class="featured-main">
               <span class="chip chip-ink">New cohort</span>
               <h3>{{ featured_catalog_entry.title }}</h3>
               <p class="featured-subline">
                 Starts {{ featured_catalog_entry.start_display }}
-                {% if featured_cohort_format %}· {{ featured_cohort_format }}{% endif %}
+                {% if featured_cohort_format %}
+                · {{ featured_cohort_format }}
+                {% endif %}
                 · homework + peer review
               </p>
               {% if featured_cohort_summary %}
