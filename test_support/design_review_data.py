@@ -48,7 +48,10 @@ from test_support.factories import FactoryContext, create_current_scenario
 
 from .reference_data import EVENT_IDENTITY_MANIFEST
 
-QNA_REVIEW_EVENT_PUBLIC_ID = 364
+#: Any checked identity from the reference fixture works here; this is not a
+#: pin on a specific real event, just a stable choice of which one the design
+#: review scenario reuses.
+QNA_REVIEW_EVENT_PUBLIC_ID = 1
 
 
 def ensure_checked_event_identity_snapshot() -> Event:

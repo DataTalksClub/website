@@ -49,6 +49,9 @@ class ReferenceDataLoadOrderTests(SimpleTestCase):
 
 class ReferenceDataReachesThisWorkerTests(TestCase):
     def test_the_reviewed_rows_are_present_wherever_this_test_runs(self) -> None:
-        self.assertEqual(Event.objects.count(), 421)
+        # These counts are the small, synthetic reference fixture's own
+        # (test_support/fixtures/reference/), not the real reviewed corpus's --
+        # see test_support/reference_data.py's module docstring.
+        self.assertEqual(Event.objects.count(), 11)
         self.assertEqual(Testimonial.objects.count(), 6)
         self.assertGreater(ContentDocument.objects.count(), 0)

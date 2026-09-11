@@ -134,10 +134,14 @@ class ArticleCompositionTests(TestCase):
                         self.assertTrue(section.label)
                     elif section.kind == "code":
                         self.assertTrue(section.text)
-        self.assertEqual(found["image"], 325)
-        self.assertEqual(found["table"], 33)
-        self.assertEqual(found["code"], 90)
-        self.assertEqual(found["chart"], 50)
+        # Every kind this projection can carry shows up somewhere in the
+        # checked catalogue, at least once -- the exact count is the real
+        # reviewed corpus's own fact, not a code-owned one, and the catalogue
+        # under test here is the small synthetic fixture
+        # (test_support/fixtures/reference/), not that real corpus.
+        for kind in ("image", "table", "code", "chart"):
+            with self.subTest(kind=kind):
+                self.assertGreater(found.get(kind, 0), 0)
 
     def test_a_table_frame_is_named_once_inside_its_own_article(self) -> None:
         """A scroll frame is a named region, and two of them may not share a name."""
@@ -152,17 +156,39 @@ class ArticleCompositionTests(TestCase):
                 self.assertEqual(len(labels), len(set(labels)))
 
     def test_a_link_written_in_the_source_keeps_its_address(self) -> None:
-        record = _article("how-to-run-postgresql-and-pgadmin-with-docker")
+        """A Markdown link in a block renders as a clean anchor, no source noise attached."""
 
-        markup = " ".join(
-            section.html for section in prose_sections(record["blocks"]) if section.html
+        sections = prose_sections(
+            ({"kind": "paragraph", "markdown": "[PostgreSQL](https://www.postgresql.org/)"},)
         )
 
+        markup = " ".join(section.html for section in sections if section.html)
+
         self.assertIn('<a href="https://www.postgresql.org/">PostgreSQL</a>', markup)
-        # The sanitizer owns what may survive: a legacy renderer's directive and a
-        # target attribute are not markup this site publishes.
         self.assertNotIn("target=", markup)
         self.assertNotIn("{:", markup)
+
+    def test_a_leaked_legacy_target_attribute_is_stripped_from_a_published_body_block(
+        self,
+    ) -> None:
+        """The sanitizer owns what may survive a legacy renderer's leaked directive.
+
+        Article and person body blocks are stored as plain text, so by the time a
+        block reaches here a preceding Markdown link has already been reduced to
+        its visible label -- this is what strips the flattening artifact that
+        sometimes trails it.
+        """
+
+        from content.public_text import strip_leaked_target_attributes
+
+        leaked = 'PostgreSQL{:target="blank"}'
+
+        cleaned = strip_leaked_target_attributes(leaked, published_body=True)
+
+        self.assertEqual(cleaned, "PostgreSQL")
+        # Opting out leaves it untouched -- the function is a no-op without the
+        # caller's explicit declaration that this is a published body block.
+        self.assertEqual(strip_leaked_target_attributes(leaked), leaked)
 
     def test_headings_keep_their_anchors_and_stay_inside_the_heading_range(self) -> None:
         for record in catalogue.articles():
@@ -324,7 +350,8 @@ class ArticlePageTests(TestCase):
     def test_a_body_with_pictures_tables_and_code_is_drawn_properly(self) -> None:
         """The restored kinds reach the page as the marks each one needs."""
 
-        body = self.client.get("/blog/machine-learning-zoomcamp.html").content.decode()
+        article = _richest_article()
+        body = self.client.get(article["public_path"]).content.decode()
 
         # A picture reserves its own box, so the reading column does not jump.
         self.assertRegex(
@@ -334,23 +361,23 @@ class ArticlePageTests(TestCase):
         self.assertIn("<figcaption>", body)
         # A wide table scrolls inside a named frame a keyboard can reach.
         self.assertIn(
-            '<div class="prose-scroll" role="region" tabindex="0" aria-label="Table 1">', body
+            '<div class="prose-scroll" role="region" tabindex="0" aria-label="Synthetic Table">',
+            body,
         )
-        self.assertIn('<th scope="col">Topic</th>', body)
+        self.assertIn('<th scope="col">Column A</th>', body)
         # A link keeps the address the source wrote.
         self.assertIn('<a href="https://', body)
 
     def test_a_code_sample_reaches_the_page_as_code(self) -> None:
-        body = self.client.get(
-            "/blog/how-to-run-postgresql-and-pgadmin-with-docker.html"
-        ).content.decode()
+        article = _richest_article()
+        body = self.client.get(article["public_path"]).content.decode()
 
         self.assertIn('<pre><code class="language-bash">docker volume create', body)
         # Escaped, never executed: a sample's angle brackets and quotes are text
         # inside the element, and the body region carries no markup of its own.
         prose = body.split('class="prose prose-reading article-body"', 1)[1].split("</div>", 1)[0]
         self.assertNotIn("<script", prose)
-        self.assertIn("&quot;root&quot;", prose)
+        self.assertIn("&quot;synthetic-volume&quot;", prose)
 
     def test_the_page_carries_its_own_stylesheet_and_no_legacy_css(self) -> None:
         article = _richest_article()

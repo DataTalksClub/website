@@ -17,6 +17,7 @@ from django.conf import settings
 from django.test import TestCase
 
 import scripts.prod
+from test_support.reference_data import EVENT_CONTENT, EVENT_IDENTITY_MANIFEST
 
 PROD_ROOT = Path(scripts.prod.__file__).resolve().parent
 
@@ -31,14 +32,22 @@ class EventImportTests(TestCase):
     """The identity replay, the coverage report, and the named content gap."""
 
     def test_the_identity_manifest_replays_without_creating_a_row(self) -> None:
-        """The test database already holds the reviewed set, so importing is a reconcile."""
+        """The test database already holds the reviewed set, so importing is a reconcile.
+
+        ``import_identities``'s own default reads the real, external reviewed
+        manifest (``~/prod/dtc-data/content-staging/``), which this checkout
+        may not have; the reference-data fixture that already seeded this test
+        database is a different, small synthetic set
+        (``test_support/fixtures/reference/``), so this passes it explicitly to
+        replay against what is actually here.
+        """
 
         from events.models import Event
         from scripts.prod.import_events import import_identities
 
         before = Event.objects.count()
 
-        report = import_identities(apply=True)
+        report = import_identities(manifest=EVENT_IDENTITY_MANIFEST, apply=True)
 
         self.assertTrue(report["replayed"])
         self.assertEqual(report["events_created"], 0)
@@ -47,7 +56,7 @@ class EventImportTests(TestCase):
     def test_a_dry_run_writes_nothing(self) -> None:
         from scripts.prod.import_events import import_identities
 
-        report = import_identities(apply=False)
+        report = import_identities(manifest=EVENT_IDENTITY_MANIFEST, apply=False)
 
         self.assertFalse(report["applied"])
 
@@ -87,7 +96,7 @@ class EventImportTests(TestCase):
             EventLink.objects.count(),
         )
 
-        report = import_content(apply=True)
+        report = import_content(source=EVENT_CONTENT, apply=True)
 
         self.assertTrue(report["replayed"])
         self.assertEqual(report["created"], 0)
@@ -103,12 +112,12 @@ class EventImportTests(TestCase):
         )
 
     def test_every_identity_gets_content_and_the_reviewed_share_is_described(self) -> None:
-        """159 of the 421 carry a reviewed description; the rest correctly carry none."""
+        """Some of the synthetic set carry a reviewed description; the rest correctly carry none."""
 
         from events.models import Event, EventContent
         from scripts.prod.import_events import import_content
 
-        report = import_content(apply=True)
+        report = import_content(source=EVENT_CONTENT, apply=True)
 
         self.assertEqual(report["events"], Event.objects.count())
         self.assertEqual(report["events"], EventContent.objects.count())
@@ -126,7 +135,7 @@ class EventImportTests(TestCase):
         EventContent.objects.filter(description_html="").delete()
         remaining = EventContent.objects.count()
 
-        report = import_content(apply=False)
+        report = import_content(source=EVENT_CONTENT, apply=False)
 
         self.assertFalse(report["applied"])
         self.assertGreater(report["created"], 0)
@@ -151,10 +160,15 @@ class EventImportTests(TestCase):
                         "a production importer must not read the legacy site",
                     )
         # The content records name that repository as provenance and are read
-        # from inside this checkout, which is the distinction the rule draws.
+        # from a local, reviewed file -- never a live fetch of the legacy
+        # site -- which is the distinction the rule draws. That file lives
+        # outside this checkout now, at ~/prod/dtc-data/content-staging/ (see
+        # _docs/architecture/database-only-content.md), so the check is that
+        # it resolves under the operator's local data directory, not this
+        # repository.
         self.assertTrue(
-            import_events.EVENT_CONTENT_PATH.is_relative_to(PROD_ROOT.parents[1]),
-            "event content must be staged inside this repository",
+            import_events.EVENT_CONTENT_PATH.is_relative_to(Path.home() / "prod" / "dtc-data"),
+            "event content must be staged locally, outside the live legacy site",
         )
 
 
@@ -805,6 +819,15 @@ class RunAtomicityTests(TestCase):
         from scripts.prod.import_events import run
 
         return run(
+            # The identity leg would otherwise reconcile against its own
+            # default (the real external tree at ~/prod/dtc-data), which
+            # disagrees with the small synthetic set reference_data.py already
+            # seeded this test database with. Pointing both explicitly at that
+            # same synthetic set keeps the identity/content legs a clean
+            # no-op replay, so this test still exercises what it means to --
+            # a *later* leg (registration) is what refuses the run.
+            identity_manifest=EVENT_IDENTITY_MANIFEST,
+            event_content_source=EVENT_CONTENT,
             luma_source=self.luma_source,
             eventbrite_source=self.eventbrite_source,
             new_event_content_source=self.new_event_content,

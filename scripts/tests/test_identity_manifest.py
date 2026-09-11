@@ -78,7 +78,7 @@ class EventIdentityManifestTests(TestCase):
         self.assertTrue(first.replayed)
         self.assertTrue(applied.replayed)
         self.assertTrue(second.replayed)
-        self.assertEqual(first.event_total, 421)
+        self.assertEqual(first.event_total, 11)
         self.assertEqual(before, after)
 
     def test_importing_into_an_empty_database_leaves_the_allocator_above_the_manifest(
@@ -92,12 +92,12 @@ class EventIdentityManifestTests(TestCase):
 
         report = import_identity_manifest(path=EVENT_IDENTITY_MANIFEST)
 
-        self.assertEqual(report.events_created, 421)
-        self.assertEqual(EventPublicIdSequence.objects.get(pk=1).next_public_id, 422)
+        self.assertEqual(report.events_created, 11)
+        self.assertEqual(EventPublicIdSequence.objects.get(pk=1).next_public_id, 12)
         allocated = create_event_identity(
             title="Allocated after a bootstrap import",
             source_repository="DataTalksClub/test",
             source_revision="a" * 40,
             source_key="allocated-after-bootstrap",
         )
-        self.assertEqual(allocated.public_id, 422)
+        self.assertEqual(allocated.public_id, 12)

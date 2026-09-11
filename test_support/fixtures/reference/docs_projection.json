@@ -1,0 +1,74 @@
+{
+  "assets": [
+    {
+      "content_type": "image/png",
+      "public_path": "/docs/assets/images/brand-assets/avatar.png",
+      "sha256": "808d0a16c2b5b70ab656d5d4ae2bb76b81e913274dbfeb29c9b712813b64bc55",
+      "size": 661803,
+      "source_path": "assets/images/brand-assets/avatar.png",
+      "source_revision": "3f23e006ffdaa498bbc69697408853b6f5eb37dc"
+    }
+  ],
+  "pages": [
+    {
+      "body": "# Synthetic Docs\n\nWelcome to the synthetic docs root page.\n",
+      "body_sha256": "d46313a0220787c565e7f400858b0de4330449943e129d7f9aab819d7f8bb556",
+      "description": "Synthetic docs root.",
+      "edit_url": "https://example.invalid/edit/README.md",
+      "grand_parent": null,
+      "grand_parent_path": null,
+      "has_children": true,
+      "has_toc": false,
+      "nav_order": 1,
+      "parent": null,
+      "parent_path": null,
+      "permalink": null,
+      "public_path": "/docs/",
+      "source_path": "README.md",
+      "source_revision": "3f23e006ffdaa498bbc69697408853b6f5eb37dc",
+      "title": "Synthetic Docs"
+    },
+    {
+      "body": "# Synthetic Child Page\n\nThis is a synthetic child page with an image.\n",
+      "body_sha256": "96f98a3412c24629533ae6871d7557cef11017cdd1e74596450dd55cf85fca60",
+      "description": "Synthetic docs child page.",
+      "edit_url": "https://example.invalid/edit/synthetic-child.md",
+      "grand_parent": null,
+      "grand_parent_path": null,
+      "has_children": false,
+      "has_toc": false,
+      "nav_order": 1,
+      "parent": "Synthetic Docs",
+      "parent_path": "/docs/",
+      "permalink": null,
+      "public_path": "/docs/synthetic-child/",
+      "source_path": "synthetic-child.md",
+      "source_revision": "3f23e006ffdaa498bbc69697408853b6f5eb37dc",
+      "title": "Synthetic Child Page"
+    },
+    {
+      "body": "# Activities\n\nSynthetic activities index page.\n",
+      "body_sha256": "57e9d0af282215f22c278bc59b47b4add33db3129a3813bc2ea40ae3164e7b19",
+      "description": "Synthetic activities page.",
+      "edit_url": "https://example.invalid/edit/activities.md",
+      "grand_parent": null,
+      "grand_parent_path": null,
+      "has_children": false,
+      "has_toc": false,
+      "nav_order": 2,
+      "parent": "Synthetic Docs",
+      "parent_path": "/docs/",
+      "permalink": null,
+      "public_path": "/docs/activities/",
+      "source_path": "activities.md",
+      "source_revision": "3f23e006ffdaa498bbc69697408853b6f5eb37dc",
+      "title": "Activities"
+    }
+  ],
+  "root_path": "/docs/",
+  "schema_version": 1,
+  "source": {
+    "repository": "DataTalksClub/docs",
+    "revision": "3f23e006ffdaa498bbc69697408853b6f5eb37dc"
+  }
+}

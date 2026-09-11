@@ -1,0 +1,155 @@
+{
+  "counts": {
+    "assets": 0,
+    "courses": 6,
+    "questions": 6,
+    "sections": 6
+  },
+  "courses": [
+    {
+      "name": "Data Engineering Zoomcamp",
+      "public_path": "/faq/data-engineering-zoomcamp.html",
+      "sections": [
+        {
+          "id": "synthetic-section-1",
+          "questions": [
+            {
+              "answer": "Synthetic answer for data-engineering-zoomcamp.",
+              "course": "data-engineering-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/data-engineering-zoomcamp/synq000001.md",
+              "id": "synq000001",
+              "images": [],
+              "question": "Synthetic question for data-engineering-zoomcamp?",
+              "section_id": "synthetic-section-1",
+              "source_path": "_questions/data-engineering-zoomcamp/synq000001.md"
+            }
+          ],
+          "title": "Synthetic Section"
+        }
+      ],
+      "slug": "data-engineering-zoomcamp"
+    },
+    {
+      "name": "Stock Markets Analytics Zoomcamp",
+      "public_path": "/faq/stock-markets-analytics-zoomcamp.html",
+      "sections": [
+        {
+          "id": "synthetic-section-2",
+          "questions": [
+            {
+              "answer": "Synthetic answer for stock-markets-analytics-zoomcamp.",
+              "course": "stock-markets-analytics-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/stock-markets-analytics-zoomcamp/synq000002.md",
+              "id": "synq000002",
+              "images": [],
+              "question": "Synthetic question for stock-markets-analytics-zoomcamp?",
+              "section_id": "synthetic-section-2",
+              "source_path": "_questions/stock-markets-analytics-zoomcamp/synq000002.md"
+            }
+          ],
+          "title": "Synthetic Section"
+        }
+      ],
+      "slug": "stock-markets-analytics-zoomcamp"
+    },
+    {
+      "name": "Machine Learning Zoomcamp",
+      "public_path": "/faq/machine-learning-zoomcamp.html",
+      "sections": [
+        {
+          "id": "synthetic-section-3",
+          "questions": [
+            {
+              "answer": "Synthetic answer for machine-learning-zoomcamp.",
+              "course": "machine-learning-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/machine-learning-zoomcamp/synq000003.md",
+              "id": "synq000003",
+              "images": [],
+              "question": "Synthetic question for machine-learning-zoomcamp?",
+              "section_id": "synthetic-section-3",
+              "source_path": "_questions/machine-learning-zoomcamp/synq000003.md"
+            }
+          ],
+          "title": "Synthetic Section"
+        }
+      ],
+      "slug": "machine-learning-zoomcamp"
+    },
+    {
+      "name": "LLM Zoomcamp",
+      "public_path": "/faq/llm-zoomcamp.html",
+      "sections": [
+        {
+          "id": "synthetic-section-4",
+          "questions": [
+            {
+              "answer": "Synthetic answer for llm-zoomcamp.",
+              "course": "llm-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/llm-zoomcamp/synq000004.md",
+              "id": "synq000004",
+              "images": [],
+              "question": "Synthetic question for llm-zoomcamp?",
+              "section_id": "synthetic-section-4",
+              "source_path": "_questions/llm-zoomcamp/synq000004.md"
+            }
+          ],
+          "title": "Synthetic Section"
+        }
+      ],
+      "slug": "llm-zoomcamp"
+    },
+    {
+      "name": "AI Dev Tools Zoomcamp",
+      "public_path": "/faq/ai-dev-tools-zoomcamp.html",
+      "sections": [
+        {
+          "id": "synthetic-section-5",
+          "questions": [
+            {
+              "answer": "Synthetic answer for ai-dev-tools-zoomcamp.",
+              "course": "ai-dev-tools-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/ai-dev-tools-zoomcamp/synq000005.md",
+              "id": "synq000005",
+              "images": [],
+              "question": "Synthetic question for ai-dev-tools-zoomcamp?",
+              "section_id": "synthetic-section-5",
+              "source_path": "_questions/ai-dev-tools-zoomcamp/synq000005.md"
+            }
+          ],
+          "title": "Synthetic Section"
+        }
+      ],
+      "slug": "ai-dev-tools-zoomcamp"
+    },
+    {
+      "name": "MLOps Zoomcamp",
+      "public_path": "/faq/mlops-zoomcamp.html",
+      "sections": [
+        {
+          "id": "synthetic-section-6",
+          "questions": [
+            {
+              "answer": "Synthetic answer for mlops-zoomcamp.",
+              "course": "mlops-zoomcamp",
+              "edit_url": "https://example.invalid/edit/_questions/mlops-zoomcamp/synq000006.md",
+              "id": "synq000006",
+              "images": [],
+              "question": "Synthetic question for mlops-zoomcamp?",
+              "section_id": "synthetic-section-6",
+              "source_path": "_questions/mlops-zoomcamp/synq000006.md"
+            }
+          ],
+          "title": "Synthetic Section"
+        }
+      ],
+      "slug": "mlops-zoomcamp"
+    }
+  ],
+  "schema_version": 1,
+  "source": {
+    "branch": "main",
+    "path": "_questions",
+    "repository": "DataTalksClub/faq",
+    "revision": "c8da1deea9e24945922702994de101dd90a5380a"
+  }
+}

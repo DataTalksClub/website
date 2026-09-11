@@ -1,0 +1,167 @@
+{
+  "counts": {
+    "events": 11
+  },
+  "events": [
+    {
+      "canonical_path": "/events/1/synthetic-kickoff-webinar",
+      "id": "24bc1b9d-ca6d-5bd8-a540-8b2f2b6931ee",
+      "public_id": 1,
+      "slug": "synthetic-kickoff-webinar",
+      "source": {
+        "repository": "DataTalksClub/synthetic-test-fixture",
+        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_key": "synthetic-event-1"
+      },
+      "source_checksum": "f8e0203e8236bbf58e8fb649d4777bfdd81ee2b00a799408df3a27984b782457",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Kickoff Webinar"
+    },
+    {
+      "canonical_path": "/events/2/synthetic-data-engineering-workshop",
+      "id": "c0339093-7f51-504c-881a-84cac2cdb31e",
+      "public_id": 2,
+      "slug": "synthetic-data-engineering-workshop",
+      "source": {
+        "repository": "DataTalksClub/synthetic-test-fixture",
+        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_key": "synthetic-event-2"
+      },
+      "source_checksum": "a12d92c09cf305af460ac84440ec929bf73f6479a08327dc45ee6737001b24e5",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Data Engineering Workshop"
+    },
+    {
+      "canonical_path": "/events/3/synthetic-mlops-panel",
+      "id": "4affe0af-a969-5095-9e67-6faca1b18da7",
+      "public_id": 3,
+      "slug": "synthetic-mlops-panel",
+      "source": {
+        "repository": "DataTalksClub/synthetic-test-fixture",
+        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_key": "synthetic-event-3"
+      },
+      "source_checksum": "e11d9166b78ef4896fbe5ddb2ff1c3947b0e1d7614b4821d2cfbb9337aa73181",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic MLOps Panel"
+    },
+    {
+      "canonical_path": "/events/4/synthetic-llm-deep-dive",
+      "id": "660f80ce-1a51-5caf-940c-6c72d9f1b0e0",
+      "public_id": 4,
+      "slug": "synthetic-llm-deep-dive",
+      "source": {
+        "repository": "DataTalksClub/synthetic-test-fixture",
+        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_key": "synthetic-event-4"
+      },
+      "source_checksum": "4f554f5de7e719b2e1fe7b390a104c156caae99f3ebb4b26027ff54107fc7e4a",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic LLM Deep Dive"
+    },
+    {
+      "canonical_path": "/events/5/synthetic-community-podcast-episode-one",
+      "id": "1cd0c669-cf58-5b3a-aa01-2847ade64f2a",
+      "public_id": 5,
+      "slug": "synthetic-community-podcast-episode-one",
+      "source": {
+        "repository": "DataTalksClub/synthetic-test-fixture",
+        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_key": "synthetic-event-5"
+      },
+      "source_checksum": "c50af0c95851f6db6951dc57b06202f442753943b0c74c3da7675e8fd193732d",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Community Podcast Episode One"
+    },
+    {
+      "canonical_path": "/events/6/synthetic-community-podcast-episode-two",
+      "id": "0868dccd-4a0d-5857-8c02-cb4325334c73",
+      "public_id": 6,
+      "slug": "synthetic-community-podcast-episode-two",
+      "source": {
+        "repository": "DataTalksClub/synthetic-test-fixture",
+        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_key": "synthetic-event-6"
+      },
+      "source_checksum": "1e3674c822c6c24ae37f749fdbcf98e5461fbd57a808708a674f1f2cf0323360",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Community Podcast Episode Two"
+    },
+    {
+      "canonical_path": "/events/7/synthetic-analytics-conference-talk",
+      "id": "9f3c2a05-fa23-5c0f-960a-4d05694541f6",
+      "public_id": 7,
+      "slug": "synthetic-analytics-conference-talk",
+      "source": {
+        "repository": "DataTalksClub/synthetic-test-fixture",
+        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_key": "synthetic-event-7"
+      },
+      "source_checksum": "b7826b4f644d80284559507a1b8e1ae87ad2e0944f33b05a38f8b10fa9a257ce",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Analytics Conference Talk"
+    },
+    {
+      "canonical_path": "/events/8/synthetic-office-hours-session",
+      "id": "8be0c283-cd22-5919-a0f4-deb801f577c5",
+      "public_id": 8,
+      "slug": "synthetic-office-hours-session",
+      "source": {
+        "repository": "DataTalksClub/synthetic-test-fixture",
+        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_key": "synthetic-event-8"
+      },
+      "source_checksum": "08fba2278101a97b6c469ad0996d949c06f75b9f5968c03105aa723a8af46a05",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Office Hours Session"
+    },
+    {
+      "canonical_path": "/events/9/ai-dev-tools-zoomcamp-2026-course-launch",
+      "id": "72ff7302-8567-4ba4-ab37-fa880807f073",
+      "public_id": 9,
+      "slug": "ai-dev-tools-zoomcamp-2026-course-launch",
+      "source": {
+        "repository": "DataTalksClub/synthetic-test-fixture",
+        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_key": "synthetic-event-9"
+      },
+      "source_checksum": "f1826b6eaa2e7fa6db78e06682a25d6cf65d5814be2b1be8e76c76e4128f64bc",
+      "source_path": "_data/events.yaml",
+      "title": "AI Dev Tools Zoomcamp 2026 Course Launch"
+    },
+    {
+      "canonical_path": "/events/10/synthetic-banner-mapped-assistant-talk",
+      "id": "018ac4d8-358f-43b9-b9f5-77b874da95e9",
+      "public_id": 10,
+      "slug": "synthetic-banner-mapped-assistant-talk",
+      "source": {
+        "repository": "DataTalksClub/synthetic-test-fixture",
+        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_key": "synthetic-event-10"
+      },
+      "source_checksum": "ed7cc6deee927bd17442acb390976d6598b4575a6f24bd3951e39b90496c6340",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Banner-Mapped Assistant Talk"
+    },
+    {
+      "canonical_path": "/events/11/synthetic-banner-mapped-agents-workshop",
+      "id": "75722536-79be-44b0-bde9-17e90dd3a967",
+      "public_id": 11,
+      "slug": "synthetic-banner-mapped-agents-workshop",
+      "source": {
+        "repository": "DataTalksClub/synthetic-test-fixture",
+        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_key": "synthetic-event-11"
+      },
+      "source_checksum": "973351d432c0031142193a81c649f954f36522096eac5b0c9a23c77bd23e25c7",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Banner-Mapped Agents Workshop"
+    }
+  ],
+  "schema_version": 4,
+  "source": {
+    "repository": "DataTalksClub/synthetic-test-fixture",
+    "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "source_key": "synthetic-event-manifest"
+  }
+}

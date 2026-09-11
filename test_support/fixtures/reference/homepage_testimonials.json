@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "testimonials": [
+    {
+      "attribution": "Synthetic Zoomcamp learner",
+      "name": "Synthetic Learner 1",
+      "portrait_asset_key": "testimonials/alexander-daniel-rios.jpg",
+      "quote": "Synthetic testimonial quote number 1.",
+      "source_url": "https://example.invalid/synthetic-testimonial-1"
+    },
+    {
+      "attribution": "Synthetic Zoomcamp learner",
+      "name": "Synthetic Learner 2",
+      "portrait_asset_key": "testimonials/hanaa-hammad.jpg",
+      "quote": "Synthetic testimonial quote number 2.",
+      "source_url": "https://example.invalid/synthetic-testimonial-2"
+    },
+    {
+      "attribution": "Synthetic Zoomcamp learner",
+      "name": "Synthetic Learner 3",
+      "portrait_asset_key": "testimonials/jocelyn-dumlao.jpg",
+      "quote": "Synthetic testimonial quote number 3.",
+      "source_url": "https://example.invalid/synthetic-testimonial-3"
+    },
+    {
+      "attribution": "Synthetic Zoomcamp learner",
+      "name": "Synthetic Learner 4",
+      "portrait_asset_key": "testimonials/nevenka-lukic.jpg",
+      "quote": "Synthetic testimonial quote number 4.",
+      "source_url": "https://example.invalid/synthetic-testimonial-4"
+    },
+    {
+      "attribution": "Synthetic Zoomcamp learner",
+      "name": "Synthetic Learner 5",
+      "portrait_asset_key": "testimonials/tim-claytor.jpg",
+      "quote": "Synthetic testimonial quote number 5.",
+      "source_url": "https://example.invalid/synthetic-testimonial-5"
+    },
+    {
+      "attribution": "Synthetic Zoomcamp learner",
+      "name": "Synthetic Learner 6",
+      "portrait_asset_key": "testimonials/zachary-keller.jpg",
+      "quote": "Synthetic testimonial quote number 6.",
+      "source_url": "https://example.invalid/synthetic-testimonial-6"
+    }
+  ]
+}

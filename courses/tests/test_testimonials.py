@@ -10,7 +10,6 @@ from django.db import IntegrityError, transaction
 from django.test import TestCase
 
 from courses.models import Course, Testimonial, TestimonialPlacement
-from scripts.prod.import_testimonials import REVIEWED_PATH
 from courses.models.testimonial import INTERIM_SITE_ASSET_STATIC_PREFIX
 from courses.services.testimonials import (
     TestimonialImportError,
@@ -18,6 +17,7 @@ from courses.services.testimonials import (
     import_homepage_testimonials,
     load_reviewed_homepage_testimonials,
 )
+from test_support.reference_data import HOMEPAGE_TESTIMONIALS as REVIEWED_PATH
 
 
 class TestimonialPlacementConstraintTests(TestCase):
@@ -137,9 +137,11 @@ class HomepageTestimonialReadTests(TestCase):
 class SeededHomepageTestimonialTests(TestCase):
     """The reviewed set carries the retired Python tuple over verbatim.
 
-    The rows arrive through ``courses.services.testimonials`` from
-    ``courses/homepage_testimonials.json`` -- in a test database via
-    ``test_support.reference_data``, in production via
+    The rows arrive through ``courses.services.testimonials`` -- in a test
+    database from the small synthetic fixture at
+    ``test_support/fixtures/reference/homepage_testimonials.json`` via
+    ``test_support.reference_data``, in production from the real reviewed set
+    at ``~/prod/dtc-data/content-staging/homepage_testimonials.json`` via
     ``scripts/prod/import_testimonials.py``.
     """
 

@@ -183,8 +183,14 @@ class PodcastPageCompositionTests(TestCase):
                 {link.url for link in view.platform_links}, set(record["links"].values())
             )
             self.assertIn(view.watch_url, set(record["links"].values()))
-        # Seventeen entries carry no publication date, and the pages simply omit it.
-        self.assertEqual(sum(1 for view in views if not view.published_display), 16)
+        # A record with no publication date renders the page without one -- a fact
+        # about the checked catalogue's own records, not a code-owned count. This
+        # cross-checks the composed view against what the records actually declare
+        # rather than pinning the real reviewed corpus's specific total.
+        self.assertEqual(
+            sum(1 for view in views if not view.published_display),
+            sum(1 for record in records if not record.get("published")),
+        )
 
     def test_guest_public_paths_keep_only_safe_root_relative_links(self) -> None:
         record = dict(ordered_podcasts()[0])

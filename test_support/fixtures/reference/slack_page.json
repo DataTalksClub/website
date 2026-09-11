@@ -1,0 +1,15 @@
+{
+  "page": {
+    "channels": [
+      {
+        "description": "Synthetic channel.",
+        "name": "#synthetic"
+      }
+    ],
+    "lead": "Synthetic Slack lead copy.",
+    "public_path": "/slack",
+    "source_path": "slack.md",
+    "title": "Synthetic Slack",
+    "troubleshooting_url": "https://example.invalid/troubleshooting"
+  }
+}
