@@ -203,7 +203,7 @@ class ArchiveRowSlotTests(TestCase):
 
 class ArchiveRowSurfaceTests(TestCase):
     def test_every_dated_index_draws_the_shared_row(self) -> None:
-        for path in ("/blog", "/books", "/podcast", "/people/alexeygrigorev.html"):
+        for path in ("/blog", "/books", "/podcast", "/people/synthetic-one.html"):
             with self.subTest(path=path):
                 response = self.client.get(path)
                 self.assertEqual(response.status_code, 200)
