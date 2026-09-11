@@ -333,6 +333,25 @@ def wrapped_entry_year():
     return published_year
 
 
+def open_registration_registered_total(open_registration_family_cards):
+    """Sum the real published registration counts across the open cards.
+
+    Each count is the same governed public figure a card already shows on its
+    own (``registered_learner_count``); this is only their total, for the hero
+    stat tile.  A card with no publishable count contributes nothing, and the
+    tile is omitted entirely (``None``) when no card has one to add.
+    """
+
+    counts = [
+        card.cohort.index_registered
+        for card in open_registration_family_cards
+        if getattr(card.cohort, "index_registered", None)
+    ]
+    if not counts:
+        return None
+    return sum(counts)
+
+
 def course_list_context(request):
     course_groups = prepare_course_list_courses(request.user)
     today = timezone.localdate()
@@ -382,6 +401,10 @@ def course_list_context(request):
         course_groups.active_courses,
         course_groups.finished_courses,
     )
+    course_family_count = len(family_cards)
+    total_open_registration_count = open_registration_registered_total(
+        open_registration_family_cards
+    )
 
     context = {
         # Keep the cohort lists available to existing context consumers while
@@ -402,6 +425,8 @@ def course_list_context(request):
         "finished_course_cards": finished_family_cards,
         "featured_course_card": selected_featured_card,
         "home_stats": home_stats,
+        "course_family_count": course_family_count,
+        "total_open_registration_count": total_open_registration_count,
         "show_active_courses": True,
         "show_open_registration": True,
         "show_finished": True,

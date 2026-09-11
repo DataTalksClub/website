@@ -101,7 +101,9 @@
         justify-self: start;
       }
 
-      .content-page-content > .content-shell > #courses > section + section {
+      .content-page-content > .content-shell > #courses > section + section,
+      .content-page-content > .content-shell > #courses + .zoomcamp-steps,
+      .content-page-content > .content-shell > .zoomcamp-steps + .courses-faq {
         border-top: 2px dashed var(--line-soft);
         margin-top: 2.75rem;
         padding-top: 2.75rem;
@@ -317,6 +319,160 @@
           order: -1;
         }
       }
+
+      /* ------------------------------------------------------------------ *
+       * Ambitious direction (issue owner's own mockup, mapped onto this
+       * system's tokens rather than its hardcoded hex/Nunito/JetBrains Mono).
+       * Nothing below invents a colour, a font or a number: every fact comes
+       * from the view's real context, and every surface reuses an existing
+       * component (`.stat-tile`, `.status-pill-live`, `.step-number`,
+       * `.faq-fold`) or the documented "featured slab" treatment
+       * (3px ink border, 1.5rem radius, 0.45rem hard shadow) that
+       * `_docs/design/design-system.md` already reserves for one wide,
+       * image-carrying card.
+       * ------------------------------------------------------------------ */
+
+      /* --- hero: live pill, CTAs, stat tiles ----------------------------- */
+
+      .hero-live-pill {
+        margin-bottom: 0.25rem;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 0.25rem;
+      }
+
+      .hero-stats {
+        margin-top: 0.5rem;
+      }
+
+      /* --- open-registration: the wide featured card ---------------------
+         The mockup's "large featured card, cohort image on the side" is the
+         one element in this redesign genuinely too wide for the 40.5rem
+         reading measure -- a title, a description and an image side by side
+         need more like the shared 76rem shell.  The section's `.course-list`
+         carries `.shell-breakout`, the system's own escape hatch for that
+         ("a genuinely wide element"), rather than widening the whole page. */
+      .open-card {
+        border-width: 3px;
+        border-radius: 1.5rem;
+        box-shadow: 0.45rem 0.45rem 0 var(--shadow-soft);
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0;
+        padding: 0;
+      }
+
+      .open-card-body {
+        display: flex;
+        flex: 3 1 22rem;
+        flex-direction: column;
+        gap: 0.65rem;
+        min-width: 0;
+        padding: 1.75rem 2rem;
+      }
+
+      .open-card-media {
+        align-items: center;
+        background: var(--lavender);
+        border-left: 2px dashed var(--line-soft);
+        display: flex;
+        flex: 2 1 14rem;
+        justify-content: center;
+        min-width: 0;
+        padding: 1.5rem;
+      }
+
+      /* No crop, the same rule `register.html` already draws this exact
+         image by: the campaign artwork keeps its intrinsic proportions
+         (several of these are wide banners with baked-in text, not
+         squares) rather than being cover-cropped into a shape it was
+         never designed for. */
+      .open-card-media img {
+        border: 2px solid var(--line);
+        border-radius: 1rem;
+        display: block;
+        height: auto;
+        max-width: 22rem;
+        width: 100%;
+      }
+
+      @media (max-width: 47.99rem) {
+        .open-card-media {
+          border-left: 0;
+          border-top: 2px dashed var(--line-soft);
+        }
+      }
+
+      .open-card-facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      /* --- active band: the "running now" pill ---------------------------
+         Independent of the viewer's own enrolment state (`index_enrolled_state`
+         stays empty for a signed-out reader), so every card in the active band
+         carries this regardless of who is looking. */
+      .status-pill-live.card-live-pill {
+        margin-right: 0.1rem;
+      }
+
+      /* --- how a zoomcamp works ------------------------------------------- */
+
+      .step-grid {
+        display: grid;
+        gap: 1.5rem 2rem;
+        grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+        margin-top: 0.5rem;
+      }
+
+      .step {
+        border-top: 3px solid var(--line);
+        display: grid;
+        gap: 0.5rem;
+        padding-top: 1rem;
+      }
+
+      .step h3 {
+        font-size: 1.05rem;
+      }
+
+      .step p {
+        color: var(--body-text);
+        font-size: 0.9rem;
+      }
+
+      /* --- FAQ -------------------------------------------------------------
+         Two columns once the shell has room; the shared `.faq-fold` component
+         (already used by the article and course-FAQ surfaces) supplies the
+         disclosure behaviour and the dashed top rule. */
+      .faq-grid {
+        display: grid;
+        gap: 0 3rem;
+        margin-top: 0.5rem;
+      }
+
+      .faq-note {
+        margin-top: 1.5rem;
+      }
+
+      @media (min-width: 48rem) {
+        .faq-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        /* The second column's first fold sits beside the first column's, so
+           it keeps no top rule either -- the pair of folds reads as one row,
+           not as a stray rule floating above only one of them. */
+        .faq-grid .faq-fold:nth-child(2) {
+          border-top: 0;
+        }
+      }
 {% endblock %}
 
 {% block header_band_class %}
@@ -328,12 +484,39 @@
 
 {% block page_header %}
         <div class="courses-hero-grid">
+          {% if home_stats.active_courses %}
+            <span class="status-pill status-pill-live hero-live-pill">
+              <span class="status-dot status-dot-pulse" aria-hidden="true"></span>{{ home_stats.active_courses }} cohort{{ home_stats.active_courses|pluralize }} running now
+            </span>
+          {% endif %}
           <h1 id="courses-hero-heading">Learn data skills. For free. Together.</h1>
           <p class="courses-lede">
             Community-created courses with practical homework, real projects, public
             leaderboards and peer review. Join a cohort for the deadlines and the
             classmates.
           </p>
+          <div class="hero-actions">
+            <a class="cta cta-primary interactive-lift" href="#courses">Explore the courses</a>
+            <a class="cta cta-secondary interactive-lift" href="#how-it-works">How it works</a>
+          </div>
+          <div class="stat-tiles hero-stats">
+            <div class="stat-tile">
+              <strong>{{ course_family_count }}</strong>
+              <span>zoomcamp{{ course_family_count|pluralize }}</span>
+            </div>
+            <div class="stat-tile">
+              <strong>{{ home_stats.homeworks }}</strong>
+              <span>homework assignments</span>
+            </div>
+            <div class="stat-tile">
+              <strong>{{ home_stats.projects }}</strong>
+              <span>capstone projects</span>
+            </div>
+            <div class="stat-tile">
+              <strong>Free</strong>
+              <span>every video, every homework — no cost</span>
+            </div>
+          </div>
         </div>
 {% endblock %}
 
@@ -389,16 +572,21 @@
                              tabindex="0"
                              onclick="if (!event.target.closest('a, button')) window.location.href='{{ edition_url }}'"
                              onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{{ edition_url }}'; }">
-                      {% if card.cohort.index_when or card.cohort.index_enrolled_state %}
-                        <div class="course-card-head">
-                          {% if card.cohort.index_when %}
-                            <span class="mono-note">{{ card.cohort.index_when }}</span>
-                          {% endif %}
-                          {% if card.cohort.index_enrolled_state %}
-                            <span class="status-pill">{{ card.cohort.index_enrolled_state }}</span>
-                          {% endif %}
-                        </div>
-                      {% endif %}
+                      <div class="course-card-head">
+                        {% comment %}
+                          Unconditional: unlike index_enrolled_state (which is
+                          this viewer's own enrolment and stays empty for a
+                          signed-out reader), every card in this band is a
+                          cohort that is genuinely running right now.
+                        {% endcomment %}
+                        <span class="status-pill status-pill-live card-live-pill">cohort running</span>
+                        {% if card.cohort.index_when %}
+                          <span class="mono-note">{{ card.cohort.index_when }}</span>
+                        {% endif %}
+                        {% if card.cohort.index_enrolled_state %}
+                          <span class="status-pill">{{ card.cohort.index_enrolled_state }}</span>
+                        {% endif %}
+                      </div>
                       <h3>
                         <a href="{{ edition_url }}">{{ card.title }}</a>
                       </h3>
@@ -436,46 +624,74 @@
                 <p>
                   These cohorts have not started yet. Register now and you get the schedule,
                   the Slack channel and homework reminders.
+                  {% if total_open_registration_count %}
+                    {{ total_open_registration_count }} people have already registered.
+                  {% endif %}
                 </p>
               </div>
             </div>
-            <div class="course-list">
+            {% comment %}
+              The wide featured card: bigger than a catalogue card and
+              (when the campaign publishes one) carrying the same
+              per-cohort artwork `register.html` already shows on the
+              registration page itself, so this is reused imagery, not an
+              invented one.  See `.open-card` in page_styles for why it
+              breaks out of the reading measure.
+            {% endcomment %}
+            <div class="course-list open-registration-list shell-breakout">
               {% for card in open_registration_course_cards %}
                   {% url 'course_family' card.family.slug as family_url %}
                   {% url 'cohort' card.family.slug card.cohort.identifier as edition_url %}
-                  <article class="card course-card interactive-card interactive-lift"
-                           role="link"
-                           tabindex="0"
-                           onclick="if (!event.target.closest('a, button')) window.location.href='{{ family_url }}'"
-                           onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{{ family_url }}'; }">
-                    <div class="course-card-head">
-                      <span class="status-pill status-pill-open">registration open</span>
-                      {% if card.cohort.index_dates %}
-                        <span class="mono-note">{{ card.cohort.index_dates }}</span>
+                  {% with campaign=card.cohort.registration_campaign %}
+                    <article class="card course-card open-card interactive-card interactive-lift"
+                             role="link"
+                             tabindex="0"
+                             onclick="if (!event.target.closest('a, button')) window.location.href='{{ family_url }}'"
+                             onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{{ family_url }}'; }">
+                      <div class="open-card-body">
+                        <div class="course-card-head">
+                          <span class="status-pill status-pill-open">registration open</span>
+                          {% if card.cohort.index_dates %}
+                            <span class="mono-note">{{ card.cohort.index_dates }}</span>
+                          {% endif %}
+                        </div>
+                        <h3>
+                            <a href="{{ family_url }}">{{ card.title }}</a>
+                        </h3>
+                        {% if card.outcome %}
+                          <p>{{ card.outcome }}</p>
+                        {% endif %}
+                        {% if card.cohort.index_length %}
+                          <div class="open-card-facts">
+                            <span class="chip chip-plain">{{ card.cohort.index_length }}</span>
+                          </div>
+                        {% endif %}
+                        <div class="card-actions course-card-foot">
+                          <a class="row-action" href="{{ edition_url }}">{{ card.edition_label }} · {{ card.cohort.identifier }} →</a>
+                          {% if card.github_repo_url %}
+                            <a class="row-action" href="{{ card.github_repo_url }}">GitHub</a>
+                          {% endif %}
+                          {% if card.cohort.index_registered %}
+                            <span class="course-card-registered">{{ card.cohort.index_registered }} registered</span>
+                          {% endif %}
+                          {% comment %}
+                            Registration happens on this site.  A card offers it only when a
+                            campaign promotes that edition; the CMP ``registration_url`` this
+                            branch used to fall through to points off-site at the platform
+                            this catalogue replaces.
+                          {% endcomment %}
+                          {% if card.cohort.registration_campaign and not card.cohort.is_enrolled and not card.cohort.is_registered %}
+                            <a class="cta cta-primary cta-compact interactive-lift" href="{% url 'registration_campaign' card.cohort.registration_campaign.slug %}">Register</a>
+                          {% endif %}
+                        </div>
+                      </div>
+                      {% if campaign.hero_image_url %}
+                        <div class="open-card-media">
+                          <img src="{{ campaign.hero_image_url }}" alt="" loading="lazy" decoding="async">
+                        </div>
                       {% endif %}
-                    </div>
-                    <h3>
-                        <a href="{{ family_url }}">{{ card.title }}</a>
-                    </h3>
-                    {% if card.outcome %}
-                      <p>{{ card.outcome }}</p>
-                    {% endif %}
-                    <div class="card-actions course-card-foot">
-                      <a class="row-action" href="{{ edition_url }}">{{ card.edition_label }} · {{ card.cohort.identifier }} →</a>
-                      {% if card.cohort.index_registered %}
-                        <span class="course-card-registered">{{ card.cohort.index_registered }} registered</span>
-                      {% endif %}
-                      {% comment %}
-                        Registration happens on this site.  A card offers it only when a
-                        campaign promotes that edition; the CMP ``registration_url`` this
-                        branch used to fall through to points off-site at the platform
-                        this catalogue replaces.
-                      {% endcomment %}
-                      {% if card.cohort.registration_campaign and not card.cohort.is_enrolled and not card.cohort.is_registered %}
-                        <a class="cta cta-primary cta-compact interactive-lift" href="{% url 'registration_campaign' card.cohort.registration_campaign.slug %}">Register</a>
-                      {% endif %}
-                    </div>
-                  </article>
+                    </article>
+                  {% endwith %}
               {% endfor %}
             </div>
           </section>
@@ -535,4 +751,123 @@
           </section>
         {% endif %}
       </div>
+      <section class="zoomcamp-steps" aria-labelledby="how-it-works-heading" id="how-it-works">
+        <div class="band-head">
+          <div>
+            <h2 id="how-it-works-heading">How a zoomcamp works</h2>
+            <p>
+              The same rhythm in every course, whether you join a live cohort or
+              work through it on your own.
+            </p>
+          </div>
+        </div>
+        <div class="step-grid">
+          <div class="step">
+            <span class="step-number" aria-hidden="true">1</span>
+            <h3>Register, free</h3>
+            <p>One form gets you the schedule, the Slack channel and homework reminders.</p>
+          </div>
+          <div class="step">
+            <span class="step-number step-number-2" aria-hidden="true">2</span>
+            <h3>Watch and build weekly</h3>
+            <p>Pre-recorded modules plus live office hours, at whatever pace you can keep.</p>
+          </div>
+          <div class="step">
+            <span class="step-number step-number-3" aria-hidden="true">3</span>
+            <h3>Submit homework</h3>
+            <p>Auto-graded answers, a public leaderboard, and deadlines that keep you honest.</p>
+          </div>
+          <div class="step">
+            <span class="step-number" aria-hidden="true">4</span>
+            <h3>Ship a project</h3>
+            <p>A peer-reviewed capstone and a certificate of completion for your portfolio.</p>
+          </div>
+        </div>
+      </section>
+      <section class="courses-faq" aria-labelledby="courses-faq-heading">
+        <div class="band-head">
+          <div>
+            <h2 id="courses-faq-heading">Questions people ask first</h2>
+          </div>
+        </div>
+        <div class="faq-grid">
+          <details class="faq-fold" id="faq-free">
+            <summary class="faq-fold-summary">
+              <h3 class="faq-question-title">Is it really free?</h3>
+              <span class="faq-fold-marker" aria-hidden="true"></span>
+            </summary>
+            <div class="faq-answer">
+              <p>
+                Yes. Every video, homework and solution stays public — there is nothing
+                to pay and nothing to upsell.
+              </p>
+            </div>
+          </details>
+          <details class="faq-fold" id="faq-join-late">
+            <summary class="faq-fold-summary">
+              <h3 class="faq-question-title">Can I join after a cohort starts?</h3>
+              <span class="faq-fold-marker" aria-hidden="true"></span>
+            </summary>
+            <div class="faq-answer">
+              <p>
+                Yes, while it is still running. Catch up on the recordings and submit
+                whatever homework is still open.
+              </p>
+            </div>
+          </details>
+          <details class="faq-fold" id="faq-time">
+            <summary class="faq-fold-summary">
+              <h3 class="faq-question-title">How much time do I need?</h3>
+              <span class="faq-fold-marker" aria-hidden="true"></span>
+            </summary>
+            <div class="faq-answer">
+              <p>
+                Enough for the weekly videos plus hands-on practice. Most people do it
+                alongside a full-time job — each course's own syllabus lays out its pace.
+              </p>
+            </div>
+          </details>
+          <details class="faq-fold" id="faq-prerequisites">
+            <summary class="faq-fold-summary">
+              <h3 class="faq-question-title">What should I know beforehand?</h3>
+              <span class="faq-fold-marker" aria-hidden="true"></span>
+            </summary>
+            <div class="faq-answer">
+              <p>
+                Comfort with Python and the command line goes a long way. Each course
+                page lists its exact prerequisites.
+              </p>
+            </div>
+          </details>
+          <details class="faq-fold" id="faq-certificate">
+            <summary class="faq-fold-summary">
+              <h3 class="faq-question-title">Do I get a certificate?</h3>
+              <span class="faq-fold-marker" aria-hidden="true"></span>
+            </summary>
+            <div class="faq-answer">
+              <p>
+                Finish the homework and pass the peer-reviewed project, and you earn a
+                certificate of completion.
+              </p>
+            </div>
+          </details>
+          <details class="faq-fold" id="faq-which-course">
+            <summary class="faq-fold-summary">
+              <h3 class="faq-question-title">Which course should I start with?</h3>
+              <span class="faq-fold-marker" aria-hidden="true"></span>
+            </summary>
+            <div class="faq-answer">
+              <p>
+                Switching into data? Start with Data Engineering Zoomcamp or Machine
+                Learning Zoomcamp. Already shipping models? Try MLOps Zoomcamp or LLM
+                Zoomcamp.
+              </p>
+            </div>
+          </details>
+        </div>
+        <p class="faq-note">
+          Still unsure? <a class="band-link" href="{% url 'slack' %}">Join the community Slack</a>
+          — someone usually answers within a day.
+        </p>
+      </section>
 {% endblock %}
