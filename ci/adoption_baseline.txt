@@ -92,7 +92,6 @@ api/openapi/paths.py
 api/openapi/primitives.py
 api/openapi/schemas.py
 api/openapi/spec.py
-api/safety.py
 api/tests/__init__.py
 api/tests/course_api_base.py
 api/tests/enrollment_exports_base.py

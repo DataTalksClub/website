@@ -150,6 +150,10 @@ module = [
     "scripts.prod.reviewed_release",
     "scripts.prod.legacy_zoomcamp.identity",
     "accounts.tests.test_username_allocation",
+    "api.safety",
+    "api.tests.staff_credentials",
+    "api.tests.test_staff_authority_boundary",
+    "courses.services.course_family_identity",
 ]
 ignore_errors = false
 
