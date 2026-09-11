@@ -851,6 +851,12 @@
           grid-template-columns: minmax(0, 1.45fr) minmax(15rem, 1fr);
         }
 
+        /* No build-items panel to sit beside -- let the main column take the row
+           instead of leaving an empty second track. */
+        .featured.featured-solo {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
         .wiki-grid {
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
           gap: 1.75rem;
@@ -1026,15 +1032,18 @@
             <a class="band-link" href="{% url 'course_list' %}">all courses →</a>
           </div>
           {% if featured_catalog_entry %}
-          <div class="featured" data-featured-course>
+          <div class="featured{% if not featured_build_items %} featured-solo{% endif %}" data-featured-course>
             <div class="featured-main">
               <span class="chip chip-ink">New cohort</span>
               <h3>{{ featured_catalog_entry.title }}</h3>
               <p class="featured-subline">
-                Starts {{ featured_catalog_entry.start_display }} ·
-                {{ featured_cohort_format }} · homework + peer review
+                Starts {{ featured_catalog_entry.start_display }}
+                {% if featured_cohort_format %}· {{ featured_cohort_format }}{% endif %}
+                · homework + peer review
               </p>
-              <p class="featured-desc">{{ featured_cohort_summary }}</p>
+              {% if featured_cohort_summary %}
+                <p class="featured-desc">{{ featured_cohort_summary }}</p>
+              {% endif %}
               {% comment %}
                 Every count is the curriculum and coursework the selected cohort actually
                 holds in the database, so a clause is dropped rather than shown as zero:
@@ -1064,16 +1073,18 @@
                 </a>
               </div>
             </div>
-            <aside class="featured-build">
-              <h4>What you'll build</h4>
-              <ul>
-                {% for item in featured_build_items %}
-                  <li>
-                    <span class="build-check" aria-hidden="true"></span>{{ item|capfirst }}
-                  </li>
-                {% endfor %}
-              </ul>
-            </aside>
+            {% if featured_build_items %}
+              <aside class="featured-build">
+                <h4>What you'll build</h4>
+                <ul>
+                  {% for item in featured_build_items %}
+                    <li>
+                      <span class="build-check" aria-hidden="true"></span>{{ item|capfirst }}
+                    </li>
+                  {% endfor %}
+                </ul>
+              </aside>
+            {% endif %}
           </div>
           {% endif %}
           {% if catalog_courses %}
