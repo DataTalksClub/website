@@ -135,6 +135,20 @@ this repository.  The content import re-checks that tuple against the identity
 row rather than trusting it, so a record can only land on the event it was
 reviewed against.
 
+**Description authoring precedence** (``temporary/content/eventbrite_descriptions.json``,
+absent until built): a third concern, distinct from bootstrapping content above
+and from the registration-count legs below.  Real, freshly-scraped Eventbrite
+page content exists for 226 of these events outside this repository, at
+``~/prod/dtc-data/eventbrite-content/``, and the product owner's ruling is that
+it wins outright over the Jekyll-sourced description for any event whose
+Eventbrite id resolves to a canonical Event -- full replacement, not
+fill-only-if-missing.  ``scripts/build_eventbrite_descriptions.py`` cleans it
+(strips the "about the speaker/guest/host" section and the DataTalks.Club
+footer, nothing else -- see :mod:`events.eventbrite_content`) and stages it;
+this runs the staged result straight after ``event_content`` above, since it
+overwrites a row that step just created.  See :func:`import_eventbrite_descriptions`
+and :func:`events.eventbrite_content.apply_eventbrite_descriptions`.
+
     uv run --frozen python scripts/prod/import_events.py \\
         --database .tmp/local.sqlite3 \\
         --current-registration-input _docs/migration-data/local-current-registration-input.json
@@ -170,6 +184,9 @@ EVENT_CONTENT_PATH = (
     PROJECT_ROOT / "temporary" / "content" / "public_projection" / "events.json"
 )
 NEW_EVENT_CONTENT_PATH = PROJECT_ROOT / "temporary" / "content" / "luma_event_descriptions.json"
+EVENTBRITE_DESCRIPTIONS_PATH = (
+    PROJECT_ROOT / "temporary" / "content" / "eventbrite_descriptions.json"
+)
 
 PROVIDERS = ("luma", "eventbrite")
 
@@ -291,6 +308,55 @@ def import_new_content(*, source: Path | None = None, apply: bool = True) -> dic
         "speakers": report.speakers,
         "links": report.links,
         "replayed": report.replayed,
+        "applied": apply,
+    }
+
+
+def import_eventbrite_descriptions(
+    *, source: Path | None = None, apply: bool = True
+) -> dict[str, Any]:
+    """Let a cleaned Eventbrite description win outright over the Jekyll one it replaces.
+
+    Runs after :func:`import_content`, never before it: this overwrites a
+    ``description_html``/``description_text`` an event's ``EventContent`` row
+    already carries, so the row has to exist first. This is description
+    *authoring* precedence -- a third concern from both content bootstrap above
+    and the registration-count legs below -- reported under its own key rather
+    than folded into either.
+
+    The product owner's ruling: "eventbrite wins over jekyll. but we remove
+    'about the speaker' part and about dtc footer too." Full replacement, not
+    fill-only-if-missing -- see :func:`events.eventbrite_content.
+    apply_eventbrite_descriptions` for the resolution and overwrite mechanics,
+    and :mod:`events.eventbrite_content` for what is stripped and why.
+
+    A missing artifact is a normal state, not a failure: it exists only after
+    an operator has run ``scripts/build_eventbrite_descriptions.py --write``
+    against the external raw Eventbrite content and identity resolution (both
+    outside this repository, at ``~/prod/dtc-data/``), and is reported as
+    ``absent`` when nobody has.
+    """
+
+    from events.eventbrite_content import (
+        EventbriteDescriptionError,
+        apply_eventbrite_descriptions,
+    )
+
+    path = source or EVENTBRITE_DESCRIPTIONS_PATH
+    if not path.is_file():
+        return {"present": False, "applied": apply}
+    try:
+        report = apply_eventbrite_descriptions(path=path, dry_run=not apply)
+    except (EventbriteDescriptionError, OSError, ValueError) as error:
+        raise EventImportError("eventbrite_descriptions_invalid") from error
+    return {
+        "present": True,
+        "events": report.total,
+        "applied_total": report.applied,
+        "unchanged": report.unchanged,
+        "no_identity": report.no_identity,
+        "no_content_yet": report.no_content_yet,
+        "no_eventbrite_description": report.no_eventbrite_description,
         "applied": apply,
     }
 
@@ -985,6 +1051,7 @@ def run(
     identity_manifest: Path | None = None,
     event_content_source: Path | None = None,
     new_event_content_source: Path | None = None,
+    eventbrite_descriptions_source: Path | None = None,
     luma_source: Path,
     eventbrite_source: Path,
     current_registration_input: Path | None = None,
@@ -1034,6 +1101,7 @@ def run(
             identity_manifest=identity_manifest,
             event_content_source=event_content_source,
             new_event_content_source=new_event_content_source,
+            eventbrite_descriptions_source=eventbrite_descriptions_source,
             luma_source=luma_source,
             eventbrite_source=eventbrite_source,
             current_registration_input=current_registration_input,
@@ -1046,12 +1114,13 @@ def _run_legs(
     identity_manifest: Path | None,
     event_content_source: Path | None,
     new_event_content_source: Path | None,
+    eventbrite_descriptions_source: Path | None,
     luma_source: Path,
     eventbrite_source: Path,
     current_registration_input: Path | None,
     correlation_id: str,
 ) -> dict[str, Any]:
-    """The five legs in their fixed order. Only :func:`run` may call this.
+    """The six legs in their fixed order. Only :func:`run` may call this.
 
     Split out purely so the transaction boundary is one unmissable line in
     :func:`run` rather than an indent level wrapped around a hundred of them.
@@ -1059,6 +1128,12 @@ def _run_legs(
 
     identities = import_identities(manifest=identity_manifest, apply=True)
     content = import_content(source=event_content_source, apply=True)
+    # Description *authoring* precedence, distinct from content bootstrap
+    # above: runs only after `content` so the EventContent row it overwrites
+    # already exists. See import_eventbrite_descriptions's own docstring.
+    eventbrite_descriptions = import_eventbrite_descriptions(
+        source=eventbrite_descriptions_source, apply=True
+    )
     # Distinct top-level key, deliberately never merged into `identities` (the
     # reviewed-manifest replay) or `activation_coverage` (the registration-count
     # gate) -- an operator reading the report must not mistake an automatic
@@ -1102,6 +1177,7 @@ def _run_legs(
         ),
         "event_content": content,
         "new_event_content": new_event_content,
+        "eventbrite_descriptions": eventbrite_descriptions,
     }
 
 
@@ -1119,6 +1195,17 @@ def _parser() -> argparse.ArgumentParser:
             "Staged descriptions for events discovered in a provider export, built by "
             "scripts/build_luma_event_descriptions.py. Absent until an operator has "
             "cleared the link and type reviews that builder reports."
+        ),
+    )
+    parser.add_argument(
+        "--eventbrite-descriptions",
+        type=Path,
+        default=EVENTBRITE_DESCRIPTIONS_PATH,
+        help=(
+            "Cleaned Eventbrite descriptions staged by "
+            "scripts/build_eventbrite_descriptions.py --write. When present, wins "
+            "outright over the Jekyll-sourced description for every event whose "
+            "Eventbrite id resolves. Absent until an operator has built it."
         ),
     )
     parser.add_argument("--luma-source", type=Path, default=main_root / LUMA_RELATIVE_SOURCE)
@@ -1239,6 +1326,7 @@ def main(argv: list[str] | None = None) -> int:
                 identity_manifest=args.identity_manifest.resolve(),
                 event_content_source=args.event_content.resolve(),
                 new_event_content_source=args.new_event_content.resolve(),
+                eventbrite_descriptions_source=args.eventbrite_descriptions.resolve(),
                 luma_source=args.luma_source.resolve(),
                 eventbrite_source=args.eventbrite_source.resolve(),
                 current_registration_input=(
