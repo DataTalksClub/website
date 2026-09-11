@@ -1,13 +1,17 @@
 """Course family identity is derived, never looked up in a curated table.
 
 A course repository's ``course.yaml`` declares its own family slug directly --
-``ai-dev-tools-zoomcamp`` keeps its repository's own name, the same as every other
-course family (``de-zoomcamp``, ``ml-zoomcamp``, ``llm-zoomcamp``,
-``mlops-zoomcamp``).  The importer projects that slug as-is, and ``Cohort.save()``'s
-convenience fallback derives a family slug/title mechanically from the cohort's own
-slug/title.  These are the tests for that mechanical behaviour, plus the identity
-protection ``curriculum_import.py`` still owns: two different sources may never
-claim the same family slug.
+that slug matches the repository's own name, the same as every course family
+(``de-zoomcamp``, ``ml-zoomcamp``, ``llm-zoomcamp``, ``mlops-zoomcamp``).  The
+importer projects that slug as-is, with one reviewed exception:
+``ai-dev-tools-zoomcamp`` is normalized to the site's canonical
+``ai-dev-tools`` on every sync (``FAMILY_SLUG_OVERRIDES`` in
+``curriculum_import.py``), so its tests below check the published slug rather
+than the raw repository one.  ``Cohort.save()``'s convenience fallback derives
+a family slug/title mechanically from the cohort's own slug/title and knows
+nothing about that override.  These are the tests for that mechanical
+behaviour, plus the identity protection ``curriculum_import.py`` still owns:
+two different sources may never claim the same family slug.
 """
 
 from __future__ import annotations
@@ -46,7 +50,10 @@ FIXTURE_ROOT = (
 )
 COMMIT = "c" * 40
 SOURCE_UUID = UUID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb")
+# The raw slug the repository's own course.yaml declares (its repository name).
 FAMILY_SLUG = "ai-dev-tools-zoomcamp"
+# The site's canonical published family slug, after FAMILY_SLUG_OVERRIDES.
+CANONICAL_FAMILY_SLUG = "ai-dev-tools"
 
 
 def repository_named_source() -> CourseRepositorySource:
@@ -127,19 +134,22 @@ class CourseFamilyIdentityFunctionsTests(TestCase):
 
 
 class CurriculumImportFamilyIdentityTests(TestCase):
-    """The importer publishes the repository's own family slug, never a lookup."""
+    """The importer publishes the repository's own family slug, never a lookup --
+    except for the one reviewed ``FAMILY_SLUG_OVERRIDES`` correction below."""
 
-    def test_import_without_an_existing_family_creates_it_under_the_repository_slug(self):
+    def test_import_without_an_existing_family_creates_it_under_the_canonical_slug(self):
         result = import_course_repository_curriculum(import_command(repository_named_source()))
 
-        self.assertEqual(result.course.slug, FAMILY_SLUG)
-        self.assertEqual(list(Course.objects.values_list("slug", flat=True)), [FAMILY_SLUG])
+        self.assertEqual(result.course.slug, CANONICAL_FAMILY_SLUG)
         self.assertEqual(
-            set(Cohort.objects.values_list("course__slug", flat=True)), {FAMILY_SLUG}
+            list(Course.objects.values_list("slug", flat=True)), [CANONICAL_FAMILY_SLUG]
+        )
+        self.assertEqual(
+            set(Cohort.objects.values_list("course__slug", flat=True)), {CANONICAL_FAMILY_SLUG}
         )
 
     def test_import_reuses_an_existing_family_with_the_same_slug(self):
-        family = Course.objects.create(slug=FAMILY_SLUG, title="AI Dev Tools Zoomcamp")
+        family = Course.objects.create(slug=CANONICAL_FAMILY_SLUG, title="AI Dev Tools")
 
         result = import_course_repository_curriculum(import_command(repository_named_source()))
 
@@ -148,8 +158,8 @@ class CurriculumImportFamilyIdentityTests(TestCase):
 
     def test_import_refuses_a_slug_already_owned_by_a_different_source(self):
         Course.objects.create(
-            slug=FAMILY_SLUG,
-            title="AI Dev Tools Zoomcamp",
+            slug=CANONICAL_FAMILY_SLUG,
+            title="AI Dev Tools",
             source_stable_id="some-other-repository",
             source_content_id=UUID("21000000-0000-4000-8000-000000000000"),
             source_path="course.yaml",
@@ -161,7 +171,7 @@ class CurriculumImportFamilyIdentityTests(TestCase):
             import_course_repository_curriculum(import_command(repository_named_source()))
 
         self.assertEqual(caught.exception.code, "course_slug_collision")
-        self.assertEqual(Course.objects.filter(slug=FAMILY_SLUG).count(), 1)
+        self.assertEqual(Course.objects.filter(slug=CANONICAL_FAMILY_SLUG).count(), 1)
 
 
 class CohortSaveFamilyFallbackTests(TestCase):
