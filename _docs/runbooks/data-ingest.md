@@ -744,8 +744,8 @@ uv run --frozen python scripts/prod/import_legacy_zoomcamp.py \
 
 ### 14 — Event identity manifest
 
-`temporary/content/event_identity_manifest.json` — schema version 2, **421 events /
-1,684 aliases**. Imported by `scripts/prod/import_events.py`'s `import_identities()`
+`temporary/content/event_identity_manifest.json` — schema version 4, **421 events**
+(no alias mechanism is retained). Imported by `scripts/prod/import_events.py`'s `import_identities()`
 (dry-run by default when called with `apply=False`; atomic), which reads that path
 as `IDENTITY_MANIFEST_PATH`. **No migration seeds it any more** — the ones that used
 to are gone, and `migrate` publishes nothing. `test_support/reference_data.py` loads

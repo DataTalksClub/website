@@ -489,11 +489,10 @@ wrapped this exact call, and had no caller once
 
 Source: the checked-in, human-reviewed
 [`temporary/content/event_identity_manifest.json`](../../temporary/content/event_identity_manifest.json)
-(421 events, 1,684 aliases). No migration seeds it; `test_support/reference_data.py`
+(421 events). No migration seeds it; `test_support/reference_data.py`
 loads the same file into every test database.
-Transform: allocates `public_id` via `EventPublicIdSequence`; writes aliases.
-Destination: [`events/models.py`](../../events/models.py) (`Event`,
-`EventAlias`).
+Transform: allocates `public_id` via `EventPublicIdSequence`.
+Destination: [`events/models.py`](../../events/models.py) (`Event`).
 
 ## 5.2 Content import
 

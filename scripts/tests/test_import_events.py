@@ -8,7 +8,6 @@ reviewed content records land on the identities they describe.
 from __future__ import annotations
 
 import csv
-import importlib
 import json
 import pkgutil
 import tempfile
@@ -741,8 +740,8 @@ class DuplicateProviderIdentityReconciliationTests(TestCase):
         """Only an exact date-and-title twin counts; a genuinely new event is left alone."""
 
         from events.models import Event
-        from scripts.prod.registrant_import import create_provider_event_identity
         from scripts.prod.import_events import reconcile_duplicate_luma_identities
+        from scripts.prod.registrant_import import create_provider_event_identity
 
         created = create_provider_event_identity(
             provider="luma",
@@ -771,8 +770,8 @@ class RunAtomicityTests(TestCase):
 
     The registration leg validates its exports last, so before `run()` took a
     transaction a checksum refusal still left every earlier leg committed: a
-    "fresh" database that had just exited 1 held 448 events, 1,684 aliases,
-    421 content rows and 448 queued Q2 wakeups, and the retry started from a
+    "fresh" database that had just exited 1 held 448 events, 421 content
+    rows and 448 queued Q2 wakeups, and the retry started from a
     half-populated database that looked populated.
     """
 
@@ -825,13 +824,14 @@ class RunAtomicityTests(TestCase):
         self.assertEqual(Event.objects.count(), before + 1)
 
     def test_a_refused_run_leaves_no_partial_row_behind(self) -> None:
+        from community_base.jobs.models import JobIntent
+
         from events.models import (
             Event,
             EventContent,
             HistoricalRegistrationAggregateRevision,
             HistoricalRegistrationSourceRun,
         )
-        from community_base.jobs.models import JobIntent
         from scripts.prod.import_events import EventImportError
 
         def counts() -> tuple[int, ...]:

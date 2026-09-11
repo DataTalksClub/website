@@ -5,7 +5,7 @@ Moved out of ``events/`` (formerly ``events.registrant_import``): this is
 production-ingest domain logic -- real ``uv run`` scripts read it, no live view,
 serializer, or API does -- so it lives under ``scripts/prod``, the same way
 ``scripts/prod/legacy_zoomcamp/identity.py`` is that ingestion's own identity
-domain logic rather than living inside an app package.  ``events/identity.py``
+domain logic rather than living inside an app package.  ``events/models.py``
 keeps only what a live route, Studio, or the admin API actually resolves by
 (UUID/public-ID lookup, the canonical path builders); provider discovery's own
 identity minting belongs beside the rest of its domain, here.
@@ -55,7 +55,7 @@ registrant-only identity get created -- see
 
 Sequencing matches the owner's stated design: ingest one event's identity
 (``create_provider_event_identity``, below, or the reviewed manifest import in
-``events.identity``/``scripts/prod/import_events.py``), then that event's
+``scripts.prod.identity_manifest``/``scripts/prod/import_events.py``), then that event's
 registrant rows here, one event at a time -- never the whole export's rows in
 one pass.  Consolidation lookups are global across the run (a Django queryset
 always sees every previously committed transaction), so the same person is
@@ -146,7 +146,7 @@ __all__ = [
 # / ``create_provider_event_identity`` / ``PROVIDER_SOURCE_REPOSITORY`` /
 # ``PROVIDER_SOURCE_REVISION``): pure import/backfill plumbing that mints the Event
 # identity a provider-discovered event's registrant rows (below) then attach to.
-# ``events.identity`` keeps ``create_event_identity`` -- the shared, provider-agnostic
+# ``events.models`` keeps ``create_event_identity`` -- the shared, provider-agnostic
 # allocator-safe primitive both the reviewed manifest import and this module call --
 # and the UUID/date-title helpers ``events.services.resolve_unmatched_aggregates``
 # (live application logic, not ingestion) also imports; only the provider-specific
@@ -184,11 +184,11 @@ def create_provider_event_identity(
 
     This is plumbing, not editorial review: title and a canonical
     ``/events/<public_id>/<slug>`` path, nothing that renders a registration
-    count.  It calls :func:`events.identity.create_event_identity` -- the same
+    count.  It calls :func:`events.models.create_event_identity` -- the same
     atomic, allocator-safe machinery the reviewed manifest import uses -- rather
     than re-deriving a public ID or canonical path here.
 
-    Callers own idempotency: check :func:`events.identity.resolve_source_identity`
+    Callers own idempotency: check :func:`events.models.resolve_source_identity`
     with :func:`provider_source_identity` first, and skip creation if it already
     resolves. This function always inserts.
     """
@@ -213,7 +213,7 @@ def create_provider_event_identity(
 # domain this module already belongs to.
 #
 # This is not an identity attachment and does not weaken the reviewed-manifest rule
-# in ``events.identity``.  Nothing here writes, rewrites or infers an ``Event``'s
+# in ``scripts.prod.identity_manifest``.  Nothing here writes, rewrites or infers an ``Event``'s
 # source identity: a provider event that matches an existing event is never given
 # that event's source key, alias, UUID or public ID, and no registration count moves.
 # The index answers one narrower question -- "does this database already describe

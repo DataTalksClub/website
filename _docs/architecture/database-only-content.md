@@ -119,7 +119,7 @@ Three properties keep this from being a file-backed fallback in disguise:
 
 - General imported pages and assets: `ContentSource`, `ContentRelease`,
   `ContentDocument`, `ContentRelation`, `ContentAsset`, and `ActiveContentPath`.
-- Events: `Event` and `EventAlias` for identity, `EventContent` with `EventSpeaker`
+- Events: `Event` for identity, `EventContent` with `EventSpeaker`
   and `EventLink` for what the page says. Nothing joins to JSON.
 - Courses and curriculum: existing course-platform models. The shared current
   curriculum (added 2026-09-07 under #320) is part of this read path:
@@ -177,7 +177,7 @@ Each of these reads `temporary/content/` for a reason other than filling
 production, so running the ingest does not retire it.
 
 1. **`test_support/reference_data.py`** runs the real importers over the staging
-   tree to populate *every* Django test database -- 421 events, 1,684 aliases and
+   tree to populate *every* Django test database -- 421 events and
    2,203 content documents, plus docs, FAQ and testimonials. This is the largest
    blocker and it is not an ingest question: deleting the tree without replacing
    this deletes the test corpus.
