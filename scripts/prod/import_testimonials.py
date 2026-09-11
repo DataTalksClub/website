@@ -4,7 +4,8 @@
 One-time import.  The six quotes are frozen: real posts by named members, each
 one recorded with the public link it was taken from, checked into
 ``~/prod/dtc-data/content-staging/homepage_testimonials.json`` (outside this
-repository -- see ``_docs/architecture/database-only-content.md``).  Nothing upstream is going to move --
+repository -- see ``_docs/architecture/database-only-content.md``).  Nothing
+upstream is going to move --
 once they are in the database an editor curates them in the admin, and this
 script is only the way the first six get there.  See ``scripts/prod/__init__.py``
 for what the two sync models mean.

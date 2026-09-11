@@ -45,7 +45,9 @@ REQUIRED_COUNT_KEYS = frozenset({*COLLECTION_NAMES, "transcripts"})
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 #: Outside this repository, at ~/prod/dtc-data/content-staging/ -- see
 #: _docs/architecture/database-only-content.md.
-DEFAULT_PROJECTION_ROOT = Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
+DEFAULT_PROJECTION_ROOT = (
+    Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
+)
 
 PODCAST_PLATFORM_FILENAME = "podcast_platforms.json"
 EXPECTED_PODCAST_PLATFORM_PROVIDERS = (

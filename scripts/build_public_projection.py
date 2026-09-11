@@ -29,6 +29,22 @@ import yaml
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPOSITORY_ROOT))
 
+from content.article_faq_format import (  # noqa: E402
+    ArticleFaqFormatError,
+    validate_faq_pairs,
+)
+from content.podcast_resources import (  # noqa: E402
+    PodcastResourceError,
+    normalize_podcast_resource,
+)
+from content.podcast_routes import (  # noqa: E402
+    PODCAST_HIERARCHICAL_ONLY_SLUGS,
+    podcast_canonical_path,
+)
+from content.public_text import strip_target_attributes_from_links  # noqa: E402
+from courses.services.course_family_identity import (  # noqa: E402
+    family_and_year_from_edition_slug,
+)
 from scripts.staging.event_description_bridge import (  # noqa: E402
     EVENT_RECORD_SCHEMA_VERSION,
     EventDescriptionBridgeError,
@@ -40,22 +56,6 @@ from scripts.staging.event_speaker_bio_normalization import (  # noqa: E402
     EventSpeakerBioNormalizationError,
     apply_event_speaker_bio_normalization,
     normalization_manifest_binding,
-)
-from content.podcast_resources import (  # noqa: E402
-    PodcastResourceError,
-    normalize_podcast_resource,
-)
-from content.podcast_routes import (  # noqa: E402
-    PODCAST_HIERARCHICAL_ONLY_SLUGS,
-    podcast_canonical_path,
-)
-from content.article_faq_format import (  # noqa: E402
-    ArticleFaqFormatError,
-    validate_faq_pairs,
-)
-from content.public_text import strip_target_attributes_from_links  # noqa: E402
-from courses.services.course_family_identity import (  # noqa: E402
-    family_and_year_from_edition_slug,
 )
 
 # The one reviewed correction this pinned catalogue needs: it exports the AI Dev

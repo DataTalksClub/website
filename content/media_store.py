@@ -55,7 +55,9 @@ PROJECTION_ROOT = Path(__file__).with_name("public_projection")
 #: configured store. Nothing in the ordinary test suite reads this path directly
 #: any more -- ``content/tests/test_public_media_store.py``'s ``MemoryMediaStoreTests``
 #: carries its own small synthetic record set instead of this real one.
-REVIEWED_PROJECTION_ROOT = Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
+REVIEWED_PROJECTION_ROOT = (
+    Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
+)
 MEDIA_RECORDS_FILENAME = "media.json"
 #: Every projection media record key is path-mirrored below this segment, which is also
 #: the public URL prefix.  The historic on-disk tree drops it, because the local root is

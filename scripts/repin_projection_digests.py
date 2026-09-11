@@ -34,7 +34,9 @@ from scripts.build_public_projection import (  # noqa: E402
 
 #: Outside this repository, at ~/prod/dtc-data/content-staging/ -- see
 #: _docs/architecture/database-only-content.md.
-DEFAULT_PROJECTION_ROOT = Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
+DEFAULT_PROJECTION_ROOT = (
+    Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
+)
 #: The only manifest keys this utility is permitted to introduce or change.
 DERIVED_FIELDS = ("tree_sha256", "tree_digest_scope", "media_storage")
 

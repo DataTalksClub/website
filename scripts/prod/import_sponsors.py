@@ -4,7 +4,8 @@
 One-time import.  The four featured sponsors and every other organization
 DataTalks.Club has publicly thanked are frozen, reviewed facts, checked into
 ``~/prod/dtc-data/content-staging/sponsor_directory.json`` (outside this
-repository -- see ``_docs/architecture/database-only-content.md``).  Nothing upstream is going to move -- once
+repository -- see ``_docs/architecture/database-only-content.md``).  Nothing
+upstream is going to move -- once
 they are in the database an editor curates name, URL, tagline, lifecycle and
 placement in Studio exactly as they do for an events_hub sponsor; only the
 directory description and logo stay import-managed, so re-running this
