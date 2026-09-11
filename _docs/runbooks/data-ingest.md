@@ -1057,7 +1057,52 @@ why each one is unresolved.
 `_docs/migration-data/local-current-registration-input.json`; set that variable empty to
 leave every mapping review-required.
 
+### 18 — Mailchimp export, course-cohort registration backfill
+
+| | |
+| --- | --- |
+| **Upstream** | The same Mailchimp subscribed-audience export `import_mailchimp_event_tags.py`/`import_mailchimp_subscriptions.py` read, e.g. `/data/tmp/mailchimp-export/` |
+| **Script** | `scripts/prod/import_mailchimp_course_tags.py` → `courses/services/mailchimp_course_tag_import.py` |
+| **Writes** | `courses.models.Enrollment` rows only — never `CourseRegistration`, never `CourseInterest` (that concept is gated by issue #286, a different thing: these tags name cohorts that already happened, not pre-cohort interest) |
+| **Reads** | Only rows carrying a reviewed course-cohort tag (`TAG_COHORT_MAP` in the service module) — the settled owner-approved edition→(family, year) table from issue #15, e.g. `de-zoomcamp-1`/`de-zoomcamp` → 2022, `ml-zoomcamp-2` → 2022; see that module's docstring for the full table |
+| **Idempotency** | Safe. `Enrollment`'s `(student, course)` unique constraint backs a `get_or_create` write; a second run changes nothing |
+| **Bootstrap** | **No.** Every tag names a cohort that must already exist (from `import_legacy_zoomcamp` and `import_cmp_content`, run first). A missing cohort is skipped and reported (`tags_missing_cohort`), never guessed at or created |
+
+```
+uv run --frozen python scripts/prod/import_mailchimp_course_tags.py \
+    --database .tmp/local.sqlite3 \
+    --export-dir /data/tmp/mailchimp-export
+```
+
+`--dry-run` computes cohort-match, account-match and enrollment counts through
+read-only queries only. A row whose email matches no existing account is skipped and
+counted; this importer never creates a `CustomUser`.
+
 ---
+
+## 8.1 Rebuilding a local dev database end to end
+
+The order that actually matters, all commands assuming
+`DTC_ENVIRONMENT=local DTC_SQLITE_PATH=<path> DJANGO_SETTINGS_MODULE=website.settings.local`
+and an ambient `DTC_SQLITE_PATH`/`DTC_ENVIRONMENT`/`DJANGO_SETTINGS_MODULE` unset first
+(a stale ambient value silently points a command at the wrong database):
+
+1. `manage.py migrate`
+2. Course catalogue, in order: `import_legacy_zoomcamp.py --source-repo ~/git/zoomcamp-scoring`
+   (§13), then `scripts/prod/sync_course_repositories.py` against each registered course
+   repository checkout (§3), then `scripts/prod/import_cmp_content.py --source <rds export>`
+   (§11). CMP runs last because it reconciles.
+3. The five independent, order-free reviewed one-time imports (§4, §11 items 4): `import_public_content.py`, `import_faq.py`, `import_docs.py`, `import_sponsors.py`, `import_testimonials.py`.
+4. `import_events.py` (§14-17) — one call, five legs internally sequenced.
+5. `import_mailchimp_course_tags.py` (§18) — after step 2, since it needs the course
+   catalogue's cohorts to already exist.
+
+**Deliberately not part of a routine rebuild** (§11 "Not in the bootstrap order, and
+why"): `import_cmp_learners.py` + `import_cmp_learner_history.py` (real accounts and
+learner activity — run only when you actually need them, and record which export you
+used), `import_event_registrants.py` and the remaining Mailchimp importers (attendee-level
+personal data, need provider credentials), and `import_account_reconciliation.py` (merges
+real people, no rollback).
 
 ## 9. What is file-backed and what is database-backed
 
