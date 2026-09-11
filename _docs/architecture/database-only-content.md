@@ -29,13 +29,42 @@ fallback.
 
 ## Where the content lives now
 
-Every public surface reads the database. What is left on disk under
-`temporary/content/` is ingest input. `scripts/prod/*` is its main reader, but
-not its only one -- `ci/content_update.py` shape-checks it,
-`content_sync/dtc_content/parity.py` compares against it,
+Every public surface reads the database. The reviewed ingest input
+`scripts/prod/*` reads no longer lives on disk in this repository: as of
+2026-09-11 it moved to `~/prod/dtc-data/content-staging/` (an operator's local
+data directory, backed up to a private S3 bucket -- see that directory's own
+`README.md`), the same way `~/prod/dtc-data/eventbrite-content/staging/eventbrite_descriptions.json`
+moved a little earlier the same day. `scripts/prod/*` is its main reader, and
 `content/media_store.py`'s `media_records()` reads its media records for
-operator tooling, and `test_support/reference_data.py` runs the importers over
-it to fill every Django test database. None of those is a public request path.
+operator tooling. Neither is a public request path, and CI cannot reach
+either: nothing that runs in CI depends on this tree being present any more
+(see below).
+
+Two things that used to read this tree are gone outright, on the owner's
+ruling that a one-time ingest-parity check has no business running as an
+ongoing regression test: `ci/content_update.py` (the shape-check contract,
+with its workflow and composite action) and
+`content_sync/tests/test_dtc_content_accepted_checkout.py` (one frozen
+historical commit's adapter-parity verification, env-gated and never run by
+default anyway). `content_sync/dtc_content/parity.py` itself stays --
+`content_sync/dtc_content/repository.py` still imports it unconditionally for
+a real, ongoing production check gated to that same frozen commit.
+
+`test_support/reference_data.py` no longer reads this tree either. It runs
+the same real `scripts/prod/*` importers -- unmocked, for real -- over a
+small, synthetic, git-tracked fixture set at
+`test_support/fixtures/reference/` to fill every Django test database. The one
+exception is the editorial catalogue (articles/podcasts/books/people/wiki/
+courses/media): its real loader
+(`scripts/prod/public_projection_source.load_checked_projection`) validates
+its input against the exact accepted upstream revisions and a handful of
+pinned counts from the real reviewed snapshot (issue #253) -- by design, so a
+drifted or compromised upstream is refused rather than silently imported. A
+synthetic catalogue cannot satisfy that pin and still be synthetic, so
+`test_support/reference_data.py` calls `scripts/prod/import_public_content.run`
+(the real, unmocked database-writing path) with only that one file-reading,
+upstream-pinned loader swapped out. See that module's docstring for the full
+reasoning.
 
 | Surface | Read path | Ingest |
 | --- | --- | --- |
@@ -66,10 +95,16 @@ helpers are `content/event_content.py`, its route inventory is
 `content/public_routes.py`, and its graph safety contract is
 `content/public_graph.py`.
 
-The projection *files* are still checked in as that ingest input, and
-`scripts/projection_build/` holds the code that checks and builds them. Neither
-is on a public request path. "Removal order" below is what is left of them and
-what each part waits on.
+The projection *files* live outside this repository now, at
+`~/prod/dtc-data/content-staging/`, as ingest input. `scripts/staging/` holds
+the code that builds a staging artifact from a reviewed source
+(`event_description_bridge.py`, `event_speaker_bio_normalization.py`,
+`event_description_link_policy.py`, `luma_event_descriptions.py`); the code
+that checks the frozen legacy build,
+`scripts/prod/public_projection_source.py` (moved from the now-retired
+`scripts/projection_build/` package -- it is a live dependency of
+`scripts/prod/import_public_content.py`, so it moved rather than deleted).
+Neither is on a public request path.
 
 ### Still to do
 
@@ -79,28 +114,35 @@ what each part waits on.
 - The wiki's default social card is still a design asset on disk
   (`content/wiki_assets/`). The route asks the published manifest before serving
   it, so what is published is a database fact; only the bytes are a file.
-- Delete what is left of the projection, in the order below. None of it can
-  start before production is ingested, and two of the things people expect to
-  delete -- `temporary/content/luma_event_descriptions.json` and three of the
-  four `scripts/projection_build/` modules -- do not come out at all.
+- Once production is ingested (Stage 0 below), decide whether the
+  now-external staging tree still needs to exist at all, or whether it can be
+  deleted from `~/prod/dtc-data/content-staging/` the way earlier plans
+  expected it to be deleted from this repository. `luma_event_descriptions.json`
+  does not come out either way -- it is not one-time staging, see below.
 
 ## The staging tree is not a second source of truth
 
 Three terms, used with these meanings here and in `_docs/runbooks/data-ingest.md`:
-a **source** is where data is authored upstream, **staging** is `temporary/content/`
-where a reviewed, processed copy waits, and the **production database** is the
-target every public page reads. Data moves one way, source → staging → database.
+a **source** is where data is authored upstream, **staging** is
+`~/prod/dtc-data/content-staging/` (outside this repository; it lived at
+`temporary/content/` inside it until 2026-09-11) where a reviewed, processed
+copy waits, and the **production database** is the target every public page
+reads. Data moves one way, source → staging → database.
 
+`~/prod/dtc-data/content-staging/` is a **staging layer**: the reviewed form of
+each source, sitting between the original data and the database, and existing
+for no other reason than to be pumped into it once. Some of it is a straight
+capture; some of it was rewritten during review and exists in that form
+nowhere else. Moving it out of this repository does not change what it is --
+an operator's reviewed local data, backed up to S3, the same way
+`~/prod/dtc-data/rds-export/`, `~/prod/dtc-data/mailchimp-export/`, and its
+other existing subdirectories already are (see that directory's own
+`README.md`).
 
-`temporary/content/` is a **staging layer**: the reviewed form of each source,
-sitting between the original data and the database, and existing for no other
-reason than to be pumped into it once. Some of it is a straight capture; some of
-it was rewritten during review and exists in that form nowhere else.
-
-`temporary/content/public_projection/events.json` is the clearest case. It was
-built offline from the legacy site's `_data/events.yaml`, and then edited: the
-event description bridge matched 159 events to their Luma descriptions, removed
-the "about the speaker" biography and the platform boilerplate from each one, and
+`public_projection/events.json` is the clearest case. It was built offline
+from the legacy site's `_data/events.yaml`, and then edited: the event
+description bridge matched 159 events to their Luma descriptions, removed the
+"about the speaker" biography and the platform boilerplate from each one, and
 bound every surviving link to a reviewed destination
 (`_docs/event-description-bridge.md`). Rebuilding it needs an exporter checkout
 an operator holds privately. So it is not a cache of something we could re-derive
@@ -112,7 +154,9 @@ Three properties keep this from being a file-backed fallback in disguise:
 - nothing on a public request path reads it, and no startup check touches it;
 - the record *records* its legacy origin as provenance, and the importer re-checks
   that tuple against the identity row rather than trusting it;
-- once production is ingested, the tree is deleted. It is scaffolding with a
+- it is not part of this repository or its CI checkout at all -- it lives on an
+  operator's machine, backed up to S3, and reaches the database only when an
+  operator runs a `scripts/prod/*` importer by hand. It is scaffolding with a
   removal date, not an input the running site has.
 
 ## Target database reads
@@ -140,125 +184,112 @@ Three properties keep this from being a file-backed fallback in disguise:
 The public read path should resolve only active, published database rows. Missing
 rows return an empty collection or 404; they never trigger a filesystem fallback.
 
-## Removal order
+## Removal order -- superseded by relocation
 
-Steps 1-3 are done: every public surface has a database query service with
-empty-state tests, every view reads it, and the deployment seeds, runtime file
-readers and startup digest checks are gone. What follows is the rest, stated as
-what remains, what each item blocks on, and the order it comes out in.
+This section originally planned a whole-directory *delete* of
+`temporary/content/`, gated on production being ingested first (Stage 0) and
+on repointing every non-ingest reader (Stage 1) and separating the live
+staging code from the frozen build (Stage 2) before anything could come out
+(Stage 3). The owner's instruction on 2026-09-11 superseded the mechanism, not
+the technical facts it was built on: **relocate the tree out of the
+repository and keep it, backed up to S3, rather than wait for a production
+ingest that has not happened yet and then delete it.** Stages 0's precondition
+(run the ingest first) no longer gates anything -- the tree is not going away,
+so there is nothing left to lose by moving it now.
 
-**Two corrections to the instruction "delete `temporary/content/` and
-`scripts/projection_build/`".** Neither is a whole-directory delete.
+What Stages 1-2 actually required has happened, by relocation and one
+targeted change per reader rather than by the sequence originally planned:
 
-- `temporary/content/luma_event_descriptions.json` is *not* one-time staging. It
-  is written by `scripts/staging/luma_event_descriptions.py` for events found in
-  a Luma export, and it grows each time one is processed. It outlives the
-  production ingest.
-- Three of the four modules in `scripts/projection_build/` outlive it too.
-  `scripts/staging/luma_event_descriptions.py` imports `LINK_POLICY_VERSION` and
-  `MARKDOWN_POLICY_VERSION` from `event_description_bridge.py`,
-  `normalize_description_html` and `NORMALIZATION_SCHEMA_VERSION` from
-  `event_speaker_bio_normalization.py`, and the reviewed destinations in
-  `event_description_link_policy.py` are what an unreviewed link is refused
-  against. It also imports `BridgeBuildError`, `MARKDOWN` and the renderer from
-  `scripts/build_event_description_bridge.py`, so that "offline rebuilder for a
-  frozen artifact" is a live dependency of the ongoing staging path. Only
-  `public_projection_source.py` is tied to the frozen tree.
+1. **`test_support/reference_data.py`** no longer reads the real tree at all
+   (not "repointed at the new location" -- replaced). It runs the same real
+   importers over a small synthetic fixture at
+   `test_support/fixtures/reference/`, with one deliberate exception for the
+   editorial catalogue's upstream-pinned validation (see "Where the content
+   lives now" above and that module's docstring). The real corpus's exact
+   shape (421 events, 2,203 content documents, and every test that had come to
+   assert that exact shape rather than real application behavior) is gone from
+   the ordinary test suite; git history holds it.
+2. **`ci/content_update.py`** is deleted outright, with its workflow and
+   composite action -- not retired-in-place or pointed at the database. The
+   owner's ruling: an ingest-parity check has no business running as an
+   ongoing regression test on every push.
+3. **`content_sync/dtc_content/parity.py`** stays: `content_sync/dtc_content/repository.py`
+   still imports it unconditionally for a real, ongoing check gated to the one
+   frozen `ACCEPTED_CONTENT_COMMIT`. What came out was the one *test* that ran
+   it as an ordinary suite member despite being env-gated and never run by
+   default,
+   `content_sync/tests/test_dtc_content_accepted_checkout.py`. Its digests
+   being stale (issue #253) is unrelated to this move and still open.
+4. **`content/media_store.py`'s `media_records()`** still reads the (now
+   external) tree for operator tooling; the one CI-reachable test that had
+   called it directly
+   (`content/tests/test_public_media_store.py::MemoryMediaStoreTests`) carries
+   its own small synthetic record set instead.
 
-### Stage 0 -- run the ingest
+Stage 2's separation is also done: `event_description_bridge.py`,
+`event_speaker_bio_normalization.py` and `event_description_link_policy.py`
+moved from the retired `scripts/projection_build/` package to
+`scripts/staging/`, where `scripts/staging/luma_event_descriptions.py`'s live
+dependency on them is described alongside it. `public_projection_source.py`
+moved to `scripts/prod/`, next to its one remaining caller,
+`scripts/prod/import_public_content.py`; `scripts/projection_build/__init__.py`
+and the now-empty package were deleted.
 
-Run the `scripts/prod/` importers against the production database and record the
-counts. Nothing below moves until this has happened; `temporary/content/` is the
-reviewed content itself and is not re-derivable from a checkout we hold.
+**What Stage 3 said to delete did not come out** -- `scripts/repin_projection_digests.py`
+and `scripts/build_public_projection.py` still exist, just repointed at the new
+location, because deleting them was never asked for by this relocation and
+both still have real (if narrow) callers: the former by part of
+`scripts/tests/test_public_projection_media_digest.py`, the latter by the
+four tests named in the original Stage 3.2 entry
+(`content/tests/test_public_projection_builder.py`, `test_podcast_platforms.py`,
+`test_sponsor_article_charts.py`, `test_review_skeleton.py`). Their real
+callers and the rules only `build_public_projection.py` holds (the `_people`
+front-matter allowlist, the podwiki graph's node and link counts, the article
+block builder's segment rules) are exactly why the original Stage 3 gated
+deleting them on those tests no longer needing them -- that gate is unchanged
+by the relocation, and nothing here removes it. Deleting them, if ever wanted,
+is a decision for whoever decides the staging tree itself should finally be
+deleted (Stage 4 below) -- not a step this relocation took.
 
-### Stage 1 -- repoint the readers that are not the ingest
+`temporary/content/public_projection/` and the reviewed JSON files beside it
+are gone from this repository (moved, `git rm`'d), including
+`luma_event_descriptions.json`'s new home
+(`~/prod/dtc-data/content-staging/luma_event_descriptions.json`) -- it is
+still not one-time staging, still grows with every Luma export processed, and
+now lives beside its siblings rather than apart from them.
 
-Each of these reads `temporary/content/` for a reason other than filling
-production, so running the ingest does not retire it.
+### Stage 4 -- delete the staging tree, if and when it is safe to
 
-1. **`test_support/reference_data.py`** runs the real importers over the staging
-   tree to populate *every* Django test database -- 421 events and
-   2,203 content documents, plus docs, FAQ and testimonials. This is the largest
-   blocker and it is not an ingest question: deleting the tree without replacing
-   this deletes the test corpus.
-2. **`ci/content_update.py`** shape-checks the staging artifacts per family and
-   is what `uv run --frozen python scripts/ci.py content-update-check` and `.github/workflows/content-update.yml`
-   run. Retire the contract or point it at the database.
-3. **`content_sync/dtc_content/parity.py`** compares an adapter bundle against
-   the checked tree at one frozen commit, with its digests pinned in
-   `content_sync/dtc_content/contract.py` (`PROJECTION_MANIFEST_SHA256`,
-   `PROJECTION_TREE_SHA256`). Those digests are already stale -- issue #253.
-4. **`content/media_store.py`'s `media_records()`** reads
-   `temporary/content/public_projection/media.json` for operator tooling and the
-   offline fixture store. The `/images/...` view resolves its record from the
-   database and does not call it.
+This is what the original "Removal order" called Stage 3.4/4 for the files,
+now retargeted at `~/prod/dtc-data/content-staging/` instead of a path inside
+this repository. Nothing here has changed the actual precondition: production
+still has to be ingested first (`temporary/content/`, now
+`~/prod/dtc-data/content-staging/`, is the reviewed content itself and is not
+re-derivable from a checkout anyone holds), and the two things that do not
+come out even then are `luma_event_descriptions.json` and
+`public_projection_source.py`'s callers -- see above.
 
-### Stage 2 -- separate the live staging code from the frozen build
+The names left over once a projection is not a file anywhere -- `content/docs_projection.py`,
+`content/media_store.py`'s `PROJECTION_ROOT`/`REVIEWED_PROJECTION_ROOT`, and
+`BRIDGE_PUBLIC_PATH`'s stale literal -- are unchanged by this relocation and
+still wait on the same things the earlier "Stage 4" entry described (now
+folded into this one rather than kept as a separate numbered stage, since
+there is no longer a Stage 3 delete step ahead of it to number against).
 
-Move the Markdown renderer, the link policy and the description normaliser named
-in the second correction above under `scripts/staging/`, where the one-way
-`source -> staging -> database` trip they serve is described. Until that is done,
-the frozen legacy build and the ongoing Luma staging path cannot be deleted
-independently, because they are the same code.
-
-### Stage 3 -- delete, in this order
-
-1. `scripts/repin_projection_digests.py`, with the part of
-   `scripts/tests/test_public_projection_media_digest.py` that drives it. Nothing
-   else calls it; it exists only to move the manifest's digest scope without the
-   full rebuild issue #253 says is impossible.
-2. `scripts/build_public_projection.py`, once `content_sync/dtc_content/parity.py`
-   and the four tests that import it
-   (`content/tests/test_public_projection_builder.py`, `test_podcast_platforms.py`,
-   `test_sponsor_article_charts.py`, `test_review_skeleton.py`) no longer do.
-   **It is the sole holder of rules nothing else asserts** -- the `_people`
-   front-matter allowlist, the podwiki graph's node and link counts, the article
-   block builder's segment rules. Those move into the ingest or the content
-   adapter first, or they are lost silently.
-3. `scripts/projection_build/public_projection_source.py`, once
-   `scripts/prod/import_public_content.py` has run for the last time and
-   `ci/content_update.py` no longer imports `load_checked_projection` or
-   `EXPECTED_REVISIONS` from it.
-4. `temporary/content/public_projection/` and the reviewed JSON files beside it,
-   **except `luma_event_descriptions.json`**.
-5. `scripts/projection_build/__init__.py`, once the three surviving modules have
-   moved to `scripts/staging/` and the package is empty.
-
-### Stage 4 -- the names that are left
-
-After stage 3 nothing called a projection is a file, so each of these is a
-rename, and each has a cost worth checking before paying it.
-
-- **`content/docs_projection.py`** and its exported `docs_projection()` read
-  `ContentDocument` and `ContentAsset`. Renaming them reaches outside `content/`:
-  `playwright_tests/test_foundation_smoke.py`, `test_accessibility.py` and
-  `test_docs_navigation.py` import the symbol, `ci/content_update.py` imports
-  `DOCS_SOURCE_REVISION`, and `.github/workflows/content-update.yml` names the
-  test module `content.tests.test_docs_projection` by path.
-- **`content/media_store.py`'s `PROJECTION_ROOT`** is the *local hydration
-  target* an operator fills, not the staging tree; it is deliberately a directory
-  that does not exist in a fresh checkout. It outlives the projection entirely
-  and wants a name that says "local media root".
-  `REVIEWED_PROJECTION_ROOT` beside it dies with stage 3.4.
-- **`BRIDGE_PUBLIC_PATH`** in `scripts/projection_build/event_description_bridge.py`
-  is `"content/event_description_bridge.json"`, a path that moved to
-  `temporary/content/`. It cannot be corrected on its own: the same literal is
-  pinned inside the checked manifest at
-  `temporary/content/public_projection/manifest.json` as the
-  `event_description_bridge` binding, the importer compares the two, and
-  `scripts/repin_projection_digests.py` recomputes only digest and scope fields.
-  Correcting it means rewriting a checked binding, which only a full rebuild
-  does -- and that is issue #253.
-
-### Verification for each stage
+### Verification
 
 A fresh migrated database renders empty hubs and 404s for absent detail records;
 an ingested database renders those records with no source file in the image.
-Both already hold and must keep holding after every step above.
+Both already hold and must keep holding after every step above. The ordinary
+test suite (`uv run python manage.py test`) no longer requires
+`~/prod/dtc-data/` to exist at all; verify that stays true after any change to
+`test_support/reference_data.py` or the fixtures under
+`test_support/fixtures/reference/`.
 
 Useful audit commands:
 
 ```text
 rg -n "public_projection|docs_projection|faq_projection|event_identity_manifest|event_description_bridge" .
 rg -n "read_text|read_bytes|json\.load" content core events
+rg -n "prod/dtc-data" scripts content test_support
 ```
