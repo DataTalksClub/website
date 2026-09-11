@@ -18,7 +18,7 @@ from scripts.build_public_projection import (
     _canonical_podcast_platform_url,
 )
 from scripts.build_public_projection import _string as _projection_string
-from scripts.projection_build.public_projection_source import DEFAULT_PROJECTION_ROOT
+from scripts.prod.public_projection_source import DEFAULT_PROJECTION_ROOT
 
 from .adapter import CandidateAsset, CandidateBundle, CandidateRelation, DtcContentValidationError
 from .contract import (

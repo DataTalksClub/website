@@ -2,7 +2,9 @@
 """Materialise the public projection media objects into a local root.
 
 Git-synchronized -- see ``scripts/prod/__init__.py`` for what the two sync
-models mean. The set of recorded objects (``temporary/content/public_projection/media.json``)
+models mean. The set of recorded objects
+(``~/prod/dtc-data/content-staging/public_projection/media.json``, outside
+this repository -- see ``_docs/architecture/database-only-content.md``)
 grows as new content ships, so this is re-run whenever it does, not run once.
 Touches no database: every record and every byte lives in files or the
 configured object store, never in a model row.

@@ -10,8 +10,10 @@ from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit, urlunsplit
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 # The route registry is read from the migration helper projection, which is
-# where the built snapshot lives; runtime never reads it.
-PROJECTION_ROOT = REPOSITORY_ROOT / "temporary" / "content" / "public_projection"
+# where the built snapshot lives (now outside this repository, at
+# ~/prod/dtc-data/content-staging/ -- see
+# _docs/architecture/database-only-content.md); runtime never reads it.
+PROJECTION_ROOT = Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
 
 FRAGMENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:%~-]{0,199}$")
 

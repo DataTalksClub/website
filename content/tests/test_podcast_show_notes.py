@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import unittest
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -17,9 +18,19 @@ from content.podcast_resources import (
     normalize_podcast_resources,
 )
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+#: Outside this repository, at ~/prod/dtc-data/content-staging/ -- see
+#: _docs/architecture/database-only-content.md. This contract checks real
+#: checked episode records throughout (specific slugs, and one test that
+#: iterates every checked episode), so it is gated to checkouts that have the
+#: external tree rather than given a synthetic stand-in.
+PROJECTION_ROOT = Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
 
 
+@unittest.skipUnless(
+    PROJECTION_ROOT.exists(),
+    "the reviewed public projection lives outside this checkout, at "
+    "~/prod/dtc-data/content-staging/ (see _docs/architecture/database-only-content.md)",
+)
 class PodcastShowNotesContractTests(TestCase):
     records: ClassVar[list[dict[str, Any]]]
 
@@ -27,9 +38,7 @@ class PodcastShowNotesContractTests(TestCase):
     def setUpClass(cls) -> None:
         super().setUpClass()
         cls.records = json.loads(
-            (REPOSITORY_ROOT / "temporary/content/public_projection/podcasts.json").read_text(
-                encoding="utf-8"
-            )
+            (PROJECTION_ROOT / "podcasts.json").read_text(encoding="utf-8")
         )
 
     def render_episode(self, record: dict) -> str:

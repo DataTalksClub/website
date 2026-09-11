@@ -12,11 +12,11 @@ from unittest.mock import patch
 from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase
 
-from scripts.projection_build import public_projection_source as source_loader
-from scripts.projection_build.public_projection_source import (
+from scripts.prod import public_projection_source as source_loader
+from scripts.prod.public_projection_source import (
     DEFAULT_PROJECTION_ROOT as PROJECTION_ROOT,
 )
-from scripts.projection_build.public_projection_source import (
+from scripts.prod.public_projection_source import (
     EXPECTED_MEDIA_STORAGE_FIELDS,
     EXPECTED_TREE_DIGEST_SCOPE,
     _tree_sha256,

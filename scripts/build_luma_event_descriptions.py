@@ -2,7 +2,8 @@
 """Process a Luma description export into staging, for events we already have.
 
 Source -> staging.  The Luma export is the source; the artifact this writes,
-``temporary/content/luma_event_descriptions.json``, is staging;
+``~/prod/dtc-data/content-staging/luma_event_descriptions.json`` (outside this
+repository -- see ``_docs/architecture/database-only-content.md``), is staging;
 ``scripts/prod/import_events.py`` moves it into the production database.  See
 ``_docs/runbooks/data-ingest.md`` for what those three words mean here.
 
@@ -31,7 +32,7 @@ What a run does, per description file:
 **Reporting is the default and it writes nothing.**  A link nobody has reviewed
 stops that event and is reported by URL, because approving a destination is a
 person's decision: it is an edit to
-``scripts/projection_build/event_description_link_policy.py``, never something
+``scripts/staging/event_description_link_policy.py``, never something
 inferred here.  Re-run with ``--write`` once the report is clean.
 
     uv run --frozen python scripts/build_luma_event_descriptions.py \\

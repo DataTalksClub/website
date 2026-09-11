@@ -14,7 +14,7 @@ from typing import Any
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
 
-from scripts.projection_build.public_projection_source import (
+from scripts.prod.public_projection_source import (
     REVIEWED_TARGET_MARKER_COUNTS,
     _validate_marker_provenance,
 )

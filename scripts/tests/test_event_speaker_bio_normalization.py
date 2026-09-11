@@ -6,15 +6,21 @@ from pathlib import Path
 
 import pytest
 
-from scripts.projection_build.event_description_bridge import validate_description_html
-from scripts.projection_build.event_speaker_bio_normalization import (
+from scripts.staging.event_description_bridge import validate_description_html
+from scripts.staging.event_speaker_bio_normalization import (
     EventSpeakerBioNormalizationError,
     apply_event_speaker_bio_normalization,
     load_normalization_plan,
     normalize_description_html,
 )
 
-PROJECTION_ROOT = Path(__file__).resolve().parents[2] / "temporary" / "content" / "public_projection"
+#: Outside this repository, at ~/prod/dtc-data/content-staging/ -- see
+#: _docs/architecture/database-only-content.md. test_support/reference_data.py's
+#: replacement synthetic event fixture does not cover this module's real-corpus
+#: replay/coverage checks (test_checked_plan_replays_all_events_and_preserves_bridge_provenance,
+#: test_checked_plan_fails_closed_on_description_source_drift); those still need
+#: the real, externally-hosted tree and are not CI-reachable.
+PROJECTION_ROOT = Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
 
 
 def _projection() -> tuple[list[dict], list[dict]]:
@@ -83,6 +89,11 @@ def test_bridge_accepts_root_relative_internal_links() -> None:
     )
 
 
+@pytest.mark.skipif(
+    not PROJECTION_ROOT.exists(),
+    reason="the reviewed public projection lives outside this checkout, at "
+    "~/prod/dtc-data/content-staging/ (see _docs/architecture/database-only-content.md)",
+)
 def test_checked_plan_replays_all_events_and_preserves_bridge_provenance() -> None:
     events, people = _projection()
     apply_event_speaker_bio_normalization(events, people)
@@ -107,6 +118,11 @@ def test_checked_plan_replays_all_events_and_preserves_bridge_provenance() -> No
     )
 
 
+@pytest.mark.skipif(
+    not PROJECTION_ROOT.exists(),
+    reason="the reviewed public projection lives outside this checkout, at "
+    "~/prod/dtc-data/content-staging/ (see _docs/architecture/database-only-content.md)",
+)
 def test_checked_plan_fails_closed_on_description_source_drift() -> None:
     events, people = _projection()
     events[0] = copy.deepcopy(events[0])

@@ -28,7 +28,9 @@ from .event_speaker_bio_normalization import (
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-BRIDGE_PATH = REPOSITORY_ROOT / "temporary" / "content" / "event_description_bridge.json"
+#: Outside this repository, at ~/prod/dtc-data/content-staging/ -- see
+#: _docs/architecture/database-only-content.md.
+BRIDGE_PATH = Path.home() / "prod" / "dtc-data" / "content-staging" / "event_description_bridge.json"
 BRIDGE_SCHEMA_PATH = (
     REPOSITORY_ROOT / "_docs" / "compatibility" / "event-description-bridge.schema.json"
 )

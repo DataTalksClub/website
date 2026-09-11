@@ -3,12 +3,12 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import unittest
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 from xml.etree import ElementTree
 
-from django.conf import settings
 from django.test import TestCase
 
 from content import catalogue
@@ -377,10 +377,18 @@ class PublicRouteAndSeoTests(TestCase):
             self.assertContains(response, 'alt="Portrait of ', count=1)
             self.assertNotContains(response, 'href="/people"')
 
+    @unittest.skipUnless(
+        (
+            Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
+        ).exists(),
+        "the reviewed public projection lives outside this checkout, at "
+        "~/prod/dtc-data/content-staging/ (see "
+        "_docs/architecture/database-only-content.md)",
+    )
     def test_article_and_person_body_attributes_are_removed_without_copy_mutation(self) -> None:
         # The reviewed ingest input, which this test reads to prove the runtime
         # cleanup does not write back to its source.
-        projection_root = Path(settings.BASE_DIR) / "temporary" / "content" / "public_projection"
+        projection_root = Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
         before = {
             path.relative_to(projection_root).as_posix(): hashlib.sha256(
                 path.read_bytes()

@@ -3,8 +3,10 @@
 Pages are ``ContentDocument`` rows and asset records are ``ContentAsset`` rows of
 the active ``dtc-docs`` release, written by ``scripts/prod/import_docs.py``. No
 request reads the documentation repository, and none reads the reviewed
-``temporary/content/docs_projection.json`` the importer takes as its input
-either. Only the asset *bytes* are still files, under ``content/docs_assets/``,
+``docs_projection.json`` the importer takes as its input either -- it lives
+outside this repository now, at ``~/prod/dtc-data/content-staging/`` (see
+``_docs/architecture/database-only-content.md``). Only the asset *bytes* are
+still files, under ``content/docs_assets/``,
 and the record that names one is a database row. A database with no active docs
 release publishes nothing: the hub renders empty and every documentation route
 404s. That is the normal state before an ingest has run.

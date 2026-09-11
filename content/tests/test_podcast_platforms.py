@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import unittest
 from pathlib import Path
 from typing import Any
 
@@ -154,8 +155,16 @@ class PodcastPlatformDataTests(TestCase):
                 link_markup,
             )
 
+    @unittest.skipUnless(
+        (
+            Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
+        ).exists(),
+        "the reviewed public projection lives outside this checkout, at "
+        "~/prod/dtc-data/content-staging/ (see "
+        "_docs/architecture/database-only-content.md)",
+    )
     def test_platform_artifact_is_manifest_bound_and_provider_keys_cannot_drift(self) -> None:
-        root = Path(__file__).resolve().parents[2] / "temporary" / "content" / "public_projection"
+        root = Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
         path = root / "podcast_platforms.json"
 
         self.assertEqual(

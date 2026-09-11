@@ -2,7 +2,8 @@
 
 Two separate description sources exist for the same historical events. The one
 already imported (:mod:`events.content_import`, fed by
-``temporary/content/public_projection/events.json``) was built from the legacy
+``~/prod/dtc-data/content-staging/public_projection/events.json``, outside this
+repository) was built from the legacy
 Jekyll ``_data/events.yaml`` and, for 159 of 421 events, hand-reconciled against a
 Luma copy. The other is real, freshly-scraped Eventbrite page content held outside
 this repository at ``~/prod/dtc-data/eventbrite-content/`` (226 events, fields
@@ -53,7 +54,7 @@ zero-width-corrupted, and no-about-section cases -- was read in full to confirm
 nothing beyond the two patterns above was removed.
 
 A similarly-shaped transform already exists at
-``scripts/projection_build/event_speaker_bio_normalization.py`` -- it is not
+``scripts/staging/event_speaker_bio_normalization.py`` -- it is not
 reused here. That one operates on HTML block tags, is bound to a checked,
 sha256-pinned migration plan for the *already-imported* 421-event legacy
 corpus, and exists to be replayed exactly, once. This source is markdown, is

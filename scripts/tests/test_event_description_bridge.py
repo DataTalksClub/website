@@ -10,9 +10,9 @@ from unittest.mock import patch
 from django.conf import settings
 from django.test import SimpleTestCase
 
-from scripts.projection_build import event_description_bridge as bridge_contract
+from scripts.staging import event_description_bridge as bridge_contract
 from scripts import build_event_description_bridge as bridge_builder
-from scripts.projection_build.event_description_bridge import (
+from scripts.staging.event_description_bridge import (
     EventDescriptionBridgeError,
     load_event_description_bridge,
     validate_description_html,

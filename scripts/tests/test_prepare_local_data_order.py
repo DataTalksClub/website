@@ -6,7 +6,8 @@ CMP reconciles: it matches its rows against what the course repositories wrote.
 Running it first is not merely out of order, it is a different result -- the
 CMP-first arrangement worked only while no cohort was described by both sources.
 
-Step 4 -- the reviewed editorial inputs under `temporary/content/` -- has to run
+Step 4 -- the reviewed editorial inputs under `~/prod/dtc-data/content-staging/`
+(outside this repository) -- has to run
 at all, and after the catalogue. Only testimonials used to, so a rehearsal
 database came out with no articles, podcasts, books, people, wiki, docs, FAQ or
 sponsors, and nothing in the run said so.

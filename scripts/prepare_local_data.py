@@ -151,7 +151,9 @@ def _import_editorial_content() -> dict[str, Any]:
     """Step 4 of the documented bootstrap order, as one block.
 
     ``_docs/runbooks/data-ingest.md`` §11 step 4 names five reviewed one-time inputs
-    under ``temporary/content/``.  All five declare ``BOOTSTRAPS_EMPTY_DATABASE`` and
+    under ``~/prod/dtc-data/content-staging/`` (outside this repository -- see
+    ``_docs/architecture/database-only-content.md``).  All five declare
+    ``BOOTSTRAPS_EMPTY_DATABASE`` and
     none depends on another, so the order within the block carries no meaning -- what
     matters is that the block runs, and that it runs after the course catalogue rather
     than instead of it.  Only testimonials used to run here, so a rehearsal database

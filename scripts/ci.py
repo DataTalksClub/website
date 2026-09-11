@@ -86,7 +86,6 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "api/tests/test_staff_authority_boundary.py",
     "courses/services/course_family_identity.py",
     "scripts/tests/test_projection_marker_provenance.py",
-    "scripts/projection_build/public_projection_source.py",
     "course_management/mail_preferences.py",
     "course_management/package_mail.py",
     "courses/tests/test_package_mail_flows.py",

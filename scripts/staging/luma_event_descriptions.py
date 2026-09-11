@@ -48,7 +48,7 @@ Three things fail closed, all deliberately
 may appear in rendered HTML, and host approval alone is not enough. An event naming a
 destination nobody has reviewed is stopped and its URLs are reported, because
 approving one is an edit to
-``scripts/projection_build/event_description_link_policy.py`` by a person; it is
+``scripts/staging/event_description_link_policy.py`` by a person; it is
 never inferred here.
 
 *An event we do not already have.* This writes descriptions for identities that
@@ -414,7 +414,7 @@ def render_and_normalize(markdown: str, *, renderer: Any | None = None) -> dict[
     """Render one description through the reviewed policies, then strip the bio."""
 
     from scripts.build_event_description_bridge import BridgeBuildError
-    from scripts.projection_build.event_speaker_bio_normalization import (
+    from scripts.staging.event_speaker_bio_normalization import (
         normalize_description_html,
     )
 
@@ -448,11 +448,11 @@ def build_record(
 ) -> dict[str, Any]:
     """One content record: the finished description, its schedule, and how both were reached."""
 
-    from scripts.projection_build.event_description_bridge import (
+    from scripts.staging.event_description_bridge import (
         LINK_POLICY_VERSION,
         MARKDOWN_POLICY_VERSION,
     )
-    from scripts.projection_build.event_speaker_bio_normalization import (
+    from scripts.staging.event_speaker_bio_normalization import (
         NORMALIZATION_SCHEMA_VERSION,
     )
 

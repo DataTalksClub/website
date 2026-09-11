@@ -10,7 +10,7 @@ They used to be read out of ``content/public_projection/`` on the way to every
 public request, which meant the running site served public content from files in
 its own source tree and re-verified a 37M tree of digests to do it.  The files
 are ingest input now: this script checks them once, through
-``scripts/projection_build/public_projection_source``, and writes what they hold
+``scripts/prod/public_projection_source``, and writes what they hold
 into the database the site actually reads.
 
 Each record becomes one published document carrying that record verbatim in its
@@ -81,7 +81,7 @@ def load_reviewed_catalogue(root: Path | None = None) -> dict[str, Any]:
 
     from django.core.exceptions import ImproperlyConfigured
 
-    from scripts.projection_build.public_projection_source import load_checked_projection
+    from scripts.prod.public_projection_source import load_checked_projection
 
     try:
         return load_checked_projection(root)

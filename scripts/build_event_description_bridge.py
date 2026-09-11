@@ -24,7 +24,7 @@ import mistune
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from scripts.projection_build.event_description_bridge import (  # noqa: E402
+from scripts.staging.event_description_bridge import (  # noqa: E402
     BASELINE_EVENTS_SHA256,
     BRIDGE_PATH,
     BRIDGE_PUBLIC_PATH,
@@ -56,7 +56,7 @@ from scripts.projection_build.event_description_bridge import (  # noqa: E402
     description_plain_text,
     validate_description_html,
 )
-from scripts.projection_build.event_description_link_policy import (  # noqa: E402
+from scripts.staging.event_description_link_policy import (  # noqa: E402
     EXPECTED_LINK_DECISION_COUNTS,
     EventDescriptionLinkPolicyError,
     classify_rendered_url,
@@ -64,8 +64,10 @@ from scripts.projection_build.event_description_link_policy import (  # noqa: E4
     projection_routes_and_fragments,
 )
 
+#: Outside this repository, at ~/prod/dtc-data/content-staging/ -- see
+#: _docs/architecture/database-only-content.md.
 PROJECTION_EVENTS_PATH = (
-    REPOSITORY_ROOT / "temporary" / "content" / "public_projection" / "events.json"
+    Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection" / "events.json"
 )
 BASELINE_WEBSITE_REVISION = "4cad269d576217679ac6c9ce02286e7939d8b043"
 MAX_CHECKPOINT_BYTES = 32 * 1024 * 1024

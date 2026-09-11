@@ -7,8 +7,10 @@ speakers and links one public event page prints.
 Where the records come from
 ---------------------------
 
-``temporary/content/public_projection/events.json`` is a **staging artifact**,
-not a serving path and not a synchronization path. It exists for exactly one
+``~/prod/dtc-data/content-staging/public_projection/events.json`` (outside this
+repository -- see ``_docs/architecture/database-only-content.md``) is a
+**staging artifact**, not a serving path and not a synchronization path. It
+exists for exactly one
 reason: to be pumped into the database once. It was built offline from the
 legacy ``_data/events.yaml`` and then *reviewed and rewritten* -- the event
 description bridge matched 159 events to their Luma descriptions, stripped the
