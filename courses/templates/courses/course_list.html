@@ -33,11 +33,11 @@
        * rebuilt page it carries its complete stylesheet inline: the shared
        * design system partial first, then this page's own layout.  It
        * deliberately loads none of the older site CSS.
-       * ------------------------------------------------------------------ */
-
-      /* ------------------------------------------------------------------ *
-       * Courses-index rules.  Shared primitives (status pills,
-       * list rows, panels) live in the partial above.
+       *
+       * The page sits at the shared reading measure like every other index,
+       * so every surface below is composed as one column: a card is the
+       * column, a finished course is one stacked row.  Nothing here asks for
+       * a second column that the measure cannot hold.
        * ------------------------------------------------------------------ */
 
       /* --page follows the cool ground, since that is what the tail below the
@@ -56,10 +56,12 @@
         gap: 1.5rem;
       }
 
+      /* Balanced so the two lines break after "skills." rather than leaving
+         "For" hanging at the end of the first line. */
       .courses-hero h1 {
         font-size: clamp(2.1rem, 4.9vw, 3.4rem);
         letter-spacing: -0.03em;
-        max-width: 16ch;
+        text-wrap: balance;
       }
 
       .courses-lede {
@@ -70,15 +72,12 @@
 
       /* --- band heads --------------------------------------------------- */
 
-      /* The design puts a live dot beside the active band's heading, so that
-         head is a row rather than the shared stacked .band-head block. */
-      /* Baseline-aligned so the dot stays with the first line when the
-         heading wraps on a phone. */
-      .live-head {
-        align-items: baseline;
-        display: flex;
-        gap: 0.6rem;
-        margin-bottom: 1.5rem;
+      /* The live dot rides inside the active heading, so all three band heads
+         keep the one shared .band-head shape and the dot stays with the first
+         line when the heading wraps on a phone. */
+      .live-dot {
+        margin-inline-end: 0.5rem;
+        vertical-align: middle;
       }
 
       .band-note {
@@ -108,22 +107,22 @@
         padding-top: 2.75rem;
       }
 
-      /* --- active cohorts ----------------------------------------------- */
+      /* --- catalogue cards ---------------------------------------------- */
 
-      /* The active card is an ordinary one-column card: the page reads at the
-         measure, so there is no room — and no need — for the old sidebar split
-         that changed shape whenever a course had no assignment to show. */
-
-      .active-list {
+      /* One column of cards at the measure, for the active band and the open
+         band alike. */
+      .course-list {
         display: grid;
         gap: 1.25rem;
       }
 
-      .active-card {
-        font-size: 1rem;
+      .active-card,
+      .course-card {
+        font-size: 0.95rem;
+        padding: 1.25rem;
       }
 
-      .active-card-head {
+      .course-card-head {
         align-items: center;
         display: flex;
         flex-wrap: wrap;
@@ -131,17 +130,31 @@
         justify-content: space-between;
       }
 
-      .active-card h3 {
-        font-size: 1.35rem;
+      /* One card title size for the whole catalogue. */
+      .active-card h3,
+      .course-card h3 {
+        font-size: 1.3rem;
       }
 
-      .active-card h3 a {
+      .active-card h3 a,
+      .course-card h3 a,
+      .course-row-title a {
         color: var(--ink);
         text-decoration: none;
       }
 
-      .active-card h3 a:hover {
-        text-decoration: none;
+      /* A finished row has no whole-row link around its title the way a card
+         has, so the title line itself is the 44px target: the same
+         comfortable line the row's actions already stand on. */
+      .course-row-title a {
+        align-items: center;
+        display: inline-flex;
+        min-height: 2.75rem;
+      }
+
+      .course-row-title a:hover {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
       }
 
       .course-card[role="link"],
@@ -155,12 +168,57 @@
         outline-offset: 4px;
       }
 
-      .active-actions {
+      /* --- actions ------------------------------------------------------ */
+
+      /* Every surface ends with one action row: the surface's own destination
+         first, then the quiet links.  The row pins to the card foot. */
+      .card-actions {
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem 1rem;
+        gap: 0.5rem 1.25rem;
         margin-top: auto;
+        padding-top: 0.35rem;
+      }
+
+      /* Row and card links become flex items, which blockifies them; keeping
+         the comfortable target height is a deliberate deviation from the
+         export, where these read as bare inline links. */
+      .row-action {
+        align-items: center;
+        color: var(--indigo);
+        display: inline-flex;
+        font-size: 0.9rem;
+        font-weight: 600;
+        min-height: 2.75rem;
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      /* The register action holds the row's right edge whether or not the
+         count beside it could be published. */
+      .course-card-foot .cta {
+        margin-left: auto;
+      }
+
+      .course-card-foot {
+        border-top: 1.5px dashed var(--line-soft);
+        padding-top: 0.85rem;
+      }
+
+      .course-card-registered {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      /* The whole-card cue arrow lives in the card's bottom-right corner, which
+         is where Register sits once the foot is one line.  The card keeps that
+         corner free below the button rather than pushing the button off the
+         edge the date above it already holds. */
+      @media (min-width: 48rem) {
+        .course-card {
+          padding-bottom: 2.4rem;
+        }
       }
 
       /* --- next assignment panel ---------------------------------------- */
@@ -188,125 +246,75 @@
         line-height: 1.3;
       }
 
-      /* --- open registration cards -------------------------------------- */
-
-      .course-card-head {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        justify-content: space-between;
-      }
-
-      .course-card h3 {
-        font-size: 1.25rem;
-      }
-
-      .course-card h3 a {
-        color: var(--ink);
-        text-decoration: none;
-      }
-
-      .course-card h3 a:hover {
-        text-decoration: none;
-      }
-
-      .course-card-foot {
-        align-items: center;
-        border-top: 1.5px dashed var(--line-soft);
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        justify-content: space-between;
-        margin-top: auto;
-        padding-top: 0.85rem;
-      }
-
-      .course-card-registered {
-        color: var(--muted);
-        font-size: 0.85rem;
-      }
-
-      /* The register action holds the card's right edge whether or not the
-         count beside it could be published. */
-      .course-card-foot .cta {
-        margin-left: auto;
-      }
-
-      /* --- finished-course table ---------------------------------------- */
+      /* --- finished-course rows ----------------------------------------- */
 
       .finished-group + .finished-group {
         margin-top: 2rem;
       }
 
+      /* The year is the list's own head: a mono subhead on its own dashed
+         rule, so the rows below it read as one dated group. */
       .finished-year {
+        border-bottom: 1.5px dashed var(--line-soft);
         color: var(--muted);
         font-family: var(--font-mono);
-        font-size: 0.66rem;
+        font-size: 0.72rem;
+        font-weight: 700;
         letter-spacing: 0.1em;
-        margin-bottom: 0.35rem;
+        padding-bottom: 0.6rem;
         text-transform: uppercase;
       }
 
+      /* A finished course is one stacked row: the fixed pill-and-actions
+         columns of the shared row left a three-word title wrapping one word
+         per line at the measure, so the row keeps its single track at every
+         width and the state sits on the title line instead. */
+      .course-row {
+        --row-cols: minmax(0, 1fr);
+        gap: 0.2rem;
+        padding-block: 0.65rem 1.1rem;
+      }
+
+      .course-row-head {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.85rem;
+        justify-content: space-between;
+      }
+
       .course-row-title {
-        font-size: 1.05rem;
-      }
-
-      .course-row-title a {
-        color: var(--ink);
-        text-decoration: none;
-      }
-
-      .course-row-title a:hover {
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
+        font-size: 1.1rem;
       }
 
       .course-row-length {
         color: var(--muted);
-        font-size: 0.82rem;
-        margin-top: 0.15rem;
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
       }
 
       .course-row-description {
-        font-size: 0.9rem;
+        font-size: 0.95rem;
         margin-top: 0.3rem;
       }
 
-      .course-row-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-      }
-
-      /* Row and card links become flex items, which blockifies them; keeping
-         the comfortable target height is a deliberate deviation from the
-         export, where these read as bare inline links. */
-      .row-action {
-        align-items: center;
-        display: inline-flex;
-        font-size: 0.9rem;
-        font-weight: 700;
-        min-height: 2.75rem;
+      .course-row .card-actions {
+        padding-top: 0.2rem;
       }
 
       /* --- narrow layout: reshape, not reflow ---------------------------- */
 
       @media (max-width: 47.99rem) {
-        .courses-hero h1 {
-          max-width: none;
+        /* A card's own action takes the full width on a phone, and the quiet
+           links wrap on the row beneath it. */
+        .active-card .card-actions .cta,
+        .course-card-foot .cta {
+          flex-basis: 100%;
         }
 
-        /* The finished-course table stacks: title, description, state, then its
-           links, left-aligned like everything else in the stack. */
-        .list-row .course-row-actions {
-          justify-content: flex-start;
-        }
-      }
-
-      @media (min-width: 62rem) {
-        .course-row-actions {
-          justify-content: flex-end;
+        .course-card-foot .cta {
+          margin-left: 0;
+          order: -1;
         }
       }
 {% endblock %}
@@ -354,12 +362,19 @@
       {% endif %}
       <div id="courses">
           <section class="courses-active" aria-labelledby="active-heading">
-            <div class="live-head">
-              <span class="status-dot status-dot-pulse" aria-hidden="true"></span>
-              <h2 id="active-heading">Active now — you can still join</h2>
+            <div class="band-head">
+              <div>
+                <h2 id="active-heading">
+                  <span class="status-dot status-dot-pulse live-dot" aria-hidden="true"></span>Active now — you can still join
+                </h2>
+                <p>
+                  These cohorts are running right now. Join one, catch up on the recordings
+                  and submit the next homework with everyone else.
+                </p>
+              </div>
             </div>
             {% if active_courses %}
-              <div class="active-list">
+              <div class="course-list">
                 {% for card in active_course_cards %}
                     {% comment %}
                       One column at reading width: run facts (dates, enrolment) in the
@@ -375,7 +390,7 @@
                              onclick="if (!event.target.closest('a, button')) window.location.href='{{ edition_url }}'"
                              onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{{ edition_url }}'; }">
                       {% if card.cohort.index_when or card.cohort.index_enrolled_state %}
-                        <div class="active-card-head">
+                        <div class="course-card-head">
                           {% if card.cohort.index_when %}
                             <span class="mono-note">{{ card.cohort.index_when }}</span>
                           {% endif %}
@@ -399,8 +414,8 @@
                           <span class="assignment-title">{{ card.cohort.home_current_assignment.label }}: {{ card.cohort.home_current_assignment.title }}</span>
                         </div>
                       {% endif %}
-                      <div class="active-actions">
-                        <a class="row-action" href="{{ edition_url }}">{{ card.edition_label }} · {{ card.cohort.identifier }} →</a>
+                      <div class="card-actions">
+                        <a class="cta cta-secondary cta-compact interactive-lift" href="{{ edition_url }}">{{ card.edition_label }} · {{ card.cohort.identifier }} →</a>
                         <a class="row-action" href="{{ family_url }}">All editions</a>
                         {% if card.github_repo_url %}
                           <a class="row-action" href="{{ card.github_repo_url }}">GitHub</a>
@@ -424,7 +439,7 @@
                 </p>
               </div>
             </div>
-            <div class="card-grid card-grid-2">
+            <div class="course-list">
               {% for card in open_registration_course_cards %}
                   {% url 'course_family' card.family.slug as family_url %}
                   {% url 'cohort' card.family.slug card.cohort.identifier as edition_url %}
@@ -445,7 +460,7 @@
                     {% if card.outcome %}
                       <p>{{ card.outcome }}</p>
                     {% endif %}
-                    <div class="course-card-foot">
+                    <div class="card-actions course-card-foot">
                       <a class="row-action" href="{{ edition_url }}">{{ card.edition_label }} · {{ card.cohort.identifier }} →</a>
                       {% if card.cohort.index_registered %}
                         <span class="course-card-registered">{{ card.cohort.index_registered }} registered</span>
@@ -482,36 +497,30 @@
                 <div class="row-list">
                   {% for card in group.courses %}
                       {% comment %}
-                        The title column gets the row's whole flexible share
-                        and carries the outcome line under it: giving the
-                        (usually empty) outcome its own fixed 1.4fr column left
-                        the title wrapping one word per line at reading width,
-                        beside a status pill and actions column that stayed
-                        the same size whether or not there was outcome copy to
-                        balance against.
+                        One stacked row per family: the title line carries the
+                        state, then the length, the outcome, and the same action
+                        row the cards end with.
                       {% endcomment %}
                       {% url 'course_family' card.family.slug as family_url %}
                       {% url 'cohort' card.family.slug card.cohort.identifier as edition_url %}
-                      <div class="list-row" style="--row-cols: minmax(0, 1fr) auto auto">
-                        <div>
+                      <div class="list-row course-row">
+                        <div class="course-row-head">
                           <h4 class="course-row-title">
                             <a href="{{ edition_url }}">{{ card.title }}</a>
                           </h4>
-                          {% if card.cohort.index_length %}
-                            <p class="course-row-length">{{ card.cohort.index_length }}</p>
-                          {% endif %}
-                          {% if card.outcome %}
-                            <p class="course-row-description">{{ card.outcome }}</p>
-                          {% endif %}
-                        </div>
-                        <div>
                           {% if card.cohort.is_enrolled %}
                             <span class="status-pill">enrolled</span>
                           {% else %}
                             <span class="status-pill status-pill-wait">finished</span>
                           {% endif %}
                         </div>
-                        <div class="course-row-actions">
+                        {% if card.cohort.index_length %}
+                          <p class="course-row-length">{{ card.cohort.index_length }}</p>
+                        {% endif %}
+                        {% if card.outcome %}
+                          <p class="course-row-description">{{ card.outcome }}</p>
+                        {% endif %}
+                        <div class="card-actions">
                           <a class="row-action" href="{{ edition_url }}">{{ card.edition_label }} · {{ card.cohort.identifier }} →</a>
                           <a class="row-action" href="{{ family_url }}">All editions</a>
                           {% if card.github_repo_url %}
