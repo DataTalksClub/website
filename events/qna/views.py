@@ -228,6 +228,7 @@ def _config(session: Any, *, moderator: bool) -> dict[str, Any]:
 @ensure_csrf_cookie
 def public_qna(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
     try:
+        _rate_ip(request, "public", window=300, limit=2000)
         event, redirect = _event(event_id, slug, redirect=request.method in {"GET", "HEAD"})
         if redirect is not None:
             return redirect
@@ -260,6 +261,7 @@ def _api_context(
     *,
     actor_capability: str = "events.qna.read",
 ) -> tuple[Any, Any, ModerationActor | None]:
+    _rate_ip(request, "public", window=300, limit=2000)
     event, redirect = _event(event_id, slug)
     if redirect is not None:
         raise QnaError(404, "not_found", "The Q&A resource was not found.")
@@ -267,13 +269,41 @@ def _api_context(
     return event, session, actor
 
 
-def _rate(request: HttpRequest, scope: str, *, window: int, limit: int) -> None:
-    address = request.META.get("REMOTE_ADDR", "")
-    result = services.admit_rate(f"{scope}:{address}", window_seconds=window, limit=limit)
+def _refuse(retry_after: int) -> QnaError:
+    error = QnaError(429, "rate_limited", "Too many requests. Wait a moment and try again.")
+    error.retry_after = retry_after  # type: ignore[attr-defined]
+    return error
+
+
+def _rate_identity(scope: str, identity: str, *, window: int, limit: int) -> None:
+    """Admit one action against a named identity's budget -- no IP attached.
+
+    The reviewed quotas (event-qna-integration.md "Rate limits and errors") scope
+    questions and votes per participant/session; appending the source address to
+    those keys made the same participant's quota reset on every IP change
+    (audit EVT-06).  The caller composes the identity in full.
+    """
+
+    result = services.admit_rate(f"{scope}:{identity}", window_seconds=window, limit=limit)
     if result is not None:
-        error = QnaError(429, "rate_limited", "Too many requests. Wait a moment and try again.")
-        error.retry_after = result  # type: ignore[attr-defined]
-        raise error
+        raise _refuse(result)
+
+
+def _client_ip(request: HttpRequest) -> str:
+    # REMOTE_ADDR is the only source: a client-supplied forwarding header must
+    # never select the budget identity, or spoofing one header would buy a
+    # fresh budget (audit EVT-06).  Proxy topology is an operations decision,
+    # not something to infer per request.
+    return request.META.get("REMOTE_ADDR", "")
+
+
+def _rate_ip(request: HttpRequest, scope: str, *, window: int, limit: int) -> None:
+    """Admit one action against a source-IP budget across sessions."""
+
+    identity = f"{scope}:{_client_ip(request)}"
+    result = services.admit_rate(identity, window_seconds=window, limit=limit)
+    if result is not None:
+        raise _refuse(result)
 
 
 def qna_questions(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
@@ -305,9 +335,9 @@ def qna_questions(request: HttpRequest, event_id: str, slug: str) -> HttpRespons
             return _with_participant(_private(response), token)
         if request.method == "POST":
             participant, token = _participant(request)
-            _rate(request, f"question:{session.id}:{participant}", window=10, limit=1)
-            _rate(request, f"question-hour:{session.id}:{participant}", window=3600, limit=20)
-            _rate(request, "question-ip", window=3600, limit=300)
+            _rate_identity(f"question:{session.id}", participant, window=10, limit=1)
+            _rate_identity(f"question-hour:{session.id}", participant, window=3600, limit=20)
+            _rate_ip(request, "question-ip", window=3600, limit=300)
             question = services.submit_question(
                 event.id,
                 text=_body(request).get("text"),
@@ -362,13 +392,13 @@ def qna_question(request: HttpRequest, event_id: str, slug: str, question_id: st
 
 def qna_vote(request: HttpRequest, event_id: str, slug: str, question_id: str) -> HttpResponse:
     try:
-        event, _session, _actor = _api_context(request, event_id, slug)
+        event, session, _actor = _api_context(request, event_id, slug)
         if request.method not in {"POST", "DELETE"}:
             response = HttpResponse("Method not allowed", status=405)
             response["Allow"] = "POST, DELETE"
             return _private(response)
         participant, token = _participant(request)
-        _rate(request, f"vote:{_session.id}:{participant}", window=3600, limit=120)
+        _rate_identity(f"vote:{session.id}", participant, window=3600, limit=120)
         score, voted = services.vote_question(
             event.id, question_id, participant=participant, add=request.method == "POST"
         )
@@ -379,6 +409,7 @@ def qna_vote(request: HttpRequest, event_id: str, slug: str, question_id: str) -
 
 def qna_cohost_gate(request: HttpRequest, event_id: str, slug: str, name: str) -> HttpResponse:
     try:
+        _rate_ip(request, "public", window=300, limit=2000)
         event, redirect = _event(event_id, slug, redirect=False)
         if redirect is not None:
             return redirect
@@ -395,7 +426,7 @@ def qna_cohost_gate(request: HttpRequest, event_id: str, slug: str, name: str) -
             response = HttpResponse("Method not allowed", status=405)
             response["Allow"] = "GET, POST"
             return _private(response)
-        _rate(request, f"cohost:{event.id}", window=300, limit=10)
+        _rate_ip(request, "cohost", window=300, limit=10)
         invite, error = services.redeem_cohost(event.id, name, request.POST.get("passcode", ""))
         if invite is None:
             session = services._qna_session(event.id)
