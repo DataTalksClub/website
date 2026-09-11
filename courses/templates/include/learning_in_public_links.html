@@ -7,10 +7,14 @@
   5a page does not load.  The read-only list is a mono label above the link it
   names instead of the copied platform's readonly-value row.
 
-  Everything the "Add link" script needs stays exactly where it was: the
-  container ids, the `form-control` class the script copies onto each input it
-  appends, the `learning_in_public_links[]` field name and the cap stored on the
-  container.
+  The editable rows are labelled controls: each input carries an sr-only label,
+  an indexed id, and the shared hint via aria-describedby, so the group heading
+  is a plain heading instead of a `for=` pointing at a field name.  Everything
+  the "Add link" script needs stays where it was: the container ids, the
+  `learning_in_public_links[]` field name and the cap stored on the container.
+  The script clones `learning-in-public-row-template` so added rows carry the
+  same id/label/hint wiring, focuses each row it adds, and swaps the button for
+  the visible cap note once the cap is reached.
 {% endcomment %}
 {% if learning_in_public_cap > 0 and not disable_learning_in_public %}
   <div
@@ -18,10 +22,10 @@
     class="field learning-in-public-field"
     data-learning-in-public-cap="{{ learning_in_public_cap }}"
   >
-    <label class="field-label" for="learning_in_public_links[]">
+    <p class="field-label" id="learning-in-public-group-label">
       Learning in public links (optional)
-    </label>
-    <p class="field-hint">
+    </p>
+    <p class="field-hint" id="learning-in-public-hint">
       Links to social media posts where you share your progress (LinkedIn, Twitter, etc).
       {% if course.social_media_hashtag %}
         Use {{ course.social_media_hashtag }} tag.
@@ -35,6 +39,18 @@
         rel="noopener noreferrer"
       >Learning in public docs</a>
     </p>
+    <template id="learning-in-public-row-template">
+      <label class="sr-only" for="learning-in-public-link-INDEX">Learning in public link INDEX</label>
+      <input
+        type="url"
+        class="field-input form-control"
+        id="learning-in-public-link-INDEX"
+        name="learning_in_public_links[]"
+        aria-describedby="learning-in-public-hint"
+        autocomplete="url"
+        inputmode="url"
+      >
+    </template>
     <div id="learning-in-public-links" class="learning-in-public-controls">
       {% if disabled %}
         {% for link in learning_in_public_links %}
@@ -54,21 +70,33 @@
         {% endfor %}
       {% else %}
         {% for link in learning_in_public_links %}
+          <label
+            class="sr-only"
+            for="learning-in-public-link-{{ forloop.counter }}"
+          >Learning in public link {{ forloop.counter }}</label>
           <input
             type="url"
             class="field-input form-control{% if error_fields and 'learning_in_public_links' in error_fields %} is-invalid{% endif %}"
+            id="learning-in-public-link-{{ forloop.counter }}"
             name="learning_in_public_links[]"
             value="{{ link }}"
+            aria-describedby="learning-in-public-hint"
             autocomplete="url"
             inputmode="url"
             {% if not user.is_authenticated %}disabled{% endif %}
           >
         {% endfor %}
         {% if learning_in_public_links|length < learning_in_public_cap %}
+          <label
+            class="sr-only"
+            for="learning-in-public-link-{{ learning_in_public_links|length|add:'1' }}"
+          >Learning in public link {{ learning_in_public_links|length|add:'1' }}</label>
           <input
             type="url"
             class="field-input form-control{% if error_fields and 'learning_in_public_links' in error_fields %} is-invalid{% endif %}"
+            id="learning-in-public-link-{{ learning_in_public_links|length|add:'1' }}"
             name="learning_in_public_links[]"
+            aria-describedby="learning-in-public-hint"
             autocomplete="url"
             inputmode="url"
             {% if not user.is_authenticated %}disabled{% endif %}
@@ -79,11 +107,21 @@
     {% if accepting_submissions and not disabled and user.is_authenticated %}
       {% comment %}
         The button sits in its own row so the grid does not stretch it to the
-        full width of the field column.
+        full width of the field column, and it only renders while the cap
+        leaves room to add a row; at the cap the visible note below says so.
       {% endcomment %}
-      <div>
-        {% include "core/_button.html" with tag="button" type="button" id="add-learning-public-link" label="Add link" variant="secondary" compact=True %}
-      </div>
+      {% if learning_in_public_links|length < learning_in_public_cap %}
+        <div>
+          {% include "core/_button.html" with tag="button" type="button" id="add-learning-public-link" label="Add link" variant="secondary" compact=True %}
+        </div>
+      {% endif %}
+      <p
+        class="field-hint"
+        id="learning-in-public-cap-note"
+        {% if learning_in_public_links|length < learning_in_public_cap %}hidden{% endif %}
+      >
+        You have added the maximum of {{ learning_in_public_cap }} link{{ learning_in_public_cap|pluralize }}.
+      </p>
     {% endif %}
   </div>
 {% endif %}

@@ -29,7 +29,20 @@ document.addEventListener('DOMContentLoaded', function() {
       feedback.className = 'invalid-feedback';
       field.insertAdjacentElement('afterend', feedback);
     }
+    if (field.id) {
+      feedback.id = field.id + '-error';
+    }
     feedback.textContent = message;
+
+    if (message) {
+      field.setAttribute('aria-invalid', 'true');
+      if (field.id) {
+        field.setAttribute('aria-errormessage', feedback.id);
+      }
+    } else {
+      field.removeAttribute('aria-invalid');
+      field.removeAttribute('aria-errormessage');
+    }
   }
 
   function validateUrlField(selector, name, optional) {
