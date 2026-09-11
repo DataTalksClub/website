@@ -399,6 +399,12 @@ def _clean_settings(raw: object, base: dict[str, Any] | None = None) -> dict[str
         elif not isinstance(value, bool):
             raise QnaError(400, "invalid_settings", "The Q&A settings are invalid.")
         result[key] = value
+    if not result["allow_names"] and result["require_names"]:
+        # The merged state, not each raw value, is what has to hold: with
+        # names disallowed but required, _validate_name rejects every
+        # possible answer and an open room can accept no question at all
+        # (audit EVT-05).
+        raise QnaError(400, "invalid_settings", "The Q&A settings are invalid.")
     return result
 
 
@@ -639,6 +645,19 @@ def update_question(
             )
         except EventQnaQuestion.DoesNotExist as exc:
             raise QnaNotFound() from exc
+        # EVT-05: type-validate before any role check or set membership.  An
+        # unhashable status value used to escape the safe error envelope as a
+        # raw TypeError from set hashing on the author path too, and bool()
+        # turned the JSON string "false" into a pin.  Explicit null status
+        # keeps its established meaning: omitted.
+        if "status" in payload:
+            status_value = payload["status"]
+            if status_value is not None and (
+                not isinstance(status_value, str) or status_value not in QUESTION_STATUSES
+            ):
+                raise QnaError(400, "invalid_status", "The question status is invalid.")
+        if "pinned" in payload and not isinstance(payload["pinned"], bool):
+            raise QnaError(400, "invalid_fields", "The question update is invalid.")
         if not moderator:
             if not can_author_edit(question, participant):
                 raise QnaError(403, "forbidden", "This question can no longer be changed.")
@@ -661,7 +680,7 @@ def update_question(
         if "pinned" in payload:
             if not moderator:
                 raise QnaError(403, "forbidden", "Only moderators can pin questions.")
-            _set_pin_locked(session, question, bool(payload["pinned"]), using=using)
+            _set_pin_locked(session, question, payload["pinned"], using=using)
         question.refresh_from_db(using=using)
         if audit_context is not None and moderator:
             _audit(
