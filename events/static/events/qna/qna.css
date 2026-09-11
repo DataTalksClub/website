@@ -34,6 +34,8 @@ textarea { resize: vertical; }
 .qna-list { display: grid; gap: .75rem; list-style: none; margin: 0; padding: 0; }
 .qna-item { background: var(--qna-surface); border: 1px solid var(--qna-border); border-radius: .55rem; padding: 1rem; }
 .qna-item.is-pinned { border-color: var(--qna-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--qna-accent), transparent 80%); }
+.qna-item.is-pending { border-style: dashed; opacity: .75; }
+button:disabled { cursor: progress; opacity: .6; }
 .qna-question-text { font-size: 1.05rem; margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 .qna-meta, .qna-muted { color: var(--qna-muted); font-size: .9rem; }
 .qna-vote { background: transparent; border: 2px solid var(--qna-accent); color: var(--qna-accent); min-height: 2.75rem; }
