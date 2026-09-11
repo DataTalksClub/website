@@ -7,6 +7,19 @@ from content.models import ContentSource
 from content.ownership import DTC_CONTENT_SOURCE_ID
 from content.services import CreateContentSource
 
+# A one-time acceptance checkpoint, not a moving "current commit" pin. It gates
+# the projection-parity proof (see parity.py) and the repair-manifest/editorial-
+# overlay validation below -- for every other commit those are skipped entirely
+# (see the `commit_sha == ACCEPTED_CONTENT_COMMIT` guards throughout this
+# package), so an ordinary sync against a newer commit never needs this to move.
+# It is still a real, reachable commit on origin/main (verified 2026-09-11), not
+# orphaned; re-pinning it forward would mean regenerating the checked public
+# projection's parity artifacts for a comparison this repository is retiring, for
+# no operational benefit. content#5229f80/969e81c/1375c506 (the season-
+# hierarchical/dated reorg) and content#e06e138 (the source-correction contract)
+# landed after this commit; the always-run parts of this adapter (path layout,
+# migration.yaml location) accept both the pre- and post-reorg shape so ordinary
+# syncs keep working regardless. See _docs/architecture/database-only-content.md.
 ACCEPTED_CONTENT_COMMIT = "e29f56ce70bd997171a78a9f0facc9354797f421"
 ACCEPTED_CONTENT_TREE = "c82b0c6ff462dcdd7140f03f2e7d884ed10ff8fa"
 ORIGINAL_MIGRATION_COMMIT = "373bef2912342ece1d2a2d2a9395aa3417243283"
@@ -118,15 +131,23 @@ class DtcContentAdapterContract:
     schema_version: int = SCHEMA_VERSION
     parser_version: str = PARSER_VERSION
     rendering_version: str = RENDERING_VERSION
+    # The source repository's reorg (content#5229f80/969e81c/1375c506) moved
+    # podcasts under a season directory and articles/books under a dated year
+    # directory; the adapter accepts both the pre-reorg flat layout and the
+    # current one (see adapter.py), so both are listed here.
     path_allowlist: tuple[str, ...] = (
         "articles/*.md",
+        "articles/*/*.md",
         "podcasts/*.yaml",
         "podcasts/transcripts/*.yaml",
+        "podcasts/*/*.yaml",
         "books/*.yaml",
+        "books/*/*.yaml",
         "images/posts/**",
         "images/podcast/**",
         "images/books/**",
         "migration.yaml",
+        "migration/migration.yaml",
         REPAIR_MANIFEST_PATH,
         EDITORIAL_OVERLAY_PATH,
     )

@@ -61,6 +61,24 @@ from .contract import (
 from .media import validate_media_batch
 
 _ARTICLE_NAME = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})-(?P<slug>[a-z0-9][a-z0-9-]*)\.md$")
+# The source repository's reorg (content#5229f80/969e81c/1375c506) moved articles
+# and books under a dated year directory and shortened the filename's own date to
+# two digits, and moved podcasts under a season directory. Both the pre-reorg flat
+# layout and the current dated/seasonal layout are accepted here, mirroring the
+# source repository's own stated compatibility policy ("podcast loaders accept the
+# former flat layout ... for older source checkouts").
+_YEAR_DIR = re.compile(r"^(?P<year>[0-9]{4})$")
+_ARTICLE_NAME_DATED = re.compile(
+    r"^(?P<year>[0-9]{2})-(?P<month>[0-9]{2})-(?P<day>[0-9]{2})-(?P<slug>[a-z0-9][a-z0-9.-]*)\.md$"
+)
+_BOOK_NAME_DATED = re.compile(
+    r"^(?P<year>[0-9]{2})-(?P<month>[0-9]{2})-(?P<day>[0-9]{2})-(?P<slug>[a-z0-9][a-z0-9.-]*)\.yaml$"
+)
+_SEASON_DIR = re.compile(r"^s(?P<season>[0-9]{2})$")
+_EPISODE_NAME = re.compile(
+    r"^e(?P<episode>[0-9]{2})(?:-(?P<collision>[a-z0-9][a-z0-9.-]*))?\.yaml$"
+)
+_TRANSCRIPT_SUFFIX = "-transcript.yaml"
 _SLUG = re.compile(r"^_?[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$")
 # Bound by what the database can store, not by the current corpus.
 #
@@ -522,20 +540,64 @@ def _is_draft(path: Path) -> bool:
     return path.name.startswith("_")
 
 
+def _is_dated_child(path: Path, kind_root: Path) -> bool:
+    """True for ``<kind_root>/yyyy/<name>`` -- the current articles/books layout."""
+
+    return path.parent.parent == kind_root and _YEAR_DIR.fullmatch(path.parent.name) is not None
+
+
+def _is_seasonal_podcast_child(path: Path, podcasts_root: Path) -> bool:
+    """True for ``podcasts/sNN/<name>`` -- the current podcasts layout."""
+
+    return (
+        path.parent.parent == podcasts_root and _SEASON_DIR.fullmatch(path.parent.name) is not None
+    )
+
+
+def _article_filename_slug(
+    path: Path, articles_root: Path, *, source_path: str
+) -> tuple[str, str | None]:
+    """Return ``(slug, fallback_date)`` accepting the flat and dated article layout.
+
+    ``fallback_date`` is only ever populated for the flat layout; the dated layout
+    requires ``datepublished`` in front matter (the source repository's own
+    validator enforces this), so there is nothing to fall back to there.
+    """
+
+    if path.parent == articles_root:
+        match = _ARTICLE_NAME.fullmatch(path.name)
+        if match is None:
+            _fail("article_filename_invalid", source_path)
+        return match.group("slug"), match.group("date")
+    dated = _ARTICLE_NAME_DATED.fullmatch(path.name)
+    if dated is None or f"20{dated.group('year')}" != path.parent.name:
+        _fail("article_filename_invalid", source_path)
+    return dated.group("slug"), None
+
+
 def _collect_paths(root: Path) -> dict[str, tuple[Path, ...]]:
-    articles = _walk_directory(root, root / "articles")
-    podcasts_all = _walk_directory(root, root / "podcasts")
-    books = _walk_directory(root, root / "books")
+    articles_root = root / "articles"
+    podcasts_root = root / "podcasts"
+    books_root = root / "books"
+    articles = _walk_directory(root, articles_root)
+    podcasts_all = _walk_directory(root, podcasts_root)
+    books = _walk_directory(root, books_root)
     media: list[Path] = []
     for name in ("posts", "podcast", "books"):
         media.extend(_walk_directory(root, root / "images" / name))
 
     # A draft is still validated for shape and safety -- it must sit where its kind
     # belongs and carry the right suffix -- and is then dropped rather than ingested.
+    #
+    # Both the pre-reorg flat layout (a direct child of the kind directory) and the
+    # current dated/seasonal layout (one directory of nesting: a four-digit year for
+    # articles/books, an ``sNN`` season directory for podcasts) are accepted, so this
+    # adapter keeps working across the reorg without a second code path per commit.
     article_files: list[Path] = []
     for path in articles:
         relative = _safe_relative(path, root)
-        if path.parent != root / "articles" or path.suffix != ".md":
+        flat = path.parent == articles_root
+        if (not flat and not _is_dated_child(path, articles_root)) or path.suffix != ".md":
             _fail("unsupported_content_path", relative)
         if _is_draft(path):
             continue
@@ -547,19 +609,27 @@ def _collect_paths(root: Path) -> dict[str, tuple[Path, ...]]:
         relative = _safe_relative(path, root)
         if path.suffix != ".yaml":
             _fail("unsupported_content_path", relative)
-        if path.parent == root / "podcasts":
+        if path.parent == podcasts_root:
             if not _is_draft(path):
                 podcast_files.append(path)
-        elif path.parent == root / "podcasts" / "transcripts":
+        elif path.parent == podcasts_root / "transcripts":
             if not _is_draft(path):
                 transcript_files.append(path)
+        elif _is_seasonal_podcast_child(path, podcasts_root):
+            if _is_draft(path):
+                continue
+            if path.name.endswith(_TRANSCRIPT_SUFFIX):
+                transcript_files.append(path)
+            else:
+                podcast_files.append(path)
         else:
             _fail("unsupported_content_path", relative)
 
     book_files: list[Path] = []
     for path in books:
         relative = _safe_relative(path, root)
-        if path.parent != root / "books" or path.suffix != ".yaml":
+        flat = path.parent == books_root
+        if (not flat and not _is_dated_child(path, books_root)) or path.suffix != ".yaml":
             _fail("unsupported_content_path", relative)
         if _is_draft(path):
             continue
@@ -1184,25 +1254,34 @@ def adapt_dtc_content_checkout(
     if commit_sha == ACCEPTED_CONTENT_COMMIT and source_tree_sha != ACCEPTED_CONTENT_TREE:
         _fail("accepted_source_tree_mismatch")
 
-    migration_path = root / "migration.yaml"
+    # The reorg (content#1375c506) moved migration.yaml under migration/. Older
+    # checkouts -- including the frozen ACCEPTED_CONTENT_COMMIT checkout -- still
+    # carry it at the old root path, so both are accepted; content is unaffected
+    # (MIGRATION_SHA256 is unchanged), only the container path moved.
+    migration_relative = (
+        "migration/migration.yaml"
+        if (root / "migration/migration.yaml").is_file()
+        else "migration.yaml"
+    )
+    migration_path = root / migration_relative
     migration_bytes = _read_file(
         migration_path,
-        relative="migration.yaml",
+        relative=migration_relative,
         contract=contract,
     )
     if hashlib.sha256(migration_bytes).hexdigest() != MIGRATION_SHA256:
-        _fail("migration_provenance_tampered", "migration.yaml")
+        _fail("migration_provenance_tampered", migration_relative)
     try:
         migration_text = migration_bytes.decode("utf-8")
     except UnicodeDecodeError:
-        _fail("migration_provenance_invalid", "migration.yaml")
+        _fail("migration_provenance_invalid", migration_relative)
     migration = _load_yaml_mapping(
         migration_text,
-        path="migration.yaml",
+        path=migration_relative,
         contract=contract,
     )
     if migration != _EXPECTED_MIGRATION:
-        _fail("migration_provenance_invalid", "migration.yaml")
+        _fail("migration_provenance_invalid", migration_relative)
 
     repair_manifest: Mapping[str, Any] | None = None
     repaired_baseline_commit = ""
@@ -1337,10 +1416,9 @@ def adapt_dtc_content_checkout(
 
     for path in paths["articles"]:
         source_path = _safe_relative(path, root)
-        match = _ARTICLE_NAME.fullmatch(path.name)
-        if match is None:
-            _fail("article_filename_invalid", source_path)
-        slug = match.group("slug")
+        slug, fallback_date = _article_filename_slug(
+            path, root / "articles", source_path=source_path
+        )
         metadata, raw_body = preflight.article_parts[source_path]
         title = _required_text(metadata, "title", path=source_path)
         authors = _required_list(metadata, "authors", path=source_path)
@@ -1382,7 +1460,7 @@ def adapt_dtc_content_checkout(
                 source_path=source_path,
                 checksum=source_checksum,
                 source_created_at=_source_datetime(
-                    metadata.get("date") or metadata.get("datepublished") or match.group("date"),
+                    metadata.get("date") or metadata.get("datepublished") or fallback_date,
                     path=source_path,
                 ),
                 exact_public_path=public_path,
@@ -1432,7 +1510,7 @@ def adapt_dtc_content_checkout(
             _fail("content_utf8_required", source_path)
         metadata = preflight.structured_documents[source_path]
         slug = _required_text(metadata, "slug", path=source_path)
-        if _SLUG.fullmatch(slug) is None or path.name != f"{slug}.yaml":
+        if _SLUG.fullmatch(slug) is None:
             _fail("podcast_slug_filename_mismatch", source_path)
         if len(slug) > _PODCAST_SLUG_MAX_LENGTH:
             _fail("podcast_slug_too_long", source_path)
@@ -1451,6 +1529,28 @@ def adapt_dtc_content_checkout(
             value = metadata.get(required_number)
             if not isinstance(value, int) or isinstance(value, bool) or value < 1:
                 _fail(f"podcast_{required_number}_invalid", source_path)
+        podcasts_root = root / "podcasts"
+        if path.parent == podcasts_root:
+            # The pre-reorg flat layout: the filename is the slug itself.
+            if path.name != f"{slug}.yaml":
+                _fail("podcast_slug_filename_mismatch", source_path)
+        else:
+            # The current seasonal layout: the directory is the season and the
+            # filename is the episode, cross-checked against the declared
+            # ``season``/``episode`` fields. The filename may carry a collision
+            # suffix (``eMM-slug.yaml``) when two episodes share a season/episode
+            # pair; that suffix is organizational only and is not re-validated
+            # against the slug here, mirroring the source repository's own stance
+            # that the seasonal path is not a content identifier.
+            season_match = _SEASON_DIR.fullmatch(path.parent.name)
+            episode_match = _EPISODE_NAME.fullmatch(path.name)
+            if (
+                season_match is None
+                or episode_match is None
+                or int(season_match.group("season")) != metadata["season"]
+                or int(episode_match.group("episode")) != metadata["episode"]
+            ):
+                _fail("podcast_slug_filename_mismatch", source_path)
         _validate_episode_links(metadata, path=source_path)
         transcript = metadata.get("transcript")
         if isinstance(transcript, list):
@@ -1459,15 +1559,29 @@ def adapt_dtc_content_checkout(
             if not isinstance(transcript, str):
                 _fail("transcript_reference_invalid", source_path)
             pure = PurePosixPath(transcript)
-            if (
-                pure.is_absolute()
-                or pure.parent != PurePosixPath("transcripts")
-                or pure.suffix != ".yaml"
-                or any(part in {"", ".", ".."} for part in pure.parts)
-                or "\\" in transcript
-            ):
-                _fail("transcript_reference_outside_directory", source_path)
-            target = f"podcasts/{transcript}"
+            if path.parent == podcasts_root:
+                if (
+                    pure.is_absolute()
+                    or pure.parent != PurePosixPath("transcripts")
+                    or pure.suffix != ".yaml"
+                    or any(part in {"", ".", ".."} for part in pure.parts)
+                    or "\\" in transcript
+                ):
+                    _fail("transcript_reference_outside_directory", source_path)
+                target = f"podcasts/{transcript}"
+            else:
+                # The seasonal layout keeps the transcript as a bare sibling
+                # filename in the same season directory, never a subdirectory
+                # reference.
+                if (
+                    pure.is_absolute()
+                    or len(pure.parts) != 1
+                    or pure.suffix != ".yaml"
+                    or not transcript.endswith(_TRANSCRIPT_SUFFIX)
+                    or "\\" in transcript
+                ):
+                    _fail("transcript_reference_outside_directory", source_path)
+                target = f"podcasts/{path.parent.name}/{transcript}"
             if target in transcript_references:
                 _fail("duplicate_transcript_reference", source_path)
             transcript_references[target] = slug
@@ -1620,8 +1734,23 @@ def adapt_dtc_content_checkout(
             _fail("content_utf8_required", source_path)
         metadata = preflight.structured_documents[source_path]
         slug = _required_text(metadata, "slug", path=source_path)
-        if _SLUG.fullmatch(slug) is None or path.name != f"{slug}.yaml":
+        if _SLUG.fullmatch(slug) is None:
             _fail("book_slug_filename_mismatch", source_path)
+        books_root = root / "books"
+        if path.parent == books_root:
+            # The pre-reorg flat layout: the filename is the slug itself.
+            if path.name != f"{slug}.yaml":
+                _fail("book_slug_filename_mismatch", source_path)
+        else:
+            # The current dated layout: a year directory plus a
+            # ``yy-mm-dd-<filename-slug>.yaml`` filename. The filename's slug
+            # component may be a shortened, filename-safe form of the full slug
+            # (for example a legacy date-prefixed slug with the prefix
+            # stripped), so it is not re-validated against ``slug`` here -- the
+            # dated path is organizational only, per the source repository.
+            dated = _BOOK_NAME_DATED.fullmatch(path.name)
+            if dated is None or f"20{dated.group('year')}" != path.parent.name:
+                _fail("book_slug_filename_mismatch", source_path)
         if len(slug) > _BOOK_SLUG_MAX_LENGTH:
             _fail("book_slug_too_long", source_path)
         if slug in book_slugs:

@@ -56,7 +56,10 @@ _GIT_ENVIRONMENT = {
     "PATH": os.defpath,
 }
 _TREE_ROOTS = (
+    # Both the pre-reorg root path and the current migration/ path are listed;
+    # a nonexistent pathspec simply contributes nothing to ``ls-tree``.
     "migration.yaml",
+    "migration/migration.yaml",
     "articles",
     "podcasts",
     "books",
@@ -211,10 +214,12 @@ def _tree_inventory(
             raise DtcContentCheckoutError("git_tree_file_count_exceeded")
         if total_size > contract.max_source_bytes + (3 * contract.max_file_bytes):
             raise DtcContentCheckoutError("git_tree_byte_limit_exceeded")
-    required = {"migration.yaml"}
-    if commit_sha == ACCEPTED_CONTENT_COMMIT:
-        required.update({REPAIR_MANIFEST_PATH, EDITORIAL_OVERLAY_PATH})
-    if not required.issubset(inventory):
+    if "migration.yaml" not in inventory and "migration/migration.yaml" not in inventory:
+        raise DtcContentCheckoutError("git_tree_inventory_invalid")
+    if commit_sha == ACCEPTED_CONTENT_COMMIT and not {
+        REPAIR_MANIFEST_PATH,
+        EDITORIAL_OVERLAY_PATH,
+    }.issubset(inventory):
         raise DtcContentCheckoutError("git_tree_inventory_invalid")
     return inventory
 

@@ -421,6 +421,93 @@ class DtcContentAdapterTests(TestCase):
             all(asset.stable_public_path.startswith("/images/") for asset in first.assets)
         )
 
+    def test_seasonal_and_dated_layout_ingests_identically_to_the_flat_layout(self) -> None:
+        """content#5229f80/969e81c/1375c506 moved podcasts under ``podcasts/sNN/``
+        and articles/books under a dated ``yyyy/`` directory with a two-digit-year
+        filename. This adapter accepts both layouts so it keeps working across
+        that reorg; restructure the fixture checkout into the new layout in place
+        and prove it ingests the same content the flat layout does, and that
+        underscore-prefixed drafts are still excluded once nested under the new
+        directories -- not just for the two originally-named draft files.
+        """
+
+        with fixture_checkout() as root:
+            articles_year = root / "articles" / "2020"
+            articles_year.mkdir()
+            (root / "articles" / "2020-11-29-segmentation.md").rename(
+                articles_year / "20-11-29-segmentation.md"
+            )
+            (articles_year / "_draft.md").write_text(
+                (articles_year / "20-11-29-segmentation.md").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+
+            books_year = root / "books" / "2020"
+            books_year.mkdir()
+            (root / "books" / "20201214-ml-bookcamp.yaml").rename(
+                books_year / "20-12-14-ml-bookcamp.yaml"
+            )
+            (books_year / "_draft.yaml").write_text(
+                (books_year / "20-12-14-ml-bookcamp.yaml").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+
+            season_three = root / "podcasts" / "s03"
+            season_three.mkdir()
+            (root / "podcasts" / "analytics-engineer-skills-tools.yaml").rename(
+                season_three / "e11.yaml"
+            )
+            (root / "podcasts" / "transcripts" / "analytics-engineer-skills-tools.yaml").rename(
+                season_three / "e11-transcript.yaml"
+            )
+            (root / "podcasts" / "transcripts").rmdir()
+            episode_value = _load_yaml(season_three / "e11.yaml")
+            episode_value["transcript"] = "e11-transcript.yaml"
+            _write_yaml(season_three / "e11.yaml", episode_value)
+
+            season_one = root / "podcasts" / "s01"
+            season_one.mkdir()
+            (root / "podcasts" / "building-domestic-risk-assessment-tool.yaml").rename(
+                season_one / "e01.yaml"
+            )
+            (season_one / "_e99.yaml").write_text(
+                (season_one / "e01.yaml").read_text(encoding="utf-8"), encoding="utf-8"
+            )
+
+            migration_dir = root / "migration"
+            migration_dir.mkdir()
+            (root / "migration.yaml").rename(migration_dir / "migration.yaml")
+
+            bundle = adapt_dtc_content_checkout(root, commit_sha=FIXTURE_COMMIT)
+
+        self.assertEqual(
+            bundle.counts,
+            {"articles": 1, "podcasts": 2, "podcast_transcripts": 1, "books": 1, "media": 7},
+        )
+        documents = {
+            (document.content_kind, document.stable_key): document for document in bundle.documents
+        }
+        self.assertEqual(
+            documents[("article", "segmentation")].source_path,
+            "articles/2020/20-11-29-segmentation.md",
+        )
+        self.assertEqual(
+            documents[("podcast", "analytics-engineer-skills-tools")].source_path,
+            "podcasts/s03/e11.yaml",
+        )
+        self.assertEqual(
+            documents[("podcast_transcript", "analytics-engineer-skills-tools")].source_path,
+            "podcasts/s03/e11-transcript.yaml",
+        )
+        self.assertEqual(
+            documents[("podcast", "building-domestic-risk-assessment-tool")].source_path,
+            "podcasts/s01/e01.yaml",
+        )
+        self.assertEqual(
+            documents[("book", "20201214-ml-bookcamp")].source_path,
+            "books/2020/20-12-14-ml-bookcamp.yaml",
+        )
+
     def test_article_images_require_exact_local_media_before_sanitizing(self) -> None:
         local = (
             "/images/posts/2025-08-11-tab-1-how-to-build-blood-cell-classifier-for-"
