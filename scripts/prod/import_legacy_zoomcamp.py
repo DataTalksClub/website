@@ -166,7 +166,7 @@ def import_edition(
             cohort = Cohort.objects.get(slug=edition.cohort_slug)
         except Cohort.DoesNotExist:
             raise LegacyZoomcampImportError("cohort_absent_for_certificates") from None
-    if not edition.certificate_csvs:
+    if not edition.certificate_csvs and edition.derive_certificates_from_project_passes is None:
         report["certificates"] = {"source": False}
         return report
     certificates = import_edition_certificates(cohort, edition)
