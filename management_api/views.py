@@ -17,7 +17,7 @@ from core.site_settings import InvalidSiteSettingsBatch, SiteSettingsRevisionCon
 from core.sponsors import InvalidSponsor, SponsorNotFound, SponsorRevisionConflict
 from events.identity import EventIdentityNotFound
 from events.importers import ProtectedSourceError
-from events.models import HistoricalRegistrationSourceRun
+from events.models import EventQnaSession, HistoricalRegistrationSourceRun
 from events.qna.errors import QnaError
 from events.qna.services import (
     admin_event_qna,
@@ -1009,15 +1009,28 @@ def event_qna_moderate(request: HttpRequest, event_id: str, question_id: str) ->
         optional=frozenset({"text", "status", "pinned"}),
     )
     capability = request.management_capability  # type: ignore[attr-defined]
+    # EVT-02: question moderation enforces the capability's declared If-Match
+    # contract.  The session is the concurrency resource: it owns the
+    # questions, its revision is what the manage adapter already carries, and
+    # the response ETag names it so the next command can precondition on it.
+    expected_revision = require_if_match(request)
     try:
         key = _idempotency_key(request)
         result = execute_idempotent(
             scope=_idempotency_scope(request, capability),
             key=key,
-            request={"event_id": str(event_id), "question_id": question_id, **payload},
-            command=lambda: _qna_moderate_result(request, event_id, question_id, payload),
+            request={
+                "event_id": str(event_id),
+                "question_id": question_id,
+                "expected_revision": expected_revision,
+                **payload,
+            },
+            command=lambda: _qna_moderate_result(
+                request, event_id, question_id, payload, expected_revision
+            ),
         )
         response = JsonResponse({**result.value, "replayed": result.replayed})
+        response["ETag"] = f'"rev-{result.value["session_revision"]}"'
         response["Cache-Control"] = "private, no-store"
         response["X-Robots-Tag"] = "noindex, nofollow"
         return response
@@ -1026,7 +1039,11 @@ def event_qna_moderate(request: HttpRequest, event_id: str, question_id: str) ->
 
 
 def _qna_moderate_result(
-    request: HttpRequest, event_id: str, question_id: str, payload: dict
+    request: HttpRequest,
+    event_id: str,
+    question_id: str,
+    payload: dict,
+    expected_revision: int,
 ) -> dict:
     question = update_question(
         uuid.UUID(str(event_id)),
@@ -1034,8 +1051,10 @@ def _qna_moderate_result(
         payload,
         moderator=True,
         audit_context=_qna_audit_context(request),
+        expected_revision=expected_revision,
     )
-    return serialize_question(question)
+    session = EventQnaSession.objects.get(event_id=uuid.UUID(str(event_id)))
+    return {**serialize_question(question), "session_revision": session.revision}
 
 
 @admin_capability("events.qna.provision.retry")

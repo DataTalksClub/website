@@ -143,6 +143,7 @@ QNA_MODERATE = _capability(
     request_schema="EventQnaQuestionUpdateRequest",
     fields=("text", "status", "pinned"),
     idempotency=IdempotencyPolicy.REQUIRED,
+    concurrency=ConcurrencyPolicy.IF_MATCH,
 )
 
 QNA_RETRY = _capability(

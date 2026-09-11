@@ -66,7 +66,20 @@ class PrincipalNamespaceIsolationTests(TestCase):
             "HTTP_IDEMPOTENCY_KEY": key,
         }
 
-    def _moderate(self, principal: str, key: str, payload: dict[str, Any]):
+    def _moderate(
+        self,
+        principal: str,
+        key: str,
+        payload: dict[str, Any],
+        *,
+        revision: int | None = None,
+    ):
+        # Question moderation enforces the capability's If-Match contract on
+        # the session revision (EVT-02).  The revision is part of the
+        # idempotency fingerprint, so a retry passes the one its first attempt
+        # used; only fresh calls fetch the current session revision.
+        if revision is None:
+            revision = EventQnaSession.objects.get(event=self.event).revision
         return self.client.patch(
             reverse(
                 "api:admin-event-qna-moderate",
@@ -74,6 +87,7 @@ class PrincipalNamespaceIsolationTests(TestCase):
             ),
             data=json.dumps(payload),
             content_type="application/json",
+            HTTP_IF_MATCH=f'"rev-{revision}"',
             **self._headers(principal, key),
         )
 
@@ -95,9 +109,20 @@ class PrincipalNamespaceIsolationTests(TestCase):
         self.assertEqual(self.question.status, "answered")
 
     def test_each_principal_replays_only_its_own_command(self) -> None:
-        first = self._moderate("principal-a", "client-retry-seq-1", {"pinned": True})
+        # A real retry resends the same rendered request -- the same If-Match
+        # revision its first attempt carried.  Each principal's first attempt
+        # uses the revision current at its own moment (the session revision is
+        # the concurrency resource, so A's pin legitimately moves it); each
+        # replay then pins the revision its own first attempt used.
+        rev_a = EventQnaSession.objects.get(event=self.event).revision
+        first = self._moderate(
+            "principal-a", "client-retry-seq-1", {"pinned": True}, revision=rev_a
+        )
         self.assertEqual(first.status_code, 200, first.content)
-        other = self._moderate("principal-b", "client-retry-seq-1", {"status": "answered"})
+        rev_b = EventQnaSession.objects.get(event=self.event).revision
+        other = self._moderate(
+            "principal-b", "client-retry-seq-1", {"status": "answered"}, revision=rev_b
+        )
         self.assertEqual(other.status_code, 200, other.content)
 
         def _payload(response) -> dict:
@@ -105,12 +130,16 @@ class PrincipalNamespaceIsolationTests(TestCase):
             # stored command result itself.
             return {key: value for key, value in response.json().items() if key != "replayed"}
 
-        a_replay = self._moderate("principal-a", "client-retry-seq-1", {"pinned": True})
+        a_replay = self._moderate(
+            "principal-a", "client-retry-seq-1", {"pinned": True}, revision=rev_a
+        )
         self.assertEqual(a_replay.status_code, 200, a_replay.content)
         self.assertTrue(a_replay.json()["replayed"])
         self.assertEqual(_payload(a_replay), _payload(first))
 
-        b_replay = self._moderate("principal-b", "client-retry-seq-1", {"status": "answered"})
+        b_replay = self._moderate(
+            "principal-b", "client-retry-seq-1", {"status": "answered"}, revision=rev_b
+        )
         self.assertEqual(b_replay.status_code, 200, b_replay.content)
         self.assertTrue(b_replay.json()["replayed"])
         self.assertEqual(_payload(b_replay), _payload(other))

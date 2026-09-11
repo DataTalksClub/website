@@ -633,12 +633,18 @@ def update_question(
     moderator: bool = False,
     using: str = DEFAULT_DB_ALIAS,
     audit_context: AuditWriteContext | None = None,
+    expected_revision: int | None = None,
 ) -> EventQnaQuestion:
     with transaction.atomic(using=using):
         session = _qna_session(event_id, using=using)
         session = EventQnaSession.objects.using(using).get(pk=session.pk)
         if session.state == EventQnaSession.State.ARCHIVED:
             raise QnaArchived()
+        if expected_revision is not None and session.revision != expected_revision:
+            # The session is the documented concurrency resource for question
+            # moderation: it is the aggregate that owns the questions and its
+            # revision is what both management adapters already carry (EVT-02).
+            raise RevisionConflict(expected=expected_revision, actual=session.revision)
         try:
             question = EventQnaQuestion.objects.using(using).get(
                 question_id=question_id, session=session
