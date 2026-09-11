@@ -77,19 +77,17 @@ CATALOG_SOURCE_REPOSITORY = "DataTalksClub/course-management-platform"
 CATALOG_SOURCE_REVISION = "98a235283904b4ef9ad29e196298540756cf1bcc"
 CATALOG_SOURCE_RELATIVE_PATH = "scripts/production_like_course_specs.json"
 
-# The one reviewed correction this pinned catalogue needs: it exports the AI Dev
-# Tools edition as "ai-dev-tools-2025", but the real course-repository family is
-# "ai-dev-tools-zoomcamp" (its course.yaml declares that slug directly, matching
-# its own repository name, same as every other course family). Every other
-# pinned edition slug's family is already exactly its own de-suffixed form.
-# Mirrors the same correction in scripts/prod/import_cmp_content.py, which reads
-# from the live CMP export rather than this frozen pin.
-_FAMILY_SLUG_OVERRIDES = {"ai-dev-tools": "ai-dev-tools-zoomcamp"}
+# This pinned catalogue exports the AI Dev Tools edition as "ai-dev-tools-2025",
+# which already mechanically de-suffixes to family "ai-dev-tools" -- the site's
+# canonical family slug (see FAMILY_SLUG_OVERRIDES in
+# courses/services/curriculum_import.py for the matching correction on the
+# course-repository sync side, which reads a differently-spelled family slug
+# directly off course.yaml). No override is needed here: every pinned edition
+# slug's family, including this one, is already exactly its own de-suffixed form.
 
 
 def _family_and_year(edition_slug: str) -> tuple[str, int]:
-    family_slug, year = family_and_year_from_edition_slug(edition_slug)
-    return _FAMILY_SLUG_OVERRIDES.get(family_slug, family_slug), year
+    return family_and_year_from_edition_slug(edition_slug)
 
 ALLOWED_ENVIRONMENTS = frozenset({RuntimeEnvironment.LOCAL, RuntimeEnvironment.TEST})
 SQLITE_ENGINE = "django.db.backends.sqlite3"

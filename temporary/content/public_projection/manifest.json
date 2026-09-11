@@ -2,7 +2,7 @@
   "artifacts": {
     "articles.json": "88ec23e63823da68c4239784242a10fb022450540ffe36ea431ad4cbf550132f",
     "books.json": "b97d3c1706cd44bccfcfb7bcb1735f72eaa1b954b4d5973eaecfe95fdcb65042",
-    "courses.json": "c033c19d34ae9ed47b05f5fd73ec9311225079e03764f3fad819e6d4da74ee1d",
+    "courses.json": "8e4cc4864822ac885c360fb154e0a1f4bb402047bb66b80c5673c3233a1ecdb8",
     "editorial_route_migration.json": "6b74f0088a5de2cce8ac6f5a651a60b8a48be7833e483408f5a0a3e108f89b79",
     "events.json": "333c53c88445d9cbc6d91c26f9043a6998645346a84fdd3b2782ec0a989d7fc6",
     "media.json": "4cb230a14a9b7265cece2e5cd03e6ead5e0d021fc19c114abc919f8fbf8c8ace",
@@ -163,7 +163,7 @@
     }
   },
   "tree_digest_scope": "projection artifacts and wiki assets; excludes manifest.json and media/",
-  "tree_sha256": "5614a0cb4285d91d9f971d3665b7e2288ca22e83ebc041a6bbbe5308ca506732",
+  "tree_sha256": "2b51b10ccf65654a0757748ffb9d28585b21754450e94562ee93ddb9a94e370f",
   "wiki_assets": {
     "/wiki/assets/og-default.png": "afddea001f9cf846630cb7a8046352a52d4d6c2edacd0feaaecb0e8d9b27e8de"
   }
