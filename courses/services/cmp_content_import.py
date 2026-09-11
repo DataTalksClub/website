@@ -446,7 +446,15 @@ def import_cmp_course_content(
                 by_owner.append((slug, SKIPPED_COHORTS[slug]))
                 dependent[slug] = _dependent_row_total(connection, row["id"])
                 continue
+            identity = _family_and_year(slug, family_slug_overrides)
             cohort = local.get(slug)
+            if cohort is None and identity is not None:
+                # A cohort adopted (or repository-synced) under a corrected family
+                # spelling carries the *corrected* slug locally -- e.g. the real
+                # ``ai-dev-tools-zoomcamp-2025``, not CMP's own ``ai-dev-tools-2025``.
+                # Check that corrected identity before treating the edition as new,
+                # so an override doesn't mint a second cohort under the raw CMP slug.
+                cohort = local.get(f"{identity[0]}-{identity[1]}")
             if cohort is None:
                 cohort = _adopt_reviewed_cohort(
                     slug, row, created_families=created_families, overrides=family_slug_overrides
@@ -457,7 +465,6 @@ def import_cmp_course_content(
                     continue
                 local[slug] = cohort
                 created.append(slug)
-            identity = _family_and_year(slug, family_slug_overrides)
             if identity is not None:
                 family_slug, _year = identity
                 if cohort.course.slug != family_slug:
