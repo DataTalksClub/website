@@ -946,15 +946,70 @@ per-attendee natural key to merge on. Identities are never deleted. The report's
 `rows_replaced` against `rows_written` is how you see registrants leaving. See
 [`event-registration-pull.md`](event-registration-pull.md) §4.5.
 
-Notes: Eventbrite is not read yet — the durable export currently holds only
-the Luma side, and this codebase's own Eventbrite adapter never needed that
-provider's attendee-level column names (it only ever counted rows), so there
-is no verified real schema to build or test an Eventbrite reader against yet.
-`EventRegistration.Provider` and the matching logic are already
-provider-generic; adding Eventbrite is a second `discover_*`/`read_*` pair,
-not a model or matching-logic change. Backfill scope is every event from the
-first one onward, not just new events going forward. Sequenced behind 5.3,
-which has landed.
+Notes: `EventRegistration.Provider` and the matching logic were already
+provider-generic before Eventbrite's reader existed (9.2 below); adding it was
+a second `discover_*`/`read_*` pair, not a model or matching-logic change.
+Backfill scope is every event from the first one onward, not just new events
+going forward. Sequenced behind 5.3, which has landed.
+
+## 9.2 Import — Eventbrite
+
+[`scripts/prod/registration_sources/eventbrite_registrants.py`](../../scripts/prod/registration_sources/eventbrite_registrants.py),
+same entry point (`import_event_registrants.py --eventbrite-source ... --eventbrite-identities ...`)
+and same domain writer (`events/registrant_import.py`) as 9.1. Landed
+2026-09-11 — the "Eventbrite is not read yet" note that used to sit here was
+backlog, not a deliberate policy: the attendee-level data was present in the
+existing export the whole time, it simply had no attendee-level reader built
+against it yet. Reads the exact same archive 6.2's `derive_eventbrite` already
+reads for counts, `.local/migration-data/events/eventbrite/aggregate-v1.zip`
+(`{id}.csv`, one entry per event, flattened to the archive root) —
+`~/prod/dtc-data/local-migration-data/events/eventbrite/export.zip` is the
+same content, byte-identical per file, nested one level deeper instead
+(`eventbrite/csv/{id}.csv`); this reader, like 6.2's, expects the flattened
+`aggregate-v1.zip` shape.
+
+Source: `aggregate-v1.zip`, 209 CSVs (`Order #`, `Order Date`, `Attendee #`,
+`Attendee Status`, `Email`, three observed header-schema variants, all
+carrying the columns this reader needs), 24,001 rows, uniformly
+`Attendee Status = Attending` — measured against the real archive. No pinned
+whole-archive checksum, matching `luma_registrants.py`'s own reasoning (this
+mints no aggregate count, so nothing here can silently corrupt one); the
+shared structural guards (`scripts/prod/registration_sources/safety.py`) are
+still mandatory — bounded size, no symlink, no path escape.
+
+Transform, and the one real difference from 9.1: **identity resolution.**
+Every Eventbrite event in this export is one of the 421 events the reviewed
+legacy manifest already describes (Eventbrite was retired before any
+provider-discovery ever ran against it), so its `Event` row carries the
+manifest's `DataTalksClub/datatalksclub.github.io` source identity, not a
+provider-minted one the way a Luma-discovered event's does. Resolving through
+`events.identity.provider_source_identity`/`resolve_source_identity` the way
+9.1 does would find nothing. Instead this reader resolves through
+`~/prod/dtc-data/eventbrite-event-identities.json` — the same reviewed
+mapping (209 numeric Eventbrite ids → canonical `source_repository`/
+`source_revision`/`source_key`, 203 `resolved`) source #5.2's description
+work (`events.eventbrite_content`) already uses. That needed one small,
+backward-compatible addition to `events.registrant_import`:
+`PendingEventRegistrants` gained an optional `resolve_event` callable —
+`None` (the default, what 9.1's Luma reader still uses) keeps the original
+`provider_source_identity` lookup exactly as it was; a reader that supplies
+one, like this one, resolves however its own export needs. The consolidation
+logic below it — account-first, then a prior registrant-only identity, then a
+brand-new one — is untouched, exactly as designed: "provider is an argument,
+not a constant."
+
+Destination: same three tables as 9.1, `provider="eventbrite"`.
+
+Measured 2026-09-11, real run against a local dev database that had already
+had 9.1's Luma leg applied: **203 of 209 events resolved** (6 do not —
+`eventbrite-event-identities.json`'s own 3 `ambiguous` + 3
+`unresolved_missing_from_xlsx`, reported under `awaiting_identity_events`,
+never guessed at), **23,569 of 24,001 rows written**, 0 skipped, 3,465 matched
+an existing account, 8,442 matched a prior registrant-only identity, 11,662
+new registrant-only identities created. `--refresh` and replay work exactly
+as 9.1 describes; Eventbrite is frozen history, so no newer export will ever
+arrive to `--refresh` against, but nothing about the mechanics needed to
+special-case that.
 
 ---
 

@@ -332,6 +332,64 @@ an event is still one account, never two.
 Run `--refresh` after §4.4, never before: an event with no identity yet is
 reported under `awaiting_identity_events` and skipped, never created here.
 
+### 4.5b Eventbrite registrants — a one-time backfill, not a recurring pull
+
+Everything above this point in §4 is the recurring Luma procedure this
+runbook exists for. Eventbrite is different in kind: it is frozen history (no
+Eventbrite API access, no new export ever coming), so there is no "when to
+run it" cadence — this is a one-time backfill against data already sitting on
+disk, done once on 2026-09-11 and included here so it is not lost from the
+recurring procedure's shadow.
+
+**Source, already present, no capture step needed:**
+`.local/migration-data/events/eventbrite/aggregate-v1.zip` — the exact same
+archive §6.2 (`_docs/runbooks/ingest-script-inventory.md`) already reads for
+registration *counts* — carries real attendee-level CSVs,
+`eventbrite/csv/{id}.csv` flattened to `{id}.csv` at the archive root, one per
+event: `Order #`, `Order Date`, `Attendee #`, `Attendee Status` (uniformly
+`Attending`, 24,001 rows across 209 events, measured), `Email`. Identity
+resolution is **not** the same lookup Luma's registrant leg uses — see
+`scripts/prod/registration_sources/eventbrite_registrants.py`'s own module
+docstring for why (every Eventbrite event is already one of the 421
+manifest-reviewed events, not a provider-discovered one) — it goes through
+`~/prod/dtc-data/eventbrite-event-identities.json` instead, the same reviewed
+mapping the description-precedence work (`events.eventbrite_content`) uses.
+
+```bash
+# What the export holds, reading no attendee row at all.
+uv run --frozen python scripts/prod/import_event_registrants.py \
+    --database <db> --luma-source .../luma-aggregate-v1 \
+    --eventbrite-source .../eventbrite/aggregate-v1.zip \
+    --eventbrite-identities ~/prod/dtc-data/eventbrite-event-identities.json \
+    --dry-run
+
+# For real. --luma-source is still required (the CLI always runs Luma too,
+# reported under its own "luma" key — a completed Luma event replays as a
+# no-op, so this is safe to run alongside a routine Luma pull).
+uv run --frozen python scripts/prod/import_event_registrants.py \
+    --database <db> --luma-source .../luma-aggregate-v1 \
+    --eventbrite-source .../eventbrite/aggregate-v1.zip \
+    --eventbrite-identities ~/prod/dtc-data/eventbrite-event-identities.json
+```
+
+The report nests each provider under its own key (`"luma"`, `"eventbrite"`),
+same convention `scripts/prod/import_events.py` uses throughout. Read
+`events_awaiting_identity`/`awaiting_identity_events` under `"eventbrite"`
+exactly as you would under `"luma"`: **6 of 209 do not resolve** —
+`eventbrite-event-identities.json`'s own 3 `ambiguous` + 3
+`unresolved_missing_from_xlsx` — reported, never guessed at.
+
+Measured 2026-09-11, real run against a local dev database that already had
+Luma's leg applied: **203 of 209 events resolved, 23,569 of 24,001 rows
+written**, 0 skipped, 3,465 matched an existing account, 8,442 matched a
+prior registrant-only identity, 11,662 new registrant-only identities
+created.
+
+`--refresh` works exactly as §4.5 describes and applies uniformly to both
+providers in one run — but there is no newer Eventbrite export to refresh
+against, so running it against Eventbrite only ever reconciles against the
+same, unchanging 2026 archive.
+
 ### 4.6 What a person must review before anything is public
 
 Landing an export makes **nothing** public on its own. Four gates, all human,

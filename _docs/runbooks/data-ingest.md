@@ -1093,7 +1093,7 @@ and an ambient `DTC_SQLITE_PATH`/`DTC_ENVIRONMENT`/`DJANGO_SETTINGS_MODULE` unse
    repository checkout (§3), then `scripts/prod/import_cmp_content.py --source <rds export>`
    (§11). CMP runs last because it reconciles.
 3. The five independent, order-free reviewed one-time imports (§4, §11 items 4): `import_public_content.py`, `import_faq.py`, `import_docs.py`, `import_sponsors.py`, `import_testimonials.py`.
-4. `import_events.py` (§14-17) — one call, five legs internally sequenced.
+4. `import_events.py` (§14-17) — one call, six legs internally sequenced.
 5. `import_mailchimp_course_tags.py` (§18) — after step 2, since it needs the course
    catalogue's cohorts to already exist.
 
@@ -1451,18 +1451,24 @@ What genuinely differs, and needs care rather than a separate pipeline:
 4. `scripts/prod/import_public_content.py`, `import_faq.py`, `import_docs.py`,
    `import_sponsors.py`, `import_testimonials.py` — the reviewed one-time inputs under
    `temporary/content/`. All bootstrap; none depends on another.
-5. `scripts/prod/import_events.py`, whose own `run()` performs five legs in a fixed
+5. `scripts/prod/import_events.py`, whose own `run()` performs six legs in a fixed
    order because each reconciles against the one before it: identity import (§14),
-   content import (§14.2), new-event identity discovery (§14.3), staged content for
-   those events (§14.4), then registration-aggregate derivation and staging (§16/17).
-   Run it before anything else event-related.
-6. `scripts/prod/import_event_registrants.py` and the Mailchimp importers, which
-   reconcile against the events step 5 wrote. They have no Make target on purpose —
-   see "Not in the bootstrap order, and why" below.
+   content import (§14.2), the Eventbrite description-precedence overlay (landed
+   2026-09-11 — overwrites the row content import just wrote, for every event whose
+   Eventbrite id resolves against `~/prod/dtc-data/eventbrite-event-identities.json`;
+   see `events.eventbrite_content`), new-event identity discovery (§14.3), staged
+   content for those events (§14.4), then registration-aggregate derivation and
+   staging (§16/17). Run it before anything else event-related.
+6. `scripts/prod/import_event_registrants.py` — both providers now: `--luma-source`
+   (always run) and, since 2026-09-11, `--eventbrite-source`/`--eventbrite-identities`
+   (opt-in; a one-time backfill against Eventbrite's frozen export, not a recurring
+   pull — see `_docs/runbooks/event-registration-pull.md` §4.5b) — and the Mailchimp
+   importers, which reconcile against the events step 5 wrote. They have no Make
+   target on purpose — see "Not in the bootstrap order, and why" below.
 
 `scripts/production_data.py dataset` runs stages 1–3 plus `scripts/prepare_local_data.py` and
 `scripts/verify_local_dataset.py`; that orchestrator runs the whole of step 5 by
-composing `import_events.run()` itself — one call, all five legs, in the fixed order,
+composing `import_events.run()` itself — one call, all six legs, in the fixed order,
 under its single transaction, after the editorial block — and `verify_local_dataset.py`
 reports `database_event_identities` and `database_event_content` separately, because an
 identity alone publishes no page. `scripts/production_data.py bootstrap` therefore has no
