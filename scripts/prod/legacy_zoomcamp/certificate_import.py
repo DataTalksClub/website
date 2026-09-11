@@ -43,6 +43,17 @@ from .identity import (
 # sha1_hex(email + EditionSource.certificate_hash_suffix).
 CERTIFICATE_URL_TEMPLATE = "https://certificate.datatalks.club/{repo_slug}/{year}/{hash}.pdf"
 
+# zoomcamp-scoring's shared certificate batch script (prepare_data.py) inserts
+# this exact "Rick Astley" row into every course/year's batch input as its own
+# smoke test, then rewrites only that row's URL to a YouTube link instead of a
+# real certificate (see its own `rick = {...}; graduates.insert(0, rick)` and
+# `if 'fe629854...' in url`). Its email varies by course/year
+# (`rick@astley.com`, `never.give.up@gmail.com`), the name never does. Real S3
+# listings confirm this: for every direct-hash edition (see
+# editions.DIRECT_HASH_EDITIONS), the one bucket object beyond the real roster
+# is always this row's hash -- never a real graduate.
+_NON_GRADUATE_NAMES = frozenset({"rick astley"})
+
 
 @dataclass(frozen=True, slots=True)
 class CertificateImportResult:
@@ -66,8 +77,9 @@ def _direct_certificate_url(edition: EditionSource, email: str) -> str:
     """
 
     cert_hash = sha1_hex(email + edition.certificate_hash_suffix)
+    repo_slug = edition.certificate_url_repo_slug or CERTIFICATE_REPO_SLUG[edition.course_slug]
     return CERTIFICATE_URL_TEMPLATE.format(
-        repo_slug=CERTIFICATE_REPO_SLUG[edition.course_slug],
+        repo_slug=repo_slug,
         year=edition.year,
         hash=cert_hash,
     )
@@ -105,6 +117,8 @@ def import_edition_certificates(cohort: Cohort, edition: EditionSource) -> Certi
                 email = (row.get("email") or "").strip()
                 name = (row.get("name") or "").strip()
                 if not email:
+                    continue
+                if name.lower() in _NON_GRADUATE_NAMES:
                     continue
                 graduates.setdefault(sha1_hex(email), (email, name))
 

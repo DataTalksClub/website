@@ -181,6 +181,83 @@ class CertificateMatchingTests(TestCase):
         self.assertEqual(self.enrollment_urls(), [None, None])
 
 
+class NonGraduateNameFilterTests(TestCase):
+    """``prepare_data.py`` (zoomcamp-scoring's shared certificate batch
+    script) inserts a "Rick Astley" smoke-test row into every course/year's
+    batch input and gives it a YouTube link instead of a real certificate --
+    that row must never become a fake graduate/enrollment, regardless of
+    which email it carries that edition (it varies) or which certificate
+    mechanism (name-matched or direct-hash) the edition uses.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        scratch_root = PROD_ROOT.parents[1] / ".tmp"
+        scratch_root.mkdir(parents=True, exist_ok=True)
+        self.root = Path(tempfile.mkdtemp(prefix="non-graduate-filter-test-", dir=scratch_root))
+        self.addCleanup(shutil.rmtree, self.root, True)
+
+        family = Course.objects.create(slug="de-zoomcamp", title="Data Engineering Zoomcamp")
+        self.cohort = Cohort.objects.create(
+            course=family,
+            slug="de-zoomcamp-2022",
+            identifier="2022",
+            year=2022,
+            title="Data Engineering Zoomcamp 2022",
+        )
+
+    def _write_roster(self, rows: list[tuple[str, str]]) -> Path:
+        path = self.root / "graduates.csv"
+        with path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["email", "name"])
+            writer.writerows(rows)
+        return path
+
+    def _edition(self, *, csv_path: Path) -> EditionSource:
+        return EditionSource(
+            cohort_slug="de-zoomcamp-2022",
+            course_slug="de-zoomcamp",
+            course_title="Data Engineering Zoomcamp",
+            year=2022,
+            start_month=1,
+            homeworks=(),
+            projects=(),
+            certificate_csvs=(csv_path,),
+            certificates_json=(),
+            email_source_csvs=(),
+            certificate_hash_suffix="_",
+        )
+
+    def test_a_rick_astley_row_is_never_imported_as_a_graduate(self) -> None:
+        csv_path = self._write_roster(
+            [
+                ("rick@astley.invalid", "Rick Astley"),
+                (GRADUATE_ONE, UNIQUE_NAME),
+            ]
+        )
+
+        result = import_edition_certificates(self.cohort, self._edition(csv_path=csv_path))
+
+        # Only the real graduate is counted and enrolled -- Rick's row never
+        # reaches get_or_create_learner/enrollment at all.
+        self.assertEqual(result.graduates_seen, 1)
+        self.assertEqual(result.certificate_urls_matched, 1)
+        self.assertEqual(Enrollment.objects.count(), 1)
+
+    def test_the_check_is_case_insensitive_and_email_agnostic(self) -> None:
+        # A different edition's Rick row carries a different email
+        # (never.give.up@gmail.com) than de-zoomcamp's (rick@astley.com) --
+        # the filter keys on the name, not a fixed address.
+        csv_path = self._write_roster([("never.give.up@example.invalid", "rick ASTLEY")])
+
+        result = import_edition_certificates(self.cohort, self._edition(csv_path=csv_path))
+
+        self.assertEqual(result.graduates_seen, 0)
+        self.assertEqual(result.certificate_urls_matched, 0)
+        self.assertEqual(Enrollment.objects.count(), 0)
+
+
 class DirectCertificateUrlTests(TestCase):
     """2021's ML Zoomcamp has a real graduate roster but no ``graduates.json``
     (issue #15): its certificate URL is computed directly, reproducing
@@ -270,4 +347,97 @@ class DirectCertificateUrlTests(TestCase):
             Enrollment.objects.order_by("student__username").values_list(
                 "certificate_url", flat=True
             )
+        )
+
+
+class DirectCertificateUrlRepoSlugOverrideTests(TestCase):
+    """``certificate_url_repo_slug`` overrides ``CERTIFICATE_REPO_SLUG`` for
+    the direct-URL formula: mlops-zoomcamp and ml-zoomcamp's real S3 bucket
+    path is hyphenated from 2022 onward even though ``CERTIFICATE_REPO_SLUG``
+    (zoomcamp-scoring's local directory-naming convention) is not -- confirmed
+    against a real ``aws s3 ls s3://certificate.datatalks.club/...`` listing.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        scratch_root = PROD_ROOT.parents[1] / ".tmp"
+        scratch_root.mkdir(parents=True, exist_ok=True)
+        self.root = Path(tempfile.mkdtemp(prefix="repo-slug-override-test-", dir=scratch_root))
+        self.addCleanup(shutil.rmtree, self.root, True)
+
+        family = Course.objects.create(slug="mlops-zoomcamp", title="MLOps Zoomcamp")
+        self.cohort = Cohort.objects.create(
+            course=family,
+            slug="mlops-zoomcamp-2022",
+            identifier="2022",
+            year=2022,
+            title="MLOps Zoomcamp 2022",
+        )
+
+    def _write_roster(self, rows: list[tuple[str, str]]) -> Path:
+        path = self.root / "graduates.csv"
+        with path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["email", "name"])
+            writer.writerows(rows)
+        return path
+
+    def test_the_override_replaces_certificate_repo_slug_not_the_year(self) -> None:
+        csv_path = self._write_roster([(GRADUATE_ONE, UNIQUE_NAME)])
+        edition = EditionSource(
+            cohort_slug="mlops-zoomcamp-2022",
+            course_slug="mlops-zoomcamp",
+            course_title="MLOps Zoomcamp",
+            year=2022,
+            start_month=5,
+            homeworks=(),
+            projects=(),
+            certificate_csvs=(csv_path,),
+            certificates_json=(),
+            email_source_csvs=(),
+            certificate_hash_suffix="_",
+            certificate_url_repo_slug="mlops-zoomcamp",
+        )
+
+        result = import_edition_certificates(self.cohort, edition)
+
+        self.assertEqual(result.certificate_urls_matched, 1)
+        expected_hash = sha1_hex(GRADUATE_ONE + "_")
+        self.assertEqual(
+            list(
+                Enrollment.objects.order_by("student__username").values_list(
+                    "certificate_url", flat=True
+                )
+            ),
+            # CERTIFICATE_REPO_SLUG["mlops-zoomcamp"] is "mlopszoomcamp"
+            # (hyphen-free); the override must win, not that default.
+            [f"https://certificate.datatalks.club/mlops-zoomcamp/2022/{expected_hash}.pdf"],
+        )
+
+    def test_no_override_falls_back_to_certificate_repo_slug(self) -> None:
+        csv_path = self._write_roster([(GRADUATE_ONE, UNIQUE_NAME)])
+        edition = EditionSource(
+            cohort_slug="mlops-zoomcamp-2022",
+            course_slug="mlops-zoomcamp",
+            course_title="MLOps Zoomcamp",
+            year=2022,
+            start_month=5,
+            homeworks=(),
+            projects=(),
+            certificate_csvs=(csv_path,),
+            certificates_json=(),
+            email_source_csvs=(),
+            certificate_hash_suffix="_",
+        )
+
+        import_edition_certificates(self.cohort, edition)
+
+        expected_hash = sha1_hex(GRADUATE_ONE + "_")
+        self.assertEqual(
+            list(
+                Enrollment.objects.order_by("student__username").values_list(
+                    "certificate_url", flat=True
+                )
+            ),
+            [f"https://certificate.datatalks.club/mlopszoomcamp/2022/{expected_hash}.pdf"],
         )

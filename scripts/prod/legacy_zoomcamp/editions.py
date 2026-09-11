@@ -103,6 +103,15 @@ class EditionSource:
     # object one-to-one; the one extra object in that bucket matches no roster
     # email and is a known non-graduate example, left unmatched on purpose.
     certificate_hash_suffix: str | None = None
+    # Overrides ``CERTIFICATE_REPO_SLUG[course_slug]`` for the direct-URL
+    # formula above. ``CERTIFICATE_REPO_SLUG`` describes zoomcamp-scoring's
+    # local directory-naming convention only and must keep meaning only that;
+    # the real S3 bucket path segment for a given course/year is a separate
+    # fact (see ``CERTIFICATE_URL_REPO_SLUG_OVERRIDES`` below), so it gets its
+    # own field rather than overloading that constant with two meanings.
+    # ``None`` means "the bucket path segment matches ``CERTIFICATE_REPO_SLUG``",
+    # which is true except where this is explicitly set.
+    certificate_url_repo_slug: str | None = None
 
 
 def _sorted_matches(directory: Path, pattern: re.Pattern) -> list[tuple[str, Path]]:
@@ -119,6 +128,90 @@ def _sorted_matches(directory: Path, pattern: re.Pattern) -> list[tuple[str, Pat
 
 def _optional(path: Path) -> Path | None:
     return path if path.exists() else None
+
+
+# (course_slug, year) -> extra real-roster CSVs beyond the default
+# ``old/<...>/data/graduates*.csv`` export the base pipeline already globs.
+# Needed only for editions whose base export is short of the real batch --
+# each path here was cross-checked, one row at a time, against a real
+# ``aws s3 ls s3://certificate.datatalks.club/...`` listing (see
+# DIRECT_HASH_EDITIONS below for the full archaeology): every non-"Rick
+# Astley" row's ``sha1_hex(email + "_")`` matched a real object, and together
+# with the base export these make the roster complete (0 unmatched either
+# direction, aside from that one universal smoke-test row).
+_EXTRA_CERTIFICATE_CSVS: dict[tuple[str, int], tuple[str, ...]] = {
+    ("de-zoomcamp", 2022): ("courses/dezoomcamp-2022/graduates.csv",),
+    ("de-zoomcamp", 2023): (
+        "courses/dezoomcamp-2023/graduates-01.csv",
+        "courses/dezoomcamp-2023/done.csv",
+        "courses/dezoomcamp-2023/regenerate.csv",
+    ),
+    ("mlops-zoomcamp", 2022): (
+        "courses/mlopszoomcamp-2022/graduates-01.csv",
+        "courses/mlopszoomcamp-2022/graduates-02.csv",
+    ),
+    ("mlops-zoomcamp", 2023): (
+        "courses/mlopszoomcamp-2023/graduates-01.csv",
+        "courses/mlopszoomcamp-2023/graduates-02.csv",
+        "courses/mlopszoomcamp-2023/graduates-manual.csv",
+    ),
+    ("ml-zoomcamp", 2022): (
+        "courses/mlzoomcamp-2022/graduates.csv",
+        "courses/mlzoomcamp-2022/graduates-02.csv",
+    ),
+}
+
+# (course_slug, year) editions whose certificate URL is computed directly from
+# the roster -- the same mechanism 2021's ML Zoomcamp uses (see
+# ``EditionSource.certificate_hash_suffix``) -- rather than matched by name
+# against a certificates_json. Two different reasons land an edition here:
+#
+# * de-zoomcamp and mlops-zoomcamp, 2022 and 2023: no current-format
+#   certificates_json exists for them at all (only one-off single-entry
+#   ``graduates-XX.json`` files from later manual reissues -- never the full
+#   batch), so there is nothing to name-match against.
+# * ml-zoomcamp 2022: its ``courses/mlzoomcamp-2022/graduates.json`` exists
+#   but is short 2 real certificates relative to the roster and the real
+#   bucket (one dropped somewhere in the original batch run; one is a later
+#   manual addition recorded only in ``graduates-02.csv``/``.json``) --
+#   confirmed by hashing the full roster (old export + both courses/ CSVs)
+#   and finding all 102 real names match a real S3 object exactly.
+#
+# Every roster above was cross-checked email-by-email against a real S3
+# listing: every non-"Rick Astley" row's ``sha1_hex(email + "_")`` hash
+# matched a real object one-to-one, and every populated bucket's one leftover
+# object is always that same course's "Rick Astley" row -- a universal
+# smoke-test entry ``prepare_data.py`` (zoomcamp-scoring's shared certificate
+# batch script) inserts into every course/year's batch input and then
+# special-cases to a YouTube link instead of a real certificate (see its own
+# ``rick = {...}; graduates.insert(0, rick)`` and the
+# ``if 'fe629854...' in url`` override) -- never a real graduate.
+# ``import_edition_certificates`` skips that row by name for this reason.
+DIRECT_HASH_EDITIONS: frozenset[tuple[str, int]] = frozenset(
+    {
+        ("de-zoomcamp", 2022),
+        ("de-zoomcamp", 2023),
+        ("mlops-zoomcamp", 2022),
+        ("mlops-zoomcamp", 2023),
+        ("ml-zoomcamp", 2022),
+    }
+)
+
+# (course_slug, year) -> the real S3 URL path segment that actually drove that
+# course/year's certificate batch -- read directly from that course's own
+# zoomcamp-scoring ``courses/<repo-slug>-<year>/config.json``
+# (``vars.s3_location``), the exact value ``prepare_data.py`` substitutes into
+# its ``url_template``. This is NOT ``CERTIFICATE_REPO_SLUG`` (zoomcamp-scoring's
+# local directory-naming convention, unchanged): ml-zoomcamp and mlops-zoomcamp
+# moved their certificate bucket path to a hyphenated form from 2022 onward
+# while their local directory names stayed hyphen-free, so only those need an
+# override. de-zoomcamp's config.json confirms its bucket path already matches
+# CERTIFICATE_REPO_SLUG for 2022 and 2023, so it needs no entry here.
+CERTIFICATE_URL_REPO_SLUG_OVERRIDES: dict[tuple[str, int], str] = {
+    ("mlops-zoomcamp", 2022): "mlops-zoomcamp",
+    ("mlops-zoomcamp", 2023): "mlops-zoomcamp",
+    ("ml-zoomcamp", 2022): "ml-zoomcamp",
+}
 
 
 def _build_pipeline_edition(
@@ -152,9 +245,20 @@ def _build_pipeline_edition(
         for path in sorted(data_dir.glob("graduates*.csv"))
         if GRADUATES_FILE_RE.match(path.name)
     )
+    certificate_csvs = certificate_csvs + tuple(
+        path
+        for relative_path in _EXTRA_CERTIFICATE_CSVS.get((course_slug, year), ())
+        if (path := repo_root / relative_path).exists()
+    )
     repo_slug = CERTIFICATE_REPO_SLUG[course_slug]
     certificates_dir = repo_root / "courses" / f"{repo_slug}-{year}"
-    certificates_json = tuple(sorted(certificates_dir.glob("graduates*.json")))
+    is_direct_hash = (course_slug, year) in DIRECT_HASH_EDITIONS
+    # A direct-hash edition never name-matches against certificates_json (see
+    # DIRECT_HASH_EDITIONS above for why) -- leaving it empty here keeps that
+    # explicit rather than loading data nothing reads.
+    certificates_json = (
+        () if is_direct_hash else tuple(sorted(certificates_dir.glob("graduates*.json")))
+    )
 
     email_source_csvs = (
         *sorted((data_dir / "raw").glob("*.csv")),
@@ -177,6 +281,8 @@ def _build_pipeline_edition(
         certificate_csvs=certificate_csvs,
         certificates_json=certificates_json,
         email_source_csvs=email_source_csvs,
+        certificate_hash_suffix="_" if is_direct_hash else None,
+        certificate_url_repo_slug=CERTIFICATE_URL_REPO_SLUG_OVERRIDES.get((course_slug, year)),
     )
 
 

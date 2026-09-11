@@ -49,7 +49,12 @@ class LegacyZoomcampImportTests(TestCase):
         self._build_source_tree()
 
     def _build_source_tree(self) -> None:
-        data = self.root / "old" / "mlops-zoomcamp-2022" / "data"
+        # ml-zoomcamp-2023 is the one 2022/2023 pipeline edition still matched
+        # by name against a certificates_json (every other 2022/2023 edition
+        # -- including mlops-zoomcamp-2022, this fixture's course used to
+        # borrow -- now computes its certificate URL directly; see
+        # editions.DIRECT_HASH_EDITIONS).
+        data = self.root / "old" / "ml-zoomcamp-2023" / "data"
         _write_csv(
             data / "processed" / "hw-1.csv",
             ["email", "question1", "question2", "learning_in_public", "total_score"],
@@ -101,7 +106,7 @@ class LegacyZoomcampImportTests(TestCase):
             ["email", "name"],
             [{"email": "graduate@example.invalid", "name": "Imported Graduate"}],
         )
-        certificates = self.root / "courses" / "mlopszoomcamp-2022"
+        certificates = self.root / "courses" / "mlzoomcamp-2023"
         certificates.mkdir(parents=True, exist_ok=True)
         (certificates / "graduates.json").write_text(
             json.dumps(
@@ -122,7 +127,7 @@ class LegacyZoomcampImportTests(TestCase):
 
         return run(
             source_repo=self.root,
-            editions=["mlops-zoomcamp-2022"],
+            editions=["ml-zoomcamp-2023"],
             course_repos_dir=None,
         )
 
@@ -138,9 +143,9 @@ class LegacyZoomcampImportTests(TestCase):
         self.assertEqual(report["project_submissions"], 1)
         self.assertEqual(report["graduates"], 1)
 
-        cohort = Cohort.objects.get(slug="mlops-zoomcamp-2022")
+        cohort = Cohort.objects.get(slug="ml-zoomcamp-2023")
         # The course family is resolved from the slug, so no catalogue had to exist.
-        self.assertEqual(cohort.course.slug, "mlops-zoomcamp")
+        self.assertEqual(cohort.course.slug, "ml-zoomcamp")
         self.assertEqual(Course.objects.count(), 1)
         self.assertEqual(Homework.objects.filter(course=cohort).count(), 1)
         self.assertEqual(Project.objects.filter(course=cohort).count(), 1)
