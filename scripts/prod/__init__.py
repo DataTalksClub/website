@@ -147,6 +147,12 @@ SCRIPT_COMMAND_EXCLUSIONS: dict[str, str] = {
         "deliberate, separately invoked run rather than something a local rebuild "
         "does on its way past."
     ),
+    "import_mailchimp_course_tags": (
+        "Needs Mailchimp provider credentials and reads subscriber-level personal "
+        "data, and additionally depends on the course catalogue already existing "
+        "(it reconciles against cohorts, never creates one). Excluded from the "
+        "local dataset runner, same as its two Mailchimp siblings."
+    ),
     "import_mailchimp_event_tags": (
         "Needs Mailchimp provider credentials and reads subscriber-level personal "
         "data. Step 6, excluded from the local dataset runner."
