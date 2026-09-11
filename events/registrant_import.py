@@ -68,12 +68,17 @@ from it, and an append would leave us asserting a registration that no longer
 exists.  Identities are never deleted: a person we have already consolidated
 stays consolidated whether or not they are still on this event's list.
 
-Only one provider's registrants are imported today, because only one real
-attendee-level export exists to build and verify a reader against.  Nothing
-here has to change when a second one arrives: every type below is
-provider-generic and the provider is an argument rather than a constant, so a
-second provider is one more reader module in the ingestion layer, not a rework
-of the model or the matching logic.
+Two providers' registrants are imported as of 2026-09-11: Luma, and now
+Eventbrite (``scripts/prod/registration_sources/eventbrite_registrants.py``).
+Every type below stayed provider-generic and the provider stayed an argument
+rather than a constant, exactly as designed -- adding the second reader was
+one more module in the ingestion layer, not a rework of the model or the
+matching logic above. The one thing it *did* need is
+:attr:`PendingEventRegistrants.resolve_event`: Eventbrite's export references
+events this database already holds under the *legacy manifest's* source
+identity, not a provider-minted one the way Luma's discovered events are, so
+its reader supplies its own resolver rather than this module growing a second
+identity scheme. See that attribute's own docstring.
 """
 
 from __future__ import annotations
@@ -89,6 +94,7 @@ from accounts.models import CustomUser
 
 from .identity import EventIdentityNotFound, provider_source_identity, resolve_source_identity
 from .models import (
+    Event,
     EventRegistrantIdentity,
     EventRegistrantImportProgress,
     EventRegistration,
@@ -136,10 +142,25 @@ class PendingEventRegistrants:
     ``read_rows`` is called at most once per run, and only after the progress
     row says the event is unfinished *and* its event identity resolves -- so a
     completed event is skipped without the reader touching its file at all.
+
+    ``resolve_event`` is how that identity resolves, and it is optional for a
+    reason: every event this module has ever resolved against so far --
+    Luma's -- was minted with its own provider source identity
+    (``events.identity.provider_source_identity``), so the default (``None``)
+    keeps doing exactly what it always did, unchanged, for every existing
+    caller. A provider whose export instead references events this database
+    already holds under a *different* source identity (Eventbrite's numeric
+    ids resolve against the reviewed legacy manifest triple, not a
+    provider-minted one -- see ``scripts/prod/registration_sources/
+    eventbrite_registrants.py``) supplies its own resolver here rather than
+    forcing a second identity scheme into ``events.identity`` or a second copy
+    of the consolidation logic below. Returns ``None`` for "no identity yet",
+    the same outcome an unresolved default lookup reports.
     """
 
     external_event_identifier: str
     read_rows: Callable[[], tuple[RegistrantRow, ...]]
+    resolve_event: Callable[[], Event | None] | None = None
 
 
 def _parse_registered_at(raw: str) -> Any:
@@ -201,6 +222,33 @@ def resolve_registrant_identity(normalized_email: str) -> tuple[EventRegistrantI
         )
 
 
+def _resolve_event(
+    *,
+    provider: str,
+    external_event_identifier: str,
+    resolve_event: Callable[[], Event | None] | None,
+) -> Event | None:
+    """The default provider-source-identity lookup, or a reader-supplied override.
+
+    Both call the same two functions on the default path, so a caller that
+    never sets ``resolve_event`` sees this behave exactly as it always did.
+    """
+
+    if resolve_event is not None:
+        return resolve_event()
+    source = provider_source_identity(
+        provider=provider, external_event_identifier=external_event_identifier
+    )
+    try:
+        return resolve_source_identity(
+            repository=source.repository,
+            revision=source.revision,
+            source_key=source.source_key,
+        )
+    except EventIdentityNotFound:
+        return None
+
+
 @dataclass(frozen=True, slots=True)
 class EventImportOutcome:
     external_event_identifier: str
@@ -219,6 +267,7 @@ def _import_one_event(
     provider: str,
     external_event_identifier: str,
     read_rows: Callable[[], tuple[RegistrantRow, ...]],
+    resolve_event: Callable[[], Event | None] | None = None,
     refresh: bool = False,
 ) -> EventImportOutcome:
     progress, _ = EventRegistrantImportProgress.objects.get_or_create(
@@ -236,19 +285,16 @@ def _import_one_event(
             external_event_identifier=external_event_identifier, status="already_completed"
         )
 
-    source = provider_source_identity(
-        provider=provider, external_event_identifier=external_event_identifier
+    event = _resolve_event(
+        provider=provider,
+        external_event_identifier=external_event_identifier,
+        resolve_event=resolve_event,
     )
-    try:
-        event = resolve_source_identity(
-            repository=source.repository,
-            revision=source.revision,
-            source_key=source.source_key,
-        )
-    except EventIdentityNotFound:
+    if event is None:
         # Not yet discovered by events.identity.create_provider_event_identity
-        # (5.2 in the ingest inventory). Reported, not created here -- this
-        # module never mints an Event identity itself.
+        # (5.2 in the ingest inventory), or -- for a reader with its own
+        # resolver -- not resolved by that mapping. Reported, not created
+        # here -- this module never mints an Event identity itself.
         return EventImportOutcome(
             external_event_identifier=external_event_identifier, status="no_identity_yet"
         )
@@ -382,6 +428,7 @@ def import_registrants(
             provider=provider,
             external_event_identifier=item.external_event_identifier,
             read_rows=item.read_rows,
+            resolve_event=item.resolve_event,
             refresh=refresh,
         )
         if outcome.status == "no_identity_yet":
@@ -448,6 +495,7 @@ def _plan_one_event(
     provider: str,
     external_event_identifier: str,
     read_rows: Callable[[], tuple[RegistrantRow, ...]],
+    resolve_event: Callable[[], Event | None] | None = None,
     refresh: bool = False,
 ) -> EventPlanOutcome:
     progress = EventRegistrantImportProgress.objects.filter(
@@ -459,16 +507,12 @@ def _plan_one_event(
             status="already_completed",
         )
 
-    source = provider_source_identity(
-        provider=provider, external_event_identifier=external_event_identifier
+    event = _resolve_event(
+        provider=provider,
+        external_event_identifier=external_event_identifier,
+        resolve_event=resolve_event,
     )
-    try:
-        event = resolve_source_identity(
-            repository=source.repository,
-            revision=source.revision,
-            source_key=source.source_key,
-        )
-    except EventIdentityNotFound:
+    if event is None:
         return EventPlanOutcome(
             external_event_identifier=external_event_identifier,
             status="no_identity_yet",
@@ -598,6 +642,7 @@ def plan_registrants(
             provider=provider,
             external_event_identifier=pending_event.external_event_identifier,
             read_rows=pending_event.read_rows,
+            resolve_event=pending_event.resolve_event,
             refresh=refresh,
         )
         for pending_event in pending
