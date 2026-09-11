@@ -87,15 +87,19 @@ class CourseCatalogSelectionTests(TestCase):
             by_family["sma-zoomcamp"].public_path, "/courses/sma-zoomcamp/cohorts/2025"
         )
 
-    def test_the_split_ai_dev_tools_family_collapses_to_one_2026_card(self) -> None:
+    def test_the_ai_dev_tools_family_shows_one_2026_card(self) -> None:
+        """Issue #308: AI Dev Tools used to arrive as two rows (``ai-dev-tools`` and
+        ``ai-dev-tools-zoomcamp``); merged, one row shows its newest cohort like every
+        other family."""
+
         build_reviewed_catalog()
 
         catalog = course_catalog()
         ai_dev_tools = [entry for entry in catalog if entry.family == FEATURED_FAMILY]
 
         self.assertEqual(len(ai_dev_tools), 1)
-        self.assertEqual(ai_dev_tools[0].slug, "ai-dev-tools-zoomcamp-2026")
-        self.assertEqual(ai_dev_tools[0].public_path, "/courses/ai-dev-tools-zoomcamp/cohorts/2026")
+        self.assertEqual(ai_dev_tools[0].slug, "ai-dev-tools-2026")
+        self.assertEqual(ai_dev_tools[0].public_path, "/courses/ai-dev-tools/cohorts/2026")
         self.assertEqual(len(catalog), 6)
         self.assertEqual([entry.title for entry in catalog].count("AI Dev Tools Zoomcamp"), 1)
 
@@ -217,8 +221,8 @@ class HomepageCourseRenderingTests(TestCase):
     def test_the_featured_panel_omits_a_module_count_the_database_lacks(self) -> None:
         """A cohort whose curriculum is not imported yet claims no modules at all."""
 
-        drop_cohort("ai-dev-tools-zoomcamp-2026")
-        family = Course.objects.get(slug="ai-dev-tools-zoomcamp")
+        drop_cohort("ai-dev-tools-2026")
+        family = Course.objects.get(slug="ai-dev-tools")
         make_cohort(family, 2026, start_date=date(2026, 8, 31), homework_count=4)
 
         body = self.client.get(reverse("home")).content.decode()
@@ -230,8 +234,8 @@ class HomepageCourseRenderingTests(TestCase):
         self.assertIn("4 homework assignments", featured)
 
     def test_the_featured_panel_makes_a_single_count_singular(self) -> None:
-        drop_cohort("ai-dev-tools-zoomcamp-2026")
-        family = Course.objects.get(slug="ai-dev-tools-zoomcamp")
+        drop_cohort("ai-dev-tools-2026")
+        family = Course.objects.get(slug="ai-dev-tools")
         make_cohort(family, 2026, start_date=date(2026, 8, 31), homework_count=1, project_count=1)
 
         body = self.client.get(reverse("home")).content.decode()
@@ -242,13 +246,13 @@ class HomepageCourseRenderingTests(TestCase):
         self.assertIn("1 project ·", featured)
 
     def test_no_course_or_cohort_description_markup_reaches_the_page(self) -> None:
-        family = Course.objects.get(slug="ai-dev-tools-zoomcamp")
+        family = Course.objects.get(slug="ai-dev-tools")
         family.description = (
             '<img src="https://example.invalid/banner.png"> '
             "See https://courses.datatalks.club/ai-dev-tools-zoomcamp/"
         )
         family.save(update_fields=["description"])
-        cohort = Cohort.objects.get(slug="ai-dev-tools-zoomcamp-2026")
+        cohort = Cohort.objects.get(slug="ai-dev-tools-2026")
         cohort.description = "The 2026 live delivery of AI Dev Tools Zoomcamp."
         cohort.save(update_fields=["description"])
 

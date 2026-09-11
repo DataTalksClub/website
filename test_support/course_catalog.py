@@ -109,23 +109,28 @@ def make_cohort(
 
 
 def build_reviewed_catalog() -> dict[str, Cohort]:
-    """Build the current dataset's shape: six courses, AI Dev Tools split in two.
+    """Build the current dataset's shape: six course families, one row each.
+
+    AI Dev Tools used to arrive as two rows -- ``ai-dev-tools`` (CMP's 2025
+    cohort) and ``ai-dev-tools-zoomcamp`` (the repository sync's 2026 one) --
+    until issue #308 merged them under the site's canonical ``ai-dev-tools``
+    slug.  This fixture reflects the merged, current shape: one family with
+    both cohorts.
 
     Returns the newest cohort of every family, keyed by family slug.
     """
 
     newest: dict[str, Cohort] = {}
     ai_dev_tools = make_family("ai-dev-tools", "AI Dev Tools Zoomcamp")
-    newest["ai-dev-tools"] = make_cohort(
+    make_cohort(
         ai_dev_tools,
         2025,
         start_date=date(2025, 11, 27),
         homework_count=3,
         project_count=2,
     )
-    ai_dev_tools_zoomcamp = make_family("ai-dev-tools-zoomcamp", "AI Dev Tools Zoomcamp")
-    newest["ai-dev-tools-zoomcamp"] = make_cohort(
-        ai_dev_tools_zoomcamp,
+    newest["ai-dev-tools"] = make_cohort(
+        ai_dev_tools,
         2026,
         start_date=date(2026, 8, 31),
         homework_count=4,

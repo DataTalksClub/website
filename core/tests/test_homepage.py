@@ -52,7 +52,7 @@ class FeaturedBuildPanelTests(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.cohorts = build_reviewed_catalog()
-        self.featured = self.cohorts["ai-dev-tools-zoomcamp"]
+        self.featured = self.cohorts["ai-dev-tools"]
 
     def _panel(self) -> str:
         response = self.client.get(reverse("home"))
