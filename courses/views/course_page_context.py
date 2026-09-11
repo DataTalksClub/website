@@ -167,8 +167,9 @@ def registered_learner_count(
 def course_page_context(data: CoursePageData) -> dict:
     has_completed_course_projects = has_completed_projects(data.projects)
     modules = course_modules(data.homeworks, data.projects)
-    is_module_curriculum = (
-        data.course.curriculum_format == CurriculumFormat.MODULES
+    is_module_curriculum = data.course.curriculum_format in (
+        CurriculumFormat.MODULES,
+        CurriculumFormat.SHARED,
     )
     curriculum_flow = build_curriculum_flow(
         data.course,

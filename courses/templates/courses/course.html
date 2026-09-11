@@ -507,8 +507,7 @@
                       <li class="list-row course-flow-module">
                         <div>
                           <h3>
-                            {% url 'cohort_module' course.course.slug course.identifier flow_item.module.slug as module_url %}
-                            <a class="band-link" href="{{ module_url }}">{{ flow_item.module.title }}</a>
+                            <a class="band-link" href="{{ flow_item.url }}">{{ flow_item.module.title }}</a>
                           </h3>
                           <div class="course-flow-terminal">
                             <p class="mono-label">Homework</p>

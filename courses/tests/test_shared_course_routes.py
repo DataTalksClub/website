@@ -240,6 +240,41 @@ class SharedRouteTests(SharedWorldTestCase):
 
         self.assertEqual(response.status_code, 200)
 
+    def test_canonical_cohort_page_renders_its_shared_modules(self) -> None:
+        """A shared-format cohort's placements render on its own landing page.
+
+        Regression test: the cohort page used to only understand the
+        modules-format curriculum flow, so a shared-format cohort with real
+        ``CohortSharedModule`` placements silently fell back to the legacy
+        homework-table rendering and showed no module at all.
+        """
+
+        response = self.client.get(
+            reverse(
+                "cohort",
+                kwargs={
+                    "course_slug": self.course.slug,
+                    "cohort_identifier": self.cohort_2026.identifier,
+                },
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["is_module_curriculum"])
+        flow = response.context["curriculum_flow"]
+        self.assertEqual(len(flow), 1)
+        self.assertEqual(flow[0].kind, "module")
+        self.assertEqual(flow[0].module.pk, self.module.pk)
+        self.assertIs(flow[0].homework, response.context["homeworks"][0])
+        self.assertContains(response, self.module.title)
+        self.assertContains(
+            response,
+            reverse(
+                "shared_module",
+                kwargs={"course_slug": self.course.slug, "module_slug": self.module.slug},
+            ),
+        )
+
     def test_unknown_cohort_identifier_is_a_real_404(self) -> None:
         response = self.client.get(
             reverse(
