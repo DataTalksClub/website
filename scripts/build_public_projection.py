@@ -1430,7 +1430,7 @@ def _main_records(
         )
         if faq_record is not None:
             faq_article_count += 1
-            faq_question_total += len(faq_record["questions"])
+            faq_question_total += len(faq_record)
         articles.append(
             {
                 "slug": slug,
@@ -2461,15 +2461,21 @@ def _article_faq_record(
     blocks: list[dict[str, Any]],
     content_root: Path,
     slug: str,
-) -> dict[str, Any] | None:
-    """Attach one article's frontmatter FAQ pairs as record JSON.
+) -> list[dict[str, str]] | None:
+    """Return one article's frontmatter FAQ pairs as the record's ``faq`` field.
 
     The pairs live in the article frontmatter ``faq:`` section and travel with
-    the article -- no separate model, no second file.  Position and heading
-    still come from the body's accordion marker, exactly as the retired legacy
-    recovery bound them: the marker contributes no block of its own.  Answers
-    stay source Markdown here; the page renders them through the shared
-    sanitizer, as it always has.
+    the article -- no separate model, no second file.  The accordion marker in
+    the body still has to name exactly one valid position under exactly one
+    heading, exactly as the retired legacy recovery required, so a marker that
+    has drifted from the body still fails the build; but the position and
+    heading it resolves to are not carried into the output; the reader
+    (``content/article_faq.py``) renders the section under one fixed,
+    page-level anchor, the same shape the content-sync adapter already writes
+    for this field, and the same shape ``content/article_faq_format.py``
+    already validates a frontmatter ``faq:`` list into. Answers stay source
+    Markdown here; the page renders them through the shared sanitizer, as it
+    always has.
     """
 
     pairs_value = metadata.get("faq")
@@ -2501,11 +2507,7 @@ def _article_faq_record(
     ]
     if not heading_ids:
         raise ProjectionBuildError(f"article FAQ heading is missing: {slug[:120]}")
-    return {
-        "heading_id": heading_ids[-1],
-        "block_index": block_index,
-        "questions": [dict(question) for question in questions],
-    }
+    return [dict(question) for question in questions]
 
 
 def _courses(course_specs: Path) -> list[dict[str, Any]]:
