@@ -88,18 +88,21 @@ class EditionSource:
     # hash so historical learners can be attached to their own account; see
     # ``email_recovery.py``.
     email_source_csvs: tuple[Path, ...]
-    # Set only for an edition with no plaintext graduates export at all (2021's
-    # ML Zoomcamp): the minimum number of ``projects`` results with
-    # ``project_passed`` true that earns a certificate. Mirrors the exact rule
-    # ``old/ml-zoomcamp/graduates.ipynb`` in zoomcamp-scoring used at the time
-    # (>= 2 of 3 projects passed) -- see ``certificate_import.py`` for where
-    # this is applied. None for every other edition, which has a real export.
-    #
-    # Decision: issue #15 (closed) ruled explicitly that "ml-zoomcamp-2021
-    # does have certificates -- 'no certificates for this edition' is not an
-    # approved disposition; they must be located and imported like the other
-    # editions." This field is how that ruling is actually carried out.
-    derive_certificates_from_project_passes: int | None = None
+    # Set only for an edition with no ``certificates_json`` at all (2021's ML
+    # Zoomcamp -- issue #15 ruled explicitly that "no certificates for this
+    # edition" is not an approved disposition). When set, certificate_import.py
+    # computes each graduate's certificate URL directly as
+    # sha1_hex(email + this suffix), never through certificates_json name
+    # matching. This is zoomcamp-scoring's own historical convention, not a
+    # guess: certificates/mlzoomcamp-2021-batch.py (commit 8654144, "redo
+    # script") computed ``df['hash_new'] = (df.email + '_').apply(compute_hash)``
+    # -- the URL-only hash trails a literal underscore the plain identity hash
+    # (used elsewhere, e.g. the project-results CSVs) never carries. Verified
+    # against the real bucket listing: all 74 roster emails' suffixed hashes
+    # matched a real s3://certificate.datatalks.club/mlzoomcamp/2021/*.pdf
+    # object one-to-one; the one extra object in that bucket matches no roster
+    # email and is a known non-graduate example, left unmatched on purpose.
+    certificate_hash_suffix: str | None = None
 
 
 def _sorted_matches(directory: Path, pattern: re.Pattern) -> list[tuple[str, Path]]:
@@ -226,14 +229,15 @@ def _build_ml_zoomcamp_2021(repo_root: Path) -> EditionSource:
         projects=projects,
         # 2021 predates zoomcamp-scoring's plaintext graduates.csv convention
         # and has no current-format courses/mlzoomcamp-2021/graduates.json --
-        # but it does have graduates (issue #15). old/ml-zoomcamp/graduates.ipynb
-        # computes them directly from these same three project-results CSVs:
-        # a graduate is anyone with project_passed true on at least 2 of 3.
-        # derive_certificates_from_project_passes carries that rule forward.
-        certificate_csvs=(),
+        # but it does have graduates (issue #15), and a real roster: the exact
+        # email,name pairs the actual 2022-02 certificate batch run used,
+        # still present (moved, not deleted) at its current path below.
+        certificate_csvs=(
+            repo_root / "courses" / "mlzoomcamp-2021" / "mlzoomcamp-2021-names.csv",
+        ),
         certificates_json=(),
         email_source_csvs=tuple(sorted(course_dir.glob("*.csv"))),
-        derive_certificates_from_project_passes=2,
+        certificate_hash_suffix="_",
     )
 
 

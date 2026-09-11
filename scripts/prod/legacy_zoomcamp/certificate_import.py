@@ -6,20 +6,20 @@ email picks the same real-email-backed account ``identity.py`` uses for
 scoring; the stored certificate name is always a freshly generated
 placeholder, never the real one.
 
-An edition with no such export at all (2021's ML Zoomcamp) instead derives
-its graduate list from a project-pass-count rule -- see
-``EditionSource.derive_certificates_from_project_passes`` and
-``_derive_graduates_from_project_passes`` below. These graduates carry no
-real email or name and so never match a certificate URL; only the fact of
-graduating (and a placeholder certificate name) is recorded for them.
+An edition with a real graduate CSV but no ``graduates.json`` (2021's ML
+Zoomcamp -- issue #15) instead gets its certificate URL computed directly:
+see ``EditionSource.certificate_hash_suffix`` and ``_direct_certificate_url``
+below, which reproduce zoomcamp-scoring's own historical hash formula rather
+than matching by name.
 
-Matching is deliberately conservative (audit REL-17): a display name is the
-only field the two artifacts share, and two different graduates can share one.
-A certificate URL is attached only when the normalized name is unique on both
-sides -- one graduate and one certificate.  An ambiguous name matches nothing:
-the enrollment's existing certificate stays untouched and the case is counted
-in the result for a reviewed explicit mapping, never guessed.  The result
-carries aggregate counts and bounded codes only -- never a name or address.
+Every other edition matches by name, deliberately conservative (audit
+REL-17): a display name is the only field the two artifacts share, and two
+different graduates can share one. A certificate URL is attached only when
+the normalized name is unique on both sides -- one graduate and one
+certificate.  An ambiguous name matches nothing: the enrollment's existing
+certificate stays untouched and the case is counted in the result for a
+reviewed explicit mapping, never guessed.  The result carries aggregate
+counts and bounded codes only -- never a name or address.
 """
 
 from __future__ import annotations
@@ -30,13 +30,18 @@ from dataclasses import dataclass
 
 from courses.models import Cohort
 
-from .editions import EditionSource
+from .editions import CERTIFICATE_REPO_SLUG, EditionSource
 from .identity import (
     anonymous_display_name,
     get_or_create_enrollment,
     get_or_create_learner,
     sha1_hex,
 )
+
+# zoomcamp-scoring's certificates/mlzoomcamp-2021-batch.py (commit 8654144)
+# published PDFs under this exact path shape; the {hash} is
+# sha1_hex(email + EditionSource.certificate_hash_suffix).
+CERTIFICATE_URL_TEMPLATE = "https://certificate.datatalks.club/{repo_slug}/{year}/{hash}.pdf"
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,34 +58,19 @@ class CertificateImportResult:
     source_names_with_multiple_certificates: int = 0
 
 
-def _derive_graduates_from_project_passes(
-    edition: EditionSource,
-) -> dict[str, tuple[str | None, str]]:
-    """Graduates computed the way ``old/ml-zoomcamp/graduates.ipynb`` did.
+def _direct_certificate_url(edition: EditionSource, email: str) -> str:
+    """The certificate URL zoomcamp-scoring's own batch script would produce.
 
-    Only set for an edition with no plaintext graduates export at all
-    (``EditionSource.derive_certificates_from_project_passes``, issue #15).
-    The source ``email`` column in these project-results CSVs is already
-    ``sha1(email)`` -- there is no raw address or display name to recover --
-    so each graduate is stored as ``(None, "")``, exactly like a synthetic
-    (non-real-email) learner elsewhere in this package.
+    Only called when ``EditionSource.certificate_hash_suffix`` is set --
+    an edition with no ``graduates.json`` to match against by name.
     """
 
-    threshold = edition.derive_certificates_from_project_passes
-    if threshold is None:
-        return {}
-    passes: dict[str, int] = {}
-    for project in edition.projects:
-        if not project.results_csv.exists():
-            continue
-        with project.results_csv.open(newline="", encoding="utf-8") as handle:
-            for row in csv.DictReader(handle):
-                source_key = (row.get("email") or "").strip()
-                if not source_key:
-                    continue
-                if (row.get("project_passed") or "").strip().lower() == "true":
-                    passes[source_key] = passes.get(source_key, 0) + 1
-    return {key: (None, "") for key, count in passes.items() if count >= threshold}
+    cert_hash = sha1_hex(email + edition.certificate_hash_suffix)
+    return CERTIFICATE_URL_TEMPLATE.format(
+        repo_slug=CERTIFICATE_REPO_SLUG[edition.course_slug],
+        year=edition.year,
+        hash=cert_hash,
+    )
 
 
 def _load_certificate_candidates(certificates_json: tuple) -> dict[str, list[str]]:
@@ -108,7 +98,7 @@ def import_edition_certificates(cohort: Cohort, edition: EditionSource) -> Certi
     # graduate listed twice is one person), then group by normalized display
     # name: a name two graduates share must never match a certificate at all,
     # because either of them could be the right owner (audit REL-17).
-    graduates: dict[str, tuple[str | None, str]] = {}
+    graduates: dict[str, tuple[str, str]] = {}
     for csv_path in edition.certificate_csvs:
         with csv_path.open(newline="", encoding="utf-8") as handle:
             for row in csv.DictReader(handle):
@@ -117,8 +107,6 @@ def import_edition_certificates(cohort: Cohort, edition: EditionSource) -> Certi
                 if not email:
                     continue
                 graduates.setdefault(sha1_hex(email), (email, name))
-    for source_key, value in _derive_graduates_from_project_passes(edition).items():
-        graduates.setdefault(source_key, value)
 
     graduate_keys_by_name: dict[str, list[str]] = {}
     for source_key, (_email, name) in graduates.items():
@@ -137,22 +125,29 @@ def import_edition_certificates(cohort: Cohort, edition: EditionSource) -> Certi
         user, _ = get_or_create_learner(source_key, email)
         enrollment, _ = get_or_create_enrollment(user, cohort)
 
-        normalized_name = name.lower()
-        candidates = certificate_candidates.get(normalized_name, [])
         certificate_url = ""
-        if candidates:
-            unambiguous = (
-                len(candidates) == 1 and len(graduate_keys_by_name.get(normalized_name, [])) == 1
-            )
-            if unambiguous:
-                certificate_url = candidates[0]
-            else:
-                # Either this name is shared with another graduate or the
-                # certificate sources disagree about its URL.  Attaching the
-                # last-seen URL, as this used to, could hand one graduate
-                # another's certificate; the existing value stays and the
-                # case waits for a reviewed explicit mapping.
-                blocked_ambiguous += 1
+        if edition.certificate_hash_suffix is not None:
+            # A deterministic per-person URL, not a name lookup: no
+            # ambiguity is possible, so this never adds to blocked_ambiguous.
+            certificate_url = _direct_certificate_url(edition, email)
+        else:
+            normalized_name = name.lower()
+            candidates = certificate_candidates.get(normalized_name, [])
+            if candidates:
+                unambiguous = (
+                    len(candidates) == 1
+                    and len(graduate_keys_by_name.get(normalized_name, [])) == 1
+                )
+                if unambiguous:
+                    certificate_url = candidates[0]
+                else:
+                    # Either this name is shared with another graduate or the
+                    # certificate sources disagree about its URL.  Attaching
+                    # the last-seen URL, as this used to, could hand one
+                    # graduate another's certificate; the existing value
+                    # stays and the case waits for a reviewed explicit
+                    # mapping.
+                    blocked_ambiguous += 1
 
         if certificate_url:
             urls_matched += 1

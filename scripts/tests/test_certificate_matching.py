@@ -23,7 +23,8 @@ from courses.models import Cohort, Course, Enrollment
 from scripts.prod.legacy_zoomcamp.certificate_import import (
     import_edition_certificates,
 )
-from scripts.prod.legacy_zoomcamp.editions import EditionSource, ProjectSource
+from scripts.prod.legacy_zoomcamp.editions import EditionSource
+from scripts.prod.legacy_zoomcamp.identity import sha1_hex
 
 PROD_ROOT = Path(scripts.prod.__file__).resolve().parent
 
@@ -180,21 +181,20 @@ class CertificateMatchingTests(TestCase):
         self.assertEqual(self.enrollment_urls(), [None, None])
 
 
-class DerivedGraduatesFromProjectPassesTests(TestCase):
-    """2021's ML Zoomcamp has no graduates export at all (issue #15): a
-    graduate is derived from >= N of its own ``projects`` results carrying
-    ``project_passed`` true, exactly matching
-    ``old/ml-zoomcamp/graduates.ipynb`` in zoomcamp-scoring.
+class DirectCertificateUrlTests(TestCase):
+    """2021's ML Zoomcamp has a real graduate roster but no ``graduates.json``
+    (issue #15): its certificate URL is computed directly, reproducing
+    zoomcamp-scoring's own historical hash formula
+    (``certificates/mlzoomcamp-2021-batch.py``, commit 8654144) --
+    ``sha1_hex(email + certificate_hash_suffix)`` -- rather than matched by
+    name. This can never be ambiguous, unlike the name-matched path.
     """
-
-    PASSED_TWICE = "7b42d7082e4bd1f07c8f3511633f9ee0e9a67069"
-    PASSED_ONCE = "d8c70b9b665ade310c794b74c34ed6c21b6c6c6d"
 
     def setUp(self) -> None:
         super().setUp()
         scratch_root = PROD_ROOT.parents[1] / ".tmp"
         scratch_root.mkdir(parents=True, exist_ok=True)
-        self.root = Path(tempfile.mkdtemp(prefix="derived-graduates-test-", dir=scratch_root))
+        self.root = Path(tempfile.mkdtemp(prefix="direct-certificate-url-test-", dir=scratch_root))
         self.addCleanup(shutil.rmtree, self.root, True)
 
         family = Course.objects.create(slug="ml-zoomcamp", title="Machine Learning Zoomcamp")
@@ -206,15 +206,15 @@ class DerivedGraduatesFromProjectPassesTests(TestCase):
             title="Machine Learning Zoomcamp 2021",
         )
 
-    def _write_project(self, name: str, rows: list[tuple[str, bool]]) -> Path:
-        path = self.root / name
+    def _write_roster(self, rows: list[tuple[str, str]]) -> Path:
+        path = self.root / "mlzoomcamp-2021-names.csv"
         with path.open("w", newline="", encoding="utf-8") as handle:
             writer = csv.writer(handle)
-            writer.writerow(["email", "project_passed"])
-            writer.writerows((source_key, str(passed)) for source_key, passed in rows)
+            writer.writerow(["email", "name"])
+            writer.writerows(rows)
         return path
 
-    def _edition(self, *, threshold: int | None, projects: tuple[ProjectSource, ...]) -> EditionSource:
+    def _edition(self, *, csv_path: Path) -> EditionSource:
         return EditionSource(
             cohort_slug="ml-zoomcamp-2021",
             course_slug="ml-zoomcamp",
@@ -222,65 +222,52 @@ class DerivedGraduatesFromProjectPassesTests(TestCase):
             year=2021,
             start_month=9,
             homeworks=(),
-            projects=projects,
-            certificate_csvs=(),
+            projects=(),
+            certificate_csvs=(csv_path,),
             certificates_json=(),
             email_source_csvs=(),
-            derive_certificates_from_project_passes=threshold,
+            certificate_hash_suffix="_",
         )
 
-    def test_a_learner_passing_at_least_the_threshold_graduates(self) -> None:
-        midterm = self._write_project(
-            "midterm-project-results.csv",
-            [(self.PASSED_TWICE, True), (self.PASSED_ONCE, True)],
-        )
-        capstone = self._write_project(
-            "capstone-project-results.csv",
-            [(self.PASSED_TWICE, True), (self.PASSED_ONCE, False)],
-        )
-        projects = (
-            ProjectSource(slug_part="midterm", title="Midterm", results_csv=midterm, assignment_csv=None),
-            ProjectSource(slug_part="capstone", title="Capstone", results_csv=capstone, assignment_csv=None),
-        )
+    def test_the_url_matches_the_historical_hash_formula(self) -> None:
+        csv_path = self._write_roster([(GRADUATE_ONE, UNIQUE_NAME)])
 
-        result = import_edition_certificates(self.cohort, self._edition(threshold=2, projects=projects))
+        result = import_edition_certificates(self.cohort, self._edition(csv_path=csv_path))
 
         self.assertEqual(result.graduates_seen, 1)
-        self.assertEqual(result.certificate_urls_matched, 0)
-        enrollment = Enrollment.objects.get()
-        self.assertTrue(enrollment.certificate_name)
-        self.assertFalse(enrollment.certificate_url)
-
-    def test_no_threshold_derives_nothing(self) -> None:
-        midterm = self._write_project(
-            "midterm-project-results.csv", [(self.PASSED_TWICE, True)]
-        )
-        projects = (
-            ProjectSource(slug_part="midterm", title="Midterm", results_csv=midterm, assignment_csv=None),
+        self.assertEqual(result.certificate_urls_matched, 1)
+        self.assertEqual(result.graduates_blocked_ambiguous_name, 0)
+        expected_hash = sha1_hex(GRADUATE_ONE + "_")
+        self.assertEqual(
+            self.enrollment_urls(),
+            [f"https://certificate.datatalks.club/mlzoomcamp/2021/{expected_hash}.pdf"],
         )
 
-        result = import_edition_certificates(self.cohort, self._edition(threshold=None, projects=projects))
+    def test_two_graduates_sharing_a_name_are_never_ambiguous(self) -> None:
+        # Unlike name-matched editions, a shared display name cannot block a
+        # direct per-email URL -- there is no name lookup in this path at all.
+        csv_path = self._write_roster([(GRADUATE_ONE, SHARED_NAME), (GRADUATE_TWO, SHARED_NAME)])
 
-        self.assertEqual(result.graduates_seen, 0)
-        self.assertEqual(Enrollment.objects.count(), 0)
+        result = import_edition_certificates(self.cohort, self._edition(csv_path=csv_path))
+
+        self.assertEqual(result.graduates_seen, 2)
+        self.assertEqual(result.certificate_urls_matched, 2)
+        self.assertEqual(result.graduates_blocked_ambiguous_name, 0)
 
     def test_replay_is_stable(self) -> None:
-        midterm = self._write_project(
-            "midterm-project-results.csv",
-            [(self.PASSED_TWICE, True), (self.PASSED_ONCE, True)],
-        )
-        capstone = self._write_project(
-            "capstone-project-results.csv",
-            [(self.PASSED_TWICE, True), (self.PASSED_ONCE, False)],
-        )
-        projects = (
-            ProjectSource(slug_part="midterm", title="Midterm", results_csv=midterm, assignment_csv=None),
-            ProjectSource(slug_part="capstone", title="Capstone", results_csv=capstone, assignment_csv=None),
-        )
-        edition = self._edition(threshold=2, projects=projects)
+        csv_path = self._write_roster([(GRADUATE_ONE, UNIQUE_NAME)])
+        edition = self._edition(csv_path=csv_path)
 
         import_edition_certificates(self.cohort, edition)
         replay = import_edition_certificates(self.cohort, edition)
 
         self.assertEqual(replay.graduates_seen, 1)
+        self.assertEqual(replay.certificate_urls_matched, 1)
         self.assertEqual(Enrollment.objects.count(), 1)
+
+    def enrollment_urls(self) -> list[str | None]:
+        return list(
+            Enrollment.objects.order_by("student__username").values_list(
+                "certificate_url", flat=True
+            )
+        )
