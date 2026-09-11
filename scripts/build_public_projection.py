@@ -29,14 +29,14 @@ import yaml
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from scripts.staging.event_description_bridge import (  # noqa: E402
+from scripts.projection_build.event_description_bridge import (  # noqa: E402
     EVENT_RECORD_SCHEMA_VERSION,
     EventDescriptionBridgeError,
     apply_bridge_to_events,
     bridge_manifest_binding,
     load_event_description_bridge,
 )
-from scripts.staging.event_speaker_bio_normalization import (  # noqa: E402
+from scripts.projection_build.event_speaker_bio_normalization import (  # noqa: E402
     EventSpeakerBioNormalizationError,
     apply_event_speaker_bio_normalization,
     normalization_manifest_binding,
@@ -74,11 +74,7 @@ def cohort_family_identity(edition_slug: str) -> tuple[str, int]:
 
 from events.slugs import event_title_slug  # noqa: E402
 
-#: These reviewed inputs/outputs live outside this repository, at
-#: ~/prod/dtc-data/content-staging/ -- see
-#: _docs/architecture/database-only-content.md.
-_CONTENT_STAGING_ROOT = Path.home() / "prod" / "dtc-data" / "content-staging"
-DEFAULT_OUTPUT = _CONTENT_STAGING_ROOT / "public_projection"
+DEFAULT_OUTPUT = REPOSITORY_ROOT / "temporary" / "content" / "public_projection"
 PODCAST_PLATFORM_SEED = REPOSITORY_ROOT / "scripts" / "podcast_platforms.json"
 PODCAST_PLATFORM_FILENAME = "podcast_platforms.json"
 SPOTIFY_FOR_CREATORS_URL = "https://creators.spotify.com/pod/profile/datatalksclub/"
@@ -87,8 +83,10 @@ EDITORIAL_ROUTE_MIGRATION_FILENAME = "editorial_route_migration.json"
 EDITORIAL_ROUTE_MIGRATION_SCHEMA = (
     REPOSITORY_ROOT / "_docs" / "compatibility" / "editorial-route-migration.schema.json"
 )
-EVENT_IDENTITY_MANIFEST = _CONTENT_STAGING_ROOT / "event_identity_manifest.json"
-BRIDGE_INPUT = _CONTENT_STAGING_ROOT / "event_description_bridge.json"
+EVENT_IDENTITY_MANIFEST = (
+    REPOSITORY_ROOT / "temporary" / "content" / "event_identity_manifest.json"
+)
+BRIDGE_INPUT = REPOSITORY_ROOT / "temporary" / "content" / "event_description_bridge.json"
 # The accordion marker still in ten article bodies: it contributes no block of
 # its own, so it stays purely as the FAQ section's position anchor while the
 # pairs themselves live in frontmatter.  Same shape scripts/build_article_faq.py
