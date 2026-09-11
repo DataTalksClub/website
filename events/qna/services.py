@@ -576,6 +576,13 @@ def _set_status_locked(
     current = question.status
     if current == target:
         return question
+    # Deletion is terminal (event-qna-integration.md): a deleted question can
+    # never be restored to a listed status.  Repeating the delete is a safe
+    # no-op so a retried moderation command does not error.
+    if current == EventQnaQuestion.Status.DELETED:
+        if target == EventQnaQuestion.Status.DELETED:
+            return question
+        raise QnaError(409, "deleted", "A deleted question can no longer be changed.")
     question.status = target
     question.answered_at = timezone.now() if target == EventQnaQuestion.Status.ANSWERED else None
     if target in {EventQnaQuestion.Status.ANSWERED, EventQnaQuestion.Status.DELETED}:
@@ -585,8 +592,6 @@ def _set_status_locked(
         session.q_answered = max(0, session.q_answered - 1)
     if target == EventQnaQuestion.Status.ANSWERED:
         session.q_answered += 1
-    if current == EventQnaQuestion.Status.DELETED:
-        session.q_total += 1
     if target == EventQnaQuestion.Status.DELETED:
         session.q_total = max(0, session.q_total - 1)
     _bump_session(session, fields=("q_total", "q_answered"))
@@ -641,6 +646,12 @@ def update_question(
                 raise QnaError(403, "forbidden", "You may only edit or withdraw your question.")
         elif set(payload) - {"text", "status", "pinned"}:
             raise QnaError(400, "invalid_fields", "The question update is invalid.")
+        if question.status == EventQnaQuestion.Status.DELETED and set(payload) - {"status"}:
+            # Terminal state at the shared update boundary: only the status
+            # path may touch a deleted question (repeat delete is a no-op,
+            # restore is refused in the status transition itself), so no text
+            # or pin write can reach a withdrawn row (audit EVT-04).
+            raise QnaError(409, "deleted", "A deleted question can no longer be changed.")
         if "text" in payload:
             question.text = _validate_text(payload["text"])
             question.save(using=using, update_fields=("text",))
@@ -793,7 +804,11 @@ def list_questions(
     if session.state == EventQnaSession.State.DRAFT and not moderator:
         raise QnaNotFound()
     session = _refresh_expiry(session)
-    selected_statuses = statuses or (set(QUESTION_STATUSES) if moderator else set(PUBLIC_STATUSES))
+    selected_statuses = statuses or (set(PUBLIC_STATUSES) if moderator else set(PUBLIC_STATUSES))
+    # Deleted is terminal and excluded from every collection, moderator ones
+    # included; a requested deleted filter is not a listable status.
+    if EventQnaQuestion.Status.DELETED in selected_statuses:
+        raise QnaError(400, "invalid_status", "The question status is invalid.")
     if not selected_statuses.issubset(QUESTION_STATUSES):
         raise QnaError(400, "invalid_status", "The question status is invalid.")
     if not moderator:
