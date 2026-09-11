@@ -105,8 +105,10 @@ DESIGN_SYSTEM_TEMPLATES = (
 SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")
 
 # The primary navigation, in the order the site has always offered it.  Slack is
-# the community's main gathering place and stays in the row on every page.
-# A signed-out visitor gets one more entry after these nine: the one-line phone
+# the community's main gathering place and stays in the row on every page. FAQ
+# moved off the global masthead onto the course pages that actually need it, so
+# it is no longer one of these entries.
+# A signed-out visitor gets one more entry after these eight: the one-line phone
 # masthead (issue #179) folds "Log in" into the panel below 40rem, so the shell
 # renders it there for every anonymous request.
 EXPECTED_NAVIGATION = (
@@ -117,7 +119,6 @@ EXPECTED_NAVIGATION = (
     ("Wiki", "wiki-home"),
     ("Books", "books"),
     ("Docs", "docs-home"),
-    ("FAQ", "faq-home"),
     ("Sponsors", "sponsors"),
     ("Slack", "slack"),
 )
@@ -263,8 +264,8 @@ class DesignFiveAShellTests(TestCase):
                 expected = [*destinations, ("Log in", login)]
                 self.assertEqual([(label, href) for label, href, _ in entries], expected)
 
-    def test_signed_in_panels_offer_the_ten_destinations_and_no_login(self) -> None:
-        """The account menu owns auth once signed in; the panel goes back to ten."""
+    def test_signed_in_panels_offer_the_nine_destinations_and_no_login(self) -> None:
+        """The account menu owns auth once signed in; the panel goes back to nine."""
 
         user = get_user_model().objects.create_user(
             username="shell-reader@example.invalid",

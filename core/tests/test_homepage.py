@@ -332,7 +332,6 @@ class MainHomepageRoutingTests(TestCase):
             "wiki-home",
             "books",
             "docs-home",
-            "faq-home",
             "slack",
         ):
             with self.subTest(route_name=route_name):

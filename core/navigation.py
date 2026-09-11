@@ -83,9 +83,8 @@ DEFAULT_PRIMARY_NAVIGATION: tuple[tuple[str, str, str, int, bool], ...] = (
     ("wiki", "Wiki", "wiki-home", 5, True),
     ("books", "Books", "books", 6, True),
     ("docs", "Docs", "docs-home", 7, True),
-    ("faq", "FAQ", "faq-home", 8, True),
-    ("sponsors", "Sponsors", "sponsors", 9, True),
-    ("slack", "Slack", "slack", 10, True),
+    ("sponsors", "Sponsors", "sponsors", 8, True),
+    ("slack", "Slack", "slack", 9, True),
 )
 _WRITE_REDACTED = (
     "authorization",
