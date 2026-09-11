@@ -1008,6 +1008,38 @@ absence of contrary evidence.
 same "person we know about but isn't a member yet" class of row source #9's
 planned registrant-identity model exists to hold; building a second,
 parallel version of that model here would conflict with that design.
+**A matched account carrying a local preference decision:** skipped, never
+written, counted (`skipped_local_decisions`) — audit BE-15's cutoff rule.
+An account whose `newsletter_preference_changed_at` is non-null has had its
+preference deliberately changed in this application, and a recorded local
+decision outranks any audience snapshot however fresh: replaying an older
+subscribed export can never resurrect an opt-out made here after the export
+was cut. The import writes through `bulk_update` precisely so its own
+migration writes never set that stamp.
+**Provenance:** every invocation — dry runs included — records a
+`MailchimpSubscriptionImportRun` row: the subscribed CSV's SHA-256 digest,
+byte size, file name, the operator-declared `--as-of` snapshot date, the
+full report, and whether the run was applied. The run row is the evidence
+of which snapshot was applied and when; the cutoff rule above is
+deliberately timestamp-free on the import side (local decisions simply
+always win), so a mis-declared `--as-of` can widen what the report says
+but cannot change what the import writes.
+**A matched account carrying a local preference decision:** skipped, never
+written, counted (`skipped_local_decisions`) — audit BE-15's cutoff rule.
+An account whose `newsletter_preference_changed_at` is non-null has had its
+preference deliberately changed in this application, and a recorded local
+decision outranks any audience snapshot however fresh: replaying an older
+subscribed export can never resurrect an opt-out made here after the export
+was cut. The import writes through `bulk_update` precisely so its own
+migration writes never set that stamp.
+**Provenance:** every invocation — dry runs included — records a
+`MailchimpSubscriptionImportRun` row: the subscribed CSV's SHA-256 digest,
+byte size, file name, the operator-declared `--as-of` snapshot date, the
+full report, and whether the run was applied. The run row is the evidence
+of which snapshot was applied and when; the cutoff rule above is
+deliberately timestamp-free on the import side (local decisions simply
+always win), so a mis-declared `--as-of` can widen what the report says
+but cannot change what the import writes.
 **An account with no match in the subscribed file** (including one that
 *would* match Mailchimp's unsubscribed or cleaned file, since those are
 never read): left completely untouched, at whatever value it already holds —

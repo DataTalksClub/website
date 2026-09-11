@@ -15,6 +15,14 @@ subscribed only to those who are subscribed in mailchimp."
   set ``True``, explicitly. This is usually a no-op against the model
   default, but it is written anyway: Mailchimp's subscribed file is the
   authoritative confirmation, not just an absence of contrary evidence.
+* **A recorded local decision always wins (audit BE-15).** An account whose
+  ``newsletter_preference_changed_at`` is non-null has had its preference
+  deliberately changed in this application, and no audience snapshot --
+  however fresh -- may override it. Such accounts are skipped and counted as
+  ``skipped_local_decisions``; the usual case is a member who opted out
+  locally after the export was cut, whose ``False`` a replay must preserve.
+  The import writes through ``bulk_update`` precisely so its own migration
+  writes never set that stamp.
 * Everything else -- no match in the subscribed export at all, or a match
   only in Mailchimp's separate unsubscribed/cleaned exports -- is left
   completely untouched, at whatever value the account already holds (the
@@ -57,17 +65,30 @@ one ``bulk_update`` -- but a full re-run from row zero is cheap enough that no
 persisted watermark is needed. Running twice produces identical state: the
 second run's per-row matches are unchanged, but every field value already
 matches its target, so ``bulk_update`` has nothing to write.
+
+Provenance and the cutoff contract (audit BE-15): every invocation --
+dry runs included -- records a ``MailchimpSubscriptionImportRun`` row
+carrying the subscribed CSV's SHA-256 digest, size, file name, and the
+operator-declared snapshot date (``as_of``). Together with the per-account
+``newsletter_preference_changed_at`` stamp this is the migration-cutoff
+contract: the run row proves which snapshot was applied and when, and any
+preference changed locally after that snapshot still wins, because the
+import skips stamped accounts outright rather than comparing timestamps.
 """
 
 from __future__ import annotations
 
 import csv
+import hashlib
+import uuid
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
-from typing import Any, Iterator
+from collections.abc import Iterator
+from typing import Any
 
 from accounts.identity_values import normalize_account_email
-from accounts.models import CustomUser
+from accounts.models import CustomUser, MailchimpSubscriptionImportRun
 
 __all__ = [
     "DEFAULT_BATCH_SIZE",
@@ -97,6 +118,7 @@ class MailchimpFileReport:
     matched_rows: int
     unmatched_rows: int
     accounts_changed: int
+    skipped_local_decisions: int = 0
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -105,6 +127,7 @@ class MailchimpFileReport:
             "matched_rows": self.matched_rows,
             "unmatched_rows": self.unmatched_rows,
             "accounts_changed": self.accounts_changed,
+            "skipped_local_decisions": self.skipped_local_decisions,
         }
 
 
@@ -112,11 +135,13 @@ class MailchimpFileReport:
 class MailchimpSubscriptionImportResult:
     subscribed: MailchimpFileReport
     applied: bool = True
+    run_id: uuid.UUID | None = None
 
     def summary(self) -> dict[str, Any]:
         return {
             "subscribed": self.subscribed.as_dict(),
             "applied": self.applied,
+            "run_id": str(self.run_id) if self.run_id is not None else None,
         }
 
 
@@ -143,24 +168,45 @@ def _batched(iterable: Iterator[dict[str, str]], size: int) -> Iterator[list[dic
         yield batch
 
 
-def _process_subscribed_file(
-    path: Path, *, batch_size: int, apply: bool
-) -> MailchimpFileReport:
+def _source_digest(path: Path) -> tuple[str, int, str]:
+    """The subscribed CSV's SHA-256, byte size, and file name -- once per run.
+
+    The digest is the snapshot's identity: two runs over the same file share
+    one, and a re-cut export never can. Only the file's name is kept for the
+    provenance row, never its containing path.
+    """
+
+    digest = hashlib.sha256()
+    size = 0
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(chunk)
+            size += len(chunk)
+    return digest.hexdigest(), size, path.name
+
+
+def _process_subscribed_file(path: Path, *, batch_size: int, apply: bool) -> MailchimpFileReport:
     source_rows = 0
     matched_rows = 0
     unmatched_rows = 0
     accounts_changed = 0
+    skipped_local_decisions = 0
 
     for batch in _batched(_rows(path), batch_size):
-        normalized_by_row = [
-            normalize_account_email(row.get(EMAIL_COLUMN)) for row in batch
-        ]
+        normalized_by_row = [normalize_account_email(row.get(EMAIL_COLUMN)) for row in batch]
         wanted = {value for value in normalized_by_row if value}
-        accounts = list(
-            CustomUser.objects.filter(normalized_email__in=wanted).only(
-                "pk", "normalized_email", "newsletter_subscribed"
+        accounts = (
+            list(
+                CustomUser.objects.filter(normalized_email__in=wanted).only(
+                    "pk",
+                    "normalized_email",
+                    "newsletter_subscribed",
+                    "newsletter_preference_changed_at",
+                )
             )
-        ) if wanted else []
+            if wanted
+            else []
+        )
         by_email: dict[str, list[CustomUser]] = {}
         for account in accounts:
             by_email.setdefault(account.normalized_email, []).append(account)
@@ -174,6 +220,13 @@ def _process_subscribed_file(
                 continue
             matched_rows += 1
             for account in matches:
+                if account.newsletter_preference_changed_at is not None:
+                    # BE-15: a recorded local decision outranks any audience
+                    # snapshot.  The usual case is a member who opted out
+                    # locally after the export was cut; replaying the export
+                    # must preserve that newer decision.
+                    skipped_local_decisions += 1
+                    continue
                 if not account.newsletter_subscribed:
                     account.newsletter_subscribed = True
                     to_update[account.pk] = account
@@ -191,12 +244,14 @@ def _process_subscribed_file(
         matched_rows=matched_rows,
         unmatched_rows=unmatched_rows,
         accounts_changed=accounts_changed,
+        skipped_local_decisions=skipped_local_decisions,
     )
 
 
 def import_mailchimp_subscriptions(
     *,
     subscribed: Path,
+    as_of: date,
     batch_size: int = DEFAULT_BATCH_SIZE,
     apply: bool = True,
 ) -> MailchimpSubscriptionImportResult:
@@ -207,10 +262,27 @@ def import_mailchimp_subscriptions(
     not merely unused. Never creates an account. Never touches an account
     with no match in ``subscribed``. Safe to run more than once.
 
+    ``as_of`` is the operator-declared date the export was cut; it is
+    recorded on the run's provenance row together with the file's digest.
+    Accounts whose ``newsletter_preference_changed_at`` is non-null carry a
+    local decision and are skipped entirely -- see the module docstring for
+    the cutoff contract (audit BE-15).
+
     With ``apply=False`` (dry run), every count is still computed against the
     real, current database state -- including ``accounts_changed``, read as
-    "would change" -- but nothing is written.
+    "would change" -- but nothing is written. Every invocation, dry runs
+    included, records its provenance row.
     """
 
-    report = _process_subscribed_file(subscribed, batch_size=batch_size, apply=apply)
-    return MailchimpSubscriptionImportResult(subscribed=report, applied=apply)
+    resolved = subscribed.expanduser().resolve(strict=True)
+    source_sha256, source_bytes, source_name = _source_digest(resolved)
+    report = _process_subscribed_file(resolved, batch_size=batch_size, apply=apply)
+    run = MailchimpSubscriptionImportRun.objects.create(
+        source_name=source_name,
+        source_sha256=source_sha256,
+        source_bytes=source_bytes,
+        as_of=as_of,
+        applied=apply,
+        report=report.as_dict(),
+    )
+    return MailchimpSubscriptionImportResult(subscribed=report, applied=apply, run_id=run.id)

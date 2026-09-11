@@ -15,20 +15,30 @@ database).
 Replaying is safe: a matched account's field is set ``True``, never toggled,
 so a second run changes nothing.
 
-    uv run --frozen python scripts/prod/import_mailchimp_subscriptions.py \\
-        --database .tmp/local.sqlite3 \\
-        --export-dir ~/prod/dtc-data/mailchimp-export
+One protection matters before pointing this at any real export (audit BE-15):
+an account whose newsletter preference was changed *locally* carries a
+``newsletter_preference_changed_at`` stamp, and the import refuses to touch
+stamped accounts outright.  A member who opted out here after the export was
+cut therefore keeps their opt-out even when a stale replay re-subscribes
+everyone else.  ``--as-of`` records the date the export was cut on the run's
+provenance row (``MailchimpSubscriptionImportRun``: digest, size, counts,
+applied/dry-run) -- every invocation, dry runs included, writes one.
 
     uv run --frozen python scripts/prod/import_mailchimp_subscriptions.py \\
         --database .tmp/local.sqlite3 \\
-        --export-dir ~/prod/dtc-data/mailchimp-export --dry-run
+        --export-dir ~/prod/dtc-data/mailchimp-export \\
+        --as-of 2026-09-02
+
+    uv run --frozen python scripts/prod/import_mailchimp_subscriptions.py \\
+        --database .tmp/local.sqlite3 \\
+        --export-dir ~/prod/dtc-data/mailchimp-export \\
+        --as-of 2026-09-02 --dry-run
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -91,11 +101,30 @@ def main(argv: list[str] | None = None) -> int:
         help="Rows per resolved batch (default: the service's own default).",
     )
     parser.add_argument(
+        "--as-of",
+        required=True,
+        type=str,
+        help=(
+            "The date the Mailchimp export was cut (YYYY-MM-DD). Recorded "
+            "on the run's provenance row; local preference changes made "
+            "after this date are protected by the import's cutoff rule "
+            "either way."
+        ),
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Compute match counts against the real database. Write nothing.",
     )
     args = parser.parse_args(argv)
+
+    from datetime import date as parse_date
+
+    try:
+        as_of = parse_date.fromisoformat(args.as_of)
+    except ValueError:
+        print(json.dumps({"error": "as-of must be an ISO date (YYYY-MM-DD)"}, indent=2))
+        return 1
 
     try:
         subscribed_file = _resolve_subscribed_file(args.export_dir.resolve())
@@ -115,6 +144,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         result = import_mailchimp_subscriptions(
             subscribed=subscribed_file,
+            as_of=as_of,
             batch_size=batch_size,
             apply=not args.dry_run,
         )
