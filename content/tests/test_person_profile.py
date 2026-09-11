@@ -27,10 +27,11 @@ from content.person_content import (
 )
 from events.queries import published_event_records_by_path
 
-# The profile with the widest body of work in the catalogue (63 links across all
-# four kinds), and one that carries a portrait, a bio and links but no work.
-RICH_SLUG = "alexeygrigorev"
-SPARSE_SLUG = "aaronwishnick"
+# The profile with a body of work across all four contribution kinds (real
+# behavior: grouping, dating and folding, exercised end to end), and one that
+# carries a portrait, a bio and links but no work.
+RICH_SLUG = "synthetic-rich-profile"
+SPARSE_SLUG = "synthetic-sparse-profile"
 
 
 def profile(slug: str) -> dict[str, Any]:
@@ -288,7 +289,7 @@ class PersonCompositionTests(TestCase):
                         {
                             "role": "",
                             "label": "X",
-                            "public_path": "/podcast/data-team-roles.html",
+                            "public_path": "/podcast/synthetic-episode-one.html",
                         }
                     ],
                 },
@@ -389,14 +390,16 @@ class PersonPageTests(TestCase):
             self.assertIn(f"person-rows-{group.key}", body)
         # Every contribution is the site's shared archive row — the same row the
         # blog, the books archive and the podcast index draw — and the rows
-        # behind a group's fold are in the page too, not fetched on demand.
+        # behind a group's fold are in the page too, not fetched on demand. An
+        # undated contribution's row carries one extra class
+        # ("archive-row-undated"), so both spellings count as one row.
         self.assertEqual(
-            body.count('class="list-row archive-row person-row"'),
+            len(re.findall(r'class="list-row archive-row(?: archive-row-undated)? person-row"', body)),
             len(record["relationships"]),
         )
         self.assertEqual(
             body.count('<p class="mono-label mono-label-indigo podcast-meta">'),
-            5,
+            sum(1 for group in person.groups if group.key == "podcast" for _ in group.items),
         )
         self.assertEqual(
             body.count('class="card archive-card stretched-card-link'),
@@ -485,7 +488,7 @@ class PersonPageTests(TestCase):
     def test_an_apostrophe_in_a_profile_title_is_escaped_in_the_heading_and_portrait(
         self,
     ) -> None:
-        record = profile("elleobrien")
+        record = profile("synthetic-apostrophe-profile")
         self.assertNotEqual(escape(record["title"]), record["title"])
         response = self.client.get(record["public_path"])
 

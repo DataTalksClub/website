@@ -29,7 +29,7 @@ from events.queries import published_event_records
 # The book the owner reported: one author, who has a profile and a portrait.
 REPORTED_BOOK = "synthetic-book-one"
 # A book crediting two authors the community never hosted alongside one it did.
-MIXED_BOOK = "20210208-ml-design-patterns"
+MIXED_BOOK = "synthetic-book-mixed"
 
 
 def _book(slug: str) -> dict[str, Any]:
@@ -166,11 +166,15 @@ class BookPageBylineTests(TestCase):
     def test_an_author_without_a_profile_is_named_but_not_linked(self) -> None:
         body = self.client.get(self.book(MIXED_BOOK)["public_path"]).content.decode()
 
-        self.assertIn('<span class="person-chip-name">Valliappa Lakshmanan</span>', body)
-        self.assertIn('<span class="person-chip-name">Sara Robinson</span>', body)
+        self.assertIn(
+            '<span class="person-chip-name">Synthetic Unresolved Author One</span>', body
+        )
+        self.assertIn(
+            '<span class="person-chip-name">Synthetic Unresolved Author Two</span>', body
+        )
         self.assertIn(
             '<a class="band-link person-chip-name" '
-            'href="/people/michaelmunn.html">Michael Munn</a>',
+            'href="/people/synthetic-two.html">Synthetic Author Two</a>',
             body,
         )
 
@@ -200,7 +204,9 @@ class BookPageBylineTests(TestCase):
         )
         book = next(item for item in payload["@graph"] if item.get("@type") == "Book")
 
-        self.assertIn({"@type": "Person", "name": "Sara Robinson"}, book["author"])
+        self.assertIn(
+            {"@type": "Person", "name": "Synthetic Unresolved Author One"}, book["author"]
+        )
 
     def test_the_books_archive_rows_credit_their_authors(self) -> None:
         record = self.book(REPORTED_BOOK)
@@ -238,7 +244,9 @@ class PersonChipRenderingTests(TestCase):
             '<span class="avatar avatar-striped person-chip-portrait" aria-hidden="true">',
             body,
         )
-        self.assertIn('<span class="person-chip-name">Sara Robinson</span>', body)
+        self.assertIn(
+            '<span class="person-chip-name">Synthetic Unresolved Author One</span>', body
+        )
 
     def test_the_episode_page_draws_its_guest_with_the_shared_chip(self) -> None:
         episode = next(

@@ -223,6 +223,54 @@
       "slug": "synthetic-book-two",
       "summary": "**Synthetic Bold Point**\n\n* Synthetic Monte Carlo List Item\n* Synthetic Second List Item",
       "title": "Synthetic Book Two"
+    },
+    {
+      "archive": [],
+      "author_profiles": [
+        {
+          "key": "synthetic-two",
+          "name": "Synthetic Author Two",
+          "public_path": "/people/synthetic-two.html"
+        },
+        {
+          "key": "",
+          "name": "Synthetic Unresolved Author One",
+          "public_path": ""
+        },
+        {
+          "key": "",
+          "name": "Synthetic Unresolved Author Two",
+          "public_path": ""
+        },
+        {
+          "key": "synthetic-rich-profile",
+          "name": "Synthetic Rich Profile",
+          "public_path": "/people/synthetic-rich-profile.html"
+        }
+      ],
+      "authors": [
+        "synthetic-two",
+        "Synthetic Unresolved Author One",
+        "Synthetic Unresolved Author Two",
+        "synthetic-rich-profile"
+      ],
+      "description": "Synthetic Book Three, with a mixed byline.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-book-mixed.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-book-mixed.md"
+      },
+      "public_path": "/books/synthetic-book-mixed.html",
+      "published": "2026-01-09T00:00:00",
+      "slug": "synthetic-book-mixed",
+      "summary": "",
+      "title": "Synthetic Book Mixed Byline"
     }
   ],
   "courses": [
@@ -479,6 +527,22 @@
       },
       {
         "collection": "books",
+        "final_path": "/books/synthetic-book-mixed.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-book-mixed",
+        "source_path": "/books/synthetic-book-mixed",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-book-mixed.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-book-mixed",
+        "source_path": "/books/synthetic-book-mixed/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
         "final_path": "/books/synthetic-book-one.html",
         "query_policy": "preserve_raw",
         "record_key": "synthetic-book-one",
@@ -511,6 +575,22 @@
       },
       {
         "collection": "people",
+        "final_path": "/people/synthetic-apostrophe-profile.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-apostrophe-profile",
+        "source_path": "/people/synthetic-apostrophe-profile",
+        "status_code": 301
+      },
+      {
+        "collection": "people",
+        "final_path": "/people/synthetic-apostrophe-profile.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-apostrophe-profile",
+        "source_path": "/people/synthetic-apostrophe-profile/",
+        "status_code": 301
+      },
+      {
+        "collection": "people",
         "final_path": "/people/synthetic-one.html",
         "query_policy": "preserve_raw",
         "record_key": "synthetic-one",
@@ -523,6 +603,38 @@
         "query_policy": "preserve_raw",
         "record_key": "synthetic-one",
         "source_path": "/people/synthetic-one/",
+        "status_code": 301
+      },
+      {
+        "collection": "people",
+        "final_path": "/people/synthetic-rich-profile.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-rich-profile",
+        "source_path": "/people/synthetic-rich-profile",
+        "status_code": 301
+      },
+      {
+        "collection": "people",
+        "final_path": "/people/synthetic-rich-profile.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-rich-profile",
+        "source_path": "/people/synthetic-rich-profile/",
+        "status_code": 301
+      },
+      {
+        "collection": "people",
+        "final_path": "/people/synthetic-sparse-profile.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-sparse-profile",
+        "source_path": "/people/synthetic-sparse-profile",
+        "status_code": 301
+      },
+      {
+        "collection": "people",
+        "final_path": "/people/synthetic-sparse-profile.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-sparse-profile",
+        "source_path": "/people/synthetic-sparse-profile/",
         "status_code": 301
       },
       {
@@ -731,6 +843,19 @@
       },
       {
         "collection": "books",
+        "final_path": "/books/synthetic-book-mixed.html",
+        "record_key": "synthetic-book-mixed",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-book-mixed.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-book-mixed.md"
+        }
+      },
+      {
+        "collection": "books",
         "final_path": "/books/synthetic-book-one.html",
         "record_key": "synthetic-book-one",
         "source": {
@@ -757,6 +882,19 @@
       },
       {
         "collection": "people",
+        "final_path": "/people/synthetic-apostrophe-profile.html",
+        "record_key": "synthetic-apostrophe-profile",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/datatalksclub.github.io",
+          "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+          "source_key": "synthetic",
+          "source_path": "_people/synthetic-apostrophe-profile.md",
+          "source_url": "https://github.com/DataTalksClub/datatalksclub.github.io/blob/ee43d3fa0929faf691178d79f19528e6f15a83e5/_people/synthetic-apostrophe-profile.md"
+        }
+      },
+      {
+        "collection": "people",
         "final_path": "/people/synthetic-one.html",
         "record_key": "synthetic-one",
         "source": {
@@ -766,6 +904,32 @@
           "source_key": "synthetic",
           "source_path": "_people/synthetic-one.md",
           "source_url": "https://github.com/DataTalksClub/datatalksclub.github.io/blob/ee43d3fa0929faf691178d79f19528e6f15a83e5/_people/synthetic-one.md"
+        }
+      },
+      {
+        "collection": "people",
+        "final_path": "/people/synthetic-rich-profile.html",
+        "record_key": "synthetic-rich-profile",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/datatalksclub.github.io",
+          "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+          "source_key": "synthetic",
+          "source_path": "_people/synthetic-rich-profile.md",
+          "source_url": "https://github.com/DataTalksClub/datatalksclub.github.io/blob/ee43d3fa0929faf691178d79f19528e6f15a83e5/_people/synthetic-rich-profile.md"
+        }
+      },
+      {
+        "collection": "people",
+        "final_path": "/people/synthetic-sparse-profile.html",
+        "record_key": "synthetic-sparse-profile",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/datatalksclub.github.io",
+          "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+          "source_key": "synthetic",
+          "source_path": "_people/synthetic-sparse-profile.md",
+          "source_url": "https://github.com/DataTalksClub/datatalksclub.github.io/blob/ee43d3fa0929faf691178d79f19528e6f15a83e5/_people/synthetic-sparse-profile.md"
         }
       },
       {
@@ -944,10 +1108,10 @@
     },
     "counts": {
       "articles": 2,
-      "books": 2,
+      "books": 3,
       "courses": 12,
       "media": 3,
-      "people": 2,
+      "people": 5,
       "podcasts": 11,
       "transcripts": 0,
       "wiki": 78
@@ -1212,6 +1376,11 @@
           "label": "Synthetic Book Two",
           "public_path": "/books/synthetic-book-two.html",
           "role": "author"
+        },
+        {
+          "label": "Synthetic Book Mixed Byline",
+          "public_path": "/books/synthetic-book-mixed.html",
+          "role": "author"
         }
       ],
       "roles": [
@@ -1221,6 +1390,165 @@
       "slug": "synthetic-two",
       "summary": "",
       "title": "Synthetic Author Two"
+    },
+    {
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic rich profile biography text."
+        }
+      ],
+      "image_path": "/images/authors/synthetic-rich-profile.jpg",
+      "links": [
+        {
+          "label": "Website",
+          "url": "https://example.invalid/synthetic-rich-profile"
+        },
+        {
+          "label": "GitHub",
+          "url": "https://example.invalid/synthetic-rich-profile-github"
+        }
+      ],
+      "media_available": true,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic",
+        "source_path": "_people/synthetic-rich-profile.md",
+        "source_url": "https://github.com/DataTalksClub/datatalksclub.github.io/blob/ee43d3fa0929faf691178d79f19528e6f15a83e5/_people/synthetic-rich-profile.md"
+      },
+      "public_path": "/people/synthetic-rich-profile.html",
+      "relationships": [
+        {
+          "label": "Synthetic Podcast Episode Two",
+          "public_path": "/podcast/synthetic-episode-two.html",
+          "role": "guest"
+        },
+        {
+          "label": "Synthetic Podcast Episode One",
+          "public_path": "/podcast/synthetic-episode-one.html",
+          "role": "guest"
+        },
+        {
+          "label": "Synthetic Kickoff Webinar",
+          "public_path": "/events/1/synthetic-kickoff-webinar",
+          "role": "speaker"
+        },
+        {
+          "label": "Synthetic Data Engineering Workshop",
+          "public_path": "/events/2/synthetic-data-engineering-workshop",
+          "role": "speaker"
+        },
+        {
+          "label": "Synthetic MLOps Panel",
+          "public_path": "/events/3/synthetic-mlops-panel",
+          "role": "speaker"
+        },
+        {
+          "label": "Synthetic Community Podcast Episode One",
+          "public_path": "/events/5/synthetic-community-podcast-episode-one",
+          "role": "speaker"
+        },
+        {
+          "label": "Synthetic Community Podcast Episode Two",
+          "public_path": "/events/6/synthetic-community-podcast-episode-two",
+          "role": "speaker"
+        },
+        {
+          "label": "Synthetic Analytics Conference Talk",
+          "public_path": "/events/7/synthetic-analytics-conference-talk",
+          "role": "speaker"
+        },
+        {
+          "label": "AI Dev Tools Zoomcamp 2026 Course Launch",
+          "public_path": "/events/9/ai-dev-tools-zoomcamp-2026-course-launch",
+          "role": "speaker"
+        },
+        {
+          "label": "Synthetic Banner-Mapped Assistant Talk",
+          "public_path": "/events/10/synthetic-banner-mapped-assistant-talk",
+          "role": "speaker"
+        },
+        {
+          "label": "Synthetic Banner-Mapped Agents Workshop",
+          "public_path": "/events/11/synthetic-banner-mapped-agents-workshop",
+          "role": "speaker"
+        },
+        {
+          "label": "Synthetic: AI Dev Tools Zoomcamp",
+          "public_path": "/blog/ai-dev-tools-zoomcamp.html",
+          "role": "author"
+        },
+        {
+          "label": "Synthetic Article One",
+          "public_path": "/blog/synthetic-article-one.html",
+          "role": "author"
+        },
+        {
+          "label": "Synthetic Book Mixed Byline",
+          "public_path": "/books/synthetic-book-mixed.html",
+          "role": "author"
+        }
+      ],
+      "roles": [
+        "guest",
+        "speaker",
+        "author"
+      ],
+      "slug": "synthetic-rich-profile",
+      "summary": "Synthetic rich profile summary.",
+      "title": "Synthetic Rich Profile"
+    },
+    {
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic sparse profile biography."
+        }
+      ],
+      "image_path": "/images/authors/synthetic-sparse-profile.jpg",
+      "links": [],
+      "media_available": true,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic",
+        "source_path": "_people/synthetic-sparse-profile.md",
+        "source_url": "https://github.com/DataTalksClub/datatalksclub.github.io/blob/ee43d3fa0929faf691178d79f19528e6f15a83e5/_people/synthetic-sparse-profile.md"
+      },
+      "public_path": "/people/synthetic-sparse-profile.html",
+      "relationships": [],
+      "roles": [],
+      "slug": "synthetic-sparse-profile",
+      "summary": "",
+      "title": "Synthetic Sparse Profile"
+    },
+    {
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic apostrophe profile biography."
+        }
+      ],
+      "image_path": "/images/authors/synthetic-apostrophe-profile.jpg",
+      "links": [],
+      "media_available": true,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic",
+        "source_path": "_people/synthetic-apostrophe-profile.md",
+        "source_url": "https://github.com/DataTalksClub/datatalksclub.github.io/blob/ee43d3fa0929faf691178d79f19528e6f15a83e5/_people/synthetic-apostrophe-profile.md"
+      },
+      "public_path": "/people/synthetic-apostrophe-profile.html",
+      "relationships": [],
+      "roles": [],
+      "slug": "synthetic-apostrophe-profile",
+      "summary": "",
+      "title": "Synthetic O'Profile"
     }
   ],
   "podcast_platforms": [
