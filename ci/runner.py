@@ -7,6 +7,7 @@ import os
 import shlex
 import signal
 import subprocess
+import sys
 import time
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -55,6 +56,63 @@ DECLARED_EXECUTION_VARIABLES = (
 
 class RunnerError(ValueError):
     """A local verification plan cannot be executed safely."""
+
+
+#: The stable failure reason every source-binding refusal carries, in the
+#: raised error's message and in the run's ``source-drift.json`` diagnostic.
+SOURCE_DRIFT_REASON = "source_changed_during_verification"
+
+
+def _git_text(repository: Path, *arguments: str) -> str:
+    completed = subprocess.run(
+        ["git", "-C", os.fspath(repository), *arguments],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return completed.stdout
+
+
+def verify_source_snapshot(plan: Mapping[str, Any], repository: str | Path) -> None:
+    """Refuse to attest verification whose source no longer matches its plan.
+
+    The plan seals one source snapshot: a commit id (``commit`` mode) or a
+    canonical worktree manifest digest (``worktree`` mode).  This helper is
+    the runner's single source-binding check, invoked before execution, after
+    every executed component, and immediately before overall success, so
+    green evidence can never describe bytes other than the planned ones.
+
+    ``commit`` mode requires the checkout to be *exactly* the planned commit:
+    any tracked modification or untracked non-ignored file (an import
+    shadow, a collected test, a rendered template) refuses.  ``worktree``
+    mode requires the canonical manifest -- index metadata plus real file
+    content plus untracked non-ignored files -- to match the planned digest.
+
+    Known limit, documented rather than hidden: checks between child
+    executions cannot see an edit that changes a file and restores it while
+    one child is running.  Strict attestation needs an owned frozen snapshot;
+    this boundary enforces the no-drift contract across and around children.
+    """
+
+    actual_head = _git_text(Path(repository), "rev-parse", "HEAD").strip()
+    if actual_head != plan["head"]:
+        raise RunnerError(
+            f"{SOURCE_DRIFT_REASON}: HEAD is {actual_head[:12]}, "
+            f"the plan attests {plan['head'][:12]}"
+        )
+    if plan["source_mode"] == "worktree":
+        _manifest, source_tree = worktree_manifest(repository, actual_head)
+        if source_tree["manifest_sha256"] != plan["source_tree"]["manifest_sha256"]:
+            raise RunnerError(
+                f"{SOURCE_DRIFT_REASON}: worktree content no longer matches the planned manifest"
+            )
+        return
+    status = _git_text(Path(repository), "status", "--porcelain", "-z")
+    if status:
+        raise RunnerError(
+            f"{SOURCE_DRIFT_REASON}: the checkout is not exactly the planned "
+            "commit (tracked changes or untracked files are present)"
+        )
 
 
 # Every component command runs under an explicit wall-clock bound so a hung
@@ -232,18 +290,27 @@ def run_plan(
     repository = Path(repository)
     output = Path(output_directory)
     output.mkdir(parents=True, exist_ok=True)
-    actual_head = subprocess.run(
-        ["git", "-C", os.fspath(repository), "rev-parse", "HEAD"],
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-    if actual_head != plan["head"]:
-        raise RunnerError("verification plan head does not match the checked-out source")
-    if plan["source_mode"] == "worktree":
-        _manifest, source_tree = worktree_manifest(repository, actual_head)
-        if source_tree["manifest_sha256"] != plan["source_tree"]["manifest_sha256"]:
-            raise RunnerError("worktree content changed after the verification plan was created")
+    written_envelopes: list[Path] = []
+
+    def source_drift_failure(detail: str) -> int:
+        # CI-02: once the source stops matching the plan, nothing this run
+        # produced is proof of the planned snapshot.  The envelopes are kept
+        # as diagnostics under a name no evidence loader discovers, and the
+        # drift reason is recorded beside them.
+        for envelope in written_envelopes:
+            envelope.rename(envelope.with_name(envelope.name + ".source-drift"))
+        dump_json({"detail": detail, "reason": SOURCE_DRIFT_REASON}, output / "source-drift.json")
+        print(
+            f"{SOURCE_DRIFT_REASON}: {detail}; "
+            f"invalidated {len(written_envelopes)} evidence envelope(s) as diagnostics",
+            file=sys.stderr,
+        )
+        return 1
+
+    try:
+        verify_source_snapshot(plan, repository)
+    except RunnerError as error:
+        return source_drift_failure(str(error))
     failed = False
     selection_path = output / "ci-selection.json"
     dump_json(plan["legacy_selection"], selection_path)
@@ -332,7 +399,18 @@ def run_plan(
             completed_at=finished,
         )
         dump_json(envelope, output / f"{component}-evidence.json")
+        written_envelopes.append(output / f"{component}-evidence.json")
         failed = failed or result != "success"
+        try:
+            # A component (or anything running beside it) may have moved the
+            # source; its own success claim must not survive that.
+            verify_source_snapshot(plan, repository)
+        except RunnerError as error:
+            return source_drift_failure(str(error))
+    try:
+        verify_source_snapshot(plan, repository)
+    except RunnerError as error:
+        return source_drift_failure(str(error))
     return 1 if failed else 0
 
 

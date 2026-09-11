@@ -7,8 +7,8 @@ from datetime import UTC, datetime
 
 import pytest
 
-from ci.runner import RunnerError, command_for, run_plan
-from ci.verification import build_plan
+from ci.runner import ComponentExecution, RunnerError, command_for, run_plan
+from ci.verification import build_plan, create_report
 from tests_ci.helpers import repository_with_change, selection_for
 
 CI_SCRIPT = ("uv", "run", "--frozen", "python", "scripts/ci.py")
@@ -107,6 +107,9 @@ def test_runner_records_the_selected_tester_role(monkeypatch, tmp_path) -> None:
         if command == ["uv", "--version"]:
             return subprocess.CompletedProcess(command, 0, stdout="uv 0.10.11\n")
         if command[:3] == ["git", "-C", str(tmp_path / "repository")]:
+            if command[3:5] == ["status", "--porcelain"]:
+                # The fake source-binding check sees a clean checkout.
+                return subprocess.CompletedProcess(command, 0, stdout="")
             return subprocess.CompletedProcess(command, 0, stdout=f"{plan['head']}\n")
         output = "2 passed in 0.01s\n"
         if tuple(command) in (
@@ -177,3 +180,146 @@ def test_runner_records_the_selected_tester_role(monkeypatch, tmp_path) -> None:
     ]
     assert envelopes
     assert {item["origin"]["producer_role"] for item in envelopes} == {"tester"}
+
+
+def commit_plan_for(tmp_path, changed):
+    """A commit-mode plan over a real synthetic repository, with its checkout."""
+
+    repository, base, head = repository_with_change(tmp_path, changed)
+    selection, records = selection_for(tuple(changed), base=base, head=head)
+    return repository, build_plan(
+        repository=repository,
+        repository_id="DataTalksClub/website",
+        base=base,
+        head=head,
+        selection=selection,
+        records=records,
+        now=datetime(2026, 8, 9, 12, tzinfo=UTC),
+    )
+
+
+def worktree_plan_for(tmp_path, changed):
+    """A worktree-mode plan over a real synthetic repository."""
+
+    repository, base, head = repository_with_change(tmp_path, changed)
+    selection, records = selection_for(tuple(changed), base=base, head=head)
+    return repository, build_plan(
+        repository=repository,
+        repository_id="DataTalksClub/website",
+        base=base,
+        head=head,
+        selection=selection,
+        records=records,
+        include_worktree=True,
+        now=datetime(2026, 8, 9, 12, tzinfo=UTC),
+    )
+
+
+def _synthetic_run(plan, repository, output):
+    return run_plan(
+        plan=plan,
+        repository=repository,
+        output_directory=output,
+        issue=None,
+        worktree="synthetic-ci02",
+        producer_role="engineer",
+    )
+
+
+def test_runner_refuses_dirty_source_before_execution(tmp_path) -> None:
+    # CI-02, commit-mode probe: a tracked file edited after the plan was cut
+    # leaves HEAD on the planned commit, but the checkout is not that commit;
+    # the run must refuse before any component executes.
+    repository, plan = commit_plan_for(tmp_path, {"README.md": "changed\n"})
+    (repository / "README.md").write_text("dirty before execution\n", encoding="utf-8")
+    output = tmp_path / "evidence"
+
+    assert _synthetic_run(plan, repository, output) == 1
+
+    diagnostic = json.loads((output / "source-drift.json").read_text(encoding="utf-8"))
+    assert diagnostic["reason"] == "source_changed_during_verification"
+    assert not list(output.glob("*-evidence.json"))
+    assert not (output / "selector-plan.json").exists()
+
+
+def test_runner_refuses_a_moved_head(tmp_path) -> None:
+    repository, plan = commit_plan_for(tmp_path, {"README.md": "changed\n"})
+    git = ("git", "-C", str(repository))
+    subprocess.run(
+        (*git, "commit", "--allow-empty", "-m", "moved"),
+        check=True,
+        capture_output=True,
+    )
+    output = tmp_path / "evidence"
+
+    assert _synthetic_run(plan, repository, output) == 1
+
+    diagnostic = json.loads((output / "source-drift.json").read_text(encoding="utf-8"))
+    assert "source_changed_during_verification" in diagnostic["detail"]
+
+
+def test_runner_stops_and_invalidates_when_source_drifts_during_execution(
+    monkeypatch, tmp_path
+) -> None:
+    # CI-02, worktree-mode probe: the source changes inside a component's
+    # execution.  The drift is caught after that component; later components
+    # never run, every envelope this run wrote is retained only as a
+    # diagnostic no evidence loader discovers, and the attempt cannot be
+    # reported as a success over a mixed-source aggregate.
+    repository, plan = worktree_plan_for(tmp_path, {"README.md": "changed\n"})
+    output = tmp_path / "evidence"
+
+    def mutate_source(command, **kwargs):
+        (repository / "README.md").write_text("changed during execution\n", encoding="utf-8")
+        kwargs["output_path"].write_text("2 passed in 0.01s\n", encoding="utf-8")
+        return ComponentExecution(tuple(command), kwargs["output_path"], 0, False)
+
+    monkeypatch.setattr("ci.runner.execute_component", mutate_source)
+
+    assert _synthetic_run(plan, repository, output) == 1
+
+    diagnostic = json.loads((output / "source-drift.json").read_text(encoding="utf-8"))
+    assert diagnostic["reason"] == "source_changed_during_verification"
+    # Later components never ran after the drift was detected.
+    assert not (output / "quality-output.log").exists()
+    assert not (output / "django-output.log").exists()
+    # Nothing this run wrote is discoverable as evidence.
+    assert not list(output.glob("*-evidence.json"))
+    assert list(output.glob("*-evidence.json.source-drift"))
+    report = create_report(plan=plan, result_directory=output, phase="tester")
+    assert report["verdict"] != "success"
+
+
+def test_a_clean_run_succeeds_and_repository_local_evidence_does_not_self_invalidate(
+    monkeypatch, tmp_path
+) -> None:
+    # A green run whose evidence lands under the repository's ignored .tmp
+    # scratch must not trip its own source-binding checks.  Git runs for real
+    # (that is the point); only the component commands are synthetic.
+    from tests_ci.test_runner_timeout import green_component_commands
+
+    repository, base, head = repository_with_change(
+        tmp_path,
+        {"README.md": "changed\n"},
+        initial={".gitignore": ".tmp/\n", "README.md": "baseline\n"},
+    )
+    selection, records = selection_for(("README.md",), base=base, head=head)
+    plan = build_plan(
+        repository=repository,
+        repository_id="DataTalksClub/website",
+        base=base,
+        head=head,
+        selection=selection,
+        records=records,
+        now=datetime(2026, 8, 9, 12, tzinfo=UTC),
+    )
+    output = repository / ".tmp" / "verification-evidence"
+    monkeypatch.setattr(
+        "ci.runner.command_for",
+        green_component_commands(repository, output, hang_evidence_validation=False),
+    )
+
+    assert _synthetic_run(plan, repository, output) == 0
+
+    assert list(output.glob("*-evidence.json"))
+    assert not (output / "source-drift.json").exists()
