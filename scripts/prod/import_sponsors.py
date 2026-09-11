@@ -3,7 +3,7 @@
 
 One-time import.  The four featured sponsors and every other organization
 DataTalks.Club has publicly thanked are frozen, reviewed facts, checked into
-``core/sponsor_directory.json``.  Nothing upstream is going to move -- once
+``temporary/content/sponsor_directory.json``.  Nothing upstream is going to move -- once
 they are in the database an editor curates name, URL, tagline, lifecycle and
 placement in Studio exactly as they do for an events_hub sponsor; only the
 directory description and logo stay import-managed, so re-running this
