@@ -2607,6 +2607,21 @@ Rules for editing:
         gap: 0.5rem;
       }
 
+      /* One learning-in-public link plus its own "Remove" control: saving one
+         link used to leave the saved row, an empty second row, and an "Add
+         link" button all at once with no way to take a row back.
+         `learning_in_public.js` owns add/remove/renumber. */
+      .link-row {
+        align-items: flex-start;
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .link-row-field {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+
       .cmp-form-meta {
         color: var(--body-text);
         display: grid;
