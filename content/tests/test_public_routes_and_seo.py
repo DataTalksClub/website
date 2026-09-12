@@ -293,7 +293,7 @@ class PublicRouteAndSeoTests(TestCase):
                 breadcrumb = next(item for item in graph if item["@type"] == "BreadcrumbList")
                 self.assertEqual(breadcrumb["itemListElement"][-1]["item"], canonical_url)
 
-        guide_path = "/blog/guide-to-free-online-courses-at-datatalks-club.html"
+        guide_path = "/blog/synthetic-article-one.html"
         guide = self.client.get(guide_path, follow=False)
         self.assertEqual(guide.status_code, 200)
         self.assertContains(

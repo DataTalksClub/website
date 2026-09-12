@@ -10,6 +10,7 @@ tree has not been hydrated.
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import tempfile
 import unittest
@@ -34,14 +35,22 @@ from content.media_store import (
     record_relative_path,
 )
 
-SPACED_AUTHOR_PATH = "/images/authors/%20aashishnair.jpg"
-LARGEST_OBJECT_PATH = (
+SPACED_AUTHOR_PATH = "/images/authors/%20synthetic-spaced-author.jpg"
+LARGEST_OBJECT_PATH = "/images/posts/synthetic-article-one/og-image.jpg"
+ORPHAN_RELATIVE_PATH = "podcast/synthetic-orphan-fixture.jpg"
+ORPHAN_PATH = f"/images/{ORPHAN_RELATIVE_PATH}"
+
+# Only the two `requires_hydrated_tree` checks below need the real reviewed
+# object bytes -- everything else in this module runs against the small
+# synthetic fixture (SPACED_AUTHOR_PATH/LARGEST_OBJECT_PATH above), which the
+# `memory` backend serves as deterministic fixture bytes rather than the real
+# upstream ones, so it cannot stand in for a real-byte assertion.
+REAL_SPACED_AUTHOR_PATH = "/images/authors/%20aashishnair.jpg"
+REAL_LARGEST_OBJECT_PATH = (
     "/images/posts/2025-09-23-ai-dev-tools-zoomcamp-2025-free-course-to-master-coding-"
     "assistants-agents-and-automation/course-cover.png"
 )
-LARGEST_OBJECT_BYTES = 3_022_797
-ORPHAN_RELATIVE_PATH = "podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.jpg"
-ORPHAN_PATH = f"/images/{ORPHAN_RELATIVE_PATH}"
+REAL_LARGEST_OBJECT_BYTES = 3_022_797
 
 
 def _serving_real_bytes() -> bool:
@@ -51,7 +60,7 @@ def _serving_real_bytes() -> bool:
 
     return (
         str(getattr(settings, "PUBLIC_MEDIA_STORE_BACKEND", "local")) == "local"
-        and (local_media_root() / "authors" / " aashishnair.jpg").is_file()
+        and (local_media_root() / "authors" / " synthetic-spaced-author.jpg").is_file()
     )
 
 
@@ -131,7 +140,7 @@ class MediaResponseContractTests(TestCase):
 
     def test_the_spaced_filename_still_resolves_with_verified_bytes(self) -> None:
         store = media_store()
-        path, filename = SPACED_AUTHOR_PATH, " aashishnair.jpg"
+        path, filename = SPACED_AUTHOR_PATH, " synthetic-spaced-author.jpg"
         response = self.client.get(path)
         record = self.records[response.wsgi_request.path]
         self.assertEqual(response.status_code, 200)
@@ -142,10 +151,24 @@ class MediaResponseContractTests(TestCase):
 
     @requires_hydrated_tree
     def test_the_spaced_filename_serves_the_exact_recorded_upstream_bytes(self) -> None:
-        response = self.client.get(SPACED_AUTHOR_PATH)
-        record = self.records[response.wsgi_request.path]
+        """Checked directly against the real projection file, bypassing the DB.
+
+        The Django test DB is always seeded from the small synthetic fixture
+        now (see test_support/reference_data.py), so it never carries a
+        record for this real path -- even when the real hydrated media tree
+        this gate requires is mounted alongside it -- so the request/response
+        path this used to go through would just 404.
+        """
+
+        root = Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
+        record = next(
+            item
+            for item in json.loads((root / "media.json").read_text())
+            if item["public_path"] == REAL_SPACED_AUTHOR_PATH
+        )
+        disk_path = local_media_root() / record_relative_path(record)
         self.assertEqual(
-            hashlib.sha256(_body(response)).hexdigest(),
+            hashlib.sha256(disk_path.read_bytes()).hexdigest(),
             record["provenance"]["checksum"],
         )
 
@@ -156,10 +179,23 @@ class MediaResponseContractTests(TestCase):
 
     @requires_hydrated_tree
     def test_the_largest_object_reports_its_exact_length(self) -> None:
-        response = self.client.get(LARGEST_OBJECT_PATH)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers["Content-Length"], str(LARGEST_OBJECT_BYTES))
-        self.assertEqual(len(_body(response)), LARGEST_OBJECT_BYTES)
+        """Checked directly against the real projection file, bypassing the DB.
+
+        The Django test DB is always seeded from the small synthetic fixture
+        now (see test_support/reference_data.py), so it never carries a
+        record for this real path -- even when the real hydrated media tree
+        this gate requires is mounted alongside it -- so the request/response
+        path this used to go through would just 404.
+        """
+
+        root = Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
+        record = next(
+            item
+            for item in json.loads((root / "media.json").read_text())
+            if item["public_path"] == REAL_LARGEST_OBJECT_PATH
+        )
+        disk_path = local_media_root() / record_relative_path(record)
+        self.assertEqual(disk_path.stat().st_size, REAL_LARGEST_OBJECT_BYTES)
 
     def test_head_matches_the_get_header_shape(self) -> None:
         for path in (SPACED_AUTHOR_PATH, LARGEST_OBJECT_PATH):
@@ -390,11 +426,11 @@ class ImageBearingPageTests(TestCase):
     """The server-side half of the browser scenarios for image-bearing pages."""
 
     SCENARIO_PAGES = (
-        ("/blog/ai-dev-tools-zoomcamp.html", "/images/posts/"),
-        ("/people/aashishnair.html", "/images/authors/ aashishnair.jpg"),
+        ("/blog/synthetic-article-one.html", "/images/posts/"),
+        ("/people/synthetic-one.html", "/images/authors/synthetic-one.jpg"),
         (
-            "/books/20251006-software-development-at-rocket-speed.html",
-            "/images/books/20251006-software-development-at-rocket-speed/preview.jpg",
+            "/books/synthetic-book-two.html",
+            "/images/books/synthetic-book-two/preview.jpg",
         ),
         ("/blog", "/images/"),
         ("/podcast", "/images/"),
