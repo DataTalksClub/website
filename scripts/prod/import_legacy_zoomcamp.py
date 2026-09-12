@@ -55,7 +55,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -154,6 +153,8 @@ def import_edition(
             "projects": len(result.projects),
             "homework_submissions": result.homework_submissions,
             "project_submissions": result.project_submissions,
+            "submissions_with_recovered_timestamp": result.submissions_with_recovered_timestamp,
+            "submissions_with_fallback_timestamp": result.submissions_with_fallback_timestamp,
         }
 
     if skip_certificates:

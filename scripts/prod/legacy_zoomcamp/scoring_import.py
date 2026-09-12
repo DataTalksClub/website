@@ -1,13 +1,22 @@
 """Import one cohort's historical homework and project scores.
 
-Reads the graded ("processed") exports located by ``editions.py`` -- never
-the ``raw/`` exports, which still carry GitHub links and free-text feedback
-alongside plaintext email. The email itself is recovered separately, once
-per cohort, by ``email_recovery.py`` (which does read ``raw/``, since that is
-the only place most learners' real address survives) and used only to pick
-the right account for each learner -- see ``identity.py`` for what is and is
-not stored from it. Real module titles/homework text, when a local course
-repo checkout is available, come from ``homework_content.py``.
+Reads the graded ("processed") exports located by ``editions.py`` for scores
+-- never the ``raw/`` exports for those, which still carry GitHub links and
+free-text feedback alongside plaintext email. The email itself is recovered
+separately, once per cohort, by ``email_recovery.py`` (which does read
+``raw/``, since that is the only place most learners' real address survives)
+and used only to pick the right account for each learner -- see
+``identity.py`` for what is and is not stored from it. Real module
+titles/homework text, when a local course repo checkout is available, come
+from ``homework_content.py``.
+
+One field is the exception: ``Submission.submitted_at``. The graded exports
+never carried a submission time at all, so this module also reads each
+homework's own raw weekly export (``HomeworkSource.raw_csv``) for its real,
+plaintext ``Timestamp`` column, hashes the email the same way the graded
+export's key already is, and joins the two by that hash -- see
+``_raw_email_to_timestamp``. No email or timestamp value from that read is
+ever persisted; only the resulting datetime is.
 """
 
 from __future__ import annotations
@@ -15,7 +24,7 @@ from __future__ import annotations
 import csv
 import json
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from django.db import transaction
@@ -37,7 +46,7 @@ from courses.models import (
 from .editions import EditionSource, HomeworkSource, ProjectSource
 from .email_recovery import build_hash_to_email_map
 from .homework_content import TopicContent, load_homework_topics
-from .identity import get_or_create_enrollment, get_or_create_learner
+from .identity import get_or_create_enrollment, get_or_create_learner, sha1_hex
 
 IMPORTED_NOTE = (
     "Imported from the archived DataTalksClub/zoomcamp-scoring history. "
@@ -55,6 +64,14 @@ class EditionImportResult:
     projects: list[Project]
     homework_submissions: int
     project_submissions: int
+    # How many of ``homework_submissions`` got their real, historical
+    # ``submitted_at`` from the raw weekly export vs. how many could not be
+    # matched there (email absent from that week's raw export, or the export
+    # itself missing) and so fell back to import time -- see
+    # ``_raw_email_to_timestamp``. Documented, not silent: this must stay
+    # visibly rare, not the common case.
+    submissions_with_recovered_timestamp: int
+    submissions_with_fallback_timestamp: int
 
 
 def _to_int(value) -> int:
@@ -130,16 +147,149 @@ def _read_rows(csv_path: Path) -> tuple[list[str], list[dict[str, str]]]:
     return fieldnames, rows
 
 
+_EMAIL_COLUMN_HINT = "email"
+
+
+def _find_email_column(fieldnames: list[str]) -> str | None:
+    for name in fieldnames:
+        if _EMAIL_COLUMN_HINT in name.lower():
+            return name
+    return None
+
+
+def _sniff_date_order(date_parts: list[tuple[str, str, str]]) -> str:
+    """Pick a field order for one raw export's ``Timestamp`` column.
+
+    Google Forms bakes each week's ``Timestamp`` in whatever locale the
+    export used at the time -- separator and field order vary export to
+    export (not row to row within one export), confirmed by scanning every
+    raw CSV this importer reads: ``YYYY/MM/DD``, ``DD/MM/YYYY`` and
+    ``DD.MM.YYYY`` all occur, and so does the occasional US-locale
+    ``MM/DD/YYYY``. A four-digit first field is unambiguous
+    (year-month-day). Otherwise, any value over 12 in a field pins that
+    field as the day, which pins the order for the whole export. A field
+    order that never carries a value over 12 anywhere in the export is
+    genuinely ambiguous from the data alone; day-first is this dataset's
+    dominant format (confirmed against every raw export the five affected
+    cohorts ship), so an ambiguous export defaults to it rather than being
+    treated as unparseable.
+    """
+
+    saw_first_over_12 = False
+    saw_second_over_12 = False
+    for first, second, _third in date_parts:
+        if len(first) == 4:
+            return "ymd"
+        try:
+            first_value, second_value = int(first), int(second)
+        except ValueError:
+            continue
+        if first_value > 12:
+            saw_first_over_12 = True
+        if second_value > 12:
+            saw_second_over_12 = True
+    if saw_first_over_12:
+        return "dmy"
+    if saw_second_over_12:
+        return "mdy"
+    return "dmy"
+
+
+def _split_date_part(date_part: str) -> tuple[str, str, str] | None:
+    separator = "/" if "/" in date_part else "." if "." in date_part else None
+    if separator is None:
+        return None
+    parts = date_part.split(separator)
+    if len(parts) != 3:
+        return None
+    return parts[0], parts[1], parts[2]
+
+
+def _parse_raw_timestamp(value: str, date_order: str) -> datetime | None:
+    """Parse one raw export's ``Timestamp`` cell using a pre-sniffed field order.
+
+    Naive -- Google Forms never records which timezone a submission's
+    ``Timestamp`` used, and nothing else in the export says either -- so the
+    result is anchored to UTC. That is a documented approximation, not a
+    recovered fact: it can be off by the exporting form-owner's real
+    timezone offset, but it is still the learner's real historical week,
+    which is the entire point of this join (audit: cohort dashboards were
+    showing 100% "after the deadline" with every submission at import time
+    before this).
+    """
+
+    date_part, _, time_part = value.strip().partition(" ")
+    parts = _split_date_part(date_part)
+    if parts is None:
+        return None
+    first, second, third = parts
+    try:
+        if date_order == "ymd":
+            year, month, day = int(first), int(second), int(third)
+        elif date_order == "mdy":
+            month, day, year = int(first), int(second), int(third)
+        else:
+            day, month, year = int(first), int(second), int(third)
+        time_fields = [int(field) for field in time_part.split(":")] if time_part else []
+        time_fields += [0] * (3 - len(time_fields))
+        hour, minute, second_value = time_fields[:3]
+        return datetime(year, month, day, hour, minute, second_value, tzinfo=UTC)
+    except (ValueError, IndexError):
+        return None
+
+
+def _raw_email_to_timestamp(raw_csv: Path | None) -> dict[str, datetime]:
+    """Map a raw weekly export's real emails (hashed the upstream way) to
+    the real ``Timestamp`` each learner submitted at.
+
+    On a duplicate email within one export (a resubmission), the last row
+    wins -- the same rule the upstream grading pipeline itself uses
+    (``evaluate_week.py``: ``drop_duplicates(subset=['email'], keep='last')``),
+    so this joins the timestamp of the submission that was actually graded,
+    not an earlier draft.
+    """
+
+    if raw_csv is None or not raw_csv.exists():
+        return {}
+    fieldnames, rows = _read_rows(raw_csv)
+    email_column = _find_email_column(fieldnames)
+    if email_column is None:
+        return {}
+
+    date_parts = []
+    for row in rows:
+        date_part = (row.get("Timestamp") or "").strip().partition(" ")[0]
+        parts = _split_date_part(date_part)
+        if parts is not None:
+            date_parts.append(parts)
+    date_order = _sniff_date_order(date_parts)
+
+    mapping: dict[str, datetime] = {}
+    for row in rows:
+        email = (row.get(email_column) or "").strip()
+        timestamp_raw = (row.get("Timestamp") or "").strip()
+        if not email or not timestamp_raw:
+            continue
+        parsed = _parse_raw_timestamp(timestamp_raw, date_order)
+        if parsed is None:
+            continue
+        mapping[sha1_hex(email)] = parsed
+    return mapping
+
+
 def _import_homework(
     cohort: Cohort,
     source: HomeworkSource,
     position: int,
     hash_to_email: dict[str, str],
     topic: TopicContent | None,
-) -> tuple[Homework, int]:
+) -> tuple[Homework, int, int, int]:
     fieldnames, rows = _read_rows(source.results_csv)
     text_by_column, points_by_column = _load_answers_config(source.answers_json)
     question_columns = [name for name in fieldnames if name.startswith("question")]
+    raw_timestamps = _raw_email_to_timestamp(source.raw_csv)
+    recovered_timestamp_count = 0
+    fallback_timestamp_count = 0
 
     due_date = _cohort_start(cohort) + position * _WEEK_SPACING
     title = topic.title if topic else f"Homework {source.slug_part}"
@@ -196,17 +346,34 @@ def _import_homework(
             user, _ = get_or_create_learner(source_key, hash_to_email.get(source_key))
             enrollment, _ = get_or_create_enrollment(user, cohort)
 
+            submission_defaults = {
+                "student": user,
+                "problems_comments": "",
+                "questions_score": questions_score,
+                "faq_score": faq_score,
+                "learning_in_public_score": lip_score,
+                "total_score": total_score,
+            }
+            # ``source_key`` is already the same sha1(email) the raw export's
+            # real address hashes to (see ``_raw_email_to_timestamp``), so no
+            # extra pass through ``hash_to_email`` is needed here -- a direct
+            # hit means this learner's real weekly ``Timestamp`` was
+            # recovered; a miss (email absent from that week's raw export, or
+            # no raw export at all for this homework) leaves ``submitted_at``
+            # out of ``defaults`` entirely, so it only ever falls back to the
+            # model's import-time default on first creation and a later
+            # re-run never clobbers a real value with "now".
+            recovered_at = raw_timestamps.get(source_key)
+            if recovered_at is not None:
+                submission_defaults["submitted_at"] = recovered_at
+                recovered_timestamp_count += 1
+            else:
+                fallback_timestamp_count += 1
+
             submission, _ = Submission.objects.update_or_create(
                 homework=homework,
                 enrollment=enrollment,
-                defaults={
-                    "student": user,
-                    "problems_comments": "",
-                    "questions_score": questions_score,
-                    "faq_score": faq_score,
-                    "learning_in_public_score": lip_score,
-                    "total_score": total_score,
-                },
+                defaults=submission_defaults,
             )
             submission_count += 1
 
@@ -221,7 +388,7 @@ def _import_homework(
                 for column, (question, points) in questions.items()
             )
 
-    return homework, submission_count
+    return homework, submission_count, recovered_timestamp_count, fallback_timestamp_count
 
 
 def _load_assignment_lookup(assignment_csv: Path | None) -> dict[str, dict[str, str]]:
@@ -324,12 +491,16 @@ def import_edition_scoring(
 
     homeworks = []
     homework_submissions = 0
+    recovered_timestamps = 0
+    fallback_timestamps = 0
     for position, source in enumerate(edition.homeworks):
-        homework, count = _import_homework(
+        homework, count, recovered, fallback = _import_homework(
             cohort, source, position, hash_to_email, topics.get(source.slug_part)
         )
         homeworks.append(homework)
         homework_submissions += count
+        recovered_timestamps += recovered
+        fallback_timestamps += fallback
 
     projects = []
     project_submissions = 0
@@ -344,6 +515,8 @@ def import_edition_scoring(
         projects=projects,
         homework_submissions=homework_submissions,
         project_submissions=project_submissions,
+        submissions_with_recovered_timestamp=recovered_timestamps,
+        submissions_with_fallback_timestamp=fallback_timestamps,
     )
 
 

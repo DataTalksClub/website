@@ -61,6 +61,17 @@ class HomeworkSource:
     slug_part: str
     results_csv: Path
     answers_json: Path | None
+    # The raw weekly Google Form export for this same homework, when one
+    # exists -- ``data/raw/homework-<slug_part>.csv`` for a pipeline edition,
+    # ``homework-<n>.csv`` for 2021's flatter layout. Unlike ``results_csv``
+    # (the graded, hashed-email export this importer scores from), this file
+    # still carries the real, plaintext ``Timestamp`` a learner actually
+    # submitted at -- the only place that survives -- and is read only to
+    # recover ``Submission.submitted_at``; see
+    # ``scoring_import._raw_email_to_timestamp``.
+    # ``None`` when no matching raw export exists for this homework, in which
+    # case ``submitted_at`` falls back to import time for every row in it.
+    raw_csv: Path | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -228,6 +239,7 @@ def _build_pipeline_edition(
             slug_part=slug_part,
             results_csv=path,
             answers_json=_optional(data_dir / "answers" / f"answers-{slug_part}.json"),
+            raw_csv=_optional(data_dir / "raw" / f"homework-{slug_part}.csv"),
         )
         for slug_part, path in _sorted_matches(data_dir / "processed", HOMEWORK_FILE_RE)
     )
@@ -305,6 +317,7 @@ def _build_ml_zoomcamp_2021(repo_root: Path) -> EditionSource:
             slug_part=str(n),
             results_csv=course_dir / f"homework-{n}-results.csv",
             answers_json=_optional(course_dir / f"week{n}_answers.json"),
+            raw_csv=_optional(course_dir / f"homework-{n}.csv"),
         )
         for n in (1, 2, 3, 4, 5, 6, 8, 9, 10)
         if (course_dir / f"homework-{n}-results.csv").exists()

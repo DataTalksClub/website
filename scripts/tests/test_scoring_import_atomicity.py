@@ -101,7 +101,7 @@ class ScoringImportAtomicityTests(TestCase):
             answers_json=self.answers_json,
         )
 
-    def _import(self) -> tuple[object, int]:
+    def _import(self) -> tuple[object, int, int, int]:
         return _import_homework(
             self.cohort,
             self._source(),
@@ -131,7 +131,7 @@ class ScoringImportAtomicityTests(TestCase):
                 }
             ]
         )
-        _homework, _count = self._import()
+        _homework, _count, _recovered, _fallback = self._import()
         from courses.models import Answer, Submission
 
         submission = Submission.objects.get()
@@ -200,7 +200,7 @@ class ScoringImportAtomicityTests(TestCase):
             ]
         )
         self._import()
-        _homework, count = self._import()
+        _homework, count, _recovered, _fallback = self._import()
 
         from courses.models import Answer, Enrollment, Submission
 
@@ -255,7 +255,7 @@ class ScoringImportAtomicityTests(TestCase):
         self.assertEqual(len(self._answers(first_submission)), 2)
 
         # An ordinary re-run completes the import with no duplicates.
-        _homework, count = self._import()
+        _homework, count, _recovered, _fallback = self._import()
         self.assertEqual(count, 2)
         self.assertEqual(Submission.objects.count(), 2)
         self.assertEqual(Answer.objects.count(), 4)
