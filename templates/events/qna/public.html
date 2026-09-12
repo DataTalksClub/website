@@ -10,15 +10,18 @@
       <p id="qna-connection" class="qna-connection" role="status" hidden></p>
       <section class="qna-card" aria-labelledby="ask-heading">
         <h2 id="ask-heading">Ask a question</h2>
-        <form id="qna-question-form"{% if not qna_config.can_ask %} hidden{% endif %}>
+        {# UX-08: a real POST form — room.js keeps the JSON path when the scripts run; without them the native submit hits the page view, same service and rate limits. #}
+        <form id="qna-question-form" method="post"{% if not qna_config.can_ask %} hidden{% endif %}>
+          {% csrf_token %}
+          <noscript><p class="qna-muted">JavaScript is off: submitting posts the form directly and reloads this page.</p></noscript>
           <label for="qna-text">Question</label>
-          <textarea id="qna-text" name="text" maxlength="315" required rows="4"></textarea>
+          <textarea id="qna-text" name="text" maxlength="315" required rows="4">{{ form_text }}</textarea>
           {% if session.allow_names %}
             <label for="qna-name">Name{% if session.require_names %} (required){% else %} (optional){% endif %}</label>
-            <input id="qna-name" name="author_name" maxlength="60"{% if session.require_names %} required{% endif %}>
+            <input id="qna-name" name="author_name" maxlength="60" value="{{ form_name }}"{% if session.require_names %} required{% endif %}>
           {% endif %}
           <button type="submit" class="qna-button">Submit question</button>
-          <p id="qna-form-error" class="qna-error" role="alert"></p>
+          <p id="qna-form-error" class="qna-error" role="alert">{{ form_error }}</p>
         </form>
         <p id="qna-ask-closed" class="qna-muted" role="status"{% if qna_config.can_ask %} hidden{% endif %}>Questions are closed for this session. You can still read the questions below.</p>
       </section>

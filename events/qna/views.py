@@ -228,6 +228,90 @@ def _config(session: Any, *, moderator: bool) -> dict[str, Any]:
     return services.serialize_public_config(session, moderator=moderator)
 
 
+def _render_public_qna(
+    request: HttpRequest,
+    event: Any,
+    session: Any,
+    actor: ModerationActor | None,
+    *,
+    status: int = 200,
+    form_error: str = "",
+    form_text: str = "",
+    form_name: str = "",
+) -> HttpResponse:
+    return _private(
+        render(
+            request,
+            "events/qna/public.html",
+            {
+                "event": event,
+                "session": session,
+                "qna_config": _config(session, moderator=actor is not None),
+                "moderator": actor is not None,
+                "form_error": form_error,
+                "form_text": form_text,
+                "form_name": form_name,
+            },
+            status=status,
+        )
+    )
+
+
+def _submit_question_html(
+    request: HttpRequest, event: Any, session: Any, actor: ModerationActor | None
+) -> HttpResponse:
+    """Native no-JS fallback for the ask form (UX-08).
+
+    The browser submits the form directly when the Q&A scripts never run
+    (disabled, 404, or an initialization crash). It walks the same service
+    and rate limits as the JSON API — never a second authorization or
+    mutation path. Success follows POST/redirect/GET; failure re-renders
+    the page with a safe bounded message and the authored text preserved
+    in the body, never the query string.
+    """
+
+    participant, token = _participant(request)
+    text = request.POST.get("text", "")
+    name = request.POST.get("author_name", "")
+    try:
+        _rate_identity(f"question:{session.id}", participant, window=10, limit=1)
+        _rate_identity(f"question-hour:{session.id}", participant, window=3600, limit=20)
+        _rate_ip(request, "question-ip", window=3600, limit=300)
+        services.submit_question(event.id, text=text, author_name=name, participant=participant)
+    except QnaError as error:
+        return _with_participant(
+            _render_public_qna(
+                request,
+                event,
+                session,
+                actor,
+                status=error.status,
+                form_error=error.message,
+                form_text=text,
+                form_name=name,
+            ),
+            token,
+        )
+    except RevisionConflict:
+        return _with_participant(
+            _render_public_qna(
+                request,
+                event,
+                session,
+                actor,
+                status=409,
+                form_error="The session just changed; refresh and try again.",
+                form_text=text,
+                form_name=name,
+            ),
+            token,
+        )
+    # 303 See Other: the browser refetches the page with GET after the POST.
+    response = HttpResponse(status=303)
+    response["Location"] = f"{services.event_qna_path(event)}/"
+    return _with_participant(_private(response), token)
+
+
 @ensure_csrf_cookie
 def public_qna(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
     try:
@@ -236,21 +320,12 @@ def public_qna(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
         if redirect is not None:
             return redirect
         session, actor = _route_session(event, request)
+        if request.method == "POST":
+            return _submit_question_html(request, event, session, actor)
         if request.method not in {"GET", "HEAD"}:
             return _private(HttpResponse("Method not allowed", status=405))
         return _with_participant(
-            _private(
-                render(
-                    request,
-                    "events/qna/public.html",
-                    {
-                        "event": event,
-                        "session": session,
-                        "qna_config": _config(session, moderator=actor is not None),
-                        "moderator": actor is not None,
-                    },
-                )
-            ),
+            _render_public_qna(request, event, session, actor),
             _participant(request)[1],
         )
     except (QnaError, RevisionConflict) as error:

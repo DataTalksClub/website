@@ -130,7 +130,7 @@ class EventQnaLifecyclePollContractTests(TestCase):
         body = page.content.decode()
         # The ask form is withdrawn, the explanation is shown, and the
         # banner names the state.
-        self.assertIn('id="qna-question-form" hidden', body)
+        self.assertIn('id="qna-question-form" method="post" hidden', body)
         self.assertIn("Questions are closed for this session.", body)
         self.assertIn("Closed", body)
         # The list itself renders client-side; the browser suite in
@@ -139,7 +139,7 @@ class EventQnaLifecyclePollContractTests(TestCase):
         services.transition_session(self.event.id, EventQnaSession.State.OPEN)
         reopened = self.client.get(self.page_url)
         body = reopened.content.decode()
-        self.assertNotIn('id="qna-question-form" hidden', body)
+        self.assertNotIn('id="qna-question-form" method="post" hidden', body)
         self.assertIn('id="qna-ask-closed" class="qna-muted" role="status" hidden', body)
 
     def test_participant_page_selects_the_configured_default_sort(self) -> None:

@@ -82,7 +82,11 @@ def test_qna_participant_cohost_and_error_shells(
         assert event_link_box is not None and event_link_box["height"] >= 44
         detail = page.request.get(f"{live_server.url}{event_link.get_attribute('href')}")
         assert detail.status == 200
-        for target in page.locator("button, textarea, input, select").all():
+        # UX-08 added the CSRF token as a hidden input: not an interactive
+        # target, so the tap-target contract skips it.
+        for target in page.locator(
+            "button, textarea, input:not([type='hidden']), select"
+        ).all():
             box = target.bounding_box()
             assert box is not None and box["height"] >= 44
         sort = page.locator("#qna-sort")
