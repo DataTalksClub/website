@@ -1051,7 +1051,7 @@ def _wiki_search_results(query: str) -> tuple[dict, ...]:
 @require_safe
 def wiki_search(request: HttpRequest) -> HttpResponse:
     query = request.GET.get("q", "").strip()[:200]
-    return _render(
+    response = _render(
         request,
         "public/wiki_search.html",
         path="/wiki",
@@ -1059,6 +1059,12 @@ def wiki_search(request: HttpRequest) -> HttpResponse:
         description="Find wiki pages, guides, summaries, people, and books.",
         context={"query": query, "results": _wiki_search_results(query)},
     )
+    # Search is the spec's explicitly private surface, whichever route shape
+    # served it (the wiki hub delegates here for `q`).  The middleware's route
+    # registry vetoes the same requests; this declaration keeps the search
+    # contract true at the view even if the registry entry ever moves.
+    response["Cache-Control"] = "private, no-store, max-age=0"
+    return response
 
 
 @require_safe

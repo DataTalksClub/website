@@ -20,6 +20,7 @@ cadmin/legacy_urls.py	legacy URL adapter	courses	Delete after observed legacy tr
 ci/ownership.json	verification policy	testing	Remove the legacy-shim input only when the cadmin compatibility adapter is deleted.
 ci/tests/test_selection.py	verification policy test	testing	Retain while the graph-owned selector contract tests the legacy compatibility mapping.
 content/route_contracts.py	legacy contract adapter	seo	Remove legacy mapping only after pinned source contracts and observed traffic approve retirement.
+core/cache_policy.py	legacy URL adapter	courses	Remove the route classification only when the legacy route adapter is deleted.
 core/middleware.py	legacy URL adapter	courses	Remove the private-route classification only when the legacy route adapter is deleted.
 core/tests/test_course_platform_adoption.py	adoption provenance test	courses	Retain while the exact source-to-destination and reviewed-reference inventories are enforced.
 core/tests/test_development_seo.py	legacy contract test	seo	Remove the noindex/private assertions only when the legacy route adapter is deleted.

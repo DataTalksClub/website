@@ -7,6 +7,15 @@ from django.core.handlers.wsgi import LimitedStream
 from django.http import HttpRequest, HttpResponse, HttpResponsePermanentRedirect, JsonResponse
 from django.middleware.common import CommonMiddleware
 
+from core.cache_policy import (
+    PERMANENT_REDIRECT,
+    PRIVATE_DYNAMIC,
+    PUBLIC_NOT_FOUND,
+    QUERY_ALLOWLISTS,
+    ROUTE_CACHE_CLASSES,
+    SHAREABLE_CACHE_CLASSES,
+    request_query_keys,
+)
 from core.context import (
     CONTEXT_ID_PATTERN,
     bind_context,
@@ -352,6 +361,82 @@ def apply_private_no_store(response: HttpResponse) -> None:
     response["Cache-Control"] = ", ".join(retained)
 
 
+_ERROR_CACHE_VETO_STATUSES = frozenset({400, 401, 403, 405, 409, 429})
+_SHAREABLE_METHODS = frozenset({"GET", "HEAD"})
+# Alias redirects for the reviewed one-hop contract may be mounted on
+# hybrid hub/detail views (stale event slugs), so the response shape, not
+# only the registry class, carries the redirect query contract.
+_REDIRECT_CACHE_STATUSES = frozenset({301, 302, 308})
+
+
+def _resolved_view_path(match: object) -> str | None:
+    """Return the registry key of the route that produced the response."""
+
+    func = getattr(match, "func", None)  # type: ignore[attr-defined]
+    if func is None:
+        return None
+    view_class = getattr(func, "view_class", None)
+    if view_class is not None:
+        return f"{view_class.__module__}.{view_class.__name__}"
+    module = getattr(func, "__module__", None)
+    name = getattr(func, "__name__", None)
+    if not module or not name:
+        return None
+    return f"{module}.{name}"
+
+
+def response_may_stay_shareable(request: HttpRequest, response: HttpResponse) -> bool:
+    """Apply spec 02's final cache veto to a finished response.
+
+    Only eligible ``GET``/``HEAD`` responses of registered public routes may
+    keep the cache directives their view set; every unregistered route and
+    every unsafe response characteristic — error status, ``Set-Cookie``,
+    ``Vary: *``, an unregistered query variant, an unsafe method — is forced
+    to the private policy.  A response that already declared itself private is
+    left byte-identical: the guard only ever removes shareability, never adds
+    directives.  Responses that never resolved a Django view (WhiteNoise
+    static short-circuits, middleware rejections) stay untouched on success
+    because the registry contract covers Django routes; their failure statuses
+    are still vetoed below.
+    """
+
+    existing = {
+        directive.partition("=")[0].strip().casefold()
+        for directive in response.headers.get("Cache-Control", "").split(",")
+    }
+    if "no-store" in existing or "private" in existing:
+        return True
+    if request.method not in _SHAREABLE_METHODS:
+        return False
+    status = response.status_code
+    if status in _ERROR_CACHE_VETO_STATUSES or status >= 500:
+        return False
+    if response.cookies:
+        return False
+    vary_tokens = {token.strip() for token in response.headers.get("Vary", "").split(",")}
+    if "*" in vary_tokens:
+        return False
+    match = getattr(request, "resolver_match", None)
+    view_path = _resolved_view_path(match)
+    if status == 404:
+        cache_class = PUBLIC_NOT_FOUND
+    elif view_path is None:
+        return True
+    else:
+        cache_class = ROUTE_CACHE_CLASSES.get(view_path, PRIVATE_DYNAMIC)
+    if cache_class not in SHAREABLE_CACHE_CLASSES:
+        return False
+    if cache_class == PERMANENT_REDIRECT or status in _REDIRECT_CACHE_STATUSES:
+        return True
+    # A shareable view absent from the grammar map admits no query (its
+    # canonical path is the whole contract); an unmatched 404 admits none
+    # either, so a missing view can only make the query fail the check.
+    allowlist = (
+        QUERY_ALLOWLISTS.get(view_path, frozenset()) if view_path is not None else frozenset()
+    )
+    return request_query_keys(request.META.get("QUERY_STRING", "")) <= allowlist
+
+
 class ResponsePolicyMiddleware:
     """Apply environment and privacy policy after every inner response path."""
 
@@ -388,5 +473,10 @@ class ResponsePolicyMiddleware:
             or _is_credential_bearing_request(request)
             or private_surface
         ):
+            apply_private_no_store(response)
+        elif not response_may_stay_shareable(request, response):
+            # Spec 02's route registry: an unclassified route, an unregistered
+            # query variant, or an unsafe response characteristic is private,
+            # never implicitly public.
             apply_private_no_store(response)
         return response

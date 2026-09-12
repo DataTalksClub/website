@@ -94,8 +94,14 @@ class DevelopmentResponsePolicyTests(TestCase):
                 assert_private_no_store(self, response)
                 self.assertNotIn(canary, response.content.decode())
 
+        # PUB-02's registry: an unregistered query variant on a registered
+        # public route stays publicly *reachable* but is no longer shareable —
+        # only the reviewed selectors (podcast `season`, events `filter`,
+        # catalogue `page`, redirect preservation) keep shared-cache
+        # eligibility.  Ordinary keys are still served, unlike sensitive ones.
         ordinary = self.client.get("/fixture/public-cache?utm_source=nl")
-        self.assertEqual(ordinary.headers["Cache-Control"], "public, max-age=300")
+        self.assertEqual(ordinary.status_code, 200)
+        assert_private_no_store(self, ordinary)
 
     def test_every_authenticated_response_is_private_even_on_public_path(self) -> None:
         user = get_user_model().objects.create_user(
