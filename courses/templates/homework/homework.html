@@ -63,6 +63,20 @@
       <strong>{{ homework.due_date|user_datetime:request }}</strong>
       <span class="time-left" data-deadline="{{ homework.due_date|date:"c" }}" data-prefix="false"></span>
     </div>
+    {% if is_authenticated and accepting_submissions and not homework.is_scored %}
+      {% comment %}
+        The student's own save state, said once, above the fold -- a form
+        that can run past 3,000px used to say this only next to the button
+        at the very end of it (fixes issue #237 finding 1).
+      {% endcomment %}
+      <p class="fact-status">
+        {% if submission.pk %}
+          <span class="status-pill status-pill-mint"><span class="status-dot" aria-hidden="true"></span>saved &middot; {{ submission.submitted_at|user_date_short:request }}</span>
+        {% else %}
+          <span class="status-pill status-pill-wait">not saved yet</span>
+        {% endif %}
+      </p>
+    {% endif %}
     <p class="field-hint">
       {% if is_authenticated %}
         Deadlines are shown in your
@@ -115,9 +129,12 @@
         {% include "core/_callout.html" with tone="info" role="status" message=message %}
       {% endif %}
     {% endfor %}
-    {% for error in errors %}
-      {% include "core/_callout.html" with tone="attention" role="alert" message=error %}
-    {% endfor %}
+    {% comment %}
+      A failed save's errors are not repeated here: the shared
+      `.a11y-error-summary` inside `_submission_form.html` names them, one
+      link per field, right beside the fields it names -- not as a second,
+      unlinked surface at the top of the band.
+    {% endcomment %}
     {% url 'login' as login_url %}
     {% if homework.is_scored %}
       {% if not is_authenticated %}
@@ -254,22 +271,149 @@
     padding: 0;
   }
 
+  /* The legend is the question's first row: a numbered disc (the same drawn
+     mark the homepage climb and module accordion use, via the shared
+     `--drawn-circle` tokens), the question text, and the points pinned to
+     the same row -- so "1." can no longer read as part of the sentence
+     (issue #237 finding 3), and the points label stops landing in three
+     different places depending on how the question text wraps (finding 4). */
+  .question-head {
+    align-items: start;
+    display: flex;
+    gap: 0.85rem;
+    width: 100%;
+  }
+
+  .question-number {
+    align-items: center;
+    background: var(--bubble);
+    border: 2px solid var(--line);
+    border-radius: var(--drawn-circle);
+    color: var(--on-bubble);
+    display: inline-flex;
+    flex: none;
+    font-size: 0.95rem;
+    font-weight: 800;
+    height: 2.25rem;
+    justify-content: center;
+    width: 2.25rem;
+  }
+
+  .questions > li:nth-child(3n + 2) .question-number {
+    border-radius: var(--drawn-circle-b);
+  }
+
+  .questions > li:nth-child(3n) .question-number {
+    border-radius: var(--drawn-circle-c);
+  }
+
+  /* The disc turns green once the question has any answer, so the column of
+     discs is itself a progress read -- the initial state is the
+     `is_question_answered` filter's, kept live by `homework_progress.js`. */
+  .question-number[data-answered="true"] {
+    background: var(--green);
+    color: var(--on-green);
+  }
+
+  .question-title {
+    align-items: baseline;
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.85rem;
+    justify-content: space-between;
+    min-width: 0;
+    padding-top: 0.2rem;
+  }
+
   .question-text {
     color: var(--ink);
+    flex: 1 1 22rem;
+    font-size: 1.08rem;
     font-weight: 700;
+    overflow-wrap: anywhere;
     padding: 0;
   }
 
   /* The point value is metadata about the question, so it is said in the same
-     mono label voice as the deadline instead of competing with the wording. */
+     mono label voice as the deadline instead of competing with the wording.
+     Pinned to the title row's far end instead of trailing inline text, so it
+     no longer lands in three different places depending on how the question
+     wraps. */
   .question-note {
-    margin-inline-start: 0.5rem;
+    flex: none;
     white-space: nowrap;
+  }
+
+  .question-body {
+    display: grid;
+    gap: 0.5rem;
+    padding-inline-start: 3.1rem;
+  }
+
+  @media (max-width: 47.99rem) {
+    .question-body {
+      padding-inline-start: 0;
+    }
   }
 
   .question-options {
     display: grid;
-    gap: 0.35rem;
+    gap: 0.5rem;
+  }
+
+  /* One option = one full-width row that is the entire hit target, not just
+     the 20px control and the label text on a 608px row (finding 6).  The
+     option markup is still the shared `.form-check`/`.form-check-input`/
+     `.form-check-label` primitive -- this only reaches it as
+     `.question-options .form-check` so the shape stays scoped to this one
+     form's option rows rather than restating the shared primitive. */
+  .question-options .form-check {
+    background: var(--card);
+    border: 2px solid var(--line-soft);
+    border-radius: 0.625rem;
+    cursor: pointer;
+    padding: 0.5rem 0.85rem;
+  }
+
+  .question-options .form-check:hover {
+    border-color: var(--line);
+  }
+
+  .question-options .form-check:has(.form-check-input:checked) {
+    background: var(--lavender-deep);
+    border-color: var(--line);
+  }
+
+  .question-options .form-check:has(.form-check-input:focus-visible) {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .question-options .form-check-input:focus-visible {
+    outline: 0;
+  }
+
+  .question-options .form-check-label {
+    overflow-wrap: anywhere;
+  }
+
+  /* A disabled radio/checkbox on the scored, read-only view is not the
+     answer key: the browser's own reduced opacity for a disabled control
+     made the correct answer the faintest thing on the page (finding 19).
+     The correct/incorrect state is carried by the checkmark below plus this
+     row's own tint, not by how dim the control looks. */
+  .question-options .form-check-input:disabled {
+    opacity: 1;
+  }
+
+  .question-options .form-check.option-answer-correct {
+    background: var(--mint);
+    border-color: var(--green);
+  }
+
+  .question-options .form-check.option-answer-incorrect {
+    border-color: var(--olive);
   }
 
   .option-answer-correct .form-check-label::after,
@@ -312,6 +456,220 @@
   .form-control.option-answer-incorrect {
     border-color: var(--olive);
   }
+
+  /* The student's own save state, in the hero facts strip -- said once,
+     above the fold, instead of only at the foot of a form that can run past
+     3,000px (finding 1). */
+  .fact-status {
+    margin: 0;
+  }
+
+  /* A homework is the one content page whose body is a form that can run
+     past 3,000px.  From 62rem the work surface breaks out of the ordinary
+     reading shell so a sticky progress rail can sit beside it; below that
+     the rail is replaced by `.save-bar`, the sticky footer inside the form
+     (finding 1, 20). */
+  .work-surface {
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  @media (min-width: 62rem) {
+    .work-surface-with-rail {
+      --rail-width: 17rem;
+      --breakout-width: min(calc(var(--form-measure) + var(--rail-width) + 3rem), calc(100vw - 2.5rem));
+      align-items: start;
+      gap: 3rem;
+      grid-template-columns: minmax(0, var(--form-measure)) var(--rail-width);
+      margin-inline: calc((100% - var(--breakout-width)) / 2);
+      max-width: none;
+      width: var(--breakout-width);
+    }
+  }
+
+  /* Demoted below the "Questions" band head: a `.band-head-secondary` inside
+     the same lavender band was drawn at the same size as the graded work
+     above it (finding 2). */
+  #submission-details-heading {
+    font-size: 1.35rem;
+  }
+
+  .link-row .cta-secondary {
+    flex: none;
+  }
+
+  .field-group {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .field-group-legend {
+    color: var(--ink);
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  .field-pair {
+    display: grid;
+    gap: 0.85rem;
+    margin-top: 0.35rem;
+  }
+
+  @media (min-width: 40rem) {
+    .field-pair {
+      gap: 1.25rem;
+      grid-template-columns: repeat(2, minmax(0, 12rem));
+    }
+  }
+
+  .unit-input {
+    align-items: center;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .unit-input .field-input {
+    max-width: 8rem;
+  }
+
+  .unit-input .unit {
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+  }
+
+  /* --- the progress rail (>= 62rem) ------------------------------------ */
+  .rail {
+    display: none;
+  }
+
+  @media (min-width: 62rem) {
+    .rail {
+      display: grid;
+      gap: 1rem;
+      position: sticky;
+      top: 1rem;
+    }
+  }
+
+  .rail .card {
+    gap: 0.85rem;
+    padding: 1.15rem;
+  }
+
+  .rail h2 {
+    font-size: 1.05rem;
+  }
+
+  .rail-count {
+    align-items: baseline;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .rail-count strong {
+    color: var(--ink);
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .question-map {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .question-map a {
+    align-items: center;
+    background: var(--card);
+    border: 2px solid var(--line-soft);
+    border-radius: var(--drawn-circle);
+    color: var(--ink);
+    display: inline-flex;
+    font-size: 0.85rem;
+    font-weight: 700;
+    height: 2.25rem;
+    justify-content: center;
+    text-decoration: none;
+    width: 2.25rem;
+  }
+
+  .question-map li:nth-child(3n + 2) a {
+    border-radius: var(--drawn-circle-b);
+  }
+
+  .question-map li:nth-child(3n) a {
+    border-radius: var(--drawn-circle-c);
+  }
+
+  .question-map a[data-answered="true"] {
+    background: var(--green);
+    border-color: var(--line);
+    color: var(--on-green);
+  }
+
+  .question-map a:hover {
+    border-color: var(--line);
+  }
+
+  .rail-facts {
+    border-top: 1.5px dashed var(--line-soft);
+    display: grid;
+    gap: 0.15rem;
+    padding-top: 0.75rem;
+  }
+
+  .rail-facts strong {
+    color: var(--ink);
+  }
+
+  .rail .cta {
+    width: 100%;
+  }
+
+  /* --- the sticky save bar (< 62rem) ------------------------------------ */
+  .save-bar {
+    align-items: center;
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: 0.9rem;
+    bottom: 0.75rem;
+    box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
+    margin-top: 1.5rem;
+    padding: 0.65rem 0.65rem 0.65rem 1rem;
+    position: sticky;
+  }
+
+  .save-bar-status {
+    display: grid;
+    gap: 0.05rem;
+    min-width: 0;
+  }
+
+  .save-bar-status strong {
+    color: var(--ink);
+    font-size: 0.92rem;
+  }
+
+  .save-bar-status span {
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+
+  .save-bar .cta {
+    flex: none;
+  }
+
+  @media (min-width: 62rem) {
+    .save-bar {
+      display: none;
+    }
+  }
 {% endblock %}
 
 {% block submission_content %}
@@ -324,4 +682,7 @@
     <script src="{% static 'learning_in_public.js' %}"></script>
   {% endif %}
   <script src="{% static 'homework.js' %}"></script>
+  {% if is_authenticated and accepting_submissions and not homework.is_scored %}
+    <script src="{% static 'homework_progress.js' %}"></script>
+  {% endif %}
 {% endblock %}

@@ -1,8 +1,59 @@
 {% load custom_filters %}
 
-<form method="post" class="needs-validation cmp-form homework-form submission-form" novalidate>
+{% comment %}
+  Adversarial redesign (issue #237, `_docs/design/adversarial-redesign-process.md`),
+  implemented against `.tmp/fable-homework-form-mockup.html` and
+  `.tmp/fable-homework-form-design-notes.md`.  Field names, ids, POST keys and
+  every `courses.views.homework_*` decision are unchanged -- this is a
+  presentation and client-side-validation pass, not a scoring change.
+
+  `.work-surface` breaks the 46rem reading column out to a two-column layout
+  from 62rem (see `homework.html`'s own styles): the form keeps its measure,
+  and a sticky rail beside it carries the answered count, the shared progress
+  bar, and a jump-map of numbered discs -- so a 3,500px form says where the
+  student stands without scrolling to the bottom.  Below 62rem the rail is
+  replaced by the `.save-bar` sticky footer inside the form.  Both read the
+  same per-question "answered" state the `is_question_answered` filter
+  computes for the initial render; `homework_progress.js` keeps it live as
+  the student fills the form in, before anything is saved.
+{% endcomment %}
+<div class="work-surface{% if is_authenticated and accepting_submissions and not homework.is_scored %} work-surface-with-rail{% endif %}">
+<form method="post" class="needs-validation cmp-form homework-form submission-form" id="homework-form" novalidate>
   {% if is_authenticated %}
     {% csrf_token %}
+  {% endif %}
+  {% if error_summary_items %}
+    {% comment %}
+      One shared summary instead of a scattered callout per error (fixes the
+      client tooltip stacking on top of a page-authored message, and a
+      server error rendered ~2,600px from its field with no link and no
+      `aria-invalid`).  Each item links to the field it names when the field
+      is known; `core/accessibility.js` focuses this on load via
+      `data-focus-error-summary`, the same behaviour the shared
+      `core/templates/accessibility/error_summary.html` primitive uses for a
+      Django Form -- this page builds the same markup by hand because its
+      submission isn't one.
+    {% endcomment %}
+    <section
+      class="a11y-error-summary"
+      role="alert"
+      aria-labelledby="homework-error-summary-title"
+      tabindex="-1"
+      data-focus-error-summary
+    >
+      <h2 id="homework-error-summary-title">Your answers were not saved &mdash; {{ error_summary_items|length }} thing{{ error_summary_items|length|pluralize }} to fix</h2>
+      <ul>
+        {% for item in error_summary_items %}
+          <li>
+            {% if item.field %}
+              <a href="#{{ item.field }}">{{ item.message }}</a>
+            {% else %}
+              {{ item.message }}
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
   {% endif %}
   <div>
     <div class="band-head">
@@ -21,115 +72,133 @@
     {% endcomment %}
     {% if homework.is_scored and not is_authenticated %}
       <p class="submission-support">Review the expected answers for this scored homework.</p>
+    {% elif is_authenticated and accepting_submissions and not homework.is_scored %}
+      <p class="submission-support">Partial answers are fine &mdash; save as often as you like. Unanswered questions score zero, not a penalty.</p>
     {% endif %}
-    <div class="submission-fields homework-fields homework-questions cmp-form-fields">
+    <ol class="questions submission-fields homework-fields homework-questions cmp-form-fields">
       {% for question, answer in question_answers %}
-        <fieldset class="question">
-          <legend class="question-text" id="question-label-{{ question.id }}">
-            {{ forloop.counter }}. {{ question.text }}
-            {% if question.scores_for_correct_answer != 0 %}
-              <span class="question-note mono-label">{{ question.scores_for_correct_answer }} {{ question.scores_for_correct_answer|pluralize:"point,points" }}</span>
-            {% else %}
-              <span class="question-note mono-label">not graded</span>
-            {% endif %}
-          </legend>
-          {% if is_authenticated and answer.no_answer_submitted %}
-            <p class="no-answer-indicator">No answer was submitted for this question</p>
-          {% endif %}
-          {% if question.question_type == 'MC' %}
-            <div class="question-options">
-              {% for option in answer.options %}
-                <div class="form-check {{ option.correctly_selected_class }}">
+        {% with question_answered=answer|is_question_answered %}
+          <li id="q{{ question.id }}">
+            <fieldset class="question">
+              <legend class="question-head">
+                <span class="question-number" data-answered="{{ question_answered|yesno:'true,false' }}" aria-hidden="true">{{ forloop.counter }}</span>
+                <span class="question-title">
+                  <span class="question-text" id="question-label-{{ question.id }}">{{ question.text }}</span>
+                  {% if question.scores_for_correct_answer != 0 %}
+                    <span class="question-note mono-label">{{ question.scores_for_correct_answer }} {{ question.scores_for_correct_answer|pluralize:"point,points" }}</span>
+                  {% else %}
+                    <span class="question-note mono-label">not graded</span>
+                  {% endif %}
+                </span>
+              </legend>
+              <div class="question-body">
+                {% if is_authenticated and answer.no_answer_submitted and submission.pk %}
+                  {% comment %}
+                    Only shown once a submission exists: on a scored homework
+                    with no submission at all, the state notice above the
+                    form already says so once, and this would otherwise
+                    repeat the same fact on every question.
+                  {% endcomment %}
+                  <p class="no-answer-indicator">No answer was submitted for this question</p>
+                {% endif %}
+                {% if question.question_type == 'MC' %}
+                  <div class="question-options">
+                    {% for option in answer.options %}
+                      <label class="form-check {{ option.correctly_selected_class }}">
+                        <input
+                          class="form-check-input"
+                          id="radio-{{ question.id }}-{{ forloop.counter }}"
+                          type="radio"
+                          name="answer_{{ question.id }}"
+                          value="{{ option.index }}"
+                          aria-labelledby="question-label-{{ question.id }} radio-label-{{ question.id }}-{{ forloop.counter }}"
+                          {% if option.is_selected or not is_authenticated and homework.is_scored and option.is_correct %}checked{% endif %}
+                          {% if disabled %}disabled{% endif %}
+                        />
+                        <span
+                          class="form-check-label"
+                          id="radio-label-{{ question.id }}-{{ forloop.counter }}"
+                        >
+                          {{ option.value }}
+                        </span>
+                      </label>
+                    {% endfor %}
+                  </div>
+                {% elif question.question_type == 'CB' %}
+                  <div class="question-options">
+                    {% for option in answer.options %}
+                      <label class="form-check {{ option.correctly_selected_class }}">
+                        <input
+                          class="form-check-input"
+                          id="checkbox-{{ question.id }}-{{ forloop.counter }}"
+                          type="checkbox"
+                          name="answer_{{ question.id }}"
+                          value="{{ option.index }}"
+                          aria-labelledby="question-label-{{ question.id }} checkbox-label-{{ question.id }}-{{ forloop.counter }}"
+                          {% if option.is_selected or not is_authenticated and homework.is_scored and option.is_correct %}checked{% endif %}
+                          {% if disabled %}disabled{% endif %}
+                        />
+                        <span
+                          class="form-check-label"
+                          id="checkbox-label-{{ question.id }}-{{ forloop.counter }}"
+                        >
+                          {{ option.value }}
+                        </span>
+                      </label>
+                    {% endfor %}
+                  </div>
+                {% elif question.question_type == 'FF' %}
                   <input
-                    class="form-check-input"
-                    id="radio-{{ question.id }}-{{ forloop.counter }}"
-                    type="radio"
+                    class="field-input form-control {{ answer.correctly_selected_class }}"
+                    {% if question.answer_type == 'INT' %}
+                      type="number"
+                      step="1"
+                      inputmode="numeric"
+                    {% elif question.answer_type == 'FLT' %}
+                      type="number"
+                      step="any"
+                      inputmode="decimal"
+                    {% else %}
+                      type="text"
+                    {% endif %}
                     name="answer_{{ question.id }}"
-                    value="{{ option.index }}"
-                    aria-labelledby="question-label-{{ question.id }} radio-label-{{ question.id }}-{{ forloop.counter }}"
-                    {% if option.is_selected or not is_authenticated and homework.is_scored and option.is_correct %}checked{% endif %}
+                    id="answer_{{ question.id }}"
+                    value="{{ answer.text|default:'' }}"
+                    aria-labelledby="question-label-{{ question.id }}"
                     {% if disabled %}disabled{% endif %}
                   />
-                  <label
-                    class="form-check-label"
-                    id="radio-label-{{ question.id }}-{{ forloop.counter }}"
-                    for="radio-{{ question.id }}-{{ forloop.counter }}"
-                  >
-                    {{ option.value }}
-                  </label>
-                </div>
-              {% endfor %}
-            </div>
-          {% elif question.question_type == 'CB' %}
-            <div class="question-options">
-              {% for option in answer.options %}
-                <div class="form-check {{ option.correctly_selected_class }}">
-                  <input
-                    class="form-check-input"
-                    id="checkbox-{{ question.id }}-{{ forloop.counter }}"
-                    type="checkbox"
+                {% elif question.question_type == 'FL' %}
+                  <textarea
+                    class="field-input form-control answer-long {{ answer.correctly_selected_class }}"
                     name="answer_{{ question.id }}"
-                    value="{{ option.index }}"
-                    aria-labelledby="question-label-{{ question.id }} checkbox-label-{{ question.id }}-{{ forloop.counter }}"
-                    {% if option.is_selected or not is_authenticated and homework.is_scored and option.is_correct %}checked{% endif %}
+                    id="answer_{{ question.id }}"
+                    rows="5"
+                    aria-labelledby="question-label-{{ question.id }}"
                     {% if disabled %}disabled{% endif %}
-                  />
-                  <label
-                    class="form-check-label"
-                    id="checkbox-label-{{ question.id }}-{{ forloop.counter }}"
-                    for="checkbox-{{ question.id }}-{{ forloop.counter }}"
-                  >
-                    {{ option.value }}
-                  </label>
-                </div>
-              {% endfor %}
-            </div>
-          {% elif question.question_type == 'FF' %}
-            <input
-              class="field-input form-control {{ answer.correctly_selected_class }}"
-              {% if question.answer_type == 'INT' %}
-                type="number"
-                step="1"
-                inputmode="numeric"
-              {% elif question.answer_type == 'FLT' %}
-                type="number"
-                step="any"
-                inputmode="decimal"
-              {% else %}
-                type="text"
-              {% endif %}
-              name="answer_{{ question.id }}"
-              id="answer_{{ question.id }}"
-              value="{{ answer.text|default:'' }}"
-              aria-labelledby="question-label-{{ question.id }}"
-              {% if disabled %}disabled{% endif %}
-            />
-          {% elif question.question_type == 'FL' %}
-            <textarea
-              class="field-input form-control {{ answer.correctly_selected_class }}"
-              name="answer_{{ question.id }}"
-              id="answer_{{ question.id }}"
-              rows="5"
-              aria-labelledby="question-label-{{ question.id }}"
-              {% if disabled %}disabled{% endif %}
-            >{{ answer.text|default:'' }}</textarea>
-          {% endif %}
-          {% if answer.correctly_selected_class == 'option-answer-correct' %}
-            <p><span class="status-pill status-pill-mint">Correct</span></p>
-          {% elif answer.correctly_selected_class == 'option-answer-incorrect' %}
-            <p><span class="status-pill status-pill-wait">Incorrect</span></p>
-          {% endif %}
-        </fieldset>
+                  >{{ answer.text|default:'' }}</textarea>
+                {% endif %}
+                {% if answer.correctly_selected_class == 'option-answer-correct' %}
+                  <p><span class="status-pill status-pill-mint">Correct</span></p>
+                {% elif answer.correctly_selected_class == 'option-answer-incorrect' %}
+                  <p><span class="status-pill status-pill-wait">Incorrect</span></p>
+                {% endif %}
+              </div>
+            </fieldset>
+          </li>
+        {% endwith %}
       {% empty %}
         {% include "core/_callout.html" with tone="info" message="No public answers are available for this homework yet." %}
       {% endfor %}
-    </div>
+    </ol>
   </div>
   {% if is_authenticated %}
     <div>
       <div class="band-head band-head-secondary">
         <div>
           <h2 id="submission-details-heading">Submission details</h2>
+          {% if not homework.is_scored %}
+            <p>Where your code lives, plus a few optional notes that help the course team.{% if homework.homework_url_field %} <span class="a11y-required" aria-hidden="true">*</span> marks the one required field.{% endif %}</p>
+          {% endif %}
         </div>
       </div>
       <div class="submission-fields homework-fields cmp-form-fields">
@@ -141,57 +210,104 @@
             </div>
           {% else %}
             <div class="field">
-              <label class="field-label" for="homework_url">Homework URL</label>
+              <label class="field-label" for="homework_url">
+                Homework URL <span class="a11y-required" aria-hidden="true">*</span><span class="sr-only">(required)</span>
+              </label>
               <p class="field-hint">Link to GitHub or other public code-hosting website.</p>
               <input
                 type="url"
-                class="field-input form-control {% if 'homework_url' in error_fields %}is-invalid{% endif %}"
+                class="field-input form-control{% if 'homework_url' in error_field_messages %} is-invalid{% endif %}"
                 id="homework_url"
                 name="homework_url"
                 value="{{ submission.homework_link|default:'' }}"
                 required
+                {% if 'homework_url' in error_field_messages %}aria-invalid="true" aria-errormessage="homework_url-error"{% endif %}
               />
-              <div class="invalid-feedback">Check that the repository exists and is public.</div>
+              <div class="invalid-feedback a11y-error" id="homework_url-error">{% if 'homework_url' in error_field_messages %}{{ error_field_messages.homework_url.0 }}{% endif %}</div>
             </div>
           {% endif %}
         {% endif %}
         {% include 'include/learning_in_public_links.html' with course=course learning_in_public_cap=homework.learning_in_public_cap learning_in_public_links=submission.learning_in_public_links disabled=disabled accepting_submissions=accepting_submissions disable_learning_in_public=disable_learning_in_public %}
-        {% if homework.time_spent_lectures_field %}
+        {% if homework.time_spent_lectures_field or homework.time_spent_homework_field %}
           {% if homework.is_scored %}
-            <div class="field">
-              <p class="field-label">Time spent on lectures (hours) (optional)</p>
-              <p class="readonly-value">{{ submission.time_spent_lectures|default:"Not submitted" }}</p>
-            </div>
+            {% if homework.time_spent_lectures_field %}
+              <div class="field">
+                <p class="field-label">Time spent on lectures (hours) (optional)</p>
+                <p class="readonly-value">{{ submission.time_spent_lectures|default:"Not submitted" }}</p>
+              </div>
+            {% endif %}
+            {% if homework.time_spent_homework_field %}
+              <div class="field">
+                <p class="field-label">Time spent on homework (hours) (optional)</p>
+                <p class="readonly-value">{{ submission.time_spent_homework|default:"Not submitted" }}</p>
+              </div>
+            {% endif %}
           {% else %}
-            <div class="field">
-              <label class="field-label" for="time_spent_lectures">Time spent on lectures (hours) (optional)</label>
-              <p class="field-hint">How much time (in hours) did you spend on watching lectures and reading?</p>
-              <input type="number" class="field-input form-control" name="time_spent_lectures" id="time_spent_lectures" min="0" value="{{ submission.time_spent_lectures|default:'' }}" />
-            </div>
-          {% endif %}
-        {% endif %}
-        {% if homework.time_spent_homework_field %}
-          {% if homework.is_scored %}
-            <div class="field">
-              <p class="field-label">Time spent on homework (hours) (optional)</p>
-              <p class="readonly-value">{{ submission.time_spent_homework|default:"Not submitted" }}</p>
-            </div>
-          {% else %}
-            <div class="field">
-              <label class="field-label" for="time_spent_homework">Time spent on homework (hours) (optional)</label>
-              <p class="field-hint">How much time (in hours) did you spend on homework?</p>
-              <input type="number" class="field-input form-control" name="time_spent_homework" id="time_spent_homework" min="0" value="{{ submission.time_spent_homework|default:'' }}" />
-            </div>
+            <fieldset class="field-group">
+              <legend class="field-group-legend">Time spent (optional)</legend>
+              <p class="field-hint" id="time-spent-hint">In hours. Decimals are fine &mdash; 2.5 or 2,5. This is for the course team's planning; it does not affect your score.</p>
+              <div class="field-pair">
+                {% if homework.time_spent_lectures_field %}
+                  <div class="field">
+                    <label class="field-label" for="time_spent_lectures">Lectures and reading</label>
+                    <div class="unit-input">
+                      <input
+                        type="text"
+                        class="field-input form-control{% if 'time_spent_lectures' in error_field_messages %} is-invalid{% endif %}"
+                        name="time_spent_lectures"
+                        id="time_spent_lectures"
+                        inputmode="decimal"
+                        value="{{ submission.time_spent_lectures|default:'' }}"
+                        aria-describedby="time-spent-hint"
+                        {% if 'time_spent_lectures' in error_field_messages %}aria-invalid="true" aria-errormessage="time_spent_lectures-error"{% endif %}
+                      />
+                      <span class="unit" aria-hidden="true">h</span>
+                    </div>
+                    {% if 'time_spent_lectures' in error_field_messages %}
+                      <span class="a11y-error" id="time_spent_lectures-error"><span class="sr-only">Error:</span> {{ error_field_messages.time_spent_lectures.0 }}</span>
+                    {% endif %}
+                  </div>
+                {% endif %}
+                {% if homework.time_spent_homework_field %}
+                  <div class="field">
+                    <label class="field-label" for="time_spent_homework">Homework</label>
+                    <div class="unit-input">
+                      <input
+                        type="text"
+                        class="field-input form-control{% if 'time_spent_homework' in error_field_messages %} is-invalid{% endif %}"
+                        name="time_spent_homework"
+                        id="time_spent_homework"
+                        inputmode="decimal"
+                        value="{{ submission.time_spent_homework|default:'' }}"
+                        aria-describedby="time-spent-hint"
+                        {% if 'time_spent_homework' in error_field_messages %}aria-invalid="true" aria-errormessage="time_spent_homework-error"{% endif %}
+                      />
+                      <span class="unit" aria-hidden="true">h</span>
+                    </div>
+                    {% if 'time_spent_homework' in error_field_messages %}
+                      <span class="a11y-error" id="time_spent_homework-error"><span class="sr-only">Error:</span> {{ error_field_messages.time_spent_homework.0 }}</span>
+                    {% endif %}
+                  </div>
+                {% endif %}
+              </div>
+            </fieldset>
           {% endif %}
         {% endif %}
         {% if course.homework_problems_comments_field %}
           <div class="field">
             <label class="field-label" for="problems_comments">Problems or comments (optional)</label>
-            <textarea class="field-input form-control" name="problems_comments" id="problems_comments" {% if disabled %}disabled{% endif %}>{{ submission.problems_comments|default:'' }}</textarea>
+            <textarea class="field-input form-control" name="problems_comments" id="problems_comments" rows="3" {% if disabled %}disabled{% endif %}>{{ submission.problems_comments|default:'' }}</textarea>
           </div>
         {% endif %}
         {% if homework.faq_contribution_field %}
-          {% include 'include/faq_contribution_field.html' %}
+          {% if homework.is_scored %}
+            <div class="field">
+              <p class="field-label">FAQ contribution PR or issue URL (optional)</p>
+              <p class="readonly-value">{{ submission.faq_contribution_url|default:"Not submitted" }}</p>
+            </div>
+          {% else %}
+            {% include 'include/faq_contribution_field.html' %}
+          {% endif %}
         {% endif %}
       </div>
       <div class="submission-status">
@@ -211,6 +327,7 @@
           {% else %}
             <p>You can save partial answers and update them until the deadline. Your latest saved version will be scored.</p>
           {% endif %}
+          <p class="mono-note"><span data-answered-count>0</span> of {{ question_answers|length }} question{{ question_answers|length|pluralize }} answered</p>
         {% endif %}
       </div>
       {% comment %}
@@ -225,7 +342,77 @@
             {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Update submission" variant="primary" compact=True %}
           {% endif %}
         </div>
+        {% comment %}
+          Below 62rem the rail (outside the form, in `.work-surface`) is
+          hidden; this sticky footer takes its job -- the answered count and
+          a compact Save that never covers the footer or navigation because
+          it is `position: sticky`, not `fixed`.
+        {% endcomment %}
+        <div class="save-bar">
+          <div class="save-bar-status">
+            <strong><span data-answered-count>0</span> of {{ question_answers|length }} answered</strong>
+            {% if submission.pk %}
+              <span>Last saved {{ submission.submitted_at|user_datetime:request }}</span>
+            {% else %}
+              <span>Not saved yet</span>
+            {% endif %}
+          </div>
+          <button class="cta cta-primary cta-compact" type="submit" form="homework-form">
+            {% if not submission.pk %}Save{% else %}Update{% endif %}
+          </button>
+        </div>
       {% endif %}
     </div>
   {% endif %}
 </form>
+{% if is_authenticated and accepting_submissions and not homework.is_scored %}
+  {% comment %}
+    The progress rail: sticky from 62rem beside the form (see
+    `.work-surface-with-rail` in `homework.html`).  It answers "where am I"
+    without scrolling to the bottom of a form that can run past 3,000px --
+    the answered count, the shared progress-bar primitive with full ARIA, a
+    jump-map of numbered discs matching the questions' own, and a second
+    submit button wired to the form by `form="homework-form"` rather than
+    nesting a second `<form>`.
+  {% endcomment %}
+  <aside class="rail" aria-labelledby="rail-heading">
+    <div class="card">
+      <h2 id="rail-heading">Your submission</h2>
+      <div class="rail-count">
+        <strong><span data-answered-count>0</span><span class="mono-note"> / {{ question_answers|length }}</span></strong>
+        <span class="mono-note">answered</span>
+      </div>
+      <div
+        class="progress"
+        role="progressbar"
+        aria-valuemin="0"
+        aria-valuemax="{{ question_answers|length }}"
+        aria-valuenow="0"
+        aria-label="Questions answered"
+      >
+        <div class="progress-fill" style="width: 0%"></div>
+      </div>
+      <ol class="question-map" aria-label="Jump to question">
+        {% for question, answer in question_answers %}
+          {% with question_answered=answer|is_question_answered %}
+            <li>
+              <a href="#q{{ question.id }}" data-answered="{{ question_answered|yesno:'true,false' }}" aria-label="Question {{ forloop.counter }}{% if question_answered %}, answered{% else %}, not answered{% endif %}">{{ forloop.counter }}</a>
+            </li>
+          {% endwith %}
+        {% endfor %}
+      </ol>
+      <div class="rail-facts">
+        <span class="mono-label">last saved</span>
+        {% if submission.pk %}
+          <strong>{{ submission.submitted_at|user_datetime:request }}</strong>
+        {% else %}
+          <strong>Not saved yet</strong>
+        {% endif %}
+      </div>
+      <button class="cta cta-primary cta-compact" type="submit" form="homework-form">
+        {% if not submission.pk %}Save submission{% else %}Update submission{% endif %}
+      </button>
+    </div>
+  </aside>
+{% endif %}
+</div>
