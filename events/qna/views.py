@@ -331,8 +331,18 @@ def qna_questions(request: HttpRequest, event_id: str, slug: str) -> HttpRespons
                 response = HttpResponse(status=304)
                 response["ETag"] = etag
                 return _with_participant(_private(response), token)
+            # UX-07: the poll result is the room's whole lifecycle state.
+            # Because the ETag covers the session state, a 304 here also
+            # vouches that the capabilities below are unchanged.
+            open_now = current.state == services.EventQnaSession.State.OPEN
             response = JsonResponse(
-                {"items": items, "counts": counts, "etag": etag, "state": current.state}
+                {
+                    "items": items,
+                    "counts": counts,
+                    "etag": etag,
+                    "state": current.state,
+                    "capabilities": {"can_ask": open_now, "can_vote": open_now},
+                }
             )
             response["ETag"] = etag
             return _with_participant(_private(response), token)

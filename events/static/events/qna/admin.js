@@ -105,9 +105,15 @@
     }
   }
 
-  function render(items, totals) {
-    lastItems = items;
-    lastTotals = totals;
+  function render(value) {
+    lastItems = value.items || [];
+    lastTotals = value.counts || {};
+    // UX-07: the host's banner follows the session state the poll just
+    // vouched for, so a lifecycle change in Studio shows up here too.
+    var banner = document.getElementById("qna-banner");
+    if (banner && value.state) {
+      banner.textContent = value.state.charAt(0).toUpperCase() + value.state.slice(1);
+    }
     rerender();
   }
 

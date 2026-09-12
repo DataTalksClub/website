@@ -884,7 +884,19 @@ def list_questions(
         "visible": sum(question.status == EventQnaQuestion.Status.VISIBLE for question in raw),
         "answered": sum(question.status == EventQnaQuestion.Status.ANSWERED for question in raw),
     }
+    # UX-07: the ETag validates the whole representation, not just the
+    # question rows. State and revision ride along so a lifecycle change
+    # (close, reopen, expiry) reaches already-open rooms as a 200 with the
+    # new state instead of a 304 that would leave a closed room looking
+    # open; placement and the effective sort decide the ordering the ETag
+    # vouches for, which matters because one client reuses its validator
+    # across sort selections.
+    effective_sort = sort or session.default_sort
     digest_builder = hashlib.sha256()
+    digest_builder.update(
+        f"{session.state}:{session.revision}:{session.answered_placement}:"
+        f"{effective_sort}:".encode()
+    )
     for question in ordered:
         digest_builder.update(_question_digest(question).encode("utf-8"))
     return items, counts, f'W/"{digest_builder.hexdigest()[:20]}"', session

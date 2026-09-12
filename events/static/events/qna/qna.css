@@ -20,6 +20,10 @@ a { color: var(--qna-accent); text-underline-offset: .18em; }
 .qna-kicker a { align-items: center; display: inline-flex; min-height: 2.75rem; }
 /* Notices take a surface and a full border, never a coloured left rail. */
 .qna-banner { background: var(--qna-surface); border: 2px solid var(--qna-border); border-radius: .55rem; color: var(--qna-muted); font-weight: 700; padding: .65rem .8rem; }
+/* UX-07: connection status lives under the banner and is quiet until a
+   poll fails; it never restyles the lifecycle banner. */
+.qna-connection { color: var(--qna-muted); font-size: .9rem; font-weight: 700; margin: .5rem 0 0; }
+.qna-connection[hidden] { display: none; }
 .qna-card { background: var(--qna-surface); border: 2px solid var(--qna-border); border-radius: .85rem; box-shadow: .28rem .28rem 0 color-mix(in srgb, var(--qna-border), transparent 20%); margin: 1.5rem 0; padding: clamp(1rem, 3vw, 1.5rem); }
 .qna-card h2 { font-size: clamp(1.3rem, 3vw, 1.65rem); margin-top: 0; }
 .qna-section-head { align-items: end; display: flex; gap: 1rem; justify-content: space-between; }

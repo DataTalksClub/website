@@ -42,20 +42,43 @@
     });
   }
 
+  // UX-07: connection trouble reports on its own status line, never the
+  // lifecycle banner — a failed poll must not make a room look opened or
+  // closed, and recovery says so once.
+  var connectionBroken = false;
+
+  function setConnection(message) {
+    var node = document.getElementById("qna-connection");
+    if (!node) return;
+    node.hidden = !message;
+    node.textContent = message || "";
+  }
+
   function poll(sort, callback) {
-    var path = "questions/?sort=" + encodeURIComponent(sort || config.settings.default_sort || "popular");
+    var settings = config.settings || {};
+    var path = "questions/?sort=" + encodeURIComponent(sort || settings.default_sort || "popular");
     var headers = etag ? { "If-None-Match": etag } : {};
     api(path, { headers: headers }).then(function (result) {
+      // Any server answer — 200 or 304 — proves the transport healthy.
+      if (connectionBroken) {
+        connectionBroken = false;
+        setConnection("Connection restored.");
+      }
+      // A 304 vouches for the session state as well as the question rows:
+      // the ETag covers the session revision, so an unchanged list cannot
+      // hide a lifecycle change.
       if (result.notModified) {
         return;
       }
       etag = result.response.headers.get("ETag") || result.value.etag || etag;
-      callback(result.value.items || [], result.value.counts || {});
+      callback(result.value);
     }).catch(function (error) {
-      var status = document.getElementById("qna-banner");
-      if (status) {
-        status.textContent = error.message;
-      }
+      connectionBroken = true;
+      setConnection(
+        error && error.name === "TypeError"
+          ? "The connection to the Q&A was lost. Retrying…"
+          : (error && error.message) || "The connection to the Q&A was lost. Retrying…"
+      );
     });
   }
 

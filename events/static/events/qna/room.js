@@ -12,6 +12,32 @@
   // Vote failures stay attached to their question until a later attempt
   // succeeds; a silent revert left keyboard users with no feedback (UX-06).
   var voteNotes = {};
+  // UX-07: the room's mutation controls follow the server's lifecycle
+  // answer, never an assumption. The embedded config renders the initial
+  // state; every poll can move it. "closed" is the safe default when a
+  // broken config hides the truth.
+  var lifecycle = {
+    canAsk: qna.config.can_ask === true,
+    canVote: qna.config.can_vote === true,
+  };
+
+  function stateLabel(state) {
+    return state.charAt(0).toUpperCase() + state.slice(1);
+  }
+
+  // One server payload moves banner, ask form, and vote availability
+  // together; the next drawAll re-gates the per-row vote buttons.
+  function applyState(value) {
+    if (!value || !value.state) return;
+    var capabilities = value.capabilities || {};
+    lifecycle.canAsk = capabilities.can_ask === true;
+    lifecycle.canVote = capabilities.can_vote === true;
+    var banner = document.getElementById("qna-banner");
+    if (banner) banner.textContent = stateLabel(value.state);
+    if (form) form.hidden = !lifecycle.canAsk;
+    var closedNote = document.getElementById("qna-ask-closed");
+    if (closedNote) closedNote.hidden = lifecycle.canAsk;
+  }
 
   function voteMessage(failure) {
     return (failure && failure.message ? failure.message : "The vote failed") +
@@ -62,7 +88,7 @@
       meta.textContent = item.pending
         ? (item.author_name || "Anonymous") + " · Submitting…"
         : (item.author_name || "Anonymous") + " · " + item.score + " votes";
-      if (item.question_id && !item.pending) {
+      if (item.question_id && !item.pending && lifecycle.canVote) {
         if (!vote) {
           vote = document.createElement("button");
           vote.type = "button";
@@ -73,6 +99,11 @@
         }
         vote.textContent = (item.voted ? "Remove vote" : "Upvote") + " (" + item.score + ")";
         vote.setAttribute("aria-pressed", item.voted ? "true" : "false");
+      } else if (vote) {
+        // A closed session withdraws the vote affordance entirely instead
+        // of leaving an enabled control the server would reject.
+        vote.remove();
+        vote = null;
       }
       note.textContent = item.pending ? "" : voteNotes[key] || "";
     }
@@ -105,10 +136,11 @@
     if (counts) counts.textContent = (totals.visible || 0) + " visible · " + (totals.answered || 0) + " answered";
   }
 
-  function render(items, totals) {
-    lastItems = items;
-    lastTotals = totals;
-    drawAll(items, totals);
+  function render(value) {
+    applyState(value);
+    lastItems = value.items || [];
+    lastTotals = value.counts || {};
+    drawAll(lastItems, lastTotals);
   }
 
   // A pending submission overlays the last successful server state. Redrawing
@@ -124,6 +156,7 @@
   if (sort) sort.addEventListener("change", refresh);
   if (form) form.addEventListener("submit", function (event) {
     event.preventDefault();
+    if (form.hidden || !lifecycle.canAsk) return;
     var submit = form.querySelector('button[type="submit"]');
     if (submit && submit.disabled) return;
     var text = form.elements.text.value.trim();

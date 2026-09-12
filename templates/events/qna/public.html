@@ -5,10 +5,12 @@
 {% block qna_content %}
       <p class="qna-kicker"><a href="/events/{{ event.public_id }}/{{ event.slug }}">{{ event.title }}</a></p>
       <h1>Event Q&amp;A</h1>
-      <p id="qna-banner" class="qna-banner" role="status">{{ session.state|capfirst }}{% if session.state != 'open' %}: questions are closed{% endif %}</p>
+      <p id="qna-banner" class="qna-banner" role="status">{{ session.state|capfirst }}</p>
+      {# UX-07: connection trouble reports here; the banner stays lifecycle-only. #}
+      <p id="qna-connection" class="qna-connection" role="status" hidden></p>
       <section class="qna-card" aria-labelledby="ask-heading">
         <h2 id="ask-heading">Ask a question</h2>
-        <form id="qna-question-form">
+        <form id="qna-question-form"{% if not qna_config.can_ask %} hidden{% endif %}>
           <label for="qna-text">Question</label>
           <textarea id="qna-text" name="text" maxlength="315" required rows="4"></textarea>
           {% if session.allow_names %}
@@ -18,14 +20,15 @@
           <button type="submit" class="qna-button">Submit question</button>
           <p id="qna-form-error" class="qna-error" role="alert"></p>
         </form>
+        <p id="qna-ask-closed" class="qna-muted" role="status"{% if qna_config.can_ask %} hidden{% endif %}>Questions are closed for this session. You can still read the questions below.</p>
       </section>
       <section class="qna-card" aria-labelledby="questions-heading">
         <div class="qna-section-head">
           <h2 id="questions-heading">Questions</h2>
           <label>Sort
             <select id="qna-sort" name="sort">
-              <option value="popular">Popular</option>
-              <option value="recent">Recent</option>
+              <option value="popular"{% if qna_config.settings.default_sort == 'popular' %} selected{% endif %}>Popular</option>
+              <option value="recent"{% if qna_config.settings.default_sort == 'recent' %} selected{% endif %}>Recent</option>
             </select>
           </label>
         </div>

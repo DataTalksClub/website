@@ -2,7 +2,8 @@
   "use strict";
   var qna = window.EventQna;
   var list = document.getElementById("qna-list");
-  function render(items) {
+  function render(value) {
+    var items = value.items || [];
     if (!list) return;
     list.textContent = "";
     items.filter(function (item) { return item.status !== "deleted"; }).forEach(function (item) {
@@ -21,5 +22,9 @@
     var empty = document.getElementById("qna-empty");
     if (empty) empty.hidden = items.length !== 0;
   }
-  qna.startPolling("popular", render, 1000);
+  // UX-07: the presentation view follows the session's configured default
+  // sort instead of a hardcoded Popular.
+  qna.startPolling(function () {
+    return (qna.config.settings && qna.config.settings.default_sort) || "popular";
+  }, render, 1000);
 }());
