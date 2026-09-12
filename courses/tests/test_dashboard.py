@@ -39,15 +39,20 @@ class DashboardViewTestCase(DashboardViewTestBase):
         self.assertEqual(response.context["total_enrollments"], 6)
         self.assertEqual(response.context["project_passing_score"], 70)
 
-    def test_dense_tables_use_bounded_breakout_and_conditional_overflow_cues(self):
+    def test_page_carries_one_documented_width_exception_instead_of_per_section_breakouts(self):
+        # The redesign (issue #237) replaced the page's two alignment grids --
+        # a 38rem prose measure with per-section `.shell-breakout` escapes to
+        # 76rem -- with one documented width exception for the whole page, so
+        # every section shares one edge instead of switching grids four
+        # times. Wide tables inside a horizontal scroll frame are gone with
+        # them: the homework and question-difficulty data now reshapes as a
+        # row-list instead of scrolling sideways.
         body = (Path(__file__).resolve().parents[1] / "templates/courses/dashboard.html").read_text(
             encoding="utf-8"
         )
 
-        self.assertIn('class="stats-scroll stats-scroll-wide shell-breakout"', body)
-        self.assertEqual(body.count('class="stats-scroll stats-scroll-wide shell-breakout"'), 2)
-        self.assertIn('class="stats-table stats-table-wide"', body)
-        self.assertIn('id="homework-statistics-overflow" class="stats-overflow-cue" hidden', body)
-        self.assertIn("frame.scrollWidth > frame.clientWidth + 1", body)
-        self.assertIn('frame.setAttribute("tabindex", "0")', body)
-        self.assertIn('frame.removeAttribute("tabindex")', body)
+        self.assertIn(".content-shell {", body)
+        self.assertIn("max-width: var(--shell);", body)
+        self.assertNotIn("shell-breakout", body)
+        self.assertNotIn("stats-scroll", body)
+        self.assertNotIn("stats-table", body)

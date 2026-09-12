@@ -163,10 +163,14 @@ class DashboardIntegrationTestCase(TestCase):
         self.assertContains(response, "Homework 2")
         self.assertContains(response, "View Leaderboard")
         self.assertContains(response, "View All Project Submissions")
-        self.assertContains(
-            response,
-            'class="card dashboard-card stretched-card-link interactive-card interactive-lift"',
-        )
+        # The overview cards read the same way now: neither "Total score
+        # across the cohort" nor "Project outcomes" is a whole-card link, so
+        # a reader cannot land on the project list by clicking an
+        # unrelated-looking area of the card (issue #237, finding 6). The
+        # shared primitive's CSS still ships in every page's stylesheet
+        # (`core/_design_system.html`), so the check is for the class being
+        # used on an element, not for the bare string.
+        self.assertNotContains(response, 'class="card stretched-card-link')
 
     def test_dashboard_with_complete_course_data(self):
         self.create_complete_dashboard_fixture()

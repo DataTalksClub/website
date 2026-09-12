@@ -27,8 +27,14 @@ class DashboardHomeworkDifficultyTestCase(DashboardHomeworkStatsTestBase):
         response = self.client.get(url)
 
         self.assert_difficulty_ranking(response, harder_homework)
-        self.assertContains(response, "Assignment difficulty")
-        self.assertContains(response, "Completion")
+        # The difficulty ranking is still computed (asserted above through
+        # the context), but the page no longer draws it as a second table
+        # that repeats the homework titles and completion rates already
+        # shown above -- ties in the ranking are marked on the merged
+        # homework table as one "hardest tier" instead of a false 1-N order
+        # (issue #237, finding 11).
+        self.assertNotContains(response, "Assignment difficulty")
+        self.assertContains(response, "hardest tier")
 
     def test_difficulty_excludes_unscored_homework(self):
         self.add_questions(self.homework, 3)

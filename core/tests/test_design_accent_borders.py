@@ -69,6 +69,17 @@ STRUCTURAL_LEFT_BORDERS: dict[tuple[str, str], str] = {
         ".course-specs .spec",
     ): "The dashed rule between spec cells inside one bordered table; the first cell and the "
     "narrow layouts reset it.",
+    (
+        "courses/templates/courses/dashboard.html",
+        ".share > div + div",
+    ): "The seam between adjacent segments of one stacked share bar (submission timing, "
+    "project pass/fail); it separates siblings inside a single bordered track and the first "
+    "segment carries none.",
+    (
+        "courses/templates/courses/dashboard.html",
+        ".time-split .hw",
+    ): "The seam between the lecture and homework halves of one two-part time-split bar; "
+    "it separates the two siblings inside a single bordered track.",
 }
 
 
