@@ -280,6 +280,12 @@
         gap: 0.7rem;
       }
 
+      /* The card is a flex column, so a pill child would otherwise stretch
+         across the whole card; the tag keeps its own width. */
+      .family-edition-card .status-pill {
+        align-self: flex-start;
+      }
+
       .family-edition-card h3 {
         font-size: 1.05rem;
         margin: 0;
