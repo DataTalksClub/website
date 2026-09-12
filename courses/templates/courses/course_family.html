@@ -67,22 +67,13 @@
       }
 
       /* The comp's drawing habits: hard vertical shadows instead of the
-         system's diagonal offsets, deeper card radii, a 1px dashed band rule,
-         display weight 900 and body weight 400. */
-      body {
-        font-weight: 400;
-      }
-
-      h1,
-      h2 {
-        font-weight: 900;
-        letter-spacing: -0.02em;
-      }
-
+         system's diagonal offsets, deeper card radii, a 1px dashed band rule.
+         The type stays the system's — the same Quicksand weights and
+         letter-spacing the main page renders; the comp's heavier display
+         face is not in the family the shell loads. */
       .cta {
         border-radius: 0.875rem;
         box-shadow: 0 4px 0 var(--shadow-soft);
-        font-weight: 800;
       }
 
       .cta-primary {
@@ -105,7 +96,6 @@
 
       .signup-button {
         box-shadow: 0 3px 0 var(--cta-shadow);
-        font-weight: 800;
       }
 
       /* The comp's boxed mono logotype, as on the courses index. */
@@ -174,6 +164,9 @@
 
       .family-hero h1 {
         font-size: clamp(2.5rem, 5.6vw, 4.25rem);
+        /* The main page's hero tracking (its .hero h1 rule), so the display
+           type reads identically across the two landings. */
+        letter-spacing: -0.03em;
         line-height: 1.02;
         max-width: 44rem;
         text-wrap: balance;
