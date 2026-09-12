@@ -66,3 +66,7 @@ def public_media_store_check(app_configs, **kwargs):
 class ContentConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "content"
+
+    def ready(self) -> None:
+        # Register the durable release invalidation intent handler.
+        from . import jobs  # noqa: F401

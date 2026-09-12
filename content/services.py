@@ -11,6 +11,7 @@ from time import sleep
 from typing import Any
 
 from bleach import Cleaner  # type: ignore[import-untyped]
+from community_base.jobs.dispatch import dispatch_after_commit
 from django.db import IntegrityError, OperationalError, transaction
 from django.db.models import F, Max
 from django.utils import timezone
@@ -23,6 +24,7 @@ from core.redaction import redact_value
 from core.services import ServiceContext
 
 from .inventory import content_route_contracts
+from .jobs import CONTENT_RELEASE_INVALIDATION_VERSION, release_invalidation_prefixes
 from .models import (
     LEGACY_PUBLIC_CONTRACT_DIGEST,
     PUBLIC_CONTRACT_DIGEST,
@@ -1336,6 +1338,40 @@ def _retry_release_swap(operation: Callable[[], ReleaseSwapResult]) -> ReleaseSw
     raise AssertionError("release swap retry loop exhausted without returning")
 
 
+def _dispatch_release_invalidation(
+    *,
+    source: ContentSource,
+    transition: str,
+    from_release_id: uuid.UUID | None,
+    to_release_id: uuid.UUID,
+    using: str,
+) -> None:
+    """Record the durable edge-invalidation half of the pointer swap.
+
+    Dispatched inside the swap transaction, so an abort removes the pointer
+    change and the intent together; delivery begins only after commit.
+    """
+
+    dispatch_after_commit(
+        "content.release.invalidate",
+        (
+            f"content-release:{source.id}:{transition}"
+            f":{'none' if from_release_id is None else from_release_id}"
+            f":{to_release_id}:{source.revision}"
+        ),
+        payload={
+            "version": CONTENT_RELEASE_INVALIDATION_VERSION,
+            "transition": transition,
+            "source_id": str(source.id),
+            "from_release_id": str(from_release_id) if from_release_id is not None else None,
+            "to_release_id": str(to_release_id),
+            "source_revision": source.revision,
+            "path_prefixes": release_invalidation_prefixes(source.mount_path),
+        },
+        using=using,
+    )
+
+
 def _activate_content_release_atomic(
     command: ActivateContentRelease,
     *,
@@ -1385,6 +1421,13 @@ def _activate_content_release_atomic(
                 "mode": "activation",
                 "reason": reason,
             },
+            using=using,
+        )
+        _dispatch_release_invalidation(
+            source=source,
+            transition="activation",
+            from_release_id=previous_id,
+            to_release_id=candidate.id,
             using=using,
         )
         return ReleaseSwapResult(
@@ -1498,6 +1541,13 @@ def _rollback_content_release_atomic(
                 "mode": "rollback",
                 "reason": reason,
             },
+            using=using,
+        )
+        _dispatch_release_invalidation(
+            source=source,
+            transition="rollback",
+            from_release_id=previous_id,
+            to_release_id=retained.id,
             using=using,
         )
         return ReleaseSwapResult(
