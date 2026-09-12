@@ -117,9 +117,7 @@ class PublicConfigContractTests(TestCase):
     def test_the_json_api_error_envelope_stays_free_of_management_ids(self) -> None:
         # The questions endpoint speaks per-question data, never the session
         # DTO; even its error envelopes must not introduce one.
-        response = self.client.get(
-            f"{services.event_qna_path(self.event)}/api/questions/?bogus=1"
-        )
+        response = self.client.get(f"{services.event_qna_path(self.event)}/api/questions/?bogus=1")
 
         self.assertEqual(response.status_code, 400)
         self.assertNotIn(b"session_id", response.content)

@@ -108,9 +108,7 @@ class CourseCatalogSelectionTests(TestCase):
 
         self.assertEqual(len(ai_dev_tools), 1)
         self.assertEqual(ai_dev_tools[0].slug, "ai-dev-tools-zoomcamp-2026")
-        self.assertEqual(
-            ai_dev_tools[0].public_path, "/courses/ai-dev-tools-zoomcamp/cohorts/2026"
-        )
+        self.assertEqual(ai_dev_tools[0].public_path, "/courses/ai-dev-tools-zoomcamp/cohorts/2026")
         self.assertEqual(len(catalog), 6)
         self.assertEqual([entry.title for entry in catalog].count("AI Dev Tools Zoomcamp"), 1)
 

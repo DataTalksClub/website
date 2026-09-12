@@ -59,9 +59,7 @@ def _homework_path() -> str:
 
 def _member() -> CustomUser:
     email = "liptest-member@example.invalid"
-    return CustomUser.objects.create_user(
-        username=email, email=email, password="liptest-pass"
-    )
+    return CustomUser.objects.create_user(username=email, email=email, password="liptest-pass")
 
 
 def _sign_in(page: Page, live_server, user: CustomUser) -> None:
@@ -85,9 +83,7 @@ def _open_homework_page(page: Page, live_server) -> None:
     expect(page.locator("#learning-in-public-link-1")).to_have_count(1)
 
 
-def test_add_appends_labelled_focused_rows_until_the_cap(
-    page: Page, live_server
-) -> None:
+def test_add_appends_labelled_focused_rows_until_the_cap(page: Page, live_server) -> None:
     _open_homework_page(page, live_server)
 
     first_add = page.locator("#add-learning-public-link")
@@ -99,9 +95,7 @@ def test_add_appends_labelled_focused_rows_until_the_cap(
     second_row = page.locator("#learning-in-public-link-2")
     expect(second_row).to_have_count(1)
     expect(second_row).to_be_focused()
-    expect(second_row).to_have_attribute(
-        "aria-describedby", "learning-in-public-hint"
-    )
+    expect(second_row).to_have_attribute("aria-describedby", "learning-in-public-hint")
     label = page.locator("label[for='learning-in-public-link-2']")
     expect(label).to_contain_text("Learning in public link 2")
 
@@ -118,9 +112,7 @@ def test_add_appends_labelled_focused_rows_until_the_cap(
     expect(note).to_contain_text("maximum of 3")
 
 
-def test_invalid_url_error_is_wired_through_a_stable_error_id(
-    page: Page, live_server
-) -> None:
+def test_invalid_url_error_is_wired_through_a_stable_error_id(page: Page, live_server) -> None:
     _open_homework_page(page, live_server)
 
     row = page.locator("#learning-in-public-link-1")
@@ -131,9 +123,7 @@ def test_invalid_url_error_is_wired_through_a_stable_error_id(
     # failing row through aria-invalid plus a stable aria-errormessage id.
     expect(row).to_have_class("field-input form-control is-invalid")
     expect(row).to_have_attribute("aria-invalid", "true")
-    expect(row).to_have_attribute(
-        "aria-errormessage", "learning-in-public-link-1-error"
-    )
+    expect(row).to_have_attribute("aria-errormessage", "learning-in-public-link-1-error")
     feedback = page.locator("#learning-in-public-link-1-error")
     expect(feedback).to_be_visible()
     expect(feedback).to_contain_text("must start with http:// or https://")

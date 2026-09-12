@@ -127,9 +127,7 @@ class MailchimpCourseTagImportTests(TestCase):
 
     def test_tag_with_no_matching_cohort_is_skipped_and_reported(self) -> None:
         # de-zoomcamp exists nowhere in this database.
-        account = CustomUser.objects.create(
-            username="learner-a", email="learner-a@example.invalid"
-        )
+        account = CustomUser.objects.create(username="learner-a", email="learner-a@example.invalid")
         result = self._run(
             [
                 {
@@ -146,9 +144,7 @@ class MailchimpCourseTagImportTests(TestCase):
 
     def test_tag_matching_existing_account_and_cohort_creates_enrollment(self) -> None:
         cohort = _cohort("de-zoomcamp", 2025)
-        account = CustomUser.objects.create(
-            username="learner-b", email="learner-b@example.invalid"
-        )
+        account = CustomUser.objects.create(username="learner-b", email="learner-b@example.invalid")
         result = self._run(
             [
                 {
@@ -165,9 +161,7 @@ class MailchimpCourseTagImportTests(TestCase):
 
     def test_ordinal_tag_resolves_to_the_reviewed_year(self) -> None:
         cohort = _cohort("ml-zoomcamp", 2021)
-        account = CustomUser.objects.create(
-            username="learner-c", email="learner-c@example.invalid"
-        )
+        account = CustomUser.objects.create(username="learner-c", email="learner-c@example.invalid")
         self._run(
             [{EMAIL_COLUMN: "learner-c@example.invalid", TAGS_COLUMN: _tags("ml-zoomcamp-1")}]
         )
@@ -192,9 +186,7 @@ class MailchimpCourseTagImportTests(TestCase):
     def test_multiple_course_tags_on_one_row_enroll_in_every_matching_cohort(self) -> None:
         de_cohort = _cohort("de-zoomcamp", 2024)
         llm_cohort = _cohort("llm-zoomcamp", 2024)
-        account = CustomUser.objects.create(
-            username="learner-d", email="learner-d@example.invalid"
-        )
+        account = CustomUser.objects.create(username="learner-d", email="learner-d@example.invalid")
         result = self._run(
             [
                 {
@@ -209,12 +201,8 @@ class MailchimpCourseTagImportTests(TestCase):
 
     def test_rerun_is_idempotent(self) -> None:
         cohort = _cohort("de-zoomcamp", 2026)
-        account = CustomUser.objects.create(
-            username="learner-e", email="learner-e@example.invalid"
-        )
-        rows = [
-            {EMAIL_COLUMN: "learner-e@example.invalid", TAGS_COLUMN: _tags("de-zoomcamp-2026")}
-        ]
+        account = CustomUser.objects.create(username="learner-e", email="learner-e@example.invalid")
+        rows = [{EMAIL_COLUMN: "learner-e@example.invalid", TAGS_COLUMN: _tags("de-zoomcamp-2026")}]
         first = self._run(rows)
         self.assertEqual(first.enrollments_created_total, 1)
 
@@ -245,9 +233,7 @@ class MailchimpCourseTagImportTests(TestCase):
     def test_dry_run_then_real_run_agree(self) -> None:
         _cohort("ml-zoomcamp", 2024)
         CustomUser.objects.create(username="learner-g", email="learner-g@example.invalid")
-        rows = [
-            {EMAIL_COLUMN: "learner-g@example.invalid", TAGS_COLUMN: _tags("ml-zoomcamp-2024")}
-        ]
+        rows = [{EMAIL_COLUMN: "learner-g@example.invalid", TAGS_COLUMN: _tags("ml-zoomcamp-2024")}]
         dry = self._run(rows, apply=False)
         real = self._run(rows)
 

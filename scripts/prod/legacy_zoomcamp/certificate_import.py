@@ -76,7 +76,12 @@ def _direct_certificate_url(edition: EditionSource, email: str) -> str:
     an edition with no ``graduates.json`` to match against by name.
     """
 
-    cert_hash = sha1_hex(email + edition.certificate_hash_suffix)
+    suffix = edition.certificate_hash_suffix
+    if suffix is None:
+        # The only call site guards this; a bare str|None here is what broke
+        # the typecheck gate when the direct-hash editions landed.
+        raise ValueError("edition-missing-certificate-hash-suffix")
+    cert_hash = sha1_hex(email + suffix)
     repo_slug = edition.certificate_url_repo_slug or CERTIFICATE_REPO_SLUG[edition.course_slug]
     return CERTIFICATE_URL_TEMPLATE.format(
         repo_slug=repo_slug,

@@ -69,6 +69,12 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from scripts.prod.registrant_import import PendingEventRegistrants
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -155,7 +161,11 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _run_provider(
-    *, provider: str, pending: object, dry_run: bool, refresh: bool
+    *,
+    provider: str,
+    pending: Iterable[PendingEventRegistrants],
+    dry_run: bool,
+    refresh: bool,
 ) -> dict[str, object]:
     from scripts.prod.registrant_import import import_registrants, plan_registrants
 

@@ -82,9 +82,7 @@ class PodcastOrderingTests(TestCase):
             [episode["slug"] for episode in ordered],
             [
                 episode["slug"]
-                for episode in sorted(
-                    published, key=lambda e: (-e["season"], -e["episode"])
-                )
+                for episode in sorted(published, key=lambda e: (-e["season"], -e["episode"]))
             ],
         )
         for season in seasons:
@@ -606,7 +604,9 @@ class PodcastEpisodeParityTests(TestCase):
             resource_podcast_records=catalogue.podcasts(),
         )
         target = _episode("synthetic-episode-s24e02")
-        expected_internal_url = f"/podcast/s{target['season']:02d}e{target['episode']:02d}/{target['slug']}"
+        expected_internal_url = (
+            f"/podcast/s{target['season']:02d}e{target['episode']:02d}/{target['slug']}"
+        )
         self.assertIn(
             expected_internal_url,
             [resource.url for resource in view.resources],
@@ -767,9 +767,7 @@ class PodcastEpisodeParityTests(TestCase):
         source = self.representative()
         view = episode_view(source, people_by_slug=catalogue.people_by_slug())
 
-        self.assertEqual(
-            source["links"]["youtube"], "https://www.youtube.com/watch?v=aaaaaaaaaaa"
-        )
+        self.assertEqual(source["links"]["youtube"], "https://www.youtube.com/watch?v=aaaaaaaaaaa")
         self.assertIsNotNone(view.video)
         assert view.video is not None
         self.assertEqual(view.video.video_id, "aaaaaaaaaaa")
@@ -915,7 +913,9 @@ class PodcastSeasonNavigationTests(TestCase):
         latest_season = seasons[0].number
 
         for season in seasons:
-            path = "/podcast" if season.number == latest_season else f"/podcast?season={season.number}"
+            path = (
+                "/podcast" if season.number == latest_season else f"/podcast?season={season.number}"
+            )
             response = self.client.get(path)
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.context["season"].number, season.number)
@@ -1188,9 +1188,7 @@ class PodcastSeasonNavigationTests(TestCase):
             latest = self.client.get("/podcast")
             self.assertEqual(latest.context["season"].number, new_latest_number)
             self.assertContains(latest, "Synthetic future episode")
-            self.assertContains(
-                latest, f"Older season — Season {former_latest_number}", count=1
-            )
+            self.assertContains(latest, f"Older season — Season {former_latest_number}", count=1)
             self.assertNotContains(latest, f"Season {gap_number}")
             self.assertContains(
                 latest,

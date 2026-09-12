@@ -390,7 +390,12 @@ class EpisodeGraphPageTests(TestCase):
         episode = _episode("synthetic-episode-one")
         neighbours = (
             ("wiki:mlops", "MLOps", "wiki", "/wiki/mlops"),
-            ("person:synthetic-one", "Synthetic Author One", "person", "/people/synthetic-one.html"),
+            (
+                "person:synthetic-one",
+                "Synthetic Author One",
+                "person",
+                "/people/synthetic-one.html",
+            ),
             (
                 "book:synthetic-book-one",
                 "Synthetic Book One",
@@ -417,9 +422,7 @@ class EpisodeGraphPageTests(TestCase):
             for node_id, _, _, _ in neighbours
         ]
 
-        with patch(
-            "content.catalogue.wiki_graph", return_value={"nodes": nodes, "links": links}
-        ):
+        with patch("content.catalogue.wiki_graph", return_value={"nodes": nodes, "links": links}):
             response = self.client.get(episode["public_path"])
             resolved = episode_graph(episode)
 

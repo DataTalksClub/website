@@ -126,9 +126,7 @@ def send_registration_confirmation_mail(registration):
             "start_date": course_context["course_start_date"],
             "campaign_title": registration.campaign.title,
             "profile_url": urls["profile_url"],
-            "verify_email_prompt": _registration_verify_email_prompt(
-                registration, email
-            ),
+            "verify_email_prompt": _registration_verify_email_prompt(registration, email),
         },
         idempotency_key=mail_idempotency_key(
             "registration-confirmation",

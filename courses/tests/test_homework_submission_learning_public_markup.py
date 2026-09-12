@@ -43,16 +43,12 @@ def _label_for(html: str, index: int) -> str:
 
 
 def _cap_note_tag(html: str) -> str:
-    match = re.search(
-        r'<p\b[^>]*\bid="learning-in-public-cap-note"[^>]*>', html, re.DOTALL
-    )
+    match = re.search(r'<p\b[^>]*\bid="learning-in-public-cap-note"[^>]*>', html, re.DOTALL)
     assert match, "no learning-in-public cap note on the page"
     return match.group(0)
 
 
-class HomeworkSubmissionLearningPublicMarkupTests(
-    HomeworkSubmissionValidationBase
-):
+class HomeworkSubmissionLearningPublicMarkupTests(HomeworkSubmissionValidationBase):
     def setUp(self):
         super().setUp()
         self.homework.learning_in_public_cap = 2
@@ -63,9 +59,7 @@ class HomeworkSubmissionLearningPublicMarkupTests(
         return self.client.get(self.homework_url())
 
     def create_submission_with_links(self, links):
-        enrollment = Enrollment.objects.create(
-            student=self.user, course=self.course
-        )
+        enrollment = Enrollment.objects.create(student=self.user, course=self.course)
         return Submission.objects.create(
             homework=self.homework,
             student=self.user,
@@ -135,9 +129,7 @@ class HomeworkSubmissionLearningPublicMarkupTests(
 
     def test_error_rerender_keeps_row_identity_and_flags_the_rows(self):
         response = self.post_homework(
-            self.updated_answer_post_data(
-                **{"learning_in_public_links[]": ["javascript:alert(1)"]}
-            )
+            self.updated_answer_post_data(**{"learning_in_public_links[]": ["javascript:alert(1)"]})
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(

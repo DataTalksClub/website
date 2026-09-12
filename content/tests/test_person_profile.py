@@ -393,8 +393,9 @@ class PersonPageTests(TestCase):
         # behind a group's fold are in the page too, not fetched on demand. An
         # undated contribution's row carries one extra class
         # ("archive-row-undated"), so both spellings count as one row.
+        row_pattern = r'class="list-row archive-row(?: archive-row-undated)? person-row"'
         self.assertEqual(
-            len(re.findall(r'class="list-row archive-row(?: archive-row-undated)? person-row"', body)),
+            len(re.findall(row_pattern, body)),
             len(record["relationships"]),
         )
         self.assertEqual(

@@ -13,14 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # inherit an exception from a filename or an old compatibility shim. An unmapped path selects
 # the `unknown_path` full profile, so an entry here trades verification time for safety, never
 # the reverse.
-REVIEWED_DELIBERATELY_UNMAPPED: dict[str, str] = {
-    "temporary": (
-        "One-time ingest staging read only by scripts/prod/*, never by a public surface "
-        "(_docs/architecture/database-only-content.md). It is deleted once production is "
-        "ingested, so it gets no permanent owner node; until then a change to the staging "
-        "snapshot falls back to full verification."
-    ),
-}
+REVIEWED_DELIBERATELY_UNMAPPED: dict[str, str] = {}
 
 
 def _top_level_directories(root: Path = ROOT) -> set[str]:

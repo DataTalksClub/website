@@ -66,9 +66,7 @@ def test_course_art_preserves_theme_geometry_and_course_actions(
         assert page.evaluate(
             "document.documentElement.scrollWidth <= document.documentElement.clientWidth"
         )
-        registration_url = reverse(
-            "registration_campaign", kwargs={"campaign_slug": campaign.slug}
-        )
+        registration_url = reverse("registration_campaign", kwargs={"campaign_slug": campaign.slug})
         action = page.locator(f".family-hero-actions a[href='{registration_url}']")
         expect(action).to_be_visible()
         action.focus()

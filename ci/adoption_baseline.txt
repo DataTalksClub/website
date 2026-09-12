@@ -739,6 +739,7 @@ scripts/prepare_event_registration_sources.py
 scripts/prepare_local_data.py
 scripts/prod/__init__.py
 scripts/prod/account_reconciliation/__init__.py
+scripts/prod/identity_manifest.py
 scripts/prod/import_account_reconciliation.py
 scripts/prod/import_cmp_content.py
 scripts/prod/import_cmp_learner_history.py
@@ -748,6 +749,7 @@ scripts/prod/import_event_registrants.py
 scripts/prod/import_events.py
 scripts/prod/import_faq.py
 scripts/prod/import_legacy_zoomcamp.py
+scripts/prod/import_mailchimp_course_tags.py
 scripts/prod/import_mailchimp_event_tags.py
 scripts/prod/import_mailchimp_subscriptions.py
 scripts/prod/import_public_content.py
@@ -761,8 +763,10 @@ scripts/prod/legacy_zoomcamp/homework_content.py
 scripts/prod/legacy_zoomcamp/identity.py
 scripts/prod/legacy_zoomcamp/scoring_import.py
 scripts/prod/public_projection_source.py
+scripts/prod/registrant_import.py
 scripts/prod/registration_sources/__init__.py
 scripts/prod/registration_sources/eventbrite.py
+scripts/prod/registration_sources/eventbrite_registrants.py
 scripts/prod/registration_sources/luma.py
 scripts/prod/registration_sources/luma_registrants.py
 scripts/prod/registration_sources/safety.py

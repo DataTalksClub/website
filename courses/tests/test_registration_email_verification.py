@@ -39,9 +39,7 @@ class RegistrationConfirmationVerifyEmailMailTests(RegistrationCampaignBase):
         self.client.force_login(user)
 
         with self.captureOnCommitCallbacks(execute=True):
-            self.client.post(
-                self.campaign_url(), self.blank_optional_logged_in_payload()
-            )
+            self.client.post(self.campaign_url(), self.blank_optional_logged_in_payload())
 
         delivery = EmailDelivery.objects.get()
         prompt = delivery.context_data["verify_email_prompt"]
@@ -54,15 +52,11 @@ class RegistrationConfirmationVerifyEmailMailTests(RegistrationCampaignBase):
 
     def test_registering_with_an_already_verified_account_queues_nothing(self):
         user = self.create_signed_user()
-        EmailAddress.objects.create(
-            user=user, email=user.email, verified=True, primary=True
-        )
+        EmailAddress.objects.create(user=user, email=user.email, verified=True, primary=True)
         self.client.force_login(user)
 
         with self.captureOnCommitCallbacks(execute=True):
-            self.client.post(
-                self.campaign_url(), self.blank_optional_logged_in_payload()
-            )
+            self.client.post(self.campaign_url(), self.blank_optional_logged_in_payload())
 
         delivery = EmailDelivery.objects.get()
         self.assertEqual(delivery.context_data["verify_email_prompt"], "")
@@ -94,9 +88,7 @@ class RegistrationConfirmationVerifyEmailScreenTests(RegistrationCampaignBase):
         user = self.create_signed_user()
         self.client.force_login(user)
 
-        response = self.client.post(
-            self.campaign_url(), self.blank_optional_logged_in_payload()
-        )
+        response = self.client.post(self.campaign_url(), self.blank_optional_logged_in_payload())
 
         self.assertContains(response, "You are registered")
         self.assertContains(response, "One last step: verify your email")
@@ -104,28 +96,20 @@ class RegistrationConfirmationVerifyEmailScreenTests(RegistrationCampaignBase):
 
     def test_the_screen_hides_the_reminder_for_an_already_verified_registrant(self):
         user = self.create_signed_user()
-        EmailAddress.objects.create(
-            user=user, email=user.email, verified=True, primary=True
-        )
+        EmailAddress.objects.create(user=user, email=user.email, verified=True, primary=True)
         self.client.force_login(user)
 
-        response = self.client.post(
-            self.campaign_url(), self.blank_optional_logged_in_payload()
-        )
+        response = self.client.post(self.campaign_url(), self.blank_optional_logged_in_payload())
 
         self.assertContains(response, "You are registered")
         self.assertNotContains(response, "One last step: verify your email")
 
     def test_the_screen_always_offers_the_generic_next_steps(self):
         user = self.create_signed_user()
-        EmailAddress.objects.create(
-            user=user, email=user.email, verified=True, primary=True
-        )
+        EmailAddress.objects.create(user=user, email=user.email, verified=True, primary=True)
         self.client.force_login(user)
 
-        response = self.client.post(
-            self.campaign_url(), self.blank_optional_logged_in_payload()
-        )
+        response = self.client.post(self.campaign_url(), self.blank_optional_logged_in_payload())
 
         self.assertContains(response, "Join the DataTalks.Club Slack")
         self.assertContains(response, "Tweet about it")
@@ -140,9 +124,7 @@ class RegistrationConfirmationVerifyEmailScreenTests(RegistrationCampaignBase):
         self.assertContains(response, "You are already registered")
         self.assertContains(response, "One last step: verify your email")
 
-        EmailAddress.objects.create(
-            user=user, email=user.email, verified=True, primary=True
-        )
+        EmailAddress.objects.create(user=user, email=user.email, verified=True, primary=True)
 
         response = self.client.get(self.campaign_url())
 
@@ -153,17 +135,13 @@ class RegistrationConfirmationVerifyEmailScreenTests(RegistrationCampaignBase):
         self.client.force_login(user)
 
         with self.captureOnCommitCallbacks(execute=True):
-            self.client.post(
-                self.campaign_url(), self.blank_optional_logged_in_payload()
-            )
+            self.client.post(self.campaign_url(), self.blank_optional_logged_in_payload())
         delivery = EmailDelivery.objects.get()
-        key = CONFIRM_LINK_PATTERN.search(
-            delivery.context_data["verify_email_prompt"]
-        ).group(1)
+        match = CONFIRM_LINK_PATTERN.search(delivery.context_data["verify_email_prompt"])
+        assert match is not None
+        key = match.group(1)
 
-        confirm_response = self.client.post(
-            reverse("account_confirm_email", args=[key])
-        )
+        confirm_response = self.client.post(reverse("account_confirm_email", args=[key]))
         self.assertIn(confirm_response.status_code, (200, 302))
 
         address = EmailAddress.objects.get(user=user, email__iexact=user.email)

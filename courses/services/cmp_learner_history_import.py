@@ -123,10 +123,6 @@ from django.db import models, transaction
 from django.utils.dateparse import parse_datetime
 
 from accounts.models import CustomUser
-from courses.services.course_family_identity import (
-    UnparseableEditionSlug,
-    family_and_year_from_edition_slug,
-)
 from courses.models import (
     Answer,
     CmpHistoryClaim,
@@ -147,6 +143,10 @@ from courses.models import (
     Submission,
     UserWrappedStatistics,
     WrappedStatistics,
+)
+from courses.services.course_family_identity import (
+    UnparseableEditionSlug,
+    family_and_year_from_edition_slug,
 )
 
 __all__ = [

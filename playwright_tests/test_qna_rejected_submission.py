@@ -60,9 +60,7 @@ def test_rejected_question_keeps_visible_list_and_draft(
     context = browser.new_context(viewport=viewport)
     page = context.new_page()
     try:
-        response = page.goto(
-            f"{live_server.url}{qna_room_path}", wait_until="domcontentloaded"
-        )
+        response = page.goto(f"{live_server.url}{qna_room_path}", wait_until="domcontentloaded")
         assert response is not None and response.status == 200
         expect(page.locator(".qna-item")).to_have_count(1)
         expect(page.locator(".qna-item")).to_contain_text(EXISTING_QUESTION)
@@ -103,9 +101,7 @@ def test_accepted_question_replaces_draft_and_pending_card(
     context = browser.new_context()
     page = context.new_page()
     try:
-        response = page.goto(
-            f"{live_server.url}{qna_room_path}", wait_until="domcontentloaded"
-        )
+        response = page.goto(f"{live_server.url}{qna_room_path}", wait_until="domcontentloaded")
         assert response is not None and response.status == 200
         expect(page.locator(".qna-item")).to_have_count(1)
 

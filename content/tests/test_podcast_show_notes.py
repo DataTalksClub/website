@@ -37,9 +37,7 @@ class PodcastShowNotesContractTests(TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        cls.records = json.loads(
-            (PROJECTION_ROOT / "podcasts.json").read_text(encoding="utf-8")
-        )
+        cls.records = json.loads((PROJECTION_ROOT / "podcasts.json").read_text(encoding="utf-8"))
 
     def render_episode(self, record: dict) -> str:
         episode = episode_view(record, resource_podcast_records=self.records)

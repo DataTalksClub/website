@@ -133,9 +133,7 @@ class EventbriteDescriptionError(ValueError):
 # inside "About".
 _ZERO_WIDTH_RE = re.compile("﻿")
 
-_ABOUT_HEADING_RE = re.compile(
-    r"^about the (speakers?|guests?|hosts?)\s*:?\s*$", re.IGNORECASE
-)
+_ABOUT_HEADING_RE = re.compile(r"^about the (speakers?|guests?|hosts?)\s*:?\s*$", re.IGNORECASE)
 
 # The DataTalks.Club footer sentence, in its observed variants: capitalization
 # of the club URL and its domain casing, "a"/"the", a plain or linked
@@ -393,7 +391,8 @@ class EventbriteDescriptionApplyReport:
 def apply_eventbrite_descriptions(
     *, path: Path, dry_run: bool = False
 ) -> EventbriteDescriptionApplyReport:
-    """Replace description_html/description_text for every resolvable, already-content-bearing event.
+    """Replace description_html/description_text for every resolvable,
+    already-content-bearing event.
 
     Full replacement, not fill-only-if-missing: an event this staging artifact
     names gets the cleaned Eventbrite description whether or not it already had
@@ -408,8 +407,7 @@ def apply_eventbrite_descriptions(
     blank out a real Jekyll one.
     """
 
-    from .models import EventIdentityNotFound, resolve_source_identity
-    from .models import EventContent
+    from .models import EventContent, EventIdentityNotFound, resolve_source_identity
 
     records = load_eventbrite_description_records(path)
 
