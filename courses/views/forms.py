@@ -6,7 +6,6 @@ from courses.models.cohort import (
 )
 from courses.models.homework import Answer
 
-
 CERTIFICATE_NAME_WIDGET = forms.TextInput(
     attrs={
         "class": "form-control",
@@ -45,6 +44,11 @@ class EnrollmentForm(forms.ModelForm):
     certificate_name = forms.CharField(
         label="Certificate name",
         required=False,
+        # The declared field replaces the one the model would have derived,
+        # so the model's bound must be restated here: the account settings
+        # page enforces this ceiling for the same account-level value, and an
+        # unbounded form field would hand an overlong name to the database.
+        max_length=255,
         help_text="Used for certificates across your course enrollments.",
         widget=CERTIFICATE_NAME_WIDGET,
     )

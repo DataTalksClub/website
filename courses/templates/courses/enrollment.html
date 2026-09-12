@@ -1,5 +1,5 @@
 {% extends "core/content_page.html" %}
-{% load breadcrumbs seo static %}
+{% load accessibility breadcrumbs seo static %}
 
 {% block document_title %}
   Edit enrollment details — {{ course.title }} — DataTalks.Club
@@ -82,6 +82,36 @@
         font-size: 0.9rem;
         margin-top: 0.5rem;
         padding: 0.5rem 0.7rem;
+      }
+
+      /* The shared form-level error summary (core/templates/accessibility/)
+         carries this class name, and its stylesheet is one of the ones a
+         design-system page deliberately does not load — so it is dressed
+         here, the same way the registration page dresses it. */
+      .a11y-error-summary {
+        background: var(--sand);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        color: var(--ink);
+        display: grid;
+        gap: 0.6rem;
+        margin-bottom: 1.5rem;
+        padding: 1rem 1.15rem;
+      }
+
+      .a11y-error-summary h2 {
+        font-size: 1.05rem;
+      }
+
+      .a11y-error-summary ul {
+        display: grid;
+        gap: 0.35rem;
+        list-style: disc;
+        padding-inline-start: 1.25rem;
+      }
+
+      .a11y-error-summary li {
+        display: list-item;
       }
 
       /* An immediately persisted preference: the switch, then its label and
@@ -224,6 +254,15 @@
       <section aria-labelledby="public-identity-heading">
           <form method="post">
             {% csrf_token %}
+            {# The shared contract for a form that can be wrong: after a failed save the summary takes focus (core/accessibility.js) and links to each failed field, whose widget carries aria-invalid and its error's id. #}
+            {% accessibility_error_summary form %}
+            {% if form.non_field_errors %}
+              <div class="enrollment-error" role="alert">
+                {% for error in form.non_field_errors %}
+                  <p>{{ error }}</p>
+                {% endfor %}
+              </div>
+            {% endif %}
             <div class="band-head">
               <div>
                 <h2 id="public-identity-heading">Public identity</h2>
@@ -235,10 +274,10 @@
                 <label class="field-label" for="{{ form.display_name.id_for_label }}">
                   Leaderboard name
                 </label>
-                {{ form.display_name }}
-                <p class="field-hint">Shown on leaderboards and public score pages.</p>
+                {% accessible_widget form.display_name %}
+                <p class="field-hint" id="{{ form.display_name.id_for_label }}-help">Shown on leaderboards and public score pages.</p>
                 {% if form.display_name.errors %}
-                  <div class="enrollment-error">
+                  <div class="enrollment-error" id="{{ form.display_name.id_for_label }}-error">
                     <span class="sr-only">Error:</span>
                     {{ form.display_name.errors|join:" " }}
                   </div>
@@ -248,10 +287,10 @@
                 <label class="field-label" for="{{ form.certificate_name.id_for_label }}">
                   Certificate name
                 </label>
-                {{ form.certificate_name }}
-                <p class="field-hint">Saved to your account and used across course certificates.</p>
+                {% accessible_widget form.certificate_name %}
+                <p class="field-hint" id="{{ form.certificate_name.id_for_label }}-help">Saved to your account and used across course certificates.</p>
                 {% if form.certificate_name.errors %}
-                  <div class="enrollment-error">
+                  <div class="enrollment-error" id="{{ form.certificate_name.id_for_label }}-error">
                     <span class="sr-only">Error:</span>
                     {{ form.certificate_name.errors|join:" " }}
                   </div>
