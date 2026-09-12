@@ -72,6 +72,15 @@ text on green surfaces and the few `body.dark-mode` counterparts (`#14172a` on b
 green, the `#0d0f1c` ink band), which exist because those pairings must not flip with
 the theme.
 
+A colour one page needs is added as a token in that page's own style block rather
+than in the shared partial. A page that implements a designer comp names the comp's
+one-off colours there — the catalogue's comp palette, the family landing's
+`--band-green` family — as a page-local `:root` block mirrored in `body.dark-mode`
+(a comp ground deepens in dark rather than flipping), so no rule carries a
+light-only literal. The rule the page cannot escape is the one above: hexes live in
+the token block, never inline in a rule, and every text pair that sits on a
+page-local colour holds 4.5:1 in both themes.
+
 ### Core tokens
 
 | Token | Light | Dark | Role |
@@ -254,6 +263,21 @@ heading did not and breaks the content ground. `--mint` remains correct as a *pa
 lavender, mint and ink deliberately — it is a magazine cover, not a content page, and
 the alternation is the drawing. `test_the_homepage_keeps_its_own_alternation` holds
 the cream hero, the closing ink band and the fact that it uses more than two grounds.
+
+**A page that implements a designer comp may close on the comp's own band.** The
+course family landing draws its mock's full-bleed green closing band — the mock
+closes on it — from the page-local `--band-green` tokens, full-bleed inside the
+content band through `.shell-breakout`, with the CTA roles swapped on the green
+ground. It is the closing call-to-action beat in the `band-ink` sense — the page's
+last word before the shell takes over — drawn as a full-bleed section rather than a
+`section.band`, so the sequence rule and its test do not describe it. The catalogue
+draws the same comp green on controls only. A comp band never recolours the hero or
+the shared content ground, and a page with no comp behind it does not get one. An
+*interior* beat of the same comp follows the same rule: the family landing sets its
+mock's graduate-stories chapter on the comp's full-bleed ink ground — the mock draws
+that chapter on ink — from the page-local `--band-ink` tokens through the same
+`.shell-breakout` mechanism, with the section's own card tokens re-declared so no
+text pair sits on a colour that flips with the theme.
 
 **Outside the rule for now**: the course platform's task surfaces (dashboard,
 homework, submissions, statistics, the leaderboard family, enrolment, registration,
