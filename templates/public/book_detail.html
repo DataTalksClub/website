@@ -58,10 +58,11 @@
         --page: var(--lavender);
       }
 
-      /* The same reading column every content page holds, so moving from the
-         archive into a book does not change the shape of the page. */
+      /* The same ordinary content column every content page holds, so
+         moving from the archive into a book does not change the shape of
+         the page. */
       .book-shell {
-        max-width: calc(var(--measure) + 2.5rem);
+        max-width: var(--content-width);
       }
 
       .book-hero .breadcrumbs {

@@ -57,11 +57,11 @@
        * page arranges them.
        * ------------------------------------------------------------------ */
 
-      /* One reading column: the description is the body of this page, so the
-         shell is the reading measure plus its own inline padding and every
-         part of the page lines up with the prose. */
+      /* One column: the description is the body of this page, so the shell
+         is the ordinary content width every non-landing page shares and
+         the prose inside stays at the reading measure. */
       .event-shell {
-        max-width: calc(var(--measure) + 2.5rem);
+        max-width: var(--content-width);
       }
 
       .event-head {

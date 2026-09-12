@@ -80,11 +80,10 @@
         --page: var(--lavender);
       }
 
-      /* One column at the system's reading measure, plus the shell's own
-         inline padding, so the title, the date and the body all line up on
-         the width `.prose-reading` sets. */
+      /* One column at the ordinary content width every non-landing page
+         shares; the title, the date and the body all line up inside it. */
       .text-page-shell {
-        max-width: calc(var(--measure) + 2.5rem);
+        max-width: var(--content-width);
       }
 
       /* The opening block spaces itself with margins rather than a grid gap:
