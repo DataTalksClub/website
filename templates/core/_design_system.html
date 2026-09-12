@@ -73,8 +73,11 @@ Rules for editing:
         --measure: 38rem;
         /* The normal outer content column. The shell's inline padding is part
            of the layout, so ordinary pages use this token through
-           `.content-shell`; page templates do not invent a competing width. */
-        --content-width: calc(var(--measure) + 2.5rem);
+           `.content-shell`; page templates do not invent a competing width.
+           56rem is the course platform's `.app-content-shell` width, so the
+           ordinary column and the platform surfaces share one width; prose
+           inside the column stays held to `--measure`. */
+        --content-width: 56rem;
         /* Mutation surfaces use a slightly wider measure than long-form prose,
            while still keeping controls comfortable on a large screen. */
         --form-measure: 46rem;

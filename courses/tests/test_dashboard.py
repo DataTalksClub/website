@@ -46,7 +46,7 @@ class DashboardViewTestCase(DashboardViewTestBase):
         # shell outside the homepage -- with the ordinary default every other
         # task surface actually renders at, homework statistics and the
         # leaderboard family included: neither overrides `.content-shell`,
-        # so both already sit at the narrow, ~40.5rem `--content-width`. The
+        # so both already sit at the narrow, 56rem `--content-width`. The
         # per-section `.shell-breakout` escapes and the horizontal-scroll
         # wide table both stay gone -- reshaping into a row-list, not
         # scrolling sideways, is still how this page handles data too wide

@@ -174,8 +174,10 @@ heading of the band it sits in.
 - **Shell**: `.shell` centres content at `--shell` = `76rem`, `padding-inline: 1rem`
   (`1.25rem` at ≥40rem).
 - **Measure**: `--measure` = `38rem`, about 70 characters. `.prose-reading` and
-  `.prose-lede` are held to it. Ordinary pages use `--content-width` through
-  `.content-shell` rather than choosing a local max width.
+  `.prose-lede` are held to it. Ordinary pages use `--content-width` = `56rem`
+  (the course platform's `.app-content-shell` width) through `.content-shell`
+  rather than choosing a local max width; prose inside the column stays at the
+  measure.
 - **Radius**: `0.45rem` status pills · `0.5–0.7rem` small controls and CTAs ·
   `0.9rem` cards, modules, player frame · `1.1rem` inset panels · `1.5rem` the
   featured slab · `999px` pills, discs, avatars.
