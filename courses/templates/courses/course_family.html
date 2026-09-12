@@ -1,7 +1,9 @@
 {% extends "core/content_page.html" %}
-{% load breadcrumbs static %}
+{% load breadcrumbs %}
 
-{% block document_title %}{{ course_family.title }} — DataTalks.Club{% endblock %}
+{% block document_title %}
+  {{ course_family.title }} — DataTalks.Club
+{% endblock %}
 
 {% block metadata %}
     <meta name="description" content="{{ family_lede|striptags|truncatechars:180 }}">
@@ -9,9 +11,134 @@
 
 {% block page_styles %}
 
+      {% comment %}
+        Family landing page, course-page mock of 2026-09, drawn directionally in
+        the design system: the same cream hero, lavender ground, status pills,
+        mono metadata and hard-shadow cards as every page, with the mock's
+        registration cards, fact chips, syllabus rows, graduate-story band,
+        project gallery, numbered edition rows and the green closing band
+        translated into the tokens and primitives the shell already owns.  Every
+        fact on the page is read
+        from the family record and its cohorts (see courses.course_page_content);
+        a fact the data cannot back is not drawn.
+      {% endcomment %}
+
+      /* The page draws with the system's tokens and faces (the partial owns
+         both) and names only the comp's genuinely one-off colours, so the
+         dark theme can restate them instead of each rule carrying a
+         light-only literal. */
       :root {
-        --page: var(--lavender);
+        --cta-shadow: #16301a;
+        --rule-dashed: rgba(27, 30, 53, 0.28);
+        /* The graduate-story cards keep the mock's dark card on either
+           theme, so their text colours are named here rather than borrowed
+           from tokens that flip with the theme. */
+        --story-card: #232743;
+        --story-line: #3a3e60;
+        --story-ink: #fbf8ec;
+        --story-meta: #b9bcd6;
+        /* The stories band is the mock's full-bleed ink ground with cream
+           text.  Like the other coloured grounds it keeps its own tokens so
+           the theme flip cannot borrow the wrong text colour; dark mode only
+           deepens the ground beneath the dark page. */
+        --band-ink-bg: #1b1e35;
+        --band-ink-ink: #fbf8ec;
+        /* The closing band is the comp's green ground with cream text.  Like
+           the stories band it stays a coloured ground in both themes, so its
+           text colours are named here rather than borrowed from tokens that
+           flip with the theme; dark mode only deepens the ground. */
+        --band-green: #2e6b36;
+        --band-green-ink: #fbf8ec;
+        --band-green-meta: rgba(251, 248, 236, 0.88);
       }
+
+      body.dark-mode {
+        --cta-shadow: #060816;
+        --rule-dashed: rgba(174, 181, 244, 0.34);
+        --story-card: #1b2138;
+        --story-line: #454c85;
+        --story-ink: #eaeaf7;
+        --story-meta: #a4a9bd;
+        --band-ink-bg: #161930;
+        --band-ink-ink: #eaeaf7;
+        --band-green: #29582f;
+        --band-green-ink: #eaeaf7;
+        --band-green-meta: rgba(234, 234, 247, 0.85);
+      }
+
+      /* The comp's drawing habits: hard vertical shadows instead of the
+         system's diagonal offsets, deeper card radii, a 1px dashed band rule,
+         display weight 900 and body weight 400. */
+      body {
+        font-weight: 400;
+      }
+
+      h1,
+      h2 {
+        font-weight: 900;
+        letter-spacing: -0.02em;
+      }
+
+      .cta {
+        border-radius: 0.875rem;
+        box-shadow: 0 4px 0 var(--shadow-soft);
+        font-weight: 800;
+      }
+
+      .cta-primary {
+        box-shadow: 0 4px 0 var(--cta-shadow);
+      }
+
+      .card {
+        border-radius: 1.25rem;
+        box-shadow: 0 5px 0 var(--shadow-soft);
+      }
+
+      .band,
+      .masthead {
+        border-bottom: 1px dashed var(--rule-dashed);
+      }
+
+      .content-page-header {
+        padding-block: clamp(2.5rem, 5vw, 4.25rem);
+      }
+
+      .signup-button {
+        box-shadow: 0 3px 0 var(--cta-shadow);
+        font-weight: 800;
+      }
+
+      /* The comp's boxed mono logotype, as on the courses index. */
+      .brand .brand-mark {
+        display: none;
+      }
+
+      .brand::before {
+        align-items: center;
+        background: var(--indigo-soft);
+        border: 2px solid var(--ink);
+        border-radius: 0.75rem 0.75rem 0.75rem 0.25rem;
+        content: "DTC";
+        display: inline-flex;
+        flex: none;
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        font-weight: 700;
+        height: 2.125rem;
+        justify-content: center;
+        margin-right: 0.35rem;
+        width: 2.125rem;
+      }
+
+      .brand-name {
+        margin-block-end: 0;
+      }
+
+      .brand {
+        font-size: 1.1875rem;
+      }
+
+      /* --- hero --------------------------------------------------------- */
 
       .family-hero .breadcrumbs {
         margin-bottom: 0.35rem;
@@ -21,10 +148,14 @@
       .family-hero-inner {
         align-items: center;
         display: grid;
-        gap: 1.5rem;
-        grid-template-columns: minmax(0, 1fr) 12rem;
-        padding-bottom: 3.25rem;
-        padding-top: 2rem;
+        gap: 1.5rem 3rem;
+        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      }
+
+      @media (min-width: 62rem) {
+        .family-hero-inner {
+          grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+        }
       }
 
       .family-hero-art {
@@ -37,9 +168,32 @@
         object-fit: contain;
       }
 
+      .family-status {
+        margin: 0 0 0.7rem;
+      }
+
       .family-hero h1 {
-        font-size: clamp(2rem, 5vw, 3.4rem);
+        font-size: clamp(2.5rem, 5.6vw, 4.25rem);
+        line-height: 1.02;
         max-width: 44rem;
+        text-wrap: balance;
+      }
+
+      .family-lede {
+        font-size: clamp(1rem, 1.7vw, 1.15rem);
+        margin-top: 0.9rem;
+        max-width: 44rem;
+      }
+
+      /* The fact chips are bare status pills: mono, quiet, and drawn only for
+         facts the cohorts can back. */
+      .family-facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        list-style: none;
+        margin: 1.1rem 0 0;
+        padding: 0;
       }
 
       .family-hero-actions {
@@ -49,61 +203,156 @@
         margin-top: 1.35rem;
       }
 
-      .family-lede {
-        font-size: clamp(1rem, 1.7vw, 1.15rem);
-        margin-top: 0.9rem;
-        max-width: 44rem;
-      }
+      /* --- registration cards ------------------------------------------- */
 
-      .family-editions-band {
-        padding-block: 3rem 4rem;
-      }
-
-      .family-editions {
+      .family-register-cards {
         display: grid;
-        gap: 1rem;
+        gap: 1.25rem;
         margin-top: 1.5rem;
       }
 
-      .family-edition {
-        background: var(--card);
-        border: 2px solid var(--line);
-        box-shadow: 0.28rem 0.28rem 0 var(--shadow-soft);
-        padding: 1.25rem;
+      /* The mock lays the state card and the start-now card side by side; the
+         pair stacks only when the shell is phone-narrow. */
+      @media (min-width: 48rem) {
+        .family-register-cards {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        /* A family with only one real start-now destination draws one card;
+           it spans the row because a half-empty second cell reads as a hole,
+           not as a deliberate single-card layout. */
+        .family-register-cards.is-single {
+          grid-template-columns: minmax(0, 1fr);
+          max-width: 40rem;
+        }
+      }
+
+      .family-register-card h3,
+      .family-materials-card h3 {
+        font-size: clamp(1.3rem, 2.4vw, 1.6rem);
+        letter-spacing: -0.015em;
+        margin: 0.35rem 0 0;
+      }
+
+      /* The card is a flex column, so a pill child would otherwise stretch
+         across the whole card; the tag keeps its own width. */
+      .family-register-card .status-pill,
+      .family-materials-card .status-pill {
+        align-self: flex-start;
+      }
+
+      .family-register-card p,
+      .family-materials-card p {
+        color: var(--body-text);
+        margin: 0;
+      }
+
+      /* The card's fact rows keep the mock's label-left, value-right rhythm as
+         a dl; the row owns its dashed rule, the way list rows do. */
+      .family-spec-rows {
+        display: grid;
+        gap: 0.55rem;
+        margin: 0.35rem 0 0;
+      }
+
+      .family-spec-row {
+        align-items: baseline;
+        border-bottom: 1.5px dashed var(--line-soft);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 1rem;
+        justify-content: space-between;
+        padding-bottom: 0.55rem;
+      }
+
+      .family-spec-row dd {
+        font-weight: 700;
+        margin: 0;
+        text-align: right;
+      }
+
+      /* The mock's cohort card closes on a button pair — the registration
+         action and the route to the materials.  The row owns the
+         push-to-card-bottom margin so either number of buttons stays put. */
+      .family-card-actions {
+        align-self: flex-start;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: auto;
+      }
+
+      .family-card-cta {
+        align-self: start;
+        margin-top: auto;
+      }
+
+      /* --- the edition rows --------------------------------------------- */
+
+      .family-editions {
+        margin-top: 3.25rem;
+      }
+
+      /* The mock's syllabus frame: a 2px ink rule closes the list at each end
+         and the rows divide on the system's dashed rule. */
+      .family-edition-list {
+        border-bottom: 2px solid var(--line);
+        list-style: none;
+        margin: 1.5rem 0 0;
+        padding: 0;
+      }
+
+      .family-edition-row {
+        border-top: 1.5px dashed var(--line-soft);
+        display: grid;
+        gap: 0.25rem 1rem;
+        grid-template-columns: 3rem minmax(0, 1fr);
+        padding: 1.15rem 0;
+      }
+
+      .family-edition-row:first-child {
+        border-top: 2px solid var(--line);
+      }
+
+      .family-edition-index {
+        color: var(--green-text);
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        font-weight: 700;
+        padding-top: 0.2rem;
       }
 
       .family-edition-head {
-        align-items: flex-start;
+        align-items: baseline;
+        column-gap: 0.75rem;
         display: flex;
-        gap: 1rem;
+        flex-wrap: wrap;
         justify-content: space-between;
+        row-gap: 0.4rem;
       }
 
-      .family-edition-label {
-        color: var(--muted);
-        font-family: var(--font-mono);
-        font-size: 0.72rem;
-        letter-spacing: 0.08em;
-        margin-bottom: 0.35rem;
-        text-transform: uppercase;
+      .family-edition-head h3 {
+        font-size: 1.25rem;
+        margin: 0;
       }
 
-      .family-edition h2 {
-        font-size: clamp(1.25rem, 2vw, 1.65rem);
-      }
-
-      .family-edition h2 a,
-      .family-project a {
+      .family-edition-head h3 a {
         color: var(--ink);
+        text-decoration: none;
       }
 
+      .family-edition-head h3 a:hover,
+      .family-edition-head h3 a:focus-visible {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      /* The learner work an edition already published stays on the landing, one
+         quiet sub-row per project, so choosing an edition needs no guessing. */
       .family-projects {
-        margin-top: 1.5rem;
-      }
-
-      .family-projects h3 {
-        font-size: 1rem;
-        margin-bottom: 0.5rem;
+        list-style: none;
+        margin: 0.7rem 0 0;
+        padding: 0;
       }
 
       .family-project {
@@ -111,6 +360,11 @@
         display: flex;
         gap: 1rem;
         justify-content: space-between;
+        padding: 0.35rem 0;
+      }
+
+      .family-project a {
+        color: var(--ink);
       }
 
       .family-project-state {
@@ -123,8 +377,301 @@
 
       .family-empty {
         color: var(--muted);
+        margin: 0.7rem 0 0;
+      }
+
+      .family-faq {
         margin-top: 1.5rem;
       }
+
+      /* The comp's section headings outscale the shared band head: the mock
+         sets every section h2 at display size, so one page-local rule lifts
+         them together. */
+      .content-page-content .band-head h2 {
+        font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+      }
+
+      /* --- the syllabus band --------------------------------------------- */
+
+      /* The mock's two-column syllabus: the course's promise on the left, the
+         numbered module rows on the right, an ink rule closing the list at
+         each end and dashed rules dividing the rows. */
+      .family-syllabus {
+        margin-top: 3.25rem;
+      }
+
+      .family-syllabus-grid {
+        display: grid;
+        gap: 1.75rem 3.5rem;
+      }
+
+      @media (min-width: 62rem) {
+        .family-syllabus-grid {
+          grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+        }
+      }
+
+      .family-syllabus-intro .mono-note {
+        display: block;
+        margin-top: 0.6rem;
+      }
+
+      .family-syllabus-intro .band-link {
+        display: inline-block;
+        margin-top: 1.1rem;
+      }
+
+      .family-syllabus-list {
+        border-bottom: 2px solid var(--line);
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .family-syllabus-row {
+        border-top: 1.5px dashed var(--line-soft);
+        display: grid;
+        gap: 0.25rem 1rem;
+        grid-template-columns: 3rem minmax(0, 1fr);
+        padding: 1.05rem 0;
+      }
+
+      .family-syllabus-row:first-child {
+        border-top: 2px solid var(--line);
+      }
+
+      .family-syllabus-index {
+        color: var(--green-text);
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        font-weight: 700;
+        padding-top: 0.2rem;
+      }
+
+      .family-syllabus-row h3 {
+        font-size: 1.2rem;
+        margin: 0;
+      }
+
+      .family-syllabus-row p {
+        color: var(--body-text);
+        font-size: 0.95rem;
+        margin: 0.3rem 0 0;
+      }
+
+      /* The capstone closes the list the way the mock does: a starred mono
+         index, and the project itself as the link. */
+      .family-syllabus-capstone h3 {
+        font-size: 1.2rem;
+      }
+
+      .family-syllabus-capstone h3 a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .family-syllabus-capstone h3 a:hover,
+      .family-syllabus-capstone h3 a:focus-visible {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      /* --- the graduate-stories band -------------------------------------- */
+
+      /* The mock sets the graduate quotes into a full-bleed ink band: the
+         page's dark chapter between two light ones, its content capped at
+         the shell.  The band's text tokens live in :root above; the story
+         cards keep their own named tokens. */
+      .family-stories {
+        background: var(--band-ink-bg);
+        margin-block: 3.25rem;
+        padding: clamp(2.5rem, 5vw, 3.5rem) 1.25rem;
+      }
+
+      .family-stories.shell-breakout {
+        --breakout-width: 100vw;
+      }
+
+      .family-stories-inner {
+        margin-inline: auto;
+        max-width: var(--shell);
+      }
+
+      .family-stories h2 {
+        color: var(--band-ink-ink);
+        font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+      }
+
+      .family-story-grid {
+        display: grid;
+        gap: 1.25rem;
+        margin-top: 1.75rem;
+      }
+
+      @media (min-width: 62rem) {
+        .family-story-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      .family-story {
+        background: var(--story-card);
+        border: 2px solid var(--story-line);
+        border-radius: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin: 0;
+        padding: 1.5rem;
+      }
+
+      .family-story blockquote {
+        color: var(--story-ink);
+        font-size: 1.02rem;
+        font-weight: 700;
+        line-height: 1.5;
+        margin: 0;
+      }
+
+      .family-story figcaption {
+        align-items: center;
+        display: flex;
+        gap: 0.75rem;
+        margin-top: auto;
+      }
+
+      .family-story .avatar {
+        border-color: var(--story-line);
+        display: block;
+        height: 2.75rem;
+        width: 2.75rem;
+      }
+
+      .family-story-name {
+        color: var(--story-ink);
+        display: block;
+        font-weight: 800;
+      }
+
+      .family-story-meta {
+        color: var(--story-meta);
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.05em;
+      }
+
+      .family-story-source {
+        align-self: flex-start;
+        color: var(--story-meta);
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      /* --- the project gallery -------------------------------------------- */
+
+      .family-built {
+        margin-top: 3.25rem;
+      }
+
+      .family-built-grid {
+        display: grid;
+        gap: 1.25rem;
+        margin-top: 1.5rem;
+      }
+
+      @media (min-width: 48rem) {
+        .family-built-grid {
+          grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+        }
+      }
+
+      .family-built-card h3 {
+        font-size: 1.15rem;
+        margin: 0;
+      }
+
+      .family-built-card h3 a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .family-built-card h3 a:hover,
+      .family-built-card h3 a:focus-visible {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .family-built-card .status-pill {
+        align-self: flex-start;
+      }
+
+      .family-built-more {
+        margin-top: 1.4rem;
+      }
+
+      /* --- the closing band ----------------------------------------------- */
+
+      /* The mock closes the page on a full-bleed green band: edge to edge,
+         display-size line, the actions under it, its card row capped at the
+         shell.  The band's own text tokens live in :root above. */
+      .family-closing {
+        background: var(--band-green);
+        border-top: 1px dashed var(--rule-dashed);
+        margin-top: 3.25rem;
+        padding: clamp(2.5rem, 5vw, 3.75rem) 1.25rem;
+      }
+
+      .family-closing.shell-breakout {
+        --breakout-width: 100vw;
+      }
+
+      .family-closing-inner {
+        margin-inline: auto;
+        max-width: var(--shell);
+      }
+
+      .family-closing h2 {
+        color: var(--band-green-ink);
+        font-size: clamp(1.9rem, 3.8vw, 2.75rem);
+        letter-spacing: -0.02em;
+        margin: 0;
+        max-width: 46rem;
+        text-wrap: balance;
+      }
+
+      .family-closing p {
+        color: var(--band-green-meta);
+        font-size: 1.05rem;
+        margin: 0.6rem 0 0;
+      }
+
+      .family-closing-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+      }
+
+      /* On the green ground the comp swaps the button roles: the primary is
+         cream with green text, the secondary an outlined cream ghost. */
+      .family-closing .cta-primary {
+        background: var(--band-green-ink);
+        border-color: var(--band-green-ink);
+        box-shadow: 0 4px 0 var(--cta-shadow);
+        color: var(--band-green);
+      }
+
+      .family-closing .cta-secondary {
+        background: transparent;
+        border-color: var(--band-green-ink);
+        box-shadow: none;
+        color: var(--band-green-ink);
+      }
+
+      /* --- narrow: reshape, not reflow ----------------------------------- */
 
       @media (max-width: 47.99rem) {
         .family-hero-inner {
@@ -135,24 +682,31 @@
         .family-hero-art {
           display: none;
         }
-      }
 
-      @media (max-width: 42rem) {
-        .family-edition-head,
-        .family-project {
-          align-items: flex-start;
-          flex-direction: column;
-          gap: 0.65rem;
+        .family-edition-row {
+          grid-template-columns: minmax(0, 1fr);
         }
 
-        .family-project-state {
-          order: 2;
+        .family-edition-index {
+          padding-top: 0;
+        }
+
+        .family-syllabus-row {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .family-syllabus-index {
+          padding-top: 0;
         }
       }
 {% endblock %}
 
-{% block header_band_class %}family-hero{% endblock %}
-{% block header_attributes %}aria-labelledby="family-heading"{% endblock %}
+{% block header_band_class %}
+  family-hero
+{% endblock %}
+{% block header_attributes %}
+  aria-labelledby="family-heading"
+{% endblock %}
 
 {% block page_header %}
         {% comment %}
@@ -161,8 +715,25 @@
         {% endcomment %}
         {% url 'course_list' as course_list_url %}
         {% breadcrumbs "Courses" course_list_url %}
-        <div class="family-hero-inner">
+        <div class="family-hero-inner shell-breakout">
           <div>
+            {% comment %}
+              The cohort state, in words first: an open campaign names the edition
+              and its start date, a family between cohorts says so, and a family
+              with nothing to offer draws no pill at all.
+            {% endcomment %}
+            {% if family_registration %}
+              <p class="family-status">
+                {% if registration_cohort %}
+                  <span class="status-pill status-pill-open">
+                    <span class="status-dot" aria-hidden="true"></span>
+                    Registration open · starts {{ registration_cohort.start_date|date:"M j, Y" }}
+                  </span>
+                {% else %}
+                  <span class="status-pill status-pill-wait">Between cohorts · next dates to be announced</span>
+                {% endif %}
+              </p>
+            {% endif %}
             <h1 id="family-heading">{{ course_family.title }}</h1>
             {% if family_lede %}
               <div class="family-lede">{{ family_lede }}</div>
@@ -170,17 +741,31 @@
             {% comment %}
               Registration for the course, not for one of its editions: an open edition is
               named because naming it is honest, a course whose editions have all closed
-              offers the next one, and a course with no campaign offers nothing.
+              offers the next one, and a course with no campaign offers nothing.  The
+              second action is the strongest start-now route the data actually has.
             {% endcomment %}
-            {% if family_registration %}
-              <div class="family-hero-actions">
+            <div class="family-hero-actions">
+              {% if family_registration %}
                 {% url 'registration_campaign' family_registration.campaign.slug as family_registration_url %}
-                {% if family_registration.cohort %}
-                  {% include "core/_button.html" with href=family_registration_url label="Register for the "|add:family_registration.cohort.identifier|add:" cohort" variant="primary" compact=True %}
+                {% if registration_cohort %}
+                  {% include "core/_button.html" with href=family_registration_url label="Register for the "|add:registration_cohort.identifier|add:" cohort" variant="primary" compact=True %}
                 {% else %}
                   {% include "core/_button.html" with href=family_registration_url label="Register for the next edition" variant="primary" compact=True %}
                 {% endif %}
-              </div>
+              {% endif %}
+              {% if self_paced_cohort %}
+                {% url 'cohort' course_family.slug self_paced_cohort.identifier as self_paced_url %}
+                {% include "core/_button.html" with href=self_paced_url label="Start self-paced" variant="secondary" compact=True %}
+              {% elif materials_url %}
+                {% include "core/_button.html" with href=materials_url label="Course materials on GitHub" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
+              {% endif %}
+            </div>
+            {% if family_facts %}
+              <ul class="family-facts" role="list">
+                {% for fact in family_facts %}
+                  <li class="status-pill">{{ fact }}</li>
+                {% endfor %}
+              </ul>
             {% endif %}
           </div>
           <div class="family-hero-art">
@@ -190,7 +775,132 @@
 {% endblock %}
 
 {% block page_content %}
-      <section class="family-editions-band" aria-labelledby="editions-heading">
+      {% comment %}
+        The registration band the mock puts directly under the hero: one card for
+        the cohort state and one for the start-today route.  A card is drawn only
+        when its destination is real.
+      {% endcomment %}
+      {% if family_registration or self_paced_cohort or materials_url %}
+        <section class="family-register shell-breakout" aria-labelledby="register-heading">
+          <div class="band-head">
+            <div>
+              <h2 id="register-heading">Get started</h2>
+              {% if family_registration %}
+                <p>Free, no card — registration takes a minute.</p>
+              {% else %}
+                <p>The materials are open — start whenever you like.</p>
+              {% endif %}
+            </div>
+          </div>
+          {% comment %}
+            Precedence note: `and` binds tighter than `or`, so this is
+            "no registration card, or neither start-now card" — exactly the
+            one-card state.
+          {% endcomment %}
+          <div class="family-register-cards{% if not family_registration or not self_paced_cohort and not materials_url %} is-single{% endif %}">
+            {% if family_registration %}
+              <article class="card family-register-card">
+                {% if registration_cohort %}
+                  <span class="status-pill status-pill-open">
+                    <span class="status-dot" aria-hidden="true"></span>
+                    Registration open
+                  </span>
+                  <h3>Cohort {{ registration_cohort.identifier }} starts {{ registration_cohort.start_date|date:"M j, Y" }}</h3>
+                  <p>Register and you get the schedule, the cohort Slack channel and homework reminders. No application.</p>
+                {% else %}
+                  <span class="status-pill status-pill-wait">Between cohorts</span>
+                  <h3>Register for the next {{ course_family.title }} edition</h3>
+                  <p>The latest cohort has finished. Register and we will let you know when the next one is announced.</p>
+                {% endif %}
+                {% if registration_specs %}
+                  <dl class="family-spec-rows">
+                    {% for spec in registration_specs %}
+                      <div class="family-spec-row">
+                        <dt class="mono-label">{{ spec.label }}</dt>
+                        <dd>{{ spec.value }}</dd>
+                      </div>
+                    {% endfor %}
+                  </dl>
+                {% endif %}
+                {% url 'registration_campaign' family_registration.campaign.slug as family_registration_url %}
+                <div class="family-card-actions">
+                  {% include "core/_button.html" with href=family_registration_url label="Register — free" variant="primary" %}
+                  {% if materials_url %}
+                    {% include "core/_button.html" with href=materials_url label="Open the materials" variant="secondary" target="_blank" rel="noopener noreferrer" %}
+                  {% endif %}
+                </div>
+              </article>
+            {% endif %}
+            {% if self_paced_cohort or materials_url %}
+              <article class="card family-materials-card">
+                <span class="status-pill">Self-paced · start now</span>
+                {% if self_paced_cohort %}
+                  <h3>Take the self-paced route</h3>
+                  <p>The same curriculum without the deadlines — work through it at your own pace, with the community channel for questions.</p>
+                  {% url 'cohort' course_family.slug self_paced_cohort.identifier as self_paced_url %}
+                  {% include "core/_button.html" with href=self_paced_url label="Open the self-paced course" variant="secondary" classes="family-card-cta" %}
+                {% else %}
+                  <h3>Everything is on GitHub</h3>
+                  <p>All of the materials are public and stay public. Work through them at your pace and ask questions in the community.</p>
+                  {% include "core/_button.html" with href=materials_url label="Open the materials" variant="secondary" classes="family-card-cta" target="_blank" rel="noopener noreferrer" %}
+                {% endif %}
+              </article>
+            {% endif %}
+          </div>
+        </section>
+      {% endif %}
+      {% comment %}
+        The mock's syllabus band, read from the family's shared curriculum —
+        or, for a course whose repository never imported one, from the front
+        cohort's homework list.  The starred closing row is the front edition's
+        own capstone attempt, so the list ends on the thing the course builds
+        towards; a family with neither modules nor homework draws no band.
+      {% endcomment %}
+      {% if family_syllabus_rows %}
+        <section class="family-syllabus shell-breakout" aria-labelledby="syllabus-heading">
+          <div class="family-syllabus-grid">
+            <div class="family-syllabus-intro">
+              <h2 id="syllabus-heading">Syllabus</h2>
+              {% if syllabus_fact %}
+                <p class="mono-note">{{ syllabus_fact }} — the same path every cohort follows.</p>
+              {% endif %}
+              {% if front_cohort %}
+                {% url 'cohort' course_family.slug front_cohort.identifier as syllabus_cohort_url %}
+                <a class="band-link" href="{{ syllabus_cohort_url }}">Open it in the {{ front_cohort.identifier }} cohort →</a>
+              {% endif %}
+            </div>
+            <ol class="family-syllabus-list" role="list">
+              {% for row in family_syllabus_rows %}
+                <li class="family-syllabus-row">
+                  <span class="family-syllabus-index" aria-hidden="true">{{ row.index }}</span>
+                  <div>
+                    <h3>{{ row.title }}</h3>
+                    {% if row.summary %}
+                      <p>{{ row.summary }}</p>
+                    {% endif %}
+                  </div>
+                </li>
+              {% endfor %}
+              {% if syllabus_capstone %}
+                <li class="family-syllabus-row family-syllabus-capstone">
+                  <span class="family-syllabus-index" aria-hidden="true">★</span>
+                  <div>
+                    <h3>
+                      <a href="{% url 'cohort_project' course_slug=course_family.slug cohort_identifier=front_cohort.identifier project_slug=syllabus_capstone.slug %}">{{ syllabus_capstone.title }}</a>
+                    </h3>
+                  </div>
+                </li>
+              {% endif %}
+            </ol>
+          </div>
+        </section>
+      {% endif %}
+      {% comment %}
+        The editions, as the mock's numbered rows: a mono index, the cohort title
+        as the link, an honest state pill, and the learner work the edition has
+        already published.  Every edition and project keeps its route.
+      {% endcomment %}
+      <section class="family-editions shell-breakout" aria-labelledby="editions-heading">
           <div class="band-head">
             <div>
               <h2 id="editions-heading">Cohort editions</h2>
@@ -198,41 +908,155 @@
             </div>
           </div>
 
-          {% if cohort_editions %}
-            <div class="family-editions">
-              {% for edition in cohort_editions %}
-                <article class="family-edition" aria-labelledby="edition-{{ edition.cohort.identifier|slugify }}">
-                  <div class="family-edition-head">
-                    <div>
-                      <p class="family-edition-label">Cohort {{ edition.cohort.identifier }}</p>
-                      <h2 id="edition-{{ edition.cohort.identifier|slugify }}">
-                        <a href="{% url 'cohort' course_family.slug edition.cohort.identifier %}">{{ edition.cohort.title }}</a>
-                      </h2>
+          {% if family_edition_rows %}
+            <ol class="family-edition-list" role="list">
+              {% for row in family_edition_rows %}
+                <li class="family-edition-row">
+                  <span class="family-edition-index" aria-hidden="true">{{ row.index }}</span>
+                  <div class="family-edition-main">
+                    <div class="family-edition-head">
+                      <h3>
+                        <a href="{% url 'cohort' course_family.slug row.cohort.identifier %}">{{ row.cohort.title }}</a>
+                      </h3>
+                      {% if row.state_words %}
+                        <span class="status-pill {{ row.state_pill_class }}">{{ row.state_words }}</span>
+                      {% endif %}
                     </div>
-                    {% url 'cohort' course_family.slug edition.cohort.identifier as edition_url %}
-                    {% include "core/_button.html" with href=edition_url label="View cohort" variant="secondary" compact=True %}
-                  </div>
-
-                  {% if edition.projects %}
-                    <div class="family-projects">
-                      <h3>Projects</h3>
-                      <ul class="row-list" role="list">
-                        {% for project in edition.projects %}
-                          <li class="list-row family-project">
-                            <a href="{% url 'cohort_project' course_slug=course_family.slug cohort_identifier=edition.cohort.identifier project_slug=project.slug %}">{{ project.title }}</a>
+                    {% if row.projects %}
+                      <ul class="family-projects" role="list">
+                        {% for project in row.projects %}
+                          <li class="family-project">
+                            <a href="{% url 'cohort_project' course_slug=course_family.slug cohort_identifier=row.cohort.identifier project_slug=project.slug %}">{{ project.title }}</a>
                             <span class="family-project-state">{{ project.get_state_display }}</span>
                           </li>
                         {% endfor %}
                       </ul>
-                    </div>
-                  {% else %}
-                    <p class="family-empty">No projects are available for this edition yet.</p>
-                  {% endif %}
-                </article>
+                    {% else %}
+                      <p class="family-empty">No projects are available for this edition yet.</p>
+                    {% endif %}
+                  </div>
+                </li>
               {% endfor %}
-            </div>
+            </ol>
           {% else %}
             <p class="family-empty">No cohorts are available yet.</p>
           {% endif %}
+
+          {% if course_family.faq_document_url %}
+            <div class="panel panel-lavender panel-outlined family-faq">
+              <h3>Questions before you start?</h3>
+              <p class="family-empty">This course keeps its own frequently asked questions.</p>
+              <a
+                class="band-link"
+                href="{{ course_family.faq_document_url }}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >Course FAQ →</a>
+            </div>
+          {% endif %}
       </section>
+      {% comment %}
+        The mock's graduate stories, drawn only when the family has published
+        testimonials: dark cards on the lavender ground, the quote, the
+        portrait the row resolves, and an attribution that links to the
+        public post the quote was taken from when one exists.
+      {% endcomment %}
+      {% if family_stories %}
+        <section class="family-stories shell-breakout" aria-labelledby="stories-heading">
+          <div class="family-stories-inner">
+            <h2 id="stories-heading">People who finished it</h2>
+            <div class="family-story-grid">
+              {% for story in family_stories %}
+                <figure class="family-story">
+                  <blockquote>{{ story.quote }}</blockquote>
+                  <figcaption>
+                    {% if story.portrait_url %}
+                      <img class="avatar" src="{{ story.portrait_url }}" alt="" width="44" height="44">
+                    {% else %}
+                      <span class="avatar avatar-striped" aria-hidden="true"></span>
+                    {% endif %}
+                    <span>
+                      <span class="family-story-name">{{ story.name }}</span>
+                      {% if story.attribution %}
+                        <span class="family-story-meta">{{ story.attribution }}</span>
+                      {% endif %}
+                    </span>
+                  </figcaption>
+                  {% if story.source_url %}
+                    <a class="family-story-source" href="{{ story.source_url }}" target="_blank" rel="noopener noreferrer">Read the full story →</a>
+                  {% endif %}
+                </figure>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      {% endif %}
+      {% comment %}
+        The mock's "what people built" gallery: the newest edition that holds
+        projects, one card per project, with the cohort's own submission
+        gallery one click away.  A family whose editions hold no projects
+        draws no gallery.
+      {% endcomment %}
+      {% if family_project_cards %}
+        <section class="family-built shell-breakout" aria-labelledby="built-heading">
+          <div class="band-head">
+            <div>
+              <h2 id="built-heading">What people build</h2>
+              {% if built_cohort %}
+                <p class="mono-note">projects from the {{ built_cohort.identifier }} cohort</p>
+              {% endif %}
+            </div>
+          </div>
+          <div class="family-built-grid">
+            {% for card in family_project_cards %}
+              <article class="card family-built-card">
+                <span class="mono-label">{{ card.cohort.identifier }}</span>
+                <h3>
+                  <a href="{% url 'cohort_project' course_slug=course_family.slug cohort_identifier=card.cohort.identifier project_slug=card.project.slug %}">{{ card.project.title }}</a>
+                </h3>
+                <span class="status-pill">{{ card.project.get_state_display }}</span>
+              </article>
+            {% endfor %}
+          </div>
+          {% if built_cohort %}
+            <p class="family-built-more">
+              <a class="band-link" href="{% url 'cohort_project_submissions' course_slug=course_family.slug cohort_identifier=built_cohort.identifier project_slug=family_project_cards.0.project.slug %}">Browse the cohort's project submissions →</a>
+            </p>
+          {% endif %}
+        </section>
+      {% endif %}
+      {% comment %}
+        The page closes on the mock's call to action, translated into the
+        system: the full-bleed green band with the action line at display
+        size, carrying the strongest honest actions.
+      {% endcomment %}
+      {% if family_registration or self_paced_cohort or materials_url %}
+        <section class="family-closing shell-breakout" aria-labelledby="closing-heading">
+          <div class="family-closing-inner">
+            {% if family_registration %}
+              <h2 id="closing-heading">Join the next cohort</h2>
+              {% if registration_cohort %}
+                <p>Free, no card. Registration takes a minute and opens the cohort Slack channel.</p>
+              {% else %}
+                <p>Free, no card. Register and we will let you know when the next cohort opens.</p>
+              {% endif %}
+            {% else %}
+              <h2 id="closing-heading">Start today</h2>
+              <p>The self-paced route is open — the materials are free and public.</p>
+            {% endif %}
+            <div class="family-closing-actions">
+              {% if family_registration %}
+                {% url 'registration_campaign' family_registration.campaign.slug as family_registration_url %}
+                {% include "core/_button.html" with href=family_registration_url label="Register — free" variant="primary" %}
+              {% endif %}
+              {% if self_paced_cohort %}
+                {% url 'cohort' course_family.slug self_paced_cohort.identifier as self_paced_url %}
+                {% include "core/_button.html" with href=self_paced_url label="Start self-paced" variant="secondary" %}
+              {% elif materials_url %}
+                {% include "core/_button.html" with href=materials_url label="Open the materials" variant="secondary" target="_blank" rel="noopener noreferrer" %}
+              {% endif %}
+            </div>
+          </div>
+        </section>
+      {% endif %}
 {% endblock %}

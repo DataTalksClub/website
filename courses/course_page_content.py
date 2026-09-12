@@ -1,13 +1,17 @@
-"""Editorial composition for the redesigned public course page.
+"""Editorial composition for the redesigned public course pages.
 
-The course page renders the "6b" mockup of the design system (DataTalksClub/website#179).
-Every fact it shows — title, description, dates, deadlines, module titles, submission state,
-and counts — is read from the cohort record and its homework and project rows.
+The cohort page renders the "6b" mockup of the design system
+(DataTalksClub/website#179) and the family landing page the course-page mock of
+2026-09. Every fact either page shows — title, description, dates, deadlines,
+module titles, submission state, and counts — is read from the course records
+and their homework and project rows.
 """
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
+from datetime import date
 from typing import Any
 
 
@@ -22,6 +26,18 @@ class CourseSpec:
 
 # How the design writes a course date: "Mon, Sep 14, 2026".
 SPEC_DATE_FORMAT = "%a, %b %-d, %Y"
+
+# How the family landing writes a span: compact, like the mock's register card —
+# "Sep 14 — Jan 25, 2027" inside one year, "Sep 14, 2026 — Jan 25, 2027" across two.
+FAMILY_DATE_FORMAT = "%b %-d, %Y"
+
+
+def family_date_span(start: Any, end: Any) -> str:
+    """Return a cohort's run as one compact span, weekday-free."""
+
+    if start.strftime("%Y") == end.strftime("%Y"):
+        return f"{start.strftime('%b %-d')} — {end.strftime(FAMILY_DATE_FORMAT)}"
+    return f"{start.strftime(FAMILY_DATE_FORMAT)} — {end.strftime(FAMILY_DATE_FORMAT)}"
 
 
 def course_specs(
@@ -115,3 +131,199 @@ def submission_progress(modules: tuple[CourseModule, ...]) -> SubmissionProgress
         total=total,
         percent=round(submitted * 100 / total),
     )
+
+
+@dataclass(frozen=True, slots=True)
+class FamilyEditionRow:
+    """One visible edition in the family landing's cohort list, with its honest state."""
+
+    cohort: Any
+    projects: list
+    index: str
+    state_words: str
+    state_pill_class: str
+
+
+def family_edition_rows(
+    editions: list,
+    registration_cohort: Any,
+    today: date,
+) -> tuple[FamilyEditionRow, ...]:
+    """Number the visible editions and name each one's state from its own record.
+
+    The edition a campaign is actively promoting is "registration open"; a self-paced
+    edition says so; a dated edition reads against today. Anything the data cannot
+    place draws no pill at all rather than a guess, and the words are the state —
+    the pill colour only reinforces them.
+    """
+
+    rows: list[FamilyEditionRow] = []
+    for position, edition in enumerate(editions, start=1):
+        cohort = edition.cohort
+        if registration_cohort is not None and cohort.pk == registration_cohort.pk:
+            words, variant = "registration open", "open"
+        elif getattr(cohort, "delivery_mode", "") == "self_paced":
+            words, variant = "self-paced", ""
+        elif (
+            cohort.start_date
+            and cohort.end_date
+            and cohort.start_date <= today <= cohort.end_date
+        ):
+            words, variant = "in progress", "live"
+        elif cohort.end_date and cohort.end_date < today:
+            words, variant = "finished", "wait"
+        else:
+            words, variant = "", ""
+        rows.append(
+            FamilyEditionRow(
+                cohort=cohort,
+                projects=edition.projects,
+                index=f"{position:02d}",
+                state_words=words,
+                state_pill_class=f"status-pill-{variant}" if variant else "",
+            )
+        )
+    return tuple(rows)
+
+
+def family_registration_specs(
+    cohort: Any,
+    registered: int | None,
+) -> tuple[CourseSpec, ...]:
+    """The registration card's dashed fact rows, only from dates and counts that exist."""
+
+    specs: list[CourseSpec] = []
+    if cohort is not None and cohort.start_date and cohort.end_date:
+        specs.append(
+            CourseSpec(
+                "runs",
+                family_date_span(cohort.start_date, cohort.end_date),
+            )
+        )
+    if registered is not None:
+        specs.append(CourseSpec("registered", f"{registered} people"))
+    return tuple(specs)
+
+
+def family_facts(
+    editions: list,
+    duration_label: str,
+    registered: int | None,
+) -> tuple[str, ...]:
+    """The hero's fact chips as plain phrases, read from the family's own rows.
+
+    A chip is a fact the records can back: the front cohort's length, how many
+    visible editions the family has, how many learner projects they hold, and the
+    published registration total. Absent facts are skipped, never padded.
+    """
+
+    facts: list[str] = []
+    if duration_label and duration_label != "TBA":
+        facts.append(duration_label)
+    if editions:
+        facts.append(f"{len(editions)} cohorts")
+    project_count = sum(len(edition.projects) for edition in editions)
+    if project_count:
+        facts.append(f"{project_count} learner projects")
+    if registered is not None:
+        facts.append(f"{registered} registered")
+    return tuple(facts)
+
+
+@dataclass(frozen=True, slots=True)
+class FamilySyllabusRow:
+    """One numbered row of the family landing's syllabus band."""
+
+    index: str
+    title: str
+    summary: str = ""
+
+
+# Curriculum modules and homework both arrive titled "Module 1: Agentic RAG"
+# or "Homework 3: Orchestration"; the row's own mono index already says the
+# number, so the spoken prefix would repeat it.
+_UNIT_TITLE_PREFIX = re.compile(r"^(?:module|homework)\s+\d+\s*:\s*", re.IGNORECASE)
+
+
+def family_syllabus_rows(units: list) -> tuple[FamilySyllabusRow, ...]:
+    """Number the family's syllabus units in teaching order.
+
+    A unit is a shared-curriculum module when the course's import created one,
+    otherwise a homework row of the front cohort; both carry a title and,
+    optionally, a one-line summary.  A unit the data cannot summarise is a
+    title-only row rather than a padded one.
+    """
+
+    rows = []
+    for position, unit in enumerate(units, start=1):
+        title = _UNIT_TITLE_PREFIX.sub("", unit.title).strip()
+        rows.append(
+            FamilySyllabusRow(
+                index=f"{position:02d}",
+                title=title,
+                summary=getattr(unit, "summary", "") or "",
+            )
+        )
+    return tuple(rows)
+
+
+@dataclass(frozen=True, slots=True)
+class FamilyStory:
+    """One graduate quote on the family landing, with its checkable attribution."""
+
+    name: str
+    quote: str
+    attribution: str = ""
+    portrait_url: str = ""
+    source_url: str = ""
+
+
+def family_story_rows(testimonials) -> tuple[FamilyStory, ...]:
+    """Flatten published course testimonials into the rows the band renders."""
+
+    return tuple(
+        FamilyStory(
+            name=testimonial.name,
+            quote=testimonial.quote,
+            attribution=testimonial.attribution,
+            portrait_url=testimonial.portrait_url,
+            source_url=testimonial.source_url,
+        )
+        for testimonial in testimonials
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class FamilyProjectCard:
+    """One project of the edition the gallery band shows."""
+
+    cohort: Any
+    project: Any
+
+
+def family_project_cards(editions: list) -> tuple[FamilyProjectCard, ...]:
+    """The projects of the newest visible edition that actually holds some.
+
+    ``editions`` arrives newest first, as the family landing's other bands read
+    it, so the scan stops at the first edition whose project list is not empty
+    and the gallery always shows one cohort's work rather than a mixture.
+    """
+
+    for edition in editions:
+        if edition.projects:
+            return tuple(
+                FamilyProjectCard(cohort=edition.cohort, project=project)
+                for project in edition.projects
+            )
+    return ()
+
+
+def family_capstone_project(projects: list):
+    """The edition's closing artifact: its last project, or none.
+
+    A course's project list runs in submission order and ends with the
+    capstone attempts, so the tail of the list is the closest thing the data
+    has to "the capstone" without second-guessing an editor's titles.
+    """
+
+    return projects[-1] if projects else None

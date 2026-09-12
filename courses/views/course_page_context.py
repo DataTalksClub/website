@@ -6,6 +6,13 @@ from django.utils import timezone
 from courses.course_page_content import (
     course_modules,
     course_specs,
+    family_capstone_project,
+    family_edition_rows,
+    family_facts,
+    family_project_cards,
+    family_registration_specs,
+    family_story_rows,
+    family_syllabus_rows,
     submission_progress,
 )
 from courses.models.cohort import (
@@ -13,10 +20,13 @@ from courses.models.cohort import (
     Course,
     CourseRegistration,
     CurriculumFormat,
+    DeliveryMode,
     Enrollment,
     RegistrationCampaign,
 )
 from courses.models.project import ProjectState
+from courses.models.shared_curriculum import SharedLesson, SharedModule
+from courses.models.testimonial import TestimonialPlacement
 from courses.services.curriculum_flow import build_curriculum_flow
 from courses.services.registration_campaigns import (
     FamilyRegistration,
@@ -25,7 +35,10 @@ from courses.services.registration_campaigns import (
     next_edition_campaign_for_cohort,
 )
 from courses.services.registration_counts import public_course_registration_count
-from courses.views.course_homepage import add_course_homepage_info
+from courses.views.course_homepage import (
+    add_course_homepage_info,
+    course_duration_label,
+)
 from courses.views.course_homeworks import get_homeworks_for_course
 from courses.views.course_projects import get_projects_for_course
 from courses.views.url_utils import get_cohort_or_404
@@ -300,6 +313,7 @@ def family_lede(family: Course) -> str:
 def course_family_page_context(family: Course, user) -> dict:
     """Build the family landing context without changing cohort view logic."""
 
+    today = timezone.localdate(timezone.now())
     editions = [
         CourseFamilyEdition(
             cohort=cohort,
@@ -308,12 +322,89 @@ def course_family_page_context(family: Course, user) -> dict:
         for cohort in visible_course_editions_for_family(family)
     ]
     registration: FamilyRegistration = family_registration(family)
+    registration_cohort = registration.cohort
+    front_cohort = registration_cohort or (editions[0].cohort if editions else None)
+    registered = registered_learner_count(registration.campaign)
+    materials_url = family.github_repo_url or next(
+        (
+            edition.cohort.github_repo_url
+            for edition in editions
+            if edition.cohort.github_repo_url
+        ),
+        "",
+    )
+    self_paced_cohort = next(
+        (
+            edition.cohort
+            for edition in editions
+            if edition.cohort.delivery_mode == DeliveryMode.SELF_PACED.value
+        ),
+        None,
+    )
+    front_edition = next(
+        (edition for edition in editions if edition.cohort.pk == front_cohort.pk),
+        None,
+    )
+    front_projects = front_edition.projects if front_edition else []
+    # The syllabus band reads the family's shared curriculum when an import
+    # created one and the front cohort's homework list otherwise; a family with
+    # neither draws no syllabus at all.
+    shared_modules = list(
+        SharedModule.objects.filter(
+            curriculum__course=family,
+            published=True,
+            retired_at__isnull=True,
+        ).order_by("position", "id")
+    )
+    if shared_modules:
+        syllabus_units: list = shared_modules
+        lesson_count = SharedLesson.objects.filter(
+            module__in=shared_modules,
+            published=True,
+            retired_at__isnull=True,
+        ).count()
+        syllabus_fact = f"{len(shared_modules)} modules · {lesson_count} lessons"
+    else:
+        syllabus_units = (
+            get_homeworks_for_course(front_cohort, user) if front_cohort else []
+        )
+        syllabus_fact = f"{len(syllabus_units)} homeworks" if syllabus_units else ""
+    project_cards = family_project_cards(editions)
     return {
         "course_family": family,
         "cohorts": [edition.cohort for edition in editions],
         "cohort_editions": editions,
+        "family_edition_rows": family_edition_rows(
+            editions,
+            registration_cohort,
+            today,
+        ),
         "family_registration": registration,
+        "registration_cohort": registration_cohort,
+        "registration_specs": family_registration_specs(
+            registration_cohort,
+            registered,
+        ),
+        "family_facts": family_facts(
+            editions,
+            course_duration_label(front_cohort) if front_cohort else "TBA",
+            registered if registration_cohort else None,
+        ),
+        "materials_url": materials_url,
+        "self_paced_cohort": self_paced_cohort,
         "family_lede": family_lede(family),
+        "front_cohort": front_cohort,
+        "family_syllabus_rows": family_syllabus_rows(syllabus_units),
+        "syllabus_fact": syllabus_fact,
+        "syllabus_capstone": family_capstone_project(front_projects),
+        "family_stories": family_story_rows(
+            family.testimonials.filter(
+                placement=TestimonialPlacement.COURSE,
+                published=True,
+            )[:3]
+        ),
+        "family_project_cards": project_cards,
+        "built_cohort": project_cards[0].cohort if project_cards else None,
     }
 
 
