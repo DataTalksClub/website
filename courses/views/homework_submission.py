@@ -100,9 +100,7 @@ def register_homework_submission_callbacks(data, submission):
 
 def homework_submission_success_response(request, course, homework):
     success_message = (
-        "Thank you for submitting your homework, now your solution "
-        + "is saved. You can update it at any point. You will see "
-        + "your score after the form is closed."
+        "Saved. You can update it at any point before the deadline."
     )
     messages.success(
         request,
