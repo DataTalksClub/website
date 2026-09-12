@@ -42,67 +42,25 @@
        * hero band and the lavender content band remain the parent's.
        * ------------------------------------------------------------------ */
 
-      /* --- the comp's tokens -------------------------------------------------
-         The owner's Courses_Landing comp carries its own palette: cream
-         #FBF8EC ground, ink #1B1E35, green #2E6B36 actions and indigo
-         #4B4FC6 links.  It is stated here as token overrides so every shared
-         primitive the page uses — bands, cards, chips, pills, buttons,
-         footer — adopts it at once.  body.dark-mode restates the palette in
-         the shared partial, so the dark theme keeps its own values.  Type
-         stays on the site's shared faces, Quicksand and the system mono
-         stack, like every other page. */
-
+      /* The page draws with the design system's tokens — the same palette,
+         buttons and cards the homepage renders; the shared partial owns
+         both themes.  Only the artwork's genuinely one-off colours are
+         named here, so the dark theme can restate them instead of each
+         rule carrying a light-only literal. */
       :root {
-        --cream: #fbf8ec;
-        --lavender: #efeefb;
-        --mint: #e9f3e3;
-        --ink: #1b1e35;
-        --body-text: #4a4e68;
-        --muted: #5a5e7a;
-        --line: #1b1e35;
-        --green: #2e6b36;
-        --indigo: #4b4fc6;
-        --indigo-soft: #c9c8e8;
-        --lavender-deep: #e6e4f6;
-        --shadow-soft: rgba(27, 30, 53, 0.18);
-        --page: var(--cream);
-        /* The comp's one-off colours, named so the dark theme can restate
-           them instead of each rule carrying a light-only literal. */
-        --cta-shadow: #16301a;
         --hatch-line: #9a9dbb;
         --panel-line: #a9cfa0;
-        --rule-dashed: rgba(27, 30, 53, 0.28);
         --stats-label: #b9bcd6;
       }
 
       body.dark-mode {
-        --cta-shadow: #060816;
         --hatch-line: #7079b4;
         --panel-line: #4e7d5b;
-        --rule-dashed: rgba(174, 181, 244, 0.34);
         --stats-label: #a4a9bd;
       }
 
-      /* --- the comp's drawing habits -----------------------------------------
-         Hard vertical shadows instead of the system's diagonal offsets,
-         deeper card radii and a 1px dashed rule — repeated by the comp on
-         every surface.  Faces and weights stay the site's own. */
-      .cta {
-        border-radius: 0.875rem;
-        box-shadow: 0 4px 0 var(--shadow-soft);
-      }
-
-      .cta-primary {
-        box-shadow: 0 4px 0 var(--cta-shadow);
-      }
-
-      .card {
-        border-radius: 1.25rem;
-        box-shadow: 0 5px 0 var(--shadow-soft);
-      }
-
       .band {
-        border-bottom: 1px dashed var(--rule-dashed);
+        border-bottom: 1px dashed var(--line-soft);
       }
 
       /* The comp's hero band breathes deeper than the shell's default, and
@@ -110,10 +68,6 @@
          (5.25rem / 4rem at the shell's full width). */
       .content-page-header {
         padding-block: clamp(2.5rem, 5.9vw, 5.25rem) clamp(2.5rem, 4.5vw, 4rem);
-      }
-
-      .signup-button {
-        box-shadow: 0 3px 0 var(--cta-shadow);
       }
 
       /* --- hero ----------------------------------------------------------- */
