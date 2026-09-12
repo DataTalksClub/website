@@ -10,19 +10,22 @@ and used only to pick the right account for each learner -- see
 titles/homework text, when a local course repo checkout is available, come
 from ``homework_content.py``.
 
-One field is the exception: ``Submission.submitted_at``. The graded exports
-never carried a submission time at all, so this module also reads each
-homework's own raw weekly export (``HomeworkSource.raw_csv``) for its real,
-plaintext ``Timestamp`` column, hashes the email the same way the graded
-export's key already is, and joins the two by that hash -- see
-``_raw_email_to_timestamp``. No email or timestamp value from that read is
-ever persisted; only the resulting datetime is.
+Two fields are the exception: ``Submission.submitted_at`` and
+``Submission.learning_in_public_links``. The graded exports never carried a
+submission time or the real learning-in-public URLs at all, so this module
+also reads each homework's own raw weekly export (``HomeworkSource.raw_csv``)
+for its real, plaintext ``Timestamp`` and ``Learning in public links``
+columns, hashes the email the same way the graded export's key already is,
+and joins the two by that hash -- see ``_raw_submission_info_by_email``. No
+email value from that read is ever persisted; only the resulting datetime
+and URL list are.
 """
 
 from __future__ import annotations
 
 import csv
 import json
+import re
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -68,10 +71,16 @@ class EditionImportResult:
     # ``submitted_at`` from the raw weekly export vs. how many could not be
     # matched there (email absent from that week's raw export, or the export
     # itself missing) and so fell back to import time -- see
-    # ``_raw_email_to_timestamp``. Documented, not silent: this must stay
-    # visibly rare, not the common case.
+    # ``_raw_submission_info_by_email``. Documented, not silent: this must
+    # stay visibly rare, not the common case.
     submissions_with_recovered_timestamp: int
     submissions_with_fallback_timestamp: int
+    # How many of ``homework_submissions`` got a real, non-empty
+    # ``learning_in_public_links`` from that same raw export vs. how many were
+    # left empty -- either the email was not matched there, or it was and
+    # that week's cell genuinely had no link in it. Never fabricated.
+    submissions_with_recovered_links: int
+    submissions_without_recovered_links: int
 
 
 def _to_int(value) -> int:
@@ -238,15 +247,49 @@ def _parse_raw_timestamp(value: str, date_order: str) -> datetime | None:
         return None
 
 
-def _raw_email_to_timestamp(raw_csv: Path | None) -> dict[str, datetime]:
+_LEARNING_IN_PUBLIC_COLUMN = "Learning in public links"
+_LINK_SPLIT_RE = re.compile(r"[\n,]+")
+_URL_PREFIX_RE = re.compile(r"^https?://", re.IGNORECASE)
+
+
+def _parse_learning_in_public_links(raw_value: str) -> list[str]:
+    """Split one raw export cell into the real URLs it carries, if any.
+
+    A cell can hold several links (newline- or comma-separated -- both occur
+    across these exports) alongside plain free text ("not yet", a comment
+    that happens to precede a link on its own line). Only tokens that
+    actually look like an ``http(s)://`` URL are kept, in original order,
+    de-duplicated; nothing here validates or resolves the link the way the
+    live submission form's own cleaner does (``homework_learning_links.py``)
+    -- this is a read of frozen historical text, not user input being
+    accepted right now.
+    """
+
+    links: list[str] = []
+    for candidate in _LINK_SPLIT_RE.split(raw_value):
+        candidate = candidate.strip()
+        if not candidate or not _URL_PREFIX_RE.match(candidate):
+            continue
+        if candidate not in links:
+            links.append(candidate)
+    return links
+
+
+@dataclass(frozen=True, slots=True)
+class RawSubmissionInfo:
+    submitted_at: datetime | None
+    learning_in_public_links: tuple[str, ...]
+
+
+def _raw_submission_info_by_email(raw_csv: Path | None) -> dict[str, RawSubmissionInfo]:
     """Map a raw weekly export's real emails (hashed the upstream way) to
-    the real ``Timestamp`` each learner submitted at.
+    the real ``Timestamp`` and ``Learning in public links`` it carried.
 
     On a duplicate email within one export (a resubmission), the last row
     wins -- the same rule the upstream grading pipeline itself uses
     (``evaluate_week.py``: ``drop_duplicates(subset=['email'], keep='last')``),
-    so this joins the timestamp of the submission that was actually graded,
-    not an earlier draft.
+    so this joins the submission that was actually graded, not an earlier
+    draft.
     """
 
     if raw_csv is None or not raw_csv.exists():
@@ -264,16 +307,17 @@ def _raw_email_to_timestamp(raw_csv: Path | None) -> dict[str, datetime]:
             date_parts.append(parts)
     date_order = _sniff_date_order(date_parts)
 
-    mapping: dict[str, datetime] = {}
+    mapping: dict[str, RawSubmissionInfo] = {}
     for row in rows:
         email = (row.get(email_column) or "").strip()
+        if not email:
+            continue
         timestamp_raw = (row.get("Timestamp") or "").strip()
-        if not email or not timestamp_raw:
-            continue
-        parsed = _parse_raw_timestamp(timestamp_raw, date_order)
-        if parsed is None:
-            continue
-        mapping[sha1_hex(email)] = parsed
+        parsed = _parse_raw_timestamp(timestamp_raw, date_order) if timestamp_raw else None
+        links = tuple(_parse_learning_in_public_links(row.get(_LEARNING_IN_PUBLIC_COLUMN) or ""))
+        mapping[sha1_hex(email)] = RawSubmissionInfo(
+            submitted_at=parsed, learning_in_public_links=links
+        )
     return mapping
 
 
@@ -283,13 +327,15 @@ def _import_homework(
     position: int,
     hash_to_email: dict[str, str],
     topic: TopicContent | None,
-) -> tuple[Homework, int, int, int]:
+) -> tuple[Homework, int, int, int, int, int]:
     fieldnames, rows = _read_rows(source.results_csv)
     text_by_column, points_by_column = _load_answers_config(source.answers_json)
     question_columns = [name for name in fieldnames if name.startswith("question")]
-    raw_timestamps = _raw_email_to_timestamp(source.raw_csv)
+    raw_info = _raw_submission_info_by_email(source.raw_csv)
     recovered_timestamp_count = 0
     fallback_timestamp_count = 0
+    recovered_links_count = 0
+    empty_links_count = 0
 
     due_date = _cohort_start(cohort) + position * _WEEK_SPACING
     title = topic.title if topic else f"Homework {source.slug_part}"
@@ -355,20 +401,36 @@ def _import_homework(
                 "total_score": total_score,
             }
             # ``source_key`` is already the same sha1(email) the raw export's
-            # real address hashes to (see ``_raw_email_to_timestamp``), so no
-            # extra pass through ``hash_to_email`` is needed here -- a direct
-            # hit means this learner's real weekly ``Timestamp`` was
-            # recovered; a miss (email absent from that week's raw export, or
-            # no raw export at all for this homework) leaves ``submitted_at``
-            # out of ``defaults`` entirely, so it only ever falls back to the
-            # model's import-time default on first creation and a later
-            # re-run never clobbers a real value with "now".
-            recovered_at = raw_timestamps.get(source_key)
-            if recovered_at is not None:
-                submission_defaults["submitted_at"] = recovered_at
+            # real address hashes to (see ``_raw_submission_info_by_email``),
+            # so no extra pass through ``hash_to_email`` is needed here -- a
+            # direct hit means this learner's real weekly raw row was found.
+            # A miss (email absent from that week's raw export, or no raw
+            # export at all for this homework) leaves both ``submitted_at``
+            # and ``learning_in_public_links`` out of ``defaults`` entirely,
+            # so a fallback row only ever gets the model's own import-time
+            # default / null on first creation, and a later re-run never
+            # clobbers a real recovered value with "now" or an empty list.
+            info = raw_info.get(source_key)
+            if info is not None and info.submitted_at is not None:
+                submission_defaults["submitted_at"] = info.submitted_at
                 recovered_timestamp_count += 1
             else:
                 fallback_timestamp_count += 1
+
+            if info is not None:
+                # A real raw-export hit, even with a genuinely blank cell
+                # that week, is still a fact worth recording explicitly --
+                # unlike the timestamp, "no links this week" is a normal,
+                # common outcome, not evidence of a failed join.
+                submission_defaults["learning_in_public_links"] = list(
+                    info.learning_in_public_links
+                )
+                if info.learning_in_public_links:
+                    recovered_links_count += 1
+                else:
+                    empty_links_count += 1
+            else:
+                empty_links_count += 1
 
             submission, _ = Submission.objects.update_or_create(
                 homework=homework,
@@ -388,7 +450,14 @@ def _import_homework(
                 for column, (question, points) in questions.items()
             )
 
-    return homework, submission_count, recovered_timestamp_count, fallback_timestamp_count
+    return (
+        homework,
+        submission_count,
+        recovered_timestamp_count,
+        fallback_timestamp_count,
+        recovered_links_count,
+        empty_links_count,
+    )
 
 
 def _load_assignment_lookup(assignment_csv: Path | None) -> dict[str, dict[str, str]]:
@@ -493,14 +562,18 @@ def import_edition_scoring(
     homework_submissions = 0
     recovered_timestamps = 0
     fallback_timestamps = 0
+    recovered_links = 0
+    empty_links = 0
     for position, source in enumerate(edition.homeworks):
-        homework, count, recovered, fallback = _import_homework(
+        homework, count, recovered, fallback, links_recovered, links_empty = _import_homework(
             cohort, source, position, hash_to_email, topics.get(source.slug_part)
         )
         homeworks.append(homework)
         homework_submissions += count
         recovered_timestamps += recovered
         fallback_timestamps += fallback
+        recovered_links += links_recovered
+        empty_links += links_empty
 
     projects = []
     project_submissions = 0
@@ -517,6 +590,8 @@ def import_edition_scoring(
         project_submissions=project_submissions,
         submissions_with_recovered_timestamp=recovered_timestamps,
         submissions_with_fallback_timestamp=fallback_timestamps,
+        submissions_with_recovered_links=recovered_links,
+        submissions_without_recovered_links=empty_links,
     )
 
 

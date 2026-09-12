@@ -1,4 +1,5 @@
-"""``Submission.submitted_at`` is recovered from the raw weekly export.
+"""``Submission.submitted_at`` and ``learning_in_public_links`` are recovered
+from the raw weekly export.
 
 Regression cover for the bug where ``scoring_import.py`` never set
 ``submitted_at`` in its ``update_or_create`` ``defaults``, so every imported
@@ -10,7 +11,10 @@ read only from ``Submission.submitted_at``).
 
 The fix joins each homework's raw Google Form export (still carrying a real,
 plaintext ``Timestamp`` + ``Email``/``Email address`` column keyed by the same
-address the processed/graded export hashes) back in by that same hash.
+address the processed/graded export hashes) back in by that same hash. The
+same export's "Learning in public links" column is joined in alongside it,
+since ``Submission.learning_in_public_links`` was never populated by this
+importer either.
 """
 
 from __future__ import annotations
@@ -27,8 +31,9 @@ import scripts.prod
 from scripts.prod.legacy_zoomcamp.editions import HomeworkSource
 from scripts.prod.legacy_zoomcamp.scoring_import import (
     _import_homework,
+    _parse_learning_in_public_links,
     _parse_raw_timestamp,
-    _raw_email_to_timestamp,
+    _raw_submission_info_by_email,
     _sniff_date_order,
 )
 
@@ -93,6 +98,45 @@ class RawTimestampParsingTests(TestCase):
         self.assertIsNone(_parse_raw_timestamp("not-a-timestamp", "dmy"))
 
 
+class LearningInPublicLinkParsingTests(TestCase):
+    """Real cells mix links with plain feedback text and either separator."""
+
+    def test_newline_separated_links(self) -> None:
+        raw = "https://twitter.com/jaimeh94_\nhttps://www.linkedin.com/in/jaimeh94/"
+        self.assertEqual(
+            _parse_learning_in_public_links(raw),
+            ["https://twitter.com/jaimeh94_", "https://www.linkedin.com/in/jaimeh94/"],
+        )
+
+    def test_comma_and_newline_separated_links_with_trailing_separators(self) -> None:
+        raw = (
+            "https://gist.github.com/a, https://gist.github.com/b, \n"
+            "https://gist.github.com/c,\n"
+        )
+        self.assertEqual(
+            _parse_learning_in_public_links(raw),
+            [
+                "https://gist.github.com/a",
+                "https://gist.github.com/b",
+                "https://gist.github.com/c",
+            ],
+        )
+
+    def test_free_text_with_no_link_is_dropped(self) -> None:
+        self.assertEqual(_parse_learning_in_public_links("not yet"), [])
+
+    def test_free_text_preceding_a_link_keeps_only_the_link(self) -> None:
+        raw = "I dont use social media. My progress is shown on my github:\nhttps://github.com/x"
+        self.assertEqual(_parse_learning_in_public_links(raw), ["https://github.com/x"])
+
+    def test_a_blank_cell_is_an_empty_list(self) -> None:
+        self.assertEqual(_parse_learning_in_public_links(""), [])
+
+    def test_duplicate_links_in_one_cell_are_deduplicated(self) -> None:
+        raw = "https://example.invalid/a\nhttps://example.invalid/a"
+        self.assertEqual(_parse_learning_in_public_links(raw), ["https://example.invalid/a"])
+
+
 class ScoringImportSubmittedAtTests(TestCase):
     """End-to-end: ``_import_homework`` joins the raw export back in by hash."""
 
@@ -127,6 +171,11 @@ class ScoringImportSubmittedAtTests(TestCase):
             raw_csv=self.raw_csv,
         )
 
+    def _import(self):
+        return _import_homework(
+            self.cohort, self._source(), position=0, hash_to_email={}, topic=None
+        )
+
     def test_a_matched_row_recovers_its_real_historical_timestamp(self) -> None:
         _write_csv(
             self.results_csv,
@@ -135,13 +184,17 @@ class ScoringImportSubmittedAtTests(TestCase):
         )
         _write_csv(
             self.raw_csv,
-            ["Timestamp", "Email address"],
-            [{"Timestamp": "05/09/2022 22:05:49", "Email address": "1"}],
+            ["Timestamp", "Email address", "Learning in public links"],
+            [
+                {
+                    "Timestamp": "05/09/2022 22:05:49",
+                    "Email address": "1",
+                    "Learning in public links": "",
+                }
+            ],
         )
 
-        _homework, _count, recovered, fallback = _import_homework(
-            self.cohort, self._source(), position=0, hash_to_email={}, topic=None
-        )
+        _homework, _count, recovered, fallback, links_recovered, links_empty = self._import()
 
         from courses.models import Submission
 
@@ -152,6 +205,47 @@ class ScoringImportSubmittedAtTests(TestCase):
         )
         self.assertEqual(recovered, 1)
         self.assertEqual(fallback, 0)
+        # A real raw-export hit with a genuinely blank cell -- not a
+        # fabricated link, but also not the "no match at all" case.
+        self.assertEqual(submission.learning_in_public_links, [])
+        self.assertEqual(links_recovered, 0)
+        self.assertEqual(links_empty, 1)
+
+    def test_a_matched_row_recovers_its_real_learning_in_public_links(self) -> None:
+        _write_csv(
+            self.results_csv,
+            RESULTS_FIELDNAMES,
+            [{"email": HASH_ONE, "question1": 1, "learning_in_public": 2, "total_score": 3}],
+        )
+        _write_csv(
+            self.raw_csv,
+            ["Timestamp", "Email address", "Learning in public links"],
+            [
+                {
+                    "Timestamp": "05/09/2022 22:05:49",
+                    "Email address": "1",
+                    "Learning in public links": (
+                        "https://twitter.com/example/status/1\n"
+                        "https://www.linkedin.com/posts/example"
+                    ),
+                }
+            ],
+        )
+
+        _homework, _count, _recovered, _fallback, links_recovered, links_empty = self._import()
+
+        from courses.models import Submission
+
+        submission = Submission.objects.get()
+        self.assertEqual(
+            submission.learning_in_public_links,
+            [
+                "https://twitter.com/example/status/1",
+                "https://www.linkedin.com/posts/example",
+            ],
+        )
+        self.assertEqual(links_recovered, 1)
+        self.assertEqual(links_empty, 0)
 
     def test_an_unmatched_row_falls_back_without_a_fabricated_precise_time(self) -> None:
         """No raw export at all: every row in it visibly counts as fallback,
@@ -165,9 +259,7 @@ class ScoringImportSubmittedAtTests(TestCase):
         # No raw_csv written at all -- the missing-export case.
         before = datetime.datetime.now(datetime.UTC)
 
-        _homework, _count, recovered, fallback = _import_homework(
-            self.cohort, self._source(), position=0, hash_to_email={}, topic=None
-        )
+        _homework, _count, recovered, fallback, links_recovered, links_empty = self._import()
 
         from courses.models import Submission
 
@@ -176,6 +268,9 @@ class ScoringImportSubmittedAtTests(TestCase):
         self.assertGreaterEqual(submission.submitted_at, before)
         self.assertEqual(recovered, 0)
         self.assertEqual(fallback, 1)
+        self.assertIsNone(submission.learning_in_public_links)
+        self.assertEqual(links_recovered, 0)
+        self.assertEqual(links_empty, 1)
 
     def test_a_replay_does_not_clobber_a_fallback_row_with_a_fresh_now(self) -> None:
         _write_csv(
@@ -184,13 +279,13 @@ class ScoringImportSubmittedAtTests(TestCase):
             [{"email": HASH_TWO, "question1": 1, "learning_in_public": 0, "total_score": 1}],
         )
 
-        _import_homework(self.cohort, self._source(), position=0, hash_to_email={}, topic=None)
+        self._import()
 
         from courses.models import Submission
 
         first_submitted_at = Submission.objects.get().submitted_at
 
-        _import_homework(self.cohort, self._source(), position=0, hash_to_email={}, topic=None)
+        self._import()
 
         self.assertEqual(Submission.objects.get().submitted_at, first_submitted_at)
 
@@ -214,13 +309,13 @@ class ScoringImportSubmittedAtTests(TestCase):
             ],
         )
 
-        mapping = _raw_email_to_timestamp(self.raw_csv)
+        mapping = _raw_submission_info_by_email(self.raw_csv)
 
         self.assertEqual(
-            mapping[HASH_ONE],
+            mapping[HASH_ONE].submitted_at,
             datetime.datetime(2022, 9, 6, 11, 30, tzinfo=datetime.UTC),
         )
 
     def test_a_missing_raw_file_has_an_empty_map_rather_than_raising(self) -> None:
-        self.assertEqual(_raw_email_to_timestamp(self.raw_csv), {})
-        self.assertEqual(_raw_email_to_timestamp(None), {})
+        self.assertEqual(_raw_submission_info_by_email(self.raw_csv), {})
+        self.assertEqual(_raw_submission_info_by_email(None), {})

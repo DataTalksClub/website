@@ -155,6 +155,8 @@ def import_edition(
             "project_submissions": result.project_submissions,
             "submissions_with_recovered_timestamp": result.submissions_with_recovered_timestamp,
             "submissions_with_fallback_timestamp": result.submissions_with_fallback_timestamp,
+            "submissions_with_recovered_links": result.submissions_with_recovered_links,
+            "submissions_without_recovered_links": result.submissions_without_recovered_links,
         }
 
     if skip_certificates:
