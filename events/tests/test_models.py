@@ -37,6 +37,10 @@ from events.queries import published_event_records
 
 class EventIdentityTests(TestCase):
     def test_service_allocation_is_immutable_monotonic_and_never_reused(self) -> None:
+        # The next public id the service allocates is one past whatever the
+        # catalogue already holds -- a fact about the sequence, not a literal
+        # tied to how many events the fixture happens to carry.
+        expected_first_public_id = EventPublicIdSequence.objects.get(pk=1).next_public_id
         first = create_event_identity(
             title="Identity fixture",
             source_repository="DataTalksClub/test",
@@ -45,7 +49,7 @@ class EventIdentityTests(TestCase):
         )
         first_id = first.id
         first_public_id = first.public_id
-        self.assertEqual(first_public_id, 422)
+        self.assertEqual(first_public_id, expected_first_public_id)
         first.delete()
         second = create_event_identity(
             title="Second identity fixture",
@@ -53,9 +57,12 @@ class EventIdentityTests(TestCase):
             source_revision="a" * 40,
             source_key="fixture-event-2",
         )
-        self.assertEqual(second.public_id, 423)
+        self.assertEqual(second.public_id, expected_first_public_id + 1)
         self.assertNotEqual(second.id, first_id)
-        self.assertEqual(EventPublicIdSequence.objects.get(pk=1).next_public_id, 424)
+        self.assertEqual(
+            EventPublicIdSequence.objects.get(pk=1).next_public_id,
+            expected_first_public_id + 2,
+        )
 
         second.public_id = 500
         with self.assertRaisesMessage(ValueError, "event public ID is immutable"):

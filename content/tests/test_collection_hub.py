@@ -17,7 +17,7 @@ from content import catalogue
 from content.catalogue import PUBLIC_CONTENT_STABLE_ID
 from content.models import ContentSource
 from content.pagination import PUBLIC_PAGE_SIZE
-from core.templatetags.accessibility import human_day, iso_day
+from core.templatetags.accessibility import counted, day_and_month, human_day, iso_day, year_only
 
 from .pagination_support import catalogue_page_bodies
 
@@ -148,7 +148,7 @@ class CollectionHubRecordTests(TestCase):
             )
         self.assertEqual(body.count('<span class="status-pill">'), len(with_archive))
         sample = with_archive[0]
-        self.assertIn(f"{len(sample['archive'])} questions", body)
+        self.assertIn(counted(sample["archive"], "question"), body)
 
     def test_every_row_shows_the_recorded_day_and_never_an_invented_time(self) -> None:
         """The catalogues store a day; the page must not render a clock reading.
@@ -169,10 +169,12 @@ class CollectionHubRecordTests(TestCase):
         # rows is one column of dates whatever the month is called.
         blog = "".join(catalogue_page_bodies(self.client, "/blog"))
         books = "".join(catalogue_page_bodies(self.client, "/books"))
-        self.assertIn("<span>July 28</span>", blog)
-        self.assertIn("<span>2026</span>", blog)
-        self.assertIn("<span>October 6</span>", books)
-        self.assertIn("<span>2025</span>", books)
+        sample_article = catalogue.articles()[0]
+        sample_book = catalogue.books()[0]
+        self.assertIn(f"<span>{day_and_month(sample_article['published'])}</span>", blog)
+        self.assertIn(f"<span>{year_only(sample_article['published'])}</span>", blog)
+        self.assertIn(f"<span>{day_and_month(sample_book['published'])}</span>", books)
+        self.assertIn(f"<span>{year_only(sample_book['published'])}</span>", books)
 
     def test_no_row_declares_a_machine_time_its_text_does_not_name(self) -> None:
         for path in ("/blog", "/books"):

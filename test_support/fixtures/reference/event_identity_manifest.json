@@ -1,6 +1,6 @@
 {
   "counts": {
-    "events": 11
+    "events": 46
   },
   "events": [
     {
@@ -32,18 +32,18 @@
       "title": "Synthetic Data Engineering Workshop"
     },
     {
-      "canonical_path": "/events/3/synthetic-mlops-panel",
+      "canonical_path": "/events/3/synthetic-mlops-data-panel",
       "id": "4affe0af-a969-5095-9e67-6faca1b18da7",
       "public_id": 3,
-      "slug": "synthetic-mlops-panel",
+      "slug": "synthetic-mlops-data-panel",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
         "source_key": "synthetic-event-3"
       },
-      "source_checksum": "e11d9166b78ef4896fbe5ddb2ff1c3947b0e1d7614b4821d2cfbb9337aa73181",
+      "source_checksum": "0492c69210cbbe3feab4779f88021af202155d3dba4e34da0870dcd38bc7c37f",
       "source_path": "_data/events.yaml",
-      "title": "Synthetic MLOps Panel"
+      "title": "Synthetic MLOps & Data Panel"
     },
     {
       "canonical_path": "/events/4/synthetic-llm-deep-dive",
@@ -156,6 +156,496 @@
       "source_checksum": "973351d432c0031142193a81c649f954f36522096eac5b0c9a23c77bd23e25c7",
       "source_path": "_data/events.yaml",
       "title": "Synthetic Banner-Mapped Agents Workshop"
+    },
+    {
+      "canonical_path": "/events/12/synthetic-bulk-past-event-001",
+      "id": "eeb08b71-091b-5a56-a748-15f48ae8064f",
+      "public_id": 12,
+      "slug": "synthetic-bulk-past-event-001",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-12"
+      },
+      "source_checksum": "e003d288c7796d19f6fce11de7ffc6b221632a5ba0f084cb7d4b53faef572d39",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 001"
+    },
+    {
+      "canonical_path": "/events/13/synthetic-bulk-past-event-002",
+      "id": "78b8e833-799a-56bb-b69d-d0c28c436964",
+      "public_id": 13,
+      "slug": "synthetic-bulk-past-event-002",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-13"
+      },
+      "source_checksum": "102b2a089199a4894e2612dc26f1b05b5e0e60fdcf9183aa8f5c2bc4cc3c0b9e",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 002"
+    },
+    {
+      "canonical_path": "/events/14/synthetic-bulk-past-event-003",
+      "id": "db710def-53c5-5e1d-9dc9-1f50049ff29e",
+      "public_id": 14,
+      "slug": "synthetic-bulk-past-event-003",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-14"
+      },
+      "source_checksum": "d93ec368f6520c9d56263a67372a553e870565d36c8a5cd606402f837e3ed8c1",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 003"
+    },
+    {
+      "canonical_path": "/events/15/synthetic-bulk-past-event-004",
+      "id": "68298672-3422-5f3f-a80c-6eca61b63c4b",
+      "public_id": 15,
+      "slug": "synthetic-bulk-past-event-004",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-15"
+      },
+      "source_checksum": "2ffdf1b3b4a6ad5d0f63dccae7077c9c7a6a59211dbff37cee65ef33fedcb00f",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 004"
+    },
+    {
+      "canonical_path": "/events/16/synthetic-bulk-past-event-005",
+      "id": "29adf594-7a4d-5398-824e-3befe50ea7e4",
+      "public_id": 16,
+      "slug": "synthetic-bulk-past-event-005",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-16"
+      },
+      "source_checksum": "4ffa42ce90478e33427818772f7759a4b204f7e0936ad674a40ef07e70a75205",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 005"
+    },
+    {
+      "canonical_path": "/events/17/synthetic-bulk-past-event-006",
+      "id": "897568c2-c85b-5d30-979f-3c8b7f335440",
+      "public_id": 17,
+      "slug": "synthetic-bulk-past-event-006",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-17"
+      },
+      "source_checksum": "8d165595819afd0f1859ce5d9279fb89fc92a29e50f2a75e78bc74d239bbca01",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 006"
+    },
+    {
+      "canonical_path": "/events/18/synthetic-bulk-past-event-007",
+      "id": "f78d2715-ef5a-5e7b-8add-cde6bf901a99",
+      "public_id": 18,
+      "slug": "synthetic-bulk-past-event-007",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-18"
+      },
+      "source_checksum": "ebffdd39d15b83d8ee8c21a487f7dcbb5e85550e3ea9f0a38ec02cf1c6c5b58f",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 007"
+    },
+    {
+      "canonical_path": "/events/19/synthetic-bulk-past-event-008",
+      "id": "d031449d-5124-5760-8d66-7caa97a7e743",
+      "public_id": 19,
+      "slug": "synthetic-bulk-past-event-008",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-19"
+      },
+      "source_checksum": "0ee94f3ff72cf0e6cb392575bc63a3337a500ef0a263df92d7ad7ad518185bd2",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 008"
+    },
+    {
+      "canonical_path": "/events/20/synthetic-bulk-past-event-009",
+      "id": "7e0c99c8-6580-548c-b733-8918397bc422",
+      "public_id": 20,
+      "slug": "synthetic-bulk-past-event-009",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-20"
+      },
+      "source_checksum": "725d8c0b9a375484c95d35a7fc2891114ac07bc75850d15ab29cf7cf65bd8d55",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 009"
+    },
+    {
+      "canonical_path": "/events/21/synthetic-bulk-past-event-010",
+      "id": "4ad8f94d-d429-58ae-928a-91bb44af2bb8",
+      "public_id": 21,
+      "slug": "synthetic-bulk-past-event-010",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-21"
+      },
+      "source_checksum": "ef91b33821d9ab8107356b1d19264ed1136e701b860fae624a44277c4dd0923f",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 010"
+    },
+    {
+      "canonical_path": "/events/22/synthetic-bulk-past-event-011",
+      "id": "42b2c690-88fb-5e68-b989-7248aad9b6c4",
+      "public_id": 22,
+      "slug": "synthetic-bulk-past-event-011",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-22"
+      },
+      "source_checksum": "e6f8c383126d81ba3b255bf491e5a51027fbac21652bb6dc63b0d4338dc49cbf",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 011"
+    },
+    {
+      "canonical_path": "/events/23/synthetic-bulk-past-event-012",
+      "id": "89221cce-329a-57e5-9525-0de0a6aec6fb",
+      "public_id": 23,
+      "slug": "synthetic-bulk-past-event-012",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-23"
+      },
+      "source_checksum": "eaade3c8f78d14c5cf15f29532deea2a77863ac7294f309a099a8f36b8fbfdb0",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 012"
+    },
+    {
+      "canonical_path": "/events/24/synthetic-bulk-past-event-013",
+      "id": "5c3a5360-79e1-5bd8-86f2-6e59c2d9e00e",
+      "public_id": 24,
+      "slug": "synthetic-bulk-past-event-013",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-24"
+      },
+      "source_checksum": "04ed557de4c04f8672f5dec374948b76dc95885363faef305c167ebfd874e94c",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 013"
+    },
+    {
+      "canonical_path": "/events/25/synthetic-bulk-past-event-014",
+      "id": "8d3bb713-9f07-56c1-8906-27e78f81c05f",
+      "public_id": 25,
+      "slug": "synthetic-bulk-past-event-014",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-25"
+      },
+      "source_checksum": "5c7a89dec8e69a551d3e9a19ea680e96636d3fd0032da3ae343e53dfead54701",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 014"
+    },
+    {
+      "canonical_path": "/events/26/synthetic-bulk-past-event-015",
+      "id": "7445936d-6090-5065-9db5-b55c194f164b",
+      "public_id": 26,
+      "slug": "synthetic-bulk-past-event-015",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-26"
+      },
+      "source_checksum": "fd4a0f424fe04cc6cb8b95f2492b119d8e87b5a1a3860525af0311cc66ebdb70",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 015"
+    },
+    {
+      "canonical_path": "/events/27/synthetic-bulk-past-event-016",
+      "id": "f589bbce-7ccf-55c1-8d26-1a1532ef852f",
+      "public_id": 27,
+      "slug": "synthetic-bulk-past-event-016",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-27"
+      },
+      "source_checksum": "e136b44152cb4508189044d3ee82f6ccd9fdec3ffd09e4062274e773ff71ad58",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 016"
+    },
+    {
+      "canonical_path": "/events/28/synthetic-bulk-past-event-017",
+      "id": "44fdcba0-dde5-5250-bdad-ce43c7277fb0",
+      "public_id": 28,
+      "slug": "synthetic-bulk-past-event-017",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-28"
+      },
+      "source_checksum": "fa4e2735a8064b1024c10354371c303399afa7067e028875f4e74c9f1762171a",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 017"
+    },
+    {
+      "canonical_path": "/events/29/synthetic-bulk-past-event-018",
+      "id": "250ca32c-6e8c-5abc-997c-29fa7e51940b",
+      "public_id": 29,
+      "slug": "synthetic-bulk-past-event-018",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-29"
+      },
+      "source_checksum": "65de7183789d26a7cc35378f9bcd7d86c9858ad4f686f424befcd6b736111c62",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 018"
+    },
+    {
+      "canonical_path": "/events/30/synthetic-bulk-past-event-019",
+      "id": "6863d0b4-b867-5f2b-a66c-69d584f801a3",
+      "public_id": 30,
+      "slug": "synthetic-bulk-past-event-019",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-30"
+      },
+      "source_checksum": "00567a7b1a3985ec92368d2e0d03fda0d5bb45e0020cc9ee38e081230822b48a",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 019"
+    },
+    {
+      "canonical_path": "/events/31/synthetic-bulk-past-event-020",
+      "id": "8ffdbf02-adaf-5d86-8c4b-e3a176fc2f2e",
+      "public_id": 31,
+      "slug": "synthetic-bulk-past-event-020",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-31"
+      },
+      "source_checksum": "dbfa0a3e38fdb4fa9ed3e2485a07af23cf5917f97a949fa24e4e57c1a476dc9b",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 020"
+    },
+    {
+      "canonical_path": "/events/32/synthetic-bulk-past-event-021",
+      "id": "32ad7ce6-7cef-5ab2-9f2c-2520b85a3cd2",
+      "public_id": 32,
+      "slug": "synthetic-bulk-past-event-021",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-32"
+      },
+      "source_checksum": "11a8c110a2bb7c971f0ea1deac91dcbecba3f33b13e6815a04a3039eed463256",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 021"
+    },
+    {
+      "canonical_path": "/events/33/synthetic-bulk-past-event-022",
+      "id": "7a2d6405-dec7-500f-83d2-36a4f43e8588",
+      "public_id": 33,
+      "slug": "synthetic-bulk-past-event-022",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-33"
+      },
+      "source_checksum": "c0e8e002cc5fd7a72641f160ff4d031f5b12f1c59a35daf35f2b6f548f532b3d",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 022"
+    },
+    {
+      "canonical_path": "/events/34/synthetic-bulk-past-event-023",
+      "id": "ad4617c6-045f-54bc-a84c-87c092ba28a0",
+      "public_id": 34,
+      "slug": "synthetic-bulk-past-event-023",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-34"
+      },
+      "source_checksum": "d4964b557dbe55c2e19f53f684186d0cd1155926ea18e582b4897204102e57e9",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 023"
+    },
+    {
+      "canonical_path": "/events/35/synthetic-bulk-past-event-024",
+      "id": "5da46f7f-73d7-50e0-bbf2-83579518839f",
+      "public_id": 35,
+      "slug": "synthetic-bulk-past-event-024",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-35"
+      },
+      "source_checksum": "b97ebd3c4af31c1ed43457c1145dba8a606b72a0e0f7b0ffa107f0f3a30a376a",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 024"
+    },
+    {
+      "canonical_path": "/events/36/synthetic-bulk-past-event-025",
+      "id": "9a4364f9-0a33-5127-a116-06d9701547c8",
+      "public_id": 36,
+      "slug": "synthetic-bulk-past-event-025",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-36"
+      },
+      "source_checksum": "54a93b10f522064ba0427e600fdea9daff34d8cfd445e272f397eb7c873cc531",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 025"
+    },
+    {
+      "canonical_path": "/events/37/synthetic-bulk-past-event-026",
+      "id": "6f6287cb-53ec-5bf4-b3c8-2f51d8f78400",
+      "public_id": 37,
+      "slug": "synthetic-bulk-past-event-026",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-37"
+      },
+      "source_checksum": "baa5b822b7766265da55e8ccb247ed1840a720418fe4ad66b8a837420608be4c",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 026"
+    },
+    {
+      "canonical_path": "/events/38/synthetic-bulk-past-event-027",
+      "id": "c701ab9d-4cf2-5283-981e-5d5aac58178e",
+      "public_id": 38,
+      "slug": "synthetic-bulk-past-event-027",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-38"
+      },
+      "source_checksum": "702ebb05f1cb2640c8d0a1334682dab2a4b9dc0e45857e2392e257213d54083b",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 027"
+    },
+    {
+      "canonical_path": "/events/39/synthetic-bulk-past-event-028",
+      "id": "16c08b7d-593f-5f7f-8bda-bf3d9b76f04e",
+      "public_id": 39,
+      "slug": "synthetic-bulk-past-event-028",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-39"
+      },
+      "source_checksum": "41f73569c9460bd7e6a7bb64765c6a0e0aeba29ebc4d1a05afeb85970abf1adc",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 028"
+    },
+    {
+      "canonical_path": "/events/40/synthetic-bulk-past-event-029",
+      "id": "7889fb57-5728-5b58-bf9b-3cb23937237b",
+      "public_id": 40,
+      "slug": "synthetic-bulk-past-event-029",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-40"
+      },
+      "source_checksum": "10ac30bcb63766eb64366841a503013f812a77fa57b8ccfed5439d845157e5a3",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 029"
+    },
+    {
+      "canonical_path": "/events/41/synthetic-bulk-past-event-030",
+      "id": "19ece523-8fbc-528d-ad87-d2561ce206af",
+      "public_id": 41,
+      "slug": "synthetic-bulk-past-event-030",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-41"
+      },
+      "source_checksum": "dc7efd775e41c929cf8932e24e79393c4b9d07a7f629cc0f0da0744ed17fdd67",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 030"
+    },
+    {
+      "canonical_path": "/events/42/synthetic-bulk-past-event-031",
+      "id": "c52ac275-2746-5cc1-a025-9b245d2eaa62",
+      "public_id": 42,
+      "slug": "synthetic-bulk-past-event-031",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-42"
+      },
+      "source_checksum": "1f3928a75d9bbe1c831fa9231af138b392e0214ae1d711e693be99138bb3155d",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 031"
+    },
+    {
+      "canonical_path": "/events/43/synthetic-bulk-past-event-032",
+      "id": "175e2507-54cd-527d-881c-908809318e4e",
+      "public_id": 43,
+      "slug": "synthetic-bulk-past-event-032",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-43"
+      },
+      "source_checksum": "435d4b1daa3e63a8ae0b3f0a5a78ba6124b64eec2e69fd251048351de15f05a6",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 032"
+    },
+    {
+      "canonical_path": "/events/44/synthetic-bulk-past-event-033",
+      "id": "36c07552-d812-52f3-a4f7-67d2f5bbd9a0",
+      "public_id": 44,
+      "slug": "synthetic-bulk-past-event-033",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-44"
+      },
+      "source_checksum": "1ecbfd29e999815db191815a051753cdc2d196afd494f9ef1231a5d8cf36209c",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 033"
+    },
+    {
+      "canonical_path": "/events/45/synthetic-bulk-past-event-034",
+      "id": "dd8f7e72-7e9f-592c-9618-0afc5ee70cee",
+      "public_id": 45,
+      "slug": "synthetic-bulk-past-event-034",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-45"
+      },
+      "source_checksum": "dcff60e7d1a18c701dd99bf73c691b6318ba128be1f33471937595e084cb42b7",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 034"
+    },
+    {
+      "canonical_path": "/events/46/synthetic-bulk-past-event-035",
+      "id": "c9a36b9a-6ab0-5466-abbb-5e8ec5db4508",
+      "public_id": 46,
+      "slug": "synthetic-bulk-past-event-035",
+      "source": {
+        "repository": "DataTalksClub/datatalksclub.github.io",
+        "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+        "source_key": "synthetic-event-46"
+      },
+      "source_checksum": "db7b0fb4faed166ef0bc913c352f0534d27cec291146c9d62166e670b205809d",
+      "source_path": "_data/events.yaml",
+      "title": "Synthetic Bulk Past Event 035"
     }
   ],
   "schema_version": 4,

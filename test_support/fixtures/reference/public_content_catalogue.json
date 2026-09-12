@@ -3,6 +3,40 @@
     {
       "author_profiles": [
         {
+          "key": "synthetic-two",
+          "name": "Synthetic Author Two",
+          "public_path": "/people/synthetic-two.html"
+        }
+      ],
+      "authors": [
+        "synthetic-two"
+      ],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic article body paragraph two."
+        }
+      ],
+      "description": "Synthetic article description two.",
+      "image_path": "/images/posts/ai-dev-tools-zoomcamp/og-image.jpg",
+      "media_available": true,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/ai-dev-tools-zoomcamp.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/ai-dev-tools-zoomcamp.md"
+      },
+      "public_path": "/blog/ai-dev-tools-zoomcamp.html",
+      "published": "2026-02-05",
+      "slug": "ai-dev-tools-zoomcamp",
+      "subtitle": "A second synthetic article subtitle.",
+      "title": "AI Dev Tools Zoomcamp"
+    },
+    {
+      "author_profiles": [
+        {
           "key": "synthetic-one",
           "name": "Synthetic Author One",
           "public_path": "/people/synthetic-one.html"
@@ -108,23 +142,15 @@
       "title": "Synthetic Article One"
     },
     {
-      "author_profiles": [
-        {
-          "key": "synthetic-two",
-          "name": "Synthetic Author Two",
-          "public_path": "/people/synthetic-two.html"
-        }
-      ],
-      "authors": [
-        "synthetic-two"
-      ],
+      "author_profiles": [],
+      "authors": [],
       "blocks": [
         {
           "kind": "paragraph",
-          "text": "Synthetic article body paragraph two."
+          "text": "Synthetic bulk article body 23."
         }
       ],
-      "description": "Synthetic article description two.",
+      "description": "Synthetic bulk article description 23.",
       "image_path": "",
       "media_available": false,
       "provenance": {
@@ -132,14 +158,697 @@
         "repository": "DataTalksClub/content",
         "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
         "source_key": "synthetic",
-        "source_path": "articles/ai-dev-tools-zoomcamp.md",
-        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/ai-dev-tools-zoomcamp.md"
+        "source_path": "articles/synthetic-bulk-article-0023.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0023.md"
       },
-      "public_path": "/blog/ai-dev-tools-zoomcamp.html",
-      "published": "2026-02-05",
-      "slug": "ai-dev-tools-zoomcamp",
-      "subtitle": "A second synthetic article subtitle.",
-      "title": "AI Dev Tools Zoomcamp"
+      "public_path": "/blog/synthetic-bulk-article-0023.html",
+      "published": "2025-12-24",
+      "slug": "synthetic-bulk-article-0023",
+      "subtitle": "Synthetic bulk article subtitle 23.",
+      "title": "Synthetic Bulk Article 23"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 11."
+        }
+      ],
+      "description": "Synthetic bulk article description 11.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0011.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0011.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0011.html",
+      "published": "2025-12-12",
+      "slug": "synthetic-bulk-article-0011",
+      "subtitle": "Synthetic bulk article subtitle 11.",
+      "title": "Synthetic Bulk Article 11"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 22."
+        }
+      ],
+      "description": "Synthetic bulk article description 22.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0022.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0022.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0022.html",
+      "published": "2025-11-23",
+      "slug": "synthetic-bulk-article-0022",
+      "subtitle": "Synthetic bulk article subtitle 22.",
+      "title": "Synthetic Bulk Article 22"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 10."
+        }
+      ],
+      "description": "Synthetic bulk article description 10.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0010.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0010.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0010.html",
+      "published": "2025-11-11",
+      "slug": "synthetic-bulk-article-0010",
+      "subtitle": "Synthetic bulk article subtitle 10.",
+      "title": "Synthetic Bulk Article 10"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 21."
+        }
+      ],
+      "description": "Synthetic bulk article description 21.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0021.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0021.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0021.html",
+      "published": "2025-10-22",
+      "slug": "synthetic-bulk-article-0021",
+      "subtitle": "Synthetic bulk article subtitle 21.",
+      "title": "Synthetic Bulk Article 21"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 9."
+        }
+      ],
+      "description": "Synthetic bulk article description 9.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0009.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0009.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0009.html",
+      "published": "2025-10-10",
+      "slug": "synthetic-bulk-article-0009",
+      "subtitle": "Synthetic bulk article subtitle 9.",
+      "title": "Synthetic Bulk Article 9"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 20."
+        }
+      ],
+      "description": "Synthetic bulk article description 20.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0020.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0020.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0020.html",
+      "published": "2025-09-21",
+      "slug": "synthetic-bulk-article-0020",
+      "subtitle": "Synthetic bulk article subtitle 20.",
+      "title": "Synthetic Bulk Article 20"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 8."
+        }
+      ],
+      "description": "Synthetic bulk article description 8.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0008.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0008.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0008.html",
+      "published": "2025-09-09",
+      "slug": "synthetic-bulk-article-0008",
+      "subtitle": "Synthetic bulk article subtitle 8.",
+      "title": "Synthetic Bulk Article 8"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 19."
+        }
+      ],
+      "description": "Synthetic bulk article description 19.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0019.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0019.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0019.html",
+      "published": "2025-08-20",
+      "slug": "synthetic-bulk-article-0019",
+      "subtitle": "Synthetic bulk article subtitle 19.",
+      "title": "Synthetic Bulk Article 19"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 7."
+        }
+      ],
+      "description": "Synthetic bulk article description 7.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0007.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0007.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0007.html",
+      "published": "2025-08-08",
+      "slug": "synthetic-bulk-article-0007",
+      "subtitle": "Synthetic bulk article subtitle 7.",
+      "title": "Synthetic Bulk Article 7"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 18."
+        }
+      ],
+      "description": "Synthetic bulk article description 18.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0018.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0018.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0018.html",
+      "published": "2025-07-19",
+      "slug": "synthetic-bulk-article-0018",
+      "subtitle": "Synthetic bulk article subtitle 18.",
+      "title": "Synthetic Bulk Article 18"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 6."
+        }
+      ],
+      "description": "Synthetic bulk article description 6.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0006.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0006.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0006.html",
+      "published": "2025-07-07",
+      "slug": "synthetic-bulk-article-0006",
+      "subtitle": "Synthetic bulk article subtitle 6.",
+      "title": "Synthetic Bulk Article 6"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 17."
+        }
+      ],
+      "description": "Synthetic bulk article description 17.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0017.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0017.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0017.html",
+      "published": "2025-06-18",
+      "slug": "synthetic-bulk-article-0017",
+      "subtitle": "Synthetic bulk article subtitle 17.",
+      "title": "Synthetic Bulk Article 17"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 5."
+        }
+      ],
+      "description": "Synthetic bulk article description 5.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0005.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0005.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0005.html",
+      "published": "2025-06-06",
+      "slug": "synthetic-bulk-article-0005",
+      "subtitle": "Synthetic bulk article subtitle 5.",
+      "title": "Synthetic Bulk Article 5"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic sponsor article body paragraph."
+        },
+        {
+          "alt": "Pie chart of DataTalks.Club community roles",
+          "caption": "",
+          "kind": "chart",
+          "src": "/static/content/article-charts/sponsor-roles.svg",
+          "text": "Community roles"
+        },
+        {
+          "alt": "Pie chart of DataTalks.Club community seniority",
+          "caption": "",
+          "kind": "chart",
+          "src": "/static/content/article-charts/sponsor-seniority.svg",
+          "text": "Community seniority"
+        },
+        {
+          "alt": "Pie chart of the DataTalks.Club community by region",
+          "caption": "",
+          "kind": "chart",
+          "src": "/static/content/article-charts/sponsor-geography.svg",
+          "text": "Community geography"
+        },
+        {
+          "alt": "Pie chart of industries represented in the DataTalks.Club community",
+          "caption": "",
+          "kind": "chart",
+          "src": "/static/content/article-charts/sponsor-industries.svg",
+          "text": "Community industries"
+        },
+        {
+          "kind": "paragraph",
+          "markdown": "Full community demographics: [see the demographics article](/blog/datatalks-club-community-demographics.html).",
+          "text": "Full community demographics."
+        }
+      ],
+      "description": "Synthetic sponsor article description.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/sponsor-datatalks-club.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/sponsor-datatalks-club.md"
+      },
+      "public_path": "/blog/sponsor-datatalks-club.html",
+      "published": "2025-06-01",
+      "slug": "sponsor-datatalks-club",
+      "subtitle": "A synthetic sponsor article subtitle.",
+      "title": "Sponsor DataTalks.Club"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 16."
+        }
+      ],
+      "description": "Synthetic bulk article description 16.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0016.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0016.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0016.html",
+      "published": "2025-05-17",
+      "slug": "synthetic-bulk-article-0016",
+      "subtitle": "Synthetic bulk article subtitle 16.",
+      "title": "Synthetic Bulk Article 16"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 4."
+        }
+      ],
+      "description": "Synthetic bulk article description 4.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0004.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0004.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0004.html",
+      "published": "2025-05-05",
+      "slug": "synthetic-bulk-article-0004",
+      "subtitle": "Synthetic bulk article subtitle 4.",
+      "title": "Synthetic Bulk Article 4"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 15."
+        }
+      ],
+      "description": "Synthetic bulk article description 15.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0015.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0015.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0015.html",
+      "published": "2025-04-16",
+      "slug": "synthetic-bulk-article-0015",
+      "subtitle": "Synthetic bulk article subtitle 15.",
+      "title": "Synthetic Bulk Article 15"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 3."
+        }
+      ],
+      "description": "Synthetic bulk article description 3.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0003.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0003.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0003.html",
+      "published": "2025-04-04",
+      "slug": "synthetic-bulk-article-0003",
+      "subtitle": "Synthetic bulk article subtitle 3.",
+      "title": "Synthetic Bulk Article 3"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 14."
+        }
+      ],
+      "description": "Synthetic bulk article description 14.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0014.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0014.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0014.html",
+      "published": "2025-03-15",
+      "slug": "synthetic-bulk-article-0014",
+      "subtitle": "Synthetic bulk article subtitle 14.",
+      "title": "Synthetic Bulk Article 14"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 2."
+        }
+      ],
+      "description": "Synthetic bulk article description 2.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0002.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0002.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0002.html",
+      "published": "2025-03-03",
+      "slug": "synthetic-bulk-article-0002",
+      "subtitle": "Synthetic bulk article subtitle 2.",
+      "title": "Synthetic Bulk Article 2"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 25."
+        }
+      ],
+      "description": "Synthetic bulk article description 25.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0025.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0025.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0025.html",
+      "published": "2025-02-26",
+      "slug": "synthetic-bulk-article-0025",
+      "subtitle": "Synthetic bulk article subtitle 25.",
+      "title": "Synthetic Bulk Article 25"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 13."
+        }
+      ],
+      "description": "Synthetic bulk article description 13.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0013.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0013.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0013.html",
+      "published": "2025-02-14",
+      "slug": "synthetic-bulk-article-0013",
+      "subtitle": "Synthetic bulk article subtitle 13.",
+      "title": "Synthetic Bulk Article 13"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 1."
+        }
+      ],
+      "description": "Synthetic bulk article description 1.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0001.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0001.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0001.html",
+      "published": "2025-02-02",
+      "slug": "synthetic-bulk-article-0001",
+      "subtitle": "Synthetic bulk article subtitle 1.",
+      "title": "Synthetic Bulk Article 1"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 24."
+        }
+      ],
+      "description": "Synthetic bulk article description 24.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0024.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0024.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0024.html",
+      "published": "2025-01-25",
+      "slug": "synthetic-bulk-article-0024",
+      "subtitle": "Synthetic bulk article subtitle 24.",
+      "title": "Synthetic Bulk Article 24"
+    },
+    {
+      "author_profiles": [],
+      "authors": [],
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Synthetic bulk article body 12."
+        }
+      ],
+      "description": "Synthetic bulk article description 12.",
+      "image_path": "",
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "articles/synthetic-bulk-article-0012.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0012.md"
+      },
+      "public_path": "/blog/synthetic-bulk-article-0012.html",
+      "published": "2025-01-13",
+      "slug": "synthetic-bulk-article-0012",
+      "subtitle": "Synthetic bulk article subtitle 12.",
+      "title": "Synthetic Bulk Article 12"
     }
   ],
   "books": [
@@ -147,36 +856,49 @@
       "archive": [],
       "author_profiles": [
         {
-          "key": "synthetic-one",
-          "name": "Synthetic Author One",
-          "public_path": "/people/synthetic-one.html"
+          "key": "synthetic-two",
+          "name": "Synthetic Author Two",
+          "public_path": "/people/synthetic-two.html"
+        },
+        {
+          "key": "",
+          "name": "Synthetic Unresolved Author One",
+          "public_path": ""
+        },
+        {
+          "key": "",
+          "name": "Synthetic Unresolved Author Two",
+          "public_path": ""
+        },
+        {
+          "key": "synthetic-rich-profile",
+          "name": "Synthetic Rich Profile",
+          "public_path": "/people/synthetic-rich-profile.html"
         }
       ],
       "authors": [
-        "synthetic-one"
+        "synthetic-two",
+        "Synthetic Unresolved Author One",
+        "Synthetic Unresolved Author Two",
+        "synthetic-rich-profile"
       ],
-      "description": "Book of the Week. Synthetic Book One.",
+      "description": "Synthetic Book Three, with a mixed byline.",
       "image_path": "",
-      "links": [
-        {
-          "label": "Buy",
-          "url": "https://example.invalid/buy-synthetic-book-one"
-        }
-      ],
+      "links": [],
       "media_available": false,
       "provenance": {
         "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
         "repository": "DataTalksClub/content",
         "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
         "source_key": "synthetic",
-        "source_path": "books/synthetic-book-one.md",
-        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-book-one.md"
+        "source_path": "books/synthetic-book-mixed.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-book-mixed.md"
       },
-      "public_path": "/books/synthetic-book-one.html",
-      "published": "2026-01-01T00:00:00",
-      "slug": "synthetic-book-one",
-      "summary": "A synthetic book summary.",
-      "title": "Synthetic Book One"
+      "public_path": "/books/synthetic-book-mixed.html",
+      "published": "2026-01-09T00:00:00",
+      "slug": "synthetic-book-mixed",
+      "summary": "",
+      "title": "Synthetic Book Mixed Byline"
     },
     {
       "archive": [
@@ -228,33 +950,42 @@
       "archive": [],
       "author_profiles": [
         {
-          "key": "synthetic-two",
-          "name": "Synthetic Author Two",
-          "public_path": "/people/synthetic-two.html"
-        },
-        {
-          "key": "",
-          "name": "Synthetic Unresolved Author One",
-          "public_path": ""
-        },
-        {
-          "key": "",
-          "name": "Synthetic Unresolved Author Two",
-          "public_path": ""
-        },
-        {
-          "key": "synthetic-rich-profile",
-          "name": "Synthetic Rich Profile",
-          "public_path": "/people/synthetic-rich-profile.html"
+          "key": "synthetic-one",
+          "name": "Synthetic Author One",
+          "public_path": "/people/synthetic-one.html"
         }
       ],
       "authors": [
-        "synthetic-two",
-        "Synthetic Unresolved Author One",
-        "Synthetic Unresolved Author Two",
-        "synthetic-rich-profile"
+        "synthetic-one"
       ],
-      "description": "Synthetic Book Three, with a mixed byline.",
+      "description": "Book of the Week. Synthetic Book One.",
+      "image_path": "",
+      "links": [
+        {
+          "label": "Buy",
+          "url": "https://example.invalid/buy-synthetic-book-one"
+        }
+      ],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-book-one.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-book-one.md"
+      },
+      "public_path": "/books/synthetic-book-one.html",
+      "published": "2026-01-01T00:00:00",
+      "slug": "synthetic-book-one",
+      "summary": "A synthetic book summary.",
+      "title": "Synthetic Book One"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 23.",
       "image_path": "",
       "links": [],
       "media_available": false,
@@ -263,14 +994,982 @@
         "repository": "DataTalksClub/content",
         "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
         "source_key": "synthetic",
-        "source_path": "books/synthetic-book-mixed.md",
-        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-book-mixed.md"
+        "source_path": "books/synthetic-bulk-book-0023.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0023.md"
       },
-      "public_path": "/books/synthetic-book-mixed.html",
-      "published": "2026-01-09T00:00:00",
-      "slug": "synthetic-book-mixed",
+      "public_path": "/books/synthetic-bulk-book-0023.html",
+      "published": "2025-12-24T00:00:00",
+      "slug": "synthetic-bulk-book-0023",
       "summary": "",
-      "title": "Synthetic Book Mixed Byline"
+      "title": "Synthetic Bulk Book 23"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 11.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0011.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0011.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0011.html",
+      "published": "2025-12-12T00:00:00",
+      "slug": "synthetic-bulk-book-0011",
+      "summary": "",
+      "title": "Synthetic Bulk Book 11"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 35.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0035.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0035.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0035.html",
+      "published": "2025-12-09T00:00:00",
+      "slug": "synthetic-bulk-book-0035",
+      "summary": "",
+      "title": "Synthetic Bulk Book 35"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 22.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0022.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0022.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0022.html",
+      "published": "2025-11-23T00:00:00",
+      "slug": "synthetic-bulk-book-0022",
+      "summary": "",
+      "title": "Synthetic Bulk Book 22"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 10.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0010.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0010.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0010.html",
+      "published": "2025-11-11T00:00:00",
+      "slug": "synthetic-bulk-book-0010",
+      "summary": "",
+      "title": "Synthetic Bulk Book 10"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 34.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0034.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0034.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0034.html",
+      "published": "2025-11-08T00:00:00",
+      "slug": "synthetic-bulk-book-0034",
+      "summary": "",
+      "title": "Synthetic Bulk Book 34"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 21.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0021.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0021.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0021.html",
+      "published": "2025-10-22T00:00:00",
+      "slug": "synthetic-bulk-book-0021",
+      "summary": "",
+      "title": "Synthetic Bulk Book 21"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 45.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0045.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0045.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0045.html",
+      "published": "2025-10-19T00:00:00",
+      "slug": "synthetic-bulk-book-0045",
+      "summary": "",
+      "title": "Synthetic Bulk Book 45"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 9.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0009.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0009.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0009.html",
+      "published": "2025-10-10T00:00:00",
+      "slug": "synthetic-bulk-book-0009",
+      "summary": "",
+      "title": "Synthetic Bulk Book 9"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 33.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0033.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0033.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0033.html",
+      "published": "2025-10-07T00:00:00",
+      "slug": "synthetic-bulk-book-0033",
+      "summary": "",
+      "title": "Synthetic Bulk Book 33"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 20.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0020.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0020.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0020.html",
+      "published": "2025-09-21T00:00:00",
+      "slug": "synthetic-bulk-book-0020",
+      "summary": "",
+      "title": "Synthetic Bulk Book 20"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 44.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0044.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0044.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0044.html",
+      "published": "2025-09-18T00:00:00",
+      "slug": "synthetic-bulk-book-0044",
+      "summary": "",
+      "title": "Synthetic Bulk Book 44"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 8.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0008.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0008.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0008.html",
+      "published": "2025-09-09T00:00:00",
+      "slug": "synthetic-bulk-book-0008",
+      "summary": "",
+      "title": "Synthetic Bulk Book 8"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 32.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0032.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0032.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0032.html",
+      "published": "2025-09-06T00:00:00",
+      "slug": "synthetic-bulk-book-0032",
+      "summary": "",
+      "title": "Synthetic Bulk Book 32"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 19.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0019.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0019.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0019.html",
+      "published": "2025-08-20T00:00:00",
+      "slug": "synthetic-bulk-book-0019",
+      "summary": "",
+      "title": "Synthetic Bulk Book 19"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 43.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0043.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0043.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0043.html",
+      "published": "2025-08-17T00:00:00",
+      "slug": "synthetic-bulk-book-0043",
+      "summary": "",
+      "title": "Synthetic Bulk Book 43"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 7.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0007.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0007.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0007.html",
+      "published": "2025-08-08T00:00:00",
+      "slug": "synthetic-bulk-book-0007",
+      "summary": "",
+      "title": "Synthetic Bulk Book 7"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 31.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0031.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0031.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0031.html",
+      "published": "2025-08-05T00:00:00",
+      "slug": "synthetic-bulk-book-0031",
+      "summary": "",
+      "title": "Synthetic Bulk Book 31"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 18.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0018.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0018.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0018.html",
+      "published": "2025-07-19T00:00:00",
+      "slug": "synthetic-bulk-book-0018",
+      "summary": "",
+      "title": "Synthetic Bulk Book 18"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 42.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0042.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0042.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0042.html",
+      "published": "2025-07-16T00:00:00",
+      "slug": "synthetic-bulk-book-0042",
+      "summary": "",
+      "title": "Synthetic Bulk Book 42"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 6.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0006.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0006.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0006.html",
+      "published": "2025-07-07T00:00:00",
+      "slug": "synthetic-bulk-book-0006",
+      "summary": "",
+      "title": "Synthetic Bulk Book 6"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 30.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0030.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0030.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0030.html",
+      "published": "2025-07-04T00:00:00",
+      "slug": "synthetic-bulk-book-0030",
+      "summary": "",
+      "title": "Synthetic Bulk Book 30"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 17.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0017.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0017.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0017.html",
+      "published": "2025-06-18T00:00:00",
+      "slug": "synthetic-bulk-book-0017",
+      "summary": "",
+      "title": "Synthetic Bulk Book 17"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 41.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0041.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0041.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0041.html",
+      "published": "2025-06-15T00:00:00",
+      "slug": "synthetic-bulk-book-0041",
+      "summary": "",
+      "title": "Synthetic Bulk Book 41"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 5.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0005.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0005.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0005.html",
+      "published": "2025-06-06T00:00:00",
+      "slug": "synthetic-bulk-book-0005",
+      "summary": "",
+      "title": "Synthetic Bulk Book 5"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 29.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0029.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0029.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0029.html",
+      "published": "2025-06-03T00:00:00",
+      "slug": "synthetic-bulk-book-0029",
+      "summary": "",
+      "title": "Synthetic Bulk Book 29"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 16.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0016.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0016.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0016.html",
+      "published": "2025-05-17T00:00:00",
+      "slug": "synthetic-bulk-book-0016",
+      "summary": "",
+      "title": "Synthetic Bulk Book 16"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 40.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0040.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0040.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0040.html",
+      "published": "2025-05-14T00:00:00",
+      "slug": "synthetic-bulk-book-0040",
+      "summary": "",
+      "title": "Synthetic Bulk Book 40"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 4.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0004.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0004.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0004.html",
+      "published": "2025-05-05T00:00:00",
+      "slug": "synthetic-bulk-book-0004",
+      "summary": "",
+      "title": "Synthetic Bulk Book 4"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 28.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0028.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0028.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0028.html",
+      "published": "2025-05-02T00:00:00",
+      "slug": "synthetic-bulk-book-0028",
+      "summary": "",
+      "title": "Synthetic Bulk Book 28"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 15.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0015.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0015.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0015.html",
+      "published": "2025-04-16T00:00:00",
+      "slug": "synthetic-bulk-book-0015",
+      "summary": "",
+      "title": "Synthetic Bulk Book 15"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 39.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0039.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0039.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0039.html",
+      "published": "2025-04-13T00:00:00",
+      "slug": "synthetic-bulk-book-0039",
+      "summary": "",
+      "title": "Synthetic Bulk Book 39"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 3.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0003.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0003.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0003.html",
+      "published": "2025-04-04T00:00:00",
+      "slug": "synthetic-bulk-book-0003",
+      "summary": "",
+      "title": "Synthetic Bulk Book 3"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 27.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0027.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0027.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0027.html",
+      "published": "2025-04-01T00:00:00",
+      "slug": "synthetic-bulk-book-0027",
+      "summary": "",
+      "title": "Synthetic Bulk Book 27"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 26.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0026.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0026.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0026.html",
+      "published": "2025-03-27T00:00:00",
+      "slug": "synthetic-bulk-book-0026",
+      "summary": "",
+      "title": "Synthetic Bulk Book 26"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 14.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0014.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0014.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0014.html",
+      "published": "2025-03-15T00:00:00",
+      "slug": "synthetic-bulk-book-0014",
+      "summary": "",
+      "title": "Synthetic Bulk Book 14"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 38.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0038.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0038.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0038.html",
+      "published": "2025-03-12T00:00:00",
+      "slug": "synthetic-bulk-book-0038",
+      "summary": "",
+      "title": "Synthetic Bulk Book 38"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 2.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0002.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0002.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0002.html",
+      "published": "2025-03-03T00:00:00",
+      "slug": "synthetic-bulk-book-0002",
+      "summary": "",
+      "title": "Synthetic Bulk Book 2"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 25.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0025.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0025.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0025.html",
+      "published": "2025-02-26T00:00:00",
+      "slug": "synthetic-bulk-book-0025",
+      "summary": "",
+      "title": "Synthetic Bulk Book 25"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 13.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0013.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0013.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0013.html",
+      "published": "2025-02-14T00:00:00",
+      "slug": "synthetic-bulk-book-0013",
+      "summary": "",
+      "title": "Synthetic Bulk Book 13"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 37.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0037.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0037.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0037.html",
+      "published": "2025-02-11T00:00:00",
+      "slug": "synthetic-bulk-book-0037",
+      "summary": "",
+      "title": "Synthetic Bulk Book 37"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 1.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0001.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0001.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0001.html",
+      "published": "2025-02-02T00:00:00",
+      "slug": "synthetic-bulk-book-0001",
+      "summary": "",
+      "title": "Synthetic Bulk Book 1"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 24.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0024.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0024.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0024.html",
+      "published": "2025-01-25T00:00:00",
+      "slug": "synthetic-bulk-book-0024",
+      "summary": "",
+      "title": "Synthetic Bulk Book 24"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 12.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0012.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0012.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0012.html",
+      "published": "2025-01-13T00:00:00",
+      "slug": "synthetic-bulk-book-0012",
+      "summary": "",
+      "title": "Synthetic Bulk Book 12"
+    },
+    {
+      "archive": [],
+      "author_profiles": [],
+      "authors": [],
+      "description": "Synthetic bulk book description 36.",
+      "image_path": "",
+      "links": [],
+      "media_available": false,
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/content",
+        "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+        "source_key": "synthetic",
+        "source_path": "books/synthetic-bulk-book-0036.md",
+        "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0036.md"
+      },
+      "public_path": "/books/synthetic-bulk-book-0036.html",
+      "published": "2025-01-10T00:00:00",
+      "slug": "synthetic-bulk-book-0036",
+      "summary": "",
+      "title": "Synthetic Bulk Book 36"
     }
   ],
   "courses": [
@@ -511,6 +2210,22 @@
       },
       {
         "collection": "articles",
+        "final_path": "/blog/sponsor-datatalks-club.html",
+        "query_policy": "preserve_raw",
+        "record_key": "sponsor-datatalks-club",
+        "source_path": "/blog/sponsor-datatalks-club",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/sponsor-datatalks-club.html",
+        "query_policy": "preserve_raw",
+        "record_key": "sponsor-datatalks-club",
+        "source_path": "/blog/sponsor-datatalks-club/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
         "final_path": "/blog/synthetic-article-one.html",
         "query_policy": "preserve_raw",
         "record_key": "synthetic-article-one",
@@ -523,6 +2238,406 @@
         "query_policy": "preserve_raw",
         "record_key": "synthetic-article-one",
         "source_path": "/blog/synthetic-article-one/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0001.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0001",
+        "source_path": "/blog/synthetic-bulk-article-0001",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0001.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0001",
+        "source_path": "/blog/synthetic-bulk-article-0001/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0002.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0002",
+        "source_path": "/blog/synthetic-bulk-article-0002",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0002.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0002",
+        "source_path": "/blog/synthetic-bulk-article-0002/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0003.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0003",
+        "source_path": "/blog/synthetic-bulk-article-0003",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0003.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0003",
+        "source_path": "/blog/synthetic-bulk-article-0003/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0004.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0004",
+        "source_path": "/blog/synthetic-bulk-article-0004",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0004.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0004",
+        "source_path": "/blog/synthetic-bulk-article-0004/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0005.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0005",
+        "source_path": "/blog/synthetic-bulk-article-0005",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0005.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0005",
+        "source_path": "/blog/synthetic-bulk-article-0005/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0006.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0006",
+        "source_path": "/blog/synthetic-bulk-article-0006",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0006.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0006",
+        "source_path": "/blog/synthetic-bulk-article-0006/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0007.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0007",
+        "source_path": "/blog/synthetic-bulk-article-0007",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0007.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0007",
+        "source_path": "/blog/synthetic-bulk-article-0007/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0008.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0008",
+        "source_path": "/blog/synthetic-bulk-article-0008",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0008.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0008",
+        "source_path": "/blog/synthetic-bulk-article-0008/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0009.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0009",
+        "source_path": "/blog/synthetic-bulk-article-0009",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0009.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0009",
+        "source_path": "/blog/synthetic-bulk-article-0009/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0010.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0010",
+        "source_path": "/blog/synthetic-bulk-article-0010",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0010.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0010",
+        "source_path": "/blog/synthetic-bulk-article-0010/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0011.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0011",
+        "source_path": "/blog/synthetic-bulk-article-0011",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0011.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0011",
+        "source_path": "/blog/synthetic-bulk-article-0011/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0012.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0012",
+        "source_path": "/blog/synthetic-bulk-article-0012",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0012.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0012",
+        "source_path": "/blog/synthetic-bulk-article-0012/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0013.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0013",
+        "source_path": "/blog/synthetic-bulk-article-0013",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0013.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0013",
+        "source_path": "/blog/synthetic-bulk-article-0013/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0014.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0014",
+        "source_path": "/blog/synthetic-bulk-article-0014",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0014.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0014",
+        "source_path": "/blog/synthetic-bulk-article-0014/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0015.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0015",
+        "source_path": "/blog/synthetic-bulk-article-0015",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0015.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0015",
+        "source_path": "/blog/synthetic-bulk-article-0015/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0016.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0016",
+        "source_path": "/blog/synthetic-bulk-article-0016",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0016.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0016",
+        "source_path": "/blog/synthetic-bulk-article-0016/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0017.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0017",
+        "source_path": "/blog/synthetic-bulk-article-0017",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0017.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0017",
+        "source_path": "/blog/synthetic-bulk-article-0017/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0018.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0018",
+        "source_path": "/blog/synthetic-bulk-article-0018",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0018.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0018",
+        "source_path": "/blog/synthetic-bulk-article-0018/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0019.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0019",
+        "source_path": "/blog/synthetic-bulk-article-0019",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0019.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0019",
+        "source_path": "/blog/synthetic-bulk-article-0019/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0020.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0020",
+        "source_path": "/blog/synthetic-bulk-article-0020",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0020.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0020",
+        "source_path": "/blog/synthetic-bulk-article-0020/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0021.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0021",
+        "source_path": "/blog/synthetic-bulk-article-0021",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0021.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0021",
+        "source_path": "/blog/synthetic-bulk-article-0021/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0022.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0022",
+        "source_path": "/blog/synthetic-bulk-article-0022",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0022.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0022",
+        "source_path": "/blog/synthetic-bulk-article-0022/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0023.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0023",
+        "source_path": "/blog/synthetic-bulk-article-0023",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0023.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0023",
+        "source_path": "/blog/synthetic-bulk-article-0023/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0024.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0024",
+        "source_path": "/blog/synthetic-bulk-article-0024",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0024.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0024",
+        "source_path": "/blog/synthetic-bulk-article-0024/",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0025.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0025",
+        "source_path": "/blog/synthetic-bulk-article-0025",
+        "status_code": 301
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0025.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-article-0025",
+        "source_path": "/blog/synthetic-bulk-article-0025/",
         "status_code": 301
       },
       {
@@ -571,6 +2686,726 @@
         "query_policy": "preserve_raw",
         "record_key": "synthetic-book-two",
         "source_path": "/books/synthetic-book-two/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0001.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0001",
+        "source_path": "/books/synthetic-bulk-book-0001",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0001.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0001",
+        "source_path": "/books/synthetic-bulk-book-0001/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0002.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0002",
+        "source_path": "/books/synthetic-bulk-book-0002",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0002.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0002",
+        "source_path": "/books/synthetic-bulk-book-0002/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0003.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0003",
+        "source_path": "/books/synthetic-bulk-book-0003",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0003.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0003",
+        "source_path": "/books/synthetic-bulk-book-0003/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0004.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0004",
+        "source_path": "/books/synthetic-bulk-book-0004",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0004.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0004",
+        "source_path": "/books/synthetic-bulk-book-0004/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0005.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0005",
+        "source_path": "/books/synthetic-bulk-book-0005",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0005.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0005",
+        "source_path": "/books/synthetic-bulk-book-0005/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0006.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0006",
+        "source_path": "/books/synthetic-bulk-book-0006",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0006.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0006",
+        "source_path": "/books/synthetic-bulk-book-0006/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0007.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0007",
+        "source_path": "/books/synthetic-bulk-book-0007",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0007.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0007",
+        "source_path": "/books/synthetic-bulk-book-0007/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0008.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0008",
+        "source_path": "/books/synthetic-bulk-book-0008",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0008.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0008",
+        "source_path": "/books/synthetic-bulk-book-0008/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0009.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0009",
+        "source_path": "/books/synthetic-bulk-book-0009",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0009.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0009",
+        "source_path": "/books/synthetic-bulk-book-0009/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0010.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0010",
+        "source_path": "/books/synthetic-bulk-book-0010",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0010.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0010",
+        "source_path": "/books/synthetic-bulk-book-0010/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0011.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0011",
+        "source_path": "/books/synthetic-bulk-book-0011",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0011.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0011",
+        "source_path": "/books/synthetic-bulk-book-0011/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0012.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0012",
+        "source_path": "/books/synthetic-bulk-book-0012",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0012.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0012",
+        "source_path": "/books/synthetic-bulk-book-0012/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0013.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0013",
+        "source_path": "/books/synthetic-bulk-book-0013",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0013.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0013",
+        "source_path": "/books/synthetic-bulk-book-0013/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0014.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0014",
+        "source_path": "/books/synthetic-bulk-book-0014",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0014.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0014",
+        "source_path": "/books/synthetic-bulk-book-0014/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0015.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0015",
+        "source_path": "/books/synthetic-bulk-book-0015",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0015.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0015",
+        "source_path": "/books/synthetic-bulk-book-0015/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0016.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0016",
+        "source_path": "/books/synthetic-bulk-book-0016",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0016.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0016",
+        "source_path": "/books/synthetic-bulk-book-0016/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0017.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0017",
+        "source_path": "/books/synthetic-bulk-book-0017",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0017.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0017",
+        "source_path": "/books/synthetic-bulk-book-0017/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0018.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0018",
+        "source_path": "/books/synthetic-bulk-book-0018",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0018.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0018",
+        "source_path": "/books/synthetic-bulk-book-0018/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0019.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0019",
+        "source_path": "/books/synthetic-bulk-book-0019",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0019.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0019",
+        "source_path": "/books/synthetic-bulk-book-0019/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0020.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0020",
+        "source_path": "/books/synthetic-bulk-book-0020",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0020.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0020",
+        "source_path": "/books/synthetic-bulk-book-0020/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0021.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0021",
+        "source_path": "/books/synthetic-bulk-book-0021",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0021.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0021",
+        "source_path": "/books/synthetic-bulk-book-0021/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0022.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0022",
+        "source_path": "/books/synthetic-bulk-book-0022",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0022.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0022",
+        "source_path": "/books/synthetic-bulk-book-0022/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0023.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0023",
+        "source_path": "/books/synthetic-bulk-book-0023",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0023.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0023",
+        "source_path": "/books/synthetic-bulk-book-0023/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0024.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0024",
+        "source_path": "/books/synthetic-bulk-book-0024",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0024.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0024",
+        "source_path": "/books/synthetic-bulk-book-0024/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0025.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0025",
+        "source_path": "/books/synthetic-bulk-book-0025",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0025.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0025",
+        "source_path": "/books/synthetic-bulk-book-0025/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0026.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0026",
+        "source_path": "/books/synthetic-bulk-book-0026",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0026.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0026",
+        "source_path": "/books/synthetic-bulk-book-0026/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0027.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0027",
+        "source_path": "/books/synthetic-bulk-book-0027",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0027.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0027",
+        "source_path": "/books/synthetic-bulk-book-0027/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0028.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0028",
+        "source_path": "/books/synthetic-bulk-book-0028",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0028.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0028",
+        "source_path": "/books/synthetic-bulk-book-0028/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0029.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0029",
+        "source_path": "/books/synthetic-bulk-book-0029",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0029.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0029",
+        "source_path": "/books/synthetic-bulk-book-0029/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0030.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0030",
+        "source_path": "/books/synthetic-bulk-book-0030",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0030.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0030",
+        "source_path": "/books/synthetic-bulk-book-0030/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0031.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0031",
+        "source_path": "/books/synthetic-bulk-book-0031",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0031.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0031",
+        "source_path": "/books/synthetic-bulk-book-0031/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0032.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0032",
+        "source_path": "/books/synthetic-bulk-book-0032",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0032.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0032",
+        "source_path": "/books/synthetic-bulk-book-0032/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0033.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0033",
+        "source_path": "/books/synthetic-bulk-book-0033",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0033.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0033",
+        "source_path": "/books/synthetic-bulk-book-0033/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0034.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0034",
+        "source_path": "/books/synthetic-bulk-book-0034",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0034.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0034",
+        "source_path": "/books/synthetic-bulk-book-0034/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0035.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0035",
+        "source_path": "/books/synthetic-bulk-book-0035",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0035.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0035",
+        "source_path": "/books/synthetic-bulk-book-0035/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0036.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0036",
+        "source_path": "/books/synthetic-bulk-book-0036",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0036.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0036",
+        "source_path": "/books/synthetic-bulk-book-0036/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0037.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0037",
+        "source_path": "/books/synthetic-bulk-book-0037",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0037.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0037",
+        "source_path": "/books/synthetic-bulk-book-0037/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0038.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0038",
+        "source_path": "/books/synthetic-bulk-book-0038",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0038.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0038",
+        "source_path": "/books/synthetic-bulk-book-0038/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0039.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0039",
+        "source_path": "/books/synthetic-bulk-book-0039",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0039.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0039",
+        "source_path": "/books/synthetic-bulk-book-0039/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0040.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0040",
+        "source_path": "/books/synthetic-bulk-book-0040",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0040.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0040",
+        "source_path": "/books/synthetic-bulk-book-0040/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0041.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0041",
+        "source_path": "/books/synthetic-bulk-book-0041",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0041.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0041",
+        "source_path": "/books/synthetic-bulk-book-0041/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0042.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0042",
+        "source_path": "/books/synthetic-bulk-book-0042",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0042.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0042",
+        "source_path": "/books/synthetic-bulk-book-0042/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0043.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0043",
+        "source_path": "/books/synthetic-bulk-book-0043",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0043.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0043",
+        "source_path": "/books/synthetic-bulk-book-0043/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0044.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0044",
+        "source_path": "/books/synthetic-bulk-book-0044",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0044.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0044",
+        "source_path": "/books/synthetic-bulk-book-0044/",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0045.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0045",
+        "source_path": "/books/synthetic-bulk-book-0045",
+        "status_code": 301
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0045.html",
+        "query_policy": "preserve_raw",
+        "record_key": "synthetic-bulk-book-0045",
+        "source_path": "/books/synthetic-bulk-book-0045/",
         "status_code": 301
       },
       {
@@ -846,6 +3681,19 @@
       },
       {
         "collection": "articles",
+        "final_path": "/blog/sponsor-datatalks-club.html",
+        "record_key": "sponsor-datatalks-club",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/sponsor-datatalks-club.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/sponsor-datatalks-club.md"
+        }
+      },
+      {
+        "collection": "articles",
         "final_path": "/blog/synthetic-article-one.html",
         "record_key": "synthetic-article-one",
         "source": {
@@ -855,6 +3703,331 @@
           "source_key": "synthetic",
           "source_path": "articles/synthetic-article-one.md",
           "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-article-one.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0001.html",
+        "record_key": "synthetic-bulk-article-0001",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0001.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0001.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0002.html",
+        "record_key": "synthetic-bulk-article-0002",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0002.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0002.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0003.html",
+        "record_key": "synthetic-bulk-article-0003",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0003.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0003.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0004.html",
+        "record_key": "synthetic-bulk-article-0004",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0004.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0004.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0005.html",
+        "record_key": "synthetic-bulk-article-0005",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0005.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0005.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0006.html",
+        "record_key": "synthetic-bulk-article-0006",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0006.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0006.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0007.html",
+        "record_key": "synthetic-bulk-article-0007",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0007.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0007.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0008.html",
+        "record_key": "synthetic-bulk-article-0008",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0008.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0008.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0009.html",
+        "record_key": "synthetic-bulk-article-0009",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0009.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0009.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0010.html",
+        "record_key": "synthetic-bulk-article-0010",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0010.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0010.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0011.html",
+        "record_key": "synthetic-bulk-article-0011",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0011.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0011.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0012.html",
+        "record_key": "synthetic-bulk-article-0012",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0012.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0012.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0013.html",
+        "record_key": "synthetic-bulk-article-0013",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0013.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0013.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0014.html",
+        "record_key": "synthetic-bulk-article-0014",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0014.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0014.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0015.html",
+        "record_key": "synthetic-bulk-article-0015",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0015.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0015.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0016.html",
+        "record_key": "synthetic-bulk-article-0016",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0016.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0016.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0017.html",
+        "record_key": "synthetic-bulk-article-0017",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0017.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0017.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0018.html",
+        "record_key": "synthetic-bulk-article-0018",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0018.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0018.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0019.html",
+        "record_key": "synthetic-bulk-article-0019",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0019.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0019.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0020.html",
+        "record_key": "synthetic-bulk-article-0020",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0020.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0020.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0021.html",
+        "record_key": "synthetic-bulk-article-0021",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0021.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0021.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0022.html",
+        "record_key": "synthetic-bulk-article-0022",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0022.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0022.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0023.html",
+        "record_key": "synthetic-bulk-article-0023",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0023.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0023.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0024.html",
+        "record_key": "synthetic-bulk-article-0024",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0024.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0024.md"
+        }
+      },
+      {
+        "collection": "articles",
+        "final_path": "/blog/synthetic-bulk-article-0025.html",
+        "record_key": "synthetic-bulk-article-0025",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "articles/synthetic-bulk-article-0025.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/articles/synthetic-bulk-article-0025.md"
         }
       },
       {
@@ -894,6 +4067,591 @@
           "source_key": "synthetic",
           "source_path": "books/synthetic-book-two.md",
           "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-book-two.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0001.html",
+        "record_key": "synthetic-bulk-book-0001",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0001.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0001.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0002.html",
+        "record_key": "synthetic-bulk-book-0002",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0002.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0002.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0003.html",
+        "record_key": "synthetic-bulk-book-0003",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0003.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0003.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0004.html",
+        "record_key": "synthetic-bulk-book-0004",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0004.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0004.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0005.html",
+        "record_key": "synthetic-bulk-book-0005",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0005.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0005.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0006.html",
+        "record_key": "synthetic-bulk-book-0006",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0006.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0006.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0007.html",
+        "record_key": "synthetic-bulk-book-0007",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0007.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0007.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0008.html",
+        "record_key": "synthetic-bulk-book-0008",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0008.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0008.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0009.html",
+        "record_key": "synthetic-bulk-book-0009",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0009.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0009.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0010.html",
+        "record_key": "synthetic-bulk-book-0010",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0010.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0010.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0011.html",
+        "record_key": "synthetic-bulk-book-0011",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0011.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0011.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0012.html",
+        "record_key": "synthetic-bulk-book-0012",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0012.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0012.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0013.html",
+        "record_key": "synthetic-bulk-book-0013",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0013.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0013.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0014.html",
+        "record_key": "synthetic-bulk-book-0014",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0014.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0014.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0015.html",
+        "record_key": "synthetic-bulk-book-0015",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0015.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0015.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0016.html",
+        "record_key": "synthetic-bulk-book-0016",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0016.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0016.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0017.html",
+        "record_key": "synthetic-bulk-book-0017",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0017.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0017.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0018.html",
+        "record_key": "synthetic-bulk-book-0018",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0018.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0018.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0019.html",
+        "record_key": "synthetic-bulk-book-0019",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0019.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0019.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0020.html",
+        "record_key": "synthetic-bulk-book-0020",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0020.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0020.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0021.html",
+        "record_key": "synthetic-bulk-book-0021",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0021.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0021.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0022.html",
+        "record_key": "synthetic-bulk-book-0022",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0022.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0022.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0023.html",
+        "record_key": "synthetic-bulk-book-0023",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0023.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0023.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0024.html",
+        "record_key": "synthetic-bulk-book-0024",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0024.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0024.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0025.html",
+        "record_key": "synthetic-bulk-book-0025",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0025.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0025.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0026.html",
+        "record_key": "synthetic-bulk-book-0026",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0026.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0026.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0027.html",
+        "record_key": "synthetic-bulk-book-0027",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0027.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0027.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0028.html",
+        "record_key": "synthetic-bulk-book-0028",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0028.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0028.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0029.html",
+        "record_key": "synthetic-bulk-book-0029",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0029.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0029.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0030.html",
+        "record_key": "synthetic-bulk-book-0030",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0030.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0030.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0031.html",
+        "record_key": "synthetic-bulk-book-0031",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0031.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0031.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0032.html",
+        "record_key": "synthetic-bulk-book-0032",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0032.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0032.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0033.html",
+        "record_key": "synthetic-bulk-book-0033",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0033.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0033.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0034.html",
+        "record_key": "synthetic-bulk-book-0034",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0034.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0034.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0035.html",
+        "record_key": "synthetic-bulk-book-0035",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0035.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0035.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0036.html",
+        "record_key": "synthetic-bulk-book-0036",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0036.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0036.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0037.html",
+        "record_key": "synthetic-bulk-book-0037",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0037.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0037.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0038.html",
+        "record_key": "synthetic-bulk-book-0038",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0038.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0038.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0039.html",
+        "record_key": "synthetic-bulk-book-0039",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0039.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0039.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0040.html",
+        "record_key": "synthetic-bulk-book-0040",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0040.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0040.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0041.html",
+        "record_key": "synthetic-bulk-book-0041",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0041.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0041.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0042.html",
+        "record_key": "synthetic-bulk-book-0042",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0042.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0042.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0043.html",
+        "record_key": "synthetic-bulk-book-0043",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0043.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0043.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0044.html",
+        "record_key": "synthetic-bulk-book-0044",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0044.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0044.md"
+        }
+      },
+      {
+        "collection": "books",
+        "final_path": "/books/synthetic-bulk-book-0045.html",
+        "record_key": "synthetic-bulk-book-0045",
+        "source": {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "repository": "DataTalksClub/content",
+          "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+          "source_key": "synthetic",
+          "source_path": "books/synthetic-bulk-book-0045.md",
+          "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/synthetic-bulk-book-0045.md"
         }
       },
       {
@@ -1136,14 +4894,14 @@
       "wiki_search.json": "507f701a784272f5aa56f0f18ab9ba229379343bb39b09c98b6e02efa3a6258d"
     },
     "counts": {
-      "articles": 2,
-      "books": 3,
+      "articles": 28,
+      "books": 48,
       "courses": 12,
       "media": 7,
       "people": 6,
       "podcasts": 11,
       "transcripts": 0,
-      "wiki": 78
+      "wiki": 79
     },
     "media_storage": {
       "count": 997,
@@ -1526,8 +5284,8 @@
           "role": "speaker"
         },
         {
-          "label": "Synthetic MLOps Panel",
-          "public_path": "/events/3/synthetic-mlops-panel",
+          "label": "Synthetic MLOps & Data Panel",
+          "public_path": "/events/3/synthetic-mlops-data-panel",
           "role": "speaker"
         },
         {
@@ -2373,6 +6131,31 @@
       "summary": "Synthetic feature-stores summary.",
       "tags": [],
       "title": "Feature Stores",
+      "unresolved_fragment_ids": []
+    },
+    {
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "markdown": "See the [local Airflow setup guide](/blog/how-to-setup-lightweight-local-version-for-airflow.html).",
+          "text": "See the local Airflow setup guide."
+        }
+      ],
+      "fragment_ids": [],
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/synthetic-test-fixture",
+        "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_key": "synthetic",
+        "source_path": "synthetic.md",
+        "source_url": "https://example.invalid/synthetic"
+      },
+      "public_path": "/wiki/how-to-build-data-pipelines",
+      "relations": [],
+      "slug": "how-to-build-data-pipelines",
+      "summary": "Synthetic summary for How to Build Data Pipelines.",
+      "tags": [],
+      "title": "How to Build Data Pipelines",
       "unresolved_fragment_ids": []
     },
     {
