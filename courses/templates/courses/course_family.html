@@ -28,8 +28,6 @@
          dark theme can restate them instead of each rule carrying a
          light-only literal. */
       :root {
-        --cta-shadow: #16301a;
-        --rule-dashed: rgba(27, 30, 53, 0.28);
         /* The graduate-story cards keep the mock's dark card on either
            theme, so their text colours are named here rather than borrowed
            from tokens that flip with the theme. */
@@ -46,8 +44,6 @@
       }
 
       body.dark-mode {
-        --cta-shadow: #060816;
-        --rule-dashed: rgba(174, 181, 244, 0.34);
         --story-card: #1b2138;
         --story-line: #454c85;
         --story-ink: #eaeaf7;
@@ -56,35 +52,12 @@
         --band-ink-ink: #eaeaf7;
       }
 
-      /* The comp's drawing habits: hard vertical shadows instead of the
-         system's diagonal offsets, deeper card radii, a 1px dashed band rule.
-         The type stays the system's — the same Quicksand weights and
-         letter-spacing the main page renders; the comp's heavier display
-         face is not in the family the shell loads. */
-      .cta {
-        border-radius: 0.875rem;
-        box-shadow: 0 4px 0 var(--shadow-soft);
-      }
-
-      .cta-primary {
-        box-shadow: 0 4px 0 var(--cta-shadow);
-      }
-
-      .card {
-        border-radius: 1.25rem;
-        box-shadow: 0 5px 0 var(--shadow-soft);
-      }
-
       .band {
-        border-bottom: 1px dashed var(--rule-dashed);
+        border-bottom: 1px dashed var(--line-soft);
       }
 
       .content-page-header {
         padding-block: clamp(2.5rem, 5vw, 4.25rem);
-      }
-
-      .signup-button {
-        box-shadow: 0 3px 0 var(--cta-shadow);
       }
 
       /* --- hero --------------------------------------------------------- */
