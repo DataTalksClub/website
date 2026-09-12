@@ -11,13 +11,14 @@ from __future__ import annotations
 import csv
 import json
 import tempfile
+import uuid
 from pathlib import Path
 
 from django.conf import settings
 from django.test import SimpleTestCase, TestCase
 
 from accounts.models import CustomUser
-from events.models import EventRegistrantIdentity, EventRegistration
+from events.models import Event, EventRegistrantIdentity, EventRegistration
 from scripts.prod.registrant_import import (
     RegistrantImportError,
     create_provider_event_identity,
@@ -25,7 +26,9 @@ from scripts.prod.registrant_import import (
 )
 from scripts.prod.registration_sources.luma_registrants import (
     PROVIDER,
+    CanonicalLumaIdentity,
     discover_luma_registrant_files,
+    load_resolved_luma_identities,
     luma_registrant_sources,
     read_luma_registrant_rows,
 )
@@ -304,3 +307,149 @@ class LumaRegistrantSourceTests(LumaRegistrantExportMixin, TestCase):
         self.assertEqual(second.events_already_completed, 1)
         self.assertEqual(second.rows_written, 0)
         self.assertEqual(EventRegistration.objects.count(), 1)
+
+
+def _canonical_event(*, source_key: str) -> Event:
+    event = Event(
+        id=uuid.uuid4(),
+        title="Synthetic canonical event",
+        slug="synthetic-canonical-event",
+        source_repository="DataTalksClub/datatalksclub.github.io",
+        source_revision="a" * 40,
+        source_key=source_key,
+    )
+    event._allow_public_id_assignment = True
+    event.public_id = 9_001
+    event.save()
+    return event
+
+
+def _write_luma_identities(root: Path, *, entries: list[dict[str, str]]) -> Path:
+    # A sibling directory, not `root` itself -- `root` is also a Luma export
+    # directory in these tests, and dropping a bare `.json` file into it would
+    # be picked up as an orphaned, unpaired checkpoint by
+    # `discover_luma_registrant_files`.
+    identities_dir = root.parent / f"{root.name}-identities"
+    identities_dir.mkdir(exist_ok=True)
+    path = identities_dir / "luma-event-identities.json"
+    path.write_text(json.dumps({"events": entries}), encoding="utf-8")
+    return path
+
+
+class LoadResolvedLumaIdentitiesTests(SimpleTestCase):
+    def test_only_resolved_entries_are_kept(self) -> None:
+        with tempfile.TemporaryDirectory(dir=Path(settings.BASE_DIR) / ".tmp") as root:
+            directory = Path(root)
+            path = _write_luma_identities(
+                directory,
+                entries=[
+                    {
+                        "luma_event_id": "evt-1",
+                        "status": "resolved",
+                        "canonical_repository": "DataTalksClub/datatalksclub.github.io",
+                        "canonical_revision": "a" * 40,
+                        "canonical_source_key": "2020-11-10-example",
+                    },
+                    {
+                        "luma_event_id": "evt-2",
+                        "status": "ambiguous",
+                        "canonical_repository": "",
+                        "canonical_revision": "",
+                        "canonical_source_key": "",
+                    },
+                ],
+            )
+            resolved = load_resolved_luma_identities(path)
+        self.assertEqual(set(resolved), {"evt-1"})
+        self.assertEqual(
+            resolved["evt-1"],
+            CanonicalLumaIdentity(
+                repository="DataTalksClub/datatalksclub.github.io",
+                revision="a" * 40,
+                source_key="2020-11-10-example",
+            ),
+        )
+
+    def test_malformed_payload_is_refused(self) -> None:
+        with tempfile.TemporaryDirectory(dir=Path(settings.BASE_DIR) / ".tmp") as root:
+            path = Path(root) / "identities.json"
+            path.write_text("not json", encoding="utf-8")
+            with self.assertRaises(RegistrantImportError):
+                load_resolved_luma_identities(path)
+
+
+class LumaIdentityResolutionIntegrationTests(LumaRegistrantExportMixin, TestCase):
+    """``--luma-identities`` attaches rows to an existing canonical Event."""
+
+    def setUp(self) -> None:
+        temporary = scratch_root()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+
+    def test_a_resolved_id_attaches_rows_to_the_existing_canonical_event(self) -> None:
+        event = _canonical_event(source_key="2020-11-10-example")
+        self._write_event(
+            stem="e1",
+            event_id="evt-1",
+            rows=[self._row(guest_id="g1", email="one@example.invalid")],
+        )
+        identities_path = _write_luma_identities(
+            self.root,
+            entries=[
+                {
+                    "luma_event_id": "evt-1",
+                    "status": "resolved",
+                    "canonical_repository": event.source_repository,
+                    "canonical_revision": event.source_revision,
+                    "canonical_source_key": event.source_key,
+                }
+            ],
+        )
+
+        report = import_registrants(
+            provider=PROVIDER,
+            pending=luma_registrant_sources(self.root, identities_path=identities_path),
+        )
+
+        self.assertEqual(report.events_completed, 1)
+        self.assertEqual(report.events_awaiting_identity, 0)
+        self.assertEqual(
+            EventRegistration.objects.filter(event=event, provider=PROVIDER).count(), 1
+        )
+        # No provider-minted identity was created for this export id -- the
+        # resolved mapping's canonical Event is the only Event this event id
+        # ever attaches to.
+        self.assertEqual(Event.objects.filter(source_key="evt-1").count(), 0)
+
+    def test_an_id_absent_from_the_mapping_still_falls_back_to_a_provider_minted_identity(
+        self,
+    ) -> None:
+        """Unlike Eventbrite, an unmapped Luma id is not left awaiting identity.
+
+        Luma events have always minted their own provider identity by default
+        (`scripts/prod/import_events.py`'s discovery step); the mapping only
+        redirects ids it actually resolved, an id it did not is unaffected --
+        never left worse off than before the mapping existed.
+        """
+
+        create_provider_event_identity(
+            provider=PROVIDER, external_event_identifier="evt-2", title="Event Two"
+        )
+        self._write_event(
+            stem="e2",
+            event_id="evt-2",
+            rows=[self._row(guest_id="g1", email="two@example.invalid")],
+        )
+        identities_path = _write_luma_identities(self.root, entries=[])
+
+        report = import_registrants(
+            provider=PROVIDER,
+            pending=luma_registrant_sources(self.root, identities_path=identities_path),
+        )
+
+        self.assertEqual(report.events_completed, 1)
+        self.assertEqual(report.events_awaiting_identity, 0)
+        self.assertEqual(
+            EventRegistration.objects.filter(provider=PROVIDER).values("event").distinct().count(),
+            1,
+        )

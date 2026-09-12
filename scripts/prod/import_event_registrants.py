@@ -29,6 +29,16 @@ than merging them, the same convention ``scripts/prod/import_events.py`` uses
 throughout.  See ``scripts/prod/registration_sources/eventbrite_registrants.py``
 for why Eventbrite's identity resolution is not the same lookup Luma's is.
 
+**Luma identity resolution, as of 2026-09-12.**  ``--luma-identities`` is the
+Luma counterpart of ``--eventbrite-identities``: pass
+``~/prod/dtc-data/luma-event-identities.json`` (built by
+``scripts/build_luma_event_identities.py``) to attach a resolved Luma export
+id's registrant rows to the existing canonical Event it really is, instead of
+minting/looking up a separate provider-only Event for it. Omit it to keep
+every Luma event on its provider-minted identity, exactly as before this
+option existed. Either way this changes only which ``Event`` attendee rows
+attach to -- it never activates a registration count for public display.
+
 Resumable at event granularity: one event's registrant rows are read and
 written inside a single transaction, and only marked complete once that
 transaction commits.  A re-run skips a completed event without reopening its
@@ -111,6 +121,18 @@ def _parser() -> argparse.ArgumentParser:
             "event) -- the same shape scripts/prod/import_events.py reads for "
             "registration counts. The durable copy lives at "
             "/data/tmp/luma-eventbrite-export/luma-aggregate-v1."
+        ),
+    )
+    parser.add_argument(
+        "--luma-identities",
+        type=Path,
+        default=None,
+        help=(
+            "luma-event-identities.json (scripts/build_luma_event_identities.py) "
+            "-- an id with a resolved entry there attaches registrant rows to "
+            "that canonical Event instead of a freshly provider-minted one. "
+            "Omit to keep every Luma event on its provider-minted identity, "
+            "exactly as before."
         ),
     )
     parser.add_argument(
@@ -203,7 +225,12 @@ def main(argv: list[str] | None = None) -> int:
 
     report: dict[str, object] = {}
     try:
-        luma_pending = luma_registrant_sources(args.luma_source.resolve())
+        luma_pending = luma_registrant_sources(
+            args.luma_source.resolve(),
+            identities_path=(
+                args.luma_identities.expanduser().resolve() if args.luma_identities else None
+            ),
+        )
         report["luma"] = _run_provider(
             provider=LUMA_PROVIDER, pending=luma_pending, dry_run=args.dry_run, refresh=args.refresh
         )

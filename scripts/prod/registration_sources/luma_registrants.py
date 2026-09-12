@@ -24,6 +24,21 @@ Nothing on a request path imports this: ``scripts/prod/import_event_registrants.
 is the one entry point, and it hands the rows to
 :func:`scripts.prod.registrant_import.import_registrants`, which writes them.  The
 dependency runs adapter -> domain only.
+
+**Identity resolution.** By default a discovered Luma event resolves through
+its own provider-minted source identity
+(:func:`scripts.prod.registrant_import.provider_source_identity`), the same
+lookup ``import_registrants`` falls back to when ``resolve_event`` is absent or
+returns ``None``. When ``~/prod/dtc-data/luma-event-identities.json`` (built by
+``scripts/build_luma_event_identities.py``, reusing
+:class:`scripts.prod.registrant_import.ExistingEventIndex`'s exact
+title+date match, no fuzzy matching) is passed in, a ``resolved`` entry's
+``resolve_event`` instead points registrant rows at the existing canonical
+``Event`` that export id really is -- the same shape
+:mod:`.eventbrite_registrants` already uses its own reviewed identities file
+for. This only changes which ``Event`` attendee rows attach to; it never
+touches an aggregate's activation state (see that module's docstring for why
+those stay separate).
 """
 
 from __future__ import annotations
@@ -38,7 +53,7 @@ from typing import NoReturn
 
 from accounts.identity_values import normalize_account_email
 from events.importers import ProtectedSourceError
-from events.models import EventRegistration
+from events.models import Event, EventRegistration
 from scripts.prod.registrant_import import (
     PendingEventRegistrants,
     RegistrantImportError,
@@ -188,23 +203,101 @@ def read_luma_registrant_rows(
     return tuple(rows)
 
 
-def luma_registrant_sources(root: Path) -> tuple[PendingEventRegistrants, ...]:
+@dataclass(frozen=True, slots=True)
+class CanonicalLumaIdentity:
+    repository: str
+    revision: str
+    source_key: str
+
+
+def load_resolved_luma_identities(path: Path) -> dict[str, CanonicalLumaIdentity]:
+    """Only the ``resolved`` entries of ``luma-event-identities.json``, keyed by Luma event id.
+
+    The counterpart of :func:`.eventbrite_registrants.load_resolved_eventbrite_identities`
+    -- same shape, built by ``scripts/build_luma_event_identities.py`` instead of
+    from ``events.xlsx``, since Luma's export carries no such table.
+    """
+
+    resolved_path = safe_path(path, expected_kind="file")
+    try:
+        payload = json.loads(resolved_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        _refuse("identities_source_unreadable")
+    events = payload.get("events") if isinstance(payload, dict) else None
+    if not isinstance(events, list):
+        _refuse("identities_payload_invalid")
+    resolved: dict[str, CanonicalLumaIdentity] = {}
+    for item in events:
+        if not isinstance(item, dict) or item.get("status") != "resolved":
+            continue
+        luma_id = item.get("luma_event_id")
+        repository = item.get("canonical_repository")
+        revision = item.get("canonical_revision")
+        source_key = item.get("canonical_source_key")
+        if not (
+            isinstance(luma_id, str)
+            and luma_id
+            and isinstance(repository, str)
+            and repository
+            and isinstance(revision, str)
+            and revision
+            and isinstance(source_key, str)
+            and source_key
+        ):
+            _refuse("identities_payload_invalid")
+        resolved[luma_id] = CanonicalLumaIdentity(
+            repository=repository, revision=revision, source_key=source_key
+        )
+    return resolved
+
+
+def _resolve_canonical_event(identity: CanonicalLumaIdentity) -> Event | None:
+    from events.models import EventIdentityNotFound, resolve_source_identity
+
+    try:
+        return resolve_source_identity(
+            repository=identity.repository,
+            revision=identity.revision,
+            source_key=identity.source_key,
+        )
+    except EventIdentityNotFound:
+        return None
+
+
+def luma_registrant_sources(
+    root: Path, *, identities_path: Path | None = None
+) -> tuple[PendingEventRegistrants, ...]:
     """Discover the export's events without reading a single registrant row.
 
     Each entry's ``read_rows`` opens that one event's CSV when, and only when,
     :func:`scripts.prod.registrant_import.import_registrants` asks for it -- which it
     does not for an event already recorded as complete, so a resumed run never
     reopens a finished event's file.
+
+    ``identities_path``, when given, is ``luma-event-identities.json`` (see the
+    module docstring): an id with a ``resolved`` entry there gets a
+    ``resolve_event`` pointed at that canonical ``Event`` instead of the
+    provider-minted identity fallback. An id absent from the file, or present
+    only as ``ambiguous``/``unresolved``, falls back to the provider-minted
+    identity exactly as before -- never guessed at.
     """
 
-    return tuple(
-        PendingEventRegistrants(
-            external_event_identifier=item.external_event_identifier,
-            read_rows=partial(
-                read_luma_registrant_rows,
-                item.csv_path,
-                external_event_identifier=item.external_event_identifier,
-            ),
+    identities = load_resolved_luma_identities(identities_path) if identities_path else {}
+    pending: list[PendingEventRegistrants] = []
+    for item in discover_luma_registrant_files(root):
+        identity = identities.get(item.external_event_identifier)
+        resolve_event = (
+            partial(_resolve_canonical_event, identity) if identity is not None else None
         )
-        for item in discover_luma_registrant_files(root)
-    )
+        pending.append(
+            PendingEventRegistrants(
+                external_event_identifier=item.external_event_identifier,
+                read_rows=partial(
+                    read_luma_registrant_rows,
+                    item.csv_path,
+                    external_event_identifier=item.external_event_identifier,
+                ),
+                resolve_event=resolve_event,
+            )
+        )
+    return tuple(pending)
