@@ -239,92 +239,65 @@
         margin-top: auto;
       }
 
-      /* --- the edition rows --------------------------------------------- */
+      /* --- the editions carousel ----------------------------------------- */
 
       .family-editions {
         margin-top: 3.25rem;
       }
 
-      /* The mock's syllabus frame: a 2px ink rule closes the list at each end
-         and the rows divide on the system's dashed rule. */
-      .family-edition-list {
-        border-bottom: 2px solid var(--line);
-        list-style: none;
-        margin: 1.5rem 0 0;
-        padding: 0;
-      }
-
-      .family-edition-row {
-        border-top: 1.5px dashed var(--line-soft);
+      /* The editions strip reuses the home page's carousel shape — the
+         catalogue's grid-auto-flow column, scroll snap, hidden native
+         scrollbar, and the shared `.scroller-controls`/`.scroller-button`
+         arrows — so an edition reads as a small card of the catalogue's
+         family rather than a bespoke carousel. */
+      .family-editions-scroller {
         display: grid;
-        gap: 0.25rem 1rem;
-        grid-template-columns: 3rem minmax(0, 1fr);
-        padding: 1.15rem 0;
+        gap: 1.25rem;
+        grid-auto-columns: minmax(min(19rem, 100%), 1fr);
+        grid-auto-flow: column;
+        margin-inline: -0.4rem;
+        overflow-x: auto;
+        padding: 0.4rem 0.4rem 0.6rem;
+        scrollbar-width: none;
+        scroll-snap-type: x proximity;
       }
 
-      .family-edition-row:first-child {
-        border-top: 2px solid var(--line);
+      .family-editions-scroller::-webkit-scrollbar {
+        display: none;
       }
 
-      .family-edition-index {
-        color: var(--green-text);
-        font-family: var(--font-mono);
-        font-size: 0.85rem;
-        font-weight: 700;
-        padding-top: 0.2rem;
+      .family-editions-scroller > * {
+        scroll-snap-align: start;
       }
 
-      .family-edition-head {
-        align-items: baseline;
-        column-gap: 0.75rem;
+      .family-editions-controls {
+        margin-top: 0.75rem;
+      }
+
+      .family-edition-card {
         display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        row-gap: 0.4rem;
+        flex-direction: column;
+        gap: 0.7rem;
       }
 
-      .family-edition-head h3 {
-        font-size: 1.25rem;
+      .family-edition-card h3 {
+        font-size: 1.05rem;
         margin: 0;
       }
 
-      .family-edition-head h3 a {
+      .family-edition-card h3 a {
         color: var(--ink);
         text-decoration: none;
       }
 
-      .family-edition-head h3 a:hover,
-      .family-edition-head h3 a:focus-visible {
+      .family-edition-card h3 a:hover,
+      .family-edition-card h3 a:focus-visible {
         text-decoration: underline;
         text-underline-offset: 0.2em;
       }
 
-      /* The learner work an edition already published stays on the landing, one
-         quiet sub-row per project, so choosing an edition needs no guessing. */
-      .family-projects {
-        list-style: none;
-        margin: 0.7rem 0 0;
-        padding: 0;
-      }
-
-      .family-project {
-        align-items: baseline;
-        display: flex;
-        gap: 1rem;
-        justify-content: space-between;
-        padding: 0.35rem 0;
-      }
-
-      .family-project a {
-        color: var(--ink);
-      }
-
-      .family-project-state {
-        color: var(--muted);
-        flex: none;
-        font-family: var(--font-mono);
-        font-size: 0.72rem;
-        text-transform: uppercase;
+      .family-edition-link {
+        margin-top: auto;
       }
 
       .family-empty {
@@ -617,14 +590,6 @@
           grid-template-columns: minmax(0, 1fr);
         }
 
-        .family-edition-row {
-          grid-template-columns: minmax(0, 1fr);
-        }
-
-        .family-edition-index {
-          padding-top: 0;
-        }
-
         .family-syllabus-row {
           grid-template-columns: minmax(0, 1fr);
         }
@@ -830,51 +795,60 @@
         </section>
       {% endif %}
       {% comment %}
-        The editions, as the mock's numbered rows: a mono index, the cohort title
-        as the link, an honest state pill, and the learner work the edition has
-        already published.  Every edition and project keeps its route.
+        The editions, like the home page's course catalogue: small cards in a
+        scroll strip with the shared scroller arrows, one card per edition
+        with its honest state pill.  The learner work an edition has
+        published lives on the edition page, not here.
       {% endcomment %}
       <section class="family-editions shell-breakout" aria-labelledby="editions-heading">
-          <div class="band-head">
-            <div>
-              <h2 id="editions-heading">Cohort editions</h2>
-              <p>Choose an edition to see its schedule, curriculum, and learner work.</p>
-            </div>
+        <div class="band-head">
+          <div>
+            <h2 id="editions-heading">Cohort editions</h2>
+            <p>Choose an edition to see its schedule, curriculum, and learner work.</p>
           </div>
+        </div>
 
-          {% if family_edition_rows %}
-            <ol class="family-edition-list" role="list">
-              {% for row in family_edition_rows %}
-                <li class="family-edition-row">
-                  <span class="family-edition-index" aria-hidden="true">{{ row.index }}</span>
-                  <div class="family-edition-main">
-                    <div class="family-edition-head">
-                      <h3>
-                        <a href="{% url 'cohort' course_family.slug row.cohort.identifier %}">{{ row.cohort.title }}</a>
-                      </h3>
-                      {% if row.state_words %}
-                        <span class="status-pill {{ row.state_pill_class }}">{{ row.state_words }}</span>
-                      {% endif %}
-                    </div>
-                    {% if row.projects %}
-                      <ul class="family-projects" role="list">
-                        {% for project in row.projects %}
-                          <li class="family-project">
-                            <a href="{% url 'cohort_project' course_slug=course_family.slug cohort_identifier=row.cohort.identifier project_slug=project.slug %}">{{ project.title }}</a>
-                            <span class="family-project-state">{{ project.get_state_display }}</span>
-                          </li>
-                        {% endfor %}
-                      </ul>
-                    {% else %}
-                      <p class="family-empty">No projects are available for this edition yet.</p>
-                    {% endif %}
-                  </div>
-                </li>
-              {% endfor %}
-            </ol>
-          {% else %}
-            <p class="family-empty">No cohorts are available yet.</p>
-          {% endif %}
+        {% if family_edition_rows %}
+          <div class="family-editions-scroller" id="family-editions-scroller" role="group" aria-label="Cohort editions" tabindex="0">
+            {% for row in family_edition_rows %}
+              <article class="card family-edition-card interactive-card interactive-lift">
+                <h3>
+                  <a href="{% url 'cohort' course_family.slug row.cohort.identifier %}">{{ row.cohort.title }}</a>
+                </h3>
+                {% if row.state_words %}
+                  <span class="status-pill {{ row.state_pill_class }}">{{ row.state_words }}</span>
+                {% endif %}
+                <a class="band-link family-edition-link" href="{% url 'cohort' course_family.slug row.cohort.identifier %}">View edition →</a>
+              </article>
+            {% endfor %}
+          </div>
+          <div class="scroller-controls family-editions-controls" aria-label="Cohort editions controls">
+            <button
+              class="scroller-button interactive-lift"
+              type="button"
+              data-scroll="-1"
+              data-scroll-target="family-editions-scroller"
+              aria-label="Scroll editions left"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M15 5l-7 7 7 7"/>
+              </svg>
+            </button>
+            <button
+              class="scroller-button interactive-lift"
+              type="button"
+              data-scroll="1"
+              data-scroll-target="family-editions-scroller"
+              aria-label="Scroll editions right"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
+          </div>
+        {% else %}
+          <p class="family-empty">No cohorts are available yet.</p>
+        {% endif %}
 
           {% if course_family.faq_document_url %}
             <div class="panel panel-lavender panel-outlined family-faq">
@@ -997,4 +971,32 @@
           </div>
         </section>
       {% endif %}
+{% endblock %}
+
+{% block page_scripts %}
+  <script>
+    (function () {
+      // The editions strip runs the home page's carousel contract: each button
+      // names its own scroller by id, so the same one-handler shape serves this
+      // page's strip without a new script of its own.
+      Array.prototype.forEach.call(
+        document.querySelectorAll('[data-scroll]'),
+        function (button) {
+          var scroller = document.getElementById(button.getAttribute('data-scroll-target'));
+          if (!scroller) {
+            return;
+          }
+          button.addEventListener('click', function () {
+            var card = scroller.firstElementChild;
+            var step = card ? card.getBoundingClientRect().width + 20 : 320;
+            var calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            scroller.scrollBy({
+              left: step * Number(button.getAttribute('data-scroll')),
+              behavior: calm ? 'auto' : 'smooth',
+            });
+          });
+        }
+      );
+    })();
+  </script>
 {% endblock %}

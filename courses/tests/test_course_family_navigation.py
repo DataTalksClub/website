@@ -85,7 +85,7 @@ class CourseFamilyNavigationTest(TestCase):
             },
         )
 
-    def test_family_lists_visible_editions_and_edition_project_routes(self):
+    def test_family_lists_visible_editions_as_strip_cards(self):
         response = self.client.get(
             reverse("course_family", kwargs={"course_slug": self.family.slug})
         )
@@ -98,8 +98,10 @@ class CourseFamilyNavigationTest(TestCase):
         )
         self.assertContains(response, self.course_url(self.current))
         self.assertContains(response, self.course_url(self.previous))
-        self.assertContains(response, self.project_url(self.current, self.current_project))
-        self.assertContains(response, self.project_url(self.previous, self.previous_project))
+        # Editions render as carousel cards pointing at the edition page; the
+        # learner work an edition holds lives on that page, not in the strip.
+        self.assertContains(response, 'id="family-editions-scroller"')
+        self.assertNotContains(response, "No projects are available for this edition yet")
         self.assertNotContains(response, self.hidden.title)
         self.assertNotContains(response, self.hidden_project.title)
 

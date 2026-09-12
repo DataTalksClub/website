@@ -135,11 +135,9 @@ def submission_progress(modules: tuple[CourseModule, ...]) -> SubmissionProgress
 
 @dataclass(frozen=True, slots=True)
 class FamilyEditionRow:
-    """One visible edition in the family landing's cohort list, with its honest state."""
+    """One edition card on the family landing's strip, with its honest state."""
 
     cohort: Any
-    projects: list
-    index: str
     state_words: str
     state_pill_class: str
 
@@ -149,7 +147,7 @@ def family_edition_rows(
     registration_cohort: Any,
     today: date,
 ) -> tuple[FamilyEditionRow, ...]:
-    """Number the visible editions and name each one's state from its own record.
+    """Name each visible edition's state from its own record.
 
     The edition a campaign is actively promoting is "registration open"; a self-paced
     edition says so; a dated edition reads against today. Anything the data cannot
@@ -158,16 +156,14 @@ def family_edition_rows(
     """
 
     rows: list[FamilyEditionRow] = []
-    for position, edition in enumerate(editions, start=1):
+    for edition in editions:
         cohort = edition.cohort
         if registration_cohort is not None and cohort.pk == registration_cohort.pk:
             words, variant = "registration open", "open"
         elif getattr(cohort, "delivery_mode", "") == "self_paced":
             words, variant = "self-paced", ""
         elif (
-            cohort.start_date
-            and cohort.end_date
-            and cohort.start_date <= today <= cohort.end_date
+            cohort.start_date and cohort.end_date and cohort.start_date <= today <= cohort.end_date
         ):
             words, variant = "in progress", "live"
         elif cohort.end_date and cohort.end_date < today:
@@ -177,8 +173,6 @@ def family_edition_rows(
         rows.append(
             FamilyEditionRow(
                 cohort=cohort,
-                projects=edition.projects,
-                index=f"{position:02d}",
                 state_words=words,
                 state_pill_class=f"status-pill-{variant}" if variant else "",
             )
