@@ -39,20 +39,24 @@ class DashboardViewTestCase(DashboardViewTestBase):
         self.assertEqual(response.context["total_enrollments"], 6)
         self.assertEqual(response.context["project_passing_score"], 70)
 
-    def test_page_carries_one_documented_width_exception_instead_of_per_section_breakouts(self):
-        # The redesign (issue #237) replaced the page's two alignment grids --
-        # a 38rem prose measure with per-section `.shell-breakout` escapes to
-        # 76rem -- with one documented width exception for the whole page, so
-        # every section shares one edge instead of switching grids four
-        # times. Wide tables inside a horizontal scroll frame are gone with
-        # them: the homework and question-difficulty data now reshapes as a
-        # row-list instead of scrolling sideways.
+    def test_page_uses_the_shared_narrow_shell_like_its_sibling_task_surfaces(self):
+        # A follow-up review (project-owner feedback, "too wide ... it's not
+        # a landing page") replaced the page's own `.content-shell { max-width:
+        # var(--shell); }` override -- the site's sole use of the wide 76rem
+        # shell outside the homepage -- with the ordinary default every other
+        # task surface actually renders at, homework statistics and the
+        # leaderboard family included: neither overrides `.content-shell`,
+        # so both already sit at the narrow, ~40.5rem `--content-width`. The
+        # per-section `.shell-breakout` escapes and the horizontal-scroll
+        # wide table both stay gone -- reshaping into a row-list, not
+        # scrolling sideways, is still how this page handles data too wide
+        # for one line.
         body = (Path(__file__).resolve().parents[1] / "templates/courses/dashboard.html").read_text(
             encoding="utf-8"
         )
 
-        self.assertIn(".content-shell {", body)
-        self.assertIn("max-width: var(--shell);", body)
+        self.assertNotIn(".content-shell {", body)
+        self.assertNotIn("max-width: var(--shell);", body)
         self.assertNotIn("shell-breakout", body)
         self.assertNotIn("stats-scroll", body)
         self.assertNotIn("stats-table", body)

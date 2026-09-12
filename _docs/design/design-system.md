@@ -279,9 +279,11 @@ full-bleed ink ground — the mock draws that chapter on ink — from the page-l
 own card tokens re-declared so no text pair sits on a colour that flips with the
 theme.
 
-**Outside the rule for now**: the course platform's task surfaces (dashboard,
-homework, submissions, statistics, the leaderboard family, enrolment, registration,
-wrapped) and Studio.
+**Outside the rule for now**: the course platform's task surfaces (homework,
+submissions, statistics, the leaderboard family, enrolment, registration,
+wrapped) and Studio. The dashboard no longer belongs on this list: it read as a
+landing page at the full 76rem shell, so it now sits at the same narrow
+`.content-shell` default as its sibling task surfaces instead of overriding it.
 
 **Contrast when a band changes ground.** `--cream`, `--lavender` and `--mint` all
 flip with the theme, so a band that reads in light must be checked in dark. Muted

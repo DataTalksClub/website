@@ -49,15 +49,6 @@
         --on-timing-4: #13162a;
       }
 
-      /* A numbers page reads better at the full shell than the 38rem prose
-         measure: the design system already lists the dashboard among the
-         task surfaces "outside the rule for now" (design-system.md, band
-         system). This is the one documented width exception for the whole
-         page, rather than a per-section escape hatch on every wide table. */
-      .content-shell {
-        max-width: var(--shell);
-      }
-
       /* --- hero ----------------------------------------------------------- */
 
       .dashboard-hero .breadcrumbs {
@@ -149,9 +140,15 @@
         margin-top: 1.25rem;
       }
 
-      @media (min-width: 48rem) {
+      /* Three, not five: matches the homework statistics page's own
+         headline tiles (.stats-headline, three columns at the same 62rem
+         breakpoint) rather than a page-local count. The overview's other
+         two figures (project submissions, projects passed) already live
+         in the project-outcomes card below, so nothing is dropped -- only
+         one restatement of each number instead of two. */
+      @media (min-width: 62rem) {
         .dashboard-stat-tiles {
-          grid-template-columns: repeat(5, minmax(0, 1fr));
+          grid-template-columns: repeat(3, minmax(0, 1fr));
         }
       }
 
@@ -167,7 +164,14 @@
         margin-top: 0.25rem;
       }
 
+      /* Two different cards -- score distribution, project outcomes --
+         stacked full width rather than side by side: the site's own
+         pages read as one column of sections, never two unrelated blocks
+         competing for width (design-system.md, the band system). Gap
+         matches the shared .card-grid "between cards" spacing. */
       .dashboard-overview-grid {
+        display: grid;
+        gap: 1.25rem;
         margin-top: 1.25rem;
       }
 
@@ -395,16 +399,13 @@
         width: 2px;
       }
 
+      /* The share bar and its legend stack full width, one above the other
+         -- the same shape the engagement chart below draws for its own
+         chart-plus-detail pairing (figure, then caption), rather than a
+         second, wide-screen-only side-by-side reading of the two. */
       .timing-layout {
         display: grid;
         gap: 1.5rem;
-      }
-
-      @media (min-width: 62rem) {
-        .timing-layout {
-          align-items: start;
-          grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-        }
       }
 
       .share-legend {
@@ -931,25 +932,20 @@
             {% endif %}
           </div>
           <div class="stat-tile">
-            <strong>{{ project_total_submissions }}</strong>
-            <span>Project submissions</span>
-            <span class="mono-note">{{ project_completion_rate }}% of enrolled</span>
-          </div>
-          <div class="stat-tile">
-            <strong>{{ project_pass_count }}</strong>
-            <span>Projects passed</span>
-            {% if project_total_submissions %}
-              <span class="mono-note">{{ project_pass_pct }}% of projects</span>
-            {% endif %}
-          </div>
-          <div class="stat-tile">
             <strong>{{ graduates_count }}</strong>
             <span>Graduates</span>
             <span class="mono-note">{{ graduates_rate }}% of enrolled</span>
           </div>
         </div>
 
-        <div class="card-grid card-grid-2 dashboard-overview-grid">
+        {% comment %}
+          Project submissions and projects-passed no longer get their own
+          top-row tiles: both figures already appear once, below, in the
+          project-outcomes card (the submissions total as its own note, the
+          pass count and rate as the share bar's own label) -- one
+          restatement of each number instead of two.
+        {% endcomment %}
+        <div class="dashboard-overview-grid">
           <div class="card">
             <h3>Total score across the cohort</h3>
             {% if total_score_range %}
@@ -985,6 +981,7 @@
           <div class="card">
             <h3>Project outcomes</h3>
             {% if project_total_submissions %}
+              <p class="mono-note">{{ project_total_submissions }} submissions · {{ project_completion_rate }}% of enrolled</p>
               <div
                 class="share"
                 role="img"
