@@ -9,26 +9,7 @@ from django.shortcuts import resolve_url
 from django.utils.http import urlencode
 
 from core.middleware import ROBOTS_HEADER_VALUE, apply_private_no_store
-
-SENSITIVE_PREVIEW_QUERY_KEYS = frozenset(
-    {
-        "access_token",
-        "api_key",
-        "auth",
-        "authorization",
-        "code",
-        "credential",
-        "jwt",
-        "password",
-        "preview_token",
-        "refresh_token",
-        "secret",
-        "session",
-        "sig",
-        "signature",
-        "token",
-    }
-)
+from core.sensitive_query import has_sensitive_query_key
 
 
 def _private_preview_response(response: HttpResponse) -> HttpResponse:
@@ -45,7 +26,7 @@ def staff_preview_required(
     @wraps(view)
     def wrapped(request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         request.private_response_required = True  # type: ignore[attr-defined]
-        if any(key.casefold() in SENSITIVE_PREVIEW_QUERY_KEYS for key in request.GET):
+        if has_sensitive_query_key(request):
             return _private_preview_response(
                 HttpResponse("Invalid preview request.", status=400, content_type="text/plain")
             )

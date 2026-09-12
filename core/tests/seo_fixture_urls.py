@@ -71,6 +71,13 @@ def conflicting_private_cache(_request: HttpRequest) -> HttpResponse:
     )
 
 
+def public_cache_fixture(_request: HttpRequest) -> HttpResponse:
+    return HttpResponse(
+        "Public cache fixture",
+        headers={"Cache-Control": "public, max-age=300"},
+    )
+
+
 def raised_error(_request: HttpRequest) -> HttpResponse:
     raise RuntimeError("safe fixture failure")
 
@@ -100,6 +107,7 @@ urlpatterns = [
     path("fixture/403", lambda request: status_fixture(request, 403), name="seo-403"),
     path("fixture/conflict", conflicting_header, name="seo-conflict"),
     path("api/conflicting-cache", conflicting_private_cache, name="seo-private-cache"),
+    path("fixture/public-cache", public_cache_fixture, name="seo-public-cache"),
     path("fixture/error", raised_error, name="seo-error"),
     path("fixture/method", post_only, name="seo-method"),
     path("fixture/csrf", csrf_failure, name="seo-csrf"),

@@ -15,6 +15,7 @@ from core.context import (
     reset_context,
 )
 from core.security import MAX_REQUEST_BODY_BYTES, MAX_WEBHOOK_BODY_BYTES
+from core.sensitive_query import has_sensitive_query_key
 
 REQUEST_ID_PATTERN = CONTEXT_ID_PATTERN
 PRIVATE_PREFIXES = (
@@ -380,6 +381,12 @@ class ResponsePolicyMiddleware:
         if settings.NOINDEX or private_surface:
             # Assignment replaces a downstream value instead of appending a second field.
             response["X-Robots-Tag"] = ROBOTS_HEADER_VALUE
-        if _is_credential_bearing_request(request) or private_surface:
+        # A credential-shaped query key makes the URL itself private, whatever
+        # the anonymous viewer's cookies say, so no view can publish it.
+        if (
+            has_sensitive_query_key(request)
+            or _is_credential_bearing_request(request)
+            or private_surface
+        ):
             apply_private_no_store(response)
         return response

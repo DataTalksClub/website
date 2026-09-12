@@ -28,6 +28,7 @@ from django.views.decorators.http import require_safe
 from core.breadcrumbs import Trail, trail
 from core.context import current_request_id, external_context_id_or_new
 from core.runtime_config import get_str_setting
+from core.sensitive_query import has_sensitive_query_key
 from core.services import ServiceContext
 from core.sponsors import public_events_hub_sponsors
 from course_management.observability import record_event
@@ -155,10 +156,16 @@ def permanent_public_redirect(
     Public aliases are safe read-only routes.  Handling the method boundary here (instead of
     relying on ``require_safe``) lets the response policy reject unsafe requests before any
     redirect work and attach the required no-store cache directive.
+
+    A credential-shaped query key gets the same bounded treatment: the raw query is never
+    copied into a publicly cacheable ``Location``, and the refusal itself is stored nowhere
+    that could later hand the credential back.
     """
 
     if request.method not in {"GET", "HEAD"}:
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
+    if has_sensitive_query_key(request):
+        return _no_store(HttpResponse("Invalid request.", status=400, content_type="text/plain"))
     query = request.META.get("QUERY_STRING", "") if preserve_query else ""
     response = HttpResponsePermanentRedirect(f"{target}?{query}" if query else target)
     response["Cache-Control"] = "public, max-age=300"

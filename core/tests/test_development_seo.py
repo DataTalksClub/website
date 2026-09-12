@@ -11,7 +11,8 @@ from django.urls import Resolver404, resolve, reverse
 
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS, validate_sitemap_index
 from core.middleware import apply_private_no_store
-from core.preview import SENSITIVE_PREVIEW_QUERY_KEYS, staff_preview_required
+from core.preview import staff_preview_required
+from core.sensitive_query import SENSITIVE_QUERY_KEYS
 from core.seo import validated_canonical_url
 from core.views import DEVELOPMENT_ROBOTS_BODY, PRODUCTION_ROBOTS_BODY
 from courses.models import Cohort
@@ -82,6 +83,19 @@ class DevelopmentResponsePolicyTests(TestCase):
         response = self.client.get("/Fixture/Unmapped.html")
         self.assertNotIn("private", cache_directives(response))
         self.assertNotIn("no-store", cache_directives(response))
+
+    @override_settings(NOINDEX=False)
+    def test_sensitive_query_key_forces_the_private_policy_on_a_public_route(self) -> None:
+        canary = "query-policy-canary-36"
+        for key in ("token", "Token", "PREVIEW_TOKEN"):
+            with self.subTest(key=key):
+                response = self.client.get(f"/fixture/public-cache?{key}={canary}")
+                self.assertEqual(response.status_code, 200)
+                assert_private_no_store(self, response)
+                self.assertNotIn(canary, response.content.decode())
+
+        ordinary = self.client.get("/fixture/public-cache?utm_source=nl")
+        self.assertEqual(ordinary.headers["Cache-Control"], "public, max-age=300")
 
     def test_every_authenticated_response_is_private_even_on_public_path(self) -> None:
         user = get_user_model().objects.create_user(
@@ -379,7 +393,7 @@ class PreviewGuardTests(TestCase):
 
     def test_every_sensitive_query_key_is_rejected_case_insensitively_without_canary(self) -> None:
         canary = "preview-query-canary-36"
-        for key in sorted(SENSITIVE_PREVIEW_QUERY_KEYS):
+        for key in sorted(SENSITIVE_QUERY_KEYS):
             with self.subTest(key=key):
                 response = self.client.get(
                     "/private/preview/",

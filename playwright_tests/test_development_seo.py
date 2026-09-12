@@ -9,7 +9,7 @@ from django.test import Client, override_settings
 from playwright.sync_api import Page, expect
 
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS, validate_sitemap_index
-from core.preview import SENSITIVE_PREVIEW_QUERY_KEYS
+from core.sensitive_query import SENSITIVE_QUERY_KEYS
 
 pytestmark = [
     pytest.mark.full,
@@ -167,7 +167,7 @@ def test_preview_token_and_response_matrix_are_safe(page: Page, live_server) -> 
     request_urls: list[str] = []
     page.on("request", lambda request: request_urls.append(request.url))
     canary = "browser-preview-canary-36"
-    key = next(iter(sorted(SENSITIVE_PREVIEW_QUERY_KEYS)))
+    key = next(iter(sorted(SENSITIVE_QUERY_KEYS)))
     rejected = page.goto(f"{live_server.url}/private/preview/?{key.upper()}={canary}")
     assert rejected is not None
     assert rejected.status == 400

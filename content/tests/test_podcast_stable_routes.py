@@ -107,6 +107,24 @@ class PodcastStableRouteTests(TestCase):
                     f"{PODCAST_AI_PRODUCTION_PATH}?{query}",
                 )
 
+    def test_credential_shaped_query_never_reaches_the_redirect_target(self) -> None:
+        legacy = podcast_legacy_path(self.slug)
+
+        for spelling_index, query in enumerate(
+            ("token=synthetic", "utm_source=nl&Token=synthetic")
+        ):
+            with self.subTest(spelling=spelling_index):
+                response = self.client.get(f"{legacy}?{query}", follow=False)
+                self.assertEqual(response.status_code, 400)
+                self.assertNotIn("Location", response.headers)
+                directives = {
+                    directive.strip().casefold()
+                    for directive in response.headers.get("Cache-Control", "").split(",")
+                    if directive.strip()
+                }
+                self.assertIn("no-store", directives)
+                self.assertNotIn("public", directives)
+
     def test_unknown_stable_id_is_not_found(self) -> None:
         response = self.client.get("/podcast/s99e99/whatever", follow=False)
 
