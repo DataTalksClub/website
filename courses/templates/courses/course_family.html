@@ -43,13 +43,6 @@
            deepens the ground beneath the dark page. */
         --band-ink-bg: #1b1e35;
         --band-ink-ink: #fbf8ec;
-        /* The closing band is the comp's green ground with cream text.  Like
-           the stories band it stays a coloured ground in both themes, so its
-           text colours are named here rather than borrowed from tokens that
-           flip with the theme; dark mode only deepens the ground. */
-        --band-green: #2e6b36;
-        --band-green-ink: #fbf8ec;
-        --band-green-meta: rgba(251, 248, 236, 0.88);
       }
 
       body.dark-mode {
@@ -61,9 +54,6 @@
         --story-meta: #a4a9bd;
         --band-ink-bg: #161930;
         --band-ink-ink: #eaeaf7;
-        --band-green: #29582f;
-        --band-green-ink: #eaeaf7;
-        --band-green-meta: rgba(234, 234, 247, 0.85);
       }
 
       /* The comp's drawing habits: hard vertical shadows instead of the
@@ -574,29 +564,24 @@
         margin-top: 1.4rem;
       }
 
-      /* --- the closing band ----------------------------------------------- */
+      /* --- the closing panel ---------------------------------------------- */
 
-      /* The mock closes the page on a full-bleed green band: edge to edge,
-         display-size line, the actions under it, its card row capped at the
-         shell.  The band's own text tokens live in :root above. */
+      /* The mock closes the page on a full-bleed green band, but the band
+         system has no green ground, so the closing beat is the sanctioned
+         mint panel on the lavender ground: the action line at display size,
+         the strongest honest actions beside it. */
       .family-closing {
-        background: var(--band-green);
-        border-top: 1px dashed var(--rule-dashed);
         margin-top: 3.25rem;
-        padding: clamp(2.5rem, 5vw, 3.75rem) 1.25rem;
       }
 
-      .family-closing.shell-breakout {
-        --breakout-width: 100vw;
+      /* The panel primitive is a grid; the closing lays it out as the mock's
+         band read — action line left, actions beside it, centered. */
+      .family-closing-panel {
+        align-items: center;
+        grid-template-columns: minmax(0, 1fr) auto;
       }
 
-      .family-closing-inner {
-        margin-inline: auto;
-        max-width: var(--shell);
-      }
-
-      .family-closing h2 {
-        color: var(--band-green-ink);
+      .family-closing-panel h2 {
         font-size: clamp(1.9rem, 3.8vw, 2.75rem);
         letter-spacing: -0.02em;
         margin: 0;
@@ -604,8 +589,7 @@
         text-wrap: balance;
       }
 
-      .family-closing p {
-        color: var(--band-green-meta);
+      .family-closing-panel p {
         font-size: 1.05rem;
         margin: 0.6rem 0 0;
       }
@@ -614,23 +598,6 @@
         display: flex;
         flex-wrap: wrap;
         gap: 0.75rem;
-        margin-top: 1.5rem;
-      }
-
-      /* On the green ground the comp swaps the button roles: the primary is
-         cream with green text, the secondary an outlined cream ghost. */
-      .family-closing .cta-primary {
-        background: var(--band-green-ink);
-        border-color: var(--band-green-ink);
-        box-shadow: 0 4px 0 var(--cta-shadow);
-        color: var(--band-green);
-      }
-
-      .family-closing .cta-secondary {
-        background: transparent;
-        border-color: var(--band-green-ink);
-        box-shadow: none;
-        color: var(--band-green-ink);
       }
 
       /* --- narrow: reshape, not reflow ----------------------------------- */
@@ -643,6 +610,11 @@
         /* Keep registration and cohort choices close to the title on phones. */
         .family-hero-art {
           display: none;
+        }
+
+        /* The closing panel stacks: line, then its actions. */
+        .family-closing-panel {
+          grid-template-columns: minmax(0, 1fr);
         }
 
         .family-edition-row {
@@ -989,23 +961,27 @@
       {% endif %}
       {% comment %}
         The page closes on the mock's call to action, translated into the
-        system: the full-bleed green band with the action line at display
-        size, carrying the strongest honest actions.
+        system: the mock's full-bleed green band has no green ground in the
+        band system, so the closing beat is the sanctioned mint panel on the
+        lavender ground — the action line at display size, the strongest
+        honest actions beside it.
       {% endcomment %}
       {% if family_registration or self_paced_cohort or materials_url %}
         <section class="family-closing shell-breakout" aria-labelledby="closing-heading">
-          <div class="family-closing-inner">
-            {% if family_registration %}
-              <h2 id="closing-heading">Join the next cohort</h2>
-              {% if registration_cohort %}
-                <p>Free, no card. Registration takes a minute and opens the cohort Slack channel.</p>
+          <div class="panel panel-mint panel-outlined family-closing-panel">
+            <div>
+              {% if family_registration %}
+                <h2 id="closing-heading">Join the next cohort</h2>
+                {% if registration_cohort %}
+                  <p>Free, no card. Registration takes a minute and opens the cohort Slack channel.</p>
+                {% else %}
+                  <p>Free, no card. Register and we will let you know when the next cohort opens.</p>
+                {% endif %}
               {% else %}
-                <p>Free, no card. Register and we will let you know when the next cohort opens.</p>
+                <h2 id="closing-heading">Start today</h2>
+                <p>The self-paced route is open — the materials are free and public.</p>
               {% endif %}
-            {% else %}
-              <h2 id="closing-heading">Start today</h2>
-              <p>The self-paced route is open — the materials are free and public.</p>
-            {% endif %}
+            </div>
             <div class="family-closing-actions">
               {% if family_registration %}
                 {% url 'registration_campaign' family_registration.campaign.slug as family_registration_url %}
