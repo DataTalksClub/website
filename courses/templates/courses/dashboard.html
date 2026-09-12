@@ -104,15 +104,34 @@
         gap: 0.75rem;
       }
 
+      /* On-page jump links read as the same quiet, underlined action the
+         system already uses for a band's single link (.band-link) -- not as
+         .filter-pill, which carries its own toggle/aria-pressed contract for
+         a control that changes what is shown, not one that scrolls to it.
+         The separator follows the breadcrumb trail's own technique: CSS-drawn
+         and empty of alternative text, so it is never announced. */
       .jump-nav {
         align-items: center;
+        column-gap: 0.6rem;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        font-size: 0.85rem;
+        row-gap: 0.35rem;
       }
 
       .jump-nav .mono-label {
-        margin-inline-end: 0.25rem;
+        margin-inline-end: 0.15rem;
+      }
+
+      .jump-nav a {
+        min-height: 1.5rem;
+      }
+
+      .jump-nav a:not(:last-child)::after {
+        color: var(--muted);
+        content: "·";
+        content: "·" / "";
+        margin-inline-start: 0.6rem;
       }
 
       /* --- sections --------------------------------------------------------
@@ -175,9 +194,11 @@
         gap: 0.4rem;
       }
 
+      /* Same track family as .progress/.share: a 2px ink border, not the
+         quieter line-soft used for dashed separators. */
       .range-track {
-        background: var(--lavender);
-        border: 2px solid var(--line-soft);
+        background: var(--card);
+        border: 2px solid var(--line);
         border-radius: 999px;
         height: 1rem;
         position: relative;
@@ -440,14 +461,10 @@
         display: block;
       }
 
+      /* Typography comes from .mono-label, composed on the element rather than
+         restated; this rule is only the responsive show/hide. */
       .hw-mobile-label {
-        color: var(--muted);
         display: inline;
-        font-family: var(--font-mono);
-        font-size: 0.66rem;
-        letter-spacing: 0.09em;
-        min-width: 5rem;
-        text-transform: uppercase;
       }
 
       @media (min-width: 48rem) {
@@ -456,6 +473,13 @@
         }
       }
 
+      /* The homework table's bars are the system's own .progress/.progress-fill
+         primitive (design-system.md, "Progress bar") rather than a page-local
+         "meter" -- same track, same fill, same 0.625rem height, just always
+         paired with the full progressbar ARIA the primitive calls for. Two
+         colour variants beyond the default green fill: .progress-fill-soft
+         (indigo, a question's own correctness) and .progress-fill-hard
+         (olive, the system's one attention colour, for a question under 75%). */
       .meter {
         align-items: center;
         display: grid;
@@ -463,25 +487,11 @@
         grid-template-columns: minmax(0, 1fr) auto;
       }
 
-      .meter-track {
-        background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 999px;
-        height: 0.625rem;
-        overflow: hidden;
-      }
-
-      .meter-fill {
-        background: var(--green-bright);
-        border-radius: inherit;
-        height: 100%;
-      }
-
-      .meter-fill.soft {
+      .progress-fill-soft {
         background: var(--indigo);
       }
 
-      .meter-fill.hard {
+      .progress-fill-hard {
         background: var(--olive);
       }
 
@@ -523,34 +533,17 @@
         border-inline-start: 2px solid var(--card);
       }
 
+      /* A question score is the same "share of a whole" the submission meter
+         already draws -- .progress again, not a dot-per-question count.  The
+         system's lopsided --drawn-circle wobble is reserved for named brand
+         marks (step discs, pagination numbers, the play disc); a generic
+         per-question tally is not one of those, and would not stay legible
+         past a handful of questions either. */
       .score-cell {
         align-items: center;
         display: grid;
         gap: 0.6rem;
-        grid-template-columns: auto minmax(0, 1fr);
-      }
-
-      .score-dots {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 3px;
-      }
-
-      .score-dots i {
-        background: var(--card);
-        border: 1.5px solid var(--line);
-        border-radius: 50% 44% 55% 46%;
-        display: inline-block;
-        height: 0.7rem;
-        width: 0.7rem;
-      }
-
-      .score-dots i.on {
-        background: var(--green-bright);
-      }
-
-      .score-dots i:nth-child(2n) {
-        border-radius: 46% 55% 44% 50%;
+        grid-template-columns: minmax(0, 1fr) auto;
       }
 
       .score-cell .status-pill {
@@ -598,12 +591,12 @@
       }
 
       @media (max-width: 47.99rem) {
-        .hw-row .time-cell,
-        .hw-row .score-cell {
+        .hw-row .time-cell {
           grid-template-columns: auto minmax(0, 1fr);
         }
 
-        .hw-row .meter {
+        .hw-row .meter,
+        .hw-row .score-cell {
           grid-template-columns: auto minmax(0, 1fr) auto;
         }
 
@@ -622,8 +615,10 @@
         gap: 0.35rem;
       }
 
+      /* The same clamp the overview stat tiles already draw their own big
+         number at, not a locally invented size. */
       .hard-card .big {
-        font-size: 2rem;
+        font-size: clamp(1.6rem, 2.6vw, 2.1rem);
         font-variant-numeric: tabular-nums;
         letter-spacing: -0.02em;
         line-height: 1.05;
@@ -674,13 +669,14 @@
         }
       }
 
-      /* --- weekly column chart ---------------------------------------------- */
+      /* --- weekly column chart ---------------------------------------------- *
+       * No other page draws a real chart with a time axis, so there is no
+       * existing component to reuse for the bars themselves -- this is a
+       * deliberately new primitive. Its frame is not: it is the system's own
+       * .card (same border, radius and hard shadow every card on the site
+       * carries), with only the padding trimmed for the axis labels' own air. */
 
       .chart-frame {
-        background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
-        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
         padding: 1rem 1rem 0.6rem;
       }
 
@@ -732,18 +728,23 @@
         margin-top: 0.75rem;
       }
 
+      /* The disclosure control is .band-link's own colour and underline; only
+         the pointer and target height are page-specific extras a <summary>
+         does not carry for free. The two-column table underneath draws the
+         same dashed-row, mono-header shape the homework statistics page's
+         real wide table already uses -- but it keeps its own page-local
+         class names rather than that page's: this table is never the wide,
+         horizontally scrolling surface the redesign removed (a documented
+         test holds this page to carrying neither), just 20-odd weeks of two
+         short columns behind a fold. */
       .table-fold summary {
         align-items: center;
-        color: var(--indigo);
         cursor: pointer;
         display: inline-flex;
-        font-weight: 600;
         min-height: 2.75rem;
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
       }
 
-      .table-fold table {
+      .week-table {
         border-collapse: collapse;
         font-size: 0.88rem;
         margin-top: 0.5rem;
@@ -751,14 +752,14 @@
         width: 100%;
       }
 
-      .table-fold th,
-      .table-fold td {
+      .week-table th,
+      .week-table td {
         border-bottom: 1.5px dashed var(--line-soft);
         padding: 0.35rem 0.75rem 0.35rem 0;
         text-align: left;
       }
 
-      .table-fold th {
+      .week-table th {
         color: var(--body-text);
         font-family: var(--font-mono);
         font-size: 0.66rem;
@@ -766,8 +767,7 @@
         text-transform: uppercase;
       }
 
-      .table-fold td:last-child,
-      .table-fold th:last-child {
+      .week-table-numeric {
         font-family: var(--font-mono);
         font-variant-numeric: tabular-nums;
         text-align: right;
@@ -873,18 +873,18 @@
             {% if course.first_homework_scored %}
               <nav class="jump-nav" aria-label="On this page">
                 <span class="mono-label">On this page</span>
-                <a class="filter-pill" href="#overview-heading">Overview</a>
+                <a class="band-link" href="#overview-heading">Overview</a>
                 {% if homework_stats %}
-                  <a class="filter-pill" href="#homework-heading">Homework</a>
+                  <a class="band-link" href="#homework-heading">Homework</a>
                 {% endif %}
                 {% if question_difficulty %}
-                  <a class="filter-pill" href="#question-difficulty-heading">Questions</a>
+                  <a class="band-link" href="#question-difficulty-heading">Questions</a>
                 {% endif %}
                 {% if submission_timing %}
-                  <a class="filter-pill" href="#submission-timing-heading">Timing</a>
+                  <a class="band-link" href="#submission-timing-heading">Timing</a>
                 {% endif %}
                 {% if engagement_trend %}
-                  <a class="filter-pill" href="#engagement-heading">Weekly activity</a>
+                  <a class="band-link" href="#engagement-heading">Weekly activity</a>
                 {% endif %}
               </nav>
             {% endif %}
@@ -1060,15 +1060,22 @@
               <div class="list-row hw-row" role="row">
                 <div class="hw-title" role="cell">{{ hw_stat.homework.title }}</div>
                 <div class="meter" role="cell">
-                  <span class="hw-mobile-label">Submitted</span>
-                  <div class="meter-track" aria-hidden="true">
-                    <div class="meter-fill" style="width: {{ hw_stat.completion_rate }}%"></div>
+                  <span class="hw-mobile-label mono-label">Submitted</span>
+                  <div
+                    class="progress"
+                    role="progressbar"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    aria-valuenow="{{ hw_stat.completion_rate }}"
+                    aria-label="{{ hw_stat.homework.title }} submitted"
+                  >
+                    <div class="progress-fill" style="width: {{ hw_stat.completion_rate }}%"></div>
                   </div>
                   <span class="meter-num">{{ hw_stat.submissions_count }} <small>{{ hw_stat.completion_rate }}%</small></span>
                 </div>
                 {% if homework_has_time_data %}
                   <div class="time-cell" role="cell">
-                    <span class="hw-mobile-label">Time</span>
+                    <span class="hw-mobile-label mono-label">Time</span>
                     {% if hw_stat.time_total_median %}
                       <span class="meter-num">
                         {{ hw_stat.time_total_median_formatted }}h
@@ -1090,13 +1097,18 @@
                 {% endif %}
                 {% if homework_has_score_data %}
                   <div class="score-cell" role="cell">
-                    <span class="hw-mobile-label">Score</span>
+                    <span class="hw-mobile-label mono-label">Score</span>
                     {% if hw_stat.score_dots %}
-                      <span class="score-dots" aria-hidden="true">
-                        {% for filled in hw_stat.score_dots.dots %}
-                          <i class="{% if filled %}on{% endif %}"></i>
-                        {% endfor %}
-                      </span>
+                      <div
+                        class="progress"
+                        role="progressbar"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        aria-valuenow="{{ hw_stat.score_ratio_pct }}"
+                        aria-label="{{ hw_stat.homework.title }} median score"
+                      >
+                        <div class="progress-fill" style="width: {{ hw_stat.score_ratio_pct }}%"></div>
+                      </div>
                       <span class="meter-num">
                         {{ hw_stat.score_dots.filled }} <small>of {{ hw_stat.score_dots.total }}</small>
                         {% if hw_stat.is_hardest_tier %}
@@ -1171,8 +1183,15 @@
                       <span class="qt">{{ question.text }}</span>
                       {% if question.pct_correct is not None %}
                         <div class="meter">
-                          <div class="meter-track" aria-hidden="true">
-                            <div class="meter-fill {% if question.pct_correct < 75 %}hard{% else %}soft{% endif %}" style="width: {{ question.pct_correct }}%"></div>
+                          <div
+                            class="progress"
+                            role="progressbar"
+                            aria-valuemin="0"
+                            aria-valuemax="100"
+                            aria-valuenow="{{ question.pct_correct }}"
+                            aria-label="{{ question.text }} answered correctly"
+                          >
+                            <div class="progress-fill {% if question.pct_correct < 75 %}progress-fill-hard{% else %}progress-fill-soft{% endif %}" style="width: {{ question.pct_correct }}%"></div>
                           </div>
                           <span class="meter-num">{{ question.pct_correct }}% <small>{{ question.correct }}</small></span>
                         </div>
@@ -1263,7 +1282,7 @@
             </div>
           </div>
           {% if engagement_chart %}
-            <div class="chart-frame">
+            <div class="chart-frame card">
               <svg viewBox="0 0 {{ engagement_chart.width }} {{ engagement_chart.height }}" role="img" aria-label="{{ engagement_chart.axis_label }}">
                 <g class="grid">
                   {% for line in engagement_chart.gridlines %}
@@ -1302,19 +1321,19 @@
                 {% endif %}
               </span>
               <details class="table-fold">
-                <summary>Show the {{ engagement_trend|length }} weeks as a table</summary>
-                <table>
+                <summary class="band-link">Show the {{ engagement_trend|length }} weeks as a table</summary>
+                <table class="week-table">
                   <thead>
                     <tr>
                       <th scope="col">Week of</th>
-                      <th scope="col">Submissions</th>
+                      <th class="week-table-numeric" scope="col">Submissions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {% for week in engagement_trend %}
                       <tr>
                         <td>{{ week.label }}</td>
-                        <td>{{ week.count }}</td>
+                        <td class="week-table-numeric">{{ week.count }}</td>
                       </tr>
                     {% endfor %}
                   </tbody>
