@@ -62,7 +62,7 @@ def github_course_repository_webhook(request):
 
     try:
         payload = json.loads(body)
-    except (TypeError, json.JSONDecodeError):
+    except (TypeError, UnicodeDecodeError, json.JSONDecodeError):
         return _error("github_payload_invalid", 400)
     try:
         push = parse_github_course_push(payload, event_type=event_type)

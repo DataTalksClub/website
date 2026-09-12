@@ -154,6 +154,47 @@ class CourseRepositoryWebhookTests(TestCase):
         self.assertEqual(JobIntent.objects.count(), 0)
 
     @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
+    def test_signed_unparseable_payloads_return_bounded_400_without_fence_or_job(self) -> None:
+        """A valid HMAC over undecodable bytes must still get a bounded 400.
+
+        The signature is verified over raw bytes, so a provider-side encoding
+        bug authenticates bodies that never decode; those deserve the same
+        bounded response as any other malformed payload, not a server error
+        that the provider retries.
+        """
+
+        invalid_utf8 = b"\xff"
+        truncated_multibyte = (
+            b'{"repository":{"full_name":"DataTalksClub/llm-zoomcamp"},'
+            b'"ref":"refs/heads/main","after":"' + COMMIT_SHA.encode() + b'","note":"\xc3'
+        )
+        non_object_root = b"[]"
+        for index, body in enumerate((invalid_utf8, truncated_multibyte, non_object_root)):
+            with self.subTest(index=index):
+                response = self.post(body, delivery_id=f"delivery-unparseable-{index}")
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.json()["error"], "github_payload_invalid")
+        self.assertEqual(JobIntent.objects.count(), 0)
+        self.assertFalse(
+            IdempotencyRecord.objects.filter(scope=COURSE_REPOSITORY_WEBHOOK_NAMESPACE).exists()
+        )
+
+    @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
+    def test_wrong_signature_over_invalid_utf8_is_refused_before_parsing(self) -> None:
+        response = self.client.post(
+            "/api/webhooks/github",
+            data=b"\xff",
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_GITHUB_DELIVERY=DELIVERY_ID,
+            HTTP_X_HUB_SIGNATURE_256=signature(b"other-body"),
+        )
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()["error"], "github_signature_invalid")
+        self.assertEqual(JobIntent.objects.count(), 0)
+
+    @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
     def test_invalid_push_metadata_is_rejected_without_a_fence(self) -> None:
         for index, body in enumerate(
             (
