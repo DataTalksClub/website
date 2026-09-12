@@ -13,6 +13,7 @@ wins after signing in, and whether the wrong theme is ever painted first.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from unittest.mock import patch
 
@@ -22,7 +23,7 @@ from django.conf import settings
 from django.contrib.sites.models import Site
 from django.test import Client
 from django.urls import reverse
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Browser, Page, expect
 
 from accounts.models import CustomUser
 
@@ -194,6 +195,147 @@ def test_a_dark_member_never_sees_a_light_first_paint(
     assert 'class="dark dark-mode"' in body
     seen.append(page.evaluate("document.body.className"))
     assert "dark-mode" in seen[0]
+
+
+def _theme_switch(page: Page):
+    """The Display preferences switch and the status region the script inserts
+    directly after its row (settings_toggles.js statusRegionFor)."""
+    return (
+        page.locator("#id_dark_mode"),
+        page.locator(".toggle-row:has(#id_dark_mode) + p.toggle-status"),
+    )
+
+
+def test_a_denied_storage_write_never_rolls_back_a_saved_theme_switch(
+    browser: Browser,
+    live_server,
+) -> None:
+    """UX-11: the browser copy of the theme is a convenience, not the save.
+
+    With localStorage writes denied, the copy's exception used to fall into
+    the network-failure path: the switch reverted beside an already-applied
+    dark theme, announced by a "not saved" message for a theme the server
+    had in fact stored.  The server's answer is the state; only the copy
+    may fail, silently.
+    """
+    member = _member(suffix="storage-denied")
+    context = browser.new_context()
+    context.add_init_script(
+        """
+        const original = Storage.prototype.setItem;
+        Storage.prototype.setItem = function (key, value) {
+          if (key === 'darkMode') {
+            throw new DOMException('Storage is denied.', 'SecurityError');
+          }
+          return original.call(this, key, value);
+        };
+        """
+    )
+    page = context.new_page()
+    try:
+        _sign_in(page, live_server, member)
+        page.goto(f"{live_server.url}/accounts/settings/")
+
+        checkbox, status = _theme_switch(page)
+        expect(checkbox).not_to_be_checked()
+
+        checkbox.check()
+        expect(status).to_contain_text("Saved.")
+        expect(status).not_to_contain_text("not saved")
+        expect(checkbox).to_be_checked()
+        expect(page.locator("body")).to_have_attribute("data-dark-mode", "true")
+        member.refresh_from_db()
+        assert member.dark_mode is True
+        _screenshot(page, "theme-storage-denied-dark", "desktop")
+
+        # The switch still works after the denied copy: a second save rounds
+        # the theme back to light with the same honest "Saved.".
+        checkbox.uncheck()
+        expect(status).to_contain_text("Saved.")
+        expect(status).not_to_contain_text("not saved")
+        expect(checkbox).not_to_be_checked()
+        expect(page.locator("body")).to_have_attribute("data-dark-mode", "false")
+        member.refresh_from_db()
+        assert member.dark_mode is False
+    finally:
+        context.close()
+
+
+def test_storage_denied_at_load_leaves_the_account_theme_in_charge(
+    browser: Browser,
+    live_server,
+) -> None:
+    """A browser that refuses storage entirely still serves the account theme.
+
+    The signed-in theme arrives in the markup from the account, so a denied
+    store costs nothing at load, and switching still saves, repaints, and
+    reports the save honestly.
+    """
+    member = _member(suffix="dark-storage-denied", dark_mode=True)
+    context = browser.new_context()
+    context.add_init_script(
+        """
+        Object.defineProperty(window, 'localStorage', {
+          configurable: true,
+          value: {
+            getItem: () => { throw new DOMException('Storage is denied.', 'SecurityError'); },
+            setItem: () => { throw new DOMException('Storage is denied.', 'SecurityError'); },
+            removeItem: () => {},
+            clear: () => {},
+            key: () => null,
+          },
+        });
+        """
+    )
+    page = context.new_page()
+    try:
+        _sign_in(page, live_server, member)
+        page.goto(f"{live_server.url}/accounts/settings/")
+
+        checkbox, status = _theme_switch(page)
+        expect(checkbox).to_be_checked()
+        expect(page.locator("body")).to_have_attribute("data-dark-mode", "true")
+
+        checkbox.uncheck()
+        expect(status).to_contain_text("Saved.")
+        expect(status).not_to_contain_text("not saved")
+        expect(checkbox).not_to_be_checked()
+        expect(page.locator("body")).to_have_attribute("data-dark-mode", "false")
+        member.refresh_from_db()
+        assert member.dark_mode is False
+    finally:
+        context.close()
+
+
+def test_a_failed_theme_save_still_reverts_and_says_so(page: Page, live_server) -> None:
+    """The honest-failure contract (UX-02) holds on the theme row too: a save
+    the server rejects reverts the switch, repaints nothing, and says so."""
+    member = _member(suffix="theme-reject")
+    _sign_in(page, live_server, member)
+    page.goto(f"{live_server.url}/accounts/settings/")
+
+    def refuse(route):
+        route.fulfill(
+            status=500,
+            content_type="application/json",
+            body=json.dumps({"error": "Save failed."}),
+        )
+
+    page.route("**/accounts/settings/toggle/", refuse)
+
+    checkbox, status = _theme_switch(page)
+    # On the page before acting: a transient bad load must read as one, not
+    # as a failed toggle.
+    expect(checkbox).to_be_visible()
+    checkbox.check()
+
+    expect(status).to_contain_text("Your change was not saved.")
+    expect(checkbox).not_to_be_checked()
+    expect(page.locator("body")).to_have_attribute("data-dark-mode", "false")
+    expect(checkbox).to_be_enabled()
+    expect(checkbox).to_be_focused()
+    member.refresh_from_db()
+    assert member.dark_mode is False
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)

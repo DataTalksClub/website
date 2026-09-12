@@ -90,6 +90,9 @@ EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
             403,
         ),
     ),
+    "test_a_failed_theme_save_still_reverts_and_says_so": (
+        (re.compile(r"^/accounts/settings/toggle/$"), 500),
+    ),
     "test_no_database_course_catalog_uses_the_design_system_empty_state": (
         (re.compile(r"^/courses/de-zoomcamp/2026$"), 404),
     ),

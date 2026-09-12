@@ -163,7 +163,13 @@ document.addEventListener('DOMContentLoaded', function() {
           // refreshed to the same value, so logging out does not flip the
           // theme.  It can never fight the account: nothing reads this key
           // while a session is signed in.
-          localStorage.setItem('darkMode', data.value.toString());
+          // UX-11: the browser copy is a convenience, not the save.  A denied
+          // or full store throws, and that failure belongs to the copy alone —
+          // letting it reach the catch below would revert the switch and
+          // announce "not saved" for a theme the server has already stored.
+          try {
+            localStorage.setItem('darkMode', data.value.toString());
+          } catch (e) {}
         }
         announce(status, 'Saved.', false);
       })
