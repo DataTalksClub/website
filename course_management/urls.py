@@ -1,3 +1,4 @@
+from content import review_views
 from django.contrib import admin
 from django.urls import include, path
 
@@ -21,5 +22,8 @@ urlpatterns = [
     path("studio/courses/", studio_course_urls.course_list_slash_redirect),
     path("studio/courses/", include(studio_course_urls.child_urlpatterns)),
     path("cadmin/", include("cadmin.legacy_urls")),
+    # The shared public templates reverse the community page by name, so the
+    # copied root carries the same /slack route the current root publishes.
+    path("slack", review_views.slack, name="slack"),
     path("", courses_urls),
 ]

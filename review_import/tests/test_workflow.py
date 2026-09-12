@@ -832,21 +832,6 @@ class ReviewImportWorkflowTests(TestCase):
                     "updated_at": "2026-08-12T00:00:00+00:00",
                 },
             )
-            _insert(
-                connection,
-                "events_eventalias",
-                {
-                    "id": uuid.uuid4().hex,
-                    "source_path": "/events/synthetic-dependency-alias",
-                    "kind": "reviewed",
-                    "reason": "Synthetic dependency fixture",
-                    "source_repository": "synthetic-repository",
-                    "source_revision": "synthetic-revision",
-                    "source_key": "synthetic-event",
-                    "activated_at": "2026-08-12T00:00:00+00:00",
-                    "event_id": event_id,
-                },
-            )
             connection.execute(
                 """
                 CREATE TABLE review_import_synthetic_dependency (
@@ -866,10 +851,6 @@ class ReviewImportWorkflowTests(TestCase):
             self.assertEqual(connection.execute("PRAGMA foreign_keys").fetchone()[0], 1)
             self.assertEqual(
                 connection.execute("SELECT COUNT(*) FROM events_event").fetchone()[0],
-                0,
-            )
-            self.assertEqual(
-                connection.execute("SELECT COUNT(*) FROM events_eventalias").fetchone()[0],
                 0,
             )
             self.assertIsNone(

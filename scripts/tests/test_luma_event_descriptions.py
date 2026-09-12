@@ -9,6 +9,7 @@ event's type, and whether a link destination may be published.
 from __future__ import annotations
 
 import json
+import shutil
 import tempfile
 from pathlib import Path
 
@@ -26,6 +27,29 @@ from scripts.staging.luma_event_descriptions import (
     unreviewed_link_destinations,
     validate_artifact,
 )
+from test_support.synthetic_public_projection import (
+    build_synthetic_projection,
+    synthetic_renderer,
+)
+
+
+def _registry_renderer(workarea: Path):
+    """The real policy renderer over the synthetic route registry.
+
+    The renderer is deliberately the bridge builder's, so the synthetic tree
+    stands in for the reviewed projection it normally reads: same code, a
+    registry this repository generates under ``workarea``.
+    """
+
+    tree = build_synthetic_projection(workarea / "public_projection")
+    return synthetic_renderer(tree)
+
+
+def _workarea(prefix: str) -> Path:
+    scratch = Path(settings.BASE_DIR) / ".tmp"
+    scratch.mkdir(exist_ok=True)
+    return Path(tempfile.mkdtemp(prefix=prefix, dir=scratch))
+
 
 STEM = "2026-08-10_a-synthetic-workshop_evt-synthetic01"
 EVENT_IDENTIFIER = "evt-Synthetic01"
@@ -221,8 +245,13 @@ class ReviewedEventTypeTests(SimpleTestCase):
 class DescriptionRenderingTests(SimpleTestCase):
     """The reviewed policies, applied to a description the bridge never saw."""
 
+    def setUp(self) -> None:
+        self.workarea = _workarea("luma-registry-")
+        self.addCleanup(shutil.rmtree, self.workarea, True)
+        self.renderer = _registry_renderer(self.workarea)
+
     def test_the_speaker_biography_and_the_footer_are_removed(self) -> None:
-        result = render_and_normalize(DESCRIPTION)
+        result = render_and_normalize(DESCRIPTION, renderer=self.renderer)
 
         self.assertTrue(result["removed_speaker_bio"])
         self.assertEqual(result["removed_platform_boilerplate"], 1)
@@ -235,7 +264,7 @@ class DescriptionRenderingTests(SimpleTestCase):
 
         markdown = "Details at [our host](https://not-a-reviewed-host.example/talk).\n"
 
-        (unreviewed,) = unreviewed_link_destinations(markdown)
+        (unreviewed,) = unreviewed_link_destinations(markdown, renderer=self.renderer)
 
         self.assertEqual(unreviewed.url, "https://not-a-reviewed-host.example/talk")
         self.assertEqual(unreviewed.reason, "description URL has no reviewed decision")
@@ -245,26 +274,31 @@ class DescriptionRenderingTests(SimpleTestCase):
 
         markdown = "See [the repo](https://github.com/DataTalksClub/not-reviewed-yet).\n"
 
-        (unreviewed,) = unreviewed_link_destinations(markdown)
+        (unreviewed,) = unreviewed_link_destinations(markdown, renderer=self.renderer)
 
         self.assertEqual(unreviewed.reason, "description rendered link is not reviewed")
 
     def test_a_reviewed_destination_passes(self) -> None:
         markdown = "See [the repo](https://github.com/DataTalksClub/llm-zoomcamp).\n"
 
-        self.assertEqual(unreviewed_link_destinations(markdown), ())
+        self.assertEqual(unreviewed_link_destinations(markdown, renderer=self.renderer), ())
 
     def test_rendering_refuses_the_description_an_unreviewed_link_appears_in(self) -> None:
         markdown = "Details at [our host](https://not-a-reviewed-host.example/talk).\n"
 
         with self.assertRaises(LumaDescriptionError) as refusal:
-            render_and_normalize(markdown)
+            render_and_normalize(markdown, renderer=self.renderer)
 
         self.assertTrue(str(refusal.exception).startswith("luma_description_render_refused"))
 
 
 class ArtifactTests(SimpleTestCase):
     """What the builder hands over, and what the receiving end can check about it."""
+
+    def setUp(self) -> None:
+        self.workarea = _workarea("luma-registry-")
+        self.addCleanup(shutil.rmtree, self.workarea, True)
+        self.renderer = _registry_renderer(self.workarea)
 
     def _record(self) -> dict:
         from scripts.staging.luma_event_descriptions import DescriptionExport, ReviewedEventType
@@ -290,6 +324,7 @@ class ArtifactTests(SimpleTestCase):
                 reason="Hands-on session run by the speaker.",
             ),
             review_revision=1,
+            renderer=self.renderer,
         )
 
     def test_a_record_carries_the_reviewed_type_and_the_exported_start(self) -> None:

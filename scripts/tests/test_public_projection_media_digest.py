@@ -14,15 +14,13 @@ from django.test import SimpleTestCase
 
 from scripts.prod import public_projection_source as source_loader
 from scripts.prod.public_projection_source import (
-    DEFAULT_PROJECTION_ROOT as PROJECTION_ROOT,
-)
-from scripts.prod.public_projection_source import (
     EXPECTED_MEDIA_STORAGE_FIELDS,
     EXPECTED_TREE_DIGEST_SCOPE,
     _tree_sha256,
 )
 from scripts import build_public_projection as projection_builder
 from scripts import repin_projection_digests as repin
+from test_support.synthetic_public_projection import build_synthetic_projection
 
 
 def _sample_tree(root: Path) -> None:
@@ -39,13 +37,26 @@ class MediaFreeTreeDigestTests(SimpleTestCase):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         _sample_tree(self.root)
 
+    def _synthetic_tree(self) -> Path:
+        """The reviewed corpus is unreachable in CI, so build its stand-in.
+
+        The synthetic projection satisfies the same checker with a handful of
+        generated records, so the manifest contract below is exercised on a
+        tree this repository owns instead of the corpus it cannot read.
+        """
+
+        return build_synthetic_projection(
+            Path(self.enterContext(tempfile.TemporaryDirectory())) / "public_projection"
+        )
+
     def test_the_runtime_and_the_builder_agree_on_the_digest(self) -> None:
         self.assertEqual(_tree_sha256(self.root), projection_builder._tree_sha256(self.root))
 
     def test_the_checked_projection_digest_is_recomputed_not_hand_typed(self) -> None:
-        manifest = json.loads((PROJECTION_ROOT / "manifest.json").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["tree_sha256"], _tree_sha256(PROJECTION_ROOT))
-        self.assertEqual(manifest["tree_sha256"], projection_builder._tree_sha256(PROJECTION_ROOT))
+        tree = self._synthetic_tree()
+        manifest = json.loads((tree / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["tree_sha256"], _tree_sha256(tree))
+        self.assertEqual(manifest["tree_sha256"], projection_builder._tree_sha256(tree))
         self.assertEqual(manifest["tree_digest_scope"], EXPECTED_TREE_DIGEST_SCOPE)
         self.assertEqual(
             {key: manifest["media_storage"][key] for key in EXPECTED_MEDIA_STORAGE_FIELDS},
@@ -56,7 +67,10 @@ class MediaFreeTreeDigestTests(SimpleTestCase):
         self.assertEqual(manifest["media_storage"]["count"], manifest["counts"]["media"])
 
     def test_the_repin_utility_is_idempotent_over_the_checked_projection(self) -> None:
-        self.assertEqual(repin.main(["--check"]), 0)
+        self.assertEqual(
+            repin.main(["--check", "--projection-root", str(self._synthetic_tree())]),
+            0,
+        )
 
     def test_media_changes_do_not_move_the_digest(self) -> None:
         before = _tree_sha256(self.root)
@@ -103,12 +117,15 @@ class ManifestScopeDeclarationTests(SimpleTestCase):
         """Copy the projection without ``media/``.
 
         The media objects are outside the digest, so an artifact-only copy reproduces
-        the checked digest exactly while leaving the real tree untouched by a test that
-        must mutate a manifest.
+        the checked digest exactly while leaving the source tree untouched by a test
+        that must mutate a manifest.
         """
 
+        source = build_synthetic_projection(
+            Path(self.enterContext(tempfile.TemporaryDirectory())) / "public_projection"
+        )
         root = Path(self.enterContext(tempfile.TemporaryDirectory())) / "public_projection"
-        shutil.copytree(PROJECTION_ROOT, root, ignore=shutil.ignore_patterns("media"))
+        shutil.copytree(source, root, ignore=shutil.ignore_patterns("media"))
         return root
 
     def _load_with_manifest(self, mutate) -> None:
@@ -148,13 +165,17 @@ class ManifestScopeDeclarationTests(SimpleTestCase):
             self._load_with_manifest(mutate)
 
     def test_the_accepted_manifest_still_loads(self) -> None:
-        # Smoke test: the checked manifest loads without raising.
-        source_loader.load_checked_projection()
+        # Smoke test: an untouched copy of the checked manifest loads without
+        # raising, so the refusals above are the mutation's doing.
+        source_loader.load_checked_projection(self._artifact_only_copy())
 
 class MediaArtifactDigestTests(SimpleTestCase):
     """The media artifact and the manifest that describes it stay bound."""
 
     def test_the_media_artifact_digest_still_matches_the_manifest(self) -> None:
-        manifest = json.loads((PROJECTION_ROOT / "manifest.json").read_text(encoding="utf-8"))
-        payload = (PROJECTION_ROOT / "media.json").read_bytes()
+        tree = build_synthetic_projection(
+            Path(self.enterContext(tempfile.TemporaryDirectory())) / "public_projection"
+        )
+        manifest = json.loads((tree / "manifest.json").read_text(encoding="utf-8"))
+        payload = (tree / "media.json").read_bytes()
         self.assertEqual(manifest["artifacts"]["media.json"], hashlib.sha256(payload).hexdigest())
