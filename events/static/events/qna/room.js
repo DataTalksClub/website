@@ -9,70 +9,113 @@
   var pending = [];
   var lastItems = [];
   var lastTotals = { visible: 0, answered: 0 };
+  // Vote failures stay attached to their question until a later attempt
+  // succeeds; a silent revert left keyboard users with no feedback (UX-06).
+  var voteNotes = {};
+
+  function voteMessage(failure) {
+    return (failure && failure.message ? failure.message : "The vote failed") +
+      " — your vote was not saved.";
+  }
+
+  function onVote(item, update) {
+    var oldScore = item.score;
+    var oldVoted = item.voted;
+    item.voted = !oldVoted;
+    item.score = Math.max(0, oldScore + (item.voted ? 1 : -1));
+    update(item);
+    qna.api("questions/" + encodeURIComponent(item.question_id) + "/vote/", {
+      method: item.voted ? "POST" : "DELETE",
+    }).then(function (result) {
+      item.score = result.value.score;
+      item.voted = result.value.voted;
+      delete voteNotes[item.question_id];
+      drawFromCache();
+      refresh();
+    }).catch(function (failure) {
+      item.score = oldScore;
+      item.voted = oldVoted;
+      voteNotes[item.question_id] = voteMessage(failure);
+      drawFromCache();
+    });
+  }
+
+  function buildRow(li, item) {
+    var key = String(item.question_id);
+    var text = document.createElement("p");
+    text.className = "qna-question-text";
+    li.appendChild(text);
+    var meta = document.createElement("p");
+    meta.className = "qna-meta";
+    li.appendChild(meta);
+    var note = document.createElement("p");
+    note.className = "qna-item-note";
+    note.setAttribute("role", "status");
+    li.appendChild(note);
+    var vote = null;
+    var current = item;
+    function update(item) {
+      current = item;
+      li.classList.toggle("is-pinned", !!item.pinned);
+      li.classList.toggle("is-pending", !!item.pending);
+      text.textContent = item.text;
+      meta.textContent = item.pending
+        ? (item.author_name || "Anonymous") + " · Submitting…"
+        : (item.author_name || "Anonymous") + " · " + item.score + " votes";
+      if (item.question_id && !item.pending) {
+        if (!vote) {
+          vote = document.createElement("button");
+          vote.type = "button";
+          vote.className = "qna-vote";
+          vote.setAttribute("data-qna-action", "vote");
+          vote.addEventListener("click", function () { onVote(current, update); });
+          li.insertBefore(vote, note);
+        }
+        vote.textContent = (item.voted ? "Remove vote" : "Upvote") + " (" + item.score + ")";
+        vote.setAttribute("aria-pressed", item.voted ? "true" : "false");
+      }
+      note.textContent = item.pending ? "" : voteNotes[key] || "";
+    }
+    update(item);
+    return update;
+  }
+
+  var renderList = qna.createList(list, {
+    key: function (item) { return item.question_id; },
+    build: buildRow,
+    removalMessage: function (item) {
+      return item.pending ? "" : "A question was removed from the list.";
+    },
+  });
+
+  function pruneNotes(items) {
+    var live = {};
+    items.forEach(function (item) { live[item.question_id] = true; });
+    Object.keys(voteNotes).forEach(function (key) {
+      if (!live[key]) delete voteNotes[key];
+    });
+  }
+
+  function drawAll(items, totals) {
+    if (!list) return;
+    var everything = items.concat(pending);
+    pruneNotes(everything);
+    renderList(everything);
+    if (empty) empty.hidden = everything.length !== 0;
+    if (counts) counts.textContent = (totals.visible || 0) + " visible · " + (totals.answered || 0) + " answered";
+  }
 
   function render(items, totals) {
-    if (!list) return;
     lastItems = items;
     lastTotals = totals;
-    draw(items, totals);
+    drawAll(items, totals);
   }
 
   // A pending submission overlays the last successful server state. Redrawing
   // from an empty list would hide real questions while a request is in flight
   // or after it fails, because an unchanged 304 poll never rerenders.
   function drawFromCache() {
-    if (!list) return;
-    draw(lastItems, lastTotals);
-  }
-
-  function draw(items, totals) {
-    list.textContent = "";
-    items.concat(pending).forEach(function (item) {
-      var li = document.createElement("li");
-      li.className =
-        "qna-item" +
-        (item.pinned ? " is-pinned" : "") +
-        (item.pending ? " is-pending" : "");
-      var text = document.createElement("p");
-      text.className = "qna-question-text";
-      text.textContent = item.text;
-      li.appendChild(text);
-      var meta = document.createElement("p");
-      meta.className = "qna-meta";
-      meta.textContent = item.pending
-        ? (item.author_name || "Anonymous") + " · Submitting…"
-        : (item.author_name || "Anonymous") + " · " + item.score + " votes";
-      li.appendChild(meta);
-      if (item.question_id && !item.pending) {
-        var vote = document.createElement("button");
-        vote.type = "button";
-        vote.className = "qna-vote";
-        vote.textContent = (item.voted ? "Remove vote" : "Upvote") + " (" + item.score + ")";
-        vote.setAttribute("aria-pressed", item.voted ? "true" : "false");
-        vote.addEventListener("click", function () {
-          var oldScore = item.score;
-          var oldVoted = item.voted;
-          item.voted = !oldVoted;
-          item.score = Math.max(0, oldScore + (item.voted ? 1 : -1));
-          drawFromCache();
-          qna.api("questions/" + encodeURIComponent(item.question_id) + "/vote/", {
-            method: item.voted ? "POST" : "DELETE",
-          }).then(function (result) {
-            item.score = result.value.score;
-            item.voted = result.value.voted;
-            qna.poll(sort ? sort.value : "popular", render);
-          }).catch(function () {
-            item.score = oldScore;
-            item.voted = oldVoted;
-            drawFromCache();
-          });
-        });
-        li.appendChild(vote);
-      }
-      list.appendChild(li);
-    });
-    if (empty) empty.hidden = items.length + pending.length !== 0;
-    if (counts) counts.textContent = (totals.visible || 0) + " visible · " + (totals.answered || 0) + " answered";
+    drawAll(lastItems, lastTotals);
   }
 
   function refresh() {

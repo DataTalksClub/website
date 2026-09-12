@@ -59,6 +59,123 @@
     });
   }
 
+  var liveRegion = null;
+
+  // Polite, screen-reader-only announcements for list changes a sighted
+  // user sees directly (a question leaving the list).
+  function announce(message) {
+    if (!liveRegion) {
+      liveRegion = document.createElement("p");
+      liveRegion.id = "qna-live";
+      liveRegion.className = "qna-sr-only";
+      liveRegion.setAttribute("role", "status");
+      document.body.appendChild(liveRegion);
+    }
+    liveRegion.textContent = "";
+    window.setTimeout(function () { liveRegion.textContent = message; }, 50);
+  }
+
+  // Keyed list renderer shared by the participant room and the host
+  // moderation queue. Rows keep a stable identity (spec.key), so a poll or
+  // an optimistic update touches existing nodes in place instead of
+  // clearing the list, which used to drop the focused action on every
+  // refresh (UX-06). spec.build(li, item) creates one row's static
+  // structure once and returns an update(item) closure for in-place
+  // refreshes; spec.removalMessage(item) returns the polite announcement
+  // for a row leaving the list, or "" to stay silent.
+  function createList(list, spec) {
+    if (!list) return function () {};
+    var rows = {};
+    var section = list.closest("[aria-labelledby]");
+    var heading = section
+      ? document.getElementById(section.getAttribute("aria-labelledby"))
+      : null;
+    if (heading) heading.setAttribute("tabindex", "-1");
+
+    function captureFocus() {
+      var active = document.activeElement;
+      if (!active || active === document.body || !list.contains(active)) return null;
+      var row = active.closest("[data-qna-key]");
+      if (!row || !list.contains(row)) return null;
+      return { key: row.getAttribute("data-qna-key"), action: active.getAttribute("data-qna-action") || "" };
+    }
+
+    function controlFor(key, action) {
+      var row = rows[key];
+      if (!row) return null;
+      if (action) {
+        var control = row.li.querySelector('[data-qna-action="' + action + '"]');
+        if (control) return control;
+      }
+      return row.li.querySelector("button");
+    }
+
+    return function render(items) {
+      var focus = captureFocus();
+      var desired = [];
+      var keyed = {};
+      items.forEach(function (item) {
+        var key = String(spec.key(item));
+        desired.push(key);
+        keyed[key] = item;
+      });
+
+      // Rows whose question vanished (moderation, resolved pending card).
+      // Capture the focused row's position before any removal so the
+      // fallback can land on the question that takes its place.
+      var removals = [];
+      Object.keys(rows).forEach(function (key) {
+        if (keyed[key] !== undefined) return;
+        removals.push({
+          key: key,
+          index: Array.prototype.indexOf.call(list.children, rows[key].li),
+        });
+      });
+      removals.sort(function (a, b) { return a.index - b.index; });
+      var fallbackIndex = null;
+      removals.forEach(function (removal, position) {
+        if (focus && focus.key === removal.key) {
+          fallbackIndex = Math.max(0, removal.index - position);
+        }
+        var message = spec.removalMessage ? spec.removalMessage(rows[removal.key].item) : "";
+        rows[removal.key].li.remove();
+        delete rows[removal.key];
+        if (message) announce(message);
+      });
+
+      desired.forEach(function (key, index) {
+        var item = keyed[key];
+        var row = rows[key];
+        if (!row) {
+          var li = document.createElement("li");
+          li.className = "qna-item";
+          li.setAttribute("data-qna-key", key);
+          row = { li: li, item: item, update: spec.build(li, item) };
+          rows[key] = row;
+        }
+        row.update(item);
+        var current = list.children[index];
+        if (current !== row.li) list.insertBefore(row.li, current || null);
+      });
+
+      if (!focus) return;
+      var restored = controlFor(focus.key, focus.action);
+      if (restored && document.contains(restored)) {
+        if (document.activeElement !== restored) restored.focus();
+        return;
+      }
+      // Documented fallback: the action of the question that now occupies
+      // the removed row's place, else the list heading — never page start.
+      var target = null;
+      if (fallbackIndex !== null && list.children.length > 0) {
+        var candidate = list.children[Math.min(fallbackIndex, list.children.length - 1)];
+        if (candidate) target = candidate.querySelector("button");
+      }
+      if (target) target.focus();
+      else if (heading) heading.focus();
+    };
+  }
+
   function startPolling(sort, callback, visibleMs) {
     var timer;
     function currentSort() {
@@ -84,6 +201,8 @@
     api: api,
     poll: poll,
     startPolling: startPolling,
+    createList: createList,
+    announce: announce,
     setEtag: function (value) { etag = value || ""; },
   };
 }());

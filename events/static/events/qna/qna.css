@@ -40,10 +40,12 @@ button:disabled { cursor: progress; opacity: .6; }
 .qna-meta, .qna-muted { color: var(--qna-muted); font-size: .9rem; }
 .qna-vote { background: transparent; border: 2px solid var(--qna-accent); color: var(--qna-accent); min-height: 2.75rem; }
 .qna-error { color: #a31d31; min-height: 1.5rem; }
+.qna-item-note { color: #a31d31; margin: .5rem 0 0; }
+.qna-sr-only { clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
 .qna-error-callout { background: color-mix(in srgb, #a31d31, transparent 92%); border: 2px solid #a31d31; border-radius: .55rem; padding: .75rem; }
 .qna-presentation-list { grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); }
 .qna-present-item .qna-question-text { font-size: clamp(1.25rem, 3vw, 2.5rem); }
-[href]:focus-visible, button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--qna-focus); outline-offset: 3px; }
+[href]:focus-visible, button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visible, [tabindex="-1"]:focus-visible { outline: 3px solid var(--qna-focus); outline-offset: 3px; }
 [hidden] { display: none !important; }
 @media (max-width: 34rem) { .qna-section-head { align-items: stretch; display: grid; } .qna-section-head label { min-width: 0; } .qna-host-actions { display: grid; } .qna-button-secondary { justify-content: center; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
