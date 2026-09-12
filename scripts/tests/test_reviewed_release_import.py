@@ -24,11 +24,11 @@ from django.test import TestCase
 
 import scripts.prod
 from content.models import ContentRelease, ContentSource
-from scripts.prod.import_faq import REVIEWED_PATH
 from scripts.prod.import_faq import run as run_faq_import
 from scripts.prod.reviewed_release import (
     open_reviewed_release,
 )
+from test_support.reference_data import FAQ_PROJECTION
 
 PROD_ROOT = Path(scripts.prod.__file__).resolve().parent
 
@@ -103,10 +103,12 @@ class OpenReviewedReleaseTests(TestCase):
 class CompetingActivationTests(TestCase):
     """The loser of an activation race gets a bounded, explained result.
 
-    The migrated test database already carries the real editorial sources and
-    the current reviewed artifact's release, so every run here imports a fresh
-    mutation of that artifact: a fresh fingerprint is what makes a run create
-    (and then try to activate) a genuinely new release.
+    The migrated test database already carries the editorial sources and the
+    reference fixture's release, so every run here imports a fresh mutation of
+    that artifact: a fresh fingerprint is what makes a run create (and then
+    try to activate) a genuinely new release.  The mutations start from the
+    synthetic reference FAQ, the same checked-in file the database itself was
+    seeded from, so the race needs no reviewed corpus.
     """
 
     def setUp(self) -> None:
@@ -120,7 +122,7 @@ class CompetingActivationTests(TestCase):
         self.stable_id = FAQ_SOURCE_STABLE_ID
 
     def _mutated_payload(self, name: str) -> Path:
-        payload = json.loads(REVIEWED_PATH.read_text(encoding="utf-8"))
+        payload = json.loads(FAQ_PROJECTION.read_text(encoding="utf-8"))
         payload["courses"][0]["name"] = f"{payload['courses'][0]['name']} ({name})"
         path = self.root / f"faq-{name}.json"
         path.write_text(json.dumps(payload), encoding="utf-8")

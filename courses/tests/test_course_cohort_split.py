@@ -340,10 +340,9 @@ class CanonicalCourseRouteTests(TestCase):
         self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         canonical = "/courses/de-zoomcamp/cohorts/2026"
-        self.assertIn(
-            f'role="link"\n                             tabindex="0"',
-            content,
-        )
+        # The card carries its own link role and keyboard focus order; the
+        # exact indentation between the attributes is template formatting.
+        self.assertRegex(content, r'role="link"\s+tabindex="0"')
         self.assertIn(canonical, content)
         self.assertIn("event.key === 'Enter'", content)
         self.assertIn("event.key === ' '", content)

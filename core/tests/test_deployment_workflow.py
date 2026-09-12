@@ -74,8 +74,10 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # mypy ignore_missing_imports override because that release ships no py.typed marker.
 # Keep both workflow-isolation seals pinned to this exact reviewed dependency policy.
 # 7a1b3f04 retired the jobs lineage from typecheck opt-ins (config only, no
-# dependency change); the seal below moves with that reviewed commit.
-STUDIO_COURSES_PYPROJECT_SHA256 = "93c4c2a1475cd48cec010fe5536f34bfbe71573dfb0d39861b1e82edb29127d8"
+# dependency change); the seal below moves with that reviewed commit.  The
+# lint-gate repair f3520742 reformatted pyproject metadata without a dependency
+# change, so the seal moves with that commit too.
+STUDIO_COURSES_PYPROJECT_SHA256 = "0473148341b0dea07e992f4fe50b8b5394d81eda27ad77791f8a7cddb0fd36a2"
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
     "67815bd8f2f15185cb04def1f411400d5b561efb41e524298f4d19dd4d1349b1"
 )

@@ -82,7 +82,9 @@ class EditorialFailureTests(TestCase):
         self.assertTrue(failures)
         joined = " ".join(failures)
         for importer in (
-            "import-editorial-content",
+            # The catalogue-wide failure names its recovery, not an old
+            # command spelling: "run the editorial import scripts".
+            "editorial import scripts",
             "import_docs.py",
             "import_faq.py",
             "import_sponsors.py",
@@ -133,18 +135,54 @@ class EditorialReportTests(TestCase):
         self.assertTrue(_editorial_failures(report))
 
     def test_the_step_four_importers_make_the_same_report_pass(self) -> None:
+        import json
+        import tempfile
+
         from scripts.prod.import_docs import run as import_docs
         from scripts.prod.import_faq import run as import_faq
-        from scripts.prod.import_public_content import run as import_public_content
         from scripts.prod.import_sponsors import run as import_sponsors
         from scripts.prod.import_testimonials import run as import_testimonials
+        from test_support.reference_data import (
+            DOCS_PROJECTION,
+            FAQ_PROJECTION,
+            HOMEPAGE_TESTIMONIALS,
+            load_reviewed_public_content,
+        )
+
+        # The reviewed snapshot lives outside this repository, so the importers
+        # run against the synthetic reference sources the test database itself
+        # is seeded from: the real write paths over a smaller checked-in input.
+        # The sponsor directory has no checked-in fixture, so the test writes
+        # one synthetic entry.
+        scratch = Path(tempfile.mkdtemp(prefix="step-four-importers-", dir=Path(".tmp")))
+        self.addCleanup(lambda: shutil.rmtree(scratch, ignore_errors=True))
+        sponsor_directory = scratch / "sponsor_directory.json"
+        sponsor_directory.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "sponsors": [
+                        {
+                            "key": "synthetic-sponsor",
+                            "name": "Synthetic Sponsor",
+                            "url": "https://synthetic-sponsor.example/",
+                            "lifecycle": "active",
+                            "description": ("A synthetic sponsor entry for the ingest gate."),
+                            "logo_asset_key": "sponsors/synthetic-sponsor.png",
+                            "position": 1,
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
 
         for importer in (
-            import_public_content,
-            import_faq,
-            import_docs,
-            import_sponsors,
-            import_testimonials,
+            load_reviewed_public_content,
+            lambda: import_faq(path=FAQ_PROJECTION),
+            lambda: import_docs(path=DOCS_PROJECTION),
+            lambda: import_sponsors(path=sponsor_directory),
+            lambda: import_testimonials(path=HOMEPAGE_TESTIMONIALS),
         ):
             importer()
 
@@ -228,22 +266,16 @@ class MediaStoreReportTests(TestCase):
         return LocalMediaStore(root=root, maximum_object_bytes=10_000_000)
 
     def _imported_media(self) -> tuple[Any, tuple[dict[str, Any], ...]]:
-        from scripts.prod.import_faq import run as import_faq
-        from scripts.prod.import_public_content import run as import_public_content
-        from scripts.prod.import_sponsors import run as import_sponsors
-        from scripts.prod.import_testimonials import run as import_testimonials
+        # The synthetic reference catalogue stands in for the reviewed
+        # projection: the same production write path, a checked-in input the
+        # corpus-less CI job can read.
+        from test_support.reference_data import load_reviewed_public_content
 
-        for importer in (
-            import_public_content,
-            import_faq,
-            import_sponsors,
-            import_testimonials,
-        ):
-            importer()
+        load_reviewed_public_content()
         from content import catalogue
 
         records = catalogue.media()
-        self.assertGreater(len(records), 0, "the reviewed projection carries media")
+        self.assertGreater(len(records), 0, "the synthetic catalogue carries media")
         return None, records
 
     def test_an_empty_store_fails_with_every_record_missing(self) -> None:
@@ -286,11 +318,39 @@ class MediaStoreReportTests(TestCase):
         self.assertEqual(report["matched"], 0)
 
     def test_a_memory_store_is_marked_synthetic(self) -> None:
+        import hashlib
+        from unittest.mock import patch
+
         from content.media_store import MemoryMediaStore
 
-        # Injected, not resolved from settings: the synthetic marking follows
-        # the store itself, whatever backend the environment selected.
-        report = _media_store_report(store=MemoryMediaStore())
+        payload = b"synthetic-fixture-artwork"
+        synthetic_records = (
+            {
+                "content_type": "image/png",
+                "record_key": "images/synthetic-a.png",
+                "public_path": "/images/synthetic-a.png",
+                "provenance": {
+                    "repository": "DataTalksClub/content",
+                    "revision": "a" * 40,
+                    "checksum": hashlib.sha256(payload).hexdigest(),
+                    "size": len(payload),
+                },
+            },
+        )
+        with (
+            patch(
+                "content.media_tooling.media_records",
+                return_value=synthetic_records,
+            ),
+            patch(
+                "content.media_store.media_records",
+                return_value=synthetic_records,
+            ),
+        ):
+            # Injected, not resolved from settings: the synthetic marking
+            # follows the store itself, whatever backend the environment
+            # selected.
+            report = _media_store_report(store=MemoryMediaStore())
 
         self.assertEqual(report["backend"], "memory")
         self.assertTrue(report["synthetic_fixture"])

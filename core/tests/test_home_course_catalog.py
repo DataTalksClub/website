@@ -267,7 +267,9 @@ class HomepageCourseRenderingTests(TestCase):
 
         body = self.client.get(reverse("home")).content.decode()
 
-        self.assertNotIn("example.invalid", body)
+        # The planted canary is the full banner URL: the synthetic testimonial
+        # attributions legitimately carry other example.invalid links.
+        self.assertNotIn("example.invalid/banner.png", body)
         self.assertNotIn("courses.datatalks.club", body)
         self.assertNotIn("live delivery of AI Dev Tools Zoomcamp", body)
 
