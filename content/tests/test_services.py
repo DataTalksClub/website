@@ -960,6 +960,100 @@ class ContentLifecycleTests(TestCase):
                 rendered_html,
             )
 
+    def test_sanitizer_image_sources_use_browser_equivalent_path_admission(self) -> None:
+        # PUB-04: the admission boundary is WHATWG URL resolution with a
+        # site base (https://datatalks.club/docs/), not a string prefix.
+        # The backslash form resolves off-origin and the dot-segment forms
+        # collapse onto a different application route in a browser, so
+        # none of them may survive sanitization unchanged.
+        accepted = (
+            "/images/posts/guide.png",
+            "/assets/Fixture-Logo.svg",
+            "/images/2024/my-file.v2.png",
+            "/images/",
+        )
+        for src in accepted:
+            rendered_html = f'<img src="{src}" alt="ok">'
+            self.assertEqual(
+                sanitize_rendered_html("fixture", rendered_html),
+                rendered_html,
+                src,
+            )
+        rejected = (
+            "/\\evil.invalid/image.svg",
+            "/images/../admin/logout/",
+            "/%2e%2e/admin/logout/",
+            "/%2E%2E/admin/logout/",
+            "/a/%2e./b.png",
+            "/..%2f..%2fescape",
+            "/%2fadmin",
+            "/%5Cevil.invalid/x.svg",
+            "/images//double.png",
+            "/%2541dmin.png",
+            "/%zz.png",
+            "/trailing%.png",
+            "/%C0%AF.png",
+            "/имg.png",
+            "/im\tages.png",
+            f"/im{chr(127)}ages.png",
+            "/images/x.png?v=1",
+            "/images/x.png#page",
+        )
+        for src in rejected:
+            rendered_html = f'<img src="{src}" alt="bad">'
+            self.assertNotEqual(
+                sanitize_rendered_html("fixture", rendered_html),
+                rendered_html,
+                src,
+            )
+        self.assertNotEqual(
+            sanitize_rendered_html(
+                "fixture",
+                '<img src="/images&#47;../admin/logout/" alt="bad">',
+            ),
+            '<img src="/images&#47;../admin/logout/" alt="bad">',
+        )
+
+    def test_readiness_names_the_document_when_rendered_html_is_not_stable(self) -> None:
+        source = make_source()
+        candidate = self._create_queued(source, "b")
+        candidate = begin_release_fetch(
+            TransitionContentRelease(candidate.id, candidate.revision), context=CONTEXT
+        )
+        candidate = begin_release_validation(
+            TransitionContentRelease(candidate.id, candidate.revision), context=CONTEXT
+        )
+        prepare_document(
+            PrepareDocument(
+                candidate.id,
+                candidate.revision,
+                PreparedDocument(
+                    content_kind="fixture",
+                    stable_key="traversal-image",
+                    source_path="fixtures/traversal.md",
+                    checksum="b" * 64,
+                    title="Traversal",
+                    exact_public_path="/traversal.html",
+                    rendered_html='<img src="/images/../admin/logout/" alt="bad">',
+                    is_published=True,
+                ),
+            ),
+            context=CONTEXT,
+        )
+        candidate.refresh_from_db()
+        with self.assertRaises(ContentReadinessError) as raised:
+            mark_release_ready(
+                MarkReleaseReady(
+                    release_id=candidate.id,
+                    expected_revision=candidate.revision,
+                    asset_manifest_checksum=asset_manifest_checksum_for(candidate.id),
+                ),
+                context=CONTEXT,
+            )
+        message = str(raised.exception)
+        self.assertIn("traversal-image", message)
+        self.assertIn("fixtures/traversal.md", message)
+
     def test_same_commit_with_new_build_uses_distinct_release_storage_keys(self) -> None:
         source = make_source()
         first = activate(source, make_ready_release(source, commit_character="a"))

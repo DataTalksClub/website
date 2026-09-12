@@ -585,6 +585,58 @@ class DtcContentAdapterTests(TestCase):
             document = next(item for item in bundle.documents if item.content_kind == "article")
             self.assertEqual(document.rendered_html.count(f'src="{local}"'), 2)
 
+    def test_article_images_reject_ambiguous_path_forms(self) -> None:
+        """PUB-04: canonical image admission covers encoded and dot-segment forms.
+
+        This adapter's pre-sanitizer stages already reject these with their
+        own bounded diagnostics (the shared classifier behind
+        ``_safe_local_image_url`` is the deeper gate for other adapters), so
+        each expectation names the stage and source path that fires.
+        """
+
+        ambiguous = (
+            (
+                "dot-segment",
+                '<img src="/images/posts/../admin/logout.png" alt="local">',
+                "asset_reference_traversal",
+                ".",
+            ),
+            (
+                "encoded-dot-segment",
+                '<img src="/images/posts/%2e%2e/admin/logout.png" alt="local">',
+                "referenced_asset_missing",
+                "images/posts/%2e%2e/admin/logout.png",
+            ),
+            (
+                "encoded-backslash",
+                '<img src="/%5Cevil.invalid/x.png" alt="local">',
+                "unsafe_image_reference",
+                "articles/2020-11-29-segmentation.md",
+            ),
+            (
+                "repeated-separator",
+                '<img src="/images/posts//double.png" alt="local">',
+                "referenced_asset_missing",
+                "images/posts//double.png",
+            ),
+            (
+                "malformed-escape",
+                '<img src="/images/posts/%zz.png" alt="local">',
+                "referenced_asset_missing",
+                "images/posts/%zz.png",
+            ),
+        )
+        for label, payload, expected_code, expected_source in ambiguous:
+            with self.subTest(label=label), fixture_checkout() as root:
+                article = root / "articles" / "2020-11-29-segmentation.md"
+                article.write_text(
+                    article.read_text(encoding="utf-8") + f"\n{payload}\n",
+                    encoding="utf-8",
+                )
+                code, source_path = _diagnostic(root)
+                self.assertEqual(code, expected_code)
+                self.assertEqual(source_path, expected_source)
+
     def test_preflight_reuses_each_parsed_content_document(self) -> None:
         calls: list[str] = []
         original = adapter_module._load_yaml_mapping

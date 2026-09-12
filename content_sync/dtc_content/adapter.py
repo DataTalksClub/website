@@ -31,7 +31,11 @@ from content.article_faq_format import ArticleFaqFormatError, validate_faq_pairs
 from content.inventory import content_route_contracts
 from content.podcast_routes import podcast_canonical_path
 from content.route_contracts import PublicContract
-from content.services import PreparedDocument, sanitize_rendered_html
+from content.services import (
+    PreparedDocument,
+    is_admitted_site_image_src,
+    sanitize_rendered_html,
+)
 
 from .contract import (
     ACCEPTED_BUNDLE_SHA256,
@@ -353,14 +357,14 @@ def _safe_content_url(value: str) -> bool:
 
 
 def _safe_local_image_url(value: str) -> bool:
-    if (
-        not value.startswith("/")
-        or value.startswith("//")
-        or "?" in value
-        or "#" in value
-        or "\\" in value
-        or any(character.isspace() or ord(character) < 0x20 for character in value)
-    ):
+    """Admit only canonical paths in this source's reviewed image namespaces.
+
+    Canonical URL admission (browser-equivalent path rules) is shared with
+    the common sanitizer; the namespace and media-suffix policy stays
+    adapter-local.
+    """
+
+    if not is_admitted_site_image_src(value):
         return False
     relative = value.removeprefix("/")
     pure = PurePosixPath(relative)
@@ -371,7 +375,6 @@ def _safe_local_image_url(value: str) -> bool:
             for prefix in ("images/posts/", "images/podcast/", "images/books/")
         )
         and pure.suffix.lower() in _ALLOWED_MEDIA_SUFFIXES
-        and all(part not in {"", ".", ".."} for part in pure.parts)
     )
 
 

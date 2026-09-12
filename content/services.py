@@ -50,6 +50,78 @@ _OPAQUE_BUILD_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 _RELEASE_SWAP_ATTEMPTS = 8
 
 
+_PCHAR_PATH = re.compile(r"^(?:/|[A-Za-z0-9._~!$&'()*+,;=:@%-])+$")
+_PERCENT_HEXITS = frozenset("0123456789abcdefABCDEF")
+_PERCENT_DECODE_DENIED = frozenset({"/", "\\", "?", "#", "%"})
+
+
+def _canonical_image_path_segment(segment: str) -> bool:
+    """Admit one raw path segment only if browser parsing cannot move it.
+
+    Rejects percent-decoded dot segments (WHATWG collapses ``.``/``..``),
+    encoded separators, malformed or second-order percent escapes, and any
+    decoded byte outside plain ASCII path characters.
+    """
+
+    if not segment:
+        return True
+    decoded: list[str] = []
+    index = 0
+    while index < len(segment):
+        character = segment[index]
+        if character == "%":
+            hexits = segment[index + 1 : index + 3]
+            if len(hexits) != 2 or any(hexit not in _PERCENT_HEXITS for hexit in hexits):
+                return False
+            decoded_character = chr(int(hexits, 16))
+            if (
+                not decoded_character.isascii()
+                or decoded_character in _PERCENT_DECODE_DENIED
+                or decoded_character.isspace()
+                or ord(decoded_character) < 0x20
+                or ord(decoded_character) == 0x7F
+            ):
+                return False
+            decoded.append(decoded_character)
+            index += 3
+        else:
+            decoded.append(character)
+            index += 1
+    return "".join(decoded) not in {".", ".."}
+
+
+def is_admitted_site_image_src(value: str) -> bool:
+    """Decide whether an ``img src`` may ship in sanitized rendered content.
+
+    The publication contract admits site-absolute image paths, and it must
+    agree with browser (WHATWG) URL resolution rather than a string prefix:
+    browsers treat ``\\`` as a path separator and collapse dot segments after
+    percent decoding, so ``/\\evil.invalid/x`` and ``/%2e%2e/admin`` resolve
+    to a different origin/route than they appear.  Admission is deliberately
+    stricter than WHATWG resolution — canonical ASCII paths, no repeated
+    separators, no query or fragment, well-formed single-escape percent
+    encoding whose decoded form is itself a plain path segment — but it never
+    admits a destination a browser would resolve off-origin or onto a
+    different application route.
+    """
+
+    return (
+        value.startswith("/")
+        and not value.startswith("//")
+        and "//" not in value
+        and "\\" not in value
+        and "?" not in value
+        and "#" not in value
+        and value.isascii()
+        and not any(
+            character.isspace() or ord(character) < 0x20 or ord(character) == 0x7F
+            for character in value
+        )
+        and _PCHAR_PATH.fullmatch(value) is not None
+        and all(_canonical_image_path_segment(segment) for segment in value.split("/")[1:])
+    )
+
+
 def _allowed_render_attribute(tag: str, name: str, value: str) -> bool:
     common = {"class", "id", "lang", "title"}
     if name in common:
@@ -57,13 +129,7 @@ def _allowed_render_attribute(tag: str, name: str, value: str) -> bool:
     if tag == "a" and name in {"href", "rel"}:
         return True
     if tag == "img" and name == "src":
-        return (
-            value.startswith("/")
-            and not value.startswith("//")
-            and "?" not in value
-            and "#" not in value
-            and not any(character.isspace() or ord(character) < 0x20 for character in value)
-        )
+        return is_admitted_site_image_src(value)
     if tag == "img" and name in {"alt", "height", "loading", "width"}:
         return True
     if tag in {"td", "th"} and name in {"colspan", "rowspan"}:
@@ -796,7 +862,11 @@ def _validate_rendered_documents(release: ContentRelease, *, using: str) -> None
                 sanitize_rendered_html(document.content_kind, document.rendered_html)
                 != document.rendered_html
             ):
-                raise ContentReadinessError("published document is not sanitizer-stable")
+                raise ContentReadinessError(
+                    "published document is not sanitizer-stable "
+                    f"(content_kind={document.content_kind}, "
+                    f"stable_key={document.stable_key}, source_path={document.source_path})"
+                )
 
 
 def _validate_relations(release: ContentRelease, *, using: str) -> None:
