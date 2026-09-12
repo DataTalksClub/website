@@ -13,6 +13,7 @@ import json
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from django.test import TestCase
 
@@ -75,11 +76,7 @@ class CleanDescriptionMarkdownTests(TestCase):
         )
 
     def test_keeps_real_mentions_of_datatalks_club_that_are_not_the_footer(self) -> None:
-        markdown = (
-            "Outline:\n\n"
-            "- DataTalks.Club and how it started\n\n"
-            "- Machine Learning Bookcamp"
-        )
+        markdown = "Outline:\n\n- DataTalks.Club and how it started\n\n- Machine Learning Bookcamp"
         self.assertEqual(clean_description_markdown(markdown), markdown)
 
     def test_handles_footer_variants(self) -> None:
@@ -138,8 +135,8 @@ class RenderDescriptionTests(TestCase):
 
 
 class ParseEventbriteDescriptionRecordsTests(TestCase):
-    def _payload(self, **overrides: object) -> dict[str, object]:
-        payload = {
+    def _payload(self, **overrides: object) -> dict[str, Any]:
+        payload: dict[str, Any] = {
             "schema_version": DESCRIPTION_RECORD_SCHEMA_VERSION,
             "generated_at": "2026-09-11T00:00:00+00:00",
             "source": {},
@@ -206,7 +203,7 @@ class ApplyEventbriteDescriptionsTests(TestCase):
         return path
 
     def _record(self, event: Event, **overrides: object) -> dict[str, object]:
-        record = {
+        record: dict[str, object] = {
             "eventbrite_event_id": "127017208891",
             "canonical_repository": event.source_repository,
             "canonical_revision": event.source_revision,
@@ -261,7 +258,7 @@ class ApplyEventbriteDescriptionsTests(TestCase):
         import tempfile
 
         with tempfile.TemporaryDirectory() as directory:
-            record = {
+            record: dict[str, object] = {
                 "eventbrite_event_id": "999999999999",
                 "canonical_repository": "DataTalksClub/datatalksclub.github.io",
                 "canonical_revision": "a" * 40,

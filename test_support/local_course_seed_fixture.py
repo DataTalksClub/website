@@ -23,11 +23,17 @@ from pathlib import Path
 from unittest import mock
 
 FIXTURE_PROJECTION_PATH = (
-    Path(__file__).resolve().parents[1] / "courses" / "tests" / "fixtures" / "public_projection_courses.json"
+    Path(__file__).resolve().parents[1]
+    / "courses"
+    / "tests"
+    / "fixtures"
+    / "public_projection_courses.json"
 )
 
 
 def patch_public_projection_path() -> mock._patch[Path]:
     """A ``mock.patch`` an affected test module starts in ``setUpModule``."""
 
-    return mock.patch("courses.services.local_course_seed.PUBLIC_PROJECTION_PATH", FIXTURE_PROJECTION_PATH)
+    return mock.patch(
+        "courses.services.local_course_seed.PUBLIC_PROJECTION_PATH", FIXTURE_PROJECTION_PATH
+    )

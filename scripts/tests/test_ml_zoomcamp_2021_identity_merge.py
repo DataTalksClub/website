@@ -53,7 +53,9 @@ class MlZoomcamp2021EditionDiscoveryTests(TestCase):
         super().setUp()
         scratch_root = PROD_ROOT.parents[1] / ".tmp"
         scratch_root.mkdir(parents=True, exist_ok=True)
-        self.root = Path(tempfile.mkdtemp(prefix="ml-zoomcamp-2021-discovery-test-", dir=scratch_root))
+        self.root = Path(
+            tempfile.mkdtemp(prefix="ml-zoomcamp-2021-discovery-test-", dir=scratch_root)
+        )
         self.addCleanup(shutil.rmtree, self.root, True)
 
     def test_the_certificate_roster_is_an_email_recovery_source(self) -> None:

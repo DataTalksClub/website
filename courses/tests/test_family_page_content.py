@@ -38,16 +38,12 @@ class FamilySyllabusRowsTests(SimpleTestCase):
         self.assertEqual(rows[0].title, "Orchestration")
 
     def test_a_case_variant_is_still_a_prefix(self):
-        rows = family_syllabus_rows(
-            [SimpleNamespace(title="module 10: Capstone", summary="")]
-        )
+        rows = family_syllabus_rows([SimpleNamespace(title="module 10: Capstone", summary="")])
 
         self.assertEqual(rows[0].title, "Capstone")
 
     def test_an_unprefixed_title_passes_through(self):
-        rows = family_syllabus_rows(
-            [SimpleNamespace(title="Capstone project", summary="")]
-        )
+        rows = family_syllabus_rows([SimpleNamespace(title="Capstone project", summary="")])
 
         self.assertEqual(rows[0].title, "Capstone project")
 
@@ -73,18 +69,14 @@ class FamilyStoryRowsTests(SimpleTestCase):
         self.assertEqual(story.attribution, "LLM Zoomcamp graduate")
 
     def test_reads_the_portrait_through_the_model_not_the_key(self):
-        story = family_story_rows(
-            [self._testimonial(portrait_url="/static/core/x.jpg")]
-        )[0]
+        story = family_story_rows([self._testimonial(portrait_url="/static/core/x.jpg")])[0]
 
         self.assertEqual(story.portrait_url, "/static/core/x.jpg")
 
 
 class FamilyProjectCardsTests(SimpleTestCase):
     def test_takes_the_newest_edition_that_holds_projects(self):
-        newer_empty = SimpleNamespace(
-            cohort=SimpleNamespace(identifier="2026"), projects=[]
-        )
+        newer_empty = SimpleNamespace(cohort=SimpleNamespace(identifier="2026"), projects=[])
         older_full = SimpleNamespace(
             cohort=SimpleNamespace(identifier="2025"),
             projects=[SimpleNamespace(slug="capstone-1"), SimpleNamespace(slug="capstone-2")],

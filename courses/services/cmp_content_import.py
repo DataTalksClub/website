@@ -65,11 +65,6 @@ from typing import Any, NoReturn
 
 from django.db import transaction
 
-from courses.services.course_family_identity import (
-    UnparseableEditionSlug,
-    family_and_year_from_edition_slug,
-    family_title_from_edition_title,
-)
 from courses.models import (
     Cohort,
     Homework,
@@ -80,6 +75,11 @@ from courses.models import (
     Submission,
 )
 from courses.models.cohort import Course, RegistrationCampaign
+from courses.services.course_family_identity import (
+    UnparseableEditionSlug,
+    family_and_year_from_edition_slug,
+    family_title_from_edition_title,
+)
 
 __all__ = [
     "CampaignReport",
@@ -481,9 +481,7 @@ def import_cmp_course_content(
                 if cohort.course.slug != family_slug:
                     _refuse("cohort-family-mismatch")
             with transaction.atomic():
-                imported.append(
-                    _import_cohort(connection, row, cohort, homework_slug_overrides)
-                )
+                imported.append(_import_cohort(connection, row, cohort, homework_slug_overrides))
 
         campaigns, unlinked = _import_registration_campaigns(
             connection, source_cohorts, local, cohort_slugs
@@ -504,9 +502,7 @@ def import_cmp_course_content(
         connection.close()
 
 
-def _family_and_year(
-    slug: str, overrides: Mapping[str, str]
-) -> tuple[str, int] | None:
+def _family_and_year(slug: str, overrides: Mapping[str, str]) -> tuple[str, int] | None:
     """Derive a CMP edition slug's family and year, applying known corrections.
 
     Almost every CMP edition slug's family is exactly its own de-suffixed form
@@ -553,9 +549,10 @@ def _adopt_reviewed_cohort(
     family_slug, year = identity
     family = Course.objects.filter(slug=family_slug).first()
     if family is None:
-        title = family_title_from_edition_title(str(row["title"] or "")) or family_slug.replace(
-            "-", " "
-        ).title()
+        title = (
+            family_title_from_edition_title(str(row["title"] or ""))
+            or family_slug.replace("-", " ").title()
+        )
         family = Course.objects.create(slug=family_slug, title=title)
         if created_families is not None:
             created_families.append(family_slug)

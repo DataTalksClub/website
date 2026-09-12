@@ -156,7 +156,9 @@ class DiscoverAndReadTests(SimpleTestCase):
                     ]
                 },
             )
-            rows = read_eventbrite_registrant_rows(archive, "123456.csv", external_event_identifier="123456")
+            rows = read_eventbrite_registrant_rows(
+                archive, "123456.csv", external_event_identifier="123456"
+            )
         self.assertEqual(len(rows), 2)
         self.assertEqual(rows[0].status, "attending")
         self.assertEqual(rows[0].normalized_email, "one@example.invalid")
@@ -229,7 +231,9 @@ class EventbriteRegistrantSourcesIntegrationTests(TestCase):
         self.assertEqual(report.events_completed, 1)
         self.assertEqual(report.events_awaiting_identity, 0)
         self.assertEqual(report.rows_written, 2)
-        self.assertEqual(EventRegistration.objects.filter(event=event, provider="eventbrite").count(), 2)
+        self.assertEqual(
+            EventRegistration.objects.filter(event=event, provider="eventbrite").count(), 2
+        )
         self.assertEqual(EventRegistrantIdentity.objects.count(), 2)
 
     def test_unresolved_eventbrite_id_is_reported_not_guessed(self) -> None:
@@ -282,5 +286,7 @@ class EventbriteRegistrantSourcesIntegrationTests(TestCase):
         self.assertEqual(report.new_identity_total, 0)
         identity = EventRegistrantIdentity.objects.get(account=account)
         self.assertTrue(
-            EventRegistration.objects.filter(event=event, identity=identity, provider="eventbrite").exists()
+            EventRegistration.objects.filter(
+                event=event, identity=identity, provider="eventbrite"
+            ).exists()
         )

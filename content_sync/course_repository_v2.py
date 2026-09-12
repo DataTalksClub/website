@@ -205,9 +205,7 @@ class SharedCurriculumParserV2:
             description=description,
             description_source_path=path,
             outcome=_string(mapping["outcome"], path=path, pointer="/outcome"),
-            repository_url=_https_url(
-                urls["repository"], path=path, pointer="/urls/repository"
-            ),
+            repository_url=_https_url(urls["repository"], path=path, pointer="/urls/repository"),
             docs_url=_https_url(urls["docs"], path=path, pointer="/urls/docs"),
             faq_url=_https_url(urls["faq"], path=path, pointer="/urls/faq"),
             hashtag=hashtag,
@@ -216,9 +214,7 @@ class SharedCurriculumParserV2:
             current_cohort=current_cohort,
         )
 
-    def _parse_cohorts_index(
-        self, path: str, raw: Any, *, current_cohort: str
-    ) -> dict[str, str]:
+    def _parse_cohorts_index(self, path: str, raw: Any, *, current_cohort: str) -> dict[str, str]:
         """Parse and structurally validate course.yaml's ``cohorts`` index.
 
         Returns ``{identifier: content}``.  Cross-validation against the
@@ -327,9 +323,8 @@ class SharedCurriculumParserV2:
             is_grandfathered_single_lesson = (
                 single_lesson_module and declared_path == V2_SINGLE_LESSON_FILE
             )
-            if (
-                not is_grandfathered_single_lesson
-                and ("/" in declared_path or V2_LESSON_FILE.fullmatch(declared_path) is None)
+            if not is_grandfathered_single_lesson and (
+                "/" in declared_path or V2_LESSON_FILE.fullmatch(declared_path) is None
             ):
                 _fail("numbered_lesson_required", path, f"{pointer}/path")
             source_path = _relative_source_path(
@@ -661,7 +656,10 @@ class SharedCurriculumParserV2:
         declared = set(self.declared_cohorts)
         missing = sorted(actual - declared)
         if missing:
-            _fail("cohort_not_listed_in_index", f"{COHORTS_ROOT}/{missing[0]}/{COHORT_MANIFEST_NAME}")
+            _fail(
+                "cohort_not_listed_in_index",
+                f"{COHORTS_ROOT}/{missing[0]}/{COHORT_MANIFEST_NAME}",
+            )
         stale = sorted(declared - actual)
         if stale:
             _fail("cohort_index_entry_not_found", "course.yaml", f"/cohorts[{stale[0]!r}]")

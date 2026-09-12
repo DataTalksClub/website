@@ -157,9 +157,7 @@ class PodcastPlatformDataTests(TestCase):
             )
 
     @unittest.skipUnless(
-        (
-            Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection"
-        ).exists(),
+        (Path.home() / "prod" / "dtc-data" / "content-staging" / "public_projection").exists(),
         "the reviewed public projection lives outside this checkout, at "
         "~/prod/dtc-data/content-staging/ (see "
         "_docs/architecture/database-only-content.md)",
@@ -195,9 +193,7 @@ class PodcastPlatformDataTests(TestCase):
             [item["provider"] for item in platforms],
         )
         self.assertTrue(all(item["title"] == item["label"] for item in platforms))
-        self.assertTrue(
-            all("anchor" not in record.get("links", {}) for record in podcasts)
-        )
+        self.assertTrue(all("anchor" not in record.get("links", {}) for record in podcasts))
 
     def test_pinned_source_anchor_links_are_canonicalized_at_projection_boundary(self) -> None:
         self.assertEqual(

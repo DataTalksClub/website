@@ -66,7 +66,6 @@ from django.db import transaction
 
 from accounts.identity_values import normalize_account_email
 from accounts.models import CustomUser
-
 from scripts.prod.registrant_import import resolve_registrant_identity
 
 from .mailchimp_event_tag_categories import MAILCHIMP_EVENT_TAG_CATEGORIES

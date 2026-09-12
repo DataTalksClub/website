@@ -132,9 +132,16 @@ def load_resolved_eventbrite_identities(
         repository = item.get("canonical_repository")
         revision = item.get("canonical_revision")
         source_key = item.get("canonical_source_key")
-        if not all(isinstance(value, str) and value for value in (
-            eventbrite_id, repository, revision, source_key
-        )):
+        if not (
+            isinstance(eventbrite_id, str)
+            and eventbrite_id
+            and isinstance(repository, str)
+            and repository
+            and isinstance(revision, str)
+            and revision
+            and isinstance(source_key, str)
+            and source_key
+        ):
             _refuse("identities_payload_invalid")
         resolved[eventbrite_id] = CanonicalEventbriteIdentity(
             repository=repository, revision=revision, source_key=source_key

@@ -166,12 +166,8 @@ class BookPageBylineTests(TestCase):
     def test_an_author_without_a_profile_is_named_but_not_linked(self) -> None:
         body = self.client.get(self.book(MIXED_BOOK)["public_path"]).content.decode()
 
-        self.assertIn(
-            '<span class="person-chip-name">Synthetic Unresolved Author One</span>', body
-        )
-        self.assertIn(
-            '<span class="person-chip-name">Synthetic Unresolved Author Two</span>', body
-        )
+        self.assertIn('<span class="person-chip-name">Synthetic Unresolved Author One</span>', body)
+        self.assertIn('<span class="person-chip-name">Synthetic Unresolved Author Two</span>', body)
         self.assertIn(
             '<a class="band-link person-chip-name" '
             'href="/people/synthetic-two.html">Synthetic Author Two</a>',
@@ -244,9 +240,7 @@ class PersonChipRenderingTests(TestCase):
             '<span class="avatar avatar-striped person-chip-portrait" aria-hidden="true">',
             body,
         )
-        self.assertIn(
-            '<span class="person-chip-name">Synthetic Unresolved Author One</span>', body
-        )
+        self.assertIn('<span class="person-chip-name">Synthetic Unresolved Author One</span>', body)
 
     def test_the_episode_page_draws_its_guest_with_the_shared_chip(self) -> None:
         episode = next(

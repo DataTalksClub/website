@@ -68,7 +68,7 @@ import re
 import stat
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -210,7 +210,7 @@ def build(*, source_root: Path, identities_path: Path) -> dict[str, Any]:
 
     staging_artifact = {
         "schema_version": DESCRIPTION_RECORD_SCHEMA_VERSION,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "source": {
             "raw_content_root": str(source_root),
             "identities_path": str(identities_path),
@@ -231,7 +231,9 @@ def build(*, source_root: Path, identities_path: Path) -> dict[str, Any]:
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument(
         "--source-root",
         required=True,

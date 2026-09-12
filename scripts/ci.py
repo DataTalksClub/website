@@ -90,6 +90,17 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "course_management/package_mail.py",
     "courses/tests/test_package_mail_flows.py",
     "accounts/tests/test_username_allocation.py",
+    "accounts/services/email_verification.py",
+    "courses/services/mailchimp_course_tag_import.py",
+    "courses/tests/test_family_page_content.py",
+    "courses/tests/test_homework_submission_learning_public_markup.py",
+    "courses/tests/test_mailchimp_course_tag_import.py",
+    "courses/tests/test_registration_email_verification.py",
+    "scripts/build_eventbrite_descriptions.py",
+    "scripts/tests/test_eventbrite_registrant_source.py",
+    "scripts/tests/test_identity_manifest.py",
+    "scripts/tests/test_ml_zoomcamp_2021_identity_merge.py",
+    "scripts/tests/test_registrant_import.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",
@@ -325,6 +336,8 @@ def _run_quality_task(task: str) -> None:
             _python("manage.py", "check", "--deploy", "--fail-level", "ERROR"),
             environment=environment,
         )
+    elif task == "test-ci":
+        _run_test_task("test-ci")
     elif task == "verify-dtc-content":
         values = _required_environment("CONTENT_CHECKOUT", "CONTENT_COMMIT")
         _run(
