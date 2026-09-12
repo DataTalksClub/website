@@ -26,6 +26,13 @@ from scripts.prod.identity_manifest import (
 )
 from test_support.reference_data import EVENT_IDENTITY_MANIFEST
 
+# The synthetic reference fixture's own event count (test_support/fixtures/
+# reference/event_identity_manifest.json), read from the manifest itself
+# rather than pinned as a literal here -- it is not this test's job to know
+# how many events the fixture happens to carry, only that the import and the
+# allocator agree with whatever that number is.
+EVENT_FIXTURE_TOTAL = json.loads(EVENT_IDENTITY_MANIFEST.read_text())["counts"]["events"]
+
 
 class EventIdentityManifestTests(TestCase):
     def test_checked_manifest_and_database_freeze_all_numeric_mappings(self) -> None:
@@ -78,7 +85,7 @@ class EventIdentityManifestTests(TestCase):
         self.assertTrue(first.replayed)
         self.assertTrue(applied.replayed)
         self.assertTrue(second.replayed)
-        self.assertEqual(first.event_total, 11)
+        self.assertEqual(first.event_total, EVENT_FIXTURE_TOTAL)
         self.assertEqual(before, after)
 
     def test_importing_into_an_empty_database_leaves_the_allocator_above_the_manifest(
@@ -92,12 +99,14 @@ class EventIdentityManifestTests(TestCase):
 
         report = import_identity_manifest(path=EVENT_IDENTITY_MANIFEST)
 
-        self.assertEqual(report.events_created, 11)
-        self.assertEqual(EventPublicIdSequence.objects.get(pk=1).next_public_id, 12)
+        self.assertEqual(report.events_created, EVENT_FIXTURE_TOTAL)
+        self.assertEqual(
+            EventPublicIdSequence.objects.get(pk=1).next_public_id, EVENT_FIXTURE_TOTAL + 1
+        )
         allocated = create_event_identity(
             title="Allocated after a bootstrap import",
             source_repository="DataTalksClub/test",
             source_revision="a" * 40,
             source_key="allocated-after-bootstrap",
         )
-        self.assertEqual(allocated.public_id, 12)
+        self.assertEqual(allocated.public_id, EVENT_FIXTURE_TOTAL + 1)

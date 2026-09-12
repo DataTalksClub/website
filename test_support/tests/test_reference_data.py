@@ -52,6 +52,6 @@ class ReferenceDataReachesThisWorkerTests(TestCase):
         # These counts are the small, synthetic reference fixture's own
         # (test_support/fixtures/reference/), not the real reviewed corpus's --
         # see test_support/reference_data.py's module docstring.
-        self.assertEqual(Event.objects.count(), 11)
+        self.assertEqual(Event.objects.count(), 46)
         self.assertEqual(Testimonial.objects.count(), 6)
         self.assertGreater(ContentDocument.objects.count(), 0)
