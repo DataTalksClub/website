@@ -43,32 +43,14 @@
        * ------------------------------------------------------------------ */
 
       /* --- the comp's tokens -------------------------------------------------
-         The owner's Courses_Landing comp carries its own palette and faces:
-         cream #FBF8EC ground, ink #1B1E35, green #2E6B36 actions, indigo
-         #4B4FC6 links, Nunito text and JetBrains Mono metadata.  They are
-         stated here as token overrides so every shared primitive the page
-         uses — bands, cards, chips, pills, buttons, footer —
-         adopts them at once.  body.dark-mode restates the palette in the
-         shared partial, so the dark theme keeps its own values and only the
-         faces carry over.  Both faces are self-hosted variable cuts, like
-         Quicksand, so the page still loads nothing external. */
-      @font-face {
-        font-family: "Nunito";
-        font-style: normal;
-        font-weight: 200 1000;
-        font-display: swap;
-        src: url("{% static 'core/fonts/nunito-latin-var.woff2' %}")
-          format("woff2");
-      }
-
-      @font-face {
-        font-family: "JetBrains Mono";
-        font-style: normal;
-        font-weight: 100 800;
-        font-display: swap;
-        src: url("{% static 'core/fonts/jetbrains-mono-latin-var.woff2' %}")
-          format("woff2");
-      }
+         The owner's Courses_Landing comp carries its own palette: cream
+         #FBF8EC ground, ink #1B1E35, green #2E6B36 actions and indigo
+         #4B4FC6 links.  It is stated here as token overrides so every shared
+         primitive the page uses — bands, cards, chips, pills, buttons,
+         footer — adopts it at once.  body.dark-mode restates the palette in
+         the shared partial, so the dark theme keeps its own values.  Type
+         stays on the site's shared faces, Quicksand and the system mono
+         stack, like every other page. */
 
       :root {
         --cream: #fbf8ec;
@@ -84,11 +66,6 @@
         --lavender-deep: #e6e4f6;
         --shadow-soft: rgba(27, 30, 53, 0.18);
         --page: var(--cream);
-        --font-sans: "Nunito", ui-rounded, "Segoe UI", system-ui,
-          -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial,
-          sans-serif;
-        --font-mono: "JetBrains Mono", ui-monospace, "SF Mono",
-          "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace;
         /* The comp's one-off colours, named so the dark theme can restate
            them instead of each rule carrying a light-only literal. */
         --cta-shadow: #16301a;
@@ -108,22 +85,11 @@
 
       /* --- the comp's drawing habits -----------------------------------------
          Hard vertical shadows instead of the system's diagonal offsets,
-         deeper card radii, a 1px dashed rule, display weight 900 and body
-         weight 400 — repeated by the comp on every surface. */
-      body {
-        font-weight: 400;
-      }
-
-      h1,
-      h2 {
-        font-weight: 900;
-        letter-spacing: -0.02em;
-      }
-
+         deeper card radii and a 1px dashed rule — repeated by the comp on
+         every surface.  Faces and weights stay the site's own. */
       .cta {
         border-radius: 0.875rem;
         box-shadow: 0 4px 0 var(--shadow-soft);
-        font-weight: 800;
       }
 
       .cta-primary {
@@ -148,7 +114,6 @@
 
       .signup-button {
         box-shadow: 0 3px 0 var(--cta-shadow);
-        font-weight: 800;
       }
 
       /* --- hero ----------------------------------------------------------- */
@@ -171,7 +136,6 @@
 
       .courses-hero h1 {
         font-size: clamp(2.5rem, 5.6vw, 4.25rem);
-        letter-spacing: -0.02em;
         line-height: 1.02;
         text-wrap: balance;
       }
@@ -280,8 +244,6 @@
         color: var(--cream);
         display: block;
         font-size: clamp(1.9rem, 3.4vw, 2.6rem);
-        font-weight: 900;
-        letter-spacing: -0.02em;
         line-height: 1.1;
       }
 
@@ -432,8 +394,6 @@
 
       .open-card h3 {
         font-size: clamp(1.6rem, 2.8vw, 2.25rem);
-        font-weight: 900;
-        letter-spacing: -0.02em;
         margin-top: 0.2rem;
       }
 
