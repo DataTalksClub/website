@@ -20,7 +20,7 @@ This is a delivery plan, not evidence that the website has adopted the package. 
 Dated snapshot of the migration rollout. Community-base [`docs/plan/STATUS.md`](https://github.com/DataTalksClub/community-base/blob/main/docs/plan/STATUS.md) is authoritative for live status across all four repositories, including AISL progress (A1.2, A2.1, A2.3, A3.1 in progress in that repository).
 
 - Done: D0.1a (merged `f8f68c46`), D0.1b (#355), D0.2 (#354), D1.1 (#350), D1.2a (#368), D1.2b (#370).
-- Merged but dev-deploy blocked: D0.1c (merged `3fb9db07`) and D1.2ca (#372, branch `issue-372`, gates green) - blocked on red main CI (website#345; lint-mask fix merged as `950065e0`; first unmasked run 34676767710 red with fresh traces) and the worker self-check IAM ask (aws-infra#49).
+- Merged but dev-deploy blocked: D0.1c (merged `3fb9db07`) and D1.2ca (#372, branch `issue-372`, gates green) - blocked on a fully green main CI run and the worker self-check IAM ask (aws-infra#49). The django lane of website#345 merged as `fc534fcf` (the complete django suite runs green corpus-less; the corpus-bound clusters, the retired-alias scrub test, and the pins that had drifted past the /courses redesign and the FAQ nav drop are fixed test-side, plus the `/slack` route in the copied root); the Playwright lane (design-parity fixes with the refreshed `playwright_tests/test_deployed_smoke.py` copy pins) remains in flight on the main checkout.
 - In progress: D2.1 (#377), D2.2a (#379), D3.1 (#334).
 - Waiting: D0.1d, D1.2cb, D1.3, D2.2b and D2.2c (no site issues filed yet), the D3.2 freeze and later phases.
 
