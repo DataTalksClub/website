@@ -36,8 +36,12 @@ def dashboard_submission_timing(course):
             "label": label,
             "count": counts[label],
             "pct": round(counts[label] / total * 100, 1),
+            # 1-indexed position in the fixed bucket order, so the template
+            # can pick the page-local ordinal ramp colour without re-deriving
+            # "which bucket is this" from the label text.
+            "rank": rank,
         }
-        for _, label in TIMING_BUCKETS
+        for rank, (_, label) in enumerate(TIMING_BUCKETS, start=1)
     ]
 
 
@@ -46,3 +50,33 @@ def timing_bucket_label(days_before):
         if days_before >= lower_bound:
             return label
     return TIMING_BUCKETS[-1][1]
+
+
+# The label every bucket list ends on -- kept as a constant rather than
+# re-spelled at each call site, since the buckets always end with it.
+LATE_BUCKET_LABEL = TIMING_BUCKETS[-1][1]
+
+
+def dashboard_submission_timing_is_degenerate(buckets):
+    """Whether every submission landed in a single bucket.
+
+    A single 100%-wide bucket is an import artefact (every timestamp on
+    ml-zoomcamp/2021 was recorded after its deadline), not a real timing
+    distribution -- the caller replaces the chart with a note instead of
+    drawing four empty tracks and one full one.
+    """
+
+    return any(bucket["pct"] >= 100.0 for bucket in buckets)
+
+
+def dashboard_submission_timing_deadline_pct(buckets):
+    """Share of submissions that arrived before the deadline.
+
+    This is where the stacked bar's deadline tick sits: the complement of
+    the trailing "After the deadline" bucket, which is always last.
+    """
+
+    if not buckets:
+        return None
+    late_pct = buckets[-1]["pct"]
+    return round(100 - late_pct, 1)

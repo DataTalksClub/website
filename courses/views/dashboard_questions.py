@@ -43,7 +43,26 @@ def dashboard_question_difficulty(course):
             groups.append(group)
         group["questions"].append(dashboard_question_row(row))
 
+    for group in groups:
+        # Hardest first inside a homework, so a reader scanning one group
+        # meets its worst question first instead of hunting a flat table.
+        group["questions"].sort(key=_question_sort_key)
+        answered = [
+            q["pct_correct"] for q in group["questions"]
+            if q["pct_correct"] is not None
+        ]
+        group["lowest_pct_correct"] = min(answered) if answered else None
+        group["question_count"] = len(group["questions"])
+        group["answers_per_question"] = group["questions"][0]["total"]
+
     return groups
+
+
+def _question_sort_key(question):
+    pct_correct = question["pct_correct"]
+    # Unanswered questions (no submissions yet) sort last rather than first,
+    # since "no data" is not the same finding as "hard".
+    return (pct_correct is None, pct_correct if pct_correct is not None else 0)
 
 
 def dashboard_question_row(row):
@@ -56,3 +75,22 @@ def dashboard_question_row(row):
         "correct": correct,
         "pct_correct": pct_correct,
     }
+
+
+def dashboard_hardest_questions(question_difficulty, limit=3):
+    """The N hardest questions across the whole cohort, for the lead cards.
+
+    Ties and near-ties are common (several questions at the same low
+    percentage), so this is a straight sort rather than a per-homework pick --
+    the cards say "hardest", "second", "third" and mean it cohort-wide.
+    """
+
+    candidates = []
+    for group in question_difficulty:
+        for question in group["questions"]:
+            if question["pct_correct"] is None:
+                continue
+            candidates.append({**question, "homework_title": group["homework_title"]})
+
+    candidates.sort(key=lambda question: question["pct_correct"])
+    return candidates[:limit]

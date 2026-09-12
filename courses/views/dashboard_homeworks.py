@@ -127,7 +127,34 @@ def dashboard_homework_time_stats(hw_submissions):
     total_times = dashboard_total_homework_times(hw_submissions)
     total_time_stats = quartile_fields("time_total", total_times)
     stats.update(total_time_stats)
+
+    stats.update(
+        dashboard_homework_time_split(
+            lecture_time_stats["time_lecture_median"],
+            homework_time_stats["time_homework_median"],
+        )
+    )
     return stats
+
+
+def dashboard_homework_time_split(lecture_median, homework_median):
+    """The lecture/homework share of the median total time, for the split bar.
+
+    ``None`` when either half is missing rather than a misleading 100/0
+    split -- a homework whose submissions never recorded lecture time still
+    has a homework-time median, but there is nothing to split it against.
+    """
+
+    if lecture_median is None or homework_median is None:
+        return {"time_lecture_pct": None, "time_homework_pct": None}
+    total = lecture_median + homework_median
+    if total <= 0:
+        return {"time_lecture_pct": None, "time_homework_pct": None}
+    lecture_pct = round(lecture_median / total * 100, 1)
+    return {
+        "time_lecture_pct": lecture_pct,
+        "time_homework_pct": round(100 - lecture_pct, 1),
+    }
 
 
 def dashboard_total_homework_times(hw_submissions):
@@ -161,6 +188,30 @@ def dashboard_homework_score_stats(homework, hw_submissions):
         "max_questions_score": score_ratio_data.max_questions_score,
         "score_ratio": score_ratio_data.score_ratio,
         "score_ratio_pct": score_ratio_pct,
+        "score_dots": dashboard_score_dots(
+            score_ratio_data.questions_score_median,
+            score_ratio_data.max_questions_score,
+        ),
+    }
+
+
+def dashboard_score_dots(questions_score_median, max_questions_score):
+    """One dot per achievable point, filled up to the rounded median score.
+
+    ``None`` when there is nothing to draw against (no scored submissions, or
+    a homework with no scored questions) rather than a row of empty dots.
+    """
+
+    if not max_questions_score or questions_score_median is None:
+        return None
+    total_dots = int(round(max_questions_score))
+    if total_dots <= 0:
+        return None
+    filled = max(0, min(total_dots, int(round(questions_score_median))))
+    return {
+        "filled": filled,
+        "total": total_dots,
+        "dots": [index < filled for index in range(total_dots)],
     }
 
 
@@ -189,6 +240,7 @@ def _homework_difficulty_sort_key(hw_stat):
 def dashboard_homework_difficulty_stats(homework_stats):
     difficulty_stats = []
     for hw_stat in homework_stats:
+        hw_stat["is_hardest_tier"] = False
         homework = hw_stat["homework"]
         if (
             hw_stat["score_ratio"] is not None
@@ -198,5 +250,14 @@ def dashboard_homework_difficulty_stats(homework_stats):
     difficulty_stats.sort(key=_homework_difficulty_sort_key)
     for rank, hw_stat in enumerate(difficulty_stats, start=1):
         hw_stat["difficulty_rank"] = rank
+
+    # Ties are the common case (several homeworks land on the same lowest
+    # median question score) -- a rank column would assert an order the data
+    # does not contain, so every homework at the lowest score_ratio_pct
+    # instead gets one shared "hardest tier" mark.
+    if difficulty_stats:
+        hardest_pct = difficulty_stats[0]["score_ratio_pct"]
+        for hw_stat in difficulty_stats:
+            hw_stat["is_hardest_tier"] = hw_stat["score_ratio_pct"] == hardest_pct
 
     return difficulty_stats

@@ -50,3 +50,11 @@ def quartile_fields(prefix, values):
         f"{prefix}_q75": quartiles.q75,
         f"{prefix}_median_formatted": formatted_median,
     }
+
+
+def safe_pct(count, total, digits=1):
+    """A percentage that degrades to 0 rather than raising on an empty total."""
+
+    if not total:
+        return 0.0
+    return round(count / total * 100, digits)

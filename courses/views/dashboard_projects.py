@@ -1,5 +1,5 @@
 from courses.models.project import ProjectSubmission
-from courses.views.dashboard_metrics import safe_quartiles
+from courses.views.dashboard_metrics import safe_pct, safe_quartiles
 
 
 def dashboard_project_stats(course, total_enrollments):
@@ -11,13 +11,16 @@ def dashboard_project_stats(course, total_enrollments):
     quartile_metrics = project_quartile_metrics(project_submissions)
     pass_count, fail_count = project_pass_fail_counts(project_submissions)
     rounded_completion_rate = round(completion_rate, 1)
+    total_submissions = pass_count + fail_count
 
     return {
         "project_completion_rate": rounded_completion_rate,
         **quartile_metrics,
         "project_pass_count": pass_count,
         "project_fail_count": fail_count,
-        "project_total_submissions": pass_count + fail_count,
+        "project_total_submissions": total_submissions,
+        "project_pass_pct": safe_pct(pass_count, total_submissions),
+        "project_fail_pct": safe_pct(fail_count, total_submissions),
     }
 
 
