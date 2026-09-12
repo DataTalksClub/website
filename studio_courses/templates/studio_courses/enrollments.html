@@ -3,12 +3,14 @@
 {% comment %}
   Enrollment support for one course, on the design system (issue #179).
 
-  The status views became the system's filter pills (their hrefs, and the
-  query parameters they carry, are unchanged), and the nine-column record
-  table is the admin table inside a keyboard-reachable scroll frame, so the
-  copied duplicate mobile-card list is gone and the sorter has one table to
-  sort.  The column order the sorter indexes by is unchanged; its sort
-  controls are now real buttons, so the sort is reachable from the keyboard.
+  The status views became the system's filter pills, and the nine-column
+  record table is the admin table inside a keyboard-reachable scroll frame,
+  so the copied duplicate mobile-card list is gone.  Since UX-09 the sort is
+  owned by the server: each sortable header is a GET link carrying sort/dir
+  that preserves the search and status filter, resets to page one, and works
+  with JavaScript disabled — the client-side page-local sorter that could
+  show a misleading subset is gone, and the active header carries aria-sort
+  with a server-rendered arrow.
 {% endcomment %}
 
 {% block title %}
@@ -16,8 +18,9 @@
 {% endblock %}
 
 {% block extra_styles %}
-  /* The sortable column headers: a real button so the sort is operable from
-     the keyboard, drawn as the mono uppercase header cell it sits in. */
+  /* The sortable column headers: real links so the sort is operable from
+     the keyboard and works without JavaScript, drawn as the mono uppercase
+     header cell they sit in. */
   .admin-sort {
     align-items: center;
     background: none;
@@ -31,6 +34,7 @@
     min-height: 2.75rem;
     padding: 0;
     text-align: inherit;
+    text-decoration: none;
     text-transform: inherit;
   }
 
@@ -61,19 +65,19 @@
       </a>
     </div>
     <nav class="filter-pills" aria-label="Enrollment views">
-      <a href="?{% if search_query %}q={{ search_query|urlencode }}{% endif %}" class="filter-pill" {% if status_filter == 'all' %}aria-current="page"{% endif %}>
+      <a href="{% querystring status=None page=None %}" class="filter-pill" {% if status_filter == 'all' %}aria-current="page"{% endif %}>
         All · {{ enrollment_filter_counts.all }}
       </a>
-      <a href="?status=lip-disabled{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="filter-pill" {% if status_filter == 'lip-disabled' %}aria-current="page"{% endif %}>
+      <a href="{% querystring status='lip-disabled' page=None %}" class="filter-pill" {% if status_filter == 'lip-disabled' %}aria-current="page"{% endif %}>
         LiP disabled · {{ enrollment_filter_counts.lip_disabled }}
       </a>
-      <a href="?status=zero-score{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="filter-pill" {% if status_filter == 'zero-score' %}aria-current="page"{% endif %}>
+      <a href="{% querystring status='zero-score' page=None %}" class="filter-pill" {% if status_filter == 'zero-score' %}aria-current="page"{% endif %}>
         Zero score · {{ enrollment_filter_counts.zero_score }}
       </a>
-      <a href="?status=hidden{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="filter-pill" {% if status_filter == 'hidden' %}aria-current="page"{% endif %}>
+      <a href="{% querystring status='hidden' page=None %}" class="filter-pill" {% if status_filter == 'hidden' %}aria-current="page"{% endif %}>
         Hidden · {{ enrollment_filter_counts.hidden }}
       </a>
-      <a href="?status=no-submissions{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="filter-pill" {% if status_filter == 'no-submissions' %}aria-current="page"{% endif %}>
+      <a href="{% querystring status='no-submissions' page=None %}" class="filter-pill" {% if status_filter == 'no-submissions' %}aria-current="page"{% endif %}>
         No submissions · {{ enrollment_filter_counts.no_submissions }}
       </a>
     </nav>
@@ -90,12 +94,17 @@
           {% if search_query %}
             for "{{ search_query }}"
           {% endif %}
+          {% if current_sort != 'position' or current_direction != 'asc' %}
+            · sorted by {{ current_sort }} ({{ current_direction }})
+          {% endif %}
         </p>
       </div>
       <form method="get" class="admin-filters">
         {% if status_filter != 'all' %}
           <input type="hidden" name="status" value="{{ status_filter }}">
         {% endif %}
+        <input type="hidden" name="sort" value="{{ current_sort }}">
+        <input type="hidden" name="dir" value="{{ current_direction }}">
         <div class="field">
           <label class="field-label" for="enrollment-search">Search students</label>
           <input
@@ -111,7 +120,7 @@
           Search
         </button>
         {% if search_query %}
-          <a href="?{% if status_filter != 'all' %}status={{ status_filter }}{% endif %}" class="cta cta-secondary cta-compact">
+          <a href="{% querystring q=None page=None %}" class="cta cta-secondary cta-compact">
             Clear
           </a>
         {% endif %}
@@ -120,43 +129,43 @@
         <table class="admin-table" id="enrollmentsTable">
           <thead>
             <tr>
-              <th class="admin-cell-numeric" scope="col">
-                <button type="button" class="admin-sort" onclick="sortTable('position')">
+              <th class="admin-cell-numeric" scope="col"{% if current_sort == 'position' %} aria-sort="{% if current_direction == 'asc' %}ascending{% else %}descending{% endif %}"{% endif %}>
+                <a class="admin-sort" href="{% querystring sort='position' dir=sort_next.position page=None %}" aria-label="Sort by position, {% if sort_next.position == 'asc' %}ascending{% else %}descending{% endif %}">
                   Pos
-                  <span class="admin-sort-arrow" id="arrow-position"></span>
-                </button>
+                  <span class="admin-sort-arrow" aria-hidden="true">{% if current_sort == 'position' %}{% if current_direction == 'asc' %}▲{% else %}▼{% endif %}{% endif %}</span>
+                </a>
               </th>
-              <th scope="col">
-                <button type="button" class="admin-sort" onclick="sortTable('student')">
+              <th scope="col"{% if current_sort == 'student' %} aria-sort="{% if current_direction == 'asc' %}ascending{% else %}descending{% endif %}"{% endif %}>
+                <a class="admin-sort" href="{% querystring sort='student' dir=sort_next.student page=None %}" aria-label="Sort by student, {% if sort_next.student == 'asc' %}ascending{% else %}descending{% endif %}">
                   Student
-                  <span class="admin-sort-arrow" id="arrow-student"></span>
-                </button>
+                  <span class="admin-sort-arrow" aria-hidden="true">{% if current_sort == 'student' %}{% if current_direction == 'asc' %}▲{% else %}▼{% endif %}{% endif %}</span>
+                </a>
               </th>
               <th scope="col">Display</th>
-              <th class="admin-cell-numeric" scope="col">
-                <button type="button" class="admin-sort" onclick="sortTable('total_score')">
+              <th class="admin-cell-numeric" scope="col"{% if current_sort == 'total_score' %} aria-sort="{% if current_direction == 'asc' %}ascending{% else %}descending{% endif %}"{% endif %}>
+                <a class="admin-sort" href="{% querystring sort='total_score' dir=sort_next.total_score page=None %}" aria-label="Sort by score, {% if sort_next.total_score == 'asc' %}ascending{% else %}descending{% endif %}">
                   Score
-                  <span class="admin-sort-arrow" id="arrow-total_score"></span>
-                </button>
+                  <span class="admin-sort-arrow" aria-hidden="true">{% if current_sort == 'total_score' %}{% if current_direction == 'asc' %}▲{% else %}▼{% endif %}{% endif %}</span>
+                </a>
               </th>
-              <th class="admin-cell-numeric" scope="col">
-                <button type="button" class="admin-sort" onclick="sortTable('hw_count')">
+              <th class="admin-cell-numeric" scope="col"{% if current_sort == 'hw_count' %} aria-sort="{% if current_direction == 'asc' %}ascending{% else %}descending{% endif %}"{% endif %}>
+                <a class="admin-sort" href="{% querystring sort='hw_count' dir=sort_next.hw_count page=None %}" aria-label="Sort by homework count, {% if sort_next.hw_count == 'asc' %}ascending{% else %}descending{% endif %}">
                   HW
-                  <span class="admin-sort-arrow" id="arrow-hw_count"></span>
-                </button>
+                  <span class="admin-sort-arrow" aria-hidden="true">{% if current_sort == 'hw_count' %}{% if current_direction == 'asc' %}▲{% else %}▼{% endif %}{% endif %}</span>
+                </a>
               </th>
-              <th class="admin-cell-numeric" scope="col">
-                <button type="button" class="admin-sort" onclick="sortTable('proj_count')">
+              <th class="admin-cell-numeric" scope="col"{% if current_sort == 'proj_count' %} aria-sort="{% if current_direction == 'asc' %}ascending{% else %}descending{% endif %}"{% endif %}>
+                <a class="admin-sort" href="{% querystring sort='proj_count' dir=sort_next.proj_count page=None %}" aria-label="Sort by project count, {% if sort_next.proj_count == 'asc' %}ascending{% else %}descending{% endif %}">
                   Projects
-                  <span class="admin-sort-arrow" id="arrow-proj_count"></span>
-                </button>
+                  <span class="admin-sort-arrow" aria-hidden="true">{% if current_sort == 'proj_count' %}{% if current_direction == 'asc' %}▲{% else %}▼{% endif %}{% endif %}</span>
+                </a>
               </th>
               <th scope="col">Flags</th>
-              <th scope="col">
-                <button type="button" class="admin-sort" onclick="sortTable('enrolled')">
+              <th scope="col"{% if current_sort == 'enrolled' %} aria-sort="{% if current_direction == 'asc' %}ascending{% else %}descending{% endif %}"{% endif %}>
+                <a class="admin-sort" href="{% querystring sort='enrolled' dir=sort_next.enrolled page=None %}" aria-label="Sort by enrollment date, {% if sort_next.enrolled == 'asc' %}ascending{% else %}descending{% endif %}">
                   Enrolled
-                  <span class="admin-sort-arrow" id="arrow-enrolled"></span>
-                </button>
+                  <span class="admin-sort-arrow" aria-hidden="true">{% if current_sort == 'enrolled' %}{% if current_direction == 'asc' %}▲{% else %}▼{% endif %}{% endif %}</span>
+                </a>
               </th>
               <th scope="col">Actions</th>
             </tr>
@@ -231,87 +240,4 @@
       learning-in-public points until re-enabled.
     </p>
   </div>
-{% endblock %}
-
-{% block extra_js %}
-  {{ block.super }}
-  {% comment %}
-    The client-side column sort, unchanged: it still reads the same cell
-    indexes of the same table and writes the same arrow markers.  It runs
-    after the document because the shell loads page scripts at the end of the
-    body.
-  {% endcomment %}
-  <script>
-    const MISSING_VALUE = -999;
-    let currentSort = 'position';
-    let currentDir = 'asc';
-    const defaultDirs = {
-      position: 'asc',
-      student: 'asc',
-      total_score: 'desc',
-      hw_count: 'desc',
-      proj_count: 'desc',
-      enrolled: 'desc',
-    };
-
-    function sortTable(column) {
-      if (column === currentSort) {
-        currentDir = currentDir === 'asc' ? 'desc' : 'asc';
-      } else {
-        currentSort = column;
-        currentDir = defaultDirs[column] || 'desc';
-      }
-
-      const table = document.getElementById('enrollmentsTable');
-      const tbody = table.querySelector('tbody');
-      const rows = Array.from(tbody.querySelectorAll('tr'));
-
-      rows.sort((a, b) => {
-        let aVal;
-        let bVal;
-        let result;
-
-        if (column === 'position') {
-          aVal = a.cells[0].textContent.trim();
-          bVal = b.cells[0].textContent.trim();
-          aVal = aVal === '-' ? MISSING_VALUE : parseInt(aVal);
-          bVal = bVal === '-' ? MISSING_VALUE : parseInt(bVal);
-          result = aVal - bVal;
-        } else if (column === 'student') {
-          aVal = a.cells[1].textContent.trim().toLowerCase();
-          bVal = b.cells[1].textContent.trim().toLowerCase();
-          result = aVal.localeCompare(bVal);
-        } else if (column === 'total_score') {
-          aVal = parseFloat(a.cells[3].textContent.trim()) || 0;
-          bVal = parseFloat(b.cells[3].textContent.trim()) || 0;
-          result = aVal - bVal;
-        } else if (column === 'hw_count') {
-          aVal = parseInt(a.cells[4].textContent.trim()) || 0;
-          bVal = parseInt(b.cells[4].textContent.trim()) || 0;
-          result = aVal - bVal;
-        } else if (column === 'proj_count') {
-          aVal = parseInt(a.cells[5].textContent.trim()) || 0;
-          bVal = parseInt(b.cells[5].textContent.trim()) || 0;
-          result = aVal - bVal;
-        } else if (column === 'enrolled') {
-          aVal = a.cells[7].textContent.trim();
-          bVal = b.cells[7].textContent.trim();
-          result = aVal.localeCompare(bVal);
-        }
-
-        return currentDir === 'desc' ? -result : result;
-      });
-
-      rows.forEach(row => tbody.appendChild(row));
-      updateArrows();
-    }
-
-    function updateArrows() {
-      document.querySelectorAll('[id^="arrow-"]').forEach(el => el.textContent = '');
-      const arrowEl = document.getElementById('arrow-' + currentSort);
-      if (arrowEl) arrowEl.textContent = currentDir === 'asc' ? ' ▲' : ' ▼';
-    }
-
-    updateArrows();
-  </script>
 {% endblock %}

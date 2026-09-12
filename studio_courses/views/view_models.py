@@ -127,6 +127,55 @@ ENROLLMENT_FILTER_COUNTS = {
 }
 
 
+def _enrollment_student_key(enrollment):
+    return enrollment.student.username.lower()
+
+
+# UX-09: the enrollment table's sort belongs to the server. The columns are
+# an explicit allowlist — a query-string value never reaches the ORM — and
+# each column carries the direction a first click applies. Rows without a
+# value for the column (a missing leaderboard position) sort last in either
+# direction, so an unranked student can never displace ranked ones.
+ENROLLMENT_SORTS = {
+    "position": (attrgetter("position_on_leaderboard"), "asc"),
+    "student": (_enrollment_student_key, "asc"),
+    "total_score": (attrgetter("total_score"), "desc"),
+    "hw_count": (attrgetter("homework_count"), "desc"),
+    "proj_count": (attrgetter("project_count"), "desc"),
+    "enrolled": (attrgetter("enrollment_date"), "desc"),
+}
+ENROLLMENT_DEFAULT_SORT = "position"
+
+
+def normalize_enrollment_sort(sort_value, direction_value):
+    """Resolve raw query-string sort/direction onto the allowlist.
+
+    Anything unknown falls back to the default column and its default
+    direction rather than erroring or reaching the data layer.
+    """
+    sort = sort_value if sort_value in ENROLLMENT_SORTS else ENROLLMENT_DEFAULT_SORT
+    default_direction = ENROLLMENT_SORTS[sort][1]
+    if direction_value in {"asc", "desc"}:
+        return sort, direction_value
+    return sort, default_direction
+
+
+def sort_enrollments(enrollments, sort, direction):
+    """Order a materialized, filtered enrollment list in place (UX-09).
+
+    The ordering happens here rather than in the ORM because the status
+    filters compute Python flags after materialization, so this list is the
+    exact sequence pagination slices.  Equal keys keep the queryset's
+    (position, id) order, which makes every page stable across visits.
+    """
+    getter = ENROLLMENT_SORTS[sort][0]
+    valued = [item for item in enrollments if getter(item) is not None]
+    missing = [item for item in enrollments if getter(item) is None]
+    valued.sort(key=getter, reverse=(direction == "desc"))
+    enrollments[:] = valued + missing
+    return enrollments
+
+
 def _enrollment_queryset(course, search_query):
     homework_count_annotation = Count("submission", distinct=True)
     project_count_annotation = Count("projectsubmission", distinct=True)
@@ -148,7 +197,14 @@ def _enrollment_queryset(course, search_query):
     return queryset
 
 
-def enrollment_list_data(course, search_query, status_filter):
+def enrollment_list_data(
+    course,
+    search_query,
+    status_filter,
+    *,
+    sort=ENROLLMENT_DEFAULT_SORT,
+    direction=None,
+):
     queryset = _enrollment_queryset(course, search_query)
     enrollments = list(queryset)
     _attach_enrollment_support_flags(enrollments)
@@ -163,6 +219,8 @@ def enrollment_list_data(course, search_query, status_filter):
         status_filter,
         ENROLLMENT_STATUS_FILTERS,
     )
+    ordered_sort, ordered_direction = normalize_enrollment_sort(sort, direction)
+    sort_enrollments(filtered_enrollments, ordered_sort, ordered_direction)
     return filtered_enrollments, filter_counts
 
 
