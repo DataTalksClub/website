@@ -69,8 +69,8 @@ class ContentConfig(AppConfig):
 
     def ready(self) -> None:
         # Register the durable release invalidation intent handler.
-        from . import jobs  # noqa: F401
-
         # Register the D2.2a site parsers (articles, people) with the
         # package content sync engine.
         from content import sync_parsers  # noqa: F401
+
+        from . import jobs  # noqa: F401
