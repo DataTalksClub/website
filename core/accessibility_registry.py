@@ -305,6 +305,10 @@ AUTHORED_TEMPLATE_ROOTS = {
     "templates/email": "public",
     "templates/review": "public-review",
     "templates/studio": "studio",
+    # Site-owned overrides of package-owned template paths (a site places a
+    # file at the package path under its own templates/ to restyle package
+    # surfaces). They render inside the studio shell, so they take its surface.
+    "templates/community_base": "studio",
     "templates/registration": "account",
     "templates/courses": "public-courses",
     "templates/management_api": "management-fixture",

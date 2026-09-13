@@ -145,6 +145,9 @@ INSTALLED_APPS = [
     "community_base.kernel.apps.KernelConfig",
     "community_base.config",
     "community_base.api",
+    # D2.2a: the package content sync engine. Sources and parsers are
+    # site owned; nothing serving changes until the D2.2c route cutover.
+    "community_base.content_sync",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
@@ -379,8 +382,10 @@ CSRF_COOKIE_HTTPONLY = False
 # community-base kernel declarations (D0.1a). JOBS_BACKEND and MAIL_BACKEND name
 # the intended Relay direction but install nothing: no Relay contact, no jobs or
 # mail adoption, and no credentials. Settings writers stay site-owned until the
-# D0.1b/D0.1c adoption cards.
-COMMUNITY_BASE = {
+# D0.1b/D0.1c adoption cards. The declared keys carry heterogeneous value types
+# (strings, numbers, the D2.2a source declarations); ``community_base.kernel.conf``
+# validates each key, so the mapping is typed permissively on purpose.
+COMMUNITY_BASE: dict[str, Any] = {
     "SITE_KEY": "dtc",
     "ACCESS_POLICY": "community_base.kernel.access.RegisteredOnlyPolicy",
     "JOBS_BACKEND": "relay",
@@ -401,4 +406,21 @@ COMMUNITY_BASE = {
     "RELAY_BASE_URL": os.getenv("RELAY_BASE_URL", ""),
     "RELAY_API_KEY": os.getenv("RELAY_API_KEY", ""),
     "RELAY_WEBHOOK_SECRET": os.getenv("RELAY_WEBHOOK_SECRET", ""),
+    # D2.2a: declared GitHub content sources. Secrets are injected at
+    # runtime and never persisted; sync reads immutable checkouts and the
+    # webhook verifies signatures.
+    "CONTENT_SOURCES": [
+        {
+            "slug": "dtc-content",
+            "repo_name": "DataTalksClub/content",
+            "webhook_secret": os.getenv("CONTENT_SYNC_WEBHOOK_SECRET_DTC_CONTENT", ""),
+            "max_files": 4000,
+        },
+        {
+            "slug": "dtc-main-site",
+            "repo_name": "DataTalksClub/datatalksclub.github.io",
+            "webhook_secret": os.getenv("CONTENT_SYNC_WEBHOOK_SECRET_DTC_MAIN_SITE", ""),
+            "max_files": 4000,
+        },
+    ],
 }

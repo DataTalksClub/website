@@ -729,3 +729,59 @@ class ContentAsset(FrozenReleaseChild):
     def release_id_for_guard(self, *, using: str) -> uuid.UUID:
         del using
         return self.release_id
+
+
+class SyncedDocument(models.Model):
+    """One public content row written directly by a ``community_base.content_sync`` parser.
+
+    The staged pipeline keeps publishing the catalogue from ``ContentDocument`` rows
+    (D2.2c retires it); this table is the direct-upsert target the parsers own in the
+    meantime. ``record`` holds the same projection-shaped JSON the staged import stored,
+    so route resolution can read these rows directly at the cutover without a second
+    translation.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    source = models.ForeignKey(
+        "cb_content_sync.ContentSource",
+        on_delete=models.CASCADE,
+        related_name="synced_documents",
+    )
+    content_kind = models.CharField(max_length=64)
+    stable_key = models.CharField(max_length=255)
+    slug = models.CharField(max_length=255, blank=True)
+    title = models.CharField(max_length=512)
+    summary = models.TextField(blank=True)
+    public_path = models.CharField(max_length=2048, validators=[validate_exact_public_path])
+    source_path = models.CharField(max_length=1024)
+    checksum = models.CharField(max_length=64, validators=[sha256_validator])
+    record = models.JSONField(default=dict, blank=True)
+    is_published = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("content_kind", "stable_key")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("source", "content_kind", "stable_key"),
+                name="synced_document_source_key_uq",
+            ),
+            models.UniqueConstraint(
+                fields=("source", "public_path"),
+                name="synced_document_source_path_uq",
+            ),
+            models.CheckConstraint(
+                condition=Q(checksum__regex=SHA256_PATTERN),
+                name="synced_document_checksum_ck",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=("content_kind", "public_path"),
+                name="synced_document_kind_path",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.content_kind}:{self.stable_key}@{self.source_id}"
