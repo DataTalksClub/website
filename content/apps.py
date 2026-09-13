@@ -66,3 +66,8 @@ def public_media_store_check(app_configs, **kwargs):
 class ContentConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "content"
+
+    def ready(self):
+        # Register the D2.2a site parsers (articles, people) with the
+        # package content sync engine.
+        from content import sync_parsers  # noqa: F401

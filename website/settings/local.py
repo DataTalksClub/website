@@ -32,3 +32,11 @@ DATABASES = {
     )
 }
 NOINDEX = True
+# D2.2a: the package content source model requires a nonblank webhook
+# secret even locally, so local runs fall back to the shared local
+# development placeholder; deployed settings keep the env-only boundary
+# from ``website.settings.base``.
+for _declaration in COMMUNITY_BASE["CONTENT_SOURCES"]:  # noqa: F405
+    if not _declaration["webhook_secret"]:
+        _declaration["webhook_secret"] = LOCAL_DEVELOPMENT_SECRET_KEY  # noqa: F405
+del _declaration

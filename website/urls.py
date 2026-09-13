@@ -134,6 +134,9 @@ urlpatterns = [
     # Package studio mail routes (D1.2a) mount before the site studio shell so
     # their exact paths are owned by the package delivery and catalog views.
     path("studio/mail/", include("community_base.mail.studio_urls")),
+    # Package content sync studio routes (D2.2a) mount before the site
+    # studio shell; the package owns the exact studio/content-sync/* paths.
+    path("studio/", include("community_base.content_sync.studio_urls")),
     path("studio/", include("studio.urls")),
     studio_course_urls.canonical_root_pattern("studio/courses"),
     # The exact copied CMP shell still emits this route name for its staff menu.  Keep the
@@ -167,6 +170,9 @@ urlpatterns = [
         account_api.compatibility_account_identity,
         name="compatibility-account-identity",
     ),
+    # Package content sync GitHub webhook (D2.2a), alongside the site's
+    # own /api/webhooks/github route.
+    path("api/content-sync/", include("community_base.content_sync.urls")),
     path("api/", include("api.urls")),
     path(
         "cadmin",
