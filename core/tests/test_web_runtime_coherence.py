@@ -7,6 +7,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
 from unittest.mock import Mock, patch
+from urllib.parse import urlsplit
 
 from django.test import SimpleTestCase
 
@@ -21,7 +22,16 @@ from deploy.contracts import (
     WebRuntimeBinding,
 )
 from deploy.deployment_targets import SELECTED_TARGET
-from test_support.safety import authorize_from_environment
+from test_support.safety import REMOTE_TARGET_POLICY, authorize_from_environment
+
+#: The isolation class is a fact about the selected host, derived from the
+#: reviewed registry (CI-05).  The smoke environment carries the registry's
+#: class for whatever target is selected -- it used to pin the destroyed
+#: sandbox's class and failed closed once production became the only
+#: deployable reviewed target.
+SELECTED_TARGET_ISOLATION_CLASS = REMOTE_TARGET_POLICY[
+    urlsplit(SELECTED_TARGET.origin).hostname or ""
+].isolation_class
 
 SOURCE_SHA = "a" * 40
 IMAGE_DIGEST = f"sha256:{'b' * 64}"
@@ -333,7 +343,7 @@ class WebRuntimeCoherenceTests(SimpleTestCase):
             "IMAGE_DIGEST": IMAGE_DIGEST,
             "RELEASE_SHA": SOURCE_SHA,
             "DTC_TEST_SAFETY_COMMAND": "remote_readonly",
-            "DTC_TEST_TARGET_CLASS": "isolated_development",
+            "DTC_TEST_TARGET_CLASS": SELECTED_TARGET_ISOLATION_CLASS,
             "DTC_TEST_REMOTE_NAMESPACE": "deploy-12345678-1",
         }
         with (
@@ -355,7 +365,7 @@ class WebRuntimeCoherenceTests(SimpleTestCase):
         self.assertEqual(environment["DTC_EXPECTED_SOURCE_SHA"], SOURCE_SHA)
         self.assertEqual(environment["DTC_EXPECTED_IMAGE_DIGEST"], IMAGE_DIGEST)
         self.assertEqual(environment["DTC_TEST_SAFETY_COMMAND"], "remote_readonly")
-        self.assertEqual(environment["DTC_TEST_TARGET_CLASS"], "isolated_development")
+        self.assertEqual(environment["DTC_TEST_TARGET_CLASS"], SELECTED_TARGET_ISOLATION_CLASS)
         self.assertEqual(environment["DTC_TEST_REMOTE_NAMESPACE"], "deploy-12345678-1")
         self.assertEqual(environment["DTC_TEST_BASE_URL"], SELECTED_TARGET.origin)
         with patch.dict("os.environ", environment, clear=True):

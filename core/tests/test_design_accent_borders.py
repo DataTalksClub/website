@@ -80,6 +80,11 @@ STRUCTURAL_LEFT_BORDERS: dict[tuple[str, str], str] = {
         ".time-split .hw",
     ): "The seam between the lecture and homework halves of one two-part time-split bar; "
     "it separates the two siblings inside a single bordered track.",
+    (
+        "courses/templates/courses/course_list.html",
+        ".open-card-media",
+    ): "The dashed rule on the media slot separates it from the card body beside it; it "
+    "divides siblings in a row and only exists on the wide featured card.",
 }
 
 

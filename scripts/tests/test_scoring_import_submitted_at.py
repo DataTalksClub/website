@@ -72,27 +72,19 @@ class DateOrderSniffingTests(TestCase):
 class RawTimestampParsingTests(TestCase):
     def test_day_first_slash_separated(self) -> None:
         parsed = _parse_raw_timestamp("06/09/2021 04:11:43", "dmy")
-        self.assertEqual(
-            parsed, datetime.datetime(2021, 9, 6, 4, 11, 43, tzinfo=datetime.UTC)
-        )
+        self.assertEqual(parsed, datetime.datetime(2021, 9, 6, 4, 11, 43, tzinfo=datetime.UTC))
 
     def test_month_first_slash_separated(self) -> None:
         parsed = _parse_raw_timestamp("9/26/2022 22:44:43", "mdy")
-        self.assertEqual(
-            parsed, datetime.datetime(2022, 9, 26, 22, 44, 43, tzinfo=datetime.UTC)
-        )
+        self.assertEqual(parsed, datetime.datetime(2022, 9, 26, 22, 44, 43, tzinfo=datetime.UTC))
 
     def test_year_first_slash_separated(self) -> None:
         parsed = _parse_raw_timestamp("2023/01/18 13:14:04", "ymd")
-        self.assertEqual(
-            parsed, datetime.datetime(2023, 1, 18, 13, 14, 4, tzinfo=datetime.UTC)
-        )
+        self.assertEqual(parsed, datetime.datetime(2023, 1, 18, 13, 14, 4, tzinfo=datetime.UTC))
 
     def test_dot_separated(self) -> None:
         parsed = _parse_raw_timestamp("03.10.2022 20:32:07", "dmy")
-        self.assertEqual(
-            parsed, datetime.datetime(2022, 10, 3, 20, 32, 7, tzinfo=datetime.UTC)
-        )
+        self.assertEqual(parsed, datetime.datetime(2022, 10, 3, 20, 32, 7, tzinfo=datetime.UTC))
 
     def test_an_unparseable_value_is_reported_as_absent_not_guessed(self) -> None:
         self.assertIsNone(_parse_raw_timestamp("not-a-timestamp", "dmy"))
@@ -109,10 +101,7 @@ class LearningInPublicLinkParsingTests(TestCase):
         )
 
     def test_comma_and_newline_separated_links_with_trailing_separators(self) -> None:
-        raw = (
-            "https://gist.github.com/a, https://gist.github.com/b, \n"
-            "https://gist.github.com/c,\n"
-        )
+        raw = "https://gist.github.com/a, https://gist.github.com/b, \nhttps://gist.github.com/c,\n"
         self.assertEqual(
             _parse_learning_in_public_links(raw),
             [

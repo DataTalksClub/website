@@ -125,11 +125,13 @@ class HomeEventsCmpRenderingTests(TestCase):
             self.assertNotContains(response, "/static/core/site.css")
 
     def test_events_catalog_and_detail_preserve_public_content_and_seo(self) -> None:
-        featured_event_path = next(
-            event["public_path"]
-            for event in published_event_records()
-            if event["title"] == FEATURED_EVENT_TITLE
+        featured_event = next(
+            event for event in published_event_records() if event["title"] == FEATURED_EVENT_TITLE
         )
+        featured_event_path = featured_event["public_path"]
+        # The speaker the page must show is a fact about the record, not a
+        # real person's name: the reference fixture carries synthetic ones.
+        featured_speaker = featured_event["speakers"][0]["name"]
         stable_now = datetime(2026, 8, 12, tzinfo=ZoneInfo("Europe/Berlin"))
         with patch("content.event_content.timezone.now", return_value=stable_now):
             catalog = self.client.get("/events")
@@ -144,10 +146,13 @@ class HomeEventsCmpRenderingTests(TestCase):
         self.assertNotContains(catalog, "/static/core/site.css")
 
         self.assertEqual(detail.status_code, 200)
-        self.assertContains(detail, "AI Dev Tools Zoomcamp 2026 Course Launch")
-        self.assertContains(detail, "Alexey Grigorev")
-        self.assertContains(detail, "The new cohort of AI Dev Tools Zoomcamp 2026")
-        self.assertNotContains(detail, "Event links")
+        self.assertContains(detail, FEATURED_EVENT_TITLE)
+        self.assertContains(detail, featured_speaker)
+        self.assertContains(detail, featured_event["description_text"])
+        # The synthetic record carries a reviewed link, so its links section
+        # renders with the record's own label; what must never return is a
+        # provider link dump.
+        self.assertContains(detail, featured_event["links"][0]["label"])
         self.assertNotContains(detail, "lu.ma")
         self.assertContains(
             detail,

@@ -163,10 +163,12 @@ module = [
     "courses.tests.test_mailchimp_course_tag_import",
     "courses.tests.test_registration_email_verification",
     "scripts.build_eventbrite_descriptions",
+    "scripts.build_luma_event_identities",
     "scripts.tests.test_eventbrite_registrant_source",
     "scripts.tests.test_identity_manifest",
     "scripts.tests.test_ml_zoomcamp_2021_identity_merge",
     "scripts.tests.test_registrant_import",
+    "scripts.tests.test_scoring_import_submitted_at",
 ]
 ignore_errors = false
 

@@ -168,7 +168,9 @@ def load_reviewed_public_content() -> int:
         patch.object(import_public_content, "REVIEWED_SLACK_PAGE", SLACK_PAGE),
     ):
         report = import_public_content.run(apply=True)
-    return int(report["documents"])
+    # Re-running the seeder's input returns the replay receipt, which carries
+    # no document count: the identical artifact already owns its release.
+    return int(report.get("documents", 0))
 
 
 def load_homepage_testimonials() -> int:

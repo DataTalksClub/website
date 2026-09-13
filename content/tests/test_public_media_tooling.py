@@ -419,17 +419,46 @@ class VerifyTests(SimpleTestCase):
             with override_settings(
                 PUBLIC_MEDIA_STORE_BACKEND="local", PUBLIC_MEDIA_LOCAL_ROOT=Path(empty)
             ):
-                with contextlib.redirect_stdout(StringIO()):
+                # The command resolves its record set from the reviewed
+                # projection, which the corpus-less environment cannot read:
+                # one synthetic record stands in, and an empty local store
+                # must still report it missing.
+                synthetic_records = (_record("images/synthetic-a.jpg", b"one"),)
+                with (
+                    patch(
+                        "content.media_tooling.media_records",
+                        return_value=synthetic_records,
+                    ),
+                    patch(
+                        "content.media_store.media_records",
+                        return_value=synthetic_records,
+                    ),
+                    contextlib.redirect_stdout(StringIO()),
+                ):
                     exit_code = verify_main([])
         self.assertEqual(exit_code, 1)
 
     def test_the_offline_store_verifies_the_whole_record_set(self) -> None:
+        synthetic_records = (
+            _record("images/synthetic-a.jpg", b"one"),
+            _record("images/synthetic-b.jpg", b"two"),
+        )
         with override_settings(PUBLIC_MEDIA_STORE_BACKEND="memory"):
-            stream = StringIO()
-            with contextlib.redirect_stdout(stream):
-                exit_code = verify_main([])
-            self.assertEqual(exit_code, 0)
-            report = json.loads(stream.getvalue())
+            with (
+                patch(
+                    "content.media_tooling.media_records",
+                    return_value=synthetic_records,
+                ),
+                patch(
+                    "content.media_store.media_records",
+                    return_value=synthetic_records,
+                ),
+            ):
+                stream = StringIO()
+                with contextlib.redirect_stdout(stream):
+                    exit_code = verify_main([])
+                self.assertEqual(exit_code, 0)
+                report = json.loads(stream.getvalue())
         self.assertEqual(report["missing_count"], 0)
         self.assertEqual(report["mismatched_count"], 0)
         self.assertEqual(report["extra_count"], 0)

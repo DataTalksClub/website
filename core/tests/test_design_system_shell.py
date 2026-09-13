@@ -187,7 +187,10 @@ class DesignFiveAShellTests(TestCase):
         )
         cls.episode = catalogue.podcasts()[0]
         cls.wiki_page = catalogue.wiki_pages()[0]
-        cls.person = catalogue.people_by_slug()["alexeygrigorev"]
+        # The reference fixture's richest synthetic profile: it carries the
+        # credits across collections that a person page draws on, so the shell
+        # comparison sees the page in its fullest ordinary shape.
+        cls.person = catalogue.people_by_slug()["synthetic-rich-profile"]
         cls.article = catalogue.articles()[0]
         # Events are database rows: the shell comparison covers the event page
         # only when the content import has published one.
@@ -358,8 +361,10 @@ class DesignFiveAShellTests(TestCase):
             "blog article": "Blog",
             "docs index": "Docs",
             "docs page": "Docs",
-            "faq index": "FAQ",
-            "faq course": "FAQ",
+            # FAQ was dropped from the global primary nav (52814b33): the pages
+            # publish, but no primary entry marks while they are open.
+            "faq index": None,
+            "faq course": None,
             # The legal documents sit under no navigation entry; the footer's own
             # Legal navigation is how a reader reaches them.
             "terms": None,

@@ -162,7 +162,7 @@ class LinkRoundTripTests(SimpleTestCase):
         commit_all(self.repo, self.root, "linked")
         code, stderr = self.link()
         self.assertEqual(code, 1)
-        self.assertIn("core-unlink", stderr)
+        self.assertIn("community_base_link.py unlink", stderr)
 
     def test_link_inserts_into_existing_sources_table(self):
         existing = (
@@ -259,7 +259,7 @@ class SourceGuardTests(SimpleTestCase):
             + 'community-base = { path = "../community-base", editable = true }\n',
         )
         self.assertEqual(self.check(), 1)
-        self.assertIn("core-unlink", self.detained_stderr)
+        self.assertIn("community_base_link.py unlink", self.detained_stderr)
 
     def test_branch_ref_in_lock_fails(self):
         write(self.repo / "uv.lock", LOCK.replace(f"rev=v0.3.0#{TAG_SHA}", "rev=main"))

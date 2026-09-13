@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import shutil
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,11 @@ from scripts.staging.event_description_bridge import (
     load_event_description_bridge,
     validate_description_html,
     validate_projected_event,
+)
+from test_support.synthetic_public_projection import (
+    build_synthetic_projection,
+    synthetic_renderer,
+    write_synthetic_bridge,
 )
 
 
@@ -46,8 +52,28 @@ def _add_rehashed_link(bridge: dict[str, Any], href: str) -> dict[str, Any]:
 
 
 class EventDescriptionBridgeArtifactTests(SimpleTestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        # The reviewed bridge lives outside the repository, so these contract
+        # tests run against the synthetic bridge artifact: same schema, same
+        # pinned audit anchors and reconciliation counts, generated identities
+        # and sanitized synthetic text.  The renderer tests use the builder's
+        # own renderer over the synthetic route registry.
+        scratch = Path(settings.BASE_DIR) / ".tmp"
+        scratch.mkdir(exist_ok=True)
+        cls.workarea = Path(tempfile.mkdtemp(prefix="bridge-contract-", dir=scratch))
+        cls.addClassCleanup(shutil.rmtree, cls.workarea, True)
+        cls.projection_root = build_synthetic_projection(
+            cls.workarea / "public_projection"
+        )
+        cls.bridge_path = write_synthetic_bridge(
+            cls.workarea / "event_description_bridge.json"
+        )
+        cls.renderer = synthetic_renderer(cls.projection_root)
+
     def test_committed_bridge_is_schema_bound_complete_and_public_safe(self) -> None:
-        bridge = load_event_description_bridge()
+        bridge = load_event_description_bridge(self.bridge_path)
         schema = json.loads(bridge_contract.BRIDGE_SCHEMA_PATH.read_text(encoding="utf-8"))
 
         self.assertEqual(schema["$schema"], "https://json-schema.org/draft/2020-12/schema")
@@ -78,7 +104,7 @@ class EventDescriptionBridgeArtifactTests(SimpleTestCase):
         self.assertNotRegex(serialized, r"\bluma\b")
 
     def test_bridge_tampering_fails_with_bounded_errors(self) -> None:
-        bridge = load_event_description_bridge()
+        bridge = load_event_description_bridge(self.bridge_path)
         cases = []
 
         changed_html = copy.deepcopy(bridge)
@@ -104,7 +130,7 @@ class EventDescriptionBridgeArtifactTests(SimpleTestCase):
                 self.assertNotIn("private-canary", str(raised.exception))
 
     def test_entire_bridge_corpus_has_no_dangling_link_or_form_copy(self) -> None:
-        bridge = load_event_description_bridge()
+        bridge = load_event_description_bridge(self.bridge_path)
 
         for entry in bridge["matches"]:
             with self.subTest(event=entry["target"]["source_key"]):
@@ -123,7 +149,7 @@ class EventDescriptionBridgeArtifactTests(SimpleTestCase):
             "Be among the first who’ll see the course contents!form.",
         ):
             with self.subTest(dangling_copy=dangling_copy):
-                bridge = copy.deepcopy(load_event_description_bridge())
+                bridge = copy.deepcopy(load_event_description_bridge(self.bridge_path))
                 entry = bridge["matches"][0]
                 entry["description_html"] += f'<p class="mt-4 leading-7">{dangling_copy}</p>'
                 entry["description_text"] = bridge_contract.description_plain_text(
@@ -141,7 +167,7 @@ class EventDescriptionBridgeArtifactTests(SimpleTestCase):
                     bridge_contract._validate_bridge(bridge)
 
     def test_fully_rehashed_bridge_rejects_unreviewed_and_action_links(self) -> None:
-        bridge = load_event_description_bridge()
+        bridge = load_event_description_bridge(self.bridge_path)
         cases = {
             "external registration": "https://example.com/register",
             "meeting join": "https://zoom.us/j/private-canary",
@@ -161,7 +187,7 @@ class EventDescriptionBridgeArtifactTests(SimpleTestCase):
                 self.assertNotIn("private-canary", str(raised.exception))
 
     def test_fully_rehashed_bridge_rejects_unknown_link_decision_reason(self) -> None:
-        bridge = copy.deepcopy(load_event_description_bridge())
+        bridge = copy.deepcopy(load_event_description_bridge(self.bridge_path))
         count = bridge["link_review"]["decision_counts"].pop("external_resource_kept")
         bridge["link_review"]["decision_counts"]["unknown_reason_kind"] = count
         _rehash_bridge(bridge)
@@ -191,8 +217,7 @@ class EventDescriptionBridgeArtifactTests(SimpleTestCase):
                     bridge_builder._normalized_provider_identity(value)
 
     def test_markdown_renderer_keeps_semantics_and_removes_actions(self) -> None:
-        public_paths, fragments = bridge_builder._projection_routes_and_fragments()
-        renderer = bridge_builder.DescriptionRenderer(public_paths, fragments)
+        renderer = self.renderer
         rendered, text = renderer.render(
             "# Overview\n\n"
             "A **strong** paragraph with `code` and "
@@ -214,8 +239,7 @@ class EventDescriptionBridgeArtifactTests(SimpleTestCase):
         self.assertNotIn("opens in a new tab", text)
 
     def test_markdown_renderer_removes_action_copy_and_tracking_queries(self) -> None:
-        public_paths, fragments = bridge_builder._projection_routes_and_fragments()
-        renderer = bridge_builder.DescriptionRenderer(public_paths, fragments)
+        renderer = self.renderer
         rendered, text = renderer.render(
             "The cohort starts soon. If you have not joined yet, you can "
             "[register here](https://courses.datatalks.club/register/course/?utm_source=luma).\n\n"
@@ -251,7 +275,7 @@ class EventDescriptionBridgeArtifactTests(SimpleTestCase):
             self.assertNotIn(forbidden, text)
 
     def test_markdown_renderer_rejects_unsafe_or_unsupported_content(self) -> None:
-        public_paths, fragments = bridge_builder._projection_routes_and_fragments()
+        renderer = self.renderer
         for markdown in (
             "<script>private-canary</script>",
             "| unsafe | table |\n| --- | --- |\n| value | value |",
@@ -260,7 +284,6 @@ class EventDescriptionBridgeArtifactTests(SimpleTestCase):
             "[unreviewed](https://github.com/private-canary/not-reviewed)",
         ):
             with self.subTest(markdown=markdown):
-                renderer = bridge_builder.DescriptionRenderer(public_paths, fragments)
                 with self.assertRaises(bridge_builder.BridgeBuildError) as raised:
                     renderer.render(markdown)
                 self.assertNotIn("private-canary", str(raised.exception))

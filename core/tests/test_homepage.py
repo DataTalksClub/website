@@ -421,7 +421,7 @@ class MainHomepageRoutingTests(TestCase):
             r'class="band band-cream content-page-header\s+courses-hero\s*"',
         )
         self.assertContains(response, 'id="courses"')
-        self.assertContains(response, "Active now — you can still join")
+        self.assertContains(response, "Running now — you can still join")
         self.assertNotContains(response, "data-course-row")
         self.assertNotContains(response, "md:grid-cols-2")
         self.assertNotContains(response, 'id="course-families-heading"')
@@ -478,10 +478,13 @@ class MainHomepageRoutingTests(TestCase):
         # other catalogues. Assert that the course index does not render any
         # filter control, rather than rejecting the shared CSS definition.
         self.assertNotContains(everything, 'class="filter-pill')
-        self.assertContains(everything, "Active now — you can still join")
-        self.assertContains(everything, "Open registration")
+        self.assertContains(everything, "Running now — you can still join")
+        self.assertContains(everything, "Synthetic active course")
+        self.assertContains(everything, "Registration open")
         self.assertContains(everything, "Synthetic registration course")
 
+        # The index renders every band for every reader: the query string has
+        # no filter to select with, so the full catalogue is served unchanged.
         filtered_url = self.client.get(reverse("course_list"), {"filter": "active"})
         self.assertEqual(filtered_url.status_code, 200)
         self.assertContains(filtered_url, "Synthetic registration course")
@@ -509,6 +512,7 @@ class MainHomepageRoutingTests(TestCase):
             title="Synthetic archived course 2024",
             slug="synthetic-archived-course-2024",
             description="A deterministic archived course.",
+            year=2024,
             finished=True,
             visible=True,
         )
@@ -527,16 +531,27 @@ class MainHomepageRoutingTests(TestCase):
         )
         content = response.content.decode()
         catalog = content[content.index('<div id="courses">') :]
-        active_heading = "Active now — you can still join"
-        self.assertLess(catalog.index(active_heading), catalog.index(active.title))
-        self.assertLess(catalog.index(active.title), catalog.index("Open registration"))
-        self.assertLess(catalog.index("Open registration"), catalog.index(registration.title))
-        self.assertLess(catalog.index(registration.title), catalog.index("Finished courses"))
-        # The catalogue now collapses editions into one family row.  The
-        # finished card therefore uses the family title while the edition
-        # identifier remains in the action link.
-        self.assertLess(catalog.index("Finished courses"), catalog.index(archived.course.title))
-        self.assertContains(response, "Latest edition · 2024")
+        # The catalogue reads top to bottom: the next editions you can register
+        # for, the cohorts running right now, then the finished families whose
+        # materials stay public.
+        open_heading = "Registration open"
+        running_heading = "Running now — you can still join"
+        selfpaced_heading = "Self-paced anytime"
+        self.assertLess(catalog.index(open_heading), catalog.index(registration.title))
+        self.assertLess(
+            catalog.index(registration.title),
+            catalog.index(running_heading),
+        )
+        self.assertLess(catalog.index(running_heading), catalog.index(active.title))
+        self.assertLess(catalog.index(active.title), catalog.index(selfpaced_heading))
+        # The catalogue collapses editions into one family row.  The finished
+        # card uses the family title while the edition identifier remains in
+        # the action link's cohort path.
+        self.assertLess(
+            catalog.index(selfpaced_heading),
+            catalog.index(archived.course.title),
+        )
+        self.assertIn(archived.canonical_url_path, content)
         self.assertContains(response, "registration open")
         self.assertNotContains(response, 'id="course-families-heading"')
         self.assertNotContains(response, "No active cohort coursework right now.")
@@ -560,6 +575,9 @@ class MainHomepageRoutingTests(TestCase):
         self.assertContains(response, "No active courses right now.")
         self.assertNotContains(response, "No active cohort coursework right now.")
         self.assertNotContains(response, "Synthetic hidden course")
+        # The running band head still publishes the empty state: it names the
+        # section even when no cohort occupies it.
+        self.assertContains(response, "Running now — you can still join")
 
     @override_settings(ROOT_URLCONF="course_management.urls")
     def test_course_discovery_template_remains_compatible_with_copied_urlconf(self) -> None:

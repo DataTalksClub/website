@@ -23,6 +23,7 @@ from django.urls import Resolver404, resolve
 from content import catalogue
 from events.models import (
     Event,
+    EventContent,
     EventIdentityNotFound,
     EventPublicIdSequence,
     canonical_detail_path,
@@ -212,15 +213,38 @@ class EventIdentityRouteTests(TestCase):
                 self.assertEqual(head.headers["Location"], f"{self.path}?{query}")
 
     def test_long_event_slug_uses_short_canonical_and_stale_slug_redirects(self) -> None:
-        event = Event.objects.get(public_id=356)
-        canonical = "/events/356/how-to-work-with-ai-coding-agents-spec-driven-development"
-
-        self.assertEqual(canonical_detail_path(event.id), canonical)
-        response = self.client.get(
-            "/events/356/how-to-work-with-ai-coding-agents-spec-driven-development-"
-            "context-and-loop-engineering-workflows",
-            follow=False,
+        event = create_event_identity(
+            title=(
+                "How to work with AI coding agents: spec-driven development "
+                "context and loop engineering workflows"
+            ),
+            source_repository="DataTalksClub/test",
+            source_revision="a" * 40,
+            source_key="fixture-long-slug-event",
         )
+        # The stored slug respects the URL budget: however long the title the
+        # event was imported under, the canonical address carries the truncated
+        # slug, cut at a word boundary.
+        canonical = canonical_detail_path(event.id)
+        self.assertEqual(
+            canonical,
+            f"/events/{event.public_id}/how-to-work-with-ai-coding-agents-spec-driven-development",
+        )
+        # The address the pre-truncation title used to publish under is a
+        # stale slug like any other: exactly one redirect hop to canonical.
+        stale_path = f"{canonical}-context-and-loop-engineering-workflows"
+
+        # Identity alone publishes nothing: the page renders once the event
+        # carries its content row.
+        EventContent.objects.create(
+            event=event,
+            type=EventContent.Type.WEBINAR,
+            starts_at="2026-08-10T15:00:00+00:00",
+            description_html="<p>A synthetic long-slug event.</p>",
+            description_text="A synthetic long-slug event.",
+        )
+
+        response = self.client.get(stale_path, follow=False)
 
         self.assertEqual(response.status_code, 301)
         self.assertEqual(response.headers["Location"], canonical)
