@@ -107,23 +107,19 @@ class EnrollmentSortOrderTests(TestCase):
         # Positions 2, 4 and 6 collapse onto one score (student-16 already
         # holds it): a stable sort must present the whole tied group in the
         # queryset's (position, id) order, after every higher score.
-        Enrollment.objects.filter(
-            course=self.course, position_on_leaderboard__in=[2, 4, 6]
-        ).update(total_score=15)
+        Enrollment.objects.filter(course=self.course, position_on_leaderboard__in=[2, 4, 6]).update(
+            total_score=15
+        )
         ranked = usernames(self.ranked("total_score", "desc"))
         tied = [
             name
             for name in ranked
             if name in {"student-02", "student-04", "student-06", "student-16"}
         ]
-        self.assertEqual(
-            tied, ["student-02", "student-04", "student-06", "student-16"]
-        )
+        self.assertEqual(tied, ["student-02", "student-04", "student-06", "student-16"])
 
     def test_student_sort_is_case_insensitive(self):
-        uppercase = Enrollment.objects.get(
-            student__username="student-02", course=self.course
-        )
+        uppercase = Enrollment.objects.get(student__username="student-02", course=self.course)
         uppercase.student.username = "AAA-STUDENT"
         uppercase.student.save()
         ranked_enrollments = self.ranked("student", "asc")
@@ -131,9 +127,7 @@ class EnrollmentSortOrderTests(TestCase):
 
     def test_no_sort_arguments_match_the_legacy_ordering(self):
         legacy = list(
-            Enrollment.objects.filter(course=self.course).order_by(
-                "position_on_leaderboard", "id"
-            )
+            Enrollment.objects.filter(course=self.course).order_by("position_on_leaderboard", "id")
         )
         self.assertEqual(
             usernames(self.ranked("position", "asc")),
@@ -141,9 +135,7 @@ class EnrollmentSortOrderTests(TestCase):
         )
 
     def test_status_filter_and_sort_compose(self):
-        hidden = Enrollment.objects.get(
-            student__username="student-03", course=self.course
-        )
+        hidden = Enrollment.objects.get(student__username="student-03", course=self.course)
         hidden.display_on_leaderboard = False
         hidden.save()
         ranked_enrollments, counts = enrollment_list_data(
@@ -188,9 +180,7 @@ class EnrollmentSortViewTests(TestCase):
         self.assertEqual(self.first_row_username(response), "view-01")
 
     def test_unknown_sort_param_is_refused_by_the_allowlist(self):
-        response = self.client.get(
-            self.url, {"sort": "student__password", "dir": "desc"}
-        )
+        response = self.client.get(self.url, {"sort": "student__password", "dir": "desc"})
         self.assertEqual(response.status_code, 200)
         # The column falls back to the default; an explicit direction is
         # still honored, so this is position descending.
@@ -239,9 +229,7 @@ class EnrollmentSortViewTests(TestCase):
         self.assertContains(response, "sorted by total_score (desc)")
 
     def test_second_page_of_a_sorted_view_is_the_sorted_sequence(self):
-        response = self.client.get(
-            self.url, {"sort": "total_score", "dir": "desc", "page": "2"}
-        )
+        response = self.client.get(self.url, {"sort": "total_score", "dir": "desc", "page": "2"})
         self.assertEqual(response.status_code, 200)
         page_two = usernames(response.context["enrollments"])
         self.assertEqual(len(page_two), 5)

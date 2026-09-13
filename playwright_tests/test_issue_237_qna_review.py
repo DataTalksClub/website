@@ -84,9 +84,7 @@ def test_qna_participant_cohost_and_error_shells(
         assert detail.status == 200
         # UX-08 added the CSRF token as a hidden input: not an interactive
         # target, so the tap-target contract skips it.
-        for target in page.locator(
-            "button, textarea, input:not([type='hidden']), select"
-        ).all():
+        for target in page.locator("button, textarea, input:not([type='hidden']), select").all():
             box = target.bounding_box()
             assert box is not None and box["height"] >= 44
         sort = page.locator("#qna-sort")

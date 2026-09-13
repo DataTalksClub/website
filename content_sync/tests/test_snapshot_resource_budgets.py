@@ -18,7 +18,6 @@ import shutil
 import subprocess
 import tarfile
 import time
-from dataclasses import dataclass
 from pathlib import Path
 from unittest.mock import patch
 
@@ -27,6 +26,7 @@ from django.test import SimpleTestCase
 from content_sync import snapshot
 from content_sync.course_repository_ingest import (
     CourseRepositoryFetchError,
+    CourseRepositoryLimits,
     fetch_course_repository_snapshot,
     read_course_repository_checkout,
 )
@@ -35,16 +35,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SCRATCH_ROOT = PROJECT_ROOT / ".tmp" / "snapshot-resource-budgets"
 
 
-@dataclass(frozen=True)
-class _Limits:
-    """The tightest ceilings the budgets can be expressed against."""
-
-    max_files: int = 1
-    max_total_bytes: int = 1
-    max_file_bytes: int = 1
-
-
-def _build_tar(*specs: tuple[str, int, bytes, dict[str, str] | None]) -> bytes:
+def _build_tar(*specs: tuple[str, bytes, bytes, dict[str, str] | None]) -> bytes:
     """One tar session holding every spec: ``(name, type, content, pax)``."""
 
     buffer = io.BytesIO()
@@ -59,11 +50,11 @@ def _build_tar(*specs: tuple[str, int, bytes, dict[str, str] | None]) -> bytes:
     return buffer.getvalue()
 
 
-def _file(name: str, content: bytes = b"x") -> tuple[str, int, bytes, None]:
+def _file(name: str, content: bytes = b"x") -> tuple[str, bytes, bytes, None]:
     return (name, tarfile.REGTYPE, content, None)
 
 
-def _dir(name: str) -> tuple[str, int, bytes, None]:
+def _dir(name: str) -> tuple[str, bytes, bytes, None]:
     return (name, tarfile.DIRTYPE, b"", None)
 
 
@@ -147,7 +138,7 @@ class GitArchiveStreamingTests(SimpleTestCase):
         self.assertEqual(
             snapshot.read_snapshot_archive(
                 archive,
-                limits=_Limits(max_files=5, max_total_bytes=100, max_file_bytes=100),
+                limits=CourseRepositoryLimits(max_files=5, max_total_bytes=100, max_file_bytes=100),
                 strip_root=False,
             ),
             {"a.txt": b"hello\n"},
@@ -217,7 +208,11 @@ class ArchiveStructureBudgetTests(SimpleTestCase):
         archive = _build_tar(*[_dir(f"dir-{index:03d}/") for index in range(100)])
 
         with self.assertRaises(snapshot.SnapshotError) as raised:
-            snapshot.read_snapshot_archive(archive, limits=_Limits(), strip_root=False)
+            snapshot.read_snapshot_archive(
+                archive,
+                limits=CourseRepositoryLimits(max_files=1, max_total_bytes=1, max_file_bytes=1),
+                strip_root=False,
+            )
 
         self.assertEqual(raised.exception.code, "archive_members_exceeded")
 
@@ -227,7 +222,7 @@ class ArchiveStructureBudgetTests(SimpleTestCase):
 
         result = snapshot.read_snapshot_archive(
             _build_tar(*specs),
-            limits=_Limits(max_files=10, max_total_bytes=100, max_file_bytes=10),
+            limits=CourseRepositoryLimits(max_files=10, max_total_bytes=100, max_file_bytes=10),
             strip_root=False,
         )
 
@@ -248,7 +243,9 @@ class ArchiveStructureBudgetTests(SimpleTestCase):
 
         with self.assertRaises(snapshot.SnapshotError) as raised:
             snapshot.read_snapshot_archive(
-                gzip.compress(_build_tar(*specs)), limits=_Limits(), strip_root=False
+                gzip.compress(_build_tar(*specs)),
+                limits=CourseRepositoryLimits(max_files=1, max_total_bytes=1, max_file_bytes=1),
+                strip_root=False,
             )
 
         self.assertEqual(raised.exception.code, "archive_expansion_exceeded")
@@ -258,7 +255,7 @@ class ArchiveStructureBudgetTests(SimpleTestCase):
         with self.assertRaises(snapshot.SnapshotError) as raised:
             snapshot.read_snapshot_archive(
                 _build_tar(link),
-                limits=_Limits(max_files=5, max_total_bytes=100, max_file_bytes=10),
+                limits=CourseRepositoryLimits(max_files=5, max_total_bytes=100, max_file_bytes=10),
                 strip_root=False,
             )
         self.assertEqual(raised.exception.code, "archive_entry_invalid")
@@ -267,7 +264,7 @@ class ArchiveStructureBudgetTests(SimpleTestCase):
         with self.assertRaises(snapshot.SnapshotError) as raised:
             snapshot.read_snapshot_archive(
                 duplicate,
-                limits=_Limits(max_files=5, max_total_bytes=100, max_file_bytes=10),
+                limits=CourseRepositoryLimits(max_files=5, max_total_bytes=100, max_file_bytes=10),
                 strip_root=False,
             )
         self.assertEqual(raised.exception.code, "duplicate_path")
@@ -325,7 +322,9 @@ class FetchBudgetTests(SimpleTestCase):
                     owner="owner",
                     repository="repo",
                     commit_sha="a" * 40,
-                    limits=_Limits(max_files=5, max_total_bytes=100, max_file_bytes=10),
+                    limits=CourseRepositoryLimits(
+                        max_files=5, max_total_bytes=100, max_file_bytes=10
+                    ),
                 )
 
         self.assertEqual(raised.exception.code, "course_repository_fetch_timeout")
@@ -344,7 +343,9 @@ class FetchBudgetTests(SimpleTestCase):
                     owner="owner",
                     repository="repo",
                     commit_sha="a" * 40,
-                    limits=_Limits(max_files=5, max_total_bytes=100, max_file_bytes=10),
+                    limits=CourseRepositoryLimits(
+                        max_files=5, max_total_bytes=100, max_file_bytes=10
+                    ),
                 )
 
         self.assertEqual(raised.exception.code, "course_repository_fetch_timeout")
@@ -358,7 +359,7 @@ class TransportBudgetParityTests(SimpleTestCase):
     def test_a_structurally_exhausting_tree_refuses_identically(self) -> None:
         deep = "/".join(f"level-{index:02d}" for index in range(100))
         root, commit_sha = _git_repo("deep-tree", file_relative=f"{deep}/deepest.txt")
-        limits = _Limits(max_files=1, max_total_bytes=1_000_000, max_file_bytes=100)
+        limits = CourseRepositoryLimits(max_files=1, max_total_bytes=1_000_000, max_file_bytes=100)
 
         with self.assertRaises(CourseRepositoryFetchError) as pulled:
             read_course_repository_checkout(root, commit_sha=commit_sha, limits=limits)

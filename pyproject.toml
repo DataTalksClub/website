@@ -158,6 +158,7 @@ module = [
     "scripts.projection_build.public_projection_source",
     "accounts.services.email_verification",
     "courses.services.mailchimp_course_tag_import",
+    "courses.tests.test_enrollment_error_accessibility",
     "courses.tests.test_family_page_content",
     "courses.tests.test_homework_submission_learning_public_markup",
     "courses.tests.test_mailchimp_course_tag_import",
@@ -169,6 +170,7 @@ module = [
     "scripts.tests.test_ml_zoomcamp_2021_identity_merge",
     "scripts.tests.test_registrant_import",
     "scripts.tests.test_scoring_import_submitted_at",
+    "studio_courses.tests.test_enrollment_sorting",
 ]
 ignore_errors = false
 

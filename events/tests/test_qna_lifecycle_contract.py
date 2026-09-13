@@ -101,9 +101,7 @@ class EventQnaLifecyclePollContractTests(TestCase):
     def test_open_poll_reports_capabilities(self) -> None:
         payload = self._poll()
         self.assertEqual(payload["state"], "open")
-        self.assertEqual(
-            payload["capabilities"], {"can_ask": True, "can_vote": True}
-        )
+        self.assertEqual(payload["capabilities"], {"can_ask": True, "can_vote": True})
 
     def test_closed_poll_answers_200_with_the_new_state(self) -> None:
         stale = self._poll()
@@ -115,9 +113,7 @@ class EventQnaLifecyclePollContractTests(TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(payload["state"], "closed")
-        self.assertEqual(
-            payload["capabilities"], {"can_ask": False, "can_vote": False}
-        )
+        self.assertEqual(payload["capabilities"], {"can_ask": False, "can_vote": False})
 
     def test_participant_page_renders_lifecycle_from_the_session(self) -> None:
         participant, _token = security.new_participant()

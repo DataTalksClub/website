@@ -103,6 +103,8 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "scripts/tests/test_identity_manifest.py",
     "scripts/tests/test_ml_zoomcamp_2021_identity_merge.py",
     "scripts/tests/test_registrant_import.py",
+    "courses/tests/test_enrollment_error_accessibility.py",
+    "studio_courses/tests/test_enrollment_sorting.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",

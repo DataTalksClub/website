@@ -163,9 +163,7 @@ def test_sort_is_global_and_survives_pagination_without_javascript(
         assert "page=" not in page.url
         settle(page, PAGE_SIZE)
         expect(first_row(page)).to_contain_text("page-student-01")
-        expect(page.locator("th", has_text="Pos").first).to_have_attribute(
-            "aria-sort", "ascending"
-        )
+        expect(page.locator("th", has_text="Pos").first).to_have_attribute("aria-sort", "ascending")
         page.screenshot(path=str(EVIDENCE / "position-asc-reset.png"), full_page=True)
     finally:
         context.close()
@@ -174,9 +172,7 @@ def test_sort_is_global_and_survives_pagination_without_javascript(
 def test_sort_is_keyboard_operable_and_announces_state(
     browser: Browser, live_server, sort_course: Cohort
 ) -> None:
-    page = studio_page(
-        browser, live_server, sort_course, viewport={"width": 1440, "height": 900}
-    )
+    page = studio_page(browser, live_server, sort_course, viewport={"width": 1440, "height": 900})
     context = page.context
     try:
         settle(page, PAGE_SIZE)
