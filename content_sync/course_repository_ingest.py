@@ -37,6 +37,7 @@ one set of numbers rather than two.
 from __future__ import annotations
 
 import re
+import time
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -63,6 +64,11 @@ COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 MAX_ARCHIVE_BYTES = 200_000_000
 REQUEST_TIMEOUT_SECONDS = 30
 GIT_ARCHIVE_TIMEOUT_SECONDS = 120
+# One monotonic budget for the whole codeload exchange: connect, headers and
+# every body chunk. The socket timeout bounds each individual read, so a
+# stream that dribbles one small chunk per interval would otherwise hold the
+# worker for the sum of arbitrarily many timeouts.
+TOTAL_FETCH_TIMEOUT_SECONDS = 120
 
 ARCHIVE_TRANSPORT = "archive"
 CHECKOUT_TRANSPORT = "checkout"
@@ -189,7 +195,14 @@ def _admit_file(
         )
 
 
-def _response_bytes(response: requests.Response) -> bytes:
+def _response_bytes(response: requests.Response, *, deadline: float) -> bytes:
+    """Collect the response body under both the byte cap and the total budget.
+
+    The deadline check runs once per chunk: no read is *started* once the
+    budget is spent, so after expiry the worker loses at most the one
+    socket-timeout read already in flight, never another full interval.
+    """
+
     content_length = response.headers.get("Content-Length")
     if content_length is not None:
         try:
@@ -204,6 +217,15 @@ def _response_bytes(response: requests.Response) -> bytes:
     size = 0
     try:
         for chunk in response.iter_content(chunk_size=64 * 1024):
+            if time.monotonic() > deadline:
+                raise CourseRepositoryFetchError(
+                    "course_repository_fetch_timeout",
+                    retryable=True,
+                    detail=(
+                        f"the archive stream exceeded the {TOTAL_FETCH_TIMEOUT_SECONDS}s "
+                        f"total fetch budget"
+                    ),
+                )
             if not chunk:
                 continue
             size += len(chunk)
@@ -277,10 +299,17 @@ def fetch_course_repository_snapshot(
     commit_sha: str,
     limits: CourseRepositoryLimits,
 ) -> dict[str, bytes]:
-    """Push transport: download GitHub's immutable commit archive."""
+    """Push transport: download GitHub's immutable commit archive.
+
+    The whole exchange runs against one monotonic deadline in addition to the
+    socket timeouts: a response that keeps making progress but never finishes
+    cannot hold the worker past the budget, and its expiry is a bounded,
+    retryable refusal with the response always closed.
+    """
 
     commit_sha = validate_commit_sha(commit_sha)
     url = f"https://codeload.github.com/{owner}/{repository}/tar.gz/{commit_sha}"
+    deadline = time.monotonic() + TOTAL_FETCH_TIMEOUT_SECONDS
     try:
         response = requests.get(url, timeout=REQUEST_TIMEOUT_SECONDS, stream=True)
     except requests.RequestException as error:
@@ -288,6 +317,15 @@ def fetch_course_repository_snapshot(
             "course_repository_fetch_failed", retryable=True
         ) from error
     try:
+        if time.monotonic() > deadline:
+            raise CourseRepositoryFetchError(
+                "course_repository_fetch_timeout",
+                retryable=True,
+                detail=(
+                    f"the archive headers alone exceeded the "
+                    f"{TOTAL_FETCH_TIMEOUT_SECONDS}s total fetch budget"
+                ),
+            )
         if response.status_code == 404:
             raise CourseRepositoryFetchError(
                 "course_repository_commit_not_found",
@@ -302,7 +340,7 @@ def fetch_course_repository_snapshot(
                 "course_repository_fetch_rejected",
                 detail=f"codeload answered {response.status_code}",
             )
-        archive_bytes = _response_bytes(response)
+        archive_bytes = _response_bytes(response, deadline=deadline)
     finally:
         response.close()
 
