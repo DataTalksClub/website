@@ -68,15 +68,13 @@ class CourseFamilyLandingTests(TestCase):
 
         self.assertContains(response, self.family.starting_point)
         self.assertContains(response, self.family.outcome)
-        self.assertEqual(len(response.context["family_skill_highlights"]), 4)
         # 2026-09: the cohort's own registration card opens the content column
-        # -- ahead of the skills/overview framing -- because it's the fact a
-        # visitor lands on the page to check. The "what people have built"
-        # proof now closes the page instead of sitting inline beside the
-        # skills preview.
+        # because it's the fact a visitor lands on the page to check. The
+        # "From learning to building" preview was dropped -- it only repeated
+        # the full Syllabus section further down -- so the "what people have
+        # built" proof now closes the page right after that syllabus.
         self.assertLess(body.index("Your starting point:"), body.index('id="register-heading"'))
-        self.assertLess(body.index('id="register-heading"'), body.index('id="path-heading"'))
-        self.assertLess(body.index('id="path-heading"'), body.index("Explore learner projects"))
+        self.assertLess(body.index('id="register-heading"'), body.index("Explore learner projects"))
         self.assertContains(response, reverse("family_projects", args=[self.family.slug]))
         self.assertContains(response, reverse("registration_campaign", args=[self.campaign.slug]))
         self.assertNotContains(response, "What people build")
@@ -130,7 +128,6 @@ class CourseFamilyLandingTests(TestCase):
         self.assertEqual(response.status_code, 200)
         for marker in (
             "Your starting point",
-            'id="path-heading"',
             'id="register-heading"',
             'id="certificate-heading"',
             'id="stories-heading"',

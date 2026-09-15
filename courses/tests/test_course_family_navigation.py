@@ -98,9 +98,9 @@ class CourseFamilyNavigationTest(TestCase):
         )
         self.assertContains(response, self.course_url(self.current))
         self.assertContains(response, self.course_url(self.previous))
-        # Editions render as carousel cards pointing at the edition page; the
-        # learner work an edition holds lives on that page, not in the strip.
-        self.assertContains(response, 'id="family-editions-scroller"')
+        # Editions render as cards pointing at the edition page; the learner
+        # work an edition holds lives on that page, not in the strip.
+        self.assertContains(response, 'class="card-grid card-grid-3 family-editions-grid"')
         self.assertNotContains(response, "No projects are available for this edition yet")
         self.assertNotContains(response, self.hidden.title)
         self.assertNotContains(response, self.hidden_project.title)
