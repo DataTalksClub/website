@@ -224,6 +224,112 @@ def load_reviewed_faq() -> int:
     return int(run(path=FAQ_PROJECTION, apply=True)["courses"])
 
 
+def load_synced_faq() -> int:
+    """Publish the synthetic course FAQ as synced rows, the way the engine does.
+
+    The FAQ pages read ``SyncedDocument`` rows written by the ``dtc-faq``
+    parser (issue #384), not the staged release this module also seeds. This
+    seeds the same courses from the synthetic import payload in the parser's
+    record shape: the section tree with the raw question bodies and the
+    source-relative image paths the read model translates at request time.
+    """
+
+    import hashlib
+    import json
+
+    from community_base.content_sync.models import ContentSource as EngineContentSource
+
+    from content.faq_data import _faq_question_slug
+    from content.models import SyncedDocument
+
+    payload = json.loads(FAQ_PROJECTION.read_text(encoding="utf-8"))
+    source = EngineContentSource.objects.get_or_create(
+        slug="dtc-faq",
+        defaults={
+            "repo_name": "DataTalksClub/faq",
+            # A synthetic secret so the row satisfies the engine's own shape
+            # rules; nothing here reads or keeps a real credential.
+            "webhook_secret": "test-support-synthetic-secret",
+        },
+    )[0]
+
+    rows = []
+    for course in payload["courses"]:
+        slug = course["slug"]
+        sections = []
+        declared_images: list[str] = []
+        for section in course["sections"]:
+            questions = []
+            for order, question in enumerate(section["questions"], start=1):
+                source_path = str(question.get("source_path") or "")
+                filename = source_path.rsplit("/", 1)[-1]
+                images = []
+                for image in question.get("images") or []:
+                    image_file = str(image["public_path"]).rsplit("/", 1)[-1]
+                    declared_images.append(image_file)
+                    images.append(
+                        {
+                            "id": str(image["id"]),
+                            "description": str(image.get("description") or ""),
+                            "path": image_file,
+                        }
+                    )
+                questions.append(
+                    {
+                        "id": str(question["id"]),
+                        "slug": _faq_question_slug(filename) if filename else None,
+                        "question": str(question["question"]),
+                        "sort_order": order,
+                        "images": images,
+                        "body": str(question["answer"]),
+                        "source_path": source_path,
+                    }
+                )
+            sections.append(
+                {
+                    "id": str(section["id"]),
+                    "name": str(section.get("name") or section.get("title") or ""),
+                    "comment": "",
+                    "questions": questions,
+                }
+            )
+        record = {
+            "course": slug,
+            "course_name": str(course["name"]),
+            "slack_channel": "",
+            "sections": sections,
+            "declared_images": sorted(set(declared_images)),
+            "source_path": f"_questions/{slug}/_metadata.yaml",
+            "provenance": {
+                "repository": "DataTalksClub/faq",
+                "revision": str(payload.get("source", {}).get("revision", "")),
+                "source_path": f"_questions/{slug}/_metadata.yaml",
+                "source_key": slug,
+                "checksum": "",
+            },
+        }
+        checksum = hashlib.sha256(
+            json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        record["provenance"]["checksum"] = checksum
+        rows.append(
+            SyncedDocument(
+                source=source,
+                content_kind="faq",
+                stable_key=slug,
+                slug=slug,
+                title=course["name"],
+                summary="",
+                public_path=f"/faq/{slug}.html",
+                source_path=record["source_path"],
+                checksum=checksum,
+                record=record,
+            )
+        )
+    SyncedDocument.objects.bulk_create(rows)
+    return len(rows)
+
+
 def _synthetic_catalogue() -> dict[str, Any]:
     import json
 
@@ -354,6 +460,7 @@ def load_reviewed_reference_data() -> dict[str, int]:
         "docs": load_reviewed_docs(),
         "synced_docs": load_synced_docs(),
         "faq": load_reviewed_faq(),
+        "synced_faq": load_synced_faq(),
         "public_content": load_reviewed_public_content(),
         "synced_wiki": load_synced_wiki(),
         "testimonials": load_homepage_testimonials(),

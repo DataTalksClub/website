@@ -189,6 +189,10 @@ class FaqParser:
             "sort_order": sort_order,
             "images": images,
             "body": body,
+            # The source-relative address the reviewed import published too: the
+            # reader derives the question's filename from it, which is how
+            # question-to-question links in answer bodies resolve.
+            "source_path": relative,
             "filename": path.name,
         }
 

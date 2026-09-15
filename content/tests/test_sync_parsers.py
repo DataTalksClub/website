@@ -493,6 +493,12 @@ def _faq_question(
 
 
 class FaqParserTests(_CheckoutCase):
+    def setUp(self) -> None:
+        super().setUp()
+        # The reference data seeds the synced FAQ rows the catalogue reads;
+        # the parser contract tests exercise their own synced state from empty.
+        SyncedDocument.objects.filter(source__slug="dtc-faq").delete()
+
     def test_discover_builds_course_tree_and_drops_empty_sections(self) -> None:
         source = _source("dtc-faq")
         parser = get_parser("faq")
