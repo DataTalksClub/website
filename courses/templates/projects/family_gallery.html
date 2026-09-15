@@ -5,15 +5,18 @@
   cohort/edition, not one cohort's submissions (courses/views/
   family_project_gallery.py).
 
-  projects/list_all.html is the one-cohort catalogue this page's cards and
-  jump-link markup are borrowed from: `.project-section`, `.row-list`,
-  `.project-jumps`, `.band-link` and `.mono-note` are all its own classes,
-  reused rather than reinvented. What differs is the grouping -- a multi-year
-  family (ml-zoomcamp has run since 2021) can hold many cohorts and many
-  projects, so this page groups by cohort (newest first) behind the site's
-  shared `.faq-fold` disclosure rather than listing every submission flat.
-  It links out to `cohort_project_list` / `cohort_projects` for the row-level
-  submissions a cohort's own catalogue already lists.
+  projects/list_all.html is the one-cohort catalogue this page's `.row-list`
+  markup is borrowed from, and templates/review/_docs_styles.html's
+  `.docs-row` is where the whole-row-is-a-link treatment below comes from.
+  What differs from a single cohort's catalogue is the source: a multi-year
+  family (ml-zoomcamp has run since 2021) draws its rows from every visible
+  cohort at once. Readers said they just want to see every project, not a
+  wall of per-cohort folds, so this lists every project flat -- newest
+  cohort first, each cohort's own projects in their existing order -- with
+  each row tagged by its own cohort/edition (a project like "Capstone
+  Project" exists once per edition, so the tag is what keeps a repeated
+  title unambiguous). It links each row to `cohort_project_list` for the
+  row-level submissions a cohort's own catalogue already lists.
 
   This page has no single cohort, so it does not extend projects/_base.html's
   default `page_header` block (that block resolves a `cohort` url from
@@ -30,12 +33,38 @@
 {% endblock %}
 
 {% block extra_styles %}
-  /* Borrowed verbatim from projects/list_all.html: the row of jump links to
-     each project's own submission list. */
-  .project-jumps {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem 1.25rem;
+  /* One project row in the flat family-wide list: the shared `.row-list`/
+     `.list-row` primitives carry the divided row layout and the whole-row
+     link treatment is borrowed from templates/review/_docs_styles.html's
+     `.docs-row`, so this only adds the row's own text rhythm and the cohort
+     tag + submission count on the trailing rail. */
+  .gallery-project-row {
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .gallery-project-row:hover .gallery-project-row-title {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .gallery-project-row-body {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
+  }
+
+  .gallery-project-row-title {
+    display: block;
+    font-weight: 800;
+  }
+
+  .gallery-project-row-meta {
+    display: block;
+  }
+
+  .gallery-project-row-count {
+    white-space: nowrap;
   }
 {% endblock %}
 
@@ -47,7 +76,7 @@
     <p class="mono-label mono-label-indigo">{{ course_family.title }}</p>
     <h1>All Project Submissions</h1>
     <p class="project-lede">
-      Every learner project submitted across every {{ course_family.title }} cohort, grouped by edition.
+      Every learner project submitted across every {{ course_family.title }} cohort.
     </p>
     <div class="project-toolbar">
       <a class="cta cta-compact cta-secondary interactive-lift" href="{{ course_family_url }}">
@@ -63,42 +92,25 @@
 {% block project_content %}
   <section class="project-section" aria-labelledby="family-gallery-heading">
     <div class="project-section-head">
-      <h2 id="family-gallery-heading">Projects by cohort</h2>
-      {% if cohort_groups %}
+      <h2 id="family-gallery-heading">All projects</h2>
+      {% if projects %}
         <p class="mono-note">
-          {{ cohort_groups|length }} cohort{{ cohort_groups|length|pluralize }} with projects
+          {{ projects|length }} project{{ projects|length|pluralize }}
         </p>
       {% endif %}
     </div>
-    {% if cohort_groups %}
+    {% if projects %}
       <div class="row-list">
-        {% for group in cohort_groups %}
-          <details class="faq-fold" data-gallery-cohort="{{ group.cohort.identifier }}" {% if forloop.counter0 < default_open_count %}open{% endif %}>
-            <summary class="faq-fold-summary">
-              <span class="faq-question-title">
-                {{ group.cohort.identifier }}
-                <span class="mono-note">
-                  {{ group.projects|length }} project{{ group.projects|length|pluralize }}
-                </span>
-              </span>
-              <span class="faq-fold-marker" aria-hidden="true"></span>
-            </summary>
-            <div class="faq-answer">
-              <div class="project-jumps">
-                {% for project in group.projects %}
-                  <a class="band-link" href="{% url 'cohort_project_list' course_slug=course_family.slug cohort_identifier=group.cohort.identifier project_slug=project.slug %}">
-                    {{ project.title }}
-                    <span class="mono-note">{{ project.submissions_count }}</span>
-                  </a>
-                {% endfor %}
-              </div>
-              <p class="project-note">
-                <a class="band-link" href="{% url 'cohort_projects' course_slug=course_family.slug cohort_identifier=group.cohort.identifier %}">
-                  Browse every {{ group.cohort.identifier }} submission →
-                </a>
-              </p>
-            </div>
-          </details>
+        {% for project in projects %}
+          <a class="list-row gallery-project-row interactive-card interactive-lift" href="{% url 'cohort_project_list' course_slug=course_family.slug cohort_identifier=project.cohort.identifier project_slug=project.slug %}">
+            <span class="gallery-project-row-body">
+              <span class="gallery-project-row-title">{{ project.title }}</span>
+              <span class="gallery-project-row-meta mono-note">{{ project.cohort.identifier }}</span>
+            </span>
+            <span class="mono-note gallery-project-row-count">
+              {{ project.submissions_count }} submission{{ project.submissions_count|pluralize }}
+            </span>
+          </a>
         {% endfor %}
       </div>
     {% else %}

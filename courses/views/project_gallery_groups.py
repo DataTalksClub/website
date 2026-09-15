@@ -4,12 +4,17 @@
 one :class:`~courses.models.cohort.Cohort` (issue #179's design-system port).
 The two galleries built from this module answer a wider question -- "what did
 people build across an entire course family" and "what did people build
-anywhere on the site" -- so they group :class:`~courses.models.project.Project`
-rows by cohort (and, site-wide, by family) instead of scoping to one cohort.
+anywhere on the site" -- so they read :class:`~courses.models.project.Project`
+rows across many cohorts (and, site-wide, many families) instead of scoping to
+one cohort.
 
-Both galleries fold cohorts most people are not looking for behind a
-disclosure, so this module only ever returns cohorts (and families) that
-actually hold a project: an empty cohort would just be a fold with nothing
+The site-wide gallery still folds cohorts most people are not looking for
+behind a disclosure, grouped by family then cohort (``site_project_groups``);
+the family-wide gallery instead flattens every cohort's projects into one
+newest-first list (``family_project_list``) -- readers said they just want to
+see all of a family's projects, not a wall of per-cohort folds. Either way,
+this module only ever returns cohorts (and families) that actually hold a
+project: an empty cohort would just be a fold, or a flat list, with nothing
 under it.
 
 The two counted totals a caller reads off a group -- ``project_count`` and
@@ -112,6 +117,28 @@ def family_project_groups(family: Course) -> list:
         Cohort.objects.filter(course=family, visible=True).order_by("-year", "-id")
     )
     return cohort_project_groups(cohorts)
+
+
+def family_project_list(family: Course) -> list:
+    """Every project ``family`` holds, across every visible cohort, as one flat
+    sequence rather than grouped by cohort.
+
+    The family-wide gallery (``family_project_gallery_view``) shows "every
+    project", not "every cohort" -- readers said as much about the old
+    per-cohort ``<details>`` folds. This still orders newest cohort first,
+    each cohort's own projects in their existing order, by flattening
+    :func:`family_project_groups`; the site-wide gallery keeps its own
+    grouped-by-family-then-cohort shape via :func:`site_project_groups`; this
+    is not a replacement for that. Each returned project carries its cohort
+    as ``.cohort`` so a flat list can still tag which edition it came from.
+    """
+
+    projects = []
+    for group in family_project_groups(family):
+        for project in group.projects:
+            project.cohort = group.cohort
+            projects.append(project)
+    return projects
 
 
 def site_project_groups() -> list:

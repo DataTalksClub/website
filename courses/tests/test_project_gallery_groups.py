@@ -13,6 +13,7 @@ from courses.models import Cohort, Course, Project
 from courses.views.project_gallery_groups import (
     cohort_project_groups,
     family_project_groups,
+    family_project_list,
     site_project_groups,
 )
 
@@ -118,6 +119,34 @@ class FamilyProjectGroupsTests(ProjectGalleryGroupsTestBase):
         groups = family_project_groups(family)
 
         self.assertEqual([group.cohort for group in groups], [cohort])
+
+
+class FamilyProjectListTests(ProjectGalleryGroupsTestBase):
+    def test_flattens_every_cohort_newest_first(self):
+        family = self.make_family("ml-zoomcamp")
+        cohort_2023 = self.make_cohort(family, 2023)
+        cohort_2025 = self.make_cohort(family, 2025)
+        self.make_project(cohort_2023, "midterm")
+        capstone_a = self.make_project(cohort_2025, "capstone-a")
+        capstone_b = self.make_project(cohort_2025, "capstone-b")
+
+        projects = family_project_list(family)
+
+        self.assertEqual(
+            [project.slug for project in projects],
+            ["capstone-a", "capstone-b", "midterm"],
+        )
+        self.assertEqual(projects[0].cohort, cohort_2025)
+        self.assertEqual(projects[1].cohort, cohort_2025)
+        self.assertEqual(projects[2].cohort, cohort_2023)
+        self.assertIs(projects[0].cohort, projects[1].cohort)
+        self.assertEqual({projects[0].id, projects[1].id}, {capstone_a.id, capstone_b.id})
+
+    def test_a_family_with_no_projects_is_an_empty_list(self):
+        family = self.make_family("ml-zoomcamp")
+        self.make_cohort(family, 2025)
+
+        self.assertEqual(family_project_list(family), [])
 
 
 class SiteProjectGroupsTests(ProjectGalleryGroupsTestBase):

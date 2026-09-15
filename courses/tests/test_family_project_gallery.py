@@ -29,7 +29,7 @@ class FamilyProjectGalleryTestBase(TestCase):
         cls.project_2025_a = cls._project(cls.cohort_2025, "midterm-2025")
         cls.project_2025_b = cls._project(cls.cohort_2025, "capstone-2025")
         cls.project_hidden = cls._project(cls.cohort_hidden, "hidden-project")
-        # cohort_2022 stays projectless: it must not become a group of its own.
+        # cohort_2022 stays projectless: it must not add an empty entry.
 
         cls.user = User.objects.create_user(
             username="learner", email="learner@example.com", password="x"
@@ -77,66 +77,65 @@ class FamilyProjectGalleryTestBase(TestCase):
         return reverse("family_projects", kwargs={"course_slug": self.family.slug})
 
 
-class FamilyProjectGalleryGroupingTests(FamilyProjectGalleryTestBase):
+class FamilyProjectGalleryFlatListTests(FamilyProjectGalleryTestBase):
     def test_route_renders_the_gallery_template(self):
         response = self.client.get(self.gallery_url())
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "projects/family_gallery.html")
 
-    def test_groups_projects_by_cohort_newest_first(self):
+    def test_lists_every_project_flat_newest_cohort_first(self):
         response = self.client.get(self.gallery_url())
 
-        identifiers = [
-            group.cohort.identifier for group in response.context["cohort_groups"]
-        ]
-        self.assertEqual(identifiers, ["2025", "2024", "2023"])
+        slugs = [project.slug for project in response.context["projects"]]
+        # 2025 holds two projects, in their existing (creation) order.
+        self.assertEqual(
+            slugs,
+            ["midterm-2025", "capstone-2025", "midterm-2024", "midterm-2023"],
+        )
 
-    def test_projects_are_attributed_to_the_right_cohort(self):
+    def test_each_project_is_tagged_with_its_own_cohort(self):
         response = self.client.get(self.gallery_url())
-        groups = {
-            group.cohort.identifier: group
-            for group in response.context["cohort_groups"]
+
+        cohorts_by_slug = {
+            project.slug: project.cohort.identifier
+            for project in response.context["projects"]
         }
 
-        self.assertEqual(
-            sorted(project.slug for project in groups["2025"].projects),
-            ["capstone-2025", "midterm-2025"],
-        )
-        self.assertEqual(
-            [project.slug for project in groups["2024"].projects], ["midterm-2024"]
-        )
-        self.assertEqual(
-            [project.slug for project in groups["2023"].projects], ["midterm-2023"]
-        )
+        self.assertEqual(cohorts_by_slug["midterm-2025"], "2025")
+        self.assertEqual(cohorts_by_slug["capstone-2025"], "2025")
+        self.assertEqual(cohorts_by_slug["midterm-2024"], "2024")
+        self.assertEqual(cohorts_by_slug["midterm-2023"], "2023")
+        self.assertContains(response, '<span class="gallery-project-row-meta mono-note">2025</span>')
 
-    def test_excludes_the_hidden_cohort_and_its_project(self):
+    def test_excludes_the_hidden_cohorts_project(self):
         response = self.client.get(self.gallery_url())
-        identifiers = [
-            group.cohort.identifier for group in response.context["cohort_groups"]
-        ]
 
-        self.assertNotIn("2026", identifiers)
+        slugs = [project.slug for project in response.context["projects"]]
+        self.assertNotIn("hidden-project", slugs)
         self.assertNotContains(response, "hidden-project")
 
-    def test_a_cohort_with_no_projects_is_not_a_group(self):
+    def test_a_cohort_with_no_projects_adds_nothing(self):
         response = self.client.get(self.gallery_url())
-        identifiers = [
-            group.cohort.identifier for group in response.context["cohort_groups"]
-        ]
 
-        self.assertNotIn("2022", identifiers)
+        cohorts = {
+            project.cohort.identifier for project in response.context["projects"]
+        }
+        self.assertNotIn("2022", cohorts)
 
     def test_submission_counts_exclude_volunteer_review_only(self):
         response = self.client.get(self.gallery_url())
-        groups = {
-            group.cohort.identifier: group
-            for group in response.context["cohort_groups"]
+        projects_by_slug = {
+            project.slug: project for project in response.context["projects"]
         }
-        projects_2025 = {project.slug: project for project in groups["2025"].projects}
 
-        self.assertEqual(projects_2025["midterm-2025"].submissions_count, 1)
-        self.assertEqual(projects_2025["capstone-2025"].submissions_count, 0)
+        self.assertEqual(projects_by_slug["midterm-2025"].submissions_count, 1)
+        self.assertEqual(projects_by_slug["capstone-2025"].submissions_count, 0)
+
+    def test_the_page_shows_no_per_cohort_fold(self):
+        response = self.client.get(self.gallery_url())
+
+        self.assertNotContains(response, "data-gallery-cohort")
 
 
 class FamilyProjectGalleryLinkTests(FamilyProjectGalleryTestBase):
@@ -153,15 +152,6 @@ class FamilyProjectGalleryLinkTests(FamilyProjectGalleryTestBase):
 
         self.assertContains(response, project_list_url)
 
-    def test_links_to_the_cohorts_full_submission_catalogue(self):
-        response = self.client.get(self.gallery_url())
-        cohort_projects_url = reverse(
-            "cohort_projects",
-            kwargs={"course_slug": self.family.slug, "cohort_identifier": "2025"},
-        )
-
-        self.assertContains(response, cohort_projects_url)
-
     def test_links_to_the_site_wide_gallery(self):
         response = self.client.get(self.gallery_url())
 
@@ -173,20 +163,6 @@ class FamilyProjectGalleryLinkTests(FamilyProjectGalleryTestBase):
         )
 
         self.assertContains(response, self.gallery_url())
-
-
-class FamilyProjectGalleryDisclosureTests(FamilyProjectGalleryTestBase):
-    def test_the_two_newest_cohorts_are_open_by_default(self):
-        response = self.client.get(self.gallery_url())
-
-        self.assertContains(response, 'data-gallery-cohort="2025" open>')
-        self.assertContains(response, 'data-gallery-cohort="2024" open>')
-
-    def test_older_cohorts_are_folded_by_default(self):
-        response = self.client.get(self.gallery_url())
-
-        self.assertContains(response, 'data-gallery-cohort="2023" >')
-        self.assertNotContains(response, 'data-gallery-cohort="2023" open>')
 
 
 class FamilyProjectGalleryEmptyCaseTests(TestCase):
@@ -206,7 +182,7 @@ class FamilyProjectGalleryEmptyCaseTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["cohort_groups"], [])
+        self.assertEqual(response.context["projects"], [])
         self.assertContains(response, "No project submissions yet")
 
     def test_an_unknown_family_404s(self):
