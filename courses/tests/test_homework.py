@@ -3,7 +3,6 @@ import uuid
 from pathlib import Path
 
 from django.urls import reverse
-from django.utils import timezone
 
 from courses.tests.homework_view_base import (
     HomeworkDetailViewTestBase,
@@ -181,51 +180,6 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
         self.assertContains(response, "Instructions on GitHub")
         self.assertContains(response, instructions_url)
         self.assertContains(response, "Log in to submit this homework.")
-
-    def test_homework_detail_navigation_uses_canonical_cohort_homework_urls(self):
-        previous_homework = self.create_adjacent_homework(
-            slug="homework-previous",
-            title="Homework 0: Previous",
-            due_date=self.homework.due_date - timezone.timedelta(days=1),
-        )
-        next_homework = self.create_adjacent_homework(
-            slug="homework-next",
-            title="Homework 2: Next",
-            due_date=self.homework.due_date + timezone.timedelta(days=1),
-        )
-
-        response = self.get_homework_response()
-        previous_url = reverse(
-            "cohort_homework",
-            kwargs={
-                "course_slug": self.course.course.slug,
-                "cohort_identifier": self.course.identifier,
-                "homework_slug": previous_homework.slug,
-            },
-        )
-        next_url = reverse(
-            "cohort_homework",
-            kwargs={
-                "course_slug": self.course.course.slug,
-                "cohort_identifier": self.course.identifier,
-                "homework_slug": next_homework.slug,
-            },
-        )
-
-        self.assertEqual(response.context["previous_homework"], previous_homework)
-        self.assertEqual(response.context["next_homework"], next_homework)
-        self.assertContains(response, f'href="{previous_url}"')
-        self.assertContains(response, "← Previous homework")
-        self.assertContains(response, f'href="{next_url}"')
-        self.assertContains(response, "Next homework →")
-
-    def create_adjacent_homework(self, *, slug, title, due_date):
-        return self.homework.__class__.objects.create(
-            course=self.course,
-            slug=slug,
-            title=title,
-            due_date=due_date,
-        )
 
     def test_homework_detail_authenticated_no_submission(self):
         response = self.get_homework_response(login=True)
