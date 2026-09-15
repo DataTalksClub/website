@@ -100,28 +100,11 @@
         max-width: 36ch;
       }
 
-      .hero-live-pill {
-        background: var(--mint);
-        border: 1.5px solid var(--green);
-        color: var(--green-text);
-        font-size: 0.75rem;
-        letter-spacing: 0.08em;
-        margin-bottom: 0.35rem;
-      }
-
       .hero-actions {
         display: flex;
         flex-wrap: wrap;
         gap: 0.85rem;
         margin-top: 1.7rem;
-      }
-
-      /* The mockup's quiet mono line under the actions. */
-      .hero-fineprint {
-        color: var(--muted);
-        font-family: var(--font-mono);
-        font-size: 0.8rem;
-        margin-top: 1.1rem;
       }
 
       /* --- hero collage ---------------------------------------------------- */
@@ -824,11 +807,6 @@
 {% block page_header %}
         <div class="courses-hero-grid shell-breakout">
           <div class="courses-hero-intro">
-            {% if home_stats.active_courses %}
-              <span class="status-pill status-pill-live hero-live-pill">
-                <span class="status-dot status-dot-pulse" aria-hidden="true"></span>{{ home_stats.active_courses }} cohort{{ home_stats.active_courses|pluralize }} running now
-              </span>
-            {% endif %}
             <h1 id="courses-hero-heading">Learn data skills. For free. Together.</h1>
             <p class="courses-lede">
               Community-created zoomcamps with real projects, weekly deadlines and
@@ -842,7 +820,6 @@
               {% endif %}
               <a class="cta cta-secondary interactive-lift" href="{% url 'slack' %}">Join the community →</a>
             </div>
-            <p class="hero-fineprint">no payment · no application · join mid-cohort</p>
           </div>
           {% if hero_collage %}
             <div class="hero-collage" aria-hidden="true">
