@@ -1,0 +1,263 @@
+{
+  "issue": 401,
+  "date": "2026-09-15",
+  "scope": "Install six light-theme course illustrations in family heroes and catalogue collage/card slots. Preserve original catalogue cards, authored campaign images and existing dark assets. Focused local commits requested; no push/deployment.",
+  "paths_relative_to": "repository root",
+  "generation": {
+    "tool": "built-in image_gen.imagegen; no API key or CLI generation",
+    "documented_latest_model": "gpt-image-2.5-sunburst-2026-09-08",
+    "documentation_verified_at": "2026-09-15; reused earlier official-documentation check in this session",
+    "documentation_source": "https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst",
+    "actual_backend_model": "unverified; tool exposes neither model selection nor a reliable backend version",
+    "quality": "Clean high-quality drawing requested in prompt; no explicit quality parameter exposed.",
+    "requested_size": [
+      1024,
+      1024
+    ],
+    "actual_source_and_final_size": [
+      1254,
+      1254
+    ],
+    "file_format": "PNG source and transparent PNG delivery; lossless WebP companion",
+    "reference_inputs": [
+      {
+        "path": "references/ai-dev-tools-style.png",
+        "role": "Accepted course composition family reference",
+        "sha256": "ec713cbc2fbd455660fc01d44671b13685e32fc1d05606f5b801601b345c32dd"
+      },
+      {
+        "path": "references/home-step-2.webp",
+        "role": "Homepage drawing style reference",
+        "sha256": "e51e4610490150ae78d5e01262dcd822e308f58662bf9872cb0dbabd181fa4b8"
+      }
+    ]
+  },
+  "shared_reference_note": "Reference paths in generation.reference_inputs are relative to .tmp/course-illustrations-20260915/.",
+  "installed_assets": [
+    {
+      "family_slug": "ai-dev-tools-zoomcamp",
+      "source_png": ".tmp/course-illustrations-20260915/png/ai-dev-tools-zoomcamp.png",
+      "source_sha256": "ec713cbc2fbd455660fc01d44671b13685e32fc1d05606f5b801601b345c32dd",
+      "installed_webp": "core/static/core/illustrations/course-ai-dev-tools-zoomcamp.webp",
+      "installed_sha256": "97d7e828837bed30e02252febe53160743bd93f5d6266dab0f017aac46bb615e",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "decoded_rgba_equal": true,
+      "all_four_borders_transparent": true
+    },
+    {
+      "family_slug": "de-zoomcamp",
+      "source_png": ".tmp/course-illustrations-20260915/png/de-zoomcamp.png",
+      "source_sha256": "6213809b759e71355cea3973943a298a729b409643bd49faf4305482a09da2b8",
+      "installed_webp": "core/static/core/illustrations/course-de-zoomcamp.webp",
+      "installed_sha256": "6d82f6b4382aa72cd139fed1bb56f6d701d505beb7125c0f08ab3a0fa942c913",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "decoded_rgba_equal": true,
+      "all_four_borders_transparent": true
+    },
+    {
+      "family_slug": "llm-zoomcamp",
+      "source_png": ".tmp/course-illustrations-20260915/png/llm-zoomcamp.png",
+      "source_sha256": "e31485dea14e48948915f097f83c28c275b085cd2213b85c107fbde55dec64b9",
+      "installed_webp": "core/static/core/illustrations/course-llm-zoomcamp.webp",
+      "installed_sha256": "75f6f66e013dace240d37bea6c7954c115d736086cf8f9734996975b6121dd78",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "decoded_rgba_equal": true,
+      "all_four_borders_transparent": true
+    },
+    {
+      "family_slug": "ml-zoomcamp",
+      "source_png": ".tmp/course-illustrations-20260915/png/ml-zoomcamp.png",
+      "source_sha256": "9a171f286d8766cffa9120b3113cc60d995c31de7c84e74362c47364089b8366",
+      "installed_webp": "core/static/core/illustrations/course-ml-zoomcamp.webp",
+      "installed_sha256": "c221bd8767a1bb4c6e1fb5fc8d943b9583935166e524d3eaecf48f042c987581",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "decoded_rgba_equal": true,
+      "all_four_borders_transparent": true
+    },
+    {
+      "family_slug": "mlops-zoomcamp",
+      "source_png": ".tmp/course-illustrations-20260915/png/mlops-zoomcamp.png",
+      "source_sha256": "5c5f3be9e7108ceb1f90f1030aa82a7b57633d852e43b1a76b08ca58cda7ee5d",
+      "installed_webp": "core/static/core/illustrations/course-mlops-zoomcamp.webp",
+      "installed_sha256": "d165d6a319e8651bbde434e9020d26fe7e321b733c841558129b149886e3edaa",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "decoded_rgba_equal": true,
+      "all_four_borders_transparent": true
+    },
+    {
+      "family_slug": "sma-zoomcamp",
+      "source_png": ".tmp/course-illustrations-20260915/png/sma-zoomcamp.png",
+      "source_sha256": "22fac109b9a8c29f8d92d224a86227cf7c4828d9c224c8531b8b24ef847731e3",
+      "installed_webp": "core/static/core/illustrations/course-sma-zoomcamp.webp",
+      "installed_sha256": "63532a496f5ef7f8c488aff61fda3e067fe83f3f626f9539ea526611cc3bf98e",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "decoded_rgba_equal": true,
+      "all_four_borders_transparent": true
+    }
+  ],
+  "passes": [
+    {
+      "family_slug": "de-zoomcamp",
+      "prompt": "Use case: illustration-story. Create one NEW light-theme course hero illustration, square 1024x1024 lossless PNG.\n\nReference 1 is the accepted AI Dev Tools illustration, guiding the website family style, character proportions, palette and overall level of detail ONLY. Reference 2 is the homepage's drawing-style reference. Do not reproduce either reference's scene or copy its background silhouette. Create a distinct integrated watercolor blurb for this illustration.\n\nThe human is the same simple friendly green-shirted learner: round opaque warm-white head, navy dot eyes, calm smile, navy stick-like limbs, small filled navy hands with clear connections. Use ONE human and the number of robots explicitly requested by the scene. Match the clean simple flat foreground, confident slightly irregular dark navy ink outlines and compact composition. Keep the hero readable at 400px wide and balanced on a square canvas with about 7 percent breathing room. The full laptop, all figures and all important objects must remain in frame.\n\nPalette: warm white #fdfaf3, dark navy ink #1e2136, green #2b7a35 and indigo #5a62c4, with a softly irregular pale lavender #c9cdf2 watercolor blurb. Keep foreground fills clean and opaque, contours crisp with ordinary narrow antialiasing, and broad soft watercolor pigment variation confined to the background. No generated JPEG compression blocks, grain, scan or paper texture over figures, stippling, dither, mottled foregrounds, dirty gradients, offset gray edges, halos, bevels or shadow outlines. No generic extra decorations, stars, sparks, books unless specifically in the scene, text headings, labels, logos, brand names or watermarks. Simple meaningful symbols and short abstract UI lines are allowed.\n\nReturn the COMPLETE illustration with its own lavender watercolor blurb on one perfectly uniform opaque saturated #ff00ff outer chroma backdrop. All four canvas borders must be that key; no key color inside artwork, no checkerboard, no simulated transparency, no white rectangular backdrop, no background texture or gradient. The lavender cloud edge thins smoothly into the key through diminishing pigment coverage, with no white underpainting, bright rim, coarse speckles, disconnected dots or clipped paint. Retain all opaque white interior fills. The exterior key will be removed later; the lavender watercolor must remain.\n\nCourse meaning: learners build data pipelines that collect, transform and organize data.\nScene: the learner at a laptop is actively joining a pipeline connection with their free hand. Above and beside them is one clear compact data pipeline: two small source-table/document tiles feed through a simple indigo transformation block into a substantial warm-white database cylinder with green bands, ending in a tidy small table of rows and columns. Use a few chunky navy connections and clear directional arrowheads. The connected data flow is the visual focus, with the learner visibly building it. The source and destination should read as useful data infrastructure, not plumbing. ONE human, NO robots, no charts or model-brain symbols. Arrange a balanced fresh scene rather than cloning the AI Dev Tools application window.",
+      "source_keyed": ".tmp/course-illustrations-20260915/de-zoomcamp/source-keyed.png",
+      "source_keyed_sha256": "b54db379a8cda26a72cc70dee1d25e742dedbc56816ae28c702e07f6886ee378",
+      "original_tool_output": "/home/alexey/.codex/generated_images/01a0a479-3d2f-7991-9ca7-bf120c70bac4/exec-7711acb3-fdf1-4474-8ff9-6c931a428392.png",
+      "finishing_command": "uv run --with pillow==12.3.0 --with numpy==2.5.1 --with scipy==1.18.1 python scripts/finish_illustration_key.py .tmp/course-illustrations-20260915/de-zoomcamp/source-keyed.png .tmp/course-illustrations-20260915/de-zoomcamp/finished --fringe-chroma 30 --solid-key-chroma 100 --fringe-radius 20 --size 1254",
+      "finishing_evidence": ".tmp/course-illustrations-20260915/de-zoomcamp/finished/evidence.json",
+      "notes": "Source-specific fringe-chroma 30; native size retained."
+    },
+    {
+      "family_slug": "ml-zoomcamp",
+      "prompt": "Use case: illustration-story. Create one NEW light-theme course hero illustration, square 1024x1024 lossless PNG.\n\nReference 1 is the accepted AI Dev Tools illustration, guiding the website family style, character proportions, palette and overall level of detail ONLY. Reference 2 is the homepage's drawing-style reference. Do not reproduce either reference's scene or copy its background silhouette. Create a distinct integrated watercolor blurb for this illustration.\n\nThe human is the same simple friendly green-shirted learner: round opaque warm-white head, navy dot eyes, calm smile, navy stick-like limbs, small filled navy hands with clear connections. Use ONE human and the number of robots explicitly requested by the scene. Match the clean simple flat foreground, confident slightly irregular dark navy ink outlines and compact composition. Keep the hero readable at 400px wide and balanced on a square canvas with about 7 percent breathing room. The full laptop, all figures and all important objects must remain in frame.\n\nPalette: warm white #fdfaf3, dark navy ink #1e2136, green #2b7a35 and indigo #5a62c4, with a softly irregular pale lavender #c9cdf2 watercolor blurb. Keep foreground fills clean and opaque, contours crisp with ordinary narrow antialiasing, and broad soft watercolor pigment variation confined to the background. No generated JPEG compression blocks, grain, scan or paper texture over figures, stippling, dither, mottled foregrounds, dirty gradients, offset gray edges, halos, bevels or shadow outlines. No generic extra decorations, stars, sparks, books unless specifically in the scene, text headings, labels, logos, brand names or watermarks. Simple meaningful symbols and short abstract UI lines are allowed.\n\nReturn the COMPLETE illustration with its own lavender watercolor blurb on one perfectly uniform opaque saturated #ff00ff outer chroma backdrop. All four canvas borders must be that key; no key color inside artwork, no checkerboard, no simulated transparency, no white rectangular backdrop, no background texture or gradient. The lavender cloud edge thins smoothly into the key through diminishing pigment coverage, with no white underpainting, bright rim, coarse speckles, disconnected dots or clipped paint. Retain all opaque white interior fills. The exterior key will be removed later; the lavender watercolor must remain.\n\nCourse meaning: learners use example data to train models and make useful predictions.\nScene: the learner works at a laptop, pointing toward a simple learning-and-prediction demonstration. One large warm-white chart shows green round example points and indigo square example points in two loosely separated groups, with a single gently curved navy decision boundary. Beside the chart, a compact indigo model block with a small simple connected-node motif receives a few example tiles and produces one new prediction card, which uses the same green circle/indigo square vocabulary. The new data point is visibly assigned to the matching group on the card. Keep this sparse: the chart and prediction card do most of the storytelling. ONE human, NO robots. No financial chart, rising profits, production-server stack, or full software-app assembly scene. Make the large demonstration diagram the clear focus.",
+      "source_keyed": ".tmp/course-illustrations-20260915/ml-zoomcamp/source-keyed.png",
+      "source_keyed_sha256": "0673dbb989ef7a42fb531faf7170ea4de5c491a473f6062a1825f02f02abf453",
+      "original_tool_output": "/home/alexey/.codex/generated_images/01a0a479-3d2f-7991-9ca7-bf120c70bac4/exec-1cbc74f7-ede4-4fde-a22d-c598df1bc54c.png",
+      "finishing_command": "uv run --with pillow==12.3.0 --with numpy==2.5.1 --with scipy==1.18.1 python scripts/finish_illustration_key.py .tmp/course-illustrations-20260915/ml-zoomcamp/source-keyed.png .tmp/course-illustrations-20260915/ml-zoomcamp/finished-edge40 --fringe-chroma 40 --solid-key-chroma 100 --fringe-radius 20 --size 1254",
+      "finishing_evidence": ".tmp/course-illustrations-20260915/ml-zoomcamp/finished-edge40/evidence.json",
+      "notes": "finished/ with fringe-chroma 30 introduced a visible gap in the pale top edge. Source-specific fringe-chroma 40 recovered it; enlarged edge and all three browser previews rechecked."
+    },
+    {
+      "family_slug": "mlops-zoomcamp",
+      "prompt": "Use case: illustration-story. Create one NEW light-theme course hero illustration, square 1024x1024 lossless PNG.\n\nReference 1 is the accepted AI Dev Tools illustration, guiding the website family style, character proportions, palette and overall level of detail ONLY. Reference 2 is the homepage's drawing-style reference. Do not reproduce either reference's scene or copy its background silhouette. Create a distinct integrated watercolor blurb for this illustration.\n\nThe human is the same simple friendly green-shirted learner: round opaque warm-white head, navy dot eyes, calm smile, navy stick-like limbs, small filled navy hands with clear connections. Use ONE human and the number of robots explicitly requested by the scene. Match the clean simple flat foreground, confident slightly irregular dark navy ink outlines and compact composition. Keep the hero readable at 400px wide and balanced on a square canvas with about 7 percent breathing room. The full laptop, all figures and all important objects must remain in frame.\n\nPalette: warm white #fdfaf3, dark navy ink #1e2136, green #2b7a35 and indigo #5a62c4, with a softly irregular pale lavender #c9cdf2 watercolor blurb. Keep foreground fills clean and opaque, contours crisp with ordinary narrow antialiasing, and broad soft watercolor pigment variation confined to the background. No generated JPEG compression blocks, grain, scan or paper texture over figures, stippling, dither, mottled foregrounds, dirty gradients, offset gray edges, halos, bevels or shadow outlines. No generic extra decorations, stars, sparks, books unless specifically in the scene, text headings, labels, logos, brand names or watermarks. Simple meaningful symbols and short abstract UI lines are allowed.\n\nReturn the COMPLETE illustration with its own lavender watercolor blurb on one perfectly uniform opaque saturated #ff00ff outer chroma backdrop. All four canvas borders must be that key; no key color inside artwork, no checkerboard, no simulated transparency, no white rectangular backdrop, no background texture or gradient. The lavender cloud edge thins smoothly into the key through diminishing pigment coverage, with no white underpainting, bright rim, coarse speckles, disconnected dots or clipped paint. Retain all opaque white interior fills. The exterior key will be removed later; the lavender watercolor must remain.\n\nCourse meaning: learners deploy machine learning models and keep the running services healthy.\nScene: the learner at a laptop is tending a small production system. A compact indigo model cube with a simple connected-node motif is being placed onto a short warm-white server stack with green status lights. Above the stack, one modest monitoring screen shows a calm green heartbeat-like performance trace and one checkmark. A pair of restrained curved navy arrows connects the model, deployed service and monitoring as a small continuous update loop. The learner's free hand points to the healthy monitor while their other hand is at the keyboard. ONE human, NO robots. Clearly include the model block to distinguish ML operations from generic IT. No rockets, clouds full of icons, warning crises, financial graphs, or data warehouses. Keep the three components large and legible.",
+      "source_keyed": ".tmp/course-illustrations-20260915/mlops-zoomcamp/source-keyed.png",
+      "source_keyed_sha256": "b3fb130b7b63934da997e6120dbfcfa69fe6e76d002f191cf2056c72e47b66b8",
+      "original_tool_output": "/home/alexey/.codex/generated_images/01a0a479-3d2f-7991-9ca7-bf120c70bac4/exec-d3dbe660-331b-4265-ab94-fbb9489612c9.png",
+      "finishing_command": "uv run --with pillow==12.3.0 --with numpy==2.5.1 --with scipy==1.18.1 python scripts/finish_illustration_key.py .tmp/course-illustrations-20260915/mlops-zoomcamp/source-keyed.png .tmp/course-illustrations-20260915/mlops-zoomcamp/finished --fringe-chroma 30 --solid-key-chroma 100 --fringe-radius 20 --size 1254",
+      "finishing_evidence": ".tmp/course-illustrations-20260915/mlops-zoomcamp/finished/evidence.json",
+      "notes": "Source-specific fringe-chroma 30; native size retained."
+    },
+    {
+      "family_slug": "llm-zoomcamp",
+      "prompt": "Use case: illustration-story. Create one NEW light-theme course hero illustration, square 1024x1024 lossless PNG.\n\nReference 1 is the accepted AI Dev Tools illustration, guiding the website family style, character proportions, palette and overall level of detail ONLY. Reference 2 is the homepage's drawing-style reference. Do not reproduce either reference's scene or copy its background silhouette. Create a distinct integrated watercolor blurb for this illustration.\n\nThe human is the same simple friendly green-shirted learner: round opaque warm-white head, navy dot eyes, calm smile, navy stick-like limbs, small filled navy hands with clear connections. Use ONE human and the number of robots explicitly requested by the scene. Match the clean simple flat foreground, confident slightly irregular dark navy ink outlines and compact composition. Keep the hero readable at 400px wide and balanced on a square canvas with about 7 percent breathing room. The full laptop, all figures and all important objects must remain in frame.\n\nPalette: warm white #fdfaf3, dark navy ink #1e2136, green #2b7a35 and indigo #5a62c4, with a softly irregular pale lavender #c9cdf2 watercolor blurb. Keep foreground fills clean and opaque, contours crisp with ordinary narrow antialiasing, and broad soft watercolor pigment variation confined to the background. No generated JPEG compression blocks, grain, scan or paper texture over figures, stippling, dither, mottled foregrounds, dirty gradients, offset gray edges, halos, bevels or shadow outlines. No generic extra decorations, stars, sparks, books unless specifically in the scene, text headings, labels, logos, brand names or watermarks. Simple meaningful symbols and short abstract UI lines are allowed.\n\nReturn the COMPLETE illustration with its own lavender watercolor blurb on one perfectly uniform opaque saturated #ff00ff outer chroma backdrop. All four canvas borders must be that key; no key color inside artwork, no checkerboard, no simulated transparency, no white rectangular backdrop, no background texture or gradient. The lavender cloud edge thins smoothly into the key through diminishing pigment coverage, with no white underpainting, bright rim, coarse speckles, disconnected dots or clipped paint. Retain all opaque white interior fills. The exterior key will be removed later; the lavender watercolor must remain.\n\nCourse meaning: learners build useful LLM applications that retrieve documents and produce answers grounded in those sources.\nScene: one learner at a laptop interacts with one small friendly green-and-indigo robot assistant. Between them, two or three warm-white document sheets with simple navy paragraph lines form a compact knowledge source. The robot visibly retrieves one sheet with one hand and presents a large answer speech bubble with the other. The answer bubble contains three short navy abstract text lines and two tiny document/source icons matching the retrieved sheets, clearly conveying a sourced answer. Use only one subtle directional connection from documents to answer if needed. Keep the robot's head, BOTH attached arms and hands, all papers and the answer bubble separate and readable. ONE human and ONE robot. This is document retrieval and answering, not agents assembling an app. No code blocks, software component tiles, model-training graphs, book-reading robot pose, or extra characters.",
+      "source_keyed": ".tmp/course-illustrations-20260915/llm-zoomcamp/source-keyed.png",
+      "source_keyed_sha256": "bad522202b1bdc30d87d24bbdd7da0b4ea6c7a52bea29c3526c258a855a75b83",
+      "original_tool_output": "/home/alexey/.codex/generated_images/01a0a479-3d2f-7991-9ca7-bf120c70bac4/exec-c30975c9-0c48-4927-8a62-1bf65b3b116d.png",
+      "finishing_command": "uv run --with pillow==12.3.0 --with numpy==2.5.1 --with scipy==1.18.1 python scripts/finish_illustration_key.py .tmp/course-illustrations-20260915/llm-zoomcamp/source-keyed.png .tmp/course-illustrations-20260915/llm-zoomcamp/finished --fringe-chroma 30 --solid-key-chroma 100 --fringe-radius 20 --size 1254",
+      "finishing_evidence": ".tmp/course-illustrations-20260915/llm-zoomcamp/finished/evidence.json",
+      "notes": "Source-specific fringe-chroma 30; native size retained."
+    },
+    {
+      "family_slug": "sma-zoomcamp",
+      "prompt": "Use case: illustration-story. Create one NEW light-theme course hero illustration, square 1024x1024 lossless PNG.\n\nReference 1 is the accepted AI Dev Tools illustration, guiding the website family style, character proportions, palette and overall level of detail ONLY. Reference 2 is the homepage's drawing-style reference. Do not reproduce either reference's scene or copy its background silhouette. Create a distinct integrated watercolor blurb for this illustration.\n\nThe human is the same simple friendly green-shirted learner: round opaque warm-white head, navy dot eyes, calm smile, navy stick-like limbs, small filled navy hands with clear connections. Use ONE human and the number of robots explicitly requested by the scene. Match the clean simple flat foreground, confident slightly irregular dark navy ink outlines and compact composition. Keep the hero readable at 400px wide and balanced on a square canvas with about 7 percent breathing room. The full laptop, all figures and all important objects must remain in frame.\n\nPalette: warm white #fdfaf3, dark navy ink #1e2136, green #2b7a35 and indigo #5a62c4, with a softly irregular pale lavender #c9cdf2 watercolor blurb. Keep foreground fills clean and opaque, contours crisp with ordinary narrow antialiasing, and broad soft watercolor pigment variation confined to the background. No generated JPEG compression blocks, grain, scan or paper texture over figures, stippling, dither, mottled foregrounds, dirty gradients, offset gray edges, halos, bevels or shadow outlines. No generic extra decorations, stars, sparks, books unless specifically in the scene, text headings, labels, logos, brand names or watermarks. Simple meaningful symbols and short abstract UI lines are allowed.\n\nReturn the COMPLETE illustration with its own lavender watercolor blurb on one perfectly uniform opaque saturated #ff00ff outer chroma backdrop. All four canvas borders must be that key; no key color inside artwork, no checkerboard, no simulated transparency, no white rectangular backdrop, no background texture or gradient. The lavender cloud edge thins smoothly into the key through diminishing pigment coverage, with no white underpainting, bright rim, coarse speckles, disconnected dots or clipped paint. Retain all opaque white interior fills. The exterior key will be removed later; the lavender watercolor must remain.\n\nCourse meaning: learners analyze financial time series and build and evaluate trading strategies using Python and machine learning.\nScene: one learner at a laptop carefully studies a large warm-white market-analysis chart using a simple magnifying glass in the free hand. The chart contains one indigo price line with clear rises AND falls across time and a small row of restrained green/indigo volume bars. The magnifying glass enlarges a small part of this same price pattern. Below the chart on its right, two small side-by-side result panels show different wavy outcomes for comparing tested strategies, using the same green and indigo palette. Keep this an analytical, thoughtful learning scene. ONE human, NO robots. No coins, banknotes, dollar signs, trophies, rockets, luxury, celebration, guaranteed profits or uniformly rising success arrow. No literal chart labels or numeric prices. Favor a few bold readable chart elements over realistic trading-terminal clutter.",
+      "source_keyed": ".tmp/course-illustrations-20260915/sma-zoomcamp/source-keyed.png",
+      "source_keyed_sha256": "a94c050b9c5398a27adda196215977a2fcb2a6ae7b045dc712097521b4c24c8a",
+      "original_tool_output": "/home/alexey/.codex/generated_images/01a0a479-3d2f-7991-9ca7-bf120c70bac4/exec-6908ac2b-8d01-4f2b-bbd6-0233b2801fc8.png",
+      "finishing_command": "uv run --with pillow==12.3.0 --with numpy==2.5.1 --with scipy==1.18.1 python scripts/finish_illustration_key.py .tmp/course-illustrations-20260915/sma-zoomcamp/source-keyed.png .tmp/course-illustrations-20260915/sma-zoomcamp/finished --fringe-chroma 30 --solid-key-chroma 100 --fringe-radius 20 --size 1254",
+      "finishing_evidence": ".tmp/course-illustrations-20260915/sma-zoomcamp/finished/evidence.json",
+      "notes": "Source-specific fringe-chroma 30; native size retained."
+    }
+  ],
+  "ai_dev_tools": {
+    "source_record": ".tmp/ai-dev-tools-hero/concept-v2/generation-record.json",
+    "passes": [
+      {
+        "prompt": "Use case: style-transfer / precise-object-edit.\nAsset type: AI Dev Tools Zoomcamp light-theme website hero illustration, square 2048x2048 lossless PNG, high-quality clean drawing at native resolution.\n\nImage 1 is the accepted composition reference. Redraw this same composition cleanly. Preserve the person at the laptop directing two small AI robot agents to build one software application, their relative positions and scale, the single browser window, the indigo component being fitted into it by the upper robot, the lower robot checking the result, the calm friendly expressions, and the irregular lavender watercolor blurb. Preserve the site's warm-white, navy, green and indigo palette, simple hand-drawn character style, and the complete silhouette with margins. Do not add props or text.\n\nThe reference contains unwanted generation noise. Its composition is approved, its pixel texture is NOT. Reconstruct clean artwork from the scene; do not copy, upscale or sharpen its dirty pixels. Draw crisp, smoothly antialiased navy outlines with deliberate slight hand-drawn variation, UNIFORM opaque warm-white faces and screen interiors, UNIFORM green clothing and robot panels, and UNIFORM indigo interface blocks. These foreground fills must be clean flat colors without mottling, gradients, grain or paper texture. Keep restrained watercolor character only through broad soft pigment variations in the lavender blurb. Keep faces, screen interiors, colored fills and ink lines free of grain and random texture. No JPEG-like compression blocks, mosquito noise, ringing, halos, chromatic speckles, stippling, dither, paper grain, scan texture, dirty gradients, pixel noise, fuzzy edges or global noise overlay. Do not blur fine features or turn the whole illustration into a flat geometric diagram. Each robot's arms and hands must be anatomically coherent and visibly connected to its body; the component-carrying robot's free arm should sit naturally beside its body without merging into the other robot. Retain the person as the directing learner.\n\nGenerate the complete illustration with its own pale lavender watercolor blurb on a perfectly uniform opaque saturated #ff00ff outer chroma backdrop. The key must fill all four outer canvas borders, contain no gradient or noise, and appear nowhere inside the artwork. No painted transparency or checkerboard, white rectangle, hard blurb contour, glow, disconnected paint dots or clipped silhouette. The blurb edge should thin smoothly into the key through diminishing pigment coverage. Keep all white drawing interiors opaque. Return a clean native-resolution PNG; the backdrop will be removed and the lavender artwork retained.",
+        "reference": "../concept-v1/finished/candidate.png",
+        "output": "source-keyed.png",
+        "sha256": "f4aacb8fd5dbfd4c1aad41b50962d5dec589ccdcacaf3c457b268f64ea819bf3",
+        "original": "/home/alexey/.codex/generated_images/01a0a479-3d2f-7991-9ca7-bf120c70bac4/exec-a362de6d-ca03-4403-89e9-e526ddd5f651.png"
+      },
+      {
+        "prompt": "Edit the attached complete illustration. Preserve its exact composition, character identities, poses, scale, spacing, palette, browser UI and irregular lavender watercolor silhouette.\n\nQuality correction: remove the gray/colored ringing and drop-shadow-like fringes around the navy ink strokes. This is particularly visible around the person's eyes and smile and beside the horizontal lines in the browser window. Reconstruct each contour as a single clean navy stroke meeting a clean opaque fill, with only normal narrow antialiasing. No offset outline, bevel, embossed edge, shadow, gray band, colored echo, oversharpening halo or repeated parallel edge. Redraw cleanly, do not blur or upscale the existing noisy edges.\n\nMake foreground white, green and indigo fills visually uniform, with no grain, mottling, scanned-paper noise, dithering, compression blocks or speckles. The deliberate slightly irregular hand-drawn SHAPES remain. Keep soft broad watercolor variation only in the lavender background blurb. Preserve the person's two connected arms, both small friendly robots with two connected arms each, the carried interface component, the checkmark panel, and the laptop. No text, new objects or changed composition.\n\nDeliver the complete square illustration as a lossless PNG at native resolution. Keep the exterior backdrop perfectly uniform saturated #ff00ff with no grain or gradient, no magenta inside artwork, and a clean naturally fading lavender boundary. All white interiors remain opaque. The outer magenta key is temporary and will be removed.",
+        "reference": "source-keyed.png",
+        "output": "source-refined-keyed.png",
+        "sha256": "897311b8179817f4f06660e73ad1d781d3bd4903792e5e9530ebbc0e56a9690d",
+        "original": "/home/alexey/.codex/generated_images/01a0a479-3d2f-7991-9ca7-bf120c70bac4/exec-d7d02056-752b-47d4-b1d9-7a785d9bc99b.png"
+      }
+    ],
+    "finishing_command": "uv run --with pillow==12.3.0 --with numpy==2.5.1 --with scipy==1.18.1 python scripts/finish_illustration_key.py .tmp/ai-dev-tools-hero/concept-v2/source-refined-keyed.png .tmp/ai-dev-tools-hero/concept-v2/finished-edge30 --fringe-chroma 30 --solid-key-chroma 100 --fringe-radius 20 --size 1254",
+    "finishing_evidence": ".tmp/ai-dev-tools-hero/concept-v2/finished-edge30/evidence.json"
+  },
+  "installation": {
+    "method": "Copied the accepted lossless candidate.webp files to the six installed paths, without resizing or recompression. Decoded RGBA equals each approved PNG exactly.",
+    "template": "templates/core/_course_illustration.html",
+    "family_template": "courses/templates/courses/course_family.html",
+    "catalogue_template": "courses/templates/courses/course_list.html",
+    "catalogue_identity": "courses/views/course_list.py: hero_collage_cards retains each DB family slug alongside its title; existing deduplication, ordering and four-card bound preserved.",
+    "fallback": "Unknown family light uses course-learning.webp. Existing dark collage variants and family course-learning-dark.webp remain unchanged.",
+    "asset_verifier": ".agents/skills/website-illustrations/scripts/verify_assets.py",
+    "browser_script": "scripts/dev/check_course_illustrations.py",
+    "browser_evidence": ".tmp/screenshots/course-illustrations-final/report.json",
+    "browser_hosts": [
+      "http://127.0.0.1:8091",
+      "http://localhost:8000"
+    ],
+    "browser_method": "Normal server rendering and static requests; no request interception or browser image replacement.",
+    "note": "The first check coincided with the development-server auto-reload and got connection refused. Retried after normal startup; both hosts returned 200 with all six matching light assets.",
+    "initial_installation_evidence": ".tmp/course-illustrations-20260915/installation/after.json",
+    "final_design_review": {
+      "verdict": "ACCEPT",
+      "reviewer": "Independent adversarial design reviewer",
+      "evidence": ".tmp/screenshots/course-landing-review/",
+      "scope": "All six family landings; repaired installed LLM image; catalogue1440/768/390/320, light/dark. Original four hero cards and all listing cards preserved."
+    },
+    "pixel_evidence": ".tmp/course-illustrations-20260915/installed-pixel-check.json"
+  },
+  "llm_quality_repair": {
+    "reason": "User rejected ambiguous arms, generated compression-like texture and coarse cutout edge.",
+    "passes": [
+      {
+        "prompt": "Use case: precise-object-edit\nAsset: LLM Zoomcamp website illustration, clean native lossless PNG.\nImage 1 is the exact scene/composition anchor. Image 2 is ONLY the approved homepage drawing-style and soft broad watercolor reference, not a scene or cloud to copy.\nRepair Image 1: keep the learner on the left at the laptop, source documents in the center, friendly robot on the right and grounded-answer speech bubble above. Preserve scene layout, figure scale, navy ink, bright green clothing, indigo accents, opaque white faces/screens/documents and simple small filled navy hands. No additional props or text.\nCorrect the robot anatomy: exactly TWO arms, each unambiguously attached to a DIFFERENT shoulder. Its viewer-left arm extends from the left shoulder to hold the document beside it. Its viewer-right arm visibly emerges from the right shoulder and bends naturally across the front of the torso to support the bottom of the same document. Make both shoulder-to-elbow-to-hand paths readable, with no detached limbs, shared shoulder attachments, extra arm-like strokes or stray torso lines.\nRepaint this scene's own pale lavender watercolor wash with broad restrained pigment variation and a gently diminishing irregular perimeter. The current coarse jagged opaque cutout is a defect: replace it with a smooth natural watercolor coverage fade. Keep its broad silhouette but do not copy Image 2's cloud. No isolated speckles, stippling, saw-tooth edge, pale rim, glow, paper halo or dark contour. Clean opaque foreground fills and crisp navy ink: no JPEG-like blocks, random pixel grain, noisy gradients or color speckles.\nOutside the complete illustration use one perfectly uniform saturated #ff00ff chroma backdrop. No transparency simulation, checkerboard, white paper rectangle or backdrop gradient. The outer watercolor pigment gradually thins into that chroma with no white underpainting; preserve faint paint for clean chroma recovery onto cream and white website backgrounds.\nReturn a complete square PNG at the source's native resolution (1254 x 1254 if supported), with breathing room around the full scene. Do not crop characters or watercolor. Do not add letters, logos or labels.",
+        "source": ".tmp/course-illustrations-20260915/llm-review/repair-source.png",
+        "verdict": "REVISE: anatomy corrected, cellular cloud pattern still present."
+      },
+      {
+        "prompt": "Edit this complete LLM course illustration. Preserve the exact foreground scene and the now-correct robot pose: two clear arms attached to different shoulders, one sweeping across its torso, each hand holding the same document. Preserve all character proportions, faces, white fills, green clothing, crisp navy outlines, laptop, papers, speech bubble, symbols, scale and coordinates.\nChange ONLY the lavender background wash throughout its interior and edge. The current repeated tiny cellular/crystalline/polygon network is a generation defect. Remove ALL faceted or cellular pattern from the wash. Paint an extremely calm pale lavender watercolor with just a few BROAD diffuse pigment variations, as though a large soft brush made two or three diluted washes. Smooth continuous color fields, no tiny patterns, fine paper grain, wrinkles, marbling, stippling, speckles, polygon mesh, compression-like noise or crumpled plastic texture.\nThis scene retains its own broad integrated lavender blurb; do not make a new geometric panel. Let the outer 40–70 pixels of the watercolor gently diminish in pigment coverage to the surrounding key, with a softly irregular edge, not a uniformly blurred silhouette. No hard opaque cutout, white underpainting, bright rim, halo or outline.\nOutside the drawing use exactly one uniform saturated #ff00ff backdrop. No checkerboard, alpha simulation or gradient in the exterior key. Deliver complete 1254 x 1254 lossless PNG. Keep canvas, layout and all foreground shapes unchanged. Do not add any props or labels.",
+        "source": ".tmp/course-illustrations-20260915/llm-review/repair2-source.png",
+        "sha256": "38e66c7e16bfbb60f31c77ebafe97e6458b61c7f53a4b61f0fb7bbff6a136c3e",
+        "verdict": "Broad watercolor and clear anatomy visually accepted by independent reviewer at native and 2x."
+      }
+    ],
+    "command": "uv run --script .agents/skills/website-illustrations/scripts/finish_chroma.py .tmp/course-illustrations-20260915/llm-review/repair2-source.png .tmp/course-illustrations-20260915/llm-review/final --key-noise-alpha 0.03",
+    "parameters": {
+      "fringe_chroma": 0,
+      "solid_key_chroma": 245,
+      "fringe_radius": 20,
+      "max_fringe_distance": 100,
+      "key_noise_alpha": 0.03
+    },
+    "measured_border_key_rgb": [
+      245,
+      6,
+      248
+    ],
+    "evidence": ".tmp/course-illustrations-20260915/llm-review/final/evidence.json",
+    "note": "The raw exterior key was not perfectly uniform. Final tolerance removes measured residual keyed-fringe alpha <=3%; it does not threshold the entire watercolor or alter the protected foreground. No blur, denoising, JPEG or lossy intermediate.",
+    "rejected_finishing": "finished2–5 introduced clipped fades, radial nearest-neighbor seams or color joins; none were installed as final."
+  },
+  "local_editorial_updates": {
+    "database": "Local development database only; no runtime file fallback or migration seed",
+    "fields": [
+      "Course.starting_point",
+      "Course.outcome"
+    ],
+    "families": [
+      "ai-dev-tools-zoomcamp",
+      "de-zoomcamp",
+      "llm-zoomcamp",
+      "ml-zoomcamp",
+      "mlops-zoomcamp",
+      "sma-zoomcamp"
+    ],
+    "provenance": ".tmp/course-illustrations-20260915/landing-copy/copy.json",
+    "additional_ai_overview_correction": ".tmp/course-illustrations-20260915/landing-copy/ai-description-edit.json"
+  }
+}

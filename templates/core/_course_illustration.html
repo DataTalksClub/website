@@ -1,11 +1,40 @@
 {% load static %}
 {% comment %}
-Shared decorative course-learning artwork. Both independently generated theme
-files occupy the same reserved slot; the shared design system selects the theme.
+Decorative artwork mapped by the database-owned family slug. Course-specific
+light scenes keep existing dark companions pending separate dark generation.
 {% endcomment %}
+{% static 'core/illustrations/course-learning.webp' as generic_light %}
+{% if family_slug == "ai-dev-tools-zoomcamp" %}
+  {% static 'core/illustrations/course-ai-dev-tools-zoomcamp.webp' as course_light %}
+{% elif family_slug == "de-zoomcamp" %}
+  {% static 'core/illustrations/course-de-zoomcamp.webp' as course_light %}
+{% elif family_slug == "ml-zoomcamp" %}
+  {% static 'core/illustrations/course-ml-zoomcamp.webp' as course_light %}
+{% elif family_slug == "mlops-zoomcamp" %}
+  {% static 'core/illustrations/course-mlops-zoomcamp.webp' as course_light %}
+{% elif family_slug == "llm-zoomcamp" %}
+  {% static 'core/illustrations/course-llm-zoomcamp.webp' as course_light %}
+{% elif family_slug == "sma-zoomcamp" %}
+  {% static 'core/illustrations/course-sma-zoomcamp.webp' as course_light %}
+{% else %}
+  {% static 'core/illustrations/course-learning.webp' as course_light %}
+{% endif %}
+{% if dark_variant == "pipeline" %}
+  {% static 'core/illustrations/home-step-2-dark.webp' as course_dark %}
+{% elif dark_variant == "shipping" %}
+  {% static 'core/illustrations/home-step-3-dark.webp' as course_dark %}
+{% elif dark_variant == "learner" %}
+  {% static 'core/illustrations/home-hero-dark.webp' as course_dark %}
+{% else %}
+  {% static 'core/illustrations/course-learning-dark.webp' as course_dark %}
+{% endif %}
 <span class="doodle-variants">
-  <img class="doodle doodle-light" src="{% static 'core/illustrations/course-learning.webp' %}"
-       alt="" width="1024" height="1024" decoding="async" loading="eager">
-  <img class="doodle doodle-dark" src="{% static 'core/illustrations/course-learning-dark.webp' %}"
-       alt="" width="1024" height="1024" decoding="async" loading="eager">
+  <img class="doodle doodle-light" src="{{ course_light }}"
+       alt="" width="{% if course_light == generic_light %}1024{% else %}1254{% endif %}"
+       height="{% if course_light == generic_light %}1024{% else %}1254{% endif %}"
+       decoding="async" loading="{{ loading|default:'eager' }}">
+  <img class="doodle doodle-dark" src="{{ course_dark }}" alt=""
+       width="{% if dark_variant == 'pipeline' or dark_variant == 'shipping' %}957{% elif dark_variant == 'learner' %}1470{% else %}1024{% endif %}"
+       height="{% if dark_variant == 'pipeline' or dark_variant == 'shipping' %}532{% elif dark_variant == 'learner' %}834{% else %}1024{% endif %}"
+       decoding="async" loading="{{ loading|default:'eager' }}">
 </span>

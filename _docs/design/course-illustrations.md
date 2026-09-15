@@ -1,9 +1,25 @@
-# Course-learning illustration
+# Course illustrations
 
-The planned course catalogue and course-family artwork is a shared robot reading
-a book. It carries the existing Zoomcamp learning motif into the website's hand-drawn
-style. Course names remain ordinary page text; the artwork contains no titles,
-course-specific symbols, or registration details.
+Six course-specific light illustrations replace the generic scene for AI Dev
+Tools, Data Engineering, Machine Learning, MLOps, LLM and Stock Market Analytics.
+Each shows a learner's action and outcome in the homepage's drawing style.
+Course names and marketing copy remain database-owned page text.
+
+The shared `core/_course_illustration.html` maps family slugs to design assets at
+`core/static/core/illustrations/course-{family-slug}.webp`. These are native
+1254 × 1254 lossless WebP files, with lossless PNG sources retained under `.tmp/`.
+Family heroes, catalogue collage and empty campaign-art slots use that mapping.
+Authored campaign images remain unchanged. Unknown families keep the generic
+1024 × 1024 pair; existing dark illustrations remain until separately generated.
+
+See [the generation record](references/course-specific-generation.json) for
+prompts, source hashes and evidence, and the
+[website illustration skill](../../.agents/skills/website-illustrations/SKILL.md)
+for the maintained built-in imagegen workflow. It never requires an API key.
+
+## Historical generic illustration brief
+
+The brief below documents the generic fallback, not the course-specific set.
 
 This document is the production brief. An asset is ready only after the checks
 below pass. A plausible-looking preview is not sufficient.
