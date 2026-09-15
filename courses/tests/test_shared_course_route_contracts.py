@@ -4,12 +4,8 @@
 (frozen in the now-removed ``_docs/compatibility/
 shared-curriculum-route-aliases.json``) until the owner reversed that
 decision: the flat ``/courses/<family>/<identifier>/...`` shape is canonical
-now, and the retired ``cohorts/`` prefix 301-redirects to it through one
-generic route (``route_redirects.cohorts_prefix_redirect``) rather than a
-manifest of per-route aliases. That redirect deliberately uses a
-``<path:...>`` converter to catch every retired route shape in one entry
-(the whole point of collapsing a manifest of aliases into one route) --
-narrower per-route redirects are exactly what it replaces.
+now. The retired ``cohorts/`` prefix carries no redirect and no longer
+resolves to anything -- it is retired outright, not aliased.
 """
 
 from __future__ import annotations
@@ -78,7 +74,7 @@ class CourseRouteShapeTests(TestCase):
             self.assertNotIn("cohort", pattern, pattern)
             self.assertNotIn("modules/", pattern, pattern)
 
-    def test_retired_cohorts_prefix_redirects_to_the_flat_shape(self) -> None:
+    def test_retired_cohorts_prefix_is_gone_not_redirected(self) -> None:
         family = Course.objects.create(
             slug="route-shape-family", title="Route Shape Family"
         )
@@ -92,11 +88,7 @@ class CourseRouteShapeTests(TestCase):
         response = self.client.get(
             f"/courses/{family.slug}/cohorts/{cohort.identifier}/dashboard?x=1"
         )
-        self.assertEqual(response.status_code, 301)
-        self.assertEqual(
-            response.headers["Location"],
-            f"/courses/{family.slug}/{cohort.identifier}/dashboard?x=1",
-        )
+        self.assertEqual(response.status_code, 404)
 
     def test_flat_cohort_shape_is_reachable_directly(self) -> None:
         family = Course.objects.create(

@@ -23,7 +23,6 @@ from .views import (
     project_statistics,
     project_submissions,
     registration,
-    route_redirects,
     shared_course,
     unit,
     wrapped,
@@ -32,15 +31,8 @@ from .views import (
 urlpatterns = [
     path("", course_list.course_list, name="course_list"),
     # A cohort's URL is one flat, cohorts-segment-free shape:
-    # ``<family>/<cohort_identifier>/...``. It used to also carry a literal
-    # ``cohorts/`` segment; that shape is retired as canonical (issue #320)
-    # and now 301-redirects here instead, preserving the rest of the path and
-    # any query string. See ``route_redirects.cohorts_prefix_redirect``.
-    path(
-        "<slug:course_slug>/cohorts/<path:legacy_suffix>",
-        route_redirects.cohorts_prefix_redirect,
-        name="cohorts_prefix_redirect",
-    ),
+    # ``<family>/<cohort_identifier>/...`` (issue #320). The old
+    # ``cohorts/``-prefixed shape is retired outright, with no redirect.
     path(
         "<slug:course_slug>/<slug:cohort_identifier>/calendar.ics",
         course_calendar.course_calendar_view,
