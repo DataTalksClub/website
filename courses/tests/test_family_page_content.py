@@ -57,6 +57,9 @@ class FamilyStoryRowsTests(SimpleTestCase):
             attribution="LLM Zoomcamp graduate",
             source_url="",
             portrait_url="",
+            role_before="",
+            role_after="",
+            elapsed="",
         )
         for name, value in overrides.items():
             setattr(row, name, value)
@@ -73,6 +76,28 @@ class FamilyStoryRowsTests(SimpleTestCase):
         story = family_story_rows([self._testimonial(portrait_url="/static/core/x.jpg")])[0]
 
         self.assertEqual(story.portrait_url, "/static/core/x.jpg")
+
+    def test_carries_a_stated_role_transition_and_elapsed_time(self):
+        story = family_story_rows(
+            [
+                self._testimonial(
+                    role_before="Data Analyst",
+                    role_after="ML Engineer",
+                    elapsed="6 months",
+                )
+            ]
+        )[0]
+
+        self.assertEqual(story.role_before, "Data Analyst")
+        self.assertEqual(story.role_after, "ML Engineer")
+        self.assertEqual(story.elapsed, "6 months")
+
+    def test_a_quote_with_no_stated_transition_invents_none(self):
+        story = family_story_rows([self._testimonial()])[0]
+
+        self.assertEqual(story.role_before, "")
+        self.assertEqual(story.role_after, "")
+        self.assertEqual(story.elapsed, "")
 
 
 class FamilyProjectCardsTests(SimpleTestCase):

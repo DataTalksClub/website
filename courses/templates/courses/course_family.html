@@ -437,8 +437,12 @@
        * The card itself is the shared member-story card from
        * core/_design_system.html -- the same one the homepage's member
        * stories render -- so nothing page-specific is left to say about it
-       * here.  The band around it reuses .band/.band-cream and the shared
-       * .stories-scroller strip the editions band above already uses. */
+       * here.  It sits in the shared .stories-scroller strip, directly on
+       * the shell's own ground, same as the editions strip above; only the
+       * section's own top margin is page-specific. */
+      .family-stories {
+        margin-top: 3.25rem;
+      }
 
       /* --- the project gallery -------------------------------------------- */
 
@@ -854,38 +858,92 @@
           {% endif %}
       </section>
       {% comment %}
-        The mock's graduate stories, drawn only when the family has published
-        testimonials: dark cards on the lavender ground, the quote, the
-        portrait the row resolves, and an attribution that links to the
-        public post the quote was taken from when one exists.
+        The graduate stories, drawn only when the family has published
+        testimonials.  The card itself, the chips, the quote and the
+        attribution row are the homepage's own member-story card, verbatim
+        (see templates/core/home.html) -- only the section wrapper is this
+        page's own, since the shared content-page shell already owns the one
+        .band/.shell a child template is allowed (see
+        courses/tests/test_content_page_shell.py): a second .band here would
+        nest a band inside a band.  The cards sit directly on that shell's own
+        ground, the same way the editions and registration cards above
+        already do.
       {% endcomment %}
       {% if family_stories %}
         <section class="family-stories" aria-labelledby="stories-heading">
-          <div class="family-stories-inner">
-            <h2 id="stories-heading">People who finished it</h2>
-            <div class="family-story-grid">
-              {% for story in family_stories %}
-                <figure class="family-story">
-                  <blockquote>{{ story.quote }}</blockquote>
-                  <figcaption>
+          <div class="band-head">
+            <div>
+              <h2 id="stories-heading">People who finished it</h2>
+            </div>
+            <div class="scroller-controls" aria-label="Course stories controls">
+              <button
+                class="scroller-button interactive-lift"
+                type="button"
+                data-scroll="-1"
+                data-scroll-target="family-stories-scroller"
+                aria-label="Scroll course stories left"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M15 5l-7 7 7 7"/>
+                </svg>
+              </button>
+              <button
+                class="scroller-button interactive-lift"
+                type="button"
+                data-scroll="1"
+                data-scroll-target="family-stories-scroller"
+                aria-label="Scroll course stories right"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M9 5l7 7-7 7"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div
+            class="stories-scroller"
+            id="family-stories-scroller"
+            role="group"
+            aria-label="Course stories"
+            tabindex="0"
+          >
+            {% for story in family_stories %}
+              <figure class="card">
+                {% if story.role_before and story.role_after %}
+                  <div class="story-transition">
+                    <span class="chip chip-plain">{{ story.role_before }}</span>
+                    <span aria-hidden="true">→</span>
+                    <span class="chip chip-plain chip-green">{{ story.role_after }}</span>
+                  </div>
+                {% endif %}
+                <blockquote class="story-quote">“{{ story.quote }}”</blockquote>
+                <figcaption class="story-person">
+                  <span class="story-identity">
                     {% if story.portrait_url %}
-                      <img class="avatar" src="{{ story.portrait_url }}" alt="" width="44" height="44">
+                      <img class="avatar" src="{{ story.portrait_url }}" alt="" loading="lazy">
                     {% else %}
-                      <span class="avatar avatar-striped" aria-hidden="true"></span>
+                      <span class="avatar" aria-hidden="true"></span>
                     {% endif %}
                     <span>
-                      <span class="family-story-name">{{ story.name }}</span>
-                      {% if story.attribution %}
-                        <span class="family-story-meta">{{ story.attribution }}</span>
-                      {% endif %}
+                      <strong>
+                        {% if story.source_url %}
+                          <a href="{{ story.source_url }}" target="_blank" rel="noopener noreferrer">
+                            {{ story.name }}
+                            <span class="sr-only"> (opens in a new tab)</span>
+                          </a>
+                        {% else %}
+                          {{ story.name }}
+                        {% endif %}
+                      </strong>
+                      <span class="story-context">{{ story.attribution }}</span>
                     </span>
-                  </figcaption>
-                  {% if story.source_url %}
-                    <a class="family-story-source" href="{{ story.source_url }}" target="_blank" rel="noopener noreferrer">Read the full story →</a>
+                  </span>
+                  {% if story.elapsed %}
+                    <span class="story-elapsed">{{ story.elapsed }}</span>
                   {% endif %}
-                </figure>
-              {% endfor %}
-            </div>
+                </figcaption>
+              </figure>
+            {% endfor %}
           </div>
         </section>
       {% endif %}

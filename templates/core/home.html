@@ -97,54 +97,12 @@
         gap: 0.7rem;
       }
 
-      /* --- member stories ----------------------------------------------- */
-
-      .story-transition {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.45rem;
-      }
-
-      .story-quote {
-        font-size: 1.02rem;
-      }
-
-      /* The design keeps the person and the elapsed pill on one row: the name and its
-         place stack against the avatar, and the pill holds the right edge. */
-      .story-person {
-        align-items: center;
-        border-top: 1.5px dashed var(--line-soft);
-        display: flex;
-        gap: 0.7rem;
-        justify-content: space-between;
-        margin-top: auto;
-        padding-top: 0.75rem;
-      }
-
-      .story-identity {
-        align-items: center;
-        display: flex;
-        gap: 0.7rem;
-        min-width: 0;
-      }
-
-      .story-context {
-        color: var(--muted);
-        display: block;
-        font-size: 0.8rem;
-      }
-
-      .story-elapsed {
-        background: var(--lavender);
-        border-radius: 999px;
-        color: var(--indigo);
-        flex: none;
-        font-size: 0.78rem;
-        font-style: italic;
-        font-weight: 600;
-        padding: 0.2rem 0.7rem;
-      }
+      /* --- member stories -------------------------------------------------
+         The member-story card itself (.story-transition/.story-quote/
+         .story-person/...) is a shared component, drawn once in
+         core/_design_system.html so a course family page's graduate stories
+         render with the exact same card.  Nothing page-specific is left to
+         say about it here. */
 
       /* --- catalogue ---------------------------------------------------- */
 
@@ -775,29 +733,8 @@
           display: none;
         }
 
-        /* A member story states its transition as one mono line. */
-        .story-transition {
-          font-size: 0.8rem;
-          gap: 0.3rem;
-        }
-
-        .story-transition .chip {
-          background: none;
-          border: 0;
-          padding: 0;
-        }
-
-        .story-person {
-          border-top: 0;
-          padding-top: 0.3rem;
-        }
-
-        .story-elapsed {
-          background: none;
-          color: var(--muted);
-          font-style: normal;
-          padding: 0;
-        }
+        /* The member-story card's own mobile rules live with the rest of the
+           component in core/_design_system.html. */
 
         /* The featured card is the only card with a wider gutter than the rest; on a
            narrow screen that reads as a mistake, so it takes the shared card inset. */

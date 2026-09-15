@@ -263,13 +263,21 @@ def family_syllabus_rows(units: list) -> tuple[FamilySyllabusRow, ...]:
 
 @dataclass(frozen=True, slots=True)
 class FamilyStory:
-    """One graduate quote on the family landing, with its checkable attribution."""
+    """One graduate quote on the family landing, with its checkable attribution.
+
+    ``role_before``/``role_after``/``elapsed`` mirror the Testimonial model:
+    optional, because not every real quote states a role transition, and the
+    shared story card must not invent one when they are empty.
+    """
 
     name: str
     quote: str
     attribution: str = ""
     portrait_url: str = ""
     source_url: str = ""
+    role_before: str = ""
+    role_after: str = ""
+    elapsed: str = ""
 
 
 def family_story_rows(testimonials) -> tuple[FamilyStory, ...]:
@@ -282,6 +290,9 @@ def family_story_rows(testimonials) -> tuple[FamilyStory, ...]:
             attribution=testimonial.attribution,
             portrait_url=testimonial.portrait_url,
             source_url=testimonial.source_url,
+            role_before=testimonial.role_before,
+            role_after=testimonial.role_after,
+            elapsed=testimonial.elapsed,
         )
         for testimonial in testimonials
     )
