@@ -77,8 +77,8 @@ uv run --script .agents/skills/website-illustrations/scripts/finish_chroma.py \
 - Raw output: `.tmp/course-illustration-variety-20260915/raw/sma.png`
 - Raw SHA256: `38bc52c84a2efd5c659e40e0271637b5068e7de2c542dc031ae842384fc1eafc`
 - Original tool output: `/home/alexey/.codex/generated_images/01a0a479-3d2f-7991-9ca7-bf120c70bac4/exec-f9e5c15e-b9fc-4d72-8cc7-e8205ada1879.png`
-- Final PNG SHA256: `9198f969c7e3bd8c7554f33f29daa72b9ef0073d7654c419c2b75c10eb088154`
-- Installed WebP SHA256: `125d5b48c268e395e328d9f7c0d23c7cb877d97fd17533133d58fb2181993a1a`
+- Final PNG SHA256: `b42788dfda50a1cf18c756e8fe44435c65365f4539a142e20e225e2ee833d311`
+- Installed WebP SHA256: `9daa36c6405211d8a6ab31e604dafdadc662c5239a380fe9ae2d57966a942c4d`
 
 ```text
 Use case: stylized-concept
@@ -126,6 +126,35 @@ Finishing command:
 uv run --script .agents/skills/website-illustrations/scripts/finish_chroma.py \
   .tmp/course-illustration-variety-20260915/sma-calculator-side/source-keyed.png \
   .tmp/course-illustration-variety-20260915/sma-calculator-side/final \
+  --solid-key-chroma 230 --key-noise-alpha 0.05
+```
+
+### Calculator-orientation correction
+
+The calculator was on the requested side but faced the viewer. The final edit
+keeps it on the viewer-right and rotates only its working orientation: keypad
+nearest the seated learner, display nearest the viewer.
+
+- Raw output: `.tmp/course-illustration-variety-20260915/sma-calculator-orientation/source-keyed.png`
+- Raw SHA256: `498db29ccaf7538a764d3187da14c3774da00b1b4d77f968408205f177b469df`
+- Original tool output: `/home/alexey/.codex/generated_images/01a0a479-3d2f-7991-9ca7-bf120c70bac4/exec-5b76361f-4c50-4809-9b41-eedaea34f85d.png`
+
+```text
+Use case: precise-object-edit
+Asset type: Stock Market Analytics Zoomcamp light-theme website illustration.
+Input images: Image 1 is the exact composition and registration anchor to edit. Image 2 guides only the established DataTalks.Club drawing style and clean watercolor edge.
+Primary request: Rotate ONLY the calculator on the viewer-right side by exactly 180 degrees in the tabletop plane so it faces the seated learner behind the table. Keep the calculator in the same viewer-right location and at the same size. Its KEYPAD must be on the calculator half closest to the learner and the TOP of the image. Its long DISPLAY window must be on the calculator edge farthest from the learner and closest to the viewer, at the BOTTOM of the image. The calculator's top edge and button orientation must make it unmistakable that the learner can use it from their side of the table.
+Preserve exactly: the learner's face, body, green shirt, both connected arms and hands, money-counting pose, fan of bills, bill being placed, two money stacks, chart notebook on viewer-left, table line, all coordinates except the calculator's internal 180-degree orientation, palette, navy outlines, lavender watercolor shape, canvas size and margins. Do not move the calculator back to the left. Do not mirror the full image.
+Scene/backdrop: Return the complete illustration with its own lavender wash on one perfectly uniform opaque saturated magenta #ff00ff exterior chroma backdrop. All four borders are key. No simulated transparency, checkerboard, white rectangle, gradient or texture in the outer key.
+Constraints: change only the calculator orientation. Exactly one calculator and one notebook. No added or removed money, no text, currency symbols, flags, numbers, logos, extra limbs, pointing, presentation screen, or robot. Clean opaque foreground fills and crisp navy ink; no compression blocks, ringing, grain, speckles, cellular facets, polygon texture, malformed fingers, hard cutout, white halo or key-colored details inside the art.
+```
+
+Finishing command:
+
+```sh
+uv run --script .agents/skills/website-illustrations/scripts/finish_chroma.py \
+  .tmp/course-illustration-variety-20260915/sma-calculator-orientation/source-keyed.png \
+  .tmp/course-illustration-variety-20260915/sma-calculator-orientation/final \
   --solid-key-chroma 230 --key-noise-alpha 0.05
 ```
 

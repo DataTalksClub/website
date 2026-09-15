@@ -102,9 +102,9 @@
     {
       "family_slug": "sma-zoomcamp",
       "source_png": ".tmp/course-illustrations-20260915/png/sma-zoomcamp.png",
-      "source_sha256": "9198f969c7e3bd8c7554f33f29daa72b9ef0073d7654c419c2b75c10eb088154",
+      "source_sha256": "b42788dfda50a1cf18c756e8fe44435c65365f4539a142e20e225e2ee833d311",
       "installed_webp": "core/static/core/illustrations/course-sma-zoomcamp.webp",
-      "installed_sha256": "125d5b48c268e395e328d9f7c0d23c7cb877d97fd17533133d58fb2181993a1a",
+      "installed_sha256": "9daa36c6405211d8a6ab31e604dafdadc662c5239a380fe9ae2d57966a942c4d",
       "dimensions": [
         1254,
         1254
