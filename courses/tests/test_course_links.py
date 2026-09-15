@@ -1,6 +1,7 @@
 from django.utils import timezone
 
-from courses.models.cohort import RegistrationCampaign
+from courses.models.cohort import CurriculumFormat, RegistrationCampaign
+from courses.models.shared_curriculum import SharedCurriculum, SharedModule
 from courses.tests.course_view_base import CourseDetailViewTestBase
 
 
@@ -59,3 +60,27 @@ class CourseDetailLinksTest(CourseDetailViewTestBase):
             'href="https://github.com/DataTalksClub/test-course"',
         )
         self.assertNotContains(response, "fas fa-")
+
+    def test_shared_curriculum_cohort_keeps_materials_on_the_platform(self):
+        # A cohort whose curriculum was imported has real module pages, so the
+        # materials action should keep the visitor on the platform instead of
+        # sending them to the source repository -- even though the repo URL
+        # is still set (it's still the source, just not the destination).
+        self.course.github_repo_url = "https://github.com/DataTalksClub/test-course"
+        self.course.curriculum_format = CurriculumFormat.SHARED
+        self.course.save()
+        curriculum = SharedCurriculum.objects.create(course=self.course.course)
+        module = SharedModule.objects.create(
+            curriculum=curriculum, position=0, slug="module-one", title="Module One"
+        )
+
+        response = self.client.get(self.course_url())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Course materials")
+        self.assertNotContains(response, "Course materials on GitHub")
+        self.assertContains(
+            response,
+            f'href="/courses/{self.course.course.slug}/{module.slug}"',
+        )
+        self.assertNotContains(response, "https://github.com/DataTalksClub/test-course")

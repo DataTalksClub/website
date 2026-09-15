@@ -422,8 +422,10 @@
               {% url 'registration_campaign' next_edition_campaign.slug as next_edition_campaign_url %}
               {% include "core/_button.html" with href=next_edition_campaign_url label="Register for the next edition" variant="primary" compact=True %}
             {% endif %}
-            {% if course.github_repo_url %}
-              {% include "core/_button.html" with href=course.github_repo_url label="Course materials on GitHub" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
+            {% if materials_on_platform %}
+              {% include "core/_button.html" with href=materials_url label="Course materials" variant="secondary" compact=True %}
+            {% elif materials_url %}
+              {% include "core/_button.html" with href=materials_url label="Course materials on GitHub" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
             {% endif %}
             {% url 'cohort_leaderboard' course.course.slug course.identifier as course_leaderboard_url %}
             {% include "core/_button.html" with href=course_leaderboard_url label="Course leaderboard" variant="secondary" compact=True %}
