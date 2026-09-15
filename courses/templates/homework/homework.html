@@ -34,9 +34,21 @@
     homework title is the h1 directly beneath it — and it keeps the quiet
     shared treatment the course, module and unit trails now use.  A homework
     with no module of its own names none, and the trail is the shell's three.
+
+    Two module shapes reach this page: a `curriculum_format=modules` cohort's
+    own `Module` (`homework_module`, linked at its cohort-bound
+    `cohort_module` route) and a `curriculum_format=shared` cohort's
+    cohort-free `SharedModule` (`shared_homework_module`, linked at the
+    shared `shared_module` route with the delivery context preserved in the
+    query string). The two never coexist for one homework.
   {% endcomment %}
-  {% url 'cohort_module' course.course.slug course.identifier homework_module.slug as homework_module_url %}
-  {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url homework_module.title homework_module_url %}
+  {% if shared_homework_module %}
+    {% url 'shared_module' course_family.slug shared_homework_module.slug as shared_homework_module_url %}
+    {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url shared_homework_module.title shared_homework_module_url|add:context_q %}
+  {% else %}
+    {% url 'cohort_module' course.course.slug course.identifier homework_module.slug as homework_module_url %}
+    {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url homework_module.title homework_module_url %}
+  {% endif %}
 {% endblock %}
 
 {% block hero_heading %}
@@ -179,6 +191,25 @@
 {% endblock %}
 
 {% block extra_styles %}
+  {% include "courses/_module_rail_styles.html" %}
+
+  /* A shared-curriculum homework nests the progress rail's own breakout
+     (below) inside the module rail's `.module-main` column, which is capped
+     to `--content-width` rather than the full breakout width the progress
+     rail assumes when it is the page's only rail.  Neutralising the
+     breakout here lets `minmax(0, var(--form-measure))` do what it already
+     does at narrower viewports: shrink the form column to whatever
+     `.module-main` actually has left beside the fixed rail width, instead of
+     pulling the surface wider than its column and into the module rail
+     beside it. */
+  @media (min-width: 62rem) {
+    .module-main .work-surface-with-rail {
+      margin-inline: 0;
+      max-width: 100%;
+      width: 100%;
+    }
+  }
+
   /* No coloured single-side accent border is drawn on this page.  Tone is the
      surface tint plus the words, which is the system's own rule for state.
      The shared `.callout` primitive still paints an indigo/olive tone rail and
@@ -674,6 +705,26 @@
 
 {% block submission_content %}
   {% include "homework/_submission_form.html" %}
+{% endblock %}
+
+{% block page_content %}
+  {% if shared_homework_module %}
+    {% comment %}
+      A shared-curriculum homework is reached from the module/lesson rail
+      (`courses/_shared_module_rail.html`) and should keep it, so the trip
+      into the homework does not read as a jump to a different page family.
+      The legacy `curriculum_format=modules` and flat/legacy cohorts have no
+      `SharedModule` and never wrap here -- `block.super` alone, unchanged.
+    {% endcomment %}
+    <div class="module-layout shell-breakout">
+      <div class="module-main">
+        {{ block.super }}
+      </div>
+      {% include "courses/_shared_module_rail.html" with module=shared_homework_module lessons=shared_homework_module_lessons course_family=course_family context_q=context_q delivery_cohort=course terminal_homework=homework %}
+    </div>
+  {% else %}
+    {{ block.super }}
+  {% endif %}
 {% endblock %}
 
 {% block extra_js %}
