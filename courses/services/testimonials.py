@@ -1,12 +1,14 @@
 """Read testimonials for the public pages that show them, and import the reviewed set.
 
-The six homepage testimonials are real quotes from named members, checked into
+The homepage testimonials are real quotes from named members, checked into
 ``courses/homepage_testimonials.json`` with the public post each one is taken
-from.  They arrive through :func:`import_homepage_testimonials`, never through a
+from.  An entry may also carry a ``course`` field -- the slug of a course
+family -- which routes it to that course's page instead of the homepage.  They
+arrive through :func:`import_homepage_testimonials`, never through a
 migration: a migration describes the shape of the database, and re-running it on
 a database an editor has since curated would either fight the editor or refuse.
-An import keyed on the source link can be replayed, and leaves anything an
-editor has added alone.
+An import keyed on the placement and the source link can be replayed, and
+leaves anything an editor has added alone.
 """
 
 from __future__ import annotations
@@ -18,7 +20,7 @@ from pathlib import Path
 
 from django.db import DatabaseError, transaction
 
-from courses.models import Testimonial, TestimonialPlacement
+from courses.models import Course, Testimonial, TestimonialPlacement
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +49,11 @@ def load_reviewed_homepage_testimonials(source: Path) -> tuple[dict[str, str], .
     The caller supplies the location. Testimonials are database rows; a reviewed
     file is one-time ingestion input, and where that input sits is a fact about
     the ingest rather than about this module.
+
+    An entry's ``course`` field is optional and defaults to ``""``, which means
+    the homepage.  A non-empty value is a course family slug, checked against
+    the database at import time -- not here, since this function never touches
+    the database.
     """
 
     try:
@@ -66,8 +73,11 @@ def load_reviewed_homepage_testimonials(source: Path) -> tuple[dict[str, str], .
             raise TestimonialImportError("reviewed_testimonial_shape_invalid")
         if not entry["source_url"]:
             raise TestimonialImportError("reviewed_testimonial_source_url_missing")
-        parsed.append({field: entry[field] for field in _REQUIRED_FIELDS})
-    links = [entry["source_url"] for entry in parsed]
+        course = entry.get("course", "")
+        if not isinstance(course, str):
+            raise TestimonialImportError("reviewed_testimonial_shape_invalid")
+        parsed.append({**{field: entry[field] for field in _REQUIRED_FIELDS}, "course": course})
+    links = [(entry["course"], entry["source_url"]) for entry in parsed]
     if len(set(links)) != len(links):
         raise TestimonialImportError("reviewed_testimonial_source_url_duplicated")
     return tuple(parsed)
@@ -75,17 +85,37 @@ def load_reviewed_homepage_testimonials(source: Path) -> tuple[dict[str, str], .
 
 @transaction.atomic
 def import_homepage_testimonials(path: Path) -> TestimonialImportReport:
-    """Apply the reviewed homepage set, keyed on the public post it came from.
+    """Apply the reviewed set, keyed on its placement and the public post it came from.
+
+    An entry with no ``course`` becomes a homepage row; one that names a course
+    family slug becomes that family's course row, positioned among its own
+    course's entries rather than the homepage's.  An unknown slug is refused
+    rather than silently dropped, since a mistyped slug would otherwise leave a
+    real quote unpublished with no error.
 
     Replaying writes nothing.  Rows an editor added by hand are untouched: this
-    only claims the source links the reviewed file names.
+    only claims the (placement, source link) pairs the reviewed file names.
     """
 
     entries = load_reviewed_homepage_testimonials(path)
     created = updated = 0
-    for position, entry in enumerate(entries):
+    positions: dict[str, int] = {}
+    for entry in entries:
+        course_slug = entry["course"]
+        course = None
+        placement = TestimonialPlacement.HOMEPAGE
+        if course_slug:
+            course = Course.objects.filter(slug=course_slug).first()
+            if course is None:
+                raise TestimonialImportError(
+                    f"reviewed_testimonial_course_unknown:{course_slug}"
+                )
+            placement = TestimonialPlacement.COURSE
+        position = positions.get(course_slug, 0)
+        positions[course_slug] = position + 1
+
         values = {
-            "course": None,
+            "course": course,
             "name": entry["name"],
             "attribution": entry["attribution"],
             "quote": entry["quote"],
@@ -94,22 +124,25 @@ def import_homepage_testimonials(path: Path) -> TestimonialImportReport:
             "published": True,
         }
         existing = Testimonial.objects.filter(
-            placement=TestimonialPlacement.HOMEPAGE,
+            placement=placement,
             source_url=entry["source_url"],
         ).first()
         if existing is None:
             Testimonial.objects.create(
-                placement=TestimonialPlacement.HOMEPAGE,
+                placement=placement,
                 source_url=entry["source_url"],
                 **values,
             )
             created += 1
             continue
-        changed = {
-            field: value
-            for field, value in values.items()
-            if getattr(existing, "course_id" if field == "course" else field) != value
-        }
+        changed = {}
+        for field, value in values.items():
+            if field == "course":
+                current, incoming = existing.course_id, course.pk if course else None
+            else:
+                current, incoming = getattr(existing, field), value
+            if current != incoming:
+                changed[field] = value
         if changed:
             Testimonial.objects.filter(pk=existing.pk).update(**changed)
             updated += 1

@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Import the reviewed homepage testimonials into a database.
+"""Import the reviewed testimonials into a database.
 
-One-time import.  The six quotes are frozen: real posts by named members, each
-one recorded with the public link it was taken from, checked into
+One-time import.  Each quote is a real post by a named member, recorded with
+the public link it was taken from, checked into
 ``~/prod/dtc-data/content-staging/homepage_testimonials.json`` (outside this
-repository -- see ``_docs/architecture/database-only-content.md``).  Nothing
-upstream is going to move --
-once they are in the database an editor curates them in the admin, and this
-script is only the way the first six get there.  See ``scripts/prod/__init__.py``
-for what the two sync models mean.
+repository -- see ``_docs/architecture/database-only-content.md``).  An entry
+with no ``course`` field lands on the homepage; an entry naming a course
+family's slug lands on that course's page instead.  Nothing upstream is going
+to move -- once they are in the database an editor curates them in the admin,
+and this script is only the way the reviewed set gets there.  See
+``scripts/prod/__init__.py`` for what the two sync models mean.
 
 This is production *content*, not a fixture: none of these people or quotes is
 invented.  A local database that wants obviously-fake testimonials should get
