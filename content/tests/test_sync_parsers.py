@@ -477,8 +477,7 @@ def _faq_question(
         frontmatter += (
             b"images:\n"
             b"- description: 'shot'\n"
-            b"  id: image_1\n"
-            + f"  path: images/test-zoomcamp/{slug}.png\n".encode()
+            b"  id: image_1\n" + f"  path: images/test-zoomcamp/{slug}.png\n".encode()
         )
     return b"---\n" + frontmatter + b"---\n\n" + body
 
@@ -537,6 +536,260 @@ class FaqParserTests(_CheckoutCase):
             self.assertFalse(SyncedDocument.objects.filter(source=source).exists())
 
 
+def _wiki_page(title: str, body: str) -> bytes:
+    return (
+        f"---\ntitle: {title}\nsummary: A test page.\ntags:\n- testing\n---\n\n{body}\n"
+    ).encode()
+
+
+def _wiki_graph() -> bytes:
+    import json
+
+    return json.dumps(
+        {
+            "generated_at": "2024-05-01T00:00:00Z",
+            "counts": {"guides": 0},
+            "nodes": [
+                {
+                    "id": "wiki:hello-wiki",
+                    "collection": "wiki",
+                    "title": "Hello Wiki",
+                    "type": "page",
+                    "url": "/wiki/hello-wiki",
+                },
+                {
+                    "id": "podcast:_s3e11_test-episode",
+                    "collection": "podcast",
+                    "title": "A test episode",
+                    "type": "episode",
+                    "url": "https://datatalks.club/podcast/test-episode",
+                },
+            ],
+            "links": [
+                {
+                    "kind": "citation",
+                    "source": "wiki:hello-wiki",
+                    "target": "podcast:_s3e11_test-episode",
+                    "weight": 1,
+                }
+            ],
+        }
+    ).encode()
+
+
+def _wiki_search(fragment: str = "section-one", segment: str = "Section One") -> bytes:
+    import json
+
+    return json.dumps(
+        {
+            "docs": [
+                {
+                    "id": "hello-wiki",
+                    "document_type": "wiki",
+                    "title": "Hello Wiki",
+                    "url": f"/wiki/hello-wiki#{fragment}",
+                    "segment_title": segment,
+                    "text": "Body text.",
+                },
+                {
+                    "id": "episode",
+                    "document_type": "podcast",
+                    "title": "A test episode",
+                    "url": "/podcast/s3e11/test-episode.html",
+                    "episode_slug": "test-episode",
+                    "text": "Episode text.",
+                },
+            ]
+        }
+    ).encode()
+
+
+def _synced_row(source, content_kind: str, slug: str, public_path: str) -> SyncedDocument:
+    return SyncedDocument.objects.create(
+        source=source,
+        content_kind=content_kind,
+        stable_key=slug,
+        slug=slug,
+        title=slug,
+        public_path=public_path,
+        source_path=f"{content_kind}/{slug}",
+        checksum="a" * 64,
+    )
+
+
+class PodwikiParserTests(_CheckoutCase):
+    def _entities(self, podcast_slug: str = "test-episode") -> None:
+        entities = _source("dtc-content-entities")
+        _synced_row(entities, "podcast", podcast_slug, f"/podcast/s3e11/{podcast_slug}.html")
+        _synced_row(entities, "book", "fixture-book", "/books/fixture-book.html")
+        _synced_row(entities, "people", "fixture-person", "/people/fixture-person.html")
+
+    def test_discover_builds_pages_and_singletons_from_other_rows(self) -> None:
+        source = _source("dtc-podwiki")
+        self._entities()
+        parser = get_parser("wiki")
+        tree = {
+            "_wiki/hello-wiki.md": _wiki_page(
+                "Hello Wiki",
+                "Intro citing [[Hello Second]] and [[cite:test-episode]] "
+                "plus [[person:fixture-person]].\n\n"
+                "## Section One\n\nBody text.",
+            ),
+            "_wiki/hello-second.md": _wiki_page("Hello Second", "Second page."),
+            "_wiki/nested/deep.md": _wiki_page("Nested Page", "Not a wiki page."),
+            "graph/graph.json": _wiki_graph(),
+            "search/search-corpus.json": _wiki_search(),
+            "assets/og-default.png": b"\x89PNG\r\n\x1a\npng-bytes",
+        }
+        with self.checkout(tree) as checkout:
+            items = parser.discover(checkout, source)
+            self.assertEqual(
+                [item.key for item in items],
+                [
+                    "hello-second",
+                    "hello-wiki",
+                    "$wiki_graph",
+                    "$wiki_search",
+                    "$wiki_assets",
+                ],
+            )
+            page = items[1].data["record"]
+            self.assertEqual(page["public_path"], "/wiki/hello-wiki")
+            self.assertEqual(page["fragment_ids"], ["section-one"])
+            self.assertEqual(
+                [
+                    (block["kind"], block.get("id"))
+                    for block in page["blocks"]
+                    if block["kind"] == "heading"
+                ],
+                [("heading", "section-one")],
+            )
+            self.assertEqual(
+                sorted(relation["type"] for relation in page["relations"]),
+                ["citation", "person", "wiki"],
+            )
+            relations = {relation["type"]: relation for relation in page["relations"]}
+            self.assertEqual(relations["wiki"]["href"], "/wiki/hello-second")
+            self.assertEqual(relations["citation"]["href"], "/podcast/s3e11/test-episode.html")
+            self.assertEqual(relations["person"]["href"], "/people/fixture-person.html")
+            graph = items[2].data["record"]
+            self.assertEqual(graph["counts"], {"guides": 0, "nodes": 2, "links": 1, "podcasts": 1})
+            self.assertEqual(
+                [node["url"] for node in graph["nodes"]],
+                ["/wiki/hello-wiki", "/podcast/s3e11/test-episode.html"],
+            )
+
+    def test_upsert_writes_pages_and_singletons_checksum_stably(self) -> None:
+        source = _source("dtc-podwiki")
+        self._entities()
+        parser = get_parser("wiki")
+        tree = {
+            "_wiki/hello-wiki.md": _wiki_page(
+                "Hello Wiki", "A section.\n\n## Section One\n\nBody text."
+            ),
+            "graph/graph.json": _wiki_graph(),
+            "search/search-corpus.json": _wiki_search(),
+            "assets/og-default.png": b"\x89PNG\r\n\x1a\npng-bytes",
+        }
+        with self.checkout(tree) as checkout:
+            items = parser.discover(checkout, source)
+            for item in items:
+                result = parser.upsert(item, source, media_store())
+                self.assertEqual(result.action, "created")
+        self.assertEqual(
+            sorted(
+                SyncedDocument.objects.filter(source=source).values_list(
+                    "content_kind", "stable_key"
+                )
+            ),
+            [
+                ("wiki", "hello-wiki"),
+                ("wiki_assets", "wiki_assets"),
+                ("wiki_graph", "wiki_graph"),
+                ("wiki_search", "wiki_search"),
+            ],
+        )
+        graph = SyncedDocument.objects.get(source=source, content_kind="wiki_graph")
+        self.assertEqual(graph.public_path, "/-/podwiki/wiki_graph")
+        self.assertEqual(graph.slug, "")
+        assets = SyncedDocument.objects.get(source=source, content_kind="wiki_assets")
+        self.assertEqual(list(assets.record["wiki_assets"]), ["/wiki/assets/og-default.png"])
+        with self.checkout(tree) as checkout:
+            for item in parser.discover(checkout, source):
+                self.assertEqual(parser.upsert(item, source, media_store()).action, "unchanged")
+        self.assertEqual(parser.soft_delete_missing(set(), source), 4)
+        self.assertFalse(SyncedDocument.objects.filter(source=source).exists())
+
+    def test_withdrawn_podcasts_drop_from_graph_and_search(self) -> None:
+        source = _source("dtc-podwiki")
+        self._entities(podcast_slug="other-episode")
+        parser = get_parser("wiki")
+        tree = {
+            "_wiki/hello-wiki.md": _wiki_page(
+                "Hello Wiki", "A section.\n\n## Section One\n\nBody text."
+            ),
+            "graph/graph.json": _wiki_graph(),
+            "search/search-corpus.json": _wiki_search(),
+            "assets/og-default.png": b"\x89PNG\r\n\x1a\npng-bytes",
+        }
+        with self.checkout(tree) as checkout:
+            items = parser.discover(checkout, source)
+        by_key = {item.key: item.data["record"] for item in items}
+        graph = by_key["$wiki_graph"]
+        search = by_key["$wiki_search"]
+        self.assertEqual(graph["counts"], {"guides": 0, "nodes": 1, "links": 0, "podcasts": 0})
+        self.assertEqual([node["id"] for node in graph["nodes"]], ["wiki:hello-wiki"])
+        self.assertEqual([document["id"] for document in search["docs"]], ["hello-wiki"])
+
+    def test_refuses_to_sync_without_the_entity_sources(self) -> None:
+        source = _source("dtc-podwiki")
+        parser = get_parser("wiki")
+        tree = {
+            "_wiki/hello-wiki.md": _wiki_page(
+                "Hello Wiki", "A section.\n\n## Section One\n\nBody text."
+            ),
+            "graph/graph.json": _wiki_graph(),
+            "search/search-corpus.json": _wiki_search(),
+            "assets/og-default.png": b"\x89PNG\r\n\x1a\npng-bytes",
+        }
+        with self.checkout(tree) as checkout:
+            with self.assertRaises(ContentParserError):
+                parser.discover(checkout, source)
+
+    def test_rejects_fragments_the_page_does_not_render(self) -> None:
+        source = _source("dtc-podwiki")
+        self._entities()
+        parser = get_parser("wiki")
+        tree = {
+            "_wiki/hello-wiki.md": _wiki_page(
+                "Hello Wiki", "A section.\n\n## Section One\n\nBody text."
+            ),
+            "graph/graph.json": _wiki_graph(),
+            "search/search-corpus.json": _wiki_search(
+                fragment="missing-heading", segment="Missing Heading"
+            ),
+            "assets/og-default.png": b"\x89PNG\r\n\x1a\npng-bytes",
+        }
+        with self.checkout(tree) as checkout:
+            with self.assertRaises(ContentParserError):
+                parser.discover(checkout, source)
+
+    def test_ignores_other_sources(self) -> None:
+        other = _source("some-other-wiki")
+        parser = get_parser("wiki")
+        tree = {
+            "_wiki/hello-wiki.md": _wiki_page(
+                "Hello Wiki", "A section.\n\n## Section One\n\nBody text."
+            ),
+            "graph/graph.json": _wiki_graph(),
+            "search/search-corpus.json": _wiki_search(),
+            "assets/og-default.png": b"\x89PNG\r\n\x1a\npng-bytes",
+        }
+        with self.checkout(tree) as checkout:
+            self.assertEqual(parser.discover(checkout, other), [])
+            self.assertEqual(parser.soft_delete_missing(set(), other), 0)
+
+
 class RegistrationTests(unittest.TestCase):
     def test_site_parsers_are_registered(self) -> None:
         self.assertEqual(type(get_parser("article")).__name__, "ArticlesParser")
@@ -545,3 +798,4 @@ class RegistrationTests(unittest.TestCase):
         self.assertEqual(type(get_parser("book")).__name__, "BooksParser")
         self.assertEqual(type(get_parser("docs")).__name__, "DocsParser")
         self.assertEqual(type(get_parser("faq")).__name__, "FaqParser")
+        self.assertEqual(type(get_parser("wiki")).__name__, "PodwikiParser")

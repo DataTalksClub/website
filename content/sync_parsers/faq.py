@@ -109,7 +109,9 @@ class FaqParser:
                     "id": str(section["id"]),
                     "name": builder._string(section["name"], field="faq section name", maximum=500),
                     "comment": builder._string(
-                        section.get("comment"), field="faq section comment", maximum=2_000,
+                        section.get("comment"),
+                        field="faq section comment",
+                        maximum=2_000,
                         optional=True,
                     ),
                     "questions": questions,
@@ -123,7 +125,9 @@ class FaqParser:
                 metadata["course_name"], field="faq course name", maximum=500
             ),
             "slack_channel": builder._string(
-                metadata.get("slack_channel"), field="faq slack channel", maximum=200,
+                metadata.get("slack_channel"),
+                field="faq slack channel",
+                maximum=200,
                 optional=True,
             ),
             "sections": sections,
@@ -170,7 +174,9 @@ class FaqParser:
                 {
                     "id": str(image["id"]),
                     "description": builder._string(
-                        image.get("description"), field="faq image description", maximum=500,
+                        image.get("description"),
+                        field="faq image description",
+                        maximum=500,
                         optional=True,
                     ),
                     "path": image_path,
