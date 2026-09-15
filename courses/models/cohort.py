@@ -104,6 +104,60 @@ class Course(SourceProvenanceModel):
         ]
 
 
+# Literal path segments that already sit at a cohort identifier's URL
+# position (``/courses/<family>/<segment>``) via the legacy edition-slug
+# shim routes in ``courses/urls.py`` (``leaderboard``, ``dashboard``,
+# ``enrollment``, ``projects``). A cohort identified with one of these would
+# be permanently shadowed by the literal route and never resolve.
+RESERVED_COHORT_IDENTIFIERS = frozenset(
+    {
+        "projects",
+        "leaderboard",
+        "enrollment",
+        "dashboard",
+    }
+)
+
+
+def _validate_cohort_identifier_available(
+    *, course_id, identifier: str, cohort_pk=None
+) -> None:
+    """Raise ``ValidationError`` if ``identifier`` can't resolve unambiguously.
+
+    Enforced from both ``clean()`` (forms) and ``save()`` (admin, ingestion
+    scripts, management commands) so no creation path can leave a cohort
+    identifier that collides with a reserved route segment or an existing
+    shared-curriculum module slug in the same course family.
+    """
+
+    if not identifier:
+        return
+    if identifier in RESERVED_COHORT_IDENTIFIERS:
+        raise ValidationError(
+            {
+                "identifier": (
+                    f"{identifier!r} is a reserved course route segment and "
+                    "cannot be used as a cohort identifier."
+                )
+            }
+        )
+    if not course_id:
+        return
+    from .shared_curriculum import SharedModule
+
+    if SharedModule.objects.filter(
+        curriculum__course_id=course_id, slug=identifier
+    ).exists():
+        raise ValidationError(
+            {
+                "identifier": (
+                    f"{identifier!r} is already a shared module slug in this "
+                    "course family."
+                )
+            }
+        )
+
+
 class Cohort(SourceProvenanceModel):
     """One dated delivery of a reusable :class:`Course` family."""
 
@@ -308,10 +362,18 @@ class Cohort(SourceProvenanceModel):
                 self.year = int(match.group(1))
         if not self.identifier:
             self.identifier = str(self.year)
+        _validate_cohort_identifier_available(
+            course_id=self.course_id, identifier=self.identifier, cohort_pk=self.pk
+        )
         super().save(*args, **kwargs)
 
     def clean(self):
         super().clean()
+
+        if self.identifier:
+            _validate_cohort_identifier_available(
+                course_id=self.course_id, identifier=self.identifier, cohort_pk=self.pk
+            )
 
         if self.start_date and self.end_date:
             if self.end_date < self.start_date:

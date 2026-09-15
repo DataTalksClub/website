@@ -93,6 +93,39 @@ class SharedModule(SourceProvenanceModel):
             source_provenance_constraint(name="courses_shared_module_source_complete"),
         ]
 
+    def clean(self) -> None:
+        super().clean()
+        self._validate_slug_available()
+
+    def save(self, *args, **kwargs) -> None:
+        self._validate_slug_available()
+        super().save(*args, **kwargs)
+
+    def _validate_slug_available(self) -> None:
+        """A module slug must never collide with a cohort identifier.
+
+        Both this shared module and a cohort of the same family can end up
+        at the same bare ``/courses/<family>/<segment>`` URL position, so
+        the two identifier spaces must stay disjoint -- enforced here (and
+        reciprocally on ``Cohort``) on every creation path, not just forms.
+        """
+
+        if not self.slug or not self.curriculum_id:
+            return
+        from .cohort import Cohort
+
+        if Cohort.objects.filter(
+            course_id=self.curriculum.course_id, identifier=self.slug
+        ).exists():
+            raise ValidationError(
+                {
+                    "slug": (
+                        f"{self.slug!r} is already a cohort identifier in this "
+                        "course family."
+                    )
+                }
+            )
+
     def __str__(self) -> str:
         return self.title
 

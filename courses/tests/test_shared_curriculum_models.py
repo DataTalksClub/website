@@ -90,6 +90,60 @@ class SharedCurriculumModelTests(TestCase):
         )
         return shared, module, lesson
 
+    def test_cohort_identifier_rejects_reserved_route_segment(self) -> None:
+        course = self.make_course("reserved")
+        cohort = Cohort(
+            course=course,
+            slug="shared-cohort-reserved",
+            identifier="leaderboard",
+            title="Reserved Identifier Cohort",
+            description="Should never save.",
+        )
+        with self.assertRaises(ValidationError):
+            cohort.save()
+        self.assertFalse(
+            Cohort.objects.filter(course=course, identifier="leaderboard").exists()
+        )
+
+    def test_cohort_identifier_rejects_collision_with_shared_module_slug(self) -> None:
+        course = self.make_course("module-collision")
+        _, module, _ = self.make_shared_graph(course)
+
+        cohort = Cohort(
+            course=course,
+            slug="shared-cohort-module-collision",
+            identifier=module.slug,
+            title="Module Collision Cohort",
+            description="Should never save.",
+        )
+        with self.assertRaises(ValidationError):
+            cohort.save()
+        self.assertFalse(
+            Cohort.objects.filter(course=course, identifier=module.slug).exists()
+        )
+
+    def test_shared_module_slug_rejects_collision_with_cohort_identifier(self) -> None:
+        course = self.make_course("cohort-collision")
+        cohort = self.make_cohort("cohort-collision", course=course)
+        shared = SharedCurriculum.objects.create(
+            course=course,
+            parser_version="course-repository-v2",
+            **provenance("44444444-4444-4444-8444-444444444444", "course.yaml"),
+        )
+
+        module = SharedModule(
+            curriculum=shared,
+            position=0,
+            slug=cohort.identifier,
+            title="Colliding Module",
+            **provenance("55555555-5555-4555-8555-555555555555", "colliding/module.yaml"),
+        )
+        with self.assertRaises(ValidationError):
+            module.save()
+        self.assertFalse(
+            SharedModule.objects.filter(curriculum=shared, slug=cohort.identifier).exists()
+        )
+
     def test_shared_graph_defaults_and_retention_state(self) -> None:
         course = self.make_course("defaults")
         shared, module, lesson = self.make_shared_graph(course)
