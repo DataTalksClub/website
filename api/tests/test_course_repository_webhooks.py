@@ -98,7 +98,12 @@ class CourseRepositoryWebhookTests(TestCase):
 
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.json()["error"], "course_repository_webhook_not_configured")
-        self.assertFalse(JobIntent.objects.exists())
+        # Reference-data seeding activates content releases, which dispatch
+        # their own ``content.release.invalidate`` intents, so the assertion
+        # stays about the intents this webhook is allowed to create.
+        self.assertFalse(
+            JobIntent.objects.filter(handler=COURSE_REPOSITORY_JOB_HANDLER).exists()
+        )
         self.assertFalse(
             IdempotencyRecord.objects.filter(scope=COURSE_REPOSITORY_WEBHOOK_NAMESPACE).exists()
         )
@@ -127,7 +132,7 @@ class CourseRepositoryWebhookTests(TestCase):
         self.assertEqual(first.status_code, 202)
         self.assertEqual(second.status_code, 202)
         self.assertEqual(second.json()["outcome"], "replayed")
-        self.assertEqual(JobIntent.objects.count(), 1)
+        self.assertEqual(JobIntent.objects.filter(handler=COURSE_REPOSITORY_JOB_HANDLER).count(), 1)
 
     @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
     def test_delivery_id_conflict_does_not_enqueue_or_mutate(self) -> None:
@@ -139,19 +144,19 @@ class CourseRepositoryWebhookTests(TestCase):
         response = self.post(changed)
 
         self.assertEqual(response.status_code, 409)
-        self.assertEqual(JobIntent.objects.count(), 1)
+        self.assertEqual(JobIntent.objects.filter(handler=COURSE_REPOSITORY_JOB_HANDLER).count(), 1)
 
     @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
     def test_signature_is_verified_before_json_and_unregistered_sources_are_rejected(self) -> None:
         malformed = b"not-json"
         response = self.post(malformed)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(JobIntent.objects.count(), 0)
+        self.assertEqual(JobIntent.objects.filter(handler=COURSE_REPOSITORY_JOB_HANDLER).count(), 0)
 
         self.source.delete()
         response = self.post(github_payload(), delivery_id="delivery-unregistered")
         self.assertEqual(response.status_code, 404)
-        self.assertEqual(JobIntent.objects.count(), 0)
+        self.assertEqual(JobIntent.objects.filter(handler=COURSE_REPOSITORY_JOB_HANDLER).count(), 0)
 
     @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
     def test_signed_unparseable_payloads_return_bounded_400_without_fence_or_job(self) -> None:
@@ -174,7 +179,7 @@ class CourseRepositoryWebhookTests(TestCase):
                 response = self.post(body, delivery_id=f"delivery-unparseable-{index}")
                 self.assertEqual(response.status_code, 400)
                 self.assertEqual(response.json()["error"], "github_payload_invalid")
-        self.assertEqual(JobIntent.objects.count(), 0)
+        self.assertEqual(JobIntent.objects.filter(handler=COURSE_REPOSITORY_JOB_HANDLER).count(), 0)
         self.assertFalse(
             IdempotencyRecord.objects.filter(scope=COURSE_REPOSITORY_WEBHOOK_NAMESPACE).exists()
         )
@@ -192,7 +197,7 @@ class CourseRepositoryWebhookTests(TestCase):
 
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.json()["error"], "github_signature_invalid")
-        self.assertEqual(JobIntent.objects.count(), 0)
+        self.assertEqual(JobIntent.objects.filter(handler=COURSE_REPOSITORY_JOB_HANDLER).count(), 0)
 
     @override_settings(COURSE_REPOSITORY_WEBHOOK_SECRET=SECRET)
     def test_invalid_push_metadata_is_rejected_without_a_fence(self) -> None:
@@ -205,7 +210,7 @@ class CourseRepositoryWebhookTests(TestCase):
             with self.subTest(index=index):
                 response = self.post(body, delivery_id=f"delivery-invalid-{index}")
                 self.assertEqual(response.status_code, 400)
-        self.assertEqual(JobIntent.objects.count(), 0)
+        self.assertEqual(JobIntent.objects.filter(handler=COURSE_REPOSITORY_JOB_HANDLER).count(), 0)
 
     def test_push_parser_requires_consistent_repository_identity(self) -> None:
         payload = json.loads(github_payload())
