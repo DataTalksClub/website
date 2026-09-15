@@ -197,6 +197,14 @@ class SharedRouteTests(SharedWorldTestCase):
         self.assertContains(response, self.lesson.title)
         self.assertNotIn("cohort=", response.get("Cache-Control", ""))
 
+        # A genuinely first-time/ambiguous visitor (no explicit, remembered, or
+        # sole-enrollment cohort -- there are two visible cohorts here) still
+        # needs the full chooser, and no cohort-scoped homework link: nothing
+        # is resolved yet.
+        self.assertContains(response, "How are you taking this course?")
+        self.assertContains(response, "Choose a delivery to see its assignments:")
+        self.assertNotContains(response, self.homework.title)
+
     def test_shared_lesson_page_renders_and_links_siblings(self) -> None:
         SharedLesson.objects.create(
             module=self.module,
@@ -272,6 +280,54 @@ class SharedRouteTests(SharedWorldTestCase):
             reverse(
                 "shared_module",
                 kwargs={"course_slug": self.course.slug, "module_slug": self.module.slug},
+            ),
+        )
+
+    def test_cohort_page_module_link_carries_the_cohort_context(self) -> None:
+        """The cohort page's module link resolves the module page's own panel.
+
+        Regression test: the cohort page used to link into the shared module
+        page with a bare path, so a reader arriving from
+        ``cohorts/<identifier>`` still hit the module page's full "how are
+        you taking this course" chooser -- even though the delivery was
+        already unambiguous from how they got there.  The link must carry
+        ``?cohort=`` the same way a shared lesson link does, so the module
+        page's own delivery panel resolves and collapses to the quiet link.
+        """
+
+        response = self.client.get(
+            reverse(
+                "cohort",
+                kwargs={
+                    "course_slug": self.course.slug,
+                    "cohort_identifier": self.cohort_2026.identifier,
+                },
+            )
+        )
+        flow = response.context["curriculum_flow"]
+        self.assertTrue(flow[0].url.endswith(f"?cohort={self.cohort_2026.identifier}"))
+
+        module_response = self.client.get(flow[0].url)
+        self.assertEqual(module_response.status_code, 200)
+        self.assertEqual(module_response.context["delivery_cohort"], self.cohort_2026)
+        self.assertContains(module_response, "Open the cohort page")
+        self.assertNotContains(module_response, "How are you taking this course?")
+
+        # The resolved cohort also unlocks this module's own terminal homework
+        # in the "In this module" rail -- a shared module's real homework
+        # assignment is one cohort's placement, not something that exists
+        # independent of a resolved delivery.
+        self.assertEqual(module_response.context["terminal_homework"], self.homework)
+        self.assertContains(module_response, self.homework.title)
+        self.assertContains(
+            module_response,
+            reverse(
+                "cohort_homework",
+                kwargs={
+                    "course_slug": self.course.slug,
+                    "cohort_identifier": self.cohort_2026.identifier,
+                    "homework_slug": self.homework.slug,
+                },
             ),
         )
 

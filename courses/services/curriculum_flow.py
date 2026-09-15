@@ -28,6 +28,7 @@ from courses.models.curriculum import CurriculumFlowItem, Module, Unit
 from courses.models.homework import Homework
 from courses.models.project import Project
 from courses.models.shared_curriculum import CohortSharedModule, SharedModule
+from courses.services.course_context import context_query
 
 
 @dataclass(frozen=True, slots=True)
@@ -169,13 +170,19 @@ def _shared_flow(
                 module=module,
                 units=(),
                 homework=homework,
+                # Carry the cohort forward as explicit ?cohort= context, the same
+                # way a shared lesson link does: a reader arriving from this
+                # cohort's page already knows their delivery, so the module
+                # page's own delivery panel should resolve it rather than
+                # asking again.  See courses/services/course_context.py.
                 url=reverse(
                     "shared_module",
                     kwargs={
                         "course_slug": cohort.course.slug,
                         "module_slug": module.slug,
                     },
-                ),
+                )
+                + context_query(cohort),
             )
         )
 
