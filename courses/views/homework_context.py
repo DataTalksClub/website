@@ -13,6 +13,8 @@ from courses.models.homework import (
     Question,
     Submission,
 )
+from courses.models.shared_curriculum import CohortSharedModule, SharedLesson
+from courses.services.course_context import context_query
 from courses.views.homework_answers import process_question_options
 from courses.views.url_utils import get_cohort_or_404
 
@@ -74,12 +76,16 @@ def homework_instructions_url(
 
 
 def homework_terminal_module(homework: Homework):
-    """Return the module this homework closes, or None outside module cohorts.
+    """Return the legacy module this homework closes, or None otherwise.
 
     ``Module.terminal_homework`` is a one-to-one, so the reverse accessor
-    raises rather than returning ``None`` for the flat cohorts that publish
-    homework without a curriculum. The page uses this for the module crumb and
-    the back-to-module link, both of which must simply disappear there.
+    raises rather than returning ``None`` for a cohort that publishes no
+    ``Module`` at all -- which is every cohort except a
+    ``curriculum_format=modules`` one; a flat/legacy cohort and a
+    ``curriculum_format=shared`` cohort both land here. The page uses this
+    for the module crumb and the back-to-module link, both of which must
+    simply disappear there in favour of the shared-curriculum equivalent
+    (see :func:`homework_shared_module_placement`).
     """
 
     try:
@@ -88,29 +94,50 @@ def homework_terminal_module(homework: Homework):
         return None
 
 
+def homework_shared_module_placement(homework: Homework) -> CohortSharedModule | None:
+    """Return the shared-curriculum module placement this homework closes.
+
+    A ``curriculum_format=shared`` cohort never creates a legacy ``Module``
+    row (see :func:`homework_terminal_module`), so its module context lives
+    instead on the ``CohortSharedModule`` placement that names this homework
+    as the module's terminal homework. A homework can be the terminal
+    homework of at most one placement, since a placement's terminal homework
+    must belong to the placement's own cohort and a homework belongs to one
+    cohort.
+    """
+
+    return (
+        CohortSharedModule.objects.filter(terminal_homework=homework)
+        .select_related("shared_module")
+        .first()
+    )
+
+
 def homework_navigation_context(
     course: Cohort,
     homework: Homework,
 ) -> dict[str, object]:
-    """Provide adjacent homework records in the same public due-date order."""
+    """Provide the module/breadcrumb context this homework is reached through."""
 
-    homeworks = list(
-        Homework.objects.filter(course=course).order_by("due_date", "id")
+    shared_placement = homework_shared_module_placement(homework)
+    shared_homework_module = (
+        shared_placement.shared_module if shared_placement else None
     )
-    current_index = next(
-        index for index, candidate in enumerate(homeworks) if candidate.pk == homework.pk
+    shared_homework_module_lessons = (
+        list(
+            SharedLesson.objects.filter(
+                module=shared_homework_module, published=True
+            ).order_by("position", "id")
+        )
+        if shared_homework_module
+        else []
     )
     return {
         "instructions_url": homework_instructions_url(course, homework),
         "homework_module": homework_terminal_module(homework),
-        "previous_homework": (
-            homeworks[current_index - 1] if current_index > 0 else None
-        ),
-        "next_homework": (
-            homeworks[current_index + 1]
-            if current_index + 1 < len(homeworks)
-            else None
-        ),
+        "shared_homework_module": shared_homework_module,
+        "shared_homework_module_lessons": shared_homework_module_lessons,
+        "context_q": context_query(course),
     }
 
 
