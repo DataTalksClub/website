@@ -12,7 +12,25 @@ from django.test import SimpleTestCase
 from django.utils import timezone
 
 from courses.models.curriculum import Module
+from courses.models.shared_curriculum import (
+    CohortSharedModule,
+    SharedCurriculum,
+    SharedLesson,
+    SharedModule,
+)
 from courses.tests.homework_view_base import HomeworkDetailViewTestBase
+
+SHA = "a" * 40
+CHECKSUM = "b" * 64
+
+
+def _provenance(content_id: str, path: str) -> dict[str, str]:
+    return {
+        "source_content_id": content_id,
+        "source_path": path,
+        "source_commit_sha": SHA,
+        "source_checksum": CHECKSUM,
+    }
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 HOMEWORK_TEMPLATE = REPOSITORY_ROOT / "courses/templates/homework/homework.html"
@@ -146,6 +164,9 @@ class HomeworkModuleTrailTests(HomeworkDetailViewTestBase):
         # The trail still stops at the parent: the homework title is the h1.
         self.assertNotIn(self.homework.title, breadcrumb.group(1))
         self.assertContains(response, f"← Back to {module.title}")
+        # A legacy `curriculum_format=modules` homework has no `SharedModule`
+        # placement, so it never gains the shared-curriculum module rail.
+        self.assertNotContains(response, 'id="module-navigation-heading"')
 
     def test_a_homework_without_a_module_keeps_the_shorter_trail(self) -> None:
         response = self.get_homework_response()
@@ -161,6 +182,99 @@ class HomeworkModuleTrailTests(HomeworkDetailViewTestBase):
         assert breadcrumb is not None
         self.assertNotIn("modules/", breadcrumb.group(1))
         self.assertNotContains(response, "← Back to")
+        self.assertNotContains(response, 'id="module-navigation-heading"')
+
+
+class HomeworkSharedModuleRailTests(HomeworkDetailViewTestBase):
+    """A shared-curriculum homework keeps the module rail it was reached from.
+
+    ``curriculum_format=shared`` cohorts publish no legacy ``Module`` row
+    (see ``homework_terminal_module``'s docstring); their module context
+    lives on a ``CohortSharedModule`` placement instead, and the homework
+    page has to resolve it through that relation to keep the "In this
+    module" rail, the module breadcrumb, and the module/lesson navigation
+    continuous with the module and lesson pages the learner clicked in from.
+    """
+
+    def add_shared_module(self):
+        self.course.curriculum_format = "shared"
+        curriculum = SharedCurriculum.objects.create(
+            course=self.course.course,
+            parser_version="course-repository-v2",
+            **_provenance("11111111-1111-4111-8111-111111111111", "course.yaml"),
+        )
+        self.course.shared_curriculum = curriculum
+        self.course.save(update_fields=["curriculum_format", "shared_curriculum"])
+        module = SharedModule.objects.create(
+            curriculum=curriculum,
+            position=0,
+            slug="ai-native-workflow",
+            title="AI-Native Developer Workflow",
+            **_provenance(
+                "22222222-2222-4222-8222-222222222222", "ai-native-workflow/module.yaml"
+            ),
+        )
+        SharedLesson.objects.create(
+            module=module,
+            position=0,
+            slug="intro",
+            title="Introduction",
+            content_markdown="# Introduction\n",
+            rendered_html="<h2>Introduction</h2>\n",
+            **_provenance(
+                "33333333-3333-4333-8333-333333333333",
+                "ai-native-workflow/intro.md",
+            ),
+        )
+        CohortSharedModule.objects.create(
+            cohort=self.course,
+            shared_module=module,
+            position=0,
+            terminal_homework=self.homework,
+        )
+        return module
+
+    def test_shared_module_rail_and_crumb_appear_for_a_shared_curriculum_homework(
+        self,
+    ) -> None:
+        module = self.add_shared_module()
+
+        response = self.get_homework_response()
+        body = response.content.decode()
+        breadcrumb = re.search(
+            r'<nav class="breadcrumbs" aria-label="Breadcrumb">(.*?)</nav>',
+            body,
+            re.DOTALL,
+        )
+
+        self.assertEqual(response.context["shared_homework_module"], module)
+        self.assertIsNone(response.context["homework_module"])
+        self.assertIsNotNone(breadcrumb)
+        assert breadcrumb is not None
+        self.assertIn(module.title, breadcrumb.group(1))
+        self.assertNotIn(self.homework.title, breadcrumb.group(1))
+        module_url = (
+            f"/{self.course.course.slug}/{module.slug}?cohort={self.course.identifier}"
+        )
+        self.assertIn(module_url, breadcrumb.group(1))
+
+        # The "In this module" rail: the module's lesson and this homework's
+        # own row, both navigable, the way `shared_module.html`/
+        # `shared_lesson.html` already render it.
+        self.assertContains(response, 'id="module-navigation-heading"')
+        self.assertContains(response, "In this module")
+        self.assertContains(response, "Introduction")
+        self.assertContains(response, self.homework.title)
+
+        # No legacy back-to-module link: that route only exists for
+        # `curriculum_format=modules` cohorts.
+        self.assertNotContains(response, "← Back to")
+
+    def test_shared_module_rail_is_absent_for_a_legacy_format_homework(self) -> None:
+        response = self.get_homework_response()
+
+        self.assertIsNone(response.context["shared_homework_module"])
+        self.assertNotContains(response, 'id="module-navigation-heading"')
 
 
 class HomeworkStateMatrixTests(HomeworkDetailViewTestBase):
