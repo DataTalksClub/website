@@ -60,7 +60,7 @@ class CourseFamilyLandingTests(TestCase):
             volunteer_review_only=volunteer,
         )
 
-    def test_transformation_and_real_evidence_precede_registration_logistics(self):
+    def test_registration_opens_the_page_and_real_evidence_closes_it(self):
         self.add_submission()
 
         response = self.client.get(self.url)
@@ -69,9 +69,14 @@ class CourseFamilyLandingTests(TestCase):
         self.assertContains(response, self.family.starting_point)
         self.assertContains(response, self.family.outcome)
         self.assertEqual(len(response.context["family_skill_highlights"]), 4)
-        self.assertLess(body.index("Your starting point:"), body.index('id="path-heading"'))
-        self.assertLess(body.index('id="path-heading"'), body.index('id="register-heading"'))
-        self.assertLess(body.index("Explore learner projects"), body.index('id="register-heading"'))
+        # 2026-09: the cohort's own registration card opens the content column
+        # -- ahead of the skills/overview framing -- because it's the fact a
+        # visitor lands on the page to check. The "what people have built"
+        # proof now closes the page instead of sitting inline beside the
+        # skills preview.
+        self.assertLess(body.index("Your starting point:"), body.index('id="register-heading"'))
+        self.assertLess(body.index('id="register-heading"'), body.index('id="path-heading"'))
+        self.assertLess(body.index('id="path-heading"'), body.index("Explore learner projects"))
         self.assertContains(response, reverse("family_projects", args=[self.family.slug]))
         self.assertContains(response, reverse("registration_campaign", args=[self.campaign.slug]))
         self.assertNotContains(response, "What people build")
@@ -186,11 +191,38 @@ class CourseFamilyLandingTests(TestCase):
 
         self.assertNotContains(response, 'id="certificate-heading"')
 
-    def test_materials_only_family_has_an_honest_github_action(self):
+    def test_materials_only_shared_curriculum_family_links_to_the_platform(self):
+        # This family's setUp already imported a SharedCurriculum, so once its
+        # only campaign is gone the materials card should keep the visitor on
+        # the platform (the first published module) instead of sending them
+        # to the source repository -- even though ``github_repo_url`` is set.
         self.campaign.delete()
         response = self.client.get(self.url)
 
+        self.assertContains(response, "Learn the curriculum on the platform")
+        self.assertContains(
+            response,
+            reverse("shared_module", args=[self.family.slug, "skill-0"]),
+        )
+        self.assertNotContains(response, "Course materials on GitHub")
+        self.assertNotContains(response, "Register interest")
+        self.assertNotContains(response, "Self-paced · start now")
+
+    def test_materials_only_legacy_family_has_an_honest_github_action(self):
+        # A family with no imported SharedCurriculum has no module pages to
+        # send a visitor to, so the repository stays the only real materials
+        # destination.
+        family = Course.objects.create(
+            slug="legacy-course",
+            title="Legacy Course",
+            github_repo_url="https://github.com/example/legacy-course",
+        )
+        make_cohort(family, 2025)
+
+        response = self.client.get(reverse("course_family", args=[family.slug]))
+
         self.assertContains(response, "Course materials on GitHub")
+        self.assertContains(response, 'href="https://github.com/example/legacy-course"')
         self.assertNotContains(response, "Register interest")
         self.assertNotContains(response, "Self-paced · start now")
 
