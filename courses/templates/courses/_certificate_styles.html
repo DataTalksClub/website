@@ -1,0 +1,151 @@
+{% load static %}      /* Shared certificate-preview rules, included by the course landing
+         pages inside their own <style> element.  The markup is
+         _certificate_preview.html: the certificate the platform issues,
+         drawn from the generator that renders the real ones
+         (banner-generator's dtc-zoomcamp-certificate) at its own 16:9
+         proportions. */
+
+      /* The artifact's own colours.  The real certificate is a white sheet
+         with blue lettering whatever theme the reader browses in, so these
+         tokens do not mirror in dark mode the way page colours do — the card
+         is a picture of the artifact, not a surface of the page. */
+      :root {
+        --cert-paper: #ffffff;
+        --cert-ink: #202121;
+        --cert-accent: #2056a2;
+        --cert-rule: #a8a8a8;
+      }
+
+      /* The card is sized by its container, and everything on the sheet
+         scales in cqw, so the picture keeps the issued sheet's proportions
+         from the phone to the desktop. */
+      .certificate-preview {
+        container-type: inline-size;
+        margin: 0 auto;
+        max-width: 40rem;
+        width: 100%;
+      }
+
+      /* The sheet: the artifact's 16:9 canvas wearing the generator's own
+         corner art.  The shadow is the system's hard card offset, so the
+         card sits in the page the way its neighbours do. */
+      .certificate-preview-sheet {
+        aspect-ratio: 16 / 9;
+        background-color: var(--cert-paper);
+        background-image: url("{% static 'courses/certificate-main-deco.svg' %}");
+        background-size: 100% 100%;
+        border-radius: 0.6rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        color: var(--cert-ink);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        letter-spacing: 0.1em;
+        text-align: center;
+        text-transform: uppercase;
+        width: 100%;
+      }
+
+      .certificate-preview-top,
+      .certificate-preview-middle,
+      .certificate-preview-bottom {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .certificate-preview p {
+        margin: 0;
+      }
+
+      /* The statement block: the logo, then the title under it. */
+      .certificate-preview-logo {
+        margin: 3.65cqw 0 3.33cqw;
+        width: 20.47cqw;
+      }
+
+      .certificate-preview-title {
+        font-size: 2.34cqw;
+        font-weight: 600;
+        line-height: 1.49;
+        margin-bottom: 1.88cqw;
+      }
+
+      /* The awarded-to block: the kicker, then the graduate's name between
+         the triangle marks, in the artifact's blue. */
+      .certificate-preview-middle p {
+        font-size: 1.82cqw;
+        line-height: 1.49;
+      }
+
+      .certificate-preview-name-row {
+        align-items: center;
+        display: inline-flex;
+        gap: 1.77cqw;
+        margin-top: 1.4cqw;
+      }
+
+      .certificate-preview-name {
+        color: var(--cert-accent);
+        font-size: 4.94cqw;
+        font-weight: 700;
+        line-height: 1.15;
+      }
+
+      .certificate-preview-name-deco {
+        height: 1.88cqw;
+        width: auto;
+      }
+
+      /* The completing block: the kicker, the course line, then the
+         signature over its rule.  Its padding is the sheet's bottom margin:
+         the space-between distribution above it can stretch, this cannot,
+         so the signature keeps the artifact's air below it even with the
+         issued copy's number and date rows left off. */
+      .certificate-preview-bottom {
+        padding-bottom: 5.2cqw;
+      }
+
+      .certificate-preview-course-block p {
+        font-size: 1.82cqw;
+        line-height: 1.49;
+      }
+
+      .certificate-preview-course {
+        color: var(--cert-accent);
+        font-size: 2.86cqw;
+        font-weight: 700;
+        line-height: 1.15;
+        max-width: 78cqw;
+      }
+
+      /* The signature block: the mark over its rule, the role under it.
+         The block is as wide as the role line — the rule stays the
+         artifact's narrower one, centred beneath the mark. */
+      .certificate-preview-signature {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        margin-top: 2.6cqw;
+      }
+
+      .certificate-preview-signature-img {
+        display: block;
+        height: 3.18cqw;
+        margin: 0 auto;
+        object-fit: contain;
+        width: 19.9cqw;
+      }
+
+      .certificate-preview-signature-rule {
+        background: var(--cert-rule);
+        height: max(1px, 0.11cqw);
+        width: 20.83cqw;
+      }
+
+      .certificate-preview-signature p {
+        font-size: 1.82cqw;
+        line-height: 1.49;
+        white-space: nowrap;
+      }

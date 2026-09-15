@@ -1,0 +1,62 @@
+{% load static %}
+{% comment %}
+  The certificate the platform issues, simplified from the template the real
+  ones render from (banner-generator: dtc-zoomcamp-certificate) — the white
+  sheet with its corner art, the DataTalks.Club logo, the statement of
+  accomplishment, the graduate's name between the triangle marks, the course
+  line and the instructor's signature.  The issued copy's specifics stay off
+  it: the QR code, the certificate number and the date belong to a
+  certificate that exists, not the promise of one.
+
+  The course line reads `certificate_course_name` and falls back to the
+  family's title, so both landing pages can include it without a with-block.
+  Styles: courses/_certificate_styles.html, included inside the page's own
+  <style> element.
+{% endcomment %}
+<figure class="certificate-preview">
+  <div class="certificate-preview-sheet">
+    <div class="certificate-preview-top">
+      <img
+        class="certificate-preview-logo"
+        src="{% static 'courses/certificate-dtc-logo.svg' %}"
+        alt="DataTalks.Club logo"
+        loading="lazy"
+      >
+      <p class="certificate-preview-title">Statement of Accomplishment</p>
+    </div>
+    <div class="certificate-preview-middle">
+      <p>has been awarded to</p>
+      <div class="certificate-preview-name-row">
+        <img
+          class="certificate-preview-name-deco"
+          src="{% static 'courses/certificate-name-deco-left.svg' %}"
+          alt=""
+          loading="lazy"
+        >
+        <p class="certificate-preview-name">Your Name</p>
+        <img
+          class="certificate-preview-name-deco"
+          src="{% static 'courses/certificate-name-deco-right.svg' %}"
+          alt=""
+          loading="lazy"
+        >
+      </div>
+    </div>
+    <div class="certificate-preview-bottom">
+      <div class="certificate-preview-course-block">
+        <p>for successfully completing</p>
+        <p class="certificate-preview-course">{{ certificate_course_name|default:course_family.title }}</p>
+      </div>
+      <div class="certificate-preview-signature">
+        <img
+          class="certificate-preview-signature-img"
+          src="{% static 'courses/alexey-signature.svg' %}"
+          alt="Alexey Grigorev's signature"
+          loading="lazy"
+        >
+        <div class="certificate-preview-signature-rule" aria-hidden="true"></div>
+        <p>Lead instructor</p>
+      </div>
+    </div>
+  </div>
+</figure>

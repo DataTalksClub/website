@@ -20,6 +20,17 @@
 {% endblock %}
 
 {% block page_styles %}
+      {% include "courses/_certificate_styles.html" %}
+
+      .course-certificate {
+        display: grid;
+        gap: 1.5rem;
+      }
+
+      .course-certificate p {
+        max-width: 38rem;
+      }
+
       /* ------------------------------------------------------------------ *
        * Course page, design system (issue #179).  Like the homepage, this page
        * carries its own complete stylesheet: the shared design system partial
@@ -735,6 +746,15 @@
               <p>There are no homeworks or projects available for this course yet. Come back later.</p>
             </div>
           {% endif %}
+          {% endif %}
+          {% if course.delivery_mode == 'live' and not course.finished and projects %}
+            <section class="course-certificate" aria-labelledby="certificate-heading">
+              <div>
+                <h2 id="certificate-heading">A certificate for completing the cohort</h2>
+                <p>Certificate eligibility depends on this cohort's completion requirements. Reading the materials on your own does not earn a certificate.</p>
+              </div>
+              {% include "courses/_certificate_preview.html" %}
+            </section>
           {% endif %}
           {% if other_course_editions %}
             <section aria-labelledby="other-editions-heading">
