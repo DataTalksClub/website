@@ -50,9 +50,9 @@
     {
       "family_slug": "de-zoomcamp",
       "source_png": ".tmp/course-illustrations-20260915/png/de-zoomcamp.png",
-      "source_sha256": "6213809b759e71355cea3973943a298a729b409643bd49faf4305482a09da2b8",
+      "source_sha256": "8986c13ab7fe7110cd51f039df8ee7269134f481c913fa3162e5d69064215634",
       "installed_webp": "core/static/core/illustrations/course-de-zoomcamp.webp",
-      "installed_sha256": "6d82f6b4382aa72cd139fed1bb56f6d701d505beb7125c0f08ab3a0fa942c913",
+      "installed_sha256": "daa84aaf6f0ae75d17681507b8db16351fa48a704085909ab00610511cc0d6a9",
       "dimensions": [
         1254,
         1254
@@ -63,9 +63,9 @@
     {
       "family_slug": "llm-zoomcamp",
       "source_png": ".tmp/course-illustrations-20260915/png/llm-zoomcamp.png",
-      "source_sha256": "e31485dea14e48948915f097f83c28c275b085cd2213b85c107fbde55dec64b9",
+      "source_sha256": "fa8eccdc04137d629d9a54ad0c10e352a162e24f852a16fd4ddaed0564146c01",
       "installed_webp": "core/static/core/illustrations/course-llm-zoomcamp.webp",
-      "installed_sha256": "75f6f66e013dace240d37bea6c7954c115d736086cf8f9734996975b6121dd78",
+      "installed_sha256": "bc3ff1aece5f03e73bd39f6d255b22a7ea8d049fcb2b8a0e9ffc5a6764d68c9c",
       "dimensions": [
         1254,
         1254
@@ -102,9 +102,9 @@
     {
       "family_slug": "sma-zoomcamp",
       "source_png": ".tmp/course-illustrations-20260915/png/sma-zoomcamp.png",
-      "source_sha256": "22fac109b9a8c29f8d92d224a86227cf7c4828d9c224c8531b8b24ef847731e3",
+      "source_sha256": "302ba1004fff1efb05e6d687db6a240e0cb14869ef9781b0c3c9e521a440ef44",
       "installed_webp": "core/static/core/illustrations/course-sma-zoomcamp.webp",
-      "installed_sha256": "63532a496f5ef7f8c488aff61fda3e067fe83f3f626f9539ea526611cc3bf98e",
+      "installed_sha256": "43eeeb6f94346e3aee7c8475284ed34882bb187445eb06baf109eba6622b363b",
       "dimensions": [
         1254,
         1254
@@ -211,8 +211,9 @@
     },
     "pixel_evidence": ".tmp/course-illustrations-20260915/installed-pixel-check.json"
   },
+  "variety_revision": "_docs/design/references/course-variety-revision.md",
   "llm_quality_repair": {
-    "reason": "User rejected ambiguous arms, generated compression-like texture and coarse cutout edge.",
+    "reason": "Historical repair superseded by the later variety revision. User rejected ambiguous arms, generated compression-like texture and coarse cutout edge.",
     "passes": [
       {
         "prompt": "Use case: precise-object-edit\nAsset: LLM Zoomcamp website illustration, clean native lossless PNG.\nImage 1 is the exact scene/composition anchor. Image 2 is ONLY the approved homepage drawing-style and soft broad watercolor reference, not a scene or cloud to copy.\nRepair Image 1: keep the learner on the left at the laptop, source documents in the center, friendly robot on the right and grounded-answer speech bubble above. Preserve scene layout, figure scale, navy ink, bright green clothing, indigo accents, opaque white faces/screens/documents and simple small filled navy hands. No additional props or text.\nCorrect the robot anatomy: exactly TWO arms, each unambiguously attached to a DIFFERENT shoulder. Its viewer-left arm extends from the left shoulder to hold the document beside it. Its viewer-right arm visibly emerges from the right shoulder and bends naturally across the front of the torso to support the bottom of the same document. Make both shoulder-to-elbow-to-hand paths readable, with no detached limbs, shared shoulder attachments, extra arm-like strokes or stray torso lines.\nRepaint this scene's own pale lavender watercolor wash with broad restrained pigment variation and a gently diminishing irregular perimeter. The current coarse jagged opaque cutout is a defect: replace it with a smooth natural watercolor coverage fade. Keep its broad silhouette but do not copy Image 2's cloud. No isolated speckles, stippling, saw-tooth edge, pale rim, glow, paper halo or dark contour. Clean opaque foreground fills and crisp navy ink: no JPEG-like blocks, random pixel grain, noisy gradients or color speckles.\nOutside the complete illustration use one perfectly uniform saturated #ff00ff chroma backdrop. No transparency simulation, checkerboard, white paper rectangle or backdrop gradient. The outer watercolor pigment gradually thins into that chroma with no white underpainting; preserve faint paint for clean chroma recovery onto cream and white website backgrounds.\nReturn a complete square PNG at the source's native resolution (1254 x 1254 if supported), with breathing room around the full scene. Do not crop characters or watercolor. Do not add letters, logos or labels.",
