@@ -77,8 +77,8 @@ uv run --script .agents/skills/website-illustrations/scripts/finish_chroma.py \
 - Raw output: `.tmp/course-illustration-variety-20260915/raw/sma.png`
 - Raw SHA256: `38bc52c84a2efd5c659e40e0271637b5068e7de2c542dc031ae842384fc1eafc`
 - Original tool output: `/home/alexey/.codex/generated_images/01a0a479-3d2f-7991-9ca7-bf120c70bac4/exec-f9e5c15e-b9fc-4d72-8cc7-e8205ada1879.png`
-- Final PNG SHA256: `302ba1004fff1efb05e6d687db6a240e0cb14869ef9781b0c3c9e521a440ef44`
-- Installed WebP SHA256: `43eeeb6f94346e3aee7c8475284ed34882bb187445eb06baf109eba6622b363b`
+- Final PNG SHA256: `9198f969c7e3bd8c7554f33f29daa72b9ef0073d7654c419c2b75c10eb088154`
+- Installed WebP SHA256: `125d5b48c268e395e328d9f7c0d23c7cb877d97fd17533133d58fb2181993a1a`
 
 ```text
 Use case: stylized-concept
@@ -97,6 +97,35 @@ Finishing command:
 uv run --script .agents/skills/website-illustrations/scripts/finish_chroma.py \
   .tmp/course-illustration-variety-20260915/raw/sma.png \
   .tmp/course-illustration-variety-20260915/final4/sma \
+  --solid-key-chroma 230 --key-noise-alpha 0.05
+```
+
+### Calculator-side correction
+
+The first variety revision put the calculator on the viewer-left. The corrected
+asset swaps the notebook and calculator while preserving the money-counting pose.
+
+- Raw output: `.tmp/course-illustration-variety-20260915/sma-calculator-side/source-keyed.png`
+- Raw SHA256: `9cf0d623abedb27b159e3cfcf42d4bd2c0ce5522fbf1f3686c546be9189d6325`
+- Original tool output: `/home/alexey/.codex/generated_images/01a0a479-3d2f-7991-9ca7-bf120c70bac4/exec-15beb6ad-a6d5-4d7f-bc9a-7fc59e8956bd.png`
+
+```text
+Use case: precise-object-edit
+Asset type: Stock Market Analytics Zoomcamp light-theme website illustration.
+Input images: Image 1 is the exact composition and subject anchor to edit. Image 2 guides only the established DataTalks.Club drawing style and clean watercolor edge.
+Primary request: Correct the prop layout by swapping the calculator and notebook positions. Place the calculator on the VIEWER-RIGHT side of the tabletop, immediately to the right of the two money stacks. Place the small chart notebook on the VIEWER-LEFT side of the tabletop. Do not mirror or rotate either object, and do not alter the learner's left/right orientation.
+Preserve: the exact one-person money-counting action, face, body, green shirt, both connected arms and hands, fan of bills, bill being placed, two money stacks, table line, overall scale, palette, navy outlines, broad lavender watercolor shape, and 1254x1254 square canvas. The learner must still look down and count money, with the same hand positions. Keep exactly one calculator and one notebook.
+Style/medium: clean hand-drawn editorial watercolor; simple opaque foreground fills, crisp slightly irregular navy ink, forest green and indigo accents, broad calm pale-lavender wash.
+Scene/backdrop: Return the complete illustration with its own lavender wash on one perfectly uniform opaque saturated magenta #ff00ff exterior chroma backdrop. All four borders are key. No simulated transparency, checkerboard, white rectangle, gradient, or texture in the outer key.
+Constraints: change only the calculator/notebook placement and the small surrounding wash needed to integrate them. No added or removed money, no text, currency symbols, flags, numbers, logos, extra limbs, pointing, presentation screen, or robot. No compression blocks, ringing, grain, speckles, cellular facets, polygon texture, malformed fingers, hard cutout, white halo, or key-colored details inside the art.
+```
+
+Finishing command:
+
+```sh
+uv run --script .agents/skills/website-illustrations/scripts/finish_chroma.py \
+  .tmp/course-illustration-variety-20260915/sma-calculator-side/source-keyed.png \
+  .tmp/course-illustration-variety-20260915/sma-calculator-side/final \
   --solid-key-chroma 230 --key-noise-alpha 0.05
 ```
 
