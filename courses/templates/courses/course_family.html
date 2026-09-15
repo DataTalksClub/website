@@ -11,6 +11,8 @@
 
 {% block page_styles %}
 
+      {% include "courses/_certificate_styles.html" %}
+
       {% comment %}
         Family landing page, course-page mock of 2026-09, drawn directionally in
         the design system: the same cream hero, lavender ground, status pills,
@@ -108,17 +110,6 @@
         font-size: clamp(0.95rem, 1.5vw, 1.05rem);
         margin-top: 1.25rem;
         max-width: 44rem;
-      }
-
-      /* The fact chips are bare status pills: mono, quiet, and drawn only for
-         facts the cohorts can back. */
-      .family-facts {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        list-style: none;
-        margin: 1.1rem 0 0;
-        padding: 0;
       }
 
       .family-hero-actions {
@@ -552,6 +543,23 @@
         gap: 0.75rem;
       }
 
+      /* --- the certificate band ------------------------------------------- */
+
+      /* The syllabus's closing argument, drawn as its twin: the promise and
+         the artifact centred under it, one column.  The card keeps the
+         artifact's own white sheet on either theme — it is a picture of the
+         thing, not a page surface. */
+      .family-certificate {
+        margin-top: 3.25rem;
+        text-align: center;
+      }
+
+      .family-certificate-intro p {
+        color: var(--body-text);
+        margin: 0.7rem auto 0;
+        max-width: 34rem;
+      }
+
       /* --- narrow: reshape, not reflow ----------------------------------- */
 
       @media (max-width: 47.99rem) {
@@ -587,12 +595,6 @@
 {% endblock %}
 
 {% block page_header %}
-        {% comment %}
-          The trail lists ancestors only; the h1 underneath says where you are.  A
-          trailing self-crumb repeated the family title a third time on this page.
-        {% endcomment %}
-        {% url 'course_list' as course_list_url %}
-        {% breadcrumbs "Courses" course_list_url %}
         <div class="family-hero-inner shell-breakout">
           <div>
             {% comment %}
@@ -638,13 +640,6 @@
                 {% include "core/_button.html" with href=materials_url label="Course materials on GitHub" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
               {% endif %}
             </div>
-            {% if family_facts %}
-              <ul class="family-facts" role="list">
-                {% for fact in family_facts %}
-                  <li class="status-pill">{{ fact }}</li>
-                {% endfor %}
-              </ul>
-            {% endif %}
           </div>
           <div class="family-hero-art">
             {% include "core/_course_illustration.html" %}
@@ -773,6 +768,18 @@
           </div>
         </section>
       {% endif %}
+      {% comment %}
+        What the syllabus ends in: the certificate, drawn as the artifact the
+        platform issues (courses/_certificate_preview.html) — the promise
+        centred above the sheet, so the read stays one column.
+      {% endcomment %}
+      <section class="family-certificate shell-breakout" aria-labelledby="certificate-heading">
+        <div class="family-certificate-intro">
+          <h2 id="certificate-heading">Graduate with a certificate</h2>
+          <p>Work through the syllabus, hand in the homework and the capstone, and DataTalks.Club issues you a certificate of completion — signed by the instructor and verifiable online.</p>
+        </div>
+        {% include "courses/_certificate_preview.html" %}
+      </section>
       {% comment %}
         The editions, like the home page's course catalogue: small cards in a
         scroll strip with the shared scroller arrows, one card per edition

@@ -8,7 +8,6 @@ from courses.course_page_content import (
     course_specs,
     family_capstone_project,
     family_edition_rows,
-    family_facts,
     family_project_cards,
     family_registration_specs,
     family_story_rows,
@@ -35,10 +34,7 @@ from courses.services.registration_campaigns import (
     next_edition_campaign_for_cohort,
 )
 from courses.services.registration_counts import public_course_registration_count
-from courses.views.course_homepage import (
-    add_course_homepage_info,
-    course_duration_label,
-)
+from courses.views.course_homepage import add_course_homepage_info
 from courses.views.course_homeworks import get_homeworks_for_course
 from courses.views.course_projects import get_projects_for_course
 from courses.views.url_utils import get_cohort_or_404
@@ -384,11 +380,6 @@ def course_family_page_context(family: Course, user) -> dict:
         "registration_specs": family_registration_specs(
             registration_cohort,
             registered,
-        ),
-        "family_facts": family_facts(
-            editions,
-            course_duration_label(front_cohort) if front_cohort else "TBA",
-            registered if registration_cohort else None,
         ),
         "materials_url": materials_url,
         "self_paced_cohort": self_paced_cohort,

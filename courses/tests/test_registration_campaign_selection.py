@@ -207,12 +207,12 @@ class RegistrationSurfaceTests(TestCase):
 class FamilyHeadingRepetitionTests(TestCase):
     """The trail lists ancestors, the h1 says where you are, and neither repeats."""
 
-    def test_the_family_trail_stops_before_the_family_it_is_on(self) -> None:
+    def test_the_family_page_carries_no_breadcrumb_trail(self) -> None:
         make_family("de-zoomcamp", "Data Engineering Zoomcamp")
 
         response = self.client.get("/courses/de-zoomcamp")
 
-        self.assertContains(response, '<a href="/courses">Courses</a>')
+        self.assertNotContains(response, 'class="breadcrumbs"')
         self.assertNotContains(response, 'aria-current="page">Data Engineering Zoomcamp')
         self.assertContains(response, "Data Engineering Zoomcamp</h1>")
 

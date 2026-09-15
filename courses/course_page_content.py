@@ -199,31 +199,6 @@ def family_registration_specs(
     return tuple(specs)
 
 
-def family_facts(
-    editions: list,
-    duration_label: str,
-    registered: int | None,
-) -> tuple[str, ...]:
-    """The hero's fact chips as plain phrases, read from the family's own rows.
-
-    A chip is a fact the records can back: the front cohort's length, how many
-    visible editions the family has, how many learner projects they hold, and the
-    published registration total. Absent facts are skipped, never padded.
-    """
-
-    facts: list[str] = []
-    if duration_label and duration_label != "TBA":
-        facts.append(duration_label)
-    if editions:
-        facts.append(f"{len(editions)} cohorts")
-    project_count = sum(len(edition.projects) for edition in editions)
-    if project_count:
-        facts.append(f"{project_count} learner projects")
-    if registered is not None:
-        facts.append(f"{registered} registered")
-    return tuple(facts)
-
-
 @dataclass(frozen=True, slots=True)
 class FamilySyllabusRow:
     """One numbered row of the family landing's syllabus band."""
