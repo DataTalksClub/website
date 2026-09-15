@@ -1,0 +1,128 @@
+{% extends 'projects/_base.html' %}
+{% load breadcrumbs %}
+{% comment %}
+  Every project submitted anywhere on the site -- every course family, every
+  visible cohort within it (courses/views/site_project_gallery.py).
+
+  One level up from projects/family_gallery.html, which this reuses rather
+  than duplicates: the same `.faq-fold` cohort disclosure nests inside one
+  more `.faq-fold` level per course family. The site holds many families,
+  each of which can hold many cohorts, so nothing here is open by default --
+  every family fold is closed on load and shows its own project/cohort
+  counts in the summary, same as a closed cohort fold does one level down.
+
+  This page has no single family or cohort, so like family_gallery.html it
+  supplies its own `page_header` rather than the shell's default, which
+  resolves a `cohort` url from a `course` this page has none of.
+{% endcomment %}
+
+{% block document_title %}
+  All projects — DataTalks.Club
+{% endblock %}
+
+{% block meta_robots %}
+  <meta name="robots" content="noindex">
+{% endblock %}
+
+{% block extra_styles %}
+  /* Borrowed verbatim from projects/list_all.html: the row of jump links to
+     each project's own submission list. */
+  .project-jumps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1.25rem;
+  }
+
+  /* The nested cohort folds read as one level down from the family fold
+     that holds them -- a little indent is the whole difference, no new
+     colour or border. */
+  .gallery-nested {
+    border-left: 1.5px dashed var(--line-soft);
+    margin-top: 0.5rem;
+    padding-left: 1rem;
+  }
+{% endblock %}
+
+{% block page_header %}
+  {% url 'course_list' as course_list_url %}
+  {% breadcrumbs "Courses" course_list_url current="All projects" %}
+  <div class="project-head">
+    <p class="mono-label mono-label-indigo">Every course</p>
+    <h1>All Project Submissions</h1>
+    <p class="project-lede">
+      Every learner project submitted anywhere on DataTalks.Club, grouped by course and then by cohort.
+    </p>
+    <div class="project-toolbar">
+      <a class="cta cta-compact cta-secondary interactive-lift" href="{{ course_list_url }}">
+        Back to Courses
+      </a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block project_content %}
+  <section class="project-section" aria-labelledby="site-gallery-heading">
+    <div class="project-section-head">
+      <h2 id="site-gallery-heading">Projects by course</h2>
+      {% if family_groups %}
+        <p class="mono-note">
+          {{ family_groups|length }} course{{ family_groups|length|pluralize }} with projects
+        </p>
+      {% endif %}
+    </div>
+    {% if family_groups %}
+      <div class="row-list">
+        {% for family_group in family_groups %}
+          <details class="faq-fold" data-gallery-family="{{ family_group.family.slug }}">
+            <summary class="faq-fold-summary">
+              <span class="faq-question-title">
+                {{ family_group.family.title }}
+                <span class="mono-note">
+                  {{ family_group.project_count }} project{{ family_group.project_count|pluralize }} ·
+                  {{ family_group.cohort_groups|length }} cohort{{ family_group.cohort_groups|length|pluralize }}
+                </span>
+              </span>
+              <span class="faq-fold-marker" aria-hidden="true"></span>
+            </summary>
+            <div class="faq-answer gallery-nested">
+              <p class="project-note">
+                <a class="band-link" href="{% url 'family_projects' course_slug=family_group.family.slug %}">
+                  Open the full {{ family_group.family.title }} gallery →
+                </a>
+              </p>
+              <div class="row-list">
+                {% for group in family_group.cohort_groups %}
+                  <details class="faq-fold" data-gallery-cohort="{{ group.cohort.identifier }}" {% if forloop.counter0 < default_open_cohorts %}open{% endif %}>
+                    <summary class="faq-fold-summary">
+                      <span class="faq-question-title">
+                        {{ group.cohort.identifier }}
+                        <span class="mono-note">
+                          {{ group.projects|length }} project{{ group.projects|length|pluralize }}
+                        </span>
+                      </span>
+                      <span class="faq-fold-marker" aria-hidden="true"></span>
+                    </summary>
+                    <div class="faq-answer">
+                      <div class="project-jumps">
+                        {% for project in group.projects %}
+                          <a class="band-link" href="{% url 'cohort_project_list' course_slug=family_group.family.slug cohort_identifier=group.cohort.identifier project_slug=project.slug %}">
+                            {{ project.title }}
+                            <span class="mono-note">{{ project.submissions_count }}</span>
+                          </a>
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </details>
+                {% endfor %}
+              </div>
+            </div>
+          </details>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="project-empty">
+        No project submissions yet anywhere.
+      </p>
+    {% endif %}
+  </section>
+{% endblock %}

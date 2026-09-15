@@ -215,6 +215,17 @@
         text-transform: uppercase;
       }
 
+      /* The one-line pointer to the cross-course project gallery, sitting on
+         the page's own cream/lavender ground rather than the dark stats band
+         above it -- .band-link's indigo underline needs the ordinary body
+         background to read. */
+      .courses-projects-link {
+        margin: 1.5rem auto 0;
+        max-width: var(--shell);
+        padding-inline: 1rem;
+        text-align: center;
+      }
+
       /* --- catalogue sections ------------------------------------------------ */
 
       /* The shared band head reserves a second column for an action link;
@@ -918,6 +929,9 @@
           </div>
         </div>
       </section>
+      <p class="courses-projects-link">
+        <a class="band-link" href="{% url 'all_projects' %}">Browse every learner project, from every course →</a>
+      </p>
       <div id="courses">
         {% if open_registration_courses %}
           <section class="catalogue-section courses-open shell-breakout" aria-labelledby="open-heading">

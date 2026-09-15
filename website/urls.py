@@ -10,7 +10,7 @@ from cadmin.legacy_urls import legacy_course_list_redirect
 from content import public_views, review_views
 from core import views as core_views
 from courses import urls as course_urls
-from courses.views import course_aliases, course_list
+from courses.views import course_aliases, course_list, site_project_gallery
 from courses.views.shared_course_assets import shared_course_asset
 from studio_courses import urls as studio_course_urls
 
@@ -186,6 +186,15 @@ urlpatterns = [
         public_views.permanent_public_redirect,
         {"target": "/courses"},
         name="course-list-slash-redirect",
+    ),
+    # Site-wide project gallery: every learner project across every course
+    # family. Registered ahead of the family catch-all below (the same
+    # technique "courses" itself uses above), so "/courses/projects" is never
+    # mistaken for a course family literally named "projects".
+    path(
+        "courses/projects",
+        site_project_gallery.site_project_gallery_view,
+        name="all_projects",
     ),
     path(
         "courses/",
