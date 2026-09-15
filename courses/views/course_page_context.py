@@ -1,13 +1,14 @@
 from dataclasses import dataclass
 
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from django.utils import timezone
 
 from courses.course_page_content import (
     course_modules,
     course_specs,
-    family_capstone_project,
     family_edition_rows,
+    split_current_edition,
     family_project_cards,
     family_registration_specs,
     family_story_rows,
@@ -322,14 +323,6 @@ def course_family_page_context(family: Course, user) -> dict:
     registration_cohort = registration.cohort
     front_cohort = registration_cohort or (editions[0].cohort if editions else None)
     registered = registered_learner_count(registration.campaign)
-    materials_url = family.github_repo_url or next(
-        (
-            edition.cohort.github_repo_url
-            for edition in editions
-            if edition.cohort.github_repo_url
-        ),
-        "",
-    )
     self_paced_cohort = next(
         (
             edition.cohort
@@ -366,6 +359,26 @@ def course_family_page_context(family: Course, user) -> dict:
             get_homeworks_for_course(front_cohort, user) if front_cohort else []
         )
         syllabus_fact = f"{len(syllabus_units)} homeworks" if syllabus_units else ""
+    # A family whose curriculum has been imported (``shared_modules`` real rows)
+    # keeps every visitor on the platform: the materials route opens the first
+    # module page instead of sending anyone to the source repository. A family
+    # that hasn't been imported yet has no module pages to send them to, so the
+    # repository stays the only honest destination.
+    materials_on_platform = bool(shared_modules)
+    if materials_on_platform:
+        materials_url = reverse(
+            "shared_module",
+            args=[family.slug, shared_modules[0].slug],
+        )
+    else:
+        materials_url = family.github_repo_url or next(
+            (
+                edition.cohort.github_repo_url
+                for edition in editions
+                if edition.cohort.github_repo_url
+            ),
+            "",
+        )
     project_cards = family_project_cards(editions)
     syllabus_rows = family_syllabus_rows(syllabus_units)
     # Keep the curriculum's own teaching order and wording in the preview.
@@ -393,15 +406,19 @@ def course_family_page_context(family: Course, user) -> dict:
         not in {family.title.strip().casefold(), family_lede(family).casefold()}
         else ""
     )
+    current_edition_row, previous_edition_rows = split_current_edition(
+        family_edition_rows(
+            editions,
+            registration_cohort,
+            today,
+        )
+    )
     return {
         "course_family": family,
         "cohorts": [edition.cohort for edition in editions],
         "cohort_editions": editions,
-        "family_edition_rows": family_edition_rows(
-            editions,
-            registration_cohort,
-            today,
-        ),
+        "current_edition_row": current_edition_row,
+        "previous_edition_rows": previous_edition_rows,
         "family_registration": registration,
         "registration_cohort": registration_cohort,
         "registration_specs": family_registration_specs(
@@ -409,6 +426,7 @@ def course_family_page_context(family: Course, user) -> dict:
             registered,
         ),
         "materials_url": materials_url,
+        "materials_on_platform": materials_on_platform,
         "self_paced_cohort": self_paced_cohort,
         "family_lede": family_lede(family),
         "family_starting_point": family.starting_point.strip(),
@@ -420,7 +438,7 @@ def course_family_page_context(family: Course, user) -> dict:
         "family_project_brief": project_brief,
         "certificate_cohort": certificate_cohort,
         "syllabus_fact": syllabus_fact,
-        "syllabus_capstone": family_capstone_project(front_projects),
+        "family_syllabus_projects": front_projects,
         "family_stories": family_story_rows(
             family.testimonials.filter(
                 placement=TestimonialPlacement.COURSE,
