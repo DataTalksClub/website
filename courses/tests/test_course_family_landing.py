@@ -422,6 +422,7 @@ class CourseFamilyFaqPreviewTests(TestCase):
         family = Course.objects.create(slug="ml-zoomcamp", title="Machine Learning Zoomcamp")
         document = faq_course("machine-learning-zoomcamp")
         self.assertIsNotNone(document)
+        assert document is not None
         first_question = faq_questions(document)[0]
 
         response = self.client.get(reverse("course_family", args=[family.slug]))

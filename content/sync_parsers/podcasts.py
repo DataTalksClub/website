@@ -31,9 +31,7 @@ class PodcastsParser:
         if source.slug != SOURCE_SLUG:
             return []
         base.activate(checkout)
-        episode_paths = sorted(
-            path for path in checkout.files() if self._is_episode(path)
-        )
+        episode_paths = sorted(path for path in checkout.files() if self._is_episode(path))
         # Records are built with empty resources first and resolved against the
         # complete catalogue afterwards, mirroring the builder's two-phase rule
         # for root-relative episode links.

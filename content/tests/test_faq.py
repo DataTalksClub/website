@@ -402,6 +402,7 @@ class FaqRoutesTests(TestCase):
         # A family whose slug already names its FAQ document directly.
         direct = faq_course_for_family_slug("llm-zoomcamp")
         self.assertIsNotNone(direct)
+        assert direct is not None
         self.assertEqual(direct["slug"], "llm-zoomcamp")
 
         # The abbreviated family slugs this course's own family record uses,
@@ -414,6 +415,7 @@ class FaqRoutesTests(TestCase):
             with self.subTest(family_slug=family_slug):
                 course = faq_course_for_family_slug(family_slug)
                 self.assertIsNotNone(course)
+                assert course is not None
                 self.assertEqual(course["slug"], faq_slug)
 
         self.assertIsNone(faq_course_for_family_slug("no-such-family"))

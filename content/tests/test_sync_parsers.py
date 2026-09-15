@@ -261,11 +261,11 @@ class PodcastsParserTests(_CheckoutCase):
             self.assertEqual(record["season"], 3)
             self.assertEqual(record["episode"], 11)
             self.assertEqual(record["guests"], ["fixture-guest"])
-            self.assertEqual(record["links"], {"youtube": "https://www.youtube.com/watch?v=abc12345678"})
-            self.assertEqual(record["video"], {"provider": "youtube", "id": "abc12345678"})
             self.assertEqual(
-                [resource["title"] for resource in record["resources"]], ["Example"]
+                record["links"], {"youtube": "https://www.youtube.com/watch?v=abc12345678"}
             )
+            self.assertEqual(record["video"], {"provider": "youtube", "id": "abc12345678"})
+            self.assertEqual([resource["title"] for resource in record["resources"]], ["Example"])
             self.assertEqual(len(record["transcript"]), 1)
             self.assertEqual(record["transcript"][0]["line"], "Hello and welcome.")
             self.assertEqual(
@@ -355,9 +355,7 @@ class BooksParserTests(_CheckoutCase):
             self.assertEqual(
                 record["links"], [{"label": "Book page", "url": "https://example.com/book"}]
             )
-            self.assertEqual(
-                record["image_source"], "images/books/20201214-ml-bookcamp/cover.jpg"
-            )
+            self.assertEqual(record["image_source"], "images/books/20201214-ml-bookcamp/cover.jpg")
             self.assertEqual(len(record["archive"]), 1)
             self.assertEqual(record["provenance"]["revision"], "a" * 40)
             result = parser.upsert(items[0], source, media_store())

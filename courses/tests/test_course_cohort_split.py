@@ -228,11 +228,13 @@ class CanonicalCourseRouteTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         content = response.content.decode()
-        canonical = "/courses/de-zoomcamp/2026"
-        # The card carries its own link role and keyboard focus order; the
-        # exact indentation between the attributes is template formatting.
+        # Cards link the family page (the owner's "no special treatment"
+        # ask): one CTA per card, and the family page is the one place that
+        # shows each family's real, current state. The card stays a
+        # keyboard-reachable whole-card link; exact attribute indentation
+        # is template formatting.
         self.assertRegex(content, r'role="link"\s+tabindex="0"')
-        self.assertIn(canonical, content)
+        self.assertIn('href="/courses/de-zoomcamp"', content)
         self.assertIn("event.key === 'Enter'", content)
         self.assertIn("event.key === ' '", content)
         self.assertNotIn("Open course", content)
