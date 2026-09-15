@@ -207,12 +207,9 @@ class CanonicalCourseRouteTests(TestCase):
             "/courses/de-zoomcamp",
         )
 
-    def test_old_cohorts_prefixed_path_redirects_to_the_flat_shape(self):
+    def test_old_cohorts_prefixed_path_is_retired_not_redirected(self):
         response = self.client.get("/courses/de-zoomcamp/cohorts/2026/dashboard")
-        self.assertEqual(response.status_code, 301)
-        self.assertEqual(
-            response.headers["Location"], "/courses/de-zoomcamp/2026/dashboard"
-        )
+        self.assertEqual(response.status_code, 404)
 
     def test_family_landing_and_cohort_detail_use_the_canonical_contract(self):
         family_response = self.client.get("/courses/de-zoomcamp")
