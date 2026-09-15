@@ -1,26 +1,41 @@
+from django.core.paginator import Paginator
 from django.shortcuts import render
 
-from courses.views.project_gallery_groups import site_project_groups
+from courses.views.project_gallery_groups import site_project_submissions
 
-# The site holds many course families, each of which can hold many cohorts,
-# so nothing is auto-expanded here: every family fold opens on demand and
-# shows its own project/cohort counts in the closed summary. A cohort fold a
-# reader does open still starts on its newest editions, matching the
-# family-scoped gallery's own default.
-DEFAULT_OPEN_COHORTS = 2
+SITE_PROJECT_SUBMISSIONS_PAGE_SIZE = 25
 
 
 def site_project_gallery_view(request):
-    """Every learner project submitted anywhere on the site.
+    """Every individual learner project submission anywhere on the site.
 
-    One level up from ``family_project_gallery_view``: it groups by course
-    family first, then by cohort within each family, reusing the same
-    cohort-grouping this module's sibling view uses for one family.
+    One level up from ``family_project_gallery_view``: it reads every
+    visible family's every visible cohort instead of one family's, reusing
+    the same submission-level query and row shape (submitter, repository
+    link, project + cohort tag, votes, score/pass state) so the two galleries
+    stay visually and structurally consistent. The site can hold many
+    thousands of submissions across every course family, so like the family
+    gallery this paginates rather than rendering one unbounded list.
     """
 
-    family_groups = site_project_groups()
+    submissions = site_project_submissions()
+    paginator = Paginator(submissions, SITE_PROJECT_SUBMISSIONS_PAGE_SIZE)
+    page_number = request.GET.get("page")
+    submissions_page = paginator.get_page(page_number)
+
+    # ``Project.course`` is the submission's cohort, and that cohort's own
+    # ``.course`` is its family (both confusingly named; see
+    # courses/models/project.py and courses/models/cohort.py) -- alias both
+    # as ``.cohort``/``.family`` on each row so a flat, site-wide list can
+    # still tag which course and edition a submission came from.
+    for submission in submissions_page.object_list:
+        submission.cohort = submission.project.course
+        submission.family = submission.project.course.course
+
+    page_range = paginator.get_elided_page_range(submissions_page.number)
     context = {
-        "family_groups": family_groups,
-        "default_open_cohorts": DEFAULT_OPEN_COHORTS,
+        "submissions": submissions_page.object_list,
+        "submissions_page": submissions_page,
+        "page_range": page_range,
     }
     return render(request, "projects/site_gallery.html", context)

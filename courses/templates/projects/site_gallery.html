@@ -1,15 +1,26 @@
 {% extends 'projects/_base.html' %}
 {% load breadcrumbs %}
 {% comment %}
-  Every project submitted anywhere on the site -- every course family, every
-  visible cohort within it (courses/views/site_project_gallery.py).
+  Every individual project submission anywhere on the site -- every visible
+  course family, every visible cohort within it (courses/views/
+  site_project_gallery.py).
 
-  One level up from projects/family_gallery.html, which this reuses rather
-  than duplicates: the same `.faq-fold` cohort disclosure nests inside one
-  more `.faq-fold` level per course family. The site holds many families,
-  each of which can hold many cohorts, so nothing here is open by default --
-  every family fold is closed on load and shows its own project/cohort
-  counts in the summary, same as a closed cohort fold does one level down.
+  One level up from projects/family_gallery.html, whose `.row-list`/
+  `.submission-row` markup this reuses verbatim: readers first asked to lose
+  the per-family/per-cohort `<details>` folds this page used to nest, then
+  said a project-type list with only a submission count still was not
+  "individual project submissions" on the family-scoped page -- the same fix
+  applies here, one level up. Each row is one learner's actual submission,
+  tagged with both its course family and its cohort/edition (a project like
+  "Capstone Project" exists once per family per edition, so both tags are
+  what keep a repeated title unambiguous across the whole site). It links
+  each submitter's name to their cohort-scoped leaderboard breakdown and each
+  submission to its repository, the same two links family_gallery.html shows
+  -- no field appears here that page does not already treat as public.
+
+  The site can hold many thousands of submissions across every course
+  family, so like family_gallery.html (and list_all.html before it) this
+  paginates rather than rendering one unbounded list.
 
   This page has no single family or cohort, so like family_gallery.html it
   supplies its own `page_header` rather than the shell's default, which
@@ -17,7 +28,7 @@
 {% endcomment %}
 
 {% block document_title %}
-  All projects — DataTalks.Club
+  All project submissions — DataTalks.Club
 {% endblock %}
 
 {% block meta_robots %}
@@ -25,32 +36,40 @@
 {% endblock %}
 
 {% block extra_styles %}
-  /* Borrowed verbatim from projects/list_all.html: the row of jump links to
-     each project's own submission list. */
-  .project-jumps {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem 1.25rem;
+  /* Borrowed verbatim from projects/family_gallery.html (itself borrowed
+     from projects/list_all.html): the catalogue row for who submitted and
+     which project, then the outcome. */
+  .submission-row {
+    --row-cols: minmax(0, 1fr) auto;
   }
 
-  /* The nested cohort folds read as one level down from the family fold
-     that holds them -- a little indent is the whole difference, no new
-     colour or border. */
-  .gallery-nested {
-    border-left: 1.5px dashed var(--line-soft);
-    margin-top: 0.5rem;
-    padding-left: 1rem;
+  .submission-student {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+    min-width: 0;
+  }
+
+  .submission-student a {
+    font-weight: 700;
+  }
+
+  .submission-outcome {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
   }
 {% endblock %}
 
 {% block page_header %}
   {% url 'course_list' as course_list_url %}
-  {% breadcrumbs "Courses" course_list_url current="All projects" %}
+  {% breadcrumbs "Courses" course_list_url current="All project submissions" %}
   <div class="project-head">
     <p class="mono-label mono-label-indigo">Every course</p>
     <h1>All Project Submissions</h1>
     <p class="project-lede">
-      Every learner project submitted anywhere on DataTalks.Club, grouped by course and then by cohort.
+      Every learner project submitted anywhere on DataTalks.Club, across every course and cohort.
     </p>
     <div class="project-toolbar">
       <a class="cta cta-compact cta-secondary interactive-lift" href="{{ course_list_url }}">
@@ -63,60 +82,53 @@
 {% block project_content %}
   <section class="project-section" aria-labelledby="site-gallery-heading">
     <div class="project-section-head">
-      <h2 id="site-gallery-heading">Projects by course</h2>
-      {% if family_groups %}
+      <h2 id="site-gallery-heading">Submissions</h2>
+      {% if submissions %}
         <p class="mono-note">
-          {{ family_groups|length }} course{{ family_groups|length|pluralize }} with projects
+          {{ submissions_page.paginator.count }} total
         </p>
       {% endif %}
     </div>
-    {% if family_groups %}
+    {% if submissions %}
       <div class="row-list">
-        {% for family_group in family_groups %}
-          <details class="faq-fold" data-gallery-family="{{ family_group.family.slug }}">
-            <summary class="faq-fold-summary">
-              <span class="faq-question-title">
-                {{ family_group.family.title }}
-                <span class="mono-note">
-                  {{ family_group.project_count }} project{{ family_group.project_count|pluralize }} ·
-                  {{ family_group.cohort_groups|length }} cohort{{ family_group.cohort_groups|length|pluralize }}
-                </span>
-              </span>
-              <span class="faq-fold-marker" aria-hidden="true"></span>
-            </summary>
-            <div class="faq-answer gallery-nested">
-              <p class="project-note">
-                <a class="band-link" href="{% url 'family_projects' course_slug=family_group.family.slug %}">
-                  Open the full {{ family_group.family.title }} gallery →
+        {% for submission in submissions %}
+          <article class="list-row submission-row">
+            <div>
+              <div class="submission-student">
+                <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=submission.family.slug cohort_identifier=submission.cohort.identifier enrollment_id=submission.enrollment.id %}">
+                  {{ submission.enrollment.display_name }}
                 </a>
-              </p>
-              <div class="row-list">
-                {% for group in family_group.cohort_groups %}
-                  <details class="faq-fold" data-gallery-cohort="{{ group.cohort.identifier }}" {% if forloop.counter0 < default_open_cohorts %}open{% endif %}>
-                    <summary class="faq-fold-summary">
-                      <span class="faq-question-title">
-                        {{ group.cohort.identifier }}
-                        <span class="mono-note">
-                          {{ group.projects|length }} project{{ group.projects|length|pluralize }}
-                        </span>
-                      </span>
-                      <span class="faq-fold-marker" aria-hidden="true"></span>
-                    </summary>
-                    <div class="faq-answer">
-                      <div class="project-jumps">
-                        {% for project in group.projects %}
-                          <a class="band-link" href="{% url 'cohort_project_list' course_slug=family_group.family.slug cohort_identifier=group.cohort.identifier project_slug=project.slug %}">
-                            {{ project.title }}
-                            <span class="mono-note">{{ project.submissions_count }}</span>
-                          </a>
-                        {% endfor %}
-                      </div>
-                    </div>
-                  </details>
-                {% endfor %}
+                <a
+                  class="band-link submission-link"
+                  href="{{ submission.github_link }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Open repository"
+                  aria-label="Open repository"
+                >Repository</a>
               </div>
+              <p class="mono-note">
+                {{ submission.project.title }} · {{ submission.family.title }} · {{ submission.cohort.identifier }}
+              </p>
             </div>
-          </details>
+            <div class="submission-outcome">
+              <span class="mono-note">{{ submission.vote_count }} vote{{ submission.vote_count|pluralize }}</span>
+              <span class="mono-note">
+                {% if submission.display_score == -1 %}
+                  Score N/A
+                {% else %}
+                  {{ submission.display_score }} score
+                {% endif %}
+              </span>
+              {% if submission.display_score != -1 %}
+                {% if submission.passed %}
+                  <span class="status-pill status-pill-live">Passed</span>
+                {% else %}
+                  <span class="status-pill status-pill-wait">Not passed</span>
+                {% endif %}
+              {% endif %}
+            </div>
+          </article>
         {% endfor %}
       </div>
     {% else %}
@@ -124,5 +136,6 @@
         No project submissions yet anywhere.
       </p>
     {% endif %}
+    {% include 'include/pagination.html' with pagination_page=submissions_page pagination_range=page_range pagination_label='Project submission pages' %}
   </section>
 {% endblock %}
