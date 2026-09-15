@@ -144,6 +144,29 @@
         margin-top: 1.35rem;
       }
 
+      /* --- the honest outcome-numbers strip ------------------------------ *
+       * Live counts, not a fabricated headline: courses/course_page_content.py
+       * (family_outcome_stats) drops the whole strip when nobody is enrolled
+       * yet, and drops the certificate stat alone when that family's cohorts
+       * never reliably populated it, rather than showing a misleading zero.
+       * Reuses the site's own .stat-tiles/.stat-tile primitive (see
+       * templates/core/_design_system.html) -- the same lavender tiles the
+       * courses index and the learner dashboard already draw numbers with. */
+      .family-outcomes {
+        margin-top: 1.75rem;
+      }
+
+      @media (min-width: 40rem) {
+        .family-outcome-tiles {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      .family-outcome-tiles strong {
+        font-size: clamp(1.6rem, 2.6vw, 2.1rem);
+        font-variant-numeric: tabular-nums;
+      }
+
       /* --- registration cards ------------------------------------------- */
 
       .family-register-cards {
@@ -534,6 +557,19 @@
         the start-now content further down the page (see the second
         "family-register" section, after the syllabus and certificate).
       {% endcomment %}
+      {% if family_outcome_stats %}
+        <section class="family-outcomes" aria-labelledby="outcomes-heading">
+          <h2 id="outcomes-heading" class="sr-only">This course family so far</h2>
+          <div class="stat-tiles family-outcome-tiles">
+            {% for stat in family_outcome_stats %}
+              <div class="stat-tile">
+                <strong>{{ stat.value }}</strong>
+                <span>{{ stat.label }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
       {% if family_registration %}
         <section class="family-register family-register-cohort" aria-labelledby="register-heading">
           <div class="band-head">

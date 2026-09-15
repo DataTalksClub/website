@@ -236,6 +236,89 @@ class CourseFamilyLandingTests(TestCase):
         self.assertIn("starting_point", family_admin.fields)
 
 
+class CourseFamilyOutcomeStatsTests(TestCase):
+    """The honest, live-computed outcome-numbers strip (courses.course_page_content
+    .family_outcome_stats): real counts across every visible cohort of the family,
+    with the whole strip omitted when nobody is enrolled and the certificate stat
+    alone omitted when that count is zero rather than shown as a misleading "0".
+    """
+
+    def setUp(self):
+        self.family = Course.objects.create(slug="stats-course", title="Stats Course")
+        self.cohort = make_cohort(self.family, 2021, project_count=1)
+        self.url = reverse("course_family", args=[self.family.slug])
+        self._enrollment_count = 0
+
+    def enroll(self, *, cohort=None, certificate_url=""):
+        cohort = cohort or self.cohort
+        self._enrollment_count += 1
+        user = User.objects.create_user(username=f"stats-learner-{self._enrollment_count}")
+        return Enrollment.objects.create(
+            student=user, course=cohort, certificate_url=certificate_url
+        )
+
+    def submit(self, enrollment):
+        return ProjectSubmission.objects.create(
+            project=enrollment.course.project_set.first(),
+            student=enrollment.student,
+            enrollment=enrollment,
+            github_link=f"https://github.com/example/repo-{enrollment.pk}",
+        )
+
+    def test_strip_shows_live_enrolled_certificate_and_submission_counts(self):
+        self.enroll()
+        graduate_one = self.enroll(certificate_url="https://example.com/certificate-1.pdf")
+        graduate_two = self.enroll(certificate_url="https://example.com/certificate-2.pdf")
+        self.submit(graduate_one)
+        self.submit(graduate_two)
+
+        response = self.client.get(self.url)
+
+        stats = {stat.label: stat.value for stat in response.context["family_outcome_stats"]}
+        self.assertEqual(stats["enrolled since 2021"], "3")
+        self.assertEqual(stats["certificates issued"], "2")
+        self.assertEqual(stats["project submissions"], "2")
+        self.assertContains(response, 'id="outcomes-heading"')
+        self.assertContains(response, "enrolled since 2021")
+        self.assertContains(response, "certificates issued")
+        self.assertContains(response, "project submissions")
+
+    def test_a_family_with_nobody_enrolled_omits_the_whole_strip(self):
+        empty_family = Course.objects.create(slug="no-one-yet", title="No One Yet")
+        make_cohort(empty_family, 2026)
+
+        response = self.client.get(reverse("course_family", args=[empty_family.slug]))
+
+        self.assertEqual(response.context["family_outcome_stats"], ())
+        self.assertNotContains(response, 'class="family-outcomes"')
+        self.assertNotContains(response, 'id="outcomes-heading"')
+
+    def test_a_family_with_no_certificates_omits_only_that_one_stat(self):
+        self.enroll()
+        submitter_one = self.enroll()
+        submitter_two = self.enroll()
+        self.submit(submitter_one)
+        self.submit(submitter_two)
+
+        response = self.client.get(self.url)
+
+        labels = [stat.label for stat in response.context["family_outcome_stats"]]
+        self.assertEqual(labels, ["enrolled since 2021", "project submissions"])
+        self.assertNotContains(response, "certificates issued")
+        self.assertContains(response, "enrolled since 2021")
+
+    def test_hidden_cohorts_are_not_counted(self):
+        self.enroll()
+        hidden = make_cohort(self.family, 2027, visible=False)
+        self.enroll(cohort=hidden, certificate_url="https://example.com/certificate.pdf")
+
+        response = self.client.get(self.url)
+
+        stats = {stat.label: stat.value for stat in response.context["family_outcome_stats"]}
+        self.assertEqual(stats["enrolled since 2021"], "1")
+        self.assertNotIn("certificates issued", stats)
+
+
 class CourseFamilyFaqPreviewTests(TestCase):
     """The family landing page's real-FAQ preview (issue: real questions, not a bare link)."""
 

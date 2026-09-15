@@ -10,6 +10,7 @@ from courses.course_page_content import (
     course_specs,
     family_edition_rows,
     split_current_edition,
+    family_outcome_stats,
     family_project_cards,
     family_registration_specs,
     family_story_rows,
@@ -189,6 +190,27 @@ def course_page_context(data: CoursePageData) -> dict:
         data.projects,
     )
     signup_count = registered_learner_count(data.registration_campaign)
+    # Same reasoning as the family landing's materials link: a cohort whose
+    # curriculum was imported (real SharedModule rows) keeps the visitor on
+    # the platform instead of sending them to the source repository.
+    materials_url = data.course.github_repo_url
+    materials_on_platform = False
+    if data.course.curriculum_format == CurriculumFormat.SHARED:
+        first_module = (
+            SharedModule.objects.filter(
+                curriculum__course=data.course.course,
+                published=True,
+                retired_at__isnull=True,
+            )
+            .order_by("position", "id")
+            .first()
+        )
+        if first_module is not None:
+            materials_url = reverse(
+                "shared_module",
+                args=[data.course.course.slug, first_module.slug],
+            )
+            materials_on_platform = True
     context = {
         "course": data.course,
         "course_family": data.course.course,
@@ -199,6 +221,8 @@ def course_page_context(data: CoursePageData) -> dict:
         "course_modules": modules,
         "curriculum_flow": curriculum_flow,
         "is_module_curriculum": is_module_curriculum,
+        "materials_url": materials_url,
+        "materials_on_platform": materials_on_platform,
         "course_specs": course_specs(
             data.course,
             homework_count=len(data.homeworks),
@@ -415,9 +439,31 @@ def course_family_page_context(family: Course, user) -> dict:
         )
     project_cards = family_project_cards(editions)
     syllabus_rows = family_syllabus_rows(syllabus_units)
-    # Keep the curriculum's own teaching order and wording in the preview.
-    skill_highlights = syllabus_rows[:4]
-    has_learner_projects = family_project_submissions(family).exists()
+    cohorts = [edition.cohort for edition in editions]
+    # The outcome strip's "project submissions" stat reads the same
+    # family-wide, hidden-cohort/volunteer-excluding queryset the "See what
+    # people have built" section already counts with.
+    submission_count = family_project_submissions(family).count()
+    has_learner_projects = submission_count > 0
+    enrolled_count = Enrollment.objects.filter(
+        course__course=family, course__visible=True
+    ).count()
+    certificate_count = (
+        Enrollment.objects.filter(
+            course__course=family,
+            course__visible=True,
+            certificate_url__isnull=False,
+        )
+        .exclude(certificate_url="")
+        .count()
+    )
+    since_year = min((cohort.year for cohort in cohorts), default=None)
+    outcome_stats = family_outcome_stats(
+        enrolled_count,
+        certificate_count,
+        submission_count,
+        since_year,
+    )
     project_brief = next(
         (card for card in project_cards if card.project.instructions_url), None
     )
@@ -450,7 +496,7 @@ def course_family_page_context(family: Course, user) -> dict:
     family_faq_questions, family_faq_url = family_faq_preview(family)
     return {
         "course_family": family,
-        "cohorts": [edition.cohort for edition in editions],
+        "cohorts": cohorts,
         "cohort_editions": editions,
         "current_edition_row": current_edition_row,
         "previous_edition_rows": previous_edition_rows,
@@ -470,7 +516,7 @@ def course_family_page_context(family: Course, user) -> dict:
         "family_overview": overview,
         "front_cohort": front_cohort,
         "family_syllabus_rows": syllabus_rows,
-        "family_skill_highlights": skill_highlights,
+        "family_outcome_stats": outcome_stats,
         "has_learner_projects": has_learner_projects,
         "family_project_brief": project_brief,
         "certificate_cohort": certificate_cohort,

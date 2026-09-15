@@ -323,3 +323,46 @@ def family_project_cards(editions: list) -> tuple[FamilyProjectCard, ...]:
     return ()
 
 
+@dataclass(frozen=True, slots=True)
+class FamilyOutcomeStat:
+    """One number in the family landing's honest outcome strip."""
+
+    value: str
+    label: str
+
+
+def family_outcome_stats(
+    enrolled_count: int,
+    certificate_count: int,
+    submission_count: int,
+    since_year: int | None,
+) -> tuple[FamilyOutcomeStat, ...]:
+    """The family's live enrolment/outcome numbers, only for what the data has.
+
+    Every count is read live from the family's own visible cohorts -- no
+    estimate, no rounding, nothing carried over from a mock. A family with
+    nobody enrolled yet (a brand-new family with no cohorts) has nothing
+    honest to show, so the whole strip is omitted rather than opening on a
+    "0 enrolled".
+
+    Certificates are gated separately from the other two counts: a family
+    whose cohorts never reliably populated ``Enrollment.certificate_url``
+    (a self-paced-only family, or one whose current cohort hasn't finished)
+    would otherwise show a misleading "0 certificates issued" beside two
+    real, nonzero numbers -- so that one stat alone is dropped when it is
+    zero, instead of hiding the strip the other two counts can still stand on.
+    """
+
+    if not enrolled_count:
+        return ()
+    since = f" since {since_year}" if since_year else ""
+    stats = [FamilyOutcomeStat(f"{enrolled_count:,}", f"enrolled{since}")]
+    if certificate_count:
+        noun = "certificate" if certificate_count == 1 else "certificates"
+        stats.append(FamilyOutcomeStat(f"{certificate_count:,}", f"{noun} issued"))
+    if submission_count:
+        noun = "project submission" if submission_count == 1 else "project submissions"
+        stats.append(FamilyOutcomeStat(f"{submission_count:,}", noun))
+    return tuple(stats)
+
+
