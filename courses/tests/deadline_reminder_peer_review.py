@@ -193,5 +193,5 @@ def assert_peer_review_reminder_deliveries(test_case, expectation):
     )
     test_case.assertEqual(
         reviewer.context_data["course_url"],
-        "https://courses.example.com/courses/ml-zoomcamp/cohorts/2026/project/project-1/eval",
+        "https://courses.example.com/courses/ml-zoomcamp/2026/project/project-1/eval",
     )

@@ -32,7 +32,7 @@ class CourseListVisibilityTest(CourseListViewTestBase):
         )
 
         url = reverse(
-            "course",
+            "cohort",
             kwargs={
                 "course_slug": hidden_course.course.slug,
                 "cohort_identifier": hidden_course.identifier,

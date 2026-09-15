@@ -299,7 +299,7 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
 
         response = self.client.get(
             reverse(
-                "course",
+                "cohort",
                 kwargs={
                     "course_slug": self.course.course.slug,
                     "cohort_identifier": archived_cohort.identifier,

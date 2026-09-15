@@ -499,7 +499,7 @@ class PublicUnitPageTests(TestCase):
 
         self.assertEqual(
             url,
-            "/courses/llm-zoomcamp/cohorts/spring-2026/modules/01-agentic-rag/01-intro",
+            "/courses/llm-zoomcamp/spring-2026/modules/01-agentic-rag/01-intro",
         )
         self.assertEqual(self.client.get(url).status_code, 200)
 

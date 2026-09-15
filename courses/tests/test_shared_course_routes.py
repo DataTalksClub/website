@@ -221,21 +221,27 @@ class SharedRouteTests(SharedWorldTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Practice")
 
-    def test_two_segment_cohort_path_redirects_to_the_canonical_namespace(self) -> None:
-        legacy = f"/courses/{self.course.slug}/{self.cohort_2026.identifier}"
-        response = self.client.get(legacy)
+    def test_two_segment_cohort_path_renders_directly_no_redirect(self) -> None:
+        """The bare two-segment path is already the canonical cohort page.
 
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(
-            response["Location"],
-            reverse(
-                "cohort",
-                kwargs={
-                    "course_slug": self.course.slug,
-                    "cohort_identifier": self.cohort_2026.identifier,
-                },
-            ),
+        It used to one-hop redirect to a ``cohorts/<identifier>`` namespace
+        (canonical 2026-09-07 to 2026-09-15); that namespace is retired now,
+        so the bare path renders the cohort page directly instead.
+        """
+
+        canonical = reverse(
+            "cohort",
+            kwargs={
+                "course_slug": self.course.slug,
+                "cohort_identifier": self.cohort_2026.identifier,
+            },
         )
+        self.assertEqual(
+            canonical, f"/courses/{self.course.slug}/{self.cohort_2026.identifier}"
+        )
+        response = self.client.get(canonical)
+
+        self.assertEqual(response.status_code, 200)
 
     def test_canonical_cohort_page_renders(self) -> None:
         response = self.client.get(

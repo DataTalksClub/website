@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def canonical_cohort_url_kwargs(cohort: Cohort) -> dict[str, object]:
-    """Route arguments for the canonical ``cohorts/<identifier>`` namespace."""
+    """Route arguments for the canonical flat ``<family>/<identifier>`` shape."""
 
     return {
         "course_slug": cohort.course.slug,
@@ -56,11 +56,10 @@ def shared_lesson_url(lesson, *, cohort: Cohort | None = None) -> str:
 
 
 def cohort_url(cohort: Cohort, route_name: str = "cohort", **kwargs) -> str:
-    """Build a canonical ``cohorts/<identifier>`` public URL for a cohort.
+    """Build a canonical flat ``<family>/<identifier>`` public URL for a cohort.
 
     The identifier, not a legacy edition slug and not the calendar year, is
-    the route identity.  Callers that still need the old two-segment shape
-    reverse the legacy route names explicitly (W6 retires that surface).
+    the route identity.
     """
 
     return reverse(

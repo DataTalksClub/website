@@ -9,7 +9,7 @@ from courses.tests.course_view_base import (
 class CourseHomeworkDisplayTest(CourseDetailViewTestBase):
     def test_course_detail_does_not_show_time_left_for_scored_homework(self):
         url = reverse(
-            "course",
+            "cohort",
             kwargs={
                 "course_slug": self.course.course.slug,
                 "cohort_identifier": self.course.identifier,

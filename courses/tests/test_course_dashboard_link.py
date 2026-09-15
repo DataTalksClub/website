@@ -9,7 +9,7 @@ class CourseDashboardLinkTest(CourseDetailViewTestBase):
             "course_slug": self.course.course.slug,
             "cohort_identifier": self.course.identifier,
         }
-        url = reverse("course", kwargs=route_kwargs)
+        url = reverse("cohort", kwargs=route_kwargs)
 
         response = self.client.get(url)
 
@@ -31,7 +31,7 @@ class CourseDashboardLinkTest(CourseDetailViewTestBase):
             "course_slug": self.course.course.slug,
             "cohort_identifier": self.course.identifier,
         }
-        url = reverse("course", kwargs=route_kwargs)
+        url = reverse("cohort", kwargs=route_kwargs)
 
         response = self.client.get(url)
 

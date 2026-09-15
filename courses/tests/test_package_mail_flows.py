@@ -92,7 +92,7 @@ class RegistrationConfirmationMailTest(TestCase):
             "September 14, 2026",
         )
         self.assertTrue(
-            delivery.context_data["course_url"].endswith("/cohorts/2026"),
+            delivery.context_data["course_url"].endswith("/2026"),
         )
 
     @override_settings(**FLOW_SETTINGS)

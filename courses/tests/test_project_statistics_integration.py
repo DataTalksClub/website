@@ -305,5 +305,5 @@ class ProjectStatisticsIntegrationTestCase(TestCase):
         """Test that statistics links only appear for completed projects"""
         incomplete_project = self.create_incomplete_project()
 
-        self.assert_statistics_link_absent(incomplete_project, "project")
-        self.assert_statistics_link_absent(incomplete_project, "project_list")
+        self.assert_statistics_link_absent(incomplete_project, "cohort_project")
+        self.assert_statistics_link_absent(incomplete_project, "cohort_project_list")

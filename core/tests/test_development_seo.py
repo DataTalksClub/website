@@ -458,7 +458,7 @@ class RealUrlAndCourseCanonicalTests(TestCase):
         )
 
         detail_path = reverse(
-            "course",
+            "cohort",
             kwargs={"course_slug": hidden.course.slug, "cohort_identifier": hidden.identifier},
         )
         detail = self.client.get(detail_path)

@@ -598,7 +598,7 @@ class MainHomepageRoutingTests(TestCase):
         slash_alias = reverse("courses:course", kwargs={"course_slug": course.slug})
         family_path = reverse("course_family", kwargs={"course_slug": course.course.slug})
         canonical_path = reverse(
-            "course",
+            "cohort",
             kwargs={
                 "course_slug": course.course.slug,
                 "cohort_identifier": course.identifier,
@@ -617,7 +617,7 @@ class MainHomepageRoutingTests(TestCase):
             self.assertEqual(response.status_code, 301)
             self.assertEqual(
                 response.headers["Location"],
-                "/courses/compatibility-course/cohorts/2026?x=%2F&x=",
+                "/courses/compatibility-course/2026?x=%2F&x=",
             )
         canonical = self.client.get(canonical_path)
         self.assertEqual(canonical.status_code, 200)
@@ -632,7 +632,7 @@ class MainHomepageRoutingTests(TestCase):
         )
         self.assertContains(
             canonical,
-            '<link rel="canonical" href="https://datatalks.club/courses/compatibility-course/cohorts/2026">',
+            '<link rel="canonical" href="https://datatalks.club/courses/compatibility-course/2026">',
             count=1,
         )
         csrf_client = Client(enforce_csrf_checks=True)

@@ -142,7 +142,7 @@ class CoursesSitemapContractTests(TestCase):
         self.assertNotIn(
             f"{PRODUCTION_ORIGIN}/courses/sm-zoomcamp/01-agentic-rag/02-retired", locations
         )
-        self.assertNotIn(f"{PRODUCTION_ORIGIN}/courses/sm-zoomcamp/cohorts/2026", locations)
+        self.assertNotIn(f"{PRODUCTION_ORIGIN}/courses/sm-zoomcamp/2026", locations)
         self.assertFalse(any("?" in location or "cohort=" in location for location in locations))
 
     def _courses_sitemap_locations(self) -> list[str]:

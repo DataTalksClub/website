@@ -10,7 +10,7 @@ changes the page body or the canonical path.
 from __future__ import annotations
 
 from django.http import Http404, HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 
 from courses.models import (
@@ -220,10 +220,15 @@ def shared_lesson_view(
 def dispatch_two_segment_path(
     request: HttpRequest, course_slug: str, segment: str
 ):
-    """Route a legacy two-segment course path to its current destination.
+    """Route the bare two-segment course path to its current destination.
 
-    Returns ``None`` when the path belongs to the legacy contract and
-    ``course_view`` should carry on unchanged.
+    The second segment of ``<family>/<segment>`` could name a shared module
+    or a cohort identifier; a ``SharedModule`` can never be created with a
+    slug that collides with a ``Cohort`` identifier of the same family (and
+    vice versa -- see each model's ``clean``/``save``), so this lookup order
+    never actually has to break a tie. Returns ``None`` when neither matches
+    and ``course_view`` should render the cohort page anyway (the legacy
+    edition-slug shim calls in with no real cohort/module segment to check).
     """
 
     course = Course.objects.filter(slug=course_slug).first()
@@ -237,11 +242,9 @@ def dispatch_two_segment_path(
             return shared_module_view(request, course_slug, segment)
         cohort = Cohort.objects.filter(course=course, identifier=segment).first()
         if cohort is not None:
-            return redirect(
-                "cohort",
-                course_slug=course.slug,
-                cohort_identifier=cohort.identifier,
-            )
+            from .course import _render_cohort_page
+
+            return _render_cohort_page(request, course.slug, cohort.identifier)
     return None
 
 
@@ -250,23 +253,15 @@ def _legacy_two_segment_fallback(
 ):
     """Resolve a two-segment path that names no shared module.
 
-    For a family with a shared current curriculum the old
-    ``/courses/<family>/<identifier>`` cohort shape is a retired alias: one
-    hop redirects to the canonical ``cohorts/<identifier>`` namespace, and
-    anything unknown is a real 404.  A family still living entirely on the
-    legacy contract keeps its current behaviour -- the two-segment cohort
-    page renders directly -- until its own reviewed cutover (W6/W7).
+    The bare ``/courses/<family>/<identifier>`` shape is already canonical
+    for a cohort (issue #320), so a matching cohort renders directly here
+    rather than redirecting anywhere. Anything that names neither a shared
+    module nor a cohort is a real 404.
     """
 
     cohort = Cohort.objects.filter(course=course, identifier=segment).first()
     if cohort is not None:
-        if SharedCurriculum.objects.filter(course=course).exists():
-            return redirect(
-                "cohort",
-                course_slug=course.slug,
-                cohort_identifier=cohort.identifier,
-            )
-        from .course import course_view
+        from .course import _render_cohort_page
 
-        return course_view(request, course.slug, cohort_identifier=segment)
+        return _render_cohort_page(request, course.slug, cohort.identifier)
     raise Http404(f"No shared module or cohort named {segment!r}.")

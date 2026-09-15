@@ -64,14 +64,9 @@ EXPECTED_APP_MODULES = {
     "data": "data",
 }
 EXPECTED_UNIFIED_ROUTE_CALLBACK_OVERRIDES: dict[tuple[str, str], str] = {}
-# The generic two-segment course route intentionally shadows the shared
-# module route and dispatches to it (see
-# _docs/compatibility/shared-curriculum-route-aliases.json), so the walk
-# observes the dispatcher rather than the shared view itself.
-DISPATCHED_SHARED_ROUTE_NAMES = {"shared_module"}
-# The generic two-segment course route intentionally shadows the shared
-# module route and dispatches to it (see
-# _docs/compatibility/shared-curriculum-route-aliases.json), so the walk
+# The generic two-segment ``cohort`` route intentionally shadows the shared
+# module route and dispatches to it (see ``courses.urls`` and
+# ``courses.views.shared_course.dispatch_two_segment_path``), so the walk
 # observes the dispatcher rather than the shared view itself.
 DISPATCHED_SHARED_ROUTE_NAMES = {"shared_module"}
 PROTECTED_COURSE_TEMPLATE_PREFIX = "courses/templates/"
@@ -159,7 +154,7 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                     example_path = "/courses" + example_path
                 match = resolve(example_path)
                 if route.name in DISPATCHED_SHARED_ROUTE_NAMES:
-                    self.assertEqual(match.url_name, "course")
+                    self.assertEqual(match.url_name, "cohort")
                     expected_callback = "courses.views.course.course_view"
                     self.assertEqual(callback_name_of(match), expected_callback)
                     continue

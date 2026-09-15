@@ -56,7 +56,7 @@ class CoursePageCurriculumRenderingTests(TestCase):
     def course_response(self, cohort):
         return self.client.get(
             reverse(
-                "course",
+                "cohort",
                 kwargs={
                     "course_slug": cohort.course.slug,
                     "cohort_identifier": cohort.identifier,

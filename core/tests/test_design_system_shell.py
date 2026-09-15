@@ -204,7 +204,7 @@ class DesignFiveAShellTests(TestCase):
             "home": reverse("home"),
             "courses index": reverse("course_list"),
             "course page": reverse(
-                "course",
+                "cohort",
                 kwargs={
                     "course_slug": self.course.course.slug,
                     "cohort_identifier": self.course.identifier,

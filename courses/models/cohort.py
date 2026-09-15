@@ -341,7 +341,7 @@ class Cohort(SourceProvenanceModel):
 
     @property
     def canonical_url_path(self) -> str:
-        return f"/courses/{self.course.slug}/cohorts/{self.identifier}"
+        return f"/courses/{self.course.slug}/{self.identifier}"
 
     def save(self, *args, **kwargs):
         # Existing copied fixtures create Cohort rows directly.  Keep that

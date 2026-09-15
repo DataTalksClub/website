@@ -31,32 +31,24 @@ def course_view(
     course_slug: str,
     cohort_identifier: str | int | None = None,
 ) -> HttpResponse:
+    """The one entry point for both course-family shapes.
+
+    The two-segment shape (``<family>/<cohort_identifier>``, name
+    ``cohort``) is ambiguous on its face -- the second segment could name a
+    cohort or a shared-curriculum module -- so it dispatches: a shared
+    module slug renders the cohort-free shared page, and a cohort identifier
+    renders the cohort page directly, since this bare path is already the
+    canonical one (issue #320). The one-segment legacy edition-slug shim
+    (name ``course``) calls this with no identifier and always renders the
+    cohort page.
+    """
+
     if cohort_identifier is not None:
-        # The two-segment shape dispatches for shared-curriculum families: a
-        # shared module slug serves the cohort-free shared page, and a cohort
-        # identifier of a moved family one-hop redirects to the canonical
-        # ``cohorts/<identifier>`` namespace.  Families still entirely on the
-        # legacy contract keep rendering the cohort page here.
         from .shared_course import dispatch_two_segment_path
 
         dispatched = dispatch_two_segment_path(request, course_slug, str(cohort_identifier))
         if dispatched is not None:
             return dispatched
-
-    return _render_cohort_page(request, course_slug, cohort_identifier)
-
-
-def cohort_page_view(
-    request: HttpRequest,
-    course_slug: str,
-    cohort_identifier: str,
-) -> HttpResponse:
-    """The canonical ``/courses/<family>/cohorts/<identifier>`` landing page.
-
-    The kwarg adapter keeps the existing cohort-page data pipeline untouched
-    while the canonical public path carries the semantic identifier name.
-    This entry never re-dispatches: the path is already canonical.
-    """
 
     return _render_cohort_page(request, course_slug, cohort_identifier)
 

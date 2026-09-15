@@ -138,7 +138,7 @@ def assert_homework_reminder_deliveries(test_case, expectation):
         test_case.assertEqual(row.context_data["course_title"], "ML Zoomcamp 2026")
         test_case.assertEqual(
             row.context_data["course_url"],
-            "https://courses.example.com/courses/ml-zoomcamp/cohorts/2026/homework/homework-1",
+            "https://courses.example.com/courses/ml-zoomcamp/2026/homework/homework-1",
         )
     test_case.assertEqual(
         eligible.context_data["deadline"],

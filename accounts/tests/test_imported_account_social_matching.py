@@ -357,7 +357,7 @@ class ImportedAccountMatchesOnVerifiedEmailTests(ImportedAccountSignInTestCase):
         cohort = history["cohort"]
         course_page = client.get(
             reverse(
-                "course",
+                "cohort",
                 kwargs={
                     "course_slug": cohort.course.slug,
                     "cohort_identifier": cohort.identifier,

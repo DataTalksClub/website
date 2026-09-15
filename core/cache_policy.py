@@ -133,6 +133,7 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "content.public_views.permanent_public_redirect": PERMANENT_REDIRECT,
     "core.views.management_slash_redirect": PERMANENT_REDIRECT,
     "courses.views.course_aliases.legacy_course_redirect": PERMANENT_REDIRECT,
+    "courses.views.route_redirects.cohorts_prefix_redirect": PERMANENT_REDIRECT,
     "django.views.generic.base.RedirectView": PERMANENT_REDIRECT,
     # -- Operational: health, webhooks, jobs/mail ingress, token trackers.
     "api.openapi.spec.openapi_json_view": OPERATIONAL,
@@ -218,7 +219,6 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "community_base.mail.views.public_unsubscribe": PRIVATE_DYNAMIC,
     "core.views.liveness": PRIVATE_DYNAMIC,
     "core.views.readiness": PRIVATE_DYNAMIC,
-    "courses.views.course.cohort_page_view": PRIVATE_DYNAMIC,
     "courses.views.course.course_view": PRIVATE_DYNAMIC,
     "courses.views.course_calendar.course_calendar_view": PRIVATE_DYNAMIC,
     "courses.views.course_enrollment.enrollment_view": PRIVATE_DYNAMIC,

@@ -119,7 +119,7 @@ def _start_course_url(campaign: RegistrationCampaign) -> str:
         return ""
 
     return reverse(
-        "course",
+        "cohort",
         kwargs=canonical_cohort_url_kwargs(campaign.current_course),
     )
 

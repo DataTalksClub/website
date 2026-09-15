@@ -89,7 +89,7 @@ class PeerReviewBadgeTests(TestCase):
     def course_project(self):
         self.client.login(username="test@test.com", password="12345")
         course_url = reverse(
-            "course",
+            "cohort",
             kwargs={
                 "course_slug": self.course.course.slug,
                 "cohort_identifier": self.course.identifier,
@@ -150,7 +150,7 @@ class PeerReviewBadgeTests(TestCase):
     def _course_page_query_count(self):
         self.client.login(username="test@test.com", password="12345")
         course_url = reverse(
-            "course",
+            "cohort",
             kwargs={
                 "course_slug": self.course.course.slug,
                 "cohort_identifier": self.course.identifier,
@@ -286,7 +286,7 @@ class PeerReviewBadgeEndToEndTests(TestCase):
         """Helper to get current badge state from course view"""
         self.client.login(username="main@test.com", password="12345")
         course_url = reverse(
-            "course",
+            "cohort",
             kwargs={
                 "course_slug": self.course.course.slug,
                 "cohort_identifier": self.course.identifier,

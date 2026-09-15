@@ -80,13 +80,13 @@ EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
     # so the page's own failure status region is what the member sees.
     "test_a_rejected_privacy_save_reverts_and_says_what_still_holds": (
         (
-            re.compile(r"^/courses/toggle-reject/cohorts/[^/]+/enrollment/toggle$"),
+            re.compile(r"^/courses/toggle-reject/[^/]+/enrollment/toggle$"),
             500,
         ),
     ),
     "test_an_ended_session_is_named_as_the_reason": (
         (
-            re.compile(r"^/courses/toggle-session/cohorts/[^/]+/enrollment/toggle$"),
+            re.compile(r"^/courses/toggle-session/[^/]+/enrollment/toggle$"),
             403,
         ),
     ),

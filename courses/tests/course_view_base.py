@@ -189,7 +189,7 @@ class CourseDetailViewTestBase(TestCase):
 
     def course_url(self):
         return reverse(
-            "course",
+            "cohort",
             kwargs={
                 "course_slug": self.course.course.slug,
                 "cohort_identifier": self.course.identifier,

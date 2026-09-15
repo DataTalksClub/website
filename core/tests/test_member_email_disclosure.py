@@ -520,7 +520,7 @@ class MemberFacingPageWalkTests(TestCase):
         return [
             reverse("home"),
             reverse("course_list"),
-            reverse("course", kwargs=route_kwargs),
+            reverse("cohort", kwargs=route_kwargs),
             reverse("cohort_leaderboard", kwargs=route_kwargs),
             reverse("cohort_dashboard", kwargs=route_kwargs),
             reverse(

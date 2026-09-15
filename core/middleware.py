@@ -52,9 +52,9 @@ PRIVATE_ROUTE_NAMES = frozenset(
         "projects_eval_submit",
         "registration_campaign",
         "update_enrollment_toggle",
-        # The canonical ``cohorts/<identifier>`` namespace carries the same
-        # privacy class as the legacy names above; every learner-specific
-        # operation is private whichever route shape served it.
+        # These carry the same privacy class as the legacy names above;
+        # every learner-specific operation is private whichever route name
+        # served it.
         "cohort_dashboard",
         "cohort_enrollment",
         "cohort_homework_submissions",
