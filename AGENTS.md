@@ -9,6 +9,11 @@ here.
 - Use `uv`, or the `uv`-backed Make targets, for every Python command.
 - Screenshots, downloads, previews and scratch data go in the project-local
   `.tmp/`.
+- For illustration generation, use the `imagegen` skill and its built-in tool.
+  Never ask this user to configure `OPENAI_API_KEY` for image generation, or
+  inspect credentials to select a model. If the built-in model version is not
+  exposed, record it as unverified and continue. The full workflow and quality
+  checks live in `.agents/skills/website-illustrations/SKILL.md`.
 - Keep secrets, tokens, registration data and production data out of logs,
   screenshots, issues and reports. In a log, identify a person by user id, never
   by email address.

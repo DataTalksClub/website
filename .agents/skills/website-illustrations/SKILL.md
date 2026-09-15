@@ -11,6 +11,50 @@ the correction ledger remain in
 [`_docs/design/illustration-assets.md`](../../../_docs/design/illustration-assets.md).
 Paths below are relative to the repository root.
 
+## Standing tool choice and model reporting
+
+- Use the `imagegen` skill's built-in tool. It requires no API key. The user has
+  explicitly rejected requests to configure `OPENAI_API_KEY`: never ask again
+  for image generation, inspect `.env` for this purpose, or block work on it.
+  Do not switch to an API/CLI route unless the user explicitly changes that choice.
+- The user prefers the latest flagship image model. Check current official OpenAI
+  documentation, reusing current evidence from the same session. If the built-in
+  tool exposes a model selector, select the latest supported model. If it exposes
+  neither selection nor reliable version metadata, continue with the built-in
+  tool and record its backend as **unverified**. Documented availability is not
+  evidence of the actual backend; a model name in a prompt does not select it.
+
+## Image quality and course concepts
+
+- Retain native lossless PNG sources and encode production WebP losslessly, with
+  no JPEG or lossy intermediate. PNG does not remove noise painted into pixels.
+  Request clean opaque foreground fills, crisp navy ink and broad restrained
+  watercolor variation; no compression blocks, ringing, grain, speckles, cellular
+  facets or polygon networks. Do not copy such defects from style references.
+- Inspect raw and finished images at native size and 200–400%, including faces,
+  screens, green fills, hands, limb connections and the full watercolor edge.
+  Reject malformed or detached parts and compression-like noise. Regenerate
+  defects rather than hiding them with blur, denoising or format conversion.
+- Read the actual course purpose before choosing a scene. Show the learner's
+  action and concrete outcome. For AI Dev Tools, the person directs AI assistants
+  and agents to create software; a robot coding alone misses that relationship.
+  Use a robot only where the course concept calls for one.
+- Attach the approved homepage drawing as the style reference and the accepted
+  course composition as the scene anchor. Match figure scale, simple filled navy
+  hands, green/indigo accents and white fills. Each scene keeps its own blurb.
+- For concepts, generate light first and retain native PNG, lossless WebP, prompt
+  and real-page preview under `.tmp/`. Generate dark companions separately only
+  when requested; never recolor a light bitmap into a dark companion.
+- When asked to put images on pages, install them in every in-scope consumer:
+  family heroes, catalogue collage and course-card placeholder branches. Preserve
+  authored campaign images unless asked to replace them. A ZIP, contact sheet or
+  browser-only substitution is not installation; do not create an archive unless
+  requested. Verify ordinary image requests on the exact host(s) the user names.
+- Assess the illustration against the consuming surface, not just a transparent
+  viewer. White frames can make a lilac blurb read as a pasted sticker. Keep art
+  subordinate to course copy, preserve its silhouette, and review the real cream,
+  white and dark surfaces in scope. Do not hide a damaged edge with CSS effects.
+
 ## Inputs and scope
 
 - Inspect each exact target and the approved style reference with `view_image`.
@@ -82,6 +126,23 @@ and regenerated border; revise the candidate or selection within scope.
 
 ## Remove the exterior key and inspect
 
+Use [scripts/finish_chroma.py](scripts/finish_chroma.py) for magenta-keyed
+watercolor. It preserves native size by default, writes to a new candidate
+directory, and reports pixel preservation, alpha, border and WebP checks:
+
+```bash
+uv run --script .agents/skills/website-illustrations/scripts/finish_chroma.py \
+  .tmp/illustration/source.png .tmp/illustration/candidate
+```
+
+Tune key/fringe parameters from the actual source. `--key-noise-alpha` defaults
+to zero; use a small measured tolerance only for residual exterior-key noise,
+never to conceal foreground defects or remove the watercolor fade. The script
+estimates alpha and unmixed RGB only in the connected key/fringe. It does not
+replace the visual gate. Its dependencies are isolated by `uv`, not added to the
+website runtime. Run its synthetic checks with
+`uv run --script .agents/skills/website-illustrations/scripts/test_tools.py`.
+
 Inspect the raw file's dimensions, alpha and actual key uniformity first. A
 checkerboard preview, transparent corners, or `opaque=false` alone proves little.
 Measure all four outer borders: nominal magenta can vary and leave a rectangular
@@ -105,6 +166,17 @@ clipping, jagged edges and pixel noise. An alpha check cannot replace this visua
 gate.
 
 ## Verify in the running page
+
+Use [scripts/verify_assets.py](scripts/verify_assets.py) to compare a directory
+of native PNG sources against installed WebPs. Supply `--prefix course-` for
+the course asset naming convention. It rejects changed RGBA, resized canvases,
+missing opaque/transparent regions and nontransparent canvas borders; it cannot
+detect generated visual noise.
+
+Use the repository's `scripts/dev/check_course_illustrations.py` for repeatable
+real-host screenshots and checks. It accepts repeated `--base-url` arguments,
+discovers family routes from the catalogue, checks both themes and responsive
+widths, and writes only to `.tmp/`. Read its `--help` for narrower route checks.
 
 Use the user's running host when supplied (for the homepage repair,
 `http://localhost:8000/`); otherwise resolve the development target. Capture and
