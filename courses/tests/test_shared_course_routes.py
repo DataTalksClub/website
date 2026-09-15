@@ -13,6 +13,7 @@ from courses.models import (
     Cohort,
     CohortSharedModule,
     Course,
+    CurriculumSource,
     DeliveryMode,
     Enrollment,
     Homework,
@@ -20,6 +21,7 @@ from courses.models import (
     SharedLesson,
     SharedModule,
 )
+from courses.registration import render_markdown
 from courses.services.course_context import (
     resolve_delivery_context,
     context_query,
@@ -412,4 +414,63 @@ class SharedRouteTests(SharedWorldTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(
             Enrollment.objects.filter(student=user, course=self.cohort_2026).exists()
+        )
+
+
+class LessonExternalLinkTests(SharedWorldTestCase):
+    """External destinations on the lesson page open in a new tab; internal ones don't."""
+
+    def test_external_link_in_the_lesson_body_opens_in_a_new_tab(self) -> None:
+        self.lesson.content_markdown = (
+            "See the [external docs](https://docs.example.com/guide) and the "
+            "[module overview](/courses/llm-zoomcamp/01-agentic-rag)."
+        )
+        self.lesson.rendered_html = render_markdown(self.lesson.content_markdown)
+        self.lesson.save(update_fields=("content_markdown", "rendered_html"))
+
+        response = self.client.get(self.lesson_url())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            '<a href="https://docs.example.com/guide" target="_blank" '
+            'rel="noopener noreferrer">external docs</a>',
+        )
+        self.assertContains(
+            response,
+            '<a href="/courses/llm-zoomcamp/01-agentic-rag">module overview</a>',
+        )
+
+    def test_archived_delivery_notice_links_to_github_in_a_new_tab(self) -> None:
+        archive_sha = "c" * 40
+        archive_cohort = Cohort.objects.create(
+            course=self.course,
+            slug="llm-zoomcamp-2024",
+            title="LLM Zoomcamp 2024",
+            description="archived",
+            identifier="2024",
+            year=2024,
+            curriculum_format="legacy",
+            delivery_mode=DeliveryMode.SELF_PACED,
+            curriculum_source=CurriculumSource.GITHUB_ARCHIVE,
+            archive_notice_path="cohorts/2024/README.md",
+            archive_url=(
+                "https://github.com/DataTalksClub/llm-zoomcamp/blob/"
+                + archive_sha
+                + "/cohorts/2024/README.md"
+            ),
+            archive_commit_sha=archive_sha,
+        )
+
+        response = self.client.get(self.lesson_url() + f"?cohort={archive_cohort.identifier}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'href="' + archive_cohort.archive_url + '"')
+        self.assertContains(
+            response,
+            (
+                'href="'
+                + archive_cohort.archive_url
+                + '" target="_blank" rel="noopener noreferrer"'
+            ),
         )

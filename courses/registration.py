@@ -1,10 +1,13 @@
 import html
 import re
+from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 import bleach
 import mistune
+
+from core.seo import PRODUCTION_CANONICAL_HOST
 
 COUNTRIES_CONFIG_PATH = Path(__file__).with_name("countries.txt")
 TOP_COUNTRIES_SECTION = "Top Countries"
@@ -183,6 +186,96 @@ _CODE_LANGUAGE_CLASS_RE = re.compile(r"\Alanguage-[a-z0-9][a-z0-9+#._-]{0,31}\Z"
 # ``<img>`` that lost its source would still paint an empty bordered box, so the
 # sanitized output drops the element itself.
 _SOURCELESS_IMAGE_RE = re.compile(r"<img\b(?![^>]*\ssrc=)[^>]*>", re.IGNORECASE)
+# Course Markdown commonly links out to docs sites, GitHub, and other tools.
+# Those links should open in a new tab; a link back to this same site should
+# not.  Mirrors the internal-host set in ``content.podcast_resources``.
+_INTERNAL_MARKDOWN_LINK_HOSTS = frozenset(
+    {PRODUCTION_CANONICAL_HOST, f"www.{PRODUCTION_CANONICAL_HOST}"}
+)
+
+
+def _is_external_markdown_href(href: str | None) -> bool:
+    """Return whether a sanitized anchor's ``href`` points off this site."""
+
+    if not href:
+        return False
+    parsed = urlparse(href.strip())
+    if parsed.scheme not in ("http", "https"):
+        return False
+    host = (parsed.hostname or "").lower()
+    return bool(host) and host not in _INTERNAL_MARKDOWN_LINK_HOSTS
+
+
+class _ExternalLinkTagger(HTMLParser):
+    """Rebuild sanitized HTML, adding a new-tab target to external anchors.
+
+    Runs after ``bleach.clean`` on already-sanitized markup, so every tag and
+    attribute here has already passed the allowlist above; this only adds
+    ``target``/``rel`` to ``<a>`` elements whose ``href`` is external.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=False)
+        self._out: list[str] = []
+
+    def result(self) -> str:
+        return "".join(self._out)
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self._out.append(self._render_tag(tag, attrs, self_closing=False))
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self._out.append(self._render_tag(tag, attrs, self_closing=True))
+
+    def handle_endtag(self, tag: str) -> None:
+        self._out.append(f"</{tag}>")
+
+    def handle_data(self, data: str) -> None:
+        self._out.append(html.escape(data, quote=False))
+
+    def handle_entityref(self, name: str) -> None:
+        self._out.append(f"&{name};")
+
+    def handle_charref(self, name: str) -> None:
+        self._out.append(f"&#{name};")
+
+    def handle_comment(self, data: str) -> None:
+        self._out.append(f"<!--{data}-->")
+
+    def _render_tag(
+        self,
+        tag: str,
+        attrs: list[tuple[str, str | None]],
+        *,
+        self_closing: bool,
+    ) -> str:
+        attr_dict = dict(attrs)
+        if tag == "a" and _is_external_markdown_href(attr_dict.get("href")):
+            attr_dict["target"] = "_blank"
+            rel_tokens = (attr_dict.get("rel") or "").split()
+            for token in ("noopener", "noreferrer"):
+                if token not in rel_tokens:
+                    rel_tokens.append(token)
+            attr_dict["rel"] = " ".join(rel_tokens)
+        parts = [f"<{tag}"]
+        for name, value in attr_dict.items():
+            if value is None:
+                parts.append(f" {name}")
+            else:
+                parts.append(f' {name}="{html.escape(value, quote=True)}"')
+        parts.append(" />" if self_closing else ">")
+        return "".join(parts)
+
+
+def _tag_external_links(sanitized_html: str) -> str:
+    """Add ``target="_blank" rel="noopener noreferrer"`` to external anchors."""
+
+    if "<a " not in sanitized_html and "<a>" not in sanitized_html:
+        return sanitized_html
+    tagger = _ExternalLinkTagger()
+    tagger.feed(sanitized_html)
+    tagger.close()
+    return tagger.result()
 
 
 def _allowed_markdown_attribute(tag: str, name: str, value: str) -> bool:
@@ -278,7 +371,8 @@ def render_markdown(markdown_text):
         attributes=_allowed_markdown_attribute,
         protocols=ALLOWED_MARKDOWN_PROTOCOLS,
     )
-    return _SOURCELESS_IMAGE_RE.sub("", sanitized_html)
+    sanitized_html = _SOURCELESS_IMAGE_RE.sub("", sanitized_html)
+    return _tag_external_links(sanitized_html)
 
 
 def markdown_has_mermaid(rendered_html: str) -> bool:
