@@ -8,7 +8,12 @@ from courses.tests.course_list_base import CourseListViewTestBase
 
 
 class CourseListOrderingTest(CourseListViewTestBase):
-    """Homepage courses split into active / open registration / archive."""
+    """Courses classified into active / open registration / archive context tiers.
+
+    These tiers stay real context data the view computes (``active_courses``,
+    ``open_registration_courses``, ``finished_courses``) even though the catalogue
+    itself renders them as one unified list rather than three page sections.
+    """
 
     def create_course(self, slug, **kwargs):
         return Cohort.objects.create(
@@ -232,7 +237,7 @@ class CourseListOrderingTest(CourseListViewTestBase):
             "Edition description must not replace family outcome.",
         )
 
-    def test_open_registration_section_rendered(self):
+    def test_open_registration_card_rendered(self):
         today = timezone.localdate()
         upcoming = self.create_course(
             "upcoming-course",
@@ -244,9 +249,9 @@ class CourseListOrderingTest(CourseListViewTestBase):
         response = self.course_list_response()
         content = response.content.decode()
 
-        # The owner's Courses_Landing mockup titles the band "Registration open".
-        self.assertIn("Registration open", content)
-        # Design system marks the state with a mono status pill, uppercased in CSS.
+        # The catalogue is one unified list now (no "Registration open" section
+        # heading); a dated, open-for-registration card still marks itself with the
+        # design system's mono status pill, uppercased in CSS.
         self.assertIn("registration open", content)
         family_url = reverse(
             "course_family",
