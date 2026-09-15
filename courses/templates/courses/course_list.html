@@ -211,11 +211,6 @@
         grid-template-columns: minmax(0, 1fr);
       }
 
-      /* The mockup separates its catalogue sections with air, not rules. */
-      .catalogue-section + .catalogue-section {
-        margin-top: clamp(2.75rem, 5vw, 4.25rem);
-      }
-
       /* The cream steps band closes the lavender catalogue the way the
          mockup draws it: the catalogue's own trailing air, then the band
          seam.  The lavender FAQ band then sits flush against the cream,
@@ -535,8 +530,9 @@
 
       /* --- self-paced: cream cards ---------------------------------------------- */
 
-      /* Finished families stay public, so their band is the mockup's
-         "Self-paced anytime": warm cards on the lavender ground. */
+      /* A finished family with no live schedule or open campaign: warm cards on
+         the lavender ground, mixed into the one unified catalogue list rather
+         than a section of its own. */
       .selfpaced-card {
         align-items: flex-start;
         background: var(--cream);
@@ -848,27 +844,95 @@
         </p>
       {% endif %}
       <div id="courses">
-        {% if open_registration_courses %}
-          <section class="catalogue-section courses-open shell-breakout" aria-labelledby="open-heading">
-            <div class="band-head">
-              <div class="band-head-row">
-                <h2 id="open-heading">Registration open</h2>
-                <span class="band-head-note">the next cohort you can start from day one</span>
-              </div>
+        {% comment %}
+          One unified catalogue: every visible family in the site's reviewed order,
+          each card carrying its own honest state instead of being sorted into a
+          "running now" or "self-paced" section.  ``entry.kind`` is one of
+          ``active`` (join a cohort running now), ``open_dated`` (register for an
+          announced cohort with a real date), ``open_undated`` (register for
+          whatever cohort comes next -- no date invented), or the quiet card
+          (``self_paced`` / ``archived``) for a family with no live schedule at all.
+        {% endcomment %}
+        <section class="catalogue-section courses-catalog shell-breakout" aria-labelledby="catalog-heading">
+          <div class="band-head">
+            <div class="band-head-row">
+              <h2 id="catalog-heading">Course catalogue</h2>
+              <span class="band-head-note">every zoomcamp we run, live or self-paced</span>
             </div>
-            {% comment %}
-              The wide featured card: bigger than a catalogue card and
-              (when the campaign publishes one) carrying the same
-              per-cohort artwork `register.html` already shows on the
-              registration page itself, so this is reused imagery, not an
-              invented one.  See `.open-card` in page_styles for why it
-              breaks out of the reading measure.
-            {% endcomment %}
-            <div class="course-list open-registration-list">
-              {% for card in open_registration_course_cards %}
-                  {% url 'course_family' card.family.slug as family_url %}
-                  {% url 'cohort' card.family.slug card.cohort.identifier as edition_url %}
-                  {% with campaign=card.cohort.registration_campaign %}
+            <p class="band-head-sub">
+              Join a cohort that is running right now, register for whatever runs
+              next, or work through a self-paced edition on your own schedule.
+            </p>
+          </div>
+          {% if catalog_cards %}
+            <div class="course-list courses-catalog-list">
+              {% for entry in catalog_cards %}
+                  {% url 'course_family' entry.family.slug as family_url %}
+                  {% url 'cohort' entry.family.slug entry.cohort.identifier as edition_url %}
+                  {% if entry.kind == 'active' %}
+                    <article class="card active-card interactive-card interactive-lift"
+                             role="link"
+                             tabindex="0"
+                             onclick="if (!event.target.closest('a, button')) window.location.href='{{ edition_url }}'"
+                             onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{{ edition_url }}'; }">
+                      <div class="active-card-media">
+                        {% with campaign=entry.cohort.registration_campaign %}
+                          {% if campaign.hero_image_url %}
+                            <img src="{{ campaign.hero_image_url }}" alt="" loading="lazy" decoding="async">
+                          {% else %}
+                            {% include "core/_course_illustration.html" with family_slug=entry.family.slug loading="lazy" only %}
+                          {% endif %}
+                        {% endwith %}
+                      </div>
+                      <div class="active-card-info">
+                        {% comment %}
+                          Unconditional: unlike index_enrolled_state (which is
+                          this viewer's own enrolment and stays empty for a
+                          signed-out reader), an "active" card is always a
+                          cohort that is genuinely running right now.
+                        {% endcomment %}
+                        <span class="active-card-progress">
+                          <span class="status-dot status-dot-pulse" aria-hidden="true"></span>in progress
+                        </span>
+                        <h3>
+                          <a href="{{ edition_url }}">{{ entry.title }}</a>
+                        </h3>
+                        {% if entry.cohort.index_when %}
+                          <span class="active-card-when">{{ entry.cohort.index_when }}</span>
+                        {% endif %}
+                        {% if entry.outcome %}
+                          <p>{{ entry.outcome }}</p>
+                        {% endif %}
+                        {% if entry.cohort.index_enrolled_state %}
+                          <span class="status-pill">{{ entry.cohort.index_enrolled_state }}</span>
+                        {% endif %}
+                      </div>
+                      <div class="active-card-side">
+                        {% if entry.cohort.home_current_assignment %}
+                          <div class="panel panel-mint panel-outlined assignment-panel">
+                            <div class="assignment-head">
+                              <span class="mono-label mono-label-green">{{ entry.cohort.home_current_assignment_label }}</span>
+                              <span class="mono-note">due {{ entry.cohort.home_current_assignment.due_date|user_datetime:request }}</span>
+                            </div>
+                            <span class="assignment-title">{{ entry.cohort.home_current_assignment.label }}: {{ entry.cohort.home_current_assignment.title }}</span>
+                          </div>
+                        {% endif %}
+                        <div class="card-actions">
+                          <a class="cta cta-secondary cta-compact interactive-lift" href="{{ edition_url }}">Join the cohort →</a>
+                          <a class="row-action" href="{{ family_url }}">All editions</a>
+                          {% if entry.github_repo_url %}
+                            <a class="row-action" href="{{ entry.github_repo_url }}">GitHub</a>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </article>
+                  {% elif entry.kind == 'open_dated' or entry.kind == 'open_undated' %}
+                    {% comment %}
+                      Registration always happens on this site.  A dated card names
+                      the real cohort a campaign is promoting; an undated card still
+                      registers through a real, open campaign for whatever cohort
+                      comes next -- it just names no date, because none is set yet.
+                    {% endcomment %}
                     <article class="card course-card open-card interactive-card interactive-lift"
                              role="link"
                              tabindex="0"
@@ -877,186 +941,107 @@
                       <div class="open-card-body">
                         <div class="open-card-head">
                           <span class="chip chip-live">registration open</span>
-                          {% if card.cohort.index_dates %}
-                            <span class="mono-note">{{ card.cohort.index_dates }}</span>
+                          {% if entry.kind == 'open_dated' and entry.cohort.index_dates %}
+                            <span class="mono-note">{{ entry.cohort.index_dates }}</span>
+                          {% elif entry.kind == 'open_undated' %}
+                            <span class="mono-note">next cohort — date not announced yet</span>
                           {% endif %}
                         </div>
                         <h3>
-                            <a href="{{ family_url }}">{{ card.title }}</a>
+                            <a href="{{ family_url }}">{{ entry.title }}</a>
                         </h3>
-                        {% if card.outcome %}
-                          <p>{{ card.outcome }}</p>
+                        {% if entry.outcome %}
+                          <p>{{ entry.outcome }}</p>
                         {% endif %}
-                        {% if card.cohort.index_length or card.cohort.index_registered %}
-                          <div class="open-card-facts">
-                            {% if card.cohort.index_length %}
-                              <span class="chip chip-plain">{{ card.cohort.index_length }}</span>
-                            {% endif %}
-                            {% if card.cohort.index_registered %}
-                              <span class="chip chip-plain">{{ card.cohort.index_registered|thousands }} registered</span>
-                            {% endif %}
-                          </div>
+                        {% if entry.kind == 'open_dated' %}
+                          {% if entry.cohort.index_length or entry.cohort.index_registered %}
+                            <div class="open-card-facts">
+                              {% if entry.cohort.index_length %}
+                                <span class="chip chip-plain">{{ entry.cohort.index_length }}</span>
+                              {% endif %}
+                              {% if entry.cohort.index_registered %}
+                                <span class="chip chip-plain">{{ entry.cohort.index_registered|thousands }} registered</span>
+                              {% endif %}
+                            </div>
+                          {% endif %}
                         {% endif %}
                         <div class="card-actions">
-                          {% comment %}
-                            Registration happens on this site.  A card offers it only when a
-                            campaign promotes that edition; the CMP ``registration_url`` this
-                            branch used to fall through to points off-site at the platform
-                            this catalogue replaces.
-                          {% endcomment %}
-                          {% if card.cohort.registration_campaign and not card.cohort.is_enrolled and not card.cohort.is_registered %}
-                            <a class="cta cta-primary cta-compact interactive-lift" href="{% url 'registration_campaign' card.cohort.registration_campaign.slug %}">Register</a>
+                          {% if entry.kind == 'open_dated' %}
+                            {% if entry.cohort.registration_campaign and not entry.cohort.is_enrolled and not entry.cohort.is_registered %}
+                              <a class="cta cta-primary cta-compact interactive-lift" href="{% url 'registration_campaign' entry.cohort.registration_campaign.slug %}">Register</a>
+                            {% endif %}
+                            <a class="row-action" href="{{ edition_url }}">{{ entry.edition_label }} · {{ entry.cohort.identifier }} →</a>
+                          {% else %}
+                            <a class="cta cta-primary cta-compact interactive-lift" href="{% url 'registration_campaign' entry.next_campaign.slug %}">Register for the next cohort</a>
+                            <a class="row-action" href="{{ edition_url }}">{{ entry.cohort.identifier }} materials →</a>
                           {% endif %}
-                          <a class="row-action" href="{{ edition_url }}">{{ card.edition_label }} · {{ card.cohort.identifier }} →</a>
-                          {% if card.github_repo_url %}
-                            <a class="row-action" href="{{ card.github_repo_url }}">GitHub</a>
+                          {% if entry.github_repo_url %}
+                            <a class="row-action" href="{{ entry.github_repo_url }}">GitHub</a>
                           {% endif %}
                         </div>
                       </div>
                       <div class="open-card-media">
-                        {% if campaign.hero_image_url %}
-                          <img src="{{ campaign.hero_image_url }}" alt="" loading="lazy" decoding="async">
+                        {% if entry.kind == 'open_dated' and entry.cohort.registration_campaign.hero_image_url %}
+                          <img src="{{ entry.cohort.registration_campaign.hero_image_url }}" alt="" loading="lazy" decoding="async">
+                        {% elif entry.kind == 'open_undated' and entry.next_campaign.hero_image_url %}
+                          <img src="{{ entry.next_campaign.hero_image_url }}" alt="" loading="lazy" decoding="async">
                         {% else %}
-                          {% include "core/_course_illustration.html" with family_slug=card.family.slug loading="lazy" only %}
+                          {% include "core/_course_illustration.html" with family_slug=entry.family.slug loading="lazy" only %}
                         {% endif %}
                       </div>
                     </article>
-                  {% endwith %}
-              {% endfor %}
-            </div>
-          </section>
-        {% endif %}
-        <section class="catalogue-section courses-active shell-breakout" aria-labelledby="active-heading">
-          <div class="band-head">
-            <div class="band-head-row">
-              <h2 id="active-heading">Running now — you can still join</h2>
-              <span class="band-head-note">catch up on recordings, submit the next homework</span>
-            </div>
-            <p class="band-head-sub">
-              These cohorts are running right now. Join one, catch up on the recordings
-              and submit the next homework with everyone else.
-            </p>
-          </div>
-          {% if active_courses %}
-            <div class="course-list courses-active-list">
-              {% for card in active_course_cards %}
-                  {% url 'course_family' card.family.slug as family_url %}
-                  {% url 'cohort' card.family.slug card.cohort.identifier as edition_url %}
-                  <article class="card active-card interactive-card interactive-lift"
-                           role="link"
-                           tabindex="0"
-                           onclick="if (!event.target.closest('a, button')) window.location.href='{{ edition_url }}'"
-                           onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{{ edition_url }}'; }">
-                    <div class="active-card-media">
-                      {% with campaign=card.cohort.registration_campaign %}
-                        {% if campaign.hero_image_url %}
-                          <img src="{{ campaign.hero_image_url }}" alt="" loading="lazy" decoding="async">
-                        {% else %}
-                          {% include "core/_course_illustration.html" with family_slug=card.family.slug loading="lazy" only %}
-                        {% endif %}
-                      {% endwith %}
-                    </div>
-                    <div class="active-card-info">
-                      {% comment %}
-                        Unconditional: unlike index_enrolled_state (which is
-                        this viewer's own enrolment and stays empty for a
-                        signed-out reader), every card in this band is a
-                        cohort that is genuinely running right now.
-                      {% endcomment %}
-                      <span class="active-card-progress">
-                        <span class="status-dot status-dot-pulse" aria-hidden="true"></span>in progress
-                      </span>
-                      <h3>
-                        <a href="{{ edition_url }}">{{ card.title }}</a>
-                      </h3>
-                      {% if card.cohort.index_when %}
-                        <span class="active-card-when">{{ card.cohort.index_when }}</span>
-                      {% endif %}
-                      {% if card.outcome %}
-                        <p>{{ card.outcome }}</p>
-                      {% endif %}
-                      {% if card.cohort.index_enrolled_state %}
-                        <span class="status-pill">{{ card.cohort.index_enrolled_state }}</span>
-                      {% endif %}
-                    </div>
-                    <div class="active-card-side">
-                      {% if card.cohort.home_current_assignment %}
-                        <div class="panel panel-mint panel-outlined assignment-panel">
-                          <div class="assignment-head">
-                            <span class="mono-label mono-label-green">{{ card.cohort.home_current_assignment_label }}</span>
-                            <span class="mono-note">due {{ card.cohort.home_current_assignment.due_date|user_datetime:request }}</span>
-                          </div>
-                          <span class="assignment-title">{{ card.cohort.home_current_assignment.label }}: {{ card.cohort.home_current_assignment.title }}</span>
+                  {% else %}
+                    {% comment %}
+                      The quiet card: a family with no live cohort running and no open
+                      campaign for what's next.  Self-paced editions read "self-paced";
+                      a family with neither offers only its materials, never an invented
+                      registration.
+                    {% endcomment %}
+                    <article class="card selfpaced-card interactive-card interactive-lift"
+                             role="link"
+                             tabindex="0"
+                             onclick="if (!event.target.closest('a, button')) window.location.href='{{ edition_url }}'"
+                             onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{{ edition_url }}'; }">
+                      <div class="selfpaced-card-media">
+                        {% with campaign=entry.cohort.registration_campaign %}
+                          {% if campaign.hero_image_url %}
+                            <img src="{{ campaign.hero_image_url }}" alt="" loading="lazy" decoding="async">
+                          {% else %}
+                            {% include "core/_course_illustration.html" with family_slug=entry.family.slug loading="lazy" only %}
+                          {% endif %}
+                        {% endwith %}
+                      </div>
+                      <div class="selfpaced-card-body">
+                        <div class="selfpaced-card-head">
+                          {% if entry.kind == 'self_paced' %}
+                            <span class="selfpaced-pill">self-paced</span>
+                          {% endif %}
+                          {% if entry.cohort.index_length %}
+                            <span class="mono-note">{{ entry.cohort.index_length }}</span>
+                          {% endif %}
                         </div>
-                      {% endif %}
-                      <div class="card-actions">
-                        <a class="cta cta-secondary cta-compact interactive-lift" href="{{ edition_url }}">Join the cohort →</a>
-                        <a class="row-action" href="{{ family_url }}">All editions</a>
-                        {% if card.github_repo_url %}
-                          <a class="row-action" href="{{ card.github_repo_url }}">GitHub</a>
+                        <h3>
+                          <a href="{{ edition_url }}">{{ entry.title }}</a>
+                        </h3>
+                        {% if entry.outcome %}
+                          <p>{{ entry.outcome }}</p>
                         {% endif %}
                       </div>
-                    </div>
-                  </article>
+                      <div class="selfpaced-card-actions">
+                        <a class="cta cta-secondary cta-compact interactive-lift" href="{{ edition_url }}">Start now →</a>
+                        <a class="row-action" href="{{ family_url }}">All editions</a>
+                        {% if entry.github_repo_url %}
+                          <a class="row-action" href="{{ entry.github_repo_url }}">GitHub</a>
+                        {% endif %}
+                      </div>
+                    </article>
+                  {% endif %}
               {% endfor %}
             </div>
           {% else %}
             <p class="band-note">No active courses right now.</p>
           {% endif %}
         </section>
-        {% if finished_course_cards %}
-          <section class="catalogue-section courses-finished shell-breakout" id="selfpaced" aria-labelledby="finished-heading">
-            <div class="band-head">
-              <div class="band-head-row">
-                <h2 id="finished-heading">Self-paced anytime</h2>
-                <span class="band-head-note">finished cohorts — videos, homework and solutions stay public</span>
-              </div>
-            </div>
-            <div class="course-list">
-              {% for card in finished_course_cards %}
-                  {% comment %}
-                    One warm row per family: the latest finished edition is the
-                    route the card names, and everything the cohort produced
-                    stays public.
-                  {% endcomment %}
-                  {% url 'course_family' card.family.slug as family_url %}
-                  {% url 'cohort' card.family.slug card.cohort.identifier as edition_url %}
-                  <div class="card selfpaced-card">
-                    <div class="selfpaced-card-media">
-                      {% with campaign=card.cohort.registration_campaign %}
-                        {% if campaign.hero_image_url %}
-                          <img src="{{ campaign.hero_image_url }}" alt="" loading="lazy" decoding="async">
-                        {% else %}
-                          {% include "core/_course_illustration.html" with family_slug=card.family.slug loading="lazy" only %}
-                        {% endif %}
-                      {% endwith %}
-                    </div>
-                    <div class="selfpaced-card-body">
-                      <div class="selfpaced-card-head">
-                        <span class="selfpaced-pill">self-paced</span>
-                        {% if card.cohort.index_length %}
-                          <span class="mono-note">{{ card.cohort.index_length }}</span>
-                        {% endif %}
-                      </div>
-                      <h3>
-                        <a href="{{ edition_url }}">{{ card.title }}</a>
-                      </h3>
-                      {% if card.outcome %}
-                        <p>{{ card.outcome }}</p>
-                      {% endif %}
-                    </div>
-                    <div class="selfpaced-card-actions">
-                      <a class="cta cta-secondary cta-compact interactive-lift" href="{{ edition_url }}">Start now →</a>
-                      <a class="row-action" href="{{ family_url }}">All editions</a>
-                      {% if card.github_repo_url %}
-                        <a class="row-action" href="{{ card.github_repo_url }}">GitHub</a>
-                      {% endif %}
-                    </div>
-                  </div>
-              {% endfor %}
-            </div>
-          </section>
-        {% endif %}
       </div>
       <section class="zoomcamp-steps shell-breakout" aria-labelledby="how-it-works-heading" id="how-it-works">
         <div class="band-head">

@@ -12,9 +12,10 @@ from core.course_index_content import (
     enrolled_state_label,
 )
 from core.home_content import COURSE_FAMILIES
-from courses.models.cohort import Cohort
+from courses.models.cohort import Cohort, DeliveryMode
 from courses.models.wrapped import WrappedStatistics
 from courses.services.public_course_catalog import visible_course_list_queryset
+from courses.services.registration_campaigns import family_registration
 from courses.services.registration_counts import (
     public_course_registration_count,
 )
@@ -73,6 +74,126 @@ class CourseFamilyCard:
             or getattr(self.cohort, "github_repo_url", "")
             or ""
         )
+
+
+@dataclass(frozen=True)
+class CatalogCard:
+    """One row of the unified ``/courses`` catalogue: a family card plus its real state.
+
+    The owner's ask is that every family shows one of three honest states -- you can
+    join a cohort that is running now, register for an announced cohort with a real
+    date, or register for whatever cohort comes next when no date has been set --
+    rather than being sorted into a "running now" or "self-paced" section.  ``kind``
+    carries that state (``"active"``, ``"open_dated"``, ``"open_undated"``, or
+    ``"self_paced"`` for a family with no live schedule at all; ``"archived"`` is the
+    rare fallback for a family with neither a live cohort nor an open campaign).
+    ``next_campaign`` is only set for ``"open_undated"``, where the promoted cohort
+    (``card.cohort``) is not the edition being registered for.
+    """
+
+    card: CourseFamilyCard
+    kind: str
+    next_campaign: object = None
+
+    @property
+    def family(self):
+        return self.card.family
+
+    @property
+    def cohort(self) -> Cohort:
+        return self.card.cohort
+
+    @property
+    def title(self) -> str:
+        return self.card.title
+
+    @property
+    def outcome(self) -> str:
+        return self.card.outcome
+
+    @property
+    def edition_label(self) -> str:
+        return self.card.edition_label
+
+    @property
+    def github_repo_url(self) -> str:
+        return self.card.github_repo_url
+
+
+def catalog_card_kind(card: CourseFamilyCard) -> tuple[str, object]:
+    """Return the honest registration state a catalogue card should show.
+
+    Reuses the same source of truth the family landing page reads
+    (``family_registration``) instead of deriving a second opinion from dates: a
+    cohort delivered self-paced with no live schedule says so before anything else,
+    because ``split_courses_by_status`` otherwise bundles it in with genuinely
+    running cohorts.  A live cohort that is running now, or one whose registration
+    is open for a real future date, keeps the state ``course_family_cards`` already
+    computed.  Anything else -- a family whose newest edition has finished -- asks
+    the campaign catalogue whether a next-cohort campaign is open, and offers that
+    instead of a manufactured date.
+    """
+
+    cohort = card.cohort
+    if getattr(cohort, "delivery_mode", "") == DeliveryMode.SELF_PACED.value and not cohort.finished:
+        return "self_paced", None
+    if card.status == "active":
+        return "active", None
+    if card.status == "open_registration":
+        return "open_dated", None
+    registration = family_registration(card.family)
+    if registration.campaign is not None:
+        return "open_undated", registration.campaign
+    return "archived", None
+
+
+def catalog_family_order(family_slug: str) -> tuple[int, str]:
+    """Sort the catalogue in the site's reviewed family order, unlisted ones after.
+
+    Mirrors ``core.home_content``'s own ``_catalog_order``: the database decides which
+    families exist, this only decides the order a reader sees them in, and a family
+    the database holds that this table does not still renders, placed last.
+    """
+
+    for index, (listed_slug, _title) in enumerate(COURSE_FAMILIES):
+        if listed_slug == family_slug:
+            return (index, family_slug)
+    return (len(COURSE_FAMILIES), family_slug)
+
+
+# The catalogue reads top to bottom the way the page always has: the editions you can
+# register for (dated or not), then the cohorts running right now, then the families
+# with no live schedule at all.  Grouping ``open_dated`` and ``open_undated`` together
+# keeps that reading order for the new undated state instead of inventing a fourth tier.
+_CATALOG_KIND_PRIORITY = {
+    "open_dated": 0,
+    "open_undated": 0,
+    "active": 1,
+    "self_paced": 2,
+    "archived": 2,
+}
+
+
+def course_catalog_cards(family_cards: list[CourseFamilyCard]) -> list[CatalogCard]:
+    """Build the unified catalogue: one row per family, honest state first, then order.
+
+    Every family renders in the same list -- nothing is sorted into a "running now" or
+    "self-paced" section -- but the reading order keeps the page's established shape:
+    register first, join what's running now second, browse a self-paced or archived
+    family last.  Ties within a tier fall back to the site's reviewed family order.
+    """
+
+    catalog_cards = []
+    for card in family_cards:
+        kind, next_campaign = catalog_card_kind(card)
+        catalog_cards.append(CatalogCard(card=card, kind=kind, next_campaign=next_campaign))
+    catalog_cards.sort(
+        key=lambda entry: (
+            _CATALOG_KIND_PRIORITY.get(entry.kind, 3),
+            catalog_family_order(entry.family.slug),
+        )
+    )
+    return catalog_cards
 
 
 # ``visible_course_list_queryset`` now lives in
@@ -428,9 +549,14 @@ def course_list_context(request):
             hero_register_url = reverse("registration_campaign", args=[campaign.slug])
             break
 
+    # The single catalogue list the page renders: one card per family, in the site's
+    # reviewed order, each carrying the honest state (`CatalogCard.kind`) the owner asked
+    # for instead of a "running now" / "self-paced" section split.
+    catalog_cards = course_catalog_cards(family_cards)
+
     context = {
         # Keep the cohort lists available to existing context consumers while
-        # the page itself renders the family-card lists below.
+        # the page itself renders `catalog_cards` below.
         "active_courses": [card.cohort for card in displayed_active_family_cards],
         "open_registration_courses": [card.cohort for card in open_registration_family_cards],
         "archive_groups": archive_groups,
@@ -442,6 +568,7 @@ def course_list_context(request):
         "open_registration_course_cards": open_registration_family_cards,
         "finished_course_cards": finished_family_cards,
         "featured_course_card": selected_featured_card,
+        "catalog_cards": catalog_cards,
         "home_stats": home_stats,
         "course_family_count": course_family_count,
         "total_open_registration_count": total_open_registration_count,
