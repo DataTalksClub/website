@@ -47,6 +47,64 @@ def _article_markdown() -> str:
     )
 
 
+def _episode_yaml() -> bytes:
+    return (
+        b"slug: test-episode\n"
+        b"legacy_path: /podcast/test-episode.html\n"
+        b"title: A test episode\n"
+        b"short: Test episode\n"
+        b"description: A safe description.\n"
+        b"season: 3\n"
+        b"episode: 11\n"
+        b"dateadded: '2024-05-01'\n"
+        b"guests:\n"
+        b"- fixture-guest\n"
+        b"image: images/podcast/test-episode.jpg\n"
+        b"ids:\n"
+        b"  youtube: abc12345678\n"
+        b"links:\n"
+        b"  youtube: https://www.youtube.com/watch?v=abc12345678\n"
+        b"transcript: e11-transcript.yaml\n"
+        b"resources:\n"
+        b"- title: Example\n"
+        b"  url: https://example.com/resource\n"
+    )
+
+
+def _transcript_yaml() -> bytes:
+    return (
+        b"podcast: test-episode\n"
+        b"segments:\n"
+        b"- who: Alexey\n"
+        b"  line: Hello and welcome.\n"
+        b"  sec: 0\n"
+        b"  time: '00:00:00'\n"
+    )
+
+
+def _book_yaml() -> bytes:
+    return (
+        b"slug: 20201214-ml-bookcamp\n"
+        b"legacy_path: /books/20201214-ml-bookcamp.html\n"
+        b"title: Machine Learning Bookcamp\n"
+        b"description: A deterministic book description.\n"
+        b"summary: The summary prose.\n"
+        b"start: 2020-12-14\n"
+        b"authors:\n"
+        b"- fixture-book-author\n"
+        b"cover: images/books/20201214-ml-bookcamp/cover.jpg\n"
+        b"links:\n"
+        b"- text: Book page\n"
+        b"  link: https://example.com/book\n"
+        b"archive:\n"
+        b"- name: Reader\n"
+        b"  text: What makes this book useful?\n"
+        b"  replies:\n"
+        b"  - name: Author\n"
+        b"    text: It teaches with projects.\n"
+    )
+
+
 def _write_tree(tree: dict[str, bytes]) -> Path:
     root = Path(tempfile.mkdtemp(prefix="sync-parsers-test-"))
     for relative, payload in tree.items():
@@ -185,7 +243,142 @@ class ArticlesParserTests(_CheckoutCase):
                 parser.discover(checkout, _source("dtc-content"))
 
 
+class PodcastsParserTests(_CheckoutCase):
+    def test_discover_upsert_update_and_delete(self) -> None:
+        source = _source("dtc-content")
+        parser = get_parser("podcast")
+        tree = {
+            "podcasts/s03/e11.yaml": _episode_yaml(),
+            "podcasts/s03/e11-transcript.yaml": _transcript_yaml(),
+            "podcasts/_s12e08.yaml": b"slug: draft\n",
+            "images/podcast/test-episode.jpg": b"jpeg-bytes",
+        }
+        with self.checkout(tree) as checkout:
+            items = parser.discover(checkout, source)
+            self.assertEqual([item.key for item in items], ["test-episode"])
+            record = items[0].data["record"]
+            self.assertEqual(record["public_path"], "/podcast/test-episode.html")
+            self.assertEqual(record["season"], 3)
+            self.assertEqual(record["episode"], 11)
+            self.assertEqual(record["guests"], ["fixture-guest"])
+            self.assertEqual(record["links"], {"youtube": "https://www.youtube.com/watch?v=abc12345678"})
+            self.assertEqual(record["video"], {"provider": "youtube", "id": "abc12345678"})
+            self.assertEqual(
+                [resource["title"] for resource in record["resources"]], ["Example"]
+            )
+            self.assertEqual(len(record["transcript"]), 1)
+            self.assertEqual(record["transcript"][0]["line"], "Hello and welcome.")
+            self.assertEqual(
+                record["transcript_provenance"]["source_path"],
+                "podcasts/s03/e11-transcript.yaml",
+            )
+            self.assertEqual(record["provenance"]["revision"], "a" * 40)
+            result = parser.upsert(items[0], source, media_store())
+        self.assertEqual(result.action, "created")
+        stored = SyncedDocument.objects.get(source=source, content_kind="podcast")
+        self.assertEqual(stored.slug, "test-episode")
+
+        with self.checkout(tree) as checkout:
+            (item,) = parser.discover(checkout, source)
+            result = parser.upsert(item, source, media_store())
+        self.assertEqual(result.action, "unchanged")
+
+        changed = dict(tree)
+        changed["podcasts/s03/e11.yaml"] = _episode_yaml().replace(
+            b"A safe description.", b"Updated description."
+        )
+        with self.checkout(changed, commit="b" * 40) as checkout:
+            (item,) = parser.discover(checkout, source)
+            result = parser.upsert(item, source, media_store())
+        self.assertEqual(result.action, "updated")
+
+        self.assertEqual(parser.soft_delete_missing(set(), source), 1)
+        self.assertFalse(SyncedDocument.objects.filter(source=source).exists())
+
+    def test_rejects_misnamed_transcripts(self) -> None:
+        source = _source("dtc-content")
+        parser = get_parser("podcast")
+        marked_up = _episode_yaml().replace(
+            b"transcript: e11-transcript.yaml", b"transcript: wrong-name.yaml"
+        )
+        tree = {
+            "podcasts/s03/e11.yaml": marked_up,
+            "podcasts/s03/wrong-name.yaml": _transcript_yaml(),
+        }
+        with self.checkout(tree) as checkout:
+            with self.assertRaises(ContentParserError):
+                parser.discover(checkout, source)
+
+    def test_accepts_flat_layout_transcript_references(self) -> None:
+        source = _source("dtc-content")
+        parser = get_parser("podcast")
+        marked_up = _episode_yaml().replace(
+            b"transcript: e11-transcript.yaml", b"transcript: transcripts/test-episode.yaml"
+        )
+        tree = {
+            "podcasts/test-episode.yaml": marked_up,
+            "podcasts/transcripts/test-episode.yaml": _transcript_yaml(),
+        }
+        with self.checkout(tree) as checkout:
+            (item,) = parser.discover(checkout, source)
+        self.assertEqual(len(item.data["record"]["transcript"]), 1)
+        self.assertEqual(
+            item.data["record"]["transcript_provenance"]["source_path"],
+            "podcasts/transcripts/test-episode.yaml",
+        )
+
+    def test_ignores_other_sources(self) -> None:
+        other = _source("some-other-site")
+        parser = get_parser("podcast")
+        tree = {"podcasts/s03/e11.yaml": _episode_yaml()}
+        with self.checkout(tree) as checkout:
+            self.assertEqual(parser.discover(checkout, other), [])
+            self.assertEqual(parser.soft_delete_missing(set(), other), 0)
+
+
+class BooksParserTests(_CheckoutCase):
+    def test_discover_upsert_and_delete(self) -> None:
+        source = _source("dtc-content")
+        parser = get_parser("book")
+        tree = {
+            "books/2020/201214-ml-bookcamp.yaml": _book_yaml(),
+            "books/_draft-book.yaml": b"slug: draft\n",
+            "images/books/20201214-ml-bookcamp/cover.jpg": b"jpeg-bytes",
+        }
+        with self.checkout(tree) as checkout:
+            items = parser.discover(checkout, source)
+            self.assertEqual([item.key for item in items], ["20201214-ml-bookcamp"])
+            record = items[0].data["record"]
+            self.assertEqual(record["public_path"], "/books/20201214-ml-bookcamp.html")
+            self.assertEqual(record["authors"], ["fixture-book-author"])
+            self.assertEqual(record["published"], "2020-12-14")
+            self.assertEqual(
+                record["links"], [{"label": "Book page", "url": "https://example.com/book"}]
+            )
+            self.assertEqual(
+                record["image_source"], "images/books/20201214-ml-bookcamp/cover.jpg"
+            )
+            self.assertEqual(len(record["archive"]), 1)
+            self.assertEqual(record["provenance"]["revision"], "a" * 40)
+            result = parser.upsert(items[0], source, media_store())
+        self.assertEqual(result.action, "created")
+        stored = SyncedDocument.objects.get(source=source, content_kind="book")
+        self.assertEqual(stored.title, "Machine Learning Bookcamp")
+        self.assertEqual(parser.soft_delete_missing(set(), source), 1)
+        self.assertFalse(SyncedDocument.objects.filter(source=source).exists())
+
+    def test_ignores_other_sources(self) -> None:
+        other = _source("some-other-site")
+        parser = get_parser("book")
+        tree = {"books/2020/201214-ml-bookcamp.yaml": _book_yaml()}
+        with self.checkout(tree) as checkout:
+            self.assertEqual(parser.discover(checkout, other), [])
+            self.assertEqual(parser.soft_delete_missing(set(), other), 0)
+
+
 class RegistrationTests(unittest.TestCase):
     def test_site_parsers_are_registered(self) -> None:
         self.assertEqual(type(get_parser("article")).__name__, "ArticlesParser")
         self.assertEqual(type(get_parser("people")).__name__, "PeopleParser")
+        self.assertEqual(type(get_parser("podcast")).__name__, "PodcastsParser")
+        self.assertEqual(type(get_parser("book")).__name__, "BooksParser")
