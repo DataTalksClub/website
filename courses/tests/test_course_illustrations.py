@@ -124,9 +124,7 @@ class CourseIllustrationPageTests(TestCase):
         # ask -- so every family renders the same ``catalog-card-media`` class
         # and links to its family page, whatever its real registration state.
         states = ("open_registration", "active", "finished")
-        for slug, state in zip(
-            ("ml-zoomcamp", "de-zoomcamp", "llm-zoomcamp"), states
-        ):
+        for slug, state in zip(("ml-zoomcamp", "de-zoomcamp", "llm-zoomcamp"), states, strict=True):
             family, _ = Course.objects.get_or_create(slug=slug, defaults={"title": slug})
             cohort = Cohort.objects.create(
                 course=family,

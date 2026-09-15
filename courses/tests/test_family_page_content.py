@@ -137,9 +137,7 @@ class FamilyEditionRowsTests(SimpleTestCase):
 
     def test_promoted_cohort_reads_in_progress_once_it_has_started(self):
         today = date(2026, 9, 15)
-        edition, cohort = self._edition(
-            start_date=date(2026, 9, 14), end_date=date(2027, 1, 25)
-        )
+        edition, cohort = self._edition(start_date=date(2026, 9, 14), end_date=date(2027, 1, 25))
 
         rows = family_edition_rows([edition], cohort, today)
 
@@ -148,9 +146,7 @@ class FamilyEditionRowsTests(SimpleTestCase):
 
     def test_promoted_cohort_still_reads_registration_open_before_it_starts(self):
         today = date(2026, 8, 1)
-        edition, cohort = self._edition(
-            start_date=date(2026, 9, 14), end_date=date(2027, 1, 25)
-        )
+        edition, cohort = self._edition(start_date=date(2026, 9, 14), end_date=date(2027, 1, 25))
 
         rows = family_edition_rows([edition], cohort, today)
 
@@ -159,9 +155,7 @@ class FamilyEditionRowsTests(SimpleTestCase):
 
     def test_promoted_cohort_past_its_end_date_reads_finished(self):
         today = date(2027, 2, 1)
-        edition, cohort = self._edition(
-            start_date=date(2026, 9, 14), end_date=date(2027, 1, 25)
-        )
+        edition, cohort = self._edition(start_date=date(2026, 9, 14), end_date=date(2027, 1, 25))
 
         rows = family_edition_rows([edition], cohort, today)
 
