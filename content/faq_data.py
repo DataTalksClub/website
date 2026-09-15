@@ -286,6 +286,30 @@ def faq_course(course_slug: str) -> dict[str, Any] | None:
     return next((course for course in faq_courses() if course["slug"] == course_slug), None)
 
 
+#: Course-family slugs whose slug is not the FAQ document's own slug.  Every
+#: other family already names its FAQ document directly (``llm-zoomcamp``,
+#: ``mlops-zoomcamp``, ``ai-dev-tools-zoomcamp`` all appear verbatim in
+#: ``FAQ_COURSE_ORDER``), so only the abbreviated family slugs are listed here
+#: rather than guessed.
+FAQ_COURSE_SLUG_BY_FAMILY_SLUG = {
+    "de-zoomcamp": "data-engineering-zoomcamp",
+    "ml-zoomcamp": "machine-learning-zoomcamp",
+    "sma-zoomcamp": "stock-markets-analytics-zoomcamp",
+}
+
+
+def faq_course_for_family_slug(family_slug: str) -> dict[str, Any] | None:
+    """Return the published FAQ course document that covers one course family.
+
+    ``None`` when no FAQ document is published for it -- a real absence, not a
+    failure, so a caller degrades gracefully rather than showing nothing to
+    parse.
+    """
+
+    faq_slug = FAQ_COURSE_SLUG_BY_FAMILY_SLUG.get(family_slug, family_slug)
+    return faq_course(faq_slug)
+
+
 def faq_questions(course: dict[str, Any]) -> tuple[dict[str, Any], ...]:
     return tuple(question for section in course["sections"] for question in section["questions"])
 

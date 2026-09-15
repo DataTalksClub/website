@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 
+from content.faq_data import faq_course_for_family_slug, faq_questions, render_faq_answer
 from courses.course_page_content import (
     course_modules,
     course_specs,
@@ -308,6 +309,39 @@ def family_lede(family: Course) -> str:
     return description
 
 
+#: How many real FAQ questions the family landing page previews inline
+#: before pointing to the full FAQ page for the rest.
+FAMILY_FAQ_PREVIEW_LIMIT = 5
+
+
+def family_faq_preview(family: Course, *, limit: int = FAMILY_FAQ_PREVIEW_LIMIT) -> tuple:
+    """Real FAQ questions to preview inline, and the link to the rest.
+
+    Matches the family to its published FAQ document by slug
+    (``content.faq_data.faq_course_for_family_slug``) and renders its first
+    *limit* questions the same way the FAQ page itself does.  A family with no
+    matching document falls back to its own legacy external FAQ link (or to
+    nothing at all when it carries neither) rather than showing an empty or
+    fabricated preview.
+    """
+
+    course = faq_course_for_family_slug(family.slug)
+    if course is None:
+        return (), family.faq_document_url
+    questions = faq_questions(course)[:limit]
+    if not questions:
+        return (), family.faq_document_url
+    rows = tuple(
+        {
+            "id": question["id"],
+            "question": question["question"],
+            "rendered_answer": render_faq_answer(question),
+        }
+        for question in questions
+    )
+    return rows, course["public_path"]
+
+
 def course_family_page_context(family: Course, user) -> dict:
     """Build the family landing context without changing cohort view logic."""
 
@@ -413,6 +447,7 @@ def course_family_page_context(family: Course, user) -> dict:
             today,
         )
     )
+    family_faq_questions, family_faq_url = family_faq_preview(family)
     return {
         "course_family": family,
         "cohorts": [edition.cohort for edition in editions],
@@ -427,6 +462,8 @@ def course_family_page_context(family: Course, user) -> dict:
         ),
         "materials_url": materials_url,
         "materials_on_platform": materials_on_platform,
+        "family_faq_questions": family_faq_questions,
+        "family_faq_url": family_faq_url,
         "self_paced_cohort": self_paced_cohort,
         "family_lede": family_lede(family),
         "family_starting_point": family.starting_point.strip(),

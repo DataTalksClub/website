@@ -234,3 +234,51 @@ class CourseFamilyLandingTests(TestCase):
         family_admin = admin.site._registry[Course]
         assert family_admin.fields is not None
         self.assertIn("starting_point", family_admin.fields)
+
+
+class CourseFamilyFaqPreviewTests(TestCase):
+    """The family landing page's real-FAQ preview (issue: real questions, not a bare link)."""
+
+    def test_family_with_no_faq_document_and_no_legacy_link_shows_no_panel(self):
+        family = Course.objects.create(slug="no-faq-family", title="No FAQ Family")
+
+        response = self.client.get(reverse("course_family", args=[family.slug]))
+
+        self.assertNotContains(response, "Questions before you start?")
+
+    def test_family_with_no_matching_document_falls_back_to_the_legacy_link(self):
+        family = Course.objects.create(
+            slug="legacy-faq-family",
+            title="Legacy FAQ Family",
+            faq_document_url="https://example.invalid/legacy-course-faq",
+        )
+
+        response = self.client.get(reverse("course_family", args=[family.slug]))
+
+        self.assertContains(response, "Questions before you start?")
+        self.assertContains(response, 'href="https://example.invalid/legacy-course-faq"')
+        self.assertNotContains(response, '<details class="faq-fold"')
+
+    def test_family_matching_a_real_faq_document_shows_real_questions_inline(self):
+        from content.faq_data import faq_course, faq_questions, render_faq_answer
+
+        # "ml-zoomcamp" is the family slug; its real FAQ document is published
+        # under the FAQ's own slug, "machine-learning-zoomcamp" (content.faq_data
+        # .FAQ_COURSE_SLUG_BY_FAMILY_SLUG) -- exercising the alias, not just a
+        # family whose slug happens to match its FAQ document directly.
+        family = Course.objects.create(slug="ml-zoomcamp", title="Machine Learning Zoomcamp")
+        document = faq_course("machine-learning-zoomcamp")
+        self.assertIsNotNone(document)
+        first_question = faq_questions(document)[0]
+
+        response = self.client.get(reverse("course_family", args=[family.slug]))
+        body = response.content.decode()
+
+        self.assertContains(response, "Questions before you start?")
+        self.assertContains(response, first_question["question"])
+        self.assertIn(render_faq_answer(first_question), body)
+        self.assertContains(response, 'href="/faq/machine-learning-zoomcamp.html"')
+        self.assertContains(response, "See the full course FAQ")
+        # The preview is bounded, not the whole document, however many
+        # questions the real FAQ carries.
+        self.assertLessEqual(body.count('<details class="faq-fold"'), 5)

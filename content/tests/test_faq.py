@@ -7,6 +7,7 @@ from django.utils.html import escape
 
 from content.faq_data import (
     FAQ_COURSE_ORDER,
+    faq_course_for_family_slug,
     faq_courses,
     faq_questions,
     render_faq_answer,
@@ -396,3 +397,23 @@ class FaqRoutesTests(TestCase):
         ):
             with self.subTest(path=path):
                 self.assertEqual(self.client.get(path).status_code, 404)
+
+    def test_family_slug_resolves_to_its_faq_document(self) -> None:
+        # A family whose slug already names its FAQ document directly.
+        direct = faq_course_for_family_slug("llm-zoomcamp")
+        self.assertIsNotNone(direct)
+        self.assertEqual(direct["slug"], "llm-zoomcamp")
+
+        # The abbreviated family slugs this course's own family record uses,
+        # matched to the FAQ document their repository's questions live under.
+        for family_slug, faq_slug in (
+            ("de-zoomcamp", "data-engineering-zoomcamp"),
+            ("ml-zoomcamp", "machine-learning-zoomcamp"),
+            ("sma-zoomcamp", "stock-markets-analytics-zoomcamp"),
+        ):
+            with self.subTest(family_slug=family_slug):
+                course = faq_course_for_family_slug(family_slug)
+                self.assertIsNotNone(course)
+                self.assertEqual(course["slug"], faq_slug)
+
+        self.assertIsNone(faq_course_for_family_slug("no-such-family"))
