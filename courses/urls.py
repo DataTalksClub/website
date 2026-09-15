@@ -10,6 +10,7 @@ from .views import (
     course_list,
     course_project_submissions,
     dashboard,
+    family_project_gallery,
     homework,
     homework_statistics,
     homework_submissions,
@@ -390,6 +391,16 @@ urlpatterns = [
         "<slug:course_slug>/projects",
         course_project_submissions.list_all_project_submissions_view,
         name="list_all_project_submissions",
+    ),
+    # Family-wide gallery: every project submitted across every cohort of the
+    # family, not one cohort's submissions. ``<slug:course_slug>/projects``
+    # above is already the per-cohort shorthand (it resolves the cohort whose
+    # slug equals the family slug), so this route carries its own distinct
+    # literal segment rather than colliding with it.
+    path(
+        "<slug:course_slug>/projects/all",
+        family_project_gallery.family_project_gallery_view,
+        name="family_projects",
     ),
     path(
         "<slug:course_slug>/leaderboard",

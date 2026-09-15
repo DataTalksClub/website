@@ -917,6 +917,9 @@
               <a class="band-link" href="{% url 'cohort_project_submissions' course_slug=course_family.slug cohort_identifier=built_cohort.identifier project_slug=family_project_cards.0.project.slug %}">Browse the cohort's project submissions →</a>
             </p>
           {% endif %}
+          <p class="family-built-more">
+            <a class="band-link" href="{% url 'family_projects' course_slug=course_family.slug %}">See every {{ course_family.title }} project, from every cohort →</a>
+          </p>
         </section>
       {% endif %}
       {% comment %}
