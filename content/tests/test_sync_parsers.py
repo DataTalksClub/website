@@ -376,9 +376,88 @@ class BooksParserTests(_CheckoutCase):
             self.assertEqual(parser.soft_delete_missing(set(), other), 0)
 
 
+def _docs_page(title: str, parent: str | None = None, body: str = "A paragraph.\n") -> bytes:
+    frontmatter = f"title: {title}\nnav_order: 1\n"
+    if parent is not None:
+        frontmatter += f"parent: {parent}\n"
+    return f"---\n{frontmatter}---\n\n{body}".encode()
+
+
+class DocsParserTests(_CheckoutCase):
+    def test_discover_scopes_pages_and_resolves_hierarchy(self) -> None:
+        source = _source("dtc-docs")
+        other = _source("dtc-content")
+        parser = get_parser("docs")
+        tree = {
+            "index.md": _docs_page("Docs Home"),
+            "courses/faq-course/index.md": _docs_page("FAQ Course", parent="Docs Home"),
+            "general/deep-dive.md": _docs_page(
+                "Deep Dive",
+                parent="FAQ Course",
+                body="A paragraph.\n\n![Diagram](images/diagram.png)\n",
+            ),
+            "general/_partial.md": b"partial\n",
+            "drafts/unfinished.md": _docs_page("Unfinished"),
+            "README.md": _docs_page("Stray Readme"),
+            "general/images/diagram.png": b"png-bytes",
+        }
+        with self.checkout(tree) as checkout:
+            self.assertEqual(parser.discover(checkout, other), [])
+            items = parser.discover(checkout, source)
+            self.assertEqual(
+                [item.key for item in items],
+                ["courses/faq-course", "general/deep-dive", "index"],
+            )
+            course, deep, home = items
+            self.assertEqual(home.data["record"]["public_path"], "/docs/")
+            self.assertEqual(course.data["record"]["public_path"], "/docs/courses/faq-course/")
+            self.assertEqual(deep.data["record"]["public_path"], "/docs/general/deep-dive/")
+            home_metadata = home.data["record"]["metadata"]
+            self.assertEqual(home_metadata["parent_path"], "")
+            course_metadata = course.data["record"]["metadata"]
+            self.assertEqual(course_metadata["parent"], "Docs Home")
+            self.assertEqual(course_metadata["parent_path"], "/docs/")
+            deep_metadata = deep.data["record"]["metadata"]
+            self.assertEqual(deep_metadata["parent_path"], "/docs/courses/faq-course/")
+            self.assertEqual(deep.data["record"]["images"], ["general/images/diagram.png"])
+
+    def test_upsert_is_checksum_stable_and_uploads_referenced_images(self) -> None:
+        source = _source("dtc-docs")
+        parser = get_parser("docs")
+        tree = {
+            "general/deep-dive.md": _docs_page(
+                "Deep Dive", body="A paragraph.\n\n![Diagram](images/diagram.png)\n"
+            ),
+            "general/images/diagram.png": b"png-bytes",
+        }
+        with self.checkout(tree) as checkout:
+            items = parser.discover(checkout, source)
+            result = parser.upsert(items[0], source, media_store())
+            self.assertEqual(result.action, "created")
+            stored = SyncedDocument.objects.get(source=source, content_kind="docs")
+            self.assertEqual(stored.public_path, "/docs/general/deep-dive/")
+            self.assertTrue(stored.record["metadata"]["edit_url"].endswith("general/deep-dive.md"))
+            self.assertEqual(stored.record["metadata"]["has_toc"], True)
+            self.assertEqual(parser.upsert(items[0], source, media_store()).action, "unchanged")
+            self.assertEqual(parser.soft_delete_missing({"other"}, source), 1)
+            self.assertFalse(SyncedDocument.objects.filter(source=source).exists())
+
+    def test_rejects_colliding_public_paths(self) -> None:
+        source = _source("dtc-docs")
+        parser = get_parser("docs")
+        tree = {
+            "general/deep-dive.md": _docs_page("Deep Dive"),
+            "general/deep-dive/index.md": _docs_page("Deep Dive Too"),
+        }
+        with self.checkout(tree) as checkout:
+            with self.assertRaises(ContentParserError):
+                parser.discover(checkout, source)
+
+
 class RegistrationTests(unittest.TestCase):
     def test_site_parsers_are_registered(self) -> None:
         self.assertEqual(type(get_parser("article")).__name__, "ArticlesParser")
         self.assertEqual(type(get_parser("people")).__name__, "PeopleParser")
         self.assertEqual(type(get_parser("podcast")).__name__, "PodcastsParser")
         self.assertEqual(type(get_parser("book")).__name__, "BooksParser")
+        self.assertEqual(type(get_parser("docs")).__name__, "DocsParser")

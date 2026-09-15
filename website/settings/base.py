@@ -428,5 +428,11 @@ COMMUNITY_BASE: dict[str, Any] = {
             "webhook_secret": os.getenv("CONTENT_SYNC_WEBHOOK_SECRET_DTC_MAIN_SITE", ""),
             "max_files": 4000,
         },
+        {
+            "slug": "dtc-docs",
+            "repo_name": "DataTalksClub/docs",
+            "webhook_secret": os.getenv("CONTENT_SYNC_WEBHOOK_SECRET_DTC_DOCS", ""),
+            "max_files": 4000,
+        },
     ],
 }

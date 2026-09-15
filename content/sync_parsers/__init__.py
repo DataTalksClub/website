@@ -1,8 +1,8 @@
 """Site parsers registered with the community_base.content_sync engine.
 
-D2.2a ships articles and people; D2.2b adds podcast and books.  Importing
-this package performs the parser registration, so the content app's ``ready``
-imports it once.
+D2.2a ships articles and people; D2.2b adds podcast and books; D2.2c adds
+docs.  Importing this package performs the parser registration, so the
+content app's ``ready`` imports it once.
 """
 
-from . import articles, books, people, podcasts  # noqa: F401
+from . import articles, books, docs, people, podcasts  # noqa: F401
