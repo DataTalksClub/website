@@ -268,13 +268,14 @@
         margin-top: 0;
       }
 
-      /* Heading and its mono note share one baseline row, as the mockup draws
-         them; below the point where both fit they stack. */
+      /* The mono note reads as an eyebrow under the heading, not a baseline
+         partner beside it -- baseline-aligning a 0.8rem mono note against a
+         3rem heading left it crowded against the heading's last word with
+         only the row gap between them, however wide the viewport. */
       .band-head-row {
-        align-items: baseline;
         display: flex;
-        flex-wrap: wrap;
-        gap: 0.35rem 0.9rem;
+        flex-direction: column;
+        gap: 0.35rem;
       }
 
       .band-head-row h2 {
