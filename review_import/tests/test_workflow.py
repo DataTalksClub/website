@@ -223,6 +223,7 @@ def seed_synthetic_snapshot(path: Path) -> None:
             "slug": "data-engineering",
             "title": "Data Engineering Zoomcamp",
             "description": "Data engineering course family.",
+            "starting_point": "",
             "outcome": "Build reliable data systems.",
             "github_repo_url": "https://github.com/DataTalksClub/data-engineering-zoomcamp",
             "docs_url": "",
@@ -239,6 +240,7 @@ def seed_synthetic_snapshot(path: Path) -> None:
             "slug": "ml-zoomcamp",
             "title": "Machine Learning Zoomcamp",
             "description": "Machine learning course family.",
+            "starting_point": "",
             "outcome": "Train practical machine learning models.",
             "github_repo_url": "https://github.com/DataTalksClub/machine-learning-zoomcamp",
             "docs_url": "",
@@ -803,6 +805,34 @@ class ReviewImportWorkflowTests(TestCase):
             check=False,
         )
         self.assertEqual(ignored.returncode, 0)
+
+    def test_snapshot_before_starting_point_imports_with_empty_family_copy(self) -> None:
+        current = self.run_from_migrated_baseline(self.config(dry_run=True, create_admin=False))
+        with _writable_connection(self.source) as connection:
+            field = workflow._columns(connection, "courses_course_family")["starting_point"]
+            self.assertEqual(field["notnull"], 1)
+            self.assertIsNone(field["dflt_value"])
+            connection.execute("ALTER TABLE courses_course_family DROP COLUMN starting_point")
+            self.assertNotIn(
+                "starting_point", workflow._columns(connection, "courses_course_family")
+            )
+        source_before = fingerprint(self.source)
+
+        imported = self.run_from_migrated_baseline(self.config(create_admin=False))
+
+        self.assertEqual(fingerprint(self.source), source_before)
+        self.assertEqual(imported["logical_checksum"], current["logical_checksum"])
+        self.assertEqual(imported["table_counts"], current["table_counts"])
+        with _readonly_connection(self.target) as connection:
+            self.assertEqual(
+                [
+                    tuple(row)
+                    for row in connection.execute(
+                        "SELECT slug, starting_point FROM courses_course_family ORDER BY slug"
+                    )
+                ],
+                [("data-engineering", ""), ("ml-zoomcamp", "")],
+            )
 
     def test_fresh_scrub_removes_event_dependencies_with_foreign_keys_enabled(self) -> None:
         database = self.case_dir / "dependency-scrub.sqlite3"

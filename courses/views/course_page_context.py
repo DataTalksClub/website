@@ -37,6 +37,7 @@ from courses.services.registration_counts import public_course_registration_coun
 from courses.views.course_homepage import add_course_homepage_info
 from courses.views.course_homeworks import get_homeworks_for_course
 from courses.views.course_projects import get_projects_for_course
+from courses.views.project_gallery_groups import family_project_submissions
 from courses.views.url_utils import get_cohort_or_404
 
 
@@ -366,6 +367,32 @@ def course_family_page_context(family: Course, user) -> dict:
         )
         syllabus_fact = f"{len(syllabus_units)} homeworks" if syllabus_units else ""
     project_cards = family_project_cards(editions)
+    syllabus_rows = family_syllabus_rows(syllabus_units)
+    # Keep the curriculum's own teaching order and wording in the preview.
+    skill_highlights = syllabus_rows[:4]
+    has_learner_projects = family_project_submissions(family).exists()
+    project_brief = next(
+        (card for card in project_cards if card.project.instructions_url), None
+    )
+    certificate_cohort = (
+        front_cohort
+        if front_cohort
+        and front_cohort.delivery_mode == DeliveryMode.LIVE
+        and not front_cohort.finished
+        and (not front_cohort.end_date or front_cohort.end_date >= today)
+        and front_projects
+        else None
+    )
+    description = family.description.strip()
+    # Preserve curated learning notes without exposing a raw README as hero copy.
+    overview = (
+        description
+        if description
+        and not description.startswith("#")
+        and description.casefold()
+        not in {family.title.strip().casefold(), family_lede(family).casefold()}
+        else ""
+    )
     return {
         "course_family": family,
         "cohorts": [edition.cohort for edition in editions],
@@ -384,8 +411,14 @@ def course_family_page_context(family: Course, user) -> dict:
         "materials_url": materials_url,
         "self_paced_cohort": self_paced_cohort,
         "family_lede": family_lede(family),
+        "family_starting_point": family.starting_point.strip(),
+        "family_overview": overview,
         "front_cohort": front_cohort,
-        "family_syllabus_rows": family_syllabus_rows(syllabus_units),
+        "family_syllabus_rows": syllabus_rows,
+        "family_skill_highlights": skill_highlights,
+        "has_learner_projects": has_learner_projects,
+        "family_project_brief": project_brief,
+        "certificate_cohort": certificate_cohort,
         "syllabus_fact": syllabus_fact,
         "syllabus_capstone": family_capstone_project(front_projects),
         "family_stories": family_story_rows(

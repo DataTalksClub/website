@@ -194,7 +194,8 @@ class RegistrationSurfaceTests(TestCase):
         response = self.client.get("/courses/de-zoomcamp")
 
         self.assertContains(response, 'href="/courses/register/de-zoomcamp/"')
-        self.assertContains(response, "Register for the next edition")
+        self.assertContains(response, "Register interest")
+        self.assertContains(response, "Hear about the next cohort")
 
     def test_the_family_page_with_no_successor_offers_no_registration(self) -> None:
         response = self.client.get("/courses/mlops-zoomcamp")

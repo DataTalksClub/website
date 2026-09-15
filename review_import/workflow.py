@@ -1090,6 +1090,9 @@ def _legacy_course_family_values(row: tuple[Any, ...]) -> dict[str, Any]:
         "slug": family_slug,
         "title": title or family_slug.replace("-", " ").title(),
         "description": str(values["description"]),
+        # CMP snapshots do not own family landing-page copy. An absent starting
+        # point stays empty, including when the source predates this target field.
+        "starting_point": "",
         "outcome": "",
         "github_repo_url": str(values["github_repo_url"] or ""),
         "docs_url": "",
@@ -1136,6 +1139,7 @@ def _insert_course_families(
         "slug",
         "title",
         "description",
+        "starting_point",
         "outcome",
         "github_repo_url",
         "docs_url",

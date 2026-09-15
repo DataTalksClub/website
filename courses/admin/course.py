@@ -8,6 +8,7 @@ from unfold.widgets import UnfoldAdminTextareaWidget, UnfoldAdminTextInputWidget
 
 from courses.models.cohort import (
     Cohort,
+    Course,
     CourseRegistration,
     LeaderboardComplaint,
     RegistrationCampaign,
@@ -289,6 +290,13 @@ def _copyable_fields(instance, *, excluded):
             continue
         fields[field.name] = getattr(instance, field.name)
     return fields
+
+
+@admin.register(Course)
+class CourseFamilyAdmin(ModelAdmin):
+    list_display = ["title", "slug", "visible"]
+    search_fields = ["title", "slug"]
+    fields = ["title", "slug", "starting_point", "outcome", "description", "visible"]
 
 
 @admin.register(Cohort)

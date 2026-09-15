@@ -43,6 +43,14 @@ class Course(SourceProvenanceModel):
     slug = models.SlugField(unique=True, blank=False)
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
+    starting_point = models.TextField(
+        blank=True,
+        default="",
+        help_text=(
+            "Optional learner starting point for the course landing page. "
+            "Managed here and preserved by curriculum imports."
+        ),
+    )
     outcome = models.TextField(blank=True, default="")
     github_repo_url = models.URLField(
         blank=True,

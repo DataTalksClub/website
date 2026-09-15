@@ -169,6 +169,24 @@ class CurriculumImportServiceTests(TestCase):
         course.refresh_from_db()
         self.assertEqual(course.description, curated)
 
+    def test_reimport_preserves_the_database_managed_starting_point(self):
+        _, course, _, _ = self.import_fixture_with_project()
+        course.starting_point = "You have a question to answer with your own documents."
+        course.save(update_fields=["starting_point"])
+
+        import_course_repository_curriculum(
+            import_command(
+                fixture_source(commit_sha=SECOND_COMMIT),
+                commit_sha=SECOND_COMMIT,
+            )
+        )
+
+        course.refresh_from_db()
+        self.assertEqual(
+            course.starting_point,
+            "You have a question to answer with your own documents.",
+        )
+
     def test_creates_new_course_and_explicit_cohort_from_source_metadata(self):
         result = import_course_repository_curriculum(import_command(explicit_legacy_source()))
 
