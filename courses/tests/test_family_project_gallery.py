@@ -51,6 +51,26 @@ class FamilyProjectGalleryTestBase(TestCase):
             volunteer_review_only=True,
         )
 
+        cls.enrollment_2023 = Enrollment.objects.create(
+            student=cls.user, course=cls.cohort_2023
+        )
+        cls.submission_2023 = ProjectSubmission.objects.create(
+            project=cls.project_2023,
+            student=cls.user,
+            enrollment=cls.enrollment_2023,
+            github_link="https://github.com/example/repo-2023",
+        )
+
+        cls.enrollment_hidden = Enrollment.objects.create(
+            student=cls.user, course=cls.cohort_hidden
+        )
+        cls.hidden_submission = ProjectSubmission.objects.create(
+            project=cls.project_hidden,
+            student=cls.user,
+            enrollment=cls.enrollment_hidden,
+            github_link="https://github.com/example/hidden-repo",
+        )
+
     @classmethod
     def _cohort(cls, year, visible=True):
         return Cohort.objects.create(
@@ -77,60 +97,59 @@ class FamilyProjectGalleryTestBase(TestCase):
         return reverse("family_projects", kwargs={"course_slug": self.family.slug})
 
 
-class FamilyProjectGalleryFlatListTests(FamilyProjectGalleryTestBase):
+class FamilyProjectGallerySubmissionListTests(FamilyProjectGalleryTestBase):
     def test_route_renders_the_gallery_template(self):
         response = self.client.get(self.gallery_url())
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "projects/family_gallery.html")
 
-    def test_lists_every_project_flat_newest_cohort_first(self):
+    def test_lists_individual_submissions_newest_cohort_first(self):
         response = self.client.get(self.gallery_url())
 
-        slugs = [project.slug for project in response.context["projects"]]
-        # 2025 holds two projects, in their existing (creation) order.
-        self.assertEqual(
-            slugs,
-            ["midterm-2025", "capstone-2025", "midterm-2024", "midterm-2023"],
-        )
+        submission_ids = [
+            submission.id for submission in response.context["submissions"]
+        ]
+        # The volunteer-only 2025 submission and the hidden cohort's
+        # submission are both excluded; only two real submissions remain.
+        self.assertEqual(submission_ids, [self.submission.id, self.submission_2023.id])
 
-    def test_each_project_is_tagged_with_its_own_cohort(self):
+    def test_each_submission_is_tagged_with_its_own_cohort(self):
         response = self.client.get(self.gallery_url())
 
-        cohorts_by_slug = {
-            project.slug: project.cohort.identifier
-            for project in response.context["projects"]
+        cohorts_by_id = {
+            submission.id: submission.cohort.identifier
+            for submission in response.context["submissions"]
         }
 
-        self.assertEqual(cohorts_by_slug["midterm-2025"], "2025")
-        self.assertEqual(cohorts_by_slug["capstone-2025"], "2025")
-        self.assertEqual(cohorts_by_slug["midterm-2024"], "2024")
-        self.assertEqual(cohorts_by_slug["midterm-2023"], "2023")
-        self.assertContains(response, '<span class="gallery-project-row-meta mono-note">2025</span>')
+        self.assertEqual(cohorts_by_id[self.submission.id], "2025")
+        self.assertEqual(cohorts_by_id[self.submission_2023.id], "2023")
+        self.assertContains(response, "2025")
+        self.assertContains(response, "2023")
 
-    def test_excludes_the_hidden_cohorts_project(self):
+    def test_excludes_the_hidden_cohorts_submission(self):
         response = self.client.get(self.gallery_url())
 
-        slugs = [project.slug for project in response.context["projects"]]
-        self.assertNotIn("hidden-project", slugs)
-        self.assertNotContains(response, "hidden-project")
+        submission_ids = [
+            submission.id for submission in response.context["submissions"]
+        ]
+        self.assertNotIn(self.hidden_submission.id, submission_ids)
+        self.assertNotContains(response, "hidden-repo")
 
-    def test_a_cohort_with_no_projects_adds_nothing(self):
+    def test_excludes_volunteer_review_only_submissions(self):
         response = self.client.get(self.gallery_url())
 
-        cohorts = {
-            project.cohort.identifier for project in response.context["projects"]
-        }
-        self.assertNotIn("2022", cohorts)
+        submission_ids = [
+            submission.id for submission in response.context["submissions"]
+        ]
+        self.assertNotIn(self.volunteer_only_submission.id, submission_ids)
+        self.assertNotContains(response, "repo2")
 
-    def test_submission_counts_exclude_volunteer_review_only(self):
+    def test_shows_the_submitters_name_and_repository_link(self):
         response = self.client.get(self.gallery_url())
-        projects_by_slug = {
-            project.slug: project for project in response.context["projects"]
-        }
 
-        self.assertEqual(projects_by_slug["midterm-2025"].submissions_count, 1)
-        self.assertEqual(projects_by_slug["capstone-2025"].submissions_count, 0)
+        self.assertContains(response, self.enrollment.display_name)
+        self.assertContains(response, "https://github.com/example/repo")
 
     def test_the_page_shows_no_per_cohort_fold(self):
         response = self.client.get(self.gallery_url())
@@ -139,18 +158,18 @@ class FamilyProjectGalleryFlatListTests(FamilyProjectGalleryTestBase):
 
 
 class FamilyProjectGalleryLinkTests(FamilyProjectGalleryTestBase):
-    def test_links_to_each_projects_cohort_scoped_list(self):
+    def test_links_to_the_submitters_leaderboard_breakdown(self):
         response = self.client.get(self.gallery_url())
-        project_list_url = reverse(
-            "cohort_project_list",
+        breakdown_url = reverse(
+            "cohort_leaderboard_score_breakdown",
             kwargs={
                 "course_slug": self.family.slug,
                 "cohort_identifier": "2025",
-                "project_slug": "midterm-2025",
+                "enrollment_id": self.enrollment.id,
             },
         )
 
-        self.assertContains(response, project_list_url)
+        self.assertContains(response, breakdown_url)
 
     def test_links_to_the_site_wide_gallery(self):
         response = self.client.get(self.gallery_url())
@@ -165,8 +184,33 @@ class FamilyProjectGalleryLinkTests(FamilyProjectGalleryTestBase):
         self.assertContains(response, self.gallery_url())
 
 
+class FamilyProjectGalleryPaginationTests(FamilyProjectGalleryTestBase):
+    def test_paginates_submissions_like_the_per_cohort_catalogue(self):
+        cohort = self._cohort(2030)
+        project = self._project(cohort, "capstone-2030")
+        for index in range(30):
+            user = User.objects.create_user(
+                username=f"bulk-learner-{index}",
+                email=f"bulk-learner-{index}@example.com",
+                password="x",
+            )
+            enrollment = Enrollment.objects.create(student=user, course=cohort)
+            ProjectSubmission.objects.create(
+                project=project,
+                student=user,
+                enrollment=enrollment,
+                github_link=f"https://github.com/example/bulk-{index}",
+            )
+
+        response = self.client.get(self.gallery_url())
+
+        self.assertEqual(len(response.context["submissions"]), 25)
+        self.assertEqual(response.context["submissions_page"].paginator.count, 32)
+        self.assertContains(response, "Project submission pages")
+
+
 class FamilyProjectGalleryEmptyCaseTests(TestCase):
-    def test_a_family_with_no_projects_anywhere_shows_the_empty_state(self):
+    def test_a_family_with_no_submissions_anywhere_shows_the_empty_state(self):
         family = Course.objects.create(slug="empty-zoomcamp", title="Empty Zoomcamp")
         Cohort.objects.create(
             course=family,
@@ -182,7 +226,7 @@ class FamilyProjectGalleryEmptyCaseTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["projects"], [])
+        self.assertEqual(list(response.context["submissions"]), [])
         self.assertContains(response, "No project submissions yet")
 
     def test_an_unknown_family_404s(self):

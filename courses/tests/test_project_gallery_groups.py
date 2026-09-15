@@ -9,11 +9,11 @@ independent of either view or template.
 from django.test import TestCase
 from django.utils import timezone
 
-from courses.models import Cohort, Course, Project
+from courses.models import Cohort, Course, Enrollment, Project, ProjectSubmission, User
 from courses.views.project_gallery_groups import (
     cohort_project_groups,
     family_project_groups,
-    family_project_list,
+    family_project_submissions,
     site_project_groups,
 )
 
@@ -121,32 +121,99 @@ class FamilyProjectGroupsTests(ProjectGalleryGroupsTestBase):
         self.assertEqual([group.cohort for group in groups], [cohort])
 
 
-class FamilyProjectListTests(ProjectGalleryGroupsTestBase):
-    def test_flattens_every_cohort_newest_first(self):
+class FamilyProjectSubmissionsTests(ProjectGalleryGroupsTestBase):
+    @classmethod
+    def make_submission(cls, project, cohort, github_link, **kwargs):
+        user = User.objects.create_user(
+            username=f"learner-{ProjectSubmission.objects.count()}-{project.slug}",
+            email=f"learner-{ProjectSubmission.objects.count()}-{project.slug}@example.com",
+            password="x",
+        )
+        enrollment = Enrollment.objects.create(student=user, course=cohort)
+        return ProjectSubmission.objects.create(
+            project=project,
+            student=user,
+            enrollment=enrollment,
+            github_link=github_link,
+            **kwargs,
+        )
+
+    def test_flattens_every_cohorts_submissions_newest_cohort_first(self):
         family = self.make_family("ml-zoomcamp")
         cohort_2023 = self.make_cohort(family, 2023)
         cohort_2025 = self.make_cohort(family, 2025)
-        self.make_project(cohort_2023, "midterm")
+        midterm = self.make_project(cohort_2023, "midterm")
         capstone_a = self.make_project(cohort_2025, "capstone-a")
         capstone_b = self.make_project(cohort_2025, "capstone-b")
 
-        projects = family_project_list(family)
+        submission_2023 = self.make_submission(
+            midterm, cohort_2023, "https://github.com/example/midterm"
+        )
+        submission_a = self.make_submission(
+            capstone_a, cohort_2025, "https://github.com/example/a"
+        )
+        submission_b = self.make_submission(
+            capstone_b, cohort_2025, "https://github.com/example/b"
+        )
+
+        submissions = list(family_project_submissions(family))
 
         self.assertEqual(
-            [project.slug for project in projects],
-            ["capstone-a", "capstone-b", "midterm"],
+            [submission.id for submission in submissions],
+            [submission_a.id, submission_b.id, submission_2023.id],
         )
-        self.assertEqual(projects[0].cohort, cohort_2025)
-        self.assertEqual(projects[1].cohort, cohort_2025)
-        self.assertEqual(projects[2].cohort, cohort_2023)
-        self.assertIs(projects[0].cohort, projects[1].cohort)
-        self.assertEqual({projects[0].id, projects[1].id}, {capstone_a.id, capstone_b.id})
 
-    def test_a_family_with_no_projects_is_an_empty_list(self):
+    def test_each_submission_is_tagged_with_its_own_cohort_via_project_course(self):
+        family = self.make_family("ml-zoomcamp")
+        cohort_2025 = self.make_cohort(family, 2025)
+        capstone = self.make_project(cohort_2025, "capstone")
+        submission = self.make_submission(
+            capstone, cohort_2025, "https://github.com/example/repo"
+        )
+
+        submissions = list(family_project_submissions(family))
+
+        self.assertEqual(submissions[0].id, submission.id)
+        self.assertEqual(submissions[0].project.course, cohort_2025)
+
+    def test_excludes_the_hidden_cohorts_submissions(self):
+        family = self.make_family("ml-zoomcamp")
+        hidden = self.make_cohort(family, 2025, visible=False)
+        project = self.make_project(hidden, "capstone")
+        self.make_submission(project, hidden, "https://github.com/example/repo")
+
+        self.assertEqual(list(family_project_submissions(family)), [])
+
+    def test_excludes_volunteer_review_only_submissions(self):
+        family = self.make_family("ml-zoomcamp")
+        cohort_2025 = self.make_cohort(family, 2025)
+        project = self.make_project(cohort_2025, "capstone")
+        self.make_submission(
+            project,
+            cohort_2025,
+            "https://github.com/example/repo",
+            volunteer_review_only=True,
+        )
+
+        self.assertEqual(list(family_project_submissions(family)), [])
+
+    def test_annotates_vote_count_and_display_score(self):
+        family = self.make_family("ml-zoomcamp")
+        cohort_2025 = self.make_cohort(family, 2025)
+        project = self.make_project(cohort_2025, "capstone")
+        self.make_submission(project, cohort_2025, "https://github.com/example/repo")
+
+        submission = list(family_project_submissions(family))[0]
+
+        self.assertEqual(submission.vote_count, 0)
+        # The project is not COMPLETED, so the score is not yet public.
+        self.assertEqual(submission.display_score, -1)
+
+    def test_a_family_with_no_submissions_is_empty(self):
         family = self.make_family("ml-zoomcamp")
         self.make_cohort(family, 2025)
 
-        self.assertEqual(family_project_list(family), [])
+        self.assertEqual(list(family_project_submissions(family)), [])
 
 
 class SiteProjectGroupsTests(ProjectGalleryGroupsTestBase):

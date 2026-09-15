@@ -1,22 +1,25 @@
 {% extends 'projects/_base.html' %}
 {% load breadcrumbs %}
 {% comment %}
-  Every project submitted across an entire course family -- every visible
-  cohort/edition, not one cohort's submissions (courses/views/
+  Every individual project submission across an entire course family -- every
+  visible cohort/edition, not one cohort's submissions (courses/views/
   family_project_gallery.py).
 
-  projects/list_all.html is the one-cohort catalogue this page's `.row-list`
-  markup is borrowed from, and templates/review/_docs_styles.html's
-  `.docs-row` is where the whole-row-is-a-link treatment below comes from.
-  What differs from a single cohort's catalogue is the source: a multi-year
-  family (ml-zoomcamp has run since 2021) draws its rows from every visible
-  cohort at once. Readers said they just want to see every project, not a
-  wall of per-cohort folds, so this lists every project flat -- newest
-  cohort first, each cohort's own projects in their existing order -- with
-  each row tagged by its own cohort/edition (a project like "Capstone
-  Project" exists once per edition, so the tag is what keeps a repeated
-  title unambiguous). It links each row to `cohort_project_list` for the
-  row-level submissions a cohort's own catalogue already lists.
+  projects/list_all.html is the one-cohort catalogue this page's `.row-list`/
+  `.submission-row` markup is borrowed from verbatim: readers first asked to
+  lose the per-cohort `<details>` folds (this page flattened to one row per
+  project *type*), then said a flat list of project types with only a
+  submission count still was not "individual project submissions" -- so each
+  row here is one learner's actual submission, tagged with its own
+  cohort/edition since a project like "Capstone Project" exists once per
+  edition and a flat multi-year list would otherwise be ambiguous. It links
+  each submitter's name to their cohort-scoped leaderboard breakdown and each
+  submission to its repository, the same two links list_all.html shows -- no
+  field appears here that page does not already treat as public.
+
+  A multi-year family (ml-zoomcamp has run since 2021) can hold thousands of
+  submissions, so like list_all.html this paginates rather than rendering one
+  unbounded list.
 
   This page has no single cohort, so it does not extend projects/_base.html's
   default `page_header` block (that block resolves a `cohort` url from
@@ -25,7 +28,7 @@
 {% endcomment %}
 
 {% block document_title %}
-  All projects — {{ course_family.title }} — DataTalks.Club
+  All project submissions — {{ course_family.title }} — DataTalks.Club
 {% endblock %}
 
 {% block meta_robots %}
@@ -33,45 +36,35 @@
 {% endblock %}
 
 {% block extra_styles %}
-  /* One project row in the flat family-wide list: the shared `.row-list`/
-     `.list-row` primitives carry the divided row layout and the whole-row
-     link treatment is borrowed from templates/review/_docs_styles.html's
-     `.docs-row`, so this only adds the row's own text rhythm and the cohort
-     tag + submission count on the trailing rail. */
-  .gallery-project-row {
-    color: var(--ink);
-    text-decoration: none;
+  /* Borrowed verbatim from projects/list_all.html: the catalogue row for who
+     submitted and which project, then the outcome. */
+  .submission-row {
+    --row-cols: minmax(0, 1fr) auto;
   }
 
-  .gallery-project-row:hover .gallery-project-row-title {
-    text-decoration: underline;
-    text-underline-offset: 0.2em;
-  }
-
-  .gallery-project-row-body {
-    display: grid;
-    gap: 0.2rem;
+  .submission-student {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
     min-width: 0;
   }
 
-  .gallery-project-row-title {
-    display: block;
-    font-weight: 800;
+  .submission-student a {
+    font-weight: 700;
   }
 
-  .gallery-project-row-meta {
-    display: block;
-  }
-
-  .gallery-project-row-count {
-    white-space: nowrap;
+  .submission-outcome {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
   }
 {% endblock %}
 
 {% block page_header %}
   {% url 'course_list' as course_list_url %}
   {% url 'course_family' course_family.slug as course_family_url %}
-  {% breadcrumbs "Courses" course_list_url course_family.title course_family_url current="All projects" %}
+  {% breadcrumbs "Courses" course_list_url course_family.title course_family_url current="All project submissions" %}
   <div class="project-head">
     <p class="mono-label mono-label-indigo">{{ course_family.title }}</p>
     <h1>All Project Submissions</h1>
@@ -92,25 +85,53 @@
 {% block project_content %}
   <section class="project-section" aria-labelledby="family-gallery-heading">
     <div class="project-section-head">
-      <h2 id="family-gallery-heading">All projects</h2>
-      {% if projects %}
+      <h2 id="family-gallery-heading">Submissions</h2>
+      {% if submissions %}
         <p class="mono-note">
-          {{ projects|length }} project{{ projects|length|pluralize }}
+          {{ submissions_page.paginator.count }} total
         </p>
       {% endif %}
     </div>
-    {% if projects %}
+    {% if submissions %}
       <div class="row-list">
-        {% for project in projects %}
-          <a class="list-row gallery-project-row interactive-card interactive-lift" href="{% url 'cohort_project_list' course_slug=course_family.slug cohort_identifier=project.cohort.identifier project_slug=project.slug %}">
-            <span class="gallery-project-row-body">
-              <span class="gallery-project-row-title">{{ project.title }}</span>
-              <span class="gallery-project-row-meta mono-note">{{ project.cohort.identifier }}</span>
-            </span>
-            <span class="mono-note gallery-project-row-count">
-              {{ project.submissions_count }} submission{{ project.submissions_count|pluralize }}
-            </span>
-          </a>
+        {% for submission in submissions %}
+          <article class="list-row submission-row">
+            <div>
+              <div class="submission-student">
+                <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=course_family.slug cohort_identifier=submission.cohort.identifier enrollment_id=submission.enrollment.id %}">
+                  {{ submission.enrollment.display_name }}
+                </a>
+                <a
+                  class="band-link submission-link"
+                  href="{{ submission.github_link }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Open repository"
+                  aria-label="Open repository"
+                >Repository</a>
+              </div>
+              <p class="mono-note">
+                {{ submission.project.title }} · {{ submission.cohort.identifier }}
+              </p>
+            </div>
+            <div class="submission-outcome">
+              <span class="mono-note">{{ submission.vote_count }} vote{{ submission.vote_count|pluralize }}</span>
+              <span class="mono-note">
+                {% if submission.display_score == -1 %}
+                  Score N/A
+                {% else %}
+                  {{ submission.display_score }} score
+                {% endif %}
+              </span>
+              {% if submission.display_score != -1 %}
+                {% if submission.passed %}
+                  <span class="status-pill status-pill-live">Passed</span>
+                {% else %}
+                  <span class="status-pill status-pill-wait">Not passed</span>
+                {% endif %}
+              {% endif %}
+            </div>
+          </article>
         {% endfor %}
       </div>
     {% else %}
@@ -118,5 +139,6 @@
         No project submissions yet for {{ course_family.title }}.
       </p>
     {% endif %}
+    {% include 'include/pagination.html' with pagination_page=submissions_page pagination_range=page_range pagination_label='Project submission pages' %}
   </section>
 {% endblock %}

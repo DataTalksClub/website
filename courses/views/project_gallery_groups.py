@@ -9,13 +9,15 @@ rows across many cohorts (and, site-wide, many families) instead of scoping to
 one cohort.
 
 The site-wide gallery still folds cohorts most people are not looking for
-behind a disclosure, grouped by family then cohort (``site_project_groups``);
-the family-wide gallery instead flattens every cohort's projects into one
-newest-first list (``family_project_list``) -- readers said they just want to
-see all of a family's projects, not a wall of per-cohort folds. Either way,
-this module only ever returns cohorts (and families) that actually hold a
-project: an empty cohort would just be a fold, or a flat list, with nothing
-under it.
+behind a disclosure, grouped by family then cohort (``site_project_groups``).
+The family-wide gallery instead flattens every cohort's submissions into one
+newest-cohort-first list of individual submissions (``family_project_submissions``)
+-- readers first asked to lose the per-cohort ``<details>`` folds, then said a
+flat list of project *types* with a submission count still was not "individual
+project submissions"; the flat order stayed, but each row is now one learner's
+actual submitted project. Either way, this module only ever returns cohorts
+(and families) that actually hold a project: an empty cohort would just be a
+fold, or a flat list, with nothing under it.
 
 The two counted totals a caller reads off a group -- ``project_count`` and
 ``submission_count`` -- are properties rather than stored fields so a group
@@ -25,10 +27,10 @@ number in sync by hand.
 
 from dataclasses import dataclass, field
 
-from django.db.models import Count, Q
+from django.db.models import Case, Count, IntegerField, Q, Value, When
 
 from courses.models.cohort import Cohort, Course
-from courses.models.project import Project
+from courses.models.project import Project, ProjectState, ProjectSubmission
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,26 +121,71 @@ def family_project_groups(family: Course) -> list:
     return cohort_project_groups(cohorts)
 
 
-def family_project_list(family: Course) -> list:
-    """Every project ``family`` holds, across every visible cohort, as one flat
-    sequence rather than grouped by cohort.
+def _submission_display_score():
+    """The score to show for a submission.
 
-    The family-wide gallery (``family_project_gallery_view``) shows "every
-    project", not "every cohort" -- readers said as much about the old
-    per-cohort ``<details>`` folds. This still orders newest cohort first,
-    each cohort's own projects in their existing order, by flattening
-    :func:`family_project_groups`; the site-wide gallery keeps its own
-    grouped-by-family-then-cohort shape via :func:`site_project_groups`; this
-    is not a replacement for that. Each returned project carries its cohort
-    as ``.cohort`` so a flat list can still tag which edition it came from.
+    Mirrors ``course_project_submissions._project_submission_display_score``
+    field-for-field so the family gallery and the per-cohort catalogue never
+    disagree about what counts as a visible score: -1 means "not yet
+    completed", which the templates both render as "Score N/A" rather than a
+    real number.
     """
 
-    projects = []
-    for group in family_project_groups(family):
-        for project in group.projects:
-            project.cohort = group.cohort
-            projects.append(project)
-    return projects
+    completed_project_score = When(
+        project__state=ProjectState.COMPLETED.value,
+        then="project_score",
+    )
+    unscored_project_score = Value(-1)
+    return Case(
+        completed_project_score,
+        default=unscored_project_score,
+        output_field=IntegerField(),
+    )
+
+
+def family_project_submissions(family: Course):
+    """Every project submission across every visible cohort of ``family``, as
+    one flat, newest-cohort-first queryset of individual submissions -- not
+    project-type rows with a count.
+
+    A flat list of project *types* (``Project`` rows, one per assignment,
+    annotated with a submission count) still is not "individual project
+    submissions" -- readers said so about the list this function replaces.
+    This instead reads ``ProjectSubmission`` directly, across every visible
+    cohort, ordered newest cohort first and then the same way
+    ``course_project_submissions._all_project_submissions`` already lists one
+    cohort's own submissions (by project, then submission time) so a reader
+    who knows that page finds the same shape here. It excludes
+    volunteer-review-only submissions, matching that page's own filter, and
+    annotates the same public fields (``vote_count``, ``display_score``) so
+    this adds no new visibility beyond what a single cohort's catalogue
+    already shows.
+
+    Returned as a queryset (not a list) so a caller can paginate it without
+    first materializing every submission a multi-year family has ever
+    collected. ``select_related`` on ``project__course`` lets a caller read
+    ``submission.project.course`` as the submission's cohort without another
+    query per row -- ``Project.course`` is the cohort, confusingly named; see
+    ``courses/models/project.py``.
+    """
+
+    cohort_ids = Cohort.objects.filter(course=family, visible=True).values_list(
+        "id", flat=True
+    )
+    submissions = ProjectSubmission.objects.filter(
+        project__course_id__in=cohort_ids,
+        volunteer_review_only=False,
+    ).select_related("project", "project__course", "enrollment")
+    submissions = submissions.annotate(
+        vote_count=Count("votes"),
+        display_score=_submission_display_score(),
+    )
+    return submissions.order_by(
+        "-project__course__year",
+        "-project__course_id",
+        "project_id",
+        "submitted_at",
+    )
 
 
 def site_project_groups() -> list:
