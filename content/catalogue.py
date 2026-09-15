@@ -1,18 +1,23 @@
 """Read the published editorial catalogue from the database.
 
 The public pages -- the blog, the podcast, the book archive, the profiles, the
-wiki -- are all published by one source, ``dtc-public-content``, whose active
-release holds one :class:`~content.models.ContentDocument` per record. This
-module is the one place that turns those rows into the records the views and
-templates read, with a function per kind rather than one dictionary holding
-every kind at once.
+wiki -- read their records from database rows, and this module is the one place
+that turns those rows into the records the views and templates read, with a
+function per kind rather than one dictionary holding every kind at once.
 
 They share a module because they share everything that makes the read work:
-the same source, the same active release, the same stored editorial order, and
+the same publishing authority per kind, the same stored editorial order, and
 the same cache key. Split per kind, that resolution would be written seven
 times and could drift seven ways.
 
-A database with no active release publishes nothing. That is a normal state,
+During the #384 cutover the wiki kinds have a second authority ahead of the
+staged pipeline's retirement: the community_base sync engine's
+:class:`~content.models.SyncedDocument` rows, written by the ``dtc-podwiki``
+parser. The staged ``dtc-public-content`` release still publishes the other
+kinds until the pipeline is retired. Each kind reads exactly one authority --
+never a blend and never a fallback.
+
+A database with no published rows publishes nothing. That is a normal state,
 not a failure: hubs render empty and detail lookups miss, which is what an
 un-ingested database should do.
 """
@@ -28,7 +33,7 @@ from uuid import UUID
 from django.db import DatabaseError
 from django.db.models import Count, Max
 
-from .models import ContentDocument, ContentSource
+from .models import ContentDocument, ContentSource, SyncedDocument
 from .public_graph import validate_wiki_graph
 from .public_text import strip_leaked_target_attributes
 
@@ -61,6 +66,17 @@ COLLECTION_KINDS = {name: name.rstrip("s") or name for name in COLLECTION_NAMES}
 #: are there" gets a zero rather than a missing key.
 COUNT_KEYS = (*COLLECTION_NAMES, "transcripts")
 
+#: The community_base sync source whose synced rows publish the wiki, and the
+#: kinds it owns: the pages the hub lists and the three singletons -- the
+#: knowledge graph, the search index and the declared asset paths -- that a
+#: database publishes one document apiece. These kinds read
+#: :class:`~content.models.SyncedDocument` rows (issue #384); the staged
+#: release remains the authority for every other kind until it is retired.
+WIKI_SOURCE_SLUG = "dtc-podwiki"
+WIKI_PAGE_KIND = "wiki"
+WIKI_SINGLETON_KINDS = ("wiki_graph", "wiki_search", "wiki_assets")
+WIKI_SYNCED_KINDS = (WIKI_PAGE_KIND, *WIKI_SINGLETON_KINDS)
+
 
 def active_release_id() -> str:
     """The id of the release currently publishing the catalogue, or ``""``.
@@ -91,7 +107,63 @@ def records(kind: str) -> tuple[Record, ...]:
     serve from cache.
     """
 
+    if kind in WIKI_SYNCED_KINDS:
+        return _wiki_records(wiki_sync_stamp(), kind)
     return _records(active_release_id(), kind)
+
+
+def wiki_sync_stamp() -> tuple[int, str]:
+    """A cheap stamp that moves whenever the synced wiki rows could have.
+
+    One aggregate, not a row per page, with the same contract as
+    :func:`active_release_id`: it changes exactly when a sync writes the wiki
+    kinds, so a cached read follows a sync instead of outliving it. A database
+    failure raises -- the wiki readers refuse to let an outage enter the cache
+    disguised as an empty catalogue (ARC-01).
+    """
+
+    stamp = SyncedDocument.objects.filter(
+        source__slug=WIKI_SOURCE_SLUG, source__is_enabled=True
+    ).aggregate(total=Count("id"), latest=Max("updated_at"))
+    return (int(stamp["total"] or 0), str(stamp["latest"] or ""))
+
+
+@lru_cache(maxsize=8)
+def _wiki_records(stamp: tuple[int, str], kind: str) -> tuple[Record, ...]:
+    """The synced records of ``wiki`` kind the stamp was built from.
+
+    The query is bound to the stamp the cache key names, so a warmed answer
+    cannot outlive the rows it was read from: a sync changes the stamp, and the
+    next read rebuilds the entry instead of serving stale pages.
+
+    A zero count is an absent source or an empty one -- an empty wiki, not a
+    failure -- so it answers without reading rows.
+
+    The pages come back in the A-Z order the hub pages through, the one rule
+    the ``dtc-podwiki`` parser writes the records under; the row table carries
+    no order column, so the reader derives the same order from the records
+    themselves.
+    """
+
+    if not stamp[0]:
+        return ()
+    rows = SyncedDocument.objects.filter(
+        source__slug=WIKI_SOURCE_SLUG,
+        content_kind=kind,
+        is_published=True,
+    ).values_list("record", flat=True)
+    records = tuple(record for record in rows if isinstance(record, dict))
+    if kind == WIKI_PAGE_KIND:
+        records = tuple(
+            sorted(
+                records,
+                key=lambda record: (
+                    str(record.get("title", "")).casefold(),
+                    str(record.get("slug", "")),
+                ),
+            )
+        )
+    return records
 
 
 @lru_cache(maxsize=64)
@@ -346,7 +418,7 @@ def book(slug: str) -> Record | None:
 def wiki_pages() -> tuple[Record, ...]:
     """The wiki catalogue, in the A-Z order the hub pages through."""
 
-    return records("wiki")
+    return records(WIKI_PAGE_KIND)
 
 
 def wiki_page(slug: str) -> Record | None:
@@ -378,14 +450,14 @@ def wiki_search() -> Record:
 
 
 def wiki_asset_paths() -> frozenset[str]:
-    """The wiki asset paths the published manifest declares.
+    """The wiki asset paths the synced ``wiki_assets`` row declares.
 
     The asset bytes are a design file that ships with the app; what the database
-    owns is whether the release publishes it at all, so the route asks here
-    before handing anything over.
+    owns is whether the wiki publishes it at all, so the route asks here before
+    handing anything over.
     """
 
-    declared = manifest().get("wiki_assets", {})
+    declared = singleton("wiki_assets").get("wiki_assets", {})
     return frozenset(declared) if isinstance(declared, dict) else frozenset()
 
 

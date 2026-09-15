@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
+from community_base.content_sync.models import ContentSource as EngineContentSource
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
 from django.urls import reverse
@@ -343,6 +344,7 @@ class WikiCataloguePaginationTests(TestCase):
         ContentSource.objects.filter(stable_id=catalogue.PUBLIC_CONTENT_STABLE_ID).update(
             enabled=False
         )
+        EngineContentSource.objects.filter(slug=catalogue.WIKI_SOURCE_SLUG).update(is_enabled=False)
 
         response = self.client.get(reverse("wiki-home"))
         body = response.content.decode()
@@ -674,6 +676,7 @@ class WikiSpecialPagesTests(TestCase):
         ContentSource.objects.filter(stable_id=catalogue.PUBLIC_CONTENT_STABLE_ID).update(
             enabled=False
         )
+        EngineContentSource.objects.filter(slug=catalogue.WIKI_SOURCE_SLUG).update(is_enabled=False)
 
         body = self.client.get(reverse("wiki-special")).content.decode()
 

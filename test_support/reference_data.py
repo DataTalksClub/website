@@ -173,6 +173,79 @@ def load_reviewed_public_content() -> int:
     return int(report.get("documents", 0))
 
 
+def load_synced_wiki() -> int:
+    """Publish the synthetic wiki as synced rows, the way the package engine does.
+
+    The wiki pages read ``SyncedDocument`` rows written by the ``dtc-podwiki``
+    parser (issue #384), not the staged release the rest of the catalogue still
+    reads. Production writes these rows by parsing the repository checkout; this
+    seeds the same rows from the synthetic catalogue's wiki records, so tests
+    read the same content from the authority the pages actually use.
+    """
+
+    import hashlib
+    import json
+
+    from community_base.content_sync.models import ContentSource as EngineContentSource
+
+    from content.models import SyncedDocument
+
+    catalogue = _synthetic_catalogue()
+    source = EngineContentSource.objects.get_or_create(
+        slug="dtc-podwiki",
+        defaults={
+            "repo_name": "DataTalksClub/podwiki",
+            # A synthetic secret so the row satisfies the engine's own shape
+            # rules; nothing here reads or keeps a real credential.
+            "webhook_secret": "test-support-synthetic-secret",
+        },
+    )[0]
+
+    def _checksum(record: dict[str, Any]) -> str:
+        encoded = json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+    rows = [
+        SyncedDocument(
+            source=source,
+            content_kind="wiki",
+            stable_key=record["slug"],
+            slug=record["slug"],
+            title=record["title"],
+            summary=record.get("summary", ""),
+            public_path=record["public_path"],
+            source_path=record["provenance"]["source_path"],
+            checksum=record["provenance"]["checksum"],
+            record=record,
+        )
+        for record in catalogue["wiki"]
+    ]
+    singleton_records = {
+        "wiki_graph": catalogue["wiki_graph"],
+        "wiki_search": catalogue["wiki_search"],
+        # The synced asset row carries the declared paths the staged manifest
+        # published: the same mapping, one authority behind.
+        "wiki_assets": {"wiki_assets": catalogue["manifest"]["wiki_assets"]},
+    }
+    rows.extend(
+        SyncedDocument(
+            source=source,
+            content_kind=kind,
+            stable_key=kind,
+            slug="",
+            title=kind,
+            summary="",
+            public_path=f"/-/podwiki/{kind}",
+            source_path=kind,
+            checksum=_checksum(record),
+            record=record,
+        )
+        for kind, record in singleton_records.items()
+    )
+    SyncedDocument.objects.bulk_create(rows)
+    return len(rows)
+
+
 def load_homepage_testimonials() -> int:
     from courses.services.testimonials import import_homepage_testimonials
 
@@ -194,5 +267,6 @@ def load_reviewed_reference_data() -> dict[str, int]:
         "docs": load_reviewed_docs(),
         "faq": load_reviewed_faq(),
         "public_content": load_reviewed_public_content(),
+        "synced_wiki": load_synced_wiki(),
         "testimonials": load_homepage_testimonials(),
     }

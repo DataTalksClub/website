@@ -8,6 +8,7 @@ un-ingested database publishing nothing instead of raising.
 
 from __future__ import annotations
 
+from community_base.content_sync.models import ContentSource as EngineContentSource
 from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
@@ -54,6 +55,7 @@ class EmptyCatalogueTests(TestCase):
         ContentSource.objects.filter(stable_id=catalogue.PUBLIC_CONTENT_STABLE_ID).update(
             enabled=False
         )
+        EngineContentSource.objects.filter(slug=catalogue.WIKI_SOURCE_SLUG).update(is_enabled=False)
 
     def test_every_collection_is_empty_rather_than_a_failure(self) -> None:
         for name in catalogue.COLLECTION_NAMES:

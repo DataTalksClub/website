@@ -17,12 +17,13 @@ from __future__ import annotations
 
 from unittest import mock
 
+from community_base.content_sync.models import ContentSource as EngineContentSource
 from django.db import OperationalError, connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 
 from content import catalogue
-from content.models import ContentDocument, ContentSource
+from content.models import ContentDocument, ContentSource, SyncedDocument
 from content.tests.factories import activate, make_ready_release
 
 
@@ -97,3 +98,68 @@ class AbsentPointerTests(CacheBindingTestBase):
         # is an empty catalogue, not a document read (and not a failure).
         self.assertEqual(len(read), 1)
         self.assertEqual(books, ())
+
+
+class SyncedWikiBindingTests(CacheBindingTestBase):
+    """The same two guarantees for the wiki's synced-row authority (#384).
+
+    The wiki reads ``SyncedDocument`` rows behind a stamp cache key instead of
+    release-keyed ones, so the race the release binding removes cannot happen
+    there -- but a failed read must still raise rather than cache emptiness,
+    and a warmed answer must still follow the rows it was read from.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        catalogue._wiki_records.cache_clear()
+
+    def test_a_failed_row_read_raises_and_the_next_read_recovers(self) -> None:
+        stamp = catalogue.wiki_sync_stamp()
+        real_filter = SyncedDocument.objects.filter
+        failures = iter([OperationalError("wiki row read lost")])
+
+        def flaky_filter(*args, **kwargs):
+            try:
+                raise next(failures)
+            except StopIteration:
+                return real_filter(*args, **kwargs)
+
+        with (
+            mock.patch.object(catalogue, "wiki_sync_stamp", lambda: stamp),
+            mock.patch.object(SyncedDocument.objects, "filter", flaky_filter),
+        ):
+            with self.assertRaises(OperationalError):
+                catalogue.wiki_pages()
+
+        # Nothing that failed entered the cache: the recovering read answers
+        # with the published pages, not the empty collection a swallowed
+        # failure used to leave.
+        with mock.patch.object(catalogue, "wiki_sync_stamp", lambda: stamp):
+            pages = catalogue.wiki_pages()
+
+        self.assertTrue(pages)
+
+    def test_a_sync_write_moves_the_stamp_and_the_next_read_sees_it(self) -> None:
+        before = [page["slug"] for page in catalogue.wiki_pages()]
+        row = SyncedDocument.objects.get(
+            source__slug=catalogue.WIKI_SOURCE_SLUG,
+            content_kind=catalogue.WIKI_PAGE_KIND,
+            stable_key=before[0],
+        )
+        row.record = {**row.record, "title": "Renamed wiki page"}
+        row.save()
+
+        pages = catalogue.wiki_pages()
+
+        self.assertIn("Renamed wiki page", [page["title"] for page in pages])
+
+    def test_an_absent_sync_answers_empty_without_reading_rows(self) -> None:
+        EngineContentSource.objects.filter(slug=catalogue.WIKI_SOURCE_SLUG).update(is_enabled=False)
+
+        with CaptureQueriesContext(connection) as read:
+            pages = catalogue.wiki_pages()
+
+        # The stamp aggregate is the only query: an absent source is an empty
+        # wiki, not a row read (and not a failure).
+        self.assertEqual(len(read), 1)
+        self.assertEqual(pages, ())

@@ -120,12 +120,16 @@ class _CheckoutCase(TestCase):
 
 
 def _source(slug: str) -> ContentSource:
-    return ContentSource.objects.create(
+    # The reference data seeds the podwiki source for the catalogue's synced
+    # reads, so a parser test for that slug reuses the row instead of colliding.
+    return ContentSource.objects.get_or_create(
         slug=slug,
-        repo_name=f"DataTalksClub/{slug}",
-        webhook_secret="test-secret",
-        max_files=100,
-    )
+        defaults={
+            "repo_name": f"DataTalksClub/{slug}",
+            "webhook_secret": "test-secret",
+            "max_files": 100,
+        },
+    )[0]
 
 
 class PeopleParserTests(_CheckoutCase):
@@ -618,6 +622,12 @@ def _synced_row(source, content_kind: str, slug: str, public_path: str) -> Synce
 
 
 class PodwikiParserTests(_CheckoutCase):
+    def setUp(self) -> None:
+        super().setUp()
+        # The reference data seeds the synced wiki rows the catalogue reads;
+        # the parser contract tests exercise their own synced state from empty.
+        SyncedDocument.objects.filter(source__slug="dtc-podwiki").delete()
+
     def _entities(self, podcast_slug: str = "test-episode") -> None:
         entities = _source("dtc-content-entities")
         _synced_row(entities, "podcast", podcast_slug, f"/podcast/s3e11/{podcast_slug}.html")
