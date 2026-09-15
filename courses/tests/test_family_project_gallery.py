@@ -1,3 +1,6 @@
+from datetime import datetime, timedelta
+
+from django.contrib.auth.base_user import AbstractBaseUser
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -13,9 +16,30 @@ from courses.models import (
 
 
 class FamilyProjectGalleryTestBase(TestCase):
+    due: datetime
+    family: Course
+    cohort_2022: Cohort
+    cohort_2023: Cohort
+    cohort_2024: Cohort
+    cohort_2025: Cohort
+    cohort_hidden: Cohort
+    project_2023: Project
+    project_2024: Project
+    project_2025_a: Project
+    project_2025_b: Project
+    project_hidden: Project
+    user: AbstractBaseUser
+    enrollment: Enrollment
+    enrollment_2023: Enrollment
+    enrollment_hidden: Enrollment
+    submission: ProjectSubmission
+    submission_2023: ProjectSubmission
+    volunteer_only_submission: ProjectSubmission
+    hidden_submission: ProjectSubmission
+
     @classmethod
     def setUpTestData(cls):
-        cls.due = timezone.now() + timezone.timedelta(days=7)
+        cls.due = timezone.now() + timedelta(days=7)
         cls.family = Course.objects.create(slug="dtc-zoomcamp", title="DTC Zoomcamp")
 
         cls.cohort_2022 = cls._cohort(2022)
@@ -34,9 +58,7 @@ class FamilyProjectGalleryTestBase(TestCase):
         cls.user = User.objects.create_user(
             username="learner", email="learner@example.com", password="x"
         )
-        cls.enrollment = Enrollment.objects.create(
-            student=cls.user, course=cls.cohort_2025
-        )
+        cls.enrollment = Enrollment.objects.create(student=cls.user, course=cls.cohort_2025)
         cls.submission = ProjectSubmission.objects.create(
             project=cls.project_2025_a,
             student=cls.user,
@@ -51,9 +73,7 @@ class FamilyProjectGalleryTestBase(TestCase):
             volunteer_review_only=True,
         )
 
-        cls.enrollment_2023 = Enrollment.objects.create(
-            student=cls.user, course=cls.cohort_2023
-        )
+        cls.enrollment_2023 = Enrollment.objects.create(student=cls.user, course=cls.cohort_2023)
         cls.submission_2023 = ProjectSubmission.objects.create(
             project=cls.project_2023,
             student=cls.user,
@@ -107,9 +127,7 @@ class FamilyProjectGallerySubmissionListTests(FamilyProjectGalleryTestBase):
     def test_lists_individual_submissions_newest_cohort_first(self):
         response = self.client.get(self.gallery_url())
 
-        submission_ids = [
-            submission.id for submission in response.context["submissions"]
-        ]
+        submission_ids = [submission.id for submission in response.context["submissions"]]
         # The volunteer-only 2025 submission and the hidden cohort's
         # submission are both excluded; only two real submissions remain.
         self.assertEqual(submission_ids, [self.submission.id, self.submission_2023.id])
@@ -130,18 +148,14 @@ class FamilyProjectGallerySubmissionListTests(FamilyProjectGalleryTestBase):
     def test_excludes_the_hidden_cohorts_submission(self):
         response = self.client.get(self.gallery_url())
 
-        submission_ids = [
-            submission.id for submission in response.context["submissions"]
-        ]
+        submission_ids = [submission.id for submission in response.context["submissions"]]
         self.assertNotIn(self.hidden_submission.id, submission_ids)
         self.assertNotContains(response, "hidden-repo")
 
     def test_excludes_volunteer_review_only_submissions(self):
         response = self.client.get(self.gallery_url())
 
-        submission_ids = [
-            submission.id for submission in response.context["submissions"]
-        ]
+        submission_ids = [submission.id for submission in response.context["submissions"]]
         self.assertNotIn(self.volunteer_only_submission.id, submission_ids)
         self.assertNotContains(response, "repo2")
 
@@ -221,9 +235,7 @@ class FamilyProjectGalleryEmptyCaseTests(TestCase):
             description="",
         )
 
-        response = self.client.get(
-            reverse("family_projects", kwargs={"course_slug": family.slug})
-        )
+        response = self.client.get(reverse("family_projects", kwargs={"course_slug": family.slug}))
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(list(response.context["submissions"]), [])
@@ -237,9 +249,7 @@ class FamilyProjectGalleryEmptyCaseTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_a_non_visible_family_404s(self):
-        Course.objects.create(
-            slug="secret-zoomcamp", title="Secret Zoomcamp", visible=False
-        )
+        Course.objects.create(slug="secret-zoomcamp", title="Secret Zoomcamp", visible=False)
 
         response = self.client.get(
             reverse("family_projects", kwargs={"course_slug": "secret-zoomcamp"})

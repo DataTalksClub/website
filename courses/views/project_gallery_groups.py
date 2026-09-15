@@ -79,9 +79,7 @@ def family_project_submissions(family: Course):
     ``courses/models/project.py``.
     """
 
-    cohort_ids = Cohort.objects.filter(course=family, visible=True).values_list(
-        "id", flat=True
-    )
+    cohort_ids = Cohort.objects.filter(course=family, visible=True).values_list("id", flat=True)
     submissions = ProjectSubmission.objects.filter(
         project__course_id__in=cohort_ids,
         volunteer_review_only=False,
@@ -116,15 +114,13 @@ def site_project_submissions():
     caller can read both without another query per row.
     """
 
-    cohort_ids = Cohort.objects.filter(
-        course__visible=True, visible=True
-    ).values_list("id", flat=True)
+    cohort_ids = Cohort.objects.filter(course__visible=True, visible=True).values_list(
+        "id", flat=True
+    )
     submissions = ProjectSubmission.objects.filter(
         project__course_id__in=cohort_ids,
         volunteer_review_only=False,
-    ).select_related(
-        "project", "project__course", "project__course__course", "enrollment"
-    )
+    ).select_related("project", "project__course", "project__course__course", "enrollment")
     submissions = submissions.annotate(
         vote_count=Count("votes"),
         display_score=_submission_display_score(),

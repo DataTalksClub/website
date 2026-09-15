@@ -85,16 +85,10 @@ class CourseCatalogSelectionTests(TestCase):
 
         self.assertEqual(by_family["ml-zoomcamp"].public_path, "/courses/ml-zoomcamp/2026")
         self.assertEqual(by_family["ml-zoomcamp"].cohort_label, "2026 cohort")
-        self.assertEqual(
-            by_family["llm-zoomcamp"].public_path, "/courses/llm-zoomcamp/2026"
-        )
+        self.assertEqual(by_family["llm-zoomcamp"].public_path, "/courses/llm-zoomcamp/2026")
         self.assertEqual(by_family["de-zoomcamp"].public_path, "/courses/de-zoomcamp/2026")
-        self.assertEqual(
-            by_family["mlops-zoomcamp"].public_path, "/courses/mlops-zoomcamp/2025"
-        )
-        self.assertEqual(
-            by_family["sma-zoomcamp"].public_path, "/courses/sma-zoomcamp/2025"
-        )
+        self.assertEqual(by_family["mlops-zoomcamp"].public_path, "/courses/mlops-zoomcamp/2025")
+        self.assertEqual(by_family["sma-zoomcamp"].public_path, "/courses/sma-zoomcamp/2025")
 
     def test_the_ai_dev_tools_family_shows_one_2026_card(self) -> None:
         """Issue #308: AI Dev Tools used to arrive as two rows (``ai-dev-tools`` and
@@ -119,9 +113,7 @@ class CourseCatalogSelectionTests(TestCase):
 
         by_family = {entry.family: entry for entry in course_catalog()}
 
-        self.assertEqual(
-            by_family["solo-zoomcamp"].public_path, "/courses/solo-zoomcamp/2025"
-        )
+        self.assertEqual(by_family["solo-zoomcamp"].public_path, "/courses/solo-zoomcamp/2025")
 
     def test_a_hidden_course_leaves_the_catalogue_entirely(self) -> None:
         family = make_family("hidden-zoomcamp", "Hidden Zoomcamp", visible=False)

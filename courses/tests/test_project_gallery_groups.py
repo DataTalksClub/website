@@ -7,6 +7,8 @@ excluding hidden cohorts/families, and excluding volunteer-review-only
 submissions -- independent of either view or template.
 """
 
+from datetime import datetime, timedelta
+
 from django.test import TestCase
 from django.utils import timezone
 
@@ -18,9 +20,11 @@ from courses.views.project_gallery_groups import (
 
 
 class ProjectGalleryGroupsTestBase(TestCase):
+    due: datetime
+
     @classmethod
     def setUpTestData(cls):
-        cls.due = timezone.now() + timezone.timedelta(days=7)
+        cls.due = timezone.now() + timedelta(days=7)
 
     @classmethod
     def make_family(cls, slug, title=None, visible=True):
@@ -77,12 +81,8 @@ class FamilyProjectSubmissionsTests(ProjectGalleryGroupsTestBase):
         submission_2023 = self.make_submission(
             midterm, cohort_2023, "https://github.com/example/midterm"
         )
-        submission_a = self.make_submission(
-            capstone_a, cohort_2025, "https://github.com/example/a"
-        )
-        submission_b = self.make_submission(
-            capstone_b, cohort_2025, "https://github.com/example/b"
-        )
+        submission_a = self.make_submission(capstone_a, cohort_2025, "https://github.com/example/a")
+        submission_b = self.make_submission(capstone_b, cohort_2025, "https://github.com/example/b")
 
         submissions = list(family_project_submissions(family))
 
@@ -95,9 +95,7 @@ class FamilyProjectSubmissionsTests(ProjectGalleryGroupsTestBase):
         family = self.make_family("ml-zoomcamp")
         cohort_2025 = self.make_cohort(family, 2025)
         capstone = self.make_project(cohort_2025, "capstone")
-        submission = self.make_submission(
-            capstone, cohort_2025, "https://github.com/example/repo"
-        )
+        submission = self.make_submission(capstone, cohort_2025, "https://github.com/example/repo")
 
         submissions = list(family_project_submissions(family))
 
@@ -173,9 +171,7 @@ class SiteProjectSubmissionsTests(ProjectGalleryGroupsTestBase):
         family = self.make_family("ml-zoomcamp", "ML Zoomcamp")
         cohort = self.make_cohort(family, 2025)
         project = self.make_project(cohort, "capstone")
-        submission = self.make_submission(
-            project, cohort, "https://github.com/example/repo"
-        )
+        submission = self.make_submission(project, cohort, "https://github.com/example/repo")
 
         submissions = list(site_project_submissions())
 

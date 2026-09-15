@@ -58,9 +58,7 @@ class ExternalMarkdownLinkTests(SimpleTestCase):
         )
 
     def test_existing_rel_on_a_raw_external_anchor_is_preserved_and_extended(self):
-        rendered = render_markdown(
-            'See <a href="https://example.com" rel="nofollow">this</a>.'
-        )
+        rendered = render_markdown('See <a href="https://example.com" rel="nofollow">this</a>.')
 
         self.assertIn(
             '<a href="https://example.com" rel="nofollow noopener noreferrer" '
@@ -69,7 +67,7 @@ class ExternalMarkdownLinkTests(SimpleTestCase):
         )
 
     def test_external_url_shown_as_text_inside_a_code_fence_is_not_turned_into_a_link(self):
-        rendered = render_markdown('```\nhttps://example.com\n```')
+        rendered = render_markdown("```\nhttps://example.com\n```")
 
         self.assertNotIn("<a ", rendered)
         self.assertIn("https://example.com", rendered)

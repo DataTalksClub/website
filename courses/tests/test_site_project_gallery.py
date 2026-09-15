@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -13,13 +15,33 @@ from courses.models import (
 
 
 class SiteProjectGalleryTestBase(TestCase):
+    due: datetime
+    de_family: Course
+    de_2023: Cohort
+    de_2024: Cohort
+    de_project_2023: Project
+    de_project_2024: Project
+    ml_family: Course
+    ml_2025: Cohort
+    ml_project_2025: Project
+    empty_family: Course
+    hidden_family: Course
+    hidden_family_cohort: Cohort
+    hidden_family_project: Project
+    hidden_cohort: Cohort
+    hidden_cohort_project: Project
+    submission_de_2023: ProjectSubmission
+    submission_de_2024: ProjectSubmission
+    submission_ml_2025: ProjectSubmission
+    volunteer_only_submission: ProjectSubmission
+    hidden_family_submission: ProjectSubmission
+    hidden_cohort_submission: ProjectSubmission
+
     @classmethod
     def setUpTestData(cls):
-        cls.due = timezone.now() + timezone.timedelta(days=7)
+        cls.due = timezone.now() + timedelta(days=7)
 
-        cls.de_family = Course.objects.create(
-            slug="de-zoomcamp", title="Data Engineering Zoomcamp"
-        )
+        cls.de_family = Course.objects.create(slug="de-zoomcamp", title="Data Engineering Zoomcamp")
         cls.de_2023 = cls._cohort(cls.de_family, 2023)
         cls.de_2024 = cls._cohort(cls.de_family, 2024)
         cls.de_project_2023 = cls._project(cls.de_2023, "pipeline-2023")
@@ -29,18 +51,14 @@ class SiteProjectGalleryTestBase(TestCase):
         cls.ml_2025 = cls._cohort(cls.ml_family, 2025)
         cls.ml_project_2025 = cls._project(cls.ml_2025, "capstone-2025")
 
-        cls.empty_family = Course.objects.create(
-            slug="empty-zoomcamp", title="Empty Zoomcamp"
-        )
+        cls.empty_family = Course.objects.create(slug="empty-zoomcamp", title="Empty Zoomcamp")
         cls._cohort(cls.empty_family, 2025)
 
         cls.hidden_family = Course.objects.create(
             slug="secret-zoomcamp", title="Secret Zoomcamp", visible=False
         )
         cls.hidden_family_cohort = cls._cohort(cls.hidden_family, 2025)
-        cls.hidden_family_project = cls._project(
-            cls.hidden_family_cohort, "hidden-family-capstone"
-        )
+        cls.hidden_family_project = cls._project(cls.hidden_family_cohort, "hidden-family-capstone")
 
         cls.hidden_cohort = cls._cohort(cls.ml_family, 2026, visible=False)
         cls.hidden_cohort_project = cls._project(cls.hidden_cohort, "hidden-capstone")
@@ -123,9 +141,7 @@ class SiteProjectGallerySubmissionListTests(SiteProjectGalleryTestBase):
     def test_lists_individual_submissions_newest_cohort_first(self):
         response = self.client.get(self.gallery_url())
 
-        submission_ids = [
-            submission.id for submission in response.context["submissions"]
-        ]
+        submission_ids = [submission.id for submission in response.context["submissions"]]
         self.assertEqual(
             submission_ids,
             [
@@ -143,47 +159,35 @@ class SiteProjectGallerySubmissionListTests(SiteProjectGalleryTestBase):
             for submission in response.context["submissions"]
         }
 
-        self.assertEqual(
-            tags_by_id[self.submission_ml_2025.id], ("ml-zoomcamp", "2025")
-        )
-        self.assertEqual(
-            tags_by_id[self.submission_de_2024.id], ("de-zoomcamp", "2024")
-        )
+        self.assertEqual(tags_by_id[self.submission_ml_2025.id], ("ml-zoomcamp", "2025"))
+        self.assertEqual(tags_by_id[self.submission_de_2024.id], ("de-zoomcamp", "2024"))
         self.assertContains(response, "ML Zoomcamp")
         self.assertContains(response, "Data Engineering Zoomcamp")
 
     def test_excludes_a_family_with_no_submissions_anywhere(self):
         response = self.client.get(self.gallery_url())
-        families = {
-            submission.family.slug for submission in response.context["submissions"]
-        }
+        families = {submission.family.slug for submission in response.context["submissions"]}
 
         self.assertNotIn("empty-zoomcamp", families)
 
     def test_excludes_submissions_from_a_hidden_family(self):
         response = self.client.get(self.gallery_url())
 
-        submission_ids = [
-            submission.id for submission in response.context["submissions"]
-        ]
+        submission_ids = [submission.id for submission in response.context["submissions"]]
         self.assertNotIn(self.hidden_family_submission.id, submission_ids)
         self.assertNotContains(response, "hidden-family")
 
     def test_excludes_submissions_from_a_hidden_cohort(self):
         response = self.client.get(self.gallery_url())
 
-        submission_ids = [
-            submission.id for submission in response.context["submissions"]
-        ]
+        submission_ids = [submission.id for submission in response.context["submissions"]]
         self.assertNotIn(self.hidden_cohort_submission.id, submission_ids)
         self.assertNotContains(response, "hidden-cohort")
 
     def test_excludes_volunteer_review_only_submissions(self):
         response = self.client.get(self.gallery_url())
 
-        submission_ids = [
-            submission.id for submission in response.context["submissions"]
-        ]
+        submission_ids = [submission.id for submission in response.context["submissions"]]
         self.assertNotIn(self.volunteer_only_submission.id, submission_ids)
         self.assertNotContains(response, "volunteer")
 
@@ -223,9 +227,7 @@ class SiteProjectGalleryPaginationTests(SiteProjectGalleryTestBase):
         response = self.client.get(self.gallery_url())
 
         self.assertEqual(len(response.context["submissions"]), 25)
-        self.assertGreaterEqual(
-            response.context["submissions_page"].paginator.count, 33
-        )
+        self.assertGreaterEqual(response.context["submissions_page"].paginator.count, 33)
         self.assertContains(response, "Project submission pages")
 
 

@@ -129,6 +129,7 @@ module = [
     "scripts.tests.test_legacy_zoomcamp_username_allocation",
     "scripts.tests.test_scoring_import_atomicity",
     "scripts.tests.test_certificate_matching",
+    "courses.tests.test_certificate_section",
     "scripts.tests.test_reviewed_release_import",
     "scripts.ci",
     "scripts.content",
@@ -171,6 +172,17 @@ module = [
     "scripts.tests.test_registrant_import",
     "scripts.tests.test_scoring_import_submitted_at",
     "studio_courses.tests.test_enrollment_sorting",
+    "courses.tests.test_course_external_links",
+    "courses.tests.test_course_family_landing",
+    "courses.tests.test_course_illustrations",
+    "courses.tests.test_family_project_gallery",
+    "courses.tests.test_project_gallery_groups",
+    "courses.tests.test_site_project_gallery",
+    "courses.views.family_project_gallery",
+    "courses.views.project_gallery_groups",
+    "courses.views.site_project_gallery",
+    "scripts.dev.check_course_illustrations",
+    "scripts.tests.test_check_course_illustrations",
 ]
 ignore_errors = false
 
