@@ -337,6 +337,10 @@ def family_lede(family: Course) -> str:
 #: before pointing to the full FAQ page for the rest.
 FAMILY_FAQ_PREVIEW_LIMIT = 5
 
+#: How many real project submissions the family landing page shows inline
+#: before pointing to the full family project gallery for the rest.
+FAMILY_GALLERY_PREVIEW_LIMIT = 6
+
 
 def family_faq_preview(family: Course, *, limit: int = FAMILY_FAQ_PREVIEW_LIMIT) -> tuple:
     """Real FAQ questions to preview inline, and the link to the rest.
@@ -440,11 +444,22 @@ def course_family_page_context(family: Course, user) -> dict:
     project_cards = family_project_cards(editions)
     syllabus_rows = family_syllabus_rows(syllabus_units)
     cohorts = [edition.cohort for edition in editions]
-    # The outcome strip's "project submissions" stat reads the same
-    # family-wide, hidden-cohort/volunteer-excluding queryset the "See what
-    # people have built" section already counts with.
-    submission_count = family_project_submissions(family).count()
+    # The outcome strip's "project submissions" stat and the inline gallery
+    # below both read the same family-wide submissions queryset
+    # (courses/views/project_gallery_groups.py already excludes hidden
+    # cohorts and volunteer-review-only rows), so it is built once here
+    # rather than twice.
+    family_submissions = family_project_submissions(family)
+    submission_count = family_submissions.count()
     has_learner_projects = submission_count > 0
+    gallery_submissions = []
+    if has_learner_projects:
+        gallery_submissions = list(family_submissions[:FAMILY_GALLERY_PREVIEW_LIMIT])
+        for submission in gallery_submissions:
+            # ``Project.course`` is the submission's cohort (confusingly
+            # named; see courses/models/project.py) -- alias it as
+            # ``.cohort`` the same way the full family/site galleries do.
+            submission.cohort = submission.project.course
     enrolled_count = Enrollment.objects.filter(
         course__course=family, course__visible=True
     ).count()
@@ -518,6 +533,7 @@ def course_family_page_context(family: Course, user) -> dict:
         "family_syllabus_rows": syllabus_rows,
         "family_outcome_stats": outcome_stats,
         "has_learner_projects": has_learner_projects,
+        "family_gallery_submissions": gallery_submissions,
         "family_project_brief": project_brief,
         "certificate_cohort": certificate_cohort,
         "syllabus_fact": syllabus_fact,

@@ -319,6 +319,76 @@ class CourseFamilyOutcomeStatsTests(TestCase):
         self.assertNotIn("certificates issued", stats)
 
 
+class CourseFamilyProjectGalleryTests(TestCase):
+    """The inline learner-work gallery: a handful of real project-submission rows
+    (courses.views.project_gallery_groups.family_project_submissions), reusing the
+    same card fields the family/site project galleries already show -- submitter,
+    repository link, project + cohort tag -- and hidden entirely for a family with
+    no real submissions.
+    """
+
+    def setUp(self):
+        self.family = Course.objects.create(slug="gallery-course", title="Gallery Course")
+        self.cohort = make_cohort(self.family, 2025, project_count=1)
+        self.project = self.cohort.project_set.get()
+        self.url = reverse("course_family", args=[self.family.slug])
+        self._count = 0
+
+    def add_submission(self, *, cohort=None, project=None, volunteer=False):
+        cohort = cohort or self.cohort
+        project = project or cohort.project_set.first()
+        self._count += 1
+        user = User.objects.create_user(username=f"gallery-learner-{self._count}")
+        enrollment = Enrollment.objects.create(student=user, course=cohort)
+        return ProjectSubmission.objects.create(
+            project=project,
+            student=user,
+            enrollment=enrollment,
+            github_link=f"https://github.com/example/gallery-repo-{self._count}",
+            volunteer_review_only=volunteer,
+        )
+
+    def test_inline_gallery_shows_real_submitter_repository_and_project_cohort_tag(self):
+        submission = self.add_submission()
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, 'class="row-list family-proof-gallery"')
+        self.assertContains(response, 'class="list-row submission-row"')
+        self.assertContains(response, submission.enrollment.display_name)
+        self.assertContains(response, submission.github_link)
+        self.assertContains(response, f"{self.project.title} · {self.cohort.identifier}")
+        self.assertContains(
+            response,
+            reverse(
+                "cohort_leaderboard_score_breakdown",
+                kwargs={
+                    "course_slug": self.family.slug,
+                    "cohort_identifier": self.cohort.identifier,
+                    "enrollment_id": submission.enrollment.id,
+                },
+            ),
+        )
+
+    def test_a_family_with_no_real_submissions_hides_the_gallery_gracefully(self):
+        self.add_submission(volunteer=True)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(list(response.context["family_gallery_submissions"]), [])
+        self.assertNotContains(response, 'class="row-list family-proof-gallery"')
+        self.assertNotContains(response, 'class="list-row submission-row"')
+
+    def test_inline_gallery_caps_at_six_even_with_more_real_submissions(self):
+        for _ in range(9):
+            self.add_submission()
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(len(response.context["family_gallery_submissions"]), 6)
+        self.assertEqual(response.content.decode().count('class="list-row submission-row"'), 6)
+
+
 class CourseFamilyFaqPreviewTests(TestCase):
     """The family landing page's real-FAQ preview (issue: real questions, not a bare link)."""
 

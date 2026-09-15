@@ -468,6 +468,37 @@
         margin-top: 3.25rem;
       }
 
+      /* A handful of real submissions, inline, above the links -- the same
+         .row-list/.list-row/.submission-row catalogue row projects/family_
+         gallery.html and projects/site_gallery.html already draw one
+         cohort's (or the whole site's) submissions with, borrowed verbatim
+         here for a short preview instead of the paginated full list. */
+      .family-proof-gallery {
+        margin-bottom: 0.5rem;
+      }
+
+      .family-proof-gallery .submission-row {
+        --row-cols: minmax(0, 1fr) auto;
+      }
+
+      .family-proof-gallery .submission-student {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.75rem;
+        min-width: 0;
+      }
+
+      .family-proof-gallery .submission-student a {
+        font-weight: 700;
+      }
+
+      .family-proof-gallery .submission-outcome {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 0.75rem;
+      }
+
       /* --- the certificate band ------------------------------------------- */
 
       /* The syllabus's closing argument, drawn as its twin: the promise and
@@ -892,6 +923,49 @@
               <p>Real projects from learners who finished the course.</p>
             </div>
           </div>
+          {% if family_gallery_submissions %}
+            <div class="row-list family-proof-gallery">
+              {% for submission in family_gallery_submissions %}
+                <article class="list-row submission-row">
+                  <div>
+                    <div class="submission-student">
+                      <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=course_family.slug cohort_identifier=submission.cohort.identifier enrollment_id=submission.enrollment.id %}">
+                        {{ submission.enrollment.display_name }}
+                      </a>
+                      <a
+                        class="band-link submission-link"
+                        href="{{ submission.github_link }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Open repository"
+                        aria-label="Open repository"
+                      >Repository</a>
+                    </div>
+                    <p class="mono-note">
+                      {{ submission.project.title }} · {{ submission.cohort.identifier }}
+                    </p>
+                  </div>
+                  <div class="submission-outcome">
+                    <span class="mono-note">{{ submission.vote_count }} vote{{ submission.vote_count|pluralize }}</span>
+                    <span class="mono-note">
+                      {% if submission.display_score == -1 %}
+                        Score N/A
+                      {% else %}
+                        {{ submission.display_score }} score
+                      {% endif %}
+                    </span>
+                    {% if submission.display_score != -1 %}
+                      {% if submission.passed %}
+                        <span class="status-pill status-pill-live">Passed</span>
+                      {% else %}
+                        <span class="status-pill status-pill-wait">Not passed</span>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                </article>
+              {% endfor %}
+            </div>
+          {% endif %}
           <div class="panel panel-mint panel-outlined family-proof">
             {% if has_learner_projects %}
               <a class="band-link" href="{% url 'family_projects' course_slug=course_family.slug %}">Explore learner projects →</a>
