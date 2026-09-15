@@ -386,6 +386,12 @@ def _docs_page(title: str, parent: str | None = None, body: str = "A paragraph.\
 
 
 class DocsParserTests(_CheckoutCase):
+    def setUp(self) -> None:
+        super().setUp()
+        # The reference data seeds the synced docs rows the catalogue reads;
+        # the parser contract tests exercise their own synced state from empty.
+        SyncedDocument.objects.filter(source__slug="dtc-docs").delete()
+
     def test_discover_scopes_pages_and_resolves_hierarchy(self) -> None:
         source = _source("dtc-docs")
         other = _source("dtc-content")

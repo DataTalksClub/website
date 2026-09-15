@@ -129,6 +129,93 @@ def load_reviewed_docs() -> int:
     return int(run(path=DOCS_PROJECTION, apply=True)["pages"])
 
 
+def load_synced_docs() -> int:
+    """Publish the synthetic documentation as synced rows, the way the engine does.
+
+    The docs pages read ``SyncedDocument`` rows written by the ``dtc-docs``
+    parser (issue #384), not the staged release this module also seeds.
+    Production writes these rows by parsing the repository checkout; this seeds
+    the same rows from the synthetic import payload, in the parser's record
+    shape -- the page's hierarchy front matter inside its ``metadata``, the
+    markdown body, and the declared images a page's body references.
+    """
+
+    import json
+
+    from community_base.content_sync.models import ContentSource as EngineContentSource
+
+    from content.models import SyncedDocument
+
+    payload = json.loads(DOCS_PROJECTION.read_text(encoding="utf-8"))
+    source = EngineContentSource.objects.get_or_create(
+        slug="dtc-docs",
+        defaults={
+            "repo_name": "DataTalksClub/docs",
+            # A synthetic secret so the row satisfies the engine's own shape
+            # rules; nothing here reads or keeps a real credential.
+            "webhook_secret": "test-support-synthetic-secret",
+        },
+    )[0]
+
+    declared_assets = [asset["source_path"] for asset in payload.get("assets", [])]
+    rows = []
+    for page in payload["pages"]:
+        referenced = [ref for ref in declared_assets if f"/docs/{ref}" in page["body"]]
+        if page["public_path"] == "/docs/":
+            # The synthetic payload declares an asset no body references; the
+            # real corpus's landing page carries the brand avatar, so the root
+            # page owns the declared remainder here.
+            images = referenced + [ref for ref in declared_assets if ref not in referenced]
+        else:
+            images = referenced
+        parts = [part for part in page["source_path"].removesuffix(".md").split("/") if part]
+        if parts[-1] == "index":
+            parts.pop()
+        stable_key = "/".join(parts) or "index"
+        rows.append(
+            SyncedDocument(
+                source=source,
+                content_kind="docs",
+                stable_key=stable_key,
+                slug=stable_key,
+                title=page["title"],
+                summary=page.get("description") or "",
+                public_path=page["public_path"],
+                source_path=page["source_path"],
+                checksum=page["body_sha256"],
+                record={
+                    "stable_key": stable_key,
+                    "public_path": page["public_path"],
+                    "source_path": page["source_path"],
+                    "body": page["body"],
+                    "images": images,
+                    "metadata": {
+                        "title": page["title"],
+                        "description": page.get("description") or "",
+                        "parent": page.get("parent"),
+                        "parent_path": page.get("parent_path"),
+                        "grand_parent": page.get("grand_parent"),
+                        "grand_parent_path": page.get("grand_parent_path"),
+                        "nav_order": page.get("nav_order"),
+                        "has_children": bool(page.get("has_children")),
+                        "has_toc": bool(page.get("has_toc", True)),
+                        "permalink": page.get("permalink"),
+                        "edit_url": page.get("edit_url") or "",
+                    },
+                    "provenance": {
+                        "repository": "DataTalksClub/docs",
+                        "revision": page.get("source_revision", ""),
+                        "source_path": page["source_path"],
+                        "source_key": stable_key,
+                        "checksum": page["body_sha256"],
+                    },
+                },
+            )
+        )
+    SyncedDocument.objects.bulk_create(rows)
+    return len(rows)
+
+
 def load_reviewed_faq() -> int:
     """Publish the synthetic course FAQ, the way the production import does."""
 
@@ -265,6 +352,7 @@ def load_reviewed_reference_data() -> dict[str, int]:
         "events": events,
         "event_content": load_event_content(),
         "docs": load_reviewed_docs(),
+        "synced_docs": load_synced_docs(),
         "faq": load_reviewed_faq(),
         "public_content": load_reviewed_public_content(),
         "synced_wiki": load_synced_wiki(),

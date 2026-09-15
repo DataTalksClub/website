@@ -113,6 +113,7 @@ class EditorialReportTests(TestCase):
             ContentDocument,
             ContentRelation,
             ContentSource,
+            SyncedDocument,
         )
         from core.models import Sponsor
         from courses.models import Testimonial
@@ -120,10 +121,13 @@ class EditorialReportTests(TestCase):
         # Releases and the registry rows are left alone: a release nothing
         # points at publishes nothing, which is the state a database is in
         # before its first editorial import and after a failed one alike.
+        # The synced rows the wiki and docs readers draw from are step-four
+        # content just the same, so a database without them reads as empty.
         ActiveContentPath.objects.all().delete()
         ContentRelation.objects.all().delete()
         ContentDocument.objects.all().delete()
         ContentAsset.objects.all().delete()
+        SyncedDocument.objects.all().delete()
         ContentSource.objects.update(active_release=None)
         Sponsor.objects.all().delete()
         Testimonial.objects.all().delete()

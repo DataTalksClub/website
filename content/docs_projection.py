@@ -1,20 +1,15 @@
 """The public documentation site, read from the database.
 
-Pages are ``ContentDocument`` rows and asset records are ``ContentAsset`` rows of
-the active ``dtc-docs`` release, written by ``scripts/prod/import_docs.py``. No
-request reads the documentation repository, and none reads the reviewed
-``docs_projection.json`` the importer takes as its input either -- it lives
-outside this repository now, at ``~/prod/dtc-data/content-staging/`` (see
+Pages are ``SyncedDocument`` rows written by the ``community_base.content_sync``
+engine's ``dtc-docs`` parser (issue #384). No request reads the documentation
+repository, and none reads the reviewed ``docs_projection.json`` the old
+importer took as its input either -- it lives outside this repository now, at
+``~/prod/dtc-data/content-staging/`` (see
 ``_docs/architecture/database-only-content.md``). Only the asset *bytes* are
 still files, under ``content/docs_assets/``,
-and the record that names one is a database row. A database with no active docs
-release publishes nothing: the hub renders empty and every documentation route
-404s. That is the normal state before an ingest has run.
-
-``DOCS_SOURCE_REVISION`` is the upstream commit the reviewed input was cut at.
-The importer refuses a page or asset carrying any other revision, so a partial
-or superseded ingest fails there rather than publishing a mixture of document
-versions.
+and the record that names one is the synced page's own record. A database with
+no synced docs publishes nothing: the hub renders empty and every documentation
+route 404s. That is the normal state before a sync has run.
 
 The module name is a leftover from when these pages were served straight out of
 a checked-in JSON file. Read "projection" here as the documentation read model,
@@ -24,31 +19,35 @@ name has not been changed yet.
 
 from __future__ import annotations
 
+import hashlib
 import html
+import mimetypes
 import re
 import unicodedata
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from functools import lru_cache
 from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
 from types import MappingProxyType
 from typing import Any
 from urllib.parse import urlsplit
-from uuid import UUID
 
 import mistune
 from django.core.exceptions import ImproperlyConfigured
-from django.db import DatabaseError
-from django.db.models import F
+from django.db.models import Count, Max
 
-from .models import ContentAsset, ContentDocument, ContentRelease, ContentSource
+from .models import SyncedDocument
 from .services import sanitize_rendered_html
 
 DOCS_ASSET_ROOT = Path(__file__).with_name("docs_assets")
-#: The registered source whose active release publishes the documentation. One
-#: source, so the read path never has to choose between two of them.
-DOCS_SOURCE_STABLE_ID = "dtc-docs"
+#: The community_base sync source whose synced rows publish the documentation.
+#: One source, so the read path never has to choose between two of them.
+DOCS_ENGINE_SOURCE_SLUG = "dtc-docs"
 DOCS_CONTENT_KIND = "docs"
+#: The staged release that still publishes the docs until the pipeline retires;
+#: ``scripts/prod/import_docs.py`` shares this name with the synced source.
+DOCS_SOURCE_STABLE_ID = DOCS_ENGINE_SOURCE_SLUG
 DOCS_SOURCE_REVISION = "3f23e006ffdaa498bbc69697408853b6f5eb37dc"
 DOCS_ROOT_PATH = "/docs/"
 DOCS_SEARCH_URL = "https://github.com/DataTalksClub/docs/search"
@@ -588,80 +587,71 @@ def build_docs_navigation(pages: Iterable[Mapping[str, Any]]) -> DocsNavigationT
     )
 
 
-def _docs_release_filter() -> dict[str, Any]:
-    """The one active release of the enabled docs source, or nothing."""
+def docs_sync_stamp() -> tuple[int, str]:
+    """A cheap stamp that moves whenever the synced docs rows could have.
 
-    return {
-        "release__status": ContentRelease.Status.ACTIVE,
-        "release__source__enabled": True,
-        "release__source__stable_id": DOCS_SOURCE_STABLE_ID,
-    }
-
-
-def docs_active_release_id() -> str:
-    """The id of the release currently publishing the docs, or ``""``.
-
-    One cheap indexed lookup, with the same contract as
-    ``content.catalogue.active_release_id``: an absent source or pointer is a
-    genuinely empty docs corpus and reads as ``""``; a database failure raises,
-    so an outage can never enter a cache below disguised as content.
+    One aggregate, with the same contract as ``content.catalogue.active_release_id``:
+    it changes exactly when a sync writes the docs kinds, so a cached read follows a
+    sync instead of outliving it. A database failure raises, so an outage can never
+    enter a cache below disguised as an empty corpus.
     """
 
-    active = (
-        ContentSource.objects.filter(stable_id=DOCS_SOURCE_STABLE_ID, enabled=True)
-        .values_list("active_release_id", flat=True)
-        .first()
-    )
-    return str(active or "")
+    stamp = SyncedDocument.objects.filter(
+        source__slug=DOCS_ENGINE_SOURCE_SLUG, source__is_enabled=True
+    ).aggregate(total=Count("id"), latest=Max("updated_at"))
+    return (int(stamp["total"] or 0), str(stamp["latest"] or ""))
 
 
-def release_pages(release_id: str) -> tuple[dict[str, Any], ...]:
-    """The documentation pages of exactly one release.
+@lru_cache(maxsize=2)
+def _docs_synced_state(stamp: tuple[int, str]) -> dict[str, tuple[dict[str, Any], ...]]:
+    """The published pages and declared assets of exactly one synced state.
 
-    The query is bound to the release the caller's key names; releases are
-    immutable published snapshots, so a key's answer cannot drift. An empty id
-    is an absent pointer and answers empty without touching the database.
+    The query is bound to the stamp the cache key names, so a warmed answer
+    cannot outlive the rows it was read from: a sync changes the stamp, and the
+    next read rebuilds the state instead of serving stale pages. A zero count is
+    an absent source or an empty one -- an empty docs corpus, not a failure --
+    so it answers without reading rows.
+
+    Pages have no order of their own beyond the source navigation, which
+    :func:`build_docs_navigation` derives from the records; the assets come
+    back sorted by their public path so the read model is deterministic.
     """
 
-    if not release_id:
-        return ()
-    return tuple(
-        _page_record(row)
-        for row in ContentDocument.objects.filter(
+    if not stamp[0]:
+        return {"pages": (), "assets": ()}
+    rows = list(
+        SyncedDocument.objects.filter(
+            source__slug=DOCS_ENGINE_SOURCE_SLUG,
             content_kind=DOCS_CONTENT_KIND,
             is_published=True,
-            release_id=UUID(release_id),
-        ).values(
-            "exact_public_path",
-            "source_path",
-            "title",
-            "summary",
-            "raw_body",
-            "edit_url",
-            "checksum",
-            "adapter_metadata",
         )
     )
+    pages = tuple(_synced_page_record(row) for row in rows)
+    return {"pages": pages, "assets": _declared_assets(rows)}
 
 
-def _page_record(row: Mapping[str, Any]) -> dict[str, Any]:
+def _synced_page_record(row: SyncedDocument) -> dict[str, Any]:
     """One documentation page, as the navigation and templates read it.
 
     The hierarchy fields -- which page is a page's parent, where it sorts, whether
-    it draws a table of contents -- are the source's own front matter, so they
-    ride in the document's adapter metadata rather than in columns every content
-    kind would carry.
+    it draws a table of contents -- are the source's own front matter, so the
+    parser carries them inside the page's record rather than asking the row table
+    for columns every content kind would share.
     """
 
-    metadata = row["adapter_metadata"] or {}
+    record = row.record if isinstance(row.record, dict) else {}
+    metadata = record.get("metadata")
+    metadata = metadata if isinstance(metadata, dict) else {}
+    body = record.get("body")
+    body = body if isinstance(body, str) else ""
     return {
-        "public_path": row["exact_public_path"],
-        "source_path": row["source_path"],
-        "title": row["title"],
-        "description": row["summary"],
-        "body": row["raw_body"],
-        "edit_url": row["edit_url"],
-        "body_sha256": row["checksum"],
+        "public_path": row.public_path,
+        "source_path": record.get("source_path") or row.source_path,
+        "title": row.title,
+        "description": row.summary,
+        "body": body,
+        "edit_url": str(metadata.get("edit_url") or ""),
+        "body_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
         "parent": metadata.get("parent"),
         "parent_path": metadata.get("parent_path"),
         "grand_parent": metadata.get("grand_parent"),
@@ -673,53 +663,60 @@ def _page_record(row: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def docs_projection() -> dict[str, Any]:
-    """Return the published documentation pages and assets, read from the database.
+def _declared_assets(rows: Iterable[SyncedDocument]) -> tuple[dict[str, Any], ...]:
+    """The asset records the synced pages declare, sorted by public path.
 
-    A database with no active docs release publishes nothing: the hub renders
-    empty and every documentation route 404s. That is the normal state before an
-    ingest has run, not a failure.
+    A page's record names the images its body references; the asset bytes
+    themselves stay the design files checked in under ``content/docs_assets/``,
+    so a record's size and digest are read from the file it names. An asset
+    whose file is missing publishes nothing: the route would refuse it anyway.
     """
 
-    try:
-        pages = [
-            _page_record(row)
-            for row in ContentDocument.objects.filter(
-                content_kind=DOCS_CONTENT_KIND,
-                is_published=True,
-                release_id=F("release__source__active_release_id"),
-                **_docs_release_filter(),
-            ).values(
-                "exact_public_path",
-                "source_path",
-                "title",
-                "summary",
-                "raw_body",
-                "edit_url",
-                "checksum",
-                "adapter_metadata",
-            )
-        ]
-        assets = [
-            {
-                "public_path": row["stable_public_path"],
-                "source_path": row["source_path"],
-                "content_type": row["content_type"],
-                "size": row["size"],
-                "sha256": row["checksum"],
+    declared: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        record = row.record if isinstance(row.record, dict) else {}
+        images = record.get("images")
+        if not isinstance(images, list):
+            continue
+        for image in images:
+            if not isinstance(image, str) or not image.startswith("assets/"):
+                continue
+            public_path = f"/docs/assets/{image.removeprefix('assets/')}"
+            if public_path in declared:
+                continue
+            path = _asset_file(image)
+            if path is None:
+                continue
+            payload = path.read_bytes()
+            declared[public_path] = {
+                "public_path": public_path,
+                "source_path": image,
+                "content_type": mimetypes.guess_type(path.name)[0] or "application/octet-stream",
+                "size": len(payload),
+                "sha256": hashlib.sha256(payload).hexdigest(),
             }
-            for row in ContentAsset.objects.filter(
-                release_id=F("release__source__active_release_id"),
-                **_docs_release_filter(),
-            ).values("stable_public_path", "source_path", "content_type", "size", "checksum")
-        ]
-    except DatabaseError:
-        return {"pages": [], "assets": []}
-    return {"pages": pages, "assets": assets, "root_path": DOCS_ROOT_PATH}
+    return tuple(declared[public_path] for public_path in sorted(declared))
+
+
+def docs_projection() -> dict[str, Any]:
+    """Return the published documentation pages and assets, read from the synced rows.
+
+    A database with no synced docs publishes nothing: the hub renders empty and
+    every documentation route 404s. That is the normal state before a sync has
+    run, not a failure. A database failure raises rather than resolving to an
+    empty projection that a retry would then serve from cache (ARC-01).
+    """
+
+    state = _docs_synced_state(docs_sync_stamp())
+    return {
+        "pages": [dict(page) for page in state["pages"]],
+        "assets": [dict(asset) for asset in state["assets"]],
+        "root_path": DOCS_ROOT_PATH,
+    }
 
 
 def docs_pages() -> tuple[dict[str, Any], ...]:
-    return tuple(dict(page) for page in release_pages(docs_active_release_id()))
+    return tuple(docs_projection()["pages"])
 
 
 def docs_page(public_path: str) -> dict[str, Any] | None:
@@ -834,13 +831,12 @@ __all__ = [
     "docs_asset_path",
     "docs_navigation",
     "docs_navigation_tree",
-    "docs_active_release_id",
     "docs_page",
-    "docs_parent",
     "docs_pages",
+    "docs_parent",
     "docs_projection",
     "docs_sequential_navigation",
     "docs_sibling_navigation",
-    "release_pages",
+    "docs_sync_stamp",
     "render_docs_markdown",
 ]
