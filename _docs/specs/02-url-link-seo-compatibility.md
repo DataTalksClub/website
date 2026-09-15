@@ -150,47 +150,55 @@ continue to be called Podwiki where provenance requires it.
 
 ## Canonical course URLs
 
-The canonical course structure is (amended 2026-09-07 for the shared current curriculum; this
-table is the authority and `open-decisions.md` §5 records the same decision):
+The canonical course structure is (amended 2026-09-15: the owner reversed the 2026-09-07
+`cohorts/`-namespace decision back to the flat two-segment shape; `open-decisions.md` §5 records the
+same decision):
 
 | Canonical route | Meaning |
 | --- | --- |
 | `/courses/<family>` | course family landing page |
 | `/courses/<family>/<module-slug>` | shared current module of the family's one current curriculum |
 | `/courses/<family>/<module-slug>/<lesson-slug>` | shared current lesson |
-| `/courses/<family>/cohorts/<identifier>` | cohort landing page |
-| `/courses/<family>/cohorts/<identifier>/homework/<homework-slug>` | one cohort's assignment |
-| `/courses/<family>/cohorts/<identifier>/homework/<slug>/stats` | assignment statistics |
-| `/courses/<family>/cohorts/<identifier>/homework/<slug>/submissions` | assignment submissions |
-| `/courses/<family>/cohorts/<identifier>/leaderboard` | cohort leaderboard |
-| `/courses/<family>/cohorts/<identifier>/dashboard` | cohort dashboard |
-| `/courses/<family>/cohorts/<identifier>/projects` | cohort projects |
-| `/courses/<family>/cohorts/<identifier>/enrollment` | cohort enrollment |
-| `/courses/<family>/cohorts/<identifier>/calendar.ics` | cohort calendar feed |
+| `/courses/<family>/<identifier>` | cohort landing page |
+| `/courses/<family>/<identifier>/homework/<homework-slug>` | one cohort's assignment |
+| `/courses/<family>/<identifier>/homework/<slug>/stats` | assignment statistics |
+| `/courses/<family>/<identifier>/homework/<slug>/submissions` | assignment submissions |
+| `/courses/<family>/<identifier>/leaderboard` | cohort leaderboard |
+| `/courses/<family>/<identifier>/dashboard` | cohort dashboard |
+| `/courses/<family>/<identifier>/projects` | cohort projects |
+| `/courses/<family>/<identifier>/enrollment` | cohort enrollment |
+| `/courses/<family>/<identifier>/calendar.ics` | cohort calendar feed |
 
-Shared module/lesson paths carry no cohort, year, or `modules` segment: one family has one current
-curriculum, and every delivery references it. A shared module slug is a numbered slug
-(`01-agentic-rag`) and never collides with a cohort identifier because all cohort-specific routes
-are namespaced under `cohorts/<identifier>/`. Cohort identifiers are stable slug-like values;
-`year` is schedule/display metadata and is never a route identity (no route converter treats the
-identifier as numeric-only).
+A shared module page and a cohort landing page both resolve at the same bare
+`/courses/<family>/<segment>` shape; the route tries a cohort match first and falls back to a shared
+module match (`courses.views.shared_course.dispatch_two_segment_path`). The two identifier spaces
+can never actually collide: a `SharedModule` can't be created with a slug that matches an existing
+`Cohort.identifier` in the same family, and a `Cohort` can't be created with an identifier that
+matches an existing `SharedModule.slug` (model-level guards on both, enforced on every creation
+path, not just forms). `year` is schedule/display metadata and is never a route identity (no route
+converter treats the identifier as numeric-only). A small set of literal words that already sit at
+this same route position via the legacy edition-slug shim (`projects`, `leaderboard`, `enrollment`,
+`dashboard`) are reserved and rejected as cohort identifiers for the same reason.
 
-Explicit redirect-only aliases (each recorded in `_docs/compatibility/course-route-contracts.json`
-with owner, reason, and status; one hop, raw query preserved, GET/HEAD only — mutation routes keep
-direct compatibility adapters instead of redirects):
+The old `/courses/<family>/cohorts/<identifier>/...` namespace (canonical from 2026-09-07 to
+2026-09-15) is retired: one generic redirect (`courses.views.route_redirects
+.cohorts_prefix_redirect`) 301s any `.../cohorts/<suffix>` request to the flat shape above,
+preserving the rest of the path and the query string, rather than a manifest of per-route aliases.
 
-- old `/courses/<family>/<identifier>` cohort pages and every old operation child path;
-- old `/courses/<family>/<identifier>/modules/<module>/<lesson>` lesson pages;
+Other explicit redirect-only aliases (each recorded in
+`_docs/compatibility/course-route-contracts.json` with owner, reason, and status; one hop, raw query
+preserved, GET/HEAD only — mutation routes keep direct compatibility adapters instead of redirects):
+
 - legacy edition slugs (`/courses/llm-zoomcamp-2026/...`) and recorded root aliases from the
   reviewed family mapping;
 - known `courses.datatalks.club` HTML compatibility paths under the existing host/API migration
   contract.
 
 Unknown or malformed cohort identifiers are real `404`s; no alias target is ever inferred by year
-stripping, and no wildcard redirect exists. Canonical, Open Graph, breadcrumb, internal, and
-sitemap URLs never emit a cohort-specific lesson path: shared lessons are canonical at the
-cohort-free path, and `?cohort=<identifier>` context is a private response variant, never a
-canonical or sitemap location.
+stripping. Canonical, Open Graph, breadcrumb, internal, and sitemap URLs never emit a
+cohort-specific lesson path: shared lessons are canonical at the cohort-free path, and
+`?cohort=<identifier>` context is a private response variant, never a canonical or sitemap
+location.
 
 Existing SEO-bearing static course articles remain at their established `/blog/<slug>.html`
 canonical and link to the new course/cohort application. Clean and slash aliases redirect directly

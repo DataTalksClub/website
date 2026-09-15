@@ -84,29 +84,35 @@ the raw query. Route the old course hostname to compatibility views until all co
 then replace it with a Terraform-managed redirect Lambda using an explicit path map.
 
 Amendment (2026-09-07, planned under #320): the earlier "no `cohorts/` segment" sentence is
-replaced by the canonical route table below, which `02-url-link-seo-compatibility.md` repeats
-normatively. The shared current teaching routes carry no cohort, year, or `modules` segment; every
-cohort-specific operations route is explicitly namespaced under `cohorts/<identifier>/`.
+replaced by a canonical route table with every cohort-specific operations route explicitly
+namespaced under `cohorts/<identifier>/`.
+
+Amendment (2026-09-15, owner reversal): the `cohorts/`-namespace amendment above is reversed. The
+canonical route table is the flat two-segment shape below (identical to the pre-2026-09-07 shape),
+which `02-url-link-seo-compatibility.md` repeats normatively; that file also carries the redirect
+mechanism for the retired `cohorts/` namespace and the collision guards that keep a shared module
+slug and a cohort identifier from ever landing on the same bare route.
 
 | Canonical route | Meaning |
 | --- | --- |
 | `/courses/<family>` | course family landing page |
 | `/courses/<family>/<module-slug>` | shared current module (numbered slug, e.g. `01-agentic-rag`) |
 | `/courses/<family>/<module-slug>/<lesson-slug>` | shared current lesson |
-| `/courses/<family>/cohorts/<identifier>` | cohort landing page |
-| `/courses/<family>/cohorts/<identifier>/homework/<homework-slug>` | one cohort's assignment |
-| `/courses/<family>/cohorts/<identifier>/leaderboard` | cohort leaderboard |
-| `/courses/<family>/cohorts/<identifier>/dashboard` | cohort dashboard |
-| `/courses/<family>/cohorts/<identifier>/projects` | cohort projects |
-| `/courses/<family>/cohorts/<identifier>/calendar.ics` | cohort calendar feed |
+| `/courses/<family>/<identifier>` | cohort landing page |
+| `/courses/<family>/<identifier>/homework/<homework-slug>` | one cohort's assignment |
+| `/courses/<family>/<identifier>/leaderboard` | cohort leaderboard |
+| `/courses/<family>/<identifier>/dashboard` | cohort dashboard |
+| `/courses/<family>/<identifier>/projects` | cohort projects |
+| `/courses/<family>/<identifier>/calendar.ics` | cohort calendar feed |
 
 Cohort identifiers are stable slug-like values (`2026`, `spring-2027`, `self-paced`); `year` is
-schedule/display metadata and never identity. Legacy compatibility: the old two-segment
-`/courses/<family>/<identifier>` cohort pages and their operation children, the old
-`/courses/<family>/<identifier>/modules/<module>/<lesson>` lesson pages, and legacy edition slugs
-(`/courses/llm-zoomcamp-2026/...`) remain as explicit one-hop redirect aliases recorded in
-`_docs/compatibility/course-route-contracts.json` with owner, reason, and status. No wildcard
-redirect is permitted, and a shared module/lesson path never doubles as a cohort identifier.
+schedule/display metadata and never identity. Legacy compatibility: the retired
+`/courses/<family>/cohorts/<identifier>/...` namespace (canonical 2026-09-07 to 2026-09-15) is one
+generic redirect to the flat shape above; legacy edition slugs (`/courses/llm-zoomcamp-2026/...`)
+remain as explicit one-hop redirect aliases recorded in
+`_docs/compatibility/course-route-contracts.json` with owner, reason, and status. A shared
+module/lesson path never doubles as a cohort identifier -- enforced by a model-level guard on both
+`Cohort` and `SharedModule`, not just by route lookup order.
 
 Owner input received: no known external/third-party API consumers of `courses.datatalks.club`
 beyond browsers and the known internal paths already catalogued in

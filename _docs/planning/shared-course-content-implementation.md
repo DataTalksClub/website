@@ -1,6 +1,16 @@
 # Shared course content: complete implementation handoff
 
 Status as of 2026-09-07: **plan ready; website implementation and real course migrations not done**.
+
+**Amendment (2026-09-15):** the owner reversed the `cohorts/`-namespace route decision this plan
+was written against. `/courses/<family>/<identifier>/...` (no `cohorts/` segment) is canonical now;
+the `cohorts/`-prefixed shape (canonical 2026-09-07 to 2026-09-15) 301-redirects to it. Every
+concrete `cohorts/<identifier>` example URL below is stale for the *website route* shape -- treat it
+as historical unless it is a GitHub *source repository* path (`cohorts/<id>/...` inside a course
+repo), which is unaffected and still current. `_docs/specs/02-url-link-seo-compatibility.md` and
+`_docs/specs/open-decisions.md` §5 are the current route authority;
+`_docs/compatibility/shared-curriculum-route-aliases.json`, referenced throughout this plan's W0
+sections, no longer exists -- it was removed along with the decision it froze.
 This is the handoff entry point for a new implementation agent. It supersedes the
 earlier LLM-only rollout scope and includes Machine Learning Zoomcamp explicitly.
 This is an engineering plan, not a claim that the live website or GitHub course
@@ -224,13 +234,15 @@ These are the decisions to implement unless the owner changes the umbrella issue
    Delivery and operations are explicitly namespaced:
 
    ```text
-   /courses/llm-zoomcamp/cohorts/2026
-   /courses/llm-zoomcamp/cohorts/2026/homework/<homework-slug>
-   /courses/llm-zoomcamp/cohorts/2026/leaderboard
-   /courses/llm-zoomcamp/cohorts/2026/dashboard
-   /courses/llm-zoomcamp/cohorts/2026/projects
-   /courses/llm-zoomcamp/cohorts/2026/calendar.ics
+   /courses/llm-zoomcamp/2026
+   /courses/llm-zoomcamp/2026/homework/<homework-slug>
+   /courses/llm-zoomcamp/2026/leaderboard
+   /courses/llm-zoomcamp/2026/dashboard
+   /courses/llm-zoomcamp/2026/projects
+   /courses/llm-zoomcamp/2026/calendar.ics
    ```
+
+   (Amendment 2026-09-15: no `cohorts/` segment -- see the top-of-document amendment.)
 
    Cohort identifiers are stable slug-like values (`2026`, `spring-2027`,
    `self-paced`); `year` is schedule/display metadata and never the identity.
@@ -300,7 +312,7 @@ The following repository facts drive the work. They are not optional cleanup ite
 
 | Area | Current evidence | Required consequence |
 | --- | --- | --- |
-| URL routing | `courses/urls.py` requires a cohort for module/unit pages and uses two-segment paths; operation routes and legacy edition aliases are interleaved. | Add unambiguous shared paths and `/cohorts/<identifier>` operations. Keep explicit redirect aliases and update all reverse builders. |
+| URL routing | `courses/urls.py` requires a cohort for module/unit pages and uses two-segment paths; operation routes and legacy edition aliases are interleaved. | Add unambiguous shared paths and flat `/courses/<family>/<identifier>` cohort operations (amended 2026-09-15: no `cohorts/` segment). Keep explicit redirect aliases and update all reverse builders. |
 | Resolver | `courses/views/url_utils.py` uses `cohort_url_kwargs()` and `get_cohort_or_404()` with a misleading `cohort_year` argument. | Introduce semantic `cohort_identifier` helpers; retain an adapter for old callback kwargs during the transition. |
 | Curriculum models | `courses/models/curriculum.py` attaches `Module` to `Cohort`, `Unit` to `Module`, and `UnitReadState` to `Unit`; `Module` requires one terminal cohort homework. | Add separate shared graph and cohort placement/mapping models. Leave old rows and behavior intact for legacy/module cohorts. |
 | Importer | `courses/services/curriculum_import.py` duplicates each parsed module/unit into every cohort. | Branch on root shared modules and upsert one shared row per course/content ID; upsert only placement/mapping rows per cohort. Keep `CourseCurriculumImportRun` idempotence and atomic transaction. |
