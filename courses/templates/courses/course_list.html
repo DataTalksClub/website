@@ -842,9 +842,11 @@
           </div>
         </div>
       </section>
-      <p class="courses-projects-link">
-        <a class="band-link" href="{% url 'all_projects' %}">Browse every learner project, from every course →</a>
-      </p>
+      {% if all_projects_url %}
+        <p class="courses-projects-link">
+          <a class="band-link" href="{{ all_projects_url }}">Browse every learner project, from every course →</a>
+        </p>
+      {% endif %}
       <div id="courses">
         {% if open_registration_courses %}
           <section class="catalogue-section courses-open shell-breakout" aria-labelledby="open-heading">

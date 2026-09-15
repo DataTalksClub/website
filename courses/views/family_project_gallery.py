@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404, render
 
 from courses.models.cohort import Course
 from courses.views.project_gallery_groups import family_project_submissions
+from courses.views.site_project_gallery import optional_all_projects_url
 
 FAMILY_PROJECT_SUBMISSIONS_PAGE_SIZE = 25
 
@@ -37,5 +38,6 @@ def family_project_gallery_view(request, course_slug: str):
         "submissions": submissions_page.object_list,
         "submissions_page": submissions_page,
         "page_range": page_range,
+        "all_projects_url": optional_all_projects_url(),
     }
     return render(request, "projects/family_gallery.html", context)

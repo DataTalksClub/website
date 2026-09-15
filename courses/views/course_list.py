@@ -24,6 +24,7 @@ from courses.views.course_list_user_state import (
     mark_enrolled_courses,
     mark_registered_courses,
 )
+from courses.views.site_project_gallery import optional_all_projects_url
 
 
 @dataclass(frozen=True)
@@ -449,6 +450,7 @@ def course_list_context(request):
             open_registration_family_cards,
         ),
         "hero_register_url": hero_register_url,
+        "all_projects_url": optional_all_projects_url(),
         "show_active_courses": True,
         "show_open_registration": True,
         "show_finished": True,

@@ -75,9 +75,11 @@
       <a class="cta cta-compact cta-secondary interactive-lift" href="{{ course_family_url }}">
         Back to {{ course_family.title }}
       </a>
-      <a class="cta cta-compact cta-secondary interactive-lift" href="{% url 'all_projects' %}">
-        Browse other courses' projects
-      </a>
+      {% if all_projects_url %}
+        <a class="cta cta-compact cta-secondary interactive-lift" href="{{ all_projects_url }}">
+          Browse other courses' projects
+        </a>
+      {% endif %}
     </div>
   </div>
 {% endblock %}

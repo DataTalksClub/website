@@ -1,9 +1,28 @@
 from django.core.paginator import Paginator
 from django.shortcuts import render
+from django.urls import NoReverseMatch, reverse
 
 from courses.views.project_gallery_groups import site_project_submissions
 
 SITE_PROJECT_SUBMISSIONS_PAGE_SIZE = 25
+
+
+def optional_all_projects_url() -> str | None:
+    """Resolve the site-wide project gallery link without failing when it is absent.
+
+    ``all_projects`` is registered by the full site's ``website.urls``, which
+    ``course_management.urls`` (the reduced, courses-app-only URLConf the
+    studio/course-management deployment target runs) never includes. Templates
+    shared between both surfaces (``courses/course_list.html``,
+    ``projects/family_gallery.html``) call this instead of ``{% url
+    'all_projects' %}`` directly, so the link is simply left off rather than
+    raising ``NoReverseMatch`` when rendered under the reduced URLConf.
+    """
+
+    try:
+        return reverse("all_projects")
+    except NoReverseMatch:
+        return None
 
 
 def site_project_gallery_view(request):
