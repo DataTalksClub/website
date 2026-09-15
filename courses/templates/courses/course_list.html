@@ -189,9 +189,11 @@
         text-transform: uppercase;
       }
 
-      /* The one-line pointer to the cross-course project gallery, sitting on
-         the page's own cream/lavender ground rather than the dark stats band
-         above it -- .band-link's indigo underline needs the ordinary body
+      /* The one-line pointer to the cross-course project gallery.  It closes
+         the page, after the FAQ, rather than opening it -- the owner moved it
+         down so the catalogue itself is the first thing a reader meets.  It
+         still sits on the page's own cream/lavender ground, never a dark
+         band -- .band-link's indigo underline needs the ordinary body
          background to read. */
       .courses-projects-link {
         margin: 1.5rem auto 0;
@@ -264,253 +266,63 @@
         max-width: 44rem;
       }
 
-      /* --- open registration: the featured slab ------------------------------- */
+      /* --- catalogue cards ------------------------------------------------------
+         One card shape for every family, whatever its real registration state.
+         The owner asked for a plain, consistent list -- no badge, no background
+         or CTA that singles a card out -- so nothing here reads ``entry.kind``.
+         Cards sit in the shared three-column grid (design-system.md's
+         `.card-grid-3`), the same density the family page's own past-editions
+         grid already uses, kept deliberately light so it still reads well at a
+         third of the shell's width.  The illustration is a small quiet icon,
+         not a dominant banner -- only the generic per-family doodle ever draws
+         here (never a campaign's own authored photo, whose intrinsic
+         proportions are never guaranteed to be square), so it never crops or
+         distorts. */
 
-      .course-list {
-        display: grid;
-        gap: 1.4rem;
-      }
-
-      .open-card {
+      .catalog-card {
         display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 0;
-        padding: 0;
-      }
-
-      .open-card-body {
-        display: flex;
-        flex: 3 1 24rem;
         flex-direction: column;
-        gap: 0.7rem;
-        min-width: 0;
-        padding: clamp(1.4rem, 3vw, 2.25rem);
+        gap: 0.85rem;
+        padding: 1.25rem;
       }
 
-      .open-card-head {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem 0.8rem;
-      }
-
-      .open-card h3 {
-        font-size: clamp(1.6rem, 2.8vw, 2.25rem);
-        margin-top: 0.2rem;
-      }
-
-      .open-card h3 a {
-        color: var(--ink);
-        text-decoration: none;
-      }
-
-      .open-card-body > p {
-        font-size: 1rem;
-        max-width: 52ch;
-      }
-
-      .open-card-facts {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-      }
-
-      /* The comp's fact chips: soft rectangles on the band ground, not pills. */
-      .open-card-facts .chip {
-        background: var(--lavender);
-        border-color: var(--indigo-soft);
-        border-radius: 0.4375rem;
-        font-size: 0.78rem;
-      }
-
-      .chip-live {
-        border-radius: 0.375rem;
-      }
-
-      .open-card-media {
-        align-items: center;
-        background: var(--lavender);
-        border-left: 2px dashed var(--line-soft);
-        display: flex;
-        flex: 1 1 15rem;
-        justify-content: center;
-        min-width: 0;
-        padding: 1.5rem;
-      }
-
-      /* No crop, the same rule `register.html` already draws this exact
-         image by: the campaign artwork keeps its intrinsic proportions
-         (several of these are wide banners with baked-in text, not
-         squares) rather than being cover-cropped into a shape it was
-         never designed for. */
-      .open-card-media > img {
-        border: 2px solid var(--line);
-        border-radius: 1rem;
-        display: block;
-        height: auto;
-        max-width: 22rem;
-        width: 100%;
-      }
-
-      .open-card-media .doodle {
-        aspect-ratio: 1;
-        height: auto;
-        max-width: 16rem;
-        object-fit: contain;
-        width: 100%;
-      }
-
-      @media (max-width: 47.99rem) {
-        .open-card-media {
-          border-left: 0;
-          border-top: 2px dashed var(--line-soft);
-        }
-      }
-
-      /* --- running now: horizontal cards -------------------------------------- */
-
-      .active-card {
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 1.25rem;
-        padding: 1.4rem;
-      }
-
-      .active-card[role="link"] {
+      .catalog-card[role="link"] {
         cursor: pointer;
       }
 
-      .active-card-media {
+      .catalog-card-media {
         display: flex;
-        flex: none;
-        height: 8.5rem;
-        width: 8.5rem;
+        height: 3.5rem;
+        width: 3.5rem;
       }
 
-      .active-card-media > img,
-      .selfpaced-card-media > img {
-        background: var(--lavender);
-        border: 2px solid var(--line);
-        border-radius: 1.1rem;
-        height: 100%;
-        object-fit: cover;
-        object-position: left center;
-        width: 100%;
-      }
-
-      .active-card-media .doodle,
-      .selfpaced-card-media .doodle {
+      .catalog-card-media .doodle {
         height: 100%;
         object-fit: contain;
         width: 100%;
       }
 
-      .active-card-info {
+      .catalog-card-body {
         display: grid;
-        flex: 1 1 24rem;
-        gap: 0.55rem;
-        min-width: 0;
+        gap: 0.5rem;
       }
 
-      .active-card-info h3 {
-        font-size: clamp(1.4rem, 2.2vw, 1.75rem);
+      .catalog-card-body h3 {
+        font-size: clamp(1.15rem, 1.6vw, 1.4rem);
         letter-spacing: -0.015em;
       }
 
-      .active-card-info h3 a {
+      .catalog-card-body h3 a {
         color: var(--ink);
         text-decoration: none;
       }
 
-      .active-card-info > p {
-        font-size: 0.97rem;
-        max-width: 64ch;
+      .catalog-card-body p {
+        font-size: 0.92rem;
       }
 
-      .active-card-progress {
-        align-items: center;
-        color: var(--green-text);
-        display: flex;
-        font-family: var(--font-mono);
-        font-size: 0.72rem;
-        font-weight: 700;
-        gap: 0.45rem;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-      }
-
-      .active-card-when {
-        color: var(--muted);
-        font-family: var(--font-mono);
-        font-size: 0.78rem;
-      }
-
-      .active-card-side {
-        align-content: start;
-        display: flex;
-        flex: 1 1 17rem;
-        flex-direction: column;
-        gap: 0.9rem;
-        min-width: 0;
-      }
-
-      /* --- next assignment panel ---------------------------------------------- */
-
-      /* A full-width strip inside the card's side column, sized to the card
-         rather than to a band: the shared .panel inset is for band-level
-         modules. */
-      .assignment-panel {
-        background: var(--mint);
-        border: 1.5px solid var(--panel-line);
-        border-radius: 0.75rem;
-        gap: 0.35rem;
-        margin-block: 0;
-        padding: 0.85rem 1rem;
-      }
-
-      .assignment-head {
-        align-items: baseline;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.35rem 0.85rem;
-        justify-content: space-between;
-      }
-
-      .assignment-title {
-        color: var(--ink);
-        font-weight: 700;
-        line-height: 1.3;
-      }
-
-      /* --- actions ------------------------------------------------------------- */
-
-      /* Every surface ends with one action row: the surface's own destination
-         first, then the quiet links.  The row pins to the card foot. */
-      .card-actions {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem 1.25rem;
+      .catalog-card-link {
         margin-top: auto;
-        padding-top: 0.35rem;
-      }
-
-      .row-action {
-        align-items: center;
-        color: var(--indigo);
-        display: inline-flex;
-        font-size: 0.9rem;
-        font-weight: 600;
-        min-height: 2.75rem;
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
-      }
-
-      .course-card-registered {
-        color: var(--muted);
-        font-size: 0.85rem;
       }
 
       /* --- wrapped entry point ------------------------------------------ */
@@ -528,110 +340,11 @@
         justify-self: start;
       }
 
-      /* --- self-paced: cream cards ---------------------------------------------- */
-
-      /* A finished family with no live schedule or open campaign: warm cards on
-         the lavender ground, mixed into the one unified catalogue list rather
-         than a section of its own. */
-      .selfpaced-card {
-        align-items: flex-start;
-        background: var(--cream);
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 1.1rem 1.4rem;
-        padding: 1.4rem;
-      }
-
-      .selfpaced-card-media {
-        display: flex;
-        flex: none;
-        height: 6.5rem;
-        width: 6.5rem;
-      }
-
-      .selfpaced-card-media > img {
-        background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 1rem;
-        height: 100%;
-        object-fit: cover;
-        object-position: left center;
-        width: 100%;
-      }
-
-      .selfpaced-card-body {
-        display: grid;
-        flex: 1 1 22rem;
-        gap: 0.55rem;
-        min-width: 0;
-      }
-
-      .selfpaced-card-body h3 {
-        font-size: clamp(1.3rem, 2vw, 1.6rem);
-        letter-spacing: -0.015em;
-      }
-
-      .selfpaced-card-body h3 a {
-        color: var(--ink);
-        text-decoration: none;
-      }
-
-      .selfpaced-card-head {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem 0.7rem;
-      }
-
-      /* The SELF-PACED pill: a lavender-deep chip with an ink border, the
-         mockup's own quiet badge for this band. */
-      .selfpaced-pill {
-        background: var(--lavender-deep);
-        border: 1.5px solid var(--line);
-        border-radius: 0.375rem;
-        color: var(--ink);
-        font-family: var(--font-mono);
-        font-size: 0.68rem;
-        font-weight: 700;
-        letter-spacing: 0.1em;
-        padding: 0.25rem 0.55rem;
-        text-transform: uppercase;
-      }
-
-      .selfpaced-card-body > p {
-        font-size: 0.95rem;
-        max-width: 62ch;
-      }
-
-      .selfpaced-card-actions {
-        align-items: center;
-        align-self: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.6rem 1.1rem;
-      }
-
       /* --- keyboard-reachable whole cards ---------------------------------------- */
 
-      .course-card[role="link"],
-      .active-card[role="link"] {
-        cursor: pointer;
-      }
-
-      .course-card[role="link"]:focus-visible,
-      .active-card[role="link"]:focus-visible {
+      .catalog-card[role="link"]:focus-visible {
         outline: 3px solid var(--ink);
         outline-offset: 4px;
-      }
-
-      /* --- narrow layout: reshape, not reflow ------------------------------------- */
-
-      @media (max-width: 47.99rem) {
-        .active-card .card-actions .cta,
-        .open-card .card-actions .cta {
-          flex-basis: 100%;
-        }
       }
 
       /* --- how a zoomcamp works ----------------------------------------------------
@@ -838,204 +551,55 @@
           </div>
         </div>
       </section>
-      {% if all_projects_url %}
-        <p class="courses-projects-link">
-          <a class="band-link" href="{{ all_projects_url }}">Browse every learner project, from every course →</a>
-        </p>
-      {% endif %}
       <div id="courses">
         {% comment %}
-          One unified catalogue: every visible family in the site's reviewed order,
-          each card carrying its own honest state instead of being sorted into a
-          "running now" or "self-paced" section.  ``entry.kind`` is one of
-          ``active`` (join a cohort running now), ``open_dated`` (register for an
-          announced cohort with a real date), ``open_undated`` (register for
-          whatever cohort comes next -- no date invented), or the quiet card
-          (``self_paced`` / ``archived``) for a family with no live schedule at all.
+          One unified catalogue: every visible family, in the site's reviewed
+          order, as one plain and consistent grid of identical cards -- no
+          section, badge, background or CTA singles a card out by its state.
+          The view still computes each family's real state (``entry.kind``:
+          ``active``, ``open_dated``, ``open_undated``, ``self_paced`` or
+          ``archived``) because it drives real ordering and the family page's
+          own call to action -- it just is not drawn on the card.  Every card
+          links to that one real place: the family page, which always shows
+          its current, accurate state.  Three columns, the shared
+          ``.card-grid-3`` density the family page's own past-editions grid
+          already uses, so the card stays light: title, a one-line outcome,
+          one link.
         {% endcomment %}
         <section class="catalogue-section courses-catalog shell-breakout" aria-labelledby="catalog-heading">
           <div class="band-head">
             <div class="band-head-row">
               <h2 id="catalog-heading">Course catalogue</h2>
-              <span class="band-head-note">every zoomcamp we run, live or self-paced</span>
             </div>
-            <p class="band-head-sub">
-              Join a cohort that is running right now, register for whatever runs
-              next, or work through a self-paced edition on your own schedule.
-            </p>
           </div>
           {% if catalog_cards %}
-            <div class="course-list courses-catalog-list">
+            <div class="card-grid card-grid-3 courses-catalog-list">
               {% for entry in catalog_cards %}
                   {% url 'course_family' entry.family.slug as family_url %}
-                  {% url 'cohort' entry.family.slug entry.cohort.identifier as edition_url %}
-                  {% if entry.kind == 'active' %}
-                    <article class="card active-card interactive-card interactive-lift"
-                             role="link"
-                             tabindex="0"
-                             onclick="if (!event.target.closest('a, button')) window.location.href='{{ edition_url }}'"
-                             onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{{ edition_url }}'; }">
-                      <div class="active-card-media">
-                        {% with campaign=entry.cohort.registration_campaign %}
-                          {% if campaign.hero_image_url %}
-                            <img src="{{ campaign.hero_image_url }}" alt="" loading="lazy" decoding="async">
-                          {% else %}
-                            {% include "core/_course_illustration.html" with family_slug=entry.family.slug loading="lazy" only %}
-                          {% endif %}
-                        {% endwith %}
-                      </div>
-                      <div class="active-card-info">
-                        {% comment %}
-                          Unconditional: unlike index_enrolled_state (which is
-                          this viewer's own enrolment and stays empty for a
-                          signed-out reader), an "active" card is always a
-                          cohort that is genuinely running right now.
-                        {% endcomment %}
-                        <span class="active-card-progress">
-                          <span class="status-dot status-dot-pulse" aria-hidden="true"></span>in progress
-                        </span>
-                        <h3>
-                          <a href="{{ edition_url }}">{{ entry.title }}</a>
-                        </h3>
-                        {% if entry.cohort.index_when %}
-                          <span class="active-card-when">{{ entry.cohort.index_when }}</span>
-                        {% endif %}
-                        {% if entry.outcome %}
-                          <p>{{ entry.outcome }}</p>
-                        {% endif %}
-                        {% if entry.cohort.index_enrolled_state %}
-                          <span class="status-pill">{{ entry.cohort.index_enrolled_state }}</span>
-                        {% endif %}
-                      </div>
-                      <div class="active-card-side">
-                        {% if entry.cohort.home_current_assignment %}
-                          <div class="panel panel-mint panel-outlined assignment-panel">
-                            <div class="assignment-head">
-                              <span class="mono-label mono-label-green">{{ entry.cohort.home_current_assignment_label }}</span>
-                              <span class="mono-note">due {{ entry.cohort.home_current_assignment.due_date|user_datetime:request }}</span>
-                            </div>
-                            <span class="assignment-title">{{ entry.cohort.home_current_assignment.label }}: {{ entry.cohort.home_current_assignment.title }}</span>
-                          </div>
-                        {% endif %}
-                        <div class="card-actions">
-                          <a class="cta cta-secondary cta-compact interactive-lift" href="{{ edition_url }}">Join the cohort →</a>
-                          <a class="row-action" href="{{ family_url }}">All editions</a>
-                          {% if entry.github_repo_url %}
-                            <a class="row-action" href="{{ entry.github_repo_url }}">GitHub</a>
-                          {% endif %}
-                        </div>
-                      </div>
-                    </article>
-                  {% elif entry.kind == 'open_dated' or entry.kind == 'open_undated' %}
-                    {% comment %}
-                      Registration always happens on this site.  A dated card names
-                      the real cohort a campaign is promoting; an undated card still
-                      registers through a real, open campaign for whatever cohort
-                      comes next -- it just names no date, because none is set yet.
-                    {% endcomment %}
-                    <article class="card course-card open-card interactive-card interactive-lift"
-                             role="link"
-                             tabindex="0"
-                             onclick="if (!event.target.closest('a, button')) window.location.href='{{ family_url }}'"
-                             onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{{ family_url }}'; }">
-                      <div class="open-card-body">
-                        <div class="open-card-head">
-                          <span class="chip chip-live">registration open</span>
-                          {% if entry.kind == 'open_dated' and entry.cohort.index_dates %}
-                            <span class="mono-note">{{ entry.cohort.index_dates }}</span>
-                          {% elif entry.kind == 'open_undated' %}
-                            <span class="mono-note">next cohort — date not announced yet</span>
-                          {% endif %}
-                        </div>
-                        <h3>
-                            <a href="{{ family_url }}">{{ entry.title }}</a>
-                        </h3>
-                        {% if entry.outcome %}
-                          <p>{{ entry.outcome }}</p>
-                        {% endif %}
-                        {% if entry.kind == 'open_dated' %}
-                          {% if entry.cohort.index_length or entry.cohort.index_registered %}
-                            <div class="open-card-facts">
-                              {% if entry.cohort.index_length %}
-                                <span class="chip chip-plain">{{ entry.cohort.index_length }}</span>
-                              {% endif %}
-                              {% if entry.cohort.index_registered %}
-                                <span class="chip chip-plain">{{ entry.cohort.index_registered|thousands }} registered</span>
-                              {% endif %}
-                            </div>
-                          {% endif %}
-                        {% endif %}
-                        <div class="card-actions">
-                          {% if entry.kind == 'open_dated' %}
-                            {% if entry.cohort.registration_campaign and not entry.cohort.is_enrolled and not entry.cohort.is_registered %}
-                              <a class="cta cta-primary cta-compact interactive-lift" href="{% url 'registration_campaign' entry.cohort.registration_campaign.slug %}">Register</a>
-                            {% endif %}
-                            <a class="row-action" href="{{ edition_url }}">{{ entry.edition_label }} · {{ entry.cohort.identifier }} →</a>
-                          {% else %}
-                            <a class="cta cta-primary cta-compact interactive-lift" href="{% url 'registration_campaign' entry.next_campaign.slug %}">Register for the next cohort</a>
-                            <a class="row-action" href="{{ edition_url }}">{{ entry.cohort.identifier }} materials →</a>
-                          {% endif %}
-                          {% if entry.github_repo_url %}
-                            <a class="row-action" href="{{ entry.github_repo_url }}">GitHub</a>
-                          {% endif %}
-                        </div>
-                      </div>
-                      <div class="open-card-media">
-                        {% if entry.kind == 'open_dated' and entry.cohort.registration_campaign.hero_image_url %}
-                          <img src="{{ entry.cohort.registration_campaign.hero_image_url }}" alt="" loading="lazy" decoding="async">
-                        {% elif entry.kind == 'open_undated' and entry.next_campaign.hero_image_url %}
-                          <img src="{{ entry.next_campaign.hero_image_url }}" alt="" loading="lazy" decoding="async">
-                        {% else %}
-                          {% include "core/_course_illustration.html" with family_slug=entry.family.slug loading="lazy" only %}
-                        {% endif %}
-                      </div>
-                    </article>
-                  {% else %}
-                    {% comment %}
-                      The quiet card: a family with no live cohort running and no open
-                      campaign for what's next.  Self-paced editions read "self-paced";
-                      a family with neither offers only its materials, never an invented
-                      registration.
-                    {% endcomment %}
-                    <article class="card selfpaced-card interactive-card interactive-lift"
-                             role="link"
-                             tabindex="0"
-                             onclick="if (!event.target.closest('a, button')) window.location.href='{{ edition_url }}'"
-                             onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{{ edition_url }}'; }">
-                      <div class="selfpaced-card-media">
-                        {% with campaign=entry.cohort.registration_campaign %}
-                          {% if campaign.hero_image_url %}
-                            <img src="{{ campaign.hero_image_url }}" alt="" loading="lazy" decoding="async">
-                          {% else %}
-                            {% include "core/_course_illustration.html" with family_slug=entry.family.slug loading="lazy" only %}
-                          {% endif %}
-                        {% endwith %}
-                      </div>
-                      <div class="selfpaced-card-body">
-                        <div class="selfpaced-card-head">
-                          {% if entry.kind == 'self_paced' %}
-                            <span class="selfpaced-pill">self-paced</span>
-                          {% endif %}
-                          {% if entry.cohort.index_length %}
-                            <span class="mono-note">{{ entry.cohort.index_length }}</span>
-                          {% endif %}
-                        </div>
-                        <h3>
-                          <a href="{{ edition_url }}">{{ entry.title }}</a>
-                        </h3>
-                        {% if entry.outcome %}
-                          <p>{{ entry.outcome }}</p>
-                        {% endif %}
-                      </div>
-                      <div class="selfpaced-card-actions">
-                        <a class="cta cta-secondary cta-compact interactive-lift" href="{{ edition_url }}">Start now →</a>
-                        <a class="row-action" href="{{ family_url }}">All editions</a>
-                        {% if entry.github_repo_url %}
-                          <a class="row-action" href="{{ entry.github_repo_url }}">GitHub</a>
-                        {% endif %}
-                      </div>
-                    </article>
-                  {% endif %}
+                  <article class="card catalog-card interactive-card interactive-lift"
+                           role="link"
+                           tabindex="0"
+                           onclick="if (!event.target.closest('a, button')) window.location.href='{{ family_url }}'"
+                           onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{{ family_url }}'; }">
+                    <div class="catalog-card-media">
+                      {% comment %}
+                        Always the generic per-family illustration, never a
+                        campaign's own authored (and often non-square) hero
+                        photo: one consistent shape for every card, and a
+                        quieter icon rather than a dominant banner.
+                      {% endcomment %}
+                      {% include "core/_course_illustration.html" with family_slug=entry.family.slug loading="lazy" only %}
+                    </div>
+                    <div class="catalog-card-body">
+                      <h3>
+                        <a href="{{ family_url }}">{{ entry.title }}</a>
+                      </h3>
+                      {% if entry.outcome %}
+                        <p>{{ entry.outcome }}</p>
+                      {% endif %}
+                      <a class="band-link catalog-card-link" href="{{ family_url }}">View course →</a>
+                    </div>
+                  </article>
               {% endfor %}
             </div>
           {% else %}
@@ -1132,4 +696,9 @@
           — someone usually answers within a day.
         </p>
       </section>
+      {% if all_projects_url %}
+        <p class="courses-projects-link">
+          <a class="band-link" href="{{ all_projects_url }}">Browse every learner project, from every course →</a>
+        </p>
+      {% endif %}
 {% endblock %}

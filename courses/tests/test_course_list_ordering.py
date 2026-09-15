@@ -87,19 +87,9 @@ class CourseListOrderingTest(CourseListViewTestBase):
                 "cohort_identifier": shared_course.identifier,
             },
         )
-        catalogue_path = reverse(
-            "cohort",
-            kwargs={
-                "course_slug": shared_course.course.slug,
-                "cohort_identifier": shared_course.identifier,
-            },
-        )
-        catalogue_path = reverse(
-            "cohort",
-            kwargs={
-                "course_slug": shared_course.course.slug,
-                "cohort_identifier": shared_course.identifier,
-            },
+        family_path = reverse(
+            "course_family",
+            kwargs={"course_slug": shared_course.course.slug},
         )
 
         self.assertEqual(
@@ -111,9 +101,22 @@ class CourseListOrderingTest(CourseListViewTestBase):
             shared_course,
         )
         self.assertContains(homepage_response, f'href="{shared_path}"')
-        self.assertContains(course_list_response, f'href="{catalogue_path}"')
+        # The catalogue card links to the family page (the one place every card
+        # links, whatever its state) rather than this specific cohort route --
+        # the homepage's own catalogue still links the cohort route directly,
+        # asserted above.
+        self.assertContains(course_list_response, f'href="{family_path}"')
 
-    def test_active_and_finished_cards_link_to_their_cohort_routes(self):
+    def test_active_and_finished_cards_link_to_the_same_family_route(self):
+        """Every card links the same way now: to its family page, no exceptions.
+
+        The catalogue used to send an "active" card to its specific cohort route
+        and a "finished" card to its own cohort route too, each carrying its own
+        state-specific action.  The owner asked for one plain, consistent card:
+        every family, whatever its state, now points at the one real place that
+        always carries its accurate, current state -- the family page.
+        """
+
         today = timezone.localdate()
         active = self.create_course(
             "active-family-2026",
@@ -132,33 +135,18 @@ class CourseListOrderingTest(CourseListViewTestBase):
         response = self.course_list_response()
         content = response.content.decode()
         active_card = self.course_card_html(content, active)
-        active_url = reverse(
-            "cohort",
-            kwargs={
-                "course_slug": active.course.slug,
-                "cohort_identifier": active.identifier,
-            },
-        )
         active_family_url = reverse(
             "course_family",
             kwargs={"course_slug": active.course.slug},
         )
-        finished_url = reverse(
-            "cohort",
-            kwargs={
-                "course_slug": finished.course.slug,
-                "cohort_identifier": finished.identifier,
-            },
+        finished_family_url = reverse(
+            "course_family",
+            kwargs={"course_slug": finished.course.slug},
         )
 
-        self.assertIn(f"window.location.href='{active_url}'", active_card)
-        self.assertIn(f'href="{active_url}">Active Family</a>', active_card)
-        self.assertNotIn(
-            f"window.location.href='{active_family_url}'",
-            active_card,
-        )
-        self.assertIn(f'href="{active_family_url}">All editions</a>', active_card)
-        self.assertIn(f'href="{finished_url}">Finished Family</a>', content)
+        self.assertIn(f"window.location.href='{active_family_url}'", active_card)
+        self.assertIn(f'href="{active_family_url}">Active Family</a>', active_card)
+        self.assertIn(f'href="{finished_family_url}">Finished Family</a>', content)
 
     def test_catalogue_has_one_family_card_for_multiple_cohorts(self):
         today = timezone.localdate()
@@ -198,17 +186,8 @@ class CourseListOrderingTest(CourseListViewTestBase):
         self.assertContains(response, family.title)
         self.assertContains(response, family.outcome)
         self.assertNotContains(response, "Catalogue Course 2025")
+        self.assertNotContains(response, "Catalogue Course 2026")
         self.assertIn('/courses/catalogue-course"', content)
-        self.assertIn(
-            reverse(
-                "cohort",
-                kwargs={
-                    "course_slug": family.slug,
-                    "cohort_identifier": current.identifier,
-                },
-            ),
-            content,
-        )
 
     def test_empty_family_outcome_is_rendered_as_empty_without_boilerplate(self):
         family = Course.objects.create(
@@ -237,7 +216,16 @@ class CourseListOrderingTest(CourseListViewTestBase):
             "Edition description must not replace family outcome.",
         )
 
-    def test_open_registration_card_rendered(self):
+    def test_open_registration_card_rendered_like_every_other_card(self):
+        """A family with an open, dated registration gets no special card treatment.
+
+        The catalogue used to badge this state ("registration open" chip, a
+        different card background).  The owner removed all of that: the card
+        looks exactly like every other family's, and only the underlying state
+        computation (still real) decides where it sorts and what the family
+        page itself offers.
+        """
+
         today = timezone.localdate()
         upcoming = self.create_course(
             "upcoming-course",
@@ -249,10 +237,8 @@ class CourseListOrderingTest(CourseListViewTestBase):
         response = self.course_list_response()
         content = response.content.decode()
 
-        # The catalogue is one unified list now (no "Registration open" section
-        # heading); a dated, open-for-registration card still marks itself with the
-        # design system's mono status pill, uppercased in CSS.
-        self.assertIn("registration open", content)
+        self.assertNotContains(response, "registration open")
+        self.assertNotContains(response, "self-paced")
         family_url = reverse(
             "course_family",
             kwargs={"course_slug": upcoming.course.slug},

@@ -119,12 +119,14 @@ class CourseIllustrationTests(SimpleTestCase):
 
 class CourseIllustrationPageTests(TestCase):
     def test_existing_card_sections_keep_actions_and_matching_art(self):
-        states = (
-            ("ml-zoomcamp", "open_registration", "open-card-media"),
-            ("de-zoomcamp", "active", "active-card-media"),
-            ("llm-zoomcamp", "finished", "selfpaced-card-media"),
-        )
-        for slug, state, media_class in states:
+        # One consistent card for every state now (no badge, no per-state
+        # background or media class) -- the owner's "no special treatment"
+        # ask -- so every family renders the same ``catalog-card-media`` class
+        # and links to its family page, whatever its real registration state.
+        states = ("open_registration", "active", "finished")
+        for slug, state in zip(
+            ("ml-zoomcamp", "de-zoomcamp", "llm-zoomcamp"), states
+        ):
             family, _ = Course.objects.get_or_create(slug=slug, defaults={"title": slug})
             cohort = Cohort.objects.create(
                 course=family,
@@ -145,15 +147,22 @@ class CourseIllustrationPageTests(TestCase):
                 )
             with self.subTest(state=state):
                 response = self.client.get(reverse("course_list"))
-                self.assertContains(response, f'class="{media_class}"')
+                self.assertContains(response, 'class="catalog-card-media"')
                 self.assertContains(response, static(f"core/illustrations/course-{slug}.webp"))
-                self.assertContains(response, reverse("cohort", args=[slug, "card-test"]))
+                self.assertContains(response, reverse("course_family", args=[slug]))
                 self.assertNotContains(response, "mascot needed")
-        self.assertContains(
-            response, reverse("registration_campaign", args=["art-open-registration"])
-        )
 
-    def test_authored_campaign_image_is_preserved(self):
+    def test_catalogue_ignores_campaign_art_for_one_consistent_icon(self):
+        """Every catalogue card draws the same generic icon, campaign art or not.
+
+        A campaign's own hero photo is not guaranteed to be square (several are
+        wide banners with baked-in text), so drawing it in the catalogue's small,
+        uniform icon slot would crop or distort it -- and single that family's
+        card out, which is exactly what the owner's "no special treatment" ask
+        ruled out.  The photo still has a real home: the family's own
+        registration surfaces.  The catalogue draws only the generic doodle.
+        """
+
         family = Course.objects.create(slug="campaign-art-family", title="Campaign art")
         cohort = Cohort.objects.create(
             course=family, slug="campaign-art", identifier="2026", title=family.title
@@ -165,7 +174,8 @@ class CourseIllustrationPageTests(TestCase):
             hero_image_url="https://example.org/authored-cover.png",
         )
         response = self.client.get(reverse("course_list"))
-        self.assertContains(response, 'src="https://example.org/authored-cover.png"')
+        self.assertNotContains(response, "https://example.org/authored-cover.png")
+        self.assertContains(response, static("core/illustrations/course-learning.webp"))
         self.assertNotContains(response, "mascot needed")
 
     def test_family_pages_and_catalogue_render_the_matching_static_files(self):

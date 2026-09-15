@@ -479,11 +479,12 @@ class MainHomepageRoutingTests(TestCase):
         # other catalogues. Assert that the course index does not render any
         # filter control, rather than rejecting the shared CSS definition.
         self.assertNotContains(everything, 'class="filter-pill')
-        # One unified catalogue -- no "running now" / "registration open" sections --
-        # so both families render as cards in the same list.
+        # One unified, plain catalogue -- no "running now" / "registration open"
+        # sections or badges -- so both families render as identical cards in
+        # the same list.
         self.assertContains(everything, "Course catalogue")
         self.assertContains(everything, "Synthetic active course")
-        self.assertContains(everything, "registration open")
+        self.assertNotContains(everything, "registration open")
         self.assertContains(everything, "Synthetic registration course")
 
         # The index renders every band for every reader: the query string has
@@ -544,8 +545,15 @@ class MainHomepageRoutingTests(TestCase):
         # card uses the family title while the edition identifier remains in
         # the action link's cohort path.
         self.assertLess(catalog.index(active.title), catalog.index(archived.course.title))
-        self.assertIn(archived.canonical_url_path, content)
-        self.assertContains(response, "registration open")
+        # Every card links to its family page now -- the one place every family's
+        # card links, whatever its state -- rather than a state badge or a direct
+        # cohort route.
+        self.assertIn(
+            reverse("course_family", kwargs={"course_slug": archived.course.slug}),
+            content,
+        )
+        self.assertNotContains(response, "registration open")
+        self.assertNotContains(response, "self-paced")
         self.assertNotContains(response, 'id="course-families-heading"')
         self.assertNotContains(response, "No active cohort coursework right now.")
         self.assertContains(

@@ -9,21 +9,19 @@ class CourseListMetadataTest(CourseListViewTestBase):
         response = self.course_list_response()
 
         self.assertEqual(response.status_code, 200)
+        # The duration, dates and next-assignment facts stay real context data the
+        # view computes for every cohort (`home_duration_label`,
+        # `home_current_assignment`) even though the plain, consistent catalogue
+        # card no longer displays them -- the owner's "no special treatment" ask
+        # trimmed the card to a title, one outcome line and a "View course" link;
+        # that richer detail lives on the family and cohort pages instead.
         self.assert_active_course_metadata(response)
-        # Design system writes a single-year run as one compressed range (issue #179).
-        self.assertContains(response, "Jan 15 – Apr 15, 2026")
-        self.assertContains(response, "13 weeks")
         self.assertContains(response, "Database-provided course summary.")
-        self.assertContains(response, "Submitted Homework")
         self.assert_active_course_card(response)
         self.assert_archive_course_row(response, archive_course)
         self.assertNotContains(
             response,
             "https://courses.datatalks.club/test-course/register",
-        )
-        self.assertContains(
-            response,
-            "https://github.com/DataTalksClub/test-course",
         )
         self.assertNotContains(response, "home-stats-grid")
         self.assertNotContains(response, "Course page")

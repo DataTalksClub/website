@@ -115,8 +115,7 @@ class InteractiveSurfaceContractTests(SimpleTestCase):
             ),
             "templates/public/wiki_hub.html": ("explore-row interactive-card interactive-lift",),
             "courses/templates/courses/course_list.html": (
-                "active-card interactive-card interactive-lift",
-                "course-card open-card interactive-card interactive-lift",
+                "catalog-card interactive-card interactive-lift",
             ),
         }
         for relative, fragments in expected.items():
