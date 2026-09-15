@@ -349,11 +349,8 @@ def open_registration_registered_total(open_registration_family_cards):
     return sum(counts)
 
 
-# Decorative site illustrations for the hero collage, paired with the collage
-# captions (real family titles from the database).  The artwork is the shared
-# illustration set the homepage already carries; each entry names the
-# light/dark file pair rendered by the template.
-HERO_COLLAGE_ILLUSTRATIONS = ("reading", "pipeline", "shipping", "learner")
+# Preserve existing dark scenes while light illustrations follow the family.
+HERO_COLLAGE_DARK_ILLUSTRATIONS = ("reading", "pipeline", "shipping", "learner")
 
 
 def hero_collage_cards(active_family_cards, open_registration_family_cards):
@@ -363,16 +360,20 @@ def hero_collage_cards(active_family_cards, open_registration_family_cards):
     for card in [*active_family_cards, *open_registration_family_cards]:
         titles_by_slug.setdefault(card.family.slug, card.title)
 
-    ordered_titles = []
+    ordered_families = []
     for family_slug, _title in COURSE_FAMILIES:
         title = titles_by_slug.pop(family_slug, None)
         if title:
-            ordered_titles.append(title)
-    ordered_titles.extend(titles_by_slug.values())
+            ordered_families.append((family_slug, title))
+    ordered_families.extend(titles_by_slug.items())
 
     return [
-        {"title": title, "illustration": HERO_COLLAGE_ILLUSTRATIONS[index % 4]}
-        for index, title in enumerate(ordered_titles[:4])
+        {
+            "title": title,
+            "family_slug": family_slug,
+            "dark_illustration": HERO_COLLAGE_DARK_ILLUSTRATIONS[index],
+        }
+        for index, (family_slug, title) in enumerate(ordered_families[:4])
     ]
 
 
