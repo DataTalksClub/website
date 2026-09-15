@@ -5,12 +5,13 @@ database, so the tests do either: every input here is a stub that carries the
 attributes the composer reads, nothing more.
 """
 
+from datetime import date
 from types import SimpleNamespace
 
 from django.test import SimpleTestCase
 
 from courses.course_page_content import (
-    family_capstone_project,
+    family_edition_rows,
     family_project_cards,
     family_story_rows,
     family_syllabus_rows,
@@ -89,17 +90,60 @@ class FamilyProjectCardsTests(SimpleTestCase):
             [("2025", "capstone-1"), ("2025", "capstone-2")],
         )
 
+
+class FamilyEditionRowsTests(SimpleTestCase):
+    """The campaign that promotes a cohort must not freeze its pill in time.
+
+    A regression: the promoted edition's pill used to read "registration
+    open" unconditionally, even long after the cohort itself had started,
+    because the promoted-cohort branch was checked before the dates were.
+    """
+
+    def _edition(self, **cohort_overrides):
+        cohort = SimpleNamespace(
+            pk=1,
+            start_date=None,
+            end_date=None,
+            delivery_mode="",
+        )
+        for name, value in cohort_overrides.items():
+            setattr(cohort, name, value)
+        return SimpleNamespace(cohort=cohort), cohort
+
+    def test_promoted_cohort_reads_in_progress_once_it_has_started(self):
+        today = date(2026, 9, 15)
+        edition, cohort = self._edition(
+            start_date=date(2026, 9, 14), end_date=date(2027, 1, 25)
+        )
+
+        rows = family_edition_rows([edition], cohort, today)
+
+        self.assertEqual(rows[0].state_words, "in progress")
+        self.assertEqual(rows[0].state_pill_class, "status-pill-live")
+
+    def test_promoted_cohort_still_reads_registration_open_before_it_starts(self):
+        today = date(2026, 8, 1)
+        edition, cohort = self._edition(
+            start_date=date(2026, 9, 14), end_date=date(2027, 1, 25)
+        )
+
+        rows = family_edition_rows([edition], cohort, today)
+
+        self.assertEqual(rows[0].state_words, "registration open")
+        self.assertEqual(rows[0].state_pill_class, "status-pill-open")
+
+    def test_promoted_cohort_past_its_end_date_reads_finished(self):
+        today = date(2027, 2, 1)
+        edition, cohort = self._edition(
+            start_date=date(2026, 9, 14), end_date=date(2027, 1, 25)
+        )
+
+        rows = family_edition_rows([edition], cohort, today)
+
+        self.assertEqual(rows[0].state_words, "finished")
+        self.assertEqual(rows[0].state_pill_class, "status-pill-wait")
+
     def test_no_edition_holds_projects(self):
         empty = SimpleNamespace(cohort=SimpleNamespace(identifier="2026"), projects=[])
 
         self.assertEqual(family_project_cards([empty]), ())
-
-
-class FamilyCapstoneProjectTests(SimpleTestCase):
-    def test_the_last_project_is_the_capstone(self):
-        projects = [SimpleNamespace(slug="midterm"), SimpleNamespace(slug="capstone")]
-
-        self.assertEqual(family_capstone_project(projects).slug, "capstone")
-
-    def test_no_projects_no_capstone(self):
-        self.assertIsNone(family_capstone_project([]))

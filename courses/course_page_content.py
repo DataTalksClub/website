@@ -149,25 +149,30 @@ def family_edition_rows(
 ) -> tuple[FamilyEditionRow, ...]:
     """Name each visible edition's state from its own record.
 
-    The edition a campaign is actively promoting is "registration open"; a self-paced
-    edition says so; a dated edition reads against today. Anything the data cannot
-    place draws no pill at all rather than a guess, and the words are the state —
-    the pill colour only reinforces them.
+    The edition a campaign is actively promoting reads "registration open" only
+    while it genuinely hasn't started yet — the same reading
+    ``courses.views.dashboard_context.dashboard_lifecycle_status`` gives one
+    cohort's own hero pill. Once its start date has passed, the promoted
+    edition is "in progress" like any other, because the campaign still
+    pointing at it doesn't make the cohort any less under way. A self-paced
+    edition says so; any other dated edition reads against today. Anything the
+    data cannot place draws no pill at all rather than a guess, and the words
+    are the state — the pill colour only reinforces them.
     """
 
     rows: list[FamilyEditionRow] = []
     for edition in editions:
         cohort = edition.cohort
-        if registration_cohort is not None and cohort.pk == registration_cohort.pk:
+        is_promoted = registration_cohort is not None and cohort.pk == registration_cohort.pk
+        started = bool(cohort.start_date) and cohort.start_date <= today
+        if is_promoted and not started:
             words, variant = "registration open", "open"
         elif getattr(cohort, "delivery_mode", "") == "self_paced":
             words, variant = "self-paced", ""
-        elif (
-            cohort.start_date and cohort.end_date and cohort.start_date <= today <= cohort.end_date
-        ):
-            words, variant = "in progress", "live"
         elif cohort.end_date and cohort.end_date < today:
             words, variant = "finished", "wait"
+        elif started:
+            words, variant = "in progress", "live"
         else:
             words, variant = "", ""
         rows.append(
@@ -178,6 +183,26 @@ def family_edition_rows(
             )
         )
     return tuple(rows)
+
+
+def split_current_edition(
+    rows: tuple[FamilyEditionRow, ...],
+) -> tuple[FamilyEditionRow | None, tuple[FamilyEditionRow, ...]]:
+    """Pull the one edition that's actually live right now out of the strip.
+
+    Owner feedback (2026-09): a visitor doesn't need "finished" or "in
+    progress" spelled out on every card -- the cohort that's open for
+    registration or already under way is the one worth a prominent card of
+    its own, and everything else is honestly just "previous cohorts", no
+    per-card state word required.
+    """
+
+    current = next(
+        (row for row in rows if row.state_words in ("registration open", "in progress")),
+        None,
+    )
+    previous = tuple(row for row in rows if row is not current)
+    return current, previous
 
 
 def family_registration_specs(
@@ -287,12 +312,3 @@ def family_project_cards(editions: list) -> tuple[FamilyProjectCard, ...]:
     return ()
 
 
-def family_capstone_project(projects: list):
-    """The edition's closing artifact: its last project, or none.
-
-    A course's project list runs in submission order and ends with the
-    capstone attempts, so the tail of the list is the closest thing the data
-    has to "the capstone" without second-guessing an editor's titles.
-    """
-
-    return projects[-1] if projects else None
