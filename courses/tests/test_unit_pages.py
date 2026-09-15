@@ -552,7 +552,11 @@ class PublicUnitPageTests(TestCase):
 
         article = self.unit_article(self.first_unit)
 
-        self.assertIn('<a href="https://www.youtube.com/watch?v=Crm_5n4mvmg">', article)
+        self.assertIn(
+            '<a href="https://www.youtube.com/watch?v=Crm_5n4mvmg" target="_blank" '
+            'rel="noopener noreferrer">',
+            article,
+        )
         self.assertIn(
             '<img src="https://raw.githubusercontent.com/DataTalksClub/llm-zoomcamp'
             '/main/cohorts/2026/01-agentic-rag/lessons/images/thumbnail-1-01.jpg"',
