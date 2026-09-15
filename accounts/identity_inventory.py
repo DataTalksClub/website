@@ -211,7 +211,7 @@ def account_inventory() -> dict[str, Any]:
         "account_login_methods": sorted(settings.ACCOUNT_LOGIN_METHODS),
         # Read the adapter's actual gate rather than a setting nobody
         # enforces, so this report cannot drift from what `/accounts/signup/`
-        # really does.  No request is in play here; `ClosedAccountAdapter`
+        # really does.  No request is in play here; `AccountAdapter`
         # (and allauth's own `DefaultAccountAdapter`) ignore it.
         "account_registration_enabled": get_account_adapter().is_open_for_signup(None),
         "account_fields": fields,

@@ -215,10 +215,16 @@ ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USER_MODEL_EMAIL_FIELD = "email"
-# `ACCOUNT_ALLOW_REGISTRATION` is not a real allauth setting name — allauth
-# gates signup entirely through the adapter's `is_open_for_signup()`. The
-# actual gate for the plain email/password path is `ACCOUNT_ADAPTER` below;
-# see `ClosedAccountAdapter` in `accounts/auth.py`.
+# Signup is open (`accounts.auth.AccountAdapter`/
+# `ConsolidatingSocialAccountAdapter` both answer `is_open_for_signup` with
+# `True`). Most members already have a CMP-imported identity, so a duplicate
+# email on plain signup is the common case, not the exception — surface it
+# plainly rather than silently, hence `PREVENT_ENUMERATION = False`: a plain
+# signup with an email that already has an account gets a real "an account
+# already exists" error (custom wording in `AccountAdapter`) instead of
+# allauth's default silent no-op-and-email behavior, and never creates a
+# second, conflicting account.
+ACCOUNT_PREVENT_ENUMERATION = False
 
 # Course registration is account-owned (`_docs/specs/open-decisions.md` §6,
 # `_docs/specs/04-courses-and-cohorts.md`), and the signed-in-home spec §8.3
@@ -227,7 +233,7 @@ ACCOUNT_USER_MODEL_EMAIL_FIELD = "email"
 # owner can turn it off on evidence rather than on argument, without a code
 # change.  Default on.
 REGISTRATION_REQUIRES_ACCOUNT = env_flag("REGISTRATION_REQUIRES_ACCOUNT", default=True)
-ACCOUNT_ADAPTER = "accounts.auth.ClosedAccountAdapter"
+ACCOUNT_ADAPTER = "accounts.auth.AccountAdapter"
 SOCIALACCOUNT_ADAPTER = "accounts.auth.ConsolidatingSocialAccountAdapter"
 SOCIALACCOUNT_LOGIN_ON_GET = True
 # `user:email` is what makes GitHub return the address list with its own

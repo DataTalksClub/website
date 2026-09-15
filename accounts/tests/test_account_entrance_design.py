@@ -1,24 +1,21 @@
 """The account entrance family, rebuilt on the design system.
 
-`/accounts/signup/` is where the homepage's primary call to action lands. It
-was once the last page in the flow still rendering allauth's unstyled default
-document, and `AccountEntranceDocumentTests` below still holds every entrance
-page — signup included — to the design system's own document contract (one
-inline stylesheet, the shared shell, the cream/lavender seam).
+`/accounts/signup/` is where the homepage's primary call to action lands.
+`AccountEntranceDocumentTests` below holds every entrance page — signup
+included — to the design system's own document contract (one inline
+stylesheet, the shared shell, the cream/lavender seam).
 
-Since `accounts.auth.ClosedAccountAdapter` closed plain email/password signup
-(see `accounts/tests/test_plain_signup_closed.py`, which pins that with real
-HTTP assertions), `/accounts/signup/` no longer renders an interactive form:
-every GET and POST renders `account/signup_closed.html` instead of
-`account/signup.html`. Most of what `SignupPageTests` and
-`SignupProviderChoiceTests` used to check — field labels, autocomplete,
-CSRF/`next` plumbing on the live form, provider buttons, the error-state
-accessibility wiring — checked controls that do not exist any more, and those
-tests were retired rather than bent to pass against a page that has neither a
-form nor providers. What is left in those two classes is what is still
-genuinely theirs: the one template-sharing assertion that survives as a
-login-only check, and the provider-partial test that never depended on the
-signup route being open in the first place.
+Signup is open (`accounts.auth.AccountAdapter`): a GET renders the real
+interactive form (`account/signup.html`), same as before the account
+takeover fix that briefly closed it (`accounts/tests/test_plain_signup_closed.py`
+pins the current, open behavior, including how a matching email is now
+refused with a plain error rather than a blanket closed page). Field-level
+coverage of the live form (labels, autocomplete, CSRF/`next` plumbing,
+provider ordering, error-state accessibility) is not rebuilt in this class —
+that was retired when signup closed and is not restored here; the one
+template-sharing assertion below is what has stayed continuously true
+throughout, and the provider-partial test never depended on the signup route
+being open in the first place.
 """
 
 from __future__ import annotations
@@ -91,41 +88,35 @@ class AccountEntranceDocumentTests(TestCase):
 
 
 class SignupPageTests(TestCase):
-    """What is still this class's to check, now that signup itself is closed.
+    """What is still this class's to check.
 
-    Every other test that used to live here — the rebuilt-template check, field
-    labels and autocomplete, the CSRF token and `action` target, the `next`
-    hidden input, the legal-reassurance links, both error-state accessibility
-    tests — checked an interactive form (`account/signup.html`) that
-    `accounts.auth.ClosedAccountAdapter` no longer lets a signed-out visitor
-    reach. They were retired outright rather than pointed at
-    `account/signup_closed.html`, which has none of those controls to check;
-    `accounts/tests/test_plain_signup_closed.py` already pins what that page
-    renders instead.
+    Deeper field-level coverage that used to live here — labels and
+    autocomplete, the CSRF token and `action` target, the `next` hidden
+    input, the legal-reassurance links, both error-state accessibility tests
+    — was retired when signup briefly closed and is not rebuilt here now that
+    it is open again; `accounts/tests/test_plain_signup_closed.py` covers the
+    current open/refused behavior at the HTTP level instead.
 
-    One assertion survives, changed rather than deleted: `signup` and `login`
-    used to be shown extending the same `account/auth_page.html` template.
-    Signup no longer does — `signup_closed.html` is its own standalone
-    document — so only login's half of that claim is still true, and is kept
-    here as a login-only check rather than dropped along with the rest.
+    `signup` and `login` both extend `account/auth_page.html` again now that
+    signup renders the real form.
     """
 
-    def test_login_still_extends_the_shared_auth_document(self) -> None:
+    def test_signup_and_login_extend_the_shared_auth_document(self) -> None:
+        signup = self.client.get("/accounts/signup/")
         login = self.client.get("/accounts/login/")
 
+        self.assertTemplateUsed(signup, "account/auth_page.html")
         self.assertTemplateUsed(login, "account/auth_page.html")
 
 
 class SignupProviderChoiceTests(TestCase):
-    """What is still this class's to check, now that signup itself is closed.
+    """What is still this class's to check.
 
-    This class used to prove the provider block actually rendered on
-    `/accounts/signup/`: named controls, correct destinations and `next`
-    propagation, decorative brand marks, ordering ahead of the email form.
-    None of that renders any more — `account/signup_closed.html` has no
-    provider block at all — so those four tests, and the `SocialApp`/`Site`
-    fixtures (`setUpTestData`/`setUp`) they alone needed, were retired
-    outright rather than pointed at a page with nothing left to find.
+    Deeper coverage that used to live here — named controls, correct
+    destinations and `next` propagation, decorative brand marks, ordering
+    ahead of the email form, and the `SocialApp`/`Site` fixtures they alone
+    needed — was retired when signup briefly closed and is not rebuilt here
+    now that it is open again.
 
     `test_the_provider_partial_accepts_links_from_another_template` below
     never depended on the signup route being open — it renders

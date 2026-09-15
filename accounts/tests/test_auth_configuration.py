@@ -158,13 +158,9 @@ class LoginPageConfigurationTests(TestCase):
                 self.assertNotContains(response, "Choose your preferred login method")
 
     def test_seeded_cmp_providers_render_on_login(self) -> None:
-        # This used to check both `/accounts/login/` and `/accounts/signup/`.
-        # The signup half was retired: `/accounts/signup/` now renders
-        # `account/signup_closed.html` unconditionally (`ClosedAccountAdapter`,
-        # pinned with real HTTP assertions in
-        # `accounts/tests/test_plain_signup_closed.py`), so seeding providers
-        # has nothing left to show there — the closed page has no provider
-        # block regardless of what `seed_local_social_providers` seeds.
+        # This only checks `/accounts/login/` — signup's own provider
+        # rendering is `accounts/tests/test_plain_signup_closed.py`'s and
+        # `test_account_entrance_design.py`'s concern.
         seed_local_social_providers()
 
         response = self.client.get("/accounts/login/?next=/books")
@@ -183,11 +179,8 @@ class LoginPageConfigurationTests(TestCase):
         )
 
     def test_social_methods_precede_the_email_method_on_login(self) -> None:
-        # This used to check both login and signup ordering. The signup half
-        # was retired: `/accounts/signup/` now renders
-        # `account/signup_closed.html` unconditionally, which has neither a
-        # provider list nor an email form to order (`ClosedAccountAdapter`,
-        # pinned in `accounts/tests/test_plain_signup_closed.py`).
+        # This only checks `/accounts/login/`; signup's own ordering is
+        # `test_account_entrance_design.py`'s concern.
         seed_local_social_providers()
 
         with override_settings(DEVELOPMENT_OWNER_LOGIN_ENABLED=True):

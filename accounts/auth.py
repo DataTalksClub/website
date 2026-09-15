@@ -315,30 +315,54 @@ def _provider_uid_conflicts(sociallogin: object, user: Any) -> bool:
     return different_uid_for_provider.exists()
 
 
-class ClosedAccountAdapter(DefaultAccountAdapter):
-    """Fail-closed plain email/password signup, matching the social adapter.
+class AccountAdapter(DefaultAccountAdapter):
+    """Plain email/password signup, open, with duplicate emails surfaced plainly.
 
-    ``ConsolidatingSocialAccountAdapter`` below closes OAuth-based signup by
-    always answering ``is_open_for_signup`` with ``False``.  allauth's
-    ``DefaultAccountAdapter`` — used for the plain ``/accounts/signup/``
-    email/password path unless a site registers ``ACCOUNT_ADAPTER`` — does not
-    override that method, so it defaults to ``True`` and lets anyone create an
-    account through that route.  This adapter closes the same door for the
-    same reason: every account on this site is either imported from the CMP
-    export or provisioned by an operator, never self-registered.
+    Most members already have a CMP-imported identity, so a plain signup with
+    an email that matches one is the common case, not the exception.  Rather
+    than silently creating a conflicting second account (the original risk
+    this adapter closed against), ``ACCOUNT_PREVENT_ENUMERATION = False``
+    (``website/settings/base.py``) makes allauth surface a plain "an account
+    already exists" error instead of creating one — no merge, no new row.  The
+    error text below points a returning member at the two real ways back into
+    their existing account: social sign-in (see
+    ``ConsolidatingSocialAccountAdapter`` for how that safely resolves to the
+    right account) or a password reset.  A genuinely new email signs up
+    normally with no gate at all.
     """
+
+    error_messages = {
+        **DefaultAccountAdapter.error_messages,
+        "email_taken": (
+            "An account with this email already exists. Sign in with "
+            "Google, GitHub, or Slack, or reset your password."
+        ),
+    }
 
     def is_open_for_signup(self, request):
         del request
-        return False
+        return True
 
 
 class ConsolidatingSocialAccountAdapter(DefaultSocialAccountAdapter):
-    """Fail-closed social linking onto the one adopted durable account."""
+    """Social sign-in open; a matching identity resolves before this even runs.
+
+    ``is_open_for_signup`` only governs whether allauth may create a brand
+    new ``User`` for a social login it found no existing match for.  A social
+    login that DOES match an existing member never reaches that decision:
+    ``pre_social_login`` below runs first in allauth's pipeline and, on a
+    genuinely provider-verified email match, resolves and connects the
+    sociallogin to that member's real account (with the quarantine, address,
+    and provider-conflict checks already in ``pre_social_login``) — allauth
+    then treats it as an existing-user login, never as a signup.  So this
+    flag only ever decides the fate of a person with no matching account at
+    all, i.e. a genuinely new member, which is the case this site wants to
+    let through.
+    """
 
     def is_open_for_signup(self, request, sociallogin):
         del request, sociallogin
-        return False
+        return True
 
     def is_email_verified(self, provider, email) -> bool:
         """This site never assumes an address is verified.  The provider says.
