@@ -5,4 +5,4 @@ this package performs the parser registration, so the content app's ``ready``
 imports it once.
 """
 
-from . import articles, people  # noqa: F401
+from . import articles, books, people, podcasts  # noqa: F401
