@@ -14,6 +14,7 @@ documentation pages here and stay docs pages, exactly as the staged import
 treated them.
 """
 
+import json
 import posixpath
 import re
 from pathlib import PurePosixPath
@@ -61,6 +62,17 @@ class DocsParser:
             metadata = record["metadata"]
             parent = metadata["parent"]
             metadata["parent_path"] = paths_by_title.get(parent, "") if parent else ""
+        # The record derives from the page's file plus every page whose title a
+        # parent reference resolves to, so the change-detection checksum covers
+        # the whole derived record, not just the page's own bytes.
+        for item in items:
+            item.data["checksum"] = builder._sha256_bytes(
+                (
+                    item.data["checksum"]
+                    + "|"
+                    + json.dumps(item.data["record"], sort_keys=True, ensure_ascii=False)
+                ).encode()
+            )
         return items
 
     def upsert(self, item, source, media):

@@ -454,6 +454,91 @@ class DocsParserTests(_CheckoutCase):
                 parser.discover(checkout, source)
 
 
+def _faq_course_metadata() -> bytes:
+    return (
+        b"course: test-zoomcamp\n"
+        b'course_name: "Test Zoomcamp"\n'
+        b"slack_channel: course-test\n"
+        b"sections:\n"
+        b"- id: general\n"
+        b'  name: "General"\n'
+        b"- id: empty\n"
+        b'  name: "Empty Section"\n'
+    )
+
+
+def _faq_question(
+    sort_order: int, question_id: str, slug: str, body: bytes = b"An answer.\n"
+) -> bytes:
+    frontmatter = (
+        f"id: {question_id}\n"
+        f"question: 'Question {sort_order} about {slug}'\n"
+        f"sort_order: {sort_order}\n"
+    ).encode()
+    if b"IMAGE" in body:
+        frontmatter += (
+            b"images:\n"
+            b"- description: 'shot'\n"
+            b"  id: image_1\n"
+            + f"  path: images/test-zoomcamp/{slug}.png\n".encode()
+        )
+    return b"---\n" + frontmatter + b"---\n\n" + body
+
+
+class FaqParserTests(_CheckoutCase):
+    def test_discover_builds_course_tree_and_drops_empty_sections(self) -> None:
+        source = _source("dtc-faq")
+        parser = get_parser("faq")
+        tree = {
+            "_questions/test-zoomcamp/_metadata.yaml": _faq_course_metadata(),
+            "_questions/test-zoomcamp/general/01_1234567890_first-q.md": _faq_question(
+                1, "1234567890", "first-q"
+            ),
+            "_questions/test-zoomcamp/general/02_0987654321_second-q.md": _faq_question(
+                2, "0987654321", "second-q"
+            ),
+            "_questions/test-zoomcamp/empty/.keep": b"",
+        }
+        with self.checkout(tree) as checkout:
+            items = parser.discover(checkout, source)
+            self.assertEqual([item.key for item in items], ["test-zoomcamp"])
+            record = items[0].data["record"]
+            self.assertEqual(record["course_name"], "Test Zoomcamp")
+            self.assertEqual([section["id"] for section in record["sections"]], ["general"])
+            self.assertEqual(
+                [question["id"] for question in record["sections"][0]["questions"]],
+                ["1234567890", "0987654321"],
+            )
+            self.assertEqual(record["sections"][0]["questions"][0]["slug"], "first-q")
+
+    def test_upsert_uploads_declared_images_and_is_checksum_stable(self) -> None:
+        source = _source("dtc-faq")
+        parser = get_parser("faq")
+        tree = {
+            "_questions/test-zoomcamp/_metadata.yaml": _faq_course_metadata(),
+            "_questions/test-zoomcamp/general/01_1234567890_first-q.md": _faq_question(
+                1,
+                "1234567890",
+                "first-q",
+                body=b"See the shot.\n\n<{IMAGE:image_1}>\n",
+            ),
+            "images/test-zoomcamp/first-q.png": b"png-bytes",
+        }
+        with self.checkout(tree) as checkout:
+            items = parser.discover(checkout, source)
+            result = parser.upsert(items[0], source, media_store())
+            self.assertEqual(result.action, "created")
+            stored = SyncedDocument.objects.get(source=source, content_kind="faq")
+            self.assertEqual(stored.public_path, "/faq/test-zoomcamp.html")
+            self.assertEqual(
+                stored.record["sections"][0]["questions"][0]["images"][0]["path"],
+                "images/test-zoomcamp/first-q.png",
+            )
+            self.assertEqual(parser.upsert(items[0], source, media_store()).action, "unchanged")
+            self.assertEqual(parser.soft_delete_missing({"other"}, source), 1)
+            self.assertFalse(SyncedDocument.objects.filter(source=source).exists())
+
+
 class RegistrationTests(unittest.TestCase):
     def test_site_parsers_are_registered(self) -> None:
         self.assertEqual(type(get_parser("article")).__name__, "ArticlesParser")
@@ -461,3 +546,4 @@ class RegistrationTests(unittest.TestCase):
         self.assertEqual(type(get_parser("podcast")).__name__, "PodcastsParser")
         self.assertEqual(type(get_parser("book")).__name__, "BooksParser")
         self.assertEqual(type(get_parser("docs")).__name__, "DocsParser")
+        self.assertEqual(type(get_parser("faq")).__name__, "FaqParser")
