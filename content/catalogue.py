@@ -15,8 +15,8 @@ people profiles have a second authority ahead of the staged pipeline's
 retirement: the community_base sync engine's
 :class:`~content.models.SyncedDocument` rows, written by the ``dtc-podwiki``,
 ``dtc-content`` and ``dtc-main-site`` parsers. The staged ``dtc-public-content``
-release still publishes the remaining kinds -- courses, media, the manifest and
-its derived records -- until the pipeline is retired. Each kind reads exactly
+release still publishes the remaining kinds -- courses, the manifest and its
+derived records -- until the pipeline is retired. Each kind reads exactly
 one authority -- never a blend and never a fallback.
 
 A database with no published rows publishes nothing. That is a normal state,
@@ -87,6 +87,12 @@ EDITORIAL_SYNCED_KINDS = ("article", "podcast", "book")
 PEOPLE_SOURCE_SLUG = "dtc-main-site"
 PEOPLE_KIND = "people"
 
+#: The kind the site's published images are stored under. Their records ride
+#: on two sources -- the editorial tree files are ``dtc-content``'s, the
+#: profile pictures are ``dtc-main-site``'s -- so, unlike the single-source
+#: kinds, the media reader composes across both stamps.
+MEDIA_KIND = "media"
+
 #: Every kind that reads the synced rows, mapped to the source that publishes
 #: it: the dispatch ``records`` makes before falling back to the staged
 #: release. Each kind reads exactly one authority -- never a blend, never a
@@ -129,6 +135,12 @@ def records(kind: str) -> tuple[Record, ...]:
 
     source_slug = SYNCED_KIND_SOURCES.get(kind)
     if source_slug is None:
+        if kind == MEDIA_KIND:
+            # The media records are one collection drawn from two sources, so
+            # the cache key carries a stamp for each.
+            return _synced_media(
+                synced_stamp(EDITORIAL_SOURCE_SLUG), synced_stamp(PEOPLE_SOURCE_SLUG)
+            )
         return _records(active_release_id(), kind)
     if kind in WIKI_SYNCED_KINDS:
         return _synced_records(synced_stamp(source_slug), source_slug, kind)
@@ -573,19 +585,49 @@ def collection_counts() -> dict[str, int]:
 
 
 def media() -> tuple[Record, ...]:
-    """Every recorded public media object, in the order the release lists them."""
+    """Every published site image, in path order.
 
-    return records("media")
+    The records are the synced rows the media parser writes -- the editorial
+    tree files and the profile pictures -- read from their two sources and
+    merged by key. The staged release's stored order carried no reader-visible
+    meaning (the route resolves by lookup, the counts by length), so the
+    derived collection reads in the order the records name themselves by.
+    """
+
+    return records(MEDIA_KIND)
 
 
 def media_at(public_path: str) -> Record | None:
     """The media record a request addresses, or ``None`` when none is published."""
 
-    return _media_index(active_release_id()).get(public_path)
+    return _media_index(synced_stamp(EDITORIAL_SOURCE_SLUG), synced_stamp(PEOPLE_SOURCE_SLUG)).get(
+        public_path
+    )
 
 
 @lru_cache(maxsize=2)
-def _media_index(release_id: str) -> dict[str, Record]:
+def _synced_media(
+    editorial_stamp: tuple[int, str], people_stamp: tuple[int, str]
+) -> tuple[Record, ...]:
+    """The published media records of the two sources the stamps name.
+
+    An absent source publishes no media of its own; both absent is an empty
+    collection, not a failure. Each source's rows follow its own stamp, so a
+    sync to either side rebuilds the merged answer.
+    """
+
+    held = [
+        *_synced_records(editorial_stamp, EDITORIAL_SOURCE_SLUG, MEDIA_KIND),
+        *_synced_records(people_stamp, PEOPLE_SOURCE_SLUG, MEDIA_KIND),
+    ]
+    held.sort(key=lambda record: str(record.get("record_key", "")))
+    return tuple(held)
+
+
+@lru_cache(maxsize=2)
+def _media_index(
+    editorial_stamp: tuple[int, str], people_stamp: tuple[int, str]
+) -> dict[str, Record]:
     """Media records by their public path.
 
     Every image on the site is one lookup here, so the index is built with the
@@ -593,7 +635,9 @@ def _media_index(release_id: str) -> dict[str, Record]:
     """
 
     return {
-        item["public_path"]: item for item in _records(release_id, "media") if "public_path" in item
+        record["public_path"]: record
+        for record in _synced_media(editorial_stamp, people_stamp)
+        if "public_path" in record
     }
 
 

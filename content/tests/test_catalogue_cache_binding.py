@@ -49,18 +49,19 @@ class FailedReadRecoveryTests(CacheBindingTestBase):
 
         with mock.patch.object(ContentDocument.objects, "filter", flaky_filter):
             with self.assertRaises(OperationalError):
-                # Media is one of the kinds still read from the staged release;
-                # the synced kinds carry the same guarantee in the class below.
-                catalogue.records("media")
+                # The course records are one of the kinds still read from the
+                # staged release; the synced kinds carry the same guarantee in
+                # the classes below.
+                catalogue.records("course")
 
         # Nothing failed entered the cache: the recovering read runs the row
         # query again (pointer lookup plus rows) and answers with the published
         # records, not the empty collection a swallowed failure used to leave.
         with CaptureQueriesContext(connection) as recovery:
-            media = catalogue.media()
+            courses = catalogue.courses()
 
         self.assertGreaterEqual(len(recovery), 2)
-        self.assertTrue(media)
+        self.assertTrue(courses)
 
 
 class ActivationRaceTests(CacheBindingTestBase):
@@ -94,12 +95,12 @@ class AbsentPointerTests(CacheBindingTestBase):
         )
 
         with CaptureQueriesContext(connection) as read:
-            media = catalogue.media()
+            courses = catalogue.courses()
 
         # The disabled source's pointer lookup is the only query: an empty key
         # is an empty catalogue, not a document read (and not a failure).
         self.assertEqual(len(read), 1)
-        self.assertEqual(media, ())
+        self.assertEqual(courses, ())
 
 
 class SyncedWikiBindingTests(CacheBindingTestBase):
@@ -223,3 +224,72 @@ class SyncedPeopleBindingTests(CacheBindingTestBase):
         # tables its derivation would otherwise draw from.
         self.assertEqual(len(read), 1)
         self.assertEqual(people, ())
+
+
+class SyncedMediaBindingTests(CacheBindingTestBase):
+    """The same guarantees for the synced media authority (#384).
+
+    The records are one collection drawn from two sources -- the editorial
+    tree files and the profile pictures -- so the cache key carries a stamp
+    for each, and a write to either side must move the merged answer.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        catalogue._synced_records.cache_clear()
+        catalogue._synced_media.cache_clear()
+        catalogue._media_index.cache_clear()
+
+    def test_a_failed_row_read_raises_and_the_next_read_recovers(self) -> None:
+        stamps = (
+            catalogue.synced_stamp(catalogue.EDITORIAL_SOURCE_SLUG),
+            catalogue.synced_stamp(catalogue.PEOPLE_SOURCE_SLUG),
+        )
+        real_filter = SyncedDocument.objects.filter
+        failures = iter([OperationalError("media row read lost")])
+
+        def flaky_filter(*args, **kwargs):
+            try:
+                raise next(failures)
+            except StopIteration:
+                return real_filter(*args, **kwargs)
+
+        with (
+            mock.patch.object(catalogue, "synced_stamp", lambda slug: stamps),
+            mock.patch.object(SyncedDocument.objects, "filter", flaky_filter),
+        ):
+            with self.assertRaises(OperationalError):
+                catalogue.media()
+
+        # Nothing that failed entered the cache: the recovering read answers
+        # with the published records, not the empty collection a swallowed
+        # failure used to leave.
+        with mock.patch.object(catalogue, "synced_stamp", lambda slug: stamps):
+            self.assertTrue(catalogue.media())
+
+    def test_a_sync_write_moves_the_stamp_and_the_next_read_sees_it(self) -> None:
+        before = {record["record_key"]: record for record in catalogue.media()}
+        people_key = next(key for key in before if key.startswith("images/authors/"))
+
+        row = SyncedDocument.objects.get(
+            source__slug=catalogue.PEOPLE_SOURCE_SLUG, stable_key=people_key
+        )
+        row.record = {**row.record, "content_type": "image/renamed"}
+        row.save()
+
+        after = {record["record_key"]: record for record in catalogue.media()}
+
+        self.assertEqual(after[people_key]["content_type"], "image/renamed")
+
+    def test_an_absent_source_answers_empty_without_reading_rows(self) -> None:
+        EngineContentSource.objects.filter(
+            slug__in=(catalogue.EDITORIAL_SOURCE_SLUG, catalogue.PEOPLE_SOURCE_SLUG)
+        ).update(is_enabled=False)
+
+        with CaptureQueriesContext(connection) as read:
+            media = catalogue.media()
+
+        # One stamp aggregate per source and nothing more: two absent sources
+        # are an empty collection, not row reads.
+        self.assertEqual(len(read), 2)
+        self.assertEqual(media, ())
