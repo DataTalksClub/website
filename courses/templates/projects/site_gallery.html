@@ -311,12 +311,11 @@
         </div>
       {% endfor %}
     </div>
-    <div class="gallery-filter-actions">
-      <button class="cta cta-primary cta-compact interactive-lift" type="submit">Apply filters</button>
-      {% if gallery_has_filters %}
+    {% if gallery_has_filters %}
+      <div class="gallery-filter-actions">
         <a class="band-link" href="{{ gallery_url }}">Clear filters</a>
-      {% endif %}
-    </div>
+      </div>
+    {% endif %}
   </form>
 {% endblock %}
 
@@ -434,6 +433,42 @@
 {% endblock %}
 
 {% block extra_js %}
+  <script>
+    (function () {
+      // Progressive enhancement: each filter select submits the form itself
+      // on change, so there is no separate "Apply filters" click. Changing
+      // Course or Cohort resets the fields that cascade from it *before*
+      // submitting, so a stale Cohort/Assignment value from the previous
+      // Course selection is never sent alongside the new one -- the server
+      // re-renders with the narrowed option lists the next filter pick reads
+      // from, the same round trip the disabled/progressive-disclosure fields
+      // already rely on (see ProjectGalleryFilters._filter_choices).
+      const form = document.querySelector('.gallery-filters');
+      if (!form) return;
+      const fields = form.elements;
+      const submitForm = () => { if (form.requestSubmit) form.requestSubmit(); else form.submit(); };
+      const resetField = (name) => { const field = fields.namedItem(name); if (field) field.value = ''; };
+      if (fields.namedItem('course')) {
+        fields.namedItem('course').addEventListener('change', () => {
+          resetField('cohort');
+          resetField('project');
+          submitForm();
+        });
+      }
+      if (fields.namedItem('cohort')) {
+        fields.namedItem('cohort').addEventListener('change', () => {
+          resetField('project');
+          submitForm();
+        });
+      }
+      if (fields.namedItem('project')) {
+        fields.namedItem('project').addEventListener('change', submitForm);
+      }
+      if (fields.namedItem('sort')) {
+        fields.namedItem('sort').addEventListener('change', submitForm);
+      }
+    })();
+  </script>
   {% if project %}
     <script>
       document.querySelectorAll('form[data-confirm-message]').forEach((form) => {
