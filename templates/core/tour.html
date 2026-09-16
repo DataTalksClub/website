@@ -23,21 +23,20 @@
   }
   .tour-lede strong { color: var(--ink); }
 
-  /* The story is the one section on this page meant to feel like a moment,
-     not a list -- its own tinted surface (the shared `.panel-mint`), a
-     pull-quote well above running-text size, so the page's center of
-     gravity sits here rather than in the teaser lists either side of it. */
-  .tour-story-panel { max-width: 46rem; }
-  .tour-quote {
-    font-size: clamp(1.35rem, 3.4vw, 2rem);
-    font-style: italic;
-    font-weight: 700;
-    line-height: 1.42;
-    margin: 0;
+  /* The founder's story is the homepage's member-story card (`.card` +
+     `.story-quote` + `.story-person`), so his quote reads exactly like the
+     members' quotes there and on a course family page.  The one thing this
+     page adds is the pair of mono labels that name what each short excerpt
+     answers, set side by side where the card is wide enough. */
+  /* One card as wide as the page's measure, so it takes the inset a
+     `.panel` of that width already takes rather than a scroller card's. */
+  .tour-story { max-width: 46rem; padding: 1.35rem 1.5rem; }
+  .tour-story-quotes {
+    display: grid;
+    gap: 1rem 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
   }
-  .tour-quote p { margin: 0; }
-  .tour-quote p + p { margin-top: 1rem; }
-  .tour-person { color: var(--muted); font-style: normal; margin: 1.1rem 0 0; }
+  .tour-story-quotes > div { display: grid; gap: 0.45rem; align-content: start; }
 
   /* Course and event teasers: the shared dashed `.row-list`, not the bordered
      card grid the catalogue and the events hub draw -- a tour points at
@@ -47,8 +46,8 @@
 
   /* A second, quieter quote: the shared "quotation gets its own surface"
      rule the prose blockquote already draws, applied outside an article --
-     smaller than the story panel so the founder's story keeps the page's
-     one big visual beat. */
+     a plain outlined well rather than a second story card, so the founder's
+     card stays the page's one drawn quote. */
   .tour-note-quote {
     background: var(--card);
     border: 2px solid var(--line-soft);
@@ -110,15 +109,34 @@
       <h2 id="tour-story-heading">How it started, and why it's free</h2>
       <p>In his own words, from the show's own anniversary episode.</p>
     </div>
-    <figure class="panel panel-mint panel-outlined tour-story-panel">
-      <blockquote class="tour-quote">
-        <p>“I started DataTalks.Club four years ago by accident. I remember it was September 19, 2020, when everyone thought COVID was over, but it wasn't. That summer, we all relaxed, thinking we could travel again. I remember going to the seaside in Germany, but by September, restrictions were back, and we were stuck at home. That's when I thought, ‘Maybe I should start something.’ And that's how DataTalks.Club began.”</p>
-        <p>“I benefited a lot from free courses when I was starting my career in data science. So, this is my way of giving back to the community. … What keeps me going is the feedback I get from the community. Knowing that we're providing education to people who can't afford paid courses is inspiring.”</p>
-      </blockquote>
-      <figcaption class="tour-person">
-        <a href="https://www.youtube.com/watch?v=GHbeXIKnkLQ&amp;t=149s" target="_blank" rel="noopener noreferrer">
-          Alexey Grigorev, founder — DataTalks.Club Anniversary Podcast<span class="sr-only"> (opens in a new tab)</span>
-        </a>
+    <figure class="card tour-story">
+      <div class="tour-story-quotes">
+        <div>
+          <span class="mono-label">How it started</span>
+          <blockquote class="story-quote">“I started DataTalks.Club four years ago by accident. … By September, restrictions were back, and we were stuck at home. That's when I thought, ‘Maybe I should start something.’”</blockquote>
+        </div>
+        <div>
+          <span class="mono-label">Why it's free</span>
+          <blockquote class="story-quote">“I benefited a lot from free courses when I was starting my career in data science. So, this is my way of giving back to the community.”</blockquote>
+        </div>
+      </div>
+      <figcaption class="story-person">
+        <span class="story-identity">
+          {% if founder and founder.media_available %}
+            <img class="avatar" src="{{ founder.image_path }}" alt="" loading="lazy">
+          {% else %}
+            <span class="avatar" aria-hidden="true"></span>
+          {% endif %}
+          <span>
+            <strong>
+              <a href="https://www.youtube.com/watch?v=GHbeXIKnkLQ&amp;t=149s" target="_blank" rel="noopener noreferrer">
+                Alexey Grigorev
+                <span class="sr-only"> (opens in a new tab)</span>
+              </a>
+            </strong>
+            <span class="story-context">Founder · DataTalks.Club Anniversary Podcast</span>
+          </span>
+        </span>
       </figcaption>
     </figure>
   </section>

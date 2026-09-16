@@ -16,6 +16,7 @@ from django.views.decorators.http import require_GET, require_safe
 
 from content import catalogue
 from content.event_content import event_groups
+from content.person_chip import PersonChip, person_chip
 from content.podcast_content import ordered_podcasts
 from core.home_content import (
     FEATURED_FAMILY,
@@ -172,8 +173,24 @@ def tour(request: HttpRequest) -> HttpResponse:
             "upcoming_events": upcoming,
             "counts": catalogue.collection_counts(),
             "sponsors": public_sponsors(),
+            "founder": _founder_chip(),
         },
     )
+
+
+FOUNDER_SLUG = "alexeygrigorev"
+
+
+def _founder_chip() -> PersonChip | None:
+    """The founder as the people records credit him, for the tour's story card.
+
+    The card is the homepage's member-story card, whose person row draws a
+    real portrait from the people collection. A database without the
+    founder's record renders the shared striped stand-in instead.
+    """
+
+    person = catalogue.people_by_slug().get(FOUNDER_SLUG)
+    return person_chip(person) if person else None
 
 
 def _development_seo_response(body: str, content_type: str) -> HttpResponse:

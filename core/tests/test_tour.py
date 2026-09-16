@@ -93,18 +93,47 @@ class TourPageTests(TestCase):
         self.assertIn("free course", body)
 
     def test_tour_prints_the_founder_story_with_a_real_attributed_link(self) -> None:
+        """Two short real excerpts, on the homepage's member-story card.
+
+        The story is the shared `.card` + `.story-quote` + `.story-person`
+        component the homepage and a course family page draw for a member's
+        quote -- not a tinted panel of its own -- and each excerpt is the
+        strongest sentence or two of the transcript, not the whole passage.
+        """
+
         body = self._get().content.decode()
 
         self.assertIn("How it started", body)
-        self.assertIn("DataTalks.Club four years ago by accident", body)
+        self.assertIn('class="card tour-story"', body)
+        self.assertNotIn('class="panel panel-mint', body)
+        self.assertIn('<span class="mono-label">How it started</span>', body)
+        self.assertIn('<span class="mono-label">Why it\'s free</span>', body)
+        self.assertEqual(body.count('class="story-quote"'), 2)
         self.assertIn(
-            "I benefited a lot from free courses when I was starting my career",
+            "“I started DataTalks.Club four years ago by accident. … By September, "
+            "restrictions were back, and we were stuck at home. That's when I "
+            "thought, ‘Maybe I should start something.’”",
             body,
         )
         self.assertIn(
+            "“I benefited a lot from free courses when I was starting my career in "
+            "data science. So, this is my way of giving back to the community.”",
+            body,
+        )
+        # The long middle of each passage stays in the transcript.
+        self.assertNotIn("seaside in Germany", body)
+        self.assertNotIn("What keeps me going", body)
+        self.assertIn('class="story-person"', body)
+        self.assertIn(
             'href="https://www.youtube.com/watch?v=GHbeXIKnkLQ&amp;t=149s"', body
         )
-        self.assertIn("DataTalks.Club Anniversary Podcast", body)
+        self.assertIn("Alexey Grigorev", body)
+        self.assertIn(
+            '<span class="story-context">Founder · DataTalks.Club Anniversary Podcast</span>',
+            body,
+        )
+        # No founder record in the test catalogue: the shared stand-in disc.
+        self.assertIn('<span class="avatar" aria-hidden="true"></span>', body)
 
     def test_tour_prints_the_cohort_week_facts_and_a_second_real_quote(self) -> None:
         body = self._get().content.decode()
