@@ -162,7 +162,7 @@
         margin: 0;
       }
 
-      .family-prerequisites {
+      :where(.family-starting-point, .family-prerequisites) {
         align-items: start;
         background: color-mix(in srgb, var(--card) 72%, transparent);
         border: 1.5px solid var(--line-soft);
@@ -172,7 +172,7 @@
         padding: 1rem 1.1rem;
       }
 
-      .family-prerequisites h2 {
+      :where(.family-starting-point, .family-prerequisites) h2 {
         font-family: var(--font-mono);
         font-size: 0.78rem;
         letter-spacing: 0.08em;
@@ -180,14 +180,14 @@
         text-transform: uppercase;
       }
 
-      .family-prerequisites p {
+      :where(.family-starting-point, .family-prerequisites) p {
         color: var(--body-text);
         line-height: 1.55;
         margin: 0;
       }
 
       @media (min-width: 48rem) {
-        .family-prerequisites {
+        :where(.family-starting-point, .family-prerequisites) {
           grid-template-columns: 9rem minmax(0, 1fr);
         }
       }
@@ -854,7 +854,7 @@
         the start-now content further down the page (see the second
         "family-register" section, after the syllabus and certificate).
       {% endcomment %}
-      {% if family_outcome_stats or family_prerequisites %}
+      {% if family_outcome_stats or family_starting_point or family_prerequisites %}
         <div class="family-opening-group">
           {% if family_outcome_stats %}
             <section class="family-outcomes" aria-labelledby="outcomes-heading">
@@ -867,6 +867,12 @@
                   </div>
                 {% endfor %}
               </div>
+            </section>
+          {% endif %}
+          {% if family_starting_point %}
+            <section class="family-starting-point" aria-labelledby="starting-point-heading">
+              <h2 id="starting-point-heading">Your starting point</h2>
+              <p>{{ family_starting_point }}</p>
             </section>
           {% endif %}
           {% if family_prerequisites %}

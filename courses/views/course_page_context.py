@@ -551,6 +551,7 @@ def course_family_page_context(family: Course, user) -> dict:
         "family_faq_url": family_faq_url,
         "self_paced_cohort": self_paced_cohort,
         "family_lede": family_lede(family),
+        "family_starting_point": family.starting_point.strip(),
         "family_prerequisites": family.prerequisites.strip(),
         "family_transformation": transformation,
         "family_overview": overview,
