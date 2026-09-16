@@ -162,10 +162,14 @@ def publish_documents(
 def unpublished_editorial_catalogue() -> Iterator[None]:
     """Read the editorial catalogue the way an un-ingested database serves it.
 
-    Disabling the source is what "nothing has been imported yet" looks like to
-    :mod:`content.catalogue`: ``active_release_id`` resolves to nothing, every
-    collection reads empty, and the release-keyed record cache follows on its own
-    because the key itself changed.
+    Disabling the sources is what "nothing has been imported yet" looks like to
+    :mod:`content.catalogue`: the staged release's ``active_release_id`` resolves
+    to nothing, the synced-row stamps collapse to zero, every collection reads
+    empty, and both record caches follow on their own because their keys changed.
+    Since issue #384 the cut-over kinds read
+    :class:`~community_base.content_sync.models.SyncedDocument` rows, so the
+    engine's own sources go dark beside the staged release's -- an un-ingested
+    database holds neither.
 
     A test for an empty hub uses this rather than patching a catalogue function,
     because a view can hold its own reference to that function -- ``COLLECTION_HUBS``
@@ -173,9 +177,14 @@ def unpublished_editorial_catalogue() -> Iterator[None]:
     while the page still renders the rows the database holds.
     """
 
+    from community_base.content_sync.models import ContentSource as EngineContentSource
+
     sources = ContentSource.objects.filter(stable_id=PUBLIC_CONTENT_STABLE_ID)
+    engine_sources = EngineContentSource.objects.all()
     sources.update(enabled=False)
+    engine_sources.update(is_enabled=False)
     try:
         yield
     finally:
         sources.update(enabled=True)
+        engine_sources.update(is_enabled=True)
