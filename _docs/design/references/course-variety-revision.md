@@ -158,6 +158,37 @@ uv run --script .agents/skills/website-illustrations/scripts/finish_chroma.py \
   --solid-key-chroma 230 --key-noise-alpha 0.05
 ```
 
+### Notepad-orientation correction
+
+The notepad also faced the viewer. This edit keeps the corrected calculator
+unchanged and rotates only the notepad's working orientation: chart upright for
+the seated learner, spiral binding nearest the viewer.
+
+- Raw output: `.tmp/course-illustration-variety-20260915/sma-notepad-orientation/source-keyed.png`
+- Raw SHA256: `1c4aaf04b2b34278e448ac03981da3f0cc9db503ed446ec78d8f0824c0d39610`
+- Original tool output: `/home/alexey/.codex/generated_images/01a0a479-3d2f-7991-9ca7-bf120c70bac4/exec-117a93e7-4c23-4de1-ba62-dde1a6bd308d.png`
+- Built-in image-generation backend: unverified (the tool exposes no model selector or reliable version metadata)
+
+```text
+Use case: precise-object-edit
+Asset type: Stock Market Analytics Zoomcamp light-theme website illustration.
+Input images: Image 1 is the exact composition and registration anchor to edit. Image 2 guides only the established DataTalks.Club drawing style and clean watercolor edge.
+Primary request: Rotate ONLY the chart notepad on the viewer-left by exactly 180 degrees in the tabletop plane so it faces the seated learner behind the table. Keep the notepad in the same viewer-left location and at the same size. The spiral binding must be on the notebook edge farthest from the learner and closest to the viewer, at the BOTTOM of the image. The chart must be upright from the learner's viewpoint and therefore visually upside-down from the viewer's viewpoint. Rotate the green and indigo chart lines together with the page; do not redraw them upright for the viewer.
+Preserve exactly: the corrected calculator on viewer-right, with its keypad nearest the learner and its display nearest the viewer; the learner's face, body, green shirt, both arms and hands, money-counting pose, bills, two money stacks, table line, all positions except the notepad orientation, palette, navy outlines, lavender watercolor wash, canvas dimensions and margins. Do not move or rotate the calculator. Do not mirror the full image.
+Scene/backdrop: Return the complete illustration on a perfectly uniform opaque saturated #ff00ff exterior chroma backdrop extending to all four canvas borders; no transparency simulation, checkerboard, white rectangle, gradient, or texture outside the artwork.
+Style/medium: clean hand-drawn navy ink with simple opaque fills and restrained broad watercolor variation. Clean native image quality.
+Constraints: Change only the notepad orientation. Exactly one calculator and one notepad. No text, symbols, new objects, extra limbs, compression blocks, JPEG artifacts, ringing, grain, speckles, cellular facets, polygon networks, malformed fingers, halos, or magenta inside the artwork.
+```
+
+Finishing command:
+
+```sh
+uv run --script .agents/skills/website-illustrations/scripts/finish_chroma.py \
+  .tmp/course-illustration-variety-20260915/sma-notepad-orientation/source-keyed.png \
+  .tmp/course-illustration-variety-20260915/sma-notepad-orientation/final \
+  --solid-key-chroma 230 --key-noise-alpha 0.05
+```
+
 Pixel verification uses:
 
 ```sh
