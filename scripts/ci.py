@@ -170,6 +170,25 @@ def _dedupe_typecheck_paths(paths: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(kept)
 
 
+def _dedupe_typecheck_paths(paths: tuple[str, ...]) -> tuple[str, ...]:
+    """Drop file paths already covered by a directory entry earlier in the list.
+
+    mypy aborts with "Duplicate module named" when the same module arrives via
+    both a directory and a file inside it, which is exactly how a bare file
+    opt-in under an already-listed directory reads here.
+    """
+
+    kept = []
+    for i, path in enumerate(paths):
+        covered = any(
+            os.path.isdir(earlier) and (path + "/").startswith(earlier.rstrip("/") + "/")
+            for earlier in paths[:i]
+        )
+        if not covered:
+            kept.append(path)
+    return tuple(kept)
+
+
 QUALITY_TASKS: Final = (
     "database-portability-check",
     "security-check",
