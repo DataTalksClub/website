@@ -673,7 +673,7 @@ def _synced_courses(*stamps: tuple[int, str]) -> tuple[Record, ...]:
 
     held = [
         record
-        for stamp, source_slug in zip(stamps, COURSE_SOURCE_SLUGS)
+        for stamp, source_slug in zip(stamps, COURSE_SOURCE_SLUGS, strict=True)
         for record in _synced_records(stamp, source_slug, COURSE_KIND)
     ]
     slugs = [str(record.get("slug", "")) for record in held]
