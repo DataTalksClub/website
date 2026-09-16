@@ -120,6 +120,7 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "courses/tests/test_cmp_certificate_reconciliation.py",
     "courses/tests/test_course_list_projects_section.py",
     "scripts/tests/test_cmp_certificate_reconciliation_cli.py",
+    "courses/tests/test_dashboard_participation_counts.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",

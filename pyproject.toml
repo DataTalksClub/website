@@ -188,6 +188,7 @@ module = [
     "courses.tests.test_course_list_projects_section",
     "scripts.prod.reconcile_cmp_enrollment_certificates",
     "scripts.tests.test_cmp_certificate_reconciliation_cli",
+    "courses.tests.test_dashboard_participation_counts",
 ]
 ignore_errors = false
 
