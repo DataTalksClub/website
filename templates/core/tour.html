@@ -4,7 +4,7 @@
 
 {% block metadata %}
   {{ block.super }}
-  <meta name="description" content="A newcomer's walkthrough of DataTalks.Club: what it actually is, how it started, and what free courses, events, the podcast, and the wiki look like.">
+  <meta name="description" content="A newcomer's walkthrough of DataTalks.Club: what it actually is, how it started, who's here, and what free courses, events, the podcast, and the wiki look like.">
 {% endblock %}
 
 {% block page_styles %}
@@ -35,12 +35,55 @@
     line-height: 1.42;
     margin: 0;
   }
+  .tour-quote p { margin: 0; }
+  .tour-quote p + p { margin-top: 1rem; }
   .tour-person { color: var(--muted); font-style: normal; margin: 1.1rem 0 0; }
 
   /* Course and event teasers: the shared dashed `.row-list`, not the bordered
      card grid the catalogue and the events hub draw -- a tour points at
      those pages rather than re-drawing them at full weight. */
   .tour-row-meta { color: var(--muted); margin: 0.2rem 0 0; }
+  .tour-aside { color: var(--muted); font-size: 0.9rem; margin-top: 1rem; max-width: 46rem; }
+
+  /* A second, quieter quote: the shared "quotation gets its own surface"
+     rule the prose blockquote already draws, applied outside an article --
+     smaller than the story panel so the founder's story keeps the page's
+     one big visual beat. */
+  .tour-note-quote {
+    background: var(--card);
+    border: 2px solid var(--line-soft);
+    border-radius: 0.7rem;
+    color: var(--ink);
+    font-style: italic;
+    margin: 1.25rem 0 0;
+    max-width: 46rem;
+    padding: 1rem 1.2rem;
+  }
+  .tour-note-quote footer { color: var(--muted); font-style: normal; margin-top: 0.6rem; }
+
+  /* "Who's here": the same full-bleed ink stripe /courses draws for its own
+     numbers (`.courses-stats`), restated locally the way that page restates
+     it rather than sharing page-scoped CSS across templates. */
+  :root { --tour-stats-label: #b9bcd6; }
+  body.dark-mode { --tour-stats-label: #a4a9bd; }
+  .tour-stats { background: var(--band-ink-bg); padding: clamp(1.75rem, 3.5vw, 2.75rem) 1rem; }
+  .tour-stats.shell-breakout { --breakout-width: 100vw; }
+  .tour-stats-grid {
+    display: grid;
+    gap: 1.75rem 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    margin-inline: auto;
+    max-width: var(--shell);
+  }
+  .tour-stats strong { color: var(--cream); display: block; font-size: clamp(1.9rem, 3.4vw, 2.6rem); line-height: 1.1; }
+  body.dark-mode .tour-stats strong { color: var(--ink); }
+  .tour-stats span { color: var(--tour-stats-label); display: block; font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.06em; margin-top: 0.3rem; text-transform: uppercase; }
+  .tour-stats-source { color: var(--tour-stats-label); font-size: 0.85rem; margin: 1.5rem auto 0; max-width: var(--shell); text-align: center; }
+  .tour-stats-source a { color: inherit; }
+
+  .tour-norms { display: grid; gap: 0.65rem; margin: 0; max-width: 46rem; padding-left: 1.2rem; }
+  .tour-norms li { padding-left: 0.2rem; }
+
   .tour-more-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; margin-top: 1rem; }
   .tour-sponsor-note { color: var(--muted); margin-top: 1rem; }
   .tour-actions { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem; }
@@ -64,12 +107,13 @@
 
   <section class="tour-section" aria-labelledby="tour-story-heading">
     <div class="tour-section-heading">
-      <h2 id="tour-story-heading">How it started</h2>
+      <h2 id="tour-story-heading">How it started, and why it's free</h2>
       <p>In his own words, from the show's own anniversary episode.</p>
     </div>
     <figure class="panel panel-mint panel-outlined tour-story-panel">
       <blockquote class="tour-quote">
-        “I started DataTalks.Club four years ago by accident. I remember it was September 19, 2020, when everyone thought COVID was over, but it wasn't. That summer, we all relaxed, thinking we could travel again. I remember going to the seaside in Germany, but by September, restrictions were back, and we were stuck at home. That's when I thought, ‘Maybe I should start something.’ And that's how DataTalks.Club began.”
+        <p>“I started DataTalks.Club four years ago by accident. I remember it was September 19, 2020, when everyone thought COVID was over, but it wasn't. That summer, we all relaxed, thinking we could travel again. I remember going to the seaside in Germany, but by September, restrictions were back, and we were stuck at home. That's when I thought, ‘Maybe I should start something.’ And that's how DataTalks.Club began.”</p>
+        <p>“I benefited a lot from free courses when I was starting my career in data science. So, this is my way of giving back to the community. … What keeps me going is the feedback I get from the community. Knowing that we're providing education to people who can't afford paid courses is inspiring.”</p>
       </blockquote>
       <figcaption class="tour-person">
         <a href="https://www.youtube.com/watch?v=GHbeXIKnkLQ&amp;t=149s" target="_blank" rel="noopener noreferrer">
@@ -100,8 +144,45 @@
       <p class="band-more">
         <a class="band-link" href="{% url 'course_list' %}">see all {{ course_family_count }} course{{ course_family_count|pluralize }} →</a>
       </p>
+      <p class="tour-aside">Registration is optional — it only gets you cohort emails. The one account that matters is the free course platform account, for homework and the project.</p>
     </section>
   {% endif %}
+
+  <section class="tour-section" aria-labelledby="tour-week-heading">
+    <div class="tour-section-heading">
+      <h2 id="tour-week-heading">What a cohort week looks like</h2>
+      <p>The same shape for every zoomcamp, from the community's own logistics docs.</p>
+    </div>
+    <dl class="spec-strip">
+      <div class="spec">
+        <dt class="mono-label">Cost</dt>
+        <dd><strong>Free, incl. certificate</strong></dd>
+      </div>
+      <div class="spec">
+        <dt class="mono-label">Length</dt>
+        <dd><strong>7–10 weeks</strong></dd>
+      </div>
+      <div class="spec">
+        <dt class="mono-label">Weekly load</dt>
+        <dd><strong>10–15 hours</strong></dd>
+      </div>
+      <div class="spec">
+        <dt class="mono-label">Final project</dt>
+        <dd><strong>2–3 weeks</strong></dd>
+      </div>
+    </dl>
+    <p class="tour-aside">
+      Office hours and the occasional workshop stream live on the DataTalks.Club YouTube channel — no Zoom link, no separate tool, no signup, just open YouTube at the scheduled time. The certificate needs the project and its peer reviews; the weekly homework itself is optional, though it's what the leaderboard runs on.
+    </p>
+    <blockquote class="tour-note-quote">
+      “The practicality of DataTalks is the huge difference. … The issue with that university and others is that everything stays in a Jupyter notebook. You know how the algorithm works … but it never goes beyond the notebook. … The difference with DataTalks is that the goal is for the person to use it in real life.”
+      <footer>
+        <a href="https://www.youtube.com/watch?v=B2tzuUg5uZs&amp;t=2190s" target="_blank" rel="noopener noreferrer">
+          Dashel Ruiz Perez, ML Zoomcamp graduate<span class="sr-only"> (opens in a new tab)</span>
+        </a>
+      </footer>
+    </blockquote>
+  </section>
 
   {% if upcoming_events %}
     <section class="tour-section" aria-labelledby="tour-events-heading">
@@ -125,6 +206,36 @@
     </section>
   {% endif %}
 
+  <section class="tour-section" aria-labelledby="tour-who-heading">
+    <div class="tour-section-heading">
+      <h2 id="tour-who-heading">Who's here</h2>
+      <p>From the community's own 2025 survey.</p>
+    </div>
+    <div class="tour-stats shell-breakout" aria-label="Who's here, in numbers">
+      <div class="tour-stats-grid">
+        <div>
+          <strong>65+</strong>
+          <span>countries</span>
+        </div>
+        <div>
+          <strong>41%</strong>
+          <span>senior-level</span>
+        </div>
+        <div>
+          <strong>36%</strong>
+          <span>entry-level</span>
+        </div>
+        <div>
+          <strong>29%</strong>
+          <span>in data engineering</span>
+        </div>
+      </div>
+      <p class="tour-stats-source">
+        <a href="{% url 'public-article' slug='datatalks-club-community-demographics' %}">read the full 2025 community survey →</a>
+      </p>
+    </div>
+  </section>
+
   {% if counts.podcasts or counts.wiki %}
     <section class="tour-section" aria-labelledby="tour-more-heading">
       <div class="tour-section-heading">
@@ -141,6 +252,18 @@
       </div>
     </section>
   {% endif %}
+
+  <section class="tour-section" aria-labelledby="tour-slack-heading">
+    <div class="tour-section-heading">
+      <h2 id="tour-slack-heading">What Slack is actually like</h2>
+      <p>A few norms, straight from the community guidelines.</p>
+    </div>
+    <ul class="tour-norms">
+      <li><a href="https://dontasktoask.com/" target="_blank" rel="noopener noreferrer">Don't ask to ask<span class="sr-only"> (opens in a new tab)</span></a> — just post your question in the channel.</li>
+      <li>Copy-paste your error as text, in a code block — never a screenshot or a photo of your screen.</li>
+      <li>Built on mutual respect and kindness: judge the code, never the person asking.</li>
+    </ul>
+  </section>
 
   <section class="tour-section" aria-labelledby="tour-community-heading">
     <div class="tour-section-heading">

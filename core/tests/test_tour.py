@@ -2,14 +2,18 @@
 
 ``/tour`` is a newcomer's walkthrough, deliberately distinct from the
 homepage: it states the community's real scope from the catalogue's own
-counts, shows only the two sections a newcomer needs to see for themselves
-(courses, events), tells the community's own origin story once, and points
-at parts of the site the homepage never surfaces (the podcast, the wiki).
-Every claim is a catalogue count or a real, checked quote -- never invented
-copy -- so an empty database renders the page with those claims dropped. The
-black stripe above the footer advertises the tour on every shared-shell page
-except the homepage (which ends with its own closing band) and the tour
-itself.
+counts, shows only a teaser of the two sections a newcomer needs to see for
+themselves (courses, events), and fills the rest with real, checked
+editorial content the homepage never carries -- the founder's own origin
+and why-it's-free story, the cohort-logistics facts from the community's own
+docs, a second graduate quote on how it differs from a bootcamp, the 2025
+community survey's own numbers, and the community guidelines' own norms.
+Every claim here is a catalogue count or a sourced quote/fact -- never
+invented copy -- so an empty database renders the page with the
+database-backed claims dropped while the sourced editorial content still
+renders. The black stripe above the footer advertises the tour on every
+shared-shell page except the homepage (which ends with its own closing
+band) and the tour itself.
 """
 
 from __future__ import annotations
@@ -94,9 +98,43 @@ class TourPageTests(TestCase):
         self.assertIn("How it started", body)
         self.assertIn("DataTalks.Club four years ago by accident", body)
         self.assertIn(
+            "I benefited a lot from free courses when I was starting my career",
+            body,
+        )
+        self.assertIn(
             'href="https://www.youtube.com/watch?v=GHbeXIKnkLQ&amp;t=149s"', body
         )
         self.assertIn("DataTalks.Club Anniversary Podcast", body)
+
+    def test_tour_prints_the_cohort_week_facts_and_a_second_real_quote(self) -> None:
+        body = self._get().content.decode()
+
+        self.assertIn("What a cohort week looks like", body)
+        self.assertIn("7–10 weeks", body)
+        self.assertIn("10–15 hours", body)
+        self.assertIn("no signup", body)
+        self.assertIn("everything stays in a Jupyter notebook", body)
+        self.assertIn(
+            'href="https://www.youtube.com/watch?v=B2tzuUg5uZs&amp;t=2190s"', body
+        )
+        self.assertIn("Dashel Ruiz Perez", body)
+
+    def test_tour_prints_who_is_here_from_the_real_survey(self) -> None:
+        body = self._get().content.decode()
+
+        self.assertIn("Who's here", body)
+        self.assertIn("65+", body)
+        self.assertIn("countries", body)
+        self.assertIn(
+            'href="/blog/datatalks-club-community-demographics.html"', body
+        )
+
+    def test_tour_prints_real_slack_norms(self) -> None:
+        body = self._get().content.decode()
+
+        self.assertIn("What Slack is actually like", body)
+        self.assertIn("Don't ask to ask", body)
+        self.assertIn('href="https://dontasktoask.com/"', body)
 
     def test_tour_points_at_the_podcast_and_wiki_when_the_catalogue_holds_them(
         self,
@@ -168,6 +206,9 @@ class TourEmptyDatabaseTests(TestCase):
         self.assertIn("Build in public, together", body)
         self.assertIn("What it actually is", body)
         self.assertIn("How it started", body)
+        self.assertIn("What a cohort week looks like", body)
+        self.assertIn("Who's here", body)
+        self.assertIn("What Slack is actually like", body)
         self.assertNotIn("tour-courses-heading", body)
         self.assertNotIn("Kept free by sponsors", body)
         self.assertNotIn("AI Dev Tools Zoomcamp", body)
