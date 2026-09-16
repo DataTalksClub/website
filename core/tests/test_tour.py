@@ -126,9 +126,7 @@ class TourPageTests(TestCase):
         self.assertNotIn("seaside in Germany", body)
         self.assertNotIn("What keeps me going", body)
         self.assertIn('class="story-person"', body)
-        self.assertIn(
-            'href="https://www.youtube.com/watch?v=GHbeXIKnkLQ&amp;t=149s"', body
-        )
+        self.assertIn('href="https://www.youtube.com/watch?v=GHbeXIKnkLQ&amp;t=149s"', body)
         self.assertIn("Alexey Grigorev", body)
         self.assertIn(
             '<span class="story-context">Founder · DataTalks.Club Anniversary Podcast</span>',
@@ -145,9 +143,7 @@ class TourPageTests(TestCase):
         self.assertIn("10–15 hours", body)
         self.assertIn("no signup", body)
         self.assertIn("everything stays in a Jupyter notebook", body)
-        self.assertIn(
-            'href="https://www.youtube.com/watch?v=B2tzuUg5uZs&amp;t=2190s"', body
-        )
+        self.assertIn('href="https://www.youtube.com/watch?v=B2tzuUg5uZs&amp;t=2190s"', body)
         self.assertIn("Dashel Ruiz Perez", body)
 
     def test_tour_prints_who_is_here_from_the_real_survey(self) -> None:
@@ -156,9 +152,7 @@ class TourPageTests(TestCase):
         self.assertIn("Who's here", body)
         self.assertIn("65+", body)
         self.assertIn("countries", body)
-        self.assertIn(
-            'href="/blog/datatalks-club-community-demographics.html"', body
-        )
+        self.assertIn('href="/blog/datatalks-club-community-demographics.html"', body)
 
     def test_tour_prints_real_slack_norms(self) -> None:
         body = self._get().content.decode()
