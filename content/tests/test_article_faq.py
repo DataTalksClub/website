@@ -38,7 +38,6 @@ from content.article_faq import (
 )
 from content.article_faq_format import faq_anchor_id
 from content.public_views import _article_faq_structured_data
-from test_support.published_content import PublishedPage, publish_documents
 
 # A slug the reviewed catalogue does not publish, so this module's rows are the
 # only ones its assertions can be reading.
@@ -64,19 +63,60 @@ def _publish_article(
     *,
     faq: Sequence[Mapping[str, str]] | None = PAIRS,
     slug: str = ARTICLE_SLUG,
+    is_published: bool = True,
 ) -> None:
-    metadata: dict[str, Any] = {} if faq is None else {"faq": [dict(pair) for pair in faq]}
-    publish_documents(
-        [
-            PublishedPage(
-                exact_public_path=f"/blog/{slug}.html",
-                title="LLM Zoomcamp",
-                content_kind="article",
-                slug=slug,
-                rendered_html="<p>A short course body.</p>",
-                adapter_metadata=metadata,
-            )
-        ]
+    """Publish one synced article row, the row the read model resolves.
+
+    The FAQ travels with the article's record: the parser validated the pairs
+    into ``{question, answer}`` rows, and the reader renders them from the
+    synced row the page itself resolves.
+    """
+
+    from community_base.content_sync.models import ContentSource as EngineContentSource
+
+    from content.models import SyncedDocument
+
+    source = EngineContentSource.objects.get_or_create(
+        slug="dtc-content",
+        defaults={
+            "repo_name": "DataTalksClub/content",
+            "webhook_secret": "test-support-synthetic-secret",
+        },
+    )[0]
+    source_path = f"articles/2026-01-15-{slug}.md"
+    record: dict[str, Any] = {
+        "slug": slug,
+        "public_path": f"/blog/{slug}.html",
+        "title": "LLM Zoomcamp",
+        "subtitle": "",
+        "description": "",
+        "published": "2026-01-15",
+        "authors": [],
+        "blocks": list(BODY_BLOCKS),
+        "faq": None if faq is None else [dict(pair) for pair in faq],
+        "image_source": "",
+        "provenance": {
+            "repository": "DataTalksClub/content",
+            "revision": "a" * 40,
+            "source_path": source_path,
+            "source_key": slug,
+            "checksum": "a" * 64,
+        },
+    }
+    SyncedDocument.objects.update_or_create(
+        source=source,
+        content_kind="article",
+        stable_key=slug,
+        defaults={
+            "slug": slug,
+            "title": "LLM Zoomcamp",
+            "summary": "",
+            "public_path": f"/blog/{slug}.html",
+            "source_path": source_path,
+            "checksum": "a" * 64,
+            "record": record,
+            "is_published": is_published,
+        },
     )
 
 
@@ -116,18 +156,7 @@ class ArticleFaqReadTests(TestCase):
         self.assertIsNone(article_faq("an-article-nothing-published"))
 
     def test_an_unpublished_row_is_not_read(self) -> None:
-        publish_documents(
-            [
-                PublishedPage(
-                    exact_public_path=ARTICLE_PATH,
-                    title="LLM Zoomcamp",
-                    content_kind="article",
-                    slug=ARTICLE_SLUG,
-                    is_published=False,
-                    adapter_metadata={"faq": list(PAIRS)},
-                )
-            ]
-        )
+        _publish_article(is_published=False)
 
         self.assertIsNone(article_faq(ARTICLE_SLUG))
 

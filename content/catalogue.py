@@ -1,34 +1,38 @@
 """Read the published editorial catalogue from the database.
 
 The public pages -- the blog, the podcast, the book archive, the profiles, the
-wiki -- are all published by one source, ``dtc-public-content``, whose active
-release holds one :class:`~content.models.ContentDocument` per record. This
-module is the one place that turns those rows into the records the views and
-templates read, with a function per kind rather than one dictionary holding
-every kind at once.
+wiki -- read their records from database rows, and this module is the one place
+that turns those rows into the records the views and templates read, with a
+function per kind rather than one dictionary holding every kind at once.
 
 They share a module because they share everything that makes the read work:
-the same source, the same active release, the same stored editorial order, and
+the same publishing authority per kind, the same stored editorial order, and
 the same cache key. Split per kind, that resolution would be written seven
 times and could drift seven ways.
 
-A database with no active release publishes nothing. That is a normal state,
+During the #384 cutover the wiki kinds, the editorial collections and the
+people profiles have a second authority ahead of the staged pipeline's
+retirement: the community_base sync engine's
+:class:`~content.models.SyncedDocument` rows, written by the ``dtc-podwiki``,
+``dtc-content`` and ``dtc-main-site`` parsers. The staged ``dtc-public-content``
+release still publishes the remaining kinds -- courses, the manifest and its
+derived records -- until the pipeline is retired. Each kind reads exactly
+one authority -- never a blend and never a fallback.
+
+A database with no published rows publishes nothing. That is a normal state,
 not a failure: hubs render empty and detail lookups miss, which is what an
 un-ingested database should do.
 """
 
 from __future__ import annotations
 
-import re
-from collections.abc import Mapping
 from functools import lru_cache
 from typing import Any
 from uuid import UUID
 
-from django.db import DatabaseError
 from django.db.models import Count, Max
 
-from .models import ContentDocument, ContentSource
+from .models import ContentDocument, ContentSource, SyncedDocument
 from .public_graph import validate_wiki_graph
 from .public_text import strip_leaked_target_attributes
 
@@ -57,9 +61,47 @@ COLLECTION_NAMES = (
 #: names a kind by dropping the collection's plural ``s``, which leaves
 #: "people", "wiki" and "media" spelled as they are.
 COLLECTION_KINDS = {name: name.rstrip("s") or name for name in COLLECTION_NAMES}
-#: The counts a release's manifest declares, so a page asking "how many articles
-#: are there" gets a zero rather than a missing key.
+#: The counts the homepage states, per collection, and the transcript count
+#: beside them.
 COUNT_KEYS = (*COLLECTION_NAMES, "transcripts")
+
+#: The community_base sync source whose synced rows publish the wiki, and the
+#: kinds it owns: the pages the hub lists and the three singletons -- the
+#: knowledge graph, the search index and the declared asset paths -- that a
+#: database publishes one document apiece. These kinds read
+#: :class:`~content.models.SyncedDocument` rows (issue #384); the staged
+#: release remains the authority for every other kind until it is retired.
+WIKI_SOURCE_SLUG = "dtc-podwiki"
+WIKI_PAGE_KIND = "wiki"
+WIKI_SINGLETON_KINDS = ("wiki_graph", "wiki_search", "wiki_assets")
+WIKI_SYNCED_KINDS = (WIKI_PAGE_KIND, *WIKI_SINGLETON_KINDS)
+
+#: The sync source whose synced rows publish the editorial collections that
+#: have cut over, and the kinds it owns: articles, podcasts and books.
+EDITORIAL_SOURCE_SLUG = "dtc-content"
+EDITORIAL_SYNCED_KINDS = ("article", "podcast", "book")
+
+#: The sync source whose synced rows publish the people profiles. The parser
+#: reads the legacy main-site repository, which is where the profiles are
+#: authored, so its source is its own rather than the editorial collection's.
+PEOPLE_SOURCE_SLUG = "dtc-main-site"
+PEOPLE_KIND = "people"
+
+#: The kind the site's published images are stored under. Their records ride
+#: on two sources -- the editorial tree files are ``dtc-content``'s, the
+#: profile pictures are ``dtc-main-site``'s -- so, unlike the single-source
+#: kinds, the media reader composes across both stamps.
+MEDIA_KIND = "media"
+
+#: Every kind that reads the synced rows, mapped to the source that publishes
+#: it: the dispatch ``records`` makes before falling back to the staged
+#: release. Each kind reads exactly one authority -- never a blend, never a
+#: fallback.
+SYNCED_KIND_SOURCES = {
+    **{kind: EDITORIAL_SOURCE_SLUG for kind in EDITORIAL_SYNCED_KINDS},
+    PEOPLE_KIND: PEOPLE_SOURCE_SLUG,
+    **{kind: WIKI_SOURCE_SLUG for kind in WIKI_SYNCED_KINDS},
+}
 
 
 def active_release_id() -> str:
@@ -91,7 +133,137 @@ def records(kind: str) -> tuple[Record, ...]:
     serve from cache.
     """
 
-    return _records(active_release_id(), kind)
+    source_slug = SYNCED_KIND_SOURCES.get(kind)
+    if source_slug is None:
+        if kind == MEDIA_KIND:
+            # The media records are one collection drawn from two sources, so
+            # the cache key carries a stamp for each.
+            return _synced_media(
+                synced_stamp(EDITORIAL_SOURCE_SLUG), synced_stamp(PEOPLE_SOURCE_SLUG)
+            )
+        return _records(active_release_id(), kind)
+    if kind in WIKI_SYNCED_KINDS:
+        return _synced_records(synced_stamp(source_slug), source_slug, kind)
+    if kind == PEOPLE_KIND:
+        # An absent people source is an empty profiles collection, answered
+        # without reading the authorities its derivation would otherwise draw
+        # from. A profile's credits follow three of them -- the editorial
+        # collections, and the live events the person spoke at -- so the cache
+        # key carries a stamp for each.
+        people_stamp = synced_stamp(PEOPLE_SOURCE_SLUG)
+        if not people_stamp[0]:
+            return ()
+        return _people(
+            people_stamp,
+            synced_stamp(EDITORIAL_SOURCE_SLUG),
+            _event_credit_stamp(),
+        )
+    return _synced_editorial(kind, synced_stamp(source_slug), synced_stamp(PEOPLE_SOURCE_SLUG))
+
+
+def synced_stamp(source_slug: str) -> tuple[int, str]:
+    """A cheap stamp that moves whenever one source's synced rows could have.
+
+    One aggregate, not a row per record, with the same contract as
+    :func:`active_release_id`: it changes exactly when a sync writes the
+    source's kinds, so a cached read follows a sync instead of outliving it. A
+    database failure raises -- the synced readers refuse to let an outage enter
+    the cache disguised as an empty catalogue (ARC-01).
+    """
+
+    stamp = SyncedDocument.objects.filter(
+        source__slug=source_slug, source__is_enabled=True
+    ).aggregate(total=Count("id"), latest=Max("updated_at"))
+    return (int(stamp["total"] or 0), str(stamp["latest"] or ""))
+
+
+@lru_cache(maxsize=16)
+def _synced_records(stamp: tuple[int, str], source_slug: str, kind: str) -> tuple[Record, ...]:
+    """The synced records of ``kind`` the stamp was built from.
+
+    The query is bound to the stamp the cache key names, so a warmed answer
+    cannot outlive the rows it was read from: a sync changes the stamp, and the
+    next read rebuilds the entry instead of serving stale pages.
+
+    A zero count is an absent source or an empty one -- an empty collection,
+    not a failure -- so it answers without reading rows.
+
+    The row table carries no order column: the order is a catalogue fact, so
+    the reader derives it from the records themselves. The editorial kinds come
+    back newest first, the rule the reviewed build ordered them by; the wiki
+    pages come back in the A-Z order the hub pages through; the profiles come
+    back in the A-Z-by-title order the reviewed build listed them in.
+    """
+
+    if not stamp[0]:
+        return ()
+    rows = SyncedDocument.objects.filter(
+        source__slug=source_slug,
+        content_kind=kind,
+        is_published=True,
+    ).values_list("record", flat=True)
+    held = [record for record in rows if isinstance(record, dict)]
+    if kind in EDITORIAL_SYNCED_KINDS:
+        held.sort(
+            key=lambda record: (
+                str(record.get("published", "")),
+                str(record.get("slug", "")),
+            ),
+            reverse=True,
+        )
+        # The bodies carry one known legacy token that pages must never render;
+        # the cleanup is a narrow, idempotent per-block repair, applied to the
+        # copy the read model holds (ARC-03).
+        if kind == "article":
+            held = [_cleaned_body(record) for record in held]
+    elif kind == PEOPLE_KIND:
+        held = [_cleaned_body(record) for record in held]
+        held.sort(
+            key=lambda record: (
+                str(record.get("title", "")).casefold(),
+                str(record.get("slug", "")),
+            )
+        )
+    elif kind == WIKI_PAGE_KIND:
+        held.sort(
+            key=lambda record: (
+                str(record.get("title", "")).casefold(),
+                str(record.get("slug", "")),
+            )
+        )
+    return tuple(held)
+
+
+@lru_cache(maxsize=8)
+def _synced_editorial(
+    kind: str, content_stamp: tuple[int, str], people_stamp: tuple[int, str]
+) -> tuple[Record, ...]:
+    """The published editorial records of ``kind``, derived from the synced rows.
+
+    The parser records carry what their source authors; the fields that are
+    derivations of *other* collections -- the public image address, the byline
+    credits resolved against the profiles -- are derived here, at read time, so
+    they follow the people records instead of a snapshot of them. The credits
+    resolve against the same synced people rows the profile pages read.
+    """
+
+    if not content_stamp[0]:
+        return ()
+    from . import public_records
+
+    people_by_slug = {
+        person["slug"]: person
+        for person in _synced_records(people_stamp, PEOPLE_SOURCE_SLUG, PEOPLE_KIND)
+    }
+    derive = {
+        "article": public_records.article_record,
+        "book": public_records.book_record,
+        "podcast": public_records.podcast_record,
+    }[kind]
+    return tuple(
+        derive(record, people_by_slug)
+        for record in _synced_records(content_stamp, EDITORIAL_SOURCE_SLUG, kind)
+    )
 
 
 @lru_cache(maxsize=64)
@@ -148,24 +320,6 @@ def _by_slug(collection: tuple[Record, ...], slug: str) -> Record | None:
     return next((record for record in collection if record.get("slug") == slug), None)
 
 
-@lru_cache(maxsize=8)
-def _cleaned_bodies(release_id: str, kind: str) -> tuple[Record, ...]:
-    """Published records whose body blocks have had leaked link metadata removed.
-
-    The stored records are left untouched: each cleaned record is a copy, so the
-    cache above still holds exactly what the database published.  The cleanup is
-    a narrow, idempotent per-block repair of one known legacy token; whether the
-    reviewed corpus still *contains* those tokens is a provenance question, and
-    it is asserted where that provenance lives -- the reviewed-projection build
-    contract -- not here at request time, where a frozen corpus-wide count once
-    turned one legitimate biography cleanup into a server error for every
-    person page (audit ARC-03).
-    """
-
-    held = _records(release_id, kind)
-    return tuple(_cleaned_body(record) for record in held)
-
-
 def _cleaned_body(record: Record) -> Record:
     copied = dict(record)
     raw_blocks = record.get("blocks")
@@ -188,7 +342,7 @@ def _cleaned_body(record: Record) -> Record:
 def articles() -> tuple[Record, ...]:
     """Every published article, newest first."""
 
-    return _cleaned_bodies(active_release_id(), "article")
+    return records("article")
 
 
 def article(slug: str) -> Record | None:
@@ -197,89 +351,85 @@ def article(slug: str) -> Record | None:
     return _by_slug(articles(), slug)
 
 
-_EVENT_UUID_PATH = re.compile(
-    r"^/events/(?P<identity>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:/|$)"
-)
+def _event_credit_stamp() -> tuple[int, str, int, str]:
+    """A cheap stamp that moves whenever a speaker credit could have.
 
+    One aggregate over the event identities and one over their content rows,
+    not a row per event. A speaker's credit is read from the content row's
+    speakers and links, and the import replaces both as a set whenever a
+    re-ingest changes any of them, which saves the content row and moves this
+    stamp; the identity aggregate covers the lifecycle and public-path changes
+    that decide whether the credit reaches a page at all. Reading all 421
+    events on the way to every request, just to decide whether the profile
+    records are still valid, costs far more than rebuilding them on the rare
+    occasion this changes.
 
-def _event_public_path_stamp() -> tuple[int, str]:
-    """A cheap stamp that moves whenever an event public path could have.
-
-    One aggregate, not a row per event. Reading all 421 events on the way to
-    every request, just to decide whether the people records are still valid,
-    costs far more than rebuilding them on the rare occasion this changes.
+    A database failure raises: the events are one of the authorities the
+    profiles are derived from, and an outage must never enter the cache
+    disguised as people with no talks (ARC-01).
     """
 
-    from events.models import Event
+    from events.models import Event, EventContent
 
-    try:
-        stamp = Event.objects.aggregate(total=Count("id"), latest=Max("updated_at"))
-    except DatabaseError:
-        return (0, "")
-    return (int(stamp["total"] or 0), str(stamp["latest"] or ""))
-
-
-def _event_public_paths() -> dict[str, str]:
-    """The canonical public path of every event that has one."""
-
-    from events.models import Event
-
-    try:
-        return {
-            str(event_id): f"/events/{public_id}/{slug}"
-            for event_id, public_id, slug in Event.objects.exclude(public_id=None).values_list(
-                "id", "public_id", "slug"
-            )
-        }
-    except DatabaseError:
-        return {}
-
-
-def _rewritten_event_path(path: object, replacements: Mapping[str, str]) -> object:
-    if not isinstance(path, str):
-        return path
-    match = _EVENT_UUID_PATH.match(path)
-    if match is None:
-        return path
-    return replacements.get(f"/events/{match.group('identity')}", path)
+    events = Event.objects.aggregate(total=Count("id"), latest=Max("updated_at"))
+    content = EventContent.objects.aggregate(total=Count("id"), latest=Max("updated_at"))
+    return (
+        int(events["total"] or 0),
+        str(events["latest"] or ""),
+        int(content["total"] or 0),
+        str(content["latest"] or ""),
+    )
 
 
 def people() -> tuple[Record, ...]:
-    """Every published profile, with its links pointed at the live event routes."""
+    """Every published profile, with its work credits derived at read time."""
 
-    return _people(active_release_id(), _event_public_path_stamp())
+    return records(PEOPLE_KIND)
 
 
 @lru_cache(maxsize=2)
-def _people(release_id: str, event_stamp: tuple[int, str]) -> tuple[Record, ...]:
-    """Profiles, cached on the two things that can change what they say.
+def _people(
+    people_stamp: tuple[int, str],
+    editorial_stamp: tuple[int, str],
+    event_stamp: tuple[int, str],
+) -> tuple[Record, ...]:
+    """Profiles, cached on the three things that can change what they say.
 
-    A profile still carries the uuid event paths its source was written with,
-    while the running site addresses an event by its stable numeric
-    ``Event.public_id``. One query resolves every referenced identity rather
-    than turning a profile page into a round trip per relationship.
+    The parser records carry who a person is; the work they are credited with
+    is a derivation of the article, book, podcast and event records, so it is
+    composed here in one pass over the sources (see
+    :func:`~content.public_records.person_relationships`) rather than stored as
+    a snapshot that a new episode or a withdrawn event would silently stale.
 
-    A relationship naming an event the database does not have keeps its own
-    path: the profile page is not the place to discover that an event is
-    missing, and a dead link there is better than a 500.
+    A credit an authority does not publish -- an author key with no profile, a
+    guest who never had one -- credits no one, rather than exposing a source
+    key as if it were a person's name.
     """
 
-    replacements = {f"/events/{identity}": path for identity, path in _event_public_paths().items()}
-    return tuple(
-        {
-            **person,
-            "relationships": tuple(
-                {
-                    **relationship,
-                    "public_path": _rewritten_event_path(
-                        relationship.get("public_path", ""), replacements
-                    ),
-                }
-                for relationship in person.get("relationships", ())
-            ),
-        }
-        for person in _cleaned_bodies(release_id, "people")
+    if not people_stamp[0]:
+        return ()
+    from . import public_records
+
+    people_records = _synced_records(people_stamp, PEOPLE_SOURCE_SLUG, PEOPLE_KIND)
+    relationships = public_records.person_relationships(
+        _synced_records(editorial_stamp, EDITORIAL_SOURCE_SLUG, "article"),
+        _synced_records(editorial_stamp, EDITORIAL_SOURCE_SLUG, "book"),
+        _synced_records(editorial_stamp, EDITORIAL_SOURCE_SLUG, "podcast"),
+        _published_event_records(),
+        people_slugs={record["slug"] for record in people_records},
     )
+    return tuple(
+        public_records.person_record(record, relationships.get(record["slug"], ()))
+        for record in people_records
+    )
+
+
+def _published_event_records() -> tuple[Record, ...]:
+    """The published event records the speaker credits are derived from."""
+
+    from events.queries import published_event_records
+
+    return published_event_records()
 
 
 def person(slug: str) -> Record | None:
@@ -346,7 +496,7 @@ def book(slug: str) -> Record | None:
 def wiki_pages() -> tuple[Record, ...]:
     """The wiki catalogue, in the A-Z order the hub pages through."""
 
-    return records("wiki")
+    return records(WIKI_PAGE_KIND)
 
 
 def wiki_page(slug: str) -> Record | None:
@@ -378,14 +528,14 @@ def wiki_search() -> Record:
 
 
 def wiki_asset_paths() -> frozenset[str]:
-    """The wiki asset paths the published manifest declares.
+    """The wiki asset paths the synced ``wiki_assets`` row declares.
 
     The asset bytes are a design file that ships with the app; what the database
-    owns is whether the release publishes it at all, so the route asks here
-    before handing anything over.
+    owns is whether the wiki publishes it at all, so the route asks here before
+    handing anything over.
     """
 
-    declared = manifest().get("wiki_assets", {})
+    declared = singleton("wiki_assets").get("wiki_assets", {})
     return frozenset(declared) if isinstance(declared, dict) else frozenset()
 
 
@@ -412,33 +562,72 @@ def courses() -> tuple[Record, ...]:
 
 
 def collection_counts() -> dict[str, int]:
-    """How many records the release says each collection holds.
+    """How many records each collection actually publishes.
 
-    The homepage states these totals. A database publishing nothing reports a
-    zero for every collection rather than a missing key.
+    The homepage states these totals. They are counted from the rows the
+    catalogue itself serves -- the same records a hub page lists -- rather
+    than read from a release's own claim about itself, so a total cannot
+    disagree with the collection it states. A database publishing nothing
+    reports a zero for every collection rather than a missing key.
     """
 
-    held = manifest().get("counts", {})
-    counts = {key: 0 for key in COUNT_KEYS}
-    if isinstance(held, dict):
-        counts.update({key: int(value) for key, value in held.items()})
-    return counts
+    held = {
+        "articles": len(articles()),
+        "podcasts": len(podcasts()),
+        "books": len(books()),
+        "people": len(people()),
+        "wiki": len(wiki_pages()),
+        "courses": len(courses()),
+        "media": len(media()),
+        "transcripts": sum(1 for record in podcasts() if record.get("transcript")),
+    }
+    return {key: held[key] for key in COUNT_KEYS}
 
 
 def media() -> tuple[Record, ...]:
-    """Every recorded public media object, in the order the release lists them."""
+    """Every published site image, in path order.
 
-    return records("media")
+    The records are the synced rows the media parser writes -- the editorial
+    tree files and the profile pictures -- read from their two sources and
+    merged by key. The staged release's stored order carried no reader-visible
+    meaning (the route resolves by lookup, the counts by length), so the
+    derived collection reads in the order the records name themselves by.
+    """
+
+    return records(MEDIA_KIND)
 
 
 def media_at(public_path: str) -> Record | None:
     """The media record a request addresses, or ``None`` when none is published."""
 
-    return _media_index(active_release_id()).get(public_path)
+    return _media_index(synced_stamp(EDITORIAL_SOURCE_SLUG), synced_stamp(PEOPLE_SOURCE_SLUG)).get(
+        public_path
+    )
 
 
 @lru_cache(maxsize=2)
-def _media_index(release_id: str) -> dict[str, Record]:
+def _synced_media(
+    editorial_stamp: tuple[int, str], people_stamp: tuple[int, str]
+) -> tuple[Record, ...]:
+    """The published media records of the two sources the stamps name.
+
+    An absent source publishes no media of its own; both absent is an empty
+    collection, not a failure. Each source's rows follow its own stamp, so a
+    sync to either side rebuilds the merged answer.
+    """
+
+    held = [
+        *_synced_records(editorial_stamp, EDITORIAL_SOURCE_SLUG, MEDIA_KIND),
+        *_synced_records(people_stamp, PEOPLE_SOURCE_SLUG, MEDIA_KIND),
+    ]
+    held.sort(key=lambda record: str(record.get("record_key", "")))
+    return tuple(held)
+
+
+@lru_cache(maxsize=2)
+def _media_index(
+    editorial_stamp: tuple[int, str], people_stamp: tuple[int, str]
+) -> dict[str, Record]:
     """Media records by their public path.
 
     Every image on the site is one lookup here, so the index is built with the
@@ -446,7 +635,9 @@ def _media_index(release_id: str) -> dict[str, Record]:
     """
 
     return {
-        item["public_path"]: item for item in _records(release_id, "media") if "public_path" in item
+        record["public_path"]: record
+        for record in _synced_media(editorial_stamp, people_stamp)
+        if "public_path" in record
     }
 
 

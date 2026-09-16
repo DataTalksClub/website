@@ -17,12 +17,13 @@ from __future__ import annotations
 
 from unittest import mock
 
+from community_base.content_sync.models import ContentSource as EngineContentSource
 from django.db import OperationalError, connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 
 from content import catalogue
-from content.models import ContentDocument, ContentSource
+from content.models import ContentDocument, ContentSource, SyncedDocument
 from content.tests.factories import activate, make_ready_release
 
 
@@ -48,16 +49,19 @@ class FailedReadRecoveryTests(CacheBindingTestBase):
 
         with mock.patch.object(ContentDocument.objects, "filter", flaky_filter):
             with self.assertRaises(OperationalError):
-                catalogue.records("book")
+                # The course records are one of the kinds still read from the
+                # staged release; the synced kinds carry the same guarantee in
+                # the classes below.
+                catalogue.records("course")
 
         # Nothing failed entered the cache: the recovering read runs the row
         # query again (pointer lookup plus rows) and answers with the published
-        # books, not the empty collection a swallowed failure used to leave.
+        # records, not the empty collection a swallowed failure used to leave.
         with CaptureQueriesContext(connection) as recovery:
-            books = catalogue.books()
+            courses = catalogue.courses()
 
         self.assertGreaterEqual(len(recovery), 2)
-        self.assertTrue(books)
+        self.assertTrue(courses)
 
 
 class ActivationRaceTests(CacheBindingTestBase):
@@ -91,9 +95,201 @@ class AbsentPointerTests(CacheBindingTestBase):
         )
 
         with CaptureQueriesContext(connection) as read:
-            books = catalogue.books()
+            courses = catalogue.courses()
 
         # The disabled source's pointer lookup is the only query: an empty key
         # is an empty catalogue, not a document read (and not a failure).
         self.assertEqual(len(read), 1)
-        self.assertEqual(books, ())
+        self.assertEqual(courses, ())
+
+
+class SyncedWikiBindingTests(CacheBindingTestBase):
+    """The same two guarantees for the wiki's synced-row authority (#384).
+
+    The wiki reads ``SyncedDocument`` rows behind a stamp cache key instead of
+    release-keyed ones, so the race the release binding removes cannot happen
+    there -- but a failed read must still raise rather than cache emptiness,
+    and a warmed answer must still follow the rows it was read from.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        catalogue._synced_records.cache_clear()
+
+    def test_a_failed_row_read_raises_and_the_next_read_recovers(self) -> None:
+        stamp = catalogue.synced_stamp(catalogue.WIKI_SOURCE_SLUG)
+        real_filter = SyncedDocument.objects.filter
+        failures = iter([OperationalError("wiki row read lost")])
+
+        def flaky_filter(*args, **kwargs):
+            try:
+                raise next(failures)
+            except StopIteration:
+                return real_filter(*args, **kwargs)
+
+        with (
+            mock.patch.object(catalogue, "synced_stamp", lambda slug: stamp),
+            mock.patch.object(SyncedDocument.objects, "filter", flaky_filter),
+        ):
+            with self.assertRaises(OperationalError):
+                catalogue.wiki_pages()
+
+        # Nothing that failed entered the cache: the recovering read answers
+        # with the published pages, not the empty collection a swallowed
+        # failure used to leave.
+        with mock.patch.object(catalogue, "synced_stamp", lambda slug: stamp):
+            pages = catalogue.wiki_pages()
+
+        self.assertTrue(pages)
+
+    def test_a_sync_write_moves_the_stamp_and_the_next_read_sees_it(self) -> None:
+        before = [page["slug"] for page in catalogue.wiki_pages()]
+        row = SyncedDocument.objects.get(
+            source__slug=catalogue.WIKI_SOURCE_SLUG,
+            content_kind=catalogue.WIKI_PAGE_KIND,
+            stable_key=before[0],
+        )
+        row.record = {**row.record, "title": "Renamed wiki page"}
+        row.save()
+
+        pages = catalogue.wiki_pages()
+
+        self.assertIn("Renamed wiki page", [page["title"] for page in pages])
+
+    def test_an_absent_sync_answers_empty_without_reading_rows(self) -> None:
+        EngineContentSource.objects.filter(slug=catalogue.WIKI_SOURCE_SLUG).update(is_enabled=False)
+
+        with CaptureQueriesContext(connection) as read:
+            pages = catalogue.wiki_pages()
+
+        # The stamp aggregate is the only query: an absent source is an empty
+        # wiki, not a row read (and not a failure).
+        self.assertEqual(len(read), 1)
+        self.assertEqual(pages, ())
+
+
+class SyncedPeopleBindingTests(CacheBindingTestBase):
+    """The same two guarantees for the synced people authority (#384).
+
+    A profile's derived credits also follow the live event rows, so a failed
+    event read is covered here too: the events are one of the authorities the
+    profiles are derived from, and an outage must raise rather than cache
+    people with no talks.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        catalogue._synced_records.cache_clear()
+        catalogue._people.cache_clear()
+
+    def test_a_sync_write_moves_the_stamp_and_the_next_read_sees_it(self) -> None:
+        before = [person["slug"] for person in catalogue.people()]
+        row = SyncedDocument.objects.get(
+            source__slug=catalogue.PEOPLE_SOURCE_SLUG,
+            content_kind=catalogue.PEOPLE_KIND,
+            stable_key=before[0],
+        )
+        row.record = {**row.record, "title": "Renamed profile"}
+        row.save()
+
+        people = catalogue.people()
+
+        self.assertIn("Renamed profile", [person["title"] for person in people])
+
+    def test_a_failed_event_read_raises_and_the_next_read_recovers(self) -> None:
+        with mock.patch.object(
+            catalogue, "_published_event_records", side_effect=OperationalError("event read lost")
+        ):
+            with self.assertRaises(OperationalError):
+                catalogue.people()
+
+        # Nothing that failed entered the cache: the recovering read answers
+        # with the derived profiles, not the credit-less people a swallowed
+        # failure used to be able to leave.
+        people = catalogue.people()
+
+        self.assertTrue(people)
+        self.assertTrue(any(person["relationships"] for person in people))
+
+    def test_an_absent_sync_answers_empty_without_reading_other_authorities(self) -> None:
+        EngineContentSource.objects.filter(slug=catalogue.PEOPLE_SOURCE_SLUG).update(
+            is_enabled=False
+        )
+
+        with CaptureQueriesContext(connection) as read:
+            people = catalogue.people()
+
+        # The stamp aggregate is the only query: an absent source is an empty
+        # profiles collection, not a row read against the editorial or event
+        # tables its derivation would otherwise draw from.
+        self.assertEqual(len(read), 1)
+        self.assertEqual(people, ())
+
+
+class SyncedMediaBindingTests(CacheBindingTestBase):
+    """The same guarantees for the synced media authority (#384).
+
+    The records are one collection drawn from two sources -- the editorial
+    tree files and the profile pictures -- so the cache key carries a stamp
+    for each, and a write to either side must move the merged answer.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        catalogue._synced_records.cache_clear()
+        catalogue._synced_media.cache_clear()
+        catalogue._media_index.cache_clear()
+
+    def test_a_failed_row_read_raises_and_the_next_read_recovers(self) -> None:
+        stamps = (
+            catalogue.synced_stamp(catalogue.EDITORIAL_SOURCE_SLUG),
+            catalogue.synced_stamp(catalogue.PEOPLE_SOURCE_SLUG),
+        )
+        real_filter = SyncedDocument.objects.filter
+        failures = iter([OperationalError("media row read lost")])
+
+        def flaky_filter(*args, **kwargs):
+            try:
+                raise next(failures)
+            except StopIteration:
+                return real_filter(*args, **kwargs)
+
+        with (
+            mock.patch.object(catalogue, "synced_stamp", lambda slug: stamps),
+            mock.patch.object(SyncedDocument.objects, "filter", flaky_filter),
+        ):
+            with self.assertRaises(OperationalError):
+                catalogue.media()
+
+        # Nothing that failed entered the cache: the recovering read answers
+        # with the published records, not the empty collection a swallowed
+        # failure used to leave.
+        with mock.patch.object(catalogue, "synced_stamp", lambda slug: stamps):
+            self.assertTrue(catalogue.media())
+
+    def test_a_sync_write_moves_the_stamp_and_the_next_read_sees_it(self) -> None:
+        before = {record["record_key"]: record for record in catalogue.media()}
+        people_key = next(key for key in before if key.startswith("images/authors/"))
+
+        row = SyncedDocument.objects.get(
+            source__slug=catalogue.PEOPLE_SOURCE_SLUG, stable_key=people_key
+        )
+        row.record = {**row.record, "content_type": "image/renamed"}
+        row.save()
+
+        after = {record["record_key"]: record for record in catalogue.media()}
+
+        self.assertEqual(after[people_key]["content_type"], "image/renamed")
+
+    def test_an_absent_source_answers_empty_without_reading_rows(self) -> None:
+        EngineContentSource.objects.filter(
+            slug__in=(catalogue.EDITORIAL_SOURCE_SLUG, catalogue.PEOPLE_SOURCE_SLUG)
+        ).update(is_enabled=False)
+
+        with CaptureQueriesContext(connection) as read:
+            media = catalogue.media()
+
+        # One stamp aggregate per source and nothing more: two absent sources
+        # are an empty collection, not row reads.
+        self.assertEqual(len(read), 2)
+        self.assertEqual(media, ())

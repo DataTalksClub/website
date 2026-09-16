@@ -8,6 +8,7 @@ un-ingested database publishing nothing instead of raising.
 
 from __future__ import annotations
 
+from community_base.content_sync.models import ContentSource as EngineContentSource
 from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
@@ -38,13 +39,38 @@ class CatalogueReadTests(TestCase):
         self.assertEqual(catalogue.book(first["slug"]), first)
         self.assertIsNone(catalogue.book("no-such-book"))
 
+    def test_the_homepage_counts_are_the_collections_the_catalogue_serves(self) -> None:
+        counts = catalogue.collection_counts()
+
+        self.assertEqual(
+            counts,
+            {
+                "articles": len(catalogue.articles()),
+                "podcasts": len(catalogue.podcasts()),
+                "books": len(catalogue.books()),
+                "people": len(catalogue.people()),
+                "wiki": len(catalogue.wiki_pages()),
+                "courses": len(catalogue.courses()),
+                "media": len(catalogue.media()),
+                "transcripts": sum(
+                    1 for record in catalogue.podcasts() if record.get("transcript")
+                ),
+            },
+        )
+        # A loaded database actually publishes: the totals are not a shape
+        # check against hardcoded zeros.
+        self.assertTrue(counts["articles"])
+        self.assertTrue(counts["wiki"])
+
     def test_a_collection_is_read_once_and_then_served_from_the_release_cache(self) -> None:
         catalogue.books()
         with CaptureQueriesContext(connection) as repeated:
             catalogue.books()
 
-        # One lookup of the active release; the records themselves are already held.
-        self.assertEqual(len(repeated), 1)
+        # Two stamp lookups and nothing more: the synced rows' stamp the read
+        # is bound to, and the synced people rows the byline credits resolve
+        # against. The records themselves are already held.
+        self.assertEqual(len(repeated), 2)
 
 
 class EmptyCatalogueTests(TestCase):
@@ -54,6 +80,15 @@ class EmptyCatalogueTests(TestCase):
         ContentSource.objects.filter(stable_id=catalogue.PUBLIC_CONTENT_STABLE_ID).update(
             enabled=False
         )
+        # Every synced authority publishes editorial collections: an
+        # un-ingested database has none of them.
+        EngineContentSource.objects.filter(
+            slug__in=(
+                catalogue.EDITORIAL_SOURCE_SLUG,
+                catalogue.PEOPLE_SOURCE_SLUG,
+                catalogue.WIKI_SOURCE_SLUG,
+            )
+        ).update(is_enabled=False)
 
     def test_every_collection_is_empty_rather_than_a_failure(self) -> None:
         for name in catalogue.COLLECTION_NAMES:

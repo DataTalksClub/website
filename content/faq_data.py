@@ -1,11 +1,11 @@
 """Validated, source-backed FAQ data and rendering helpers.
 
-FAQ courses are published documents of the active ``dtc-faq`` release.  Views never
-import the source checkout or evaluate answer text as a template; Markdown is
-rendered only after image tokens are resolved and the shared HTML allow-list has
-sanitized the result.  Cached read models are keyed by the release they were built
-from, so an activation or rollback rebuilds them instead of serving stale courses
-or stale question links (audit ARC-02).
+FAQ courses are ``SyncedDocument`` rows written by the ``community_base.content_sync``
+engine's ``dtc-faq`` parser. Views never import the source checkout or evaluate answer
+text as a template; Markdown is rendered only after image tokens are resolved and the
+shared HTML allow-list has sanitized the result.  Cached read models are keyed by the
+synced state they were built from, so a sync rebuilds them instead of serving stale
+courses or stale question links (audit ARC-02).
 """
 
 from __future__ import annotations
@@ -18,17 +18,19 @@ from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.parse import urlsplit
-from uuid import UUID
 
 import mistune
+from django.db.models import Count, Max
 
-from .models import ContentDocument, ContentSource
+from .models import SyncedDocument
 from .services import sanitize_rendered_html
 
 FAQ_ASSET_ROOT = Path(__file__).with_name("faq_assets")
-#: The registered source whose active release publishes the FAQ, and the kind
-#: its course pages are stored under.
+#: The staged release that still publishes the FAQ until the pipeline retires;
+#: ``scripts/prod/import_faq.py`` shares this name with the synced source
+#: (``content.sync_parsers.faq.SOURCE_SLUG``).
 FAQ_SOURCE_STABLE_ID = "dtc-faq"
+FAQ_ENGINE_SOURCE_SLUG = "dtc-faq"
 FAQ_CONTENT_KIND = "faq"
 FAQ_SOURCE_REPOSITORY = "DataTalksClub/faq"
 FAQ_SOURCE_REVISION = "c8da1deea9e24945922702994de101dd90a5380a"
@@ -127,18 +129,18 @@ def _add_faq_question_reference(
 
 @lru_cache(maxsize=32)
 def _faq_question_reference_index(
-    release_id: str,
+    stamp: tuple[int, str],
     course_slug: str,
 ) -> tuple[dict[str, str], dict[str, str]]:
-    """Build same-course lookup maps for one FAQ render, bound to one release.
+    """Build same-course lookup maps for one FAQ render, bound to one synced state.
 
-    The key names the release the maps were built from: releases are immutable
-    published snapshots, so a warmed index never resolves a link to a question
-    id that release does not publish, and an activation or rollback rebuilds the
-    maps instead of serving stale ones (audit ARC-02).
+    The key names the synced state the maps were built from: a sync changes the
+    stamp, so a warmed index never resolves a link to a question id the current
+    rows do not publish, and the maps rebuild instead of serving stale ones
+    (audit ARC-02).
     """
 
-    courses = _faq_release_catalogue(release_id)["courses"]
+    courses = _faq_synced_catalogue(stamp)["courses"]
     course = next((held for held in courses if held["slug"] == course_slug), None)
     if course is None:
         return {}, {}
@@ -220,57 +222,49 @@ def _resolve_faq_question_link(
     return f"/faq/{course_slug}.html#{question_id}"
 
 
-def faq_active_release_id() -> str:
-    """The id of the release currently publishing the FAQ, or ``""``.
+def faq_sync_stamp() -> tuple[int, str]:
+    """A cheap stamp that moves whenever the synced FAQ rows could have.
 
-    One cheap indexed lookup, with the same contract as
-    ``content.catalogue.active_release_id``: an absent source or pointer is a
-    genuinely empty FAQ and reads as ``""``; a database failure raises, so an
-    outage can never enter a cache below disguised as content.
+    One aggregate, with the same contract as ``content.catalogue.active_release_id``:
+    an absent source or an empty one is a genuinely empty FAQ and reads as a zero
+    count; a database failure raises, so an outage can never enter a cache below
+    disguised as content.
     """
 
-    active = (
-        ContentSource.objects.filter(stable_id=FAQ_SOURCE_STABLE_ID, enabled=True)
-        .values_list("active_release_id", flat=True)
-        .first()
-    )
-    return str(active or "")
+    stamp = SyncedDocument.objects.filter(
+        source__slug=FAQ_ENGINE_SOURCE_SLUG, source__is_enabled=True
+    ).aggregate(total=Count("id"), latest=Max("updated_at"))
+    return (int(stamp["total"] or 0), str(stamp["latest"] or ""))
 
 
 @lru_cache(maxsize=2)
-def _faq_release_catalogue(release_id: str) -> dict[str, Any]:
-    """The published FAQ courses of exactly one release.
+def _faq_synced_catalogue(stamp: tuple[int, str]) -> dict[str, Any]:
+    """The published FAQ courses of exactly one synced state.
 
-    Each course is one published document: the page's own address and name are
-    its columns, and the sections and questions beneath it are its structure,
-    carried in the document's adapter metadata rather than spread over a table
-    per nesting level. Courses come back in the order the source publishes them.
+    Each course is one synced row: the page's own address and name are its
+    columns, and the sections and questions beneath it are its structure,
+    carried in the row's record. The parser stores that structure in its own
+    vocabulary -- the question body, the source-relative image paths -- so
+    :func:`_synced_course_record` translates it to the published shape rather
+    than asking every reader to know both. Courses come back in the order the
+    source publishes them.
 
-    The query is bound to the release the cache key names; releases are
-    immutable published snapshots, so a warmed catalogue always answers for the
-    release it was built from, and an activation or rollback builds the next one
-    instead of serving stale courses.  An empty key is an absent pointer -- an
-    empty FAQ, not a failure -- so it answers without touching the database.
+    The query is bound to the stamp the cache key names, so a warmed catalogue
+    always answers for the state it was built from, and a sync builds the next
+    one instead of serving stale courses. A zero count is an absent pointer --
+    an empty FAQ, not a failure -- so it answers without touching the database.
     """
 
-    if not release_id:
+    if not stamp[0]:
         return {"schema_version": 1, "courses": []}
     rows = list(
-        ContentDocument.objects.filter(
+        SyncedDocument.objects.filter(
+            source__slug=FAQ_ENGINE_SOURCE_SLUG,
             content_kind=FAQ_CONTENT_KIND,
             is_published=True,
-            release_id=UUID(release_id),
-        ).values("stable_key", "exact_public_path", "title", "adapter_metadata")
+        )
     )
-    by_slug = {
-        str(row["stable_key"]): {
-            "slug": str(row["stable_key"]),
-            "public_path": str(row["exact_public_path"]),
-            "name": str(row["title"]),
-            **(row["adapter_metadata"] or {}),
-        }
-        for row in rows
-    }
+    by_slug = {str(row.stable_key): _synced_course_record(row) for row in rows}
     ordered = [by_slug[slug] for slug in FAQ_COURSE_ORDER if slug in by_slug]
     ordered.extend(
         course for slug, course in sorted(by_slug.items()) if slug not in FAQ_COURSE_ORDER
@@ -278,8 +272,79 @@ def _faq_release_catalogue(release_id: str) -> dict[str, Any]:
     return {"schema_version": 1, "courses": ordered}
 
 
+def _synced_course_record(row: SyncedDocument) -> dict[str, Any]:
+    """One FAQ course, as the views and renderers read it, from its synced row.
+
+    The image public paths are derived the way the reviewed build derived them:
+    the course's declared images publish flat under the course's asset route,
+    named by their own file name, with the bytes checked in beside the app.
+    """
+
+    record = row.record if isinstance(row.record, dict) else {}
+    course_slug = str(row.stable_key)
+    sections: list[dict[str, Any]] = []
+    for section in record.get("sections") or ():
+        if not isinstance(section, dict):
+            continue
+        questions: list[dict[str, Any]] = []
+        for question in section.get("questions") or ():
+            if not isinstance(question, dict):
+                continue
+            questions.append(
+                {
+                    "id": str(question.get("id") or ""),
+                    "slug": question.get("slug"),
+                    "question": str(question.get("question") or ""),
+                    "answer": question.get("body") if isinstance(question.get("body"), str) else "",
+                    "sort_order": question.get("sort_order"),
+                    "course": course_slug,
+                    "section": str(section.get("name") or ""),
+                    "section_id": str(section.get("id") or ""),
+                    "source_path": question.get("source_path")
+                    if isinstance(question.get("source_path"), str)
+                    else "",
+                    "images": [
+                        {
+                            "id": str(image.get("id") or ""),
+                            "description": str(image.get("description") or ""),
+                            "public_path": _faq_image_public_path(
+                                course_slug, str(image.get("path") or "")
+                            ),
+                        }
+                        for image in question.get("images") or ()
+                        if isinstance(image, dict) and image.get("path")
+                    ],
+                }
+            )
+        sections.append(
+            {
+                "id": str(section.get("id") or ""),
+                "name": str(section.get("name") or ""),
+                "comment": str(section.get("comment") or ""),
+                "questions": tuple(questions),
+            }
+        )
+    return {
+        "slug": course_slug,
+        "public_path": row.public_path,
+        "name": row.title,
+        "slack_channel": str(record.get("slack_channel") or ""),
+        # The published counts the feeds and the hub state: derived from the
+        # structure itself, so they cannot disagree with it.
+        "section_count": len(sections),
+        "question_count": sum(len(section["questions"]) for section in sections),
+        "sections": tuple(sections),
+    }
+
+
+def _faq_image_public_path(course_slug: str, source_path: str) -> str:
+    """The published address of one declared FAQ image, from its source path."""
+
+    return f"/faq/images/{course_slug}/{PurePosixPath(source_path).name}"
+
+
 def faq_courses() -> tuple[dict[str, Any], ...]:
-    return tuple(_faq_release_catalogue(faq_active_release_id())["courses"])
+    return tuple(_faq_synced_catalogue(faq_sync_stamp())["courses"])
 
 
 def faq_course(course_slug: str) -> dict[str, Any] | None:
@@ -553,7 +618,7 @@ def render_faq_answer(question: dict[str, Any]) -> str:
     )
     if isinstance(course_slug, str):
         question_links, question_slugs = _faq_question_reference_index(
-            faq_active_release_id(), course_slug
+            faq_sync_stamp(), course_slug
         )
     else:
         course_slug = None

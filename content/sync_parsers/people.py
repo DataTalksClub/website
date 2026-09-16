@@ -14,6 +14,14 @@ from community_base.content_sync.parsers import SourceItem, register_parser
 from scripts import build_public_projection as builder
 
 from . import base
+from .media import (
+    MEDIA_KIND,
+    PEOPLE_CONTENT_TYPES,
+    PEOPLE_REPOSITORY,
+    is_media_item,
+    media_item,
+    upsert_media_item,
+)
 
 SOURCE_SLUG = "dtc-main-site"
 CONTENT_KIND = "people"
@@ -51,9 +59,32 @@ class PeopleParser:
                 continue
             items.append(self._item(checkout, path))
         items.sort(key=lambda item: item.data["record"]["slug"])
+        # One media record per published profile picture, the reviewed build's
+        # people media pass.  The picture is already allowlisted by the person
+        # parse; a picture two profiles share was a duplicate-media build error
+        # there and is the same refusal here.
+        pictures: dict[str, str] = {}
+        media_items = []
+        for item in items:
+            picture = item.data["record"]["image_source"]
+            if not picture:
+                continue
+            if pictures.setdefault(picture, item.key) != item.key:
+                base.fail("person picture is published by two profiles", picture)
+            media_items.append(
+                media_item(
+                    checkout,
+                    picture,
+                    repository=PEOPLE_REPOSITORY,
+                    content_types=PEOPLE_CONTENT_TYPES,
+                )
+            )
+        items.extend(media_items)
         return items
 
     def upsert(self, item, source, media):
+        if is_media_item(item):
+            return upsert_media_item(item, source, media)
         record = item.data["record"]
         if record["image_source"]:
             media.upload(base.active_checkout(), record["image_source"], source)
@@ -74,7 +105,11 @@ class PeopleParser:
     def soft_delete_missing(self, seen_keys, source):
         if source.slug != SOURCE_SLUG:
             return 0
-        return base.delete_missing(source, CONTENT_KIND, seen_keys)
+        # The profiles and their published pictures withdraw together: a
+        # picture no synced profile declares is no longer published.
+        return base.delete_missing(source, CONTENT_KIND, seen_keys) + base.delete_missing(
+            source, MEDIA_KIND, seen_keys
+        )
 
     def _item(self, checkout, path) -> SourceItem:
         relative = path.as_posix()

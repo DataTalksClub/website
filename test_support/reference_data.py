@@ -129,12 +129,205 @@ def load_reviewed_docs() -> int:
     return int(run(path=DOCS_PROJECTION, apply=True)["pages"])
 
 
+def load_synced_docs() -> int:
+    """Publish the synthetic documentation as synced rows, the way the engine does.
+
+    The docs pages read ``SyncedDocument`` rows written by the ``dtc-docs``
+    parser (issue #384), not the staged release this module also seeds.
+    Production writes these rows by parsing the repository checkout; this seeds
+    the same rows from the synthetic import payload, in the parser's record
+    shape -- the page's hierarchy front matter inside its ``metadata``, the
+    markdown body, and the declared images a page's body references.
+    """
+
+    import json
+
+    from community_base.content_sync.models import ContentSource as EngineContentSource
+
+    from content.models import SyncedDocument
+
+    payload = json.loads(DOCS_PROJECTION.read_text(encoding="utf-8"))
+    source = EngineContentSource.objects.get_or_create(
+        slug="dtc-docs",
+        defaults={
+            "repo_name": "DataTalksClub/docs",
+            # A synthetic secret so the row satisfies the engine's own shape
+            # rules; nothing here reads or keeps a real credential.
+            "webhook_secret": "test-support-synthetic-secret",
+        },
+    )[0]
+
+    declared_assets = [asset["source_path"] for asset in payload.get("assets", [])]
+    rows = []
+    for page in payload["pages"]:
+        referenced = [ref for ref in declared_assets if f"/docs/{ref}" in page["body"]]
+        if page["public_path"] == "/docs/":
+            # The synthetic payload declares an asset no body references; the
+            # real corpus's landing page carries the brand avatar, so the root
+            # page owns the declared remainder here.
+            images = referenced + [ref for ref in declared_assets if ref not in referenced]
+        else:
+            images = referenced
+        parts = [part for part in page["source_path"].removesuffix(".md").split("/") if part]
+        if parts[-1] == "index":
+            parts.pop()
+        stable_key = "/".join(parts) or "index"
+        rows.append(
+            SyncedDocument(
+                source=source,
+                content_kind="docs",
+                stable_key=stable_key,
+                slug=stable_key,
+                title=page["title"],
+                summary=page.get("description") or "",
+                public_path=page["public_path"],
+                source_path=page["source_path"],
+                checksum=page["body_sha256"],
+                record={
+                    "stable_key": stable_key,
+                    "public_path": page["public_path"],
+                    "source_path": page["source_path"],
+                    "body": page["body"],
+                    "images": images,
+                    "metadata": {
+                        "title": page["title"],
+                        "description": page.get("description") or "",
+                        "parent": page.get("parent"),
+                        "parent_path": page.get("parent_path"),
+                        "grand_parent": page.get("grand_parent"),
+                        "grand_parent_path": page.get("grand_parent_path"),
+                        "nav_order": page.get("nav_order"),
+                        "has_children": bool(page.get("has_children")),
+                        "has_toc": bool(page.get("has_toc", True)),
+                        "permalink": page.get("permalink"),
+                        "edit_url": page.get("edit_url") or "",
+                    },
+                    "provenance": {
+                        "repository": "DataTalksClub/docs",
+                        "revision": page.get("source_revision", ""),
+                        "source_path": page["source_path"],
+                        "source_key": stable_key,
+                        "checksum": page["body_sha256"],
+                    },
+                },
+            )
+        )
+    SyncedDocument.objects.bulk_create(rows)
+    return len(rows)
+
+
 def load_reviewed_faq() -> int:
     """Publish the synthetic course FAQ, the way the production import does."""
 
     from scripts.prod.import_faq import run
 
     return int(run(path=FAQ_PROJECTION, apply=True)["courses"])
+
+
+def load_synced_faq() -> int:
+    """Publish the synthetic course FAQ as synced rows, the way the engine does.
+
+    The FAQ pages read ``SyncedDocument`` rows written by the ``dtc-faq``
+    parser (issue #384), not the staged release this module also seeds. This
+    seeds the same courses from the synthetic import payload in the parser's
+    record shape: the section tree with the raw question bodies and the
+    source-relative image paths the read model translates at request time.
+    """
+
+    import hashlib
+    import json
+
+    from community_base.content_sync.models import ContentSource as EngineContentSource
+
+    from content.faq_data import _faq_question_slug
+    from content.models import SyncedDocument
+
+    payload = json.loads(FAQ_PROJECTION.read_text(encoding="utf-8"))
+    source = EngineContentSource.objects.get_or_create(
+        slug="dtc-faq",
+        defaults={
+            "repo_name": "DataTalksClub/faq",
+            # A synthetic secret so the row satisfies the engine's own shape
+            # rules; nothing here reads or keeps a real credential.
+            "webhook_secret": "test-support-synthetic-secret",
+        },
+    )[0]
+
+    rows = []
+    for course in payload["courses"]:
+        slug = course["slug"]
+        sections = []
+        declared_images: list[str] = []
+        for section in course["sections"]:
+            questions = []
+            for order, question in enumerate(section["questions"], start=1):
+                source_path = str(question.get("source_path") or "")
+                filename = source_path.rsplit("/", 1)[-1]
+                images = []
+                for image in question.get("images") or []:
+                    image_file = str(image["public_path"]).rsplit("/", 1)[-1]
+                    declared_images.append(image_file)
+                    images.append(
+                        {
+                            "id": str(image["id"]),
+                            "description": str(image.get("description") or ""),
+                            "path": image_file,
+                        }
+                    )
+                questions.append(
+                    {
+                        "id": str(question["id"]),
+                        "slug": _faq_question_slug(filename) if filename else None,
+                        "question": str(question["question"]),
+                        "sort_order": order,
+                        "images": images,
+                        "body": str(question["answer"]),
+                        "source_path": source_path,
+                    }
+                )
+            sections.append(
+                {
+                    "id": str(section["id"]),
+                    "name": str(section.get("name") or section.get("title") or ""),
+                    "comment": "",
+                    "questions": questions,
+                }
+            )
+        record = {
+            "course": slug,
+            "course_name": str(course["name"]),
+            "slack_channel": "",
+            "sections": sections,
+            "declared_images": sorted(set(declared_images)),
+            "source_path": f"_questions/{slug}/_metadata.yaml",
+            "provenance": {
+                "repository": "DataTalksClub/faq",
+                "revision": str(payload.get("source", {}).get("revision", "")),
+                "source_path": f"_questions/{slug}/_metadata.yaml",
+                "source_key": slug,
+                "checksum": "",
+            },
+        }
+        checksum = hashlib.sha256(
+            json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        record["provenance"]["checksum"] = checksum
+        rows.append(
+            SyncedDocument(
+                source=source,
+                content_kind="faq",
+                stable_key=slug,
+                slug=slug,
+                title=course["name"],
+                summary="",
+                public_path=f"/faq/{slug}.html",
+                source_path=record["source_path"],
+                checksum=checksum,
+                record=record,
+            )
+        )
+    SyncedDocument.objects.bulk_create(rows)
+    return len(rows)
 
 
 def _synthetic_catalogue() -> dict[str, Any]:
@@ -173,6 +366,212 @@ def load_reviewed_public_content() -> int:
     return int(report.get("documents", 0))
 
 
+def load_synced_wiki() -> int:
+    """Publish the synthetic wiki as synced rows, the way the package engine does.
+
+    The wiki pages read ``SyncedDocument`` rows written by the ``dtc-podwiki``
+    parser (issue #384), not the staged release the rest of the catalogue still
+    reads. Production writes these rows by parsing the repository checkout; this
+    seeds the same rows from the synthetic catalogue's wiki records, so tests
+    read the same content from the authority the pages actually use.
+    """
+
+    import hashlib
+    import json
+
+    from community_base.content_sync.models import ContentSource as EngineContentSource
+
+    from content.models import SyncedDocument
+
+    catalogue = _synthetic_catalogue()
+    source = EngineContentSource.objects.get_or_create(
+        slug="dtc-podwiki",
+        defaults={
+            "repo_name": "DataTalksClub/podwiki",
+            # A synthetic secret so the row satisfies the engine's own shape
+            # rules; nothing here reads or keeps a real credential.
+            "webhook_secret": "test-support-synthetic-secret",
+        },
+    )[0]
+
+    def _checksum(record: dict[str, Any]) -> str:
+        encoded = json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+    rows = [
+        SyncedDocument(
+            source=source,
+            content_kind="wiki",
+            stable_key=record["slug"],
+            slug=record["slug"],
+            title=record["title"],
+            summary=record.get("summary", ""),
+            public_path=record["public_path"],
+            source_path=record["provenance"]["source_path"],
+            checksum=record["provenance"]["checksum"],
+            record=record,
+        )
+        for record in catalogue["wiki"]
+    ]
+    singleton_records = {
+        "wiki_graph": catalogue["wiki_graph"],
+        "wiki_search": catalogue["wiki_search"],
+        # The synced asset row carries the declared paths the staged manifest
+        # published: the same mapping, one authority behind.
+        "wiki_assets": {"wiki_assets": catalogue["manifest"]["wiki_assets"]},
+    }
+    rows.extend(
+        SyncedDocument(
+            source=source,
+            content_kind=kind,
+            stable_key=kind,
+            slug="",
+            title=kind,
+            summary="",
+            public_path=f"/-/podwiki/{kind}",
+            source_path=kind,
+            checksum=_checksum(record),
+            record=record,
+        )
+        for kind, record in singleton_records.items()
+    )
+    SyncedDocument.objects.bulk_create(rows)
+    return len(rows)
+
+
+def _sync_engine_sources() -> tuple[object, object]:
+    """The two engine sources the editorial catalogue and its media ride on."""
+
+    from community_base.content_sync.models import ContentSource as EngineContentSource
+
+    editorial_source = EngineContentSource.objects.get_or_create(
+        slug="dtc-content",
+        defaults={
+            "repo_name": "DataTalksClub/content",
+            # A synthetic secret so the row satisfies the engine's own shape
+            # rules; nothing here reads or keeps a real credential.
+            "webhook_secret": "test-support-synthetic-secret",
+        },
+    )[0]
+    people_source = EngineContentSource.objects.get_or_create(
+        slug="dtc-main-site",
+        defaults={
+            "repo_name": "DataTalksClub/datatalksclub.github.io",
+            "webhook_secret": "test-support-synthetic-secret",
+        },
+    )[0]
+    return editorial_source, people_source
+
+
+def load_synced_editorial() -> int:
+    """Publish the synthetic editorial records as synced rows, the way the engine does.
+
+    The articles, podcasts, books and people read ``SyncedDocument`` rows --
+    written by the ``dtc-content`` and ``dtc-main-site`` parsers (issue #384).
+    Production writes these rows by parsing the repository checkout; this seeds
+    the same rows from the synthetic catalogue. The staged records carry fields
+    the projection build derived from *other* collections -- the profile
+    credits, the public image address -- and the parser records do not, so the
+    derived fields are stripped here and the declared image is stored under its
+    source form, which is what the read model derives from.
+    """
+
+    from content.models import SyncedDocument
+
+    catalogue = _synthetic_catalogue()
+    editorial_source, people_source = _sync_engine_sources()
+
+    kinds = {"articles": "article", "podcasts": "podcast", "books": "book"}
+    rows = []
+    for collection, kind in kinds.items():
+        for record in catalogue[collection]:
+            held = dict(record)
+            image_source = held.pop("image_path", "")
+            held.pop("image_source", None)
+            held["image_source"] = image_source.lstrip("/")
+            held.pop("author_profiles", None)
+            held.pop("guest_profiles", None)
+            held.pop("media_available", None)
+            provenance = held.get("provenance") or {}
+            rows.append(
+                SyncedDocument(
+                    source=editorial_source,
+                    content_kind=kind,
+                    stable_key=held["slug"],
+                    slug=held["slug"],
+                    title=held["title"],
+                    summary=held.get("description") or held.get("summary") or "",
+                    public_path=held["public_path"],
+                    source_path=str(provenance.get("source_path") or held["slug"]),
+                    checksum=str(provenance.get("checksum") or "0" * 64),
+                    record=held,
+                )
+            )
+    for record in catalogue["people"]:
+        held = dict(record)
+        image_source = held.pop("image_path", "")
+        held.pop("image_source", None)
+        held["image_source"] = image_source.lstrip("/")
+        held.pop("media_available", None)
+        held.pop("relationships", None)
+        held.pop("roles", None)
+        provenance = held.get("provenance") or {}
+        rows.append(
+            SyncedDocument(
+                source=people_source,
+                content_kind="people",
+                stable_key=held["slug"],
+                slug=held["slug"],
+                title=held["title"],
+                summary=held.get("summary") or "",
+                public_path=held["public_path"],
+                source_path=str(provenance.get("source_path") or held["slug"]),
+                checksum=str(provenance.get("checksum") or "0" * 64),
+                record=held,
+            )
+        )
+    SyncedDocument.objects.bulk_create(rows)
+    return len(rows)
+
+
+def load_synced_media() -> int:
+    """Publish the synthetic media records as synced rows, the way the parsers do.
+
+    The media records are written by the ``dtc-content`` media parser (one per
+    ``images/{posts,podcast,books}`` tree file) and the ``dtc-main-site``
+    people parser (one per profile picture) -- issue #384.  The synthetic
+    catalogue's media collection already holds the parser record shape -- key,
+    public address, content type and the serving checksum -- so each record
+    seeds the row of the source whose tree it stands for: profile pictures for
+    the legacy main site, everything else for the editorial repository.
+    """
+
+    from content.models import SyncedDocument
+
+    editorial_source, people_source = _sync_engine_sources()
+    rows = []
+    for record in _synthetic_catalogue()["media"]:
+        held = dict(record)
+        is_people_picture = held["record_key"].startswith("images/authors/")
+        provenance = held.get("provenance") or {}
+        rows.append(
+            SyncedDocument(
+                source=people_source if is_people_picture else editorial_source,
+                content_kind="media",
+                stable_key=held["record_key"],
+                slug=held["record_key"],
+                title=held["record_key"],
+                summary="",
+                public_path=held["public_path"],
+                source_path=str(provenance.get("source_path") or held["record_key"]),
+                checksum=str(provenance.get("checksum") or "0" * 64),
+                record=held,
+            )
+        )
+    SyncedDocument.objects.bulk_create(rows)
+    return len(rows)
+
+
 def load_homepage_testimonials() -> int:
     from courses.services.testimonials import import_homepage_testimonials
 
@@ -192,7 +591,12 @@ def load_reviewed_reference_data() -> dict[str, int]:
         "events": events,
         "event_content": load_event_content(),
         "docs": load_reviewed_docs(),
+        "synced_docs": load_synced_docs(),
         "faq": load_reviewed_faq(),
+        "synced_faq": load_synced_faq(),
         "public_content": load_reviewed_public_content(),
+        "synced_wiki": load_synced_wiki(),
+        "synced_editorial": load_synced_editorial(),
+        "synced_media": load_synced_media(),
         "testimonials": load_homepage_testimonials(),
     }

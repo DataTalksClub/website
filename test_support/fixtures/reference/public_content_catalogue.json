@@ -6,10 +6,16 @@
           "key": "synthetic-two",
           "name": "Synthetic Author Two",
           "public_path": "/people/synthetic-two.html"
+        },
+        {
+          "key": "synthetic-rich-profile",
+          "name": "Synthetic Rich Profile",
+          "public_path": "/people/synthetic-rich-profile.html"
         }
       ],
       "authors": [
-        "synthetic-two"
+        "synthetic-two",
+        "synthetic-rich-profile"
       ],
       "blocks": [
         {
@@ -45,11 +51,17 @@
           "key": "synthetic-two",
           "name": "Synthetic Author Two",
           "public_path": "/people/synthetic-two.html"
+        },
+        {
+          "key": "synthetic-rich-profile",
+          "name": "Synthetic Rich Profile",
+          "public_path": "/people/synthetic-rich-profile.html"
         }
       ],
       "authors": [
         "synthetic-one",
-        "synthetic-two"
+        "synthetic-two",
+        "synthetic-rich-profile"
       ],
       "blocks": [
         {
@@ -5470,10 +5482,16 @@
           "key": "synthetic-two",
           "name": "Synthetic Guest Two",
           "public_path": "/people/synthetic-two.html"
+        },
+        {
+          "key": "synthetic-rich-profile",
+          "name": "Synthetic Rich Profile",
+          "public_path": "/people/synthetic-rich-profile.html"
         }
       ],
       "guests": [
-        "synthetic-two"
+        "synthetic-two",
+        "synthetic-rich-profile"
       ],
       "image_path": "",
       "links": {
@@ -5656,8 +5674,16 @@
     {
       "description": "Second synthetic podcast episode description.",
       "episode": 2,
-      "guest_profiles": [],
-      "guests": [],
+      "guest_profiles": [
+        {
+          "key": "synthetic-rich-profile",
+          "name": "Synthetic Rich Profile",
+          "public_path": "/people/synthetic-rich-profile.html"
+        }
+      ],
+      "guests": [
+        "synthetic-rich-profile"
+      ],
       "image_path": "",
       "links": {},
       "media_available": false,
