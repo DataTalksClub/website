@@ -9,7 +9,7 @@ dependencies = [
     "boto3>=1.43.33,<2",
 # Shared DataTalks.Club package (kernel); pinned release, see
 # `uv run python scripts/community_base_link.py link` for a local development link.
-    "community-base @ git+https://github.com/DataTalksClub/community-base@v0.3.0",
+    "community-base @ git+https://github.com/DataTalksClub/community-base@v0.4.6",
     "cryptography>=50,<51",
     "django>=6.0,<6.1",
     "django-allauth>=65.10,<66",
