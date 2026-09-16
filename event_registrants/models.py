@@ -132,7 +132,7 @@ class EventRegistration(models.Model):
     class Meta:
         ordering = ("event_id", "provider", "id")
         indexes = [
-            models.Index(fields=("identity",), name="event_registrants_registration_identity"),
+            models.Index(fields=("identity",), name="event_registrants_reg_identity"),
         ]
 
     def __str__(self) -> str:

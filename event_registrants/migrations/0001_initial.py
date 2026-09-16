@@ -45,43 +45,6 @@ def copy_registrant_rows_out_of_events(apps, schema_editor):
 
 
 
-# The old events_* registrant tables, in the order their rows must be written so
-# foreign keys land after the rows they point at.
-_COPY_ORDER = (
-    ("events_eventregistrantidentity", "event_registrants", "EventRegistrantIdentity"),
-    ("events_eventregistration", "event_registrants", "EventRegistration"),
-    ("events_eventregistrantinterestsignal", "event_registrants", "EventRegistrantInterestSignal"),
-    ("events_eventregistrantimportprogress", "event_registrants", "EventRegistrantImportProgress"),
-)
-
-
-def copy_registrant_rows_out_of_events(apps, schema_editor):
-    """Copy registrant rows out of the old events_* tables before events.0010 drops them.
-
-    The old and new tables carry identical column names, so each row is read as
-    a dict from the source table and written into the new model as-is.  On a
-    fresh database where the events app never created its tables (or after the
-    P5 rebuild removes it), this is a no-op.  Irreversible by design: the
-    source tables are dropped immediately after, so there is nothing to copy
-    back to.
-    """
-
-    connection = schema_editor.connection
-    existing = set(connection.introspection.table_names(connection.cursor()))
-    for table, app_label, model_name in _COPY_ORDER:
-        if table not in existing:
-            continue
-        Model = apps.get_model(app_label, model_name)
-        with connection.cursor() as cursor:
-            columns = [
-                column.name
-                for column in connection.introspection.get_table_description(cursor, table)
-            ]
-            select = ", ".join(f'"{name}"' for name in columns)
-            for row in cursor.execute(f'SELECT {select} FROM "{table}"').fetchall():
-                Model.objects.create(**dict(zip(columns, row)))
-
-
 class Migration(migrations.Migration):
 
 
@@ -170,9 +133,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name='eventregistration',
-            index=models.Index(fields=['identity'], name='event_registrants_registration_identity'),
+            index=models.Index(fields=['identity'], name='event_registrants_reg_identity'),
         ),
-        migrations.RunPython(copy_registrant_rows_out_of_events, migrations.RunPython.noop),
         migrations.RunPython(copy_registrant_rows_out_of_events, migrations.RunPython.noop),
     ]
 

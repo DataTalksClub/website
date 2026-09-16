@@ -46,44 +46,6 @@ def copy_historical_rows_out_of_events(apps, schema_editor):
 
 
 
-# The old events_* historical tables, in the order their rows must be written so
-# foreign keys land after the rows they point at.
-_COPY_ORDER = (
-    ("events_historicalregistrationsourcerun", "historical_registrations", "HistoricalRegistrationSourceRun"),
-    ("events_historicalregistrationaggregaterevision", "historical_registrations", "HistoricalRegistrationAggregateRevision"),
-    ("events_historicalregistrationaggregateslot", "historical_registrations", "HistoricalRegistrationAggregateSlot"),
-    ("events_historicalregistrationpointerdisplacement", "historical_registrations", "HistoricalRegistrationPointerDisplacement"),
-    ("events_historicalregistrationtotalstate", "historical_registrations", "HistoricalRegistrationTotalState"),
-)
-
-
-def copy_historical_rows_out_of_events(apps, schema_editor):
-    """Copy aggregate rows out of the old events_* tables before events.0009 drops them.
-
-    The old and new tables carry identical column names, so each row is read as
-    a dict from the source table and written into the new model as-is.  On a
-    fresh database where the events app never created its tables (or after the
-    P5 rebuild removes it), this is a no-op.  Irreversible by design: the
-    source tables are dropped immediately after, so there is nothing to copy
-    back to.
-    """
-
-    connection = schema_editor.connection
-    existing = set(connection.introspection.table_names(connection.cursor()))
-    for table, app_label, model_name in _COPY_ORDER:
-        if table not in existing:
-            continue
-        Model = apps.get_model(app_label, model_name)
-        with connection.cursor() as cursor:
-            columns = [
-                column.name
-                for column in connection.introspection.get_table_description(cursor, table)
-            ]
-            select = ", ".join(f'"{name}"' for name in columns)
-            for row in cursor.execute(f'SELECT {select} FROM "{table}"').fetchall():
-                Model.objects.create(**dict(zip(columns, row)))
-
-
 class Migration(migrations.Migration):
 
 
@@ -284,7 +246,6 @@ class Migration(migrations.Migration):
             model_name='historicalregistrationaggregaterevision',
             constraint=models.CheckConstraint(condition=models.Q(('external_event_identifier__gt', '')), name='historical_registrations_aggregate_external_id_nonempty'),
         ),
-        migrations.RunPython(copy_historical_rows_out_of_events, migrations.RunPython.noop),
         migrations.RunPython(copy_historical_rows_out_of_events, migrations.RunPython.noop),
     ]
 
