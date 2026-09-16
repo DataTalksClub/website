@@ -76,37 +76,46 @@ def test_course_value_precedes_route_choice_and_anchors_work(
             expect(page.locator("body.dark-mode")).to_have_count(1)
         page.evaluate("scrollTo(0,0)")
         expect(page.locator(".family-lede")).to_have_text(family.outcome)
-        expect(page.locator(".family-prerequisites")).to_contain_text(family.prerequisites)
-        expect(page.locator(".family-transformation-card")).to_have_count(3)
+        # The prerequisites now answer the question stage 1 raises, inside it.
+        expect(page.locator(".journey-card").first).to_contain_text(family.prerequisites)
+        expect(page.locator(".family-prerequisites")).to_have_count(0)
+        expect(page.locator(".journey-card")).to_have_count(3)
         for index, step in enumerate(family.progression):
-            expect(page.locator(".family-transformation-card").nth(index)).to_contain_text(
+            expect(page.locator(".journey-card").nth(index)).to_contain_text(
                 step["heading"]
             )
-        expect(page.locator(".family-transformation-figure")).to_have_count(3)
+        expect(page.locator(".journey-figure")).to_have_count(3)
         expect(page.locator(".family-hero-art")).to_be_visible()
         visible_hero_art = page.locator(".family-hero-art img:visible")
-        visible_learning_art = page.locator(
-            ".family-transformation-figure-course img:visible"
-        )
         expect(visible_hero_art).to_have_count(1)
-        expect(visible_learning_art).to_have_count(1)
         expected_generic_art = (
             "course-learning-dark.webp" if theme == "dark" else "course-learning.webp"
         )
         assert expected_generic_art in visible_hero_art.get_attribute("src")
-        assert expected_generic_art in visible_learning_art.get_attribute("src")
+        # The family's own scene is drawn once, by the hero: the stages draw
+        # the shared journey artwork instead of repeating it.
+        expect(page.locator(".journey-figure img:visible")).to_have_count(3)
+        for index in range(3):
+            source = page.locator(".journey-figure img:visible").nth(index).get_attribute("src")
+            assert expected_generic_art not in source
+        # Each disc sits on the dashed rail behind the row, not inside a
+        # paragraph, so the three stages read as a sequence.
+        expect(page.locator(".journey-card .step-number")).to_have_count(3)
         expect(page.locator(".family-syllabus-row h3")).to_have_count(5)
         expect(page.locator(".family-syllabus-row h3 a")).to_have_count(5)
         expect(page.locator(".family-syllabus-row p")).to_have_count(4)
         value = page.locator(".family-transformation").bounding_box()
         routes = page.locator(".family-register-cohort").bounding_box()
-        prerequisites = page.locator(".family-prerequisites").bounding_box()
+        opening = page.locator(".family-opening-group").bounding_box()
         assert value is not None and routes is not None
-        assert prerequisites is not None
-        section_gap = value["y"] - (prerequisites["y"] + prerequisites["height"])
+        assert opening is not None
+        section_gap = value["y"] - (opening["y"] + opening["height"])
         assert 40 <= section_gap <= 72
         assert value["y"] + value["height"] <= routes["y"]
-        assert value["y"] < height if width == 1440 else value["y"] + value["height"] < height * 3
+        # The stages carry their own evidence now, so stacked they run longer
+        # than three screens; what has to hold is that the visitor *meets* the
+        # argument early, which is the section's top, not its bottom.
+        assert value["y"] < height if width == 1440 else value["y"] < height * 2
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), page.evaluate(
             """() => [...document.querySelectorAll('main *')].filter(el => {
                 const r = el.getBoundingClientRect(); return r.right > innerWidth;
@@ -116,7 +125,8 @@ def test_course_value_precedes_route_choice_and_anchors_work(
         targets = page.locator(
             ".family-hero-actions a, .family-register a, .family-syllabus-intro a, "
             ".family-edition-card h3 a, .family-syllabus-row h3 a, "
-            ".family-proof-repository a, .family-proof-byline a, .family-proof > a"
+            ".family-proof-repository a, .family-proof-byline a, .family-proof > a, "
+            ".journey-proof a"
         )
         for index in range(targets.count()):
             box = targets.nth(index).bounding_box()

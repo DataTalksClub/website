@@ -482,6 +482,14 @@ def course_family_page_context(family: Course, user) -> dict:
             submission.repository_label, submission.repository_url = _repository_identity(
                 submission.github_link
             )
+    # The same family-wide total the outcome strip publishes, written as the
+    # journey's stage-3 proof reads it ("1,874 projects"); one count, one
+    # queryset, so the two places on the page can never disagree.
+    submissions_fact = (
+        f"{submission_count:,} project{'' if submission_count == 1 else 's'}"
+        if submission_count
+        else ""
+    )
     enrolled_count = Enrollment.objects.filter(
         course__course=family, course__visible=True
     ).count()
@@ -561,6 +569,7 @@ def course_family_page_context(family: Course, user) -> dict:
         "family_outcome_stats": outcome_stats,
         "has_learner_projects": has_learner_projects,
         "family_gallery_submissions": gallery_submissions,
+        "family_submissions_fact": submissions_fact,
         "family_project_brief": project_brief,
         "certificate_cohort": certificate_cohort,
         "syllabus_fact": syllabus_fact,

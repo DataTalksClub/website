@@ -86,11 +86,12 @@ class CourseFamilyLandingTests(TestCase):
 
         self.assertContains(response, self.family.prerequisites)
         self.assertContains(response, self.family.outcome)
-        # Prerequisites and the course-adjusted transformation establish fit
-        # and value before the page asks the visitor to choose a route.
+        # The prerequisites now answer the question stage 1 raises, inside
+        # stage 1, and the course-adjusted journey still establishes fit and
+        # value before the page asks the visitor to choose a route.
         self.assertLess(
-            body.index('id="prerequisites-heading"'),
             body.index('id="transformation-heading"'),
+            body.index(self.family.prerequisites),
         )
         self.assertLess(
             body.index('id="transformation-heading"'),
@@ -110,39 +111,69 @@ class CourseFamilyLandingTests(TestCase):
 
         transformation = response.context["family_transformation"]
         self.assertEqual(transformation, self.family.progression)
-        self.assertContains(response, 'class="card family-transformation-card"', count=3)
+        self.assertContains(response, 'class="card journey-card"', count=3)
         for step in self.family.progression:
             self.assertContains(response, step["heading"])
             self.assertContains(response, step["description"])
-        section = response.content.decode().split(
-            'class="family-transformation"', 1
-        )[1].split("</section>", 1)[0]
+        section = self.journey_section(response)
         self.assertNotIn("Attempt 1", section)
+        # The stages break out to the shell's full width, on the page's own
+        # lavender ground: the cards are too narrow to read at the reading
+        # column, and the section introduces no band of its own.
+        self.assertContains(
+            response, 'class="family-transformation shell-breakout"', count=1
+        )
 
-    def test_transformation_uses_neutral_start_and_family_specific_learning_art(self):
+    def journey_section(self, response) -> str:
+        """The rendered three-stage section, markup only."""
+
+        body = response.content.decode()
+        start = body.index('class="family-transformation shell-breakout"')
+        return body[start : body.index("</section>", start)]
+
+    def test_transformation_uses_neutral_start_and_shared_pipeline_art(self):
         self.family.slug = "de-zoomcamp"
         self.family.save(update_fields=["slug"])
 
         response = self.client.get(reverse("course_family", args=[self.family.slug]))
+        section = self.journey_section(response)
 
         self.assertContains(response, "course-journey-start.")
         self.assertContains(response, "course-journey-start-dark.")
-        self.assertContains(response, "course-de-zoomcamp.", count=2)
+        # The family's own scene is the hero's, drawn once: stage 2 used to
+        # repeat it a few hundred pixels below, which read as a template
+        # accident rather than a story.
+        self.assertContains(response, "course-de-zoomcamp.", count=1)
+        self.assertNotIn("course-de-zoomcamp.", section)
+        self.assertIn("home-step-2.", section)
+        self.assertIn("home-step-3.", section)
         self.assertContains(response, 'class="family-hero-art family-course-art"')
 
-    def test_transformation_does_not_fall_back_to_prerequisites_or_syllabus(self):
-        response = self.client.get(self.url)
-        body = response.content.decode()
+    def test_each_stage_closes_on_the_evidence_the_page_already_owns(self):
+        self.add_submission()
 
-        prerequisites = body.index(self.family.prerequisites)
-        transformation = body.index('class="family-transformation-grid"')
-        starting_point = body.index(self.family.progression[0]["heading"])
-        self.assertLess(prerequisites, transformation)
-        self.assertGreater(starting_point, transformation)
-        transformation_section = body[
-            transformation : body.index("</section>", transformation)
-        ]
-        self.assertNotIn("Prepare the data", transformation_section)
+        response = self.client.get(self.url)
+        section = self.journey_section(response)
+
+        # Stage 1 absorbs the prerequisites, which no longer sit in a box of
+        # their own further up the page.
+        self.assertIn("Good fit if", section)
+        self.assertIn(self.family.prerequisites, section)
+        self.assertNotContains(response, 'class="family-prerequisites"')
+        # Stage 2 carries the real syllabus count and its real module titles,
+        # and points at the syllabus band that lists them in full.
+        self.assertIn(response.context["syllabus_fact"], section)
+        for row in response.context["family_syllabus_rows"]:
+            self.assertIn(row.title, section)
+        self.assertIn('href="#syllabus-heading"', section)
+        # Stage 3 carries the real peer-reviewed project count, the real
+        # family-wide submission total and the first gallery repositories.
+        self.assertIn("Peer-reviewed · 1 project", section)
+        self.assertIn("1 project</strong> submitted so far", section)
+        for submission in response.context["family_gallery_submissions"][:2]:
+            self.assertIn(submission.repository_label, section)
+            self.assertIn(submission.enrollment.display_name, section)
+        self.assertIn('href="#built-heading"', section)
 
     def test_unpublished_retired_and_other_course_skills_are_not_promoted(self):
         modules = list(self.curriculum.modules.order_by("position"))
@@ -222,24 +253,25 @@ class CourseFamilyLandingTests(TestCase):
         self.assertContains(response, "This course is educational; results are not guaranteed.")
         self.assertNotContains(response, "<script>unsafe()")
 
-    def test_whitespace_prerequisites_do_not_leave_an_empty_section(self):
+    def test_whitespace_prerequisites_do_not_leave_an_empty_label(self):
         self.family.prerequisites = " \n "
         self.family.starting_point = " \n "
         self.family.save(update_fields=["prerequisites", "starting_point"])
         response = self.client.get(self.url)
 
-        self.assertNotContains(response, 'id="prerequisites-heading"')
+        self.assertNotContains(response, 'id="starting-point-heading"')
+        self.assertNotIn("Good fit if", self.journey_section(response))
 
     def test_repository_prerequisites_and_starting_point_render_in_separate_sections(self):
         response = self.client.get(self.url)
         body = response.content.decode()
 
         self.assertContains(response, self.family.prerequisites)
-        prerequisite_section = body.split('class="family-prerequisites"', 1)[1].split(
+        starting_point_section = body.split('class="family-starting-point"', 1)[1].split(
             "</section>", 1
         )[0]
-        self.assertIn(self.family.prerequisites, prerequisite_section)
-        self.assertNotIn(self.family.starting_point, prerequisite_section)
+        self.assertIn(self.family.starting_point, starting_point_section)
+        self.assertNotIn(self.family.prerequisites, starting_point_section)
 
     def test_weekly_commitment_renders_near_the_hero_and_is_escaped(self):
         self.family.weekly_commitment = "Free. <script>evil()</script> Plan for about 10 hours a week."

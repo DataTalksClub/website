@@ -171,7 +171,7 @@
         margin: 0;
       }
 
-      :where(.family-starting-point, .family-prerequisites) {
+      .family-starting-point {
         align-items: start;
         background: color-mix(in srgb, var(--card) 72%, transparent);
         border: 1.5px solid var(--line-soft);
@@ -181,7 +181,7 @@
         padding: 1rem 1.1rem;
       }
 
-      :where(.family-starting-point, .family-prerequisites) h2 {
+      .family-starting-point h2 {
         font-family: var(--font-mono);
         font-size: 0.78rem;
         letter-spacing: 0.08em;
@@ -189,14 +189,14 @@
         text-transform: uppercase;
       }
 
-      :where(.family-starting-point, .family-prerequisites) p {
+      .family-starting-point p {
         color: var(--body-text);
         line-height: 1.55;
         margin: 0;
       }
 
       @media (min-width: 48rem) {
-        :where(.family-starting-point, .family-prerequisites) {
+        .family-starting-point {
           grid-template-columns: 9rem minmax(0, 1fr);
         }
       }
@@ -349,28 +349,91 @@
         letter-spacing: -0.02em;
       }
 
-      .family-transformation-grid {
+      /* --- the three-stage journey --------------------------------------- *
+       * The section breaks out to the full 76rem shell -- the width the home
+       * page's climb already draws its own three cards at -- so a stage card
+       * is ~381px instead of the reading column's 275px and no heading wraps
+       * to three lines.  It stays on the page's lavender ground: no new band,
+       * no new colour (see _docs/design/design-system.md, "Which ground a band
+       * takes").  Head and cards break out together, so the head sits over
+       * card 1's left edge the way the climb's does. */
+      .journey-grid {
         display: grid;
-        gap: 1.25rem;
+        gap: 1.5rem;
         grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 2.25rem;
+        position: relative;
       }
 
-      .family-transformation-card {
-        align-content: start;
-        display: grid;
-        gap: 0.9rem;
-        min-height: 25rem;
-        padding: 1.25rem;
+      .family-transformation .band-head {
+        margin-bottom: 0;
       }
 
-      .family-transformation-figure {
+      /* The rail: one dashed line drawn once behind the row, at the height of
+         the step discs.  The cards are opaque and sit above it, so it shows
+         only in the gaps -- disc, card edge, dashed gap, disc -- which is what
+         makes "three stages" a thing you see before you read it. */
+      .journey-grid::before {
+        border-top: 2px dashed var(--line);
+        content: "";
+        left: 1.05rem;
+        position: absolute;
+        right: 1.05rem;
+        top: 0;
+        z-index: 0;
+      }
+
+      .journey-card {
+        gap: 0;
+        overflow: visible;
+        padding: 1.5rem 1.5rem 1.35rem;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* The disc leaves the heading and sits astride the card's top-left
+         corner, on the rail.  The shared .step-number fills and hand-drawn
+         radii are reused unchanged. */
+      .journey-card .step-number {
+        background: var(--card);
+        font-size: 0.9rem;
+        height: 2.4rem;
+        left: 1.25rem;
+        position: absolute;
+        top: 0;
+        transform: translateY(-50%);
+        width: 2.4rem;
+        z-index: 2;
+      }
+
+      /* The disc has to be opaque to mask the rail behind it, and the two
+         filled steps keep their own shared fills against that rule. */
+      .journey-card .step-number-2 {
+        background: var(--indigo-soft);
+      }
+
+      .journey-card .step-number-3 {
+        background: var(--green);
+      }
+
+      .journey-kicker {
+        color: var(--indigo);
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.1em;
+        margin: 0;
+        text-transform: uppercase;
+      }
+
+      .journey-figure {
         align-items: center;
         display: flex;
-        height: 12.5rem;
+        height: 11.5rem;
         justify-content: center;
+        margin-top: 1rem;
       }
 
-      .family-transformation-figure .doodle-variants {
+      .journey-figure .doodle-variants {
         align-items: center;
         display: flex;
         height: 100%;
@@ -378,28 +441,100 @@
         width: 100%;
       }
 
-      .family-transformation-figure .doodle {
+      .journey-figure .doodle {
         height: 100%;
         object-fit: contain;
         width: 100%;
       }
 
-      .family-transformation-step {
-        align-items: center;
-        display: grid;
-        gap: 0.65rem;
-        grid-template-columns: auto minmax(0, 1fr);
+      .journey-card h3 {
+        font-size: 1.32rem;
+        letter-spacing: -0.02em;
+        margin: 1rem 0 0;
+        text-wrap: pretty;
       }
 
-      .family-transformation-card h3 {
-        font-size: clamp(1.12rem, 1.7vw, 1.35rem);
-        margin: 0;
-      }
-
-      .family-transformation-card > p {
+      .journey-card > p {
         color: var(--body-text);
-        line-height: 1.6;
+        line-height: 1.55;
+        margin: 0.55rem 0 1.1rem;
+      }
+
+      /* The evidence foot: the fact this page already owns that proves the
+         stage.  Pinned to the card's bottom, so the three feet close on the
+         same line however unevenly the stories above them run. */
+      .journey-proof {
+        border-top: 1.5px dashed var(--line-soft);
+        display: grid;
+        gap: 0.45rem;
+        margin-top: auto;
+        padding-top: 0.9rem;
+      }
+
+      .journey-proof p {
+        color: var(--body-text);
+        font-size: 0.88rem;
+        line-height: 1.5;
         margin: 0;
+      }
+
+      .journey-proof strong {
+        color: var(--ink);
+      }
+
+      .journey-proof .band-link {
+        align-items: center;
+        display: inline-flex;
+        font-size: 0.88rem;
+        min-height: 2.75rem;
+      }
+
+      .journey-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .journey-chips li {
+        background: var(--lavender);
+        border: 1.5px solid var(--line-soft);
+        border-radius: 999px;
+        color: var(--ink);
+        font-size: 0.78rem;
+        font-weight: 600;
+        line-height: 1.2;
+        padding: 0.28rem 0.6rem;
+      }
+
+      .journey-repos {
+        display: grid;
+        gap: 0.25rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .journey-repos li {
+        color: var(--ink);
+        font-size: 0.85rem;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+      }
+
+      .journey-repos li a {
+        align-items: center;
+        color: var(--ink);
+        display: inline-flex;
+        font-weight: 600;
+        min-height: 2.75rem;
+      }
+
+      .journey-repos li span {
+        color: var(--muted);
+        font-size: 0.8rem;
       }
 
       .family-editions {
@@ -757,6 +892,39 @@
 
       /* --- narrow: reshape, not reflow ----------------------------------- */
 
+      /* The stages stack before the rest of the page reshapes: three cards
+         stop holding a two-line heading well below 62rem.  The same rail
+         pseudo-element turns vertical and runs through the three discs, so
+         the row becomes a timeline rather than losing its sequence. */
+      @media (max-width: 61.99rem) {
+        .journey-grid {
+          gap: 2rem;
+          grid-template-columns: minmax(0, 1fr);
+          margin-top: 1.75rem;
+        }
+
+        .journey-grid::before {
+          border-left: 2px dashed var(--line);
+          border-top: 0;
+          bottom: 1.2rem;
+          left: 2.45rem;
+          right: auto;
+          top: 1.2rem;
+        }
+
+        .journey-card {
+          padding: 1.35rem 1.15rem 1.15rem;
+        }
+
+        .journey-figure {
+          height: 9.5rem;
+        }
+
+        .journey-card h3 {
+          font-size: 1.18rem;
+        }
+      }
+
       @media (max-width: 47.99rem) {
         .family-hero-inner {
           grid-template-columns: minmax(0, 1fr);
@@ -775,19 +943,6 @@
         :where(.family-transformation, .family-syllabus, .family-proof-section) {
           margin-top: 2.5rem;
           padding-top: 1.75rem;
-        }
-
-        .family-transformation-grid {
-          grid-template-columns: minmax(0, 1fr);
-        }
-
-        .family-transformation-card {
-          min-height: 0;
-          padding: 1rem;
-        }
-
-        .family-transformation-figure {
-          height: 10rem;
         }
 
         .family-card-actions .cta,
@@ -887,39 +1042,109 @@
               <p>{{ family_starting_point }}</p>
             </section>
           {% endif %}
-          {% if family_prerequisites %}
-            <section class="family-prerequisites" aria-labelledby="prerequisites-heading">
-              <h2 id="prerequisites-heading">Good fit if</h2>
-              <p>{{ family_prerequisites }}</p>
-            </section>
-          {% endif %}
         </div>
       {% endif %}
+      {% comment %}
+        The three stages, each closing on the one fact this page already owns
+        that proves it: stage 1 absorbs the "Good fit if" prerequisites (the
+        exact question a reader at that stage has, so it no longer sits in a
+        box of its own above), stage 2 carries the syllabus count and its real
+        module titles, stage 3 the peer-reviewed project slots, the real
+        submission total and the first two gallery repositories.  Every value
+        is a context variable the page already renders further down; nothing
+        here is authored copy beyond the three kickers.  The numbered discs sit
+        on a dashed rail so the sequence is visible before it is read.
+      {% endcomment %}
       {% if family_transformation %}
-        <section class="family-transformation" aria-labelledby="transformation-heading">
+        <section class="family-transformation shell-breakout" aria-labelledby="transformation-heading">
           <div class="band-head">
             <div>
               <h2 id="transformation-heading">Build your way to a working project</h2>
               <p>Three stages from your first question to something you can show.</p>
             </div>
           </div>
-          <div class="family-transformation-grid">
+          <div class="journey-grid">
             {% for step in family_transformation %}
-              <article class="card family-transformation-card">
-                <div class="family-transformation-figure{% if forloop.counter == 2 %} family-transformation-figure-course{% endif %}" aria-hidden="true">
+              <article class="card journey-card">
+                <span class="step-number{% if forloop.counter == 2 %} step-number-2{% elif forloop.counter == 3 %} step-number-3{% endif %}" aria-hidden="true">{{ forloop.counter }}</span>
+                <p class="journey-kicker">
+                  {% if forloop.counter == 1 %}Where you start{% elif forloop.counter == 2 %}What you practise{% else %}What you ship{% endif %}
+                </p>
+                <div class="journey-figure" aria-hidden="true">
                   {% if forloop.counter == 1 %}
                     {% include "core/_course_journey_start.html" %}
                   {% elif forloop.counter == 2 %}
-                    {% include "core/_course_illustration.html" with family_slug=course_family.slug only %}
+                    {% include "core/_home_illustration.html" with variant="learning" %}
                   {% else %}
                     {% include "core/_home_illustration.html" with variant="shipping" %}
                   {% endif %}
                 </div>
-                <div class="family-transformation-step">
-                  <span class="step-number{% if forloop.counter == 2 %} step-number-2{% elif forloop.counter == 3 %} step-number-3{% endif %}" aria-hidden="true">{{ forloop.counter }}</span>
-                  <h3>{{ step.heading }}</h3>
-                </div>
+                <h3>{{ step.heading }}</h3>
                 <p>{{ step.description }}</p>
+                {% if forloop.counter == 1 %}
+                  {% if family_prerequisites or self_paced_cohort or materials_url %}
+                    <div class="journey-proof">
+                      {% if family_prerequisites %}
+                        <span class="mono-label">Good fit if</span>
+                        <p>{{ family_prerequisites }}</p>
+                      {% endif %}
+                      {% if self_paced_cohort or materials_url %}
+                        {% comment %}
+                          The hero already states the price and the weekly
+                          hours (family_weekly_commitment); this says only the
+                          thing stage 1 still has to answer -- which route.
+                        {% endcomment %}
+                        <p>Follow a cohort's schedule, or go at your own pace.</p>
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                {% elif forloop.counter == 2 %}
+                  {% if family_syllabus_rows %}
+                    <div class="journey-proof">
+                      {% if syllabus_fact %}
+                        <span class="mono-label">{{ syllabus_fact }}</span>
+                      {% endif %}
+                      <ul class="journey-chips">
+                        {% for row in family_syllabus_rows %}
+                          <li>{{ row.title }}</li>
+                        {% endfor %}
+                      </ul>
+                      <a class="band-link" href="#syllabus-heading">Explore the syllabus →</a>
+                    </div>
+                  {% endif %}
+                {% else %}
+                  {% if family_syllabus_projects or has_learner_projects %}
+                    <div class="journey-proof">
+                      {% if family_syllabus_projects %}
+                        <span class="mono-label">Peer-reviewed · {{ family_syllabus_projects|length }} project{{ family_syllabus_projects|length|pluralize }}</span>
+                      {% endif %}
+                      {% if family_submissions_fact %}
+                        <p><strong>{{ family_submissions_fact }}</strong> submitted so far{% if family_gallery_submissions %}, like:{% endif %}</p>
+                      {% endif %}
+                      {% if family_gallery_submissions %}
+                        <ul class="journey-repos">
+                          {% for submission in family_gallery_submissions|slice:":2" %}
+                            <li>
+                              {% if submission.repository_url %}
+                                <a
+                                  href="{{ submission.repository_url }}"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >{{ submission.repository_label }}</a>
+                              {% else %}
+                                {{ submission.repository_label }}
+                              {% endif %}
+                              <span>by {{ submission.enrollment.display_name }} · {{ submission.cohort.identifier }}</span>
+                            </li>
+                          {% endfor %}
+                        </ul>
+                      {% endif %}
+                      {% if has_learner_projects %}
+                        <a class="band-link" href="#built-heading">See what people have built →</a>
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                {% endif %}
               </article>
             {% endfor %}
           </div>
