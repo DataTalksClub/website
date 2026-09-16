@@ -8,8 +8,9 @@ release exists.
 
 Sources read for this mapping: site `courses/models/` at website 65b852dd; package
 `community_base/curriculum/models.py` and `community_base/coursework/models.py` at
-community-base 2f37924 (after the `C5.1e` ownership rework, untagged — the newest
-package release, v0.3.9, predates curriculum entirely).
+community-base 2f37924 (after the `C5.1e` ownership rework). This branch pins release
+v0.4.6 (`449e315c`), whose `community_base/` tree is identical to that commit, so every
+package-side claim below holds against the pinned release.
 
 Verdicts: **maps** (the row migrates into the named package model), **stays** (remains
 site-owned), **gap** (no package home; a package follow-up or an owner decision is
