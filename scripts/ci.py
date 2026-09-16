@@ -112,7 +112,6 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "courses/tests/test_family_project_gallery.py",
     "courses/tests/test_project_gallery_groups.py",
     "courses/tests/test_site_project_gallery.py",
-    "courses/views/family_project_gallery.py",
     "courses/views/project_gallery_groups.py",
     "courses/views/site_project_gallery.py",
     "scripts/dev/check_course_illustrations.py",
