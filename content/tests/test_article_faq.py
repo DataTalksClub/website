@@ -234,6 +234,33 @@ class ArticleFaqCompositionTests(TestCase):
         self.assertEqual(view.sections, prose_sections(list(BODY_BLOCKS)))
 
 
+class ArticleFaqPageRenderTests(TestCase):
+    """The rendered page: no bare "#" permalink, but the anchor still works.
+
+    The owner asked for the visible "#" permalink mark after each answer to
+    go away (it read as unlabelled clutter).  The `<details>` element already
+    carries the question's id, so the deep link a shared `#faq-…` URL relies
+    on keeps working without that extra anchor.
+    """
+
+    def test_the_answer_carries_no_bare_hash_permalink(self) -> None:
+        _publish_article()
+
+        body = self.client.get(ARTICLE_PATH).content.decode()
+
+        self.assertNotIn("faq-permalink", body)
+
+    def test_the_question_s_own_id_still_anchors_the_details_element(self) -> None:
+        _publish_article()
+        faq = article_faq(ARTICLE_SLUG)
+        assert faq is not None
+
+        body = self.client.get(ARTICLE_PATH).content.decode()
+
+        for question in faq.questions:
+            self.assertIn(f'<details class="faq-fold" id="{question.id}">', body)
+
+
 class ArticleFaqStructuredDataTests(TestCase):
     def test_the_section_publishes_one_faqpage_of_its_own_questions(self) -> None:
         _publish_article()

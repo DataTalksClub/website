@@ -1,12 +1,24 @@
 {% extends "core/content_page.html" %}
-{% load breadcrumbs %}
+{% load breadcrumbs seo %}
 
 {% block document_title %}
-  {{ course_family.title }} — DataTalks.Club
+  {{ course_family.title }}: cohorts, syllabus and registration — DataTalks.Club
 {% endblock %}
 
 {% block metadata %}
-    <meta name="description" content="{{ family_lede|striptags|truncatechars:180 }}">
+  {% with family_description=family_lede|striptags|truncatechars:180|default:course_family.title %}
+    {% canonical_link canonical_url %}
+    <meta name="description" content="{{ family_description }}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="DataTalks.Club">
+    <meta property="og:title" content="{{ course_family.title }}: cohorts, syllabus and registration — DataTalks.Club">
+    <meta property="og:description" content="{{ family_description }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@DataTalksClub">
+    <meta name="twitter:title" content="{{ course_family.title }}: cohorts, syllabus and registration — DataTalks.Club">
+    <meta name="twitter:description" content="{{ family_description }}">
+  {% endwith %}
 {% endblock %}
 
 {% block page_styles %}
@@ -121,15 +133,6 @@
         scroll-margin-top: 1.5rem;
       }
 
-      /* Owner feedback (2026-09): the family's learning notes used to sit
-         behind a "details" disclosure mid-page; they read better as
-         prominent copy, right under the hero lede that already opens the
-         page -- so this is now a plain prose block, not a collapsible. */
-      .family-overview {
-        margin-top: 1rem;
-        max-width: var(--measure);
-      }
-
       .family-hero-actions {
         display: flex;
         flex-wrap: wrap;
@@ -142,9 +145,11 @@
        * (family_outcome_stats) drops the whole strip when nobody is enrolled
        * yet, and drops the certificate stat alone when that family's cohorts
        * never reliably populated it, rather than showing a misleading zero.
-       * Reuses the site's own .stat-tiles/.stat-tile primitive (see
-       * templates/core/_design_system.html) -- the same lavender tiles the
-       * courses index and the learner dashboard already draw numbers with. */
+       * Reuses the site's own .stat-tiles/.stat-tile primitive plus its
+       * .stat-tiles-row modifier (see templates/core/_design_system.html) --
+       * the same one-row, 2-to-4-tile shape the courses index's own facts
+       * strip now draws with too, so the two pages share one stats-strip
+       * component instead of two ad hoc grids. */
       .family-opening-group {
         display: grid;
         gap: 1.35rem;
@@ -179,34 +184,24 @@
         margin: 0;
       }
 
+      /* Owner feedback (2026-09): the family's learning notes used to sit
+         behind a "details" disclosure mid-page, then briefly under the hero
+         lede; both read wrong -- a collapsible hid real content, and the
+         hero band got too much text stacked above the CTAs.  It is now a
+         plain prose block, still not a collapsible, in the body instead --
+         after the quick facts above, ahead of the journey. */
+      .family-overview-section {
+        margin-top: 1.75rem;
+      }
+
+      .family-overview {
+        max-width: var(--measure);
+      }
+
       @media (min-width: 48rem) {
         .family-starting-point {
           grid-template-columns: 9rem minmax(0, 1fr);
         }
-      }
-
-      .family-outcome-tiles .stat-tile:last-child:nth-child(odd) {
-        grid-column: 1 / -1;
-      }
-
-      @media (min-width: 40rem) {
-        .family-outcome-tiles {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-
-        .family-outcome-tiles .stat-tile:last-child:nth-child(odd) {
-          grid-column: auto;
-        }
-      }
-
-      .family-outcome-tiles strong {
-        font-size: clamp(1.35rem, 2vw, 1.75rem);
-        font-variant-numeric: tabular-nums;
-      }
-
-      .family-outcome-tiles .stat-tile {
-        min-height: 0;
-        padding-block: 0.8rem;
       }
 
       /* --- registration cards ------------------------------------------- */
@@ -368,82 +363,11 @@
         z-index: 0;
       }
 
-      .journey-card {
-        gap: 0;
-        overflow: visible;
-        padding: 1.5rem 1.5rem 1.35rem;
-        position: relative;
-        z-index: 1;
-      }
-
-      /* The disc leaves the heading and sits astride the card's top-left
-         corner, on the rail.  The shared .step-number fills and hand-drawn
-         radii are reused unchanged. */
-      .journey-card .step-number {
-        background: var(--card);
-        font-size: 0.9rem;
-        height: 2.4rem;
-        left: 1.25rem;
-        position: absolute;
-        top: 0;
-        transform: translateY(-50%);
-        width: 2.4rem;
-        z-index: 2;
-      }
-
-      /* The disc has to be opaque to mask the rail behind it, and the two
-         filled steps keep their own shared fills against that rule. */
-      .journey-card .step-number-2 {
-        background: var(--indigo-soft);
-      }
-
-      .journey-card .step-number-3 {
-        background: var(--green);
-      }
-
-      .journey-kicker {
-        color: var(--indigo);
-        font-family: var(--font-mono);
-        font-size: 0.72rem;
-        letter-spacing: 0.1em;
-        margin: 0;
-        text-transform: uppercase;
-      }
-
-      .journey-figure {
-        align-items: center;
-        display: flex;
-        height: 11.5rem;
-        justify-content: center;
-        margin-top: 1rem;
-      }
-
-      .journey-figure .doodle-variants {
-        align-items: center;
-        display: flex;
-        height: 100%;
-        justify-content: center;
-        width: 100%;
-      }
-
-      .journey-figure .doodle {
-        height: 100%;
-        object-fit: contain;
-        width: 100%;
-      }
-
-      .journey-card h3 {
-        font-size: 1.32rem;
-        letter-spacing: -0.02em;
-        margin: 1rem 0 0;
-        text-wrap: pretty;
-      }
-
-      .journey-card > p {
-        color: var(--body-text);
-        line-height: 1.55;
-        margin: 0.55rem 0 1.1rem;
-      }
+      /* The journey card itself (.stage-card-rail/.stage-card-kicker/...) is a
+         shared component, drawn once in core/_stage_card.html so the home
+         page's climb stages render with the exact same card. Nothing
+         page-specific is left to say about the card here -- only the rail
+         above and the grid it runs through. */
 
       .family-editions {
         margin-bottom: 0;
@@ -677,32 +601,29 @@
       /* The page's last content section, closing on real learner work
          instead of a second registration push: the same mint panel the mock
          used for its call-to-action band, now carrying the gallery links. */
-      /* A handful of real submissions, inline, above the links -- the same
-         .row-list/.list-row/.submission-row catalogue row projects/family_
-         gallery.html and projects/site_gallery.html already draw one
-         cohort's (or the whole site's) submissions with, borrowed verbatim
-         here for a short preview instead of the paginated full list. */
+      /* A handful of real submissions, inline, above the links, as the same
+         card/interactive-card/interactive-lift/stretched-card-link cards the
+         editions section above already draws on this page (owner feedback:
+         "cards like the rest of the cards - entire card clickable" -- these
+         no longer read as catalogue rows once the vote/score/pass badge is
+         gone, since there's nothing left to line up in row columns).  Reuses
+         .card-grid/.card-grid-2 rather than the bespoke two-column grid this
+         section drew for itself before. */
       .family-proof-gallery {
-        display: grid;
-        gap: 1rem;
         margin-bottom: 0.5rem;
       }
 
-      @media (min-width: 48rem) {
-        .family-proof-gallery {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-      }
-
-      .family-proof-gallery .submission-row {
-        --row-cols: minmax(0, 1fr);
-        align-content: start;
-        background: var(--card);
-        border: 1.5px solid var(--line);
-        border-radius: 0.85rem;
-        display: grid;
-        gap: 0.55rem;
-        padding: 1rem;
+      /* The repository link is the card's one real anchor: its ::after
+         stretches across the whole card (the archive-row's own
+         .archive-title convention -- see templates/public/_archive_row.html
+         -- extended here since this card's headline sits in a plain div
+         rather than an h3). The byline link stays independently reachable
+         above that overlay, the same way archive-row raises its
+         .person-chip links with position: relative; z-index: 3. */
+      .stretched-card-link .family-proof-repository a::after {
+        content: "";
+        inset: 0;
+        position: absolute;
       }
 
       .family-proof-repository {
@@ -716,7 +637,12 @@
         color: var(--ink);
         display: inline-flex;
         min-height: 2.75rem;
-        text-decoration-thickness: 0.09em;
+        text-decoration: none;
+      }
+
+      .family-proof-repository a:hover,
+      .family-proof-repository a:focus-visible {
+        text-decoration: underline;
         text-underline-offset: 0.2em;
       }
 
@@ -731,13 +657,8 @@
         color: inherit;
         display: inline-flex;
         min-height: 2.75rem;
-      }
-
-      .family-proof-gallery .submission-outcome {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem 0.75rem;
+        position: relative;
+        z-index: 3;
       }
 
       .family-proof {
@@ -787,17 +708,9 @@
           top: 1.2rem;
         }
 
-        .journey-card {
-          padding: 1.35rem 1.15rem 1.15rem;
-        }
-
-        .journey-figure {
-          height: 9.5rem;
-        }
-
-        .journey-card h3 {
-          font-size: 1.18rem;
-        }
+        /* The card's own inset/illustration-height/heading-size step down
+           live with the rest of the shared component in
+           core/_design_system.html. */
       }
 
       @media (max-width: 47.99rem) {
@@ -856,9 +769,6 @@
             {% if family_lede %}
               <p class="family-lede">{{ family_lede }}</p>
             {% endif %}
-            {% if family_overview %}
-              <div class="family-overview prose">{{ family_overview|linebreaks }}</div>
-            {% endif %}
             {% comment %}
               Registration for the course, not for one of its editions: an open edition is
               named because naming it is honest, a course whose editions have all closed
@@ -877,6 +787,9 @@
               {% endif %}
               {% if family_syllabus_rows %}
                 <a class="band-link" href="#syllabus-heading">Explore the syllabus →</a>
+              {% endif %}
+              {% if family_docs_path %}
+                <a class="band-link" href="{{ family_docs_path }}">Course docs →</a>
               {% endif %}
             </div>
           </div>
@@ -914,7 +827,7 @@
           {% if family_outcome_stats %}
             <section class="family-outcomes" aria-labelledby="outcomes-heading">
               <h2 id="outcomes-heading" class="sr-only">This course family so far</h2>
-              <div class="stat-tiles family-outcome-tiles">
+              <div class="stat-tiles stat-tiles-row">
                 {% for stat in family_outcome_stats %}
                   <div class="stat-tile">
                     <strong>{{ stat.value }}</strong>
@@ -944,6 +857,20 @@
           {% endif %}
         </div>
       {% endif %}
+      {% comment %}
+        Owner feedback (2026-09): the learning notes read as too much text
+        stacked in the cream hero band, above the CTAs -- they now render as
+        their own plain-prose section in the body, after the quick facts
+        above and ahead of the journey, instead of glued to the hero lede.
+        Still not a collapsible (that part of the ask stands): real prose,
+        just not hero copy.
+      {% endcomment %}
+      {% if family_overview %}
+        <section class="family-overview-section" aria-labelledby="overview-heading">
+          <h2 id="overview-heading" class="sr-only">About this course</h2>
+          <div class="family-overview prose">{{ family_overview|linebreaks }}</div>
+        </section>
+      {% endif %}
       {% if family_transformation %}
         <section class="family-transformation shell-breakout" aria-labelledby="transformation-heading">
           <div class="band-head">
@@ -954,23 +881,13 @@
           </div>
           <div class="journey-grid">
             {% for step in family_transformation %}
-              <article class="card journey-card">
-                <span class="step-number{% if forloop.counter == 2 %} step-number-2{% elif forloop.counter == 3 %} step-number-3{% endif %}" aria-hidden="true">{{ forloop.counter }}</span>
-                <p class="journey-kicker">
-                  {% if forloop.counter == 1 %}Where you start{% elif forloop.counter == 2 %}What you practise{% else %}What you ship{% endif %}
-                </p>
-                <div class="journey-figure" aria-hidden="true">
-                  {% if forloop.counter == 1 %}
-                    {% include "core/_course_journey_start.html" %}
-                  {% elif forloop.counter == 2 %}
-                    {% include "core/_home_illustration.html" with variant="learning" %}
-                  {% else %}
-                    {% include "core/_home_illustration.html" with variant="shipping" %}
-                  {% endif %}
-                </div>
-                <h3>{{ step.heading }}</h3>
-                <p>{{ step.description }}</p>
-              </article>
+              {% if forloop.counter == 1 %}
+                {% include "core/_stage_card.html" with step_index=1 heading=step.heading description=step.description illustration_template="core/_course_journey_start.html" kicker="Where you start" on_rail=True %}
+              {% elif forloop.counter == 2 %}
+                {% include "core/_stage_card.html" with step_index=2 heading=step.heading description=step.description illustration_template="core/_home_illustration.html" illustration_variant="learning" kicker="What you practise" on_rail=True %}
+              {% else %}
+                {% include "core/_stage_card.html" with step_index=3 heading=step.heading description=step.description illustration_template="core/_home_illustration.html" illustration_variant="shipping" kicker="What you ship" on_rail=True %}
+              {% endif %}
             {% endfor %}
           </div>
         </section>
@@ -1258,9 +1175,9 @@
             </div>
           </div>
           {% if family_gallery_submissions %}
-            <div class="row-list family-proof-gallery">
+            <div class="card-grid card-grid-2 family-proof-gallery">
               {% for submission in family_gallery_submissions %}
-                <article class="list-row submission-row">
+                <article class="card family-proof-card stretched-card-link interactive-card interactive-lift">
                   <div class="family-proof-repository">
                     {% if submission.repository_url %}
                       <a
@@ -1277,23 +1194,6 @@
                     <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=course_family.slug cohort_identifier=submission.cohort.identifier enrollment_id=submission.enrollment.id %}">{{ submission.enrollment.display_name }}</a>
                     · {{ submission.cohort.identifier }} cohort
                   </p>
-                  <div class="submission-outcome">
-                    <span class="mono-note">{{ submission.vote_count }} vote{{ submission.vote_count|pluralize }}</span>
-                    <span class="mono-note">
-                      {% if submission.display_score == -1 %}
-                        Score N/A
-                      {% else %}
-                        {{ submission.display_score }} score
-                      {% endif %}
-                    </span>
-                    {% if submission.display_score != -1 %}
-                      {% if submission.passed %}
-                        <span class="status-pill status-pill-live">Passed</span>
-                      {% else %}
-                        <span class="status-pill status-pill-wait">Not passed</span>
-                      {% endif %}
-                    {% endif %}
-                  </div>
                 </article>
               {% endfor %}
             </div>

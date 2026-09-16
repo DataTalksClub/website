@@ -11,7 +11,9 @@
   own, and renders nothing at all when there are no questions.
 
   A deep link still works: `:target` opens the question it names, so a link to
-  #faq-… lands on an open answer rather than a closed summary.
+  #faq-… lands on an open answer rather than a closed summary.  The `<details>`
+  itself carries that id, so the deep link needs no separate permalink anchor
+  of its own (issue: remove the bare "#" permalink from article FAQ answers).
 
   The answers arrive as sanitized markup rendered from the Markdown stored on the
   article's own row, which is why they are the one place on this page that
@@ -26,12 +28,6 @@
           <span class="faq-fold-marker" aria-hidden="true"></span>
         </summary>
         <div class="prose faq-answer">{{ question.answer_html|safe }}</div>
-        <p class="faq-permalink-row">
-          <a class="faq-permalink" href="#{{ question.id }}">
-            <span aria-hidden="true">#</span>
-            <span class="sr-only">Link to {{ question.question }}</span>
-          </a>
-        </p>
       </details>
     {% endfor %}
   </div>

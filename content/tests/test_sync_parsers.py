@@ -581,13 +581,37 @@ class DocsParserTests(_CheckoutCase):
             self.assertEqual(course.data["record"]["public_path"], "/docs/courses/faq-course/")
             self.assertEqual(deep.data["record"]["public_path"], "/docs/general/deep-dive/")
             home_metadata = home.data["record"]["metadata"]
-            self.assertEqual(home_metadata["parent_path"], "")
+            self.assertIsNone(home_metadata["parent_path"])
             course_metadata = course.data["record"]["metadata"]
             self.assertEqual(course_metadata["parent"], "Docs Home")
             self.assertEqual(course_metadata["parent_path"], "/docs/")
             deep_metadata = deep.data["record"]["metadata"]
             self.assertEqual(deep_metadata["parent_path"], "/docs/courses/faq-course/")
             self.assertEqual(deep.data["record"]["images"], ["general/images/diagram.png"])
+
+    def test_discover_resolves_liquid_relative_url_image_references(self) -> None:
+        # The real source repository always wraps an image ``src`` in Jekyll's
+        # ``relative_url`` filter, writing the checkout-root-relative asset path
+        # in single or double quotes inside the ``{{ ... }}`` expression.
+        source = _source("dtc-docs")
+        parser = get_parser("docs")
+        tree = {
+            "courses/data-engineering-zoomcamp/project.md": _docs_page(
+                "Project",
+                body=(
+                    "A paragraph.\n\n"
+                    "<img src=\"{{ '/assets/images/data-engineering-zoomcamp/certificate.png' "
+                    '| relative_url }}" alt="Certificate" width="60%">\n'
+                ),
+            ),
+            "assets/images/data-engineering-zoomcamp/certificate.png": b"png-bytes",
+        }
+        with self.checkout(tree) as checkout:
+            (item,) = parser.discover(checkout, source)
+            self.assertEqual(
+                item.data["record"]["images"],
+                ["assets/images/data-engineering-zoomcamp/certificate.png"],
+            )
 
     def test_upsert_is_checksum_stable_and_uploads_referenced_images(self) -> None:
         source = _source("dtc-docs")

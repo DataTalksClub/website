@@ -78,8 +78,11 @@ class DesignSurfaceEyebrowSourceTests(TestCase):
             "accounts/templates/account/signup.html": GENERIC_ACCOUNT_EYEBROW,
             "course_platform_templates/socialaccount/identity_conflict.html": "Account safety",
             "templates/review/faq_home.html": "faq · {{ faq_courses|length }} course",
+            # The hub counts pages, not guides: the same things were called guides in
+            # one section and topics in the next, and the count has always been of
+            # pages.
             "templates/review/docs_home.html": (
-                "docs · {{ docs_total_guides }} guide{{ docs_total_guides|pluralize }}"
+                "docs · {{ docs_total_pages }} page{{ docs_total_pages|pluralize }}"
             ),
             "studio_courses/templates/studio_courses/campaign_registrations.html": (
                 "Registration campaign"

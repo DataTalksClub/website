@@ -101,7 +101,9 @@ def _choice_rows(submissions):
     )
 
 
-def _filter_choices(rows, family=None, cohort=None, project=None, selected_course="", selected_cohort=""):
+def _filter_choices(
+    rows, family=None, cohort=None, project=None, selected_course="", selected_cohort=""
+):
     """Compute the Course/Cohort/Assignment option lists, each narrowed by
     what was already picked -- selecting a course should not still offer
     every other course's cohorts, and selecting a cohort (or a course with
@@ -295,8 +297,7 @@ def project_gallery_view(
             "gallery_course_count": len(courses),
             "gallery_has_filters": bool(family or cohort or project or query or filters.errors),
             "gallery_empty_is_filtered": bool(
-                filters.errors
-                or {"course", "cohort", "project", "sort"}.intersection(request.GET)
+                filters.errors or {"course", "cohort", "project", "sort"}.intersection(request.GET)
             ),
             "gallery_url": gallery_url,
             "pagination_querystring": f"&{query}" if query else "",

@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from django.urls import reverse
 from playwright.sync_api import Page, expect
@@ -59,11 +61,15 @@ def test_course_value_precedes_route_choice_and_anchors_work(
         )
     learner = User.objects.create_user(username="landing-learner")
     enrollment = Enrollment.objects.create(student=learner, course=cohort)
-    ProjectSubmission.objects.create(
+    submission = ProjectSubmission.objects.create(
         project=cohort.project_set.first(),
         student=learner,
         enrollment=enrollment,
         github_link="https://github.com/example/learner-project",
+        # The inline gallery only shows passed work now (owner feedback: the
+        # vote/score/pass badge was dropped, so every row shown here must
+        # already have passed).
+        passed=True,
     )
     page.set_viewport_size({"width": width, "height": height})
     page.emulate_media(reduced_motion="reduce")
@@ -77,23 +83,23 @@ def test_course_value_precedes_route_choice_and_anchors_work(
         page.evaluate("scrollTo(0,0)")
         expect(page.locator(".family-lede")).to_have_text(family.outcome)
         # The prerequisites answer "is this a good fit" as their own
-        # opening-group section, ahead of the journey -- not a journey-card
+        # opening-group section, ahead of the journey -- not a stage-card
         # fact any more.
         expect(page.locator("#fit-heading")).to_contain_text("Good fit if")
         expect(page.locator(".family-opening-group")).to_contain_text(family.prerequisites)
         expect(page.locator(".family-prerequisites")).to_have_count(0)
-        expect(page.locator(".journey-card")).to_have_count(3)
+        # The journey card is the shared stage-card component
+        # (core/_stage_card.html), on its rail variant.
+        expect(page.locator(".stage-card-rail")).to_have_count(3)
         # The cards carry no dashed-divider proof block any more -- the same
         # clean shape as the home page's climb cards.
         expect(page.locator(".journey-proof")).to_have_count(0)
         for card in range(3):
             # Kicker and description -- nothing follows the description.
-            expect(page.locator(".journey-card").nth(card).locator("p")).to_have_count(2)
+            expect(page.locator(".stage-card-rail").nth(card).locator("p")).to_have_count(2)
         for index, step in enumerate(family.progression):
-            expect(page.locator(".journey-card").nth(index)).to_contain_text(
-                step["heading"]
-            )
-        expect(page.locator(".journey-figure")).to_have_count(3)
+            expect(page.locator(".stage-card-rail").nth(index)).to_contain_text(step["heading"])
+        expect(page.locator(".stage-card-figure")).to_have_count(3)
         expect(page.locator(".family-hero-art")).to_be_visible()
         visible_hero_art = page.locator(".family-hero-art img:visible")
         expect(visible_hero_art).to_have_count(1)
@@ -103,13 +109,13 @@ def test_course_value_precedes_route_choice_and_anchors_work(
         assert expected_generic_art in visible_hero_art.get_attribute("src")
         # The family's own scene is drawn once, by the hero: the stages draw
         # the shared journey artwork instead of repeating it.
-        expect(page.locator(".journey-figure img:visible")).to_have_count(3)
+        expect(page.locator(".stage-card-figure img:visible")).to_have_count(3)
         for index in range(3):
-            source = page.locator(".journey-figure img:visible").nth(index).get_attribute("src")
+            source = page.locator(".stage-card-figure img:visible").nth(index).get_attribute("src")
             assert expected_generic_art not in source
         # Each disc sits on the dashed rail behind the row, not inside a
         # paragraph, so the three stages read as a sequence.
-        expect(page.locator(".journey-card .step-number")).to_have_count(3)
+        expect(page.locator(".stage-card-rail .step-number")).to_have_count(3)
         expect(page.locator(".family-syllabus-row h3")).to_have_count(5)
         expect(page.locator(".family-syllabus-row h3 a")).to_have_count(5)
         expect(page.locator(".family-syllabus-row p")).to_have_count(4)
@@ -158,5 +164,36 @@ def test_course_value_precedes_route_choice_and_anchors_work(
         expect(page.locator("#syllabus-heading")).to_be_in_viewport()
         proof = page.locator(".family-proof a").first
         expect(proof).to_have_attribute("href", reverse("family_projects", args=[family.slug]))
+        # "cards like the rest of the cards - entire card clickable" (owner
+        # feedback): the repository link's ::after is the whole-card overlay
+        # (the same stretched-card-link mechanism the editions cards above
+        # already use), rather than just the underlined repository text.
+        proof_card = page.locator(".family-proof-card").first
+        expect(proof_card).to_have_class(re.compile(r"\bstretched-card-link\b"))
+        overlay_position = proof_card.evaluate(
+            "el => getComputedStyle("
+            "el.querySelector('.family-proof-repository a'), '::after').position"
+        )
+        assert overlay_position == "absolute"
+        # The byline stays its own, separately reachable link above that
+        # overlay (the same z-index treatment archive rows give a
+        # .person-chip link inside their own whole-card link).
+        byline_link = page.locator(".family-proof-byline a").first
+        byline_z_index = byline_link.evaluate("el => getComputedStyle(el).zIndex")
+        assert byline_z_index not in ("auto", "0")
+        expect(byline_link).to_have_attribute(
+            "href",
+            reverse(
+                "cohort_leaderboard_score_breakdown",
+                kwargs={
+                    "course_slug": family.slug,
+                    "cohort_identifier": cohort.identifier,
+                    "enrollment_id": enrollment.id,
+                },
+            ),
+        )
+        expect(page.locator(".family-proof-repository a").first).to_have_attribute(
+            "href", submission.github_link
+        )
     proof.click()
     expect(page).to_have_url(f"{live_server.url}{reverse('family_projects', args=[family.slug])}")

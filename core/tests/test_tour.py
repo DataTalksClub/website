@@ -101,64 +101,98 @@ class TourPageTests(TestCase):
         self.assertNotIn("course-journey-start.", body)
         self.assertNotIn("home-hero.", body)
 
-    def test_tour_opens_its_content_on_the_survey_numbers_as_tiles(self) -> None:
-        """The numbers sit on the shared stat tiles, flush under the seam.
+    def test_tour_opens_its_content_on_a_real_whos_here_section(self) -> None:
+        """The numbers sit under a real band-head, like every other section.
 
-        They used to be a full-bleed ink stripe stranded in the middle of the
-        page, with its own heading on the lavender above it, so a heading and
-        its numbers sat on two different grounds.  The page now spends its one
-        ink moment on the close, which is where every other page spends it.
+        They used to be a bare stat strip with only an `aria-label`, followed
+        by a small mono caption naming the survey -- the one section on the
+        page with no visible heading.  The heading and its subline now open
+        the section, matching the "Learn by building" band-head pattern, and
+        the survey link sits under the tiles rather than in the head.
         """
 
         body = self._get().content.decode()
 
+        self.assertIn('<h2 id="tour-stats-heading">Who\'s here</h2>', body)
+        self.assertIn("From the community's own 2025 survey.", body)
         self.assertIn('<div class="stat-tiles tour-stat-tiles">', body)
         self.assertEqual(body.count('<div class="stat-tile">'), 4)
         self.assertIn("65+", body)
         self.assertIn("countries", body)
-        self.assertIn('class="tour-stats-source mono-note"', body)
-        self.assertIn('href="/blog/datatalks-club-community-demographics.html"', body)
+        self.assertIn(
+            '<a class="band-link tour-content-link" '
+            'href="/blog/datatalks-club-community-demographics.html">read the full survey →</a>',
+            body,
+        )
+        self.assertLess(
+            body.index('id="tour-stats-heading"'),
+            body.index('class="stat-tiles tour-stat-tiles"'),
+        )
+        self.assertLess(
+            body.index('class="stat-tiles tour-stat-tiles"'),
+            body.index("read the full survey →"),
+        )
         # No second ground: the mid-page ink stripe is gone.
         self.assertNotIn("tour-stats-grid", body)
         self.assertNotIn("--tour-stats-label", body)
 
     def test_tour_groups_its_sections_into_chapters_on_one_rule(self) -> None:
-        """Three chapters break out to the shell; their subsections do not.
+        """Every section is a chapter, at the same full breakout width.
 
         Eight sections at one weight, separated eight times by the same
         page-local `color-mix` rule, is what the page drew before: nothing
-        grouped and nothing was a chapter.  The rule is now the family
-        landing's solid `var(--line)` chapter rule, drawn three times, and the
-        left edge steps wide and narrow with it.
+        grouped and nothing was a chapter.  A later pass grouped some of
+        them into three chapters on the family landing's solid `var(--line)`
+        rule with narrower subsections hanging under them -- which then read
+        as an inconsistent width down the page, alternating wide and narrow.
+        Every section is that same chapter now: one width, one rule, top to
+        bottom.
         """
 
         source = (REPO_ROOT / "templates" / "core" / "tour.html").read_text(encoding="utf-8")
         body = self._get().content.decode()
 
-        self.assertEqual(body.count('class="tour-chapter shell-breakout"'), 3)
-        self.assertEqual(body.count('class="tour-subsection"'), 2)
+        # Who's here, Learn by building, cohort week, more than courses,
+        # Slack, how it started -- every section this fixture renders
+        # (``build_reviewed_catalog`` carries no upcoming event, so the
+        # events section itself does not render here).
+        self.assertEqual(body.count("tour-chapter shell-breakout"), 6)
+        self.assertNotIn("tour-subsection", body)
         self.assertNotIn("tour-section", body)
         self.assertNotIn("color-mix", source)
         self.assertIn("border-top: 2px solid var(--line);", source)
 
     def test_tour_draws_the_catalogue_teaser_as_illustrated_cards(self) -> None:
-        """The teaser is the shared card grid, one family scene per card.
+        """The teaser is the catalogue's own .catalog-card, one per family.
 
         ``build_reviewed_catalog`` seeds six course families -- the same six
         the full catalogue page draws.  The tour shows only the first three,
         each as a whole-card link with its family's own drawing, a mono cohort
         label and its homework/project line, and sends a reader who wants the
-        rest to `/courses`.  They used to be three underlined titles on a
-        dashed row list, which is what an index draws, not a pitch.
+        rest to `/courses`.  The card is the shared design-system component
+        `/courses` itself draws, not a bespoke tour card, so the two facts
+        this page adds (the cohort tag, the homework/project line) sit inside
+        the shared .catalog-card-body.
         """
 
         body = self._get().content.decode()
 
-        self.assertEqual(body.count('stretched-card-link tour-course-card"'), 3)
+        card_class = (
+            'class="card catalog-card interactive-card interactive-lift stretched-card-link"'
+        )
+        self.assertEqual(body.count(card_class), 3)
+        self.assertEqual(body.count('class="catalog-card-media"'), 3)
+        self.assertEqual(body.count('class="catalog-card-body"'), 3)
         self.assertIn('class="card-grid card-grid-3 tour-cards"', body)
         self.assertIn("see all 6 courses →", body)
+        # The "see more" action sits under the cards, not beside the heading.
+        self.assertIn('<a class="band-link tour-content-link" href="/courses"', body)
+        self.assertLess(
+            body.index('class="card-grid card-grid-3 tour-cards"'),
+            body.index("see all 6 courses →"),
+        )
         self.assertEqual(body.count('<a class="course-link" href="/courses/'), 3)
-        self.assertIn('<span class="mono-label">2026 cohort</span>', body)
+        self.assertIn('<span class="mono-label mono-label-indigo">2026 cohort</span>', body)
         self.assertIn("5 homework assignments · 2 projects", body)
         # A cohort the database gives no projects states only what it has.
         self.assertIn("4 homework assignments\n", body)
@@ -253,34 +287,44 @@ class TourPageTests(TestCase):
         self.assertIn('href="/blog/datatalks-club-community-demographics.html"', body)
 
     def test_tour_prints_real_slack_norms_as_numbered_steps(self) -> None:
-        """Slack is a section, not a card.
+        """Slack is both a card and its own section.
 
-        It is already the hero's second action and the closing line, so a
-        seventh card in the channel grid would name it a fourth time.  The
-        norms take the homepage climb's numbered discs.
+        It is also the hero's second action and the closing line, but the
+        owner asked for a sixth card in the "More than courses" grid on top
+        of that, so the card and the section below both name it -- Slack
+        is not a countable catalogue item, so its card is always present
+        like the YouTube channel's.  The norms take the homepage climb's
+        numbered discs.
         """
 
         body = self._get().content.decode()
 
+        self.assertIn('<a class="course-link" href="/slack">Slack</a>', body)
         self.assertIn("What Slack is actually like", body)
         self.assertIn('class="tour-norms"', body)
-        self.assertEqual(body.count('class="tour-norm"'), 3)
+        self.assertEqual(body.count('class="tour-norm card"'), 3)
         self.assertIn('<span class="step-number" aria-hidden="true">1</span>', body)
         self.assertIn('<span class="step-number step-number-2" aria-hidden="true">2</span>', body)
         self.assertIn('<span class="step-number step-number-3" aria-hidden="true">3</span>', body)
         self.assertIn("Don't ask to ask", body)
         self.assertIn('href="https://dontasktoask.com/"', body)
-        self.assertIn('<a class="band-link" href="/slack">join the Slack →</a>', body)
-        self.assertNotIn('<a class="course-link" href="/slack">', body)
+        # The "join the Slack" action sits under the norms, not beside the
+        # heading.
+        slack_link = '<a class="band-link tour-content-link" href="/slack">join the Slack →</a>'
+        self.assertIn(slack_link, body)
+        self.assertLess(
+            body.index('class="tour-norms"'),
+            body.index("join the Slack →"),
+        )
 
     def test_tour_lists_every_other_channel_the_catalogue_holds(self) -> None:
         """One card per channel, each catalogue-backed card gated on its count.
 
-        The YouTube channel is a standing channel and always appears; the
-        podcast, blog, books and wiki cards state their real counts in the
-        mono foot; the docs card appears only when the documentation home is
-        published.  They were six 80px rows of underlined title before, which
-        is 712px of page for six links.
+        The YouTube channel and Slack are standing channels and always
+        appear; the podcast, blog, books and wiki cards state their real
+        counts in the mono foot; the docs card appears only when the
+        documentation home is published.  They were six 80px rows of
+        underlined title before, which is 712px of page for six links.
         """
 
         counts = {
@@ -300,17 +344,20 @@ class TourPageTests(TestCase):
             body = self._get().content.decode()
 
         self.assertIn("More than courses and events", body)
-        # YouTube, events (no upcoming rows here), podcast, blog, books, wiki, docs.
-        self.assertEqual(body.count('stretched-card-link tour-thing"'), 7)
+        # YouTube, Slack, events (no upcoming rows here), podcast, blog, books, wiki, docs.
+        self.assertEqual(body.count('stretched-card-link tour-thing"'), 8)
         self.assertIn('href="https://www.youtube.com/c/DataTalksClub"', body)
         self.assertIn("YouTube channel", body)
+        self.assertIn('<a class="course-link" href="/slack">Slack</a>', body)
         self.assertIn('<a class="course-link" href="/podcast">Podcast</a>', body)
-        self.assertIn("3 conversations · 1 with a full transcript", body)
+        self.assertIn("3 conversations</span>", body)
+        self.assertNotIn("with a full transcript", body)
         self.assertIn('<a class="course-link" href="/blog">Blog</a>', body)
         self.assertIn('<span class="mono-note">7 articles</span>', body)
         self.assertIn('<a class="course-link" href="/books">Book of the Week</a>', body)
         self.assertIn('<span class="mono-note">2 books</span>', body)
         self.assertIn('<a class="course-link" href="/wiki">Wiki</a>', body)
+        self.assertIn("knowledge base", body)
         self.assertIn('<span class="mono-note">5 topics</span>', body)
         self.assertIn('<a class="course-link" href="/docs/">Docs</a>', body)
 
@@ -333,6 +380,14 @@ class TourPageTests(TestCase):
         self.assertIn('<div class="when">', with_teaser)
         self.assertIn("<strong>Oct 1, 2026</strong>", with_teaser)
         self.assertIn("<span>20:00 CEST</span>", with_teaser)
+        # The "see all events" action sits under the row list, not beside
+        # the heading.
+        events_link = '<a class="band-link tour-content-link" href="/events">see all events →</a>'
+        self.assertIn(events_link, with_teaser)
+        self.assertLess(
+            with_teaser.index('class="row-list"'),
+            with_teaser.index("see all events →"),
+        )
 
         groups = _event_groups()
         groups.upcoming = []
@@ -417,6 +472,7 @@ class TourEmptyDatabaseTests(TestCase):
 
         self.assertIn("tour-more-heading", body)
         self.assertIn('href="https://www.youtube.com/c/DataTalksClub"', body)
+        self.assertIn('<a class="course-link" href="/slack">Slack</a>', body)
         for path in ("/podcast", "/blog", "/books", "/wiki", "/docs/"):
             with self.subTest(path=path):
                 self.assertNotIn(f'<a class="course-link" href="{path}">', body)

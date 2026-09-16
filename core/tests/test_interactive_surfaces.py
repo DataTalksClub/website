@@ -97,11 +97,20 @@ class InteractiveSurfaceContractTests(SimpleTestCase):
         dashboard = (REPOSITORY_ROOT / "courses/templates/courses/dashboard.html").read_text(
             encoding="utf-8"
         )
+        # The climb card itself is the shared stage-card component (issue: the
+        # two pages' hand-copied step-number badges drifted apart), drawn once
+        # in core/_stage_card.html rather than inline in home.html.
+        stage_card = (REPOSITORY_ROOT / "templates/core/_stage_card.html").read_text(
+            encoding="utf-8"
+        )
 
-        self.assertIn('class="card climb-card"', homepage)
+        self.assertIn('{% include "core/_stage_card.html"', homepage)
         self.assertIn('class="card dashboard-card"', dashboard)
-        self.assertNotIn('class="card climb-card interactive-', homepage)
+        self.assertIn('class="card stage-card"', stage_card)
+        self.assertIn('class="card stage-card stage-card-rail"', stage_card)
         self.assertNotIn('class="card dashboard-card interactive-', dashboard)
+        self.assertNotIn('class="card stage-card interactive-', stage_card)
+        self.assertNotIn('class="card stage-card stage-card-rail interactive-', stage_card)
 
     def test_direct_link_card_inventory_uses_both_primitives(self) -> None:
         expected = {

@@ -74,8 +74,16 @@
       }
 
       /* One column at the ordinary content width every non-landing page
-         shares; the prose inside stays at the width `.prose-reading` sets. */
+         shares.  The prose used to narrow further to `.prose-reading`'s own
+         38rem reading measure, so the hero title (full shell width) and the
+         body text (much narrower) read as two different column widths on
+         the same page -- owner feedback (2026-09): widen the body to match
+         the shell instead of narrowing the title. */
       .article-shell {
+        max-width: var(--content-width);
+      }
+
+      .article-body.prose-reading {
         max-width: var(--content-width);
       }
 
@@ -301,20 +309,6 @@
         overflow-wrap: anywhere;
       }
 
-      /* The link to this question.  The course FAQ prints its ten-character
-         identifier as a copyable literal; these identifiers are derived from
-         the question and far too long for that, so the mark stands alone and
-         the screen-reader name carries the target. */
-      .faq-permalink {
-        align-items: center;
-        color: var(--indigo);
-        display: inline-flex;
-        font-family: var(--font-mono);
-        font-size: 0.85rem;
-        min-height: 2.75rem;
-        text-underline-offset: 0.2em;
-      }
-
       /* An answer is one rendered fragment, so nothing inside it can be wrapped
          in a scrolling frame from this template.  A long address therefore
          breaks rather than widening the column. */
@@ -322,17 +316,11 @@
         overflow-wrap: anywhere;
       }
 
-      /* Wide: the question keeps its permalink on the heading's own row.  The
-         link keeps its 2.75rem target, but the negative margin stops that
-         target from stretching a one-line question away from its answer. */
+      /* Wide: the question head lays its title and marker out on one row. */
       @media (min-width: 48rem) {
         .faq-question-head {
           align-items: baseline;
           grid-template-columns: minmax(0, 1fr) auto;
-        }
-
-        .faq-permalink {
-          margin-block: -0.7rem;
         }
       }
 
