@@ -111,38 +111,33 @@
           </div>
           <section aria-labelledby="modules">
             <h2 id="modules">{{ docs_curriculum.modules_heading_html|safe }}</h2>
-            <ol class="docs-curriculum-list">
+            {% comment %}
+              The module sequence is a list of rows with a marker rail -- the
+              same `.row-list` the events index and the archive draw a sequence
+              with -- not a stack of bordered, shadowed slabs.
+
+              The row is not an anchor: the title is.  A module whose bullets
+              contain a link used to put an anchor inside an anchor, which the
+              browser repairs by closing the outer one early, so eight source
+              items rendered as eleven boxes with the last one split into three
+              nested frames.
+            {% endcomment %}
+            <ol class="row-list docs-curriculum-list">
               {% for item in docs_curriculum.items %}
-                <li class="docs-curriculum-item">
-                  {% if item.destination %}
-                    <a
-                      class="docs-curriculum-card interactive-card interactive-lift"
-                      href="{{ item.destination }}"
-                      aria-label="{{ item.title_text }}"
-                    >
-                      <div class="docs-curriculum-head">
-                        <span class="docs-curriculum-marker" aria-hidden="true">{{ item.marker }}</span>
-                        <div class="docs-curriculum-title">
-                          {{ item.title_html|safe }}
-                        </div>
-                      </div>
-                      <div class="docs-curriculum-details">
-                        {{ item.details_html|safe }}
-                      </div>
-                    </a>
-                  {% else %}
-                    <div class="docs-curriculum-card docs-curriculum-card-static">
-                      <div class="docs-curriculum-head">
-                        <span class="docs-curriculum-marker" aria-hidden="true">{{ item.marker }}</span>
-                        <div class="docs-curriculum-title">
-                          {{ item.title_html|safe }}
-                        </div>
-                      </div>
-                      <div class="docs-curriculum-details">
-                        {{ item.details_html|safe }}
-                      </div>
+                <li class="list-row docs-curriculum-row">
+                  <span class="docs-curriculum-marker" aria-hidden="true">{{ item.marker }}</span>
+                  <div>
+                    <h3 class="docs-curriculum-title">
+                      {% if item.destination %}
+                        <a href="{{ item.destination }}">{{ item.title_html|safe }}</a>
+                      {% else %}
+                        {{ item.title_html|safe }}
+                      {% endif %}
+                    </h3>
+                    <div class="docs-curriculum-details">
+                      {{ item.details_html|safe }}
                     </div>
-                  {% endif %}
+                  </div>
                 </li>
               {% endfor %}
             </ol>

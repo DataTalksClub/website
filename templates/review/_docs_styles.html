@@ -450,9 +450,13 @@
   overflow-wrap: anywhere;
 }
 
+/* --- curriculum: the module sequence as list rows with a marker rail ------
+   The system draws a sequence as `.row-list` with a rail -- the events index,
+   the archive -- not as a stack of ink-bordered, shadowed slabs.  The row is
+   never an anchor: its title is, so a module whose bullets hold a link can no
+   longer nest one anchor inside another. */
+
 .docs-body .docs-curriculum-list {
-  display: grid;
-  gap: 0.75rem;
   list-style: none;
   margin: 1rem 0 2rem;
   padding: 0;
@@ -463,37 +467,15 @@
   margin-top: 1rem;
 }
 
-.docs-curriculum-item {
-  min-width: 0;
-}
-
-.docs-curriculum-card {
-  --interactive-card-bottom: 1rem;
-  --interactive-card-right: 1rem;
-  background: var(--card);
-  border: 2px solid var(--line);
-  border-radius: 0.9rem;
-  color: var(--ink);
-  display: block;
-  min-width: 0;
-  padding: 1rem;
-  text-decoration: none;
-}
-
-a.docs-curriculum-card {
-  padding-right: 3.25rem;
-}
-
-.docs-curriculum-head {
-  align-items: center;
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: 4.5rem minmax(0, 1fr);
+.docs-curriculum-row {
+  --row-cols: 5.5rem minmax(0, 1fr);
+  align-items: start;
+  column-gap: 1rem;
+  padding-block: 1rem;
 }
 
 .docs-curriculum-marker {
   align-items: center;
-  align-self: start;
   background: var(--lavender-deep);
   border-radius: 0.5rem;
   color: var(--ink);
@@ -503,24 +485,37 @@ a.docs-curriculum-card {
   font-weight: 800;
   justify-content: center;
   min-height: 2.75rem;
-  padding: 0.3rem;
+  padding: 0.3rem 0.5rem;
   text-align: center;
   text-transform: uppercase;
 }
 
-.docs-curriculum-title {
+.docs-body .docs-curriculum-title {
   color: var(--ink);
   font-size: 1.05rem;
   font-weight: 800;
   line-height: 1.3;
+  margin: 0;
   min-width: 0;
+}
+
+.docs-curriculum-title a {
+  color: var(--ink);
+  display: inline-block;
+  min-height: 1.5rem;
+  text-decoration: none;
+}
+
+.docs-curriculum-title a:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
 .docs-curriculum-details {
   color: var(--body-text);
+  font-size: 0.95rem;
   line-height: 1.55;
-  margin-left: 5.25rem;
-  margin-top: 0.4rem;
+  margin-top: 0.35rem;
 }
 
 .docs-curriculum-details ul {
@@ -662,12 +657,7 @@ a.docs-curriculum-card {
     text-align: left;
   }
 
-  .docs-curriculum-head {
-    grid-template-columns: 4.2rem minmax(0, 1fr);
-  }
-
-  .docs-curriculum-details {
-    margin-left: 0;
-    margin-top: 0.75rem;
+  .docs-curriculum-row {
+    --row-cols: 4.2rem minmax(0, 1fr);
   }
 }
