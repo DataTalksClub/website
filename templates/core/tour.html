@@ -43,15 +43,6 @@
     max-width: var(--measure);
   }
   .tour-lede strong { color: var(--ink); }
-  .tour-hero-commitment {
-    color: var(--ink);
-    font-family: var(--font-mono);
-    font-size: 0.82rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    margin-top: 0.6rem;
-    max-width: var(--measure);
-  }
   .tour-hero-actions {
     align-items: center;
     display: flex;
@@ -281,9 +272,6 @@
       <p class="tour-lede">
         DataTalks.Club is an independent community for people who work with data — no employer runs it and nothing behind it is paywalled. It comes down to
         {% if course_family_count %}<strong>{{ course_family_count }} free course{{ course_family_count|pluralize }}</strong> with homework and projects{% endif %}{% if upcoming_events %}, weekly live events with practitioners{% endif %}{% if counts.podcasts %}, <strong>{{ counts.podcasts }} podcast conversation{{ counts.podcasts|pluralize }}</strong>{% endif %}{% if counts.wiki %}, a member-written wiki of {{ counts.wiki }} topic{{ counts.wiki|pluralize }}{% endif %}, and a Slack where all of it is discussed.
-      </p>
-      <p class="tour-hero-commitment">
-        Not a highlight reel — a straight walkthrough, for anyone deciding whether it's worth joining.
       </p>
       <div class="tour-hero-actions">
         <a class="cta cta-primary interactive-lift" href="{% url 'account_signup' %}">Create your free account</a>
