@@ -1,12 +1,24 @@
 {% extends "core/content_page.html" %}
-{% load breadcrumbs %}
+{% load breadcrumbs seo %}
 
 {% block document_title %}
-  {{ course_family.title }} — DataTalks.Club
+  {{ course_family.title }}: cohorts, syllabus and registration — DataTalks.Club
 {% endblock %}
 
 {% block metadata %}
-    <meta name="description" content="{{ family_lede|striptags|truncatechars:180 }}">
+  {% with family_description=family_lede|striptags|truncatechars:180|default:course_family.title %}
+    {% canonical_link canonical_url %}
+    <meta name="description" content="{{ family_description }}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="DataTalks.Club">
+    <meta property="og:title" content="{{ course_family.title }}: cohorts, syllabus and registration — DataTalks.Club">
+    <meta property="og:description" content="{{ family_description }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@DataTalksClub">
+    <meta name="twitter:title" content="{{ course_family.title }}: cohorts, syllabus and registration — DataTalks.Club">
+    <meta name="twitter:description" content="{{ family_description }}">
+  {% endwith %}
 {% endblock %}
 
 {% block page_styles %}
