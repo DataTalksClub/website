@@ -499,3 +499,58 @@ def test_refuses_a_description_path_that_names_anything_but_site_md() -> None:
         parse_course_repository(snapshot)
 
     assert diagnostic_code(raised) == "course_description_path_not_site_md"
+
+
+SHARED_FIXTURE_ROOT = (
+    Path(__file__).parent / "fixtures" / "course_repository" / "llm_zoomcamp_shared"
+)
+
+
+def shared_snapshot() -> dict[str, bytes]:
+    """The schema-2 shared-curriculum repository, one file tree."""
+
+    return {
+        path.relative_to(SHARED_FIXTURE_ROOT).as_posix(): path.read_bytes()
+        for path in SHARED_FIXTURE_ROOT.rglob("*")
+        if path.is_file()
+    }
+
+
+_CATALOG_BLOCK = (
+    b"catalog:\n"
+    b"  editions:\n"
+    b"    - slug: llm-zoomcamp-2026\n"
+    b"      finished: false\n"
+    b"      homework_count: 5\n"
+    b"      project_count: 3\n"
+    b'      first_deadline: "2026-02-02T23:59:59+00:00"\n'
+    b'      last_deadline: "2026-05-25T23:59:59+00:00"\n'
+)
+
+
+def test_a_schema_two_repository_may_declare_a_catalog_block() -> None:
+    """The catalogue copy is authored content; the ingest accepts it.
+
+    The block is validated with the shared rule set and then left to the
+    content sync parser -- the curriculum importer carries no catalogue copy
+    -- so a repository that declares one parses exactly as before.
+    """
+
+    snapshot = shared_snapshot()
+    snapshot["course.yaml"] += _CATALOG_BLOCK
+
+    source = parse_course_repository(snapshot, commit_sha=COMMIT_SHA)
+
+    assert source.course.slug == "llm-zoomcamp"
+
+
+def test_a_malformed_catalog_block_fails_the_ingest_with_the_shared_code() -> None:
+    snapshot = shared_snapshot()
+    snapshot["course.yaml"] += _CATALOG_BLOCK.replace(
+        b"llm-zoomcamp-2026", b"llm-zoomcamp-self-paced"
+    )
+
+    with pytest.raises(CourseRepositoryValidationError) as raised:
+        parse_course_repository(snapshot, commit_sha=COMMIT_SHA)
+
+    assert diagnostic_code(raised) == "course_edition_slug_rejected"
