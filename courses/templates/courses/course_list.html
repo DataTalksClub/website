@@ -273,11 +273,11 @@
          Cards sit in the shared three-column grid (design-system.md's
          `.card-grid-3`), the same density the family page's own past-editions
          grid already uses, kept deliberately light so it still reads well at a
-         third of the shell's width.  The illustration is a small quiet icon,
-         not a dominant banner -- only the generic per-family doodle ever draws
-         here (never a campaign's own authored photo, whose intrinsic
-         proportions are never guaranteed to be square), so it never crops or
-         distorts. */
+         third of the shell's width.  The illustration is a marker for the
+         course, not a dominant banner -- only the generic per-family doodle
+         ever draws here (never a campaign's own authored photo, whose
+         intrinsic proportions are never guaranteed to be square), so it never
+         crops or distorts. */
 
       .catalog-card {
         display: flex;
@@ -290,10 +290,27 @@
         cursor: pointer;
       }
 
+      /* The doodles are small scenes -- two or three figures with props on a
+         watercolour blob -- not glyphs, so they have a legibility floor: below
+         about 5rem the figures blur and every card's scene looks alike, which
+         defeats the illustration's one job of telling the courses apart at a
+         glance.  They also have a hierarchy ceiling: at 7rem and up the
+         picture matches the height of the title-outcome-link block on a
+         two-line card and reads as a banner again.  6rem sits between the two
+         at the shell's full width.
+
+         The size tracks the title's own fluid scale rather than the column:
+         `h3` runs clamp(1.15rem, 1.6vw, 1.4rem), and this clamp keeps the
+         picture at roughly 4.3 of those title heights at every viewport, so
+         it carries the same weight beside the smaller phone type as beside
+         the desktop type.  A percentage of the card would do the opposite --
+         balloon on the one-column tablet card and shrink on the phone card,
+         which has the most room of all. */
       .catalog-card-media {
+        --illustration-size: clamp(5rem, 6.9vw, 6rem);
         display: flex;
-        height: 3.5rem;
-        width: 3.5rem;
+        height: var(--illustration-size);
+        width: var(--illustration-size);
       }
 
       .catalog-card-media .doodle {
