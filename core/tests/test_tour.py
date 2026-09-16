@@ -64,6 +64,24 @@ class TourPageTests(TestCase):
         self.assertIn("AI Dev Tools Zoomcamp", body)
         self.assertIn('rel="canonical" href="https://datatalks.club/tour"', body)
 
+    def test_tour_teases_the_catalogue_instead_of_redrawing_it(self) -> None:
+        """The tour points at the catalogue page rather than re-listing it.
+
+        ``build_reviewed_catalog`` seeds six course families -- the same six
+        the full catalogue page draws as its own card grid. The tour shows
+        only a handful, in the light dashed row-list shared with index pages
+        like the wiki hub, not the catalogue's bordered card grid, and sends
+        a reader who wants the rest to `/courses`.
+        """
+
+        body = self._get().content.decode()
+
+        self.assertIn('class="row-list"', body)
+        self.assertNotIn("tour-grid-3", body)
+        self.assertIn("see all 6 courses →", body)
+        # Six families exist; the teaser shows only the first three.
+        self.assertEqual(body.count('<h3><a href="/courses/'), 3)
+
     def test_tour_states_its_real_scope_from_the_catalogue_counts(self) -> None:
         body = self._get().content.decode()
 
