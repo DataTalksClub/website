@@ -116,20 +116,16 @@
   .tour-course-card h3 a { color: var(--ink); text-decoration: none; }
   .tour-course-card p { color: var(--muted); font-size: 0.88rem; margin-top: 0.35rem; }
 
-  /* --- cohort week: spec strip, then the note beside one story card.  The
-         graduate quote uses the same member-story card the homepage and the
-         family landing draw, so the page has one quote treatment. */
+  /* --- cohort week: spec strip, then the note, then the graduate's quote
+         below it.  2026-09: restacked to one column, matching the design
+         system -- the note and the quote are two different kinds of content,
+         not a repeating grid, so they no longer sit side by side.  The quote
+         uses the same member-story card the homepage and the family landing
+         draw, so the page has one quote treatment. */
   .tour-week { display: grid; gap: 1.5rem; margin-top: 0.25rem; }
   .tour-week-note { color: var(--body-text); }
   .tour-week-note p + p { margin-top: 0.75rem; }
-  @media (min-width: 62rem) {
-    .tour-week-grid {
-      align-items: start;
-      display: grid;
-      gap: 1.5rem 2rem;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 24rem);
-    }
-  }
+  .tour-week-note + .card { margin-top: 0.25rem; max-width: 32rem; }
 
   /* --- events: the events-index date rail beside the title, on list rows */
   .tour-events .list-row { --row-cols: 11rem minmax(0, 1fr); }
@@ -161,16 +157,15 @@
     .tour-norms { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem 2rem; }
   }
 
-  /* --- founder story: the member-story card at the chapter width, two
-         labelled excerpts side by side */
+  /* --- founder story: the member-story card at the chapter width, the two
+         labelled excerpts stacked.  2026-09: restacked to one column,
+         matching the design system -- "how it started" and "why it's free"
+         are two different quotes, not a repeating grid, so they read in
+         sequence rather than side by side. */
   .tour-story { padding: 1.5rem 1.75rem; }
-  .tour-story-quotes {
-    display: grid;
-    gap: 1rem 2.5rem;
-    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-  }
+  .tour-story-quotes { display: grid; gap: 1.25rem; }
   .tour-story .story-quote { font-size: 1.08rem; line-height: 1.6; }
-  .tour-story-quotes > div { align-content: start; display: grid; gap: 0.45rem; }
+  .tour-story-quotes > div { display: grid; gap: 0.45rem; }
 
   /* --- closing: the site-wide tour stripe's own shape (.tour-cta on ink),
          drawn full-bleed and flush with the band's foot.  The page hides that
@@ -381,37 +376,35 @@
           </dd>
         </div>
       </dl>
-      <div class="tour-week-grid">
-        <div class="tour-week-note">
-          <p>
-            Office hours and the occasional workshop stream live on the DataTalks.Club YouTube channel — no Zoom link, no separate tool, no signup, just open YouTube at the scheduled time.
-          </p>
-          <p>
-            The certificate needs the project and its peer reviews; the weekly homework itself is optional, though it's what the leaderboard runs on.
-          </p>
-        </div>
-        {% comment %}
-          The graduate's quote on the same member-story card the founder's
-          takes below, so one page draws one kind of content one way.
-        {% endcomment %}
-        <figure class="card">
-          <blockquote class="story-quote">“The practicality of DataTalks is the huge difference. … The issue with that university and others is that everything stays in a Jupyter notebook. You know how the algorithm works … but it never goes beyond the notebook. … The difference with DataTalks is that the goal is for the person to use it in real life.”</blockquote>
-          <figcaption class="story-person">
-            <span class="story-identity">
-              <span class="avatar" aria-hidden="true"></span>
-              <span>
-                <strong>
-                  <a href="https://www.youtube.com/watch?v=B2tzuUg5uZs&amp;t=2190s" target="_blank" rel="noopener noreferrer">
-                    Dashel Ruiz Perez
-                    <span class="sr-only"> (opens in a new tab)</span>
-                  </a>
-                </strong>
-                <span class="story-context">ML Zoomcamp graduate</span>
-              </span>
-            </span>
-          </figcaption>
-        </figure>
+      <div class="tour-week-note">
+        <p>
+          Office hours and the occasional workshop stream live on the DataTalks.Club YouTube channel — no Zoom link, no separate tool, no signup, just open YouTube at the scheduled time.
+        </p>
+        <p>
+          The certificate needs the project and its peer reviews; the weekly homework itself is optional, though it's what the leaderboard runs on.
+        </p>
       </div>
+      {% comment %}
+        The graduate's quote on the same member-story card the founder's
+        takes below, so one page draws one kind of content one way.
+      {% endcomment %}
+      <figure class="card">
+        <blockquote class="story-quote">“The practicality of DataTalks is the huge difference. … The issue with that university and others is that everything stays in a Jupyter notebook. You know how the algorithm works … but it never goes beyond the notebook. … The difference with DataTalks is that the goal is for the person to use it in real life.”</blockquote>
+        <figcaption class="story-person">
+          <span class="story-identity">
+            <span class="avatar" aria-hidden="true"></span>
+            <span>
+              <strong>
+                <a href="https://www.youtube.com/watch?v=B2tzuUg5uZs&amp;t=2190s" target="_blank" rel="noopener noreferrer">
+                  Dashel Ruiz Perez
+                  <span class="sr-only"> (opens in a new tab)</span>
+                </a>
+              </strong>
+              <span class="story-context">ML Zoomcamp graduate</span>
+            </span>
+          </span>
+        </figcaption>
+      </figure>
     </div>
   </section>
 
