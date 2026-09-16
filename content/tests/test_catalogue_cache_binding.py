@@ -23,7 +23,7 @@ from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 
 from content import catalogue
-from content.models import ContentDocument, ContentSource, SyncedDocument
+from content.models import ContentSource, SyncedDocument
 from content.tests.factories import activate, make_ready_release
 
 
@@ -37,9 +37,14 @@ class CacheBindingTestBase(TestCase):
 
 
 class FailedReadRecoveryTests(CacheBindingTestBase):
+    def setUp(self) -> None:
+        super().setUp()
+        catalogue._synced_courses.cache_clear()
+
     def test_a_failed_row_read_raises_and_the_next_read_recovers(self) -> None:
-        real_filter = ContentDocument.objects.filter
-        failures = iter([OperationalError("catalogue row read lost")] * 1)
+        stamps = {slug: catalogue.synced_stamp(slug) for slug in catalogue.COURSE_SOURCE_SLUGS}
+        real_filter = SyncedDocument.objects.filter
+        failures = iter([OperationalError("course row read lost")] * 1)
 
         def flaky_filter(*args, **kwargs):
             try:
@@ -47,20 +52,22 @@ class FailedReadRecoveryTests(CacheBindingTestBase):
             except StopIteration:
                 return real_filter(*args, **kwargs)
 
-        with mock.patch.object(ContentDocument.objects, "filter", flaky_filter):
+        with (
+            mock.patch.object(catalogue, "synced_stamp", lambda slug: stamps[slug]),
+            mock.patch.object(SyncedDocument.objects, "filter", flaky_filter),
+        ):
             with self.assertRaises(OperationalError):
-                # The course records are one of the kinds still read from the
-                # staged release; the synced kinds carry the same guarantee in
+                # The course catalogue copies read the course repositories'
+                # synced rows; every synced kind carries the same guarantee in
                 # the classes below.
-                catalogue.records("course")
+                catalogue.courses()
 
         # Nothing failed entered the cache: the recovering read runs the row
-        # query again (pointer lookup plus rows) and answers with the published
-        # records, not the empty collection a swallowed failure used to leave.
-        with CaptureQueriesContext(connection) as recovery:
+        # queries again and answers with the published editions, not the empty
+        # collection a swallowed failure used to leave.
+        with mock.patch.object(catalogue, "synced_stamp", lambda slug: stamps[slug]):
             courses = catalogue.courses()
 
-        self.assertGreaterEqual(len(recovery), 2)
         self.assertTrue(courses)
 
 
@@ -95,12 +102,12 @@ class AbsentPointerTests(CacheBindingTestBase):
         )
 
         with CaptureQueriesContext(connection) as read:
-            courses = catalogue.courses()
+            staged = catalogue.records("fixture")
 
         # The disabled source's pointer lookup is the only query: an empty key
         # is an empty catalogue, not a document read (and not a failure).
         self.assertEqual(len(read), 1)
-        self.assertEqual(courses, ())
+        self.assertEqual(staged, ())
 
 
 class SyncedWikiBindingTests(CacheBindingTestBase):
@@ -334,3 +341,60 @@ class SyncedMediaBindingTests(CacheBindingTestBase):
         # are an empty collection, not row reads.
         self.assertEqual(len(read), 2)
         self.assertEqual(media, ())
+
+
+class SyncedCourseBindingTests(CacheBindingTestBase):
+    """The same guarantees for the course catalogue copies (#384).
+
+    The collection is drawn from every course repository's own source, so the
+    cache key carries a stamp per repository, and a write to any one side must
+    move the merged answer.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        catalogue._synced_records.cache_clear()
+        catalogue._synced_courses.cache_clear()
+
+    def test_a_sync_write_to_one_repository_moves_the_merged_answer(self) -> None:
+        before = [record["slug"] for record in catalogue.courses()]
+
+        row = SyncedDocument.objects.get(
+            source__slug="ml-zoomcamp",
+            content_kind=catalogue.COURSE_KIND,
+            stable_key="ml-zoomcamp-2024",
+        )
+        row.record = {**row.record, "title": "Renamed edition"}
+        row.save()
+
+        courses = catalogue.courses()
+
+        self.assertIn("Renamed edition", [record["title"] for record in courses])
+        self.assertEqual(len(before), 4)
+
+    def test_the_merged_answer_reads_in_the_reviewed_order(self) -> None:
+        courses = catalogue.courses()
+
+        # The unfinished edition first, then the finished ones A-Z by title.
+        self.assertEqual(
+            [record["slug"] for record in courses],
+            [
+                "de-zoomcamp-2026",
+                "de-zoomcamp-2025",
+                "ml-zoomcamp-2024",
+                "ml-zoomcamp-2025",
+            ],
+        )
+
+    def test_an_absent_source_answers_empty_without_reading_rows(self) -> None:
+        EngineContentSource.objects.filter(slug__in=catalogue.COURSE_SOURCE_SLUGS).update(
+            is_enabled=False
+        )
+
+        with CaptureQueriesContext(connection) as read:
+            courses = catalogue.courses()
+
+        # One stamp aggregate per course repository and nothing more: absent
+        # repositories are an empty collection, not row reads.
+        self.assertEqual(len(read), len(catalogue.COURSE_SOURCE_SLUGS))
+        self.assertEqual(courses, ())

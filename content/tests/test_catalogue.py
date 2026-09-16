@@ -87,6 +87,7 @@ class EmptyCatalogueTests(TestCase):
                 catalogue.EDITORIAL_SOURCE_SLUG,
                 catalogue.PEOPLE_SOURCE_SLUG,
                 catalogue.WIKI_SOURCE_SLUG,
+                *catalogue.COURSE_SOURCE_SLUGS,
             )
         ).update(is_enabled=False)
 

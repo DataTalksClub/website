@@ -10,14 +10,15 @@ the same publishing authority per kind, the same stored editorial order, and
 the same cache key. Split per kind, that resolution would be written seven
 times and could drift seven ways.
 
-During the #384 cutover the wiki kinds, the editorial collections and the
-people profiles have a second authority ahead of the staged pipeline's
-retirement: the community_base sync engine's
-:class:`~content.models.SyncedDocument` rows, written by the ``dtc-podwiki``,
-``dtc-content`` and ``dtc-main-site`` parsers. The staged ``dtc-public-content``
-release still publishes the remaining kinds -- courses, the manifest and its
-derived records -- until the pipeline is retired. Each kind reads exactly
-one authority -- never a blend and never a fallback.
+During the #384 cutover the wiki kinds, the editorial collections, the
+people profiles, the media records and the course catalogue copies have a
+second authority ahead of the staged pipeline's retirement: the
+community_base sync engine's :class:`~content.models.SyncedDocument` rows,
+written by the ``dtc-podwiki``, ``dtc-content``, ``dtc-main-site`` and
+course-repository parsers. The staged ``dtc-public-content`` release still
+publishes the remaining kinds -- the manifest and its derived records --
+until the pipeline is retired. Each kind reads exactly one authority --
+never a blend and never a fallback.
 
 A database with no published rows publishes nothing. That is a normal state,
 not a failure: hubs render empty and detail lookups miss, which is what an
@@ -35,6 +36,7 @@ from django.db.models import Count, Max
 from .models import ContentDocument, ContentSource, SyncedDocument
 from .public_graph import validate_wiki_graph
 from .public_text import strip_leaked_target_attributes
+from .sync_parsers.course import COURSE_SOURCE_SLUGS
 
 #: One published record, exactly as the import stored it. The pages read these
 #: as mappings because that is what the catalogue's own records are: a book has
@@ -100,10 +102,19 @@ MEDIA_KIND = "media"
 SLACK_PAGE_KIND = "slack_page"
 SITE_PAGE_SYNCED_KINDS = ("podcast_platforms", SLACK_PAGE_KIND)
 
+#: The kind the course catalogue copies are stored under. Each course
+#: repository is its own sync source (the parser rejects every other), so --
+#: like media, only more so -- the collection composes across all of the
+#: sources' stamps. The copy is authored in each repository's ``course.yaml``
+#: ``catalog:`` block (issue #384); a database whose course repositories have
+#: not declared any publishes no catalogue copies.
+COURSE_KIND = "course"
+
 #: Every kind that reads the synced rows, mapped to the source that publishes
 #: it: the dispatch ``records`` makes before falling back to the staged
-#: release. Each kind reads exactly one authority -- never a blend, never a
-#: fallback.
+#: release. The multi-source kinds (media, courses) dispatch on their own
+#: branches instead. Each kind reads exactly one authority -- never a blend,
+#: never a fallback.
 SYNCED_KIND_SOURCES = {
     **{kind: EDITORIAL_SOURCE_SLUG for kind in EDITORIAL_SYNCED_KINDS},
     PEOPLE_KIND: PEOPLE_SOURCE_SLUG,
@@ -149,6 +160,11 @@ def records(kind: str) -> tuple[Record, ...]:
             return _synced_media(
                 synced_stamp(EDITORIAL_SOURCE_SLUG), synced_stamp(PEOPLE_SOURCE_SLUG)
             )
+        if kind == COURSE_KIND:
+            # The course catalogue copies are one collection drawn from the
+            # course repositories' own sources, so the cache key carries a
+            # stamp per repository.
+            return _synced_courses(*(synced_stamp(slug) for slug in COURSE_SOURCE_SLUGS))
         return _records(active_release_id(), kind)
     if kind in WIKI_SYNCED_KINDS or kind in SITE_PAGE_SYNCED_KINDS:
         return _synced_records(synced_stamp(source_slug), source_slug, kind)
@@ -568,12 +584,15 @@ def manifest() -> Record:
 def courses() -> tuple[Record, ...]:
     """The course records the catalogue publishes.
 
-    The course pages themselves are database rows of their own; these are the
-    catalogue's own copies, kept for the route inventory that checks the two
-    agree.
+    The catalogue copy -- one record per edition a course repository declares
+    in its ``course.yaml`` ``catalog:`` block -- is the synced rows the course
+    parsers write, merged across the repositories and read in the reviewed
+    order: the editions still running first, then A-Z by title. The course
+    pages themselves are database rows of their own; these are the catalogue's
+    own copies, kept for the route inventory that checks the two agree.
     """
 
-    return records("course")
+    return records(COURSE_KIND)
 
 
 def collection_counts() -> dict[str, int]:
@@ -636,6 +655,37 @@ def _synced_media(
         *_synced_records(people_stamp, PEOPLE_SOURCE_SLUG, MEDIA_KIND),
     ]
     held.sort(key=lambda record: str(record.get("record_key", "")))
+    return tuple(held)
+
+
+@lru_cache(maxsize=2)
+def _synced_courses(*stamps: tuple[int, str]) -> tuple[Record, ...]:
+    """The published course records of the sources the stamps name.
+
+    An absent repository publishes no catalogue copy of its own; all absent is
+    an empty collection, not a failure. Each repository's rows follow its own
+    stamp, so a sync to any one side rebuilds the merged answer. The order is
+    the reviewed build's: unfinished editions first, then A-Z by title, then
+    slug. An edition slug two repositories both declare is an authoring
+    defect, not a quiet double count -- the read fails closed on it, as the
+    reviewed build did.
+    """
+
+    held = [
+        record
+        for stamp, source_slug in zip(stamps, COURSE_SOURCE_SLUGS)
+        for record in _synced_records(stamp, source_slug, COURSE_KIND)
+    ]
+    slugs = [str(record.get("slug", "")) for record in held]
+    if len(slugs) != len(set(slugs)):
+        raise ValueError("course catalogue: duplicate edition slug across repositories")
+    held.sort(
+        key=lambda record: (
+            bool(record.get("finished", False)),
+            str(record.get("title", "")).casefold(),
+            str(record.get("slug", "")),
+        )
+    )
     return tuple(held)
 
 

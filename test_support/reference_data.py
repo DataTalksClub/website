@@ -633,6 +633,155 @@ def load_synced_site_pages() -> int:
     return len(rows)
 
 
+def load_synced_course_catalog() -> int:
+    """Publish the synthetic course catalogue copies as synced rows.
+
+    The catalogue copy is authored per course repository in its ``course.yaml``
+    ``catalog:`` block (issue #384); the records here are what the parser
+    would write for two repositories that declare editions. Two sources, so
+    the merged collection and its cross-repository order are exercised the way
+    a real database exercises them.
+    """
+
+    import hashlib
+    import json
+
+    from community_base.content_sync.models import ContentSource as EngineContentSource
+
+    from content.models import SyncedDocument
+
+    def _checksum(record: dict[str, Any]) -> str:
+        encoded = json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+    def _edition(
+        slug: str,
+        repo_name: str,
+        family_slug: str,
+        year: int,
+        title: str,
+        *,
+        finished: bool,
+        homework_count: int,
+        project_count: int,
+        first_deadline: str,
+        last_deadline: str,
+    ) -> dict[str, Any]:
+        revision = "0" * 40
+        return {
+            "slug": slug,
+            "public_path": f"/courses/{family_slug}/{year}",
+            "title": title,
+            "finished": finished,
+            "homework_count": homework_count,
+            "project_count": project_count,
+            "first_deadline": first_deadline,
+            "last_deadline": last_deadline,
+            "provenance": {
+                "repository": repo_name,
+                "revision": revision,
+                "source_path": "course.yaml",
+                "source_key": slug,
+                # The parser records the source file's sha256; the synthetic
+                # seed carries the same field with a synthetic digest.
+                "checksum": hashlib.sha256(f"{repo_name}:{slug}".encode()).hexdigest(),
+                "source_url": f"https://github.com/{repo_name}/blob/{revision}/course.yaml",
+            },
+        }
+
+    editions = [
+        (
+            "de-zoomcamp",
+            "DataTalksClub/data-engineering-zoomcamp",
+            [
+                _edition(
+                    "de-zoomcamp-2026",
+                    "DataTalksClub/data-engineering-zoomcamp",
+                    "de-zoomcamp",
+                    2026,
+                    "Data Engineering Zoomcamp 2026",
+                    finished=False,
+                    homework_count=8,
+                    project_count=3,
+                    first_deadline="2026-01-26T23:59:59+00:00",
+                    last_deadline="2026-05-04T23:00:00+00:00",
+                ),
+                _edition(
+                    "de-zoomcamp-2025",
+                    "DataTalksClub/data-engineering-zoomcamp",
+                    "de-zoomcamp",
+                    2025,
+                    "Data Engineering Zoomcamp 2025",
+                    finished=True,
+                    homework_count=7,
+                    project_count=3,
+                    first_deadline="2025-02-03T23:59:59+00:00",
+                    last_deadline="2025-06-02T23:59:59+00:00",
+                ),
+            ],
+        ),
+        (
+            "ml-zoomcamp",
+            "DataTalksClub/machine-learning-zoomcamp",
+            [
+                _edition(
+                    "ml-zoomcamp-2025",
+                    "DataTalksClub/machine-learning-zoomcamp",
+                    "ml-zoomcamp",
+                    2025,
+                    "Machine Learning Zoomcamp 2025",
+                    finished=True,
+                    homework_count=9,
+                    project_count=4,
+                    first_deadline="2025-02-17T23:59:59+00:00",
+                    last_deadline="2025-06-16T23:59:59+00:00",
+                ),
+                _edition(
+                    "ml-zoomcamp-2024",
+                    "DataTalksClub/machine-learning-zoomcamp",
+                    "ml-zoomcamp",
+                    2024,
+                    "Machine Learning Zoomcamp 2024",
+                    finished=True,
+                    homework_count=11,
+                    project_count=3,
+                    first_deadline="2024-02-12T23:59:59+00:00",
+                    last_deadline="2024-06-10T23:59:59+00:00",
+                ),
+            ],
+        ),
+    ]
+    total = 0
+    for slug, repo_name, records in editions:
+        source = EngineContentSource.objects.get_or_create(
+            slug=slug,
+            defaults={
+                "repo_name": repo_name,
+                # A synthetic secret so the row satisfies the engine's own
+                # shape rules; nothing here reads or keeps a real credential.
+                "webhook_secret": "test-support-synthetic-secret",
+            },
+        )[0]
+        rows = [
+            SyncedDocument(
+                source=source,
+                content_kind="course",
+                stable_key=record["slug"],
+                slug=record["slug"],
+                title=record["title"],
+                summary="",
+                public_path=record["public_path"],
+                source_path="course.yaml",
+                checksum=_checksum(record),
+                record=record,
+            )
+            for record in records
+        ]
+        SyncedDocument.objects.bulk_create(rows)
+        total += len(rows)
+    return total
+
+
 def load_homepage_testimonials() -> int:
     from courses.services.testimonials import import_homepage_testimonials
 
@@ -660,5 +809,6 @@ def load_reviewed_reference_data() -> dict[str, int]:
         "synced_editorial": load_synced_editorial(),
         "synced_media": load_synced_media(),
         "synced_site_pages": load_synced_site_pages(),
+        "synced_course_catalog": load_synced_course_catalog(),
         "testimonials": load_homepage_testimonials(),
     }
