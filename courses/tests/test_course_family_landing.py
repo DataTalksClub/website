@@ -668,3 +668,67 @@ class CourseFamilyFaqPreviewTests(TestCase):
         # The preview is bounded, not the whole document, however many
         # questions the real FAQ carries.
         self.assertLessEqual(body.count('<details class="faq-fold"'), 5)
+
+    def test_quick_faq_answers_fill_a_real_course_with_no_synced_document(self):
+        # A real course (has a visible cohort) whose FAQ hasn't been synced and
+        # carries no legacy link either used to show no FAQ panel at all --
+        # exactly today's ml-zoomcamp gap. The catalogue's own objection
+        # answers (free, hours, late join, certificate) now fill it.
+        family = Course.objects.create(slug="unsynced-course", title="Unsynced Course")
+        make_cohort(family, 2026)
+
+        response = self.client.get(reverse("course_family", args=[family.slug]))
+
+        self.assertContains(response, "Questions before you start?")
+        self.assertContains(response, "Is it really free?")
+        self.assertContains(response, "Can I join after a cohort starts?")
+        self.assertContains(response, "How much time do I need?")
+        self.assertContains(response, "Do I get a certificate?")
+        # No document and no legacy link means nothing real to send them to.
+        self.assertNotContains(response, "See the full course FAQ")
+
+    def test_quick_faq_answers_are_omitted_for_a_family_with_no_real_cohort(self):
+        # Guards the empty-family case above: the fallback is for a real
+        # course, not a stub family record with nothing running.
+        family = Course.objects.create(slug="stub-family", title="Stub Family")
+
+        response = self.client.get(reverse("course_family", args=[family.slug]))
+
+        self.assertNotContains(response, "Questions before you start?")
+        self.assertNotContains(response, "Is it really free?")
+
+    def test_quick_faq_answers_link_to_the_legacy_faq_when_one_exists(self):
+        family = Course.objects.create(
+            slug="unsynced-with-link",
+            title="Unsynced With Link",
+            faq_document_url="https://example.invalid/unsynced-with-link",
+        )
+        make_cohort(family, 2026)
+
+        response = self.client.get(reverse("course_family", args=[family.slug]))
+
+        self.assertContains(response, "Is it really free?")
+        self.assertContains(response, 'href="https://example.invalid/unsynced-with-link"')
+        self.assertContains(response, "See the full course FAQ")
+
+    def test_quick_faq_answers_do_not_repeat_a_question_the_real_document_already_asks(self):
+        family = Course.objects.create(slug="ml-zoomcamp", title="Machine Learning Zoomcamp")
+        make_cohort(family, 2026)
+
+        response = self.client.get(reverse("course_family", args=[family.slug]))
+        body = response.content.decode()
+
+        # The real synced document's first five questions (general orientation)
+        # don't mention a certificate, so the quick answer still appears...
+        self.assertIn("Do I get a certificate?", body)
+        # ...but none of the quick items duplicate a question the real preview
+        # already shows.
+        from content.faq_data import faq_course, faq_questions
+
+        document = faq_course("machine-learning-zoomcamp")
+        assert document is not None
+        previewed = {question["question"] for question in faq_questions(document)[:5]}
+        quick_questions = {
+            item.question for item in response.context["family_quick_faq_items"]
+        }
+        self.assertEqual(previewed & quick_questions, set())

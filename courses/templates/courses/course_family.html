@@ -1345,7 +1345,7 @@
           <p class="family-empty">No cohorts are available yet.</p>
         {% endif %}
 
-          {% if family_faq_questions %}
+          {% if family_faq_questions or family_quick_faq_items %}
             <div class="panel panel-lavender panel-outlined family-faq">
               <h3>Questions before you start?</h3>
               <div class="row-list family-faq-list">
@@ -1358,8 +1358,31 @@
                     <div class="prose faq-answer">{{ question.rendered_answer|safe }}</div>
                   </details>
                 {% endfor %}
+                {% comment %}
+                  The family's own FAQ document previews only its first five
+                  questions in source order (family_faq_preview, above), which
+                  for every real course today are general orientation
+                  questions -- not "is it free", "how many hours", "can I join
+                  late" or the certificate rule, the four objections the
+                  /courses catalogue already answers well.  Reusing that exact
+                  copy here (courses/views/course_page_context.py,
+                  QUICK_FAQ_ITEMS) means a visitor sees them without opening
+                  the full document, and family_quick_faq_items drops any item
+                  the family's own preview already asks, so nothing repeats.
+                {% endcomment %}
+                {% for item in family_quick_faq_items %}
+                  <details class="faq-fold" id="quick-faq-{{ forloop.counter }}">
+                    <summary class="faq-fold-summary">
+                      <h4 class="faq-question-title">{{ item.question }}</h4>
+                      <span class="faq-fold-marker" aria-hidden="true"></span>
+                    </summary>
+                    <div class="prose faq-answer"><p>{{ item.answer }}</p></div>
+                  </details>
+                {% endfor %}
               </div>
-              <a class="band-link family-faq-link" href="{{ family_faq_url }}">See the full course FAQ →</a>
+              {% if family_faq_url %}
+                <a class="band-link family-faq-link" href="{{ family_faq_url }}">See the full course FAQ →</a>
+              {% endif %}
             </div>
           {% elif course_family.faq_document_url %}
             <div class="panel panel-lavender panel-outlined family-faq">

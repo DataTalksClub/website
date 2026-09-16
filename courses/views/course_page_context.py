@@ -374,6 +374,84 @@ def family_faq_preview(family: Course, *, limit: int = FAMILY_FAQ_PREVIEW_LIMIT)
     return rows, course["public_path"]
 
 
+@dataclass(frozen=True)
+class QuickFaqItem:
+    """One of the catalogue's objection-answering FAQ entries, reused verbatim."""
+
+    keywords: tuple[str, ...]
+    question: str
+    answer: str
+
+
+#: The four objection-answering questions the ``/courses`` catalogue already
+#: answers well (``courses/templates/courses/course_list.html``'s
+#: ``.faq-grid``): is it free, how much time it takes, whether a late start is
+#: fine, and the certificate rule.  A course family's own real FAQ document
+#: preview (``family_faq_preview``, above) shows the document's first five
+#: questions in source order, which for every real course today are general
+#: orientation questions, not these -- so a visitor who never expands "See the
+#: full course FAQ" never sees them.  Reusing this exact, already-published
+#: copy here closes that gap without inventing new marketing text.
+QUICK_FAQ_ITEMS: tuple[QuickFaqItem, ...] = (
+    QuickFaqItem(
+        keywords=("free",),
+        question="Is it really free?",
+        answer=(
+            "Yes. Every video, homework and solution stays public — there is "
+            "nothing to pay and nothing to upsell."
+        ),
+    ),
+    QuickFaqItem(
+        keywords=("join", "late start", "already started"),
+        question="Can I join after a cohort starts?",
+        answer=(
+            "Yes, while it is still running. Catch up on the recordings and "
+            "submit whatever homework is still open."
+        ),
+    ),
+    QuickFaqItem(
+        keywords=("how much time", "hour", "time do i need"),
+        question="How much time do I need?",
+        answer=(
+            "Enough for the weekly videos plus hands-on practice. Most people "
+            "do it alongside a full-time job — each course's own syllabus lays "
+            "out its pace."
+        ),
+    ),
+    QuickFaqItem(
+        keywords=("certificate",),
+        question="Do I get a certificate?",
+        answer="To get a certificate you need to pass a project.",
+    ),
+)
+
+
+def family_quick_faq_items(
+    family_faq_questions: tuple,
+    *,
+    family_has_a_real_cohort: bool,
+) -> tuple[QuickFaqItem, ...]:
+    """The catalogue's objection-answering items this family doesn't already show.
+
+    Reused only for a family that actually runs a course (``family_has_a_real_cohort``)
+    -- a family with no cohort at all has nothing these generic, always-true zoomcamp
+    facts would be answering.  An item is dropped when the family's own inline FAQ
+    preview already asks something close enough (its question text contains one of the
+    item's keywords), so the same question is never shown twice on one page.
+    """
+
+    if not family_has_a_real_cohort:
+        return ()
+    covered = " ".join(
+        question["question"].casefold() for question in family_faq_questions
+    )
+    return tuple(
+        item
+        for item in QUICK_FAQ_ITEMS
+        if not any(keyword in covered for keyword in item.keywords)
+    )
+
+
 def course_family_page_context(family: Course, user) -> dict:
     """Build the family landing context without changing cohort view logic."""
 
@@ -541,6 +619,10 @@ def course_family_page_context(family: Course, user) -> dict:
         )
     )
     family_faq_questions, family_faq_url = family_faq_preview(family)
+    quick_faq_items = family_quick_faq_items(
+        family_faq_questions,
+        family_has_a_real_cohort=front_cohort is not None,
+    )
     return {
         "course_family": family,
         "cohorts": cohorts,
@@ -557,6 +639,7 @@ def course_family_page_context(family: Course, user) -> dict:
         "materials_on_platform": materials_on_platform,
         "family_faq_questions": family_faq_questions,
         "family_faq_url": family_faq_url,
+        "family_quick_faq_items": quick_faq_items,
         "self_paced_cohort": self_paced_cohort,
         "family_lede": family_lede(family),
         "family_starting_point": family.starting_point.strip(),
