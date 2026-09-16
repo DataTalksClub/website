@@ -12,6 +12,7 @@ from django.test import TestCase
 
 from content.models import SyncedDocument
 from content.sync_parsers.base import ContentParserError
+from content.sync_parsers.course import COURSE_SOURCE_SLUGS
 
 
 def _person_markdown() -> str:
@@ -1132,6 +1133,148 @@ class SlackPageParserTests(_CheckoutCase):
                 parser.discover(checkout, source)
 
 
+def _course_yaml(editions: bytes = b"", title: str = "Data Engineering Zoomcamp") -> bytes:
+    catalog = b"catalog:\n  editions:\n" + editions if editions else b""
+    return (
+        b"schema_version: 2\n"
+        b"slug: de-zoomcamp\n" + f"title: {title}\n".encode() + b"current_cohort: '2026'\n"
+        b"cohorts:\n"
+        b"- identifier: '2026'\n"
+        b"  content: root\n" + catalog
+    )
+
+
+_EDITION_2026 = (
+    b"    - slug: de-zoomcamp-2026\n"
+    b"      finished: false\n"
+    b"      homework_count: 8\n"
+    b"      project_count: 3\n"
+    b'      first_deadline: "2026-01-26T23:59:59+00:00"\n'
+    b'      last_deadline: "2026-05-04T23:00:00+00:00"\n'
+)
+_EDITION_2025 = (
+    b"    - slug: de-zoomcamp-2025\n"
+    b"      finished: true\n"
+    b"      homework_count: 7\n"
+    b"      project_count: 3\n"
+    b"      first_deadline: 2025-02-03T23:59:59+00:00\n"
+    b"      last_deadline: 2025-06-02T23:59:59+00:00\n"
+)
+
+
+class CourseCatalogParserTests(_CheckoutCase):
+    def setUp(self) -> None:
+        super().setUp()
+        SyncedDocument.objects.filter(
+            source__slug__in=COURSE_SOURCE_SLUGS, content_kind="course"
+        ).delete()
+
+    def test_discover_upsert_and_delete(self) -> None:
+        source = _source("de-zoomcamp")
+        parser = get_parser("course")
+        with self.checkout(
+            {"course.yaml": _course_yaml(_EDITION_2026 + _EDITION_2025)}
+        ) as checkout:
+            items = parser.discover(checkout, source)
+            self.assertEqual([item.key for item in items], ["de-zoomcamp-2026", "de-zoomcamp-2025"])
+            first = items[0].data["record"]
+            self.assertEqual(first["slug"], "de-zoomcamp-2026")
+            self.assertEqual(first["public_path"], "/courses/de-zoomcamp/2026")
+            self.assertEqual(first["title"], "Data Engineering Zoomcamp 2026")
+            self.assertFalse(first["finished"])
+            self.assertEqual(first["homework_count"], 8)
+            self.assertEqual(first["project_count"], 3)
+            self.assertEqual(first["first_deadline"], "2026-01-26T23:59:59+00:00")
+            self.assertEqual(first["last_deadline"], "2026-05-04T23:00:00+00:00")
+            self.assertEqual(first["provenance"]["repository"], "DataTalksClub/de-zoomcamp")
+            self.assertEqual(first["provenance"]["source_path"], "course.yaml")
+            self.assertEqual(first["provenance"]["revision"], "a" * 40)
+            # An unquoted YAML timestamp arrives as a datetime and is
+            # normalized to the same ISO form the reviewed records carry.
+            self.assertEqual(items[1].data["record"]["first_deadline"], "2025-02-03T23:59:59+00:00")
+            self.assertTrue(items[1].data["record"]["finished"])
+            for item in items:
+                result = parser.upsert(item, source, media_store())
+            self.assertEqual(result.action, "created")
+        stored = SyncedDocument.objects.filter(source=source, content_kind="course")
+        self.assertEqual(stored.count(), 2)
+        self.assertEqual(
+            sorted(row.slug for row in stored), ["de-zoomcamp-2025", "de-zoomcamp-2026"]
+        )
+        self.assertEqual(parser.soft_delete_missing({"de-zoomcamp-2026"}, source), 1)
+        self.assertEqual(
+            [
+                row.slug
+                for row in SyncedDocument.objects.filter(source=source, content_kind="course")
+            ],
+            ["de-zoomcamp-2026"],
+        )
+
+    def test_an_edition_title_is_authored_not_derived_when_declared(self) -> None:
+        source = _source("de-zoomcamp")
+        parser = get_parser("course")
+        titled = _EDITION_2026.replace(
+            b"      finished: false\n",
+            b"      finished: false\n"
+            b"      title: Data Engineering Zoomcamp 2026 (January cohort)\n",
+        )
+        with self.checkout({"course.yaml": _course_yaml(titled)}) as checkout:
+            items = parser.discover(checkout, source)
+        self.assertEqual(
+            items[0].data["record"]["title"], "Data Engineering Zoomcamp 2026 (January cohort)"
+        )
+
+    def test_a_repository_without_a_catalog_publishes_no_editions(self) -> None:
+        source = _source("de-zoomcamp")
+        parser = get_parser("course")
+        with self.checkout({"course.yaml": _course_yaml(), "README.md": b"# Course\n"}) as checkout:
+            self.assertEqual(parser.discover(checkout, source), [])
+            self.assertEqual(parser.soft_delete_missing(set(), source), 0)
+
+    def test_ignores_other_sources(self) -> None:
+        other = _source("some-other-site")
+        parser = get_parser("course")
+        with self.checkout({"course.yaml": _course_yaml(_EDITION_2026)}) as checkout:
+            self.assertEqual(parser.discover(checkout, other), [])
+            self.assertEqual(parser.soft_delete_missing(set(), other), 0)
+
+    def test_a_catalog_that_cannot_be_published_is_rejected(self) -> None:
+        source = _source("de-zoomcamp")
+        parser = get_parser("course")
+        rejects = {
+            "missing required field": _course_yaml(
+                _EDITION_2026.replace(b"      project_count: 3\n", b"")
+            ),
+            "slug without a year": _course_yaml(
+                _EDITION_2026.replace(b"de-zoomcamp-2026", b"de-zoomcamp-self-paced")
+            ),
+            "non-boolean finished": _course_yaml(
+                _EDITION_2026.replace(b"finished: false", b"finished: maybe")
+            ),
+            "duplicate edition": _course_yaml(_EDITION_2026 + _EDITION_2026),
+            "unparseable deadline": _course_yaml(
+                _EDITION_2026.replace(b'"2026-05-04T23:00:00+00:00"', b'"sometime in may"')
+            ),
+            "negative count": _course_yaml(
+                _EDITION_2026.replace(b"homework_count: 8", b"homework_count: -1")
+            ),
+            "unknown field": _course_yaml(
+                _EDITION_2026.replace(
+                    b"      project_count: 3\n", b"      project_count: 3\n      extra: x\n"
+                )
+            ),
+            "empty editions": _course_yaml() + b"catalog:\n  editions: []\n",
+            "stray catalog key": _course_yaml(_EDITION_2026).replace(
+                b"catalog:\n", b"catalog:\n  note: x\n"
+            ),
+        }
+        for label, yaml_bytes in rejects.items():
+            with self.subTest(label=label):
+                with self.checkout({"course.yaml": yaml_bytes}) as checkout:
+                    with self.assertRaises(ContentParserError):
+                        parser.discover(checkout, source)
+
+
 class RegistrationTests(unittest.TestCase):
     def test_site_parsers_are_registered(self) -> None:
         self.assertEqual(type(get_parser("article")).__name__, "ArticlesParser")
@@ -1144,3 +1287,4 @@ class RegistrationTests(unittest.TestCase):
         self.assertEqual(type(get_parser("media")).__name__, "MediaParser")
         self.assertEqual(type(get_parser("podcast_platforms")).__name__, "PodcastPlatformsParser")
         self.assertEqual(type(get_parser("slack_page")).__name__, "SlackPageParser")
+        self.assertEqual(type(get_parser("course")).__name__, "CourseCatalogParser")
