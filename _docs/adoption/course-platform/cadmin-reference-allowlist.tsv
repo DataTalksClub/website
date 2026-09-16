@@ -10,6 +10,7 @@ _docs/adoption/course-platform/target-owned-compatibility-shims.tsv	adoption pro
 _docs/adoption/course-platform/verification.md	adoption provenance	courses	Retain while namespace-move and legacy-adapter verification evidence remains authoritative.
 _docs/compatibility/course-route-contracts.json	legacy contract provenance	seo	Regenerate only after the pinned CMP source contract or approved canonical mapping changes.
 _docs/compatibility/machine-contract-samples.json	legacy contract provenance	seo	Remove legacy samples only after observed traffic and the course-host cutover gate approve removal.
+_docs/architecture/course-platform-shared-apps-mapping.md	shared-apps mapping provenance	courses	Retain while the D5.1 course-platform mapping and its decision record govern the shared-apps adoption; remove when the D5.2 cutover supersedes them.
 _docs/design/specs/script-inventory.md	tooling analysis provenance	testing	Retain while the script inventory documents the cadmin reference allowlist as a deletion blocker; remove when the analysis is superseded.
 _docs/specs/02-url-link-seo-compatibility.md	historical specification	seo	Remove legacy route language only after the approved compatibility retirement gate.
 _docs/specs/04-courses-and-cohorts.md	historical specification	courses	Retain source-workflow language and legacy route requirements until course migration completes.
