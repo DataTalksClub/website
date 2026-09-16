@@ -331,6 +331,44 @@ class DocsProjectionTests(TestCase):
         for anchor in ("curriculum", "modules", "learning-philosophy", "pace", "cohort-changes"):
             self.assertContains(response, f'id="{anchor}"', count=1)
 
+    def test_curriculum_item_with_a_nested_link_never_wraps_in_an_outer_anchor(self) -> None:
+        """A details list that links out on its own -- for example the Data
+        Engineering Zoomcamp curriculum's Final Project module, which points
+        readers to its own project page -- must never sit inside the card's
+        outer ``<a>``. HTML forbids a nested anchor; a browser reparents the
+        inner one, splitting one module into several visual boxes.
+        """
+        source = (
+            "# Curriculum\n\n"
+            "## Modules\n\n"
+            "[Module 1: Containerization]"
+            "(https://github.com/DataTalksClub/data-engineering-zoomcamp/tree/main/01-docker-terraform)\n\n"
+            "- Docker and Postgres.\n\n"
+            "[Final Project](https://github.com/DataTalksClub/data-engineering-zoomcamp/tree/main/projects)\n\n"
+            "- Three weeks at the end of the cohort.\n"
+            "- See the [Project page](/docs/courses/data-engineering-zoomcamp/project/).\n\n"
+            "## Cohort changes\n\n"
+            "Notes.\n"
+        )
+        rendered, _headings = render_docs_markdown({"body": source})
+        _heading_id, body = docs_body_without_primary_heading(rendered)
+        curriculum = docs_curriculum(body)
+        self.assertIsNotNone(curriculum)
+        assert curriculum is not None
+        self.assertEqual(len(curriculum.items), 2)
+        module, final_project = curriculum.items
+        self.assertEqual(
+            module.destination,
+            "https://github.com/DataTalksClub/data-engineering-zoomcamp/tree/main/01-docker-terraform",
+        )
+        # The nested link inside the details forces this item to render as a
+        # static (non-anchor) card, but the inline link itself stays intact.
+        self.assertIsNone(final_project.destination)
+        self.assertNotIn("<a", final_project.title_html)
+        self.assertIn(
+            'href="/docs/courses/data-engineering-zoomcamp/project/"', final_project.details_html
+        )
+
     def test_route_alias_unknown_search_and_query_behavior_remain_bounded(self) -> None:
         alias = self.client.get("/docs", query_params={"source": "test"})
         self.assertEqual(alias.status_code, 301)

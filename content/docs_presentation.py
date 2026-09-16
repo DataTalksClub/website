@@ -48,6 +48,7 @@ _TAGS = re.compile(r"<[^>]+>")
 _MODULE_NUMBER = re.compile(r"\bModule\s+(?P<number>[0-9]+)\b", re.IGNORECASE)
 _SENTENCE = re.compile(r"(?<=[.!?])\s+")
 _TITLE_WORD = re.compile(r"[a-z0-9]+")
+_HAS_ANCHOR = re.compile(r"<a\b", re.IGNORECASE)
 
 
 @dataclass(frozen=True, slots=True)
@@ -161,6 +162,16 @@ def docs_curriculum(rendered_body: str) -> DocsCurriculum | None:
         if link is not None:
             destination = html.unescape(link.group("href"))
             title_html = link.group("label")
+        details_html = match.group("details")
+        if destination is not None and _HAS_ANCHOR.search(details_html):
+            # The template wraps a card with a ``destination`` in a single outer
+            # ``<a>``. A details list that itself links out (for example the
+            # Final Project module pointing readers to its own project page)
+            # would then nest an ``<a>`` inside that ``<a>``, which is invalid
+            # HTML: a browser reparents the inner link and visually splits one
+            # module into several boxes. Render this item as a static card
+            # instead so the inline links inside its details keep working.
+            destination = None
         title_text = html.unescape(_TAGS.sub("", title_html)).strip()
         number = _MODULE_NUMBER.search(title_text)
         if number is not None:
@@ -176,7 +187,7 @@ def docs_curriculum(rendered_body: str) -> DocsCurriculum | None:
                 marker=marker,
                 title_text=title_text,
                 title_html=title_html,
-                details_html=match.group("details"),
+                details_html=details_html,
                 destination=destination,
             )
         )
