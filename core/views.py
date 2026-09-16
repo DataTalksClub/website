@@ -141,12 +141,18 @@ def sponsors(request: HttpRequest) -> HttpResponse:
 
 @require_safe
 def tour(request: HttpRequest) -> HttpResponse:
-    """The community tour: one page describing what DataTalks.Club offers.
+    """A newcomer's walkthrough of DataTalks.Club, distinct from the homepage.
 
-    Every section is database rows the site already publishes elsewhere --
-    the course catalogue, upcoming events, member stories, sponsors -- so the
-    page can only promise what the database holds. An empty database renders
-    the page with its sections dropped, never with invented copy.
+    The homepage is the live front door -- the newest cohort, this week's
+    events, the latest article and podcast. The tour answers a different
+    question: "what actually is this, and is it for me?" So instead of
+    re-listing the homepage's own sections, it states the community's real
+    scope in one place (the catalogue's own counts), keeps only the two
+    sections a newcomer actually needs to see for themselves (courses,
+    events), and points at the parts of the site the homepage does not
+    surface at all (the podcast, the wiki). Every figure is a catalogue
+    count, never a written-in number, so an empty database renders the page
+    with its claims dropped rather than a promise it cannot back.
     """
 
     events = event_groups()
@@ -164,7 +170,7 @@ def tour(request: HttpRequest) -> HttpResponse:
             "catalog_courses": catalog,
             "course_family_count": len(catalog),
             "upcoming_events": upcoming,
-            "member_stories": homepage_testimonials(),
+            "counts": catalogue.collection_counts(),
             "sponsors": public_sponsors(),
         },
     )

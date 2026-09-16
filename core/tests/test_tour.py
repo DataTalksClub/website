@@ -1,10 +1,15 @@
 """The community tour page and the site-wide tour stripe.
 
-``/tour`` composes sections the site already publishes elsewhere -- the course
-catalogue, upcoming events, member stories, sponsors -- so it can only promise
-what the database holds. The black stripe above the footer advertises the tour
-on every shared-shell page except the homepage (which ends with its own
-closing band) and the tour itself.
+``/tour`` is a newcomer's walkthrough, deliberately distinct from the
+homepage: it states the community's real scope from the catalogue's own
+counts, shows only the two sections a newcomer needs to see for themselves
+(courses, events), tells the community's own origin story once, and points
+at parts of the site the homepage never surfaces (the podcast, the wiki).
+Every claim is a catalogue count or a real, checked quote -- never invented
+copy -- so an empty database renders the page with those claims dropped. The
+black stripe above the footer advertises the tour on every shared-shell page
+except the homepage (which ends with its own closing band) and the tour
+itself.
 """
 
 from __future__ import annotations
@@ -15,7 +20,6 @@ from unittest import mock
 from django.test import TestCase
 from django.urls import reverse
 
-from courses.models.testimonial import Testimonial, TestimonialPlacement
 from test_support.course_catalog import build_reviewed_catalog
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -60,20 +64,41 @@ class TourPageTests(TestCase):
         self.assertIn("AI Dev Tools Zoomcamp", body)
         self.assertIn('rel="canonical" href="https://datatalks.club/tour"', body)
 
-    def test_tour_prints_member_stories(self) -> None:
-        Testimonial.objects.create(
-            placement=TestimonialPlacement.HOMEPAGE,
-            quote="The tour brought me here.",
-            name="Tour Reader",
-            attribution="Role · City",
-            position=0,
-            published=True,
-        )
-
+    def test_tour_states_its_real_scope_from_the_catalogue_counts(self) -> None:
         body = self._get().content.decode()
 
-        self.assertIn("The tour brought me here.", body)
-        self.assertIn("Tour Reader", body)
+        self.assertIn("What it actually is", body)
+        self.assertIn("free course", body)
+
+    def test_tour_prints_the_founder_story_with_a_real_attributed_link(self) -> None:
+        body = self._get().content.decode()
+
+        self.assertIn("How it started", body)
+        self.assertIn("DataTalks.Club four years ago by accident", body)
+        self.assertIn(
+            'href="https://www.youtube.com/watch?v=GHbeXIKnkLQ&amp;t=149s"', body
+        )
+        self.assertIn("DataTalks.Club Anniversary Podcast", body)
+
+    def test_tour_points_at_the_podcast_and_wiki_when_the_catalogue_holds_them(
+        self,
+    ) -> None:
+        counts = {
+            "articles": 0,
+            "podcasts": 3,
+            "books": 0,
+            "people": 0,
+            "wiki": 5,
+            "courses": 0,
+            "media": 0,
+            "transcripts": 0,
+        }
+        with mock.patch("core.views.catalogue.collection_counts", return_value=counts):
+            body = self._get().content.decode()
+
+        self.assertIn("More than courses and events", body)
+        self.assertIn('href="/podcast"', body)
+        self.assertIn('href="/wiki"', body)
 
     def test_tour_prints_upcoming_events_and_sponsors(self) -> None:
         sponsors = (
@@ -91,7 +116,8 @@ class TourPageTests(TestCase):
             body = self._get().content.decode()
 
         self.assertIn("Synthetic Office Hours", body)
-        self.assertIn("Northwind Analytics", body)
+        self.assertIn("Kept free by sponsors", body)
+        self.assertIn('href="/sponsors"', body)
 
     def test_tour_hides_its_own_stripe(self) -> None:
         body = self._get().content.decode()
@@ -110,10 +136,10 @@ class TourPageTests(TestCase):
 class TourEmptyDatabaseTests(TestCase):
     """Sections with no rows drop instead of inventing copy.
 
-    Every Django test database carries reviewed reference events and
-    testimonials, but no courses and no sponsors, so the courses and sponsors
-    sections are the ones absent here. Deleting the testimonials proves the
-    stories section drops the same way.
+    Every Django test database carries reviewed reference events, but no
+    courses, no sponsors, and no podcast or wiki catalogue rows, so those
+    are the sections absent here. The scope statement and the origin story
+    are not per-record content, so both still render.
     """
 
     def test_tour_without_courses_or_sponsors_drops_those_sections(self) -> None:
@@ -122,16 +148,16 @@ class TourEmptyDatabaseTests(TestCase):
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
         self.assertIn("Build in public, together", body)
+        self.assertIn("What it actually is", body)
+        self.assertIn("How it started", body)
         self.assertNotIn("tour-courses-heading", body)
-        self.assertNotIn("tour-sponsors-heading", body)
+        self.assertNotIn("Kept free by sponsors", body)
         self.assertNotIn("AI Dev Tools Zoomcamp", body)
 
-    def test_tour_without_stories_drops_the_stories_section(self) -> None:
-        Testimonial.objects.all().delete()
-
+    def test_tour_without_podcast_or_wiki_rows_drops_the_more_section(self) -> None:
         body = self.client.get(reverse("tour")).content.decode()
 
-        self.assertNotIn("tour-stories-heading", body)
+        self.assertNotIn("tour-more-heading", body)
 
 
 class TourStripeTests(TestCase):

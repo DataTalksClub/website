@@ -4,7 +4,7 @@
 
 {% block metadata %}
   {{ block.super }}
-  <meta name="description" content="Take a tour of DataTalks.Club: free courses, weekly events, member stories, and the community around them.">
+  <meta name="description" content="A newcomer's walkthrough of DataTalks.Club: what it actually is, how it started, and what free courses, events, the podcast, and the wiki look like.">
 {% endblock %}
 
 {% block page_styles %}
@@ -16,6 +16,8 @@
   .tour-section-heading { max-width: 46rem; margin-bottom: 1.5rem; }
   .tour-section-heading h2 { font-size: clamp(1.55rem, 4vw, 2.35rem); margin: 0 0 0.65rem; }
   .tour-section-heading p { color: var(--muted); margin: 0; }
+  .tour-lede { max-width: 46rem; font-size: 1.05rem; }
+  .tour-lede + .tour-lede { margin-top: 0.85rem; }
   .tour-grid { display: grid; gap: 1.25rem; }
   @media (min-width: 44rem) {
     .tour-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -28,25 +30,37 @@
   .tour-card .tour-counts { color: var(--muted); margin: 0; }
   .tour-event time { color: var(--indigo); font-family: var(--font-mono); font-size: 0.85rem; }
   .tour-event h3 { font-size: 1.1rem; margin: 0.25rem 0 0; }
-  .tour-quote { font-size: 1.05rem; margin: 0; }
-  .tour-person { color: var(--muted); margin: 0; }
-  .tour-sponsors { display: flex; flex-wrap: wrap; gap: 0.55rem; list-style: none; margin: 0; padding: 0; }
-  .tour-sponsors li {
-    background: color-mix(in srgb, var(--paper) 75%, transparent);
-    border: 1.5px solid var(--line);
-    border-radius: 999px;
+  .tour-story { max-width: 46rem; }
+  .tour-quote {
+    font-size: clamp(1.15rem, 2.6vw, 1.5rem);
     font-weight: 700;
-    padding: 0.5rem 0.85rem;
+    line-height: 1.4;
+    margin: 0;
   }
+  .tour-quote p { margin: 0; }
+  .tour-quote p + p { margin-top: 0.85rem; }
+  .tour-person { color: var(--muted); margin: 0.85rem 0 0; }
+  .tour-more-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; margin-top: 1rem; }
+  .tour-sponsor-note { color: var(--muted); margin-top: 1rem; }
   .tour-actions { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem; }
 {% endblock %}
 
 {% block page_header %}
   <h1>Take the tour</h1>
-  <p>DataTalks.Club is a free learning community: practical courses with homework and peer review, weekly events, and members building in public together. Here is everything in one page.</p>
+  <p>Not a highlight reel — a straight walkthrough of what DataTalks.Club actually is, for anyone deciding whether it's worth joining.</p>
 {% endblock %}
 
 {% block page_content %}
+  <section class="tour-section" aria-labelledby="tour-what-heading">
+    <div class="tour-section-heading">
+      <h2 id="tour-what-heading">What it actually is</h2>
+    </div>
+    <p class="tour-lede">
+      DataTalks.Club is an independent community for people who work with data — no employer runs it and nothing behind it is paywalled. It comes down to
+      {% if course_family_count %}{{ course_family_count }} free course{{ course_family_count|pluralize }} with homework and projects{% endif %}{% if upcoming_events %}, weekly live events with practitioners{% endif %}{% if counts.podcasts %}, {{ counts.podcasts }} podcast conversation{{ counts.podcasts|pluralize }}{% endif %}{% if counts.wiki %}, a member-written wiki of {{ counts.wiki }} topic{{ counts.wiki|pluralize }}{% endif %}, and a Slack where all of it is discussed.
+    </p>
+  </section>
+
   {% if catalog_courses %}
     <section class="tour-section" aria-labelledby="tour-courses-heading">
       <div class="tour-section-heading">
@@ -95,6 +109,40 @@
     </section>
   {% endif %}
 
+  <section class="tour-section" aria-labelledby="tour-story-heading">
+    <div class="tour-section-heading">
+      <h2 id="tour-story-heading">How it started</h2>
+      <p>In his own words, from the show's own anniversary episode.</p>
+    </div>
+    <figure class="tour-story">
+      <blockquote class="tour-quote">
+        <p>“I started DataTalks.Club four years ago by accident. I remember it was September 19, 2020, when everyone thought COVID was over, but it wasn't. That summer, we all relaxed, thinking we could travel again. I remember going to the seaside in Germany, but by September, restrictions were back, and we were stuck at home. That's when I thought, ‘Maybe I should start something.’ And that's how DataTalks.Club began.”</p>
+      </blockquote>
+      <figcaption class="tour-person">
+        <a href="https://www.youtube.com/watch?v=GHbeXIKnkLQ&amp;t=149s" target="_blank" rel="noopener noreferrer">
+          Alexey Grigorev, founder — DataTalks.Club Anniversary Podcast<span class="sr-only"> (opens in a new tab)</span>
+        </a>
+      </figcaption>
+    </figure>
+  </section>
+
+  {% if counts.podcasts or counts.wiki %}
+    <section class="tour-section" aria-labelledby="tour-more-heading">
+      <div class="tour-section-heading">
+        <h2 id="tour-more-heading">More than courses and events</h2>
+        <p>Two parts of the site worth a look on their own, whether or not you take a course.</p>
+      </div>
+      <div class="tour-more-links">
+        {% if counts.podcasts %}
+          <a class="band-link" href="{% url 'podcast' %}">listen to the podcast →</a>
+        {% endif %}
+        {% if counts.wiki %}
+          <a class="band-link" href="{% url 'wiki-home' %}">browse the wiki →</a>
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
+
   <section class="tour-section" aria-labelledby="tour-community-heading">
     <div class="tour-section-heading">
       <h2 id="tour-community-heading">Build in public, together</h2>
@@ -104,50 +152,10 @@
       <a class="cta cta-primary interactive-lift" href="{% url 'account_signup' %}">Create your free account</a>
       <a class="cta cta-secondary interactive-lift" href="{% url 'slack' %}">Join the Slack</a>
     </div>
-  </section>
-
-  {% if member_stories %}
-    <section class="tour-section" aria-labelledby="tour-stories-heading">
-      <div class="tour-section-heading">
-        <h2 id="tour-stories-heading">What members say</h2>
-      </div>
-      <div class="tour-grid">
-        {% for story in member_stories %}
-          <figure class="card">
-            <blockquote class="tour-quote">“{{ story.quote }}”</blockquote>
-            <figcaption class="tour-person">
-              {% if story.source_url %}
-                <a href="{{ story.source_url }}" target="_blank" rel="noopener noreferrer">
-                  {{ story.name }}<span class="sr-only"> (opens in a new tab)</span>
-                </a>
-              {% else %}
-                {{ story.name }}
-              {% endif %}
-            </figcaption>
-          </figure>
-        {% endfor %}
-      </div>
-    </section>
-  {% endif %}
-
-  {% if sponsors %}
-    <section class="tour-section" aria-labelledby="tour-sponsors-heading">
-      <div class="tour-section-heading">
-        <h2 id="tour-sponsors-heading">Kept free by sponsors</h2>
-        <p>Organizations that help keep practical learning free and open.</p>
-      </div>
-      <ul class="tour-sponsors">
-        {% for sponsor in sponsors %}
-          <li>
-            <a href="{{ sponsor.url }}" target="_blank" rel="sponsored noopener noreferrer">
-              {{ sponsor.name }}<span class="sr-only"> (opens in a new tab)</span>
-            </a>
-          </li>
-        {% endfor %}
-      </ul>
-      <p class="band-more">
-        <a class="band-link" href="{% url 'sponsors' %}">meet our sponsors →</a>
+    {% if sponsors %}
+      <p class="tour-sponsor-note">
+        Kept free by sponsors — <a href="{% url 'sponsors' %}">see who backs it →</a>
       </p>
-    </section>
-  {% endif %}
+    {% endif %}
+  </section>
 {% endblock %}
