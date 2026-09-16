@@ -441,9 +441,10 @@
     Everything else the community runs, one whole-card link each, on the same
     card grid the catalogue and the family editions draw.  Catalogue-backed
     cards are gated on their real counts and state them in the mono foot; the
-    YouTube channel is a standing channel and always appears.  Slack is not a
-    card here: it is the hero's second action, the closing link and the
-    subsection below, and a seventh card would say it a fourth time.
+    YouTube channel and Slack are standing channels, not catalogue rows, so
+    they always appear.  The card count still varies by environment because
+    the catalogue-backed cards are each gated on their own real count -- that
+    is inherent to data-gated cards, not something to force further.
   {% endcomment %}
   <section class="tour-chapter shell-breakout" aria-labelledby="tour-more-heading">
     <div class="band-head">
@@ -460,6 +461,13 @@
         <p>Where events, office hours and course workshops stream live and stay up afterwards.</p>
         <span class="mono-note">live streams · recordings</span>
       </article>
+      <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
+        <h3>
+          <a class="course-link" href="{% url 'slack' %}">Slack</a>
+        </h3>
+        <p>A channel per course, questions answered by other members, and every announcement.</p>
+        <span class="mono-note">channel per course</span>
+      </article>
       {% if not upcoming_events %}
         <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
           <h3>
@@ -475,9 +483,7 @@
             <a class="course-link" href="{% url 'podcast' %}">Podcast</a>
           </h3>
           <p>Conversations with practitioners about the work, the tools and the career.</p>
-          <span class="mono-note">
-            {{ counts.podcasts }} conversation{{ counts.podcasts|pluralize }}{% if counts.transcripts %} · {{ counts.transcripts }} with a full transcript{% endif %}
-          </span>
+          <span class="mono-note">{{ counts.podcasts }} conversation{{ counts.podcasts|pluralize }}</span>
         </article>
       {% endif %}
       {% if counts.articles %}
@@ -503,7 +509,7 @@
           <h3>
             <a class="course-link" href="{% url 'wiki-home' %}">Wiki</a>
           </h3>
-          <p>Member-written topics, A–Z.</p>
+          <p>The community's own knowledge base: member-written topics, A–Z.</p>
           <span class="mono-note">{{ counts.wiki }} topic{{ counts.wiki|pluralize }}</span>
         </article>
       {% endif %}

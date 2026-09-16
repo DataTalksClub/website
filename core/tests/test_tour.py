@@ -280,15 +280,19 @@ class TourPageTests(TestCase):
         self.assertIn('href="/blog/datatalks-club-community-demographics.html"', body)
 
     def test_tour_prints_real_slack_norms_as_numbered_steps(self) -> None:
-        """Slack is a section, not a card.
+        """Slack is both a card and its own section.
 
-        It is already the hero's second action and the closing line, so a
-        seventh card in the channel grid would name it a fourth time.  The
-        norms take the homepage climb's numbered discs.
+        It is also the hero's second action and the closing line, but the
+        owner asked for a sixth card in the "More than courses" grid on top
+        of that, so the card and the section below both name it -- Slack
+        is not a countable catalogue item, so its card is always present
+        like the YouTube channel's.  The norms take the homepage climb's
+        numbered discs.
         """
 
         body = self._get().content.decode()
 
+        self.assertIn('<a class="course-link" href="/slack">Slack</a>', body)
         self.assertIn("What Slack is actually like", body)
         self.assertIn('class="tour-norms"', body)
         self.assertEqual(body.count('class="tour-norm"'), 3)
@@ -298,16 +302,15 @@ class TourPageTests(TestCase):
         self.assertIn("Don't ask to ask", body)
         self.assertIn('href="https://dontasktoask.com/"', body)
         self.assertIn('<a class="band-link" href="/slack">join the Slack →</a>', body)
-        self.assertNotIn('<a class="course-link" href="/slack">', body)
 
     def test_tour_lists_every_other_channel_the_catalogue_holds(self) -> None:
         """One card per channel, each catalogue-backed card gated on its count.
 
-        The YouTube channel is a standing channel and always appears; the
-        podcast, blog, books and wiki cards state their real counts in the
-        mono foot; the docs card appears only when the documentation home is
-        published.  They were six 80px rows of underlined title before, which
-        is 712px of page for six links.
+        The YouTube channel and Slack are standing channels and always
+        appear; the podcast, blog, books and wiki cards state their real
+        counts in the mono foot; the docs card appears only when the
+        documentation home is published.  They were six 80px rows of
+        underlined title before, which is 712px of page for six links.
         """
 
         counts = {
@@ -327,17 +330,20 @@ class TourPageTests(TestCase):
             body = self._get().content.decode()
 
         self.assertIn("More than courses and events", body)
-        # YouTube, events (no upcoming rows here), podcast, blog, books, wiki, docs.
-        self.assertEqual(body.count('stretched-card-link tour-thing"'), 7)
+        # YouTube, Slack, events (no upcoming rows here), podcast, blog, books, wiki, docs.
+        self.assertEqual(body.count('stretched-card-link tour-thing"'), 8)
         self.assertIn('href="https://www.youtube.com/c/DataTalksClub"', body)
         self.assertIn("YouTube channel", body)
+        self.assertIn('<a class="course-link" href="/slack">Slack</a>', body)
         self.assertIn('<a class="course-link" href="/podcast">Podcast</a>', body)
-        self.assertIn("3 conversations · 1 with a full transcript", body)
+        self.assertIn("3 conversations</span>", body)
+        self.assertNotIn("with a full transcript", body)
         self.assertIn('<a class="course-link" href="/blog">Blog</a>', body)
         self.assertIn('<span class="mono-note">7 articles</span>', body)
         self.assertIn('<a class="course-link" href="/books">Book of the Week</a>', body)
         self.assertIn('<span class="mono-note">2 books</span>', body)
         self.assertIn('<a class="course-link" href="/wiki">Wiki</a>', body)
+        self.assertIn("knowledge base", body)
         self.assertIn('<span class="mono-note">5 topics</span>', body)
         self.assertIn('<a class="course-link" href="/docs/">Docs</a>', body)
 
@@ -444,6 +450,7 @@ class TourEmptyDatabaseTests(TestCase):
 
         self.assertIn("tour-more-heading", body)
         self.assertIn('href="https://www.youtube.com/c/DataTalksClub"', body)
+        self.assertIn('<a class="course-link" href="/slack">Slack</a>', body)
         for path in ("/podcast", "/blog", "/books", "/wiki", "/docs/"):
             with self.subTest(path=path):
                 self.assertNotIn(f'<a class="course-link" href="{path}">', body)
