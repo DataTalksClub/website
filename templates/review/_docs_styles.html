@@ -661,7 +661,15 @@
     text-align: left;
   }
 
+  /* The marker keeps its rail on a phone rather than stacking into a full-width
+     bar above the module it numbers -- the same reshape the illustrated cards
+     take, mark beside the words. */
   .docs-curriculum-row {
-    --row-cols: 4.2rem minmax(0, 1fr);
+    column-gap: 0.75rem;
+    grid-template-columns: 3.4rem minmax(0, 1fr);
+  }
+
+  .docs-curriculum-marker {
+    min-height: 2.25rem;
   }
 }
