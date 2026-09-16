@@ -480,6 +480,52 @@ class EnrollmentImportTests(HistoryImportFixture):
         self.assertEqual(enrollment.enrollment_date, MOMENT_UTC)
         self.assertTrue(enrollment.display_public_profile)
 
+    def test_attachment_reconciles_an_empty_certificate_url_from_cmp(self) -> None:
+        target = Enrollment.objects.create(student=self.learner, course=self.cohort)
+        source = self.source(
+            courses_enrollment=[
+                enrollment_row(1, certificate_url="https://certificate.invalid/issued")
+            ]
+        )
+
+        result = self.run_import(source)
+
+        target.refresh_from_db()
+        self.assertEqual(target.certificate_url, "https://certificate.invalid/issued")
+        self.assertEqual(self.report(result, "courses_enrollment")["attached"], 1)
+
+    def test_attachment_replaces_a_stale_certificate_url_and_replay_is_a_no_op(self) -> None:
+        target = Enrollment.objects.create(
+            student=self.learner,
+            course=self.cohort,
+            certificate_url="https://certificate.invalid/stale",
+        )
+        source = self.source(
+            courses_enrollment=[
+                enrollment_row(1, certificate_url="https://certificate.invalid/issued")
+            ]
+        )
+
+        self.run_import(source)
+        self.run_import(source)
+
+        target.refresh_from_db()
+        self.assertEqual(target.certificate_url, "https://certificate.invalid/issued")
+        self.assertEqual(Enrollment.objects.count(), 1)
+
+    def test_attachment_never_erases_a_certificate_with_a_blank_source(self) -> None:
+        target = Enrollment.objects.create(
+            student=self.learner,
+            course=self.cohort,
+            certificate_url="https://certificate.invalid/keep",
+        )
+        source = self.source(courses_enrollment=[enrollment_row(1, certificate_url="")])
+
+        self.run_import(source)
+
+        target.refresh_from_db()
+        self.assertEqual(target.certificate_url, "https://certificate.invalid/keep")
+
     def test_an_enrollment_for_an_unknown_learner_or_cohort_is_bucketed(self) -> None:
         source = self.source(
             courses_course=[(1, "de-zoomcamp-2025"), (2, "ai-hero-2026")],

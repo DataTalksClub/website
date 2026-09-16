@@ -1114,6 +1114,38 @@ def _existing_rows(plan: TablePlan, lookups: list[dict[str, Any]]) -> dict[tuple
     return found
 
 
+def _reconcile_attached_enrollment_certificates(
+    plan: TablePlan,
+    attached: list[tuple[int, int, Any]],
+) -> None:
+    """Reconcile the one reviewed source-owned field on enrollment attachment.
+
+    CMP has no certificate model: a non-empty enrollment ``certificate_url``
+    is its authoritative issuance record. Natural-key attachment therefore
+    updates an empty or stale target URL. A blank source never erases a target
+    URL, and an equal value produces no write, keeping replay idempotent.
+    """
+
+    if plan.model is not Enrollment:
+        return
+    issued = {
+        target_id: instance.certificate_url
+        for _source_id, target_id, instance in attached
+        if instance.certificate_url
+    }
+    if not issued:
+        return
+    targets = Enrollment.objects.in_bulk(issued)
+    changed = []
+    for target_id, source_url in issued.items():
+        target = targets.get(target_id)
+        if target is not None and target.certificate_url != source_url:
+            target.certificate_url = source_url
+            changed.append(target)
+    if changed:
+        Enrollment.objects.bulk_update(changed, ("certificate_url",))
+
+
 def _restore_stamps(plan: TablePlan, created: Iterable[Any], stamps: list[dict[str, Any]]) -> None:
     """Put the export's own timestamps back on rows Django just clock-stamped.
 
@@ -1154,7 +1186,7 @@ def _import_table(
         stamps: list[dict[str, Any]] = []
         # Source rows that resolved onto a target row this import is not
         # creating: one already in the database, or one earlier in this batch.
-        attached_to_row: list[tuple[int, int]] = []
+        attached_to_row: list[tuple[int, int, Any]] = []
         attached_to_pending: list[tuple[int, int]] = []
         pending_by_key: dict[tuple, int] = {}
         skipped = 0
@@ -1181,16 +1213,20 @@ def _import_table(
                     key = tuple(lookup.values())
                     already = existing.get(key)
                     if already is not None:
-                        attached_to_row.append((source_id, already))
+                        attached_to_row.append((source_id, already, instance))
                         continue
                     if key in pending_by_key:
-                        attached_to_pending.append((source_id, pending_by_key[key]))
+                        pending_index = pending_by_key[key]
+                        if plan.model is Enrollment and instance.certificate_url:
+                            pending[pending_index][1].certificate_url = instance.certificate_url
+                        attached_to_pending.append((source_id, pending_index))
                         continue
                     pending_by_key[key] = len(pending)
                 stamps.append({name: getattr(instance, name) for name in plan.stamps})
                 pending.append((source_id, instance))
             created = plan.model.objects.bulk_create([instance for _, instance in pending])
             _restore_stamps(plan, created, stamps)
+            _reconcile_attached_enrollment_certificates(plan, attached_to_row)
             progress.last_source_id = int(rows[-1]["id"])
             progress.rows_created += len(created)
             progress.rows_attached += len(attached_to_row) + len(attached_to_pending)
@@ -1203,7 +1239,7 @@ def _import_table(
                 claims.record(plan.table, source_id, int(instance.pk))
             for source_id, index in attached_to_pending:
                 claims.record(plan.table, source_id, int(created[index].pk))
-            for source_id, target_id in attached_to_row:
+            for source_id, target_id, _instance in attached_to_row:
                 claims.record(plan.table, source_id, target_id)
             _save_progress(progress)
     return _report(progress, source_total)
