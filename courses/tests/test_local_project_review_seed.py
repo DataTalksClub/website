@@ -150,7 +150,11 @@ class LocalProjectReviewSeedTests(TestCase):
             )
         )
         self.assertEqual(list_response.status_code, 200)
-        self.assertContains(list_response, "6 total")
+        # The cohort list renders the unified site gallery: its totals line,
+        # the cohort-scoped heading, the learners' entries and the review
+        # action on each.
+        self.assertContains(list_response, "<strong>6</strong> submission")
+        self.assertContains(list_response, "learner projects")
         self.assertContains(list_response, "Local Project 1 learner 01")
         self.assertContains(list_response, "Review")
 
