@@ -177,10 +177,10 @@ class TourPageTests(TestCase):
 
         body = self._get().content.decode()
 
-        self.assertEqual(
-            body.count('class="card catalog-card interactive-card interactive-lift stretched-card-link"'),
-            3,
+        card_class = (
+            'class="card catalog-card interactive-card interactive-lift stretched-card-link"'
         )
+        self.assertEqual(body.count(card_class), 3)
         self.assertEqual(body.count('class="catalog-card-media"'), 3)
         self.assertEqual(body.count('class="catalog-card-body"'), 3)
         self.assertIn('class="card-grid card-grid-3 tour-cards"', body)
@@ -310,7 +310,8 @@ class TourPageTests(TestCase):
         self.assertIn('href="https://dontasktoask.com/"', body)
         # The "join the Slack" action sits under the norms, not beside the
         # heading.
-        self.assertIn('<a class="band-link tour-content-link" href="/slack">join the Slack →</a>', body)
+        slack_link = '<a class="band-link tour-content-link" href="/slack">join the Slack →</a>'
+        self.assertIn(slack_link, body)
         self.assertLess(
             body.index('class="tour-norms"'),
             body.index("join the Slack →"),
@@ -381,7 +382,8 @@ class TourPageTests(TestCase):
         self.assertIn("<span>20:00 CEST</span>", with_teaser)
         # The "see all events" action sits under the row list, not beside
         # the heading.
-        self.assertIn('<a class="band-link tour-content-link" href="/events">see all events →</a>', with_teaser)
+        events_link = '<a class="band-link tour-content-link" href="/events">see all events →</a>'
+        self.assertIn(events_link, with_teaser)
         self.assertLess(
             with_teaser.index('class="row-list"'),
             with_teaser.index("see all events →"),
