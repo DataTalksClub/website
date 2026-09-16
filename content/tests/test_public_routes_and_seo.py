@@ -322,7 +322,12 @@ class PublicRouteAndSeoTests(TestCase):
         response = self.client.get(page["public_path"])
 
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, f'href="{page["edit_url"]}"')
+        # The one repository link a documentation page does offer: the way to
+        # correct the page you are reading.  It is a reader's action, not the
+        # source-provenance chrome the rest of this test bans -- no revision, no
+        # "checked source", no repository search.
+        self.assertContains(response, f'href="{page["edit_url"]}"')
+        self.assertContains(response, "Edit this page on GitHub")
         self.assertNotContains(response, "Search documentation on GitHub")
         self.assertNotContains(response, "Checked source")
         self.assertNotContains(response, "View source on GitHub")

@@ -12,7 +12,6 @@ from django.utils.html import escape as html_escape
 
 from content.docs_presentation import (
     docs_body_without_primary_heading,
-    docs_context_items,
     docs_curriculum,
     docs_home_areas,
     docs_home_course_groups,
@@ -74,9 +73,6 @@ class DocsProjectionTests(TestCase):
         self.assertContains(detail, 'id="star-the-github-repository"')
         self.assertContains(detail, 'href="/docs/courses/zoomcamp-logistics/joining/"')
         self.assertNotContains(detail, "3f23e006ffdaa498bbc69697408853b6f5eb37dc")
-        projected_detail = docs_page(detail_path)
-        self.assertIsNotNone(projected_detail)
-        self.assertNotContains(detail, (projected_detail or {})["edit_url"])
         self.assertNotContains(detail, "Search documentation on GitHub")
 
     def test_docs_titles_disambiguate_same_named_pages_across_course_families(self) -> None:
@@ -290,11 +286,10 @@ class DocsProjectionTests(TestCase):
         response = self.client.get(path)
         html = response.content.decode("utf-8").split("</head>", 1)[1]
         breadcrumb = html.split('aria-label="Breadcrumb"', 1)[1].split("</nav>", 1)[0]
-        tree = html.split('aria-label="AI Dev Tools Zoomcamp guide"', 1)[1].split("</nav>", 1)[0]
+        rail = html.split('id="docs-rail"', 1)[1].split("</nav>", 1)[0]
         self.assertEqual(breadcrumb.count('aria-current="page"'), 1)
-        self.assertEqual(tree.count('aria-current="page"'), 2)
-        self.assertIn('class="docs-local-summary" aria-current="page"', tree)
-        self.assertIn(f'href="{path}"', tree)
+        self.assertEqual(rail.count('aria-current="page"'), 1)
+        self.assertIn(f'href="{path}"', rail)
 
     def test_public_docs_do_not_render_repository_utility_actions(self) -> None:
         for path in (DOCS_ROOT_PATH, "/docs/general/guidelines/ai-usage/"):
@@ -303,27 +298,7 @@ class DocsProjectionTests(TestCase):
                 self.fail(f"projected Docs page is missing: {path}")
             response = self.client.get(path)
             self.assertNotContains(response, "Search documentation on GitHub")
-            self.assertNotContains(response, f'href="{page["edit_url"]}"')
             self.assertNotContains(response, DOCS_SOURCE_REVISION)
-
-    def test_representative_detail_navigation_is_local_and_bounded(self) -> None:
-        tree = docs_navigation_tree()
-        scenarios = {
-            "/docs/courses/ml-zoomcamp/curriculum/": ("Machine Learning Zoomcamp", 8),
-            "/docs/general/guidelines/ai-usage/": ("Community Guidelines", 6),
-        }
-        for path, (title, count) in scenarios.items():
-            with self.subTest(path=path):
-                items = docs_context_items(tree, path)
-                self.assertEqual(items[0].title, title)
-                self.assertEqual(len(items), count)
-                response = self.client.get(path)
-                body = response.content.decode("utf-8").split("</head>", 1)[1]
-                self.assertEqual(body.count('class="docs-tree-link'), count)
-                local = body.split(f'aria-label="{title} guide"', 1)[1].split("</nav>", 1)[0]
-                self.assertEqual(local.count('aria-current="page"'), 2)
-                self.assertIn('class="docs-local-summary" aria-current="page"', local)
-                self.assertNotContains(response, 'aria-label="Documentation sections"')
 
     def test_curriculum_presentation_preserves_the_source_learning_flow(self) -> None:
         page = docs_page("/docs/courses/ml-zoomcamp/curriculum/")

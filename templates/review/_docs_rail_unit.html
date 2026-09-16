@@ -1,0 +1,41 @@
+{% comment %}
+  One row of the documentation guide rail, and -- only under the group the
+  reader is actually inside -- that group's own pages.
+
+  The whole row is the link, ordinal included, so a guide of seven pages is
+  seven focus stops rather than fourteen.  The <ol> is deliberate: list
+  semantics announce "4 of 7", which is what the visible ordinals say to
+  everybody else.
+{% endcomment %}
+<li
+  class="rail-unit
+  {% if unit.is_current %}
+    is-current
+  {% endif %}
+  "
+>
+  <a
+    class="rail-unit-link"
+    href="{{ unit.item.public_path }}"
+    {% if unit.is_current %}
+      aria-current="page"
+    {% endif %}
+  >
+    <span
+      class="read-indicator
+      {% if unit.is_current %}
+        is-current
+      {% endif %}
+      "
+      aria-hidden="true"
+    >{{ position }}</span>
+    <span class="rail-unit-title">{{ unit.item.title }}</span>
+  </a>
+  {% if unit.children %}
+    <ol class="rail-units rail-units-nested">
+      {% for child in unit.children %}
+        {% include "review/_docs_rail_unit.html" with unit=child position=forloop.counter only %}
+      {% endfor %}
+    </ol>
+  {% endif %}
+</li>

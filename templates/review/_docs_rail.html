@@ -1,0 +1,29 @@
+{% comment %}
+  "In this guide", drawn as the course lesson pages draw their module rail --
+  the same `.module-sidebar.module-rail` component, rows, ordinals and current
+  state, sticky beside the reading column and stacked under it on a phone.
+
+  It replaces a closed `<details>` card whose only visible content was the page
+  title again: at 1440px a reader saw a 56rem column with empty margins either
+  side, and the six sibling pages were behind a "+".  The rail is wayfinding,
+  not content, so it draws no card: the framed things on a documentation page
+  should be what the documentation says.
+{% endcomment %}
+<nav id="docs-rail" class="module-sidebar module-rail docs-rail" aria-labelledby="docs-rail-heading">
+  <div class="rail-heading-row">
+    <h2 class="rail-heading" id="docs-rail-heading">In this guide</h2>
+  </div>
+  <a
+    class="rail-guide-title"
+    href="{{ docs_rail.root.public_path }}"
+    {% if docs_rail.root_is_current %}
+      aria-current="page"
+    {% endif %}
+  >{{ docs_rail.root.title }}</a>
+  <p class="rail-progress">{{ docs_rail.page_count }} page{{ docs_rail.page_count|pluralize }}</p>
+  <ol class="rail-units">
+    {% for unit in docs_rail.units %}
+      {% include "review/_docs_rail_unit.html" with unit=unit position=forloop.counter only %}
+    {% endfor %}
+  </ol>
+</nav>

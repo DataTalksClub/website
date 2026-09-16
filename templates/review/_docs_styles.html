@@ -243,8 +243,7 @@
   text-decoration: none;
 }
 
-.docs-row:hover .docs-row-title,
-.docs-child-link:hover .docs-row-title {
+.docs-row:hover .docs-row-title {
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
@@ -253,33 +252,6 @@
   display: grid;
   gap: 0.2rem;
   min-width: 0;
-}
-
-.docs-arrow {
-  color: var(--indigo);
-  font-family: var(--font-sans);
-  font-size: 1rem;
-  font-weight: 800;
-}
-
-.docs-child-list {
-  border-bottom: 2px dashed var(--line-soft);
-  border-top: 2px dashed var(--line-soft);
-}
-
-.docs-child-link {
-  align-items: center;
-  color: var(--ink);
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: minmax(0, 1fr) auto;
-  min-height: 3.75rem;
-  padding: 0.75rem 0.25rem;
-  text-decoration: none;
-}
-
-.docs-child-link + .docs-child-link {
-  border-top: 2px dashed var(--line-soft);
 }
 
 .docs-row-title {
@@ -316,121 +288,97 @@
   margin: 0;
 }
 
-.docs-detail-subtitle {
-  color: var(--muted);
-  font-size: 0.92rem;
-  font-weight: 700;
-}
-
-.docs-detail-layout {
-  min-width: 0;
-}
-
-.docs-local-nav {
-  margin-bottom: 1.5rem;
-  min-width: 0;
-}
-
-.docs-local-disclosure {
-  background: var(--card);
-  border: 2px solid var(--line);
-  border-radius: 0.9rem;
-  box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
-  min-width: 0;
-}
-
-.docs-local-summary {
-  align-items: center;
-  cursor: pointer;
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  min-height: 3.5rem;
-  padding: 0.6rem 0.9rem;
-}
-
-.docs-local-summary::-webkit-details-marker {
-  display: none;
-}
-
-.docs-local-current {
-  align-items: center;
-  color: var(--ink);
-  display: flex;
-  font-weight: 800;
-  gap: 0.5rem;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.docs-local-toggle::before {
-  color: var(--indigo);
-  content: "+";
-  font-family: var(--font-mono);
-  font-size: 1.15rem;
-  font-weight: 800;
-}
-
-.docs-local-disclosure[open] .docs-local-toggle::before {
-  content: "−";
-}
-
-.docs-local-list {
-  border-top: 2px dashed var(--line-soft);
-  display: grid;
-  gap: 0.5rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  list-style: none;
-  margin: 0;
-  padding: 0.75rem;
-}
-
-.docs-local-item {
-  min-width: 0;
-}
-
-.docs-tree-link {
-  align-items: center;
-  background: var(--card);
-  border: 2px solid var(--line-soft);
-  border-radius: 0.6rem;
+/* The page's standfirst.  It was drawn at 14.7px bold muted, which is a caption;
+   the system's lede is this size and this weight. */
+.docs-lede {
   color: var(--body-text);
+  font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+  line-height: 1.6;
+  max-width: var(--measure);
+}
+
+.docs-header-actions {
+  align-items: center;
   display: flex;
-  font-size: 0.92rem;
-  font-weight: 700;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.docs-search-compact {
+  flex: 0 1 26rem;
+}
+
+/* --- the guide rail ------------------------------------------------------
+   The layout, the rows and the current state are the lesson page's module rail
+   (`courses/_module_rail_styles.html`, included above): the reading column at
+   the system's own content width, the rail beside it, stacked under it at 52rem.
+   What is added here is the guide's own title above the rows and one level of
+   nesting for the group the reader is inside. */
+
+.rail-guide-title {
+  color: var(--ink);
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 800;
   line-height: 1.3;
-  min-height: 2.75rem;
-  max-width: none;
-  overflow-wrap: anywhere;
-  padding: 0.5rem 0.7rem;
+  min-height: 2rem;
+  padding: 0.15rem 0.5rem;
   text-decoration: none;
-  width: 100%;
 }
 
-.docs-tree-link:hover {
-  border-color: var(--line);
-  color: var(--ink);
+.rail-guide-title:hover {
+  color: var(--indigo);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
-.docs-tree-link-current {
-  background: var(--lavender-deep);
-  border-color: var(--line);
-  color: var(--ink);
+.rail-guide-title[aria-current="page"] {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.rail-units-nested {
+  margin: 0.15rem 0 0.35rem 2.35rem;
+}
+
+.rail-units-nested .rail-unit-link {
+  font-size: 0.85rem;
+  font-weight: 600;
+  grid-template-columns: 1.4rem minmax(0, 1fr);
+  min-height: 2rem;
+}
+
+.rail-units-nested .read-indicator {
+  font-size: 0.66rem;
+  height: 1.4rem;
+  width: 1.4rem;
+}
+
+.rail-unit.is-current > .rail-unit-link {
   font-weight: 800;
 }
 
-.docs-tree-marker {
-  border: 2px solid var(--indigo);
-  border-radius: 999px;
-  flex: 0 0 0.5rem;
-  height: 0.5rem;
-  width: 0.5rem;
+/* The reading column is the measure itself, not the wider content width the
+   lesson page gives its video: a documentation page is prose, and at
+   `--content-width` its foot -- the page links, the edit note, the pager --
+   would sit 250px to the right of the last line of text they belong to.  The
+   pair is centred by the component, so the rail takes the room the measure
+   leaves and the page needs no width of its own. */
+@media (min-width: 52.01rem) {
+  .docs-layout {
+    grid-template-columns: minmax(14rem, 17rem) minmax(0, var(--measure));
+  }
 }
 
-.docs-tree-link-current .docs-tree-marker {
-  background: var(--indigo);
-  box-shadow: inset 0 0 0 1px var(--card);
+/* A guide's own page is a list of the pages in it, so on a phone that list is
+   the first thing under the title; on a leaf the article comes first. */
+@media (max-width: 52rem) {
+  .docs-layout-guide {
+    grid-template-areas:
+      "rail"
+      "main";
+  }
 }
 
 .docs-main {
@@ -455,20 +403,27 @@
   padding: 0.8rem 0;
 }
 
+/* The count sits beside the name, not adrift between it and the marker: a fold
+   says what it holds, the way `.row-fold` does. */
 .docs-on-page summary {
   align-items: center;
   color: var(--ink);
   cursor: pointer;
   display: flex;
   font-weight: 800;
-  justify-content: space-between;
+  gap: 0.5rem;
   min-height: 2.75rem;
+}
+
+.docs-on-page summary .mono-note {
+  font-weight: 500;
 }
 
 .docs-on-page summary::after {
   content: "+";
   font-family: var(--font-mono);
   font-size: 1.15rem;
+  margin-left: auto;
 }
 
 .docs-on-page[open] summary::after {
@@ -588,52 +543,53 @@ a.docs-curriculum-card {
   margin-bottom: 0.75rem;
 }
 
+/* --- the foot of an article: the edit link, then previous / next ---------- */
+
 .docs-edit-note {
-  border-top: 2px dashed var(--line-soft);
-  color: var(--muted);
+  margin-top: 2rem;
+}
+
+.docs-edit-note .band-link {
+  align-items: center;
+  display: inline-flex;
+  font-family: var(--font-sans);
   font-size: 0.85rem;
-  margin-top: 2rem;
-  padding-top: 1rem;
+  min-height: 2.75rem;
 }
 
-.docs-context {
+.docs-pager {
+  border-top: 2px dashed var(--line-soft);
   display: grid;
-  gap: 0.75rem;
-  margin-top: 2rem;
+  gap: 1rem 1.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 1rem;
+  padding-top: 1.25rem;
 }
 
-.docs-context-link {
-  --interactive-card-bottom: 0.75rem;
-  --interactive-card-right: 0.85rem;
-  background: var(--card);
-  border: 2px solid var(--line);
-  border-radius: 0.7rem;
+.docs-pager-link {
   color: var(--ink);
+  display: grid;
+  gap: 0.15rem;
   min-height: 2.75rem;
   min-width: 0;
   overflow-wrap: anywhere;
-  padding: 0.75rem 2.75rem 0.75rem 0.9rem;
   text-decoration: none;
 }
 
-.docs-context-label,
-.docs-context-title {
-  display: block;
+.docs-pager-link strong {
+  font-size: 1rem;
 }
 
-.docs-context-title {
-  font-weight: 800;
-  margin-top: 0.15rem;
+.docs-pager-link:hover strong {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
-@media (min-width: 40rem) {
-  .docs-context {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .docs-context-parent {
-    grid-column: 1 / -1;
-  }
+/* Next keeps the right-hand column even when there is no previous, so the two
+   directions never swap sides down a guide. */
+.docs-pager-next {
+  grid-column: 2;
+  text-align: right;
 }
 
 @media (max-width: 47.99rem) {
@@ -697,26 +653,13 @@ a.docs-curriculum-card {
     columns: 1;
   }
 
-  .docs-local-summary {
-    gap: 0.5rem;
-    grid-template-columns: minmax(0, 1fr) auto;
-    padding: 0.65rem 0.75rem;
+  .docs-pager {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .docs-local-label {
-    grid-column: 1 / -1;
-  }
-
-  .docs-local-current {
+  .docs-pager-next {
     grid-column: 1;
-  }
-
-  .docs-local-toggle {
-    grid-column: 2;
-  }
-
-  .docs-local-list {
-    grid-template-columns: 1fr;
+    text-align: left;
   }
 
   .docs-curriculum-head {

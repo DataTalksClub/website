@@ -20,6 +20,11 @@
 {% endblock %}
 
 {% block page_styles %}
+  {% comment %}
+    The guide rail is the course lesson pages' module rail, so the detail page
+    takes that component's own stylesheet rather than restating its layout.
+  {% endcomment %}
+  {% include "courses/_module_rail_styles.html" %}
   {% include "review/_docs_styles.html" %}
 {% endblock %}
 
@@ -34,62 +39,66 @@
       ancestors this page hangs under, and the page itself as the last level.
       The page keeps its own crumb because the h1 beneath is the heading the
       source file wrote, which is not always the navigation title.
+
+      No eyebrow: it used to restate the last crumb but one, which is the one
+      thing the design system says an eyebrow may never do.
     {% endcomment %}
     {% breadcrumbs docs_trail nav_class="docs-breadcrumbs" %}
-    <p class="mono-label mono-label-indigo">{{ docs_context_root.title }}</p>
     <h1 id="{{ docs_heading_id }}">{{ docs_heading_title }}</h1>
     {% if docs.description %}
-      <p class="docs-detail-subtitle">{{ docs.description }}</p>
+      <p class="docs-lede">{{ docs.description }}</p>
     {% endif %}
+    {% comment %}
+      Search belongs in the cream header, the band the design system keeps for
+      the actions of the title block.  Compact and secondary here, because the
+      hub is where searching is the point of the page.
+    {% endcomment %}
+    <div class="docs-header-actions">
+      <form class="search-row docs-search-compact" role="search" action="{% url 'docs-home' %}" method="get">
+        <label class="sr-only" for="docs-query">Search the documentation</label>
+        <input
+          id="docs-query"
+          class="field-input"
+          name="q"
+          type="search"
+          placeholder="Search {{ docs_total_pages }} documentation pages"
+          required
+        >
+        {% include "core/_button.html" with tag="button" type="submit" label="Search" variant="secondary" compact=True %}
+      </form>
+    </div>
   </div>
 {% endblock %}
 
 {% block page_content %}
-  <div class="docs-detail-layout">
-    <nav class="docs-local-nav" aria-label="{{ docs_context_root.title }} guide">
-      <details class="docs-local-disclosure">
-        <summary class="docs-local-summary" aria-current="page">
-          <span class="mono-label mono-label-indigo docs-local-label">In this guide</span>
-          <span class="docs-local-current">
-            <span class="docs-tree-marker" aria-hidden="true"></span>
-            <span>{{ docs.title }}</span>
-          </span>
-          <span class="docs-local-toggle" aria-hidden="true"></span>
-        </summary>
-        <ul class="docs-local-list">
-          {% for item in docs_context_items %}
-            <li class="docs-local-item">
-              <a
-                class="docs-tree-link
-                {% if item.public_path == docs.public_path %}
-                  docs-tree-link-current
-                {% endif %}
-                "
-                href="{{ item.public_path }}"
-                {% if item.public_path == docs.public_path %}
-                  aria-current="page"
-                {% endif %}
-              >
-                <span class="docs-tree-marker" aria-hidden="true"></span>
-                <span>{{ item.title }}</span>
-              </a>
-            </li>
-          {% endfor %}
-        </ul>
-      </details>
-    </nav>
+  <div
+    class="module-layout shell-breakout docs-layout
+    {% if docs_rail.root_is_current %}
+      docs-layout-guide
+    {% endif %}
+    "
+  >
+    {% if docs_rail %}
+      {% include "review/_docs_rail.html" %}
+    {% endif %}
 
-    <div class="docs-main">
-      {% if docs_headings|length > 2 and not docs_curriculum %}
-        <details class="docs-on-page">
-          <summary>On this page</summary>
+    <div class="module-main docs-main">
+      {% if docs_sections|length > 2 %}
+        {% comment %}
+          Open, and it says how many sections it holds: 73 of the corpus's pages
+          have more than two headings, so this is the common case, not an
+          exception, and a fold that names what it holds is the site's own rule.
+        {% endcomment %}
+        <details class="docs-on-page" open>
+          <summary>
+            On this page
+            <span class="mono-note">{{ docs_sections|length }} sections</span>
+          </summary>
           <ul class="docs-on-page-list">
-            {% for heading in docs_headings %}
-              {% if heading.level > 1 %}
-                <li>
-                  <a href="#{{ heading.id }}">{{ heading.title }}</a>
-                </li>
-              {% endif %}
+            {% for heading in docs_sections %}
+              <li>
+                <a href="#{{ heading.id }}">{{ heading.title }}</a>
+              </li>
             {% endfor %}
           </ul>
         </details>
@@ -146,52 +155,55 @@
         {% endif %}
       </article>
 
-      {% if docs_children %}
-        <section class="docs-follow-on" aria-labelledby="docs-children-heading">
-          <h2 id="docs-children-heading">In this guide</h2>
-          <nav class="docs-child-list" aria-label="Pages in {{ docs.title }}">
-            {% for item in docs_children %}
-              <a class="docs-child-link" href="{{ item.public_path }}">
-                <span>
-                  <span class="docs-row-title">{{ item.title }}</span>
-                  {% if item.description %}
-                    <span class="docs-row-meta">{{ item.description }}</span>
-                  {% endif %}
-                </span>
-                <span class="docs-arrow" aria-hidden="true">→</span>
-              </a>
-            {% endfor %}
-          </nav>
+      {% if docs_siblings %}
+        {% comment %}
+          All six Zoomcamp guides publish the same page set, so the reader who
+          wants this page for another course is one link from it.  The relation
+          is the shared title; nothing here is hand-listed.
+        {% endcomment %}
+        <section class="docs-follow-on" aria-labelledby="docs-siblings-heading">
+          <h2 id="docs-siblings-heading">{{ docs.title }} for the other Zoomcamps</h2>
+          {% include "review/_docs_page_list.html" with pages=docs_siblings only %}
         </section>
       {% endif %}
 
-      <nav class="docs-context" aria-label="Document context">
-        <a
-          class="docs-context-link docs-context-parent interactive-card interactive-lift"
-          href="{{ docs_parent.public_path }}"
-        >
-          <span class="mono-label docs-context-label">Up one level</span>
-          <span class="docs-context-title">{{ docs_parent.title }}</span>
-        </a>
-        {% if docs_local_previous %}
-          <a
-            class="docs-context-link interactive-card interactive-lift"
-            href="{{ docs_local_previous.public_path }}"
-          >
-            <span class="mono-label docs-context-label">Previous</span>
-            <span class="docs-context-title">{{ docs_local_previous.title }}</span>
+      {% if docs.edit_url %}
+        {% comment %}
+          The edit link the page data has always carried and the page never drew.
+          A documentation page nobody can correct is a documentation page that
+          stays wrong.
+        {% endcomment %}
+        <p class="docs-edit-note mono-note">
+          Found a mistake?
+          <a class="band-link" href="{{ docs.edit_url }}" target="_blank" rel="noopener noreferrer">
+            Edit this page on GitHub<span class="sr-only"> (opens in a new tab)</span>
           </a>
-        {% endif %}
-        {% if docs_local_next %}
-          <a
-            class="docs-context-link interactive-card interactive-lift"
-            href="{{ docs_local_next.public_path }}"
-          >
-            <span class="mono-label docs-context-label">Next</span>
-            <span class="docs-context-title">{{ docs_local_next.title }}</span>
-          </a>
-        {% endif %}
-      </nav>
+        </p>
+      {% endif %}
+
+      {% if docs_guide_previous or docs_guide_next %}
+        {% comment %}
+          Previous and next read the guide in its own order, so they continue
+          across a section boundary instead of dead-ending at the last page of a
+          group.  Three bordered cards -- the heaviest block on a reading page,
+          one of them a second copy of the breadcrumb -- are gone: the trail and
+          the rail are the way up.
+        {% endcomment %}
+        <nav class="docs-pager" aria-label="Pages in {{ docs_rail.root.title }}">
+          {% if docs_guide_previous %}
+            <a class="docs-pager-link" href="{{ docs_guide_previous.public_path }}">
+              <span class="mono-label">Previous</span>
+              <strong>← {{ docs_guide_previous.title }}</strong>
+            </a>
+          {% endif %}
+          {% if docs_guide_next %}
+            <a class="docs-pager-link docs-pager-next" href="{{ docs_guide_next.public_path }}">
+              <span class="mono-label">Next</span>
+              <strong>{{ docs_guide_next.title }} →</strong>
+            </a>
+          {% endif %}
+        </nav>
+      {% endif %}
     </div>
   </div>
 {% endblock %}

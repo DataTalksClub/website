@@ -192,56 +192,175 @@ def docs_curriculum(rendered_body: str) -> DocsCurriculum | None:
     )
 
 
-def docs_context_root(
-    tree: DocsNavigationTree,
-    public_path: str,
-) -> DocsNavigationItem:
-    """Return the smallest useful source-backed guide around one document.
+@dataclass(frozen=True, slots=True)
+class DocsRailUnit:
+    """One row of the guide rail, and the group it opens when the reader is in it."""
 
-    A document that already holds children is itself a guide hub, so its local
-    nav is its own children.  A leaf's guide is its actual parent directory,
-    so "In this guide" always lists the pages the reader is really among.
-    Earlier this stopped at a hardcoded depth under ``/docs/courses/`` and
-    ``/docs/general/``, which is right for the common two-level course case but
-    wrong once a source folder nests deeper -- a Zoomcamp Logistics leaf such
-    as Slack landed on Zoomcamp Logistics' section indexes (Communication,
-    Course Work, ...) instead of Communication's own pages (Telegram, Email,
-    ...).  Walking the real parent link instead of a fixed depth fixes every
-    nesting depth, not only the two the old heuristic knew about.
-    """
-
-    current = tree.by_path[public_path]
-    if current.children:
-        return current
-    parent_path = current.page.get("parent_path")
-    if not parent_path or parent_path == tree.root.public_path:
-        return tree.root
-    return tree.by_path[str(parent_path)]
+    item: DocsNavigationItem
+    is_current: bool
+    is_open: bool
+    children: tuple[DocsRailUnit, ...]
 
 
-def docs_context_items(
+@dataclass(frozen=True, slots=True)
+class DocsRail:
+    """The pages of the guide the reader is inside, with their place in it marked."""
+
+    root: DocsNavigationItem
+    units: tuple[DocsRailUnit, ...]
+    page_count: int
+    root_is_current: bool
+
+
+def docs_ancestry(
     tree: DocsNavigationTree,
     public_path: str,
 ) -> tuple[DocsNavigationItem, ...]:
-    """Return overview plus immediate pages for the local reader navigation."""
+    """Return the path from the documentation root down to one page, inclusive."""
 
-    root = docs_context_root(tree, public_path)
-    return (root, *root.children)
+    chain: list[DocsNavigationItem] = []
+    current = tree.by_path.get(public_path)
+    while current is not None:
+        chain.append(current)
+        if current.public_path == tree.root.public_path:
+            break
+        parent_path = current.page.get("parent_path")
+        current = tree.by_path.get(str(parent_path)) if parent_path else tree.root
+    return tuple(reversed(chain))
 
 
-def docs_local_sequence(
+def docs_guide_root(
+    tree: DocsNavigationTree,
+    public_path: str,
+) -> DocsNavigationItem | None:
+    """Return the guide a page belongs to: the unit its rail is a list of.
+
+    Under Courses the guide is the course family, Zoomcamp Logistics, or the
+    Course Management Platform -- the second level, where a reader's "where am I"
+    question is actually answered.  Under General and Activities, which are one
+    level shallower, it is the area itself.  A second-level page with no children
+    of its own (Course FAQ) falls back to its area, so its rail lists the pages it
+    is genuinely among instead of standing empty.
+
+    This replaces a walk to the immediate parent, which on a Zoomcamp Logistics
+    leaf showed the five pages of Communication and no trace of the guide those
+    five sit in: the reader could see their section and not the other four.
+    """
+
+    levels = [item for item in docs_ancestry(tree, public_path) if item is not tree.root]
+    candidates = [item for item in levels[:2] if item.children]
+    if candidates:
+        return candidates[-1]
+    return levels[0] if levels else None
+
+
+def _rail_unit(
+    item: DocsNavigationItem,
+    public_path: str,
+    ancestry: frozenset[str],
+    *,
+    nested: bool,
+) -> DocsRailUnit:
+    is_current = item.public_path == public_path
+    # One level of nesting, and only under the group the reader is in: the rail
+    # shows a guide, never the whole 105-page tree.
+    is_open = not nested and not is_current and item.public_path in ancestry and bool(item.children)
+    return DocsRailUnit(
+        item=item,
+        is_current=is_current,
+        is_open=is_open,
+        children=tuple(
+            _rail_unit(child, public_path, ancestry, nested=True) for child in item.children
+        )
+        if is_open
+        else (),
+    )
+
+
+def docs_rail(tree: DocsNavigationTree, public_path: str) -> DocsRail | None:
+    """Build the sibling navigation one documentation page shows beside its body."""
+
+    root = docs_guide_root(tree, public_path)
+    if root is None or not root.children:
+        return None
+    ancestry = frozenset(item.public_path for item in docs_ancestry(tree, public_path))
+    return DocsRail(
+        root=root,
+        units=tuple(
+            _rail_unit(child, public_path, ancestry, nested=False) for child in root.children
+        ),
+        page_count=docs_subtree_count(root),
+        root_is_current=root.public_path == public_path,
+    )
+
+
+def _preorder(item: DocsNavigationItem) -> tuple[DocsNavigationItem, ...]:
+    return (item, *(entry for child in item.children for entry in _preorder(child)))
+
+
+def docs_guide_sequence(
     tree: DocsNavigationTree,
     public_path: str,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
-    """Return previous and next within the document's immediate source group."""
+    """Return the previous and next page in reading order *within the guide*.
 
-    current = tree.by_path[public_path]
-    parent_path = current.page.get("parent_path")
-    siblings = tree.root.children if not parent_path else tree.by_path[str(parent_path)].children
-    index = siblings.index(current)
-    previous = dict(siblings[index - 1].page) if index else None
-    following = dict(siblings[index + 1].page) if index + 1 < len(siblings) else None
+    Sibling order alone dead-ended at every group boundary: the last page of
+    Zoomcamp Logistics' Start Here had no next, though Communication is plainly
+    what follows, and a course family's last page had none either.  Reading the
+    guide in its own depth-first order continues across those boundaries and
+    still stops at the guide's edge -- inventing a "next course" would be worse
+    than offering none.
+    """
+
+    root = docs_guide_root(tree, public_path)
+    if root is None:
+        return None, None
+    order = _preorder(root)
+    paths = [item.public_path for item in order]
+    if public_path not in paths:
+        return None, None
+    index = paths.index(public_path)
+    previous = dict(order[index - 1].page) if index else None
+    following = dict(order[index + 1].page) if index + 1 < len(order) else None
     return previous, following
+
+
+@dataclass(frozen=True, slots=True)
+class DocsSiblingPage:
+    """The same page in another course family, named by the family it belongs to."""
+
+    title: str
+    public_path: str
+
+
+def docs_sibling_family_pages(
+    tree: DocsNavigationTree,
+    public_path: str,
+) -> tuple[DocsSiblingPage, ...]:
+    """Return this page's counterpart in the other Zoomcamp guides.
+
+    All six families publish the same page set -- Prerequisites, Getting Started,
+    Curriculum, Environment Setup, Project, Resources -- so a reader on one
+    course's Environment Setup is one link from the other five.  The relation is
+    derived from titles the two guides already share; nothing is hand-listed.
+    """
+
+    families, _support = docs_home_course_groups(tree)
+    current = tree.by_path.get(public_path)
+    if current is None:
+        return ()
+    parent_path = str(current.page.get("parent_path") or "")
+    family = next((item for item in families if item.public_path == parent_path), None)
+    if family is None:
+        return ()
+    key = _title_key(current.title)
+    return tuple(
+        DocsSiblingPage(title=other.title, public_path=page.public_path)
+        for other in families
+        if other.public_path != family.public_path
+        for page in other.children
+        if _title_key(page.title) == key
+    )
 
 
 def docs_home_course_groups(

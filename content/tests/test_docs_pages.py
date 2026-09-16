@@ -15,13 +15,57 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from content.docs_presentation import docs_hub, docs_search_results
-from content.docs_projection import DOCS_ROOT_PATH, docs_navigation_tree
+from content.docs_presentation import (
+    docs_guide_root,
+    docs_guide_sequence,
+    docs_hub,
+    docs_rail,
+    docs_search_results,
+)
+from content.docs_projection import (
+    DOCS_ROOT_PATH,
+    DocsNavigationTree,
+    build_docs_navigation,
+    docs_navigation_tree,
+    docs_page,
+)
+
+FAMILY = "/docs/courses/ml-zoomcamp/"
+LEAF = "/docs/courses/ml-zoomcamp/curriculum/"
+DEEP = "/docs/general/guidelines/ai-usage/"
+
+
+def three_level_tree() -> DocsNavigationTree:
+    """A guide holding sections that hold pages -- the Zoomcamp Logistics shape."""
+
+    def page(path: str, title: str, parent: str | None) -> dict[str, object]:
+        return {
+            "source_path": f"{path.strip('/').replace('/', '-') or 'index'}.md",
+            "public_path": path,
+            "title": title,
+            "parent_path": parent,
+        }
+
+    return build_docs_navigation(
+        (
+            page(DOCS_ROOT_PATH, "Documentation", None),
+            page("/docs/area/", "Area", None),
+            page("/docs/guide/", "Guide", "/docs/area/"),
+            page("/docs/guide/section-a/", "Section A", "/docs/guide/"),
+            page("/docs/guide/section-a/leaf-1/", "Leaf 1", "/docs/guide/section-a/"),
+            page("/docs/guide/section-a/leaf-2/", "Leaf 2", "/docs/guide/section-a/"),
+            page("/docs/guide/section-b/", "Section B", "/docs/guide/"),
+        )
+    )
 
 
 def hub_body(client) -> str:
-    response = client.get(DOCS_ROOT_PATH)
-    assert response.status_code == 200
+    return page_body(client, DOCS_ROOT_PATH)
+
+
+def page_body(client, path: str) -> str:
+    response = client.get(path)
+    assert response.status_code == 200, path
     return response.content.decode("utf-8").split("</head>", 1)[1]
 
 
@@ -188,3 +232,139 @@ class DocsSearchTests(TestCase):
             response, 'placeholder="e.g. certificate, homework deadline, GCP credits"'
         )
         self.assertNotContains(response, '<label class="sr-only" for="docs-query">')
+
+
+class DocsDetailNavigationTests(TestCase):
+    def test_the_guide_rail_is_the_lesson_pages_module_rail(self) -> None:
+        body = page_body(self.client, LEAF)
+
+        # The component, not a copy of it: the same layout, rows, ordinals and
+        # current state the course lesson pages already ship.
+        self.assertIn('class="module-layout shell-breakout docs-layout', body)
+        self.assertIn('class="module-sidebar module-rail docs-rail"', body)
+        self.assertIn('class="rail-unit-link"', body)
+        self.assertIn('class="read-indicator', body)
+        # And none of the chrome it replaces.
+        self.assertNotIn("docs-local-disclosure", body)
+        self.assertNotIn("docs-tree-link", body)
+        self.assertNotIn("docs-context-link", body)
+
+    def test_the_rail_lists_the_guide_and_marks_the_page_inside_it(self) -> None:
+        tree = docs_navigation_tree()
+        rail = docs_rail(tree, LEAF)
+
+        self.assertIsNotNone(rail)
+        assert rail is not None
+        self.assertEqual(rail.root.public_path, FAMILY)
+        self.assertEqual(len(rail.units), len(tree.by_path[FAMILY].children))
+        current = [unit for unit in rail.units if unit.is_current]
+        self.assertEqual([unit.item.public_path for unit in current], [LEAF])
+
+        body = page_body(self.client, LEAF)
+        rail_markup = body.split('id="docs-rail"', 1)[1].split("</nav>", 1)[0]
+        self.assertEqual(rail_markup.count('aria-current="page"'), 1)
+        self.assertEqual(rail_markup.count('class="rail-unit-link"'), len(rail.units))
+
+    def test_a_page_nested_below_its_guide_still_sees_the_whole_guide(self) -> None:
+        # A Zoomcamp Logistics leaf used to see the five pages of its own section
+        # and no trace of the guide those five sit in; the breadcrumb was the only
+        # thing on the page that named it.  The reference corpus is two levels
+        # shallower than the real one, so the three-level shape is built here.
+        tree = three_level_tree()
+        rail = docs_rail(tree, "/docs/guide/section-a/leaf-2/")
+
+        assert rail is not None
+        self.assertEqual(rail.root.public_path, "/docs/guide/")
+        self.assertEqual(
+            [unit.item.public_path for unit in rail.units],
+            ["/docs/guide/section-a/", "/docs/guide/section-b/"],
+        )
+        opened = [unit for unit in rail.units if unit.children]
+        self.assertEqual([unit.item.public_path for unit in opened], ["/docs/guide/section-a/"])
+        self.assertEqual(
+            [child.item.public_path for child in opened[0].children],
+            ["/docs/guide/section-a/leaf-1/", "/docs/guide/section-a/leaf-2/"],
+        )
+        self.assertEqual(
+            [child.is_current for child in opened[0].children],
+            [False, True],
+        )
+        # One level of nesting, never the whole tree.
+        for child in opened[0].children:
+            self.assertEqual(child.children, ())
+
+    def test_a_guide_page_is_its_own_rail_root(self) -> None:
+        tree = docs_navigation_tree()
+        rail = docs_rail(tree, FAMILY)
+
+        assert rail is not None
+        self.assertTrue(rail.root_is_current)
+        self.assertFalse(any(unit.is_current for unit in rail.units))
+        body = page_body(self.client, FAMILY)
+        # On a phone a guide's own page opens with the list of pages in it.
+        self.assertIn("docs-layout-guide", body)
+        # The list is drawn once, not as a rail and again as a section below the
+        # article.
+        self.assertEqual(body.count('id="docs-rail"'), 1)
+        self.assertNotIn("docs-child-link", body)
+
+    def test_previous_and_next_continue_across_a_group_boundary(self) -> None:
+        tree = three_level_tree()
+
+        # Sibling order dead-ended at the last page of a group; guide order
+        # carries on into the next group's own page.
+        _previous, following = docs_guide_sequence(tree, "/docs/guide/section-a/leaf-2/")
+        assert following is not None
+        self.assertEqual(following["public_path"], "/docs/guide/section-b/")
+
+        # It still stops at the guide's edge: inventing a next guide would be
+        # worse than offering none.
+        _previous, beyond = docs_guide_sequence(tree, "/docs/guide/section-b/")
+        self.assertIsNone(beyond)
+
+        # And the first page of a guide steps back to the guide itself, which is
+        # the one way up the page needs beside its trail.
+        previous, _following = docs_guide_sequence(tree, "/docs/guide/section-a/")
+        assert previous is not None
+        self.assertEqual(previous["public_path"], "/docs/guide/")
+
+    def test_the_article_foot_offers_the_pager_and_the_edit_link(self) -> None:
+        page = docs_page(LEAF)
+        assert page is not None
+        body = page_body(self.client, LEAF)
+
+        self.assertIn('class="docs-pager"', body)
+        self.assertIn("Previous", body)
+        self.assertIn("Next", body)
+        # `edit_url` has been in the page data since the first sync and was drawn
+        # nowhere: a documentation page nobody can correct stays wrong.
+        self.assertIn(f'href="{page["edit_url"]}"', body)
+        self.assertIn("Edit this page on GitHub", body)
+
+    def test_the_header_drops_the_eyebrow_that_repeated_the_crumb(self) -> None:
+        tree = docs_navigation_tree()
+        body = page_body(self.client, LEAF)
+        parent_title = tree.by_path[FAMILY].title
+
+        header = body.split('class="docs-detail-header"', 1)[1].split("</div>", 1)[0]
+        self.assertNotIn(f'<p class="mono-label mono-label-indigo">{parent_title}</p>', header)
+        self.assertIn("breadcrumbs", header)
+
+    def test_on_this_page_opens_and_says_how_many_sections_it_holds(self) -> None:
+        response = self.client.get(LEAF)
+        sections = response.context["docs_sections"]
+        body = response.content.decode("utf-8").split("</head>", 1)[1]
+
+        if len(sections) > 2:
+            self.assertIn('<details class="docs-on-page" open>', body)
+            self.assertIn(f"{len(sections)} sections", body)
+            for heading in sections:
+                self.assertIn(f'href="#{heading["id"]}"', body)
+        else:
+            self.assertNotIn("docs-on-page", body)
+
+    def test_every_docs_page_can_be_searched_from_where_the_reader_is(self) -> None:
+        body = page_body(self.client, LEAF)
+
+        self.assertIn('class="search-row docs-search-compact"', body)
+        self.assertIn('name="q"', body)
