@@ -189,17 +189,70 @@
         text-transform: uppercase;
       }
 
-      /* The one-line pointer to the cross-course project gallery.  It closes
-         the page, after the FAQ, rather than opening it -- the owner moved it
-         down so the catalogue itself is the first thing a reader meets.  It
-         still sits on the page's own cream/lavender ground, never a dark
-         band -- .band-link's indigo underline needs the ordinary body
-         background to read. */
-      .courses-projects-link {
-        margin: 1.5rem auto 0;
+      /* --- projects section -------------------------------------------------
+         The site-wide project gallery, promoted from a closing one-line link
+         to its own section, one position higher: between "how it works" and
+         the FAQ rather than after it.  Illustration left, copy and the
+         gallery link right -- the deliberate hero-style pairing that is this
+         system's one sanctioned two-column exception, following the family
+         page's own hero (`.family-hero-inner`) and the homepage hero
+         (`.hero-grid`) for the reusable shape.  It still sits on the page's
+         own lavender ground, never a dark band -- .band-link's indigo
+         underline needs the ordinary body background to read -- so like the
+         old link it widens to the full shell rather than breaking out to the
+         viewport edge.  No margin of its own: `.zoomcamp-steps` already pads
+         its own foot and `.courses-faq` already pads its own head, the same
+         zero-margin adjacency the old link relied on between those two. */
+      .courses-projects {
+        margin-block: 0;
         max-width: var(--shell);
+        margin-inline: auto;
         padding-inline: 1rem;
-        text-align: center;
+      }
+
+      .courses-projects-grid {
+        align-items: center;
+        display: grid;
+        gap: 2rem;
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      @media (min-width: 62rem) {
+        .courses-projects-grid {
+          gap: 3rem;
+          grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+        }
+      }
+
+      /* Illustration first in the markup, so a narrow viewport -- where the
+         grid collapses to one column -- stacks the picture above the words
+         instead of after them, the same order the homepage's climb cards
+         stack their doodle above the title. */
+      .courses-projects-art {
+        justify-self: center;
+        max-width: 20rem;
+        width: 100%;
+      }
+
+      .courses-projects-art .doodle {
+        height: auto;
+        width: 100%;
+      }
+
+      .courses-projects-copy h2 {
+        font-size: clamp(1.75rem, 3.2vw, 2.4rem);
+        letter-spacing: -0.02em;
+      }
+
+      .courses-projects-copy p {
+        font-size: 1rem;
+        margin-top: 0.85rem;
+        max-width: 42ch;
+      }
+
+      .courses-projects-copy .band-link {
+        display: inline-block;
+        margin-top: 1.25rem;
       }
 
       /* --- catalogue sections ------------------------------------------------ */
@@ -221,7 +274,8 @@
         margin-top: clamp(3rem, 5.3vw, 4.75rem);
       }
 
-      .zoomcamp-steps + .courses-faq {
+      .zoomcamp-steps + .courses-projects,
+      .courses-projects + .courses-faq {
         margin-top: 0;
       }
 
@@ -673,6 +727,25 @@
           </div>
         </div>
       </section>
+      {% if all_projects_url %}
+        <section class="courses-projects" aria-labelledby="courses-projects-heading">
+          <div class="courses-projects-grid">
+            <div class="courses-projects-art" aria-hidden="true">
+              {% include "core/_home_illustration.html" with variant="shipping" only %}
+            </div>
+            <div class="courses-projects-copy">
+              <h2 id="courses-projects-heading">Learn by building</h2>
+              <p>
+                Every zoomcamp here is project-based: you learn by building
+                something real, not just answering quiz questions. To earn
+                your certificate, you submit and ship a project that other
+                learners peer-review.
+              </p>
+              <a class="band-link" href="{{ all_projects_url }}">Browse every learner project, from every course →</a>
+            </div>
+          </div>
+        </section>
+      {% endif %}
       <section class="courses-faq shell-breakout" aria-labelledby="courses-faq-heading">
         <div class="band-head">
           <div class="band-head-row">
@@ -728,9 +801,4 @@
           and ask away.
         </p>
       </section>
-      {% if all_projects_url %}
-        <p class="courses-projects-link">
-          <a class="band-link" href="{{ all_projects_url }}">Browse every learner project, from every course →</a>
-        </p>
-      {% endif %}
 {% endblock %}
