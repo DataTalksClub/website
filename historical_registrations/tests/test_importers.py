@@ -14,7 +14,7 @@ from pathlib import Path
 
 from django.test import SimpleTestCase, override_settings
 
-from events.importers import (
+from historical_registrations.importers import (
     AggregateCandidate,
     DerivedSource,
     ProtectedSourceError,
@@ -24,7 +24,7 @@ from events.importers import (
     register_source_reader,
     registered_source_options,
 )
-from events.models import HistoricalRegistrationSourceRun
+from historical_registrations.models import HistoricalRegistrationSourceRun
 
 PROVIDER = HistoricalRegistrationSourceRun.Provider.LUMA
 PROFILE = "synthetic-code-owned-profile-v1"

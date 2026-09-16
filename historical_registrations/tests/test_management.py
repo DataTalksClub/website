@@ -11,15 +11,15 @@ from django.contrib.auth.models import Permission
 from django.test import TestCase, override_settings
 
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
-from events.importers import (
+from events.queries import published_event_records
+from historical_registrations.importers import (
     ProtectedSourceError,
     clear_source_readers,
     registered_source_options,
     resolve_registered_source_reference,
     source_reference_digest,
 )
-from events.models import HistoricalRegistrationSourceRun
-from events.queries import published_event_records
+from historical_registrations.models import HistoricalRegistrationSourceRun
 from management_api.concurrency import revision_etag
 from management_auth.models import APICredential, APIPrincipal
 from management_auth.services import (
@@ -99,7 +99,7 @@ class HistoricalRegistrationManagementTests(TestCase):
         }
         permissions = tuple(
             Permission.objects.filter(
-                content_type__app_label="events",
+                content_type__app_label="historical_registrations",
                 codename__in=("historical_registration_import_manage",),
             )
         )
@@ -126,7 +126,7 @@ class HistoricalRegistrationManagementTests(TestCase):
             name="Synthetic historical credential",
             scopes=scopes,
             idempotency_key="synthetic-historical-credential",
-            actor_permission="events.historical_registration_import_manage",
+            actor_permission="historical_registrations.historical_registration_import_manage",
         )
         self.token = str(issued.response["token"])
         self.credential = APICredential.objects.get(id=str(issued.response["credential_id"]))

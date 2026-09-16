@@ -67,8 +67,8 @@ class DevelopmentOwnerBootstrapTests(TestCase):
                 ("core", "browse_audit"),
                 ("core", "export_audit"),
                 ("management_auth", "manage_api_credentials"),
-                ("events", "historical_registration_import_manage"),
-                ("events", "historical_registration_mapping_manage"),
+                ("historical_registrations", "historical_registration_import_manage"),
+                ("historical_registrations", "historical_registration_mapping_manage"),
                 ("event_qna", "view_event_qna"),
                 ("event_qna", "manage_event_qna"),
                 ("core", "read_operational_settings"),
@@ -119,8 +119,8 @@ class DevelopmentOwnerBootstrapTests(TestCase):
                 ("core", "change_site_navigation"),
                 ("core", "read_sponsors"),
                 ("core", "change_sponsors"),
-                ("events", "historical_registration_import_manage"),
-                ("events", "historical_registration_mapping_manage"),
+                ("historical_registrations", "historical_registration_import_manage"),
+                ("historical_registrations", "historical_registration_mapping_manage"),
             },
         )
         self.assertEqual(APICredential.objects.count(), 0)

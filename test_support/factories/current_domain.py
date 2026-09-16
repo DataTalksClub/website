@@ -835,11 +835,11 @@ def _courses(context: FactoryContext, state: str) -> dict[str, object]:
 
 
 def _events(context: FactoryContext, state: str) -> dict[str, object]:
-    SourceRun = _model("events.HistoricalRegistrationSourceRun")
-    Aggregate = _model("events.HistoricalRegistrationAggregateRevision")
-    Slot = _model("events.HistoricalRegistrationAggregateSlot")
-    Displacement = _model("events.HistoricalRegistrationPointerDisplacement")
-    Total = _model("events.HistoricalRegistrationTotalState")
+    SourceRun = _model("historical_registrations.HistoricalRegistrationSourceRun")
+    Aggregate = _model("historical_registrations.HistoricalRegistrationAggregateRevision")
+    Slot = _model("historical_registrations.HistoricalRegistrationAggregateSlot")
+    Displacement = _model("historical_registrations.HistoricalRegistrationPointerDisplacement")
+    Total = _model("historical_registrations.HistoricalRegistrationTotalState")
     prefix = "historical_event_totals"
     run = SourceRun.objects.create(
         id=_uuid(context, f"{prefix}.historical_source_run", state),
@@ -940,7 +940,7 @@ def _events(context: FactoryContext, state: str) -> dict[str, object]:
     )
     from core.models import AuditEvent
     from core.services import ServiceContext
-    from events.services import replace_aggregate_with_row_projection
+    from historical_registrations.services import replace_aggregate_with_row_projection
 
     with (
         patch(

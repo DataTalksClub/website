@@ -130,6 +130,7 @@ INSTALLED_APPS = [
     "courses.apps.CoursesConfig",
     "events.apps.EventsConfig",
     "event_qna",
+    "historical_registrations",
     "email_app.apps.EmailAppConfig",
     "studio.apps.StudioConfig",
     "management_api.apps.ManagementAPIConfig",

@@ -12,8 +12,8 @@ from core.capabilities import (
     ServiceKind,
 )
 from event_qna.capabilities import QNA_CAPABILITIES
+from events.models import get_event_identity, list_event_identities
 
-from .models import get_event_identity, list_event_identities
 from .services import (
     IMPORT_PERMISSION,
     MAPPING_PERMISSION,

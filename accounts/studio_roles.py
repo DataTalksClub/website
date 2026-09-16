@@ -14,8 +14,12 @@ AUDIT_BROWSE = "core.browse_audit"
 AUDIT_EXPORT = "core.export_audit"
 HIGH_RISK_FIXTURE = "core.execute_high_risk_fixture"
 MANAGE_API_CREDENTIALS = "management_auth.manage_api_credentials"
-HISTORICAL_REGISTRATION_IMPORT_MANAGE = "events.historical_registration_import_manage"
-HISTORICAL_REGISTRATION_MAPPING_MANAGE = "events.historical_registration_mapping_manage"
+HISTORICAL_REGISTRATION_IMPORT_MANAGE = (
+    "historical_registrations.historical_registration_import_manage"
+)
+HISTORICAL_REGISTRATION_MAPPING_MANAGE = (
+    "historical_registrations.historical_registration_mapping_manage"
+)
 SITE_SETTINGS_READ = "core.read_operational_settings"
 SITE_SETTINGS_WRITE = "core.change_operational_settings"
 SITE_NAVIGATION_READ = "core.read_site_navigation"

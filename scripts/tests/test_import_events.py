@@ -495,10 +495,12 @@ class NewEventIdentityDiscoveryTests(TestCase):
 
         import hashlib
 
-        from events.models import (
-            Event,
+        from historical_registrations.models import (
             HistoricalRegistrationAggregateRevision,
             HistoricalRegistrationSourceRun,
+        )
+        from events.models import (
+            Event,
         )
         from scripts.prod.import_events import discover_new_luma_event_identities
 
@@ -850,11 +852,13 @@ class RunAtomicityTests(TestCase):
     def test_a_refused_run_leaves_no_partial_row_behind(self) -> None:
         from community_base.jobs.models import JobIntent
 
+        from historical_registrations.models import (
+            HistoricalRegistrationAggregateRevision,
+            HistoricalRegistrationSourceRun,
+        )
         from events.models import (
             Event,
             EventContent,
-            HistoricalRegistrationAggregateRevision,
-            HistoricalRegistrationSourceRun,
         )
         from scripts.prod.import_events import EventImportError
 

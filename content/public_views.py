@@ -39,7 +39,7 @@ from events.models import (
     resolve_public_id,
 )
 from events.queries import event_public_record, published_event_records
-from events.services import public_registration_total
+from historical_registrations.services import public_registration_total
 
 from . import catalogue, wiki_content
 from .article_content import article_view, render_body_markdown

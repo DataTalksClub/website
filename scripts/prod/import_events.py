@@ -456,10 +456,12 @@ def discover_new_provider_events(
     Everything else is genuinely new and gets an identity, exactly as before.
     """
 
+    from historical_registrations.models import (
+        HistoricalRegistrationAggregateRevision,
+    )
     from events.models import (
         EventIdentityError,
         EventIdentityNotFound,
-        HistoricalRegistrationAggregateRevision,
         canonical_detail_path,
         resolve_source_identity,
     )
@@ -618,7 +620,7 @@ def discover_new_luma_event_identities(*, luma_source: Path, apply: bool = True)
     decision.
     """
 
-    from events.importers import ProtectedSourceError
+    from historical_registrations.importers import ProtectedSourceError
     from scripts.prod.registration_sources.luma import discover_luma_events
 
     try:
@@ -773,7 +775,7 @@ def reconcile_duplicate_luma_identities(
 ) -> dict[str, Any]:
     """Read a Luma export and reconcile the duplicates a previous run minted."""
 
-    from events.importers import ProtectedSourceError
+    from historical_registrations.importers import ProtectedSourceError
     from scripts.prod.registration_sources.luma import discover_luma_events
 
     try:
@@ -806,7 +808,7 @@ def load_registration_facts() -> dict[str, dict[str, Any]]:
 def load_current_registration_input(path: Path | None):
     if path is None:
         return None
-    from events.current_registration import (
+    from historical_registrations.current_registration import (
         CurrentRegistrationInputError,
         load_current_registration_input as _load,
     )
@@ -921,8 +923,8 @@ def stage_registration_aggregates(
 
     from core.services import ServiceContext
     from events.queries import event_public_record
-    from events.importers import source_reference_digest
-    from events.services import (
+    from historical_registrations.importers import source_reference_digest
+    from historical_registrations.services import (
         activate_explicit_current_source,
         public_registration_total,
         stage_derived_source,
@@ -1013,8 +1015,8 @@ def activate_unambiguous_mappings(
     """
 
     from core.services import ServiceContext
-    from events.importers import ProtectedSourceError
-    from events.services import ProviderEventMetadata, resolve_unmatched_aggregates
+    from historical_registrations.importers import ProtectedSourceError
+    from historical_registrations.services import ProviderEventMetadata, resolve_unmatched_aggregates
     from scripts.prod.registration_sources.luma import discover_luma_events
 
     try:

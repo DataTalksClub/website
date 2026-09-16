@@ -52,7 +52,7 @@ from pathlib import Path
 from typing import NoReturn
 
 from accounts.identity_values import normalize_account_email
-from events.importers import ProtectedSourceError
+from historical_registrations.importers import ProtectedSourceError
 from events.models import Event, EventRegistration
 from scripts.prod.registrant_import import (
     PendingEventRegistrants,

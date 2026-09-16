@@ -12,14 +12,17 @@ from django.conf import settings
 from django.test import SimpleTestCase, TestCase
 
 from core.services import ServiceContext
-from events.current_registration import (
+from events.queries import published_event_records
+from historical_registrations.current_registration import (
     CurrentRegistrationInputError,
     load_current_registration_input,
 )
-from events.importers import source_reference_digest
-from events.models import HistoricalRegistrationAggregateRevision, HistoricalRegistrationSourceRun
-from events.queries import published_event_records
-from events.services import (
+from historical_registrations.importers import source_reference_digest
+from historical_registrations.models import (
+    HistoricalRegistrationAggregateRevision,
+    HistoricalRegistrationSourceRun,
+)
+from historical_registrations.services import (
     HistoricalRegistrationConflict,
     activate_explicit_current_source,
     public_registration_total,

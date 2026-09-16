@@ -18,6 +18,18 @@ from django.db.models import Q
 from core.audit import AuditWriteContext, record_audit_event
 from core.models import AuditEvent, RevisionConflict
 from core.services import ServiceContext
+from events.models import (
+    Event,
+    EventIdentityError,
+    EventIdentityNotFound,
+    canonical_detail_path,
+    canonical_event_date,
+    normalize_event_title,
+    provider_event_date,
+    resolve_source_identity,
+    resolve_uuid,
+)
+from events.queries import event_public_record
 
 from .importers import (
     STATUS_POLICY_VERSION,
@@ -29,25 +41,15 @@ from .importers import (
     source_reference_digest,
 )
 from .models import (
-    Event,
-    EventIdentityError,
-    EventIdentityNotFound,
     HistoricalRegistrationAggregateRevision,
     HistoricalRegistrationAggregateSlot,
     HistoricalRegistrationPointerDisplacement,
     HistoricalRegistrationSourceRun,
     HistoricalRegistrationTotalState,
-    canonical_detail_path,
-    canonical_event_date,
-    normalize_event_title,
-    provider_event_date,
-    resolve_source_identity,
-    resolve_uuid,
 )
-from .queries import event_public_record
 
-MAPPING_PERMISSION = "events.historical_registration_mapping_manage"
-IMPORT_PERMISSION = "events.historical_registration_import_manage"
+MAPPING_PERMISSION = "historical_registrations.historical_registration_mapping_manage"
+IMPORT_PERMISSION = "historical_registrations.historical_registration_import_manage"
 POLICY_VERSION = "historical-registration-v1"
 _REASON_CODE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 _COVERAGE = re.compile(r"^[a-z][a-z0-9_.:-]{0,127}$")

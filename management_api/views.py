@@ -27,9 +27,10 @@ from event_qna.services import (
     update_question,
     update_session,
 )
-from events.importers import ProtectedSourceError
-from events.models import EventIdentityNotFound, HistoricalRegistrationSourceRun
-from events.services import (
+from events.models import EventIdentityNotFound
+from historical_registrations.importers import ProtectedSourceError
+from historical_registrations.models import HistoricalRegistrationSourceRun
+from historical_registrations.services import (
     HistoricalRegistrationConflict,
     HistoricalRegistrationInvalid,
     serialize_run,
