@@ -343,24 +343,11 @@ class TourPageTests(TestCase):
         self.assertNotIn("tour-events-heading", without_teaser)
         self.assertIn('<a class="course-link" href="/events">Events</a>', without_teaser)
 
-    def test_tour_prints_upcoming_events_and_sponsors(self) -> None:
-        sponsors = (
-            {
-                "name": "Northwind Analytics",
-                "url": "https://northwind.example.invalid",
-                "description": "A synthetic featured sponsor.",
-                "logo_url": "/images/synthetic.png",
-            },
-        )
-        with (
-            mock.patch("core.views.event_groups", return_value=_event_groups()),
-            mock.patch("core.views.public_sponsors", return_value=sponsors),
-        ):
+    def test_tour_prints_upcoming_events(self) -> None:
+        with mock.patch("core.views.event_groups", return_value=_event_groups()):
             body = self._get().content.decode()
 
         self.assertIn("Synthetic Office Hours", body)
-        self.assertIn("Kept free by sponsors", body)
-        self.assertIn('href="/sponsors"', body)
 
     def test_tour_closes_on_the_ink_stripe_it_hides(self) -> None:
         """The page ends where every other page ends: on ink.
@@ -394,8 +381,8 @@ class TourEmptyDatabaseTests(TestCase):
     """Sections with no rows drop instead of inventing copy.
 
     A database with reference events but no catalogue rows: the synced
-    sources are disabled, so no courses, no sponsors, and no podcast, wiki or
-    docs catalogue rows exist, and those are the sections absent here. The
+    sources are disabled, so no courses and no podcast, wiki or docs
+    catalogue rows exist, and those are the sections absent here. The
     survey numbers, the cohort-week facts and the origin story are not
     per-record content, so all three still render.
     """
@@ -410,7 +397,7 @@ class TourEmptyDatabaseTests(TestCase):
         catalogue._synced_courses.cache_clear()
         EngineContentSource.objects.update(is_enabled=False)
 
-    def test_tour_without_courses_or_sponsors_drops_those_sections(self) -> None:
+    def test_tour_without_courses_drops_the_courses_section(self) -> None:
         response = self.client.get(reverse("tour"))
 
         self.assertEqual(response.status_code, 200)
@@ -422,7 +409,6 @@ class TourEmptyDatabaseTests(TestCase):
         self.assertIn('<div class="stat-tiles tour-stat-tiles">', body)
         self.assertIn("What Slack is actually like", body)
         self.assertNotIn("tour-courses-heading", body)
-        self.assertNotIn("Kept free by sponsors", body)
         self.assertNotIn("AI Dev Tools Zoomcamp", body)
 
     def test_tour_without_catalogue_rows_keeps_only_the_standing_channels(

@@ -14,6 +14,7 @@ from courses.course_page_content import (
     family_registration_specs,
     family_story_rows,
     family_syllabus_rows,
+    merge_syllabus_rows_with_projects,
     split_current_edition,
     submission_progress,
 )
@@ -27,7 +28,7 @@ from courses.models.cohort import (
     RegistrationCampaign,
 )
 from courses.models.project import ProjectState
-from courses.models.shared_curriculum import SharedLesson, SharedModule
+from courses.models.shared_curriculum import CohortSharedModule, SharedLesson, SharedModule
 from courses.models.testimonial import TestimonialPlacement
 from courses.services.curriculum_flow import build_curriculum_flow
 from courses.services.registration_campaigns import (
@@ -506,6 +507,28 @@ def course_family_page_context(family: Course, user) -> dict:
             retired_at__isnull=True,
         ).count()
         syllabus_fact = f"{len(shared_modules)} modules · {lesson_count} lessons"
+        # A shared module carries no due date of its own -- it is shared
+        # across every cohort of the family -- so the front cohort's own
+        # placement (its terminal homework's real due date) stands in for
+        # it when one exists, the same binding the cohort page's own
+        # curriculum flow already reads (courses/services/curriculum_flow.py).
+        placements_by_module_id = (
+            {
+                placement.shared_module_id: placement
+                for placement in CohortSharedModule.objects.filter(
+                    cohort=front_cohort, shared_module__in=shared_modules
+                ).select_related("terminal_homework")
+            }
+            if front_cohort
+            else {}
+        )
+        unit_due_dates = [
+            placement.terminal_homework.due_date
+            if (placement := placements_by_module_id.get(module.pk))
+            and placement.terminal_homework_id
+            else None
+            for module in shared_modules
+        ]
     else:
         syllabus_units = (
             get_homeworks_for_course(front_cohort, user) if front_cohort else []
@@ -518,6 +541,7 @@ def course_family_page_context(family: Course, user) -> dict:
             )
             for homework in syllabus_units
         ]
+        unit_due_dates = [getattr(unit, "due_date", None) for unit in syllabus_units]
     # A family whose curriculum has been imported (``shared_modules`` real rows)
     # keeps every visitor on the platform: the materials route opens the first
     # module page instead of sending anyone to the source repository. A family
@@ -540,6 +564,21 @@ def course_family_page_context(family: Course, user) -> dict:
         )
     project_cards = family_project_cards(editions)
     syllabus_rows = family_syllabus_rows(syllabus_units, urls=syllabus_urls)
+    if front_projects:
+        project_urls = [
+            reverse(
+                "cohort_project",
+                kwargs={
+                    "course_slug": family.slug,
+                    "cohort_identifier": front_cohort.identifier,
+                    "project_slug": project.slug,
+                },
+            )
+            for project in front_projects
+        ]
+        syllabus_rows = merge_syllabus_rows_with_projects(
+            syllabus_rows, unit_due_dates, front_projects, project_urls
+        )
     cohorts = [edition.cohort for edition in editions]
     # The outcome strip's "project submissions" stat and the inline gallery
     # below both read the same family-wide submissions queryset
@@ -587,6 +626,7 @@ def course_family_page_context(family: Course, user) -> dict:
         submission_count,
         since_year,
         registration_count=(family_registered.count if family_registered else None),
+        cohort_count=len(cohorts),
     )
     project_brief = next(
         (card for card in project_cards if card.project.instructions_url), None
@@ -656,7 +696,6 @@ def course_family_page_context(family: Course, user) -> dict:
         "family_project_brief": project_brief,
         "certificate_cohort": certificate_cohort,
         "syllabus_fact": syllabus_fact,
-        "family_syllabus_projects": front_projects,
         "family_stories": family_story_rows(
             family.testimonials.filter(
                 placement=TestimonialPlacement.COURSE,

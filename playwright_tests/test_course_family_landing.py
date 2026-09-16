@@ -76,10 +76,19 @@ def test_course_value_precedes_route_choice_and_anchors_work(
             expect(page.locator("body.dark-mode")).to_have_count(1)
         page.evaluate("scrollTo(0,0)")
         expect(page.locator(".family-lede")).to_have_text(family.outcome)
-        # The prerequisites now answer the question stage 1 raises, inside it.
-        expect(page.locator(".journey-card").first).to_contain_text(family.prerequisites)
+        # The prerequisites answer "is this a good fit" as their own
+        # opening-group section, ahead of the journey -- not a journey-card
+        # fact any more.
+        expect(page.locator("#fit-heading")).to_contain_text("Good fit if")
+        expect(page.locator(".family-opening-group")).to_contain_text(family.prerequisites)
         expect(page.locator(".family-prerequisites")).to_have_count(0)
         expect(page.locator(".journey-card")).to_have_count(3)
+        # The cards carry no dashed-divider proof block any more -- the same
+        # clean shape as the home page's climb cards.
+        expect(page.locator(".journey-proof")).to_have_count(0)
+        for card in range(3):
+            # Kicker and description -- nothing follows the description.
+            expect(page.locator(".journey-card").nth(card).locator("p")).to_have_count(2)
         for index, step in enumerate(family.progression):
             expect(page.locator(".journey-card").nth(index)).to_contain_text(
                 step["heading"]
@@ -125,8 +134,7 @@ def test_course_value_precedes_route_choice_and_anchors_work(
         targets = page.locator(
             ".family-hero-actions a, .family-register a, .family-syllabus-intro a, "
             ".family-edition-card h3 a, .family-syllabus-row h3 a, "
-            ".family-proof-repository a, .family-proof-byline a, .family-proof > a, "
-            ".journey-proof a"
+            ".family-proof-repository a, .family-proof-byline a, .family-proof > a"
         )
         for index in range(targets.count()):
             box = targets.nth(index).bounding_box()

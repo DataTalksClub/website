@@ -80,6 +80,14 @@ STRUCTURAL_LEFT_BORDERS: dict[tuple[str, str], str] = {
         ".time-split .hw",
     ): "The seam between the lecture and homework halves of one two-part time-split bar; "
     "it separates the two siblings inside a single bordered track.",
+    (
+        "courses/templates/courses/course_family.html",
+        ".journey-grid::before",
+    ): "The dashed rail threading the three journey-card step discs, drawn once behind the "
+    "whole sequence; below 62rem the grid stacks into a column and the same rail turns "
+    "vertical (border-top -> border-left) to keep running through the stack. It connects "
+    "the three sibling stage cards in sequence, the same as the reviewed .latest-grid "
+    "divider above, not a marker on any one of them.",
 }
 
 

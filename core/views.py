@@ -178,7 +178,6 @@ def tour(request: HttpRequest) -> HttpResponse:
             "upcoming_events": upcoming,
             "counts": catalogue.collection_counts(),
             "docs_available": docs_page(DOCS_ROOT_PATH) is not None,
-            "sponsors": public_sponsors(),
             "founder": _founder_chip(),
         },
     )
