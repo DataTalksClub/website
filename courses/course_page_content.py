@@ -353,10 +353,14 @@ def family_outcome_stats(
     """The family's published participation/outcome numbers, only for what the data has.
 
     A campaign's published registration aggregate is the leading count when
-    available. Otherwise the page falls back to live enrollments across the
-    family's visible cohorts. No estimate or rounding is introduced. A family
-    with neither a published registration count nor an enrollment has nothing
-    honest to show, so the whole strip is omitted.
+    available. Otherwise the page falls back to live enrollment rows across
+    the family's visible cohorts -- a real, non-fabricated proxy for
+    participation, but not the same underlying record as a campaign
+    ``CourseRegistration``, so it is worded as "sign ups" rather than
+    reusing the word "registrations" for a different query. No estimate or
+    rounding is introduced. A family with neither a published registration
+    count nor an enrollment has nothing honest to show, so the whole strip
+    is omitted.
 
     Certificates are gated separately from the other two counts: a family
     whose cohorts never reliably populated ``Enrollment.certificate_url``
@@ -373,11 +377,11 @@ def family_outcome_stats(
         stats = [FamilyOutcomeStat(f"{registration_count:,}", noun)]
     else:
         since = f" since {since_year}" if since_year else ""
-        stats = [FamilyOutcomeStat(f"{enrolled_count:,}", f"enrolled{since}")]
-    if certificate_count:
-        noun = "certificate" if certificate_count == 1 else "certificates"
-        stats.append(FamilyOutcomeStat(f"{certificate_count:,}", f"{noun} issued"))
+        stats = [FamilyOutcomeStat(f"{enrolled_count:,}", f"sign ups{since}")]
     if submission_count:
         noun = "project submission" if submission_count == 1 else "project submissions"
         stats.append(FamilyOutcomeStat(f"{submission_count:,}", noun))
+    if certificate_count:
+        noun = "certificate" if certificate_count == 1 else "certificates"
+        stats.append(FamilyOutcomeStat(f"{certificate_count:,}", f"{noun} issued"))
     return tuple(stats)

@@ -381,7 +381,7 @@ class CourseFamilyOutcomeStatsTests(TestCase):
             github_link=f"https://github.com/example/repo-{enrollment.pk}",
         )
 
-    def test_strip_shows_live_enrolled_certificate_and_submission_counts(self):
+    def test_strip_shows_live_signup_certificate_and_submission_counts(self):
         self.enroll()
         graduate_one = self.enroll(certificate_url="https://example.com/certificate-1.pdf")
         graduate_two = self.enroll(certificate_url="https://example.com/certificate-2.pdf")
@@ -391,13 +391,18 @@ class CourseFamilyOutcomeStatsTests(TestCase):
         response = self.client.get(self.url)
 
         stats = {stat.label: stat.value for stat in response.context["family_outcome_stats"]}
-        self.assertEqual(stats["enrolled since 2021"], "3")
+        self.assertEqual(stats["sign ups since 2021"], "3")
         self.assertEqual(stats["certificates issued"], "2")
         self.assertEqual(stats["project submissions"], "2")
+        labels = [stat.label for stat in response.context["family_outcome_stats"]]
+        self.assertEqual(
+            labels, ["sign ups since 2021", "project submissions", "certificates issued"]
+        )
         self.assertContains(response, 'id="outcomes-heading"')
-        self.assertContains(response, "enrolled since 2021")
+        self.assertContains(response, "sign ups since 2021")
         self.assertContains(response, "certificates issued")
         self.assertContains(response, "project submissions")
+        self.assertNotContains(response, "enrolled since 2021")
 
     def test_published_campaign_count_leads_with_registrations_not_enrollments(self):
         self.enroll()
@@ -414,6 +419,7 @@ class CourseFamilyOutcomeStatsTests(TestCase):
         stats = response.context["family_outcome_stats"]
         self.assertEqual((stats[0].value, stats[0].label), ("47", "registrations"))
         self.assertNotContains(response, "enrolled since 2021")
+        self.assertNotContains(response, "sign ups since 2021")
 
     def test_published_single_registration_uses_singular_label(self):
         RegistrationCampaign.objects.create(
@@ -449,6 +455,7 @@ class CourseFamilyOutcomeStatsTests(TestCase):
         stats = response.context["family_outcome_stats"]
         self.assertEqual((stats[0].value, stats[0].label), ("1", "registration"))
         self.assertNotContains(response, "enrolled since 2021")
+        self.assertNotContains(response, "sign ups since 2021")
 
     def test_a_family_with_nobody_enrolled_omits_the_whole_strip(self):
         empty_family = Course.objects.create(slug="no-one-yet", title="No One Yet")
@@ -470,9 +477,9 @@ class CourseFamilyOutcomeStatsTests(TestCase):
         response = self.client.get(self.url)
 
         labels = [stat.label for stat in response.context["family_outcome_stats"]]
-        self.assertEqual(labels, ["enrolled since 2021", "project submissions"])
+        self.assertEqual(labels, ["sign ups since 2021", "project submissions"])
         self.assertNotContains(response, "certificates issued")
-        self.assertContains(response, "enrolled since 2021")
+        self.assertContains(response, "sign ups since 2021")
 
     def test_hidden_cohorts_are_not_counted(self):
         self.enroll()
@@ -482,7 +489,7 @@ class CourseFamilyOutcomeStatsTests(TestCase):
         response = self.client.get(self.url)
 
         stats = {stat.label: stat.value for stat in response.context["family_outcome_stats"]}
-        self.assertEqual(stats["enrolled since 2021"], "1")
+        self.assertEqual(stats["sign ups since 2021"], "1")
         self.assertNotIn("certificates issued", stats)
 
 
