@@ -21,9 +21,11 @@ from __future__ import annotations
 from pathlib import Path
 from unittest import mock
 
+from community_base.content_sync.models import ContentSource as EngineContentSource
 from django.test import TestCase
 from django.urls import reverse
 
+from content import catalogue
 from test_support.course_catalog import build_reviewed_catalog
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -124,9 +126,7 @@ class TourPageTests(TestCase):
         self.assertNotIn("seaside in Germany", body)
         self.assertNotIn("What keeps me going", body)
         self.assertIn('class="story-person"', body)
-        self.assertIn(
-            'href="https://www.youtube.com/watch?v=GHbeXIKnkLQ&amp;t=149s"', body
-        )
+        self.assertIn('href="https://www.youtube.com/watch?v=GHbeXIKnkLQ&amp;t=149s"', body)
         self.assertIn("Alexey Grigorev", body)
         self.assertIn(
             '<span class="story-context">Founder · DataTalks.Club Anniversary Podcast</span>',
@@ -143,9 +143,7 @@ class TourPageTests(TestCase):
         self.assertIn("10–15 hours", body)
         self.assertIn("no signup", body)
         self.assertIn("everything stays in a Jupyter notebook", body)
-        self.assertIn(
-            'href="https://www.youtube.com/watch?v=B2tzuUg5uZs&amp;t=2190s"', body
-        )
+        self.assertIn('href="https://www.youtube.com/watch?v=B2tzuUg5uZs&amp;t=2190s"', body)
         self.assertIn("Dashel Ruiz Perez", body)
 
     def test_tour_prints_who_is_here_from_the_real_survey(self) -> None:
@@ -154,9 +152,7 @@ class TourPageTests(TestCase):
         self.assertIn("Who's here", body)
         self.assertIn("65+", body)
         self.assertIn("countries", body)
-        self.assertIn(
-            'href="/blog/datatalks-club-community-demographics.html"', body
-        )
+        self.assertIn('href="/blog/datatalks-club-community-demographics.html"', body)
 
     def test_tour_prints_real_slack_norms(self) -> None:
         body = self._get().content.decode()
@@ -257,11 +253,22 @@ class TourPageTests(TestCase):
 class TourEmptyDatabaseTests(TestCase):
     """Sections with no rows drop instead of inventing copy.
 
-    Every Django test database carries reviewed reference events, but no
-    courses, no sponsors, and no podcast or wiki catalogue rows, so those
-    are the sections absent here. The scope statement and the origin story
-    are not per-record content, so both still render.
+    A database with reference events but no catalogue rows: the synced
+    sources are disabled, so no courses, no sponsors, and no podcast, wiki or
+    docs catalogue rows exist, and those are the sections absent here. The
+    scope statement and the origin story are not per-record content, so both
+    still render.
     """
+
+    def setUp(self) -> None:
+        super().setUp()
+        # The premise is stated here rather than assumed of the surrounding
+        # database: whichever reference rows a test database carries, this
+        # class reads the tour exactly as an un-ingested database renders it.
+        catalogue._records.cache_clear()
+        catalogue._synced_records.cache_clear()
+        catalogue._synced_courses.cache_clear()
+        EngineContentSource.objects.update(is_enabled=False)
 
     def test_tour_without_courses_or_sponsors_drops_those_sections(self) -> None:
         response = self.client.get(reverse("tour"))

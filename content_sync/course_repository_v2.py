@@ -16,6 +16,7 @@ import re
 from pathlib import PurePosixPath
 from typing import Any
 
+from content.course_catalog import parse_course_catalog
 from courses.services.curriculum_source import (
     CohortSource,
     CourseRepositorySource,
@@ -150,6 +151,7 @@ class SharedCurriculumParserV2:
                     "title",
                     "current_cohort",
                     "cohorts",
+                    "catalog",
                     "description",
                     "starting_point",
                     "prerequisites",
@@ -194,6 +196,16 @@ class SharedCurriculumParserV2:
         self.declared_cohorts = self._parse_cohorts_index(
             path, mapping.get("cohorts"), current_cohort=current_cohort
         )
+        if "catalog" in mapping:
+            # The catalogue copy is authored content the content sync parser
+            # owns (issue #384). The ingest validates the block with the same
+            # shared rule set, so a defect upstream fails here, bounded,
+            # rather than surfacing later as a sync failure; the curriculum
+            # importer itself carries no catalogue copy.
+            parse_course_catalog(
+                mapping["catalog"],
+                fail=lambda code, pointer: _fail(code, path, pointer),
+            )
         urls = _strict_mapping(
             mapping.get("urls"),
             path=path,
@@ -231,9 +243,7 @@ class SharedCurriculumParserV2:
                 else ""
             ),
             progression=(
-                _course_progression(
-                    mapping["progression"], path=path, pointer="/progression"
-                )
+                _course_progression(mapping["progression"], path=path, pointer="/progression")
                 if "progression" in mapping
                 else None
             ),
