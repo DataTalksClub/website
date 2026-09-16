@@ -95,16 +95,13 @@
     overflow: hidden;
     padding: 0.65rem 2.5rem 0.65rem 0.8rem;
     text-overflow: ellipsis;
-    transition: box-shadow 120ms ease, transform 120ms ease;
     white-space: nowrap;
     width: 100%;
   }
 
-  .gallery-select-shell .field-input:hover {
-    box-shadow: 0.25rem 0.25rem 0 var(--shadow-soft);
-    transform: translate(-1px, -1px);
-  }
-
+  /* Form controls never move on hover -- the .interactive-lift travel is a
+     card/button affordance, not something a select field should do; it reads
+     as the field shifting under the pointer while you are choosing a value. */
   .gallery-select-shell .field-input:focus-visible {
     outline: 3px solid var(--indigo);
     outline-offset: 3px;
