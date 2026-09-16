@@ -1,21 +1,31 @@
 {% load static %}
+{% comment %}
+  The neutral "someone starting out with data" scene: a learner at a laptop
+  with a source, a pipeline and a result above them.  It belongs to no course
+  family, so every surface that needs a drawing of the community's own subject
+  rather than one course's draws this one -- the family landing's first journey
+  stage and the tour's hero.
+
+  `loading` is the caller's: a hero draws its art eagerly, a stage far down a
+  page does not, and the partial defaults to the lazy case.
+{% endcomment %}
 <span class="doodle-variants">
   <img
     class="doodle doodle-light"
     src="{% static 'core/illustrations/course-journey-start.webp' %}"
     alt=""
-    width="1024"
-    height="1024"
-    loading="lazy"
+    width="1254"
+    height="1254"
+    loading="{{ loading|default:'lazy' }}"
     decoding="async"
   >
   <img
     class="doodle doodle-dark"
     src="{% static 'core/illustrations/course-journey-start-dark.webp' %}"
     alt=""
-    width="1024"
-    height="1024"
-    loading="lazy"
+    width="1254"
+    height="1254"
+    loading="{{ loading|default:'lazy' }}"
     decoding="async"
   >
 </span>
