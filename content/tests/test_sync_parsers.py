@@ -1186,7 +1186,9 @@ class CourseCatalogParserTests(_CheckoutCase):
             self.assertEqual(first["project_count"], 3)
             self.assertEqual(first["first_deadline"], "2026-01-26T23:59:59+00:00")
             self.assertEqual(first["last_deadline"], "2026-05-04T23:00:00+00:00")
-            self.assertEqual(first["provenance"]["repository"], "DataTalksClub/de-zoomcamp")
+            # The de-zoomcamp engine source is seeded by the reference data
+            # with its real repository name; provenance follows the source.
+            self.assertEqual(first["provenance"]["repository"], source.repo_name)
             self.assertEqual(first["provenance"]["source_path"], "course.yaml")
             self.assertEqual(first["provenance"]["revision"], "a" * 40)
             # An unquoted YAML timestamp arrives as a datetime and is

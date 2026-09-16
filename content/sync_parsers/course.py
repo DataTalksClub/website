@@ -18,12 +18,12 @@ declares no ``catalog:`` block publishes no catalogue records -- the
 collection follows the repositories, as the platform catalog does.
 """
 
-from datetime import datetime
 from pathlib import PurePosixPath
 
 from community_base.content_sync.orchestration import UpsertResult
 from community_base.content_sync.parsers import SourceItem, register_parser
 
+from content.course_catalog import parse_course_catalog
 from scripts import build_public_projection as builder
 
 from . import base
@@ -45,76 +45,6 @@ COURSE_SOURCE_SLUGS = (
     "sma-zoomcamp",
 )
 
-#: Exactly the fields one edition's catalogue copy may carry; ``title`` is
-#: optional and defaults to the repository's own course title with the
-#: edition year appended, the derivation the staged specification's titles
-#: followed.
-_EDITION_FIELDS = frozenset(
-    {
-        "slug",
-        "title",
-        "finished",
-        "homework_count",
-        "project_count",
-        "first_deadline",
-        "last_deadline",
-    }
-)
-_EDITION_REQUIRED = _EDITION_FIELDS - {"title"}
-
-#: A deadline is an ISO-8601 stamp; an explicitly empty one says the edition
-#: publishes no deadlines at all (a permanently self-paced edition).
-_MAX_DEADLINE_LENGTH = 40
-_MAX_COUNT = 1000
-
-
-def _deadline(value, *, field: str) -> str:
-    if isinstance(value, datetime):
-        return value.isoformat()
-    text = builder._string(value, field=field, maximum=_MAX_DEADLINE_LENGTH)
-    if not text:
-        return ""
-    try:
-        return datetime.fromisoformat(text).isoformat()
-    except ValueError:
-        base.fail(f"{field} rejected", SOURCE_FILE)
-
-
-def _edition_record(raw, course_title: str) -> dict:
-    """One edition's catalogue record, in the reviewed course record shape."""
-
-    if not isinstance(raw, dict) or not _EDITION_REQUIRED <= set(raw) <= _EDITION_FIELDS:
-        base.fail("course edition record rejected", SOURCE_FILE)
-    slug = builder._safe_key(raw["slug"], field="course edition slug")
-    try:
-        family_slug, year = builder.cohort_family_identity(slug)
-    except ValueError:
-        base.fail("course edition slug rejected", SOURCE_FILE)
-    finished = raw["finished"]
-    if type(finished) is not bool:
-        base.fail("course edition finished flag rejected", SOURCE_FILE)
-    record = {
-        "slug": slug,
-        "public_path": f"/courses/{family_slug}/{year}",
-        "title": builder._string(
-            raw.get("title", f"{course_title} {year}"),
-            field="course edition title",
-            maximum=500,
-        ),
-        "finished": finished,
-        "homework_count": _edition_count(raw["homework_count"], "course edition homework count"),
-        "project_count": _edition_count(raw["project_count"], "course edition project count"),
-        "first_deadline": _deadline(raw["first_deadline"], field="course edition first deadline"),
-        "last_deadline": _deadline(raw["last_deadline"], field="course edition last deadline"),
-    }
-    return record
-
-
-def _edition_count(value, field: str) -> int:
-    if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= _MAX_COUNT:
-        base.fail(f"{field} rejected", SOURCE_FILE)
-    return value
-
 
 class CourseCatalogParser:
     """Publishes each course repository's declared editions as synced rows."""
@@ -131,32 +61,40 @@ class CourseCatalogParser:
         raw = builder._load_yaml(base.snapshot_path(checkout, SOURCE_FILE))
         if not isinstance(raw, dict):
             base.fail("course manifest rejected", SOURCE_FILE)
-        title = builder._string(raw.get("title"), field="course title", maximum=200)
+        course_title = builder._string(raw.get("title"), field="course title", maximum=200)
         if "catalog" not in raw:
             return []
-        catalog = raw["catalog"]
-        if not isinstance(catalog, dict) or set(catalog) != {"editions"}:
-            base.fail("course catalog rejected", SOURCE_FILE)
-        editions = catalog["editions"]
-        if not isinstance(editions, list) or not editions:
-            base.fail("course catalog rejected", SOURCE_FILE)
+        editions = parse_course_catalog(
+            raw["catalog"],
+            fail=lambda code, pointer: base.fail(code, SOURCE_FILE),
+        )
         items: list[SourceItem] = []
-        seen: set[str] = set()
-        for entry in editions:
-            record = _edition_record(entry, title)
-            if record["slug"] in seen:
-                base.fail("duplicate course edition", SOURCE_FILE)
-            seen.add(record["slug"])
-            record["provenance"] = builder._provenance(
-                repository=f"https://github.com/{source.repo_name}",
-                revision=checkout.commit_sha,
-                source_path=SOURCE_FILE,
-                source_key=record["slug"],
-                checksum=base.checksum_of(checkout, SOURCE_FILE),
+        for edition in editions:
+            slug = edition["slug"]
+            family_slug, year = builder.cohort_family_identity(slug)
+            title = edition["title"] or builder._string(
+                f"{course_title} {year}", field="course edition title", maximum=500
             )
+            record = {
+                "slug": slug,
+                "public_path": f"/courses/{family_slug}/{year}",
+                "title": title,
+                "finished": edition["finished"],
+                "homework_count": edition["homework_count"],
+                "project_count": edition["project_count"],
+                "first_deadline": edition["first_deadline"],
+                "last_deadline": edition["last_deadline"],
+                "provenance": builder._provenance(
+                    repository=f"https://github.com/{source.repo_name}",
+                    revision=checkout.commit_sha,
+                    source_path=SOURCE_FILE,
+                    source_key=slug,
+                    checksum=base.checksum_of(checkout, SOURCE_FILE),
+                ),
+            }
             items.append(
                 SourceItem(
-                    key=record["slug"],
+                    key=slug,
                     path=SOURCE_FILE,
                     data={
                         "record": record,
