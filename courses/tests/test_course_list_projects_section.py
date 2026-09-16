@@ -15,3 +15,18 @@ class CourseListCatalogCardLinkTest(CourseListViewTestBase):
 
         self.assertNotIn("View course", course_card)
         self.assertIn('role="link"', course_card)
+
+
+class CourseListStatsLabelTest(CourseListViewTestBase):
+    def test_materials_stat_drops_the_github_framing(self):
+        response = self.course_list_response()
+        content = response.content.decode()
+
+        # The big number ("100%") already carries the "100%"; the label
+        # below it just names what it is, without repeating the number or
+        # naming GitHub specifically.
+        stat_index = content.index("<strong>100%</strong>")
+        stat_html = content[stat_index : stat_index + 200]
+
+        self.assertIn("<span>open</span>", stat_html)
+        self.assertNotContains(response, "materials public on GitHub")
