@@ -21,6 +21,10 @@ here.
   content from hardcoded Python values, checked-in JSON, or a file-backed
   projection/fallback. See `_docs/architecture/database-only-content.md` for the
   current violation inventory and removal plan.
+- `community-base` (`~/git/community-base`) is a shared package consumed by
+  this site and by AI Shipping Labs (`~/git/ai-shipping-labs`). If you change
+  anything in `community-base`, run the test suite in both consuming projects,
+  not just this one, before considering the change done.
 
 Where the rest went: app and service boundaries are in
 `_docs/architecture/app-boundaries.md`; the page shell is in
