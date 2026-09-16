@@ -460,7 +460,6 @@ class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
         self.assertContains(
             response, f'href="{destination}" target="_blank" rel="noopener noreferrer"'
         )
-        self.assertContains(response, "Submitted repository")
         self.assertContains(response, reverse("cohort", args=["ml-zoomcamp", "2025"]))
 
     def test_missing_or_unsafe_repository_link_is_not_clickable(self):
@@ -598,17 +597,31 @@ class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
             self.client.get(self.gallery_url())
         self.assertLessEqual(len(full), len(small))
 
-    def test_gallery_uses_rows_not_cards(self):
-        # Owner feedback: "let's not use cards - use rows."
+    def test_gallery_uses_a_real_table_not_cards_or_rows(self):
+        # Owner feedback: "let's not use cards - use rows", later refined to
+        # a real <table> with real columns (repository, author, cohort,
+        # assignment) instead of the row-list/list-row primitive.
         response = self.client.get(self.gallery_url())
 
-        self.assertContains(response, 'class="row-list gallery-grid"')
-        self.assertContains(response, 'class="list-row gallery-row"')
-        # ".card-grid"/".card" are legitimately defined once in every page's
-        # shared inline stylesheet, so this checks the class attribute the
-        # gallery grid/rows carry, not the CSS definitions.
+        self.assertContains(response, 'class="gallery-table"')
+        self.assertContains(response, 'class="gallery-submission-row"')
+        self.assertContains(response, '<th scope="col">Repository</th>')
+        # ".card-grid"/".card"/".row-list"/".list-row" are legitimately
+        # defined once in every page's shared inline stylesheet, so this
+        # checks the class attribute the gallery grid/rows carry, not the
+        # CSS definitions.
         self.assertNotContains(response, 'class="card-grid card-grid-2 gallery-grid"')
         self.assertNotContains(response, 'class="card gallery-card"')
+        self.assertNotContains(response, 'class="row-list gallery-grid"')
+        self.assertNotContains(response, 'class="list-row gallery-row"')
+
+    def test_gallery_table_drops_the_redundant_repository_label(self):
+        # The "Submitted repository" caption duplicated the table's own
+        # "Repository" column header once the entries became a real table.
+        response = self.client.get(self.gallery_url())
+
+        self.assertNotContains(response, "gallery-repository-label")
+        self.assertNotContains(response, "Submitted repository")
 
     def test_gallery_template_keeps_the_shared_readability_contract(self):
         template = Path(__file__).resolve().parents[1] / "templates/projects/site_gallery.html"
