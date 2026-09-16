@@ -70,9 +70,7 @@ class ProjectStatisticsViewTestCase(TestCase):
         self.incomplete_project = self.create_incomplete_project()
 
     def create_project_statistics_submission(self):
-        enrollment = Enrollment.objects.create(
-            student=self.user, course=self.course
-        )
+        enrollment = Enrollment.objects.create(student=self.user, course=self.course)
         return ProjectSubmission.objects.create(
             project=self.project,
             student=self.user,
@@ -91,6 +89,21 @@ class ProjectStatisticsViewTestCase(TestCase):
             min_project_score=10,
             max_project_score=10,
             avg_project_score=10.0,
+            median_project_score=10.0,
+            q1_project_score=10.0,
+            q3_project_score=10.0,
+            min_total_score=10,
+            max_total_score=20,
+            avg_total_score=15.0,
+            median_total_score=16.0,
+            q1_total_score=12.0,
+            q3_total_score=18.0,
+            min_time_spent=3.0,
+            max_time_spent=30.0,
+            avg_time_spent=12.5,
+            median_time_spent=10.0,
+            q1_time_spent=8.0,
+            q3_time_spent=15.0,
         )
         mock_calc.return_value = mock_stats
         return mock_stats
@@ -105,17 +118,17 @@ class ProjectStatisticsViewTestCase(TestCase):
         """Test successful project statistics view"""
         self.create_project_statistics_submission()
 
-        with patch(
-            "courses.views.project_statistics.calculate_project_statistics"
-        ) as mock_calc:
+        with patch("courses.views.project_statistics.calculate_project_statistics") as mock_calc:
             self.mock_project_statistics(mock_calc)
             statistics_url = self.project_statistics_url()
             response = self.client.get(statistics_url)
 
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, "Test Project statistics")
-            self.assertContains(response, "Total submissions")
+            self.assertContains(response, "Project overview")
+            self.assertContains(response, "Projects submitted")
             self.assertIn("stats", response.context)
+            self.assertIn("stat_sections", response.context)
             self.assertEqual(response.context["project"], self.project)
             self.assertEqual(response.context["course"], self.course)
 
@@ -148,7 +161,12 @@ class ProjectStatisticsViewTestCase(TestCase):
     def test_project_statistics_view_nonexistent_project(self):
         """Test project statistics view with non-existent project"""
         url = reverse(
-            "cohort_project_statistics", args=[self.course.course.slug, self.course.identifier, "nonexistent"]
+            "cohort_project_statistics",
+            args=[
+                self.course.course.slug,
+                self.course.identifier,
+                "nonexistent",
+            ],
         )
         response = self.client.get(url)
 
@@ -168,9 +186,7 @@ class ProjectStatisticsViewTestCase(TestCase):
         """Test that the template renders correctly"""
         self.create_project_statistics_submission()
 
-        with patch(
-            "courses.views.project_statistics.calculate_project_statistics"
-        ) as mock_calc:
+        with patch("courses.views.project_statistics.calculate_project_statistics") as mock_calc:
             self.mock_project_statistics(mock_calc)
             statistics_url = self.project_statistics_url()
             response = self.client.get(statistics_url)
@@ -178,4 +194,18 @@ class ProjectStatisticsViewTestCase(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertTemplateUsed(response, "projects/stats.html")
             self.assertContains(response, "Test Project statistics")
-            self.assertContains(response, "Total submissions")
+            self.assertContains(response, "Distribution")
+            self.assertContains(response, "middle 50%")
+            self.assertContains(response, "Project details")
+
+    def test_project_statistics_render_empty_measures_without_blank_values(self):
+        with patch("courses.views.project_statistics.calculate_project_statistics") as mock_calc:
+            self.mock_project_statistics(mock_calc)
+            response = self.client.get(self.project_statistics_url())
+
+        self.assertContains(
+            response,
+            "No values were recorded for this measure.",
+            count=3,
+        )
+        self.assertContains(response, "10h")

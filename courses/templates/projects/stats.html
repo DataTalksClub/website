@@ -1,14 +1,5 @@
 {% extends 'projects/_base.html' %}
 {% load breadcrumbs %}
-{% comment %}
-  Aggregate statistics for one project, on the design system (issue #179).
-
-  A read-only page of numbers.  The icons the copied page drew beside every
-  section and every row came from an icon font a design system page does not load,
-  and each of them only repeated the label beside it, so the labels now carry
-  the meaning on their own.
-{% endcomment %}
-
 {% block document_title %}
   {{ project.title }} statistics — {{ course.title }} — DataTalks.Club
 {% endblock %}
@@ -18,25 +9,191 @@
 {% endblock %}
 
 {% block extra_styles %}
-  /* One section per measured field, two across once there is room. */
-  .stat-sections {
-    display: grid;
-    gap: 1.25rem;
+  .project-stats-head h1 {
+    font-size: clamp(1.9rem, 4.2vw, 2.9rem);
+    letter-spacing: -0.025em;
+  }
+
+  .stats-meta,
+  .stats-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 0.75rem;
+  }
+
+  .stats-meta {
+    margin-top: 0.25rem;
+  }
+
+  .stats-actions {
+    margin-top: 0.75rem;
+  }
+
+  .stats-section + .stats-section {
+    border-top: 2px dashed var(--line-soft);
+    margin-top: 1.25rem;
+    padding-top: 2.5rem;
+  }
+
+  .stats-overview {
+    margin-top: 1.25rem;
+  }
+
+  .stats-overview strong {
+    font-size: clamp(1.6rem, 2.6vw, 2.1rem);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stats-overview .mono-note {
+    display: block;
+    margin-top: 0.25rem;
   }
 
   @media (min-width: 62rem) {
-    .stat-sections {
+    .stats-overview {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .distribution-grid {
+    display: grid;
+    gap: 1.25rem;
+    margin-top: 1.25rem;
+  }
+
+  @media (min-width: 62rem) {
+    .distribution-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
-  .stat-rows {
+  .distribution-card {
     display: grid;
-    gap: 0.75rem 1.5rem;
-    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    gap: 1rem;
   }
 
-  .stat-rows dt {
+  .distribution-card h3 {
+    font-size: 1.05rem;
+  }
+
+  .distribution-summary {
+    align-items: baseline;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+  }
+
+  .distribution-summary strong {
+    font-size: clamp(1.65rem, 3vw, 2.15rem);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .distribution-summary span {
+    color: var(--body-text);
+    font-size: 0.85rem;
+  }
+
+  .distribution-range {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .distribution-track {
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: 999px;
+    height: 1rem;
+    position: relative;
+  }
+
+  .distribution-iqr {
+    background: var(--indigo-soft);
+    border-radius: 999px;
+    bottom: 0;
+    position: absolute;
+    top: 0;
+  }
+
+  .distribution-marker {
+    bottom: -0.25rem;
+    position: absolute;
+    top: -0.25rem;
+    transform: translateX(-50%);
+    width: 0.2rem;
+  }
+
+  .distribution-marker-median {
+    background: var(--ink);
+  }
+
+  .distribution-marker-average {
+    background: var(--green);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    width: 0.55rem;
+  }
+
+  .distribution-scale,
+  .distribution-key,
+  .distribution-bounds {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .distribution-scale,
+  .distribution-key {
+    color: var(--body-text);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+  }
+
+  .distribution-key {
+    flex-wrap: wrap;
+    gap: 0.35rem 1rem;
+    justify-content: flex-start;
+  }
+
+  .distribution-key span {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.35rem;
+  }
+
+  .distribution-key i {
+    display: inline-block;
+    height: 0.65rem;
+    width: 0.65rem;
+  }
+
+  .key-middle {
+    background: var(--indigo-soft);
+    border: 1px solid var(--line);
+  }
+
+  .key-median {
+    background: var(--ink);
+    width: 0.2rem !important;
+  }
+
+  .key-average {
+    background: var(--green);
+    border: 1px solid var(--line);
+    border-radius: 50%;
+  }
+
+  .distribution-bounds {
+    border-top: 1px dashed var(--line-soft);
+    gap: 1rem;
+    padding-top: 0.8rem;
+  }
+
+  .distribution-bounds div:last-child {
+    text-align: right;
+  }
+
+  .distribution-bounds dt {
     color: var(--body-text);
     font-family: var(--font-mono);
     font-size: 0.66rem;
@@ -45,11 +202,32 @@
     text-transform: uppercase;
   }
 
-  .stat-rows dd {
-    color: var(--ink);
-    font-size: 1.35rem;
+  .distribution-bounds dd {
+    font-size: 1.05rem;
+    font-variant-numeric: tabular-nums;
     font-weight: 800;
-    margin-top: 0.2rem;
+    margin-top: 0.15rem;
+  }
+
+  .stats-empty {
+    border: 2px dashed var(--line-soft);
+    border-radius: 0.75rem;
+    color: var(--body-text);
+    padding: 1rem;
+  }
+
+  @media (max-width: 47.99rem) {
+    .stats-actions {
+      display: grid;
+    }
+
+    .stats-overview .stat-tile:first-child {
+      grid-column: 1 / -1;
+    }
+
+    .stats-overview .stat-tile:first-child strong {
+      font-size: 2.4rem;
+    }
   }
 {% endblock %}
 
@@ -59,45 +237,102 @@
 {% endblock %}
 
 {% block page_head %}
-  <div class="project-head">
-    <p class="mono-label mono-label-indigo">{{ course.title }}</p>
-    <h1>{{ project.title }} statistics</h1>
+  <div class="project-head project-stats-head">
+    <p class="mono-label mono-label-indigo">{{ course.title }} · project outcomes</p>
+    <h1 id="project-stats-heading">{{ project.title }} statistics</h1>
     <p class="project-lede">
-      Aggregate project submission and scoring metrics.
+      How the cohort performed across project work, peer review, learning in public, and time invested.
     </p>
-    <p class="mono-note">
-      Calculated: {{ stats.last_calculated }}
-    </p>
+    <div class="stats-meta">
+      <span class="status-pill status-pill-mint">Completed project</span>
+      <span class="mono-note">Updated <span class="local-date" data-timestamp="{{ stats.last_calculated|date:'U' }}">{{ stats.last_calculated|date:"j F Y, H:i" }}</span></span>
+    </div>
+    <div class="stats-actions">
+      <a class="cta cta-compact cta-secondary interactive-lift" href="{% url 'cohort_project' course.course.slug course.identifier project.slug %}">Project details</a>
+      <a class="cta cta-compact cta-subtle interactive-lift" href="{% url 'cohort_projects' course.course.slug course.identifier %}">All project submissions</a>
+    </div>
   </div>
 {% endblock %}
 
 {% block project_content %}
-  <section class="project-section" aria-labelledby="total-submissions-heading">
-    <div class="project-section-head">
-      <h2 id="total-submissions-heading">Total submissions</h2>
+  <section class="stats-section" aria-labelledby="project-overview-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="project-overview-heading">Project overview</h2>
+        <p>The headline outcome for this assignment, followed by the typical score and effort.</p>
+      </div>
     </div>
-    <div class="stat-tiles">
+    <div class="stat-tiles stats-overview">
       <div class="stat-tile">
         <strong>{{ stats.total_submissions }}</strong>
-        <span>submissions</span>
+        <span>Projects submitted</span>
+      </div>
+      <div class="stat-tile">
+        <strong>{% if stats.median_total_score is not None %}{{ stats.median_total_score|floatformat:0 }}{% else %}—{% endif %}</strong>
+        <span>Median total score</span>
+        {% if stats.avg_total_score is not None %}<span class="mono-note">Average {{ stats.avg_total_score|floatformat:1 }}</span>{% endif %}
+      </div>
+      <div class="stat-tile">
+        <strong>{% if stats.median_time_spent is not None %}{{ stats.median_time_spent|floatformat:0 }}h{% else %}—{% endif %}</strong>
+        <span>Median time spent</span>
+        {% if stats.avg_time_spent is not None %}<span class="mono-note">Average {{ stats.avg_time_spent|floatformat:1 }}h</span>{% endif %}
       </div>
     </div>
   </section>
-  <div class="stat-sections">
-    {% for field_name, field_stats, field_icon in stats.get_stat_fields %}
-      <section class="project-section" aria-labelledby="stat-section-{{ forloop.counter }}">
-        <div class="project-section-head">
-          <h2 id="stat-section-{{ forloop.counter }}">{{ field_name }}</h2>
-        </div>
-        <dl class="stat-rows">
-          {% for value, label, icon in field_stats %}
-            <div>
-              <dt>{{ label }}</dt>
-              <dd>{{ value|floatformat:0 }}</dd>
+
+  <section class="stats-section" aria-labelledby="distribution-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="distribution-heading">Distribution</h2>
+        <p>Each range shows the middle half of submissions. The markers compare the median with the average; minimum and maximum values provide context.</p>
+      </div>
+    </div>
+    <div class="distribution-grid">
+      {% for section in stat_sections %}
+        <article class="card distribution-card">
+          <h3>{{ section.label }}</h3>
+          {% if section.has_data %}
+            <p class="distribution-summary">
+              <strong>{{ section.values.median|floatformat:0 }}{% if section.is_time %}h{% endif %}</strong>
+              <span>median · middle half {{ section.values.q1|floatformat:0 }}{% if section.is_time %}h{% endif %}–{{ section.values.q3|floatformat:0 }}{% if section.is_time %}h{% endif %}</span>
+            </p>
+            <div
+              class="distribution-range"
+              role="img"
+              aria-label="{{ section.label }}: minimum {{ section.values.min|floatformat:0 }}, lower quartile {{ section.values.q1|floatformat:0 }}, median {{ section.values.median|floatformat:0 }}, average {{ section.values.avg|floatformat:1 }}, upper quartile {{ section.values.q3|floatformat:0 }}, maximum {{ section.values.max|floatformat:0 }}{% if section.is_time %} hours{% endif %}"
+            >
+              <div class="distribution-track" aria-hidden="true">
+                {% if section.iqr_width is not None %}<span class="distribution-iqr" style="left: {{ section.q1_position|stringformat:'.2f' }}%; width: {{ section.iqr_width|stringformat:'.2f' }}%"></span>{% endif %}
+                {% if section.median_position is not None %}<span class="distribution-marker distribution-marker-median" style="left: {{ section.median_position|stringformat:'.2f' }}%"></span>{% endif %}
+                {% if section.average_position is not None %}<span class="distribution-marker distribution-marker-average" style="left: {{ section.average_position|stringformat:'.2f' }}%"></span>{% endif %}
+              </div>
+              <div class="distribution-scale" aria-hidden="true">
+                <span>{{ section.values.min|floatformat:0 }}{% if section.is_time %}h{% endif %} min</span>
+                <span>{{ section.values.max|floatformat:0 }}{% if section.is_time %}h{% endif %} max</span>
+              </div>
+              <div class="distribution-key" aria-hidden="true">
+                <span><i class="key-middle"></i> middle 50%</span>
+                <span><i class="key-median"></i> median {{ section.values.median|floatformat:0 }}{% if section.is_time %}h{% endif %}</span>
+                <span><i class="key-average"></i> average {{ section.values.avg|floatformat:1 }}{% if section.is_time %}h{% endif %}</span>
+              </div>
             </div>
-          {% endfor %}
-        </dl>
-      </section>
-    {% endfor %}
-  </div>
+            <dl class="distribution-bounds">
+              <div>
+                <dt>Minimum</dt>
+                <dd>{{ section.values.min|floatformat:0 }}{% if section.is_time %}h{% endif %}</dd>
+              </div>
+              <div>
+                <dt>Maximum</dt>
+                <dd>{{ section.values.max|floatformat:0 }}{% if section.is_time %}h{% endif %}</dd>
+              </div>
+            </dl>
+          {% else %}
+            <p class="stats-empty">No values were recorded for this measure.</p>
+          {% endif %}
+        </article>
+      {% empty %}
+        <p class="stats-empty">No score distributions are available yet.</p>
+      {% endfor %}
+    </div>
+  </section>
 {% endblock %}
