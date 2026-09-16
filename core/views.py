@@ -15,6 +15,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_safe
 
 from content import catalogue
+from content.docs_projection import DOCS_ROOT_PATH, docs_page
 from content.event_content import event_groups
 from content.person_chip import PersonChip, person_chip
 from content.podcast_content import ordered_podcasts
@@ -150,10 +151,13 @@ def tour(request: HttpRequest) -> HttpResponse:
     re-listing the homepage's own sections, it states the community's real
     scope in one place (the catalogue's own counts), keeps only the two
     sections a newcomer actually needs to see for themselves (courses,
-    events), and points at the parts of the site the homepage does not
-    surface at all (the podcast, the wiki). Every figure is a catalogue
-    count, never a written-in number, so an empty database renders the page
-    with its claims dropped rather than a promise it cannot back.
+    events), and then names every other channel the community runs -- the
+    podcast, the blog, the books, the wiki, the docs, the YouTube channel and
+    the Slack -- in one list. Every figure is a catalogue count, never a
+    written-in number, and every catalogue-backed row is gated on that count,
+    so an empty database renders the page with its claims dropped rather
+    than a promise it cannot back. The docs row is gated the same way, on
+    whether the documentation home is actually published.
     """
 
     events = event_groups()
@@ -172,6 +176,7 @@ def tour(request: HttpRequest) -> HttpResponse:
             "course_family_count": len(catalog),
             "upcoming_events": upcoming,
             "counts": catalogue.collection_counts(),
+            "docs_available": docs_page(DOCS_ROOT_PATH) is not None,
             "sponsors": public_sponsors(),
             "founder": _founder_chip(),
         },

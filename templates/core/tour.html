@@ -4,7 +4,7 @@
 
 {% block metadata %}
   {{ block.super }}
-  <meta name="description" content="A newcomer's walkthrough of DataTalks.Club: what it actually is, how it started, who's here, and what free courses, events, the podcast, and the wiki look like.">
+  <meta name="description" content="A newcomer's walkthrough of DataTalks.Club: what it actually is, how it started, who's here, and what the free courses, events, podcast, blog, books, wiki, YouTube channel and Slack look like.">
 {% endblock %}
 
 {% block page_styles %}
@@ -83,7 +83,6 @@
   .tour-norms { display: grid; gap: 0.65rem; margin: 0; max-width: 46rem; padding-left: 1.2rem; }
   .tour-norms li { padding-left: 0.2rem; }
 
-  .tour-more-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; margin-top: 1rem; }
   .tour-sponsor-note { color: var(--muted); margin-top: 1rem; }
   .tour-actions { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem; }
 {% endblock %}
@@ -254,22 +253,82 @@
     </div>
   </section>
 
-  {% if counts.podcasts or counts.wiki %}
-    <section class="tour-section" aria-labelledby="tour-more-heading">
-      <div class="tour-section-heading">
-        <h2 id="tour-more-heading">More than courses and events</h2>
-        <p>Two parts of the site worth a look on their own, whether or not you take a course.</p>
-      </div>
-      <div class="tour-more-links">
-        {% if counts.podcasts %}
-          <a class="band-link" href="{% url 'podcast' %}">listen to the podcast →</a>
-        {% endif %}
-        {% if counts.wiki %}
-          <a class="band-link" href="{% url 'wiki-home' %}">browse the wiki →</a>
-        {% endif %}
-      </div>
-    </section>
-  {% endif %}
+  {% comment %}
+    Everything else the community runs, one row each in the same dashed
+    row-list the course and event teasers use.  Catalogue-backed rows are
+    gated on their real counts; the Slack and the YouTube channel are the
+    community's own standing channels and always appear.
+  {% endcomment %}
+  <section class="tour-section" aria-labelledby="tour-more-heading">
+    <div class="tour-section-heading">
+      <h2 id="tour-more-heading">More than courses and events</h2>
+      <p>The rest of what the community runs — all of it free and open, whether or not you ever take a course.</p>
+    </div>
+    <div class="row-list">
+      <article class="list-row">
+        <div>
+          <h3><a href="{% url 'slack' %}">Slack</a></h3>
+          <p class="tour-row-meta">Where the community actually talks: a channel per course, questions answered by other members, and every announcement.</p>
+        </div>
+      </article>
+      {% if not upcoming_events %}
+        <article class="list-row">
+          <div>
+            <h3><a href="{% url 'events' %}">Events</a></h3>
+            <p class="tour-row-meta">Live talks and workshops with practitioners, and the recordings of past ones.</p>
+          </div>
+        </article>
+      {% endif %}
+      <article class="list-row">
+        <div>
+          <h3>
+            <a href="https://www.youtube.com/c/DataTalksClub" target="_blank" rel="noopener noreferrer">YouTube channel<span class="sr-only"> (opens in a new tab)</span></a>
+          </h3>
+          <p class="tour-row-meta">Where events, office hours and course workshops stream live and stay up afterwards.</p>
+        </div>
+      </article>
+      {% if counts.podcasts %}
+        <article class="list-row">
+          <div>
+            <h3><a href="{% url 'podcast' %}">Podcast</a></h3>
+            <p class="tour-row-meta">{{ counts.podcasts }} conversation{{ counts.podcasts|pluralize }} with practitioners{% if counts.transcripts %}, {{ counts.transcripts }} with a full transcript{% endif %}.</p>
+          </div>
+        </article>
+      {% endif %}
+      {% if counts.articles %}
+        <article class="list-row">
+          <div>
+            <h3><a href="{% url 'articles' %}">Blog</a></h3>
+            <p class="tour-row-meta">{{ counts.articles }} article{{ counts.articles|pluralize }} written by members and guests.</p>
+          </div>
+        </article>
+      {% endif %}
+      {% if counts.books %}
+        <article class="list-row">
+          <div>
+            <h3><a href="{% url 'books' %}">Book of the Week</a></h3>
+            <p class="tour-row-meta">{{ counts.books }} book{{ counts.books|pluralize }} whose authors came to answer the community's questions.</p>
+          </div>
+        </article>
+      {% endif %}
+      {% if counts.wiki %}
+        <article class="list-row">
+          <div>
+            <h3><a href="{% url 'wiki-home' %}">Wiki</a></h3>
+            <p class="tour-row-meta">{{ counts.wiki }} member-written topic{{ counts.wiki|pluralize }}, A–Z.</p>
+          </div>
+        </article>
+      {% endif %}
+      {% if docs_available %}
+        <article class="list-row">
+          <div>
+            <h3><a href="{% url 'docs-home' %}">Docs</a></h3>
+            <p class="tour-row-meta">The community's own documentation: how cohorts, homework, projects and certificates work.</p>
+          </div>
+        </article>
+      {% endif %}
+    </div>
+  </section>
 
   <section class="tour-section" aria-labelledby="tour-slack-heading">
     <div class="tour-section-heading">

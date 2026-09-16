@@ -165,25 +165,61 @@ class TourPageTests(TestCase):
         self.assertIn("Don't ask to ask", body)
         self.assertIn('href="https://dontasktoask.com/"', body)
 
-    def test_tour_points_at_the_podcast_and_wiki_when_the_catalogue_holds_them(
-        self,
-    ) -> None:
+    def test_tour_lists_every_other_channel_the_catalogue_holds(self) -> None:
+        """One row per channel, each catalogue-backed row gated on its count.
+
+        The Slack and the YouTube channel are standing channels and always
+        appear; the podcast, blog, books and wiki rows state their real
+        counts; the docs row appears only when the documentation home is
+        published.
+        """
+
         counts = {
-            "articles": 0,
+            "articles": 7,
             "podcasts": 3,
-            "books": 0,
+            "books": 2,
             "people": 0,
             "wiki": 5,
             "courses": 0,
             "media": 0,
-            "transcripts": 0,
+            "transcripts": 1,
         }
-        with mock.patch("core.views.catalogue.collection_counts", return_value=counts):
+        with (
+            mock.patch("core.views.catalogue.collection_counts", return_value=counts),
+            mock.patch("core.views.docs_page", return_value={"title": "Docs"}),
+        ):
             body = self._get().content.decode()
 
         self.assertIn("More than courses and events", body)
-        self.assertIn('href="/podcast"', body)
-        self.assertIn('href="/wiki"', body)
+        self.assertIn('<h3><a href="/slack">Slack</a></h3>', body)
+        self.assertIn('href="https://www.youtube.com/c/DataTalksClub"', body)
+        self.assertIn("YouTube channel", body)
+        self.assertIn('<h3><a href="/podcast">Podcast</a></h3>', body)
+        self.assertIn("3 conversations with practitioners, 1 with a full transcript.", body)
+        self.assertIn('<h3><a href="/blog">Blog</a></h3>', body)
+        self.assertIn("7 articles written by members and guests.", body)
+        self.assertIn('<h3><a href="/books">Book of the Week</a></h3>', body)
+        self.assertIn("2 books whose authors", body)
+        self.assertIn('<h3><a href="/wiki">Wiki</a></h3>', body)
+        self.assertIn("5 member-written topics, A–Z.", body)
+        self.assertIn('<h3><a href="/docs/">Docs</a></h3>', body)
+
+    def test_tour_names_events_in_the_channel_list_only_without_a_teaser(
+        self,
+    ) -> None:
+        with mock.patch("core.views.event_groups", return_value=_event_groups()):
+            with_teaser = self._get().content.decode()
+
+        self.assertIn("tour-events-heading", with_teaser)
+        self.assertNotIn('<h3><a href="/events">Events</a></h3>', with_teaser)
+
+        groups = _event_groups()
+        groups.upcoming = []
+        with mock.patch("core.views.event_groups", return_value=groups):
+            without_teaser = self._get().content.decode()
+
+        self.assertNotIn("tour-events-heading", without_teaser)
+        self.assertIn('<h3><a href="/events">Events</a></h3>', without_teaser)
 
     def test_tour_prints_upcoming_events_and_sponsors(self) -> None:
         sponsors = (
@@ -242,10 +278,17 @@ class TourEmptyDatabaseTests(TestCase):
         self.assertNotIn("Kept free by sponsors", body)
         self.assertNotIn("AI Dev Tools Zoomcamp", body)
 
-    def test_tour_without_podcast_or_wiki_rows_drops_the_more_section(self) -> None:
+    def test_tour_without_catalogue_rows_keeps_only_the_standing_channels(
+        self,
+    ) -> None:
         body = self.client.get(reverse("tour")).content.decode()
 
-        self.assertNotIn("tour-more-heading", body)
+        self.assertIn("tour-more-heading", body)
+        self.assertIn('<h3><a href="/slack">Slack</a></h3>', body)
+        self.assertIn('href="https://www.youtube.com/c/DataTalksClub"', body)
+        for path in ("/podcast", "/blog", "/books", "/wiki", "/docs/"):
+            with self.subTest(path=path):
+                self.assertNotIn(f'<h3><a href="{path}">', body)
 
 
 class TourStripeTests(TestCase):
