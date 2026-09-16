@@ -101,23 +101,37 @@ class TourPageTests(TestCase):
         self.assertNotIn("course-journey-start.", body)
         self.assertNotIn("home-hero.", body)
 
-    def test_tour_opens_its_content_on_the_survey_numbers_as_tiles(self) -> None:
-        """The numbers sit on the shared stat tiles, flush under the seam.
+    def test_tour_opens_its_content_on_a_real_whos_here_section(self) -> None:
+        """The numbers sit under a real band-head, like every other section.
 
-        They used to be a full-bleed ink stripe stranded in the middle of the
-        page, with its own heading on the lavender above it, so a heading and
-        its numbers sat on two different grounds.  The page now spends its one
-        ink moment on the close, which is where every other page spends it.
+        They used to be a bare stat strip with only an `aria-label`, followed
+        by a small mono caption naming the survey -- the one section on the
+        page with no visible heading.  The heading and its subline now open
+        the section, matching the "Learn by building" band-head pattern, and
+        the survey link sits under the tiles rather than in the head.
         """
 
         body = self._get().content.decode()
 
+        self.assertIn('<h2 id="tour-stats-heading">Who\'s here</h2>', body)
+        self.assertIn("From the community's own 2025 survey.", body)
         self.assertIn('<div class="stat-tiles tour-stat-tiles">', body)
         self.assertEqual(body.count('<div class="stat-tile">'), 4)
         self.assertIn("65+", body)
         self.assertIn("countries", body)
-        self.assertIn('class="tour-stats-source mono-note"', body)
-        self.assertIn('href="/blog/datatalks-club-community-demographics.html"', body)
+        self.assertIn(
+            '<a class="band-link tour-content-link" '
+            'href="/blog/datatalks-club-community-demographics.html">read the full survey →</a>',
+            body,
+        )
+        self.assertLess(
+            body.index('id="tour-stats-heading"'),
+            body.index('class="stat-tiles tour-stat-tiles"'),
+        )
+        self.assertLess(
+            body.index('class="stat-tiles tour-stat-tiles"'),
+            body.index("read the full survey →"),
+        )
         # No second ground: the mid-page ink stripe is gone.
         self.assertNotIn("tour-stats-grid", body)
         self.assertNotIn("--tour-stats-label", body)

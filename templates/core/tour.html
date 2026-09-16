@@ -60,15 +60,13 @@
   .tour-hero-art .doodle { height: 100%; object-fit: contain; }
 
   /* --- who's here: the family landing's opening tiles (.stat-tiles reused,
-         four across), flush under the seam with the source as a mono note */
-  .tour-stats { display: grid; gap: 0.75rem; }
+         four across), under the section's own band-head like every other
+         section on the page */
   .tour-stat-tiles .stat-tile { min-height: 0; padding-block: 0.8rem; }
   .tour-stat-tiles strong {
     font-size: clamp(1.35rem, 2vw, 1.75rem);
     font-variant-numeric: tabular-nums;
   }
-  .tour-stats-source { margin: 0; }
-  .tour-stats-source .band-link { font-family: var(--font-sans); font-size: 0.85rem; }
   @media (min-width: 40rem) {
     .tour-stat-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   }
@@ -289,11 +287,17 @@
 {% block page_content %}
   {% comment %}
     Who's here, from the community's own 2025 survey, on the same lavender
-    stat tiles the course family landing opens its content with.  The numbers
-    sit flush under the seam, where numbers belong, and the page spends its one
-    ink moment on the close instead.
+    stat tiles the course family landing opens its content with.  The section
+    opens with a real band-head, like every section below it, rather than a
+    caption trailing the numbers.
   {% endcomment %}
-  <section class="tour-stats" aria-label="Who's here, in numbers">
+  <section class="tour-chapter shell-breakout tour-stats" aria-labelledby="tour-stats-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="tour-stats-heading">Who's here</h2>
+        <p>From the community's own 2025 survey.</p>
+      </div>
+    </div>
     <div class="stat-tiles tour-stat-tiles">
       <div class="stat-tile">
         <strong>65+</strong>
@@ -312,10 +316,7 @@
         <span>in data engineering</span>
       </div>
     </div>
-    <p class="tour-stats-source mono-note">
-      Who's here, from the community's own 2025 survey ·
-      <a class="band-link" href="{% url 'public-article' slug='datatalks-club-community-demographics' %}">read the full survey →</a>
-    </p>
+    <a class="band-link tour-content-link" href="{% url 'public-article' slug='datatalks-club-community-demographics' %}">read the full survey →</a>
   </section>
 
   {% if catalog_courses %}
