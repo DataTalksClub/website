@@ -272,12 +272,12 @@
       </div>
     </div>
     {% comment %}
-      The neutral journey drawing, not a course scene: the three course cards
-      below each carry their own family's scene, and the homepage hero is 300
-      pixels above the link that leads here, so neither may be repeated.
+      A community scene made for this page. The course cards below each carry
+      their own family's scene, so the hero introduces the people connecting
+      those courses, events and conversations instead of another solo learner.
     {% endcomment %}
     <div class="tour-hero-art">
-      {% include "core/_course_journey_start.html" with loading="eager" only %}
+      {% include "core/_tour_hero_illustration.html" with loading="eager" only %}
     </div>
   </div>
 {% endblock %}

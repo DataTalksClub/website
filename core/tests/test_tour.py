@@ -81,11 +81,9 @@ class TourPageTests(TestCase):
     def test_tour_opens_on_an_illustrated_hero_with_both_ways_in(self) -> None:
         """The hero is the course family landing's: words, then a drawing.
 
-        The page used to open on a bare header band with no art at all, which
-        is the one thing every other page of this site opens with.  The
-        drawing is the neutral journey scene, not a course scene and not the
-        homepage's own hero: the course cards further down each carry their
-        family's scene, and the homepage is one link above this page.
+        The page uses a community scene rather than a course or solo-learner
+        scene: the course cards further down each carry their family's scene,
+        and the homepage is one link above this page.
         """
 
         body = self._get().content.decode()
@@ -98,8 +96,9 @@ class TourPageTests(TestCase):
         self.assertIn('class="cta cta-primary interactive-lift" href="/accounts/signup/"', body)
         self.assertIn('class="cta cta-secondary interactive-lift" href="/slack"', body)
         self.assertIn('class="tour-hero-art"', body)
-        self.assertIn("course-journey-start.", body)
-        self.assertIn("course-journey-start-dark.", body)
+        self.assertIn("tour-community.", body)
+        self.assertIn("tour-community-dark.", body)
+        self.assertNotIn("course-journey-start.", body)
         self.assertNotIn("home-hero.", body)
 
     def test_tour_opens_its_content_on_the_survey_numbers_as_tiles(self) -> None:
