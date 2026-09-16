@@ -363,79 +363,11 @@
         z-index: 0;
       }
 
-      .journey-card {
-        gap: 0;
-        overflow: visible;
-        padding: 1.5rem 1.5rem 1.35rem;
-        position: relative;
-        z-index: 1;
-      }
-
-      /* The disc leaves the heading and sits astride the card's top-left
-         corner, on the rail.  The shared .step-number fills and hand-drawn
-         radii are reused unchanged. */
-      .journey-card .step-number {
-        background: var(--card);
-        left: 1.25rem;
-        position: absolute;
-        top: 0;
-        transform: translateY(-50%);
-        z-index: 2;
-      }
-
-      /* The disc has to be opaque to mask the rail behind it, and the two
-         filled steps keep their own shared fills against that rule. */
-      .journey-card .step-number-2 {
-        background: var(--indigo-soft);
-      }
-
-      .journey-card .step-number-3 {
-        background: var(--green);
-      }
-
-      .journey-kicker {
-        color: var(--indigo);
-        font-family: var(--font-mono);
-        font-size: 0.72rem;
-        letter-spacing: 0.1em;
-        margin: 0;
-        text-transform: uppercase;
-      }
-
-      .journey-figure {
-        align-items: center;
-        display: flex;
-        height: 11.5rem;
-        justify-content: center;
-        margin-top: 1rem;
-      }
-
-      .journey-figure .doodle-variants {
-        align-items: center;
-        display: flex;
-        height: 100%;
-        justify-content: center;
-        width: 100%;
-      }
-
-      .journey-figure .doodle {
-        height: 100%;
-        object-fit: contain;
-        width: 100%;
-      }
-
-      .journey-card h3 {
-        font-size: 1.32rem;
-        letter-spacing: -0.02em;
-        margin: 1rem 0 0;
-        text-wrap: pretty;
-      }
-
-      .journey-card > p {
-        color: var(--body-text);
-        line-height: 1.55;
-        margin: 0.55rem 0 1.1rem;
-      }
+      /* The journey card itself (.stage-card-rail/.stage-card-kicker/...) is a
+         shared component, drawn once in core/_stage_card.html so the home
+         page's climb stages render with the exact same card. Nothing
+         page-specific is left to say about the card here -- only the rail
+         above and the grid it runs through. */
 
       .family-editions {
         margin-bottom: 0;
@@ -669,32 +601,29 @@
       /* The page's last content section, closing on real learner work
          instead of a second registration push: the same mint panel the mock
          used for its call-to-action band, now carrying the gallery links. */
-      /* A handful of real submissions, inline, above the links -- the same
-         .row-list/.list-row/.submission-row catalogue row projects/family_
-         gallery.html and projects/site_gallery.html already draw one
-         cohort's (or the whole site's) submissions with, borrowed verbatim
-         here for a short preview instead of the paginated full list. */
+      /* A handful of real submissions, inline, above the links, as the same
+         card/interactive-card/interactive-lift/stretched-card-link cards the
+         editions section above already draws on this page (owner feedback:
+         "cards like the rest of the cards - entire card clickable" -- these
+         no longer read as catalogue rows once the vote/score/pass badge is
+         gone, since there's nothing left to line up in row columns).  Reuses
+         .card-grid/.card-grid-2 rather than the bespoke two-column grid this
+         section drew for itself before. */
       .family-proof-gallery {
-        display: grid;
-        gap: 1rem;
         margin-bottom: 0.5rem;
       }
 
-      @media (min-width: 48rem) {
-        .family-proof-gallery {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-      }
-
-      .family-proof-gallery .submission-row {
-        --row-cols: minmax(0, 1fr);
-        align-content: start;
-        background: var(--card);
-        border: 1.5px solid var(--line);
-        border-radius: 0.85rem;
-        display: grid;
-        gap: 0.55rem;
-        padding: 1rem;
+      /* The repository link is the card's one real anchor: its ::after
+         stretches across the whole card (the archive-row's own
+         .archive-title convention -- see templates/public/_archive_row.html
+         -- extended here since this card's headline sits in a plain div
+         rather than an h3). The byline link stays independently reachable
+         above that overlay, the same way archive-row raises its
+         .person-chip links with position: relative; z-index: 3. */
+      .stretched-card-link .family-proof-repository a::after {
+        content: "";
+        inset: 0;
+        position: absolute;
       }
 
       .family-proof-repository {
@@ -708,7 +637,12 @@
         color: var(--ink);
         display: inline-flex;
         min-height: 2.75rem;
-        text-decoration-thickness: 0.09em;
+        text-decoration: none;
+      }
+
+      .family-proof-repository a:hover,
+      .family-proof-repository a:focus-visible {
+        text-decoration: underline;
         text-underline-offset: 0.2em;
       }
 
@@ -723,13 +657,8 @@
         color: inherit;
         display: inline-flex;
         min-height: 2.75rem;
-      }
-
-      .family-proof-gallery .submission-outcome {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem 0.75rem;
+        position: relative;
+        z-index: 3;
       }
 
       .family-proof {
@@ -779,17 +708,9 @@
           top: 1.2rem;
         }
 
-        .journey-card {
-          padding: 1.35rem 1.15rem 1.15rem;
-        }
-
-        .journey-figure {
-          height: 9.5rem;
-        }
-
-        .journey-card h3 {
-          font-size: 1.18rem;
-        }
+        /* The card's own inset/illustration-height/heading-size step down
+           live with the rest of the shared component in
+           core/_design_system.html. */
       }
 
       @media (max-width: 47.99rem) {
@@ -960,23 +881,13 @@
           </div>
           <div class="journey-grid">
             {% for step in family_transformation %}
-              <article class="card journey-card">
-                <span class="step-number{% if forloop.counter == 2 %} step-number-2{% elif forloop.counter == 3 %} step-number-3{% endif %}" aria-hidden="true">{{ forloop.counter }}</span>
-                <p class="journey-kicker">
-                  {% if forloop.counter == 1 %}Where you start{% elif forloop.counter == 2 %}What you practise{% else %}What you ship{% endif %}
-                </p>
-                <div class="journey-figure" aria-hidden="true">
-                  {% if forloop.counter == 1 %}
-                    {% include "core/_course_journey_start.html" %}
-                  {% elif forloop.counter == 2 %}
-                    {% include "core/_home_illustration.html" with variant="learning" %}
-                  {% else %}
-                    {% include "core/_home_illustration.html" with variant="shipping" %}
-                  {% endif %}
-                </div>
-                <h3>{{ step.heading }}</h3>
-                <p>{{ step.description }}</p>
-              </article>
+              {% if forloop.counter == 1 %}
+                {% include "core/_stage_card.html" with step_index=1 heading=step.heading description=step.description illustration_template="core/_course_journey_start.html" kicker="Where you start" on_rail=True %}
+              {% elif forloop.counter == 2 %}
+                {% include "core/_stage_card.html" with step_index=2 heading=step.heading description=step.description illustration_template="core/_home_illustration.html" illustration_variant="learning" kicker="What you practise" on_rail=True %}
+              {% else %}
+                {% include "core/_stage_card.html" with step_index=3 heading=step.heading description=step.description illustration_template="core/_home_illustration.html" illustration_variant="shipping" kicker="What you ship" on_rail=True %}
+              {% endif %}
             {% endfor %}
           </div>
         </section>
@@ -1264,9 +1175,9 @@
             </div>
           </div>
           {% if family_gallery_submissions %}
-            <div class="row-list family-proof-gallery">
+            <div class="card-grid card-grid-2 family-proof-gallery">
               {% for submission in family_gallery_submissions %}
-                <article class="list-row submission-row">
+                <article class="card family-proof-card stretched-card-link interactive-card interactive-lift">
                   <div class="family-proof-repository">
                     {% if submission.repository_url %}
                       <a
@@ -1283,23 +1194,6 @@
                     <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=course_family.slug cohort_identifier=submission.cohort.identifier enrollment_id=submission.enrollment.id %}">{{ submission.enrollment.display_name }}</a>
                     · {{ submission.cohort.identifier }} cohort
                   </p>
-                  <div class="submission-outcome">
-                    <span class="mono-note">{{ submission.vote_count }} vote{{ submission.vote_count|pluralize }}</span>
-                    <span class="mono-note">
-                      {% if submission.display_score == -1 %}
-                        Score N/A
-                      {% else %}
-                        {{ submission.display_score }} score
-                      {% endif %}
-                    </span>
-                    {% if submission.display_score != -1 %}
-                      {% if submission.passed %}
-                        <span class="status-pill status-pill-live">Passed</span>
-                      {% else %}
-                        <span class="status-pill status-pill-wait">Not passed</span>
-                      {% endif %}
-                    {% endif %}
-                  </div>
                 </article>
               {% endfor %}
             </div>

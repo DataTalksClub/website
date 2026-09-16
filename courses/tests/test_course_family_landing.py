@@ -112,7 +112,9 @@ class CourseFamilyLandingTests(TestCase):
 
         transformation = response.context["family_transformation"]
         self.assertEqual(transformation, self.family.progression)
-        self.assertContains(response, 'class="card journey-card"', count=3)
+        # The journey card is the shared stage-card component
+        # (core/_stage_card.html), on its rail variant.
+        self.assertContains(response, 'class="card stage-card stage-card-rail"', count=3)
         for step in self.family.progression:
             self.assertContains(response, step["heading"])
             self.assertContains(response, step["description"])
@@ -176,8 +178,9 @@ class CourseFamilyLandingTests(TestCase):
         self.assertNotIn('href="#syllabus-heading"', section)
         self.assertNotIn("Peer-reviewed", section)
         self.assertNotIn('href="#built-heading"', section)
-        # Every card ends on its own <p> description; nothing follows it.
-        self.assertEqual(section.count("</p>\n              </article>"), 3)
+        # Every card ends on its own <p> description; nothing follows it
+        # (the closing </article> is the shared stage-card template's own).
+        self.assertEqual(section.count("</p>\n  </article>"), 3)
 
     def test_prerequisites_and_weekly_commitment_are_their_own_opening_sections(self):
         self.family.weekly_commitment = "Free. Plan for about 5-15 hours a week."
@@ -699,11 +702,12 @@ class CourseFamilySyllabusMergeTests(TestCase):
 
 
 class CourseFamilyProjectGalleryTests(TestCase):
-    """The inline learner-work gallery: a handful of real project-submission rows
+    """The inline learner-work gallery: a handful of real project-submission cards
     (courses.views.project_gallery_groups.family_project_submissions), reusing the
-    same card fields the family/site project galleries already show -- submitter,
-    repository link, project + cohort tag -- and hidden entirely for a family with
-    no real submissions.
+    same fields the family/site project galleries already show -- submitter,
+    repository link, project + cohort tag -- with no vote/score/pass badge (owner
+    feedback: the badge is redundant once only passed submissions render here) and
+    hidden entirely for a family with no real *passed* submissions.
     """
 
     def setUp(self):
@@ -713,7 +717,7 @@ class CourseFamilyProjectGalleryTests(TestCase):
         self.url = reverse("course_family", args=[self.family.slug])
         self._count = 0
 
-    def add_submission(self, *, cohort=None, project=None, volunteer=False):
+    def add_submission(self, *, cohort=None, project=None, volunteer=False, passed=True):
         cohort = cohort or self.cohort
         project = project or cohort.project_set.first()
         self._count += 1
@@ -725,15 +729,26 @@ class CourseFamilyProjectGalleryTests(TestCase):
             enrollment=enrollment,
             github_link=f"https://github.com/example/gallery-repo-{self._count}",
             volunteer_review_only=volunteer,
+            passed=passed,
         )
+
+    def proof_section(self, response) -> str:
+        """The rendered "See what people have built" section, markup only."""
+
+        body = response.content.decode()
+        start = body.index('id="built-heading"')
+        return body[start : body.index("</section>", start)]
 
     def test_inline_gallery_shows_real_submitter_repository_and_project_cohort_tag(self):
         submission = self.add_submission()
 
         response = self.client.get(self.url)
 
-        self.assertContains(response, 'class="row-list family-proof-gallery"')
-        self.assertContains(response, 'class="list-row submission-row"')
+        self.assertContains(response, 'class="card-grid card-grid-2 family-proof-gallery"')
+        self.assertContains(
+            response,
+            'class="card family-proof-card stretched-card-link interactive-card interactive-lift"',
+        )
         self.assertContains(response, submission.enrollment.display_name)
         self.assertContains(response, submission.github_link)
         self.assertContains(response, "github.com/example/gallery-repo-1")
@@ -749,6 +764,16 @@ class CourseFamilyProjectGalleryTests(TestCase):
                 },
             ),
         )
+        # Owner feedback: no vote count, score or "Passed"/"Not passed" badge
+        # any more -- every row shown here is already a passed submission.
+        # Scoped to this section: the editions strip above uses its own
+        # status pills for a different fact (registration state).
+        section = self.proof_section(response)
+        self.assertNotIn("vote</span>", section)
+        self.assertNotIn("score</span>", section)
+        self.assertNotIn("status-pill", section)
+        self.assertNotIn(">Passed<", section)
+        self.assertNotIn(">Not passed<", section)
 
     def test_a_family_with_no_real_submissions_hides_the_gallery_gracefully(self):
         self.add_submission(volunteer=True)
@@ -756,8 +781,21 @@ class CourseFamilyProjectGalleryTests(TestCase):
         response = self.client.get(self.url)
 
         self.assertEqual(list(response.context["family_gallery_submissions"]), [])
-        self.assertNotContains(response, 'class="row-list family-proof-gallery"')
-        self.assertNotContains(response, 'class="list-row submission-row"')
+        self.assertNotContains(response, 'class="card-grid card-grid-2 family-proof-gallery"')
+        self.assertNotContains(response, "family-proof-card")
+
+    def test_a_family_with_only_unpassed_submissions_hides_the_inline_gallery(self):
+        """The section itself still shows (the outcome stats and stage-3 proof
+        foot count every submission, passed or not), but the inline card
+        preview only ever renders passed work."""
+        self.add_submission(passed=False)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(list(response.context["family_gallery_submissions"]), [])
+        self.assertContains(response, 'id="built-heading"')
+        self.assertNotContains(response, 'class="card-grid card-grid-2 family-proof-gallery"')
+        self.assertNotContains(response, "family-proof-card")
 
     def test_inline_gallery_caps_at_six_even_with_more_real_submissions(self):
         for _ in range(9):
@@ -766,7 +804,10 @@ class CourseFamilyProjectGalleryTests(TestCase):
         response = self.client.get(self.url)
 
         self.assertEqual(len(response.context["family_gallery_submissions"]), 6)
-        self.assertEqual(response.content.decode().count('class="list-row submission-row"'), 6)
+        self.assertEqual(
+            response.content.decode().count("family-proof-card"),
+            6,
+        )
 
 
 class CourseFamilyFaqPreviewTests(TestCase):

@@ -610,13 +610,25 @@ def course_family_page_context(family: Course, user) -> dict:
     # below both read the same family-wide submissions queryset
     # (courses/views/project_gallery_groups.py already excludes hidden
     # cohorts and volunteer-review-only rows), so it is built once here
-    # rather than twice.
+    # rather than twice. ``submission_count``/``has_learner_projects`` stay
+    # unfiltered by grading state -- they also feed the outcome-stats strip
+    # and the course-journey stage-3 proof foot, which count every
+    # submission the family has ever collected, not just the passed ones.
     family_submissions = family_project_submissions(family)
     submission_count = family_submissions.count()
     has_learner_projects = submission_count > 0
     gallery_submissions = []
     if has_learner_projects:
-        gallery_submissions = list(family_submissions[:FAMILY_GALLERY_PREVIEW_LIMIT])
+        # This inline preview shows no vote/score/pass badge any more (owner
+        # feedback), so every row rendered here must actually have passed --
+        # filtered at this section's own level, the same way the family/site
+        # project galleries filter themselves in
+        # courses/views/site_project_gallery.py, rather than in
+        # family_project_submissions() itself, which the stats above still
+        # need unfiltered.
+        gallery_submissions = list(
+            family_submissions.filter(passed=True)[:FAMILY_GALLERY_PREVIEW_LIMIT]
+        )
         for submission in gallery_submissions:
             # ``Project.course`` is the submission's cohort (confusingly
             # named; see courses/models/project.py) -- alias it as
