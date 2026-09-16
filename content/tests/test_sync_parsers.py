@@ -114,6 +114,19 @@ def _write_tree(tree: dict[str, bytes]) -> Path:
     return root
 
 
+def _jpeg(comment: bytes) -> bytes:
+    # Signature-valid JPEG bytes; the parser checks signatures, not decodability.
+    return b"\xff\xd8\xff" + comment + b"\xff\xd9"
+
+
+def _png(comment: bytes) -> bytes:
+    return b"\x89PNG\r\n\x1a\n" + comment
+
+
+def _svg(body: str = "<svg xmlns='http://www.w3.org/2000/svg'></svg>") -> bytes:
+    return body.encode()
+
+
 class _CheckoutCase(TestCase):
     def checkout(self, tree: dict[str, bytes], commit: str = "a" * 40) -> ImmutableCheckout:
         return ImmutableCheckout(_write_tree(tree), commit_sha=commit)
@@ -145,40 +158,70 @@ class PeopleParserTests(_CheckoutCase):
         tree = {
             "_people/_template.md": b"template\n",
             "_people/alexeygrigorev.md": _person_markdown().encode(),
-            "images/authors/alexeygrigorev.jpg": b"jpeg-bytes",
+            "images/authors/alexeygrigorev.jpg": _jpeg(b"portrait"),
         }
         with self.checkout(tree) as checkout:
             items = parser.discover(checkout, source)
-            self.assertEqual([item.key for item in items], ["alexeygrigorev"])
+            self.assertEqual(
+                [item.key for item in items],
+                ["alexeygrigorev", "images/authors/alexeygrigorev.jpg"],
+            )
             record = items[0].data["record"]
             self.assertEqual(record["public_path"], "/people/alexeygrigorev.html")
             self.assertEqual(
                 record["provenance"]["revision"],
                 "a" * 40,
             )
-            result = parser.upsert(items[0], source, media_store())
-        self.assertEqual(result.action, "created")
+            for item in items:
+                parser.upsert(item, source, media_store())
         stored = SyncedDocument.objects.get(source=source, content_kind="people")
         self.assertEqual(stored.slug, "alexeygrigorev")
         self.assertEqual(stored.checksum, items[0].data["checksum"])
         self.assertTrue(stored.is_published)
+        picture = SyncedDocument.objects.get(source=source, content_kind="media")
+        self.assertEqual(picture.slug, "images/authors/alexeygrigorev.jpg")
+        self.assertEqual(picture.public_path, "/images/authors/alexeygrigorev.jpg")
+        self.assertEqual(
+            picture.record["content_type"],
+            "image/jpeg",
+        )
+        self.assertEqual(
+            picture.record["provenance"]["repository"],
+            "DataTalksClub/datatalksclub.github.io",
+        )
 
         with self.checkout(tree) as checkout:
-            (item,) = parser.discover(checkout, source)
-            result = parser.upsert(item, source, media_store())
+            for item in parser.discover(checkout, source):
+                result = parser.upsert(item, source, media_store())
         self.assertEqual(result.action, "unchanged")
 
         changed = dict(tree)
-        changed["_people/alexeygrigorev.md"] = (
-            _person_markdown().replace("Author of ML bookcamp.", "Updated biography.").encode()
-        )
+        changed["images/authors/alexeygrigorev.jpg"] = _jpeg(b"other portrait")
         with self.checkout(changed, commit="b" * 40) as checkout:
-            (item,) = parser.discover(checkout, source)
-            result = parser.upsert(item, source, media_store())
+            for item in parser.discover(checkout, source):
+                result = parser.upsert(item, source, media_store())
+        # The picture row follows its bytes even though the profile did not move.
         self.assertEqual(result.action, "updated")
 
-        self.assertEqual(parser.soft_delete_missing(set(), source), 1)
+        self.assertEqual(parser.soft_delete_missing(set(), source), 2)
         self.assertFalse(SyncedDocument.objects.filter(source=source).exists())
+
+    def test_refuses_a_picture_two_profiles_share(self) -> None:
+        source = _source("dtc-main-site")
+        parser = get_parser("people")
+        second = (
+            _person_markdown()
+            .replace("alexeygrigorev", "fixturecolleague")
+            .replace("images/authors/fixturecolleague.jpg", "images/authors/alexeygrigorev.jpg")
+        )
+        tree = {
+            "_people/alexeygrigorev.md": _person_markdown().encode(),
+            "_people/fixturecolleague.md": second.encode(),
+            "images/authors/alexeygrigorev.jpg": _jpeg(b"portrait"),
+        }
+        with self.checkout(tree) as checkout:
+            with self.assertRaises(ContentParserError):
+                parser.discover(checkout, source)
 
     def test_ignores_other_sources(self) -> None:
         other = _source("some-other-site")
@@ -257,6 +300,98 @@ class ArticlesParserTests(_CheckoutCase):
             self.assertEqual(parser.discover(checkout, other), [])
             with self.assertRaises(ContentParserError):
                 parser.discover(checkout, _source("dtc-content"))
+
+
+class MediaParserTests(_CheckoutCase):
+    def setUp(self) -> None:
+        super().setUp()
+        # The reference data seeds the synced media rows the catalogue reads;
+        # the parser contract tests exercise their own synced state from empty.
+        SyncedDocument.objects.filter(source__slug="dtc-content").delete()
+
+    def test_discover_upsert_and_delete(self) -> None:
+        source = _source("dtc-content")
+        parser = get_parser("media")
+        tree = {
+            "articles/2024-03-07-hello-world.md": _article_markdown().encode(),
+            "images/posts/hello-world/cover.png": _png(b"post cover"),
+            "images/podcast/badges/spotify.svg": _svg(),
+            "images/podcast/test-episode.jpg": _jpeg(b"episode art"),
+            "images/books/20201214-ml-bookcamp/cover.jpg": _jpeg(b"book cover"),
+            # Outside the reviewed prefixes: not media, however image-like.
+            "images/authors/alexeygrigorev.jpg": _jpeg(b"portrait"),
+            "images/posts-unrelated/cover.jpg": _jpeg(b"unrelated"),
+        }
+        with self.checkout(tree) as checkout:
+            items = parser.discover(checkout, source)
+            self.assertEqual(
+                [item.key for item in items],
+                [
+                    "images/books/20201214-ml-bookcamp/cover.jpg",
+                    "images/podcast/badges/spotify.svg",
+                    "images/podcast/test-episode.jpg",
+                    "images/posts/hello-world/cover.png",
+                ],
+            )
+            for item in items:
+                parser.upsert(item, source, media_store())
+        stored = {
+            document.slug: document
+            for document in SyncedDocument.objects.filter(source=source, content_kind="media")
+        }
+        self.assertEqual(len(stored), 4)
+        svg = stored["images/podcast/badges/spotify.svg"]
+        self.assertEqual(svg.record["content_type"], "image/svg+xml")
+        self.assertEqual(svg.public_path, "/images/podcast/badges/spotify.svg")
+        cover = stored["images/books/20201214-ml-bookcamp/cover.jpg"]
+        self.assertEqual(cover.record["provenance"]["repository"], "DataTalksClub/content")
+        self.assertEqual(cover.record["provenance"]["revision"], "a" * 40)
+        self.assertEqual(cover.checksum, cover.record["provenance"]["checksum"])
+
+        with self.checkout(tree) as checkout:
+            for item in parser.discover(checkout, source):
+                result = parser.upsert(item, source, media_store())
+        self.assertEqual(result.action, "unchanged")
+
+        changed = dict(tree)
+        changed["images/posts/hello-world/cover.png"] = _png(b"repainted cover")
+        with self.checkout(changed, commit="b" * 40) as checkout:
+            for item in parser.discover(checkout, source):
+                result = parser.upsert(item, source, media_store())
+        self.assertEqual(result.action, "updated")
+
+        withdrawn = dict(tree)
+        del withdrawn["images/podcast/test-episode.jpg"]
+        with self.checkout(withdrawn, commit="c" * 40) as checkout:
+            seen = {item.key for item in parser.discover(checkout, source)}
+        self.assertEqual(parser.soft_delete_missing(seen, source), 1)
+        self.assertFalse(
+            SyncedDocument.objects.filter(
+                source=source, stable_key="images/podcast/test-episode.jpg"
+            ).exists()
+        )
+
+    def test_rejects_files_the_reviewed_rules_refuse(self) -> None:
+        source = _source("dtc-content")
+        parser = get_parser("media")
+        for relative, payload in (
+            ("images/posts/hello-world/cover.txt", b"not an image"),
+            ("images/posts/hello-world/cover.png", b"truncated"),
+            ("images/posts/hello-world/cover.jpg", b"\xff\xd8\xff" + b"no terminator"),
+            ("images/posts/hello-world/cover.svg", b"<script>alert(1)</script>"),
+        ):
+            with self.subTest(relative=relative):
+                with self.checkout({relative: payload}) as checkout:
+                    with self.assertRaises(ContentParserError):
+                        parser.discover(checkout, source)
+
+    def test_ignores_other_sources(self) -> None:
+        other = _source("some-other-content")
+        parser = get_parser("media")
+        tree = {"images/posts/hello-world/cover.png": _png(b"post cover")}
+        with self.checkout(tree) as checkout:
+            self.assertEqual(parser.discover(checkout, other), [])
+            self.assertEqual(parser.soft_delete_missing(set(), other), 0)
 
 
 class PodcastsParserTests(_CheckoutCase):
@@ -849,3 +984,4 @@ class RegistrationTests(unittest.TestCase):
         self.assertEqual(type(get_parser("docs")).__name__, "DocsParser")
         self.assertEqual(type(get_parser("faq")).__name__, "FaqParser")
         self.assertEqual(type(get_parser("wiki")).__name__, "PodwikiParser")
+        self.assertEqual(type(get_parser("media")).__name__, "MediaParser")

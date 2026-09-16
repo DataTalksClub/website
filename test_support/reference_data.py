@@ -439,24 +439,11 @@ def load_synced_wiki() -> int:
     return len(rows)
 
 
-def load_synced_editorial() -> int:
-    """Publish the synthetic editorial records as synced rows, the way the engine does.
-
-    The articles, podcasts, books and people read ``SyncedDocument`` rows --
-    written by the ``dtc-content`` and ``dtc-main-site`` parsers (issue #384).
-    Production writes these rows by parsing the repository checkout; this seeds
-    the same rows from the synthetic catalogue. The staged records carry fields
-    the projection build derived from *other* collections -- the profile
-    credits, the public image address -- and the parser records do not, so the
-    derived fields are stripped here and the declared image is stored under its
-    source form, which is what the read model derives from.
-    """
+def _sync_engine_sources() -> tuple[object, object]:
+    """The two engine sources the editorial catalogue and its media ride on."""
 
     from community_base.content_sync.models import ContentSource as EngineContentSource
 
-    from content.models import SyncedDocument
-
-    catalogue = _synthetic_catalogue()
     editorial_source = EngineContentSource.objects.get_or_create(
         slug="dtc-content",
         defaults={
@@ -470,11 +457,29 @@ def load_synced_editorial() -> int:
         slug="dtc-main-site",
         defaults={
             "repo_name": "DataTalksClub/datatalksclub.github.io",
-            # A synthetic secret so the row satisfies the engine's own shape
-            # rules; nothing here reads or keeps a real credential.
             "webhook_secret": "test-support-synthetic-secret",
         },
     )[0]
+    return editorial_source, people_source
+
+
+def load_synced_editorial() -> int:
+    """Publish the synthetic editorial records as synced rows, the way the engine does.
+
+    The articles, podcasts, books and people read ``SyncedDocument`` rows --
+    written by the ``dtc-content`` and ``dtc-main-site`` parsers (issue #384).
+    Production writes these rows by parsing the repository checkout; this seeds
+    the same rows from the synthetic catalogue. The staged records carry fields
+    the projection build derived from *other* collections -- the profile
+    credits, the public image address -- and the parser records do not, so the
+    derived fields are stripped here and the declared image is stored under its
+    source form, which is what the read model derives from.
+    """
+
+    from content.models import SyncedDocument
+
+    catalogue = _synthetic_catalogue()
+    editorial_source, people_source = _sync_engine_sources()
 
     kinds = {"articles": "article", "podcasts": "podcast", "books": "book"}
     rows = []
@@ -529,6 +534,44 @@ def load_synced_editorial() -> int:
     return len(rows)
 
 
+def load_synced_media() -> int:
+    """Publish the synthetic media records as synced rows, the way the parsers do.
+
+    The media records are written by the ``dtc-content`` media parser (one per
+    ``images/{posts,podcast,books}`` tree file) and the ``dtc-main-site``
+    people parser (one per profile picture) -- issue #384.  The synthetic
+    catalogue's media collection already holds the parser record shape -- key,
+    public address, content type and the serving checksum -- so each record
+    seeds the row of the source whose tree it stands for: profile pictures for
+    the legacy main site, everything else for the editorial repository.
+    """
+
+    from content.models import SyncedDocument
+
+    editorial_source, people_source = _sync_engine_sources()
+    rows = []
+    for record in _synthetic_catalogue()["media"]:
+        held = dict(record)
+        is_people_picture = held["record_key"].startswith("images/authors/")
+        provenance = held.get("provenance") or {}
+        rows.append(
+            SyncedDocument(
+                source=people_source if is_people_picture else editorial_source,
+                content_kind="media",
+                stable_key=held["record_key"],
+                slug=held["record_key"],
+                title=held["record_key"],
+                summary="",
+                public_path=held["public_path"],
+                source_path=str(provenance.get("source_path") or held["record_key"]),
+                checksum=str(provenance.get("checksum") or "0" * 64),
+                record=held,
+            )
+        )
+    SyncedDocument.objects.bulk_create(rows)
+    return len(rows)
+
+
 def load_homepage_testimonials() -> int:
     from courses.services.testimonials import import_homepage_testimonials
 
@@ -554,5 +597,6 @@ def load_reviewed_reference_data() -> dict[str, int]:
         "public_content": load_reviewed_public_content(),
         "synced_wiki": load_synced_wiki(),
         "synced_editorial": load_synced_editorial(),
+        "synced_media": load_synced_media(),
         "testimonials": load_homepage_testimonials(),
     }
