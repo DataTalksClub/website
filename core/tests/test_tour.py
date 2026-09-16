@@ -11,9 +11,16 @@ community survey's own numbers, and the community guidelines' own norms.
 Every claim here is a catalogue count or a sourced quote/fact -- never
 invented copy -- so an empty database renders the page with the
 database-backed claims dropped while the sourced editorial content still
-renders. The black stripe above the footer advertises the tour on every
-shared-shell page except the homepage (which ends with its own closing
-band) and the tour itself.
+renders.
+
+The page is also the site's pitch, so it is drawn like the two pages that
+already pitch: an illustrated hero, opening stat tiles, three chapters on the
+solid rule at the breakout width with narrow subsections hanging under them,
+and one ink moment at the close.  The tests below read that composition,
+because a page whose content was right and whose drawing was not is exactly
+what this page was before.  The black stripe above the footer advertises the
+tour on every shared-shell page except the homepage (which ends with its own
+closing band) and the tour itself.
 """
 
 from __future__ import annotations
@@ -34,7 +41,8 @@ UPCOMING = (
         "title": "Synthetic Office Hours",
         "public_path": "/events/synthetic-office-hours",
         "starts_at": "2026-10-01T18:00:00+00:00",
-        "home_time": "Oct 1, 2026",
+        "display_date": "Oct 1, 2026",
+        "display_clock": "20:00 CEST",
     },
 )
 
@@ -70,29 +78,108 @@ class TourPageTests(TestCase):
         self.assertIn("AI Dev Tools Zoomcamp", body)
         self.assertIn('rel="canonical" href="https://datatalks.club/tour"', body)
 
-    def test_tour_teases_the_catalogue_instead_of_redrawing_it(self) -> None:
-        """The tour points at the catalogue page rather than re-listing it.
+    def test_tour_opens_on_an_illustrated_hero_with_both_ways_in(self) -> None:
+        """The hero is the course family landing's: words, then a drawing.
 
-        ``build_reviewed_catalog`` seeds six course families -- the same six
-        the full catalogue page draws as its own card grid. The tour shows
-        only a handful, in the light dashed row-list shared with index pages
-        like the wiki hub, not the catalogue's bordered card grid, and sends
-        a reader who wants the rest to `/courses`.
+        The page used to open on a bare header band with no art at all, which
+        is the one thing every other page of this site opens with.  The
+        drawing is the neutral journey scene, not a course scene and not the
+        homepage's own hero: the course cards further down each carry their
+        family's scene, and the homepage is one link above this page.
         """
 
         body = self._get().content.decode()
 
-        self.assertIn('class="row-list"', body)
-        self.assertNotIn("tour-grid-3", body)
-        self.assertIn("see all 6 courses →", body)
-        # Six families exist; the teaser shows only the first three.
-        self.assertEqual(body.count('<h3><a href="/courses/'), 3)
+        self.assertIn('class="tour-hero-inner"', body)
+        self.assertIn('<h1>Take the tour</h1>', body)
+        self.assertIn('class="tour-lede"', body)
+        self.assertIn('class="tour-hero-commitment"', body)
+        self.assertIn("Not a highlight reel", body)
+        self.assertIn('class="cta cta-primary interactive-lift" href="/accounts/signup/"', body)
+        self.assertIn('class="cta cta-secondary interactive-lift" href="/slack"', body)
+        self.assertIn('class="tour-hero-art"', body)
+        self.assertIn("course-journey-start.", body)
+        self.assertIn("course-journey-start-dark.", body)
+        self.assertNotIn("home-hero.", body)
 
-    def test_tour_states_its_real_scope_from_the_catalogue_counts(self) -> None:
+    def test_tour_opens_its_content_on_the_survey_numbers_as_tiles(self) -> None:
+        """The numbers sit on the shared stat tiles, flush under the seam.
+
+        They used to be a full-bleed ink stripe stranded in the middle of the
+        page, with its own heading on the lavender above it, so a heading and
+        its numbers sat on two different grounds.  The page now spends its one
+        ink moment on the close, which is where every other page spends it.
+        """
+
         body = self._get().content.decode()
 
-        self.assertIn("What it actually is", body)
+        self.assertIn('<div class="stat-tiles tour-stat-tiles">', body)
+        self.assertEqual(body.count('<div class="stat-tile">'), 4)
+        self.assertIn("65+", body)
+        self.assertIn("countries", body)
+        self.assertIn('class="tour-stats-source mono-note"', body)
+        self.assertIn('href="/blog/datatalks-club-community-demographics.html"', body)
+        # No second ground: the mid-page ink stripe is gone.
+        self.assertNotIn("tour-stats-grid", body)
+        self.assertNotIn("--tour-stats-label", body)
+
+    def test_tour_groups_its_sections_into_chapters_on_one_rule(self) -> None:
+        """Three chapters break out to the shell; their subsections do not.
+
+        Eight sections at one weight, separated eight times by the same
+        page-local `color-mix` rule, is what the page drew before: nothing
+        grouped and nothing was a chapter.  The rule is now the family
+        landing's solid `var(--line)` chapter rule, drawn three times, and the
+        left edge steps wide and narrow with it.
+        """
+
+        source = (REPO_ROOT / "templates" / "core" / "tour.html").read_text(encoding="utf-8")
+        body = self._get().content.decode()
+
+        self.assertEqual(body.count('class="tour-chapter shell-breakout"'), 3)
+        self.assertEqual(body.count('class="tour-subsection"'), 2)
+        self.assertNotIn("tour-section", body)
+        self.assertNotIn("color-mix", source)
+        self.assertIn("border-top: 2px solid var(--line);", source)
+
+    def test_tour_draws_the_catalogue_teaser_as_illustrated_cards(self) -> None:
+        """The teaser is the shared card grid, one family scene per card.
+
+        ``build_reviewed_catalog`` seeds six course families -- the same six
+        the full catalogue page draws.  The tour shows only the first three,
+        each as a whole-card link with its family's own drawing, a mono cohort
+        label and its homework/project line, and sends a reader who wants the
+        rest to `/courses`.  They used to be three underlined titles on a
+        dashed row list, which is what an index draws, not a pitch.
+        """
+
+        body = self._get().content.decode()
+
+        self.assertEqual(body.count('stretched-card-link tour-course-card"'), 3)
+        self.assertIn('class="card-grid card-grid-3 tour-cards"', body)
+        self.assertIn("see all 6 courses →", body)
+        self.assertEqual(body.count('<a class="course-link" href="/courses/'), 3)
+        self.assertIn('<span class="mono-label">2026 cohort</span>', body)
+        self.assertIn("5 homework assignments · 2 projects", body)
+        # A cohort the database gives no projects states only what it has.
+        self.assertIn("4 homework assignments\n", body)
+        self.assertNotIn("0 projects", body)
+        # One drawing per family, and none of them the hero's.
+        for slug in ("ai-dev-tools-zoomcamp", "de-zoomcamp", "llm-zoomcamp"):
+            with self.subTest(family=slug):
+                self.assertIn(f"course-{slug}.", body)
+                self.assertIn(f"course-{slug}-dark.", body)
+        self.assertNotIn("course-ml-zoomcamp.", body)
+        self.assertIn('class="tour-aside"', body)
+
+    def test_tour_states_its_real_scope_in_the_hero_lede(self) -> None:
+        body = self._get().content.decode()
+
+        self.assertIn("independent community for people who work with data", body)
         self.assertIn("free course", body)
+        # The scope statement is the lede now, not a section with its own
+        # heading competing with the page title.
+        self.assertNotIn("What it actually is", body)
 
     def test_tour_prints_the_founder_story_with_a_real_attributed_link(self) -> None:
         """Two short real excerpts, on the homepage's member-story card.
@@ -101,6 +188,8 @@ class TourPageTests(TestCase):
         component the homepage and a course family page draw for a member's
         quote -- not a tinted panel of its own -- and each excerpt is the
         strongest sentence or two of the transcript, not the whole passage.
+        It closes the page's last chapter at the breakout width, where the two
+        excerpts read as a spread rather than a stack.
         """
 
         body = self._get().content.decode()
@@ -110,7 +199,6 @@ class TourPageTests(TestCase):
         self.assertNotIn('class="panel panel-mint', body)
         self.assertIn('<span class="mono-label">How it started</span>', body)
         self.assertIn('<span class="mono-label">Why it\'s free</span>', body)
-        self.assertEqual(body.count('class="story-quote"'), 2)
         self.assertIn(
             "“I started DataTalks.Club four years ago by accident. … By September, "
             "restrictions were back, and we were stuck at home. That's when I "
@@ -136,38 +224,64 @@ class TourPageTests(TestCase):
         self.assertIn('<span class="avatar" aria-hidden="true"></span>', body)
 
     def test_tour_prints_the_cohort_week_facts_and_a_second_real_quote(self) -> None:
+        """One page, one way of drawing a quote.
+
+        The graduate's quote used to sit in a page-local italic well while the
+        founder's took the shared member-story card, which is two components
+        for one kind of content.  Both are the story card now.
+        """
+
         body = self._get().content.decode()
 
         self.assertIn("What a cohort week looks like", body)
+        self.assertIn('class="spec-strip"', body)
         self.assertIn("7–10 weeks", body)
         self.assertIn("10–15 hours", body)
         self.assertIn("no signup", body)
         self.assertIn("everything stays in a Jupyter notebook", body)
         self.assertIn('href="https://www.youtube.com/watch?v=B2tzuUg5uZs&amp;t=2190s"', body)
         self.assertIn("Dashel Ruiz Perez", body)
+        self.assertIn('<span class="story-context">ML Zoomcamp graduate</span>', body)
+        self.assertEqual(body.count('class="story-quote"'), 3)
+        self.assertNotIn("tour-note-quote", body)
 
     def test_tour_prints_who_is_here_from_the_real_survey(self) -> None:
         body = self._get().content.decode()
 
-        self.assertIn("Who's here", body)
+        self.assertIn("2025 survey", body)
         self.assertIn("65+", body)
         self.assertIn("countries", body)
         self.assertIn('href="/blog/datatalks-club-community-demographics.html"', body)
 
-    def test_tour_prints_real_slack_norms(self) -> None:
+    def test_tour_prints_real_slack_norms_as_numbered_steps(self) -> None:
+        """Slack is a section, not a card.
+
+        It is already the hero's second action and the closing line, so a
+        seventh card in the channel grid would name it a fourth time.  The
+        norms take the homepage climb's numbered discs.
+        """
+
         body = self._get().content.decode()
 
         self.assertIn("What Slack is actually like", body)
+        self.assertIn('class="tour-norms"', body)
+        self.assertEqual(body.count('class="tour-norm"'), 3)
+        self.assertIn('<span class="step-number" aria-hidden="true">1</span>', body)
+        self.assertIn('<span class="step-number step-number-2" aria-hidden="true">2</span>', body)
+        self.assertIn('<span class="step-number step-number-3" aria-hidden="true">3</span>', body)
         self.assertIn("Don't ask to ask", body)
         self.assertIn('href="https://dontasktoask.com/"', body)
+        self.assertIn('<a class="band-link" href="/slack">join the Slack →</a>', body)
+        self.assertNotIn('<a class="course-link" href="/slack">', body)
 
     def test_tour_lists_every_other_channel_the_catalogue_holds(self) -> None:
-        """One row per channel, each catalogue-backed row gated on its count.
+        """One card per channel, each catalogue-backed card gated on its count.
 
-        The Slack and the YouTube channel are standing channels and always
-        appear; the podcast, blog, books and wiki rows state their real
-        counts; the docs row appears only when the documentation home is
-        published.
+        The YouTube channel is a standing channel and always appears; the
+        podcast, blog, books and wiki cards state their real counts in the
+        mono foot; the docs card appears only when the documentation home is
+        published.  They were six 80px rows of underlined title before, which
+        is 712px of page for six links.
         """
 
         counts = {
@@ -187,27 +301,39 @@ class TourPageTests(TestCase):
             body = self._get().content.decode()
 
         self.assertIn("More than courses and events", body)
-        self.assertIn('<h3><a href="/slack">Slack</a></h3>', body)
+        # YouTube, events (no upcoming rows here), podcast, blog, books, wiki, docs.
+        self.assertEqual(body.count('stretched-card-link tour-thing"'), 7)
         self.assertIn('href="https://www.youtube.com/c/DataTalksClub"', body)
         self.assertIn("YouTube channel", body)
-        self.assertIn('<h3><a href="/podcast">Podcast</a></h3>', body)
-        self.assertIn("3 conversations with practitioners, 1 with a full transcript.", body)
-        self.assertIn('<h3><a href="/blog">Blog</a></h3>', body)
-        self.assertIn("7 articles written by members and guests.", body)
-        self.assertIn('<h3><a href="/books">Book of the Week</a></h3>', body)
-        self.assertIn("2 books whose authors", body)
-        self.assertIn('<h3><a href="/wiki">Wiki</a></h3>', body)
-        self.assertIn("5 member-written topics, A–Z.", body)
-        self.assertIn('<h3><a href="/docs/">Docs</a></h3>', body)
+        self.assertIn('<a class="course-link" href="/podcast">Podcast</a>', body)
+        self.assertIn("3 conversations · 1 with a full transcript", body)
+        self.assertIn('<a class="course-link" href="/blog">Blog</a>', body)
+        self.assertIn('<span class="mono-note">7 articles</span>', body)
+        self.assertIn('<a class="course-link" href="/books">Book of the Week</a>', body)
+        self.assertIn('<span class="mono-note">2 books</span>', body)
+        self.assertIn('<a class="course-link" href="/wiki">Wiki</a>', body)
+        self.assertIn('<span class="mono-note">5 topics</span>', body)
+        self.assertIn('<a class="course-link" href="/docs/">Docs</a>', body)
 
-    def test_tour_names_events_in_the_channel_list_only_without_a_teaser(
+    def test_tour_names_events_in_the_channel_grid_only_without_a_teaser(
         self,
     ) -> None:
+        """The events section renders from real rows or not at all.
+
+        A development or freshly ingested database with no upcoming events
+        gets no invented week: the section drops and the channel grid names
+        the events page instead.
+        """
+
         with mock.patch("core.views.event_groups", return_value=_event_groups()):
             with_teaser = self._get().content.decode()
 
         self.assertIn("tour-events-heading", with_teaser)
-        self.assertNotIn('<h3><a href="/events">Events</a></h3>', with_teaser)
+        self.assertNotIn('<a class="course-link" href="/events">Events</a>', with_teaser)
+        # The events index's own date rail, from the record's own values.
+        self.assertIn('<div class="when">', with_teaser)
+        self.assertIn("<strong>Oct 1, 2026</strong>", with_teaser)
+        self.assertIn("<span>20:00 CEST</span>", with_teaser)
 
         groups = _event_groups()
         groups.upcoming = []
@@ -215,7 +341,7 @@ class TourPageTests(TestCase):
             without_teaser = self._get().content.decode()
 
         self.assertNotIn("tour-events-heading", without_teaser)
-        self.assertIn('<h3><a href="/events">Events</a></h3>', without_teaser)
+        self.assertIn('<a class="course-link" href="/events">Events</a>', without_teaser)
 
     def test_tour_prints_upcoming_events_and_sponsors(self) -> None:
         sponsors = (
@@ -236,10 +362,24 @@ class TourPageTests(TestCase):
         self.assertIn("Kept free by sponsors", body)
         self.assertIn('href="/sponsors"', body)
 
-    def test_tour_hides_its_own_stripe(self) -> None:
+    def test_tour_closes_on_the_ink_stripe_it_hides(self) -> None:
+        """The page ends where every other page ends: on ink.
+
+        The site-wide stripe is hidden here because it would link to this
+        page, and what replaced it was two left-aligned buttons on lavender --
+        the quietest ending on the site, on the page whose whole job is the
+        ask.  The close is the stripe's own shape, drawn full-bleed inside the
+        content band rather than as a second band.
+        """
+
         body = self._get().content.decode()
+        source = (REPO_ROOT / "templates" / "core" / "tour.html").read_text(encoding="utf-8")
 
         self.assertNotIn("tour-cta-heading", body)
+        self.assertIn('class="tour-close shell-breakout"', body)
+        self.assertIn('<h2 id="tour-community-heading">Build in public, together.</h2>', body)
+        self.assertIn("background: var(--band-ink-bg);", source)
+        self.assertNotIn("tour-actions", body)
 
     def test_tour_uses_the_shared_content_shell(self) -> None:
         source = (REPO_ROOT / "templates" / "core" / "tour.html").read_text(encoding="utf-8")
@@ -256,8 +396,8 @@ class TourEmptyDatabaseTests(TestCase):
     A database with reference events but no catalogue rows: the synced
     sources are disabled, so no courses, no sponsors, and no podcast, wiki or
     docs catalogue rows exist, and those are the sections absent here. The
-    scope statement and the origin story are not per-record content, so both
-    still render.
+    survey numbers, the cohort-week facts and the origin story are not
+    per-record content, so all three still render.
     """
 
     def setUp(self) -> None:
@@ -275,11 +415,11 @@ class TourEmptyDatabaseTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
-        self.assertIn("Build in public, together", body)
-        self.assertIn("What it actually is", body)
+        self.assertIn("Build in public, together.", body)
+        self.assertIn("independent community for people who work with data", body)
         self.assertIn("How it started", body)
         self.assertIn("What a cohort week looks like", body)
-        self.assertIn("Who's here", body)
+        self.assertIn('<div class="stat-tiles tour-stat-tiles">', body)
         self.assertIn("What Slack is actually like", body)
         self.assertNotIn("tour-courses-heading", body)
         self.assertNotIn("Kept free by sponsors", body)
@@ -291,11 +431,10 @@ class TourEmptyDatabaseTests(TestCase):
         body = self.client.get(reverse("tour")).content.decode()
 
         self.assertIn("tour-more-heading", body)
-        self.assertIn('<h3><a href="/slack">Slack</a></h3>', body)
         self.assertIn('href="https://www.youtube.com/c/DataTalksClub"', body)
         for path in ("/podcast", "/blog", "/books", "/wiki", "/docs/"):
             with self.subTest(path=path):
-                self.assertNotIn(f'<h3><a href="{path}">', body)
+                self.assertNotIn(f'<a class="course-link" href="{path}">', body)
 
 
 class TourStripeTests(TestCase):
