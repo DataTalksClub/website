@@ -277,10 +277,14 @@
   margin-bottom: 0.15rem;
 }
 
+/* Ink on the tint, never the link's indigo: indigo on `--lavender-deep`
+   measures 4.11:1 and fails AA, which is why the module rail's own current row
+   keeps its ink too.  The title stays underlined, so the marked word is still
+   visibly part of the link. */
 .docs-result-row mark {
   background: var(--lavender-deep);
   border-radius: 0.2rem;
-  color: inherit;
+  color: var(--ink);
   padding-inline: 0.1em;
 }
 
