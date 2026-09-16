@@ -14,7 +14,6 @@ from courses.models import (
     User,
 )
 
-
 credentials = {
     "username": "test@test.com",
     "email": "test@test.com",
@@ -114,4 +113,4 @@ class ProjectListViewTestBase(TestCase):
 
     def assert_project_list_response(self, response):
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "projects/list.html")
+        self.assertTemplateUsed(response, "projects/site_gallery.html")

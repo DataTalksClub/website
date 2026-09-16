@@ -2,7 +2,16 @@
 {% load breadcrumbs %}
 
 {% block document_title %}
-  Explore learner projects — DataTalks.Club
+  {% if project %}
+    Projects for {{ project.title }}
+  {% elif course %}
+    {{ course.title }} projects
+  {% elif course_family %}
+    {{ course_family.title }} projects
+  {% else %}
+    Explore learner projects
+  {% endif %}
+  — DataTalks.Club
 {% endblock %}
 
 {% block meta_robots %}
@@ -31,31 +40,78 @@
   }
 
   .gallery-filters {
-    border-top: 2px dashed var(--line-soft);
+    background: color-mix(in srgb, var(--card) 80%, transparent);
+    border: 2px solid var(--line);
+    border-radius: 1rem;
+    box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
     display: grid;
     gap: 1rem;
     margin-top: 1.5rem;
-    padding-top: 1.25rem;
+    padding: 1rem;
   }
 
   .gallery-filter-fields {
-    align-items: start;
+    align-items: end;
     display: grid;
-    gap: 0.75rem;
-    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 1.3fr);
+    gap: 0.8rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .gallery-filter-fields .field,
-  .gallery-filter-fields .field-input {
+  .gallery-filter-fields .field {
     min-width: 0;
+  }
+
+  .gallery-select-shell {
+    position: relative;
+  }
+
+  .gallery-select-shell::after {
+    border-bottom: 2px solid currentColor;
+    border-right: 2px solid currentColor;
+    content: "";
+    height: 0.45rem;
+    pointer-events: none;
+    position: absolute;
+    right: 1rem;
+    top: calc(50% - 0.35rem);
+    transform: rotate(45deg);
+    width: 0.45rem;
+  }
+
+  .gallery-select-shell .field-input {
+    appearance: none;
+    background: var(--page);
+    border: 2px solid var(--line);
+    border-radius: 0.7rem;
+    box-shadow: 0.18rem 0.18rem 0 var(--shadow-soft);
+    color: var(--ink);
+    cursor: pointer;
+    font-weight: 700;
+    min-height: 3rem;
+    overflow: hidden;
+    padding: 0.65rem 2.5rem 0.65rem 0.8rem;
+    text-overflow: ellipsis;
+    transition: box-shadow 120ms ease, transform 120ms ease;
+    white-space: nowrap;
     width: 100%;
+  }
+
+  .gallery-select-shell .field-input:hover {
+    box-shadow: 0.25rem 0.25rem 0 var(--shadow-soft);
+    transform: translate(-1px, -1px);
+  }
+
+  .gallery-select-shell .field-input:focus-visible {
+    outline: 3px solid var(--indigo);
+    outline-offset: 3px;
   }
 
   .gallery-filter-actions,
   .gallery-result-head,
   .gallery-card-foot,
   .gallery-outcome,
-  .gallery-contributor {
+  .gallery-contributor,
+  .gallery-card-actions {
     align-items: center;
     display: flex;
     flex-wrap: wrap;
@@ -71,11 +127,6 @@
     max-width: 100%;
   }
 
-  .gallery-filter-hint {
-    color: var(--muted);
-    font-size: 0.85rem;
-  }
-
   .gallery-results {
     display: grid;
     gap: 1.25rem;
@@ -89,6 +140,11 @@
   .gallery-card {
     min-width: 0;
     padding: 1.25rem;
+  }
+
+  .gallery-group {
+    grid-column: 1 / -1;
+    margin-top: 0.5rem;
   }
 
   .gallery-course {
@@ -119,17 +175,15 @@
     text-transform: uppercase;
   }
 
-  .gallery-assignment {
+  .gallery-assignment,
+  .gallery-contributor {
     color: var(--body-text);
     font-size: 0.9rem;
     overflow-wrap: anywhere;
   }
 
   .gallery-contributor {
-    color: var(--muted);
-    font-size: 0.9rem;
     gap: 0 0.35rem;
-    overflow-wrap: anywhere;
   }
 
   .gallery-contributor a {
@@ -141,7 +195,7 @@
     border-top: 2px dashed var(--line-soft);
     justify-content: space-between;
     margin-top: auto;
-    padding-top: 0.6rem;
+    padding-top: 0.75rem;
   }
 
   .gallery-outcome {
@@ -150,6 +204,28 @@
 
   .gallery-outcome .mono-note {
     font-size: 0.75rem;
+  }
+
+  .gallery-card-actions {
+    border-top: 2px dashed var(--line-soft);
+    padding-top: 0.75rem;
+  }
+
+  .project-vote-form {
+    margin: 0;
+  }
+
+  .project-vote-button.is-voted {
+    background: var(--green);
+    border-color: var(--line);
+    color: var(--on-green);
+  }
+
+  .project-vote-button[disabled] {
+    background: var(--sand);
+    box-shadow: none;
+    color: var(--olive);
+    cursor: not-allowed;
   }
 
   .gallery-empty {
@@ -163,16 +239,13 @@
     max-width: var(--measure);
   }
 
-  @media (max-width: 47.99rem) {
+  @media (max-width: 62rem) {
     .gallery-filter-fields {
-      grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+  }
 
-    .gallery-search-field,
-    .gallery-course-field {
-      grid-column: 1 / -1;
-    }
-
+  @media (max-width: 47.99rem) {
     .gallery-grid {
       grid-template-columns: minmax(0, 1fr);
     }
@@ -182,7 +255,7 @@
     }
   }
 
-  @media (max-width: 23.99rem) {
+  @media (max-width: 28rem) {
     .gallery-filter-fields {
       grid-template-columns: minmax(0, 1fr);
     }
@@ -191,122 +264,251 @@
 
 {% block page_header %}
   {% url 'course_list' as course_list_url %}
-  {% url 'all_projects' as gallery_url %}
-  {% breadcrumbs "Courses" course_list_url current="Learner projects" %}
-  <div class="gallery-heading">
-    <h1>Explore learner projects</h1>
-    <p class="gallery-intro">
-      Find a repository to learn from. Browse what learners submitted across our courses,
-      then explore the course behind the work.
-    </p>
-    {% if gallery_total %}
-      <p class="gallery-totals">
-        <strong>{{ gallery_total|floatformat:"0g" }}</strong> submission{{ gallery_total|pluralize }}
-        across <strong>{{ gallery_course_count }}</strong> course{{ gallery_course_count|pluralize }}
-      </p>
+  {% if course_family %}
+    {% url 'course_family' course_family.slug as course_family_url %}
+    {% if course %}
+      {% url 'cohort' course_family.slug course.identifier as cohort_url %}
+      {% if project %}
+        {% url 'cohort_project' course_family.slug course.identifier project.slug as project_url %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url project.title project_url current="Project submissions" %}
+      {% else %}
+        {% breadcrumbs "Courses" course_list_url course_family.title course_family_url course.identifier cohort_url current="Learner projects" %}
+      {% endif %}
+    {% else %}
+      {% breadcrumbs "Courses" course_list_url current=course_family.title %}
     {% endif %}
+  {% else %}
+    {% breadcrumbs "Courses" course_list_url current="Learner projects" %}
+  {% endif %}
+  <div class="gallery-heading">
+    {% if project %}
+      <p class="mono-label mono-label-indigo">{{ course.title }}</p>
+      <h1>Projects for {{ project.title }}</h1>
+      <p class="gallery-intro">Review peer submissions, open repositories, and vote for up to {{ project_votes_per_project }} favorites.</p>
+      {% if is_authenticated %}
+        <p class="mono-note">
+          <span id="project-votes-left">{{ project_votes_left }}</span>
+          <span id="project-votes-left-label">vote{{ project_votes_left|pluralize }} left</span>
+        </p>
+      {% endif %}
+      <div class="project-toolbar">
+        <a class="band-link" href="{% url 'cohort_projects' course.course.slug course.identifier %}">All cohort projects →</a>
+      </div>
+    {% elif course %}
+      <p class="mono-label mono-label-indigo">{{ course_family.title }}</p>
+      <h1>{{ course.identifier }} learner projects</h1>
+      <p class="gallery-intro">Browse repositories submitted in this cohort, or adjust the filters to explore work from the wider community.</p>
+    {% elif course_family %}
+      <h1>{{ course_family.title }} learner projects</h1>
+      <p class="gallery-intro">Explore project repositories from every visible cohort of this course.</p>
+    {% else %}
+      <h1>Explore learner projects</h1>
+      <p class="gallery-intro">Find a repository to learn from, then explore the course and assignment behind the work.</p>
+    {% endif %}
+    <p class="gallery-totals">
+      <strong>{{ gallery_total|floatformat:"0g" }}</strong> submission{{ gallery_total|pluralize }}
+      {% if not course_family %}
+        across <strong>{{ gallery_course_count }}</strong> course{{ gallery_course_count|pluralize }}
+      {% endif %}
+    </p>
   </div>
-  <form class="gallery-filters" action="{{ gallery_url }}" method="get" aria-label="Find learner projects">
+  <form class="gallery-filters" action="{{ gallery_url }}" method="get" aria-label="Filter learner projects">
     {% include "accessibility/error_summary.html" with form=gallery_filters %}
     <div class="gallery-filter-fields">
-      <div class="field gallery-search-field">
-        <label class="field-label" for="{{ gallery_filters.q.id_for_label }}">Repository or assignment</label>
-        {{ gallery_filters.q }}
-        {{ gallery_filters.q.errors }}
-      </div>
-      <div class="field gallery-course-field">
-        <label class="field-label" for="{{ gallery_filters.course.id_for_label }}">Course</label>
-        {{ gallery_filters.course }}
-        {{ gallery_filters.course.errors }}
-      </div>
-      <div class="field">
-        <label class="field-label" for="{{ gallery_filters.year.id_for_label }}">Year</label>
-        {{ gallery_filters.year }}
-        {{ gallery_filters.year.errors }}
-      </div>
-      <div class="field">
-        <label class="field-label" for="{{ gallery_filters.sort.id_for_label }}">Sort by</label>
-        {{ gallery_filters.sort }}
-        {{ gallery_filters.sort.errors }}
-      </div>
+      {% for field in gallery_filters %}
+        <div class="field">
+          <label class="field-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          <div class="gallery-select-shell">{{ field }}</div>
+          {{ field.errors }}
+        </div>
+      {% endfor %}
     </div>
     <div class="gallery-filter-actions">
-      <button class="cta cta-primary cta-compact interactive-lift" type="submit">Find projects</button>
+      <button class="cta cta-primary cta-compact interactive-lift" type="submit">Apply filters</button>
       {% if gallery_has_filters %}
         <a class="band-link" href="{{ gallery_url }}">Clear filters</a>
-      {% else %}
-        <p class="gallery-filter-hint">Search the submitted repository address or assignment name.</p>
       {% endif %}
     </div>
   </form>
 {% endblock %}
 
 {% block project_content %}
-  <section class="gallery-results" aria-labelledby="site-gallery-heading">
-    <div class="gallery-result-head">
-      <h2 id="site-gallery-heading">Project repositories</h2>
-      {% if submissions %}
-        <p>
-          {{ submissions_page.start_index|floatformat:"0g" }}–{{ submissions_page.end_index|floatformat:"0g" }}
-          of {{ submissions_page.paginator.count|floatformat:"0g" }} submission{{ submissions_page.paginator.count|pluralize }}
-        </p>
-      {% endif %}
-    </div>
-    {% if submissions %}
-      <div class="card-grid card-grid-2 gallery-grid">
-        {% for submission in submissions %}
-          <article class="card gallery-card">
-            <p class="gallery-course">{{ submission.family.title }} · {{ submission.cohort.identifier }}</p>
-            <div>
-              <p class="gallery-repository-label">Submitted repository</p>
-              <h3 class="gallery-repository">
-                {% if submission.repository_url %}
-                  <a href="{{ submission.repository_url }}" target="_blank" rel="noopener noreferrer">
-                    {{ submission.repository_label }} ↗
-                    <span class="sr-only">(opens in a new tab)</span>
-                  </a>
-                {% else %}
-                  Repository link unavailable
-                {% endif %}
-              </h3>
-            </div>
-            <p class="gallery-assignment">{{ submission.project.title }}</p>
-            <p class="gallery-contributor">
-              Submitted by
-              <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=submission.family.slug cohort_identifier=submission.cohort.identifier enrollment_id=submission.enrollment.id %}">{{ submission.enrollment.display_name }}</a>
-            </p>
-            <div class="gallery-card-foot">
-              <div class="gallery-outcome">
-                {% if submission.display_score == -1 %}
-                  <span class="mono-note">Not graded yet</span>
-                {% else %}
-                  <span class="mono-note">{{ submission.display_score }} score</span>
-                  {% if submission.passed %}
-                    <span class="status-pill status-pill-live">Passed</span>
-                  {% else %}
-                    <span class="status-pill status-pill-wait">Not passed</span>
-                  {% endif %}
-                {% endif %}
-                <span class="mono-note">{{ submission.vote_count }} vote{{ submission.vote_count|pluralize }}</span>
-              </div>
-              <a class="band-link" href="{% url 'cohort' course_slug=submission.family.slug cohort_identifier=submission.cohort.identifier %}">View cohort →</a>
-            </div>
-          </article>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div class="card gallery-empty">
-        {% if gallery_has_filters %}
-          <h3>No submissions match these filters</h3>
-          <p>Try a different repository name, choose another year, or browse all courses.</p>
-          <a class="cta cta-secondary cta-compact" href="{% url 'all_projects' %}">Clear filters</a>
-        {% else %}
-          <h3>No project submissions yet</h3>
-          <p>Projects will appear here once learners submit their work in a course.</p>
-          <a class="cta cta-secondary cta-compact" href="{% url 'course_list' %}">Explore courses</a>
+  {% if project.state == 'CL' %}
+    <p class="notice warning">The project is closed. Come back later to see the submissions.</p>
+  {% else %}
+    <section class="gallery-results" aria-labelledby="site-gallery-heading">
+      <div class="gallery-result-head">
+        <h2 id="site-gallery-heading">Project repositories</h2>
+        {% if submissions %}
+          <p>
+            {{ submissions_page.start_index|floatformat:"0g" }}–{{ submissions_page.end_index|floatformat:"0g" }}
+            of {{ submissions_page.paginator.count|floatformat:"0g" }}
+          </p>
         {% endif %}
       </div>
-    {% endif %}
-    {% include 'include/pagination.html' with pagination_page=submissions_page pagination_range=page_range pagination_label='Project submission pages' %}
-  </section>
+      {% if submissions %}
+        <div class="card-grid card-grid-2 gallery-grid">
+          {% for submission in submissions %}
+            {% if submission.group_heading %}
+              <p class="mono-label gallery-group">{{ submission.group_heading }}</p>
+            {% endif %}
+            <article class="card gallery-card">
+              <p class="gallery-course">{{ submission.family.title }} · {{ submission.cohort.identifier }}</p>
+              <div>
+                <p class="gallery-repository-label">Submitted repository</p>
+                <h3 class="gallery-repository">
+                  {% if submission.repository_url %}
+                    <a href="{{ submission.repository_url }}" target="_blank" rel="noopener noreferrer" aria-label="Open repository">
+                      {{ submission.repository_label }} ↗ <span class="sr-only">(opens in a new tab)</span>
+                    </a>
+                  {% else %}
+                    Repository link unavailable
+                  {% endif %}
+                </h3>
+              </div>
+              <p class="gallery-assignment">{{ submission.assignment.title }}</p>
+              <p class="gallery-contributor">
+                Submitted by
+                <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=submission.family.slug cohort_identifier=submission.cohort.identifier enrollment_id=submission.enrollment.id %}">
+                  {{ submission.enrollment.display_name }}
+                </a>
+              </p>
+              <div class="gallery-card-foot">
+                <div class="gallery-outcome">
+                  {% if project and project.state == 'CO' %}
+                    <span class="mono-note">{{ submission.project_score }} score</span>
+                    {% if submission.passed %}
+                      <span class="status-pill status-pill-live">Passed</span>
+                    {% else %}
+                      <span class="status-pill status-pill-wait">Not passed</span>
+                    {% endif %}
+                  {% elif not project %}
+                    {% if submission.display_score == -1 %}
+                      <span class="mono-note">Not graded yet</span>
+                    {% else %}
+                      <span class="mono-note">{{ submission.display_score }} score</span>
+                      {% if submission.passed %}
+                        <span class="status-pill status-pill-live">Passed</span>
+                      {% else %}
+                        <span class="status-pill status-pill-wait">Not passed</span>
+                      {% endif %}
+                    {% endif %}
+                  {% endif %}
+                  <span class="project-vote-count mono-note" data-submission-id="{{ submission.id }}" data-vote-count="{{ submission.vote_count }}">{{ submission.vote_count }} vote{{ submission.vote_count|pluralize }}</span>
+                </div>
+                {% if not project %}
+                  <a class="band-link" href="{% url 'cohort' course_slug=submission.family.slug cohort_identifier=submission.cohort.identifier %}">View cohort →</a>
+                {% endif %}
+              </div>
+              {% if project %}
+                <div class="gallery-card-actions">
+                  {% if is_authenticated %}
+                    <form method="post" class="project-vote-form" data-submission-id="{{ submission.id }}" data-own="{{ submission.own|yesno:'true,false' }}">
+                      {% csrf_token %}
+                      <input type="hidden" name="submission_id" value="{{ submission.id }}">
+                      {% if submission.id in voted_submission_ids %}
+                        <input type="hidden" name="action" value="remove">
+                        <button type="submit" class="cta cta-compact cta-secondary project-vote-button is-voted interactive-lift" aria-label="Remove vote" title="Remove vote">
+                          <span class="project-vote-label">Voted</span>
+                        </button>
+                      {% else %}
+                        <input type="hidden" name="action" value="vote">
+                        {% if submission.vote_limit_reached or submission.own %}
+                          <button type="submit" class="cta cta-compact cta-secondary project-vote-button interactive-lift" aria-label="Vote" disabled>
+                            <span class="project-vote-label">Vote</span>
+                          </button>
+                        {% else %}
+                          <button type="submit" class="cta cta-compact cta-secondary project-vote-button interactive-lift" aria-label="Vote">
+                            <span class="project-vote-label">Vote</span>
+                          </button>
+                        {% endif %}
+                      {% endif %}
+                    </form>
+                  {% endif %}
+                  {% if is_authenticated and project.state == 'PR' %}
+                    {% if submission.to_evaluate %}
+                      <a class="cta cta-compact cta-primary interactive-lift" href="{% url 'cohort_projects_eval_submit' course_slug=course.course.slug cohort_identifier=course.identifier project_slug=project.slug review_id=submission.review.id %}">
+                        {% if submission.review.state == 'SU' %}
+                          Done
+                        {% else %}
+                          Review
+                        {% endif %}
+                      </a>
+                    {% elif submission.own %}
+                      <span class="status-pill">Your project</span>
+                    {% else %}
+                      <form method="post" action="{% url 'cohort_projects_eval_add' course_slug=course.course.slug cohort_identifier=course.identifier project_slug=project.slug submission_id=submission.id %}" data-confirm-message="Are you sure you want to add this project to the list of projects you need to evaluate?">
+                        {% csrf_token %}
+                        <button type="submit" class="cta cta-compact cta-secondary interactive-lift" aria-label="Add to evaluation">Review</button>
+                      </form>
+                    {% endif %}
+                  {% endif %}
+                </div>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="card gallery-empty">
+          {% if gallery_empty_is_filtered %}
+            <h3>No submissions match these filters</h3>
+            <p>Choose another course, cohort, or assignment to explore more learner work.</p>
+            <a class="cta cta-secondary cta-compact" href="{{ gallery_url }}">Clear filters</a>
+          {% else %}
+            <h3>No project submissions yet</h3>
+            <p>Projects will appear here once learners submit their work in a course.</p>
+          {% endif %}
+        </div>
+      {% endif %}
+      {% include 'include/pagination.html' with pagination_page=submissions_page pagination_range=page_range pagination_label='Project submission pages' %}
+    </section>
+  {% endif %}
+  {% if project.state == 'CO' %}
+    <div class="project-toolbar">
+      <a class="cta cta-compact cta-secondary interactive-lift" href="{% url 'cohort_project_statistics' course.course.slug course.identifier project.slug %}">Project statistics</a>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  {% if project %}
+    <script>
+      document.querySelectorAll('form[data-confirm-message]').forEach((form) => {
+        form.addEventListener('submit', (event) => { if (!window.confirm(form.dataset.confirmMessage)) event.preventDefault(); });
+      });
+      function voteLabel(count) { return `${count} vote${count === 1 ? '' : 's'}`; }
+      function setVoteFormState(form, voted, limitReached) {
+        const own = form.dataset.own === 'true';
+        const input = form.querySelector('input[name="action"]');
+        const button = form.querySelector('.project-vote-button');
+        const label = button.querySelector('.project-vote-label');
+        const title = voted ? 'Remove vote' : (limitReached ? 'Limit reached' : (own ? 'Your project' : 'Vote'));
+        input.value = voted ? 'remove' : 'vote';
+        button.classList.toggle('is-voted', voted);
+        if (label) label.textContent = voted ? 'Voted' : 'Vote';
+        button.disabled = !voted && (limitReached || own);
+        button.title = title;
+        button.setAttribute('aria-label', title);
+      }
+      document.querySelectorAll('.project-vote-form').forEach((form) => {
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const button = form.querySelector('.project-vote-button');
+          button.disabled = true;
+          try {
+            const response = await fetch(form.action || window.location.href, { method: 'POST', body: new FormData(form), headers: {'X-Requested-With': 'XMLHttpRequest'} });
+            if (!response.ok) { form.submit(); return; }
+            const data = await response.json();
+            const left = document.getElementById('project-votes-left');
+            if (left) left.textContent = data.votes_left;
+            const leftLabel = document.getElementById('project-votes-left-label');
+            if (leftLabel) leftLabel.textContent = `vote${data.votes_left === 1 ? '' : 's'} left`;
+            document.querySelectorAll(`.project-vote-count[data-submission-id="${data.submission_id}"]`).forEach((count) => { count.dataset.voteCount = data.vote_count; count.textContent = voteLabel(data.vote_count); });
+            const votedIds = new Set(data.voted_submission_ids.map(String));
+            document.querySelectorAll('.project-vote-form').forEach((voteForm) => setVoteFormState(voteForm, votedIds.has(voteForm.dataset.submissionId), data.vote_limit_reached));
+          } catch (error) { form.submit(); }
+        });
+      });
+    </script>
+  {% endif %}
 {% endblock %}

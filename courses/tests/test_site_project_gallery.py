@@ -8,7 +8,7 @@ from django.db import connection
 from django.template.loader import render_to_string
 from django.test import SimpleTestCase, TestCase
 from django.test.utils import CaptureQueriesContext
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 
 from core.accessibility_registry import template_readability_issues
@@ -148,6 +148,11 @@ class SiteProjectGallerySubmissionListTests(SiteProjectGalleryTestBase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "projects/site_gallery.html")
 
+    def test_retired_legacy_listing_routes_have_no_compatibility_names(self):
+        for route_name in ("list_all_project_submissions", "project_list"):
+            with self.subTest(route_name=route_name), self.assertRaises(NoReverseMatch):
+                reverse(route_name, args=["legacy"])
+
     def test_lists_individual_submissions_newest_cohort_first(self):
         response = self.client.get(self.gallery_url())
 
@@ -272,42 +277,48 @@ class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
             ],
         )
         self.assertEqual(
-            list(filters.fields["year"].choices),
-            [("", "All years"), ("2025", "2025"), ("2024", "2024"), ("2023", "2023")],
+            list(filters.fields["cohort"].choices),
+            [
+                ("", "All cohorts"),
+                (str(self.ml_2025.pk), "ML Zoomcamp · 2025"),
+                (str(self.de_2024.pk), "Data Engineering Zoomcamp · 2024"),
+                (str(self.de_2023.pk), "Data Engineering Zoomcamp · 2023"),
+            ],
         )
+        self.assertEqual(len(filters.fields["project"].choices), 4)
 
-    def test_course_year_and_case_insensitive_repository_search_combine(self):
+    def test_course_cohort_and_assignment_filters_combine(self):
         response = self.client.get(
-            self.gallery_url(), {"course": "de-zoomcamp", "year": "2024", "q": " PIPELINE "}
+            self.gallery_url(),
+            {
+                "course": "de-zoomcamp",
+                "cohort": str(self.de_2024.pk),
+                "project": str(self.de_project_2024.pk),
+            },
         )
 
         self.assertEqual(
             [row.id for row in response.context["submissions"]], [self.submission_de_2024.id]
         )
         self.assertContains(response, '<option value="de-zoomcamp" selected>')
-        self.assertContains(response, '<option value="2024" selected>')
-        self.assertEqual(response.context["gallery_filters"].cleaned_data["q"], "PIPELINE")
+        self.assertContains(response, f'<option value="{self.de_2024.pk}" selected>')
+        self.assertContains(response, f'<option value="{self.de_project_2024.pk}" selected>')
         self.assertContains(response, "Clear filters")
 
-    def test_assignment_search_is_literal_and_does_not_search_private_identity(self):
-        response = self.client.get(self.gallery_url(), {"q": "Capstone 2025"})
-        self.assertEqual(
-            [row.id for row in response.context["submissions"]], [self.submission_ml_2025.id]
-        )
-        for query in (".*", "%", "learner-", "@example.com"):
-            with self.subTest(query=query):
-                response = self.client.get(self.gallery_url(), {"q": query})
-                self.assertEqual(list(response.context["submissions"]), [])
-                self.assertContains(response, "No submissions match these filters")
+    def test_free_text_repository_search_is_removed(self):
+        response = self.client.get(self.gallery_url())
+
+        self.assertNotIn("q", response.context["gallery_filters"].fields)
+        self.assertNotContains(response, "Repository or assignment")
 
     def test_invalid_filters_do_not_widen_results_or_reveal_hidden_facet_names(self):
         for query in (
             {"course": "secret-zoomcamp"},
             {"course": "unknown"},
-            {"year": "2026"},
-            {"year": "not-a-year"},
+            {"cohort": "999999"},
+            {"cohort": "not-a-cohort"},
+            {"project": "999999"},
             {"sort": "score"},
-            {"q": "x" * 121},
         ):
             with self.subTest(query=query):
                 response = self.client.get(self.gallery_url(), query)
@@ -399,8 +410,8 @@ class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
             self.gallery_url(),
             {
                 "course": "ml-zoomcamp",
-                "year": "2025",
-                "q": "capstone",
+                "cohort": str(self.ml_2025.pk),
+                "project": str(self.ml_project_2025.pk),
                 "sort": "votes",
                 "unrelated": "discard-me",
             },
@@ -411,8 +422,8 @@ class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
             {
                 "page": ["2"],
                 "course": ["ml-zoomcamp"],
-                "year": ["2025"],
-                "q": ["capstone"],
+                "cohort": [str(self.ml_2025.pk)],
+                "project": [str(self.ml_project_2025.pk)],
                 "sort": ["votes"],
             },
         )

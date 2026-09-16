@@ -8,9 +8,7 @@ from .views import (
     course_enrollment,
     course_leaderboard,
     course_list,
-    course_project_submissions,
     dashboard,
-    family_project_gallery,
     homework,
     homework_statistics,
     homework_submissions,
@@ -24,6 +22,7 @@ from .views import (
     project_submissions,
     registration,
     shared_course,
+    site_project_gallery,
     unit,
     wrapped,
 )
@@ -55,7 +54,7 @@ urlpatterns = [
     ),
     path(
         "<slug:course_slug>/<slug:cohort_identifier>/projects",
-        course_project_submissions.list_all_project_submissions_view,
+        site_project_gallery.project_gallery_view,
         name="cohort_projects",
     ),
     path(
@@ -110,7 +109,7 @@ urlpatterns = [
     ),
     path(
         "<slug:course_slug>/<slug:cohort_identifier>/project/<slug:project_slug>/list",
-        project_submissions.projects_list_view,
+        site_project_gallery.project_gallery_view,
         name="cohort_project_list",
     ),
     path(
@@ -196,11 +195,6 @@ urlpatterns = [
         course.course_view,
         name="course",
     ),
-    path(
-        "<slug:course_slug>/projects",
-        course_project_submissions.list_all_project_submissions_view,
-        name="list_all_project_submissions",
-    ),
     # Family-wide gallery: every project submitted across every cohort of the
     # family, not one cohort's submissions. ``<slug:course_slug>/projects``
     # above is already the per-cohort shorthand (it resolves the cohort whose
@@ -208,7 +202,7 @@ urlpatterns = [
     # literal segment rather than colliding with it.
     path(
         "<slug:course_slug>/projects/all",
-        family_project_gallery.family_project_gallery_view,
+        site_project_gallery.project_gallery_view,
         name="family_projects",
     ),
     path(
@@ -246,11 +240,6 @@ urlpatterns = [
         "<slug:course_slug>/project/<slug:project_slug>",
         project.project_view,
         name="project",
-    ),
-    path(
-        "<slug:course_slug>/project/<slug:project_slug>/list",
-        project_submissions.projects_list_view,
-        name="project_list",
     ),
     path(
         "<slug:course_slug>/project/<slug:project_slug>/eval",

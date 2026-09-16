@@ -1,10 +1,8 @@
 """Cross-cohort project submissions for the family-wide and site-wide galleries.
 
-``courses/views/course_project_submissions.py`` lists every submission for
-one :class:`~courses.models.cohort.Cohort` (issue #179's design-system port).
-The two galleries built from this module answer a wider question -- "what did
-people build across an entire course family" and "what did people build
-anywhere on the site" -- so they read
+The unified gallery uses this query at site, course-family, and cohort scope.
+The wider scopes answer "what did people build across an entire course
+family" and "what did people build anywhere on the site", so they read
 :class:`~courses.models.project.ProjectSubmission` rows across many cohorts
 (and, site-wide, many families) instead of scoping to one cohort.
 
@@ -17,10 +15,8 @@ newest-cohort-first -- ``family_project_submissions`` for one family,
 ``site_project_submissions`` generalizing that one level up to every visible
 family, the same way the module's previous grouping helpers generalized from
 one family to the whole site. Both exclude volunteer-review-only submissions
-and annotate the same public fields (``vote_count``, ``display_score``) that
-``course_project_submissions._all_project_submissions`` already shows on one
-cohort's own catalogue, so neither gallery adds visibility that page does not
-already grant.
+and annotate the same public fields (``vote_count``, ``display_score``) at
+every scope.
 
 Both return querysets, not lists, so a caller can paginate without first
 materializing every submission the site (or one family) has ever collected --
@@ -36,11 +32,8 @@ from courses.models.project import ProjectState, ProjectSubmission
 def _submission_display_score():
     """The score to show for a submission.
 
-    Mirrors ``course_project_submissions._project_submission_display_score``
-    field-for-field so neither gallery here ever disagrees with the
-    per-cohort catalogue about what counts as a visible score: -1 means "not
-    yet completed", which the templates all render as "Score N/A" rather
-    than a real number.
+    A value of -1 means the assignment is not completed yet, which the gallery
+    renders as ungraded rather than as a real score.
     """
 
     completed_project_score = When(
@@ -64,10 +57,8 @@ def family_project_submissions(family: Course):
     annotated with a submission count) still is not "individual project
     submissions" -- readers said so about the list this function replaces.
     This instead reads ``ProjectSubmission`` directly, across every visible
-    cohort, ordered newest cohort first and then the same way
-    ``course_project_submissions._all_project_submissions`` already lists one
-    cohort's own submissions (by project, then submission time) so a reader
-    who knows that page finds the same shape here. It excludes
+    cohort, ordered newest cohort first, then by project and submission time.
+    It excludes
     volunteer-review-only submissions, matching that page's own filter, and
     annotates the same public fields (``vote_count``, ``display_score``) so
     this adds no new visibility beyond what a single cohort's catalogue

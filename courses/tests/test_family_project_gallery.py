@@ -122,7 +122,7 @@ class FamilyProjectGallerySubmissionListTests(FamilyProjectGalleryTestBase):
         response = self.client.get(self.gallery_url())
 
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "projects/family_gallery.html")
+        self.assertTemplateUsed(response, "projects/site_gallery.html")
 
     def test_lists_individual_submissions_newest_cohort_first(self):
         response = self.client.get(self.gallery_url())

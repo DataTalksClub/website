@@ -3,24 +3,31 @@ from urllib.parse import unquote, urlencode, urlsplit
 
 from django import forms
 from django.core.paginator import Paginator
-from django.db.models import Count, Q
-from django.shortcuts import render
+from django.db.models import Count
+from django.shortcuts import get_object_or_404, render
 from django.urls import NoReverseMatch, reverse
 
+from courses.models.cohort import Cohort, Course
+from courses.models.project import Project
 from courses.views.project_gallery_groups import site_project_submissions
+from courses.views.project_submission_listing import (
+    project_submissions_page,
+    projects_list_context,
+)
+from courses.views.project_submission_viewer import project_viewer_state
+from courses.views.project_submission_votes import project_vote_response
 
 SITE_PROJECT_SUBMISSIONS_PAGE_SIZE = 25
 
 
 class ProjectGalleryFilters(forms.Form):
-    q = forms.CharField(
-        label="Repository or assignment",
-        required=False,
-        max_length=120,
-        widget=forms.TextInput(attrs={"type": "search", "class": "field-input"}),
-    )
     course = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "field-input"}))
-    year = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "field-input"}))
+    cohort = forms.ChoiceField(required=False, widget=forms.Select(attrs={"class": "field-input"}))
+    project = forms.ChoiceField(
+        label="Assignment",
+        required=False,
+        widget=forms.Select(attrs={"class": "field-input"}),
+    )
     sort = forms.ChoiceField(
         label="Sort by",
         required=False,
@@ -35,11 +42,7 @@ class ProjectGalleryFilters(forms.Form):
 
 
 def _repository_identity(raw_url: str) -> tuple[str, str]:
-    """A readable address, not an inferred project title or a repository fetch.
-
-    Keep the submitted destination (including a subdirectory or fragment). Unsafe
-    or missing addresses render without a link; never expose URL credentials.
-    """
+    """Return a safe, readable label and destination for a submitted URL."""
 
     try:
         parsed = urlsplit(raw_url)
@@ -59,16 +62,7 @@ def _repository_identity(raw_url: str) -> tuple[str, str]:
 
 
 def optional_all_projects_url() -> str | None:
-    """Resolve the site-wide project gallery link without failing when it is absent.
-
-    ``all_projects`` is registered by the full site's ``website.urls``, which
-    ``course_management.urls`` (the reduced, courses-app-only URLConf the
-    studio/course-management deployment target runs) never includes. Templates
-    shared between both surfaces (``courses/course_list.html``,
-    ``projects/family_gallery.html``) call this instead of ``{% url
-    'all_projects' %}`` directly, so the link is simply left off rather than
-    raising ``NoReverseMatch`` when rendered under the reduced URLConf.
-    """
+    """Return the public gallery URL when the active URLConf exposes it."""
 
     try:
         return reverse("all_projects")
@@ -76,95 +70,190 @@ def optional_all_projects_url() -> str | None:
         return None
 
 
-def site_project_gallery_view(request):
-    """Every individual learner project submission anywhere on the site.
+def _scope_objects(course_slug, cohort_identifier, project_slug):
+    family = cohort = project = None
+    if course_slug:
+        family = get_object_or_404(Course, slug=course_slug, visible=True)
+    if cohort_identifier:
+        cohort = get_object_or_404(
+            Cohort,
+            course=family,
+            identifier=str(cohort_identifier),
+            visible=True,
+        )
+    if project_slug:
+        project = get_object_or_404(Project, course=cohort, slug=project_slug)
+    return family, cohort, project
 
-    One level up from ``family_project_gallery_view``: it reads every
-    visible family's every visible cohort instead of one family's, reusing
-    the same submission-level query and row shape (submitter, repository
-    link, project + cohort tag, votes, score/pass state) so the two galleries
-    stay visually and structurally consistent. The site can hold many
-    thousands of submissions across every course family, so like the family
-    gallery this paginates rather than rendering one unbounded list.
-    """
 
-    submissions = site_project_submissions()
-    # Facets come from exactly the same public rows as the results. Group in SQL,
-    # rather than materializing thousands of submissions or querying per card.
-    facets = list(
+def _choice_rows(submissions):
+    return list(
         submissions.order_by()
         .values(
             "project__course__course__slug",
             "project__course__course__title",
-            "project__course__year",
+            "project__course_id",
+            "project__course__identifier",
+            "project_id",
+            "project__title",
         )
         .annotate(total=Count("pk", distinct=True))
     )
-    courses = sorted(
-        {
-            (row["project__course__course__slug"], row["project__course__course__title"])
-            for row in facets
-        },
-        key=lambda course: (course[1].casefold(), course[0]),
-    )
-    years = sorted({row["project__course__year"] for row in facets}, reverse=True)
-    filters = ProjectGalleryFilters(request.GET or {"sort": "cohort"})
-    cast(forms.ChoiceField, filters.fields["course"]).choices = [("", "All courses"), *courses]
-    cast(forms.ChoiceField, filters.fields["year"]).choices = [
-        ("", "All years"),
-        *((str(year), str(year)) for year in years),
-    ]
-    if filters.is_valid():
-        values = filters.cleaned_data
-        if values["course"]:
-            submissions = submissions.filter(project__course__course__slug=values["course"])
-        if values["year"]:
-            submissions = submissions.filter(project__course__year=int(values["year"]))
-        if values["q"]:
-            submissions = submissions.filter(
-                Q(github_link__icontains=values["q"]) | Q(project__title__icontains=values["q"])
-            )
-        if values["sort"] == "recent":
-            submissions = submissions.order_by("-submitted_at", "-pk")
-        elif values["sort"] == "votes":
-            submissions = submissions.order_by("-vote_count", "-submitted_at", "-pk")
-        else:
-            submissions = submissions.order_by(*submissions.query.order_by, "pk")
-    else:
-        # Invalid/retired facet values must not silently widen a shared filter link.
-        submissions = submissions.none()
-    paginator = Paginator(submissions, SITE_PROJECT_SUBMISSIONS_PAGE_SIZE)
-    page_number = request.GET.get("page")
-    submissions_page = paginator.get_page(page_number)
 
-    # ``Project.course`` is the submission's cohort, and that cohort's own
-    # ``.course`` is its family (both confusingly named; see
-    # courses/models/project.py and courses/models/cohort.py) -- alias both
-    # as ``.cohort``/``.family`` on each row so a flat, site-wide list can
-    # still tag which course and edition a submission came from.
-    for submission in submissions_page.object_list:
-        submission.cohort = submission.project.course
-        submission.family = submission.project.course.course
+
+def _filter_choices(rows, family=None, cohort=None, project=None):
+    courses = {
+        (row["project__course__course__slug"], row["project__course__course__title"])
+        for row in rows
+    }
+    cohorts = {
+        (
+            str(row["project__course_id"]),
+            f"{row['project__course__course__title']} · {row['project__course__identifier']}",
+        )
+        for row in rows
+    }
+    projects = {
+        (
+            str(row["project_id"]),
+            (
+                f"{row['project__title']} · "
+                f"{row['project__course__course__title']} "
+                f"{row['project__course__identifier']}"
+            ),
+        )
+        for row in rows
+    }
+    if family:
+        courses.add((family.slug, family.title))
+    if cohort:
+        cohorts.add((str(cohort.pk), f"{family.title} · {cohort.identifier}"))
+    if project:
+        projects.add((str(project.pk), f"{project.title} · {family.title} {cohort.identifier}"))
+    return (
+        sorted(courses, key=lambda item: (item[1].casefold(), item[0])),
+        sorted(cohorts, key=lambda item: item[1].casefold(), reverse=True),
+        sorted(projects, key=lambda item: item[1].casefold()),
+    )
+
+
+def _gallery_filters(request, rows, family=None, cohort=None, project=None):
+    data = request.GET.copy()
+    data.pop("page", None)
+    if family:
+        data["course"] = family.slug
+    if cohort:
+        data["cohort"] = str(cohort.pk)
+    if project:
+        data["project"] = str(project.pk)
+    if "sort" not in data:
+        data["sort"] = "cohort"
+
+    filters = ProjectGalleryFilters(data)
+    courses, cohorts, projects = _filter_choices(rows, family, cohort, project)
+    cast(forms.ChoiceField, filters.fields["course"]).choices = [("", "All courses"), *courses]
+    cast(forms.ChoiceField, filters.fields["cohort"]).choices = [("", "All cohorts"), *cohorts]
+    cast(forms.ChoiceField, filters.fields["project"]).choices = [
+        ("", "All assignments"),
+        *projects,
+    ]
+    return filters, courses
+
+
+def _apply_filters(submissions, filters):
+    if not filters.is_valid():
+        return submissions.none()
+    values = filters.cleaned_data
+    if values["course"]:
+        submissions = submissions.filter(project__course__course__slug=values["course"])
+    if values["cohort"]:
+        submissions = submissions.filter(project__course_id=int(values["cohort"]))
+    if values["project"]:
+        submissions = submissions.filter(project_id=int(values["project"]))
+    if values["sort"] == "recent":
+        return submissions.order_by("-submitted_at", "-pk")
+    if values["sort"] == "votes":
+        return submissions.order_by("-vote_count", "-submitted_at", "-pk")
+    return submissions.order_by(*submissions.query.order_by, "pk")
+
+
+def _decorate_rows(submissions, family=None, cohort=None, project=None):
+    for submission in submissions:
+        submission.cohort = cohort or submission.project.course
+        submission.family = family or submission.cohort.course
+        submission.assignment = project or submission.project
         submission.repository_label, submission.repository_url = _repository_identity(
             submission.github_link
         )
 
-    page_range = paginator.get_elided_page_range(submissions_page.number, on_each_side=1)
-    query = urlencode(
+
+def project_gallery_view(
+    request,
+    course_slug: str | None = None,
+    cohort_identifier: str | int | None = None,
+    project_slug: str | None = None,
+):
+    """Render every project-list route through one filterable gallery template."""
+
+    family, cohort, project = _scope_objects(course_slug, cohort_identifier, project_slug)
+    if request.method == "POST":
+        if project is None:
+            raise ValueError("Only an assignment-scoped gallery accepts votes")
+        return project_vote_response(request, cohort, project)
+
+    public_submissions = site_project_submissions()
+    facet_rows = _choice_rows(public_submissions)
+    filters, courses = _gallery_filters(request, facet_rows, family, cohort, project)
+
+    context = {}
+    if project:
+        viewer_state = project_viewer_state(project, cohort, request.user)
+        submissions_page = project_submissions_page(request, project, viewer_state)
+        context.update(projects_list_context(cohort, project, submissions_page, viewer_state))
+    else:
+        submissions = _apply_filters(public_submissions, filters)
+        paginator = Paginator(submissions, SITE_PROJECT_SUBMISSIONS_PAGE_SIZE)
+        submissions_page = paginator.get_page(request.GET.get("page"))
+        context.update(
+            {
+                "submissions": submissions_page.object_list,
+                "submissions_page": submissions_page,
+                "page_range": paginator.get_elided_page_range(
+                    submissions_page.number, on_each_side=1
+                ),
+            }
+        )
+
+    _decorate_rows(submissions_page.object_list, family, cohort, project)
+    query = ""
+    if filters.is_valid():
+        query = urlencode(
+            {
+                key: value
+                for key, value in filters.cleaned_data.items()
+                if value and not (key == "sort" and value == "cohort")
+            }
+        )
+    gallery_url = optional_all_projects_url() or request.path
+    context.update(
         {
-            key: value
-            for key, value in filters.cleaned_data.items()
-            if value and not (key == "sort" and value == "cohort")
+            "course_family": family,
+            "course": cohort,
+            "project": project,
+            "gallery_filters": filters,
+            "gallery_total": submissions_page.paginator.count,
+            "gallery_course_count": len(courses),
+            "gallery_has_filters": bool(family or cohort or project or query or filters.errors),
+            "gallery_empty_is_filtered": bool(
+                filters.errors
+                or {"course", "cohort", "project", "sort"}.intersection(request.GET)
+            ),
+            "gallery_url": gallery_url,
+            "pagination_querystring": f"&{query}" if query else "",
+            "is_project_gallery": project is not None,
         }
     )
-    context = {
-        "submissions": submissions_page.object_list,
-        "submissions_page": submissions_page,
-        "page_range": page_range,
-        "gallery_filters": filters,
-        "gallery_total": sum(row["total"] for row in facets),
-        "gallery_course_count": len(courses),
-        "gallery_has_filters": bool(query) or bool(filters.errors),
-        "pagination_querystring": f"&{query}" if query else "",
-    }
     return render(request, "projects/site_gallery.html", context)
+
+
+site_project_gallery_view = project_gallery_view

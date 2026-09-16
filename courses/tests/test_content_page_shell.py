@@ -29,9 +29,8 @@ DIRECT_CHILDREN = (
 
 PROJECT_CHILDREN = (
     "courses/templates/projects/eval.html",
-    "courses/templates/projects/list.html",
-    "courses/templates/projects/list_all.html",
     "courses/templates/projects/results.html",
+    "courses/templates/projects/site_gallery.html",
     "courses/templates/projects/stats.html",
 )
 
@@ -77,7 +76,7 @@ class ContentPageShellContractTests(SimpleTestCase):
 
     def test_homepage_remains_an_explicit_layout_exception(self) -> None:
         homepage = self.read("templates/core/home.html")
-        self.assertNotIn("{% extends \"core/content_page.html\" %}", homepage)
+        self.assertNotIn('{% extends "core/content_page.html" %}', homepage)
 
     def test_auth_pages_remain_the_other_explicit_layout_exception(self) -> None:
         auth_parent = self.read("accounts/templates/account/auth_page.html")

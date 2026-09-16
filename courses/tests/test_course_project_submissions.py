@@ -14,9 +14,7 @@ from courses.models import (
     User,
 )
 
-credentials = dict(
-    username="test@test.com", email="test@test.com", password="12345"
-)
+credentials = dict(username="test@test.com", email="test@test.com", password="12345")
 
 
 @dataclass(frozen=True)
@@ -29,9 +27,7 @@ class ProjectFixtureData:
 
 class CourseProjectSubmissionsViewBase(TestCase):
     def create_course(self):
-        return Cohort.objects.create(
-            title="Test Course", slug="test-course-2"
-        )
+        return Cohort.objects.create(title="Test Course", slug="test-course-2")
 
     def create_enrollment(self, user=None, display_name=""):
         student = user
@@ -44,9 +40,7 @@ class CourseProjectSubmissionsViewBase(TestCase):
         )
 
     def create_project(self, data: ProjectFixtureData):
-        submission_due_date = timezone.now() + timezone.timedelta(
-            days=data.submission_days
-        )
+        submission_due_date = timezone.now() + timezone.timedelta(days=data.submission_days)
         peer_review_due_date = timezone.now() + timezone.timedelta(days=14)
         return Project.objects.create(
             course=self.course,
@@ -139,10 +133,9 @@ class CourseProjectSubmissionsViewBase(TestCase):
     def assert_submission_order(self, submissions):
         submissions_count = len(submissions)
         self.assertEqual(submissions_count, 2)
-        self.assertEqual(submissions[0].project, self.completed_project)
-        self.assertEqual(submissions[0].display_score, 85)
-        self.assertEqual(submissions[1].project, self.open_project)
-        self.assertEqual(submissions[1].display_score, -1)
+        submissions_by_project = {submission.project: submission for submission in submissions}
+        self.assertEqual(submissions_by_project[self.completed_project].display_score, 85)
+        self.assertEqual(submissions_by_project[self.open_project].display_score, -1)
 
     def assert_leaderboard_link(self, response):
         leaderboard_url = reverse(
@@ -155,26 +148,10 @@ class CourseProjectSubmissionsViewBase(TestCase):
         )
         self.assertContains(response, leaderboard_url)
 
-    def assert_project_links(self, response):
-        self.assertContains(response, "Project lists")
-        completed_project_url = reverse(
-            "cohort_project_list",
-            kwargs={
-                "course_slug": self.course.course.slug,
-                "cohort_identifier": self.course.identifier,
-                "project_slug": self.completed_project.slug,
-            },
-        )
-        self.assertContains(response, completed_project_url)
-        open_project_url = reverse(
-            "cohort_project_list",
-            kwargs={
-                "course_slug": self.course.course.slug,
-                "cohort_identifier": self.course.identifier,
-                "project_slug": self.open_project.slug,
-            },
-        )
-        self.assertContains(response, open_project_url)
+    def assert_project_filters(self, response):
+        self.assertContains(response, "All assignments")
+        self.assertContains(response, self.completed_project.title)
+        self.assertContains(response, self.open_project.title)
 
     def assert_evaluated_submission(self, submission):
         self.assertEqual(submission.project, self.completed_project)
@@ -192,7 +169,7 @@ class CourseProjectSubmissionsPageTestCase(CourseProjectSubmissionsViewBase):
         response = self.get_submissions_response(login=True)
 
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "projects/list_all.html")
+        self.assertTemplateUsed(response, "projects/site_gallery.html")
 
         submissions = response.context["submissions"]
         self.assert_submission_order(submissions)
@@ -224,11 +201,11 @@ class CourseProjectSubmissionsLinkTestCase(CourseProjectSubmissionsViewBase):
         self.assertContains(response, self.completed_submission.github_link)
         self.assertContains(response, 'aria-label="Open repository"')
 
-    def test_list_all_submissions_links_to_each_project_list(self):
+    def test_list_all_submissions_offers_each_project_as_a_filter(self):
         response = self.get_submissions_response()
 
         self.assertEqual(response.status_code, 200)
-        self.assert_project_links(response)
+        self.assert_project_filters(response)
 
 
 class CourseProjectSubmissionsDisplayTestCase(CourseProjectSubmissionsViewBase):
