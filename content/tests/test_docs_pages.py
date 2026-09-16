@@ -16,7 +16,6 @@ from unittest.mock import patch
 from django.test import TestCase
 
 from content.docs_presentation import (
-    docs_guide_root,
     docs_guide_sequence,
     docs_hub,
     docs_rail,

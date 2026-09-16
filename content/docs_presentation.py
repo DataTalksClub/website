@@ -511,9 +511,7 @@ def docs_hub(tree: DocsNavigationTree) -> DocsHub:
             if not any(child.children for child in item.children)
         ),
         community=tuple(
-            _guide_entry(row, slugs)
-            for area in docs_home_areas(tree)
-            for row in _index_rows(area)
+            _guide_entry(row, slugs) for area in docs_home_areas(tree) for row in _index_rows(area)
         ),
     )
 
