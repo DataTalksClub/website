@@ -72,6 +72,15 @@ class Course(SourceProvenanceModel):
         default="",
         help_text="Prerequisite knowledge authored by the course repository.",
     )
+    weekly_commitment = models.TextField(
+        blank=True,
+        default="",
+        help_text=(
+            "Short factual note on cost and weekly time commitment, shown near "
+            "the family hero. Sourced from the course's own FAQ answers and "
+            "edited directly -- not synced from the course repository."
+        ),
+    )
     progression = models.JSONField(
         blank=True,
         default=list,

@@ -553,6 +553,7 @@ def course_family_page_context(family: Course, user) -> dict:
         "family_lede": family_lede(family),
         "family_starting_point": family.starting_point.strip(),
         "family_prerequisites": family.prerequisites.strip(),
+        "family_weekly_commitment": family.weekly_commitment.strip(),
         "family_transformation": transformation,
         "family_overview": overview,
         "front_cohort": front_cohort,

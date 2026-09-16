@@ -241,6 +241,31 @@ class CourseFamilyLandingTests(TestCase):
         self.assertIn(self.family.prerequisites, prerequisite_section)
         self.assertNotIn(self.family.starting_point, prerequisite_section)
 
+    def test_weekly_commitment_renders_near_the_hero_and_is_escaped(self):
+        self.family.weekly_commitment = "Free. <script>evil()</script> Plan for about 10 hours a week."
+        self.family.save(update_fields=["weekly_commitment"])
+
+        response = self.client.get(self.url)
+        body = response.content.decode()
+
+        self.assertContains(response, "Free.")
+        self.assertContains(response, "Plan for about 10 hours a week.")
+        self.assertContains(response, "&lt;script&gt;evil()&lt;/script&gt;")
+        self.assertNotContains(response, "<script>evil()")
+        # Under the hero heading and lede, ahead of the register/syllabus actions.
+        self.assertLess(
+            body.index('class="family-hero-commitment"'),
+            body.index('class="family-hero-actions"'),
+        )
+
+    def test_whitespace_weekly_commitment_does_not_leave_an_empty_line(self):
+        self.family.weekly_commitment = " \n "
+        self.family.save(update_fields=["weekly_commitment"])
+
+        response = self.client.get(self.url)
+
+        self.assertNotContains(response, 'class="family-hero-commitment"')
+
     def test_self_paced_route_omits_cohort_certificate_promise(self):
         self.cohort.delivery_mode = DeliveryMode.SELF_PACED
         self.cohort.save(update_fields=["delivery_mode"])

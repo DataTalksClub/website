@@ -301,6 +301,7 @@ class CourseFamilyAdmin(ModelAdmin):
         "slug",
         "starting_point",
         "prerequisites",
+        "weekly_commitment",
         "progression",
         "outcome",
         "description",

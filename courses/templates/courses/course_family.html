@@ -73,6 +73,15 @@
         max-width: var(--measure);
       }
 
+      .family-hero-commitment {
+        color: var(--ink);
+        font-family: var(--font-mono);
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        margin-top: 0.6rem;
+      }
+
       .family-hero-actions .band-link {
         align-items: center;
         display: inline-flex;
@@ -816,6 +825,9 @@
             <h1 id="family-heading">{{ course_family.title }}</h1>
             {% if family_lede %}
               <p class="family-lede">{{ family_lede }}</p>
+            {% endif %}
+            {% if family_weekly_commitment %}
+              <p class="family-hero-commitment">{{ family_weekly_commitment }}</p>
             {% endif %}
             {% comment %}
               Registration for the course, not for one of its editions: an open edition is
