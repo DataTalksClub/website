@@ -327,72 +327,12 @@
          Cards sit in the shared three-column grid (design-system.md's
          `.card-grid-3`), the same density the family page's own past-editions
          grid already uses, kept deliberately light so it still reads well at a
-         third of the shell's width.  The illustration is a marker for the
-         course, not a dominant banner -- only the generic per-family doodle
-         ever draws here (never a campaign's own authored photo, whose
-         intrinsic proportions are never guaranteed to be square), so it never
-         crops or distorts. */
+         third of the shell's width.  The card itself (.catalog-card /
+         -media / -body) is the shared partial's own component -- the tour
+         page's "Learn by building" cards reuse it too, so a rule two pages
+         need lives in the partial rather than forked here.
 
-      .catalog-card {
-        display: flex;
-        flex-direction: column;
-        gap: 0.85rem;
-        padding: 1.25rem;
-      }
-
-      .catalog-card[role="link"] {
-        cursor: pointer;
-      }
-
-      /* The doodles are small scenes -- two or three figures with props on a
-         watercolour blob -- not glyphs, so they have a legibility floor: below
-         about 5rem the figures blur and every card's scene looks alike, which
-         defeats the illustration's one job of telling the courses apart at a
-         glance.  They also have a hierarchy ceiling: at 7rem and up the
-         picture matches the height of the title-outcome-link block on a
-         two-line card and reads as a banner again.  6rem sits between the two
-         at the shell's full width.
-
-         The size tracks the title's own fluid scale rather than the column:
-         `h3` runs clamp(1.15rem, 1.6vw, 1.4rem), and this clamp keeps the
-         picture at roughly 4.3 of those title heights at every viewport, so
-         it carries the same weight beside the smaller phone type as beside
-         the desktop type.  A percentage of the card would do the opposite --
-         balloon on the one-column tablet card and shrink on the phone card,
-         which has the most room of all. */
-      .catalog-card-media {
-        --illustration-size: clamp(5rem, 6.9vw, 6rem);
-        display: flex;
-        height: var(--illustration-size);
-        width: var(--illustration-size);
-      }
-
-      .catalog-card-media .doodle {
-        height: 100%;
-        object-fit: contain;
-        width: 100%;
-      }
-
-      .catalog-card-body {
-        display: grid;
-        gap: 0.5rem;
-      }
-
-      .catalog-card-body h3 {
-        font-size: clamp(1.15rem, 1.6vw, 1.4rem);
-        letter-spacing: -0.015em;
-      }
-
-      .catalog-card-body h3 a {
-        color: var(--ink);
-        text-decoration: none;
-      }
-
-      .catalog-card-body p {
-        font-size: 0.92rem;
-      }
-
-      /* The card lost its own "View course →" line -- the whole card is
+         The card lost its own "View course →" line -- the whole card is
          already `role="link"` and the click target, so the line was a
          redundant second affordance.  Without it the body can end right
          after the outcome line (or the title alone, when a family has no
@@ -413,13 +353,6 @@
       .courses-wrapped-action {
         align-self: center;
         justify-self: start;
-      }
-
-      /* --- keyboard-reachable whole cards ---------------------------------------- */
-
-      .catalog-card[role="link"]:focus-visible {
-        outline: 3px solid var(--ink);
-        outline-offset: 4px;
       }
 
       /* --- how a zoomcamp works ----------------------------------------------------

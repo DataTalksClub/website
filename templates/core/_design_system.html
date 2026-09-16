@@ -1264,6 +1264,77 @@ Rules for editing:
         gap: 1.25rem;
       }
 
+      /* --- catalogue card ---------------------------------------------------
+         One card shape for a family/course teaser, whatever its real
+         registration state: an illustration slot, then a body of title and
+         one line of outcome copy -- no badge, no background or CTA that
+         singles a card out.  Used by the course catalogue's own grid and
+         reused wherever another page teases the same catalogue (the tour's
+         "Learn by building" cards). */
+      .catalog-card {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        padding: 1.25rem;
+      }
+
+      .catalog-card[role="link"] {
+        cursor: pointer;
+      }
+
+      .catalog-card[role="link"]:focus-visible {
+        outline: 3px solid var(--ink);
+        outline-offset: 4px;
+      }
+
+      /* The doodles are small scenes -- two or three figures with props on a
+         watercolour blob -- not glyphs, so they have a legibility floor: below
+         about 5rem the figures blur and every card's scene looks alike, which
+         defeats the illustration's one job of telling the courses apart at a
+         glance.  They also have a hierarchy ceiling: at 7rem and up the
+         picture matches the height of the title-outcome-link block on a
+         two-line card and reads as a banner again.  6rem sits between the two
+         at the shell's full width.
+
+         The size tracks the title's own fluid scale rather than the column:
+         `h3` runs clamp(1.15rem, 1.6vw, 1.4rem), and this clamp keeps the
+         picture at roughly 4.3 of those title heights at every viewport, so
+         it carries the same weight beside the smaller phone type as beside
+         the desktop type.  A percentage of the card would do the opposite --
+         balloon on the one-column tablet card and shrink on the phone card,
+         which has the most room of all. */
+      .catalog-card-media {
+        --illustration-size: clamp(5rem, 6.9vw, 6rem);
+        display: flex;
+        height: var(--illustration-size);
+        width: var(--illustration-size);
+      }
+
+      .catalog-card-media .doodle {
+        height: 100%;
+        object-fit: contain;
+        width: 100%;
+      }
+
+      .catalog-card-body {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .catalog-card-body h3 {
+        font-size: clamp(1.15rem, 1.6vw, 1.4rem);
+        letter-spacing: -0.015em;
+      }
+
+      .catalog-card-body h3 a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .catalog-card-body p {
+        font-size: 0.92rem;
+      }
+
       /* A whole-card destination keeps one semantic anchor.  Its hit area is
          stretched across the surface; independent person links remain above
          that overlay and retain their own destination. */

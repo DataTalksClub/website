@@ -156,19 +156,26 @@ class TourPageTests(TestCase):
         self.assertIn("border-top: 2px solid var(--line);", source)
 
     def test_tour_draws_the_catalogue_teaser_as_illustrated_cards(self) -> None:
-        """The teaser is the shared card grid, one family scene per card.
+        """The teaser is the catalogue's own .catalog-card, one per family.
 
         ``build_reviewed_catalog`` seeds six course families -- the same six
         the full catalogue page draws.  The tour shows only the first three,
         each as a whole-card link with its family's own drawing, a mono cohort
         label and its homework/project line, and sends a reader who wants the
-        rest to `/courses`.  They used to be three underlined titles on a
-        dashed row list, which is what an index draws, not a pitch.
+        rest to `/courses`.  The card is the shared design-system component
+        `/courses` itself draws, not a bespoke tour card, so the two facts
+        this page adds (the cohort tag, the homework/project line) sit inside
+        the shared .catalog-card-body.
         """
 
         body = self._get().content.decode()
 
-        self.assertEqual(body.count('stretched-card-link tour-course-card"'), 3)
+        self.assertEqual(
+            body.count('class="card catalog-card interactive-card interactive-lift stretched-card-link"'),
+            3,
+        )
+        self.assertEqual(body.count('class="catalog-card-media"'), 3)
+        self.assertEqual(body.count('class="catalog-card-body"'), 3)
         self.assertIn('class="card-grid card-grid-3 tour-cards"', body)
         self.assertIn("see all 6 courses →", body)
         # The "see more" action sits under the cards, not beside the heading.
@@ -178,7 +185,7 @@ class TourPageTests(TestCase):
             body.index("see all 6 courses →"),
         )
         self.assertEqual(body.count('<a class="course-link" href="/courses/'), 3)
-        self.assertIn('<span class="mono-label">2026 cohort</span>', body)
+        self.assertIn('<span class="mono-label mono-label-indigo">2026 cohort</span>', body)
         self.assertIn("5 homework assignments · 2 projects", body)
         # A cohort the database gives no projects states only what it has.
         self.assertIn("4 homework assignments\n", body)

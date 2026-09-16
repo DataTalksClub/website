@@ -100,21 +100,14 @@
      it announces the width change, as on the family landing. */
   .tour-chapter.shell-breakout { --breakout-width: min(var(--shell), calc(100vw - 2rem)); }
 
-  /* --- course cards: the homepage climb card (drawing, then mono label,
-         h3, one line), one per family, on the shared card grid */
-  .tour-course-card { padding: 1.25rem 1.35rem 1.2rem; gap: 0; }
-  .tour-course-figure {
-    align-items: center;
-    display: flex;
-    height: 9.5rem;
-    justify-content: center;
-    margin: 0 0 0.9rem;
-  }
-  .tour-course-figure .doodle { height: 100%; object-fit: contain; width: auto; }
-  .tour-course-card .mono-label { color: var(--indigo); }
-  .tour-course-card h3 { font-size: 1.15rem; letter-spacing: -0.015em; margin-top: 0.45rem; }
-  .tour-course-card h3 a { color: var(--ink); text-decoration: none; }
-  .tour-course-card p { color: var(--muted); font-size: 0.88rem; margin-top: 0.35rem; }
+  /* --- course cards: the course catalogue's own .catalog-card component
+         (design-system.md, shared by the partial), not a bespoke tour card.
+         It carries the illustration slot and the title/outcome body; the
+         cohort tag and the homework/project line are this page's own two
+         extra facts, added inside .catalog-card-body with the same
+         .mono-label-indigo and .mono-note tokens the rest of the page
+         already uses. */
+  .tour-cards .catalog-card-body p { color: var(--muted); }
 
   /* --- cohort week: spec strip, then the note, then the graduate's quote
          below it.  2026-09: restacked to one column, matching the design
@@ -214,9 +207,10 @@
     .tour-chapter { margin-top: 2.5rem; padding-top: 1.75rem; }
     .tour-subsection { margin-top: 2rem; }
 
-    /* course cards and the "more" cards give up their surface and read as
-       the homepage's dashed list: drawing on the left, words on the right */
-    .tour-course-card,
+    /* The "more" cards give up their surface and read as the homepage's
+       dashed list: drawing on the left, words on the right.  The course
+       cards keep the catalogue's own card surface at every width instead --
+       the same shape /courses itself shows on a narrow screen. */
     .tour-thing {
       background: none;
       border: 0;
@@ -225,14 +219,6 @@
       box-shadow: none;
       padding: 0 0 0.9rem;
     }
-    .tour-course-card {
-      column-gap: 0.9rem;
-      display: grid;
-      grid-template-columns: 5.5rem minmax(0, 1fr);
-    }
-    .tour-course-figure { grid-row: 1 / span 3; height: 5.5rem; margin: 0; }
-    .tour-course-card h3 { margin-top: 0.15rem; }
-    .tour-course-card p { margin-top: 0.2rem; }
     .card-grid-3.tour-cards { gap: 0.9rem; }
     .tour-thing .mono-note { padding-top: 0.15rem; }
 
@@ -323,18 +309,29 @@
         </div>
       </div>
       <div class="card-grid card-grid-3 tour-cards">
+        {% comment %}
+          The catalogue's own .catalog-card component (design-system.md),
+          not the invented card this section drew before.  It keeps the
+          stretched-card-link technique rather than the catalogue's own
+          role="link"/onclick pattern: that pattern's outer role="link" wraps
+          a real inner anchor, which is two focusable targets for one
+          destination, where stretched-card-link keeps the single real
+          anchor (.course-link) as the one correct tab stop.
+        {% endcomment %}
         {% for course in catalog_courses|slice:":3" %}
-          <article class="card interactive-card interactive-lift stretched-card-link tour-course-card">
-            <div class="tour-course-figure">
+          <article class="card catalog-card interactive-card interactive-lift stretched-card-link">
+            <div class="catalog-card-media">
               {% include "core/_course_illustration.html" with family_slug=course.family loading="lazy" only %}
             </div>
-            <span class="mono-label">{{ course.cohort_label }}</span>
-            <h3>
-              <a class="course-link" href="{{ course.public_path }}">{{ course.title }}</a>
-            </h3>
-            <p>
-              {% if course.homework_count %}{{ course.homework_count }} homework assignment{{ course.homework_count|pluralize }}{% endif %}{% if course.homework_count and course.project_count %} · {% endif %}{% if course.project_count %}{{ course.project_count }} project{{ course.project_count|pluralize }}{% endif %}
-            </p>
+            <div class="catalog-card-body">
+              <span class="mono-label mono-label-indigo">{{ course.cohort_label }}</span>
+              <h3>
+                <a class="course-link" href="{{ course.public_path }}">{{ course.title }}</a>
+              </h3>
+              <p>
+                {% if course.homework_count %}{{ course.homework_count }} homework assignment{{ course.homework_count|pluralize }}{% endif %}{% if course.homework_count and course.project_count %} · {% endif %}{% if course.project_count %}{{ course.project_count }} project{{ course.project_count|pluralize }}{% endif %}
+              </p>
+            </div>
           </article>
         {% endfor %}
       </div>
