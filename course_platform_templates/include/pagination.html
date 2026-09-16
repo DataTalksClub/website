@@ -11,7 +11,8 @@
   `aria-current="page"`, the state the primitive already fills ink for.
   A direction that leads nowhere keeps the span it has always been, drawn as
   the quiet bare `.status-pill` so it reads as a marker rather than a control,
-  and the elided range keeps its ellipsis in the same quiet marker.
+  with an explicitly disabled link role so its accessible name is valid. It
+  has no destination or tab stop. The elided range keeps its quiet marker.
 
   Nothing about the paginator's behaviour moves: the same `?page=` links, the
   same `pagination_querystring` carried through, the same `aria-label`s on the
@@ -45,7 +46,7 @@
         aria-label="Previous page"
       ><span aria-hidden="true">&larr;</span></a>
     {% else %}
-      <span class="status-pill pagination-step" aria-label="Previous page"
+      <span class="status-pill pagination-step" role="link" aria-disabled="true" aria-label="Previous page"
         ><span aria-hidden="true">&larr;</span></span>
     {% endif %}
     {% for page_number in pagination_range %}
@@ -68,7 +69,7 @@
         aria-label="Next page"
       ><span aria-hidden="true">&rarr;</span></a>
     {% else %}
-      <span class="status-pill pagination-step" aria-label="Next page"
+      <span class="status-pill pagination-step" role="link" aria-disabled="true" aria-label="Next page"
         ><span aria-hidden="true">&rarr;</span></span>
     {% endif %}
   </nav>

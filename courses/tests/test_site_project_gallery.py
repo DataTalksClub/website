@@ -1,15 +1,25 @@
 from datetime import datetime, timedelta
+from html import unescape
+from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
-from django.test import TestCase
+from django.core.paginator import Paginator
+from django.db import connection
+from django.template.loader import render_to_string
+from django.test import SimpleTestCase, TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
+from core.accessibility_registry import template_readability_issues
 from courses.models import (
     Cohort,
     Course,
     Enrollment,
     Project,
+    ProjectState,
     ProjectSubmission,
+    ProjectVote,
     User,
 )
 
@@ -240,3 +250,225 @@ class SiteProjectGalleryEmptyCaseTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(list(response.context["submissions"]), [])
         self.assertContains(response, "No project submissions yet")
+
+
+class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
+    def test_facets_and_totals_use_only_public_submissions_without_vote_join_duplicates(self):
+        for index in range(2):
+            voter = User.objects.create_user(username=f"voter-{index}")
+            ProjectVote.objects.create(submission=self.submission_ml_2025, voter=voter)
+
+        response = self.client.get(self.gallery_url())
+        filters = response.context["gallery_filters"]
+
+        self.assertEqual(response.context["gallery_total"], 3)
+        self.assertEqual(response.context["gallery_course_count"], 2)
+        self.assertEqual(
+            list(filters.fields["course"].choices),
+            [
+                ("", "All courses"),
+                ("de-zoomcamp", "Data Engineering Zoomcamp"),
+                ("ml-zoomcamp", "ML Zoomcamp"),
+            ],
+        )
+        self.assertEqual(
+            list(filters.fields["year"].choices),
+            [("", "All years"), ("2025", "2025"), ("2024", "2024"), ("2023", "2023")],
+        )
+
+    def test_course_year_and_case_insensitive_repository_search_combine(self):
+        response = self.client.get(
+            self.gallery_url(), {"course": "de-zoomcamp", "year": "2024", "q": " PIPELINE "}
+        )
+
+        self.assertEqual(
+            [row.id for row in response.context["submissions"]], [self.submission_de_2024.id]
+        )
+        self.assertContains(response, '<option value="de-zoomcamp" selected>')
+        self.assertContains(response, '<option value="2024" selected>')
+        self.assertEqual(response.context["gallery_filters"].cleaned_data["q"], "PIPELINE")
+        self.assertContains(response, "Clear filters")
+
+    def test_assignment_search_is_literal_and_does_not_search_private_identity(self):
+        response = self.client.get(self.gallery_url(), {"q": "Capstone 2025"})
+        self.assertEqual(
+            [row.id for row in response.context["submissions"]], [self.submission_ml_2025.id]
+        )
+        for query in (".*", "%", "learner-", "@example.com"):
+            with self.subTest(query=query):
+                response = self.client.get(self.gallery_url(), {"q": query})
+                self.assertEqual(list(response.context["submissions"]), [])
+                self.assertContains(response, "No submissions match these filters")
+
+    def test_invalid_filters_do_not_widen_results_or_reveal_hidden_facet_names(self):
+        for query in (
+            {"course": "secret-zoomcamp"},
+            {"course": "unknown"},
+            {"year": "2026"},
+            {"year": "not-a-year"},
+            {"sort": "score"},
+            {"q": "x" * 121},
+        ):
+            with self.subTest(query=query):
+                response = self.client.get(self.gallery_url(), query)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(list(response.context["submissions"]), [])
+                self.assertTrue(response.context["gallery_filters"].errors)
+                self.assertContains(response, 'role="alert"')
+                self.assertNotContains(response, "Secret Zoomcamp")
+
+    def test_recent_and_most_voted_orders_are_explicit_and_stable(self):
+        ProjectSubmission.objects.filter(pk=self.submission_de_2023.pk).update(
+            submitted_at=timezone.now() + timedelta(days=1)
+        )
+        voter = User.objects.create_user(username="discovery-voter")
+        ProjectVote.objects.create(submission=self.submission_de_2024, voter=voter)
+
+        recent = self.client.get(self.gallery_url(), {"sort": "recent"})
+        votes = self.client.get(self.gallery_url(), {"sort": "votes"})
+
+        self.assertEqual(recent.context["submissions"][0].pk, self.submission_de_2023.pk)
+        self.assertEqual(votes.context["submissions"][0].pk, self.submission_de_2024.pk)
+        self.assertEqual(votes.context["submissions"][1].pk, self.submission_de_2023.pk)
+
+    def test_default_order_has_a_submission_identity_tiebreaker(self):
+        other = self._submission(
+            self.ml_project_2025, self.ml_2025, "https://github.com/example/another-capstone"
+        )
+        ProjectSubmission.objects.filter(pk=other.pk).update(
+            submitted_at=self.submission_ml_2025.submitted_at
+        )
+
+        response = self.client.get(self.gallery_url(), {"course": "ml-zoomcamp"})
+
+        self.assertEqual(
+            [row.pk for row in response.context["submissions"]],
+            [self.submission_ml_2025.pk, other.pk],
+        )
+
+    def test_repository_address_is_not_an_invented_title_and_original_destination_survives(self):
+        destination = "https://github.com/example/repository/tree/main/capstone#readme"
+        self.submission_ml_2025.github_link = destination
+        self.submission_ml_2025.save(update_fields=["github_link"])
+
+        response = self.client.get(self.gallery_url())
+
+        self.assertContains(response, "github.com/example/repository/tree/main/capstone")
+        self.assertContains(
+            response, f'href="{destination}" target="_blank" rel="noopener noreferrer"'
+        )
+        self.assertContains(response, "Submitted repository")
+        self.assertContains(response, reverse("cohort", args=["ml-zoomcamp", "2025"]))
+
+    def test_missing_or_unsafe_repository_link_is_not_clickable(self):
+        for destination in (
+            "",
+            "javascript:alert(1)",
+            "https://secret:password@example.com/repo",
+            "http://[invalid",
+        ):
+            with self.subTest(destination=destination):
+                self.submission_ml_2025.github_link = destination
+                self.submission_ml_2025.save(update_fields=["github_link"])
+
+                response = self.client.get(self.gallery_url())
+
+                self.assertContains(response, "Repository link unavailable")
+                self.assertNotContains(response, 'href="javascript:')
+                self.assertNotContains(response, "secret:password")
+
+    def test_ungraded_and_completed_project_states_remain_honest(self):
+        self.submission_ml_2025.project_score = 99
+        self.submission_ml_2025.passed = True
+        self.submission_ml_2025.save(update_fields=["project_score", "passed"])
+        ungraded = self.client.get(self.gallery_url(), {"course": "ml-zoomcamp"})
+        self.assertContains(ungraded, "Not graded yet")
+        self.assertNotContains(ungraded, "99 score")
+        self.ml_project_2025.state = ProjectState.COMPLETED.value
+        self.ml_project_2025.save(update_fields=["state"])
+        completed = self.client.get(self.gallery_url(), {"course": "ml-zoomcamp"})
+        self.assertContains(completed, "99 score")
+        self.assertContains(completed, "Passed")
+
+    def test_page_links_preserve_only_valid_gallery_filters(self):
+        for index in range(27):
+            self._submission(
+                self.ml_project_2025, self.ml_2025, f"https://github.com/example/capstone-{index}"
+            )
+        response = self.client.get(
+            self.gallery_url(),
+            {
+                "course": "ml-zoomcamp",
+                "year": "2025",
+                "q": "capstone",
+                "sort": "votes",
+                "unrelated": "discard-me",
+            },
+        )
+        querystring = response.context["pagination_querystring"]
+        self.assertEqual(
+            parse_qs(urlsplit("?page=2" + unescape(querystring)).query),
+            {
+                "page": ["2"],
+                "course": ["ml-zoomcamp"],
+                "year": ["2025"],
+                "q": ["capstone"],
+                "sort": ["votes"],
+            },
+        )
+        self.assertNotContains(response, "discard-me")
+        page_two = self.client.get(self.gallery_url() + "?page=2" + querystring)
+        self.assertEqual(len(page_two.context["submissions"]), 3)
+
+    def test_card_count_does_not_add_per_submission_database_queries(self):
+        self.client.get(self.gallery_url())
+        with CaptureQueriesContext(connection) as small:
+            self.client.get(self.gallery_url())
+        for index in range(24):
+            self._submission(
+                self.ml_project_2025, self.ml_2025, f"https://github.com/example/project-{index}"
+            )
+        with CaptureQueriesContext(connection) as full:
+            self.client.get(self.gallery_url())
+        self.assertLessEqual(len(full), len(small))
+
+    def test_gallery_template_keeps_the_shared_readability_contract(self):
+        template = Path(__file__).resolve().parents[1] / "templates/projects/site_gallery.html"
+        self.assertEqual(template_readability_issues(template.read_text()), [])
+
+
+class SharedGalleryPaginationSemanticsTests(SimpleTestCase):
+    def test_first_middle_and_last_pages_keep_live_links_and_disabled_semantics(self):
+        paginator = Paginator(range(51), 25)
+        for number in (1, 2, 3):
+            with self.subTest(page=number):
+                page = paginator.page(number)
+                markup = render_to_string(
+                    "include/pagination.html",
+                    {
+                        "pagination_page": page,
+                        "pagination_range": paginator.page_range,
+                        "pagination_querystring": "&course=example",
+                        "pagination_label": "Project submission pages",
+                    },
+                )
+                self.assertIn('aria-label="Project submission pages"', markup)
+                for label, arrow, destination, relation in (
+                    ("Previous page", "←", number - 1, "prev"),
+                    ("Next page", "→", number + 1, "next"),
+                ):
+                    if destination in paginator.page_range:
+                        self.assertInHTML(
+                            '<a class="filter-pill pagination-step" '
+                            f'href="?page={destination}&amp;course=example" rel="{relation}" '
+                            f'aria-label="{label}"><span aria-hidden="true">{arrow}</span></a>',
+                            markup,
+                        )
+                    else:
+                        self.assertInHTML(
+                            '<span class="status-pill pagination-step" role="link" '
+                            f'aria-disabled="true" aria-label="{label}">'
+                            f'<span aria-hidden="true">{arrow}</span></span>',
+                            markup,
+                        )
+                self.assertNotIn('<span class="status-pill pagination-step" aria-label=', markup)

@@ -286,6 +286,11 @@ Every step has forward/backward application tests against a production-like data
 
 Any intentional privacy tightening of currently public submissions/results is documented as a product/security decision, not hidden inside the structural migration.
 
+The [project discovery and offline enrichment contract](../design/specs/project-gallery-enrichment.md)
+defines the optional follow-up dataset behind `/courses/projects`. Existing submissions remain
+useful without enrichment; no repository fetch, generated metadata, or backfill runs in a public
+request or as part of the current gallery presentation change.
+
 ## Studio management coverage
 
 Existing `cadmin` and relevant Django-admin actions are ported into Studio rather than discarded:

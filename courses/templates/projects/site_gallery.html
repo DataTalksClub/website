@@ -1,34 +1,8 @@
 {% extends 'projects/_base.html' %}
 {% load breadcrumbs %}
-{% comment %}
-  Every individual project submission anywhere on the site -- every visible
-  course family, every visible cohort within it (courses/views/
-  site_project_gallery.py).
-
-  One level up from projects/family_gallery.html, whose `.row-list`/
-  `.submission-row` markup this reuses verbatim: readers first asked to lose
-  the per-family/per-cohort `<details>` folds this page used to nest, then
-  said a project-type list with only a submission count still was not
-  "individual project submissions" on the family-scoped page -- the same fix
-  applies here, one level up. Each row is one learner's actual submission,
-  tagged with both its course family and its cohort/edition (a project like
-  "Capstone Project" exists once per family per edition, so both tags are
-  what keep a repeated title unambiguous across the whole site). It links
-  each submitter's name to their cohort-scoped leaderboard breakdown and each
-  submission to its repository, the same two links family_gallery.html shows
-  -- no field appears here that page does not already treat as public.
-
-  The site can hold many thousands of submissions across every course
-  family, so like family_gallery.html (and list_all.html before it) this
-  paginates rather than rendering one unbounded list.
-
-  This page has no single family or cohort, so like family_gallery.html it
-  supplies its own `page_header` rather than the shell's default, which
-  resolves a `cohort` url from a `course` this page has none of.
-{% endcomment %}
 
 {% block document_title %}
-  All project submissions — DataTalks.Club
+  Explore learner projects — DataTalks.Club
 {% endblock %}
 
 {% block meta_robots %}
@@ -36,105 +10,302 @@
 {% endblock %}
 
 {% block extra_styles %}
-  /* Borrowed verbatim from projects/family_gallery.html (itself borrowed
-     from projects/list_all.html): the catalogue row for who submitted and
-     which project, then the outcome. */
-  .submission-row {
-    --row-cols: minmax(0, 1fr) auto;
+  .gallery-heading {
+    display: grid;
+    gap: 0.75rem;
   }
 
-  .submission-student {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem 0.75rem;
+  .gallery-intro {
+    color: var(--body-text);
+    max-width: var(--measure);
+  }
+
+  .gallery-totals,
+  .gallery-result-head p {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .gallery-totals strong {
+    color: var(--ink);
+  }
+
+  .gallery-filters {
+    border-top: 2px dashed var(--line-soft);
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+  }
+
+  .gallery-filter-fields {
+    align-items: start;
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 1.3fr);
+  }
+
+  .gallery-filter-fields .field,
+  .gallery-filter-fields .field-input {
     min-width: 0;
+    width: 100%;
   }
 
-  .submission-student a {
-    font-weight: 700;
-  }
-
-  .submission-outcome {
+  .gallery-filter-actions,
+  .gallery-result-head,
+  .gallery-card-foot,
+  .gallery-outcome,
+  .gallery-contributor {
     align-items: center;
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem 0.75rem;
   }
+
+  .gallery-filter-actions .band-link,
+  .gallery-filters .a11y-error-summary a,
+  .gallery-card a {
+    align-items: center;
+    display: inline-flex;
+    min-height: 2.75rem;
+    max-width: 100%;
+  }
+
+  .gallery-filter-hint {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  .gallery-results {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .gallery-result-head {
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  .gallery-card {
+    min-width: 0;
+    padding: 1.25rem;
+  }
+
+  .gallery-course {
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .gallery-repository {
+    font-size: 1.15rem;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  .gallery-repository a {
+    display: block;
+    padding-block: 0.35rem;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
+  .gallery-repository-label {
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .gallery-assignment {
+    color: var(--body-text);
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+  }
+
+  .gallery-contributor {
+    color: var(--muted);
+    font-size: 0.9rem;
+    gap: 0 0.35rem;
+    overflow-wrap: anywhere;
+  }
+
+  .gallery-contributor a {
+    color: var(--indigo);
+    font-weight: 700;
+  }
+
+  .gallery-card-foot {
+    border-top: 2px dashed var(--line-soft);
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: 0.6rem;
+  }
+
+  .gallery-outcome {
+    gap: 0.35rem 0.6rem;
+  }
+
+  .gallery-outcome .mono-note {
+    font-size: 0.75rem;
+  }
+
+  .gallery-empty {
+    align-items: start;
+    gap: 0.75rem;
+    padding: 1.5rem;
+  }
+
+  .gallery-empty p {
+    color: var(--body-text);
+    max-width: var(--measure);
+  }
+
+  @media (max-width: 47.99rem) {
+    .gallery-filter-fields {
+      grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+    }
+
+    .gallery-search-field,
+    .gallery-course-field {
+      grid-column: 1 / -1;
+    }
+
+    .gallery-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .gallery-card {
+      padding: 1rem;
+    }
+  }
+
+  @media (max-width: 23.99rem) {
+    .gallery-filter-fields {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
 {% endblock %}
 
 {% block page_header %}
   {% url 'course_list' as course_list_url %}
-  {% breadcrumbs "Courses" course_list_url current="All project submissions" %}
-  <div class="project-head">
-    <p class="mono-label mono-label-indigo">Every course</p>
-    <h1>All Project Submissions</h1>
-    <p class="project-lede">
-      Every learner project submitted anywhere on DataTalks.Club, across every course and cohort.
+  {% url 'all_projects' as gallery_url %}
+  {% breadcrumbs "Courses" course_list_url current="Learner projects" %}
+  <div class="gallery-heading">
+    <h1>Explore learner projects</h1>
+    <p class="gallery-intro">
+      Find a repository to learn from. Browse what learners submitted across our courses,
+      then explore the course behind the work.
     </p>
-    <div class="project-toolbar">
-      <a class="cta cta-compact cta-secondary interactive-lift" href="{{ course_list_url }}">
-        Back to Courses
-      </a>
-    </div>
+    {% if gallery_total %}
+      <p class="gallery-totals">
+        <strong>{{ gallery_total|floatformat:"0g" }}</strong> submission{{ gallery_total|pluralize }}
+        across <strong>{{ gallery_course_count }}</strong> course{{ gallery_course_count|pluralize }}
+      </p>
+    {% endif %}
   </div>
+  <form class="gallery-filters" action="{{ gallery_url }}" method="get" aria-label="Find learner projects">
+    {% include "accessibility/error_summary.html" with form=gallery_filters %}
+    <div class="gallery-filter-fields">
+      <div class="field gallery-search-field">
+        <label class="field-label" for="{{ gallery_filters.q.id_for_label }}">Repository or assignment</label>
+        {{ gallery_filters.q }}
+        {{ gallery_filters.q.errors }}
+      </div>
+      <div class="field gallery-course-field">
+        <label class="field-label" for="{{ gallery_filters.course.id_for_label }}">Course</label>
+        {{ gallery_filters.course }}
+        {{ gallery_filters.course.errors }}
+      </div>
+      <div class="field">
+        <label class="field-label" for="{{ gallery_filters.year.id_for_label }}">Year</label>
+        {{ gallery_filters.year }}
+        {{ gallery_filters.year.errors }}
+      </div>
+      <div class="field">
+        <label class="field-label" for="{{ gallery_filters.sort.id_for_label }}">Sort by</label>
+        {{ gallery_filters.sort }}
+        {{ gallery_filters.sort.errors }}
+      </div>
+    </div>
+    <div class="gallery-filter-actions">
+      <button class="cta cta-primary cta-compact interactive-lift" type="submit">Find projects</button>
+      {% if gallery_has_filters %}
+        <a class="band-link" href="{{ gallery_url }}">Clear filters</a>
+      {% else %}
+        <p class="gallery-filter-hint">Search the submitted repository address or assignment name.</p>
+      {% endif %}
+    </div>
+  </form>
 {% endblock %}
 
 {% block project_content %}
-  <section class="project-section" aria-labelledby="site-gallery-heading">
-    <div class="project-section-head">
-      <h2 id="site-gallery-heading">Submissions</h2>
+  <section class="gallery-results" aria-labelledby="site-gallery-heading">
+    <div class="gallery-result-head">
+      <h2 id="site-gallery-heading">Project repositories</h2>
       {% if submissions %}
-        <p class="mono-note">
-          {{ submissions_page.paginator.count }} total
+        <p>
+          {{ submissions_page.start_index|floatformat:"0g" }}–{{ submissions_page.end_index|floatformat:"0g" }}
+          of {{ submissions_page.paginator.count|floatformat:"0g" }} submission{{ submissions_page.paginator.count|pluralize }}
         </p>
       {% endif %}
     </div>
     {% if submissions %}
-      <div class="row-list">
+      <div class="card-grid card-grid-2 gallery-grid">
         {% for submission in submissions %}
-          <article class="list-row submission-row">
+          <article class="card gallery-card">
+            <p class="gallery-course">{{ submission.family.title }} · {{ submission.cohort.identifier }}</p>
             <div>
-              <div class="submission-student">
-                <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=submission.family.slug cohort_identifier=submission.cohort.identifier enrollment_id=submission.enrollment.id %}">
-                  {{ submission.enrollment.display_name }}
-                </a>
-                <a
-                  class="band-link submission-link"
-                  href="{{ submission.github_link }}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Open repository"
-                  aria-label="Open repository"
-                >Repository</a>
-              </div>
-              <p class="mono-note">
-                {{ submission.project.title }} · {{ submission.family.title }} · {{ submission.cohort.identifier }}
-              </p>
+              <p class="gallery-repository-label">Submitted repository</p>
+              <h3 class="gallery-repository">
+                {% if submission.repository_url %}
+                  <a href="{{ submission.repository_url }}" target="_blank" rel="noopener noreferrer">
+                    {{ submission.repository_label }} ↗
+                    <span class="sr-only">(opens in a new tab)</span>
+                  </a>
+                {% else %}
+                  Repository link unavailable
+                {% endif %}
+              </h3>
             </div>
-            <div class="submission-outcome">
-              <span class="mono-note">{{ submission.vote_count }} vote{{ submission.vote_count|pluralize }}</span>
-              <span class="mono-note">
+            <p class="gallery-assignment">{{ submission.project.title }}</p>
+            <p class="gallery-contributor">
+              Submitted by
+              <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=submission.family.slug cohort_identifier=submission.cohort.identifier enrollment_id=submission.enrollment.id %}">{{ submission.enrollment.display_name }}</a>
+            </p>
+            <div class="gallery-card-foot">
+              <div class="gallery-outcome">
                 {% if submission.display_score == -1 %}
-                  Score N/A
+                  <span class="mono-note">Not graded yet</span>
                 {% else %}
-                  {{ submission.display_score }} score
+                  <span class="mono-note">{{ submission.display_score }} score</span>
+                  {% if submission.passed %}
+                    <span class="status-pill status-pill-live">Passed</span>
+                  {% else %}
+                    <span class="status-pill status-pill-wait">Not passed</span>
+                  {% endif %}
                 {% endif %}
-              </span>
-              {% if submission.display_score != -1 %}
-                {% if submission.passed %}
-                  <span class="status-pill status-pill-live">Passed</span>
-                {% else %}
-                  <span class="status-pill status-pill-wait">Not passed</span>
-                {% endif %}
-              {% endif %}
+                <span class="mono-note">{{ submission.vote_count }} vote{{ submission.vote_count|pluralize }}</span>
+              </div>
+              <a class="band-link" href="{% url 'cohort' course_slug=submission.family.slug cohort_identifier=submission.cohort.identifier %}">View cohort →</a>
             </div>
           </article>
         {% endfor %}
       </div>
     {% else %}
-      <p class="project-empty">
-        No project submissions yet anywhere.
-      </p>
+      <div class="card gallery-empty">
+        {% if gallery_has_filters %}
+          <h3>No submissions match these filters</h3>
+          <p>Try a different repository name, choose another year, or browse all courses.</p>
+          <a class="cta cta-secondary cta-compact" href="{% url 'all_projects' %}">Clear filters</a>
+        {% else %}
+          <h3>No project submissions yet</h3>
+          <p>Projects will appear here once learners submit their work in a course.</p>
+          <a class="cta cta-secondary cta-compact" href="{% url 'course_list' %}">Explore courses</a>
+        {% endif %}
+      </div>
     {% endif %}
     {% include 'include/pagination.html' with pagination_page=submissions_page pagination_range=page_range pagination_label='Project submission pages' %}
   </section>
