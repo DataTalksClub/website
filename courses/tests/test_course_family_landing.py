@@ -275,21 +275,34 @@ class CourseFamilyLandingTests(TestCase):
         )
         self.family.save(update_fields=["description"])
         response = self.client.get(self.url)
-
-        # Owner feedback (2026-09): the learning notes used to sit behind a
-        # collapsible mid-page; they now render as prominent prose right
-        # under the hero lede, not a disclosure.
-        response = self.client.get(self.url)
         body = response.content.decode()
 
+        # Owner feedback (2026-09): the learning notes used to sit behind a
+        # collapsible mid-page, then briefly under the hero lede (too much
+        # text stacked in the cream hero band above the CTAs); they now
+        # render as plain prose of their own in the body, still not a
+        # disclosure, and not inside the hero any more.
         self.assertNotContains(response, "<details class=\"family-overview\"")
         self.assertNotContains(response, "About this course and learning notes")
         self.assertContains(response, "This course is educational; results are not guaranteed.")
         self.assertNotContains(response, "<script>unsafe()")
-        # Prominent: renders inside the hero, ahead of the rest of the page.
+        self.assertNotIn("This course is educational", self.hero_section(response))
+        self.assertContains(response, 'class="family-overview-section"')
+        overview_section = body[
+            body.index('class="family-overview-section"') : body.index(
+                "</section>", body.index('class="family-overview-section"')
+            )
+        ]
+        self.assertIn("This course is educational", overview_section)
+        # In the body, after the hero and the opening-group quick facts,
+        # ahead of the journey.
         self.assertLess(
-            body.index("This course is educational"),
-            body.index('id="register-heading"'),
+            body.index('class="family-hero-inner"'),
+            body.index('class="family-overview-section"'),
+        )
+        self.assertLess(
+            body.index('class="family-overview-section"'),
+            body.index('id="transformation-heading"'),
         )
 
     def test_whitespace_prerequisites_do_not_leave_an_empty_label(self):
@@ -519,7 +532,10 @@ class CourseFamilyOutcomeStatsTests(TestCase):
         self.assertEqual((stats[0].value, stats[0].label), ("1", "cohort since 2021"))
         self.assertEqual((stats[1].value, stats[1].label), ("47", "registrations"))
         self.assertNotContains(response, "enrolled since 2021")
-        self.assertNotContains(response, "sign ups")
+        # Not the rendered tile text -- a page-local CSS comment names every
+        # possible stat label generically, so the check is scoped to the
+        # actual <span> the tile renders rather than a bare substring.
+        self.assertNotContains(response, "<span>sign ups</span>")
 
     def test_published_single_registration_uses_singular_label(self):
         RegistrationCampaign.objects.create(
@@ -555,7 +571,10 @@ class CourseFamilyOutcomeStatsTests(TestCase):
         stats = response.context["family_outcome_stats"]
         self.assertEqual((stats[1].value, stats[1].label), ("1", "registration"))
         self.assertNotContains(response, "enrolled since 2021")
-        self.assertNotContains(response, "sign ups")
+        # Not the rendered tile text -- a page-local CSS comment names every
+        # possible stat label generically, so the check is scoped to the
+        # actual <span> the tile renders rather than a bare substring.
+        self.assertNotContains(response, "<span>sign ups</span>")
 
     def test_a_family_with_nobody_enrolled_omits_the_whole_strip(self):
         empty_family = Course.objects.create(slug="no-one-yet", title="No One Yet")

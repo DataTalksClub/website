@@ -121,15 +121,6 @@
         scroll-margin-top: 1.5rem;
       }
 
-      /* Owner feedback (2026-09): the family's learning notes used to sit
-         behind a "details" disclosure mid-page; they read better as
-         prominent copy, right under the hero lede that already opens the
-         page -- so this is now a plain prose block, not a collapsible. */
-      .family-overview {
-        margin-top: 1rem;
-        max-width: var(--measure);
-      }
-
       .family-hero-actions {
         display: flex;
         flex-wrap: wrap;
@@ -142,9 +133,11 @@
        * (family_outcome_stats) drops the whole strip when nobody is enrolled
        * yet, and drops the certificate stat alone when that family's cohorts
        * never reliably populated it, rather than showing a misleading zero.
-       * Reuses the site's own .stat-tiles/.stat-tile primitive (see
-       * templates/core/_design_system.html) -- the same lavender tiles the
-       * courses index and the learner dashboard already draw numbers with. */
+       * Reuses the site's own .stat-tiles/.stat-tile primitive plus its
+       * .stat-tiles-row modifier (see templates/core/_design_system.html) --
+       * the same one-row, 2-to-4-tile shape the courses index's own facts
+       * strip now draws with too, so the two pages share one stats-strip
+       * component instead of two ad hoc grids. */
       .family-opening-group {
         display: grid;
         gap: 1.35rem;
@@ -179,34 +172,24 @@
         margin: 0;
       }
 
+      /* Owner feedback (2026-09): the family's learning notes used to sit
+         behind a "details" disclosure mid-page, then briefly under the hero
+         lede; both read wrong -- a collapsible hid real content, and the
+         hero band got too much text stacked above the CTAs.  It is now a
+         plain prose block, still not a collapsible, in the body instead --
+         after the quick facts above, ahead of the journey. */
+      .family-overview-section {
+        margin-top: 1.75rem;
+      }
+
+      .family-overview {
+        max-width: var(--measure);
+      }
+
       @media (min-width: 48rem) {
         .family-starting-point {
           grid-template-columns: 9rem minmax(0, 1fr);
         }
-      }
-
-      .family-outcome-tiles .stat-tile:last-child:nth-child(odd) {
-        grid-column: 1 / -1;
-      }
-
-      @media (min-width: 40rem) {
-        .family-outcome-tiles {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-
-        .family-outcome-tiles .stat-tile:last-child:nth-child(odd) {
-          grid-column: auto;
-        }
-      }
-
-      .family-outcome-tiles strong {
-        font-size: clamp(1.35rem, 2vw, 1.75rem);
-        font-variant-numeric: tabular-nums;
-      }
-
-      .family-outcome-tiles .stat-tile {
-        min-height: 0;
-        padding-block: 0.8rem;
       }
 
       /* --- registration cards ------------------------------------------- */
@@ -381,13 +364,10 @@
          radii are reused unchanged. */
       .journey-card .step-number {
         background: var(--card);
-        font-size: 0.9rem;
-        height: 2.4rem;
         left: 1.25rem;
         position: absolute;
         top: 0;
         transform: translateY(-50%);
-        width: 2.4rem;
         z-index: 2;
       }
 
@@ -856,9 +836,6 @@
             {% if family_lede %}
               <p class="family-lede">{{ family_lede }}</p>
             {% endif %}
-            {% if family_overview %}
-              <div class="family-overview prose">{{ family_overview|linebreaks }}</div>
-            {% endif %}
             {% comment %}
               Registration for the course, not for one of its editions: an open edition is
               named because naming it is honest, a course whose editions have all closed
@@ -914,7 +891,7 @@
           {% if family_outcome_stats %}
             <section class="family-outcomes" aria-labelledby="outcomes-heading">
               <h2 id="outcomes-heading" class="sr-only">This course family so far</h2>
-              <div class="stat-tiles family-outcome-tiles">
+              <div class="stat-tiles stat-tiles-row">
                 {% for stat in family_outcome_stats %}
                   <div class="stat-tile">
                     <strong>{{ stat.value }}</strong>
@@ -943,6 +920,20 @@
             </section>
           {% endif %}
         </div>
+      {% endif %}
+      {% comment %}
+        Owner feedback (2026-09): the learning notes read as too much text
+        stacked in the cream hero band, above the CTAs -- they now render as
+        their own plain-prose section in the body, after the quick facts
+        above and ahead of the journey, instead of glued to the hero lede.
+        Still not a collapsible (that part of the ask stands): real prose,
+        just not hero copy.
+      {% endcomment %}
+      {% if family_overview %}
+        <section class="family-overview-section" aria-labelledby="overview-heading">
+          <h2 id="overview-heading" class="sr-only">About this course</h2>
+          <div class="family-overview prose">{{ family_overview|linebreaks }}</div>
+        </section>
       {% endif %}
       {% if family_transformation %}
         <section class="family-transformation shell-breakout" aria-labelledby="transformation-heading">

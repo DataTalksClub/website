@@ -2030,7 +2030,9 @@ Rules for editing:
        * documented in _docs/design/design-system.md.
        * ------------------------------------------------------------------ */
 
-      /* Stat tiles: the courses-index hero facts (6 free courses, 130k+…). */
+      /* Stat tiles: live facts drawn as lavender tiles -- the family landing's
+         outcome numbers, the courses index's own facts strip, dashboards and
+         admin metric rows. */
       .stat-tiles {
         display: grid;
         gap: 0.75rem;
@@ -2058,6 +2060,47 @@ Rules for editing:
       .stat-tile span {
         color: var(--body-text);
         font-size: 0.85rem;
+      }
+
+      /* .stat-tiles-row: the one-row variant for a strip of 2-4 live facts
+         (the course family landing's outcome numbers, the courses index's
+         own facts strip) -- shorter tiles than the base 2x2 grid, and the
+         tile count itself decides the shape instead of each page fixing its
+         own column count.  Below 40rem it keeps the base two-column grid,
+         with a lone odd tile spanning the full row rather than sitting off
+         to one side; at 40rem and up it opens to one row, three columns
+         normally and four when a fourth tile is present, so a fully
+         populated strip never wraps its last tile onto its own row.
+         (Do not name the family page's own stat labels here -- this
+         partial is inlined into every page's stylesheet, and a page-level
+         `assertNotContains` for a label that page omits would otherwise
+         match this comment.) */
+      .stat-tiles-row .stat-tile {
+        min-height: 0;
+        padding-block: 0.8rem;
+      }
+
+      .stat-tiles-row .stat-tile strong {
+        font-size: clamp(1.35rem, 2vw, 1.75rem);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .stat-tiles-row .stat-tile:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+      }
+
+      @media (min-width: 40rem) {
+        .stat-tiles-row {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .stat-tiles-row:has(.stat-tile:nth-child(4)) {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .stat-tiles-row .stat-tile:last-child:nth-child(odd) {
+          grid-column: auto;
+        }
       }
 
       /* Filter pills: one row of pill toggles where exactly one is active

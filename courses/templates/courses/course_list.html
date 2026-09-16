@@ -35,11 +35,16 @@
        * layout.  It deliberately loads none of the older site CSS.
        *
        * The mockup composes at the full 76rem shell -- a two-column hero with
-       * an illustration collage, a full-width dark facts stripe, a featured
-       * open-registration slab and horizontal running-now cards.  Those are
-       * genuinely wide elements, so each one is a `.shell-breakout` section
-       * while the page underneath stays an ordinary content page: the cream
-       * hero band and the lavender content band remain the parent's.
+       * an illustration collage, a featured open-registration slab and
+       * horizontal running-now cards.  Those are genuinely wide elements, so
+       * each one is a `.shell-breakout` section while the page underneath
+       * stays an ordinary content page: the cream hero band and the lavender
+       * content band remain the parent's.  The facts strip that used to be
+       * the mockup's own dark stripe now draws with the shared
+       * `.stat-tiles`/`.stat-tile` primitive instead (2026-09): the site
+       * owner asked for one stats-strip shape shared with the family page,
+       * not two ad hoc grids, so it sits on the ordinary lavender ground at
+       * the ordinary content width like the rest of the page's sections.
        * ------------------------------------------------------------------ */
 
       /* The page draws with the design system's tokens — the same palette,
@@ -50,13 +55,11 @@
       :root {
         --hatch-line: #9a9dbb;
         --panel-line: #a9cfa0;
-        --stats-label: #b9bcd6;
       }
 
       body.dark-mode {
         --hatch-line: #7079b4;
         --panel-line: #4e7d5b;
-        --stats-label: #a4a9bd;
       }
 
       .band {
@@ -146,47 +149,24 @@
         text-transform: uppercase;
       }
 
-      /* --- dark facts stripe ------------------------------------------------
-         The mockup's ink band is full-bleed: edge to edge under the hero with
-         its facts grid capped at the shell.  The shared breakout stops at the
-         shell edge, so this section widens its own breakout target to the
-         viewport — the body clips overflow-x — and re-centres the grid. */
+      /* --- facts strip --------------------------------------------------
+         Owner feedback (2026-09): this used to be its own bespoke dark
+         full-bleed stripe (.courses-stats-grid) -- a different shape from
+         the family page's real per-family numbers a few clicks away, drawn
+         with the shared design system's .stat-tiles/.stat-tile primitive
+         instead (see templates/core/_design_system.html and
+         course_family.html's .family-outcomes).  The catalogue's own facts
+         (zoomcamp count, open-cohort sign-ups, the free/open framing) stay
+         page-specific; only the tile shape is now shared. */
       .courses-stats {
-        background: var(--band-ink-bg);
-        padding: clamp(1.75rem, 3.5vw, 2.75rem) 1rem;
+        margin-top: clamp(2.5rem, 4.5vw, 3.75rem);
+        margin-bottom: clamp(2.75rem, 5vw, 4.25rem);
       }
 
-      .courses-stats.shell-breakout {
-        --breakout-width: 100vw;
-      }
-
-      .courses-stats-grid {
-        display: grid;
-        gap: 1.75rem 2rem;
-        grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-        margin-inline: auto;
-        max-width: var(--shell);
-      }
-
-      .courses-stats strong {
-        color: var(--cream);
-        display: block;
-        font-size: clamp(1.9rem, 3.4vw, 2.6rem);
-        line-height: 1.1;
-      }
-
-      body.dark-mode .courses-stats strong {
-        color: var(--ink);
-      }
-
-      .courses-stats span {
-        color: var(--stats-label);
-        display: block;
-        font-family: var(--font-mono);
-        font-size: 0.78rem;
-        letter-spacing: 0.06em;
-        margin-top: 0.3rem;
-        text-transform: uppercase;
+      /* Unless the Wrapped entry point sits directly above: the strip then
+         stays in the flow the entry point already opened. */
+      .courses-wrapped + .courses-stats {
+        margin-top: 0;
       }
 
       /* --- projects section -------------------------------------------------
@@ -276,20 +256,6 @@
 
       .zoomcamp-steps + .courses-projects,
       .courses-projects + .courses-faq {
-        margin-top: 0;
-      }
-
-      /* The facts stripe sits flush under the cream hero band, like the
-         mockup's dark band under its hero, and hands the air it saves to the
-         catalogue below. */
-      .courses-stats {
-        margin-top: -2.25rem;
-        margin-bottom: clamp(2.75rem, 5vw, 4.25rem);
-      }
-
-      /* Unless the Wrapped entry point sits between the seam and the stripe:
-         the stripe then stays in the flow the entry point already opened. */
-      .courses-wrapped + .courses-stats {
         margin-top: 0;
       }
 
@@ -554,23 +520,23 @@
           </div>
         </section>
       {% endif %}
-      <section class="courses-stats shell-breakout" aria-label="Courses in numbers">
-        <div class="courses-stats-grid">
-          <div>
+      <section class="courses-stats" aria-label="Courses in numbers">
+        <div class="stat-tiles stat-tiles-row">
+          <div class="stat-tile">
             <strong>{{ course_family_count }}</strong>
             <span>zoomcamps</span>
           </div>
           {% if total_open_registration_count %}
-            <div>
+            <div class="stat-tile">
               <strong>{{ total_open_registration_count|thousands }}</strong>
               <span>registered for the open cohorts</span>
             </div>
           {% endif %}
-          <div>
+          <div class="stat-tile">
             <strong>€0</strong>
             <span>now and always</span>
           </div>
-          <div>
+          <div class="stat-tile">
             <strong>100%</strong>
             <span>open</span>
           </div>

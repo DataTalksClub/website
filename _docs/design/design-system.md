@@ -435,7 +435,12 @@ to this document — do not fork it locally.
 - **`.ship-line`** — italic bold `--green-ship`; sits directly under a course title
   everywhere a course is sold.
 - **`.stat-tiles` / `.stat-tile`** — lavender tiles with ink border and hard shadow,
-  in a 2×2 grid: a number as `strong`, a label as `span`.
+  in a 2×2 grid: a number as `strong`, a label as `span`. **`.stat-tiles-row`** is the
+  one-row modifier for a strip of 2-4 live facts (the course family landing's outcome
+  numbers, the courses index's own facts strip): shorter tiles, and the tile count
+  itself decides the column count — a lone odd tile spans the full row below 40rem,
+  and a fourth tile opens a 4-column row at 40rem instead of wrapping onto its own
+  row. The two pages share this one component rather than each inventing a grid.
 - **Progress bar** — white track, 2px ink border, `--green-bright` fill. Always pair
   it with a `.mono-note` stating the numbers, and give it the full progressbar ARIA:
 
