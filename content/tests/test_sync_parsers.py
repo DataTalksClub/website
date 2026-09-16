@@ -133,6 +133,12 @@ def _source(slug: str) -> ContentSource:
 
 
 class PeopleParserTests(_CheckoutCase):
+    def setUp(self) -> None:
+        super().setUp()
+        # The reference data seeds the synced people rows the catalogue reads;
+        # the parser contract tests exercise their own synced state from empty.
+        SyncedDocument.objects.filter(source__slug="dtc-main-site").delete()
+
     def test_discover_upsert_update_and_delete(self) -> None:
         source = _source("dtc-main-site")
         parser = get_parser("people")
@@ -783,6 +789,10 @@ class PodwikiParserTests(_CheckoutCase):
 
     def test_refuses_to_sync_without_the_entity_sources(self) -> None:
         source = _source("dtc-podwiki")
+        # The reference data seeds the podcast, book and people rows the
+        # catalogue reads; this contract needs a database that has synced
+        # none of them.
+        SyncedDocument.objects.filter(content_kind__in=("podcast", "book", "people")).delete()
         parser = get_parser("wiki")
         tree = {
             "_wiki/hello-wiki.md": _wiki_page(

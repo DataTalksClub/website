@@ -165,3 +165,61 @@ class SyncedWikiBindingTests(CacheBindingTestBase):
         # wiki, not a row read (and not a failure).
         self.assertEqual(len(read), 1)
         self.assertEqual(pages, ())
+
+
+class SyncedPeopleBindingTests(CacheBindingTestBase):
+    """The same two guarantees for the synced people authority (#384).
+
+    A profile's derived credits also follow the live event rows, so a failed
+    event read is covered here too: the events are one of the authorities the
+    profiles are derived from, and an outage must raise rather than cache
+    people with no talks.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        catalogue._synced_records.cache_clear()
+        catalogue._people.cache_clear()
+
+    def test_a_sync_write_moves_the_stamp_and_the_next_read_sees_it(self) -> None:
+        before = [person["slug"] for person in catalogue.people()]
+        row = SyncedDocument.objects.get(
+            source__slug=catalogue.PEOPLE_SOURCE_SLUG,
+            content_kind=catalogue.PEOPLE_KIND,
+            stable_key=before[0],
+        )
+        row.record = {**row.record, "title": "Renamed profile"}
+        row.save()
+
+        people = catalogue.people()
+
+        self.assertIn("Renamed profile", [person["title"] for person in people])
+
+    def test_a_failed_event_read_raises_and_the_next_read_recovers(self) -> None:
+        with mock.patch.object(
+            catalogue, "_published_event_records", side_effect=OperationalError("event read lost")
+        ):
+            with self.assertRaises(OperationalError):
+                catalogue.people()
+
+        # Nothing that failed entered the cache: the recovering read answers
+        # with the derived profiles, not the credit-less people a swallowed
+        # failure used to be able to leave.
+        people = catalogue.people()
+
+        self.assertTrue(people)
+        self.assertTrue(any(person["relationships"] for person in people))
+
+    def test_an_absent_sync_answers_empty_without_reading_other_authorities(self) -> None:
+        EngineContentSource.objects.filter(slug=catalogue.PEOPLE_SOURCE_SLUG).update(
+            is_enabled=False
+        )
+
+        with CaptureQueriesContext(connection) as read:
+            people = catalogue.people()
+
+        # The stamp aggregate is the only query: an absent source is an empty
+        # profiles collection, not a row read against the editorial or event
+        # tables its derivation would otherwise draw from.
+        self.assertEqual(len(read), 1)
+        self.assertEqual(people, ())

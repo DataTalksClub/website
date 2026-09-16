@@ -45,7 +45,7 @@ class CatalogueReadTests(TestCase):
             catalogue.books()
 
         # Two stamp lookups and nothing more: the synced rows' stamp the read
-        # is bound to, and the staged release the byline credits resolve
+        # is bound to, and the synced people rows the byline credits resolve
         # against. The records themselves are already held.
         self.assertEqual(len(repeated), 2)
 
@@ -57,10 +57,14 @@ class EmptyCatalogueTests(TestCase):
         ContentSource.objects.filter(stable_id=catalogue.PUBLIC_CONTENT_STABLE_ID).update(
             enabled=False
         )
-        # Both synced authorities publish editorial collections: an un-ingested
-        # database has neither.
+        # Every synced authority publishes editorial collections: an
+        # un-ingested database has none of them.
         EngineContentSource.objects.filter(
-            slug__in=(catalogue.EDITORIAL_SOURCE_SLUG, catalogue.WIKI_SOURCE_SLUG)
+            slug__in=(
+                catalogue.EDITORIAL_SOURCE_SLUG,
+                catalogue.PEOPLE_SOURCE_SLUG,
+                catalogue.WIKI_SOURCE_SLUG,
+            )
         ).update(is_enabled=False)
 
     def test_every_collection_is_empty_rather_than_a_failure(self) -> None:

@@ -10,12 +10,14 @@ the same publishing authority per kind, the same stored editorial order, and
 the same cache key. Split per kind, that resolution would be written seven
 times and could drift seven ways.
 
-During the #384 cutover the wiki kinds have a second authority ahead of the
-staged pipeline's retirement: the community_base sync engine's
-:class:`~content.models.SyncedDocument` rows, written by the ``dtc-podwiki``
-parser. The staged ``dtc-public-content`` release still publishes the other
-kinds until the pipeline is retired. Each kind reads exactly one authority --
-never a blend and never a fallback.
+During the #384 cutover the wiki kinds, the editorial collections and the
+people profiles have a second authority ahead of the staged pipeline's
+retirement: the community_base sync engine's
+:class:`~content.models.SyncedDocument` rows, written by the ``dtc-podwiki``,
+``dtc-content`` and ``dtc-main-site`` parsers. The staged ``dtc-public-content``
+release still publishes the remaining kinds -- courses, media, the manifest and
+its derived records -- until the pipeline is retired. Each kind reads exactly
+one authority -- never a blend and never a fallback.
 
 A database with no published rows publishes nothing. That is a normal state,
 not a failure: hubs render empty and detail lookups miss, which is what an
@@ -24,13 +26,10 @@ un-ingested database should do.
 
 from __future__ import annotations
 
-import re
-from collections.abc import Mapping
 from functools import lru_cache
 from typing import Any
 from uuid import UUID
 
-from django.db import DatabaseError
 from django.db.models import Count, Max
 
 from .models import ContentDocument, ContentSource, SyncedDocument
@@ -78,11 +77,15 @@ WIKI_SINGLETON_KINDS = ("wiki_graph", "wiki_search", "wiki_assets")
 WIKI_SYNCED_KINDS = (WIKI_PAGE_KIND, *WIKI_SINGLETON_KINDS)
 
 #: The sync source whose synced rows publish the editorial collections that
-#: have cut over, and the kinds it owns. The people profiles and the staged
-#: release's remaining kinds -- courses, media, the manifest, the route
-#: aliases, the platform links -- follow before the pipeline retires.
+#: have cut over, and the kinds it owns: articles, podcasts and books.
 EDITORIAL_SOURCE_SLUG = "dtc-content"
 EDITORIAL_SYNCED_KINDS = ("article", "podcast", "book")
+
+#: The sync source whose synced rows publish the people profiles. The parser
+#: reads the legacy main-site repository, which is where the profiles are
+#: authored, so its source is its own rather than the editorial collection's.
+PEOPLE_SOURCE_SLUG = "dtc-main-site"
+PEOPLE_KIND = "people"
 
 #: Every kind that reads the synced rows, mapped to the source that publishes
 #: it: the dispatch ``records`` makes before falling back to the staged
@@ -90,6 +93,7 @@ EDITORIAL_SYNCED_KINDS = ("article", "podcast", "book")
 #: fallback.
 SYNCED_KIND_SOURCES = {
     **{kind: EDITORIAL_SOURCE_SLUG for kind in EDITORIAL_SYNCED_KINDS},
+    PEOPLE_KIND: PEOPLE_SOURCE_SLUG,
     **{kind: WIKI_SOURCE_SLUG for kind in WIKI_SYNCED_KINDS},
 }
 
@@ -128,7 +132,21 @@ def records(kind: str) -> tuple[Record, ...]:
         return _records(active_release_id(), kind)
     if kind in WIKI_SYNCED_KINDS:
         return _synced_records(synced_stamp(source_slug), source_slug, kind)
-    return _synced_editorial(kind, synced_stamp(source_slug), active_release_id())
+    if kind == PEOPLE_KIND:
+        # An absent people source is an empty profiles collection, answered
+        # without reading the authorities its derivation would otherwise draw
+        # from. A profile's credits follow three of them -- the editorial
+        # collections, and the live events the person spoke at -- so the cache
+        # key carries a stamp for each.
+        people_stamp = synced_stamp(PEOPLE_SOURCE_SLUG)
+        if not people_stamp[0]:
+            return ()
+        return _people(
+            people_stamp,
+            synced_stamp(EDITORIAL_SOURCE_SLUG),
+            _event_credit_stamp(),
+        )
+    return _synced_editorial(kind, synced_stamp(source_slug), synced_stamp(PEOPLE_SOURCE_SLUG))
 
 
 def synced_stamp(source_slug: str) -> tuple[int, str]:
@@ -161,7 +179,8 @@ def _synced_records(stamp: tuple[int, str], source_slug: str, kind: str) -> tupl
     The row table carries no order column: the order is a catalogue fact, so
     the reader derives it from the records themselves. The editorial kinds come
     back newest first, the rule the reviewed build ordered them by; the wiki
-    pages come back in the A-Z order the hub pages through.
+    pages come back in the A-Z order the hub pages through; the profiles come
+    back in the A-Z-by-title order the reviewed build listed them in.
     """
 
     if not stamp[0]:
@@ -185,6 +204,14 @@ def _synced_records(stamp: tuple[int, str], source_slug: str, kind: str) -> tupl
         # copy the read model holds (ARC-03).
         if kind == "article":
             held = [_cleaned_body(record) for record in held]
+    elif kind == PEOPLE_KIND:
+        held = [_cleaned_body(record) for record in held]
+        held.sort(
+            key=lambda record: (
+                str(record.get("title", "")).casefold(),
+                str(record.get("slug", "")),
+            )
+        )
     elif kind == WIKI_PAGE_KIND:
         held.sort(
             key=lambda record: (
@@ -197,16 +224,15 @@ def _synced_records(stamp: tuple[int, str], source_slug: str, kind: str) -> tupl
 
 @lru_cache(maxsize=8)
 def _synced_editorial(
-    kind: str, content_stamp: tuple[int, str], people_release_id: str
+    kind: str, content_stamp: tuple[int, str], people_stamp: tuple[int, str]
 ) -> tuple[Record, ...]:
     """The published editorial records of ``kind``, derived from the synced rows.
 
     The parser records carry what their source authors; the fields that are
     derivations of *other* collections -- the public image address, the byline
     credits resolved against the profiles -- are derived here, at read time, so
-    they follow the people records instead of a snapshot of them. Until the
-    people profiles cut over themselves, the credits resolve against the staged
-    release the way they always did.
+    they follow the people records instead of a snapshot of them. The credits
+    resolve against the same synced people rows the profile pages read.
     """
 
     if not content_stamp[0]:
@@ -214,7 +240,8 @@ def _synced_editorial(
     from . import public_records
 
     people_by_slug = {
-        person["slug"]: person for person in _cleaned_bodies(people_release_id, "people")
+        person["slug"]: person
+        for person in _synced_records(people_stamp, PEOPLE_SOURCE_SLUG, PEOPLE_KIND)
     }
     derive = {
         "article": public_records.article_record,
@@ -281,24 +308,6 @@ def _by_slug(collection: tuple[Record, ...], slug: str) -> Record | None:
     return next((record for record in collection if record.get("slug") == slug), None)
 
 
-@lru_cache(maxsize=8)
-def _cleaned_bodies(release_id: str, kind: str) -> tuple[Record, ...]:
-    """Published records whose body blocks have had leaked link metadata removed.
-
-    The stored records are left untouched: each cleaned record is a copy, so the
-    cache above still holds exactly what the database published.  The cleanup is
-    a narrow, idempotent per-block repair of one known legacy token; whether the
-    reviewed corpus still *contains* those tokens is a provenance question, and
-    it is asserted where that provenance lives -- the reviewed-projection build
-    contract -- not here at request time, where a frozen corpus-wide count once
-    turned one legitimate biography cleanup into a server error for every
-    person page (audit ARC-03).
-    """
-
-    held = _records(release_id, kind)
-    return tuple(_cleaned_body(record) for record in held)
-
-
 def _cleaned_body(record: Record) -> Record:
     copied = dict(record)
     raw_blocks = record.get("blocks")
@@ -330,89 +339,85 @@ def article(slug: str) -> Record | None:
     return _by_slug(articles(), slug)
 
 
-_EVENT_UUID_PATH = re.compile(
-    r"^/events/(?P<identity>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:/|$)"
-)
+def _event_credit_stamp() -> tuple[int, str, int, str]:
+    """A cheap stamp that moves whenever a speaker credit could have.
 
+    One aggregate over the event identities and one over their content rows,
+    not a row per event. A speaker's credit is read from the content row's
+    speakers and links, and the import replaces both as a set whenever a
+    re-ingest changes any of them, which saves the content row and moves this
+    stamp; the identity aggregate covers the lifecycle and public-path changes
+    that decide whether the credit reaches a page at all. Reading all 421
+    events on the way to every request, just to decide whether the profile
+    records are still valid, costs far more than rebuilding them on the rare
+    occasion this changes.
 
-def _event_public_path_stamp() -> tuple[int, str]:
-    """A cheap stamp that moves whenever an event public path could have.
-
-    One aggregate, not a row per event. Reading all 421 events on the way to
-    every request, just to decide whether the people records are still valid,
-    costs far more than rebuilding them on the rare occasion this changes.
+    A database failure raises: the events are one of the authorities the
+    profiles are derived from, and an outage must never enter the cache
+    disguised as people with no talks (ARC-01).
     """
 
-    from events.models import Event
+    from events.models import Event, EventContent
 
-    try:
-        stamp = Event.objects.aggregate(total=Count("id"), latest=Max("updated_at"))
-    except DatabaseError:
-        return (0, "")
-    return (int(stamp["total"] or 0), str(stamp["latest"] or ""))
-
-
-def _event_public_paths() -> dict[str, str]:
-    """The canonical public path of every event that has one."""
-
-    from events.models import Event
-
-    try:
-        return {
-            str(event_id): f"/events/{public_id}/{slug}"
-            for event_id, public_id, slug in Event.objects.exclude(public_id=None).values_list(
-                "id", "public_id", "slug"
-            )
-        }
-    except DatabaseError:
-        return {}
-
-
-def _rewritten_event_path(path: object, replacements: Mapping[str, str]) -> object:
-    if not isinstance(path, str):
-        return path
-    match = _EVENT_UUID_PATH.match(path)
-    if match is None:
-        return path
-    return replacements.get(f"/events/{match.group('identity')}", path)
+    events = Event.objects.aggregate(total=Count("id"), latest=Max("updated_at"))
+    content = EventContent.objects.aggregate(total=Count("id"), latest=Max("updated_at"))
+    return (
+        int(events["total"] or 0),
+        str(events["latest"] or ""),
+        int(content["total"] or 0),
+        str(content["latest"] or ""),
+    )
 
 
 def people() -> tuple[Record, ...]:
-    """Every published profile, with its links pointed at the live event routes."""
+    """Every published profile, with its work credits derived at read time."""
 
-    return _people(active_release_id(), _event_public_path_stamp())
+    return records(PEOPLE_KIND)
 
 
 @lru_cache(maxsize=2)
-def _people(release_id: str, event_stamp: tuple[int, str]) -> tuple[Record, ...]:
-    """Profiles, cached on the two things that can change what they say.
+def _people(
+    people_stamp: tuple[int, str],
+    editorial_stamp: tuple[int, str],
+    event_stamp: tuple[int, str],
+) -> tuple[Record, ...]:
+    """Profiles, cached on the three things that can change what they say.
 
-    A profile still carries the uuid event paths its source was written with,
-    while the running site addresses an event by its stable numeric
-    ``Event.public_id``. One query resolves every referenced identity rather
-    than turning a profile page into a round trip per relationship.
+    The parser records carry who a person is; the work they are credited with
+    is a derivation of the article, book, podcast and event records, so it is
+    composed here in one pass over the sources (see
+    :func:`~content.public_records.person_relationships`) rather than stored as
+    a snapshot that a new episode or a withdrawn event would silently stale.
 
-    A relationship naming an event the database does not have keeps its own
-    path: the profile page is not the place to discover that an event is
-    missing, and a dead link there is better than a 500.
+    A credit an authority does not publish -- an author key with no profile, a
+    guest who never had one -- credits no one, rather than exposing a source
+    key as if it were a person's name.
     """
 
-    replacements = {f"/events/{identity}": path for identity, path in _event_public_paths().items()}
-    return tuple(
-        {
-            **person,
-            "relationships": tuple(
-                {
-                    **relationship,
-                    "public_path": _rewritten_event_path(
-                        relationship.get("public_path", ""), replacements
-                    ),
-                }
-                for relationship in person.get("relationships", ())
-            ),
-        }
-        for person in _cleaned_bodies(release_id, "people")
+    if not people_stamp[0]:
+        return ()
+    from . import public_records
+
+    people_records = _synced_records(people_stamp, PEOPLE_SOURCE_SLUG, PEOPLE_KIND)
+    relationships = public_records.person_relationships(
+        _synced_records(editorial_stamp, EDITORIAL_SOURCE_SLUG, "article"),
+        _synced_records(editorial_stamp, EDITORIAL_SOURCE_SLUG, "book"),
+        _synced_records(editorial_stamp, EDITORIAL_SOURCE_SLUG, "podcast"),
+        _published_event_records(),
+        people_slugs={record["slug"] for record in people_records},
     )
+    return tuple(
+        public_records.person_record(record, relationships.get(record["slug"], ()))
+        for record in people_records
+    )
+
+
+def _published_event_records() -> tuple[Record, ...]:
+    """The published event records the speaker credits are derived from."""
+
+    from events.queries import published_event_records
+
+    return published_event_records()
 
 
 def person(slug: str) -> Record | None:
