@@ -8,7 +8,7 @@ from xml.etree import ElementTree
 from django.test import TestCase
 
 from content import catalogue
-from content.docs_projection import docs_page
+from content.docs_projection import docs_page, docs_pages
 from content.public_routes import public_paths
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
 from events.queries import published_event_records
@@ -127,6 +127,25 @@ class PublicRouteAndSeoTests(TestCase):
                 ]
                 self.assertEqual(locations.count(f"https://datatalks.club{root}"), 1)
                 self.assertNotIn(f"https://datatalks.club{root.rstrip('/')}", locations)
+
+    def test_docs_sitemap_enumerates_every_synced_docs_page(self) -> None:
+        """F1: the docs sitemap lists the whole published tree, not a fixed sample.
+
+        A hand-picked pair of URLs drifts silently as pages are added, renamed
+        or retired; the read model docs pages are synced from is the only
+        source that cannot fall out of date with the tree it describes.
+        """
+
+        expected_paths = {str(page["public_path"]) for page in docs_pages()}
+        self.assertGreater(len(expected_paths), 2)
+
+        response = self.client.get("/sitemaps/docs.xml")
+        self.assertEqual(response.status_code, 200)
+        document = ElementTree.fromstring(response.content)
+        locations = {
+            node.text or "" for node in document.findall("s:url/s:loc", SITEMAP_NAMESPACE)
+        }
+        self.assertEqual(locations, {f"https://datatalks.club{path}" for path in expected_paths})
 
     def test_explicit_hub_redirects_are_permanent_one_hop_and_query_preserving(self) -> None:
         redirects = {
