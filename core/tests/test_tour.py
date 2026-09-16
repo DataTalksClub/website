@@ -170,7 +170,7 @@ class TourPageTests(TestCase):
                 self.assertIn(f"course-{slug}.", body)
                 self.assertIn(f"course-{slug}-dark.", body)
         self.assertNotIn("course-ml-zoomcamp.", body)
-        self.assertIn('class="tour-aside"', body)
+        self.assertNotIn('class="tour-aside"', body)
 
     def test_tour_states_its_real_scope_in_the_hero_lede(self) -> None:
         body = self._get().content.decode()
