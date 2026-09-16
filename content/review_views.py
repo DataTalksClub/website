@@ -16,9 +16,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_safe
 
 from core.breadcrumbs import trail
-from core.context import current_request_id, external_context_id_or_new
-from core.services import ServiceContext
 
+from . import catalogue
 from .docs_presentation import (
     docs_body_without_primary_heading,
     docs_context_items,
@@ -53,10 +52,9 @@ from .faq_data import (
 from .faq_data import (
     faq_course as faq_course_data,
 )
-from .queries import ResolvePublicDocument, resolve_public_document
 
 #: Route, not content: the page's own address is owned by the URL configuration,
-#: while everything the page says comes from its ``ContentDocument`` row.
+#: while everything the page says comes from its synced ``slack_page`` row.
 SLACK_PUBLIC_PATH = "/slack"
 
 
@@ -356,28 +354,26 @@ def slack(request: HttpRequest) -> HttpResponse:
         response = HttpResponseNotAllowed(("GET", "HEAD"))
         response["Cache-Control"] = "no-store, max-age=0"
         return response
-    document = resolve_public_document(
-        ResolvePublicDocument(SLACK_PUBLIC_PATH),
-        context=ServiceContext(correlation_id=external_context_id_or_new(current_request_id())),
-    )
-    if document is None:
+    record = catalogue.slack_page()
+    if record is None:
         raise Http404("The Slack page is unavailable.")
-    # The channel row and the help link are this page's own shape, so they ride in
-    # the document's adapter metadata rather than in a column every kind carries.
-    metadata = document.adapter_metadata
-    channels = metadata.get("channels")
+    # The page's own shape is the row's own shape: the parser stores exactly
+    # the fields this page renders, in the record the catalogue reads.
+    channels = record.get("channels")
+    lead = str(record.get("lead") or "")
+    title = str(record.get("title") or "")
     page: dict[str, Any] = {
-        "public_path": document.exact_public_path,
-        "title": document.title,
-        "lead": document.summary,
+        "public_path": str(record.get("public_path") or SLACK_PUBLIC_PATH),
+        "title": title,
+        "lead": lead,
         "channels": tuple(channels) if isinstance(channels, list) else (),
-        "troubleshooting_url": str(metadata.get("troubleshooting_url") or ""),
+        "troubleshooting_url": str(record.get("troubleshooting_url") or ""),
     }
     return _render(
         request,
         "review/slack.html",
-        path=document.exact_public_path,
-        title=document.title,
-        description=document.summary,
+        path=page["public_path"],
+        title=title,
+        description=lead,
         context={"slack": page},
     )

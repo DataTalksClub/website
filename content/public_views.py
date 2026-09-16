@@ -26,10 +26,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_safe
 
 from core.breadcrumbs import Trail, trail
-from core.context import current_request_id, external_context_id_or_new
 from core.runtime_config import get_str_setting
 from core.sensitive_query import has_sensitive_query_key
-from core.services import ServiceContext
 from core.sponsors import public_events_hub_sponsors
 from course_management.observability import record_event
 from courses.models import Cohort, SharedLesson, SharedModule
@@ -73,13 +71,8 @@ from .podcast_content import (
     podcast_seasons,
     season_episodes,
 )
-from .podcast_routes import (
-    PODCAST_HIERARCHICAL_ONLY_SLUGS,
-    podcast_legacy_path,
-    podcast_public_id,
-)
+from .podcast_routes import podcast_public_id
 from .public_query import selector_query
-from .queries import ResolvePublicDocument, resolve_public_document
 from .review_views import SLACK_PUBLIC_PATH
 from .sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
 from .wiki_content import WIKI_ASSET_ROOT
@@ -179,29 +172,6 @@ def legacy_events_redirect(request: HttpRequest) -> HttpResponse:
     if request.GET.get("filter") == "past" and len(request.GET) == 1:
         return permanent_public_redirect(request, target="/events/past", preserve_query=False)
     return permanent_public_redirect(request, target="/events")
-
-
-@require_safe
-def permanent_detail_redirect(
-    request: HttpRequest,
-    slug: str,
-    *,
-    collection: str,
-) -> HttpResponse:
-    collection_name = {
-        "blog": "articles",
-        "podcast": "podcasts",
-        "books": "books",
-        "people": "people",
-    }[collection]
-    redirect = catalogue.editorial_route_alias(request.path_info)
-    if (
-        redirect is None
-        or redirect["collection"] != collection_name
-        or redirect["record_key"] != slug
-    ):
-        raise Http404
-    return permanent_public_redirect(request, target=redirect["final_path"])
 
 
 def _render(
@@ -807,16 +777,6 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
     return response
 
 
-@csrf_exempt
-def podcast_detail(request: HttpRequest, slug: str) -> HttpResponse:
-    if request.method not in {"GET", "HEAD"}:
-        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
-    episode = catalogue.podcast(slug)
-    if episode is None:
-        raise Http404
-    return _render_podcast_detail(request, episode)
-
-
 def _podcast_by_public_id(episode_id: str) -> dict:
     matches = [
         episode
@@ -854,22 +814,6 @@ def podcast_detail_by_id_without_slug(request: HttpRequest, episode_id: str) -> 
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
     episode = _podcast_by_public_id(episode_id)
     return permanent_public_redirect(request, target=episode["public_path"])
-
-
-@csrf_exempt
-def podcast_legacy_detail(request: HttpRequest, slug: str) -> HttpResponse:
-    """Render established HTML finals and redirect reviewed migration aliases."""
-
-    if request.method not in {"GET", "HEAD"}:
-        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
-    if slug in PODCAST_HIERARCHICAL_ONLY_SLUGS:
-        raise Http404
-    episode = catalogue.podcast(slug)
-    if episode is None:
-        raise Http404
-    if episode["public_path"] != podcast_legacy_path(slug):
-        return permanent_public_redirect(request, target=episode["public_path"])
-    return _render_podcast_detail(request, episode)
 
 
 @require_safe
@@ -1235,15 +1179,7 @@ def _record_media_failure(
 def _section_records(section: str) -> tuple[tuple[str, str], ...]:
     # /slack is a database-owned page: it is listed when a row publishes it and
     # absent when none does, rather than being a permanent entry that 404s.
-    slack_entries = (
-        ((SLACK_PUBLIC_PATH, ""),)
-        if resolve_public_document(
-            ResolvePublicDocument(SLACK_PUBLIC_PATH),
-            context=ServiceContext(correlation_id=external_context_id_or_new(current_request_id())),
-        )
-        is not None
-        else ()
-    )
+    slack_entries = ((SLACK_PUBLIC_PATH, ""),) if catalogue.slack_page() is not None else ()
     static_sections = {
         "main": (
             ("/", ""),

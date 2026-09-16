@@ -83,10 +83,8 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     "content.public_views.article_detail": EDITORIAL_DETAIL,
     "content.public_views.book_detail": EDITORIAL_DETAIL,
     "content.public_views.person_detail": EDITORIAL_DETAIL,
-    "content.public_views.podcast_detail": EDITORIAL_DETAIL,
     "content.public_views.podcast_detail_by_id": EDITORIAL_DETAIL,
     "content.public_views.podcast_detail_by_id_without_slug": EDITORIAL_DETAIL,
-    "content.public_views.podcast_legacy_detail": EDITORIAL_DETAIL,
     "content.public_views.wiki_detail": EDITORIAL_DETAIL,
     "content.public_views.wiki_graph": EDITORIAL_DETAIL,
     "content.public_views.wiki_special": EDITORIAL_DETAIL,
@@ -129,7 +127,6 @@ ROUTE_CACHE_CLASSES: dict[str, str] = {
     # contract).
     "cadmin.legacy_urls.redirect_to_studio": PERMANENT_REDIRECT,
     "content.public_views.legacy_events_redirect": PERMANENT_REDIRECT,
-    "content.public_views.permanent_detail_redirect": PERMANENT_REDIRECT,
     "content.public_views.permanent_public_redirect": PERMANENT_REDIRECT,
     "core.views.management_slash_redirect": PERMANENT_REDIRECT,
     "courses.views.course_aliases.legacy_course_redirect": PERMANENT_REDIRECT,

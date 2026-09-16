@@ -81,7 +81,12 @@ def podcast_public_path(record: dict[str, Any]) -> str:
         not isinstance(slug, str)
         or not slug
         or not isinstance(public_path, str)
-        or public_path != podcast_canonical_path(slug)
+        or isinstance(record.get("season"), bool)
+        or not isinstance(record.get("season"), int)
+        or isinstance(record.get("episode"), bool)
+        or not isinstance(record.get("episode"), int)
+        or public_path
+        != podcast_canonical_path(season=record["season"], episode=record["episode"], slug=slug)
     ):
         raise ImproperlyConfigured("Public podcast canonical path is invalid.")
     return public_path

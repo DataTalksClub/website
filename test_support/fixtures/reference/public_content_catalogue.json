@@ -3550,7 +3550,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-one.html",
+        "final_path": "/podcast/s20e06/synthetic-episode-one",
         "query_policy": "preserve_raw",
         "record_key": "synthetic-episode-one",
         "source_path": "/podcast/synthetic-episode-one",
@@ -3558,7 +3558,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-one.html",
+        "final_path": "/podcast/s20e06/synthetic-episode-one",
         "query_policy": "preserve_raw",
         "record_key": "synthetic-episode-one",
         "source_path": "/podcast/synthetic-episode-one/",
@@ -3566,7 +3566,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-s24e01.html",
+        "final_path": "/podcast/s20e01/synthetic-episode-s24e01",
         "query_policy": "preserve_raw",
         "record_key": "synthetic-episode-s24e01",
         "source_path": "/podcast/synthetic-episode-s24e01",
@@ -3574,7 +3574,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-s24e01.html",
+        "final_path": "/podcast/s20e01/synthetic-episode-s24e01",
         "query_policy": "preserve_raw",
         "record_key": "synthetic-episode-s24e01",
         "source_path": "/podcast/synthetic-episode-s24e01/",
@@ -3582,7 +3582,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-s24e02.html",
+        "final_path": "/podcast/s20e02/synthetic-episode-s24e02",
         "query_policy": "preserve_raw",
         "record_key": "synthetic-episode-s24e02",
         "source_path": "/podcast/synthetic-episode-s24e02",
@@ -3590,7 +3590,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-s24e02.html",
+        "final_path": "/podcast/s20e02/synthetic-episode-s24e02",
         "query_policy": "preserve_raw",
         "record_key": "synthetic-episode-s24e02",
         "source_path": "/podcast/synthetic-episode-s24e02/",
@@ -3598,7 +3598,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-s24e03.html",
+        "final_path": "/podcast/s20e03/synthetic-episode-s24e03",
         "query_policy": "preserve_raw",
         "record_key": "synthetic-episode-s24e03",
         "source_path": "/podcast/synthetic-episode-s24e03",
@@ -3606,7 +3606,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-s24e03.html",
+        "final_path": "/podcast/s20e03/synthetic-episode-s24e03",
         "query_policy": "preserve_raw",
         "record_key": "synthetic-episode-s24e03",
         "source_path": "/podcast/synthetic-episode-s24e03/",
@@ -3614,7 +3614,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-s24e04.html",
+        "final_path": "/podcast/s20e04/synthetic-episode-s24e04",
         "query_policy": "preserve_raw",
         "record_key": "synthetic-episode-s24e04",
         "source_path": "/podcast/synthetic-episode-s24e04",
@@ -3622,7 +3622,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-s24e04.html",
+        "final_path": "/podcast/s20e04/synthetic-episode-s24e04",
         "query_policy": "preserve_raw",
         "record_key": "synthetic-episode-s24e04",
         "source_path": "/podcast/synthetic-episode-s24e04/",
@@ -3630,7 +3630,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-s24e05.html",
+        "final_path": "/podcast/s20e05/synthetic-episode-s24e05",
         "query_policy": "preserve_raw",
         "record_key": "synthetic-episode-s24e05",
         "source_path": "/podcast/synthetic-episode-s24e05",
@@ -3638,7 +3638,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-s24e05.html",
+        "final_path": "/podcast/s20e05/synthetic-episode-s24e05",
         "query_policy": "preserve_raw",
         "record_key": "synthetic-episode-s24e05",
         "source_path": "/podcast/synthetic-episode-s24e05/",
@@ -3646,7 +3646,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-two.html",
+        "final_path": "/podcast/s01e02/synthetic-episode-two",
         "query_policy": "preserve_raw",
         "record_key": "synthetic-episode-two",
         "source_path": "/podcast/synthetic-episode-two",
@@ -3654,7 +3654,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-two.html",
+        "final_path": "/podcast/s01e02/synthetic-episode-two",
         "query_policy": "preserve_raw",
         "record_key": "synthetic-episode-two",
         "source_path": "/podcast/synthetic-episode-two/",
@@ -3662,7 +3662,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-spotify-creator-source.html",
+        "final_path": "/podcast/s25e01/synthetic-spotify-creator-source",
         "query_policy": "preserve_raw",
         "record_key": "synthetic-spotify-creator-source",
         "source_path": "/podcast/synthetic-spotify-creator-source",
@@ -3670,7 +3670,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-spotify-creator-source.html",
+        "final_path": "/podcast/s25e01/synthetic-spotify-creator-source",
         "query_policy": "preserve_raw",
         "record_key": "synthetic-spotify-creator-source",
         "source_path": "/podcast/synthetic-spotify-creator-source/",
@@ -4785,7 +4785,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-one.html",
+        "final_path": "/podcast/s20e06/synthetic-episode-one",
         "record_key": "synthetic-episode-one",
         "source": {
           "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -4798,7 +4798,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-s24e01.html",
+        "final_path": "/podcast/s20e01/synthetic-episode-s24e01",
         "record_key": "synthetic-episode-s24e01",
         "source": {
           "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -4811,7 +4811,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-s24e02.html",
+        "final_path": "/podcast/s20e02/synthetic-episode-s24e02",
         "record_key": "synthetic-episode-s24e02",
         "source": {
           "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -4824,7 +4824,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-s24e03.html",
+        "final_path": "/podcast/s20e03/synthetic-episode-s24e03",
         "record_key": "synthetic-episode-s24e03",
         "source": {
           "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -4837,7 +4837,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-s24e04.html",
+        "final_path": "/podcast/s20e04/synthetic-episode-s24e04",
         "record_key": "synthetic-episode-s24e04",
         "source": {
           "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -4850,7 +4850,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-s24e05.html",
+        "final_path": "/podcast/s20e05/synthetic-episode-s24e05",
         "record_key": "synthetic-episode-s24e05",
         "source": {
           "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -4863,7 +4863,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-episode-two.html",
+        "final_path": "/podcast/s01e02/synthetic-episode-two",
         "record_key": "synthetic-episode-two",
         "source": {
           "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -4876,7 +4876,7 @@
       },
       {
         "collection": "podcasts",
-        "final_path": "/podcast/synthetic-spotify-creator-source.html",
+        "final_path": "/podcast/s25e01/synthetic-spotify-creator-source",
         "record_key": "synthetic-spotify-creator-source",
         "source": {
           "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -5506,7 +5506,7 @@
         "source_path": "podcasts/synthetic-episode-one.md",
         "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-one.md"
       },
-      "public_path": "/podcast/synthetic-episode-one.html",
+      "public_path": "/podcast/s20e06/synthetic-episode-one",
       "published": "",
       "resources": [
         {
@@ -5695,7 +5695,7 @@
         "source_path": "podcasts/synthetic-episode-two.md",
         "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-two.md"
       },
-      "public_path": "/podcast/synthetic-episode-two.html",
+      "public_path": "/podcast/s01e02/synthetic-episode-two",
       "published": "2026-01-17",
       "resources": [],
       "season": 1,
@@ -5722,7 +5722,7 @@
         "source_path": "podcasts/synthetic-episode-s24e01.md",
         "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-s24e01.md"
       },
-      "public_path": "/podcast/synthetic-episode-s24e01.html",
+      "public_path": "/podcast/s20e01/synthetic-episode-s24e01",
       "published": "2026-01-10",
       "resources": [
         {
@@ -5757,7 +5757,7 @@
         "source_path": "podcasts/synthetic-episode-s24e02.md",
         "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-s24e02.md"
       },
-      "public_path": "/podcast/synthetic-episode-s24e02.html",
+      "public_path": "/podcast/s20e02/synthetic-episode-s24e02",
       "published": "2026-01-11",
       "resources": [],
       "season": 20,
@@ -5784,7 +5784,7 @@
         "source_path": "podcasts/synthetic-episode-s24e03.md",
         "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-s24e03.md"
       },
-      "public_path": "/podcast/synthetic-episode-s24e03.html",
+      "public_path": "/podcast/s20e03/synthetic-episode-s24e03",
       "published": "2026-01-12",
       "resources": [],
       "season": 20,
@@ -5811,7 +5811,7 @@
         "source_path": "podcasts/synthetic-episode-s24e04.md",
         "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-s24e04.md"
       },
-      "public_path": "/podcast/synthetic-episode-s24e04.html",
+      "public_path": "/podcast/s20e04/synthetic-episode-s24e04",
       "published": "2026-01-13",
       "resources": [],
       "season": 20,
@@ -5838,7 +5838,7 @@
         "source_path": "podcasts/synthetic-episode-s24e05.md",
         "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-episode-s24e05.md"
       },
-      "public_path": "/podcast/synthetic-episode-s24e05.html",
+      "public_path": "/podcast/s20e05/synthetic-episode-s24e05",
       "published": "2026-01-14",
       "resources": [],
       "season": 20,
@@ -5875,7 +5875,7 @@
         "source_path": "podcasts/synthetic-spotify-creator-source.md",
         "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/podcasts/synthetic-spotify-creator-source.md"
       },
-      "public_path": "/podcast/synthetic-spotify-creator-source.html",
+      "public_path": "/podcast/s25e01/synthetic-spotify-creator-source",
       "published": "2026-01-20",
       "resources": [],
       "season": 25,

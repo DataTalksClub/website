@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlsplit
 
-from .podcast_routes import podcast_canonical_path, podcast_public_id
+from .podcast_routes import podcast_canonical_path
 
 PODCAST_RESOURCE_SCHEMA_VERSION = 1
 EXTERNAL_RESOURCE_TARGET = "_blank"
@@ -104,10 +104,8 @@ def _record_path(record: Mapping[str, Any]) -> str:
     ):
         return ""
 
-    reviewed_path = podcast_canonical_path(slug)
-    if reviewed_path.startswith("/podcast/") and ".html" not in reviewed_path:
-        return reviewed_path
-    return f"/podcast/{podcast_public_id(season=season, episode=episode)}/{slug}"
+    reviewed_path = podcast_canonical_path(season=season, episode=episode, slug=slug)
+    return reviewed_path
 
 
 def _record_aliases(record: Mapping[str, Any]) -> tuple[str, ...]:

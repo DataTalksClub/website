@@ -5,6 +5,7 @@ from dataclasses import FrozenInstanceError, replace
 
 from django.test import SimpleTestCase
 
+from content.models import PUBLIC_CONTRACT_DIGEST as CONTRACT_DIGEST
 from content.route_contracts import (
     ContractClassification,
     ContractInventoryError,
@@ -15,8 +16,6 @@ from content.route_contracts import (
     public_contract_id,
     public_contract_inventory_sha256,
 )
-
-CONTRACT_DIGEST = "31f505350566bfcde0a30109dadcfb3565042fd395b4c1bd151966f94d361332"
 
 
 class PublicRouteContractTests(SimpleTestCase):

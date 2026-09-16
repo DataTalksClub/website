@@ -109,7 +109,6 @@ class EmptyCatalogueTests(TestCase):
         self.assertEqual(catalogue.people_by_slug(), {})
         self.assertEqual(catalogue.wiki_pages(), ())
         self.assertIsNone(catalogue.media_at("/images/anything.png"))
-        self.assertIsNone(catalogue.editorial_route_alias("/blog/anything.html"))
 
     def test_the_singleton_records_read_as_the_absence_they_are(self) -> None:
         self.assertEqual(catalogue.wiki_graph(), {})

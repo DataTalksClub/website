@@ -481,17 +481,17 @@ class PublicProjectionBuilderTests(TestCase):
     def test_editorial_route_manifest_is_exhaustive_and_schema_bound(self) -> None:
         collections, source_artifacts, manifest = self.editorial_route_fixture()
 
+        podcast_finals = {
+            item["final_path"] for item in manifest["finals"] if item["collection"] == "podcasts"
+        }
+        self.assertTrue(podcast_finals)
         self.assertEqual(
-            {
-                item["final_path"]
-                for item in manifest["finals"]
-                if not item["final_path"].endswith(".html")
-            },
-            {
-                "/podcast/s24e04/from-genai-pilots-to-production",
-                "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code",
-                "/podcast/s24e06/how-to-build-ai-that-actually-ships-in-production",
-            },
+            {path for path in podcast_finals if not path.endswith(".html")},
+            podcast_finals,
+        )
+        self.assertIn(
+            "/podcast/s24e04/from-genai-pilots-to-production",
+            podcast_finals,
         )
         self.assertTrue(
             all(not item["source_path"].endswith(".html") for item in manifest["aliases"])

@@ -69,7 +69,16 @@ class EditorialRouteMigrationContractTests(TestCase):
         self.assertTrue(all(item["final_path"] not in aliases for item in aliases.values()))
         for final_path, final in finals.items():
             if final["collection"] == "podcasts":
-                self.assertEqual(final_path, podcast_canonical_path(final["record_key"]))
+                episode = catalogue.podcast(final["record_key"])
+                assert episode is not None, final["record_key"]
+                self.assertEqual(
+                    final_path,
+                    podcast_canonical_path(
+                        season=episode["season"],
+                        episode=episode["episode"],
+                        slug=final["record_key"],
+                    ),
+                )
             else:
                 self.assertTrue(final_path.endswith(".html"))
             clean_path = (

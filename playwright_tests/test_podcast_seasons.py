@@ -4,11 +4,6 @@ import pytest
 from playwright.sync_api import Browser, Page, ViewportSize, expect
 
 from content.podcast_content import ordered_podcasts, podcast_seasons
-from content.podcast_routes import (
-    PODCAST_GENAI_PILOTS_PATH,
-    PODCAST_GENAI_PILOTS_SLUG,
-    podcast_legacy_path,
-)
 from playwright_tests.accessibility_support import assert_accessible_page
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-132")
@@ -429,18 +424,6 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
     episode = ordered_podcasts()[0]
     final_path = episode["public_path"]
     detail_query = "utm_source=oncall%2Btest&x=a%2Fb&blank="
-    legacy_stem = podcast_legacy_path(episode["slug"]).removesuffix(".html")
-    for alias in (legacy_stem, f"{legacy_stem}/"):
-        redirected = page.request.get(
-            f"{origin}{alias}?{detail_query}",
-            max_redirects=0,
-        )
-        assert redirected.status == 301
-        assert redirected.headers["location"] == f"{final_path}?{detail_query}"
-        head = page.request.head(f"{origin}{alias}?{detail_query}", max_redirects=0)
-        assert head.status == 301
-        assert head.headers["location"] == f"{final_path}?{detail_query}"
-
     final = page.goto(f"{origin}{final_path}?{detail_query}", wait_until="networkidle")
     assert final is not None and final.status == 200
     expect(page).to_have_url(f"{origin}{final_path}?{detail_query}")
@@ -512,7 +495,7 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
 @pytest.mark.core
 def test_genai_pilots_has_only_the_hierarchical_public_episode_url(page: Page, live_server) -> None:
     origin = live_server.url
-    canonical_path = PODCAST_GENAI_PILOTS_PATH
+    canonical_path = "/podcast/s24e04/from-genai-pilots-to-production"
 
     final = page.goto(f"{origin}{canonical_path}", wait_until="networkidle")
     assert final is not None and final.status == 200
@@ -526,7 +509,7 @@ def test_genai_pilots_has_only_the_hierarchical_public_episode_url(page: Page, l
         f"https://datatalks.club{canonical_path}",
     )
 
-    legacy = podcast_legacy_path(PODCAST_GENAI_PILOTS_SLUG)
+    legacy = "/podcast/s24e04-from-genai-pilots-to-production.html"
     clean_legacy = legacy.removesuffix(".html")
     for unavailable_path in (legacy, clean_legacy, f"{clean_legacy}/"):
         for method in (page.request.get, page.request.head):

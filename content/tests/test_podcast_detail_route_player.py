@@ -7,7 +7,6 @@ from django.urls import reverse
 
 from content import catalogue
 from content.podcast_content import _spotify_creator_embed, episode_view
-from content.podcast_routes import PODCAST_ROUTE_MIGRATION_PATH, podcast_legacy_path
 
 
 def _episode(slug: str) -> dict[str, Any]:
@@ -24,22 +23,26 @@ class PodcastDetailRoutePlayerTests(TestCase):
     def setUp(self) -> None:
         self.record = _episode(self.slug)
 
-    def test_canonical_route_and_legacy_redirect_are_consistent(self) -> None:
-        legacy = podcast_legacy_path(self.slug)
-        query = "utm_source=podcast-test"
+    def test_canonical_route_renders_the_episode_page(self) -> None:
+        canonical = self.record["public_path"]
 
-        self.assertEqual(self.record["public_path"], PODCAST_ROUTE_MIGRATION_PATH)
-        self.assertEqual(reverse("podcast-ai-adoption"), PODCAST_ROUTE_MIGRATION_PATH)
-        self.assertEqual(reverse("podcast-ai-adoption-legacy"), legacy)
-        response = self.client.get(f"{PODCAST_ROUTE_MIGRATION_PATH}?{query}", follow=False)
+        self.assertEqual(canonical, "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code")
+        response = self.client.get(canonical, follow=False)
         self.assertEqual(response.status_code, 200)
         self.assertContains(
             response,
-            f'<link rel="canonical" href="https://datatalks.club{PODCAST_ROUTE_MIGRATION_PATH}">',
+            f'<link rel="canonical" href="https://datatalks.club{self.record["public_path"]}">',
         )
-        redirect = self.client.get(f"{legacy}?{query}", follow=False)
-        self.assertEqual(redirect.status_code, 301)
-        self.assertEqual(redirect.headers["Location"], f"{PODCAST_ROUTE_MIGRATION_PATH}?{query}")
+        self.assertEqual(
+            reverse(
+                "public-podcast-by-id",
+                kwargs={
+                    "episode_id": "s24e05",
+                    "slug": "ai-adoption-in-enterprise-beyond-writing-code",
+                },
+            ),
+            self.record["public_path"],
+        )
 
     def test_youtube_player_uses_the_stored_url_identity(self) -> None:
         view = episode_view(self.record)
@@ -55,7 +58,7 @@ class PodcastDetailRoutePlayerTests(TestCase):
             view.player.embed_url,
             "https://www.youtube-nocookie.com/embed/XzokRd_IPSc?enablejsapi=1&rel=0",
         )
-        response = self.client.get(PODCAST_ROUTE_MIGRATION_PATH)
+        response = self.client.get(self.record["public_path"])
         self.assertContains(response, 'data-video-provider="youtube"')
         self.assertContains(response, 'data-video-id="XzokRd_IPSc"')
         self.assertContains(
