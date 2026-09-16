@@ -1021,7 +1021,13 @@
         the start-now content further down the page (see the second
         "family-register" section, after the syllabus and certificate).
       {% endcomment %}
-      {% if family_outcome_stats or family_starting_point or family_prerequisites %}
+      {% comment %}
+        The prerequisites used to sit here in a box of their own; they now
+        close stage 1 of the journey below, which is where the reader asks
+        whether the course is for them.  "Your starting point" stays: it is
+        the family's own second-person framing, not a fact the stages carry.
+      {% endcomment %}
+      {% if family_outcome_stats or family_starting_point %}
         <div class="family-opening-group">
           {% if family_outcome_stats %}
             <section class="family-outcomes" aria-labelledby="outcomes-heading">
