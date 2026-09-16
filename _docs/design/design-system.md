@@ -364,6 +364,24 @@ to this document — do not fork it locally.
   the one real anchor and its `::after` covers the card, so the accessibility tree
   holds exactly one link per event. Anything else interactive inside sits above that
   overlay with `position: relative; z-index: 1`.
+- **Stage card** (`.stage-card`, numbered `.step-number` badge) — one numbered stage on
+  a plain `.card`: badge, illustration, heading, short description. It is a real shared
+  include, `templates/core/_stage_card.html`, not just shared CSS — the homepage's
+  "climb" section and a course family landing's "journey" section both render it, so
+  the two cards cannot drift apart the way their hand-copied badge sizes once did.
+
+  ```html
+  {% include "core/_stage_card.html" with step_index=1 heading="…" description="…" illustration_template="core/_home_illustration.html" illustration_variant="stuck" %}
+  ```
+
+  `step_index` (1/2/3) picks the badge digit and its `.step-number-2` /
+  `.step-number-3` fill. `illustration_template` is the artwork include rendered
+  inside, with `illustration_variant` / `illustration_loading` passed through to it.
+  `kicker` is an optional label paragraph (the family page's only). `on_rail` switches
+  the shape: unset draws the homepage's plain grid-flow card (illustration first, the
+  badge grouped with the heading); `on_rail=True` draws the badge astride the card's
+  top-left corner for a page that already draws its own dashed connecting rail behind
+  the row (`.journey-grid::before` stays page-specific, along with the grid itself).
 - **`.chip`** — round uppercase mini-pill. Variants: `.chip-plain`, `.chip-green`,
   `.chip-live`, `.chip-ink`.
 - **`.avatar`** — striped round placeholder disc, `2.6rem`.
