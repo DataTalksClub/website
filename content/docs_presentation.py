@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import html
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any
@@ -26,6 +27,10 @@ _PRIMARY_HEADING = re.compile(
     r'^\s*<h1 id="(?P<id>[^"]+)">(?P<label>.*?)</h1>\s*',
     re.DOTALL,
 )
+_FIRST_PARAGRAPH = re.compile(r"<p>(?P<text>.*?)</p>", re.DOTALL)
+_WHITESPACE = re.compile(r"\s+")
+_DEFAULT_META_DESCRIPTION = "DataTalks.Club documentation."
+_META_DESCRIPTION_MAX_LENGTH = 160
 _MODULES_HEADING = re.compile(
     r'<h2 id="modules">(?P<label>.*?)</h2>\s*',
     re.DOTALL,
@@ -42,6 +47,7 @@ _CURRICULUM_LINK = re.compile(
 _TAGS = re.compile(r"<[^>]+>")
 _MODULE_NUMBER = re.compile(r"\bModule\s+(?P<number>[0-9]+)\b", re.IGNORECASE)
 _SENTENCE = re.compile(r"(?<=[.!?])\s+")
+_TITLE_WORD = re.compile(r"[a-z0-9]+")
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,6 +83,52 @@ def docs_body_without_primary_heading(rendered: str) -> tuple[str, str]:
     if match is None:
         return "", rendered
     return match.group("id"), rendered[match.end() :]
+
+
+def docs_meta_description(document: Mapping[str, Any], rendered_body: str) -> str:
+    """Return a page's meta description, derived from its own real content.
+
+    A source ``description`` is used verbatim when the page has one. Most pages
+    do not (88 of 106 at the time this was written), and publishing the same
+    fallback sentence on all of them is a duplicate-content signal, not a
+    per-page description. This derives one from the page's own first rendered
+    paragraph -- presentation of the synced body, not hand-authored copy -- so
+    every docs page keeps a real, page-specific summary.
+    """
+
+    existing = str(document.get("description") or "").strip()
+    if existing:
+        return existing
+    match = _FIRST_PARAGRAPH.search(rendered_body)
+    if match is None:
+        return _DEFAULT_META_DESCRIPTION
+    text = _WHITESPACE.sub(" ", html.unescape(_TAGS.sub("", match.group("text")))).strip()
+    if not text:
+        return _DEFAULT_META_DESCRIPTION
+    if len(text) <= _META_DESCRIPTION_MAX_LENGTH:
+        return text
+    truncated = text[:_META_DESCRIPTION_MAX_LENGTH].rsplit(" ", 1)[0].rstrip(" ,;:—-")
+    return f"{truncated}…" if truncated else text[:_META_DESCRIPTION_MAX_LENGTH]
+
+
+def docs_meta_title(document: Mapping[str, Any]) -> str:
+    """Build a docs page's ``<title>`` from its place in the tree, not its name alone.
+
+    Six pages are titled "Prerequisites", six "Getting Started", six
+    "Curriculum" and so on -- one per course family -- so the page's own title
+    is not enough to make the ``<title>`` unique. Folding in the immediate
+    parent from ``docs_breadcrumbs`` (e.g. "Prerequisites · Data Engineering
+    Zoomcamp") disambiguates every one of them. Top-level pages (Documentation,
+    Courses, General, Activities, each course's own index) have no ambiguity to
+    resolve, so they keep the plain form.
+    """
+
+    title = str(document["title"])
+    breadcrumbs = docs_breadcrumbs(document)
+    if len(breadcrumbs) <= 1:
+        return f"{title} — DataTalks.Club Documentation"
+    parent_title = str(breadcrumbs[-1]["title"])
+    return f"{title} · {parent_title} — DataTalks.Club Docs"
 
 
 def docs_curriculum(rendered_body: str) -> DocsCurriculum | None:
@@ -214,6 +266,137 @@ def docs_home_areas(tree: DocsNavigationTree) -> tuple[DocsNavigationItem, ...]:
 
     wanted = {"/docs/general/", "/docs/activities/"}
     return tuple(item for item in tree.root.children if item.public_path in wanted)
+
+
+@dataclass(frozen=True, slots=True)
+class DocsGuideEntry:
+    """One guide as the hub draws it: its own page, what it holds, its drawing."""
+
+    item: DocsNavigationItem
+    page_count: int
+    family_slug: str
+    sections: tuple[DocsGuideEntry, ...]
+
+    @property
+    def title(self) -> str:
+        return self.item.title
+
+    @property
+    def description(self) -> str:
+        return self.item.description
+
+    @property
+    def public_path(self) -> str:
+        return self.item.public_path
+
+    @property
+    def pages(self) -> tuple[DocsNavigationItem, ...]:
+        return self.item.children
+
+
+@dataclass(frozen=True, slots=True)
+class DocsHub:
+    """The hub's chapters, each derived from the shape of the source tree.
+
+    The split between ``sectioned`` and ``platform`` is structural rather than a
+    named path: a support guide whose children have children of their own is deep
+    enough that listing only its sections would bury its pages, so it opens a
+    chapter of its own; a flat one is a row with its pages beside it.  Zoomcamp
+    Logistics is the only two-level guide today, and its leaves -- Certification,
+    Joining a Cohort, Final Project -- are the most linked-to pages in the corpus,
+    which is exactly why they no longer sit three clicks down.
+    """
+
+    courses: DocsNavigationItem | None
+    families: tuple[DocsGuideEntry, ...]
+    sectioned: tuple[DocsGuideEntry, ...]
+    platform: tuple[DocsGuideEntry, ...]
+    community: tuple[DocsGuideEntry, ...]
+
+
+def docs_subtree_count(item: DocsNavigationItem) -> int:
+    """Count the documents under one navigation item, at any depth."""
+
+    return sum(1 + docs_subtree_count(child) for child in item.children)
+
+
+def _title_key(title: str) -> str:
+    """A lenient join key between two corpora that name the same course.
+
+    The docs call it "Stock Market Analytics Zoomcamp" and the course catalogue
+    "Stock Markets Analytics Zoomcamp".  Comparing the titles word by word, with a
+    plural word folded onto its singular, joins the two without either side
+    hardcoding the other's spelling -- and without a slug map that would have to be
+    edited every time a course is added.
+    """
+
+    words = _TITLE_WORD.findall(title.casefold())
+    return " ".join(word[:-1] if len(word) > 3 and word.endswith("s") else word for word in words)
+
+
+def _illustration_slugs() -> dict[str, str]:
+    """Map a course title to the family slug its drawing is filed under."""
+
+    from core.home_content import course_catalog
+
+    return {_title_key(course.title): course.family for course in course_catalog()}
+
+
+def _guide_entry(item: DocsNavigationItem, slugs: Mapping[str, str]) -> DocsGuideEntry:
+    return DocsGuideEntry(
+        item=item,
+        page_count=docs_subtree_count(item),
+        family_slug=slugs.get(_title_key(item.title), ""),
+        sections=tuple(
+            DocsGuideEntry(
+                item=child,
+                page_count=docs_subtree_count(child),
+                family_slug="",
+                sections=(),
+            )
+            for child in item.children
+        ),
+    )
+
+
+def _index_rows(area: DocsNavigationItem) -> tuple[DocsNavigationItem, ...]:
+    """Draw an area as one row per child when its children hold pages of their own.
+
+    Activities is six flat pages, so it is one row with those six beside it.
+    General holds Community Guidelines (five pages) and Jobs (three), so drawing it
+    as a single row would hide eight pages behind two titles; it becomes four rows
+    instead, each with its own pages.
+    """
+
+    if any(child.children for child in area.children):
+        return area.children
+    return (area,)
+
+
+def docs_hub(tree: DocsNavigationTree) -> DocsHub:
+    """Group every documentation page into the chapters the hub draws."""
+
+    families, support = docs_home_course_groups(tree)
+    slugs = _illustration_slugs()
+    return DocsHub(
+        courses=tree.by_path.get("/docs/courses/"),
+        families=tuple(_guide_entry(item, slugs) for item in families),
+        sectioned=tuple(
+            _guide_entry(item, slugs)
+            for item in support
+            if any(child.children for child in item.children)
+        ),
+        platform=tuple(
+            _guide_entry(item, slugs)
+            for item in support
+            if not any(child.children for child in item.children)
+        ),
+        community=tuple(
+            _guide_entry(row, slugs)
+            for area in docs_home_areas(tree)
+            for row in _index_rows(area)
+        ),
+    )
 
 
 @dataclass(frozen=True, slots=True)

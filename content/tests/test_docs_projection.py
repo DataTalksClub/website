@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
+from django.utils.html import escape as html_escape
 
 from content.docs_presentation import (
     docs_body_without_primary_heading,
@@ -15,6 +16,8 @@ from content.docs_presentation import (
     docs_curriculum,
     docs_home_areas,
     docs_home_course_groups,
+    docs_meta_description,
+    docs_meta_title,
 )
 from content.docs_projection import (
     DOCS_ROOT_PATH,
@@ -25,6 +28,7 @@ from content.docs_projection import (
     docs_breadcrumbs,
     docs_navigation_tree,
     docs_page,
+    docs_pages,
     docs_parent,
     docs_projection,
     docs_sequential_navigation,
@@ -74,6 +78,82 @@ class DocsProjectionTests(TestCase):
         self.assertIsNotNone(projected_detail)
         self.assertNotContains(detail, (projected_detail or {})["edit_url"])
         self.assertNotContains(detail, "Search documentation on GitHub")
+
+    def test_docs_titles_disambiguate_same_named_pages_across_course_families(self) -> None:
+        # F3: every course family publishes its own "Getting Started" page, so the
+        # plain page title alone is not a unique <title> -- the immediate parent
+        # must distinguish them.
+        aidt_getting_started = docs_page("/docs/courses/ai-dev-tools-zoomcamp/getting-started/")
+        ml_getting_started = docs_page("/docs/courses/ml-zoomcamp/getting-started/")
+        self.assertIsNotNone(aidt_getting_started)
+        self.assertIsNotNone(ml_getting_started)
+        assert aidt_getting_started is not None
+        assert ml_getting_started is not None
+        aidt_title = docs_meta_title(aidt_getting_started)
+        ml_title = docs_meta_title(ml_getting_started)
+        self.assertNotEqual(aidt_title, ml_title)
+        self.assertIn("Getting Started", aidt_title)
+        self.assertIn("Getting Started", ml_title)
+        self.assertIn("·", aidt_title)
+        self.assertIn("·", ml_title)
+        self.assertIn("AI Dev Tools Zoomcamp", aidt_title)
+        self.assertIn("Machine Learning Zoomcamp", ml_title)
+
+        aidt_response = self.client.get("/docs/courses/ai-dev-tools-zoomcamp/getting-started/")
+        ml_response = self.client.get("/docs/courses/ml-zoomcamp/getting-started/")
+        self.assertContains(aidt_response, html_escape(aidt_title))
+        self.assertContains(ml_response, html_escape(ml_title))
+
+        # Top-level pages carry no ambiguous sibling, so they keep the plain form.
+        general = docs_page("/docs/general/")
+        self.assertIsNotNone(general)
+        assert general is not None
+        self.assertEqual(docs_meta_title(general), "General — DataTalks.Club Documentation")
+
+    def test_docs_pages_without_a_source_description_get_a_real_derived_one(self) -> None:
+        # F4: most pages carry no source `description` (88 of 106 in the real synced
+        # corpus), so the fallback used to be the identical generic sentence on all
+        # of them. It must instead be derived from that page's own first paragraph.
+        # Every page in this reference fixture carries a source description, so the
+        # "no description" branch is exercised directly against the derivation
+        # function rather than against a real route.
+        undescribed_document = {"description": ""}
+        rendered_body = (
+            "<p>How the DataTalks.Club community works and how our free courses run: "
+            "guidelines, Slack, course logistics, setup guides and activity formats "
+            "for everyone who joins, well past the usual meta description length so "
+            "truncation is exercised too.</p>"
+        )
+        description = docs_meta_description(undescribed_document, rendered_body)
+        self.assertNotEqual(description, "DataTalks.Club documentation.")
+        self.assertTrue(description)
+        self.assertLessEqual(len(description), 161)  # 160 chars plus a trailing ellipsis
+        self.assertTrue(rendered_body.startswith(f"<p>{description.removesuffix('…')}"))
+
+        # A body with no real paragraph at all still gets a safe, real default.
+        self.assertEqual(
+            docs_meta_description(undescribed_document, ""), "DataTalks.Club documentation."
+        )
+
+        # A page with a source description keeps it verbatim, body notwithstanding.
+        described = next(page for page in docs_pages() if page.get("description"))
+        self.assertEqual(
+            docs_meta_description(described, "<p>irrelevant</p>"),
+            described["description"],
+        )
+
+        # And the real route for such a page renders that same derived value.
+        general = docs_page("/docs/general/")
+        self.assertIsNotNone(general)
+        assert general is not None
+        rendered, _headings = render_docs_markdown(general)
+        _heading_id, rendered_body = docs_body_without_primary_heading(rendered)
+        expected = docs_meta_description(general, rendered_body)
+        response = self.client.get(general["public_path"])
+        self.assertContains(
+            response,
+            f'<meta name="description" content="{html_escape(expected)}">',
+        )
 
     def test_tree_is_complete_ordered_and_stable_across_source_reordering(self) -> None:
         pages = docs_projection()["pages"]

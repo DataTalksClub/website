@@ -23,9 +23,10 @@ from .docs_presentation import (
     docs_context_items,
     docs_context_root,
     docs_curriculum,
-    docs_home_areas,
-    docs_home_course_groups,
+    docs_hub,
     docs_local_sequence,
+    docs_meta_description,
+    docs_meta_title,
     docs_search_results,
 )
 from .docs_projection import (
@@ -105,14 +106,7 @@ def docs_home(request: HttpRequest) -> HttpResponse:
     if "q" in request.GET:
         context["docs_results"] = docs_search_results(query)
     else:
-        course_families, course_support = docs_home_course_groups(navigation)
-        context.update(
-            {
-                "docs_course_families": course_families,
-                "docs_course_support": course_support,
-                "docs_areas": docs_home_areas(navigation),
-            }
-        )
+        context["docs_hub"] = docs_hub(navigation)
     return _render(
         request,
         "review/docs_home.html",
@@ -175,12 +169,13 @@ def docs_page(request: HttpRequest, doc_path: str) -> HttpResponse:
     if document is None:
         raise Http404("Documentation page is unavailable.")
     rendered, headings = render_docs_markdown(document)
+    _heading_id, rendered_body = docs_body_without_primary_heading(rendered)
     return _render(
         request,
         "review/docs_detail.html",
         path=document["public_path"],
-        title=f"{document['title']} — DataTalks.Club Documentation",
-        description=document.get("description") or "DataTalks.Club documentation.",
+        title=docs_meta_title(document),
+        description=docs_meta_description(document, rendered_body),
         context=_docs_detail_context(document, rendered, headings),
     )
 
