@@ -50,8 +50,12 @@
     padding: 1rem;
   }
 
+  /* Top-align, not end-align: the cohort/assignment fields grow an extra
+     .field-hint line while disabled, so end-aligning would bottom-anchor
+     every field to the tallest one's baseline and shove the shorter
+     fields' labels down out of row with their siblings. */
   .gallery-filter-fields {
-    align-items: end;
+    align-items: start;
     display: grid;
     gap: 0.8rem;
     grid-template-columns: repeat(4, minmax(0, 1fr));
