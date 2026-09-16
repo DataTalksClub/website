@@ -13,8 +13,9 @@ class CourseListMetadataTest(CourseListViewTestBase):
         # view computes for every cohort (`home_duration_label`,
         # `home_current_assignment`) even though the plain, consistent catalogue
         # card no longer displays them -- the owner's "no special treatment" ask
-        # trimmed the card to a title, one outcome line and a "View course" link;
-        # that richer detail lives on the family and cohort pages instead.
+        # trimmed the card to a title and one outcome line, the whole card
+        # itself already the click target; that richer detail lives on the
+        # family and cohort pages instead.
         self.assert_active_course_metadata(response)
         self.assertContains(response, "Database-provided course summary.")
         self.assert_active_course_card(response)
