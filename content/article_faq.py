@@ -30,10 +30,10 @@ from typing import Any
 import mistune
 from django.core.exceptions import ImproperlyConfigured
 from django.db import DatabaseError
-from django.db.models import F
 
 from .article_faq_format import faq_anchor_id
-from .models import ContentDocument, ContentRelease
+from .catalogue import EDITORIAL_SOURCE_SLUG
+from .models import SyncedDocument
 from .services import sanitize_rendered_html
 
 #: The fragment the article page publishes its FAQ section under. The section is
@@ -137,34 +137,27 @@ def _questions(pairs: Any, *, slug: str) -> tuple[FaqQuestion, ...]:
 def article_faq(slug: str, *, using: str = "default") -> ArticleFaq | None:
     """Return one article's FAQ section, or ``None`` when it publishes none.
 
-    Reads the same active-release row the article page itself resolves, so the
-    FAQ can never belong to a different release of the article than the body
-    above it.
+    Reads the same synced row the article page itself resolves, so the FAQ can
+    never belong to a different revision of the article than the body above it.
     """
 
     try:
-        metadata = (
-            ContentDocument.objects.using(using)
+        record = (
+            SyncedDocument.objects.using(using)
             .filter(
+                source__slug=EDITORIAL_SOURCE_SLUG,
+                source__is_enabled=True,
                 content_kind="article",
                 stable_key=slug,
                 is_published=True,
-                release__status=ContentRelease.Status.ACTIVE,
-                release__source__enabled=True,
-                release_id=F("release__source__active_release_id"),
             )
-            .values_list("adapter_metadata", flat=True)
+            .values_list("record", flat=True)
             .first()
         )
     except DatabaseError:
         return None
-    if not isinstance(metadata, dict):
+    if not isinstance(record, dict):
         return None
-    # An imported catalogue record is stored beside its position, so the record
-    # itself is one level in; an adapter-written document is the record. Both are
-    # article documents and either can carry the FAQ.
-    held = metadata.get("record")
-    record: dict[str, Any] = held if isinstance(held, dict) else metadata
     pairs = record.get("faq")
     if pairs is None:
         return None

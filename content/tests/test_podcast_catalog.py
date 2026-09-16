@@ -446,7 +446,9 @@ class PodcastEpisodeParityTests(TestCase):
             "https://www.youtube.com/watch?v=aaaaaaaaaaa&t=0",
         )
         guest = view.guests[0]
-        self.assertEqual(guest.name, "Synthetic Guest Two")
+        # The credit's display name is the person's catalogue title, derived at
+        # read time now rather than frozen into the stored record.
+        self.assertEqual(guest.name, "Synthetic Author Two")
         self.assertEqual(guest.image_path, "/images/authors/synthetic-two.jpg")
         self.assertIn("Senior Data Scientist at Synthetic Corp", guest.summary)
         self.assertEqual(
@@ -978,7 +980,10 @@ class PodcastSeasonNavigationTests(TestCase):
             podcast_finals - {PODCAST_GENAI_PILOTS_PATH},
         )
 
-        episode = podcasts[0]
+        # The newest episode publishes under its reviewed hierarchical final,
+        # whose alias grammar is the migration's own; the alias contract here is
+        # the .html final's, so the probe picks an episode that keeps one.
+        episode = next(episode for episode in podcasts if episode["public_path"].endswith(".html"))
         final_path = episode["public_path"]
         query = "utm_source=oncall%2Btest&x=a%2Fb&blank="
         for method in ("GET", "HEAD"):

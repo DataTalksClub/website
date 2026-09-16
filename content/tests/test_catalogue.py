@@ -44,8 +44,10 @@ class CatalogueReadTests(TestCase):
         with CaptureQueriesContext(connection) as repeated:
             catalogue.books()
 
-        # One lookup of the active release; the records themselves are already held.
-        self.assertEqual(len(repeated), 1)
+        # Two stamp lookups and nothing more: the synced rows' stamp the read
+        # is bound to, and the staged release the byline credits resolve
+        # against. The records themselves are already held.
+        self.assertEqual(len(repeated), 2)
 
 
 class EmptyCatalogueTests(TestCase):
@@ -55,7 +57,11 @@ class EmptyCatalogueTests(TestCase):
         ContentSource.objects.filter(stable_id=catalogue.PUBLIC_CONTENT_STABLE_ID).update(
             enabled=False
         )
-        EngineContentSource.objects.filter(slug=catalogue.WIKI_SOURCE_SLUG).update(is_enabled=False)
+        # Both synced authorities publish editorial collections: an un-ingested
+        # database has neither.
+        EngineContentSource.objects.filter(
+            slug__in=(catalogue.EDITORIAL_SOURCE_SLUG, catalogue.WIKI_SOURCE_SLUG)
+        ).update(is_enabled=False)
 
     def test_every_collection_is_empty_rather_than_a_failure(self) -> None:
         for name in catalogue.COLLECTION_NAMES:

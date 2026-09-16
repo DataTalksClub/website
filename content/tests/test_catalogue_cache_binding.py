@@ -49,16 +49,18 @@ class FailedReadRecoveryTests(CacheBindingTestBase):
 
         with mock.patch.object(ContentDocument.objects, "filter", flaky_filter):
             with self.assertRaises(OperationalError):
-                catalogue.records("book")
+                # Media is one of the kinds still read from the staged release;
+                # the synced kinds carry the same guarantee in the class below.
+                catalogue.records("media")
 
         # Nothing failed entered the cache: the recovering read runs the row
         # query again (pointer lookup plus rows) and answers with the published
-        # books, not the empty collection a swallowed failure used to leave.
+        # records, not the empty collection a swallowed failure used to leave.
         with CaptureQueriesContext(connection) as recovery:
-            books = catalogue.books()
+            media = catalogue.media()
 
         self.assertGreaterEqual(len(recovery), 2)
-        self.assertTrue(books)
+        self.assertTrue(media)
 
 
 class ActivationRaceTests(CacheBindingTestBase):
@@ -92,12 +94,12 @@ class AbsentPointerTests(CacheBindingTestBase):
         )
 
         with CaptureQueriesContext(connection) as read:
-            books = catalogue.books()
+            media = catalogue.media()
 
         # The disabled source's pointer lookup is the only query: an empty key
         # is an empty catalogue, not a document read (and not a failure).
         self.assertEqual(len(read), 1)
-        self.assertEqual(books, ())
+        self.assertEqual(media, ())
 
 
 class SyncedWikiBindingTests(CacheBindingTestBase):
@@ -111,10 +113,10 @@ class SyncedWikiBindingTests(CacheBindingTestBase):
 
     def setUp(self) -> None:
         super().setUp()
-        catalogue._wiki_records.cache_clear()
+        catalogue._synced_records.cache_clear()
 
     def test_a_failed_row_read_raises_and_the_next_read_recovers(self) -> None:
-        stamp = catalogue.wiki_sync_stamp()
+        stamp = catalogue.synced_stamp(catalogue.WIKI_SOURCE_SLUG)
         real_filter = SyncedDocument.objects.filter
         failures = iter([OperationalError("wiki row read lost")])
 
@@ -125,7 +127,7 @@ class SyncedWikiBindingTests(CacheBindingTestBase):
                 return real_filter(*args, **kwargs)
 
         with (
-            mock.patch.object(catalogue, "wiki_sync_stamp", lambda: stamp),
+            mock.patch.object(catalogue, "synced_stamp", lambda slug: stamp),
             mock.patch.object(SyncedDocument.objects, "filter", flaky_filter),
         ):
             with self.assertRaises(OperationalError):
@@ -134,7 +136,7 @@ class SyncedWikiBindingTests(CacheBindingTestBase):
         # Nothing that failed entered the cache: the recovering read answers
         # with the published pages, not the empty collection a swallowed
         # failure used to leave.
-        with mock.patch.object(catalogue, "wiki_sync_stamp", lambda: stamp):
+        with mock.patch.object(catalogue, "synced_stamp", lambda slug: stamp):
             pages = catalogue.wiki_pages()
 
         self.assertTrue(pages)

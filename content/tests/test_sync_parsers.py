@@ -191,6 +191,12 @@ class PeopleParserTests(_CheckoutCase):
 
 
 class ArticlesParserTests(_CheckoutCase):
+    def setUp(self) -> None:
+        super().setUp()
+        # The reference data seeds the synced article rows the catalogue reads;
+        # the parser contract tests exercise their own synced state from empty.
+        SyncedDocument.objects.filter(source__slug="dtc-content").delete()
+
     def test_discover_upsert_and_delete(self) -> None:
         source = _source("dtc-content")
         parser = get_parser("article")
@@ -248,6 +254,12 @@ class ArticlesParserTests(_CheckoutCase):
 
 
 class PodcastsParserTests(_CheckoutCase):
+    def setUp(self) -> None:
+        super().setUp()
+        # The reference data seeds the synced podcast rows the catalogue reads;
+        # the parser contract tests exercise their own synced state from empty.
+        SyncedDocument.objects.filter(source__slug="dtc-content").delete()
+
     def test_discover_upsert_update_and_delete(self) -> None:
         source = _source("dtc-content")
         parser = get_parser("podcast")
@@ -341,6 +353,12 @@ class PodcastsParserTests(_CheckoutCase):
 
 
 class BooksParserTests(_CheckoutCase):
+    def setUp(self) -> None:
+        super().setUp()
+        # The reference data seeds the synced book rows the catalogue reads;
+        # the parser contract tests exercise their own synced state from empty.
+        SyncedDocument.objects.filter(source__slug="dtc-content").delete()
+
     def test_discover_upsert_and_delete(self) -> None:
         source = _source("dtc-content")
         parser = get_parser("book")

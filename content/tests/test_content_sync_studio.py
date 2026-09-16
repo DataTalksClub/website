@@ -23,15 +23,18 @@ class ContentSyncStudioViewTests(TestCase):
 
     @classmethod
     def setUpTestData(cls) -> None:
+        # Fixture-specific slugs: the reference data seeds the real declared
+        # sources for the catalogue's synced reads, and both the slug and the
+        # repository name are unique.
         cls.content_source = ContentSource.objects.create(
-            slug="dtc-content",
-            repo_name="DataTalksClub/content",
+            slug="studio-fixture-content",
+            repo_name="DataTalksClub/studio-fixture-content",
             webhook_secret="test-webhook-secret",
             is_enabled=False,
         )
         cls.main_site_source = ContentSource.objects.create(
-            slug="dtc-main-site",
-            repo_name="DataTalksClub/datatalksclub.github.io",
+            slug="studio-fixture-main-site",
+            repo_name="DataTalksClub/studio-fixture-main-site",
             webhook_secret="test-webhook-secret",
             is_enabled=False,
         )
@@ -62,8 +65,8 @@ class ContentSyncStudioViewTests(TestCase):
         self.assertTemplateUsed(response, "community_base/studio/base.html")
         self.assertContains(response, 'class="no-js"')
         self.assertContains(response, "Content sources")
-        self.assertContains(response, "DataTalksClub/content")
-        self.assertContains(response, "DataTalksClub/datatalksclub.github.io")
+        self.assertContains(response, "DataTalksClub/studio-fixture-content")
+        self.assertContains(response, "DataTalksClub/studio-fixture-main-site")
 
     def test_history_renders(self) -> None:
         self._staff_client()

@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 from xml.etree import ElementTree
 
+from community_base.content_sync.models import ContentSource as EngineContentSource
 from django.test import TestCase
 from django.utils.html import escape
 
@@ -195,8 +196,12 @@ class CollectionHubRecordTests(TestCase):
 
     def test_an_empty_collection_says_so_instead_of_drawing_an_empty_list(self) -> None:
         # Both hubs read the database, so they are emptied the way an un-ingested
-        # database is empty rather than by patching a value in.
+        # database is empty rather than by patching a value in. The blog reads
+        # the synced rows now, so the synced source goes with the staged one.
         ContentSource.objects.filter(stable_id=PUBLIC_CONTENT_STABLE_ID).update(enabled=False)
+        EngineContentSource.objects.filter(slug=catalogue.EDITORIAL_SOURCE_SLUG).update(
+            is_enabled=False
+        )
 
         self.assertContains(self.client.get("/blog"), "No articles yet.")
         empty_books = self.client.get("/books")

@@ -77,6 +77,22 @@ WIKI_PAGE_KIND = "wiki"
 WIKI_SINGLETON_KINDS = ("wiki_graph", "wiki_search", "wiki_assets")
 WIKI_SYNCED_KINDS = (WIKI_PAGE_KIND, *WIKI_SINGLETON_KINDS)
 
+#: The sync source whose synced rows publish the editorial collections that
+#: have cut over, and the kinds it owns. The people profiles and the staged
+#: release's remaining kinds -- courses, media, the manifest, the route
+#: aliases, the platform links -- follow before the pipeline retires.
+EDITORIAL_SOURCE_SLUG = "dtc-content"
+EDITORIAL_SYNCED_KINDS = ("article", "podcast", "book")
+
+#: Every kind that reads the synced rows, mapped to the source that publishes
+#: it: the dispatch ``records`` makes before falling back to the staged
+#: release. Each kind reads exactly one authority -- never a blend, never a
+#: fallback.
+SYNCED_KIND_SOURCES = {
+    **{kind: EDITORIAL_SOURCE_SLUG for kind in EDITORIAL_SYNCED_KINDS},
+    **{kind: WIKI_SOURCE_SLUG for kind in WIKI_SYNCED_KINDS},
+}
+
 
 def active_release_id() -> str:
     """The id of the release currently publishing the catalogue, or ``""``.
@@ -107,63 +123,108 @@ def records(kind: str) -> tuple[Record, ...]:
     serve from cache.
     """
 
+    source_slug = SYNCED_KIND_SOURCES.get(kind)
+    if source_slug is None:
+        return _records(active_release_id(), kind)
     if kind in WIKI_SYNCED_KINDS:
-        return _wiki_records(wiki_sync_stamp(), kind)
-    return _records(active_release_id(), kind)
+        return _synced_records(synced_stamp(source_slug), source_slug, kind)
+    return _synced_editorial(kind, synced_stamp(source_slug), active_release_id())
 
 
-def wiki_sync_stamp() -> tuple[int, str]:
-    """A cheap stamp that moves whenever the synced wiki rows could have.
+def synced_stamp(source_slug: str) -> tuple[int, str]:
+    """A cheap stamp that moves whenever one source's synced rows could have.
 
-    One aggregate, not a row per page, with the same contract as
-    :func:`active_release_id`: it changes exactly when a sync writes the wiki
-    kinds, so a cached read follows a sync instead of outliving it. A database
-    failure raises -- the wiki readers refuse to let an outage enter the cache
-    disguised as an empty catalogue (ARC-01).
+    One aggregate, not a row per record, with the same contract as
+    :func:`active_release_id`: it changes exactly when a sync writes the
+    source's kinds, so a cached read follows a sync instead of outliving it. A
+    database failure raises -- the synced readers refuse to let an outage enter
+    the cache disguised as an empty catalogue (ARC-01).
     """
 
     stamp = SyncedDocument.objects.filter(
-        source__slug=WIKI_SOURCE_SLUG, source__is_enabled=True
+        source__slug=source_slug, source__is_enabled=True
     ).aggregate(total=Count("id"), latest=Max("updated_at"))
     return (int(stamp["total"] or 0), str(stamp["latest"] or ""))
 
 
-@lru_cache(maxsize=8)
-def _wiki_records(stamp: tuple[int, str], kind: str) -> tuple[Record, ...]:
-    """The synced records of ``wiki`` kind the stamp was built from.
+@lru_cache(maxsize=16)
+def _synced_records(stamp: tuple[int, str], source_slug: str, kind: str) -> tuple[Record, ...]:
+    """The synced records of ``kind`` the stamp was built from.
 
     The query is bound to the stamp the cache key names, so a warmed answer
     cannot outlive the rows it was read from: a sync changes the stamp, and the
     next read rebuilds the entry instead of serving stale pages.
 
-    A zero count is an absent source or an empty one -- an empty wiki, not a
-    failure -- so it answers without reading rows.
+    A zero count is an absent source or an empty one -- an empty collection,
+    not a failure -- so it answers without reading rows.
 
-    The pages come back in the A-Z order the hub pages through, the one rule
-    the ``dtc-podwiki`` parser writes the records under; the row table carries
-    no order column, so the reader derives the same order from the records
-    themselves.
+    The row table carries no order column: the order is a catalogue fact, so
+    the reader derives it from the records themselves. The editorial kinds come
+    back newest first, the rule the reviewed build ordered them by; the wiki
+    pages come back in the A-Z order the hub pages through.
     """
 
     if not stamp[0]:
         return ()
     rows = SyncedDocument.objects.filter(
-        source__slug=WIKI_SOURCE_SLUG,
+        source__slug=source_slug,
         content_kind=kind,
         is_published=True,
     ).values_list("record", flat=True)
-    records = tuple(record for record in rows if isinstance(record, dict))
-    if kind == WIKI_PAGE_KIND:
-        records = tuple(
-            sorted(
-                records,
-                key=lambda record: (
-                    str(record.get("title", "")).casefold(),
-                    str(record.get("slug", "")),
-                ),
+    held = [record for record in rows if isinstance(record, dict)]
+    if kind in EDITORIAL_SYNCED_KINDS:
+        held.sort(
+            key=lambda record: (
+                str(record.get("published", "")),
+                str(record.get("slug", "")),
+            ),
+            reverse=True,
+        )
+        # The bodies carry one known legacy token that pages must never render;
+        # the cleanup is a narrow, idempotent per-block repair, applied to the
+        # copy the read model holds (ARC-03).
+        if kind == "article":
+            held = [_cleaned_body(record) for record in held]
+    elif kind == WIKI_PAGE_KIND:
+        held.sort(
+            key=lambda record: (
+                str(record.get("title", "")).casefold(),
+                str(record.get("slug", "")),
             )
         )
-    return records
+    return tuple(held)
+
+
+@lru_cache(maxsize=8)
+def _synced_editorial(
+    kind: str, content_stamp: tuple[int, str], people_release_id: str
+) -> tuple[Record, ...]:
+    """The published editorial records of ``kind``, derived from the synced rows.
+
+    The parser records carry what their source authors; the fields that are
+    derivations of *other* collections -- the public image address, the byline
+    credits resolved against the profiles -- are derived here, at read time, so
+    they follow the people records instead of a snapshot of them. Until the
+    people profiles cut over themselves, the credits resolve against the staged
+    release the way they always did.
+    """
+
+    if not content_stamp[0]:
+        return ()
+    from . import public_records
+
+    people_by_slug = {
+        person["slug"]: person for person in _cleaned_bodies(people_release_id, "people")
+    }
+    derive = {
+        "article": public_records.article_record,
+        "book": public_records.book_record,
+        "podcast": public_records.podcast_record,
+    }[kind]
+    return tuple(
+        derive(record, people_by_slug)
+        for record in _synced_records(content_stamp, EDITORIAL_SOURCE_SLUG, kind)
+    )
 
 
 @lru_cache(maxsize=64)
@@ -260,7 +321,7 @@ def _cleaned_body(record: Record) -> Record:
 def articles() -> tuple[Record, ...]:
     """Every published article, newest first."""
 
-    return _cleaned_bodies(active_release_id(), "article")
+    return records("article")
 
 
 def article(slug: str) -> Record | None:

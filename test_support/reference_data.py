@@ -439,6 +439,64 @@ def load_synced_wiki() -> int:
     return len(rows)
 
 
+def load_synced_editorial() -> int:
+    """Publish the synthetic editorial records as synced rows, the way the engine does.
+
+    The articles, podcasts and books read ``SyncedDocument`` rows written by the
+    ``dtc-content`` parser (issue #384). Production writes these rows by parsing
+    the repository checkout; this seeds the same rows from the synthetic
+    catalogue. The staged records carry fields the projection build derived from
+    *other* collections -- the profile credits, the public image address -- and
+    the parser records do not, so the derived fields are stripped here and the
+    declared image is stored under its source form, which is what the read model
+    derives from.
+    """
+
+    from community_base.content_sync.models import ContentSource as EngineContentSource
+
+    from content.models import SyncedDocument
+
+    catalogue = _synthetic_catalogue()
+    source = EngineContentSource.objects.get_or_create(
+        slug="dtc-content",
+        defaults={
+            "repo_name": "DataTalksClub/content",
+            # A synthetic secret so the row satisfies the engine's own shape
+            # rules; nothing here reads or keeps a real credential.
+            "webhook_secret": "test-support-synthetic-secret",
+        },
+    )[0]
+
+    kinds = {"articles": "article", "podcasts": "podcast", "books": "book"}
+    rows = []
+    for collection, kind in kinds.items():
+        for record in catalogue[collection]:
+            held = dict(record)
+            image_source = held.pop("image_path", "")
+            held.pop("image_source", None)
+            held["image_source"] = image_source.lstrip("/")
+            held.pop("author_profiles", None)
+            held.pop("guest_profiles", None)
+            held.pop("media_available", None)
+            provenance = held.get("provenance") or {}
+            rows.append(
+                SyncedDocument(
+                    source=source,
+                    content_kind=kind,
+                    stable_key=held["slug"],
+                    slug=held["slug"],
+                    title=held["title"],
+                    summary=held.get("description") or held.get("summary") or "",
+                    public_path=held["public_path"],
+                    source_path=str(provenance.get("source_path") or held["slug"]),
+                    checksum=str(provenance.get("checksum") or "0" * 64),
+                    record=held,
+                )
+            )
+    SyncedDocument.objects.bulk_create(rows)
+    return len(rows)
+
+
 def load_homepage_testimonials() -> int:
     from courses.services.testimonials import import_homepage_testimonials
 
@@ -463,5 +521,6 @@ def load_reviewed_reference_data() -> dict[str, int]:
         "synced_faq": load_synced_faq(),
         "public_content": load_reviewed_public_content(),
         "synced_wiki": load_synced_wiki(),
+        "synced_editorial": load_synced_editorial(),
         "testimonials": load_homepage_testimonials(),
     }
