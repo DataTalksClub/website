@@ -32,9 +32,11 @@ from .course_repository import (
     CourseRepositoryLimits,
     _boolean,
     _content_id,
+    _course_progression,
     _date,
     _decode_utf8,
     _fail,
+    _homework_summaries,
     _https_url,
     _load_yaml_mapping,
     _parse_lesson_frontmatter,
@@ -149,6 +151,10 @@ class SharedCurriculumParserV2:
                     "current_cohort",
                     "cohorts",
                     "description",
+                    "starting_point",
+                    "prerequisites",
+                    "progression",
+                    "homework_summaries",
                     "outcome",
                     "urls",
                     "hashtag",
@@ -204,6 +210,42 @@ class SharedCurriculumParserV2:
             title=_string(mapping["title"], path=path, pointer="/title", maximum=200),
             description=description,
             description_source_path=path,
+            starting_point=(
+                _string(
+                    mapping["starting_point"],
+                    path=path,
+                    pointer="/starting_point",
+                    maximum=self.limits.max_site_description_chars,
+                )
+                if "starting_point" in mapping
+                else None
+            ),
+            prerequisites=(
+                _string(
+                    mapping["prerequisites"],
+                    path=path,
+                    pointer="/prerequisites",
+                    maximum=self.limits.max_site_description_chars,
+                )
+                if "prerequisites" in mapping
+                else ""
+            ),
+            progression=(
+                _course_progression(
+                    mapping["progression"], path=path, pointer="/progression"
+                )
+                if "progression" in mapping
+                else None
+            ),
+            homework_summaries=(
+                _homework_summaries(
+                    mapping["homework_summaries"],
+                    path=path,
+                    pointer="/homework_summaries",
+                )
+                if "homework_summaries" in mapping
+                else ()
+            ),
             outcome=_string(mapping["outcome"], path=path, pointer="/outcome"),
             repository_url=_https_url(urls["repository"], path=path, pointer="/urls/repository"),
             docs_url=_https_url(urls["docs"], path=path, pointer="/urls/docs"),
@@ -273,7 +315,15 @@ class SharedCurriculumParserV2:
             path=path,
             pointer="",
             allowed=frozenset(
-                {"schema_version", "content_id", "slug", "title", "units", "overview_path"}
+                {
+                    "schema_version",
+                    "content_id",
+                    "slug",
+                    "title",
+                    "summary",
+                    "units",
+                    "overview_path",
+                }
             ),
             required=frozenset({"schema_version", "content_id", "title", "units"}),
         )
@@ -379,6 +429,11 @@ class SharedCurriculumParserV2:
             content_id=content_id,
             slug=module_slug,
             title=_string(mapping["title"], path=path, pointer="/title", maximum=200),
+            summary=(
+                _string(mapping["summary"], path=path, pointer="/summary", maximum=500)
+                if "summary" in mapping
+                else ""
+            ),
             source_path=path,
             units=tuple(units),
             scope="shared",

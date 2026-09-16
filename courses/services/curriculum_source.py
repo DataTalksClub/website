@@ -9,6 +9,22 @@ from typing import Literal
 
 
 @dataclass(frozen=True, slots=True)
+class CourseProgressionStepSource:
+    """One repository-authored scene in the course learner journey."""
+
+    heading: str
+    description: str
+
+
+@dataclass(frozen=True, slots=True)
+class HomeworkSummarySource:
+    """Course-level copy for a legacy homework-backed syllabus row."""
+
+    slug: str
+    summary: str
+
+
+@dataclass(frozen=True, slots=True)
 class CourseSource:
     content_id: str
     slug: str
@@ -18,6 +34,18 @@ class CourseSource:
     # existing description untouched rather than blanking curated copy.
     description: str | None
     description_source_path: str | None
+    # A repository may publish the learner's truthful starting state. ``None``
+    # keeps existing curated database copy when the optional key is absent.
+    starting_point: str | None
+    # Repositories may author prerequisite copy directly in course.yaml.
+    # ``None`` means this source contract does not own the stored field.
+    prerequisites: str | None
+    # Three course-specific scenes, in narrative order. ``None`` preserves
+    # existing curated database content when an older manifest omits them.
+    progression: tuple[CourseProgressionStepSource, ...] | None
+    # Legacy families may still compose their public syllabus from existing
+    # Homework rows. The repository owns their one-line summaries by slug.
+    homework_summaries: tuple[HomeworkSummarySource, ...]
     outcome: str
     repository_url: str
     docs_url: str
@@ -62,6 +90,7 @@ class ModuleSource:
     content_id: str
     slug: str
     title: str
+    summary: str
     source_path: str
     units: tuple[UnitSource, ...]
     # ``shared`` marks one root module of the one current graph (schema 2);
@@ -182,6 +211,7 @@ __all__ = (
     "AnswerEnvelope",
     "CohortSource",
     "CourseRepositorySource",
+    "CourseProgressionStepSource",
     "CourseSource",
     "CurriculumFlowSource",
     "HomeworkBindingSource",
@@ -189,6 +219,7 @@ __all__ = (
     "HomeworkOptionSource",
     "HomeworkQuestionSource",
     "HomeworkSource",
+    "HomeworkSummarySource",
     "LessonCodeSource",
     "LessonMetadata",
     "ModuleFlowSource",

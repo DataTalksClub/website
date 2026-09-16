@@ -12,6 +12,15 @@ cohorts:
     content: cohorts/2025
     legacy: true
 description: A free course about building LLM applications, RAG, agents, and evaluation.
+starting_point: You can already build small Python applications.
+prerequisites: You can write Python and use the command line.
+progression:
+  - heading: I have documents and questions
+    description: I want answers grounded in my own data.
+  - heading: I connect the RAG system
+    description: I practice retrieval, generation, agents, and evaluation.
+  - heading: I ship an LLM application
+    description: I build an evaluated application that other people can use.
 outcome: Build, evaluate, and monitor production-style LLM applications.
 urls:
   repository: https://github.com/DataTalksClub/llm-zoomcamp

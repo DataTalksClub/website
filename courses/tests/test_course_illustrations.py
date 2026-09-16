@@ -49,8 +49,11 @@ class CourseIllustrationTests(SimpleTestCase):
                 self.assertIsNotNone(finders.find(asset))
                 self.assertEqual((light["width"], light["height"]), ("1254", "1254"))
                 self.assertEqual(
-                    dark["src"], static("core/illustrations/course-learning-dark.webp")
+                    dark["src"],
+                    static(f"core/illustrations/course-{slug}-dark.webp"),
                 )
+                self.assertIsNotNone(finders.find(f"core/illustrations/course-{slug}-dark.webp"))
+                self.assertEqual((dark["width"], dark["height"]), ("1254", "1254"))
                 for image in images:
                     self.assertEqual(image["alt"], "")
                     self.assertEqual(image["decoding"], "async")

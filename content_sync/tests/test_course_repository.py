@@ -80,6 +80,44 @@ def test_parses_llm_zoomcamp_modules_and_legacy_cohorts_without_database() -> No
         source.course.slug = "changed"  # type: ignore[misc]
 
 
+def test_schema_one_course_manifest_accepts_optional_family_landing_content() -> None:
+    snapshot = fixture_snapshot()
+    replace_bytes(
+        snapshot,
+        "course.yaml",
+        b"outcome: Build, evaluate, and monitor production-style LLM applications.\n",
+        (
+            b"outcome: Build, evaluate, and monitor production-style LLM applications.\n"
+            b"starting_point: You have a document question to answer.\n"
+            b"prerequisites: You can write Python.\n"
+            b"progression:\n"
+            b"  - heading: I have a question\n"
+            b"    description: I want to ground an answer in my documents.\n"
+            b"  - heading: I connect the system\n"
+            b"    description: I build retrieval and evaluation into the workflow.\n"
+            b"  - heading: I ship the application\n"
+            b"    description: I publish a useful project.\n"
+            b"homework_summaries:\n"
+            b"  - slug: hw1\n"
+            b"    summary: Build the first working retrieval flow.\n"
+        ),
+    )
+
+    source = parse_course_repository(snapshot, commit_sha=COMMIT_SHA)
+
+    assert source.course.starting_point == "You have a document question to answer."
+    assert source.course.prerequisites == "You can write Python."
+    assert [step.heading for step in source.course.progression or ()] == [
+        "I have a question",
+        "I connect the system",
+        "I ship the application",
+    ]
+    assert [item.slug for item in source.course.homework_summaries] == ["hw1"]
+    assert source.course.homework_summaries[0].summary == (
+        "Build the first working retrieval flow."
+    )
+
+
 def test_rejects_non_youtube_lesson_video_url() -> None:
     snapshot = fixture_snapshot()
     path = "cohorts/2026/01-agentic-rag/lessons/01-intro.md"

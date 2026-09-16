@@ -231,6 +231,7 @@ class FamilySyllabusRow:
     index: str
     title: str
     summary: str = ""
+    url: str = ""
 
 
 # Curriculum modules and homework both arrive titled "Module 1: Agentic RAG"
@@ -239,7 +240,11 @@ class FamilySyllabusRow:
 _UNIT_TITLE_PREFIX = re.compile(r"^(?:module|homework)\s+\d+\s*:\s*", re.IGNORECASE)
 
 
-def family_syllabus_rows(units: list) -> tuple[FamilySyllabusRow, ...]:
+def family_syllabus_rows(
+    units: list,
+    *,
+    urls: list[str] | None = None,
+) -> tuple[FamilySyllabusRow, ...]:
     """Number the family's syllabus units in teaching order.
 
     A unit is a shared-curriculum module when the course's import created one,
@@ -249,13 +254,19 @@ def family_syllabus_rows(units: list) -> tuple[FamilySyllabusRow, ...]:
     """
 
     rows = []
-    for position, unit in enumerate(units, start=1):
+    destinations = urls or [""] * len(units)
+    for position, (unit, url) in enumerate(zip(units, destinations, strict=True), start=1):
         title = _UNIT_TITLE_PREFIX.sub("", unit.title).strip()
         rows.append(
             FamilySyllabusRow(
                 index=f"{position:02d}",
                 title=title,
-                summary=getattr(unit, "summary", "") or "",
+                summary=(
+                    getattr(unit, "summary", "")
+                    or getattr(unit, "description", "")
+                    or ""
+                ),
+                url=url,
             )
         )
     return tuple(rows)
@@ -336,14 +347,16 @@ def family_outcome_stats(
     certificate_count: int,
     submission_count: int,
     since_year: int | None,
+    *,
+    registration_count: int | None = None,
 ) -> tuple[FamilyOutcomeStat, ...]:
-    """The family's live enrolment/outcome numbers, only for what the data has.
+    """The family's published participation/outcome numbers, only for what the data has.
 
-    Every count is read live from the family's own visible cohorts -- no
-    estimate, no rounding, nothing carried over from a mock. A family with
-    nobody enrolled yet (a brand-new family with no cohorts) has nothing
-    honest to show, so the whole strip is omitted rather than opening on a
-    "0 enrolled".
+    A campaign's published registration aggregate is the leading count when
+    available. Otherwise the page falls back to live enrollments across the
+    family's visible cohorts. No estimate or rounding is introduced. A family
+    with neither a published registration count nor an enrollment has nothing
+    honest to show, so the whole strip is omitted.
 
     Certificates are gated separately from the other two counts: a family
     whose cohorts never reliably populated ``Enrollment.certificate_url``
@@ -353,10 +366,14 @@ def family_outcome_stats(
     zero, instead of hiding the strip the other two counts can still stand on.
     """
 
-    if not enrolled_count:
+    if registration_count is None and not enrolled_count:
         return ()
-    since = f" since {since_year}" if since_year else ""
-    stats = [FamilyOutcomeStat(f"{enrolled_count:,}", f"enrolled{since}")]
+    if registration_count is not None:
+        noun = "registration" if registration_count == 1 else "registrations"
+        stats = [FamilyOutcomeStat(f"{registration_count:,}", noun)]
+    else:
+        since = f" since {since_year}" if since_year else ""
+        stats = [FamilyOutcomeStat(f"{enrolled_count:,}", f"enrolled{since}")]
     if certificate_count:
         noun = "certificate" if certificate_count == 1 else "certificates"
         stats.append(FamilyOutcomeStat(f"{certificate_count:,}", f"{noun} issued"))
@@ -364,5 +381,3 @@ def family_outcome_stats(
         noun = "project submission" if submission_count == 1 else "project submissions"
         stats.append(FamilyOutcomeStat(f"{submission_count:,}", noun))
     return tuple(stats)
-
-

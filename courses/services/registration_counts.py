@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from courses.models import CourseRegistration, RegistrationCampaign
+from courses.models import Course, CourseRegistration, RegistrationCampaign
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,3 +56,44 @@ def public_course_registration_count(
     if native_start_at is not None:
         native_rows = native_rows.filter(created_at__gte=native_start_at)
     return PublicCourseRegistrationCount(count=baseline_count + native_rows.count())
+
+
+def public_family_registration_count(
+    campaign: RegistrationCampaign | None,
+    family: Course,
+) -> PublicCourseRegistrationCount | None:
+    """Return the campaign's attributable public count for one course family.
+
+    An active campaign keeps the existing current-cohort contract. A closed
+    campaign can have no ``current_course`` while retaining historical native
+    rows; in that state only rows explicitly tied to visible cohorts in this
+    family count. Null-course rows, hidden cohorts, and other families never do.
+    A cohort-bound baseline remains attributable to that visible family cohort,
+    and its cutover suppresses only pre-cutover rows for that same cohort.
+    """
+
+    if campaign is None:
+        return None
+    if campaign.current_course_id is not None:
+        return public_course_registration_count(campaign)
+
+    visible_cohort_ids = set(
+        family.cohorts.filter(visible=True).values_list("id", flat=True)
+    )
+    native_rows = CourseRegistration.objects.filter(
+        campaign=campaign,
+        course_id__in=visible_cohort_ids,
+    )
+    baseline = 0
+    baseline_cohort_id = campaign.registration_baseline_cohort_id
+    if baseline_cohort_id in visible_cohort_ids:
+        baseline = campaign.registration_baseline_count
+        if campaign.registration_native_start_at is not None:
+            native_rows = native_rows.exclude(
+                course_id=baseline_cohort_id,
+                created_at__lt=campaign.registration_native_start_at,
+            )
+    native_count = native_rows.count()
+    if not baseline and not native_count:
+        return None
+    return PublicCourseRegistrationCount(count=baseline + native_count)

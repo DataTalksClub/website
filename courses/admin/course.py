@@ -296,7 +296,16 @@ def _copyable_fields(instance, *, excluded):
 class CourseFamilyAdmin(ModelAdmin):
     list_display = ["title", "slug", "visible"]
     search_fields = ["title", "slug"]
-    fields = ["title", "slug", "starting_point", "outcome", "description", "visible"]
+    fields = [
+        "title",
+        "slug",
+        "starting_point",
+        "prerequisites",
+        "progression",
+        "outcome",
+        "description",
+        "visible",
+    ]
 
 
 @admin.register(Cohort)

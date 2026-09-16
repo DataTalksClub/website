@@ -41,6 +41,7 @@ from courses.services.curriculum_import import (
     CurriculumImportError,
     import_course_repository_curriculum,
 )
+from courses.services.curriculum_source import HomeworkSummarySource
 
 FIXTURE_ROOT = (
     Path(__file__).parents[2]
@@ -187,6 +188,21 @@ class CurriculumImportServiceTests(TestCase):
             "You have a question to answer with your own documents.",
         )
 
+    def test_schema_one_import_preserves_stored_prerequisites(self):
+        _, course, _, _ = self.import_fixture_with_project()
+        course.prerequisites = "Know Python and the command line."
+        course.save(update_fields=["prerequisites"])
+
+        import_course_repository_curriculum(
+            import_command(
+                fixture_source(commit_sha=SECOND_COMMIT),
+                commit_sha=SECOND_COMMIT,
+            )
+        )
+
+        course.refresh_from_db()
+        self.assertEqual(course.prerequisites, "Know Python and the command line.")
+
     def test_creates_new_course_and_explicit_cohort_from_source_metadata(self):
         result = import_course_repository_curriculum(import_command(explicit_legacy_source()))
 
@@ -236,6 +252,60 @@ class CurriculumImportServiceTests(TestCase):
         self.assertTrue(Project.objects.filter(pk=project.pk).exists())
         self.assertEqual(Module.objects.filter(cohort=cohort).count(), 0)
         self.assertEqual(result.counts["homeworks"], 0)
+
+    def test_repository_summary_updates_matching_legacy_homework_without_erasing_it(self):
+        course = Course.objects.create(slug="llm-zoomcamp", title="Existing")
+        cohort = Cohort.objects.create(
+            course=course,
+            slug="llm-zoomcamp-2025",
+            identifier="2025",
+            year=2025,
+            title="Existing 2025",
+        )
+        homework = Homework.objects.create(
+            course=cohort,
+            slug="legacy-homework",
+            title="Legacy homework",
+            description="Older summary.",
+            due_date=timezone.now() + timedelta(days=7),
+        )
+        source = explicit_legacy_source()
+        source = replace(
+            source,
+            course=replace(
+                source.course,
+                homework_summaries=(
+                    HomeworkSummarySource(
+                        slug="legacy-homework",
+                        summary="Explore the source data and validate its quality.",
+                    ),
+                ),
+            ),
+        )
+
+        import_course_repository_curriculum(import_command(source))
+        homework.refresh_from_db()
+        self.assertEqual(
+            homework.description,
+            "Explore the source data and validate its quality.",
+        )
+
+        source_without_summaries = replace(
+            explicit_legacy_source(),
+            commit_sha=SECOND_COMMIT,
+            course=replace(explicit_legacy_source().course, homework_summaries=()),
+        )
+        import_course_repository_curriculum(
+            import_command(
+                source_without_summaries,
+                commit_sha=SECOND_COMMIT,
+            )
+        )
+        homework.refresh_from_db()
+        self.assertEqual(
+            homework.description,
+            "Explore the source data and validate its quality.",
+        )
 
     def test_llm_fixture_materializes_modules_units_homework_and_questions(self):
         result, course, cohort, project = self.import_fixture_with_project()

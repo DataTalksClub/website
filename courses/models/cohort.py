@@ -1,13 +1,12 @@
 import re
 import uuid
 
+from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from django.db import models
 from django.db.models import Q
 
-from django.core.validators import URLValidator
-from django.core.exceptions import ValidationError
 from accounts.models import CustomUser
-
 from courses.random_names import generate_random_name
 
 from .curriculum_import import (
@@ -18,6 +17,22 @@ from .curriculum_import import (
 )
 
 User = CustomUser
+
+
+def validate_course_progression(value):
+    """Keep the persisted learner journey identical to the source contract."""
+
+    if value == []:
+        return
+    if not isinstance(value, list) or len(value) != 3:
+        raise ValidationError("Course progression must contain exactly three steps.")
+    for step in value:
+        if not isinstance(step, dict) or set(step) != {"heading", "description"}:
+            raise ValidationError(
+                "Each progression step must contain only heading and description."
+            )
+        if not all(isinstance(step[key], str) and step[key].strip() for key in step):
+            raise ValidationError("Progression headings and descriptions cannot be blank.")
 
 
 class CurriculumFormat(models.TextChoices):
@@ -48,8 +63,22 @@ class Course(SourceProvenanceModel):
         default="",
         help_text=(
             "Optional learner starting point for the course landing page. "
-            "Managed here and preserved by curriculum imports."
+            "Owned by the course repository when published there; preserved "
+            "when an import omits it."
         ),
+    )
+    prerequisites = models.TextField(
+        blank=True,
+        default="",
+        help_text="Prerequisite knowledge authored by the course repository.",
+    )
+    progression = models.JSONField(
+        blank=True,
+        default=list,
+        help_text=(
+            "Three ordered learner-journey scenes authored by the course repository."
+        ),
+        validators=[validate_course_progression],
     )
     outcome = models.TextField(blank=True, default="")
     github_repo_url = models.URLField(

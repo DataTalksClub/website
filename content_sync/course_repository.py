@@ -32,6 +32,7 @@ from yaml.events import (
 from courses.services.curriculum_source import (
     AnswerEnvelope,
     CohortSource,
+    CourseProgressionStepSource,
     CourseRepositorySource,
     CourseSource,
     CurriculumFlowSource,
@@ -39,6 +40,7 @@ from courses.services.curriculum_source import (
     HomeworkOptionSource,
     HomeworkQuestionSource,
     HomeworkSource,
+    HomeworkSummarySource,
     LessonCodeSource,
     LessonMetadata,
     ModuleFlowSource,
@@ -413,6 +415,84 @@ def _sequence(value: object, *, path: str, pointer: str, minimum: int = 0) -> li
     return value
 
 
+def _course_progression(
+    value: object,
+    *,
+    path: str,
+    pointer: str,
+) -> tuple[CourseProgressionStepSource, ...]:
+    """Parse the three source-authored scenes used on a family landing page."""
+
+    items = _sequence(value, path=path, pointer=pointer, minimum=3)
+    if len(items) != 3:
+        _fail("progression_three_steps_required", path, pointer)
+    steps = []
+    for index, value in enumerate(items):
+        item_pointer = f"{pointer}/{index}"
+        item = _strict_mapping(
+            value,
+            path=path,
+            pointer=item_pointer,
+            allowed=frozenset({"heading", "description"}),
+            required=frozenset({"heading", "description"}),
+        )
+        steps.append(
+            CourseProgressionStepSource(
+                heading=_string(
+                    item["heading"],
+                    path=path,
+                    pointer=f"{item_pointer}/heading",
+                    maximum=120,
+                ),
+                description=_string(
+                    item["description"],
+                    path=path,
+                    pointer=f"{item_pointer}/description",
+                    maximum=500,
+                ),
+            )
+        )
+    return tuple(steps)
+
+
+def _homework_summaries(
+    value: object,
+    *,
+    path: str,
+    pointer: str,
+) -> tuple[HomeworkSummarySource, ...]:
+    """Parse source-owned summaries for legacy homework-backed syllabus rows."""
+
+    items = _sequence(value, path=path, pointer=pointer, minimum=1)
+    summaries = []
+    slugs: set[str] = set()
+    for index, value in enumerate(items):
+        item_pointer = f"{pointer}/{index}"
+        item = _strict_mapping(
+            value,
+            path=path,
+            pointer=item_pointer,
+            allowed=frozenset({"slug", "summary"}),
+            required=frozenset({"slug", "summary"}),
+        )
+        slug = _slug(item["slug"], path=path, pointer=f"{item_pointer}/slug")
+        if slug in slugs:
+            _fail("duplicate_homework_summary_slug", path, f"{item_pointer}/slug")
+        slugs.add(slug)
+        summaries.append(
+            HomeworkSummarySource(
+                slug=slug,
+                summary=_string(
+                    item["summary"],
+                    path=path,
+                    pointer=f"{item_pointer}/summary",
+                    maximum=500,
+                ),
+            )
+        )
+    return tuple(summaries)
+
+
 def _referenced_path(
     value: object,
     *,
@@ -722,6 +802,10 @@ class _Parser:
                     "slug",
                     "title",
                     "description_path",
+                    "starting_point",
+                    "prerequisites",
+                    "progression",
+                    "homework_summaries",
                     "outcome",
                     "repository_url",
                     "docs_url",
@@ -764,6 +848,32 @@ class _Parser:
             title=_string(mapping["title"], path=path, pointer="/title", maximum=200),
             description=description,
             description_source_path=description_source_path,
+            starting_point=(
+                _string(mapping["starting_point"], path=path, pointer="/starting_point")
+                if "starting_point" in mapping
+                else None
+            ),
+            prerequisites=(
+                _string(mapping["prerequisites"], path=path, pointer="/prerequisites")
+                if "prerequisites" in mapping
+                else None
+            ),
+            progression=(
+                _course_progression(
+                    mapping["progression"], path=path, pointer="/progression"
+                )
+                if "progression" in mapping
+                else None
+            ),
+            homework_summaries=(
+                _homework_summaries(
+                    mapping["homework_summaries"],
+                    path=path,
+                    pointer="/homework_summaries",
+                )
+                if "homework_summaries" in mapping
+                else ()
+            ),
             outcome=_string(mapping["outcome"], path=path, pointer="/outcome"),
             repository_url=_https_url(
                 mapping["repository_url"], path=path, pointer="/repository_url"
@@ -811,7 +921,9 @@ class _Parser:
             _load_yaml_mapping(self.snapshot[path], path=path, limits=self.limits),
             path=path,
             pointer="",
-            allowed=frozenset({"schema_version", "content_id", "slug", "title", "units"}),
+            allowed=frozenset(
+                {"schema_version", "content_id", "slug", "title", "summary", "units"}
+            ),
             required=frozenset({"schema_version", "content_id", "title", "units"}),
         )
         _schema(mapping, path=path)
@@ -894,6 +1006,11 @@ class _Parser:
             content_id=content_id,
             slug=module_slug,
             title=_string(mapping["title"], path=path, pointer="/title", maximum=200),
+            summary=(
+                _string(mapping["summary"], path=path, pointer="/summary", maximum=500)
+                if "summary" in mapping
+                else ""
+            ),
             source_path=path,
             units=tuple(units),
         )

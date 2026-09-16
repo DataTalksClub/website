@@ -9,12 +9,12 @@ from courses.course_page_content import (
     course_modules,
     course_specs,
     family_edition_rows,
-    split_current_edition,
     family_outcome_stats,
     family_project_cards,
     family_registration_specs,
     family_story_rows,
     family_syllabus_rows,
+    split_current_edition,
     submission_progress,
 )
 from courses.models.cohort import (
@@ -36,11 +36,15 @@ from courses.services.registration_campaigns import (
     family_registration,
     next_edition_campaign_for_cohort,
 )
-from courses.services.registration_counts import public_course_registration_count
+from courses.services.registration_counts import (
+    public_course_registration_count,
+    public_family_registration_count,
+)
 from courses.views.course_homepage import add_course_homepage_info
 from courses.views.course_homeworks import get_homeworks_for_course
 from courses.views.course_projects import get_projects_for_course
 from courses.views.project_gallery_groups import family_project_submissions
+from courses.views.site_project_gallery import _repository_identity
 from courses.views.url_utils import get_cohort_or_404
 
 
@@ -385,6 +389,10 @@ def course_family_page_context(family: Course, user) -> dict:
     registration_cohort = registration.cohort
     front_cohort = registration_cohort or (editions[0].cohort if editions else None)
     registered = registered_learner_count(registration.campaign)
+    family_registered = public_family_registration_count(
+        registration.campaign,
+        family,
+    )
     self_paced_cohort = next(
         (
             edition.cohort
@@ -410,6 +418,10 @@ def course_family_page_context(family: Course, user) -> dict:
     )
     if shared_modules:
         syllabus_units: list = shared_modules
+        syllabus_urls = [
+            reverse("shared_module", args=[family.slug, module.slug])
+            for module in shared_modules
+        ]
         lesson_count = SharedLesson.objects.filter(
             module__in=shared_modules,
             published=True,
@@ -421,6 +433,13 @@ def course_family_page_context(family: Course, user) -> dict:
             get_homeworks_for_course(front_cohort, user) if front_cohort else []
         )
         syllabus_fact = f"{len(syllabus_units)} homeworks" if syllabus_units else ""
+        syllabus_urls = [
+            reverse(
+                "cohort_homework",
+                args=[family.slug, front_cohort.identifier, homework.slug],
+            )
+            for homework in syllabus_units
+        ]
     # A family whose curriculum has been imported (``shared_modules`` real rows)
     # keeps every visitor on the platform: the materials route opens the first
     # module page instead of sending anyone to the source repository. A family
@@ -442,7 +461,7 @@ def course_family_page_context(family: Course, user) -> dict:
             "",
         )
     project_cards = family_project_cards(editions)
-    syllabus_rows = family_syllabus_rows(syllabus_units)
+    syllabus_rows = family_syllabus_rows(syllabus_units, urls=syllabus_urls)
     cohorts = [edition.cohort for edition in editions]
     # The outcome strip's "project submissions" stat and the inline gallery
     # below both read the same family-wide submissions queryset
@@ -460,6 +479,9 @@ def course_family_page_context(family: Course, user) -> dict:
             # named; see courses/models/project.py) -- alias it as
             # ``.cohort`` the same way the full family/site galleries do.
             submission.cohort = submission.project.course
+            submission.repository_label, submission.repository_url = _repository_identity(
+                submission.github_link
+            )
     enrolled_count = Enrollment.objects.filter(
         course__course=family, course__visible=True
     ).count()
@@ -478,10 +500,12 @@ def course_family_page_context(family: Course, user) -> dict:
         certificate_count,
         submission_count,
         since_year,
+        registration_count=(family_registered.count if family_registered else None),
     )
     project_brief = next(
         (card for card in project_cards if card.project.instructions_url), None
     )
+    transformation = family.progression if len(family.progression) == 3 else []
     certificate_cohort = (
         front_cohort
         if front_cohort
@@ -527,7 +551,8 @@ def course_family_page_context(family: Course, user) -> dict:
         "family_faq_url": family_faq_url,
         "self_paced_cohort": self_paced_cohort,
         "family_lede": family_lede(family),
-        "family_starting_point": family.starting_point.strip(),
+        "family_prerequisites": family.prerequisites.strip(),
+        "family_transformation": transformation,
         "family_overview": overview,
         "front_cohort": front_cohort,
         "family_syllabus_rows": syllabus_rows,

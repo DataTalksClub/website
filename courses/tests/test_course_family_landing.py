@@ -7,8 +7,10 @@ from django.utils import timezone
 
 from courses.models import (
     Course,
+    CourseRegistration,
     DeliveryMode,
     Enrollment,
+    Homework,
     ProjectSubmission,
     RegistrationCampaign,
     SharedCurriculum,
@@ -24,6 +26,21 @@ class CourseFamilyLandingTests(TestCase):
             slug="practical-course",
             title="Practical Course",
             starting_point="You have a dataset and a question.",
+            prerequisites="You can write Python and use the command line.",
+            progression=[
+                {
+                    "heading": "I have a dataset and a question",
+                    "description": "I want to turn raw information into a useful answer.",
+                },
+                {
+                    "heading": "I build and evaluate a model",
+                    "description": "I prepare data, train a model, and test its predictions.",
+                },
+                {
+                    "heading": "I publish a prediction service",
+                    "description": "I deploy a working project that other people can use.",
+                },
+            ],
             outcome="Build and publish a useful prediction service.",
             github_repo_url="https://github.com/example/practical-course",
         )
@@ -40,6 +57,7 @@ class CourseFamilyLandingTests(TestCase):
                 position=position,
                 slug=f"skill-{position}",
                 title=title,
+                summary=f"Learn how to {title.lower()} in a working project.",
             )
         self.campaign = RegistrationCampaign.objects.create(
             slug="practical-course",
@@ -66,19 +84,65 @@ class CourseFamilyLandingTests(TestCase):
         response = self.client.get(self.url)
         body = response.content.decode()
 
-        self.assertContains(response, self.family.starting_point)
+        self.assertContains(response, self.family.prerequisites)
         self.assertContains(response, self.family.outcome)
-        # 2026-09: the cohort's own registration card opens the content column
-        # because it's the fact a visitor lands on the page to check. The
-        # "From learning to building" preview was dropped -- it only repeated
-        # the full Syllabus section further down -- so the "what people have
-        # built" proof now closes the page right after that syllabus.
-        self.assertLess(body.index("Your starting point:"), body.index('id="register-heading"'))
-        self.assertLess(body.index('id="register-heading"'), body.index("Explore learner projects"))
+        # Prerequisites and the course-adjusted transformation establish fit
+        # and value before the page asks the visitor to choose a route.
+        self.assertLess(
+            body.index('id="prerequisites-heading"'),
+            body.index('id="transformation-heading"'),
+        )
+        self.assertLess(
+            body.index('id="transformation-heading"'),
+            body.index('id="register-heading"'),
+        )
+        self.assertLess(
+            body.index('id="register-heading"'),
+            body.index("Explore all learner projects"),
+        )
         self.assertContains(response, reverse("family_projects", args=[self.family.slug]))
         self.assertContains(response, reverse("registration_campaign", args=[self.campaign.slug]))
         self.assertNotContains(response, "What people build")
         self.assertNotContains(response, 'class="family-built-grid"')
+
+    def test_transformation_uses_three_repository_authored_scenes(self):
+        response = self.client.get(self.url)
+
+        transformation = response.context["family_transformation"]
+        self.assertEqual(transformation, self.family.progression)
+        self.assertContains(response, 'class="card family-transformation-card"', count=3)
+        for step in self.family.progression:
+            self.assertContains(response, step["heading"])
+            self.assertContains(response, step["description"])
+        section = response.content.decode().split(
+            'class="family-transformation"', 1
+        )[1].split("</section>", 1)[0]
+        self.assertNotIn("Attempt 1", section)
+
+    def test_transformation_uses_neutral_start_and_family_specific_learning_art(self):
+        self.family.slug = "de-zoomcamp"
+        self.family.save(update_fields=["slug"])
+
+        response = self.client.get(reverse("course_family", args=[self.family.slug]))
+
+        self.assertContains(response, "course-journey-start.")
+        self.assertContains(response, "course-journey-start-dark.")
+        self.assertContains(response, "course-de-zoomcamp.", count=2)
+        self.assertContains(response, 'class="family-hero-art family-course-art"')
+
+    def test_transformation_does_not_fall_back_to_prerequisites_or_syllabus(self):
+        response = self.client.get(self.url)
+        body = response.content.decode()
+
+        prerequisites = body.index(self.family.prerequisites)
+        transformation = body.index('class="family-transformation-grid"')
+        starting_point = body.index(self.family.progression[0]["heading"])
+        self.assertLess(prerequisites, transformation)
+        self.assertGreater(starting_point, transformation)
+        transformation_section = body[
+            transformation : body.index("</section>", transformation)
+        ]
+        self.assertNotIn("Prepare the data", transformation_section)
 
     def test_unpublished_retired_and_other_course_skills_are_not_promoted(self):
         modules = list(self.curriculum.modules.order_by("position"))
@@ -118,7 +182,7 @@ class CourseFamilyLandingTests(TestCase):
         response = self.client.get(self.url)
 
         self.assertContains(response, self.project.instructions_url)
-        self.assertContains(response, "Read the 2026 project brief")
+        self.assertContains(response, "Read the project brief")
         self.assertNotContains(response, "Explore learner projects")
 
     def test_empty_family_omits_unsupported_narrative_and_proof(self):
@@ -131,14 +195,15 @@ class CourseFamilyLandingTests(TestCase):
             'id="register-heading"',
             'id="certificate-heading"',
             'id="stories-heading"',
+            'id="transformation-heading"',
         ):
             with self.subTest(marker=marker):
                 self.assertNotContains(response, marker)
 
-    def test_authored_starting_point_and_outcome_are_escaped(self):
-        self.family.starting_point = "<script>before()</script>"
+    def test_authored_prerequisites_and_outcome_are_escaped(self):
+        self.family.prerequisites = "<script>before()</script>"
         self.family.outcome = "<script>after()</script>"
-        self.family.save(update_fields=["starting_point", "outcome"])
+        self.family.save(update_fields=["prerequisites", "outcome"])
         response = self.client.get(self.url)
 
         self.assertContains(response, "&lt;script&gt;before()&lt;/script&gt;")
@@ -157,12 +222,24 @@ class CourseFamilyLandingTests(TestCase):
         self.assertContains(response, "This course is educational; results are not guaranteed.")
         self.assertNotContains(response, "<script>unsafe()")
 
-    def test_whitespace_starting_point_does_not_leave_an_empty_label(self):
+    def test_whitespace_prerequisites_do_not_leave_an_empty_section(self):
+        self.family.prerequisites = " \n "
         self.family.starting_point = " \n "
-        self.family.save(update_fields=["starting_point"])
+        self.family.save(update_fields=["prerequisites", "starting_point"])
         response = self.client.get(self.url)
 
-        self.assertNotContains(response, "Your starting point:")
+        self.assertNotContains(response, 'id="prerequisites-heading"')
+
+    def test_repository_prerequisites_and_starting_point_render_in_separate_sections(self):
+        response = self.client.get(self.url)
+        body = response.content.decode()
+
+        self.assertContains(response, self.family.prerequisites)
+        prerequisite_section = body.split('class="family-prerequisites"', 1)[1].split(
+            "</section>", 1
+        )[0]
+        self.assertIn(self.family.prerequisites, prerequisite_section)
+        self.assertNotIn(self.family.starting_point, prerequisite_section)
 
     def test_self_paced_route_omits_cohort_certificate_promise(self):
         self.cohort.delivery_mode = DeliveryMode.SELF_PACED
@@ -205,6 +282,18 @@ class CourseFamilyLandingTests(TestCase):
         self.assertNotContains(response, "Register interest")
         self.assertNotContains(response, "Self-paced · start now")
 
+    def test_shared_syllabus_renders_source_summary_beneath_linked_title(self):
+        module = self.curriculum.modules.order_by("position").first()
+        assert module is not None
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, module.summary)
+        self.assertContains(
+            response,
+            reverse("shared_module", args=[self.family.slug, module.slug]),
+        )
+
     def test_materials_only_legacy_family_has_an_honest_github_action(self):
         # A family with no imported SharedCurriculum has no module pages to
         # send a visitor to, so the repository stays the only real materials
@@ -223,6 +312,32 @@ class CourseFamilyLandingTests(TestCase):
         self.assertNotContains(response, "Register interest")
         self.assertNotContains(response, "Self-paced · start now")
 
+    def test_legacy_homework_syllabus_has_summaries_and_real_destinations(self):
+        family = Course.objects.create(
+            slug="legacy-syllabus",
+            title="Legacy Syllabus",
+            github_repo_url="https://github.com/example/legacy-syllabus",
+        )
+        cohort = make_cohort(family, 2025)
+        homework = Homework.objects.create(
+            course=cohort,
+            slug="first-homework",
+            title="Homework 1: Inspect the data",
+            description="Explore and validate the source dataset.",
+            due_date=timezone.now(),
+        )
+
+        response = self.client.get(reverse("course_family", args=[family.slug]))
+
+        self.assertContains(response, homework.description)
+        self.assertContains(
+            response,
+            reverse(
+                "cohort_homework",
+                args=[family.slug, cohort.identifier, homework.slug],
+            ),
+        )
+
     def test_past_cohort_end_date_does_not_promise_a_new_certificate(self):
         self.cohort.end_date = timezone.localdate() - timedelta(days=1)
         self.cohort.save(update_fields=["end_date"])
@@ -234,6 +349,7 @@ class CourseFamilyLandingTests(TestCase):
         family_admin = admin.site._registry[Course]
         assert family_admin.fields is not None
         self.assertIn("starting_point", family_admin.fields)
+        self.assertIn("prerequisites", family_admin.fields)
 
 
 class CourseFamilyOutcomeStatsTests(TestCase):
@@ -282,6 +398,57 @@ class CourseFamilyOutcomeStatsTests(TestCase):
         self.assertContains(response, "enrolled since 2021")
         self.assertContains(response, "certificates issued")
         self.assertContains(response, "project submissions")
+
+    def test_published_campaign_count_leads_with_registrations_not_enrollments(self):
+        self.enroll()
+        RegistrationCampaign.objects.create(
+            slug="stats-course",
+            title=self.family.title,
+            current_course=self.cohort,
+            registration_baseline_cohort=self.cohort,
+            registration_baseline_count=47,
+        )
+
+        response = self.client.get(self.url)
+
+        stats = response.context["family_outcome_stats"]
+        self.assertEqual((stats[0].value, stats[0].label), ("47", "registrations"))
+        self.assertNotContains(response, "enrolled since 2021")
+
+    def test_published_single_registration_uses_singular_label(self):
+        RegistrationCampaign.objects.create(
+            slug="stats-course",
+            title=self.family.title,
+            current_course=self.cohort,
+            registration_baseline_cohort=self.cohort,
+            registration_baseline_count=1,
+        )
+
+        response = self.client.get(self.url)
+
+        stats = response.context["family_outcome_stats"]
+        self.assertEqual((stats[0].value, stats[0].label), ("1", "registration"))
+
+    def test_closed_family_campaign_uses_attributable_historical_registrations(self):
+        self.enroll()
+        self.cohort.registration_url = "https://courses.datatalks.club/register/stats-course/"
+        self.cohort.save(update_fields=["registration_url"])
+        campaign = RegistrationCampaign.objects.create(
+            slug="stats-course",
+            title=self.family.title,
+            current_course=None,
+        )
+        CourseRegistration.objects.create(
+            campaign=campaign,
+            course=self.cohort,
+            email="historical@example.com",
+        )
+
+        response = self.client.get(self.url)
+
+        stats = response.context["family_outcome_stats"]
+        self.assertEqual((stats[0].value, stats[0].label), ("1", "registration"))
+        self.assertNotContains(response, "enrolled since 2021")
 
     def test_a_family_with_nobody_enrolled_omits_the_whole_strip(self):
         empty_family = Course.objects.create(slug="no-one-yet", title="No One Yet")
@@ -357,7 +524,8 @@ class CourseFamilyProjectGalleryTests(TestCase):
         self.assertContains(response, 'class="list-row submission-row"')
         self.assertContains(response, submission.enrollment.display_name)
         self.assertContains(response, submission.github_link)
-        self.assertContains(response, f"{self.project.title} · {self.cohort.identifier}")
+        self.assertContains(response, "github.com/example/gallery-repo-1")
+        self.assertContains(response, f"· {self.cohort.identifier} cohort")
         self.assertContains(
             response,
             reverse(

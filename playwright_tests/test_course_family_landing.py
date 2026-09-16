@@ -24,6 +24,21 @@ def test_course_value_precedes_route_choice_and_anchors_work(
         slug="landing-review-course",
         title="Practical Prediction Zoomcamp",
         starting_point="You can write Python and want to apply it to a real dataset.",
+        prerequisites="You can write Python and use the command line.",
+        progression=[
+            {
+                "heading": "I have a dataset and a question",
+                "description": "I want to turn raw information into a useful answer.",
+            },
+            {
+                "heading": "I build and evaluate a model",
+                "description": "I prepare data, train a model, and test its predictions.",
+            },
+            {
+                "heading": "I publish a prediction service",
+                "description": "I deploy a working project that other people can use.",
+            },
+        ],
         outcome="Build a prediction service you can test, deploy, and explain.",
         github_repo_url="https://github.com/example/course",
     )
@@ -36,7 +51,11 @@ def test_course_value_precedes_route_choice_and_anchors_work(
         ["Prepare the data", "Train a model", "Evaluate predictions", "Deploy the service"]
     ):
         SharedModule.objects.create(
-            curriculum=curriculum, position=position, slug=f"skill-{position}", title=title
+            curriculum=curriculum,
+            position=position,
+            slug=f"skill-{position}",
+            title=title,
+            summary=f"Practice how to {title.lower()} in the course project.",
         )
     learner = User.objects.create_user(username="landing-learner")
     enrollment = Enrollment.objects.create(student=learner, course=cohort)
@@ -57,19 +76,51 @@ def test_course_value_precedes_route_choice_and_anchors_work(
             expect(page.locator("body.dark-mode")).to_have_count(1)
         page.evaluate("scrollTo(0,0)")
         expect(page.locator(".family-lede")).to_have_text(family.outcome)
-        expect(page.locator(".family-starting-point")).to_contain_text(family.starting_point)
-        expect(page.locator(".family-skills h3")).to_have_count(4)
-        value = page.locator(".family-path").bounding_box()
-        routes = page.locator(".family-register").bounding_box()
+        expect(page.locator(".family-prerequisites")).to_contain_text(family.prerequisites)
+        expect(page.locator(".family-transformation-card")).to_have_count(3)
+        for index, step in enumerate(family.progression):
+            expect(page.locator(".family-transformation-card").nth(index)).to_contain_text(
+                step["heading"]
+            )
+        expect(page.locator(".family-transformation-figure")).to_have_count(3)
+        expect(page.locator(".family-hero-art")).to_be_visible()
+        visible_hero_art = page.locator(".family-hero-art img:visible")
+        visible_learning_art = page.locator(
+            ".family-transformation-figure-course img:visible"
+        )
+        expect(visible_hero_art).to_have_count(1)
+        expect(visible_learning_art).to_have_count(1)
+        expected_generic_art = (
+            "course-learning-dark.webp" if theme == "dark" else "course-learning.webp"
+        )
+        assert expected_generic_art in visible_hero_art.get_attribute("src")
+        assert expected_generic_art in visible_learning_art.get_attribute("src")
+        expect(page.locator(".family-syllabus-row h3")).to_have_count(5)
+        expect(page.locator(".family-syllabus-row h3 a")).to_have_count(5)
+        expect(page.locator(".family-syllabus-row p")).to_have_count(4)
+        value = page.locator(".family-transformation").bounding_box()
+        routes = page.locator(".family-register-cohort").bounding_box()
+        prerequisites = page.locator(".family-prerequisites").bounding_box()
         assert value is not None and routes is not None
+        assert prerequisites is not None
+        section_gap = value["y"] - (prerequisites["y"] + prerequisites["height"])
+        assert 40 <= section_gap <= 72
         assert value["y"] + value["height"] <= routes["y"]
-        assert value["y"] < height if width == 1440 else value["y"] + value["height"] < height * 2
+        assert value["y"] < height if width == 1440 else value["y"] + value["height"] < height * 3
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), page.evaluate(
             """() => [...document.querySelectorAll('main *')].filter(el => {
                 const r = el.getBoundingClientRect(); return r.right > innerWidth;
             }).map(el => ({tag: el.tagName, class: el.className,
                           width: el.getBoundingClientRect().width}))"""
         )
+        targets = page.locator(
+            ".family-hero-actions a, .family-register a, .family-syllabus-intro a, "
+            ".family-edition-card h3 a, .family-syllabus-row h3 a, "
+            ".family-proof-repository a, .family-proof-byline a, .family-proof > a"
+        )
+        for index in range(targets.count()):
+            box = targets.nth(index).bounding_box()
+            assert box is not None and box["height"] >= 44
         action = page.locator(".family-hero-actions a[href='#register-heading']")
         page.keyboard.press("Tab")
         action.focus()

@@ -88,12 +88,20 @@ def test_v1_fixture_still_dispatches_to_the_v1_parser() -> None:
 
 def test_shared_fixture_parses_to_the_expected_known_output() -> None:
     snapshot = shared_snapshot()
+    source = parse_course_repository(snapshot, commit_sha=COMMIT_SHA)
     payload = layout_payload(snapshot)
     expected = expected_fixture()
 
     assert payload["schema_version"] == 2
     assert payload["course"] == expected["course"]
     assert payload["archive_module_records"] == 0
+    assert source.course.starting_point == "You can already build small Python applications."
+    assert source.course.prerequisites == "You can write Python and use the command line."
+    assert [step.heading for step in source.course.progression or ()] == [
+        "I have documents and questions",
+        "I connect the RAG system",
+        "I ship an LLM application",
+    ]
 
     modules = payload["modules"]
     assert len(modules) == 1
@@ -103,6 +111,9 @@ def test_shared_fixture_parses_to_the_expected_known_output() -> None:
     assert module["slug"] == "01-agentic-rag"
     assert [lesson["slug"] for lesson in module["lessons"]] == ["01-lesson", "02-practice"]
     assert module["overview_path"] == "01-agentic-rag/README.md"
+    assert source.modules[0].summary == (
+        "Build a retrieval-augmented assistant that answers from a course FAQ dataset."
+    )
 
     actual_cohorts = {cohort["identifier"]: cohort for cohort in payload["cohorts"]}
     expected_cohorts = {cohort["identifier"]: cohort for cohort in expected["cohorts"]}
@@ -177,6 +188,24 @@ def test_rejects_a_course_yaml_urls_missing_a_key() -> None:
         parse_course_repository(snapshot)
 
     assert diagnostic_code(raised) == "required_key_missing"
+
+
+def test_rejects_a_progression_without_exactly_three_steps() -> None:
+    snapshot = shared_snapshot()
+    replace_bytes(
+        snapshot,
+        "course.yaml",
+        (
+            "  - heading: I ship an LLM application\n"
+            "    description: I build an evaluated application that other people can use.\n"
+        ),
+        "",
+    )
+
+    with pytest.raises(CourseRepositoryValidationError) as raised:
+        parse_course_repository(snapshot)
+
+    assert diagnostic_code(raised) == "list_required"
 
 
 def test_rejects_current_cohort_not_matching_any_root_entry() -> None:

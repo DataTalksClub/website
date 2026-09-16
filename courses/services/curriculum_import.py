@@ -336,6 +336,7 @@ class _CurriculumImporter:
                     self._import_shared_placements(shared_curriculum, cohort, source)
                 else:
                     self._import_archive_cohort(cohort, source)
+            self._apply_homework_summaries(course)
             return course, tuple(imported_cohorts), MappingProxyType(dict(self.counts))
         for source in self.command.source.cohorts:
             if source.is_implicit_legacy:
@@ -347,7 +348,16 @@ class _CurriculumImporter:
                 self._import_modules_cohort(cohort, source)
             else:
                 self._validate_legacy_transition(cohort)
+        self._apply_homework_summaries(course)
         return course, tuple(imported_cohorts), MappingProxyType(dict(self.counts))
+
+    def _apply_homework_summaries(self, course: Course) -> None:
+        """Reconcile repository-owned copy onto existing legacy syllabus rows."""
+
+        for source in self.command.source.course.homework_summaries:
+            Homework.objects.filter(course__course=course, slug=source.slug).exclude(
+                description=source.summary
+            ).update(description=source.summary)
 
     def _provenance(self, source: object, path: str, content_id: str) -> dict[str, object]:
         if (
@@ -437,6 +447,15 @@ class _CurriculumImporter:
             # description stands.  Assigning unconditionally is what overwrote three
             # families' curated text with their README banners.
             course.description = source.description
+        if source.prerequisites is not None:
+            course.prerequisites = source.prerequisites
+        if source.starting_point is not None:
+            course.starting_point = source.starting_point
+        if source.progression is not None:
+            course.progression = [
+                {"heading": step.heading, "description": step.description}
+                for step in source.progression
+            ]
         course.outcome = source.outcome
         course.github_repo_url = source.repository_url
         course.docs_url = source.docs_url
@@ -698,6 +717,7 @@ class _CurriculumImporter:
             defaults={
                 "slug": self._shared_module_slug(source),
                 "title": source.title,
+                "summary": source.summary,
                 "position": position,
                 "overview_markdown": source.overview_markdown or "",
                 "overview_rendered_html": (

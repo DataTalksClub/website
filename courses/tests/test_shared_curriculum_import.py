@@ -73,6 +73,10 @@ class SharedCurriculumImportTests(TestCase):
         self.assertEqual(SharedModule.objects.count(), 1)
         self.assertEqual(SharedLesson.objects.count(), 2)
         self.assertEqual(SharedCurriculum.objects.count(), 1)
+        self.assertEqual(
+            SharedModule.objects.get().summary,
+            "Build a retrieval-augmented assistant that answers from a course FAQ dataset.",
+        )
 
         live = CohortSharedModule.objects.filter(cohort__identifier="2026").get()
         self.assertEqual(live.position, 0)
@@ -91,6 +95,73 @@ class SharedCurriculumImportTests(TestCase):
         self.assertEqual(cohort_2026.delivery_mode, "live")
         self.assertEqual(cohort_2026.curriculum_source, "current")
         self.assertEqual(cohort_2026.shared_curriculum.course, course)
+        self.assertEqual(
+            course.prerequisites,
+            "You can write Python and use the command line.",
+        )
+        self.assertEqual(
+            course.starting_point,
+            "You can already build small Python applications.",
+        )
+        self.assertEqual(
+            [step["heading"] for step in course.progression],
+            [
+                "I have documents and questions",
+                "I connect the RAG system",
+                "I ship an LLM application",
+            ],
+        )
+
+    def test_reimport_updates_repository_authored_prerequisites(self) -> None:
+        self.import_fixture()
+        snapshot = fixture_snapshot()
+        snapshot["course.yaml"] = snapshot["course.yaml"].replace(
+            b"You can write Python and use the command line.",
+            b"You can write Python, Git, and Docker.",
+        )
+
+        import_course_repository_curriculum(make_command(snapshot, commit_sha="d" * 40))
+
+        self.assertEqual(
+            Course.objects.get(slug="llm-zoomcamp").prerequisites,
+            "You can write Python, Git, and Docker.",
+        )
+
+    def test_absent_optional_starting_point_preserves_curated_copy(self) -> None:
+        self.import_fixture()
+        course = Course.objects.get(slug="llm-zoomcamp")
+        course.starting_point = "Curated starting state."
+        course.save(update_fields=["starting_point"])
+        snapshot = fixture_snapshot()
+        snapshot["course.yaml"] = snapshot["course.yaml"].replace(
+            b"starting_point: You can already build small Python applications.\n",
+            b"",
+        )
+
+        import_course_repository_curriculum(make_command(snapshot, commit_sha="e" * 40))
+
+        course.refresh_from_db()
+        self.assertEqual(course.starting_point, "Curated starting state.")
+
+    def test_absent_optional_progression_preserves_curated_copy(self) -> None:
+        self.import_fixture()
+        course = Course.objects.get(slug="llm-zoomcamp")
+        course.progression = [
+            {"heading": f"Curated step {index}", "description": "Curated copy."}
+            for index in range(1, 4)
+        ]
+        course.save(update_fields=["progression"])
+        snapshot = fixture_snapshot()
+        start = snapshot["course.yaml"].index(b"progression:\n")
+        end = snapshot["course.yaml"].index(b"outcome:", start)
+        snapshot["course.yaml"] = (
+            snapshot["course.yaml"][:start] + snapshot["course.yaml"][end:]
+        )
+
+        import_course_repository_curriculum(make_command(snapshot, commit_sha="e" * 40))
+
+        course.refresh_from_db()
+        self.assertEqual(course.progression[0]["heading"], "Curated step 1")
 
     def test_archive_cohort_gets_notice_url_and_null_module_homework_only(self) -> None:
         self.import_fixture()

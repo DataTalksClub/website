@@ -25,10 +25,6 @@
         a fact the data cannot back is not drawn.
       {% endcomment %}
 
-      .band {
-        border-bottom: 1px dashed var(--line-soft);
-      }
-
       .content-page-header {
         padding-block: 2.5rem;
       }
@@ -77,18 +73,22 @@
         max-width: var(--measure);
       }
 
-      .family-starting-point {
-        color: var(--body-text);
-        font-size: 0.95rem;
-        margin-top: 1rem;
-        max-width: var(--measure);
-      }
-
-      .family-starting-point strong {
-        color: var(--ink);
-      }
-
       .family-hero-actions .band-link {
+        align-items: center;
+        display: inline-flex;
+        min-height: 2.75rem;
+      }
+
+      .family-hero-actions .cta {
+        min-height: 3.25rem;
+      }
+
+      :where(
+        .family-register,
+        .family-syllabus,
+        .family-editions,
+        .family-proof-section
+      ) .band-link {
         align-items: center;
         display: inline-flex;
         min-height: 2.75rem;
@@ -152,42 +152,99 @@
        * Reuses the site's own .stat-tiles/.stat-tile primitive (see
        * templates/core/_design_system.html) -- the same lavender tiles the
        * courses index and the learner dashboard already draw numbers with. */
+      .family-opening-group {
+        display: grid;
+        gap: 1.35rem;
+        margin-top: 1.5rem;
+      }
+
       .family-outcomes {
-        margin-top: 1.75rem;
+        margin: 0;
+      }
+
+      .family-prerequisites {
+        align-items: start;
+        background: color-mix(in srgb, var(--card) 72%, transparent);
+        border: 1.5px solid var(--line-soft);
+        border-radius: 0.85rem;
+        display: grid;
+        gap: 0.45rem 1.25rem;
+        padding: 1rem 1.1rem;
+      }
+
+      .family-prerequisites h2 {
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        letter-spacing: 0.08em;
+        margin: 0;
+        text-transform: uppercase;
+      }
+
+      .family-prerequisites p {
+        color: var(--body-text);
+        line-height: 1.55;
+        margin: 0;
+      }
+
+      @media (min-width: 48rem) {
+        .family-prerequisites {
+          grid-template-columns: 9rem minmax(0, 1fr);
+        }
+      }
+
+      .family-outcome-tiles .stat-tile:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
       }
 
       @media (min-width: 40rem) {
         .family-outcome-tiles {
           grid-template-columns: repeat(3, minmax(0, 1fr));
         }
+
+        .family-outcome-tiles .stat-tile:last-child:nth-child(odd) {
+          grid-column: auto;
+        }
       }
 
       .family-outcome-tiles strong {
-        font-size: clamp(1.6rem, 2.6vw, 2.1rem);
+        font-size: clamp(1.35rem, 2vw, 1.75rem);
         font-variant-numeric: tabular-nums;
+      }
+
+      .family-outcome-tiles .stat-tile {
+        min-height: 0;
+        padding-block: 0.8rem;
       }
 
       /* --- registration cards ------------------------------------------- */
 
       .family-register-cards {
         display: grid;
-        gap: 1.25rem;
+        gap: 1rem;
         margin-top: 1.5rem;
       }
 
       /* The mock lays the state card and the start-now card side by side; the
          pair stacks only when the shell is phone-narrow. */
       @media (min-width: 48rem) {
-        .family-register-cards {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+        .family-register-card,
+        .family-materials-card {
+          align-items: center;
+          display: grid;
+          gap: 0.6rem 2rem;
+          grid-template-columns: minmax(0, 1fr) auto;
         }
 
-        /* A family with only one real start-now destination draws one card;
-           it spans the row because a half-empty second cell reads as a hole,
-           not as a deliberate single-card layout. */
-        .family-register-cards.is-single {
-          grid-template-columns: minmax(0, 1fr);
-          max-width: 40rem;
+        .family-register-card > :not(.family-card-actions),
+        .family-materials-card > :not(.family-card-cta) {
+          grid-column: 1;
+        }
+
+        .family-card-actions,
+        .family-materials-card > .family-card-cta {
+          grid-column: 2;
+          grid-row: 1 / span 4;
+          margin: 0;
         }
       }
 
@@ -253,8 +310,91 @@
 
       /* --- the editions carousel ----------------------------------------- */
 
+      /* Chapters get deliberate breathing room; closely related supporting
+         blocks stay grouped without repeating the same separator all page. */
+      :where(.family-transformation, .family-syllabus, .family-proof-section) {
+        border-top: 2px solid var(--line);
+        margin-top: 3.5rem;
+        padding-top: 2.5rem;
+      }
+
+      :where(
+        .family-register,
+        .family-certificate,
+        .family-editions,
+        .family-stories
+      ) {
+        margin-top: 2.75rem;
+      }
+
+      :where(
+        .family-register,
+        .family-transformation,
+        .family-syllabus,
+        .family-certificate,
+        .family-editions,
+        .family-stories,
+        .family-proof-section
+      ) h2 {
+        font-size: clamp(1.4rem, 3vw, 1.87rem);
+        letter-spacing: -0.02em;
+      }
+
+      .family-transformation-grid {
+        display: grid;
+        gap: 1.25rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .family-transformation-card {
+        align-content: start;
+        display: grid;
+        gap: 0.9rem;
+        min-height: 25rem;
+        padding: 1.25rem;
+      }
+
+      .family-transformation-figure {
+        align-items: center;
+        display: flex;
+        height: 12.5rem;
+        justify-content: center;
+      }
+
+      .family-transformation-figure .doodle-variants {
+        align-items: center;
+        display: flex;
+        height: 100%;
+        justify-content: center;
+        width: 100%;
+      }
+
+      .family-transformation-figure .doodle {
+        height: 100%;
+        object-fit: contain;
+        width: 100%;
+      }
+
+      .family-transformation-step {
+        align-items: center;
+        display: grid;
+        gap: 0.65rem;
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+
+      .family-transformation-card h3 {
+        font-size: clamp(1.12rem, 1.7vw, 1.35rem);
+        margin: 0;
+      }
+
+      .family-transformation-card > p {
+        color: var(--body-text);
+        line-height: 1.6;
+        margin: 0;
+      }
+
       .family-editions {
-        margin-top: 3.25rem;
+        margin-bottom: 0;
       }
 
       /* The past editions render as the shared `.card-grid.card-grid-3` band
@@ -296,7 +436,10 @@
       }
 
       .family-edition-card h3 a {
+        align-items: center;
         color: var(--ink);
+        display: flex;
+        min-height: 2.75rem;
         text-decoration: none;
       }
 
@@ -337,10 +480,6 @@
          repeating grid, so the intro sits above the list rather than beside
          it.  An ink rule still closes the list at each end, with dashed
          rules dividing the rows. */
-      .family-syllabus {
-        margin-top: 3.25rem;
-      }
-
       .family-syllabus-intro .mono-note {
         display: block;
         margin-top: 0.6rem;
@@ -361,9 +500,9 @@
       .family-syllabus-row {
         border-top: 1.5px dashed var(--line-soft);
         display: grid;
-        gap: 0.25rem 1rem;
-        grid-template-columns: 3rem minmax(0, 1fr);
-        padding: 1.05rem 0;
+        gap: 0 0.75rem;
+        grid-template-columns: 3.5rem minmax(0, 1fr);
+        padding: 1rem 0;
       }
 
       .family-syllabus-row:first-child {
@@ -375,12 +514,28 @@
         font-family: var(--font-mono);
         font-size: 0.85rem;
         font-weight: 700;
-        padding-top: 0.2rem;
+        border-right: 2px solid var(--line-soft);
+        min-height: 2.75rem;
+        padding-top: 0.75rem;
       }
 
       .family-syllabus-row h3 {
-        font-size: 1.2rem;
+        font-size: 1.08rem;
         margin: 0;
+      }
+
+      .family-syllabus-row h3 a {
+        align-items: center;
+        color: var(--ink);
+        display: inline-flex;
+        min-height: 2.75rem;
+        text-decoration: none;
+      }
+
+      .family-syllabus-row h3 a:hover,
+      .family-syllabus-row h3 a:focus-visible {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
       }
 
       .family-syllabus-row p {
@@ -392,12 +547,59 @@
       /* The capstone closes the list the way the mock does: a starred mono
          index, and the project itself as the link. */
       .family-syllabus-capstone h3 {
-        font-size: 1.2rem;
+        font-size: 1rem;
+      }
+
+      .family-syllabus-capstone {
+        background: var(--card);
+        border-inline: 1.5px solid var(--line-soft);
+        padding-inline: 0.75rem;
+      }
+
+      .family-syllabus-projects {
+        background: color-mix(in srgb, var(--card) 72%, transparent);
+        border: 1.5px solid var(--line-soft);
+        border-radius: 0.9rem;
+        margin-top: 1.5rem;
+        padding: 1rem 1.1rem;
+      }
+
+      .family-syllabus-projects > h3 {
+        font-family: var(--font-mono);
+        font-size: 0.82rem;
+        letter-spacing: 0.06em;
+        margin: 0;
+        text-transform: uppercase;
+      }
+
+      .family-syllabus-projects .family-syllabus-list {
+        border: 0;
+        margin-top: 0.65rem;
+      }
+
+      .family-syllabus-projects .family-syllabus-capstone {
+        background: transparent;
+        border-inline: 0;
+      }
+
+      .family-syllabus-capstone + .family-syllabus-capstone {
+        border-top-style: solid;
+      }
+
+      .family-syllabus-capstone .family-syllabus-index {
+        color: var(--muted);
       }
 
       .family-syllabus-capstone h3 a {
+        align-items: center;
         color: var(--ink);
+        display: flex;
+        min-height: 2.75rem;
         text-decoration: none;
+      }
+
+      .family-syllabus-capstone {
+        padding-block: 0;
       }
 
       .family-syllabus-capstone h3 a:hover,
@@ -413,15 +615,7 @@
        * here.  It sits in the shared .stories-scroller strip, directly on
        * the shell's own ground, same as the editions strip above; only the
        * section's own top margin is page-specific. */
-      .family-stories {
-        margin-top: 3.25rem;
-      }
-
       /* --- the project gallery -------------------------------------------- */
-
-      .family-built {
-        margin-top: 3.25rem;
-      }
 
       .family-built-grid {
         display: grid;
@@ -464,32 +658,60 @@
       /* The page's last content section, closing on real learner work
          instead of a second registration push: the same mint panel the mock
          used for its call-to-action band, now carrying the gallery links. */
-      .family-proof-section {
-        margin-top: 3.25rem;
-      }
-
       /* A handful of real submissions, inline, above the links -- the same
          .row-list/.list-row/.submission-row catalogue row projects/family_
          gallery.html and projects/site_gallery.html already draw one
          cohort's (or the whole site's) submissions with, borrowed verbatim
          here for a short preview instead of the paginated full list. */
       .family-proof-gallery {
+        display: grid;
+        gap: 1rem;
         margin-bottom: 0.5rem;
       }
 
+      @media (min-width: 48rem) {
+        .family-proof-gallery {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
       .family-proof-gallery .submission-row {
-        --row-cols: minmax(0, 1fr) auto;
+        --row-cols: minmax(0, 1fr);
+        align-content: start;
+        background: var(--card);
+        border: 1.5px solid var(--line);
+        border-radius: 0.85rem;
+        display: grid;
+        gap: 0.55rem;
+        padding: 1rem;
       }
 
-      .family-proof-gallery .submission-student {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.35rem 0.75rem;
-        min-width: 0;
+      .family-proof-repository {
+        font-size: 1rem;
+        font-weight: 800;
+        overflow-wrap: anywhere;
       }
 
-      .family-proof-gallery .submission-student a {
-        font-weight: 700;
+      .family-proof-repository a {
+        align-items: center;
+        color: var(--ink);
+        display: inline-flex;
+        min-height: 2.75rem;
+        text-decoration-thickness: 0.09em;
+        text-underline-offset: 0.2em;
+      }
+
+      .family-proof-byline {
+        color: var(--body-text);
+        font-size: 0.9rem;
+        margin: 0;
+      }
+
+      .family-proof-byline a {
+        align-items: center;
+        color: inherit;
+        display: inline-flex;
+        min-height: 2.75rem;
       }
 
       .family-proof-gallery .submission-outcome {
@@ -499,6 +721,15 @@
         gap: 0.5rem 0.75rem;
       }
 
+      .family-proof {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: space-between;
+        margin-top: 1.25rem;
+      }
+
       /* --- the certificate band ------------------------------------------- */
 
       /* The syllabus's closing argument, drawn as its twin: the promise and
@@ -506,7 +737,6 @@
          artifact's own white sheet on either theme — it is a picture of the
          thing, not a page surface. */
       .family-certificate {
-        margin-top: 3.25rem;
         text-align: center;
       }
 
@@ -523,17 +753,52 @@
           grid-template-columns: minmax(0, 1fr);
         }
 
-        /* Keep registration and cohort choices close to the title on phones. */
         .family-hero-art {
-          display: none;
+          justify-self: center;
+          max-width: 12rem;
         }
 
-        .family-syllabus-row {
+        .family-register-cards.is-single,
+        .family-edition-current {
+          max-width: none;
+        }
+
+        :where(.family-transformation, .family-syllabus, .family-proof-section) {
+          margin-top: 2.5rem;
+          padding-top: 1.75rem;
+        }
+
+        .family-transformation-grid {
           grid-template-columns: minmax(0, 1fr);
         }
 
-        .family-syllabus-index {
-          padding-top: 0;
+        .family-transformation-card {
+          min-height: 0;
+          padding: 1rem;
+        }
+
+        .family-transformation-figure {
+          height: 10rem;
+        }
+
+        .family-card-actions .cta,
+        .family-card-cta {
+          justify-content: center;
+          width: 100%;
+        }
+
+        .family-syllabus-row {
+          grid-template-columns: 2.8rem minmax(0, 1fr);
+        }
+
+        .family-proof {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .family-proof .cta {
+          justify-content: center;
+          width: 100%;
         }
       }
 {% endblock %}
@@ -552,11 +817,6 @@
             {% if family_lede %}
               <p class="family-lede">{{ family_lede }}</p>
             {% endif %}
-            {% if family_starting_point %}
-              <p class="family-starting-point">
-                <strong>Your starting point:</strong> {{ family_starting_point }}
-              </p>
-            {% endif %}
             {% comment %}
               Registration for the course, not for one of its editions: an open edition is
               named because naming it is honest, a course whose editions have all closed
@@ -564,15 +824,21 @@
               second action is the strongest start-now route the data actually has.
             {% endcomment %}
             <div class="family-hero-actions">
-              {% if family_registration or self_paced_cohort or materials_url %}
-                {% include "core/_button.html" with href="#register-heading" label="Register" variant="primary" compact=True %}
+              {% if family_registration %}
+                {% if registration_cohort %}
+                  {% include "core/_button.html" with href="#register-heading" label="Register for the cohort" variant="primary" %}
+                {% else %}
+                  {% include "core/_button.html" with href="#register-heading" label="Register interest" variant="primary" %}
+                {% endif %}
+              {% elif self_paced_cohort or materials_url %}
+                {% include "core/_button.html" with href="#register-heading" label="Start learning" variant="primary" %}
               {% endif %}
               {% if family_syllabus_rows %}
                 <a class="band-link" href="#syllabus-heading">Explore the syllabus →</a>
               {% endif %}
             </div>
           </div>
-          <div class="family-hero-art">
+          <div class="family-hero-art family-course-art">
             {% include "core/_course_illustration.html" with family_slug=course_family.slug only %}
           </div>
         </div>
@@ -588,15 +854,55 @@
         the start-now content further down the page (see the second
         "family-register" section, after the syllabus and certificate).
       {% endcomment %}
-      {% if family_outcome_stats %}
-        <section class="family-outcomes" aria-labelledby="outcomes-heading">
-          <h2 id="outcomes-heading" class="sr-only">This course family so far</h2>
-          <div class="stat-tiles family-outcome-tiles">
-            {% for stat in family_outcome_stats %}
-              <div class="stat-tile">
-                <strong>{{ stat.value }}</strong>
-                <span>{{ stat.label }}</span>
+      {% if family_outcome_stats or family_prerequisites %}
+        <div class="family-opening-group">
+          {% if family_outcome_stats %}
+            <section class="family-outcomes" aria-labelledby="outcomes-heading">
+              <h2 id="outcomes-heading" class="sr-only">This course family so far</h2>
+              <div class="stat-tiles family-outcome-tiles">
+                {% for stat in family_outcome_stats %}
+                  <div class="stat-tile">
+                    <strong>{{ stat.value }}</strong>
+                    <span>{{ stat.label }}</span>
+                  </div>
+                {% endfor %}
               </div>
+            </section>
+          {% endif %}
+          {% if family_prerequisites %}
+            <section class="family-prerequisites" aria-labelledby="prerequisites-heading">
+              <h2 id="prerequisites-heading">Good fit if</h2>
+              <p>{{ family_prerequisites }}</p>
+            </section>
+          {% endif %}
+        </div>
+      {% endif %}
+      {% if family_transformation %}
+        <section class="family-transformation" aria-labelledby="transformation-heading">
+          <div class="band-head">
+            <div>
+              <h2 id="transformation-heading">Build your way to a working project</h2>
+              <p>Three stages from your first question to something you can show.</p>
+            </div>
+          </div>
+          <div class="family-transformation-grid">
+            {% for step in family_transformation %}
+              <article class="card family-transformation-card">
+                <div class="family-transformation-figure{% if forloop.counter == 2 %} family-transformation-figure-course{% endif %}" aria-hidden="true">
+                  {% if forloop.counter == 1 %}
+                    {% include "core/_course_journey_start.html" %}
+                  {% elif forloop.counter == 2 %}
+                    {% include "core/_course_illustration.html" with family_slug=course_family.slug only %}
+                  {% else %}
+                    {% include "core/_home_illustration.html" with variant="shipping" %}
+                  {% endif %}
+                </div>
+                <div class="family-transformation-step">
+                  <span class="step-number{% if forloop.counter == 2 %} step-number-2{% elif forloop.counter == 3 %} step-number-3{% endif %}" aria-hidden="true">{{ forloop.counter }}</span>
+                  <h3>{{ step.heading }}</h3>
+                </div>
+                <p>{{ step.description }}</p>
+              </article>
             {% endfor %}
           </div>
         </section>
@@ -605,7 +911,7 @@
         <section class="family-register family-register-cohort" aria-labelledby="register-heading">
           <div class="band-head">
             <div>
-              <h2 id="register-heading">Register</h2>
+              <h2 id="register-heading">Take the next step</h2>
             </div>
           </div>
           <div class="family-register-cards is-single">
@@ -673,24 +979,37 @@
               <li class="family-syllabus-row">
                 <span class="family-syllabus-index" aria-hidden="true">{{ row.index }}</span>
                 <div>
-                  <h3>{{ row.title }}</h3>
+                  <h3>
+                    {% if row.url %}
+                      <a href="{{ row.url }}">{{ row.title }}</a>
+                    {% else %}
+                      {{ row.title }}
+                    {% endif %}
+                  </h3>
                   {% if row.summary %}
                     <p>{{ row.summary }}</p>
                   {% endif %}
                 </div>
               </li>
             {% endfor %}
-            {% for project in family_syllabus_projects %}
-              <li class="family-syllabus-row family-syllabus-capstone">
-                <span class="family-syllabus-index" aria-hidden="true">★</span>
-                <div>
-                  <h3>
-                    <a href="{% url 'cohort_project' course_slug=course_family.slug cohort_identifier=front_cohort.identifier project_slug=project.slug %}">{{ project.title }}</a>
-                  </h3>
-                </div>
-              </li>
-            {% endfor %}
           </ol>
+          {% if family_syllabus_projects %}
+            <div class="family-syllabus-projects">
+              <h3>Project submissions</h3>
+              <ol class="family-syllabus-list" role="list">
+                {% for project in family_syllabus_projects %}
+                  <li class="family-syllabus-row family-syllabus-capstone">
+                    <span class="family-syllabus-index" aria-hidden="true">★</span>
+                    <div>
+                      <h3>
+                        <a href="{% url 'cohort_project' course_slug=course_family.slug cohort_identifier=front_cohort.identifier project_slug=project.slug %}">{{ project.title }}</a>
+                      </h3>
+                    </div>
+                  </li>
+                {% endfor %}
+              </ol>
+            </div>
+          {% endif %}
         </section>
       {% endif %}
       {% comment %}
@@ -761,11 +1080,10 @@
         </div>
 
         {% if current_edition_row %}
-          <article class="card family-edition-card family-edition-current interactive-card interactive-lift">
+          <article class="card family-edition-card family-edition-current stretched-card-link interactive-card interactive-lift">
             <h3>
               <a href="{% url 'cohort' course_family.slug current_edition_row.cohort.identifier %}">{{ current_edition_row.cohort.title }}</a>
             </h3>
-            <a class="band-link family-edition-link" href="{% url 'cohort' course_family.slug current_edition_row.cohort.identifier %}">View edition →</a>
           </article>
         {% endif %}
 
@@ -773,11 +1091,10 @@
           <h3 class="family-editions-previous-heading">Explore previous cohorts</h3>
           <div class="card-grid card-grid-3 family-editions-grid">
             {% for row in previous_edition_rows %}
-              <article class="card family-edition-card interactive-card interactive-lift">
+              <article class="card family-edition-card stretched-card-link interactive-card interactive-lift">
                 <h3>
                   <a href="{% url 'cohort' course_family.slug row.cohort.identifier %}">{{ row.cohort.title }}</a>
                 </h3>
-                <a class="band-link family-edition-link" href="{% url 'cohort' course_family.slug row.cohort.identifier %}">View edition →</a>
               </article>
             {% endfor %}
           </div>
@@ -927,24 +1244,22 @@
             <div class="row-list family-proof-gallery">
               {% for submission in family_gallery_submissions %}
                 <article class="list-row submission-row">
-                  <div>
-                    <div class="submission-student">
-                      <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=course_family.slug cohort_identifier=submission.cohort.identifier enrollment_id=submission.enrollment.id %}">
-                        {{ submission.enrollment.display_name }}
-                      </a>
+                  <div class="family-proof-repository">
+                    {% if submission.repository_url %}
                       <a
-                        class="band-link submission-link"
-                        href="{{ submission.github_link }}"
+                        href="{{ submission.repository_url }}"
                         target="_blank"
                         rel="noopener noreferrer"
-                        title="Open repository"
-                        aria-label="Open repository"
-                      >Repository</a>
-                    </div>
-                    <p class="mono-note">
-                      {{ submission.project.title }} · {{ submission.cohort.identifier }}
-                    </p>
+                      >{{ submission.repository_label }}</a>
+                    {% else %}
+                      {{ submission.repository_label }}
+                    {% endif %}
                   </div>
+                  <p class="family-proof-byline">
+                    by
+                    <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=course_family.slug cohort_identifier=submission.cohort.identifier enrollment_id=submission.enrollment.id %}">{{ submission.enrollment.display_name }}</a>
+                    · {{ submission.cohort.identifier }} cohort
+                  </p>
                   <div class="submission-outcome">
                     <span class="mono-note">{{ submission.vote_count }} vote{{ submission.vote_count|pluralize }}</span>
                     <span class="mono-note">
@@ -968,10 +1283,11 @@
           {% endif %}
           <div class="panel panel-mint panel-outlined family-proof">
             {% if has_learner_projects %}
-              <a class="band-link" href="{% url 'family_projects' course_slug=course_family.slug %}">Explore learner projects →</a>
+              {% url 'family_projects' course_slug=course_family.slug as family_projects_url %}
+              {% include "core/_button.html" with href=family_projects_url label="Explore all learner projects" variant="primary" %}
             {% endif %}
             {% if family_project_brief %}
-              <a class="band-link" href="{{ family_project_brief.project.instructions_url }}" target="_blank" rel="noopener noreferrer">Read the {{ family_project_brief.cohort.identifier }} project brief →</a>
+              {% include "core/_button.html" with href=family_project_brief.project.instructions_url label="Read the project brief" variant="secondary" target="_blank" rel="noopener noreferrer" %}
             {% endif %}
           </div>
         </section>

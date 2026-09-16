@@ -1,32 +1,40 @@
 {% load static %}
 {% comment %}
-Decorative artwork mapped by the database-owned family slug. Course-specific
-light scenes keep existing dark companions pending separate dark generation.
+Decorative artwork mapped by the database-owned family slug. Every installed
+course scene has a true dark companion; unknown families keep the generic pair.
 {% endcomment %}
 {% static 'core/illustrations/course-learning.webp' as generic_light %}
+{% static 'core/illustrations/course-learning-dark.webp' as generic_dark %}
 {% if family_slug == "ai-dev-tools-zoomcamp" %}
   {% static 'core/illustrations/course-ai-dev-tools-zoomcamp.webp' as course_light %}
+  {% static 'core/illustrations/course-ai-dev-tools-zoomcamp-dark.webp' as course_dark %}
 {% elif family_slug == "de-zoomcamp" %}
   {% static 'core/illustrations/course-de-zoomcamp.webp' as course_light %}
+  {% static 'core/illustrations/course-de-zoomcamp-dark.webp' as course_dark %}
 {% elif family_slug == "ml-zoomcamp" %}
   {% static 'core/illustrations/course-ml-zoomcamp.webp' as course_light %}
+  {% static 'core/illustrations/course-ml-zoomcamp-dark.webp' as course_dark %}
 {% elif family_slug == "mlops-zoomcamp" %}
   {% static 'core/illustrations/course-mlops-zoomcamp.webp' as course_light %}
+  {% static 'core/illustrations/course-mlops-zoomcamp-dark.webp' as course_dark %}
 {% elif family_slug == "llm-zoomcamp" %}
   {% static 'core/illustrations/course-llm-zoomcamp.webp' as course_light %}
+  {% static 'core/illustrations/course-llm-zoomcamp-dark.webp' as course_dark %}
 {% elif family_slug == "sma-zoomcamp" %}
   {% static 'core/illustrations/course-sma-zoomcamp.webp' as course_light %}
+  {% static 'core/illustrations/course-sma-zoomcamp-dark.webp' as course_dark %}
 {% else %}
   {% static 'core/illustrations/course-learning.webp' as course_light %}
+  {% static 'core/illustrations/course-learning-dark.webp' as course_dark %}
 {% endif %}
-{% if dark_variant == "pipeline" %}
+{% if dark_variant == "reading" %}
+  {% static 'core/illustrations/course-learning-dark.webp' as course_dark %}
+{% elif dark_variant == "pipeline" %}
   {% static 'core/illustrations/home-step-2-dark.webp' as course_dark %}
 {% elif dark_variant == "shipping" %}
   {% static 'core/illustrations/home-step-3-dark.webp' as course_dark %}
 {% elif dark_variant == "learner" %}
   {% static 'core/illustrations/home-hero-dark.webp' as course_dark %}
-{% else %}
-  {% static 'core/illustrations/course-learning-dark.webp' as course_dark %}
 {% endif %}
 <span class="doodle-variants">
   <img class="doodle doodle-light" src="{{ course_light }}"
@@ -34,7 +42,7 @@ light scenes keep existing dark companions pending separate dark generation.
        height="{% if course_light == generic_light %}1024{% else %}1254{% endif %}"
        decoding="async" loading="{{ loading|default:'eager' }}">
   <img class="doodle doodle-dark" src="{{ course_dark }}" alt=""
-       width="{% if dark_variant == 'pipeline' or dark_variant == 'shipping' %}957{% elif dark_variant == 'learner' %}1470{% else %}1024{% endif %}"
-       height="{% if dark_variant == 'pipeline' or dark_variant == 'shipping' %}532{% elif dark_variant == 'learner' %}834{% else %}1024{% endif %}"
+       width="{% if dark_variant == 'pipeline' or dark_variant == 'shipping' %}957{% elif dark_variant == 'learner' %}1470{% elif course_dark == generic_dark %}1024{% else %}1254{% endif %}"
+       height="{% if dark_variant == 'pipeline' or dark_variant == 'shipping' %}532{% elif dark_variant == 'learner' %}834{% elif course_dark == generic_dark %}1024{% else %}1254{% endif %}"
        decoding="async" loading="{{ loading|default:'eager' }}">
 </span>
