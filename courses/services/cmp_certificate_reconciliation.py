@@ -17,6 +17,7 @@ import hashlib
 import sqlite3
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import NoReturn
 
 from django.db import transaction
 
@@ -43,7 +44,7 @@ class CmpCertificateReconciliationResult:
         return asdict(self)
 
 
-def _refuse(code: str) -> None:
+def _refuse(code: str) -> NoReturn:
     raise CmpCertificateReconciliationError(code)
 
 

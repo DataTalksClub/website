@@ -183,6 +183,11 @@ module = [
     "courses.views.site_project_gallery",
     "scripts.dev.check_course_illustrations",
     "scripts.tests.test_check_course_illustrations",
+    "courses.services.cmp_certificate_reconciliation",
+    "courses.tests.test_cmp_certificate_reconciliation",
+    "courses.tests.test_course_list_projects_section",
+    "scripts.prod.reconcile_cmp_enrollment_certificates",
+    "scripts.tests.test_cmp_certificate_reconciliation_cli",
 ]
 ignore_errors = false
 

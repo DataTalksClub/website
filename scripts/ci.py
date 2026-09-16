@@ -117,11 +117,16 @@ ADOPTION_INTEGRATION_PYTHON: Final = (
     "courses/views/site_project_gallery.py",
     "scripts/dev/check_course_illustrations.py",
     "scripts/tests/test_check_course_illustrations.py",
+    "courses/tests/test_cmp_certificate_reconciliation.py",
+    "courses/tests/test_course_list_projects_section.py",
+    "scripts/tests/test_cmp_certificate_reconciliation_cli.py",
 )
 PRODUCTION_IMPORT_PYTHON: Final = (
     "scripts/prod",
     "courses/services/cmp_content_import.py",
     "courses/services/cmp_learner_history_import.py",
+    "courses/services/cmp_certificate_reconciliation.py",
+    "scripts/prod/reconcile_cmp_enrollment_certificates.py",
 )
 TYPECHECK_PATHS: Final = (
     "manage.py",

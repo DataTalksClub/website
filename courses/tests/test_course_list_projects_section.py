@@ -17,9 +17,7 @@ class CourseListProjectsSectionTest(CourseListViewTestBase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Learn by building")
         self.assertContains(response, "project")
-        self.assertContains(
-            response, "Browse every learner project, from every course"
-        )
+        self.assertContains(response, "Browse every learner project, from every course")
         all_projects_url = reverse("all_projects")
         self.assertIn(f'href="{all_projects_url}"', content)
 
@@ -42,9 +40,7 @@ class CourseListProjectsSectionTest(CourseListViewTestBase):
         content = response.content.decode()
 
         projects_index = content.index('class="courses-projects"')
-        faq_index = content.index(
-            '<section class="courses-faq', projects_index
-        )
+        faq_index = content.index('<section class="courses-faq', projects_index)
         section_html = content[projects_index:faq_index]
 
         self.assertIn('class="courses-projects-art"', section_html)
