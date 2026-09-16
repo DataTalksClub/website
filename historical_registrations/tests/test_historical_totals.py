@@ -254,7 +254,7 @@ class HistoricalRegistrationTotalTests(TestCase):
         events.registrant_import's account-first matching.
         """
 
-        from events.models import EventRegistration
+        from event_registrants.models import EventRegistration
 
         field_names = {field.name for field in EventRegistration._meta.get_fields()}
         prohibited = {
