@@ -94,6 +94,10 @@
     display: inline-flex;
     min-height: 2.75rem;
   }
+  /* A section's own "see more" action sits under its content, not beside
+     the heading: it reads as the section's own last word rather than a
+     second thing competing with the title for the reader's eye first. */
+  .tour-content-link { margin-top: 1.25rem; }
   /* The chapter rule spans the breakout width where the chapter breaks out:
      it announces the width change, as on the family landing. */
   .tour-chapter.shell-breakout { --breakout-width: min(var(--shell), calc(100vw - 2rem)); }
@@ -321,7 +325,6 @@
           <h2 id="tour-courses-heading">Learn by building</h2>
           <p>Free cohorts with homework, projects, and a certificate of completion.</p>
         </div>
-        <a class="band-link" href="{% url 'course_list' %}">see all {{ course_family_count }} course{{ course_family_count|pluralize }} →</a>
       </div>
       <div class="card-grid card-grid-3 tour-cards">
         {% for course in catalog_courses|slice:":3" %}
@@ -339,6 +342,7 @@
           </article>
         {% endfor %}
       </div>
+      <a class="band-link tour-content-link" href="{% url 'course_list' %}">see all {{ course_family_count }} course{{ course_family_count|pluralize }} →</a>
     </section>
   {% endif %}
 

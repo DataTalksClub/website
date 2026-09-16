@@ -157,6 +157,12 @@ class TourPageTests(TestCase):
         self.assertEqual(body.count('stretched-card-link tour-course-card"'), 3)
         self.assertIn('class="card-grid card-grid-3 tour-cards"', body)
         self.assertIn("see all 6 courses →", body)
+        # The "see more" action sits under the cards, not beside the heading.
+        self.assertIn('<a class="band-link tour-content-link" href="/courses"', body)
+        self.assertLess(
+            body.index('class="card-grid card-grid-3 tour-cards"'),
+            body.index("see all 6 courses →"),
+        )
         self.assertEqual(body.count('<a class="course-link" href="/courses/'), 3)
         self.assertIn('<span class="mono-label">2026 cohort</span>', body)
         self.assertIn("5 homework assignments · 2 projects", body)
