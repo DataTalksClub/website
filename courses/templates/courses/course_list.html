@@ -400,7 +400,19 @@
         margin-top: 2rem;
       }
 
+      /* `.step-grid`'s own row stretches every `.step` to match the tallest
+         column (grid's default `align-items: stretch`), and a grid
+         container's default `align-content` computes to `stretch` too -- so
+         without this, each `.step`'s three auto rows (number, title, body)
+         were spread out to fill that borrowed height rather than packing at
+         the top, and the amount of slack differed per column with how much
+         body copy it held.  That is why the divider read level but the
+         numbers and titles beneath it visibly drifted.  Packing the rows at
+         the start makes every column's own content the only thing that
+         sets its position, so the number and title line up across all four
+         regardless of a neighbour's height. */
       .step {
+        align-content: start;
         border-top: 3px solid var(--line);
         display: grid;
         gap: 0.5rem;
@@ -414,8 +426,13 @@
         font-weight: 700;
       }
 
+      /* Reserves two lines at the title's own line-height, so a title that
+         wraps (like "Watch and build weekly") does not push its own body
+         paragraph lower than a column whose title stayed on one line -- the
+         body row still starts level across all four columns. */
       .step h3 {
         font-size: 1.15rem;
+        min-height: calc(1.15rem * 1.12 * 2);
       }
 
       .step p {
