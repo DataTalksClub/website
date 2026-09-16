@@ -15,10 +15,9 @@ from core.navigation import InvalidSiteNavigation, SiteNavigationRevisionConflic
 from core.services import ServiceContext
 from core.site_settings import InvalidSiteSettingsBatch, SiteSettingsRevisionConflict
 from core.sponsors import InvalidSponsor, SponsorNotFound, SponsorRevisionConflict
-from events.importers import ProtectedSourceError
-from events.models import EventIdentityNotFound, EventQnaSession, HistoricalRegistrationSourceRun
-from events.qna.errors import QnaError
-from events.qna.services import (
+from event_qna.errors import QnaError
+from event_qna.models import EventQnaSession
+from event_qna.services import (
     admin_event_qna,
     create_cohost,
     retry_event_qna_provision,
@@ -28,6 +27,8 @@ from events.qna.services import (
     update_question,
     update_session,
 )
+from events.importers import ProtectedSourceError
+from events.models import EventIdentityNotFound, HistoricalRegistrationSourceRun
 from events.services import (
     HistoricalRegistrationConflict,
     HistoricalRegistrationInvalid,

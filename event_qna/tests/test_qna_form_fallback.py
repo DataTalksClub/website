@@ -14,8 +14,9 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from core.models import RevisionConflict
-from events.models import EventQnaSession, create_event_identity
-from events.qna import services
+from event_qna import services
+from event_qna.models import EventQnaSession
+from events.models import create_event_identity
 
 
 class EventQnaFormFallbackTests(TestCase):
@@ -98,7 +99,7 @@ class EventQnaFormFallbackTests(TestCase):
         page = self.client.get(self.page_url)
         csrf = page.cookies["csrftoken"].value
         with mock.patch(
-            "events.qna.services.submit_question",
+            "event_qna.services.submit_question",
             side_effect=RevisionConflict(expected=1, actual=2),
         ):
             response = self.client.post(

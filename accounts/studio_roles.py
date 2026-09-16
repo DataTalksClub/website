@@ -23,8 +23,8 @@ SITE_NAVIGATION_WRITE = "core.change_site_navigation"
 SPONSORS_READ = "core.read_sponsors"
 SPONSORS_WRITE = "core.change_sponsors"
 SPONSORS_EXPORT = "core.export_sponsors"
-EVENT_QNA_VIEW = "events.view_event_qna"
-EVENT_QNA_MANAGE = "events.manage_event_qna"
+EVENT_QNA_VIEW = "event_qna.view_event_qna"
+EVENT_QNA_MANAGE = "event_qna.manage_event_qna"
 
 _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
     {

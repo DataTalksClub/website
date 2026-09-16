@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client
 
 from courses.models import Cohort, CurriculumFormat, UnitReadState
-from events.models import EventQnaSession
+from event_qna.models import EventQnaSession
 from test_support.design_review_data import seed_design_review_data
 
 pytestmark = pytest.mark.django_db(transaction=True)

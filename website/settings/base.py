@@ -129,6 +129,7 @@ INSTALLED_APPS = [
     "content_sync.apps.ContentSyncConfig",
     "courses.apps.CoursesConfig",
     "events.apps.EventsConfig",
+    "event_qna",
     "email_app.apps.EmailAppConfig",
     "studio.apps.StudioConfig",
     "management_api.apps.ManagementAPIConfig",

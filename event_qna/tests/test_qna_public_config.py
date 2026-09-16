@@ -16,8 +16,9 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
-from events.models import EventQnaSession, create_event_identity
-from events.qna import services
+from event_qna import services
+from event_qna.models import EventQnaSession
+from events.models import create_event_identity
 
 #: The exact participant-facing schema: contract, canonical paths, state,
 #: public settings, text limit, capability flags, banner.  Nothing else.
@@ -130,7 +131,7 @@ class PublicConfigContractTests(TestCase):
         from management_auth.services import create_principal, issue_credential_once
 
         permission = Permission.objects.get(
-            content_type__app_label="events", codename="manage_event_qna"
+            content_type__app_label="event_qna", codename="manage_event_qna"
         )
         principal = create_principal(
             kind=APIPrincipal.Kind.SERVICE,
@@ -144,7 +145,7 @@ class PublicConfigContractTests(TestCase):
             name="Q&A public config admin credential",
             scopes=("events.qna.read",),
             idempotency_key="public-config-admin-credential",
-            actor_permission="events.manage_event_qna",
+            actor_permission="event_qna.manage_event_qna",
         )
         session = EventQnaSession.objects.get(event=self.event)
 

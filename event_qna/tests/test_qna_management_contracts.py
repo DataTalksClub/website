@@ -26,8 +26,9 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
-from events.models import EventQnaSession, create_event_identity
-from events.qna import security, services
+from event_qna import security, services
+from event_qna.models import EventQnaSession
+from events.models import create_event_identity
 from management_auth.models import APIPrincipal
 from management_auth.services import create_principal, issue_credential_once
 
@@ -49,7 +50,7 @@ class ManagementContractTests(TestCase):
             make_studio_user(username="qna-operator", roles=("event_operator",))
         )
         permission = Permission.objects.get(
-            content_type__app_label="events",
+            content_type__app_label="event_qna",
             codename="manage_event_qna",
         )
         principal = create_principal(
@@ -68,7 +69,7 @@ class ManagementContractTests(TestCase):
                 "events.qna.moderate",
             ),
             idempotency_key="adapter-contract-credential",
-            actor_permission="events.manage_event_qna",
+            actor_permission="event_qna.manage_event_qna",
         )
         self.bearer = str(issued.response["token"])
 
@@ -311,7 +312,7 @@ class ManagementContractTests(TestCase):
         # The replay neither creates a second invite nor shows the passcode
         # again: the operator is redirected back to the session page.
         self.assertEqual(retry.status_code, 302, retry.content)
-        from events.models import EventQnaCohostInvite
+        from event_qna.models import EventQnaCohostInvite
 
         invites = EventQnaCohostInvite.objects.filter(session__event=self.event)
         self.assertEqual(invites.count(), 1)

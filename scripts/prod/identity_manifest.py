@@ -279,7 +279,7 @@ def import_identity_manifest(*, path: Path, dry_run: bool = False) -> IdentityIm
                 event.save()
             # Replayed imports also repair Events created before Q&A existed;
             # the same idempotent service is used by the bounded backfill.
-            from events.qna.services import ensure_event_qna
+            from event_qna.services import ensure_event_qna
 
             ensure_event_qna(event.id)
     if dry_run:

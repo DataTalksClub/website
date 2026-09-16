@@ -35,13 +35,9 @@ from courses.models import (
     UnitReadState,
 )
 from courses.services.local_course_seed import assert_local_database
-from events.models import (
-    Event,
-    EventQnaCohostInvite,
-    EventQnaQuestion,
-    EventQnaSession,
-)
-from events.qna.services import event_qna_path
+from event_qna.models import EventQnaCohostInvite, EventQnaQuestion, EventQnaSession
+from event_qna.services import event_qna_path
+from events.models import Event
 from scripts.prod.identity_manifest import load_identity_manifest
 from test_support.design_review_identity import FROZEN_AT, SEED
 from test_support.factories import FactoryContext, create_current_scenario

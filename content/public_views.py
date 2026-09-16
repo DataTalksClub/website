@@ -31,9 +31,9 @@ from core.sensitive_query import has_sensitive_query_key
 from core.sponsors import public_events_hub_sponsors
 from course_management.observability import record_event
 from courses.models import Cohort, SharedLesson, SharedModule
+from event_qna.models import EventQnaSession
 from events.models import (
     EventIdentityNotFound,
-    EventQnaSession,
     canonical_detail_path,
     redirect_for_supplied_slug,
     resolve_public_id,

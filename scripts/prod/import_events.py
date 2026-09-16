@@ -199,7 +199,11 @@ NEW_EVENT_CONTENT_PATH = _CONTENT_STAGING_ROOT / "luma_event_descriptions.json"
 # from external raw Eventbrite content that never enters this repository
 # either; see that script's module docstring.
 EVENTBRITE_DESCRIPTIONS_PATH = (
-    Path.home() / "prod" / "dtc-data" / "eventbrite-content" / "staging"
+    Path.home()
+    / "prod"
+    / "dtc-data"
+    / "eventbrite-content"
+    / "staging"
     / "eventbrite_descriptions.json"
 )
 
@@ -269,9 +273,7 @@ def import_content(*, source: Path | None = None, apply: bool = True) -> dict[st
     from events.content_import import EventContentImportError, import_event_content
 
     try:
-        report = import_event_content(
-            path=source or EVENT_CONTENT_PATH, dry_run=not apply
-        )
+        report = import_event_content(path=source or EVENT_CONTENT_PATH, dry_run=not apply)
     except (EventContentImportError, OSError, ValueError) as error:
         raise EventImportError("event_content_invalid") from error
     return {
@@ -660,7 +662,7 @@ _QNA_RELATIONS = (
 def _dependent_row_totals(event: Any) -> dict[str, int]:
     """Count everything a delete would take with this Event. Never reads a value."""
 
-    from events.models import EventQnaSession
+    from event_qna.models import EventQnaSession
 
     totals = {label: getattr(event, relation).count() for relation, label in _DEPENDENT_RELATIONS}
     session = EventQnaSession.objects.filter(event=event).first()
@@ -1042,9 +1044,7 @@ def activate_unambiguous_mappings(
     }
 
 
-def activation_coverage(
-    *, source_report: dict[str, Any], staged: dict[str, Any]
-) -> dict[str, Any]:
+def activation_coverage(*, source_report: dict[str, Any], staged: dict[str, Any]) -> dict[str, Any]:
     """Say plainly how much of the registration history is actually public.
 
     The adapters are not the gap -- resolving each provider event to a
@@ -1055,9 +1055,7 @@ def activation_coverage(
     from events.models import Event
 
     provider_events = sum(source_report[provider]["events"] for provider in PROVIDERS)
-    resolved = sum(
-        staged["sources"][provider]["explicit_mapping_total"] for provider in PROVIDERS
-    )
+    resolved = sum(staged["sources"][provider]["explicit_mapping_total"] for provider in PROVIDERS)
     unresolved = sum(staged["sources"][provider]["unresolved_total"] for provider in PROVIDERS)
     return {
         "canonical_events": Event.objects.count(),
@@ -1197,9 +1195,7 @@ def _run_legs(
         "registration_sources": source_report,
         "registration_import": staged,
         "aggregate_auto_resolution": aggregate_auto_resolution,
-        "activation_coverage": activation_coverage(
-            source_report=source_report, staged=staged
-        ),
+        "activation_coverage": activation_coverage(source_report=source_report, staged=staged),
         "event_content": content,
         "new_event_content": new_event_content,
         "eventbrite_descriptions": eventbrite_descriptions,

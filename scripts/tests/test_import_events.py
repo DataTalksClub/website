@@ -728,8 +728,9 @@ class DuplicateProviderIdentityReconciliationTests(TestCase):
     def test_a_duplicate_carrying_dependent_rows_is_reported_and_kept(self) -> None:
         """Deleting this would destroy a real Q&A question, so a human decides."""
 
-        from events.models import Event, EventQnaQuestion, EventQnaSession
-        from events.qna.ids import opaque_id
+        from event_qna.models import EventQnaQuestion, EventQnaSession
+        from events.models import Event
+        from event_qna.ids import opaque_id
         from scripts.prod.import_events import reconcile_duplicate_luma_identities
 
         _keep, duplicate = self._duplicate_pair()

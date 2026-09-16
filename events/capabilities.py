@@ -11,9 +11,9 @@ from core.capabilities import (
     IdempotencyPolicy,
     ServiceKind,
 )
+from event_qna.capabilities import QNA_CAPABILITIES
 
 from .models import get_event_identity, list_event_identities
-from .qna.capabilities import QNA_CAPABILITIES
 from .services import (
     IMPORT_PERMISSION,
     MAPPING_PERMISSION,

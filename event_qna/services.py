@@ -27,18 +27,18 @@ from django.utils.dateparse import parse_datetime
 from core.audit import AuditWriteContext, record_audit_event
 from core.models import RevisionConflict
 from core.runtime_config import get_str_setting
+from events.models import Event
 
-from ..models import (
-    Event,
+from .backend import BackendSession, get_qna_backend
+from .errors import QnaArchived, QnaError, QnaNotFound
+from .ids import normalize_cohost_name, normalize_passcode, opaque_id
+from .models import (
     EventQnaCohostInvite,
     EventQnaQuestion,
     EventQnaRateLimit,
     EventQnaSession,
     EventQnaVote,
 )
-from .backend import BackendSession, get_qna_backend
-from .errors import QnaArchived, QnaError, QnaNotFound
-from .ids import normalize_cohost_name, normalize_passcode, opaque_id
 from .security import (
     constant_time_equals,
     new_passcode,

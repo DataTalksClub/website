@@ -12,9 +12,10 @@ from __future__ import annotations
 
 from django.test import TestCase
 
-from events.models import EventQnaSession, create_event_identity
-from events.qna import security, services
-from events.qna.errors import QnaError
+from event_qna import security, services
+from event_qna.errors import QnaError
+from event_qna.models import EventQnaSession
+from events.models import create_event_identity
 
 
 class DeletedQuestionTerminalTests(TestCase):

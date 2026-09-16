@@ -1,6 +1,6 @@
 from django.urls import path
 
-from events.qna import studio_views as qna_views
+from event_qna import studio_views as qna_views
 
 from . import views
 

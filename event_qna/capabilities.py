@@ -21,7 +21,7 @@ from .services import (
     update_session,
 )
 
-QNA_PERMISSION = "events.manage_event_qna"
+QNA_PERMISSION = "event_qna.manage_event_qna"
 _REDACTED = (
     "authorization",
     "cookie",

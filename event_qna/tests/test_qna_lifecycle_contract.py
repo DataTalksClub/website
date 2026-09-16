@@ -15,8 +15,9 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from events.models import EventQnaSession, create_event_identity
-from events.qna import security, services
+from event_qna import security, services
+from event_qna.models import EventQnaSession
+from events.models import create_event_identity
 
 
 class EventQnaLifecycleEtagTests(TestCase):

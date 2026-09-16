@@ -15,8 +15,9 @@ from accounts.studio_sessions import (
 )
 from accounts.studio_test_support import make_studio_user
 from core.models import AuditEvent
-from events.models import EventQnaSession, create_event_identity
-from events.qna import security, services
+from event_qna import security, services
+from event_qna.models import EventQnaSession
+from events.models import create_event_identity
 
 MODERATION_AUDIT = "events.qna.question_moderated"
 DENIAL_AUDIT = "events_qna_moderate.audit"

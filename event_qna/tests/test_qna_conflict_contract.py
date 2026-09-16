@@ -16,9 +16,10 @@ import json
 
 from django.test import TestCase
 
-from events.models import EventQnaSession, create_event_identity
-from events.qna import security, services
-from events.qna.services import RevisionConflict
+from event_qna import security, services
+from event_qna.models import EventQnaSession
+from event_qna.services import RevisionConflict
+from events.models import create_event_identity
 
 
 class ConflictContractTests(TestCase):
@@ -135,7 +136,7 @@ class ConflictContractTests(TestCase):
         from management_auth.services import create_principal, issue_credential_once
 
         permission = Permission.objects.get(
-            content_type__app_label="events", codename="manage_event_qna"
+            content_type__app_label="event_qna", codename="manage_event_qna"
         )
         principal = create_principal(
             kind=APIPrincipal.Kind.SERVICE,
@@ -149,7 +150,7 @@ class ConflictContractTests(TestCase):
             name="Q&A conflict contract credential",
             scopes=("events.qna.read", "events.qna.moderate"),
             idempotency_key="conflict-contract-credential",
-            actor_permission="events.manage_event_qna",
+            actor_permission="event_qna.manage_event_qna",
         )
         from unittest.mock import patch
 

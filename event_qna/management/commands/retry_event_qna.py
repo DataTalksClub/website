@@ -5,7 +5,7 @@ import uuid
 
 from django.core.management.base import BaseCommand, CommandError
 
-from events.qna.services import retry_event_qna_provision
+from event_qna.services import retry_event_qna_provision
 
 
 class Command(BaseCommand):

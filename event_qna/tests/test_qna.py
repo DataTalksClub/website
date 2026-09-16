@@ -9,8 +9,9 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
-from events.models import EventQnaSession, create_event_identity
-from events.qna import security, services
+from event_qna import security, services
+from event_qna.models import EventQnaSession
+from events.models import create_event_identity
 from management_api.concurrency import revision_etag
 from management_auth.models import APIPrincipal
 from management_auth.services import create_principal, issue_credential_once
@@ -216,7 +217,7 @@ class EventQnaManagementTests(TestCase):
             source_key="management-qna-test",
         )
         permission = Permission.objects.get(
-            content_type__app_label="events",
+            content_type__app_label="event_qna",
             codename="manage_event_qna",
         )
         self.principal = create_principal(
@@ -236,7 +237,7 @@ class EventQnaManagementTests(TestCase):
                 "events.qna.cohost.create",
             ),
             idempotency_key="qna-test-credential",
-            actor_permission="events.manage_event_qna",
+            actor_permission="event_qna.manage_event_qna",
         )
         self.token = str(issued.response["token"])
 
