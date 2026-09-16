@@ -126,7 +126,6 @@ PRODUCTION_IMPORT_PYTHON: Final = (
     "courses/services/cmp_content_import.py",
     "courses/services/cmp_learner_history_import.py",
     "courses/services/cmp_certificate_reconciliation.py",
-    "scripts/prod/reconcile_cmp_enrollment_certificates.py",
 )
 TYPECHECK_PATHS: Final = (
     "manage.py",

@@ -13,10 +13,10 @@ from copy import deepcopy
 
 from django.test import TestCase
 
+from event_qna.models import EventQnaSession
 from events.models import (
     Event,
     EventPublicIdSequence,
-    EventQnaSession,
     create_event_identity,
 )
 from scripts.prod.identity_manifest import (
