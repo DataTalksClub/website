@@ -30,23 +30,33 @@
 {% block page_header %}
   <div class="docs-home-header">
     <p class="mono-label mono-label-indigo">
-      docs · {{ docs_total_guides }} guide{{ docs_total_guides|pluralize }}
+      docs · {{ docs_total_pages }} page{{ docs_total_pages|pluralize }}
     </p>
     <h1 id="{{ docs_heading_id }}">{{ docs_heading_title }}</h1>
     <div class="prose docs-home-intro">
       {{ docs_html|safe }}
     </div>
-    <form class="search-row docs-search" action="{% url 'docs-home' %}" method="get">
-      <label class="sr-only" for="docs-query">Search documentation</label>
-      <input
-        id="docs-query"
-        class="field-input"
-        name="q"
-        type="search"
-        value="{{ docs_query|default:'' }}"
-        required
-      >
-      {% include "core/_button.html" with tag="button" type="submit" label="Search" variant="primary" compact=True %}
+    {% comment %}
+      The field carries a visible label and real example queries: it used to be an
+      unlabelled white box with no placeholder, which reads as decoration rather
+      than as the way into 105 pages.
+    {% endcomment %}
+    <form class="docs-search-block" role="search" action="{% url 'docs-home' %}" method="get">
+      <label class="field-label" for="docs-query">
+        Search {{ docs_total_pages }} documentation page{{ docs_total_pages|pluralize }}
+      </label>
+      <div class="search-row docs-search">
+        <input
+          id="docs-query"
+          class="field-input"
+          name="q"
+          type="search"
+          placeholder="e.g. certificate, homework deadline, GCP credits"
+          value="{{ docs_query|default:'' }}"
+          required
+        >
+        {% include "core/_button.html" with tag="button" type="submit" label="Search" variant="primary" compact=True %}
+      </div>
     </form>
   </div>
 {% endblock %}
@@ -54,27 +64,35 @@
 {% block page_content %}
   {% if docs_query %}
     <section class="docs-section" aria-labelledby="docs-search-heading">
-      <div class="docs-section-head">
-        <h2 id="docs-search-heading" class="search-count">
-          {{ docs_results|length }} result{{ docs_results|length|pluralize }} for &ldquo;{{ docs_query }}&rdquo;
-        </h2>
-        <p>
-          <a href="{% url 'docs-home' %}">Back to all documentation</a>
-        </p>
+      <div class="band-head">
+        <div>
+          <h2 id="docs-search-heading" class="search-count">
+            {{ docs_results|length }} result{{ docs_results|length|pluralize }} for &ldquo;{{ docs_query }}&rdquo;
+          </h2>
+          <p>Pages whose title matches come first, then pages that mention it in the text.</p>
+        </div>
+        <a class="band-link" href="{% url 'docs-home' %}">Clear search →</a>
       </div>
       {% if docs_results %}
+        {% comment %}
+          One link per result, and a trail above the title: six pages are called
+          "Project" and six "Curriculum", so the title alone cannot say which
+          guide a result belongs to.
+        {% endcomment %}
         <div class="row-list">
           {% for result in docs_results %}
-            <article class="list-row docs-row">
+            <article class="list-row docs-row docs-result-row">
               <div class="docs-row-body">
+                {% if result.trail %}
+                  <p class="mono-note docs-result-trail">{{ result.trail }}</p>
+                {% endif %}
                 <h3 class="docs-row-title">
-                  <a href="{{ result.public_path }}">{{ result.title }}</a>
+                  <a href="{{ result.public_path }}">{{ result.title_html|safe }}</a>
                 </h3>
-                {% if result.description %}
-                  <p class="docs-row-meta">{{ result.description }}</p>
+                {% if result.snippet_html %}
+                  <p class="docs-row-meta">{{ result.snippet_html|safe }}</p>
                 {% endif %}
               </div>
-              {% include "core/_button.html" with href=result.public_path label="Read guide" variant="secondary" compact=True classes="docs-row-action" %}
             </article>
           {% endfor %}
         </div>

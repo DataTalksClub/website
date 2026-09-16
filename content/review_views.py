@@ -98,7 +98,7 @@ def docs_home(request: HttpRequest) -> HttpResponse:
         "docs_heading_title": headings[0]["title"] if headings else document["title"],
         "docs_html": rendered_body,
         "docs_headings": headings,
-        "docs_total_guides": len(navigation.documents),
+        "docs_total_pages": len(navigation.documents),
         "docs_query": query,
         "primary_navigation_current": "docs",
     }

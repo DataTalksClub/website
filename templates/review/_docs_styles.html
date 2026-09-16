@@ -20,8 +20,16 @@
   margin-top: 0;
 }
 
-.docs-search {
+/* The hub's one search field: a visible label above the row, so the input reads
+   as the way into the corpus rather than as an unlabelled white box. */
+.docs-search-block {
+  display: grid;
+  gap: 0.4rem;
   margin-top: 1.25rem;
+  max-width: 38rem;
+}
+
+.docs-search {
   max-width: 34rem;
 }
 
@@ -154,6 +162,19 @@
 
 .search-count {
   overflow-wrap: anywhere;
+}
+
+/* A result names the guide it came from before it names itself: six pages are
+   called "Project", and a title on its own cannot say which one this is. */
+.docs-result-trail {
+  margin-bottom: 0.15rem;
+}
+
+.docs-result-row mark {
+  background: var(--lavender-deep);
+  border-radius: 0.2rem;
+  color: inherit;
+  padding-inline: 0.1em;
 }
 
 .docs-breadcrumbs {

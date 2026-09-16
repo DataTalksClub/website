@@ -16,6 +16,7 @@ from typing import Any
 from .docs_projection import (
     DocsNavigationItem,
     DocsNavigationTree,
+    docs_breadcrumbs,
     docs_pages,
     docs_sync_stamp,
     render_docs_markdown,
@@ -40,6 +41,7 @@ _CURRICULUM_LINK = re.compile(
 )
 _TAGS = re.compile(r"<[^>]+>")
 _MODULE_NUMBER = re.compile(r"\bModule\s+(?P<number>[0-9]+)\b", re.IGNORECASE)
+_SENTENCE = re.compile(r"(?<=[.!?])\s+")
 
 
 @dataclass(frozen=True, slots=True)
@@ -216,18 +218,34 @@ def docs_home_areas(tree: DocsNavigationTree) -> tuple[DocsNavigationItem, ...]:
 
 @dataclass(frozen=True, slots=True)
 class DocsSearchResult:
-    """One documentation page matching a reader's search terms."""
+    """One documentation page matching a reader's search terms.
+
+    Six pages are called "Project" and six "Curriculum", and 88 of the 106 pages
+    carry no description at all, so a result row that is only a title tells the
+    reader nothing about which of the six they are looking at.  The trail names
+    the guide the page sits in, and the snippet is the page's own description or
+    the first sentence that actually contains the term, with the term marked.
+    """
 
     title: str
     description: str
     public_path: str
+    trail: str
+    title_html: str
+    snippet_html: str
 
 
 @dataclass(frozen=True, slots=True)
 class _DocsSearchDocument:
-    """A search corpus entry: the displayed result plus its match haystack."""
+    """A search corpus entry: the displayed page plus the fields matches rank by."""
 
-    result: DocsSearchResult
+    title: str
+    description: str
+    public_path: str
+    trail: str
+    body_text: str
+    title_key: str
+    description_key: str
     haystack: str
 
 
@@ -236,11 +254,11 @@ def _docs_search_corpus(stamp: tuple[int, str]) -> tuple[_DocsSearchDocument, ..
     """Build the title/description/body search corpus of exactly one synced state.
 
     Wiki search reads a checked ``wiki_search.json`` built ahead of time from the wiki
-    projection.  Docs has no such build step yet (Pass 0 is presentation-only, no source
-    or projection change), so this derives the same shape directly from the rendered
-    bodies the detail pages already produce.  The cache key is the synced state the
-    corpus was built from: a sync changes the stamp, and the next search rebuilds the
-    corpus instead of serving stale matches for the life of the process.
+    projection.  Docs has no such build step yet, so this derives the same shape
+    directly from the rendered bodies the detail pages already produce.  The cache key
+    is the synced state the corpus was built from: a sync changes the stamp, and the
+    next search rebuilds the corpus instead of serving stale matches for the life of
+    the process.
     """
 
     corpus: list[_DocsSearchDocument] = []
@@ -248,39 +266,100 @@ def _docs_search_corpus(stamp: tuple[int, str]) -> tuple[_DocsSearchDocument, ..
         title = str(page["title"])
         description = str(page.get("description") or "")
         rendered, _headings = render_docs_markdown(page)
-        body_text = html.unescape(_TAGS.sub(" ", rendered))
-        haystack = " ".join((title, description, body_text)).casefold()
+        body_text = _collapse(html.unescape(_TAGS.sub(" ", rendered)))
+        trail = " / ".join(str(level["title"]) for level in docs_breadcrumbs(page)[1:])
         corpus.append(
             _DocsSearchDocument(
-                result=DocsSearchResult(
-                    title=title,
-                    description=description,
-                    public_path=str(page["public_path"]),
-                ),
-                haystack=haystack,
+                title=title,
+                description=description,
+                public_path=str(page["public_path"]),
+                trail=trail,
+                body_text=body_text,
+                title_key=title.casefold(),
+                description_key=description.casefold(),
+                haystack=" ".join((title, description, body_text)).casefold(),
             )
         )
     return tuple(corpus)
 
 
-def docs_search_results(query: str) -> tuple[DocsSearchResult, ...]:
-    """Return documentation pages whose title, description, or body match every term.
+def _collapse(text: str) -> str:
+    return " ".join(text.split())
 
-    Modeled on the wiki's ``_wiki_search_results``: terms are ANDed and matched
-    case-insensitively, and results are capped so a broad term cannot return the
-    whole corpus at once.
+
+def _mark_terms(text: str, terms: tuple[str, ...]) -> str:
+    """Escape one line of source text and wrap each matched term in ``<mark>``.
+
+    The marking happens on the plain text and the escaping on each fragment, so a
+    term that looks like the middle of an entity ("amp", "lt") can never mark the
+    escaping this function itself introduced.
     """
 
-    terms = query.casefold().split()
+    if not text:
+        return ""
+    pattern = re.compile("|".join(re.escape(term) for term in terms), re.IGNORECASE)
+    parts: list[str] = []
+    cursor = 0
+    for match in pattern.finditer(text):
+        parts.append(html.escape(text[cursor : match.start()]))
+        parts.append(f"<mark>{html.escape(match.group(0))}</mark>")
+        cursor = match.end()
+    parts.append(html.escape(text[cursor:]))
+    return "".join(parts)
+
+
+def _snippet(document: _DocsSearchDocument, terms: tuple[str, ...]) -> str:
+    """The page's own description, or the first body sentence holding a term."""
+
+    if document.description:
+        return document.description
+    for sentence in _SENTENCE.split(document.body_text):
+        lowered = sentence.casefold()
+        if any(term in lowered for term in terms):
+            return _collapse(sentence)
+    return ""
+
+
+def docs_search_results(query: str) -> tuple[DocsSearchResult, ...]:
+    """Return documentation pages matching every term, title matches first.
+
+    Terms are ANDed and matched case-insensitively, as the wiki's own search does.
+    Results used to come back in tree order and stopped at the first 100 found,
+    which put the page literally titled *Certification* nineteenth for the query
+    "certificate".  Ranking is where the match was found -- title, then
+    description, then body -- and tree order breaks ties, so the whole corpus is
+    ranked before the cap applies rather than the cap deciding what is ranked.
+    """
+
+    terms = tuple(query.casefold().split())
     if not terms:
         return ()
     stamp = docs_sync_stamp()
     if not stamp[0]:
         return ()
-    results: list[DocsSearchResult] = []
-    for document in _docs_search_corpus(stamp):
-        if all(term in document.haystack for term in terms):
-            results.append(document.result)
-            if len(results) == 100:
-                break
-    return tuple(results)
+    ranked: list[tuple[int, int, DocsSearchResult]] = []
+    for position, document in enumerate(_docs_search_corpus(stamp)):
+        if not all(term in document.haystack for term in terms):
+            continue
+        if all(term in document.title_key for term in terms):
+            rank = 0
+        elif all(term in f"{document.title_key} {document.description_key}" for term in terms):
+            rank = 1
+        else:
+            rank = 2
+        ranked.append(
+            (
+                rank,
+                position,
+                DocsSearchResult(
+                    title=document.title,
+                    description=document.description,
+                    public_path=document.public_path,
+                    trail=document.trail,
+                    title_html=_mark_terms(document.title, terms),
+                    snippet_html=_mark_terms(_snippet(document, terms), terms),
+                ),
+            )
+        )
+    ranked.sort(key=lambda entry: (entry[0], entry[1]))
+    return tuple(result for _rank, _position, result in ranked[:100])
