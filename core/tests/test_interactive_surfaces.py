@@ -105,10 +105,13 @@ class InteractiveSurfaceContractTests(SimpleTestCase):
         )
 
         self.assertIn('{% include "core/_stage_card.html"', homepage)
-        self.assertIn('class="card dashboard-card"', dashboard)
+        # The funnel redesign dissolved dashboard-card into the overview
+        # grid's plain cards; the grid stays unmarked and the retired
+        # class stays retired.
+        self.assertIn('class="dashboard-overview-grid"', dashboard)
+        self.assertNotIn('dashboard-card', dashboard)
         self.assertIn('class="card stage-card"', stage_card)
         self.assertIn('class="card stage-card stage-card-rail"', stage_card)
-        self.assertNotIn('class="card dashboard-card interactive-', dashboard)
         self.assertNotIn('class="card stage-card interactive-', stage_card)
         self.assertNotIn('class="card stage-card stage-card-rail interactive-', stage_card)
 
