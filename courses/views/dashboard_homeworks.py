@@ -45,7 +45,7 @@ def dashboard_homework_submissions(course):
 
 
 def dashboard_homework_stats(
-    homeworks, all_hw_submissions, total_enrollments
+    homeworks, all_hw_submissions, enrolled_count
 ):
     hw_submissions_by_homework = dashboard_homework_submissions_by_homework(
         all_hw_submissions
@@ -53,7 +53,7 @@ def dashboard_homework_stats(
     homework_stats = dashboard_homework_stat_rows(
         homeworks,
         hw_submissions_by_homework,
-        total_enrollments,
+        enrolled_count,
     )
     difficulty_stats = dashboard_homework_difficulty_stats(homework_stats)
     return homework_stats, difficulty_stats
@@ -70,7 +70,7 @@ def dashboard_homework_submissions_by_homework(all_hw_submissions):
 def dashboard_homework_stat_rows(
     homeworks,
     hw_submissions_by_homework,
-    total_enrollments,
+    enrolled_count,
 ):
     stat_rows = []
     for homework in homeworks:
@@ -78,19 +78,19 @@ def dashboard_homework_stat_rows(
         stat_row = dashboard_homework_stat(
             homework,
             submissions,
-            total_enrollments,
+            enrolled_count,
         )
         stat_rows.append(stat_row)
     return stat_rows
 
 
-def dashboard_homework_stat(homework, hw_submissions, total_enrollments):
+def dashboard_homework_stat(homework, hw_submissions, enrolled_count):
     time_stats = dashboard_homework_time_stats(hw_submissions)
     score_stats = dashboard_homework_score_stats(homework, hw_submissions)
     submissions_count = len(hw_submissions)
     completion_rate = dashboard_completion_rate(
         submissions_count,
-        total_enrollments,
+        enrolled_count,
     )
 
     return {
@@ -102,10 +102,10 @@ def dashboard_homework_stat(homework, hw_submissions, total_enrollments):
     }
 
 
-def dashboard_completion_rate(submissions_count, total_enrollments):
-    if total_enrollments <= 0:
+def dashboard_completion_rate(submissions_count, enrolled_count):
+    if enrolled_count <= 0:
         return 0.0
-    return round(submissions_count / total_enrollments * 100, 1)
+    return round(submissions_count / enrolled_count * 100, 1)
 
 
 def dashboard_homework_time_stats(hw_submissions):

@@ -38,7 +38,9 @@ class DashboardHomeworkStatsTestCase(DashboardHomeworkStatsTestBase):
         self.assertIsNone(hw_stat["time_lecture_q25"])
         self.assertIsNone(hw_stat["time_lecture_median"])
         self.assertIsNone(hw_stat["time_lecture_q75"])
-        self.assertEqual(hw_stat["completion_rate"], 40.0)
+        # Both people who started the course submitted this homework, so the
+        # participation rate is 100% even though five people registered.
+        self.assertEqual(hw_stat["completion_rate"], 100.0)
 
     def test_homework_statistics_with_null_values(self):
         self.create_null_time_submissions()

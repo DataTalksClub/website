@@ -140,15 +140,11 @@
         margin-top: 1.25rem;
       }
 
-      /* Three, not five: matches the homework statistics page's own
-         headline tiles (.stats-headline, three columns at the same 62rem
-         breakpoint) rather than a page-local count. The overview's other
-         two figures (project submissions, projects passed) already live
-         in the project-outcomes card below, so nothing is dropped -- only
-         one restatement of each number instead of two. */
+      /* The four headline figures read as one compact funnel: registration,
+         starting the work, submitting it, and graduating. */
       @media (min-width: 62rem) {
         .dashboard-stat-tiles {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: repeat(4, minmax(0, 1fr));
         }
       }
 
@@ -162,6 +158,63 @@
       .dashboard-stat-tiles .mono-note {
         display: block;
         margin-top: 0.25rem;
+      }
+
+      .metric-label {
+        align-items: center;
+        display: inline-flex;
+        gap: 0.35rem;
+      }
+
+      .metric-help {
+        display: inline-flex;
+        position: relative;
+      }
+
+      .metric-help-button {
+        align-items: center;
+        background: var(--card);
+        border: 1px solid currentColor;
+        border-radius: 50%;
+        color: var(--muted);
+        cursor: help;
+        display: inline-flex;
+        font: 700 0.7rem/1 var(--font-mono);
+        height: 1.15rem;
+        justify-content: center;
+        padding: 0;
+        width: 1.15rem;
+      }
+
+      .metric-help-button:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      .metric-help-text {
+        background: var(--band-ink-bg);
+        border: 1px solid var(--ink);
+        bottom: calc(100% + 0.55rem);
+        color: var(--on-green);
+        font: 500 0.78rem/1.35 var(--font-sans);
+        left: 50%;
+        max-width: min(16rem, calc(100vw - 2rem));
+        opacity: 0;
+        padding: 0.55rem 0.65rem;
+        pointer-events: none;
+        position: absolute;
+        transform: translate(-50%, 0.25rem);
+        transition: opacity 120ms ease, transform 120ms ease;
+        visibility: hidden;
+        width: max-content;
+        z-index: 4;
+      }
+
+      .metric-help:hover .metric-help-text,
+      .metric-help:focus-within .metric-help-text {
+        opacity: 1;
+        transform: translate(-50%, 0);
+        visibility: visible;
       }
 
       /* Two different cards -- score distribution, project outcomes --
@@ -601,13 +654,6 @@
           grid-template-columns: auto minmax(0, 1fr) auto;
         }
 
-        .dashboard-stat-tiles .stat-tile:first-child {
-          grid-column: 1 / -1;
-        }
-
-        .dashboard-stat-tiles .stat-tile:first-child strong {
-          font-size: 2.4rem;
-        }
       }
 
       /* --- question difficulty --------------------------------------------- */
@@ -844,15 +890,17 @@
           {% if course.first_homework_scored %}
             <p class="dashboard-lede">
               How the whole cohort did.
-              <strong>{{ total_enrollments }}</strong> people enrolled, sent
-              <strong>{{ homework_total_submissions }}</strong> homework submissions
-              and <strong>{{ project_total_submissions }}</strong> projects, and
-              <strong>{{ graduates_count }}</strong> of them graduated.
+              <strong>{{ registered_count }}</strong> people registered;
+              <strong>{{ enrolled_count }}</strong> started the coursework and sent
+              <strong>{{ homework_total_submissions }}</strong> homework submissions.
+              They went on to submit <strong>{{ project_total_submissions }}</strong>
+              projects, and <strong>{{ graduates_count }}</strong> graduated.
             </p>
           {% else %}
             <p class="dashboard-lede">
-              <strong>{{ total_enrollments }}</strong> people enrolled so far. Statistics
-              appear once the first homework is scored.
+              <strong>{{ registered_count }}</strong> people registered;
+              <strong>{{ enrolled_count }}</strong> have started by submitting homework.
+              Statistics appear once the first homework is scored.
             </p>
           {% endif %}
           <div class="hero-row">
@@ -899,8 +947,17 @@
           <h2 id="overview-heading" class="sr-only">Course overview</h2>
           <div class="stat-tiles dashboard-stat-tiles">
             <div class="stat-tile">
-              <strong>{{ total_enrollments }}</strong>
-              <span>Enrolled</span>
+              <strong>{{ registered_count }}</strong>
+              <span>Registered</span>
+            </div>
+            <div class="stat-tile">
+              <strong>{{ enrolled_count }}</strong>
+              <span class="metric-label">Enrolled
+                <span class="metric-help">
+                  <button class="metric-help-button" type="button" aria-label="What enrolled means" aria-describedby="enrolled-definition">?</button>
+                  <span class="metric-help-text" id="enrolled-definition" role="tooltip">People who submitted at least one homework.</span>
+                </span>
+              </span>
             </div>
           </div>
           <div class="panel panel-lavender" style="margin-top: 1.25rem">
@@ -921,8 +978,17 @@
         </div>
         <div class="stat-tiles dashboard-stat-tiles">
           <div class="stat-tile">
-            <strong>{{ total_enrollments }}</strong>
-            <span>Enrolled</span>
+            <strong>{{ registered_count }}</strong>
+            <span>Registered</span>
+          </div>
+          <div class="stat-tile">
+            <strong>{{ enrolled_count }}</strong>
+            <span class="metric-label">Enrolled
+              <span class="metric-help">
+                <button class="metric-help-button" type="button" aria-label="What enrolled means" aria-describedby="enrolled-definition">?</button>
+                <span class="metric-help-text" id="enrolled-definition" role="tooltip">People who submitted at least one homework.</span>
+              </span>
+            </span>
           </div>
           <div class="stat-tile">
             <strong>{{ homework_total_submissions }}</strong>

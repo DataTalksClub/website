@@ -10,9 +10,12 @@ from accounts.models import CustomUser
 from courses.models import (
     Cohort,
     Enrollment,
+    Homework,
+    HomeworkState,
     Project,
     ProjectState,
     ProjectSubmission,
+    Submission,
 )
 
 User = get_user_model()
@@ -81,6 +84,28 @@ class DashboardProjectStatsTestCase(TestCase):
 
         cls.enrollments = Enrollment.objects.bulk_create(
             enrollment_data
+        )
+
+    @classmethod
+    def create_homework_participation(cls):
+        homework = Homework.objects.create(
+            course=cls.course,
+            slug="homework-one",
+            title="Homework One",
+            due_date=timezone.now() + timedelta(days=7),
+            state=HomeworkState.SCORED.value,
+        )
+        Submission.objects.bulk_create(
+            [
+                Submission(
+                    homework=homework,
+                    student=user,
+                    enrollment=enrollment,
+                )
+                for user, enrollment in zip(
+                    cls.users, cls.enrollments, strict=True
+                )
+            ]
         )
 
     def create_project_submission(self, data: ProjectSubmissionFixtureData):
@@ -168,6 +193,7 @@ class DashboardProjectStatsTestCase(TestCase):
         cls.create_dashboard_project()
         cls.create_project_users()
         cls.create_project_enrollments()
+        cls.create_homework_participation()
 
     def setUp(self):
         self.client = Client()

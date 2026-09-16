@@ -3,6 +3,7 @@ import statistics
 from django.utils import timezone
 
 from courses.models.cohort import Enrollment
+from courses.models.homework import Submission
 from courses.models.project import Project
 from courses.views.dashboard_engagement import (
     dashboard_engagement_chart,
@@ -27,13 +28,27 @@ from courses.views.dashboard_timing import (
 
 
 def dashboard_context(course):
-    total_enrollments = Enrollment.objects.filter(course=course).count()
+    registered_count = (
+        Enrollment.objects.filter(course=course)
+        .values("student_id")
+        .distinct()
+        .count()
+    )
+    enrolled_count = (
+        Submission.objects.filter(
+            homework__course=course,
+            enrollment__course=course,
+        )
+        .values("student_id")
+        .distinct()
+        .count()
+    )
     homeworks = dashboard_homeworks(course)
     homework_submissions = dashboard_homework_submissions(course)
     homework_stats, homework_difficulty_stats = dashboard_homework_stats(
         homeworks,
         homework_submissions,
-        total_enrollments,
+        enrolled_count,
     )
     raw_avg_total_score = dashboard_avg_total_score(course)
     avg_total_score = round(raw_avg_total_score, 1)
@@ -45,7 +60,7 @@ def dashboard_context(course):
     engagement_trend, engagement_dropped_count = dashboard_engagement_trend(course)
     engagement_chart = dashboard_engagement_chart(engagement_trend)
     graduates_count = dashboard_graduates_count(course)
-    project_stats = dashboard_project_stats(course, total_enrollments)
+    project_stats = dashboard_project_stats(course, enrolled_count)
     homework_total_submissions = sum(hw_stat["submissions_count"] for hw_stat in homework_stats)
     has_time_data, has_score_data = dashboard_homework_column_flags(homework_stats)
     engagement_span = dashboard_engagement_span(engagement_trend)
@@ -57,12 +72,17 @@ def dashboard_context(course):
     return {
         "course": course,
         "course_family": course.course,
-        "total_enrollments": total_enrollments,
+        # This legacy context key still denotes the cohort's registration
+        # records. The public labels below distinguish those records from
+        # learners who started the coursework.
+        "total_enrollments": registered_count,
+        "registered_count": registered_count,
+        "enrolled_count": enrolled_count,
         "avg_total_score": avg_total_score,
         "overall_completion_rate": overall_completion_rate,
         "project_passing_score": course.project_passing_score,
         "graduates_count": graduates_count,
-        "graduates_rate": safe_pct(graduates_count, total_enrollments),
+        "graduates_rate": safe_pct(graduates_count, enrolled_count),
         "homework_stats": homework_stats,
         "homework_difficulty_stats": homework_difficulty_stats,
         "homework_total_submissions": homework_total_submissions,

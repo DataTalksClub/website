@@ -2,11 +2,11 @@ from courses.models.project import ProjectSubmission
 from courses.views.dashboard_metrics import safe_pct, safe_quartiles
 
 
-def dashboard_project_stats(course, total_enrollments):
+def dashboard_project_stats(course, enrolled_count):
     project_submissions = dashboard_project_submission_rows(course)
     completion_rate = project_completion_rate(
         project_submissions,
-        total_enrollments,
+        enrolled_count,
     )
     quartile_metrics = project_quartile_metrics(project_submissions)
     pass_count, fail_count = project_pass_fail_counts(project_submissions)
@@ -52,13 +52,13 @@ def dashboard_project_submission_rows(course):
     return list(submission_rows)
 
 
-def project_completion_rate(project_submissions, total_enrollments):
-    if total_enrollments <= 0:
+def project_completion_rate(project_submissions, enrolled_count):
+    if enrolled_count <= 0:
         return 0
 
     enrollment_ids = project_submission_enrollment_ids(project_submissions)
     completed_enrollments_count = len(enrollment_ids)
-    return completed_enrollments_count / total_enrollments * 100
+    return completed_enrollments_count / enrolled_count * 100
 
 
 def project_submission_enrollment_ids(project_submissions):
