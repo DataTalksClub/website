@@ -1,9 +1,11 @@
 from dataclasses import dataclass
+from urllib.parse import urlsplit
 
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 
+from content.docs_projection import docs_page
 from content.faq_data import faq_course_for_family_slug, faq_questions, render_faq_answer
 from courses.course_page_content import (
     course_modules,
@@ -336,6 +338,30 @@ def family_lede(family: Course) -> str:
     if description.casefold() == family.title.strip().casefold():
         return ""
     return description
+
+
+def family_docs_path(family: Course) -> str:
+    """Return the family's docs section as a relative site path, or nothing.
+
+    ``Course.docs_url`` is stored as the absolute same-site URL the curriculum
+    importer read from the course repository; the family page links same-site
+    destinations with a relative path, never an absolute host or a new tab. A
+    stored URL can drift from the synced docs tree (a page renamed or removed
+    upstream), so this only returns the path when the docs projection still
+    publishes that exact page -- a family with no ``docs_url`` (``ml-zoomcamp``
+    today) or a stale one renders no docs link rather than a dead one.
+    """
+
+    docs_url = family.docs_url.strip()
+    if not docs_url:
+        return ""
+    parsed = urlsplit(docs_url)
+    if parsed.netloc and parsed.netloc != "datatalks.club":
+        return ""
+    path = parsed.path
+    if not path.startswith("/docs/") or docs_page(path) is None:
+        return ""
+    return path
 
 
 #: How many real FAQ questions the family landing page previews inline
@@ -682,6 +708,7 @@ def course_family_page_context(family: Course, user) -> dict:
         "family_quick_faq_items": quick_faq_items,
         "self_paced_cohort": self_paced_cohort,
         "family_lede": family_lede(family),
+        "family_docs_path": family_docs_path(family),
         "family_starting_point": family.starting_point.strip(),
         "family_prerequisites": family.prerequisites.strip(),
         "family_weekly_commitment": family.weekly_commitment.strip(),
