@@ -27,6 +27,20 @@ Operational configuration, schemas, migrations, test fixtures, and static design
 assets are not public content, but they must not be used as a hidden public-content
 fallback.
 
+This rule extends to Django migrations specifically: a migration may only carry a
+*schema* change (`AddField`, `AlterField`, and the like), never a `RunPython` data
+migration that writes real content or business data. A migration runs automatically
+and irreversibly on every deploy and is not reviewed the way a content change is;
+baking real values into one is the same anti-pattern as a hardcoded Python record or
+a checked-in JSON fallback, just hidden inside `migrations/`. Real data belongs in a
+reviewed ingestion script (`scripts/prod/import_*.py`, reading from
+`~/prod/dtc-data/content-staging/`) or in an ordinary Studio edit — both safely
+re-runnable, both reviewable as content rather than as code. For example, `Sponsor.
+featured_on_home` (which sponsors are shown on the homepage teaser) was added as a
+schema-only migration; which rows are `True` is decided and recorded in
+`sponsor_directory.json` and applied by `scripts/prod/import_sponsors.py`, never by a
+data migration.
+
 ## Where the content lives now
 
 Every public surface reads the database. The reviewed ingest input
