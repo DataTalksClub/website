@@ -37,7 +37,7 @@ from core.graph_layout import (
 )
 
 from . import catalogue
-from .podcast_routes import podcast_canonical_path, podcast_public_id
+from .podcast_routes import podcast_canonical_path
 from .public_graph import safe_public_graph_url
 
 #: The wiki's default social-card image. It is a design asset that ships with
@@ -247,12 +247,7 @@ def _hierarchical_podcast_graph_path(record: dict[str, Any]) -> str:
         or episode < 1
     ):
         return ""
-    reviewed_path = podcast_canonical_path(slug)
-    if reviewed_path != f"/podcast/{slug}.html":
-        return safe_public_graph_url(reviewed_path)
-    return safe_public_graph_url(
-        f"/podcast/{podcast_public_id(season=season, episode=episode)}/{slug}"
-    )
+    return safe_public_graph_url(podcast_canonical_path(season=season, episode=episode, slug=slug))
 
 
 def _podcast_graph_url(node: dict[str, str], *, podcast_records: dict[str, Any]) -> str:

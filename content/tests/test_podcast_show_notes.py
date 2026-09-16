@@ -104,7 +104,7 @@ class PodcastShowNotesContractTests(TestCase):
     def test_structured_resources_keep_transcript_and_timestamp_data_separate(self) -> None:
         record = next(record for record in self.records if record["slug"] == "building-data-team")
 
-        self.assertEqual(record["public_path"], "/podcast/building-data-team.html")
+        self.assertEqual(record["public_path"], "/podcast/s01e03/building-data-team")
         self.assertEqual(
             record["resources"][0],
             {

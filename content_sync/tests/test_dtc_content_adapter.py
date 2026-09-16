@@ -388,7 +388,9 @@ class DtcContentAdapterTests(TestCase):
         episode = documents[("podcast", "analytics-engineer-skills-tools")]
         transcript = documents[("podcast_transcript", "analytics-engineer-skills-tools")]
         no_transcript = documents[("podcast", "building-domestic-risk-assessment-tool")]
-        self.assertEqual(episode.exact_public_path, "/podcast/analytics-engineer-skills-tools.html")
+        self.assertEqual(
+            episode.exact_public_path, "/podcast/s03e11/analytics-engineer-skills-tools"
+        )
         self.assertIsNone(transcript.exact_public_path)
         self.assertFalse(transcript.is_published)
         self.assertTrue(transcript.noindex)
@@ -465,13 +467,13 @@ class DtcContentAdapterTests(TestCase):
             episode_value["transcript"] = "e11-transcript.yaml"
             _write_yaml(season_three / "e11.yaml", episode_value)
 
-            season_one = root / "podcasts" / "s01"
-            season_one.mkdir()
+            season_eighteen = root / "podcasts" / "s18"
+            season_eighteen.mkdir()
             (root / "podcasts" / "building-domestic-risk-assessment-tool.yaml").rename(
-                season_one / "e01.yaml"
+                season_eighteen / "e07.yaml"
             )
-            (season_one / "_e99.yaml").write_text(
-                (season_one / "e01.yaml").read_text(encoding="utf-8"), encoding="utf-8"
+            (season_eighteen / "_e99.yaml").write_text(
+                (season_eighteen / "e07.yaml").read_text(encoding="utf-8"), encoding="utf-8"
             )
 
             migration_dir = root / "migration"
@@ -501,7 +503,7 @@ class DtcContentAdapterTests(TestCase):
         )
         self.assertEqual(
             documents[("podcast", "building-domestic-risk-assessment-tool")].source_path,
-            "podcasts/s01/e01.yaml",
+            "podcasts/s18/e07.yaml",
         )
         self.assertEqual(
             documents[("book", "20201214-ml-bookcamp")].source_path,

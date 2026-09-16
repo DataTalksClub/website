@@ -41,6 +41,7 @@ from scripts.prod.public_projection_source import (
     _sha256,
     _tree_sha256,
 )
+from content.podcast_routes import podcast_canonical_path
 
 #: Kramdown inline target metadata, the canary the projection build pins per
 #: collection (``REVIEWED_TARGET_MARKER_COUNTS``).  The synthetic people carry
@@ -126,6 +127,9 @@ def _podcast_records() -> list[dict[str, Any]]:
         record["episode"] = 100 - index
         record["published"] = f"2026-08-{index:02d}"
         record["transcript"] = ""
+        record["public_path"] = podcast_canonical_path(
+            season=record["season"], episode=record["episode"], slug=record["slug"]
+        )
     return records
 
 

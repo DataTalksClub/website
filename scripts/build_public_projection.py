@@ -1506,7 +1506,9 @@ def _main_records(
         legacy_path = _string(raw.get("legacy_path"), field="podcast path", maximum=500)
         if legacy_path != f"/podcast/{slug}.html":
             raise ProjectionBuildError(f"podcast route mismatch: {path.name[:120]}")
-        public_path = podcast_canonical_path(slug)
+        season = _positive_integer(raw.get("season"), field="podcast season")
+        episode = _positive_integer(raw.get("episode"), field="podcast episode")
+        public_path = podcast_canonical_path(season=season, episode=episode, slug=slug)
         transcript_path = raw.get("transcript")
         transcript: list[dict[str, Any]] = []
         transcript_provenance: dict[str, str] | None = None
@@ -1635,8 +1637,8 @@ def _main_records(
                     maximum=20_000,
                     optional=True,
                 ),
-                "season": _positive_integer(raw.get("season"), field="podcast season"),
-                "episode": _positive_integer(raw.get("episode"), field="podcast episode"),
+                "season": season,
+                "episode": episode,
                 "published": _string(
                     raw.get("dateadded"), field="podcast date", maximum=50, optional=True
                 ),
@@ -2625,7 +2627,9 @@ def _expected_editorial_routes(
             final_path = record["public_path"]
             clean_path = f"{prefix}/{record['slug']}"
             expected_path = (
-                podcast_canonical_path(record["slug"])
+                podcast_canonical_path(
+                    season=record["season"], episode=record["episode"], slug=record["slug"]
+                )
                 if collection == "podcasts"
                 else f"{clean_path}.html"
             )

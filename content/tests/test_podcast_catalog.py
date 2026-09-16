@@ -10,7 +10,6 @@ from xml.etree import ElementTree
 from django.core.exceptions import ImproperlyConfigured
 from django.template.loader import render_to_string
 from django.test import Client, TestCase
-from django.urls import reverse
 from django.utils.html import conditional_escape, escape
 
 from content import catalogue
@@ -24,14 +23,12 @@ from content.podcast_content import (
     published_display,
     season_episodes,
 )
-from content.podcast_routes import (
-    PODCAST_AI_PRODUCTION_PATH,
-    PODCAST_AI_PRODUCTION_SLUG,
-    PODCAST_GENAI_PILOTS_PATH,
-    PODCAST_ROUTE_MIGRATION_PATH,
-    podcast_legacy_path,
-)
 from core.seo import validated_canonical_url
+
+AI_PRODUCTION_SLUG = "s24e06-how-to-build-ai-that-actually-ships-in-production"
+GENAI_PILOTS_PATH = "/podcast/s24e04/from-genai-pilots-to-production"
+AI_ADOPTION_PATH = "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code"
+AI_PRODUCTION_PATH = "/podcast/s24e06/how-to-build-ai-that-actually-ships-in-production"
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SITEMAP_NAMESPACE = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
@@ -677,7 +674,7 @@ class PodcastEpisodeParityTests(TestCase):
         synthetic = {
             **record,
             "slug": "synthetic-no-player-episode",
-            "public_path": "/podcast/synthetic-no-player-episode.html",
+            "public_path": "/podcast/s20e06/synthetic-no-player-episode",
             "video": None,
             "links": {},
         }
@@ -711,7 +708,7 @@ class PodcastEpisodeParityTests(TestCase):
         synthetic = {
             **record,
             "slug": "synthetic-guest-path-validation",
-            "public_path": "/podcast/synthetic-guest-path-validation.html",
+            "public_path": "/podcast/s20e06/synthetic-guest-path-validation",
             "guest_profiles": [
                 {"key": "", "name": "Safe Guest", "public_path": safe_path},
                 *(
@@ -738,7 +735,7 @@ class PodcastEpisodeParityTests(TestCase):
         synthetic = {
             **source,
             "slug": "synthetic-spotify-creator-player",
-            "public_path": "/podcast/synthetic-spotify-creator-player.html",
+            "public_path": "/podcast/s25e01/synthetic-spotify-creator-player",
             "links": {creator_key: source["links"][creator_key]},
             "video": None,
             "resources": [],
@@ -787,7 +784,7 @@ class PodcastEpisodeParityTests(TestCase):
         dated = {
             **record,
             "slug": "synthetic-dated-episode",
-            "public_path": "/podcast/synthetic-dated-episode.html",
+            "public_path": "/podcast/s20e06/synthetic-dated-episode",
             "published": "2026-02-03",
         }
         with patch("content.catalogue.podcasts", return_value=(dated,)):
@@ -813,8 +810,8 @@ class PodcastEpisodeParityTests(TestCase):
         record = self.representative()
         next_record = {
             **record,
-            "slug": "s24e07-synthetic-next",
-            "public_path": "/podcast/s24e07-synthetic-next.html",
+            "slug": "synthetic-next",
+            "public_path": "/podcast/s20e07/synthetic-next",
             "title": "Synthetic Season 24 Episode 7",
             "episode": 7,
             "published": "",
@@ -847,7 +844,7 @@ class PodcastEpisodeParityTests(TestCase):
         synthetic = {
             **record,
             "slug": "synthetic-no-media",
-            "public_path": "/podcast/synthetic-no-media.html",
+            "public_path": "/podcast/s20e06/synthetic-no-media",
             "title": "Synthetic episode without optional media",
             "links": {"spotify": "https://open.spotify.com/episode/synthetic"},
             "guest_profiles": [{"key": "unknown", "name": "Unknown Guest", "public_path": ""}],
@@ -882,7 +879,7 @@ class PodcastEpisodeParityTests(TestCase):
         synthetic = {
             **record,
             "slug": "synthetic-video-without-artwork",
-            "public_path": "/podcast/synthetic-video-without-artwork.html",
+            "public_path": "/podcast/s20e06/synthetic-video-without-artwork",
             "links": {"youtube": record["links"]["youtube"]},
             "image_path": "",
             "media_available": False,
@@ -955,7 +952,7 @@ class PodcastSeasonNavigationTests(TestCase):
             types = {item.get("@type") for item in json.loads(payload_match.group(1))["@graph"]}
             self.assertIn("PodcastEpisode", types)
 
-    def test_detail_routes_keep_html_finals_except_reviewed_hierarchical_migrations(self) -> None:
+    def test_detail_routes_are_all_hierarchical_stable_id_paths(self) -> None:
         podcasts = catalogue.podcasts()
         migration = catalogue.singleton("editorial_route_migration")
         podcast_finals = {
@@ -967,23 +964,17 @@ class PodcastSeasonNavigationTests(TestCase):
 
         self.assertEqual({episode["public_path"] for episode in podcasts}, podcast_finals)
         self.assertTrue(all(path.startswith("/podcast/") for path in podcast_finals))
-        self.assertEqual(
-            {path for path in podcast_finals if not path.endswith(".html")},
-            {
-                PODCAST_GENAI_PILOTS_PATH,
-                PODCAST_ROUTE_MIGRATION_PATH,
-                PODCAST_AI_PRODUCTION_PATH,
-            },
-        )
+        self.assertFalse(any(path.endswith(".html") for path in podcast_finals))
+        self.assertIn(GENAI_PILOTS_PATH, podcast_finals)
+        self.assertIn(AI_ADOPTION_PATH, podcast_finals)
+        self.assertIn(AI_PRODUCTION_PATH, podcast_finals)
         self.assertEqual(
             {item["final_path"] for item in podcast_aliases},
-            podcast_finals - {PODCAST_GENAI_PILOTS_PATH},
+            podcast_finals - {GENAI_PILOTS_PATH},
         )
 
-        # The newest episode publishes under its reviewed hierarchical final,
-        # whose alias grammar is the migration's own; the alias contract here is
-        # the .html final's, so the probe picks an episode that keeps one.
-        episode = next(episode for episode in podcasts if episode["public_path"].endswith(".html"))
+        # Every episode answers 200 on its hierarchical final.
+        episode = podcasts[0]
         final_path = episode["public_path"]
         query = "utm_source=oncall%2Btest&x=a%2Fb&blank="
         for method in ("GET", "HEAD"):
@@ -992,23 +983,20 @@ class PodcastSeasonNavigationTests(TestCase):
             self.assertNotIn("Location", response.headers)
         self.assertEqual(self.client.post(final_path).status_code, 405)
 
-        aliases = (final_path.removesuffix(".html"), f"{final_path.removesuffix('.html')}/")
-        for alias_path in aliases:
-            for method in ("GET", "HEAD"):
-                response = self.client.generic(method, f"{alias_path}?{query}", follow=False)
-                self.assertEqual(response.status_code, 301)
-                self.assertEqual(response.headers["Location"], f"{final_path}?{query}")
-        self.assertEqual(self.client.post(alias_path).status_code, 405)
+        # The reviewed flat .html spelling is retired: it is a real 404 now.
+        legacy = f"/podcast/{episode['slug']}.html"
+        for method in ("GET", "HEAD"):
+            response = self.client.generic(method, f"{legacy}?{query}", follow=False)
+            self.assertEqual(response.status_code, 404)
+            self.assertNotIn("Location", response.headers)
 
-    def test_s24e05_uses_the_new_canonical_route_and_redirects_its_html_path(self) -> None:
+    def test_s24e05_uses_the_canonical_route_without_its_html_path(self) -> None:
         episode = _episode("s24e05-ai-adoption-in-enterprise-beyond-writing-code")
         canonical = episode["public_path"]
-        legacy = podcast_legacy_path(episode["slug"])
+        legacy = f"/podcast/{episode['slug']}.html"
         query = "utm_source=route%2Btest&blank="
 
-        self.assertEqual(canonical, PODCAST_ROUTE_MIGRATION_PATH)
-        self.assertEqual(reverse("podcast-ai-adoption"), canonical)
-        self.assertEqual(reverse("podcast-ai-adoption-legacy"), legacy)
+        self.assertEqual(canonical, AI_ADOPTION_PATH)
         final = self.client.get(f"{canonical}?{query}", follow=False)
         self.assertEqual(final.status_code, 200)
         self.assertContains(
@@ -1023,9 +1011,8 @@ class PodcastSeasonNavigationTests(TestCase):
         )
         for method in ("GET", "HEAD"):
             response = self.client.generic(method, f"{legacy}?{query}", follow=False)
-            self.assertEqual(response.status_code, 301)
-            self.assertEqual(response.headers["Location"], f"{canonical}?{query}")
-        self.assertEqual(self.client.post(legacy).status_code, 405)
+            self.assertEqual(response.status_code, 404)
+            self.assertNotIn("Location", response.headers)
 
         competing_path = (
             f"/podcast/s{episode['season']:02d}e{episode['episode']:02d}/competing-title"
@@ -1173,13 +1160,14 @@ class PodcastSeasonNavigationTests(TestCase):
 
     def test_higher_season_becomes_clean_default_and_real_adjacency_skips_gaps(self) -> None:
         former_latest_number = podcast_seasons()[0].number
+        new_season_number = former_latest_number + 6
         synthetic = {
             **ordered_podcasts()[0],
-            "season": former_latest_number + 6,
+            "season": new_season_number,
             "episode": 2,
             "published": "2026-08-12",
             "slug": "synthetic-future-season",
-            "public_path": "/podcast/synthetic-future-season.html",
+            "public_path": f"/podcast/s{new_season_number:02d}e02/synthetic-future-season",
             "title": "Synthetic future episode",
             "description": "A synthetic ordering fixture.",
             "guest_profiles": (),
@@ -1223,7 +1211,11 @@ class PodcastSeasonNavigationTests(TestCase):
         with patch("core.views.ordered_podcasts", return_value=ordered_podcasts(records)):
             homepage = self.client.get("/")
         self.assertContains(homepage, "Synthetic future episode")
-        self.assertContains(homepage, 'href="/podcast/synthetic-future-season.html"', count=1)
+        self.assertContains(
+            homepage,
+            f'href="/podcast/s{new_season_number:02d}e02/synthetic-future-season"',
+            count=1,
+        )
 
     def test_strict_invalid_queries_are_bounded_400_no_store(self) -> None:
         invalid_queries = (
@@ -1393,7 +1385,7 @@ class PodcastSeasonNavigationTests(TestCase):
         self.assertNotIn("#214", body)
 
     def test_episode_page_plays_and_lists_only_real_destinations(self) -> None:
-        episode = _episode(PODCAST_AI_PRODUCTION_SLUG)
+        episode = _episode(AI_PRODUCTION_SLUG)
         response = self.client.get(episode["public_path"])
         body = response.content.decode()
 
@@ -1444,7 +1436,7 @@ class PodcastSeasonNavigationTests(TestCase):
         self.assertContains(response, f'<h1 id="episode-heading">{escape(episode["title"])}</h1>')
 
     def test_an_apostrophe_in_a_guest_name_is_escaped_on_the_page(self) -> None:
-        episode = _episode(PODCAST_AI_PRODUCTION_SLUG)
+        episode = _episode(AI_PRODUCTION_SLUG)
         guest = next(item for item in episode["guest_profiles"] if "'" in item["name"])
         self.assertNotEqual(escape(guest["name"]), guest["name"])
         response = self.client.get(episode["public_path"])

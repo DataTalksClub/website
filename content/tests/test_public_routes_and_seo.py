@@ -9,13 +9,6 @@ from django.test import TestCase
 
 from content import catalogue
 from content.docs_projection import docs_page
-from content.podcast_routes import (
-    PODCAST_AI_PRODUCTION_PATH,
-    PODCAST_GENAI_PILOTS_PATH,
-    PODCAST_HIERARCHICAL_ONLY_SLUGS,
-    PODCAST_ROUTE_MIGRATION_PATH,
-    podcast_legacy_path,
-)
 from content.public_routes import public_paths
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
 from events.queries import published_event_records
@@ -198,124 +191,6 @@ class PublicRouteAndSeoTests(TestCase):
                 self.assertEqual(response.status_code, 404)
                 self.assertNotIn("Location", response.headers)
                 self.assertNotContains(response, 'rel="canonical"', status_code=404)
-
-    def test_editorial_detail_aliases_redirect_directly_to_canonicals(self) -> None:
-        migration = catalogue.singleton("editorial_route_migration")
-        canonical_paths = {item["final_path"] for item in migration["finals"]}
-        alias_map = {item["source_path"]: item["final_path"] for item in migration["aliases"]}
-        self.assertEqual(
-            set(alias_map.values()),
-            canonical_paths
-            - {
-                item["final_path"]
-                for item in migration["finals"]
-                if item["collection"] == "podcasts"
-                and item["record_key"] in PODCAST_HIERARCHICAL_ONLY_SLUGS
-            },
-        )
-        self.assertTrue(set(alias_map).isdisjoint(canonical_paths))
-        self.assertEqual(
-            {path for path in canonical_paths if not path.endswith(".html")},
-            {
-                PODCAST_GENAI_PILOTS_PATH,
-                PODCAST_ROUTE_MIGRATION_PATH,
-                PODCAST_AI_PRODUCTION_PATH,
-            },
-        )
-        self.assertEqual(
-            set(alias_map),
-            {
-                alias
-                for item in migration["finals"]
-                for alias in (
-                    (
-                        podcast_legacy_path(item["record_key"]).removesuffix(".html")
-                        if item["collection"] == "podcasts"
-                        else item["final_path"].removesuffix(".html")
-                    ),
-                    (
-                        podcast_legacy_path(item["record_key"]).removesuffix(".html")
-                        if item["collection"] == "podcasts"
-                        else item["final_path"].removesuffix(".html")
-                    )
-                    + "/",
-                )
-                if not (
-                    item["collection"] == "podcasts"
-                    and item["record_key"] in PODCAST_HIERARCHICAL_ONLY_SLUGS
-                )
-            },
-        )
-
-        query = "x=%2F&x=&q=A+B&q=A%20B"
-        for source, target in alias_map.items():
-            with self.subTest(source=source):
-                response = self.client.get(f"{source}?{query}", follow=False)
-                self.assertEqual(response.status_code, 301)
-                self.assertEqual(response.headers["Location"], f"{target}?{query}")
-                self.assertEqual(response.headers["X-Robots-Tag"], "noindex, nofollow")
-                head = self.client.head(f"{source}?{query}", follow=False)
-                self.assertEqual(head.status_code, 301)
-                self.assertEqual(head.headers["Location"], f"{target}?{query}")
-                self.assertEqual(self.client.post(source).status_code, 405)
-
-        for target in canonical_paths:
-            with self.subTest(target=target):
-                final = self.client.get(target, follow=False)
-                self.assertEqual(final.status_code, 200)
-                self.assertNotIn("Location", final.headers)
-                self.assertEqual(final.headers["X-Robots-Tag"], "noindex, nofollow")
-                self.assertEqual(self.client.post(target).status_code, 405)
-                head = self.client.head(target, follow=False)
-                self.assertEqual(head.status_code, 200)
-                self.assertEqual(head.content, b"")
-                self.assertNotIn("Location", head.headers)
-                canonical_url = f"https://datatalks.club{target}"
-                self.assertContains(
-                    final,
-                    f'<link rel="canonical" href="{canonical_url}">',
-                    count=1,
-                )
-                self.assertContains(
-                    final,
-                    f'<meta property="og:url" content="{canonical_url}">',
-                    count=1,
-                )
-                match = re.search(
-                    r'<script type="application/ld\+json">\s*(.*?)\s*</script>',
-                    final.content.decode(),
-                    re.DOTALL,
-                )
-                if match is None:
-                    self.fail(f"{target} does not emit JSON-LD")
-                graph = json.loads(match.group(1))["@graph"]
-                self.assertEqual(graph[0]["url"], canonical_url)
-                breadcrumb = next(item for item in graph if item["@type"] == "BreadcrumbList")
-                self.assertEqual(breadcrumb["itemListElement"][-1]["item"], canonical_url)
-
-        guide_path = "/blog/synthetic-article-one.html"
-        guide = self.client.get(guide_path, follow=False)
-        self.assertEqual(guide.status_code, 200)
-        self.assertContains(
-            guide,
-            f'<link rel="canonical" href="https://datatalks.club{guide_path}">',
-            count=1,
-        )
-        for alias in (guide_path.removesuffix(".html"), f"{guide_path.removesuffix('.html')}/"):
-            response = self.client.get(f"{alias}?source=contract", follow=False)
-            self.assertEqual(response.status_code, 301)
-            self.assertEqual(response.headers["Location"], f"{guide_path}?source=contract")
-
-        for collection in ("blog", "podcast", "books", "people"):
-            for source in (
-                f"/{collection}/missing-record",
-                f"/{collection}/missing-record.html",
-                f"/{collection}/missing-record/",
-            ):
-                with self.subTest(source=source):
-                    response = self.client.get(source, follow=False)
-                    self.assertEqual(response.status_code, 404)
-                    self.assertNotIn("Location", response.headers)
 
     def test_all_events_have_internal_details_and_resolved_people(self) -> None:
         home = self.client.get("/").content.decode()

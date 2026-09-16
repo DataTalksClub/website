@@ -414,7 +414,7 @@ class PodcastsParserTests(_CheckoutCase):
             items = parser.discover(checkout, source)
             self.assertEqual([item.key for item in items], ["test-episode"])
             record = items[0].data["record"]
-            self.assertEqual(record["public_path"], "/podcast/test-episode.html")
+            self.assertEqual(record["public_path"], "/podcast/s03e11/test-episode")
             self.assertEqual(record["season"], 3)
             self.assertEqual(record["episode"], 11)
             self.assertEqual(record["guests"], ["fixture-guest"])

@@ -28,6 +28,7 @@ from .jobs import CONTENT_RELEASE_INVALIDATION_VERSION, release_invalidation_pre
 from .models import (
     LEGACY_PUBLIC_CONTRACT_DIGEST,
     PUBLIC_CONTRACT_DIGEST,
+    RETIRED_FLAT_PODCAST_ROUTES_DIGEST,
     ActiveContentPath,
     ContentAsset,
     ContentDocument,
@@ -940,7 +941,11 @@ def _validate_frozen_readiness(
     allow_legacy_contract: bool = False,
 ) -> None:
     allowed_digests = (
-        (PUBLIC_CONTRACT_DIGEST, LEGACY_PUBLIC_CONTRACT_DIGEST)
+        (
+            PUBLIC_CONTRACT_DIGEST,
+            RETIRED_FLAT_PODCAST_ROUTES_DIGEST,
+            LEGACY_PUBLIC_CONTRACT_DIGEST,
+        )
         if allow_legacy_contract
         else (PUBLIC_CONTRACT_DIGEST,)
     )

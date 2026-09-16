@@ -1524,14 +1524,16 @@ def adapt_dtc_content_checkout(
         legacy_path = _required_text(metadata, "legacy_path", path=source_path)
         if legacy_path != f"/podcast/{slug}.html":
             _fail("podcast_legacy_path_mismatch", source_path)
-        # The source YAML keeps its historical `legacy_path` field for provenance, while
-        # the prepared public document follows the code-owned canonical route registry.
-        public_path = podcast_canonical_path(slug)
         guests = _required_list(metadata, "guests", path=source_path)
         for required_number in ("season", "episode"):
             value = metadata.get(required_number)
             if not isinstance(value, int) or isinstance(value, bool) or value < 1:
                 _fail(f"podcast_{required_number}_invalid", source_path)
+        # The source YAML keeps its historical `legacy_path` field for provenance, while
+        # the prepared public document follows the code-owned canonical route registry.
+        public_path = podcast_canonical_path(
+            season=metadata["season"], episode=metadata["episode"], slug=slug
+        )
         podcasts_root = root / "podcasts"
         if path.parent == podcasts_root:
             # The pre-reorg flat layout: the filename is the slug itself.

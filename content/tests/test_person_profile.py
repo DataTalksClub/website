@@ -289,7 +289,7 @@ class PersonCompositionTests(TestCase):
                         {
                             "role": "",
                             "label": "X",
-                            "public_path": "/podcast/synthetic-episode-one.html",
+                            "public_path": "/podcast/s20e06/synthetic-episode-one",
                         }
                     ],
                 },

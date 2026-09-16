@@ -117,9 +117,11 @@ class PodcastsParser:
                     if provider in links:
                         base.fail("duplicate podcast platform provider", relative)
                     links[provider] = builder._canonical_podcast_platform_url(provider, safe)
+        season = builder._positive_integer(raw.get("season"), field="podcast season")
+        episode = builder._positive_integer(raw.get("episode"), field="podcast episode")
         record = {
             "slug": slug,
-            "public_path": podcast_canonical_path(slug),
+            "public_path": podcast_canonical_path(season=season, episode=episode, slug=slug),
             "title": builder._title_from_record(raw, slug),
             "short": builder._string(
                 raw.get("short"), field="podcast short", maximum=500, optional=True
@@ -130,8 +132,8 @@ class PodcastsParser:
                 maximum=20_000,
                 optional=True,
             ),
-            "season": builder._positive_integer(raw.get("season"), field="podcast season"),
-            "episode": builder._positive_integer(raw.get("episode"), field="podcast episode"),
+            "season": season,
+            "episode": episode,
             "published": builder._string(
                 raw.get("dateadded"), field="podcast date", maximum=50, optional=True
             ),

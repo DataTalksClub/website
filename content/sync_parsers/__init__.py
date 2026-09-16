@@ -13,8 +13,8 @@ from . import (  # noqa: F401
     faq,
     media,
     people,
+    platforms,
     podcasts,
     podwiki,
-    platforms,
     slack,
 )

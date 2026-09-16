@@ -162,7 +162,9 @@ def _expected_editorial_routes(
             final_path = record["public_path"]
             clean_path = f"{prefix}/{record['slug']}"
             expected_path = (
-                podcast_canonical_path(record["slug"])
+                podcast_canonical_path(
+                    season=record["season"], episode=record["episode"], slug=record["slug"]
+                )
                 if collection == "podcasts"
                 else f"{clean_path}.html"
             )

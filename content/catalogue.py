@@ -654,20 +654,3 @@ def _media_index(
         for record in _synced_media(editorial_stamp, people_stamp)
         if "public_path" in record
     }
-
-
-def editorial_route_alias(source_path: str) -> Record | None:
-    """The reviewed redirect a retired editorial path still answers with."""
-
-    return _editorial_route_aliases(active_release_id()).get(source_path)
-
-
-@lru_cache(maxsize=2)
-def _editorial_route_aliases(release_id: str) -> dict[str, Record]:
-    aliases = _records(release_id, "editorial_route_migration")
-    held = aliases[0].get("aliases", ()) if aliases else ()
-    return {
-        str(alias["source_path"]): alias
-        for alias in held
-        if isinstance(alias, dict) and isinstance(alias.get("source_path"), str)
-    }
