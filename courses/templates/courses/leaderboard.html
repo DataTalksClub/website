@@ -133,9 +133,23 @@
       }
 
       /* One mark per project this student has passed.  The copied page drew a
-         five-colour medal star from an icon font; a design system page loads no
-         icon font and has no medal palette, so the mark is the brand bubble
-         disc and the project it stands for is named in text beside it. */
+         five-colour medal star from an icon font; a design system page loads
+         no icon font, so the mark is a filled disc instead — but it keeps the
+         CMP behaviour this ported from: every star for the same project, in
+         every row, is the same color, so a visitor can tell at a glance which
+         projects a learner passed, not just how many. The palette is the same
+         four flat, categorical swatches the podcast subscribe row already
+         draws its per-platform dots from (`.pill-button .dot-bubble` /
+         `.dot-gold` / `.dot-green` / `.dot-clay`) — real tokens already used
+         together as a "same shape, different meaning" set, and picked instead
+         of the closer `.step-number-2` indigo-soft precisely because it reads
+         too close to `--bubble` at this swatch size to tell apart at a
+         glance. `--clay` and `--gold` hold their one value in both themes
+         (design-system.md), so every color stays legible without a dark-mode
+         override. A cohort with more projects than colors cycles back through
+         the four rather than growing an increasingly indistinct palette.
+         Color is reinforcement, not the only signal — `title` and the
+         sr-only text beside it still name the project. */
       .leaderboard-passed {
         align-items: center;
         background: var(--bubble);
@@ -147,6 +161,21 @@
         height: 1.4rem;
         justify-content: center;
         width: 1.4rem;
+      }
+
+      .leaderboard-passed-2 {
+        background: var(--gold);
+        color: var(--on-bubble);
+      }
+
+      .leaderboard-passed-3 {
+        background: var(--green);
+        color: var(--on-green);
+      }
+
+      .leaderboard-passed-4 {
+        background: var(--clay);
+        color: var(--on-bubble);
       }
 
       /* Pagination is the shared `.pagination` control from
@@ -254,7 +283,11 @@
           <div class="band-head">
             <div>
               <h2 id="standings-heading">Standings</h2>
-              <p>Open a student to see how their score is made up.</p>
+              <p>
+                Open a student to see how their score is made up. Each ★ marks a
+                passed project, and its color is the same for that project in
+                every row.
+              </p>
             </div>
           </div>
           {% if enrollments %}
@@ -292,7 +325,7 @@
                       <span class="status-pill status-pill-open">you</span>
                     {% endif %}
                     {% for project in enrollment.passed_projects %}
-                      <span class="leaderboard-passed" title="Passed {{ project.title }}">
+                      <span class="leaderboard-passed{% if project.star_class %} {{ project.star_class }}{% endif %}" title="Passed {{ project.title }}">
                         <span aria-hidden="true">★</span>
                         <span class="sr-only">Passed {{ project.title }}</span>
                       </span>
