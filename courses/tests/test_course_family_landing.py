@@ -86,12 +86,13 @@ class CourseFamilyLandingTests(TestCase):
 
         self.assertContains(response, self.family.prerequisites)
         self.assertContains(response, self.family.outcome)
-        # The prerequisites now answer the question stage 1 raises, inside
-        # stage 1, and the course-adjusted journey still establishes fit and
-        # value before the page asks the visitor to choose a route.
+        # The prerequisites now answer "is this a good fit" as their own
+        # opening-group section, ahead of the journey, which in turn still
+        # establishes fit and value before the page asks the visitor to
+        # choose a route.
         self.assertLess(
-            body.index('id="transformation-heading"'),
             body.index(self.family.prerequisites),
+            body.index('id="transformation-heading"'),
         )
         self.assertLess(
             body.index('id="transformation-heading"'),
@@ -131,6 +132,14 @@ class CourseFamilyLandingTests(TestCase):
         start = body.index('class="family-transformation shell-breakout"')
         return body[start : body.index("</section>", start)]
 
+    def hero_section(self, response) -> str:
+        """The rendered hero, markup only (up to the illustration)."""
+
+        body = response.content.decode()
+        start = body.index('class="family-hero-inner"')
+        end = body.index('class="family-hero-art', start)
+        return body[start:end]
+
     def test_transformation_uses_neutral_start_and_shared_pipeline_art(self):
         self.family.slug = "de-zoomcamp"
         self.family.save(update_fields=["slug"])
@@ -149,31 +158,49 @@ class CourseFamilyLandingTests(TestCase):
         self.assertIn("home-step-3.", section)
         self.assertContains(response, 'class="family-hero-art family-course-art"')
 
-    def test_each_stage_closes_on_the_evidence_the_page_already_owns(self):
+    def test_journey_cards_carry_no_proof_block(self):
+        # Owner feedback (2026-09): the dashed-divider "proof" block that
+        # used to close each card was too busy and mostly redundant with
+        # sections the page already draws further down (syllabus, built);
+        # the cards now end on their own description, the same clean shape
+        # as the home page's climb cards.
         self.add_submission()
 
         response = self.client.get(self.url)
         section = self.journey_section(response)
 
-        # Stage 1 absorbs the prerequisites, which no longer sit in a box of
-        # their own further up the page.
-        self.assertIn("Good fit if", section)
-        self.assertIn(self.family.prerequisites, section)
-        self.assertNotContains(response, 'class="family-prerequisites"')
-        # Stage 2 carries the real syllabus count and its real module titles,
-        # and points at the syllabus band that lists them in full.
-        self.assertIn(response.context["syllabus_fact"], section)
-        for row in response.context["family_syllabus_rows"]:
-            self.assertIn(row.title, section)
-        self.assertIn('href="#syllabus-heading"', section)
-        # Stage 3 carries the real peer-reviewed project count, the real
-        # family-wide submission total and the first gallery repositories.
-        self.assertIn("Peer-reviewed · 1 project", section)
-        self.assertIn("1 project</strong> submitted so far", section)
-        for submission in response.context["family_gallery_submissions"][:2]:
-            self.assertIn(submission.repository_label, section)
-            self.assertIn(submission.enrollment.display_name, section)
-        self.assertIn('href="#built-heading"', section)
+        self.assertNotIn('class="journey-proof"', section)
+        self.assertNotIn("Good fit if", section)
+        self.assertNotIn(self.family.prerequisites, section)
+        self.assertNotIn(response.context["syllabus_fact"], section)
+        self.assertNotIn('href="#syllabus-heading"', section)
+        self.assertNotIn("Peer-reviewed", section)
+        self.assertNotIn('href="#built-heading"', section)
+        # Every card ends on its own <p> description; nothing follows it.
+        self.assertEqual(section.count("</p>\n              </article>"), 3)
+
+    def test_prerequisites_and_weekly_commitment_are_their_own_opening_sections(self):
+        self.family.weekly_commitment = "Free. Plan for about 5-15 hours a week."
+        self.family.save(update_fields=["weekly_commitment"])
+
+        response = self.client.get(self.url)
+        body = response.content.decode()
+
+        opening_group = body[
+            body.index('class="family-opening-group"') : body.index(
+                'id="transformation-heading"'
+            )
+        ]
+        self.assertIn('id="fit-heading"', opening_group)
+        self.assertIn("Good fit if", opening_group)
+        self.assertIn(self.family.prerequisites, opening_group)
+        self.assertIn('id="commitment-heading"', opening_group)
+        self.assertIn("Time and cost", opening_group)
+        self.assertIn(self.family.weekly_commitment, opening_group)
+        # Not a journey-card fact any more, and not in the hero either.
+        self.assertNotIn("Good fit if", self.journey_section(response))
+        self.assertNotIn("Time and cost", self.journey_section(response))
+        self.assertNotIn(self.family.weekly_commitment, self.hero_section(response))
 
     def test_unpublished_retired_and_other_course_skills_are_not_promoted(self):
         modules = list(self.curriculum.modules.order_by("position"))
@@ -249,9 +276,21 @@ class CourseFamilyLandingTests(TestCase):
         self.family.save(update_fields=["description"])
         response = self.client.get(self.url)
 
-        self.assertContains(response, "About this course and learning notes")
+        # Owner feedback (2026-09): the learning notes used to sit behind a
+        # collapsible mid-page; they now render as prominent prose right
+        # under the hero lede, not a disclosure.
+        response = self.client.get(self.url)
+        body = response.content.decode()
+
+        self.assertNotContains(response, "<details class=\"family-overview\"")
+        self.assertNotContains(response, "About this course and learning notes")
         self.assertContains(response, "This course is educational; results are not guaranteed.")
         self.assertNotContains(response, "<script>unsafe()")
+        # Prominent: renders inside the hero, ahead of the rest of the page.
+        self.assertLess(
+            body.index("This course is educational"),
+            body.index('id="register-heading"'),
+        )
 
     def test_whitespace_prerequisites_do_not_leave_an_empty_label(self):
         self.family.prerequisites = " \n "
@@ -260,7 +299,8 @@ class CourseFamilyLandingTests(TestCase):
         response = self.client.get(self.url)
 
         self.assertNotContains(response, 'id="starting-point-heading"')
-        self.assertNotIn("Good fit if", self.journey_section(response))
+        self.assertNotContains(response, 'id="fit-heading"')
+        self.assertNotContains(response, "Good fit if")
 
     def test_repository_prerequisites_and_starting_point_render_in_separate_sections(self):
         response = self.client.get(self.url)
@@ -273,22 +313,19 @@ class CourseFamilyLandingTests(TestCase):
         self.assertIn(self.family.starting_point, starting_point_section)
         self.assertNotIn(self.family.prerequisites, starting_point_section)
 
-    def test_weekly_commitment_renders_near_the_hero_and_is_escaped(self):
+    def test_weekly_commitment_is_escaped_and_not_in_the_hero(self):
         self.family.weekly_commitment = "Free. <script>evil()</script> Plan for about 10 hours a week."
         self.family.save(update_fields=["weekly_commitment"])
 
         response = self.client.get(self.url)
-        body = response.content.decode()
 
-        self.assertContains(response, "Free.")
-        self.assertContains(response, "Plan for about 10 hours a week.")
         self.assertContains(response, "&lt;script&gt;evil()&lt;/script&gt;")
         self.assertNotContains(response, "<script>evil()")
-        # Under the hero heading and lede, ahead of the register/syllabus actions.
-        self.assertLess(
-            body.index('class="family-hero-commitment"'),
-            body.index('class="family-hero-actions"'),
-        )
+        # The hero no longer carries the price/hours line at all -- it is
+        # its own opening-group section now (see
+        # test_prerequisites_and_weekly_commitment_are_their_own_opening_sections).
+        self.assertNotIn("Free.", self.hero_section(response))
+        self.assertNotIn("Time and cost", self.hero_section(response))
 
     def test_whitespace_weekly_commitment_does_not_leave_an_empty_line(self):
         self.family.weekly_commitment = " \n "
@@ -296,7 +333,8 @@ class CourseFamilyLandingTests(TestCase):
 
         response = self.client.get(self.url)
 
-        self.assertNotContains(response, 'class="family-hero-commitment"')
+        self.assertNotContains(response, 'id="commitment-heading"')
+        self.assertNotContains(response, "Time and cost")
 
     def test_self_paced_route_omits_cohort_certificate_promise(self):
         self.cohort.delivery_mode = DeliveryMode.SELF_PACED
@@ -448,17 +486,19 @@ class CourseFamilyOutcomeStatsTests(TestCase):
         response = self.client.get(self.url)
 
         stats = {stat.label: stat.value for stat in response.context["family_outcome_stats"]}
-        self.assertEqual(stats["sign ups since 2021"], "3")
-        self.assertEqual(stats["certificates issued"], "2")
-        self.assertEqual(stats["project submissions"], "2")
+        self.assertEqual(stats["cohort since 2021"], "1")
+        self.assertEqual(stats["sign ups"], "3")
+        self.assertEqual(stats["graduates"], "2")
+        self.assertEqual(stats["projects"], "2")
         labels = [stat.label for stat in response.context["family_outcome_stats"]]
         self.assertEqual(
-            labels, ["sign ups since 2021", "project submissions", "certificates issued"]
+            labels, ["cohort since 2021", "sign ups", "projects", "graduates"]
         )
         self.assertContains(response, 'id="outcomes-heading"')
-        self.assertContains(response, "sign ups since 2021")
-        self.assertContains(response, "certificates issued")
-        self.assertContains(response, "project submissions")
+        self.assertContains(response, "cohort since 2021")
+        self.assertContains(response, "sign ups")
+        self.assertContains(response, "graduates")
+        self.assertContains(response, "projects")
         self.assertNotContains(response, "enrolled since 2021")
 
     def test_published_campaign_count_leads_with_registrations_not_enrollments(self):
@@ -474,9 +514,12 @@ class CourseFamilyOutcomeStatsTests(TestCase):
         response = self.client.get(self.url)
 
         stats = response.context["family_outcome_stats"]
-        self.assertEqual((stats[0].value, stats[0].label), ("47", "registrations"))
+        # The cohorts count leads the strip; the published registration total
+        # follows it, still ahead of every other stat.
+        self.assertEqual((stats[0].value, stats[0].label), ("1", "cohort since 2021"))
+        self.assertEqual((stats[1].value, stats[1].label), ("47", "registrations"))
         self.assertNotContains(response, "enrolled since 2021")
-        self.assertNotContains(response, "sign ups since 2021")
+        self.assertNotContains(response, "sign ups")
 
     def test_published_single_registration_uses_singular_label(self):
         RegistrationCampaign.objects.create(
@@ -490,7 +533,7 @@ class CourseFamilyOutcomeStatsTests(TestCase):
         response = self.client.get(self.url)
 
         stats = response.context["family_outcome_stats"]
-        self.assertEqual((stats[0].value, stats[0].label), ("1", "registration"))
+        self.assertEqual((stats[1].value, stats[1].label), ("1", "registration"))
 
     def test_closed_family_campaign_uses_attributable_historical_registrations(self):
         self.enroll()
@@ -510,9 +553,9 @@ class CourseFamilyOutcomeStatsTests(TestCase):
         response = self.client.get(self.url)
 
         stats = response.context["family_outcome_stats"]
-        self.assertEqual((stats[0].value, stats[0].label), ("1", "registration"))
+        self.assertEqual((stats[1].value, stats[1].label), ("1", "registration"))
         self.assertNotContains(response, "enrolled since 2021")
-        self.assertNotContains(response, "sign ups since 2021")
+        self.assertNotContains(response, "sign ups")
 
     def test_a_family_with_nobody_enrolled_omits_the_whole_strip(self):
         empty_family = Course.objects.create(slug="no-one-yet", title="No One Yet")
@@ -534,9 +577,9 @@ class CourseFamilyOutcomeStatsTests(TestCase):
         response = self.client.get(self.url)
 
         labels = [stat.label for stat in response.context["family_outcome_stats"]]
-        self.assertEqual(labels, ["sign ups since 2021", "project submissions"])
-        self.assertNotContains(response, "certificates issued")
-        self.assertContains(response, "sign ups since 2021")
+        self.assertEqual(labels, ["cohort since 2021", "sign ups", "projects"])
+        self.assertNotContains(response, "graduates")
+        self.assertContains(response, "sign ups")
 
     def test_hidden_cohorts_are_not_counted(self):
         self.enroll()
@@ -546,8 +589,94 @@ class CourseFamilyOutcomeStatsTests(TestCase):
         response = self.client.get(self.url)
 
         stats = {stat.label: stat.value for stat in response.context["family_outcome_stats"]}
-        self.assertEqual(stats["sign ups since 2021"], "1")
-        self.assertNotIn("certificates issued", stats)
+        self.assertEqual(stats["cohort since 2021"], "1")
+        self.assertEqual(stats["sign ups"], "1")
+        self.assertNotIn("graduates", stats)
+
+
+class CourseFamilySyllabusMergeTests(TestCase):
+    """The syllabus's real projects, wired end to end into one numbered list
+    at their real chronological slot (issue: "for ml zoomcamp we have
+    midterm project in the middle of the syllabus let's include it
+    chronographically"), instead of appended after every module in a
+    separate boxed "Project submissions" card.
+    """
+
+    def syllabus_section(self, response) -> str:
+        body = response.content.decode()
+        start = body.index('id="syllabus-heading"')
+        return body[start : body.index("</section>", start)]
+
+    def test_a_midterm_lands_between_the_homeworks_it_falls_between(self):
+        family = Course.objects.create(slug="ml-zoomcamp-like", title="ML-Zoomcamp-Like")
+        cohort = make_cohort(family, 2026, homework_count=4)
+        RegistrationCampaign.objects.create(
+            slug="ml-zoomcamp-like", title=family.title, current_course=cohort
+        )
+        homeworks = list(cohort.homework_set.order_by("due_date"))
+        midterm_due = homeworks[1].due_date + timedelta(hours=12)
+        midterm = cohort.project_set.create(
+            slug="midterm",
+            title="Midterm project",
+            submission_due_date=midterm_due,
+            peer_review_due_date=midterm_due + timedelta(days=7),
+        )
+        capstone_due = homeworks[-1].due_date + timedelta(days=14)
+        capstone = cohort.project_set.create(
+            slug="capstone",
+            title="Capstone project",
+            submission_due_date=capstone_due,
+            peer_review_due_date=capstone_due + timedelta(days=7),
+        )
+
+        response = self.client.get(reverse("course_family", args=[family.slug]))
+        section = self.syllabus_section(response)
+
+        # One list, uniform rows -- no separate boxed "Project submissions"
+        # card any more.
+        self.assertNotContains(response, "Project submissions")
+        self.assertNotContains(response, 'class="family-syllabus-projects"')
+        rows = response.context["family_syllabus_rows"]
+        titles = [row.title for row in rows]
+        self.assertEqual(
+            titles,
+            ["Homework 1", "Homework 2", "Midterm project", "Homework 3", "Homework 4", "Capstone project"],
+        )
+        self.assertEqual(
+            [row.is_project for row in rows], [False, False, True, False, False, True]
+        )
+        # The document order matches: the midterm's markup sits before
+        # "Homework 3" and after "Homework 2".
+        self.assertLess(
+            section.index("Homework 2"),
+            section.index("Midterm project"),
+        )
+        self.assertLess(
+            section.index("Midterm project"),
+            section.index("Homework 3"),
+        )
+        self.assertIn(
+            reverse(
+                "cohort_project",
+                kwargs={
+                    "course_slug": family.slug,
+                    "cohort_identifier": cohort.identifier,
+                    "project_slug": midterm.slug,
+                },
+            ),
+            section,
+        )
+        self.assertIn(
+            reverse(
+                "cohort_project",
+                kwargs={
+                    "course_slug": family.slug,
+                    "cohort_identifier": cohort.identifier,
+                    "project_slug": capstone.slug,
+                },
+            ),
+            section,
+        )
 
 
 class CourseFamilyProjectGalleryTests(TestCase):
@@ -710,6 +839,40 @@ class CourseFamilyFaqPreviewTests(TestCase):
         self.assertContains(response, "Is it really free?")
         self.assertContains(response, 'href="https://example.invalid/unsynced-with-link"')
         self.assertContains(response, "See the full course FAQ")
+
+    def test_faq_closes_the_page_as_its_own_unboxed_section(self):
+        # Owner feedback (2026-09): the FAQ used to sit boxed mid-page,
+        # inside the editions section; it is now the last content section,
+        # framed like the /courses catalogue's own FAQ band (band-head plus
+        # heading), not a bordered panel.
+        family = Course.objects.create(slug="ml-zoomcamp", title="Machine Learning Zoomcamp")
+        cohort = make_cohort(family, 2026, project_count=1)
+        user = User.objects.create_user(username="faq-order-learner")
+        enrollment = Enrollment.objects.create(student=user, course=cohort)
+        ProjectSubmission.objects.create(
+            project=cohort.project_set.first(),
+            student=user,
+            enrollment=enrollment,
+            github_link="https://github.com/example/learner-project",
+        )
+
+        response = self.client.get(reverse("course_family", args=[family.slug]))
+        body = response.content.decode()
+
+        self.assertContains(response, 'class="family-faq"')
+        self.assertNotContains(response, 'class="panel panel-lavender panel-outlined family-faq"')
+        self.assertContains(response, 'id="faq-heading"')
+        # Last content section: after both the editions strip and "See what
+        # people have built", not sandwiched inside the editions section any
+        # more.
+        self.assertLess(
+            body.index('id="editions-heading"'),
+            body.index('id="faq-heading"'),
+        )
+        self.assertLess(
+            body.index('id="built-heading"'),
+            body.index('id="faq-heading"'),
+        )
 
     def test_quick_faq_answers_do_not_repeat_a_question_the_real_document_already_asks(self):
         family = Course.objects.create(slug="ml-zoomcamp", title="Machine Learning Zoomcamp")

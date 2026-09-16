@@ -1,5 +1,13 @@
 """The public course registration count: a plain, current-state aggregate.
 
+Two counts live here. :func:`public_course_registration_count` is scoped to
+one cohort -- whichever edition a campaign currently promotes.
+:func:`public_family_registration_count` is scoped to a whole family instead:
+every visible cohort's native rows for that campaign, summed, regardless of
+which edition (if any) the campaign currently promotes. The baseline fields
+below describe the single-cohort count; the family count applies the same
+baseline rule per cohort, not just to whichever one is current.
+
 There is no versioned history here.  A campaign that needed a legacy backfill
 (registrations that happened before this database had ``CourseRegistration``
 rows for it, e.g. imported once from CMP) records that fact as plain fields
@@ -64,18 +72,19 @@ def public_family_registration_count(
 ) -> PublicCourseRegistrationCount | None:
     """Return the campaign's attributable public count for one course family.
 
-    An active campaign keeps the existing current-cohort contract. A closed
-    campaign can have no ``current_course`` while retaining historical native
-    rows; in that state only rows explicitly tied to visible cohorts in this
-    family count. Null-course rows, hidden cohorts, and other families never do.
-    A cohort-bound baseline remains attributable to that visible family cohort,
-    and its cutover suppresses only pre-cutover rows for that same cohort.
+    Family-wide, always: every visible cohort in this family that carries
+    native rows for this campaign is summed, whether or not the campaign is
+    currently promoting one of them. An active campaign promoting a single
+    edition is not treated specially -- its current cohort's rows are simply
+    one term in the same sum, alongside every other visible cohort's. Only
+    rows explicitly tied to a visible cohort in this family count; null-course
+    rows, hidden cohorts, and other families never do. A cohort-bound baseline
+    remains attributable to that visible family cohort, and its cutover
+    suppresses only pre-cutover rows for that same cohort.
     """
 
     if campaign is None:
         return None
-    if campaign.current_course_id is not None:
-        return public_course_registration_count(campaign)
 
     visible_cohort_ids = set(
         family.cohorts.filter(visible=True).values_list("id", flat=True)

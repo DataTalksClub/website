@@ -226,12 +226,20 @@ def family_registration_specs(
 
 @dataclass(frozen=True, slots=True)
 class FamilySyllabusRow:
-    """One numbered row of the family landing's syllabus band."""
+    """One row of the family landing's syllabus band, module or project alike.
+
+    ``is_project`` marks a real peer-reviewed project (midterm or capstone)
+    interleaved into the same numbered list at its real chronological slot,
+    rather than appended after it in a box of its own -- the row still
+    carries a title and a destination, only its index reads as a star
+    instead of a number (see ``merge_syllabus_rows_with_projects``).
+    """
 
     index: str
     title: str
     summary: str = ""
     url: str = ""
+    is_project: bool = False
 
 
 # Curriculum modules and homework both arrive titled "Module 1: Agentic RAG"
@@ -270,6 +278,55 @@ def family_syllabus_rows(
             )
         )
     return tuple(rows)
+
+
+def merge_syllabus_rows_with_projects(
+    unit_rows: tuple[FamilySyllabusRow, ...],
+    unit_due_dates: list,
+    projects: list,
+    project_urls: list[str],
+) -> tuple[FamilySyllabusRow, ...]:
+    """Interleave the family's real projects into the numbered unit list.
+
+    A project (midterm or capstone alike) is positioned by real chronology,
+    not merely appended after the modules: it lands right after the last
+    unit whose own due date is no later than the project's own submission
+    deadline. Only units the caller can date are used to decide a
+    position -- a unit ``unit_due_dates`` has no date for (``None``) keeps
+    its own place in the list but is not itself a candidate boundary. A
+    project that genuinely predates every dated unit sits ahead of the
+    first one; a project the caller cannot date at all, or a syllabus with
+    no dated units to compare against, falls back to the list's end --
+    the previous append-only behaviour, rather than a guessed position.
+
+    ``project_urls`` is positional, the same contract ``family_syllabus_rows``
+    already uses for ``urls``.
+    """
+
+    dated_units = [
+        (index, due) for index, due in enumerate(unit_due_dates) if due is not None
+    ]
+    last_index = len(unit_rows) - 1
+    insert_after: dict[int, list[FamilySyllabusRow]] = {}
+    for project, url in zip(projects, project_urls, strict=True):
+        due = getattr(project, "submission_due_date", None)
+        row = FamilySyllabusRow(index="★", title=project.title, url=url, is_project=True)
+        if due is None or not dated_units:
+            after_index = last_index
+        else:
+            after_index = -1
+            for index, unit_due in dated_units:
+                if unit_due <= due:
+                    after_index = index
+                else:
+                    break
+        insert_after.setdefault(after_index, []).append(row)
+
+    merged: list[FamilySyllabusRow] = list(insert_after.get(-1, []))
+    for position, row in enumerate(unit_rows):
+        merged.append(row)
+        merged.extend(insert_after.get(position, []))
+    return tuple(merged)
 
 
 @dataclass(frozen=True, slots=True)
@@ -349,6 +406,7 @@ def family_outcome_stats(
     since_year: int | None,
     *,
     registration_count: int | None = None,
+    cohort_count: int = 0,
 ) -> tuple[FamilyOutcomeStat, ...]:
     """The family's published participation/outcome numbers, only for what the data has.
 
@@ -360,28 +418,37 @@ def family_outcome_stats(
     reusing the word "registrations" for a different query. No estimate or
     rounding is introduced. A family with neither a published registration
     count nor an enrollment has nothing honest to show, so the whole strip
-    is omitted.
+    is omitted -- adding the cohorts count below does not change this gate.
+
+    A "cohorts" count opens the strip when the family has run at least one
+    -- the "since <year>" qualifier now lives on this leading count instead
+    of on sign ups, so sign ups (or registrations) reads as a plain,
+    undated total right after it.
 
     Certificates are gated separately from the other two counts: a family
     whose cohorts never reliably populated ``Enrollment.certificate_url``
     (a self-paced-only family, or one whose current cohort hasn't finished)
-    would otherwise show a misleading "0 certificates issued" beside two
-    real, nonzero numbers -- so that one stat alone is dropped when it is
-    zero, instead of hiding the strip the other two counts can still stand on.
+    would otherwise show a misleading "0 graduates" beside two real,
+    nonzero numbers -- so that one stat alone is dropped when it is zero,
+    instead of hiding the strip the other two counts can still stand on.
     """
 
     if registration_count is None and not enrolled_count:
         return ()
+    stats: list[FamilyOutcomeStat] = []
+    if cohort_count:
+        since = f" since {since_year}" if since_year else ""
+        noun = "cohort" if cohort_count == 1 else "cohorts"
+        stats.append(FamilyOutcomeStat(f"{cohort_count:,}", f"{noun}{since}"))
     if registration_count is not None:
         noun = "registration" if registration_count == 1 else "registrations"
-        stats = [FamilyOutcomeStat(f"{registration_count:,}", noun)]
+        stats.append(FamilyOutcomeStat(f"{registration_count:,}", noun))
     else:
-        since = f" since {since_year}" if since_year else ""
-        stats = [FamilyOutcomeStat(f"{enrolled_count:,}", f"sign ups{since}")]
+        stats.append(FamilyOutcomeStat(f"{enrolled_count:,}", "sign ups"))
     if submission_count:
-        noun = "project submission" if submission_count == 1 else "project submissions"
+        noun = "project" if submission_count == 1 else "projects"
         stats.append(FamilyOutcomeStat(f"{submission_count:,}", noun))
     if certificate_count:
-        noun = "certificate" if certificate_count == 1 else "certificates"
-        stats.append(FamilyOutcomeStat(f"{certificate_count:,}", f"{noun} issued"))
+        noun = "graduate" if certificate_count == 1 else "graduates"
+        stats.append(FamilyOutcomeStat(f"{certificate_count:,}", noun))
     return tuple(stats)

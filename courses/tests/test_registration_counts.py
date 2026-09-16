@@ -232,3 +232,66 @@ class PublicCourseRegistrationCountTests(TestCase):
         self.assertIsNone(
             public_family_registration_count(self.campaign, self.cohort.course)
         )
+
+    def test_active_campaign_sums_every_visible_cohort_not_just_the_current_one(self) -> None:
+        """A campaign currently promoting one edition still reports family-wide.
+
+        Regression test: an earlier version of this function returned the
+        current cohort's own count alone whenever ``current_course`` was set,
+        undercounting a family whose registration campaign is open.
+        """
+
+        family = self.cohort.course
+        earlier_cohort = Cohort.objects.create(
+            course=family,
+            slug="synthetic-cohort-2025",
+            identifier="2025",
+            year=2025,
+            title="Earlier visible cohort",
+        )
+        hidden_cohort = Cohort.objects.create(
+            course=family,
+            slug="synthetic-hidden-2024",
+            identifier="2024",
+            year=2024,
+            title="Hidden cohort",
+            visible=False,
+        )
+        # self.campaign.current_course is self.cohort -- an open campaign.
+        CourseRegistration.objects.create(
+            campaign=self.campaign, course=self.cohort, email="current@example.com"
+        )
+        CourseRegistration.objects.create(
+            campaign=self.campaign, course=earlier_cohort, email="earlier-one@example.com"
+        )
+        CourseRegistration.objects.create(
+            campaign=self.campaign, course=earlier_cohort, email="earlier-two@example.com"
+        )
+        CourseRegistration.objects.create(
+            campaign=self.campaign, course=hidden_cohort, email="hidden@example.com"
+        )
+
+        count = public_family_registration_count(self.campaign, family)
+
+        self.assertIsNotNone(count)
+        self.assertEqual(count.count, 3)
+        # The single-cohort count stays scoped to the current edition alone.
+        self.assertEqual(public_course_registration_count(self.campaign).count, 1)
+
+    def test_active_campaign_still_applies_the_current_cohorts_own_baseline(self) -> None:
+        family = self.cohort.course
+        self.campaign.registration_baseline_cohort = self.cohort
+        self.campaign.registration_baseline_count = 5
+        self.campaign.registration_native_start_at = NATIVE_START
+        self.campaign.save()
+        native = CourseRegistration.objects.create(
+            campaign=self.campaign, course=self.cohort, email="native@example.com"
+        )
+        CourseRegistration.objects.filter(pk=native.pk).update(
+            created_at=NATIVE_START + timedelta(days=1)
+        )
+
+        count = public_family_registration_count(self.campaign, family)
+
+        self.assertIsNotNone(count)
+        self.assertEqual(count.count, 6)

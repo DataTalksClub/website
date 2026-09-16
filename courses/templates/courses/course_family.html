@@ -73,15 +73,6 @@
         max-width: var(--measure);
       }
 
-      .family-hero-commitment {
-        color: var(--ink);
-        font-family: var(--font-mono);
-        font-size: 0.82rem;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-        margin-top: 0.6rem;
-      }
-
       .family-hero-actions .band-link {
         align-items: center;
         display: inline-flex;
@@ -96,7 +87,8 @@
         .family-register,
         .family-syllabus,
         .family-editions,
-        .family-proof-section
+        .family-proof-section,
+        .family-faq
       ) .band-link {
         align-items: center;
         display: inline-flex;
@@ -129,21 +121,13 @@
         scroll-margin-top: 1.5rem;
       }
 
+      /* Owner feedback (2026-09): the family's learning notes used to sit
+         behind a "details" disclosure mid-page; they read better as
+         prominent copy, right under the hero lede that already opens the
+         page -- so this is now a plain prose block, not a collapsible. */
       .family-overview {
-        margin-block: 1.25rem 2.5rem;
+        margin-top: 1rem;
         max-width: var(--measure);
-      }
-
-      .family-overview summary {
-        color: var(--indigo);
-        cursor: pointer;
-        font-weight: 700;
-        min-height: 2.75rem;
-        padding-block: 0.6rem;
-      }
-
-      .family-overview .prose {
-        margin-top: 0.75rem;
       }
 
       .family-hero-actions {
@@ -321,7 +305,7 @@
 
       /* Chapters get deliberate breathing room; closely related supporting
          blocks stay grouped without repeating the same separator all page. */
-      :where(.family-transformation, .family-syllabus, .family-proof-section) {
+      :where(.family-transformation, .family-syllabus, .family-proof-section, .family-faq) {
         border-top: 2px solid var(--line);
         margin-top: 3.5rem;
         padding-top: 2.5rem;
@@ -343,7 +327,8 @@
         .family-certificate,
         .family-editions,
         .family-stories,
-        .family-proof-section
+        .family-proof-section,
+        .family-faq
       ) h2 {
         font-size: clamp(1.4rem, 3vw, 1.87rem);
         letter-spacing: -0.02em;
@@ -460,83 +445,6 @@
         margin: 0.55rem 0 1.1rem;
       }
 
-      /* The evidence foot: the fact this page already owns that proves the
-         stage.  Pinned to the card's bottom, so the three feet close on the
-         same line however unevenly the stories above them run. */
-      .journey-proof {
-        border-top: 1.5px dashed var(--line-soft);
-        display: grid;
-        gap: 0.45rem;
-        margin-top: auto;
-        padding-top: 0.9rem;
-      }
-
-      .journey-proof p {
-        color: var(--body-text);
-        font-size: 0.88rem;
-        line-height: 1.5;
-        margin: 0;
-      }
-
-      .journey-proof strong {
-        color: var(--ink);
-      }
-
-      .journey-proof .band-link {
-        align-items: center;
-        display: inline-flex;
-        font-size: 0.88rem;
-        min-height: 2.75rem;
-      }
-
-      .journey-chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.35rem;
-        list-style: none;
-        margin: 0;
-        padding: 0;
-      }
-
-      .journey-chips li {
-        background: var(--lavender);
-        border: 1.5px solid var(--line-soft);
-        border-radius: 999px;
-        color: var(--ink);
-        font-size: 0.78rem;
-        font-weight: 600;
-        line-height: 1.2;
-        padding: 0.28rem 0.6rem;
-      }
-
-      .journey-repos {
-        display: grid;
-        gap: 0.25rem;
-        list-style: none;
-        margin: 0;
-        padding: 0;
-      }
-
-      .journey-repos li {
-        color: var(--ink);
-        font-size: 0.85rem;
-        line-height: 1.4;
-        overflow-wrap: anywhere;
-      }
-
-      .journey-repos li a {
-        align-items: center;
-        color: var(--ink);
-        display: inline-flex;
-        font-weight: 600;
-        min-height: 2.75rem;
-      }
-
-      .journey-repos li span {
-        color: var(--muted);
-        font-size: 0.8rem;
-      }
-
       .family-editions {
         margin-bottom: 0;
       }
@@ -602,12 +510,8 @@
         margin: 0.7rem 0 0;
       }
 
-      .family-faq {
-        margin-top: 1.5rem;
-      }
-
       .family-faq-list {
-        margin: 0.75rem 0 1rem;
+        margin: 1.75rem 0 1rem;
       }
 
       .family-faq-link {
@@ -688,8 +592,12 @@
         margin: 0.3rem 0 0;
       }
 
-      /* The capstone closes the list the way the mock does: a starred mono
-         index, and the project itself as the link. */
+      /* The syllabus's real projects (midterm, capstone) sit inline in the
+         same numbered list, at their own chronological slot
+         (merge_syllabus_rows_with_projects) -- a starred mono index instead
+         of a number, and a faint highlight, is the only thing that marks a
+         project row apart from a module row; there is no separate boxed
+         section any more, which is what makes the list read as one list. */
       .family-syllabus-capstone h3 {
         font-size: 1rem;
       }
@@ -697,37 +605,8 @@
       .family-syllabus-capstone {
         background: var(--card);
         border-inline: 1.5px solid var(--line-soft);
+        padding-block: 0;
         padding-inline: 0.75rem;
-      }
-
-      .family-syllabus-projects {
-        background: color-mix(in srgb, var(--card) 72%, transparent);
-        border: 1.5px solid var(--line-soft);
-        border-radius: 0.9rem;
-        margin-top: 1.5rem;
-        padding: 1rem 1.1rem;
-      }
-
-      .family-syllabus-projects > h3 {
-        font-family: var(--font-mono);
-        font-size: 0.82rem;
-        letter-spacing: 0.06em;
-        margin: 0;
-        text-transform: uppercase;
-      }
-
-      .family-syllabus-projects .family-syllabus-list {
-        border: 0;
-        margin-top: 0.65rem;
-      }
-
-      .family-syllabus-projects .family-syllabus-capstone {
-        background: transparent;
-        border-inline: 0;
-      }
-
-      .family-syllabus-capstone + .family-syllabus-capstone {
-        border-top-style: solid;
       }
 
       .family-syllabus-capstone .family-syllabus-index {
@@ -740,10 +619,6 @@
         display: flex;
         min-height: 2.75rem;
         text-decoration: none;
-      }
-
-      .family-syllabus-capstone {
-        padding-block: 0;
       }
 
       .family-syllabus-capstone h3 a:hover,
@@ -940,7 +815,7 @@
           max-width: none;
         }
 
-        :where(.family-transformation, .family-syllabus, .family-proof-section) {
+        :where(.family-transformation, .family-syllabus, .family-proof-section, .family-faq) {
           margin-top: 2.5rem;
           padding-top: 1.75rem;
         }
@@ -981,8 +856,8 @@
             {% if family_lede %}
               <p class="family-lede">{{ family_lede }}</p>
             {% endif %}
-            {% if family_weekly_commitment %}
-              <p class="family-hero-commitment">{{ family_weekly_commitment }}</p>
+            {% if family_overview %}
+              <div class="family-overview prose">{{ family_overview|linebreaks }}</div>
             {% endif %}
             {% comment %}
               Registration for the course, not for one of its editions: an open edition is
@@ -1022,12 +897,19 @@
         "family-register" section, after the syllabus and certificate).
       {% endcomment %}
       {% comment %}
-        The prerequisites used to sit here in a box of their own; they now
-        close stage 1 of the journey below, which is where the reader asks
-        whether the course is for them.  "Your starting point" stays: it is
-        the family's own second-person framing, not a fact the stages carry.
+        Owner feedback (2026-09): the journey cards below read as too busy
+        with a dashed-divider "proof" block closing each one -- stage 2 and
+        3's proof (module chips, project/submission counts) only repeated
+        the syllabus and "See what people have built" sections further down
+        the page, so it is dropped rather than moved.  Stage 1's "Good fit
+        if" and "Time and cost" facts are real, not redundant, so they stay
+        on the page -- as their own plain sections here, styled exactly like
+        the adjacent "Your starting point", not as journey-card content.  The
+        three cards now end on their own description, the same clean shape
+        as the home page's climb cards (step badge, illustration, kicker,
+        heading, paragraph -- nothing else).
       {% endcomment %}
-      {% if family_outcome_stats or family_starting_point %}
+      {% if family_outcome_stats or family_starting_point or family_prerequisites or family_weekly_commitment %}
         <div class="family-opening-group">
           {% if family_outcome_stats %}
             <section class="family-outcomes" aria-labelledby="outcomes-heading">
@@ -1048,19 +930,20 @@
               <p>{{ family_starting_point }}</p>
             </section>
           {% endif %}
+          {% if family_prerequisites %}
+            <section class="family-starting-point" aria-labelledby="fit-heading">
+              <h2 id="fit-heading">Good fit if</h2>
+              <p>{{ family_prerequisites }}</p>
+            </section>
+          {% endif %}
+          {% if family_weekly_commitment %}
+            <section class="family-starting-point" aria-labelledby="commitment-heading">
+              <h2 id="commitment-heading">Time and cost</h2>
+              <p>{{ family_weekly_commitment }}</p>
+            </section>
+          {% endif %}
         </div>
       {% endif %}
-      {% comment %}
-        The three stages, each closing on the one fact this page already owns
-        that proves it: stage 1 absorbs the "Good fit if" prerequisites (the
-        exact question a reader at that stage has, so it no longer sits in a
-        box of its own above), stage 2 carries the syllabus count and its real
-        module titles, stage 3 the peer-reviewed project slots, the real
-        submission total and the first two gallery repositories.  Every value
-        is a context variable the page already renders further down; nothing
-        here is authored copy beyond the three kickers.  The numbered discs sit
-        on a dashed rail so the sequence is visible before it is read.
-      {% endcomment %}
       {% if family_transformation %}
         <section class="family-transformation shell-breakout" aria-labelledby="transformation-heading">
           <div class="band-head">
@@ -1087,70 +970,6 @@
                 </div>
                 <h3>{{ step.heading }}</h3>
                 <p>{{ step.description }}</p>
-                {% if forloop.counter == 1 %}
-                  {% if family_prerequisites or self_paced_cohort or materials_url %}
-                    <div class="journey-proof">
-                      {% if family_prerequisites %}
-                        <span class="mono-label">Good fit if</span>
-                        <p>{{ family_prerequisites }}</p>
-                      {% endif %}
-                      {% if self_paced_cohort or materials_url %}
-                        {% comment %}
-                          The hero already states the price and the weekly
-                          hours (family_weekly_commitment); this says only the
-                          thing stage 1 still has to answer -- which route.
-                        {% endcomment %}
-                        <p>Follow a cohort's schedule, or go at your own pace.</p>
-                      {% endif %}
-                    </div>
-                  {% endif %}
-                {% elif forloop.counter == 2 %}
-                  {% if family_syllabus_rows %}
-                    <div class="journey-proof">
-                      {% if syllabus_fact %}
-                        <span class="mono-label">{{ syllabus_fact }}</span>
-                      {% endif %}
-                      <ul class="journey-chips">
-                        {% for row in family_syllabus_rows %}
-                          <li>{{ row.title }}</li>
-                        {% endfor %}
-                      </ul>
-                      <a class="band-link" href="#syllabus-heading">Explore the syllabus →</a>
-                    </div>
-                  {% endif %}
-                {% else %}
-                  {% if family_syllabus_projects or has_learner_projects %}
-                    <div class="journey-proof">
-                      {% if family_syllabus_projects %}
-                        <span class="mono-label">Peer-reviewed · {{ family_syllabus_projects|length }} project{{ family_syllabus_projects|length|pluralize }}</span>
-                      {% endif %}
-                      {% if family_submissions_fact %}
-                        <p><strong>{{ family_submissions_fact }}</strong> submitted so far{% if family_gallery_submissions %}, like:{% endif %}</p>
-                      {% endif %}
-                      {% if family_gallery_submissions %}
-                        <ul class="journey-repos">
-                          {% for submission in family_gallery_submissions|slice:":2" %}
-                            <li>
-                              {% if submission.repository_url %}
-                                <a
-                                  href="{{ submission.repository_url }}"
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >{{ submission.repository_label }}</a>
-                              {% else %}
-                                {{ submission.repository_label }}
-                              {% endif %}
-                              <span>by {{ submission.enrollment.display_name }} · {{ submission.cohort.identifier }}</span>
-                            </li>
-                          {% endfor %}
-                        </ul>
-                      {% endif %}
-                      {% if has_learner_projects %}
-                        <a class="band-link" href="#built-heading">See what people have built →</a>
-                      {% endif %}
-                    </div>
-                  {% endif %}
-                {% endif %}
               </article>
             {% endfor %}
           </div>
@@ -1194,12 +1013,6 @@
           </div>
         </section>
       {% endif %}
-      {% if family_overview %}
-        <details class="family-overview">
-          <summary>About this course and learning notes</summary>
-          <div class="prose">{{ family_overview|linebreaks }}</div>
-        </details>
-      {% endif %}
       {% comment %}
         The mock's syllabus band, read from the family's shared curriculum —
         or, for a course whose repository never imported one, from the front
@@ -1225,7 +1038,7 @@
           </div>
           <ol class="family-syllabus-list" role="list">
             {% for row in family_syllabus_rows %}
-              <li class="family-syllabus-row">
+              <li class="family-syllabus-row{% if row.is_project %} family-syllabus-capstone{% endif %}">
                 <span class="family-syllabus-index" aria-hidden="true">{{ row.index }}</span>
                 <div>
                   <h3>
@@ -1242,23 +1055,6 @@
               </li>
             {% endfor %}
           </ol>
-          {% if family_syllabus_projects %}
-            <div class="family-syllabus-projects">
-              <h3>Project submissions</h3>
-              <ol class="family-syllabus-list" role="list">
-                {% for project in family_syllabus_projects %}
-                  <li class="family-syllabus-row family-syllabus-capstone">
-                    <span class="family-syllabus-index" aria-hidden="true">★</span>
-                    <div>
-                      <h3>
-                        <a href="{% url 'cohort_project' course_slug=course_family.slug cohort_identifier=front_cohort.identifier project_slug=project.slug %}">{{ project.title }}</a>
-                      </h3>
-                    </div>
-                  </li>
-                {% endfor %}
-              </ol>
-            </div>
-          {% endif %}
         </section>
       {% endif %}
       {% comment %}
@@ -1350,58 +1146,6 @@
         {% elif not current_edition_row %}
           <p class="family-empty">No cohorts are available yet.</p>
         {% endif %}
-
-          {% if family_faq_questions or family_quick_faq_items %}
-            <div class="panel panel-lavender panel-outlined family-faq">
-              <h3>Questions before you start?</h3>
-              <div class="row-list family-faq-list">
-                {% for question in family_faq_questions %}
-                  <details class="faq-fold" id="{{ question.id }}">
-                    <summary class="faq-fold-summary">
-                      <h4 class="faq-question-title">{{ question.question }}</h4>
-                      <span class="faq-fold-marker" aria-hidden="true"></span>
-                    </summary>
-                    <div class="prose faq-answer">{{ question.rendered_answer|safe }}</div>
-                  </details>
-                {% endfor %}
-                {% comment %}
-                  The family's own FAQ document previews only its first five
-                  questions in source order (family_faq_preview, above), which
-                  for every real course today are general orientation
-                  questions -- not "is it free", "how many hours", "can I join
-                  late" or the certificate rule, the four objections the
-                  /courses catalogue already answers well.  Reusing that exact
-                  copy here (courses/views/course_page_context.py,
-                  QUICK_FAQ_ITEMS) means a visitor sees them without opening
-                  the full document, and family_quick_faq_items drops any item
-                  the family's own preview already asks, so nothing repeats.
-                {% endcomment %}
-                {% for item in family_quick_faq_items %}
-                  <details class="faq-fold" id="quick-faq-{{ forloop.counter }}">
-                    <summary class="faq-fold-summary">
-                      <h4 class="faq-question-title">{{ item.question }}</h4>
-                      <span class="faq-fold-marker" aria-hidden="true"></span>
-                    </summary>
-                    <div class="prose faq-answer"><p>{{ item.answer }}</p></div>
-                  </details>
-                {% endfor %}
-              </div>
-              {% if family_faq_url %}
-                <a class="band-link family-faq-link" href="{{ family_faq_url }}">See the full course FAQ →</a>
-              {% endif %}
-            </div>
-          {% elif course_family.faq_document_url %}
-            <div class="panel panel-lavender panel-outlined family-faq">
-              <h3>Questions before you start?</h3>
-              <p class="family-empty">This course keeps its own frequently asked questions.</p>
-              <a
-                class="band-link"
-                href="{{ course_family.faq_document_url }}"
-                target="_blank"
-                rel="noopener noreferrer"
-              >Course FAQ →</a>
-            </div>
-          {% endif %}
       </section>
       {% comment %}
         The graduate stories, drawn only when the family has published
@@ -1497,12 +1241,13 @@
         Owner feedback (2026-09): the project-gallery pointer used to sit as
         an inline card beside the skills preview; it now closes the page as
         its own section, after the graduate stories, so proof of real
-        learner work is the last thing before the page's shared closing
-        band (core/_tour_cta.html). The mock's own closing call-to-action
-        band was removed here for the same reason the owner flagged it: once
-        a cohort has started, or when a family has already opened its
-        registration card at the top of the page, a second "Join the
-        cohort" push at the very bottom is redundant with it.
+        learner work sits right before the page's own FAQ, the last content
+        section, and the shared closing band (core/_tour_cta.html) after
+        that. The mock's own closing call-to-action band was removed here
+        for the same reason the owner flagged it: once a cohort has
+        started, or when a family has already opened its registration card
+        at the top of the page, a second "Join the cohort" push at the very
+        bottom is redundant with it.
       {% endcomment %}
       {% if has_learner_projects or family_project_brief %}
         <section class="family-proof-section" aria-labelledby="built-heading">
@@ -1562,6 +1307,71 @@
               {% include "core/_button.html" with href=family_project_brief.project.instructions_url label="Read the project brief" variant="secondary" target="_blank" rel="noopener noreferrer" %}
             {% endif %}
           </div>
+        </section>
+      {% endif %}
+      {% comment %}
+        Owner feedback (2026-09): the FAQ used to sit boxed mid-page, inside
+        the editions section; it now closes the page as its own section, the
+        same band-head-plus-heading framing (no boxed panel) the /courses
+        catalogue's own FAQ band uses (courses/templates/courses/course_list
+        .html, .courses-faq) -- reused here without that band's lavender
+        breakout, because this page's content column already sits on the
+        lavender ground. Individual answers keep the site's real disclosure
+        component (.faq-fold), not the catalogue's static short text: these
+        answers are longer, real prose.
+      {% endcomment %}
+      {% if family_faq_questions or family_quick_faq_items or course_family.faq_document_url %}
+        <section class="family-faq" aria-labelledby="faq-heading">
+          <div class="band-head">
+            <div>
+              <h2 id="faq-heading">Questions before you start?</h2>
+            </div>
+          </div>
+          {% if family_faq_questions or family_quick_faq_items %}
+            <div class="row-list family-faq-list">
+              {% for question in family_faq_questions %}
+                <details class="faq-fold" id="{{ question.id }}">
+                  <summary class="faq-fold-summary">
+                    <h3 class="faq-question-title">{{ question.question }}</h3>
+                    <span class="faq-fold-marker" aria-hidden="true"></span>
+                  </summary>
+                  <div class="prose faq-answer">{{ question.rendered_answer|safe }}</div>
+                </details>
+              {% endfor %}
+              {% comment %}
+                The family's own FAQ document previews only its first five
+                questions in source order (family_faq_preview, above), which
+                for every real course today are general orientation
+                questions -- not "is it free", "how many hours", "can I join
+                late" or the certificate rule, the four objections the
+                /courses catalogue already answers well.  Reusing that exact
+                copy here (courses/views/course_page_context.py,
+                QUICK_FAQ_ITEMS) means a visitor sees them without opening
+                the full document, and family_quick_faq_items drops any item
+                the family's own preview already asks, so nothing repeats.
+              {% endcomment %}
+              {% for item in family_quick_faq_items %}
+                <details class="faq-fold" id="quick-faq-{{ forloop.counter }}">
+                  <summary class="faq-fold-summary">
+                    <h3 class="faq-question-title">{{ item.question }}</h3>
+                    <span class="faq-fold-marker" aria-hidden="true"></span>
+                  </summary>
+                  <div class="prose faq-answer"><p>{{ item.answer }}</p></div>
+                </details>
+              {% endfor %}
+            </div>
+            {% if family_faq_url %}
+              <a class="band-link family-faq-link" href="{{ family_faq_url }}">See the full course FAQ →</a>
+            {% endif %}
+          {% elif course_family.faq_document_url %}
+            <p class="family-empty">This course keeps its own frequently asked questions.</p>
+            <a
+              class="band-link"
+              href="{{ course_family.faq_document_url }}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >Course FAQ →</a>
+          {% endif %}
         </section>
       {% endif %}
 {% endblock %}

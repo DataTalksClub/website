@@ -15,6 +15,7 @@ from courses.course_page_content import (
     family_project_cards,
     family_story_rows,
     family_syllabus_rows,
+    merge_syllabus_rows_with_projects,
 )
 
 
@@ -47,6 +48,90 @@ class FamilySyllabusRowsTests(SimpleTestCase):
         rows = family_syllabus_rows([SimpleNamespace(title="Capstone project", summary="")])
 
         self.assertEqual(rows[0].title, "Capstone project")
+
+
+class MergeSyllabusRowsWithProjectsTests(SimpleTestCase):
+    """The syllabus's real projects, interleaved by chronology (issue: "for ml
+    zoomcamp we have midterm project in the middle of the syllabus let's
+    include it chronographically" -- not appended after every module).
+    """
+
+    def _units(self):
+        return family_syllabus_rows(
+            [
+                SimpleNamespace(title="Module 1: Intro", summary=""),
+                SimpleNamespace(title="Module 2: Modeling", summary=""),
+                SimpleNamespace(title="Module 3: Deployment", summary=""),
+                SimpleNamespace(title="Module 4: Monitoring", summary=""),
+            ]
+        )
+
+    def test_a_midterm_lands_between_the_modules_it_falls_between(self):
+        units = self._units()
+        due_dates = [
+            date(2026, 1, 5),
+            date(2026, 1, 12),
+            date(2026, 1, 19),
+            date(2026, 1, 26),
+        ]
+        midterm = SimpleNamespace(title="Midterm project", submission_due_date=date(2026, 1, 15))
+        capstone = SimpleNamespace(title="Capstone project", submission_due_date=date(2026, 2, 1))
+
+        merged = merge_syllabus_rows_with_projects(
+            units, due_dates, [midterm, capstone], ["/midterm", "/capstone"]
+        )
+
+        titles = [row.title for row in merged]
+        self.assertEqual(
+            titles,
+            [
+                "Intro",
+                "Modeling",
+                "Midterm project",
+                "Deployment",
+                "Monitoring",
+                "Capstone project",
+            ],
+        )
+        self.assertEqual([row.is_project for row in merged], [
+            False, False, True, False, False, True
+        ])
+        # A project row is starred, not numbered, and carries its own url.
+        midterm_row = merged[2]
+        self.assertEqual(midterm_row.index, "★")
+        self.assertEqual(midterm_row.url, "/midterm")
+        # The plain module rows keep their own original numbering.
+        self.assertEqual([row.index for row in merged if not row.is_project], ["01", "02", "03", "04"])
+
+    def test_a_project_due_before_every_dated_unit_leads_the_list(self):
+        units = self._units()
+        due_dates = [date(2026, 1, 5), date(2026, 1, 12), date(2026, 1, 19), date(2026, 1, 26)]
+        early_project = SimpleNamespace(
+            title="Warm-up project", submission_due_date=date(2026, 1, 1)
+        )
+
+        merged = merge_syllabus_rows_with_projects(units, due_dates, [early_project], ["/early"])
+
+        self.assertEqual(merged[0].title, "Warm-up project")
+        self.assertTrue(merged[0].is_project)
+
+    def test_a_project_with_no_dated_units_to_compare_falls_back_to_the_end(self):
+        units = self._units()
+        due_dates = [None, None, None, None]
+        capstone = SimpleNamespace(title="Capstone project", submission_due_date=date(2026, 2, 1))
+
+        merged = merge_syllabus_rows_with_projects(units, due_dates, [capstone], ["/capstone"])
+
+        self.assertEqual(merged[-1].title, "Capstone project")
+        self.assertTrue(merged[-1].is_project)
+
+    def test_no_projects_leaves_the_unit_list_untouched(self):
+        units = self._units()
+        due_dates = [None, None, None, None]
+
+        merged = merge_syllabus_rows_with_projects(units, due_dates, [], [])
+
+        self.assertEqual(merged, units)
 
 
 class FamilyStoryRowsTests(SimpleTestCase):
