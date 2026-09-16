@@ -98,6 +98,14 @@ def site_project_submissions():
     across different families group together in the reading order rather
     than interleaving arbitrarily.
 
+    This one function backs three routes through ``project_gallery_view``
+    (site-wide, family-wide, *and* the per-cohort ``cohort_projects``
+    listing), so it deliberately does not filter to passed submissions --
+    the family-wide and site-wide galleries do that themselves, at the view
+    layer, because the per-cohort listing was not asked to change and must
+    not silently lose its ungraded/failed submissions as a side effect. See
+    ``courses/views/site_project_gallery.py``.
+
     ``select_related`` reaches two hops past the submission's own project --
     ``project__course`` is the cohort, ``project__course__course`` is that
     cohort's family (``Cohort.course`` -- confusingly named; see

@@ -101,18 +101,39 @@ def _choice_rows(submissions):
     )
 
 
-def _filter_choices(rows, family=None, cohort=None, project=None):
+def _filter_choices(rows, family=None, cohort=None, project=None, selected_course="", selected_cohort=""):
+    """Compute the Course/Cohort/Assignment option lists, each narrowed by
+    what was already picked -- selecting a course should not still offer
+    every other course's cohorts, and selecting a cohort (or a course with
+    only one) should not still offer every other cohort's assignments.
+    ``selected_course``/``selected_cohort`` come from the submitted filter
+    values (or the route's own scope, for the family/cohort-scoped pages),
+    the same request round trip this filter bar already uses for every
+    other filter -- there is no separate client-side cascade to keep in
+    sync.
+    """
+
     courses = {
         (row["project__course__course__slug"], row["project__course__course__title"])
         for row in rows
     }
+    cohort_rows = rows
+    if selected_course:
+        cohort_rows = [
+            row for row in rows if row["project__course__course__slug"] == selected_course
+        ]
     cohorts = {
         (
             str(row["project__course_id"]),
             f"{row['project__course__course__title']} · {row['project__course__identifier']}",
         )
-        for row in rows
+        for row in cohort_rows
     }
+    project_rows = cohort_rows
+    if selected_cohort:
+        project_rows = [
+            row for row in cohort_rows if str(row["project__course_id"]) == selected_cohort
+        ]
     projects = {
         (
             str(row["project_id"]),
@@ -122,7 +143,7 @@ def _filter_choices(rows, family=None, cohort=None, project=None):
                 f"{row['project__course__identifier']}"
             ),
         )
-        for row in rows
+        for row in project_rows
     }
     if family:
         courses.add((family.slug, family.title))
@@ -150,13 +171,35 @@ def _gallery_filters(request, rows, family=None, cohort=None, project=None):
         data["sort"] = "cohort"
 
     filters = ProjectGalleryFilters(data)
-    courses, cohorts, projects = _filter_choices(rows, family, cohort, project)
+    courses, cohorts, projects = _filter_choices(
+        rows,
+        family,
+        cohort,
+        project,
+        selected_course=data.get("course", ""),
+        selected_cohort=data.get("cohort", ""),
+    )
     cast(forms.ChoiceField, filters.fields["course"]).choices = [("", "All courses"), *courses]
     cast(forms.ChoiceField, filters.fields["cohort"]).choices = [("", "All cohorts"), *cohorts]
     cast(forms.ChoiceField, filters.fields["project"]).choices = [
         ("", "All assignments"),
         *projects,
     ]
+    # Progressive disclosure: Cohort and Assignment are mostly noise before
+    # their prerequisite narrows them (see _filter_choices above), so each
+    # stays disabled -- the same real `.field-input[disabled]` treatment
+    # every other disabled field on the site already gets -- until a course
+    # (for Cohort), or a course or cohort (for Assignment), is chosen. The
+    # server still accepts an already-submitted value either way; this only
+    # affects what the control offers to *change* next.
+    if not data.get("course"):
+        cast(forms.ChoiceField, filters.fields["cohort"]).widget.attrs.update(
+            {"disabled": True, "aria-describedby": "id_cohort-help"}
+        )
+    if not (data.get("course") or data.get("cohort")):
+        cast(forms.ChoiceField, filters.fields["project"]).widget.attrs.update(
+            {"disabled": True, "aria-describedby": "id_project-help"}
+        )
     return filters, courses
 
 
@@ -202,6 +245,13 @@ def project_gallery_view(
         return project_vote_response(request, cohort, project)
 
     public_submissions = site_project_submissions()
+    if cohort is None:
+        # Only the family-wide (``family_projects``) and site-wide
+        # (``all_projects``) galleries: don't show a "Passed"/"Not passed"
+        # badge, only show submissions that passed at all. The per-cohort
+        # listing (``cohort_projects``) was not asked to change, so it keeps
+        # showing every submission regardless of grading state.
+        public_submissions = public_submissions.filter(passed=True)
     facet_rows = _choice_rows(public_submissions)
     filters, courses = _gallery_filters(request, facet_rows, family, cohort, project)
 

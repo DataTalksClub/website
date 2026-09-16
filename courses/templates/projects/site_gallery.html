@@ -108,8 +108,6 @@
 
   .gallery-filter-actions,
   .gallery-result-head,
-  .gallery-card-foot,
-  .gallery-outcome,
   .gallery-contributor,
   .gallery-card-actions {
     align-items: center;
@@ -120,7 +118,7 @@
 
   .gallery-filter-actions .band-link,
   .gallery-filters .a11y-error-summary a,
-  .gallery-card a {
+  .gallery-row a {
     align-items: center;
     display: inline-flex;
     min-height: 2.75rem;
@@ -137,9 +135,23 @@
     justify-content: space-between;
   }
 
-  .gallery-card {
+  /* Rows, not cards (owner feedback): the shared row-list/list-row index
+     primitive (see templates/core/_design_system.html) with the content in
+     the wide first column and, on a project-scoped listing, its vote/eval
+     action in the second. */
+  .gallery-row {
+    --row-cols: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .gallery-row-body {
+    display: grid;
+    gap: 0.35rem;
     min-width: 0;
-    padding: 1.25rem;
+  }
+
+  .gallery-card-actions {
+    align-self: start;
   }
 
   .gallery-group {
@@ -191,26 +203,6 @@
     font-weight: 700;
   }
 
-  .gallery-card-foot {
-    border-top: 2px dashed var(--line-soft);
-    justify-content: space-between;
-    margin-top: auto;
-    padding-top: 0.75rem;
-  }
-
-  .gallery-outcome {
-    gap: 0.35rem 0.6rem;
-  }
-
-  .gallery-outcome .mono-note {
-    font-size: 0.75rem;
-  }
-
-  .gallery-card-actions {
-    border-top: 2px dashed var(--line-soft);
-    padding-top: 0.75rem;
-  }
-
   .project-vote-form {
     margin: 0;
   }
@@ -242,16 +234,6 @@
   @media (max-width: 62rem) {
     .gallery-filter-fields {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  @media (max-width: 47.99rem) {
-    .gallery-grid {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .gallery-card {
-      padding: 1rem;
     }
   }
 
@@ -319,6 +301,11 @@
         <div class="field">
           <label class="field-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
           <div class="gallery-select-shell">{{ field }}</div>
+          {% if field.name == 'cohort' and field.field.widget.attrs.disabled %}
+            <p class="field-hint" id="id_cohort-help">Pick a course to see its cohorts.</p>
+          {% elif field.name == 'project' and field.field.widget.attrs.disabled %}
+            <p class="field-hint" id="id_project-help">Pick a course or cohort to see its assignments.</p>
+          {% endif %}
           {{ field.errors }}
         </div>
       {% endfor %}
@@ -347,58 +334,33 @@
         {% endif %}
       </div>
       {% if submissions %}
-        <div class="card-grid card-grid-2 gallery-grid">
+        <div class="row-list gallery-grid">
           {% for submission in submissions %}
             {% if submission.group_heading %}
               <p class="mono-label gallery-group">{{ submission.group_heading }}</p>
             {% endif %}
-            <article class="card gallery-card">
-              <p class="gallery-course">{{ submission.family.title }} · {{ submission.cohort.identifier }}</p>
-              <div>
-                <p class="gallery-repository-label">Submitted repository</p>
-                <h3 class="gallery-repository">
-                  {% if submission.repository_url %}
-                    <a href="{{ submission.repository_url }}" target="_blank" rel="noopener noreferrer" aria-label="Open repository">
-                      {{ submission.repository_label }} ↗ <span class="sr-only">(opens in a new tab)</span>
-                    </a>
-                  {% else %}
-                    Repository link unavailable
-                  {% endif %}
-                </h3>
-              </div>
-              <p class="gallery-assignment">{{ submission.assignment.title }}</p>
-              <p class="gallery-contributor">
-                Submitted by
-                <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=submission.family.slug cohort_identifier=submission.cohort.identifier enrollment_id=submission.enrollment.id %}">
-                  {{ submission.enrollment.display_name }}
-                </a>
-              </p>
-              <div class="gallery-card-foot">
-                <div class="gallery-outcome">
-                  {% if project and project.state == 'CO' %}
-                    <span class="mono-note">{{ submission.project_score }} score</span>
-                    {% if submission.passed %}
-                      <span class="status-pill status-pill-live">Passed</span>
+            <article class="list-row gallery-row">
+              <div class="gallery-row-body">
+                <p class="gallery-course">{{ submission.family.title }} · {{ submission.cohort.identifier }}</p>
+                <div>
+                  <p class="gallery-repository-label">Submitted repository</p>
+                  <h3 class="gallery-repository">
+                    {% if submission.repository_url %}
+                      <a href="{{ submission.repository_url }}" target="_blank" rel="noopener noreferrer" aria-label="Open repository">
+                        {{ submission.repository_label }} ↗ <span class="sr-only">(opens in a new tab)</span>
+                      </a>
                     {% else %}
-                      <span class="status-pill status-pill-wait">Not passed</span>
+                      Repository link unavailable
                     {% endif %}
-                  {% elif not project %}
-                    {% if submission.display_score == -1 %}
-                      <span class="mono-note">Not graded yet</span>
-                    {% else %}
-                      <span class="mono-note">{{ submission.display_score }} score</span>
-                      {% if submission.passed %}
-                        <span class="status-pill status-pill-live">Passed</span>
-                      {% else %}
-                        <span class="status-pill status-pill-wait">Not passed</span>
-                      {% endif %}
-                    {% endif %}
-                  {% endif %}
-                  <span class="project-vote-count mono-note" data-submission-id="{{ submission.id }}" data-vote-count="{{ submission.vote_count }}">{{ submission.vote_count }} vote{{ submission.vote_count|pluralize }}</span>
+                  </h3>
                 </div>
-                {% if not project %}
-                  <a class="band-link" href="{% url 'cohort' course_slug=submission.family.slug cohort_identifier=submission.cohort.identifier %}">View cohort →</a>
-                {% endif %}
+                <p class="gallery-assignment">{{ submission.assignment.title }}</p>
+                <p class="gallery-contributor">
+                  Submitted by
+                  <a href="{% url 'cohort_leaderboard_score_breakdown' course_slug=submission.family.slug cohort_identifier=submission.cohort.identifier enrollment_id=submission.enrollment.id %}">
+                    {{ submission.enrollment.display_name }}
+                  </a>
+                </p>
               </div>
               {% if project %}
                 <div class="gallery-card-actions">
@@ -476,7 +438,6 @@
       document.querySelectorAll('form[data-confirm-message]').forEach((form) => {
         form.addEventListener('submit', (event) => { if (!window.confirm(form.dataset.confirmMessage)) event.preventDefault(); });
       });
-      function voteLabel(count) { return `${count} vote${count === 1 ? '' : 's'}`; }
       function setVoteFormState(form, voted, limitReached) {
         const own = form.dataset.own === 'true';
         const input = form.querySelector('input[name="action"]');
@@ -503,7 +464,6 @@
             if (left) left.textContent = data.votes_left;
             const leftLabel = document.getElementById('project-votes-left-label');
             if (leftLabel) leftLabel.textContent = `vote${data.votes_left === 1 ? '' : 's'} left`;
-            document.querySelectorAll(`.project-vote-count[data-submission-id="${data.submission_id}"]`).forEach((count) => { count.dataset.voteCount = data.vote_count; count.textContent = voteLabel(data.vote_count); });
             const votedIds = new Set(data.voted_submission_ids.map(String));
             document.querySelectorAll('.project-vote-form').forEach((voteForm) => setVoteFormState(voteForm, votedIds.has(voteForm.dataset.submissionId), data.vote_limit_reached));
           } catch (error) { form.submit(); }

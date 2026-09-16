@@ -59,11 +59,16 @@ class FamilyProjectGalleryTestBase(TestCase):
             username="learner", email="learner@example.com", password="x"
         )
         cls.enrollment = Enrollment.objects.create(student=cls.user, course=cls.cohort_2025)
+        # The site-wide gallery this template also serves only lists
+        # submissions that passed (see project_gallery_groups.py); these
+        # family-gallery fixtures pass by default so both galleries share
+        # working fixtures without every test having to set it.
         cls.submission = ProjectSubmission.objects.create(
             project=cls.project_2025_a,
             student=cls.user,
             enrollment=cls.enrollment,
             github_link="https://github.com/example/repo",
+            passed=True,
         )
         cls.volunteer_only_submission = ProjectSubmission.objects.create(
             project=cls.project_2025_b,
@@ -71,6 +76,7 @@ class FamilyProjectGalleryTestBase(TestCase):
             enrollment=cls.enrollment,
             github_link="https://github.com/example/repo2",
             volunteer_review_only=True,
+            passed=True,
         )
 
         cls.enrollment_2023 = Enrollment.objects.create(student=cls.user, course=cls.cohort_2023)
@@ -79,6 +85,7 @@ class FamilyProjectGalleryTestBase(TestCase):
             student=cls.user,
             enrollment=cls.enrollment_2023,
             github_link="https://github.com/example/repo-2023",
+            passed=True,
         )
 
         cls.enrollment_hidden = Enrollment.objects.create(
@@ -89,6 +96,7 @@ class FamilyProjectGalleryTestBase(TestCase):
             student=cls.user,
             enrollment=cls.enrollment_hidden,
             github_link="https://github.com/example/hidden-repo",
+            passed=True,
         )
 
     @classmethod
@@ -214,6 +222,7 @@ class FamilyProjectGalleryPaginationTests(FamilyProjectGalleryTestBase):
                 student=user,
                 enrollment=enrollment,
                 github_link=f"https://github.com/example/bulk-{index}",
+                passed=True,
             )
 
         response = self.client.get(self.gallery_url())

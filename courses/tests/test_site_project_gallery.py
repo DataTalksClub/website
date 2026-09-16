@@ -123,6 +123,11 @@ class SiteProjectGalleryTestBase(TestCase):
 
     @classmethod
     def _submission(cls, project, cohort, github_link, **kwargs):
+        # The gallery now only lists submissions that passed (issue: remove
+        # the "Passed"/"Not passed" badge by filtering to passed submissions
+        # instead), so every fixture submission passes by default; a test
+        # exercising the ungraded/not-passed case overrides it explicitly.
+        kwargs.setdefault("passed", True)
         user = User.objects.create_user(
             username=f"learner-{ProjectSubmission.objects.count()}-{project.slug}",
             email=f"learner-{ProjectSubmission.objects.count()}-{project.slug}@example.com",
@@ -305,6 +310,94 @@ class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
         self.assertContains(response, f'<option value="{self.de_project_2024.pk}" selected>')
         self.assertContains(response, "Clear filters")
 
+    def test_cohort_choices_narrow_to_the_selected_course(self):
+        # Owner feedback: "if I select a course I want to see only cohorts
+        # of this course" -- picking a course must not still offer every
+        # other course's cohorts.
+        response = self.client.get(self.gallery_url(), {"course": "de-zoomcamp"})
+        filters = response.context["gallery_filters"]
+
+        self.assertEqual(
+            list(filters.fields["cohort"].choices),
+            [
+                ("", "All cohorts"),
+                (str(self.de_2024.pk), "Data Engineering Zoomcamp · 2024"),
+                (str(self.de_2023.pk), "Data Engineering Zoomcamp · 2023"),
+            ],
+        )
+
+    def test_assignment_choices_narrow_to_the_selected_course_and_cohort(self):
+        # Owner follow-up: "same here" -- Assignment must narrow the same way.
+        by_course = self.client.get(self.gallery_url(), {"course": "de-zoomcamp"})
+        self.assertEqual(
+            {
+                label
+                for _, label in by_course.context["gallery_filters"].fields["project"].choices
+            },
+            {
+                "All assignments",
+                f"{self.de_project_2024.title} · Data Engineering Zoomcamp 2024",
+                f"{self.de_project_2023.title} · Data Engineering Zoomcamp 2023",
+            },
+        )
+
+        by_cohort = self.client.get(
+            self.gallery_url(), {"course": "de-zoomcamp", "cohort": str(self.de_2024.pk)}
+        )
+        self.assertEqual(
+            list(by_cohort.context["gallery_filters"].fields["project"].choices),
+            [
+                ("", "All assignments"),
+                (
+                    str(self.de_project_2024.pk),
+                    f"{self.de_project_2024.title} · Data Engineering Zoomcamp 2024",
+                ),
+            ],
+        )
+
+    def test_cohort_and_assignment_are_disabled_until_their_prerequisite_is_chosen(self):
+        # Progressive disclosure: Cohort/Assignment are noise until a course
+        # (and, for Assignment, a cohort) narrows them, so each stays
+        # disabled -- with a hint explaining why -- until then.
+        none_selected = self.client.get(self.gallery_url())
+        none_filters = none_selected.context["gallery_filters"]
+        self.assertTrue(none_filters.fields["cohort"].widget.attrs.get("disabled"))
+        self.assertTrue(none_filters.fields["project"].widget.attrs.get("disabled"))
+        self.assertContains(none_selected, "Pick a course to see its cohorts.")
+        self.assertContains(none_selected, "Pick a course or cohort to see its assignments.")
+
+        course_selected = self.client.get(self.gallery_url(), {"course": "de-zoomcamp"})
+        course_filters = course_selected.context["gallery_filters"]
+        self.assertNotIn("disabled", course_filters.fields["cohort"].widget.attrs)
+        # A course alone is enough to unlock Assignment too.
+        self.assertNotIn("disabled", course_filters.fields["project"].widget.attrs)
+
+    def test_the_family_gallery_starts_with_cohort_already_unlocked(self):
+        # The family-scoped gallery already fixes the course via the route,
+        # so Cohort should not need a redundant course pick to unlock.
+        response = self.client.get(reverse("family_projects", kwargs={"course_slug": "de-zoomcamp"}))
+
+        self.assertNotIn(
+            "disabled", response.context["gallery_filters"].fields["cohort"].widget.attrs
+        )
+
+    def test_no_course_selected_keeps_every_cohort_and_assignment_offered(self):
+        response = self.client.get(self.gallery_url())
+        filters = response.context["gallery_filters"]
+
+        self.assertEqual(len(filters.fields["cohort"].choices), 4)
+        self.assertEqual(len(filters.fields["project"].choices), 4)
+
+    def test_applying_a_narrowed_cohort_choice_still_filters_correctly(self):
+        response = self.client.get(
+            self.gallery_url(), {"course": "de-zoomcamp", "cohort": str(self.de_2024.pk)}
+        )
+
+        self.assertEqual(
+            [row.id for row in response.context["submissions"]], [self.submission_de_2024.id]
+        )
+        self.assertFalse(response.context["gallery_filters"].errors)
+
     def test_free_text_repository_search_is_removed(self):
         response = self.client.get(self.gallery_url())
 
@@ -388,18 +481,81 @@ class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
                 self.assertNotContains(response, 'href="javascript:')
                 self.assertNotContains(response, "secret:password")
 
-    def test_ungraded_and_completed_project_states_remain_honest(self):
+    def test_only_passed_submissions_appear(self):
+        # Owner feedback: don't show a "Passed"/"Not passed" badge -- only
+        # show submissions that passed at all. A not-yet-graded or failed
+        # submission is excluded from the gallery entirely rather than
+        # shown with a badge saying so.
+        self.submission_ml_2025.passed = False
+        self.submission_ml_2025.save(update_fields=["passed"])
+
+        response = self.client.get(self.gallery_url(), {"course": "ml-zoomcamp"})
+
+        submission_ids = [submission.id for submission in response.context["submissions"]]
+        self.assertNotIn(self.submission_ml_2025.id, submission_ids)
+
+        self.submission_ml_2025.passed = True
+        self.submission_ml_2025.save(update_fields=["passed"])
+
+        response = self.client.get(self.gallery_url(), {"course": "ml-zoomcamp"})
+        submission_ids = [submission.id for submission in response.context["submissions"]]
+        self.assertIn(self.submission_ml_2025.id, submission_ids)
+
+    def test_the_per_cohort_listing_still_shows_submissions_that_have_not_passed(self):
+        # Only the family-wide and site-wide galleries filter to passed
+        # submissions. The per-cohort listing (the same template and query
+        # function, at "<family>/<cohort>/projects") was not asked to
+        # change, so it must not silently lose ungraded/failed submissions.
+        self.submission_ml_2025.passed = False
+        self.submission_ml_2025.save(update_fields=["passed"])
+
+        response = self.client.get(
+            reverse(
+                "cohort_projects",
+                kwargs={"course_slug": "ml-zoomcamp", "cohort_identifier": "2025"},
+            )
+        )
+
+        submission_ids = [submission.id for submission in response.context["submissions"]]
+        self.assertIn(self.submission_ml_2025.id, submission_ids)
+
+    def test_gallery_shows_no_score_and_no_pass_fail_badge(self):
+        # Owner feedback: "it's 0 votes. let's remove both votes and
+        # scores" -- and the pass/fail badge is redundant once the gallery
+        # only lists passed submissions (see test_only_passed_submissions).
         self.submission_ml_2025.project_score = 99
         self.submission_ml_2025.passed = True
         self.submission_ml_2025.save(update_fields=["project_score", "passed"])
-        ungraded = self.client.get(self.gallery_url(), {"course": "ml-zoomcamp"})
-        self.assertContains(ungraded, "Not graded yet")
-        self.assertNotContains(ungraded, "99 score")
         self.ml_project_2025.state = ProjectState.COMPLETED.value
         self.ml_project_2025.save(update_fields=["state"])
-        completed = self.client.get(self.gallery_url(), {"course": "ml-zoomcamp"})
-        self.assertContains(completed, "99 score")
-        self.assertContains(completed, "Passed")
+
+        response = self.client.get(self.gallery_url(), {"course": "ml-zoomcamp"})
+
+        self.assertNotContains(response, "99 score")
+        self.assertNotContains(response, "score</span>")
+        # The two "status-pill-live"/"status-pill-wait" class *definitions*
+        # legitimately appear in every page's shared inline stylesheet, so
+        # the badge itself is checked by its rendered text instead.
+        self.assertNotContains(response, ">Passed<")
+        self.assertNotContains(response, "Not passed")
+        self.assertNotContains(response, "Not graded yet")
+
+    def test_gallery_shows_no_vote_count(self):
+        voter = User.objects.create_user(username="gallery-vote-count-voter")
+        ProjectVote.objects.create(submission=self.submission_ml_2025, voter=voter)
+
+        response = self.client.get(self.gallery_url(), {"course": "ml-zoomcamp"})
+
+        self.assertNotContains(response, "vote</span>")
+        self.assertNotContains(response, "votes</span>")
+        self.assertNotContains(response, "project-vote-count")
+
+    def test_gallery_does_not_link_to_the_cohort(self):
+        # Owner feedback: "view cohort - remove." -- the cohort is already
+        # named as plain text elsewhere in the row (the course/cohort line).
+        response = self.client.get(self.gallery_url())
+
+        self.assertNotContains(response, "View cohort")
 
     def test_page_links_preserve_only_valid_gallery_filters(self):
         for index in range(27):
@@ -442,6 +598,18 @@ class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
         with CaptureQueriesContext(connection) as full:
             self.client.get(self.gallery_url())
         self.assertLessEqual(len(full), len(small))
+
+    def test_gallery_uses_rows_not_cards(self):
+        # Owner feedback: "let's not use cards - use rows."
+        response = self.client.get(self.gallery_url())
+
+        self.assertContains(response, 'class="row-list gallery-grid"')
+        self.assertContains(response, 'class="list-row gallery-row"')
+        # ".card-grid"/".card" are legitimately defined once in every page's
+        # shared inline stylesheet, so this checks the class attribute the
+        # gallery grid/rows carry, not the CSS definitions.
+        self.assertNotContains(response, 'class="card-grid card-grid-2 gallery-grid"')
+        self.assertNotContains(response, 'class="card gallery-card"')
 
     def test_gallery_template_keeps_the_shared_readability_contract(self):
         template = Path(__file__).resolve().parents[1] / "templates/projects/site_gallery.html"

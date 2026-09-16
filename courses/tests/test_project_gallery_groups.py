@@ -152,10 +152,10 @@ class SiteProjectSubmissionsTests(ProjectGalleryGroupsTestBase):
         ml_project = self.make_project(ml_cohort, "capstone")
 
         de_submission = self.make_submission(
-            de_project, de_cohort, "https://github.com/example/pipeline"
+            de_project, de_cohort, "https://github.com/example/pipeline", passed=True
         )
         ml_submission = self.make_submission(
-            ml_project, ml_cohort, "https://github.com/example/capstone"
+            ml_project, ml_cohort, "https://github.com/example/capstone", passed=True
         )
 
         submissions = list(site_project_submissions())
@@ -171,7 +171,9 @@ class SiteProjectSubmissionsTests(ProjectGalleryGroupsTestBase):
         family = self.make_family("ml-zoomcamp", "ML Zoomcamp")
         cohort = self.make_cohort(family, 2025)
         project = self.make_project(cohort, "capstone")
-        submission = self.make_submission(project, cohort, "https://github.com/example/repo")
+        submission = self.make_submission(
+            project, cohort, "https://github.com/example/repo", passed=True
+        )
 
         submissions = list(site_project_submissions())
 
@@ -183,7 +185,7 @@ class SiteProjectSubmissionsTests(ProjectGalleryGroupsTestBase):
         family = self.make_family("ml-zoomcamp")
         hidden = self.make_cohort(family, 2025, visible=False)
         project = self.make_project(hidden, "capstone")
-        self.make_submission(project, hidden, "https://github.com/example/repo")
+        self.make_submission(project, hidden, "https://github.com/example/repo", passed=True)
 
         self.assertEqual(list(site_project_submissions()), [])
 
@@ -191,7 +193,7 @@ class SiteProjectSubmissionsTests(ProjectGalleryGroupsTestBase):
         family = self.make_family("secret-zoomcamp", visible=False)
         cohort = self.make_cohort(family, 2025)
         project = self.make_project(cohort, "capstone")
-        self.make_submission(project, cohort, "https://github.com/example/repo")
+        self.make_submission(project, cohort, "https://github.com/example/repo", passed=True)
 
         self.assertEqual(list(site_project_submissions()), [])
 
@@ -204,15 +206,35 @@ class SiteProjectSubmissionsTests(ProjectGalleryGroupsTestBase):
             cohort,
             "https://github.com/example/repo",
             volunteer_review_only=True,
+            passed=True,
         )
 
         self.assertEqual(list(site_project_submissions()), [])
+
+    def test_includes_submissions_regardless_of_pass_state(self):
+        # This function backs three routes (site-wide, family-wide, and the
+        # per-cohort ``cohort_projects`` listing); only the first two filter
+        # to passed submissions, and they do it themselves at the view layer
+        # (see courses/tests/test_site_project_gallery.py) so the per-cohort
+        # listing keeps seeing every submission. This function itself stays
+        # pass-state-agnostic.
+        family = self.make_family("ml-zoomcamp")
+        cohort = self.make_cohort(family, 2025)
+        project = self.make_project(cohort, "capstone")
+        ungraded = self.make_submission(project, cohort, "https://github.com/example/ungraded")
+        failed = self.make_submission(
+            project, cohort, "https://github.com/example/failed", passed=False
+        )
+
+        submission_ids = {submission.id for submission in site_project_submissions()}
+
+        self.assertEqual(submission_ids, {ungraded.id, failed.id})
 
     def test_annotates_vote_count_and_display_score(self):
         family = self.make_family("ml-zoomcamp")
         cohort = self.make_cohort(family, 2025)
         project = self.make_project(cohort, "capstone")
-        self.make_submission(project, cohort, "https://github.com/example/repo")
+        self.make_submission(project, cohort, "https://github.com/example/repo", passed=True)
 
         submission = list(site_project_submissions())[0]
 
@@ -232,10 +254,10 @@ class SiteProjectSubmissionsTests(ProjectGalleryGroupsTestBase):
         alpha_project = self.make_project(alpha_cohort, "capstone")
 
         zebra_submission = self.make_submission(
-            zebra_project, zebra_cohort, "https://github.com/example/zebra"
+            zebra_project, zebra_cohort, "https://github.com/example/zebra", passed=True
         )
         alpha_submission = self.make_submission(
-            alpha_project, alpha_cohort, "https://github.com/example/alpha"
+            alpha_project, alpha_cohort, "https://github.com/example/alpha", passed=True
         )
 
         submissions = list(site_project_submissions())
