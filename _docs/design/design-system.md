@@ -316,6 +316,17 @@ to this document — do not fork it locally.
   </div>
   ```
 
+  The action above sits beside the heading when it points to another index the
+  band is teasing (a course catalogue, the full events list) — most of the site's
+  bands, reviewed and shipped this way. A page that reads as one continuous
+  walkthrough rather than a set of independent index teasers instead places that
+  action under the section's own content, immediately after its last block, as a
+  plain `.band-link` — it then reads as the section's own last word rather than a
+  second thing competing with the heading for the reader's eye first. `/tour`
+  (`templates/core/tour.html`) follows this second pattern throughout, via the
+  page-local `.tour-content-link` spacing hook; it is that page's own convention
+  for now, not a retroactive rule for the bands shown above.
+
 - **`.kicker`** — uppercase indigo eyebrow. The mono variant is
   `.mono-label.mono-label-indigo`.
 - **`.band-link`** — underlined indigo action link.
