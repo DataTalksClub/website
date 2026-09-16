@@ -1,0 +1,18 @@
+{% comment %}
+  The pages one guide holds, drawn inline: in the foot of a card, or beside a
+  row's name column.  One component for every "its pages" line on the hub, so a
+  reader learns the shape once and reads the other fifteen by position.
+
+  Each link stays above the whole-card overlay a stretched card draws over
+  itself (the event card's own technique), so a card is one tab stop plus its
+  real page links rather than one destination that swallows them.
+{% endcomment %}
+{% if pages %}
+  <ul class="docs-pages {{ list_class }}">
+    {% for page in pages %}
+      <li>
+        <a href="{{ page.public_path }}">{{ page.title }}</a>
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}

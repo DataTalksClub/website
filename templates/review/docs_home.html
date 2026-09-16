@@ -28,36 +28,47 @@
 {% endblock %}
 
 {% block page_header %}
-  <div class="docs-home-header">
-    <p class="mono-label mono-label-indigo">
-      docs · {{ docs_total_pages }} page{{ docs_total_pages|pluralize }}
-    </p>
-    <h1 id="{{ docs_heading_id }}">{{ docs_heading_title }}</h1>
-    <div class="prose docs-home-intro">
-      {{ docs_html|safe }}
-    </div>
-    {% comment %}
-      The field carries a visible label and real example queries: it used to be an
-      unlabelled white box with no placeholder, which reads as decoration rather
-      than as the way into 105 pages.
-    {% endcomment %}
-    <form class="docs-search-block" role="search" action="{% url 'docs-home' %}" method="get">
-      <label class="field-label" for="docs-query">
-        Search {{ docs_total_pages }} documentation page{{ docs_total_pages|pluralize }}
-      </label>
-      <div class="search-row docs-search">
-        <input
-          id="docs-query"
-          class="field-input"
-          name="q"
-          type="search"
-          placeholder="e.g. certificate, homework deadline, GCP credits"
-          value="{{ docs_query|default:'' }}"
-          required
-        >
-        {% include "core/_button.html" with tag="button" type="submit" label="Search" variant="primary" compact=True %}
+  {% comment %}
+    The family landing's hero grid: the title block beside its drawing.  The
+    reading robot is the one illustration pair no other page draws, and it is
+    the include's own generic branch, so the hero needs no new art and no new
+    slot -- it passes no family slug.
+  {% endcomment %}
+  <div class="docs-home-hero-inner">
+    <div class="docs-home-header">
+      <p class="mono-label mono-label-indigo">
+        docs · {{ docs_total_pages }} page{{ docs_total_pages|pluralize }}
+      </p>
+      <h1 id="{{ docs_heading_id }}">{{ docs_heading_title }}</h1>
+      <div class="prose docs-home-intro">
+        {{ docs_html|safe }}
       </div>
-    </form>
+      {% comment %}
+        The field carries a visible label and real example queries: it used to be
+        an unlabelled white box with no placeholder, which reads as decoration
+        rather than as the way into the corpus.
+      {% endcomment %}
+      <form class="docs-search-block" role="search" action="{% url 'docs-home' %}" method="get">
+        <label class="field-label" for="docs-query">
+          Search {{ docs_total_pages }} documentation page{{ docs_total_pages|pluralize }}
+        </label>
+        <div class="search-row docs-search">
+          <input
+            id="docs-query"
+            class="field-input"
+            name="q"
+            type="search"
+            placeholder="e.g. certificate, homework deadline, GCP credits"
+            value="{{ docs_query|default:'' }}"
+            required
+          >
+          {% include "core/_button.html" with tag="button" type="submit" label="Search" variant="primary" compact=True %}
+        </div>
+      </form>
+    </div>
+    <div class="docs-hero-art">
+      {% include "core/_course_illustration.html" with loading="eager" only %}
+    </div>
   </div>
 {% endblock %}
 
@@ -101,86 +112,131 @@
       {% endif %}
     </section>
   {% else %}
-    <section class="docs-section" aria-labelledby="docs-courses-heading">
-      <div class="docs-section-head">
-        <h2 id="docs-courses-heading">Choose a course guide</h2>
-        <p>Start with the notes, setup, curriculum, projects, and resources for your Zoomcamp.</p>
-      </div>
-      {% if docs_course_families %}
-        <div class="row-list">
-          {% for course in docs_course_families %}
-            <a class="list-row docs-row docs-course-row interactive-card interactive-lift" href="{{ course.public_path }}">
-              <span class="docs-row-body">
-                <span class="docs-row-title">{{ course.title }}</span>
-                {% if course.description %}
-                  <span class="docs-row-meta">{{ course.description }}</span>
-                {% endif %}
-              </span>
-              <span class="mono-note docs-row-count">
-                {{ course.children|length }} guide{{ course.children|length|pluralize }}
-              </span>
-            </a>
-          {% endfor %}
+    {% comment %}
+      Four chapters, each opened by the family landing's own rule: a solid ink
+      rule, a band-head, and the section's own action.  The first chapter takes
+      no rule -- the band seam above it is one.
+    {% endcomment %}
+    {% if docs_hub.families %}
+      <section class="docs-chapter docs-chapter-first shell-breakout" aria-labelledby="docs-courses-heading">
+        <div class="band-head">
+          <div>
+            <h2 id="docs-courses-heading">Course guides</h2>
+            <p>Every Zoomcamp guide holds the same pages, so the one you need is one click from here.</p>
+          </div>
+          {% if docs_hub.courses %}
+            <a class="band-link" href="{{ docs_hub.courses.public_path }}">all course guides →</a>
+          {% endif %}
         </div>
-      {% endif %}
-    </section>
-
-    {% if docs_course_support %}
-      <section class="docs-section" aria-labelledby="docs-shared-heading">
-        <div class="docs-section-head">
-          <h2 id="docs-shared-heading">Shared course guides</h2>
-          <p>How cohorts work, how to use the learning platform, and where to find course answers.</p>
-        </div>
-        <div class="row-list">
-          {% for item in docs_course_support %}
-            <a class="list-row docs-row docs-support-row interactive-card interactive-lift" href="{{ item.public_path }}">
-              <span class="docs-row-body">
-                <span class="docs-row-title">{{ item.title }}</span>
-                {% if item.description %}
-                  <span class="docs-row-meta">{{ item.description }}</span>
-                {% endif %}
-              </span>
-              {% if item.children %}
-                <span class="mono-note docs-row-count">
-                  {{ item.children|length }} topic{{ item.children|length|pluralize }}
-                </span>
+        <div class="card-grid card-grid-3 docs-cards">
+          {% for guide in docs_hub.families %}
+            <article class="card interactive-card interactive-lift stretched-card-link docs-course-card">
+              <div class="docs-course-figure">
+                {% include "core/_course_illustration.html" with family_slug=guide.family_slug loading="lazy" only %}
+              </div>
+              <span class="mono-label">{{ guide.page_count }} page{{ guide.page_count|pluralize }}</span>
+              <h3>
+                <a class="course-link" href="{{ guide.public_path }}">{{ guide.title }}</a>
+              </h3>
+              {% if guide.description %}
+                <p>{{ guide.description }}</p>
               {% endif %}
-            </a>
-          {% endfor %}
-        </div>
-      </section>
-    {% endif %}
-
-    {% if docs_areas %}
-      <section class="docs-section" aria-labelledby="docs-more-heading">
-        <div class="docs-section-head">
-          <h2 id="docs-more-heading">Community and activities</h2>
-          <p>Find community guidelines, Slack help, jobs, events, workshops, and other ways to learn together.</p>
-        </div>
-        <div class="row-list">
-          {% for area in docs_areas %}
-            <article class="list-row docs-row docs-area-row">
-              <span class="docs-row-body">
-                <span class="docs-row-title">
-                  <a href="{{ area.public_path }}">{{ area.title }}</a>
-                </span>
-                {% if area.children %}
-                  <span class="docs-row-meta docs-row-links">
-                    {% spaceless %}
-                      {% for item in area.children %}
-                        <a href="{{ item.public_path }}">{{ item.title }}</a>
-                      {% endfor %}
-                    {% endspaceless %}
-                  </span>
-                {% endif %}
-              </span>
+              {% include "review/_docs_page_list.html" with pages=guide.pages list_class="docs-card-pages" only %}
             </article>
           {% endfor %}
         </div>
       </section>
     {% endif %}
 
-    {% if not docs_course_families and not docs_course_support and not docs_areas %}
+    {% comment %}
+      A guide whose own children hold pages opens its own chapter: its sections
+      are cards, and every one of its leaves is on the hub.  Zoomcamp Logistics
+      is the only such guide today, and its leaves -- certification, joining,
+      the final project -- are the pages readers come to the documentation for.
+    {% endcomment %}
+    {% for guide in docs_hub.sectioned %}
+      <section class="docs-chapter shell-breakout" aria-labelledby="docs-guide-{{ forloop.counter }}-heading">
+        <div class="band-head">
+          <div>
+            <h2 id="docs-guide-{{ forloop.counter }}-heading">{{ guide.title }}</h2>
+            {% if guide.description %}
+              <p>{{ guide.description }}</p>
+            {% endif %}
+          </div>
+          <a class="band-link" href="{{ guide.public_path }}">open the guide →</a>
+        </div>
+        <div class="card-grid card-grid-3 docs-cards">
+          {% for section in guide.sections %}
+            <article class="card interactive-card interactive-lift stretched-card-link docs-section-card">
+              {% if section.pages %}
+                <span class="mono-label">{{ section.page_count }} page{{ section.page_count|pluralize }}</span>
+              {% endif %}
+              <h3>
+                <a class="course-link" href="{{ section.public_path }}">{{ section.title }}</a>
+              </h3>
+              {% if section.description %}
+                <p>{{ section.description }}</p>
+              {% endif %}
+              {% include "review/_docs_page_list.html" with pages=section.pages list_class="docs-card-pages" only %}
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    {% endfor %}
+
+    {% if docs_hub.platform %}
+      <section class="docs-chapter" aria-labelledby="docs-platform-heading">
+        <div class="band-head">
+          <div>
+            <h2 id="docs-platform-heading">Course platform and FAQ</h2>
+            <p>Submitting work, scores and the leaderboard, and the answers to the questions cohorts ask most.</p>
+          </div>
+        </div>
+        <div class="row-list">
+          {% for row in docs_hub.platform %}
+            <article class="list-row docs-index-row">
+              <div>
+                <h3>
+                  <a href="{{ row.public_path }}">{{ row.title }}</a>
+                </h3>
+                {% if row.pages %}
+                  <span class="mono-note">{{ row.page_count }} page{{ row.page_count|pluralize }}</span>
+                {% endif %}
+              </div>
+              {% include "review/_docs_page_list.html" with pages=row.pages only %}
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+    {% if docs_hub.community %}
+      <section class="docs-chapter" aria-labelledby="docs-community-heading">
+        <div class="band-head">
+          <div>
+            <h2 id="docs-community-heading">Community and activities</h2>
+            <p>Community guidelines, Slack help, jobs, and the events and workshops the community runs together.</p>
+          </div>
+        </div>
+        <div class="row-list">
+          {% for row in docs_hub.community %}
+            <article class="list-row docs-index-row">
+              <div>
+                <h3>
+                  <a href="{{ row.public_path }}">{{ row.title }}</a>
+                </h3>
+                {% if row.pages %}
+                  <span class="mono-note">{{ row.page_count }} page{{ row.page_count|pluralize }}</span>
+                {% endif %}
+              </div>
+              {% include "review/_docs_page_list.html" with pages=row.pages only %}
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+    {% if not docs_hub.families and not docs_hub.sectioned and not docs_hub.platform and not docs_hub.community %}
       <p class="docs-empty">No documentation sections are available yet.</p>
     {% endif %}
   {% endif %}

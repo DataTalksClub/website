@@ -8,12 +8,37 @@
   gap: 0.75rem;
 }
 
+/* The family landing's hero grid: the title block beside its drawing. */
+.docs-home-hero-inner {
+  align-items: center;
+  display: grid;
+  gap: 1.5rem 2rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 15rem);
+}
+
+.docs-home-hero-inner > * {
+  min-width: 0;
+}
+
 .docs-home-header h1,
 .docs-detail-header h1 {
   font-size: clamp(2.1rem, 4.9vw, 3.4rem);
   letter-spacing: -0.03em;
   line-height: 1.08;
-  max-width: 48rem;
+  max-width: 19ch;
+  text-wrap: balance;
+}
+
+.docs-hero-art {
+  aspect-ratio: 1;
+  justify-self: end;
+  max-width: 15rem;
+  width: 100%;
+}
+
+.docs-hero-art .doodle {
+  height: 100%;
+  object-fit: contain;
 }
 
 .docs-home-intro {
@@ -33,9 +58,13 @@
   max-width: 34rem;
 }
 
+/* The source's own opening paragraph is the hub's standfirst; anything the
+   source writes after it stays prose at reading size beneath. */
 .docs-home-intro > p:first-child {
-  font-size: clamp(1.05rem, 2vw, 1.2rem);
-  line-height: 1.65;
+  color: var(--body-text);
+  font-size: 1.15rem;
+  line-height: 1.6;
+  max-width: var(--measure);
 }
 
 .docs-home-intro > p:last-child a {
@@ -44,25 +73,165 @@
   min-height: 2.75rem;
 }
 
-.docs-section + .docs-section {
-  border-top: 2px dashed var(--line-soft);
-  margin-top: 2.5rem;
+/* --- chapter rhythm: the family landing's and the tour's rule, verbatim.  The
+   hub used to divide its sections with a local restatement of `.band-head` over
+   a dashed rule; a chapter is the ink rule, the band-head, and its own action. */
+.docs-chapter {
+  border-top: 2px solid var(--line);
+  margin-top: 3.5rem;
   padding-top: 2.5rem;
 }
 
-.docs-section-head {
-  margin-bottom: 1.25rem;
-  max-width: 46rem;
+.docs-chapter-first {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
 }
 
-.docs-section-head h2 {
-  font-size: clamp(1.4rem, 3vw, 1.87rem);
+.docs-chapter .band-link {
+  align-items: center;
+  display: inline-flex;
+  min-height: 2.75rem;
 }
 
-.docs-section-head p {
+/* The rule spans the breakout width where the chapter breaks out: it announces
+   the width change, as on the family landing. */
+.docs-chapter.shell-breakout {
+  --breakout-width: min(var(--shell), calc(100vw - 2rem));
+}
+
+/* --- the page list: one component for every "its pages" line --------------- */
+
+.docs-pages {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  gap: 0 0.55rem;
+  line-height: 1.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.docs-pages li {
+  display: flex;
+  gap: 0.55rem;
+}
+
+/* The separator belongs to the item that follows a break, never to the end of
+   the line above it, so a wrapped list can never open with a stray comma. */
+.docs-pages li + li::before {
   color: var(--muted);
-  line-height: 1.6;
+  content: "·";
+}
+
+/* Every one of these is a pointer target, so it carries the 24px minimum of
+   WCAG 2.5.8 rather than the 18px its text box gives it; `z-index` keeps it
+   above the whole-card overlay of the card it sits in. */
+.docs-pages a {
+  color: var(--indigo);
+  display: inline-block;
+  min-height: 1.5rem;
+  position: relative;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  z-index: 1;
+}
+
+/* --- course guides: the catalogue's illustrated card ---------------------- */
+
+.docs-course-card {
+  gap: 0;
+  padding: 1.25rem 1.35rem 1.2rem;
+}
+
+.docs-course-figure {
+  align-items: center;
+  display: flex;
+  height: 8rem;
+  justify-content: center;
+  margin: 0 0 0.9rem;
+}
+
+.docs-course-figure .doodle {
+  height: 100%;
+  object-fit: contain;
+  width: auto;
+}
+
+.docs-course-card .mono-label,
+.docs-section-card .mono-label {
+  color: var(--indigo);
+}
+
+.docs-course-card h3 {
+  font-size: 1.15rem;
+  letter-spacing: -0.015em;
+  margin-top: 0.45rem;
+}
+
+.docs-course-card h3 a,
+.docs-section-card h3 a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.docs-course-card > p {
+  color: var(--muted);
+  font-size: 0.88rem;
   margin-top: 0.35rem;
+}
+
+.docs-card-pages {
+  margin-top: auto;
+  padding-top: 0.75rem;
+}
+
+/* --- guide sections: the tour's own "more" card, without a drawing -------- */
+
+.docs-section-card {
+  gap: 0.5rem;
+  padding: 1.15rem 1.25rem;
+}
+
+.docs-section-card h3 {
+  font-size: 1.1rem;
+}
+
+.docs-section-card > p {
+  color: var(--body-text);
+  font-size: 0.9rem;
+}
+
+/* --- index rows: the wiki hub's explore row, name column and pages beside -- */
+
+.docs-index-row {
+  --row-cols: 15rem minmax(0, 1fr);
+  column-gap: 1.5rem;
+  padding-block: 1rem;
+}
+
+.docs-index-row h3 {
+  font-size: 1.05rem;
+}
+
+.docs-index-row h3 a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.docs-index-row h3 a:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.docs-index-row .mono-note {
+  display: block;
+  margin-top: 0.2rem;
+}
+
+.docs-index-row .docs-pages {
+  font-size: 0.9rem;
 }
 
 /* One index row: the FAQ/wiki `.row-list`/`.list-row` primitives carry the divided
@@ -83,15 +252,6 @@
   display: grid;
   gap: 0.2rem;
   min-width: 0;
-}
-
-.docs-row-count {
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
 }
 
 .docs-arrow {
@@ -132,32 +292,6 @@
   font-size: 0.88rem;
   line-height: 1.45;
   margin-top: 0.2rem;
-}
-
-/* Community and activities rows keep the area itself as one row (title link),
-   with its pages as inline text links rather than a full row apiece -- the
-   hub stays a bounded catalogue of collections, not a flattened dump of every
-   page underneath them. */
-/* Every one of those inline links is still a pointer target, so it carries the
-   24px minimum of WCAG 2.5.8 rather than the 18px its 0.88rem text box gives it.
-   The row's line height grows past that minimum so a wrapped second line of
-   links never overlaps the first. */
-.docs-row-links {
-  line-height: 1.75rem;
-}
-
-.docs-row-links a {
-  color: var(--indigo);
-  display: inline-block;
-  min-height: 1.5rem;
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-}
-
-.docs-row-links a:not(:first-child)::before {
-  color: var(--muted);
-  content: ", ";
-  text-decoration: none;
 }
 
 .search-count {
@@ -502,9 +636,60 @@ a.docs-curriculum-card {
 }
 
 @media (max-width: 47.99rem) {
-  .docs-section + .docs-section {
-    margin-top: 2rem;
-    padding-top: 2rem;
+  .docs-home-hero-inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* The homepage drops its hero drawing here too: on a phone the words and the
+     search field are the whole point of the header. */
+  .docs-hero-art {
+    display: none;
+  }
+
+  .docs-chapter {
+    margin-top: 2.5rem;
+    padding-top: 1.75rem;
+  }
+
+  /* The homepage's and the tour's own narrow rule for illustrated cards: the
+     surface goes, the row keeps a dashed rule, and the drawing moves beside the
+     words.  Reshaped, not squeezed. */
+  .docs-course-card,
+  .docs-section-card {
+    background: none;
+    border: 0;
+    border-bottom: 1.5px dashed var(--line-soft);
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0 0 0.9rem;
+  }
+
+  .docs-course-card {
+    column-gap: 0.9rem;
+    display: grid;
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+  }
+
+  .docs-course-figure {
+    grid-row: 1 / span 4;
+    height: 5.5rem;
+    margin: 0;
+  }
+
+  .docs-course-card h3 {
+    margin-top: 0.15rem;
+  }
+
+  .docs-course-card > p {
+    margin-top: 0.2rem;
+  }
+
+  .docs-card-pages {
+    padding-top: 0.35rem;
+  }
+
+  .card-grid-3.docs-cards {
+    gap: 0.9rem;
   }
 
   .docs-on-page-list {

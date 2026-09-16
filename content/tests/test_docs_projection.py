@@ -216,19 +216,24 @@ class DocsProjectionTests(TestCase):
             ):
                 build_docs_navigation(tuple(fixture))
 
-    def test_landing_uses_bounded_source_backed_entry_groups(self) -> None:
-        response = self.client.get(DOCS_ROOT_PATH)
-        self.assertEqual(response.status_code, 200)
-        html = response.content.decode("utf-8")
+    def test_landing_groups_come_from_the_source_hierarchy(self) -> None:
         tree = docs_navigation_tree()
         families, support = docs_home_course_groups(tree)
         areas = docs_home_areas(tree)
+
         self.assertEqual([item.title for item in areas], ["General", "Activities"])
-        for item in (*families, *support, *areas):
-            with self.subTest(public_path=item.public_path):
-                self.assertIn(f'href="{item.public_path}"', html)
-        self.assertIn('href="/docs/activities/workshops/"', html)
-        self.assertLess(html.count('href="/docs/'), 30)
+        self.assertTrue(families)
+        courses = tree.by_path["/docs/courses/"]
+        self.assertEqual(
+            sorted(item.public_path for item in (*families, *support)),
+            sorted(item.public_path for item in courses.children),
+        )
+        # What the hub *draws* from these groups -- which of them become
+        # illustrated cards, which become rows, and how much of the corpus that
+        # puts one click away -- is the hub's own contract, in
+        # `content/tests/test_docs_pages.py`.  The bound this test used to assert
+        # (fewer than thirty links on the landing page) was the defect that
+        # redesign removed: the hub reached 21 of 105 pages.
 
     def test_every_document_remains_reachable_by_hierarchical_drill_down(self) -> None:
         tree = docs_navigation_tree()
