@@ -53,7 +53,8 @@ from typing import NoReturn
 
 from accounts.identity_values import normalize_account_email
 from historical_registrations.importers import ProtectedSourceError
-from events.models import Event, EventRegistration
+from event_registrants.models import EventRegistration
+from events.models import Event
 from scripts.prod.registrant_import import (
     PendingEventRegistrants,
     RegistrantImportError,

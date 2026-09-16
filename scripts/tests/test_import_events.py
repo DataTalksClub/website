@@ -495,9 +495,7 @@ class NewEventIdentityDiscoveryTests(TestCase):
 
         import hashlib
 
-        from events.models import (
-            Event,
-        )
+        from events.models import Event
         from historical_registrations.models import (
             HistoricalRegistrationAggregateRevision,
             HistoricalRegistrationSourceRun,
@@ -852,10 +850,7 @@ class RunAtomicityTests(TestCase):
     def test_a_refused_run_leaves_no_partial_row_behind(self) -> None:
         from community_base.jobs.models import JobIntent
 
-        from events.models import (
-            Event,
-            EventContent,
-        )
+        from events.models import Event, EventContent
         from historical_registrations.models import (
             HistoricalRegistrationAggregateRevision,
             HistoricalRegistrationSourceRun,

@@ -60,7 +60,8 @@ from typing import NoReturn
 from zipfile import BadZipFile, ZipFile
 
 from accounts.identity_values import normalize_account_email
-from events.models import Event, EventRegistration
+from event_registrants.models import EventRegistration
+from events.models import Event
 from scripts.prod.registrant_import import (
     PendingEventRegistrants,
     RegistrantImportError,

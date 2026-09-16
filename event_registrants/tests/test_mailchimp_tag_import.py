@@ -16,14 +16,14 @@ from pathlib import Path
 from django.test import TestCase
 
 from accounts.models import CustomUser
-from events.mailchimp_event_tag_categories import MAILCHIMP_EVENT_TAG_CATEGORIES
-from events.mailchimp_tag_import import (
+from event_registrants.mailchimp_event_tag_categories import MAILCHIMP_EVENT_TAG_CATEGORIES
+from event_registrants.mailchimp_tag_import import (
     EMAIL_COLUMN,
     TAGS_COLUMN,
     import_mailchimp_event_tags,
     parse_mailchimp_tags,
 )
-from events.models import EventRegistrantIdentity, EventRegistrantInterestSignal
+from event_registrants.models import EventRegistrantIdentity, EventRegistrantInterestSignal
 
 
 def _tags(*names: str) -> str:

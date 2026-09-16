@@ -13,15 +13,12 @@ from django.db import IntegrityError
 from django.test import TestCase
 
 from accounts.models import CustomUser
-from events.models import (
-    Event,
-    EventIdentityError,
+from event_registrants.models import (
     EventRegistrantIdentity,
     EventRegistrantImportProgress,
     EventRegistration,
-    create_event_identity,
-    resolve_source_identity,
 )
+from events.models import Event, EventIdentityError, create_event_identity, resolve_source_identity
 from scripts.prod.registrant_import import (
     EXISTING_EVENT_AMBIGUOUS,
     EXISTING_EVENT_DATE_UNUSABLE,

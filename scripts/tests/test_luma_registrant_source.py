@@ -18,7 +18,8 @@ from django.conf import settings
 from django.test import SimpleTestCase, TestCase
 
 from accounts.models import CustomUser
-from events.models import Event, EventRegistrantIdentity, EventRegistration
+from event_registrants.models import EventRegistrantIdentity, EventRegistration
+from events.models import Event
 from scripts.prod.registrant_import import (
     RegistrantImportError,
     create_provider_event_identity,
@@ -203,17 +204,13 @@ class RowReadingTests(LumaRegistrantReaderTestCase):
             rows=[self._row(guest_id="g1", email="a@example.invalid")],
         )
         with self.assertRaises(RegistrantImportError):
-            read_luma_registrant_rows(
-                self.root / "one.csv", external_event_identifier="evt-other"
-            )
+            read_luma_registrant_rows(self.root / "one.csv", external_event_identifier="evt-other")
 
     def test_a_missing_required_column_refuses(self) -> None:
         (self.root / "thin.csv").write_text("event_id,guest_id\nevt-thin,g1\n", encoding="utf-8")
 
         with self.assertRaises(RegistrantImportError):
-            read_luma_registrant_rows(
-                self.root / "thin.csv", external_event_identifier="evt-thin"
-            )
+            read_luma_registrant_rows(self.root / "thin.csv", external_event_identifier="evt-thin")
 
     def test_a_symlinked_csv_refuses(self) -> None:
         self._write_event(
@@ -273,18 +270,14 @@ class LumaRegistrantSourceTests(LumaRegistrantExportMixin, TestCase):
             ],
         )
 
-        report = import_registrants(
-            provider=PROVIDER, pending=luma_registrant_sources(self.root)
-        )
+        report = import_registrants(provider=PROVIDER, pending=luma_registrant_sources(self.root))
 
         self.assertEqual(report.provider, PROVIDER)
         self.assertEqual(report.events_completed, 1)
         self.assertEqual(report.rows_written, 2)
         self.assertEqual(report.matched_account_total, 1)
         self.assertEqual(report.new_identity_total, 1)
-        self.assertEqual(
-            EventRegistrantIdentity.objects.filter(account=account).count(), 1
-        )
+        self.assertEqual(EventRegistrantIdentity.objects.filter(account=account).count(), 1)
 
     def test_a_completed_event_replays_without_its_file(self) -> None:
         """The resume guarantee, observed from outside: no file, no reopen."""

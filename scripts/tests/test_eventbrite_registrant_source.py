@@ -22,7 +22,8 @@ from pathlib import Path
 from django.conf import settings
 from django.test import SimpleTestCase, TestCase
 
-from events.models import Event, EventRegistrantIdentity, EventRegistration
+from event_registrants.models import EventRegistrantIdentity, EventRegistration
+from events.models import Event
 from scripts.prod.registrant_import import RegistrantImportError, import_registrants
 from scripts.prod.registration_sources.eventbrite_registrants import (
     PROVIDER,

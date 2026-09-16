@@ -102,7 +102,21 @@ from django.db import IntegrityError, transaction
 from django.utils.dateparse import parse_datetime
 
 from accounts.models import CustomUser
-from events.models import (Event, EventIdentityError, EventIdentityNotFound, EventRegistrantIdentity, EventRegistrantImportProgress, EventRegistration, canonical_event_date, create_event_identity, normalize_event_title, provider_event_date, resolve_source_identity)
+from event_registrants.models import (
+    EventRegistrantIdentity,
+    EventRegistrantImportProgress,
+    EventRegistration,
+)
+from events.models import (
+    Event,
+    EventIdentityError,
+    EventIdentityNotFound,
+    canonical_event_date,
+    create_event_identity,
+    normalize_event_title,
+    provider_event_date,
+    resolve_source_identity,
+)
 from scripts.prod.identity_manifest import SourceIdentity
 
 __all__ = [

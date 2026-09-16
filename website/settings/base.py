@@ -131,6 +131,7 @@ INSTALLED_APPS = [
     "events.apps.EventsConfig",
     "event_qna",
     "historical_registrations",
+    "event_registrants",
     "email_app.apps.EmailAppConfig",
     "studio.apps.StudioConfig",
     "management_api.apps.ManagementAPIConfig",
