@@ -39,6 +39,29 @@ class CatalogueReadTests(TestCase):
         self.assertEqual(catalogue.book(first["slug"]), first)
         self.assertIsNone(catalogue.book("no-such-book"))
 
+    def test_the_homepage_counts_are_the_collections_the_catalogue_serves(self) -> None:
+        counts = catalogue.collection_counts()
+
+        self.assertEqual(
+            counts,
+            {
+                "articles": len(catalogue.articles()),
+                "podcasts": len(catalogue.podcasts()),
+                "books": len(catalogue.books()),
+                "people": len(catalogue.people()),
+                "wiki": len(catalogue.wiki_pages()),
+                "courses": len(catalogue.courses()),
+                "media": len(catalogue.media()),
+                "transcripts": sum(
+                    1 for record in catalogue.podcasts() if record.get("transcript")
+                ),
+            },
+        )
+        # A loaded database actually publishes: the totals are not a shape
+        # check against hardcoded zeros.
+        self.assertTrue(counts["articles"])
+        self.assertTrue(counts["wiki"])
+
     def test_a_collection_is_read_once_and_then_served_from_the_release_cache(self) -> None:
         catalogue.books()
         with CaptureQueriesContext(connection) as repeated:

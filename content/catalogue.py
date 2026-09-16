@@ -61,8 +61,8 @@ COLLECTION_NAMES = (
 #: names a kind by dropping the collection's plural ``s``, which leaves
 #: "people", "wiki" and "media" spelled as they are.
 COLLECTION_KINDS = {name: name.rstrip("s") or name for name in COLLECTION_NAMES}
-#: The counts a release's manifest declares, so a page asking "how many articles
-#: are there" gets a zero rather than a missing key.
+#: The counts the homepage states, per collection, and the transcript count
+#: beside them.
 COUNT_KEYS = (*COLLECTION_NAMES, "transcripts")
 
 #: The community_base sync source whose synced rows publish the wiki, and the
@@ -550,17 +550,26 @@ def courses() -> tuple[Record, ...]:
 
 
 def collection_counts() -> dict[str, int]:
-    """How many records the release says each collection holds.
+    """How many records each collection actually publishes.
 
-    The homepage states these totals. A database publishing nothing reports a
-    zero for every collection rather than a missing key.
+    The homepage states these totals. They are counted from the rows the
+    catalogue itself serves -- the same records a hub page lists -- rather
+    than read from a release's own claim about itself, so a total cannot
+    disagree with the collection it states. A database publishing nothing
+    reports a zero for every collection rather than a missing key.
     """
 
-    held = manifest().get("counts", {})
-    counts = {key: 0 for key in COUNT_KEYS}
-    if isinstance(held, dict):
-        counts.update({key: int(value) for key, value in held.items()})
-    return counts
+    held = {
+        "articles": len(articles()),
+        "podcasts": len(podcasts()),
+        "books": len(books()),
+        "people": len(people()),
+        "wiki": len(wiki_pages()),
+        "courses": len(courses()),
+        "media": len(media()),
+        "transcripts": sum(1 for record in podcasts() if record.get("transcript")),
+    }
+    return {key: held[key] for key in COUNT_KEYS}
 
 
 def media() -> tuple[Record, ...]:
