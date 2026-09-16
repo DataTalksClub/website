@@ -275,3 +275,89 @@ vetoed before the D5.2 freeze weekend without rework beyond the named scope.
 - Row counts equal between site tables and package tables after the P6
   rehearsal on the development copy (migratable subset, per decision 11).
 - `uv run pytest -q` passes.
+
+## Mount pattern for the route flip (D5.2)
+
+The site has two proven package-mount idioms; the flip picks one per
+surface.
+
+1. **Wholesale urlconf include** — a package urlconf mounted under a site
+   prefix, ahead of the site shell. Precedent: `studio/mail/` and
+   `studio/content-sync/` in `website/urls.py` (D1.2a, D2.2a). Used only
+   where the package owns the surface outright. The package learner
+   urlconfs are *not* mounted this way: their paths carry trailing slashes
+   and the generic `<cohort_slug>` shape, so including them would change
+   public URLs — the D4.1 events decision (keep DTC public routes, do not
+   mount package public urls) applies to courses too.
+2. **Import re-point** — `courses/urls.py` keeps every path and URL name
+   (the slash-less shapes, the `cohort_*`/family names, and the route-group
+   sorter at the bottom of the file are load-bearing, and the
+   `course-route-contracts.json` rows get re-recorded at the flip per
+   decision 14); the view imports switch to the package. This is the
+   coursework urlconf's own contract: "the concrete paths stay with each
+   site's urlconf".
+
+Route categories the flip works through:
+
+- Re-point candidates (package coursework parity views exist): homework +
+  stats + submissions; project + eval/add/delete/submit + results + stats +
+  submissions; leaderboard + score breakdown + complaint; enrollment +
+  toggle. The site's fragmented view modules carry context builders the
+  package consolidated, so each re-point compares rendered output, not view
+  signatures.
+- Stays site-side: the project galleries (`site_project_gallery` — the
+  auto-submit filters and table rendering postdate the package
+  extraction), the dashboard and its context builders, the two-segment
+  `cohort` dispatch into the shared-course views, shared module/lesson
+  routes and assets, the calendar `.ics`, registration campaigns, and the
+  `course_aliases` legacy edition shims.
+- Package views with no current site surface: `coursework_certificate` —
+  `courses/urls.py` has no certificate route (certificates render via the
+  banner-generator landing include), so the flip decides whether to mount
+  it or leave it unmounted. The package `wrapped` view likewise meets a
+  bespoke site surface; parity is decided per view during the flip.
+- `cadmin/legacy_urls` redirects re-point at whatever view each flip
+  installs; their route names must keep resolving.
+
+## Mount pattern for the route flip (D5.2)
+
+The site has two proven package-mount idioms; the flip picks one per
+surface.
+
+1. **Wholesale urlconf include** — a package urlconf mounted under a site
+   prefix, ahead of the site shell. Precedent: `studio/mail/` and
+   `studio/content-sync/` in `website/urls.py` (D1.2a, D2.2a). Used only
+   where the package owns the surface outright. The package learner
+   urlconfs are *not* mounted this way: their paths carry trailing slashes
+   and the generic `<cohort_slug>` shape, so including them would change
+   public URLs — the D4.1 events decision (keep DTC public routes, do not
+   mount package public urls) applies to courses too.
+2. **Import re-point** — `courses/urls.py` keeps every path and URL name
+   (the slash-less shapes, the `cohort_*`/family names, and the route-group
+   sorter at the bottom of the file are load-bearing, and the
+   `course-route-contracts.json` rows get re-recorded at the flip per
+   decision 14); the view imports switch to the package. This is the
+   coursework urlconf's own contract: "the concrete paths stay with each
+   site's urlconf".
+
+Route categories the flip works through:
+
+- Re-point candidates (package coursework parity views exist): homework +
+  stats + submissions; project + eval/add/delete/submit + results + stats +
+  submissions; leaderboard + score breakdown + complaint; enrollment +
+  toggle. The site's fragmented view modules carry context builders the
+  package consolidated, so each re-point compares rendered output, not view
+  signatures.
+- Stays site-side: the project galleries (`site_project_gallery` — the
+  auto-submit filters and table rendering postdate the package
+  extraction), the dashboard and its context builders, the two-segment
+  `cohort` dispatch into the shared-course views, shared module/lesson
+  routes and assets, the calendar `.ics`, registration campaigns, and the
+  `course_aliases` legacy edition shims.
+- Package views with no current site surface: `coursework_certificate` —
+  `courses/urls.py` has no certificate route (certificates render via the
+  banner-generator landing include), so the flip decides whether to mount
+  it or leave it unmounted. The package `wrapped` view likewise meets a
+  bespoke site surface; parity is decided per view during the flip.
+- `cadmin/legacy_urls` redirects re-point at whatever view each flip
+  installs; their route names must keep resolving.
