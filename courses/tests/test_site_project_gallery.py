@@ -330,10 +330,7 @@ class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
         # Owner follow-up: "same here" -- Assignment must narrow the same way.
         by_course = self.client.get(self.gallery_url(), {"course": "de-zoomcamp"})
         self.assertEqual(
-            {
-                label
-                for _, label in by_course.context["gallery_filters"].fields["project"].choices
-            },
+            {label for _, label in by_course.context["gallery_filters"].fields["project"].choices},
             {
                 "All assignments",
                 f"{self.de_project_2024.title} · Data Engineering Zoomcamp 2024",
@@ -375,7 +372,9 @@ class SiteProjectGalleryDiscoveryTests(SiteProjectGalleryTestBase):
     def test_the_family_gallery_starts_with_cohort_already_unlocked(self):
         # The family-scoped gallery already fixes the course via the route,
         # so Cohort should not need a redundant course pick to unlock.
-        response = self.client.get(reverse("family_projects", kwargs={"course_slug": "de-zoomcamp"}))
+        response = self.client.get(
+            reverse("family_projects", kwargs={"course_slug": "de-zoomcamp"})
+        )
 
         self.assertNotIn(
             "disabled", response.context["gallery_filters"].fields["cohort"].widget.attrs
