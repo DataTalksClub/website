@@ -8,13 +8,15 @@ from unittest.mock import patch
 
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
+from django.utils.html import escape as html_escape
 
 from content.docs_presentation import (
     docs_body_without_primary_heading,
-    docs_context_items,
     docs_curriculum,
     docs_home_areas,
     docs_home_course_groups,
+    docs_meta_description,
+    docs_meta_title,
 )
 from content.docs_projection import (
     DOCS_ROOT_PATH,
@@ -25,6 +27,7 @@ from content.docs_projection import (
     docs_breadcrumbs,
     docs_navigation_tree,
     docs_page,
+    docs_pages,
     docs_parent,
     docs_projection,
     docs_sequential_navigation,
@@ -70,10 +73,83 @@ class DocsProjectionTests(TestCase):
         self.assertContains(detail, 'id="star-the-github-repository"')
         self.assertContains(detail, 'href="/docs/courses/zoomcamp-logistics/joining/"')
         self.assertNotContains(detail, "3f23e006ffdaa498bbc69697408853b6f5eb37dc")
-        projected_detail = docs_page(detail_path)
-        self.assertIsNotNone(projected_detail)
-        self.assertNotContains(detail, (projected_detail or {})["edit_url"])
         self.assertNotContains(detail, "Search documentation on GitHub")
+
+    def test_docs_titles_disambiguate_same_named_pages_across_course_families(self) -> None:
+        # F3: every course family publishes its own "Getting Started" page, so the
+        # plain page title alone is not a unique <title> -- the immediate parent
+        # must distinguish them.
+        aidt_getting_started = docs_page("/docs/courses/ai-dev-tools-zoomcamp/getting-started/")
+        ml_getting_started = docs_page("/docs/courses/ml-zoomcamp/getting-started/")
+        self.assertIsNotNone(aidt_getting_started)
+        self.assertIsNotNone(ml_getting_started)
+        assert aidt_getting_started is not None
+        assert ml_getting_started is not None
+        aidt_title = docs_meta_title(aidt_getting_started)
+        ml_title = docs_meta_title(ml_getting_started)
+        self.assertNotEqual(aidt_title, ml_title)
+        self.assertIn("Getting Started", aidt_title)
+        self.assertIn("Getting Started", ml_title)
+        self.assertIn("·", aidt_title)
+        self.assertIn("·", ml_title)
+        self.assertIn("AI Dev Tools Zoomcamp", aidt_title)
+        self.assertIn("Machine Learning Zoomcamp", ml_title)
+
+        aidt_response = self.client.get("/docs/courses/ai-dev-tools-zoomcamp/getting-started/")
+        ml_response = self.client.get("/docs/courses/ml-zoomcamp/getting-started/")
+        self.assertContains(aidt_response, html_escape(aidt_title))
+        self.assertContains(ml_response, html_escape(ml_title))
+
+        # Top-level pages carry no ambiguous sibling, so they keep the plain form.
+        general = docs_page("/docs/general/")
+        self.assertIsNotNone(general)
+        assert general is not None
+        self.assertEqual(docs_meta_title(general), "General — DataTalks.Club Documentation")
+
+    def test_docs_pages_without_a_source_description_get_a_real_derived_one(self) -> None:
+        # F4: most pages carry no source `description` (88 of 106 in the real synced
+        # corpus), so the fallback used to be the identical generic sentence on all
+        # of them. It must instead be derived from that page's own first paragraph.
+        # Every page in this reference fixture carries a source description, so the
+        # "no description" branch is exercised directly against the derivation
+        # function rather than against a real route.
+        undescribed_document = {"description": ""}
+        rendered_body = (
+            "<p>How the DataTalks.Club community works and how our free courses run: "
+            "guidelines, Slack, course logistics, setup guides and activity formats "
+            "for everyone who joins, well past the usual meta description length so "
+            "truncation is exercised too.</p>"
+        )
+        description = docs_meta_description(undescribed_document, rendered_body)
+        self.assertNotEqual(description, "DataTalks.Club documentation.")
+        self.assertTrue(description)
+        self.assertLessEqual(len(description), 161)  # 160 chars plus a trailing ellipsis
+        self.assertTrue(rendered_body.startswith(f"<p>{description.removesuffix('…')}"))
+
+        # A body with no real paragraph at all still gets a safe, real default.
+        self.assertEqual(
+            docs_meta_description(undescribed_document, ""), "DataTalks.Club documentation."
+        )
+
+        # A page with a source description keeps it verbatim, body notwithstanding.
+        described = next(page for page in docs_pages() if page.get("description"))
+        self.assertEqual(
+            docs_meta_description(described, "<p>irrelevant</p>"),
+            described["description"],
+        )
+
+        # And the real route for such a page renders that same derived value.
+        general = docs_page("/docs/general/")
+        self.assertIsNotNone(general)
+        assert general is not None
+        rendered, _headings = render_docs_markdown(general)
+        _heading_id, rendered_body = docs_body_without_primary_heading(rendered)
+        expected = docs_meta_description(general, rendered_body)
+        response = self.client.get(general["public_path"])
+        self.assertContains(
+            response,
+            f'<meta name="description" content="{html_escape(expected)}">',
+        )
 
     def test_tree_is_complete_ordered_and_stable_across_source_reordering(self) -> None:
         pages = docs_projection()["pages"]
@@ -136,19 +212,24 @@ class DocsProjectionTests(TestCase):
             ):
                 build_docs_navigation(tuple(fixture))
 
-    def test_landing_uses_bounded_source_backed_entry_groups(self) -> None:
-        response = self.client.get(DOCS_ROOT_PATH)
-        self.assertEqual(response.status_code, 200)
-        html = response.content.decode("utf-8")
+    def test_landing_groups_come_from_the_source_hierarchy(self) -> None:
         tree = docs_navigation_tree()
         families, support = docs_home_course_groups(tree)
         areas = docs_home_areas(tree)
+
         self.assertEqual([item.title for item in areas], ["General", "Activities"])
-        for item in (*families, *support, *areas):
-            with self.subTest(public_path=item.public_path):
-                self.assertIn(f'href="{item.public_path}"', html)
-        self.assertIn('href="/docs/activities/workshops/"', html)
-        self.assertLess(html.count('href="/docs/'), 30)
+        self.assertTrue(families)
+        courses = tree.by_path["/docs/courses/"]
+        self.assertEqual(
+            sorted(item.public_path for item in (*families, *support)),
+            sorted(item.public_path for item in courses.children),
+        )
+        # What the hub *draws* from these groups -- which of them become
+        # illustrated cards, which become rows, and how much of the corpus that
+        # puts one click away -- is the hub's own contract, in
+        # `content/tests/test_docs_pages.py`.  The bound this test used to assert
+        # (fewer than thirty links on the landing page) was the defect that
+        # redesign removed: the hub reached 21 of 105 pages.
 
     def test_every_document_remains_reachable_by_hierarchical_drill_down(self) -> None:
         tree = docs_navigation_tree()
@@ -205,11 +286,10 @@ class DocsProjectionTests(TestCase):
         response = self.client.get(path)
         html = response.content.decode("utf-8").split("</head>", 1)[1]
         breadcrumb = html.split('aria-label="Breadcrumb"', 1)[1].split("</nav>", 1)[0]
-        tree = html.split('aria-label="AI Dev Tools Zoomcamp guide"', 1)[1].split("</nav>", 1)[0]
+        rail = html.split('id="docs-rail"', 1)[1].split("</nav>", 1)[0]
         self.assertEqual(breadcrumb.count('aria-current="page"'), 1)
-        self.assertEqual(tree.count('aria-current="page"'), 2)
-        self.assertIn('class="docs-local-summary" aria-current="page"', tree)
-        self.assertIn(f'href="{path}"', tree)
+        self.assertEqual(rail.count('aria-current="page"'), 1)
+        self.assertIn(f'href="{path}"', rail)
 
     def test_public_docs_do_not_render_repository_utility_actions(self) -> None:
         for path in (DOCS_ROOT_PATH, "/docs/general/guidelines/ai-usage/"):
@@ -218,27 +298,7 @@ class DocsProjectionTests(TestCase):
                 self.fail(f"projected Docs page is missing: {path}")
             response = self.client.get(path)
             self.assertNotContains(response, "Search documentation on GitHub")
-            self.assertNotContains(response, f'href="{page["edit_url"]}"')
             self.assertNotContains(response, DOCS_SOURCE_REVISION)
-
-    def test_representative_detail_navigation_is_local_and_bounded(self) -> None:
-        tree = docs_navigation_tree()
-        scenarios = {
-            "/docs/courses/ml-zoomcamp/curriculum/": ("Machine Learning Zoomcamp", 8),
-            "/docs/general/guidelines/ai-usage/": ("Community Guidelines", 6),
-        }
-        for path, (title, count) in scenarios.items():
-            with self.subTest(path=path):
-                items = docs_context_items(tree, path)
-                self.assertEqual(items[0].title, title)
-                self.assertEqual(len(items), count)
-                response = self.client.get(path)
-                body = response.content.decode("utf-8").split("</head>", 1)[1]
-                self.assertEqual(body.count('class="docs-tree-link'), count)
-                local = body.split(f'aria-label="{title} guide"', 1)[1].split("</nav>", 1)[0]
-                self.assertEqual(local.count('aria-current="page"'), 2)
-                self.assertIn('class="docs-local-summary" aria-current="page"', local)
-                self.assertNotContains(response, 'aria-label="Documentation sections"')
 
     def test_curriculum_presentation_preserves_the_source_learning_flow(self) -> None:
         page = docs_page("/docs/courses/ml-zoomcamp/curriculum/")
@@ -270,6 +330,44 @@ class DocsProjectionTests(TestCase):
         )
         for anchor in ("curriculum", "modules", "learning-philosophy", "pace", "cohort-changes"):
             self.assertContains(response, f'id="{anchor}"', count=1)
+
+    def test_curriculum_item_with_a_nested_link_never_wraps_in_an_outer_anchor(self) -> None:
+        """A details list that links out on its own -- for example the Data
+        Engineering Zoomcamp curriculum's Final Project module, which points
+        readers to its own project page -- must never sit inside the card's
+        outer ``<a>``. HTML forbids a nested anchor; a browser reparents the
+        inner one, splitting one module into several visual boxes.
+        """
+        source = (
+            "# Curriculum\n\n"
+            "## Modules\n\n"
+            "[Module 1: Containerization]"
+            "(https://github.com/DataTalksClub/data-engineering-zoomcamp/tree/main/01-docker-terraform)\n\n"
+            "- Docker and Postgres.\n\n"
+            "[Final Project](https://github.com/DataTalksClub/data-engineering-zoomcamp/tree/main/projects)\n\n"
+            "- Three weeks at the end of the cohort.\n"
+            "- See the [Project page](/docs/courses/data-engineering-zoomcamp/project/).\n\n"
+            "## Cohort changes\n\n"
+            "Notes.\n"
+        )
+        rendered, _headings = render_docs_markdown({"body": source})
+        _heading_id, body = docs_body_without_primary_heading(rendered)
+        curriculum = docs_curriculum(body)
+        self.assertIsNotNone(curriculum)
+        assert curriculum is not None
+        self.assertEqual(len(curriculum.items), 2)
+        module, final_project = curriculum.items
+        self.assertEqual(
+            module.destination,
+            "https://github.com/DataTalksClub/data-engineering-zoomcamp/tree/main/01-docker-terraform",
+        )
+        # The nested link inside the details forces this item to render as a
+        # static (non-anchor) card, but the inline link itself stays intact.
+        self.assertIsNone(final_project.destination)
+        self.assertNotIn("<a", final_project.title_html)
+        self.assertIn(
+            'href="/docs/courses/data-engineering-zoomcamp/project/"', final_project.details_html
+        )
 
     def test_route_alias_unknown_search_and_query_behavior_remain_bounded(self) -> None:
         alias = self.client.get("/docs", query_params={"source": "test"})

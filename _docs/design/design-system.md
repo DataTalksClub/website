@@ -316,6 +316,17 @@ to this document — do not fork it locally.
   </div>
   ```
 
+  The action above sits beside the heading when it points to another index the
+  band is teasing (a course catalogue, the full events list) — most of the site's
+  bands, reviewed and shipped this way. A page that reads as one continuous
+  walkthrough rather than a set of independent index teasers instead places that
+  action under the section's own content, immediately after its last block, as a
+  plain `.band-link` — it then reads as the section's own last word rather than a
+  second thing competing with the heading for the reader's eye first. `/tour`
+  (`templates/core/tour.html`) follows this second pattern throughout, via the
+  page-local `.tour-content-link` spacing hook; it is that page's own convention
+  for now, not a retroactive rule for the bands shown above.
+
 - **`.kicker`** — uppercase indigo eyebrow. The mono variant is
   `.mono-label.mono-label-indigo`.
 - **`.band-link`** — underlined indigo action link.
@@ -353,6 +364,24 @@ to this document — do not fork it locally.
   the one real anchor and its `::after` covers the card, so the accessibility tree
   holds exactly one link per event. Anything else interactive inside sits above that
   overlay with `position: relative; z-index: 1`.
+- **Stage card** (`.stage-card`, numbered `.step-number` badge) — one numbered stage on
+  a plain `.card`: badge, illustration, heading, short description. It is a real shared
+  include, `templates/core/_stage_card.html`, not just shared CSS — the homepage's
+  "climb" section and a course family landing's "journey" section both render it, so
+  the two cards cannot drift apart the way their hand-copied badge sizes once did.
+
+  ```html
+  {% include "core/_stage_card.html" with step_index=1 heading="…" description="…" illustration_template="core/_home_illustration.html" illustration_variant="stuck" %}
+  ```
+
+  `step_index` (1/2/3) picks the badge digit and its `.step-number-2` /
+  `.step-number-3` fill. `illustration_template` is the artwork include rendered
+  inside, with `illustration_variant` / `illustration_loading` passed through to it.
+  `kicker` is an optional label paragraph (the family page's only). `on_rail` switches
+  the shape: unset draws the homepage's plain grid-flow card (illustration first, the
+  badge grouped with the heading); `on_rail=True` draws the badge astride the card's
+  top-left corner for a page that already draws its own dashed connecting rail behind
+  the row (`.journey-grid::before` stays page-specific, along with the grid itself).
 - **`.chip`** — round uppercase mini-pill. Variants: `.chip-plain`, `.chip-green`,
   `.chip-live`, `.chip-ink`.
 - **`.avatar`** — striped round placeholder disc, `2.6rem`.
@@ -424,7 +453,12 @@ to this document — do not fork it locally.
 - **`.ship-line`** — italic bold `--green-ship`; sits directly under a course title
   everywhere a course is sold.
 - **`.stat-tiles` / `.stat-tile`** — lavender tiles with ink border and hard shadow,
-  in a 2×2 grid: a number as `strong`, a label as `span`.
+  in a 2×2 grid: a number as `strong`, a label as `span`. **`.stat-tiles-row`** is the
+  one-row modifier for a strip of 2-4 live facts (the course family landing's outcome
+  numbers, the courses index's own facts strip): shorter tiles, and the tile count
+  itself decides the column count — a lone odd tile spans the full row below 40rem,
+  and a fourth tile opens a 4-column row at 40rem instead of wrapping onto its own
+  row. The two pages share this one component rather than each inventing a grid.
 - **Progress bar** — white track, 2px ink border, `--green-bright` fill. Always pair
   it with a `.mono-note` stating the numbers, and give it the full progressbar ARIA:
 

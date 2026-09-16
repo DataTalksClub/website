@@ -112,7 +112,9 @@ class CourseFamilyLandingTests(TestCase):
 
         transformation = response.context["family_transformation"]
         self.assertEqual(transformation, self.family.progression)
-        self.assertContains(response, 'class="card journey-card"', count=3)
+        # The journey card is the shared stage-card component
+        # (core/_stage_card.html), on its rail variant.
+        self.assertContains(response, 'class="card stage-card stage-card-rail"', count=3)
         for step in self.family.progression:
             self.assertContains(response, step["heading"])
             self.assertContains(response, step["description"])
@@ -176,8 +178,9 @@ class CourseFamilyLandingTests(TestCase):
         self.assertNotIn('href="#syllabus-heading"', section)
         self.assertNotIn("Peer-reviewed", section)
         self.assertNotIn('href="#built-heading"', section)
-        # Every card ends on its own <p> description; nothing follows it.
-        self.assertEqual(section.count("</p>\n              </article>"), 3)
+        # Every card ends on its own <p> description; nothing follows it
+        # (the closing </article> is the shared stage-card template's own).
+        self.assertEqual(section.count("</p>\n  </article>"), 3)
 
     def test_prerequisites_and_weekly_commitment_are_their_own_opening_sections(self):
         self.family.weekly_commitment = "Free. Plan for about 5-15 hours a week."
@@ -275,21 +278,34 @@ class CourseFamilyLandingTests(TestCase):
         )
         self.family.save(update_fields=["description"])
         response = self.client.get(self.url)
-
-        # Owner feedback (2026-09): the learning notes used to sit behind a
-        # collapsible mid-page; they now render as prominent prose right
-        # under the hero lede, not a disclosure.
-        response = self.client.get(self.url)
         body = response.content.decode()
 
+        # Owner feedback (2026-09): the learning notes used to sit behind a
+        # collapsible mid-page, then briefly under the hero lede (too much
+        # text stacked in the cream hero band above the CTAs); they now
+        # render as plain prose of their own in the body, still not a
+        # disclosure, and not inside the hero any more.
         self.assertNotContains(response, "<details class=\"family-overview\"")
         self.assertNotContains(response, "About this course and learning notes")
         self.assertContains(response, "This course is educational; results are not guaranteed.")
         self.assertNotContains(response, "<script>unsafe()")
-        # Prominent: renders inside the hero, ahead of the rest of the page.
+        self.assertNotIn("This course is educational", self.hero_section(response))
+        self.assertContains(response, 'class="family-overview-section"')
+        overview_section = body[
+            body.index('class="family-overview-section"') : body.index(
+                "</section>", body.index('class="family-overview-section"')
+            )
+        ]
+        self.assertIn("This course is educational", overview_section)
+        # In the body, after the hero and the opening-group quick facts,
+        # ahead of the journey.
         self.assertLess(
-            body.index("This course is educational"),
-            body.index('id="register-heading"'),
+            body.index('class="family-hero-inner"'),
+            body.index('class="family-overview-section"'),
+        )
+        self.assertLess(
+            body.index('class="family-overview-section"'),
+            body.index('id="transformation-heading"'),
         )
 
     def test_whitespace_prerequisites_do_not_leave_an_empty_label(self):
@@ -519,7 +535,10 @@ class CourseFamilyOutcomeStatsTests(TestCase):
         self.assertEqual((stats[0].value, stats[0].label), ("1", "cohort since 2021"))
         self.assertEqual((stats[1].value, stats[1].label), ("47", "registrations"))
         self.assertNotContains(response, "enrolled since 2021")
-        self.assertNotContains(response, "sign ups")
+        # Not the rendered tile text -- a page-local CSS comment names every
+        # possible stat label generically, so the check is scoped to the
+        # actual <span> the tile renders rather than a bare substring.
+        self.assertNotContains(response, "<span>sign ups</span>")
 
     def test_published_single_registration_uses_singular_label(self):
         RegistrationCampaign.objects.create(
@@ -555,7 +574,10 @@ class CourseFamilyOutcomeStatsTests(TestCase):
         stats = response.context["family_outcome_stats"]
         self.assertEqual((stats[1].value, stats[1].label), ("1", "registration"))
         self.assertNotContains(response, "enrolled since 2021")
-        self.assertNotContains(response, "sign ups")
+        # Not the rendered tile text -- a page-local CSS comment names every
+        # possible stat label generically, so the check is scoped to the
+        # actual <span> the tile renders rather than a bare substring.
+        self.assertNotContains(response, "<span>sign ups</span>")
 
     def test_a_family_with_nobody_enrolled_omits_the_whole_strip(self):
         empty_family = Course.objects.create(slug="no-one-yet", title="No One Yet")
@@ -680,11 +702,12 @@ class CourseFamilySyllabusMergeTests(TestCase):
 
 
 class CourseFamilyProjectGalleryTests(TestCase):
-    """The inline learner-work gallery: a handful of real project-submission rows
+    """The inline learner-work gallery: a handful of real project-submission cards
     (courses.views.project_gallery_groups.family_project_submissions), reusing the
-    same card fields the family/site project galleries already show -- submitter,
-    repository link, project + cohort tag -- and hidden entirely for a family with
-    no real submissions.
+    same fields the family/site project galleries already show -- submitter,
+    repository link, project + cohort tag -- with no vote/score/pass badge (owner
+    feedback: the badge is redundant once only passed submissions render here) and
+    hidden entirely for a family with no real *passed* submissions.
     """
 
     def setUp(self):
@@ -694,7 +717,7 @@ class CourseFamilyProjectGalleryTests(TestCase):
         self.url = reverse("course_family", args=[self.family.slug])
         self._count = 0
 
-    def add_submission(self, *, cohort=None, project=None, volunteer=False):
+    def add_submission(self, *, cohort=None, project=None, volunteer=False, passed=True):
         cohort = cohort or self.cohort
         project = project or cohort.project_set.first()
         self._count += 1
@@ -706,15 +729,26 @@ class CourseFamilyProjectGalleryTests(TestCase):
             enrollment=enrollment,
             github_link=f"https://github.com/example/gallery-repo-{self._count}",
             volunteer_review_only=volunteer,
+            passed=passed,
         )
+
+    def proof_section(self, response) -> str:
+        """The rendered "See what people have built" section, markup only."""
+
+        body = response.content.decode()
+        start = body.index('id="built-heading"')
+        return body[start : body.index("</section>", start)]
 
     def test_inline_gallery_shows_real_submitter_repository_and_project_cohort_tag(self):
         submission = self.add_submission()
 
         response = self.client.get(self.url)
 
-        self.assertContains(response, 'class="row-list family-proof-gallery"')
-        self.assertContains(response, 'class="list-row submission-row"')
+        self.assertContains(response, 'class="card-grid card-grid-2 family-proof-gallery"')
+        self.assertContains(
+            response,
+            'class="card family-proof-card stretched-card-link interactive-card interactive-lift"',
+        )
         self.assertContains(response, submission.enrollment.display_name)
         self.assertContains(response, submission.github_link)
         self.assertContains(response, "github.com/example/gallery-repo-1")
@@ -730,6 +764,16 @@ class CourseFamilyProjectGalleryTests(TestCase):
                 },
             ),
         )
+        # Owner feedback: no vote count, score or "Passed"/"Not passed" badge
+        # any more -- every row shown here is already a passed submission.
+        # Scoped to this section: the editions strip above uses its own
+        # status pills for a different fact (registration state).
+        section = self.proof_section(response)
+        self.assertNotIn("vote</span>", section)
+        self.assertNotIn("score</span>", section)
+        self.assertNotIn("status-pill", section)
+        self.assertNotIn(">Passed<", section)
+        self.assertNotIn(">Not passed<", section)
 
     def test_a_family_with_no_real_submissions_hides_the_gallery_gracefully(self):
         self.add_submission(volunteer=True)
@@ -737,8 +781,21 @@ class CourseFamilyProjectGalleryTests(TestCase):
         response = self.client.get(self.url)
 
         self.assertEqual(list(response.context["family_gallery_submissions"]), [])
-        self.assertNotContains(response, 'class="row-list family-proof-gallery"')
-        self.assertNotContains(response, 'class="list-row submission-row"')
+        self.assertNotContains(response, 'class="card-grid card-grid-2 family-proof-gallery"')
+        self.assertNotContains(response, "family-proof-card")
+
+    def test_a_family_with_only_unpassed_submissions_hides_the_inline_gallery(self):
+        """The section itself still shows (the outcome stats and stage-3 proof
+        foot count every submission, passed or not), but the inline card
+        preview only ever renders passed work."""
+        self.add_submission(passed=False)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(list(response.context["family_gallery_submissions"]), [])
+        self.assertContains(response, 'id="built-heading"')
+        self.assertNotContains(response, 'class="card-grid card-grid-2 family-proof-gallery"')
+        self.assertNotContains(response, "family-proof-card")
 
     def test_inline_gallery_caps_at_six_even_with_more_real_submissions(self):
         for _ in range(9):
@@ -747,7 +804,10 @@ class CourseFamilyProjectGalleryTests(TestCase):
         response = self.client.get(self.url)
 
         self.assertEqual(len(response.context["family_gallery_submissions"]), 6)
-        self.assertEqual(response.content.decode().count('class="list-row submission-row"'), 6)
+        self.assertEqual(
+            response.content.decode().count("family-proof-card"),
+            6,
+        )
 
 
 class CourseFamilyFaqPreviewTests(TestCase):

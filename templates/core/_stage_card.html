@@ -1,0 +1,71 @@
+{% comment %}
+  Shared numbered-stage card: badge, illustration, heading, description.
+
+  Drawn once so the homepage's "climb" section (following tutorials ->
+  building your own projects) and a course family landing's "journey"
+  section (three learning stages) render the exact same card instead of two
+  hand-copied CSS files that can drift apart, as `.step-number` once did.
+
+  Required:
+    step_index             -- 1, 2 or 3. Picks the badge digit and the shared
+                               `.step-number-2` / `.step-number-3` fill.
+    heading                 -- h3 text.
+    description             -- paragraph text.
+    illustration_template   -- the template path rendered for the artwork,
+                               e.g. "core/_home_illustration.html" or
+                               "core/_course_journey_start.html".
+
+  Optional:
+    illustration_variant    -- passed through to the illustration include as
+                               `variant` (core/_home_illustration.html's
+                               "stuck" / "learning" / "shipping" / "hero").
+    illustration_loading    -- passed through as `loading`, for an include
+                               that reads it (core/_course_journey_start.html).
+    kicker                   -- small label paragraph rendered above the
+                               illustration. Rendered only when given; the
+                               plain grid-flow card (on_rail is unset) has no
+                               slot for one.
+    on_rail                  -- boolean, default false. False draws the
+                               homepage's climb card: illustration first, the
+                               badge grouped with the heading, plain
+                               grid-flow position. True draws the badge
+                               astride the card's top-left corner, for a page
+                               that already draws its own connecting rail
+                               behind the row (the rail itself, and the grid
+                               it runs through, stay page-specific -- see
+                               `.journey-grid` / `.journey-grid::before`).
+{% endcomment %}
+{% if on_rail %}
+  <article class="card stage-card stage-card-rail">
+    {% if step_index == 2 %}
+      <span class="step-number step-number-2" aria-hidden="true">{{ step_index }}</span>
+    {% elif step_index == 3 %}
+      <span class="step-number step-number-3" aria-hidden="true">{{ step_index }}</span>
+    {% else %}
+      <span class="step-number" aria-hidden="true">{{ step_index }}</span>
+    {% endif %}
+    {% if kicker %}
+      <p class="stage-card-kicker">{{ kicker }}</p>
+    {% endif %}
+    <div class="stage-card-figure" aria-hidden="true">
+      {% include illustration_template with variant=illustration_variant loading=illustration_loading %}
+    </div>
+    <h3>{{ heading }}</h3>
+    <p>{{ description }}</p>
+  </article>
+{% else %}
+  <article class="card stage-card">
+    {% include illustration_template with variant=illustration_variant loading=illustration_loading %}
+    <div class="stage-card-step">
+      {% if step_index == 2 %}
+        <span class="step-number step-number-2" aria-hidden="true">{{ step_index }}</span>
+      {% elif step_index == 3 %}
+        <span class="step-number step-number-3" aria-hidden="true">{{ step_index }}</span>
+      {% else %}
+        <span class="step-number" aria-hidden="true">{{ step_index }}</span>
+      {% endif %}
+      <h3>{{ heading }}</h3>
+    </div>
+    <p>{{ description }}</p>
+  </article>
+{% endif %}

@@ -34,6 +34,15 @@ PAGES_ROOTS = ("activities", "courses", "general", "touch")
 
 _MD_SUFFIX = ".md"
 _INDEX_STEM = "index"
+_IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"}
+# The source repository writes every image through Jekyll's ``relative_url`` filter, for
+# example ``{{ '/assets/images/foo.png' | relative_url }}``; unwrap it to the bare source-root
+# path before scanning for image references, matching ``docs_projection._LIQUID_RELATIVE_URL``.
+_LIQUID_RELATIVE_URL = re.compile(
+    r"{{\s*(['\"])(?P<path>.*?)\1\s*\|\s*relative_url\s*}}",
+    re.DOTALL,
+)
+_IMAGE_REFERENCE = re.compile(r"(?:!\[[^\]]*\]\(|src=\")([^\s)\"]+)")
 
 
 class DocsParser:
@@ -61,7 +70,7 @@ class DocsParser:
             record = item.data["record"]
             metadata = record["metadata"]
             parent = metadata["parent"]
-            metadata["parent_path"] = paths_by_title.get(parent, "") if parent else ""
+            metadata["parent_path"] = paths_by_title.get(parent) if parent else None
         # The record derives from the page's file plus every page whose title a
         # parent reference resolves to, so the change-detection checksum covers
         # the whole derived record, not just the page's own bytes.
@@ -139,7 +148,7 @@ class DocsParser:
                     metadata.get("parent"), field="docs parent", maximum=500, optional=True
                 ),
                 # Resolved against the discovered pages in ``discover``.
-                "parent_path": "",
+                "parent_path": None,
                 "grand_parent": "",
                 "grand_parent_path": "",
                 "nav_order": metadata.get("nav_order"),
@@ -178,19 +187,33 @@ class DocsParser:
     @staticmethod
     def _images(body: str, page_dir: PurePosixPath) -> list[str]:
         seen: list[str] = []
-        for match in re.finditer(r"(?:!\[[^\]]*\]\(|src=\")([^\s)\"]+)", body):
+        # The source wraps every image reference in Jekyll's ``relative_url`` filter
+        # (``{{ '/assets/images/foo.png' | relative_url }}``); unwrap it first so the
+        # reference scan below sees the bare source-root path it names.
+        unwrapped = _LIQUID_RELATIVE_URL.sub(lambda match: match.group("path"), body)
+        for match in _IMAGE_REFERENCE.finditer(unwrapped):
             value = match.group(1)
-            if value.startswith(("http://", "https://", "/")):
+            if value.startswith(("http://", "https://")):
                 continue
             candidate = PurePosixPath(value)
-            if candidate.suffix.lower() not in {".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"}:
+            if candidate.suffix.lower() not in _IMAGE_SUFFIXES:
                 continue
-            # A relative reference resolves against the page's own directory;
-            # the upload and the served asset path are checkout-relative.
-            normalised = PurePosixPath(posixpath.normpath(str(page_dir / candidate)))
-            if normalised.parts[:1] == ("..",):
-                base.fail("docs image reference escapes the checkout", value)
-            key = normalised.as_posix()
+            if value.startswith("/assets/"):
+                # A checkout-root asset path -- the pretty-permalink prefix the source's
+                # own ``relative_url`` filter adds -- is already checkout-relative once
+                # the leading slash is dropped, so it never resolves against the page.
+                key = value.removeprefix("/")
+            elif value.startswith("/"):
+                # Any other source-root-absolute reference names an asset outside the
+                # checkout's own ``assets/`` tree; the parser cannot resolve it.
+                continue
+            else:
+                # A relative reference resolves against the page's own directory;
+                # the upload and the served asset path are checkout-relative.
+                normalised = PurePosixPath(posixpath.normpath(str(page_dir / candidate)))
+                if normalised.parts[:1] == ("..",):
+                    base.fail("docs image reference escapes the checkout", value)
+                key = normalised.as_posix()
             if key not in seen:
                 seen.append(key)
         return seen

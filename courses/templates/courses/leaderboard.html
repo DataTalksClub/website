@@ -133,9 +133,23 @@
       }
 
       /* One mark per project this student has passed.  The copied page drew a
-         five-colour medal star from an icon font; a design system page loads no
-         icon font and has no medal palette, so the mark is the brand bubble
-         disc and the project it stands for is named in text beside it. */
+         five-colour medal star from an icon font; a design system page loads
+         no icon font, so the mark is a filled disc instead — but it keeps the
+         CMP behaviour this ported from: every star for the same project, in
+         every row, is the same color, so a visitor can tell at a glance which
+         projects a learner passed, not just how many. The palette is the same
+         four flat, categorical swatches the podcast subscribe row already
+         draws its per-platform dots from (`.pill-button .dot-bubble` /
+         `.dot-gold` / `.dot-green` / `.dot-clay`) — real tokens already used
+         together as a "same shape, different meaning" set, and picked instead
+         of the closer `.step-number-2` indigo-soft precisely because it reads
+         too close to `--bubble` at this swatch size to tell apart at a
+         glance. `--clay` and `--gold` hold their one value in both themes
+         (design-system.md), so every color stays legible without a dark-mode
+         override. A cohort with more projects than colors cycles back through
+         the four rather than growing an increasingly indistinct palette.
+         Color is reinforcement, not the only signal — `title` and the
+         sr-only text beside it still name the project. */
       .leaderboard-passed {
         align-items: center;
         background: var(--bubble);
@@ -149,39 +163,24 @@
         width: 1.4rem;
       }
 
-      /* --- pagination ---------------------------------------------------- */
-
-      .leaderboard-pagination {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem 0.75rem;
-        justify-content: center;
-        margin-top: 1.5rem;
+      .leaderboard-passed-2 {
+        background: var(--gold);
+        color: var(--on-bubble);
       }
 
-      .leaderboard-pages {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        font-family: var(--font-mono);
-        gap: 0.35rem 0.75rem;
-        justify-content: center;
+      .leaderboard-passed-3 {
+        background: var(--green);
+        color: var(--on-green);
       }
 
-      .leaderboard-pages a {
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
+      .leaderboard-passed-4 {
+        background: var(--clay);
+        color: var(--on-bubble);
       }
 
-      .leaderboard-pages [aria-current="page"] {
-        color: var(--ink);
-        font-weight: 700;
-      }
-
-      .leaderboard-gap {
-        color: var(--muted);
-      }
+      /* Pagination is the shared `.pagination` control from
+         `include/pagination.html` (design system, issue #178/#179); this
+         page carries no rule of its own for it. */
 
       .leaderboard-data {
         color: var(--body-text);
@@ -284,7 +283,11 @@
           <div class="band-head">
             <div>
               <h2 id="standings-heading">Standings</h2>
-              <p>Open a student to see how their score is made up.</p>
+              <p>
+                Open a student to see how their score is made up. Each ★ marks a
+                passed project, and its color is the same for that project in
+                every row.
+              </p>
             </div>
           </div>
           {% if enrollments %}
@@ -322,7 +325,7 @@
                       <span class="status-pill status-pill-open">you</span>
                     {% endif %}
                     {% for project in enrollment.passed_projects %}
-                      <span class="leaderboard-passed" title="Passed {{ project.title }}">
+                      <span class="leaderboard-passed{% if project.star_class %} {{ project.star_class }}{% endif %}" title="Passed {{ project.title }}">
                         <span aria-hidden="true">★</span>
                         <span class="sr-only">Passed {{ project.title }}</span>
                       </span>
@@ -335,40 +338,14 @@
                 </div>
               {% endfor %}
             </div>
-            {% if page_obj.has_other_pages %}
-              {% comment %}
-                The paginator the copied page used, in this system's marks: the
-                same ?page= destinations, the same elided range, and the current
-                page as plain text carrying aria-current.
-              {% endcomment %}
-              <nav class="leaderboard-pagination" aria-label="Leaderboard pagination">
-                {% if page_obj.has_previous %}
-                  {% with page_number=page_obj.previous_page_number|stringformat:"s" %}
-                    {% with previous_page_url="?page="|add:page_number %}
-                      {% include "core/_button.html" with href=previous_page_url label="← Previous" variant="secondary" compact=True aria_label="Previous page" %}
-                    {% endwith %}
-                  {% endwith %}
-                {% endif %}
-                <div class="leaderboard-pages">
-                  {% for page_number in page_range %}
-                    {% if page_number == page_obj.paginator.ELLIPSIS %}
-                      <span class="leaderboard-gap">{{ page_number }}</span>
-                    {% elif page_number == page_obj.number %}
-                      <span aria-current="page">{{ page_number }}</span>
-                    {% else %}
-                      <a href="?page={{ page_number }}">{{ page_number }}</a>
-                    {% endif %}
-                  {% endfor %}
-                </div>
-                {% if page_obj.has_next %}
-                  {% with page_number=page_obj.next_page_number|stringformat:"s" %}
-                    {% with next_page_url="?page="|add:page_number %}
-                      {% include "core/_button.html" with href=next_page_url label="Next →" variant="secondary" compact=True aria_label="Next page" %}
-                    {% endwith %}
-                  {% endwith %}
-                {% endif %}
-              </nav>
-            {% endif %}
+            {% comment %}
+              The shared paginator every course-platform surface uses
+              (`course_platform_templates/include/pagination.html`, issue
+              #178/#179): the same ?page= destinations and the same elided
+              range this page always computed, now drawn as the design
+              system's one pagination control instead of a bespoke row.
+            {% endcomment %}
+            {% include 'include/pagination.html' with pagination_page=page_obj pagination_range=page_range pagination_label='Leaderboard pagination' %}
           {% else %}
             <div class="panel panel-lavender panel-outlined leaderboard-empty" role="alert">
               <p>No students are on this leaderboard yet.</p>

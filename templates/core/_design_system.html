@@ -1264,6 +1264,77 @@ Rules for editing:
         gap: 1.25rem;
       }
 
+      /* --- catalogue card ---------------------------------------------------
+         One card shape for a family/course teaser, whatever its real
+         registration state: an illustration slot, then a body of title and
+         one line of outcome copy -- no badge, no background or CTA that
+         singles a card out.  Used by the course catalogue's own grid and
+         reused wherever another page teases the same catalogue (the tour's
+         "Learn by building" cards). */
+      .catalog-card {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        padding: 1.25rem;
+      }
+
+      .catalog-card[role="link"] {
+        cursor: pointer;
+      }
+
+      .catalog-card[role="link"]:focus-visible {
+        outline: 3px solid var(--ink);
+        outline-offset: 4px;
+      }
+
+      /* The doodles are small scenes -- two or three figures with props on a
+         watercolour blob -- not glyphs, so they have a legibility floor: below
+         about 5rem the figures blur and every card's scene looks alike, which
+         defeats the illustration's one job of telling the courses apart at a
+         glance.  They also have a hierarchy ceiling: at 7rem and up the
+         picture matches the height of the title-outcome-link block on a
+         two-line card and reads as a banner again.  6rem sits between the two
+         at the shell's full width.
+
+         The size tracks the title's own fluid scale rather than the column:
+         `h3` runs clamp(1.15rem, 1.6vw, 1.4rem), and this clamp keeps the
+         picture at roughly 4.3 of those title heights at every viewport, so
+         it carries the same weight beside the smaller phone type as beside
+         the desktop type.  A percentage of the card would do the opposite --
+         balloon on the one-column tablet card and shrink on the phone card,
+         which has the most room of all. */
+      .catalog-card-media {
+        --illustration-size: clamp(5rem, 6.9vw, 6rem);
+        display: flex;
+        height: var(--illustration-size);
+        width: var(--illustration-size);
+      }
+
+      .catalog-card-media .doodle {
+        height: 100%;
+        object-fit: contain;
+        width: 100%;
+      }
+
+      .catalog-card-body {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .catalog-card-body h3 {
+        font-size: clamp(1.15rem, 1.6vw, 1.4rem);
+        letter-spacing: -0.015em;
+      }
+
+      .catalog-card-body h3 a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .catalog-card-body p {
+        font-size: 0.92rem;
+      }
+
       /* A whole-card destination keeps one semantic anchor.  Its hit area is
          stretched across the surface; independent person links remain above
          that overlay and retain their own destination. */
@@ -1959,7 +2030,9 @@ Rules for editing:
        * documented in _docs/design/design-system.md.
        * ------------------------------------------------------------------ */
 
-      /* Stat tiles: the courses-index hero facts (6 free courses, 130k+…). */
+      /* Stat tiles: live facts drawn as lavender tiles -- the family landing's
+         outcome numbers, the courses index's own facts strip, dashboards and
+         admin metric rows. */
       .stat-tiles {
         display: grid;
         gap: 0.75rem;
@@ -1987,6 +2060,47 @@ Rules for editing:
       .stat-tile span {
         color: var(--body-text);
         font-size: 0.85rem;
+      }
+
+      /* .stat-tiles-row: the one-row variant for a strip of 2-4 live facts
+         (the course family landing's outcome numbers, the courses index's
+         own facts strip) -- shorter tiles than the base 2x2 grid, and the
+         tile count itself decides the shape instead of each page fixing its
+         own column count.  Below 40rem it keeps the base two-column grid,
+         with a lone odd tile spanning the full row rather than sitting off
+         to one side; at 40rem and up it opens to one row, three columns
+         normally and four when a fourth tile is present, so a fully
+         populated strip never wraps its last tile onto its own row.
+         (Do not name the family page's own stat labels here -- this
+         partial is inlined into every page's stylesheet, and a page-level
+         `assertNotContains` for a label that page omits would otherwise
+         match this comment.) */
+      .stat-tiles-row .stat-tile {
+        min-height: 0;
+        padding-block: 0.8rem;
+      }
+
+      .stat-tiles-row .stat-tile strong {
+        font-size: clamp(1.35rem, 2vw, 1.75rem);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .stat-tiles-row .stat-tile:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+      }
+
+      @media (min-width: 40rem) {
+        .stat-tiles-row {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .stat-tiles-row:has(.stat-tile:nth-child(4)) {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .stat-tiles-row .stat-tile:last-child:nth-child(odd) {
+          grid-column: auto;
+        }
       }
 
       /* Filter pills: one row of pill toggles where exactly one is active
@@ -2534,6 +2648,169 @@ Rules for editing:
         background: var(--green);
         border-radius: var(--drawn-circle-c);
         color: var(--on-green);
+      }
+
+      /* --- stage card -------------------------------------------------------
+         One numbered stage on a plain `.card`: the shared `.step-number`
+         badge, an illustration, a heading and a short description. Shared by
+         the homepage's "climb" section and a course family landing's
+         "journey" section (`core/_stage_card.html`) so the two read as one
+         component instead of two hand-copied cards that can drift apart --
+         which is exactly how the badge sizes above once did.
+
+         Two shapes share this one file. The plain card (no `.stage-card-rail`)
+         is the homepage's: the illustration keeps its own aspect ratio and
+         fills the card's width, and the badge groups with the heading below
+         it in `.stage-card-step`. `.stage-card-rail` is the family page's: the
+         badge sits astride the card's top-left corner, on a rail the page
+         draws behind the row (`.journey-grid::before`, which stays
+         page-specific along with the grid it runs through), an optional
+         kicker label sits above a fixed-height illustration box, and the
+         heading follows the artwork instead of sitting beside the badge. */
+
+      .stage-card:not(.stage-card-rail) .doodle {
+        align-self: center;
+        width: 100%;
+      }
+
+      .stage-card-step {
+        align-items: center;
+        display: flex;
+        gap: 0.7rem;
+        margin-top: auto;
+      }
+
+      .stage-card-rail {
+        gap: 0;
+        overflow: visible;
+        padding: 1.5rem 1.5rem 1.35rem;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* The disc leaves the heading and sits astride the card's top-left
+         corner, on the rail. It has to be opaque to mask the rail behind it,
+         so the two filled steps restore their own shared fills against that
+         rule. */
+      .stage-card-rail .step-number {
+        background: var(--card);
+        left: 1.25rem;
+        position: absolute;
+        top: 0;
+        transform: translateY(-50%);
+        z-index: 2;
+      }
+
+      .stage-card-rail .step-number-2 {
+        background: var(--indigo-soft);
+      }
+
+      .stage-card-rail .step-number-3 {
+        background: var(--green);
+      }
+
+      .stage-card-kicker {
+        color: var(--indigo);
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.1em;
+        margin: 0;
+        text-transform: uppercase;
+      }
+
+      .stage-card-figure {
+        align-items: center;
+        display: flex;
+        height: 11.5rem;
+        justify-content: center;
+        margin-top: 1rem;
+      }
+
+      .stage-card-figure .doodle-variants {
+        align-items: center;
+        display: flex;
+        height: 100%;
+        justify-content: center;
+        width: 100%;
+      }
+
+      .stage-card-figure .doodle {
+        height: 100%;
+        object-fit: contain;
+        width: 100%;
+      }
+
+      .stage-card-rail h3 {
+        font-size: 1.32rem;
+        letter-spacing: -0.02em;
+        margin: 1rem 0 0;
+        text-wrap: pretty;
+      }
+
+      .stage-card-rail > p {
+        color: var(--body-text);
+        line-height: 1.55;
+        margin: 0.55rem 0 1.1rem;
+      }
+
+      /* The rail card stays a card at every width down to 61.99rem: only its
+         inset, illustration height and heading size step down with it. Below
+         that, the page turns the whole row into a vertical timeline; that
+         reshape is the grid's own rule (`.journey-grid`), not the card's. */
+      @media (max-width: 61.99rem) {
+        .stage-card-rail {
+          padding: 1.35rem 1.15rem 1.15rem;
+        }
+
+        .stage-card-figure {
+          height: 9.5rem;
+        }
+
+        .stage-card-rail h3 {
+          font-size: 1.18rem;
+        }
+      }
+
+      /* Below 47.99rem the plain card gives up being a card at all: the
+         homepage's mobile mockup reads the climb as a numbered list -- badge,
+         then title over its line -- not the desktop cards reflowed. The rail
+         card keeps its card shape at this width; only its own rule above
+         changes it. */
+      @media (max-width: 47.99rem) {
+        .stage-card:not(.stage-card-rail) {
+          background: none;
+          border: 0;
+          border-bottom: 1.5px dashed var(--line-soft);
+          border-radius: 0;
+          box-shadow: none;
+          column-gap: 0.7rem;
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr);
+          padding: 0 0 0.8rem;
+          row-gap: 0.1rem;
+        }
+
+        .stage-card:not(.stage-card-rail) .stage-card-step {
+          display: contents;
+        }
+
+        .stage-card:not(.stage-card-rail) .doodle {
+          grid-column: 1 / span 2;
+          margin-bottom: 0.6rem;
+        }
+
+        .stage-card:not(.stage-card-rail) .step-number {
+          grid-column: 1;
+          grid-row: 2 / span 2;
+        }
+
+        .stage-card:not(.stage-card-rail) h3 {
+          grid-column: 2;
+        }
+
+        .stage-card:not(.stage-card-rail) > p {
+          grid-column: 2;
+        }
       }
 
       /* Module accordion: one syllabus module per details.module element.

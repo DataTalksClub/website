@@ -43,19 +43,6 @@
        * above; everything below shapes this page's own sections.
        * ------------------------------------------------------------------ */
 
-      /* The three climb drawings are trimmed to their own ink, so their natural aspect
-         ratios differ widely.  Boxing them to one ratio letterboxes the widest until it
-         reads as half the size of the others, so each fills the card's width at its own
-         height and the text below is pushed to the card's foot to keep the row aligned. */
-      .climb-card .doodle {
-        align-self: center;
-        width: 100%;
-      }
-
-      .climb-card .climb-step {
-        margin-top: auto;
-      }
-
       /* --- hero --------------------------------------------------------- */
 
       .hero-grid {
@@ -89,13 +76,11 @@
         justify-items: center;
       }
 
-      /* --- the climb ---------------------------------------------------- */
-
-      .climb-step {
-        align-items: center;
-        display: flex;
-        gap: 0.7rem;
-      }
+      /* --- the climb ------------------------------------------------------
+         The climb card itself (.stage-card/.stage-card-step/...) is a
+         shared component, drawn once in core/_stage_card.html so a course
+         family page's journey stages render with the exact same card.
+         Nothing page-specific is left to say about it here. */
 
       /* --- member stories -------------------------------------------------
          The member-story card itself (.story-transition/.story-quote/
@@ -678,41 +663,9 @@
           width: 100%;
         }
 
-        /* The climb reads as a numbered list: badge, then title over its line. */
-        .climb-card {
-          background: none;
-          border: 0;
-          border-bottom: 1.5px dashed var(--line-soft);
-          border-radius: 0;
-          box-shadow: none;
-          column-gap: 0.7rem;
-          display: grid;
-          grid-template-columns: auto minmax(0, 1fr);
-          padding: 0 0 0.8rem;
-          row-gap: 0.1rem;
-        }
-
-        .climb-card .climb-step {
-          display: contents;
-        }
-
-        .climb-card .doodle {
-          grid-column: 1 / span 2;
-          margin-bottom: 0.6rem;
-        }
-
-        .climb-card .step-number {
-          grid-column: 1;
-          grid-row: 2 / span 2;
-        }
-
-        .climb-card h3 {
-          grid-column: 2;
-        }
-
-        .climb-card > p {
-          grid-column: 2;
-        }
+        /* The climb reads as a numbered list: badge, then title over its
+           line.  The card's own mobile rules live with the rest of the
+           component in core/_design_system.html. */
 
         /* Events read as a dashed list of times and titles.  The card gives up
            its own surface here, so it gives up the hover shadow with it. */
@@ -851,30 +804,9 @@
             </div>
           </div>
           <div class="card-grid card-grid-3">
-            <article class="card climb-card">
-              {% include "core/_home_illustration.html" with variant="stuck" %}
-              <div class="climb-step">
-                <span class="step-number" aria-hidden="true">1</span>
-                <h3>Where do I go from here?</h3>
-              </div>
-              <p>I can follow a tutorial. Starting a project of my own still feels like a leap.</p>
-            </article>
-            <article class="card climb-card">
-              {% include "core/_home_illustration.html" with variant="learning" %}
-              <div class="climb-step">
-                <span class="step-number step-number-2" aria-hidden="true">2</span>
-                <h3>I’m building, with help along the way</h3>
-              </div>
-              <p>I put each lesson into practice, with a community to help when I get stuck.</p>
-            </article>
-            <article class="card climb-card">
-              {% include "core/_home_illustration.html" with variant="shipping" %}
-              <div class="climb-step">
-                <span class="step-number step-number-3" aria-hidden="true">3</span>
-                <h3>I built this. What’s next?</h3>
-              </div>
-              <p>I’ve built a working project I’m proud of. Now I’m ready for the next one.</p>
-            </article>
+            {% include "core/_stage_card.html" with step_index=1 heading="Where do I go from here?" description="I can follow a tutorial. Starting a project of my own still feels like a leap." illustration_template="core/_home_illustration.html" illustration_variant="stuck" %}
+            {% include "core/_stage_card.html" with step_index=2 heading="I’m building, with help along the way" description="I put each lesson into practice, with a community to help when I get stuck." illustration_template="core/_home_illustration.html" illustration_variant="learning" %}
+            {% include "core/_stage_card.html" with step_index=3 heading="I built this. What’s next?" description="I’ve built a working project I’m proud of. Now I’m ready for the next one." illustration_template="core/_home_illustration.html" illustration_variant="shipping" %}
           </div>
         </div>
       </section>

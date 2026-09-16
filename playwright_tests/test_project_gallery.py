@@ -77,8 +77,10 @@ def test_project_discovery_works_with_long_and_sparse_rows_in_both_themes(
             page.locator("#dark-mode-toggle").click()
         page.evaluate("document.fonts.ready")
         expect(page.locator("body.dark-mode")).to_have_count(int(theme == "dark"))
-        expect(page.locator(".gallery-row")).to_have_count(3)
-        expect(page.locator(".gallery-row").last).to_contain_text("Repository link unavailable")
+        expect(page.locator(".gallery-submission-row")).to_have_count(3)
+        expect(page.locator(".gallery-submission-row").last).to_contain_text(
+            "Repository link unavailable"
+        )
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         assert page.get_by_label("Sort by", exact=True).evaluate("""select => {
             const style = getComputedStyle(select);
@@ -91,7 +93,7 @@ def test_project_discovery_works_with_long_and_sparse_rows_in_both_themes(
         }""")
         for target in page.locator(
             ".gallery-filters input, .gallery-filters select, "
-            ".gallery-filters button, .gallery-row a"
+            ".gallery-filters a, .gallery-submission-row a"
         ).all():
             box = target.bounding_box()
             assert box is not None and box["height"] >= 44
@@ -108,17 +110,17 @@ def test_project_discovery_works_with_long_and_sparse_rows_in_both_themes(
         page.get_by_label("Year", exact=True).select_option("2025")
         query.fill("needle")
         query.press("Enter")
-        expect(page.locator(".gallery-row")).to_have_count(1)
+        expect(page.locator(".gallery-submission-row")).to_have_count(1)
         expect(page.get_by_label("Course", exact=True)).to_have_value(family.slug)
         expect(page.get_by_label("Year", exact=True)).to_have_value("2025")
-        repository = page.locator(".gallery-repository a")
+        repository = page.locator(".gallery-cell-repository a")
         expect(repository).to_have_attribute("href", rows[1].github_link)
         expect(repository).to_have_attribute("target", "_blank")
         expect(repository).to_have_attribute("rel", "noopener noreferrer")
         # The "View cohort ->" link was removed from each row (owner
         # feedback: "view cohort - remove"); the cohort is already named as
         # plain text in the row's course/cohort line instead.
-        expect(page.locator(".gallery-row")).not_to_contain_text("View cohort")
+        expect(page.locator(".gallery-submission-row")).not_to_contain_text("View cohort")
 
         page.get_by_label("Repository or assignment", exact=True).fill("no-matching-project")
         page.get_by_role("button", name="Find projects", exact=True).click()
@@ -127,7 +129,7 @@ def test_project_discovery_works_with_long_and_sparse_rows_in_both_themes(
         ).to_be_visible()
         assert axe_issues(page, f"project-gallery-empty-{width}-{theme}") == []
         page.get_by_role("link", name="Clear filters", exact=True).first.click()
-        expect(page.locator(".gallery-row")).to_have_count(3)
+        expect(page.locator(".gallery-submission-row")).to_have_count(3)
         expect(page.get_by_label("Repository or assignment", exact=True)).to_have_value("")
 
 
@@ -181,7 +183,7 @@ def test_gallery_many_row_pagination_in_both_themes(
             page.locator("#dark-mode-toggle").click()
         expect(page.locator("body.dark-mode")).to_have_count(int(theme == "dark"))
         for number, count in ((1, 25), (2, 25), (3, 1)):
-            expect(page.locator(".gallery-row")).to_have_count(count)
+            expect(page.locator(".gallery-submission-row")).to_have_count(count)
             expect(page.get_by_label("Sort by", exact=True)).to_have_value("recent")
             navigation = page.get_by_role("navigation", name="Project submission pages")
             expect(navigation.locator('[aria-current="page"]')).to_have_text(str(number))

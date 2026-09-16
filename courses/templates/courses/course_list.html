@@ -35,11 +35,16 @@
        * layout.  It deliberately loads none of the older site CSS.
        *
        * The mockup composes at the full 76rem shell -- a two-column hero with
-       * an illustration collage, a full-width dark facts stripe, a featured
-       * open-registration slab and horizontal running-now cards.  Those are
-       * genuinely wide elements, so each one is a `.shell-breakout` section
-       * while the page underneath stays an ordinary content page: the cream
-       * hero band and the lavender content band remain the parent's.
+       * an illustration collage, a featured open-registration slab and
+       * horizontal running-now cards.  Those are genuinely wide elements, so
+       * each one is a `.shell-breakout` section while the page underneath
+       * stays an ordinary content page: the cream hero band and the lavender
+       * content band remain the parent's.  The facts strip that used to be
+       * the mockup's own dark stripe now draws with the shared
+       * `.stat-tiles`/`.stat-tile` primitive instead (2026-09): the site
+       * owner asked for one stats-strip shape shared with the family page,
+       * not two ad hoc grids, so it sits on the ordinary lavender ground at
+       * the ordinary content width like the rest of the page's sections.
        * ------------------------------------------------------------------ */
 
       /* The page draws with the design system's tokens — the same palette,
@@ -50,13 +55,11 @@
       :root {
         --hatch-line: #9a9dbb;
         --panel-line: #a9cfa0;
-        --stats-label: #b9bcd6;
       }
 
       body.dark-mode {
         --hatch-line: #7079b4;
         --panel-line: #4e7d5b;
-        --stats-label: #a4a9bd;
       }
 
       .band {
@@ -146,47 +149,24 @@
         text-transform: uppercase;
       }
 
-      /* --- dark facts stripe ------------------------------------------------
-         The mockup's ink band is full-bleed: edge to edge under the hero with
-         its facts grid capped at the shell.  The shared breakout stops at the
-         shell edge, so this section widens its own breakout target to the
-         viewport — the body clips overflow-x — and re-centres the grid. */
+      /* --- facts strip --------------------------------------------------
+         Owner feedback (2026-09): this used to be its own bespoke dark
+         full-bleed stripe (.courses-stats-grid) -- a different shape from
+         the family page's real per-family numbers a few clicks away, drawn
+         with the shared design system's .stat-tiles/.stat-tile primitive
+         instead (see templates/core/_design_system.html and
+         course_family.html's .family-outcomes).  The catalogue's own facts
+         (zoomcamp count, open-cohort sign-ups, the free/open framing) stay
+         page-specific; only the tile shape is now shared. */
       .courses-stats {
-        background: var(--band-ink-bg);
-        padding: clamp(1.75rem, 3.5vw, 2.75rem) 1rem;
+        margin-top: clamp(2.5rem, 4.5vw, 3.75rem);
+        margin-bottom: clamp(2.75rem, 5vw, 4.25rem);
       }
 
-      .courses-stats.shell-breakout {
-        --breakout-width: 100vw;
-      }
-
-      .courses-stats-grid {
-        display: grid;
-        gap: 1.75rem 2rem;
-        grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-        margin-inline: auto;
-        max-width: var(--shell);
-      }
-
-      .courses-stats strong {
-        color: var(--cream);
-        display: block;
-        font-size: clamp(1.9rem, 3.4vw, 2.6rem);
-        line-height: 1.1;
-      }
-
-      body.dark-mode .courses-stats strong {
-        color: var(--ink);
-      }
-
-      .courses-stats span {
-        color: var(--stats-label);
-        display: block;
-        font-family: var(--font-mono);
-        font-size: 0.78rem;
-        letter-spacing: 0.06em;
-        margin-top: 0.3rem;
-        text-transform: uppercase;
+      /* Unless the Wrapped entry point sits directly above: the strip then
+         stays in the flow the entry point already opened. */
+      .courses-wrapped + .courses-stats {
+        margin-top: 0;
       }
 
       /* --- projects section -------------------------------------------------
@@ -279,20 +259,6 @@
         margin-top: 0;
       }
 
-      /* The facts stripe sits flush under the cream hero band, like the
-         mockup's dark band under its hero, and hands the air it saves to the
-         catalogue below. */
-      .courses-stats {
-        margin-top: -2.25rem;
-        margin-bottom: clamp(2.75rem, 5vw, 4.25rem);
-      }
-
-      /* Unless the Wrapped entry point sits between the seam and the stripe:
-         the stripe then stays in the flow the entry point already opened. */
-      .courses-wrapped + .courses-stats {
-        margin-top: 0;
-      }
-
       /* The mono note reads as an eyebrow under the heading, not a baseline
          partner beside it -- baseline-aligning a 0.8rem mono note against a
          3rem heading left it crowded against the heading's last word with
@@ -327,72 +293,12 @@
          Cards sit in the shared three-column grid (design-system.md's
          `.card-grid-3`), the same density the family page's own past-editions
          grid already uses, kept deliberately light so it still reads well at a
-         third of the shell's width.  The illustration is a marker for the
-         course, not a dominant banner -- only the generic per-family doodle
-         ever draws here (never a campaign's own authored photo, whose
-         intrinsic proportions are never guaranteed to be square), so it never
-         crops or distorts. */
+         third of the shell's width.  The card itself (.catalog-card /
+         -media / -body) is the shared partial's own component -- the tour
+         page's "Learn by building" cards reuse it too, so a rule two pages
+         need lives in the partial rather than forked here.
 
-      .catalog-card {
-        display: flex;
-        flex-direction: column;
-        gap: 0.85rem;
-        padding: 1.25rem;
-      }
-
-      .catalog-card[role="link"] {
-        cursor: pointer;
-      }
-
-      /* The doodles are small scenes -- two or three figures with props on a
-         watercolour blob -- not glyphs, so they have a legibility floor: below
-         about 5rem the figures blur and every card's scene looks alike, which
-         defeats the illustration's one job of telling the courses apart at a
-         glance.  They also have a hierarchy ceiling: at 7rem and up the
-         picture matches the height of the title-outcome-link block on a
-         two-line card and reads as a banner again.  6rem sits between the two
-         at the shell's full width.
-
-         The size tracks the title's own fluid scale rather than the column:
-         `h3` runs clamp(1.15rem, 1.6vw, 1.4rem), and this clamp keeps the
-         picture at roughly 4.3 of those title heights at every viewport, so
-         it carries the same weight beside the smaller phone type as beside
-         the desktop type.  A percentage of the card would do the opposite --
-         balloon on the one-column tablet card and shrink on the phone card,
-         which has the most room of all. */
-      .catalog-card-media {
-        --illustration-size: clamp(5rem, 6.9vw, 6rem);
-        display: flex;
-        height: var(--illustration-size);
-        width: var(--illustration-size);
-      }
-
-      .catalog-card-media .doodle {
-        height: 100%;
-        object-fit: contain;
-        width: 100%;
-      }
-
-      .catalog-card-body {
-        display: grid;
-        gap: 0.5rem;
-      }
-
-      .catalog-card-body h3 {
-        font-size: clamp(1.15rem, 1.6vw, 1.4rem);
-        letter-spacing: -0.015em;
-      }
-
-      .catalog-card-body h3 a {
-        color: var(--ink);
-        text-decoration: none;
-      }
-
-      .catalog-card-body p {
-        font-size: 0.92rem;
-      }
-
-      /* The card lost its own "View course →" line -- the whole card is
+         The card lost its own "View course →" line -- the whole card is
          already `role="link"` and the click target, so the line was a
          redundant second affordance.  Without it the body can end right
          after the outcome line (or the title alone, when a family has no
@@ -413,13 +319,6 @@
       .courses-wrapped-action {
         align-self: center;
         justify-self: start;
-      }
-
-      /* --- keyboard-reachable whole cards ---------------------------------------- */
-
-      .catalog-card[role="link"]:focus-visible {
-        outline: 3px solid var(--ink);
-        outline-offset: 4px;
       }
 
       /* --- how a zoomcamp works ----------------------------------------------------
@@ -621,23 +520,23 @@
           </div>
         </section>
       {% endif %}
-      <section class="courses-stats shell-breakout" aria-label="Courses in numbers">
-        <div class="courses-stats-grid">
-          <div>
+      <section class="courses-stats" aria-label="Courses in numbers">
+        <div class="stat-tiles stat-tiles-row">
+          <div class="stat-tile">
             <strong>{{ course_family_count }}</strong>
             <span>zoomcamps</span>
           </div>
           {% if total_open_registration_count %}
-            <div>
+            <div class="stat-tile">
               <strong>{{ total_open_registration_count|thousands }}</strong>
               <span>registered for the open cohorts</span>
             </div>
           {% endif %}
-          <div>
+          <div class="stat-tile">
             <strong>€0</strong>
             <span>now and always</span>
           </div>
-          <div>
+          <div class="stat-tile">
             <strong>100%</strong>
             <span>open</span>
           </div>

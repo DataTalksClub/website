@@ -25,6 +25,11 @@ here.
   this site and by AI Shipping Labs (`~/git/ai-shipping-labs`). If you change
   anything in `community-base`, run the test suite in both consuming projects,
   not just this one, before considering the change done.
+- Never use `git stash` when other agents may be working in this repo
+  concurrently: `refs/stash` is one shared stack across every worktree of the
+  same repository, not per-worktree, so a `stash pop` can pull in a different
+  agent's uncommitted changes. Use a throwaway `git worktree` for a clean
+  baseline comparison instead.
 
 Where the rest went: app and service boundaries are in
 `_docs/architecture/app-boundaries.md`; the page shell is in

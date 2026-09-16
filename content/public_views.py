@@ -44,6 +44,7 @@ from historical_registrations.services import public_registration_total
 from . import catalogue, wiki_content
 from .article_content import article_view, render_body_markdown
 from .article_faq import ArticleFaq, article_faq
+from .docs_projection import docs_pages
 from .event_banners import event_banner_url
 from .event_content import event_date_groups, event_groups
 from .event_speakers import event_speaker_records
@@ -1188,13 +1189,22 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
             ("/impressum", ""),
             *slack_entries,
         ),
-        "docs": (
-            ("/docs/", ""),
-            ("/docs/courses/ai-dev-tools-zoomcamp/getting-started/", ""),
-        ),
     }
     if section in static_sections:
         return static_sections[section]
+    if section == "docs":
+        # The docs read model is the single source of the published tree, so the
+        # sitemap enumerates every synced page instead of a hand-picked sample
+        # that drifts as pages are added, renamed or retired.
+        seen_paths: set[str] = set()
+        docs_records: list[tuple[str, str]] = []
+        for page in docs_pages():
+            public_path = str(page["public_path"])
+            if public_path in seen_paths:
+                continue
+            seen_paths.add(public_path)
+            docs_records.append((public_path, ""))
+        return tuple(docs_records)
     if section == "faq":
         return (("/faq/", ""),) + tuple((course["public_path"], "") for course in faq_courses())
     if section == "blog":

@@ -20,19 +20,19 @@ from core.breadcrumbs import trail
 from . import catalogue
 from .docs_presentation import (
     docs_body_without_primary_heading,
-    docs_context_items,
-    docs_context_root,
     docs_curriculum,
-    docs_home_areas,
-    docs_home_course_groups,
-    docs_local_sequence,
+    docs_guide_sequence,
+    docs_hub,
+    docs_meta_description,
+    docs_meta_title,
+    docs_rail,
     docs_search_results,
+    docs_sibling_family_pages,
 )
 from .docs_projection import (
     DOCS_ROOT_PATH,
     docs_asset_path,
     docs_breadcrumbs,
-    docs_children,
     docs_navigation_tree,
     docs_parent,
     docs_sequential_navigation,
@@ -98,21 +98,14 @@ def docs_home(request: HttpRequest) -> HttpResponse:
         "docs_heading_title": headings[0]["title"] if headings else document["title"],
         "docs_html": rendered_body,
         "docs_headings": headings,
-        "docs_total_guides": len(navigation.documents),
+        "docs_total_pages": len(navigation.documents),
         "docs_query": query,
         "primary_navigation_current": "docs",
     }
     if "q" in request.GET:
         context["docs_results"] = docs_search_results(query)
     else:
-        course_families, course_support = docs_home_course_groups(navigation)
-        context.update(
-            {
-                "docs_course_families": course_families,
-                "docs_course_support": course_support,
-                "docs_areas": docs_home_areas(navigation),
-            }
-        )
+        context["docs_hub"] = docs_hub(navigation)
     return _render(
         request,
         "review/docs_home.html",
@@ -131,14 +124,18 @@ def _docs_detail_context(
     public_path = str(document["public_path"])
     navigation = docs_navigation_tree()
     heading_id, rendered_body = docs_body_without_primary_heading(rendered)
-    context_root = docs_context_root(navigation, public_path)
-    local_previous, local_following = docs_local_sequence(navigation, public_path)
+    guide_previous, guide_following = docs_guide_sequence(navigation, public_path)
+    # The page's own sections, for the "on this page" list: the h1 is the title
+    # above the article, not one of the places inside it.
+    sections = tuple(heading for heading in headings if int(heading["level"]) > 1)
     return {
         "docs": document,
         "docs_heading_id": heading_id,
         "docs_heading_title": headings[0]["title"] if headings else document["title"],
         "docs_html": rendered_body,
         "docs_headings": headings,
+        "docs_sections": sections,
+        "docs_total_pages": len(navigation.documents),
         # The projection answers in its own dict shape; the page draws the site's
         # one trail, so the levels are turned into a core.breadcrumbs.Trail here
         # rather than the template hand-writing nav/ol/li markup of its own.  The
@@ -151,17 +148,16 @@ def _docs_detail_context(
             ),
             (str(document["title"]), public_path),
         ),
-        "docs_children": docs_children(public_path),
-        "docs_context_root": context_root,
-        "docs_context_items": docs_context_items(navigation, public_path),
+        "docs_rail": docs_rail(navigation, public_path),
+        "docs_siblings": docs_sibling_family_pages(navigation, public_path),
         "docs_curriculum": docs_curriculum(rendered_body)
         if public_path.endswith("/curriculum/")
         else None,
         "docs_parent": docs_parent(document),
         "docs_previous": previous,
         "docs_next": following,
-        "docs_local_previous": local_previous,
-        "docs_local_next": local_following,
+        "docs_guide_previous": guide_previous,
+        "docs_guide_next": guide_following,
         "primary_navigation_current": "docs",
     }
 
@@ -175,12 +171,13 @@ def docs_page(request: HttpRequest, doc_path: str) -> HttpResponse:
     if document is None:
         raise Http404("Documentation page is unavailable.")
     rendered, headings = render_docs_markdown(document)
+    _heading_id, rendered_body = docs_body_without_primary_heading(rendered)
     return _render(
         request,
         "review/docs_detail.html",
         path=document["public_path"],
-        title=f"{document['title']} — DataTalks.Club Documentation",
-        description=document.get("description") or "DataTalks.Club documentation.",
+        title=docs_meta_title(document),
+        description=docs_meta_description(document, rendered_body),
         context=_docs_detail_context(document, rendered, headings),
     )
 

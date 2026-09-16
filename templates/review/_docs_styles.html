@@ -8,26 +8,63 @@
   gap: 0.75rem;
 }
 
+/* The family landing's hero grid: the title block beside its drawing. */
+.docs-home-hero-inner {
+  align-items: center;
+  display: grid;
+  gap: 1.5rem 2rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 15rem);
+}
+
+.docs-home-hero-inner > * {
+  min-width: 0;
+}
+
 .docs-home-header h1,
 .docs-detail-header h1 {
   font-size: clamp(2.1rem, 4.9vw, 3.4rem);
   letter-spacing: -0.03em;
   line-height: 1.08;
-  max-width: 48rem;
+  max-width: 19ch;
+  text-wrap: balance;
+}
+
+.docs-hero-art {
+  aspect-ratio: 1;
+  justify-self: end;
+  max-width: 15rem;
+  width: 100%;
+}
+
+.docs-hero-art .doodle {
+  height: 100%;
+  object-fit: contain;
 }
 
 .docs-home-intro {
   margin-top: 0;
 }
 
-.docs-search {
+/* The hub's one search field: a visible label above the row, so the input reads
+   as the way into the corpus rather than as an unlabelled white box. */
+.docs-search-block {
+  display: grid;
+  gap: 0.4rem;
   margin-top: 1.25rem;
+  max-width: 38rem;
+}
+
+.docs-search {
   max-width: 34rem;
 }
 
+/* The source's own opening paragraph is the hub's standfirst; anything the
+   source writes after it stays prose at reading size beneath. */
 .docs-home-intro > p:first-child {
-  font-size: clamp(1.05rem, 2vw, 1.2rem);
-  line-height: 1.65;
+  color: var(--body-text);
+  font-size: 1.15rem;
+  line-height: 1.6;
+  max-width: var(--measure);
 }
 
 .docs-home-intro > p:last-child a {
@@ -36,25 +73,166 @@
   min-height: 2.75rem;
 }
 
-.docs-section + .docs-section {
-  border-top: 2px dashed var(--line-soft);
-  margin-top: 2.5rem;
+/* --- chapter rhythm: the family landing's and the tour's rule, verbatim.  The
+   hub used to divide its sections with a local restatement of `.band-head` over
+   a dashed rule; a chapter is the ink rule, the band-head, and its own action. */
+.docs-chapter {
+  border-top: 2px solid var(--line);
+  margin-top: 3.5rem;
   padding-top: 2.5rem;
 }
 
-.docs-section-head {
-  margin-bottom: 1.25rem;
-  max-width: 46rem;
+.docs-chapter-first {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
 }
 
-.docs-section-head h2 {
-  font-size: clamp(1.4rem, 3vw, 1.87rem);
+.docs-chapter .band-link {
+  align-items: center;
+  display: inline-flex;
+  min-height: 2.75rem;
 }
 
-.docs-section-head p {
+/* The rule spans the breakout width where the chapter breaks out: it announces
+   the width change, as on the family landing. */
+.docs-chapter.shell-breakout {
+  --breakout-width: min(var(--shell), calc(100vw - 2rem));
+}
+
+/* --- the page list: one component for every "its pages" line --------------- */
+
+.docs-pages {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  gap: 0 0.55rem;
+  line-height: 1.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.docs-pages li {
+  display: flex;
+  gap: 0.55rem;
+}
+
+/* The separator trails its own link rather than leading the next one, so a
+   wrapped line never opens with a stray "·" -- which is what the hub's
+   activities row did at 390px. */
+.docs-pages li:not(:last-child)::after {
   color: var(--muted);
-  line-height: 1.6;
+  content: "·";
+}
+
+/* Every one of these is a pointer target, so it carries the 24px minimum of
+   WCAG 2.5.8 rather than the 18px its text box gives it; `z-index` keeps it
+   above the whole-card overlay of the card it sits in. */
+.docs-pages a {
+  color: var(--indigo);
+  display: inline-block;
+  min-height: 1.5rem;
+  position: relative;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  z-index: 1;
+}
+
+/* --- course guides: the catalogue's illustrated card ---------------------- */
+
+.docs-course-card {
+  gap: 0;
+  padding: 1.25rem 1.35rem 1.2rem;
+}
+
+.docs-course-figure {
+  align-items: center;
+  display: flex;
+  height: 8rem;
+  justify-content: center;
+  margin: 0 0 0.9rem;
+}
+
+.docs-course-figure .doodle {
+  height: 100%;
+  object-fit: contain;
+  width: auto;
+}
+
+.docs-course-card .mono-label,
+.docs-section-card .mono-label {
+  color: var(--indigo);
+}
+
+.docs-course-card h3 {
+  font-size: 1.15rem;
+  letter-spacing: -0.015em;
+  margin-top: 0.45rem;
+}
+
+.docs-course-card h3 a,
+.docs-section-card h3 a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.docs-course-card > p {
+  color: var(--muted);
+  font-size: 0.88rem;
   margin-top: 0.35rem;
+}
+
+.docs-card-pages {
+  margin-top: auto;
+  padding-top: 0.75rem;
+}
+
+/* --- guide sections: the tour's own "more" card, without a drawing -------- */
+
+.docs-section-card {
+  gap: 0.5rem;
+  padding: 1.15rem 1.25rem;
+}
+
+.docs-section-card h3 {
+  font-size: 1.1rem;
+}
+
+.docs-section-card > p {
+  color: var(--body-text);
+  font-size: 0.9rem;
+}
+
+/* --- index rows: the wiki hub's explore row, name column and pages beside -- */
+
+.docs-index-row {
+  --row-cols: 15rem minmax(0, 1fr);
+  column-gap: 1.5rem;
+  padding-block: 1rem;
+}
+
+.docs-index-row h3 {
+  font-size: 1.05rem;
+}
+
+.docs-index-row h3 a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.docs-index-row h3 a:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.docs-index-row .mono-note {
+  display: block;
+  margin-top: 0.2rem;
+}
+
+.docs-index-row .docs-pages {
+  font-size: 0.9rem;
 }
 
 /* One index row: the FAQ/wiki `.row-list`/`.list-row` primitives carry the divided
@@ -65,8 +243,7 @@
   text-decoration: none;
 }
 
-.docs-row:hover .docs-row-title,
-.docs-child-link:hover .docs-row-title {
+.docs-row:hover .docs-row-title {
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
@@ -75,42 +252,6 @@
   display: grid;
   gap: 0.2rem;
   min-width: 0;
-}
-
-.docs-row-count {
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-
-.docs-arrow {
-  color: var(--indigo);
-  font-family: var(--font-sans);
-  font-size: 1rem;
-  font-weight: 800;
-}
-
-.docs-child-list {
-  border-bottom: 2px dashed var(--line-soft);
-  border-top: 2px dashed var(--line-soft);
-}
-
-.docs-child-link {
-  align-items: center;
-  color: var(--ink);
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: minmax(0, 1fr) auto;
-  min-height: 3.75rem;
-  padding: 0.75rem 0.25rem;
-  text-decoration: none;
-}
-
-.docs-child-link + .docs-child-link {
-  border-top: 2px dashed var(--line-soft);
 }
 
 .docs-row-title {
@@ -126,155 +267,122 @@
   margin-top: 0.2rem;
 }
 
-/* Community and activities rows keep the area itself as one row (title link),
-   with its pages as inline text links rather than a full row apiece -- the
-   hub stays a bounded catalogue of collections, not a flattened dump of every
-   page underneath them. */
-/* Every one of those inline links is still a pointer target, so it carries the
-   24px minimum of WCAG 2.5.8 rather than the 18px its 0.88rem text box gives it.
-   The row's line height grows past that minimum so a wrapped second line of
-   links never overlaps the first. */
-.docs-row-links {
-  line-height: 1.75rem;
-}
-
-.docs-row-links a {
-  color: var(--indigo);
-  display: inline-block;
-  min-height: 1.5rem;
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-}
-
-.docs-row-links a:not(:first-child)::before {
-  color: var(--muted);
-  content: ", ";
-  text-decoration: none;
-}
-
 .search-count {
   overflow-wrap: anywhere;
+}
+
+/* A result names the guide it came from before it names itself: six pages are
+   called "Project", and a title on its own cannot say which one this is. */
+.docs-result-trail {
+  margin-bottom: 0.15rem;
+}
+
+/* Ink on the tint, never the link's indigo: indigo on `--lavender-deep`
+   measures 4.11:1 and fails AA, which is why the module rail's own current row
+   keeps its ink too.  The title stays underlined, so the marked word is still
+   visibly part of the link. */
+.docs-result-row mark {
+  background: var(--lavender-deep);
+  border-radius: 0.2rem;
+  color: var(--ink);
+  padding-inline: 0.1em;
 }
 
 .docs-breadcrumbs {
   margin: 0;
 }
 
-.docs-detail-subtitle {
-  color: var(--muted);
-  font-size: 0.92rem;
-  font-weight: 700;
-}
-
-.docs-detail-layout {
-  min-width: 0;
-}
-
-.docs-local-nav {
-  margin-bottom: 1.5rem;
-  min-width: 0;
-}
-
-.docs-local-disclosure {
-  background: var(--card);
-  border: 2px solid var(--line);
-  border-radius: 0.9rem;
-  box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
-  min-width: 0;
-}
-
-.docs-local-summary {
-  align-items: center;
-  cursor: pointer;
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  min-height: 3.5rem;
-  padding: 0.6rem 0.9rem;
-}
-
-.docs-local-summary::-webkit-details-marker {
-  display: none;
-}
-
-.docs-local-current {
-  align-items: center;
-  color: var(--ink);
-  display: flex;
-  font-weight: 800;
-  gap: 0.5rem;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.docs-local-toggle::before {
-  color: var(--indigo);
-  content: "+";
-  font-family: var(--font-mono);
-  font-size: 1.15rem;
-  font-weight: 800;
-}
-
-.docs-local-disclosure[open] .docs-local-toggle::before {
-  content: "−";
-}
-
-.docs-local-list {
-  border-top: 2px dashed var(--line-soft);
-  display: grid;
-  gap: 0.5rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  list-style: none;
-  margin: 0;
-  padding: 0.75rem;
-}
-
-.docs-local-item {
-  min-width: 0;
-}
-
-.docs-tree-link {
-  align-items: center;
-  background: var(--card);
-  border: 2px solid var(--line-soft);
-  border-radius: 0.6rem;
+/* The page's standfirst.  It was drawn at 14.7px bold muted, which is a caption;
+   the system's lede is this size and this weight. */
+.docs-lede {
   color: var(--body-text);
+  font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+  line-height: 1.6;
+  max-width: var(--measure);
+}
+
+.docs-header-actions {
+  align-items: center;
   display: flex;
-  font-size: 0.92rem;
-  font-weight: 700;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.docs-search-compact {
+  flex: 0 1 26rem;
+}
+
+/* --- the guide rail ------------------------------------------------------
+   The layout, the rows and the current state are the lesson page's module rail
+   (`courses/_module_rail_styles.html`, included above): the reading column at
+   the system's own content width, the rail beside it, stacked under it at 52rem.
+   What is added here is the guide's own title above the rows and one level of
+   nesting for the group the reader is inside. */
+
+.rail-guide-title {
+  color: var(--ink);
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 800;
   line-height: 1.3;
-  min-height: 2.75rem;
-  max-width: none;
-  overflow-wrap: anywhere;
-  padding: 0.5rem 0.7rem;
+  min-height: 2rem;
+  padding: 0.15rem 0.5rem;
   text-decoration: none;
-  width: 100%;
 }
 
-.docs-tree-link:hover {
-  border-color: var(--line);
-  color: var(--ink);
+.rail-guide-title:hover {
+  color: var(--indigo);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
-.docs-tree-link-current {
-  background: var(--lavender-deep);
-  border-color: var(--line);
-  color: var(--ink);
+.rail-guide-title[aria-current="page"] {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.rail-units-nested {
+  margin: 0.15rem 0 0.35rem 2.35rem;
+}
+
+.rail-units-nested .rail-unit-link {
+  font-size: 0.85rem;
+  font-weight: 600;
+  grid-template-columns: 1.4rem minmax(0, 1fr);
+  min-height: 2rem;
+}
+
+.rail-units-nested .read-indicator {
+  font-size: 0.66rem;
+  height: 1.4rem;
+  width: 1.4rem;
+}
+
+.rail-unit.is-current > .rail-unit-link {
   font-weight: 800;
 }
 
-.docs-tree-marker {
-  border: 2px solid var(--indigo);
-  border-radius: 999px;
-  flex: 0 0 0.5rem;
-  height: 0.5rem;
-  width: 0.5rem;
+/* The reading column is the measure itself, not the wider content width the
+   lesson page gives its video: a documentation page is prose, and at
+   `--content-width` its foot -- the page links, the edit note, the pager --
+   would sit 250px to the right of the last line of text they belong to.  The
+   pair is centred by the component, so the rail takes the room the measure
+   leaves and the page needs no width of its own. */
+@media (min-width: 52.01rem) {
+  .docs-layout {
+    grid-template-columns: minmax(14rem, 17rem) minmax(0, var(--measure));
+  }
 }
 
-.docs-tree-link-current .docs-tree-marker {
-  background: var(--indigo);
-  box-shadow: inset 0 0 0 1px var(--card);
+/* A guide's own page is a list of the pages in it, so on a phone that list is
+   the first thing under the title; on a leaf the article comes first. */
+@media (max-width: 52rem) {
+  .docs-layout-guide {
+    grid-template-areas:
+      "rail"
+      "main";
+  }
 }
 
 .docs-main {
@@ -299,20 +407,27 @@
   padding: 0.8rem 0;
 }
 
+/* The count sits beside the name, not adrift between it and the marker: a fold
+   says what it holds, the way `.row-fold` does. */
 .docs-on-page summary {
   align-items: center;
   color: var(--ink);
   cursor: pointer;
   display: flex;
   font-weight: 800;
-  justify-content: space-between;
+  gap: 0.5rem;
   min-height: 2.75rem;
+}
+
+.docs-on-page summary .mono-note {
+  font-weight: 500;
 }
 
 .docs-on-page summary::after {
   content: "+";
   font-family: var(--font-mono);
   font-size: 1.15rem;
+  margin-left: auto;
 }
 
 .docs-on-page[open] summary::after {
@@ -339,9 +454,13 @@
   overflow-wrap: anywhere;
 }
 
+/* --- curriculum: the module sequence as list rows with a marker rail ------
+   The system draws a sequence as `.row-list` with a rail -- the events index,
+   the archive -- not as a stack of ink-bordered, shadowed slabs.  The row is
+   never an anchor: its title is, so a module whose bullets hold a link can no
+   longer nest one anchor inside another. */
+
 .docs-body .docs-curriculum-list {
-  display: grid;
-  gap: 0.75rem;
   list-style: none;
   margin: 1rem 0 2rem;
   padding: 0;
@@ -352,37 +471,15 @@
   margin-top: 1rem;
 }
 
-.docs-curriculum-item {
-  min-width: 0;
-}
-
-.docs-curriculum-card {
-  --interactive-card-bottom: 1rem;
-  --interactive-card-right: 1rem;
-  background: var(--card);
-  border: 2px solid var(--line);
-  border-radius: 0.9rem;
-  color: var(--ink);
-  display: block;
-  min-width: 0;
-  padding: 1rem;
-  text-decoration: none;
-}
-
-a.docs-curriculum-card {
-  padding-right: 3.25rem;
-}
-
-.docs-curriculum-head {
-  align-items: center;
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: 4.5rem minmax(0, 1fr);
+.docs-curriculum-row {
+  --row-cols: 5.5rem minmax(0, 1fr);
+  align-items: start;
+  column-gap: 1rem;
+  padding-block: 1rem;
 }
 
 .docs-curriculum-marker {
   align-items: center;
-  align-self: start;
   background: var(--lavender-deep);
   border-radius: 0.5rem;
   color: var(--ink);
@@ -392,24 +489,37 @@ a.docs-curriculum-card {
   font-weight: 800;
   justify-content: center;
   min-height: 2.75rem;
-  padding: 0.3rem;
+  padding: 0.3rem 0.5rem;
   text-align: center;
   text-transform: uppercase;
 }
 
-.docs-curriculum-title {
+.docs-body .docs-curriculum-title {
   color: var(--ink);
   font-size: 1.05rem;
   font-weight: 800;
   line-height: 1.3;
+  margin: 0;
   min-width: 0;
+}
+
+.docs-curriculum-title a {
+  color: var(--ink);
+  display: inline-block;
+  min-height: 1.5rem;
+  text-decoration: none;
+}
+
+.docs-curriculum-title a:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
 .docs-curriculum-details {
   color: var(--body-text);
+  font-size: 0.95rem;
   line-height: 1.55;
-  margin-left: 5.25rem;
-  margin-top: 0.4rem;
+  margin-top: 0.35rem;
 }
 
 .docs-curriculum-details ul {
@@ -432,92 +542,134 @@ a.docs-curriculum-card {
   margin-bottom: 0.75rem;
 }
 
+/* --- the foot of an article: the edit link, then previous / next ---------- */
+
 .docs-edit-note {
-  border-top: 2px dashed var(--line-soft);
-  color: var(--muted);
+  margin-top: 2rem;
+}
+
+.docs-edit-note .band-link {
+  align-items: center;
+  display: inline-flex;
+  font-family: var(--font-sans);
   font-size: 0.85rem;
-  margin-top: 2rem;
-  padding-top: 1rem;
+  min-height: 2.75rem;
 }
 
-.docs-context {
+.docs-pager {
+  border-top: 2px dashed var(--line-soft);
   display: grid;
-  gap: 0.75rem;
-  margin-top: 2rem;
+  gap: 1rem 1.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 1rem;
+  padding-top: 1.25rem;
 }
 
-.docs-context-link {
-  --interactive-card-bottom: 0.75rem;
-  --interactive-card-right: 0.85rem;
-  background: var(--card);
-  border: 2px solid var(--line);
-  border-radius: 0.7rem;
+.docs-pager-link {
   color: var(--ink);
+  display: grid;
+  gap: 0.15rem;
   min-height: 2.75rem;
   min-width: 0;
   overflow-wrap: anywhere;
-  padding: 0.75rem 2.75rem 0.75rem 0.9rem;
   text-decoration: none;
 }
 
-.docs-context-label,
-.docs-context-title {
-  display: block;
+.docs-pager-link strong {
+  font-size: 1rem;
 }
 
-.docs-context-title {
-  font-weight: 800;
-  margin-top: 0.15rem;
+.docs-pager-link:hover strong {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
-@media (min-width: 40rem) {
-  .docs-context {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .docs-context-parent {
-    grid-column: 1 / -1;
-  }
+/* Next keeps the right-hand column even when there is no previous, so the two
+   directions never swap sides down a guide. */
+.docs-pager-next {
+  grid-column: 2;
+  text-align: right;
 }
 
 @media (max-width: 47.99rem) {
-  .docs-section + .docs-section {
-    margin-top: 2rem;
-    padding-top: 2rem;
+  .docs-home-hero-inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* The homepage drops its hero drawing here too: on a phone the words and the
+     search field are the whole point of the header. */
+  .docs-hero-art {
+    display: none;
+  }
+
+  .docs-chapter {
+    margin-top: 2.5rem;
+    padding-top: 1.75rem;
+  }
+
+  /* The homepage's and the tour's own narrow rule for illustrated cards: the
+     surface goes, the row keeps a dashed rule, and the drawing moves beside the
+     words.  Reshaped, not squeezed. */
+  .docs-course-card,
+  .docs-section-card {
+    background: none;
+    border: 0;
+    border-bottom: 1.5px dashed var(--line-soft);
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0 0 0.9rem;
+  }
+
+  .docs-course-card {
+    column-gap: 0.9rem;
+    display: grid;
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+  }
+
+  .docs-course-figure {
+    grid-row: 1 / span 4;
+    height: 5.5rem;
+    margin: 0;
+  }
+
+  .docs-course-card h3 {
+    margin-top: 0.15rem;
+  }
+
+  .docs-course-card > p {
+    margin-top: 0.2rem;
+  }
+
+  .docs-card-pages {
+    padding-top: 0.35rem;
+  }
+
+  .card-grid-3.docs-cards {
+    gap: 0.9rem;
   }
 
   .docs-on-page-list {
     columns: 1;
   }
 
-  .docs-local-summary {
-    gap: 0.5rem;
-    grid-template-columns: minmax(0, 1fr) auto;
-    padding: 0.65rem 0.75rem;
+  .docs-pager {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .docs-local-label {
-    grid-column: 1 / -1;
-  }
-
-  .docs-local-current {
+  .docs-pager-next {
     grid-column: 1;
+    text-align: left;
   }
 
-  .docs-local-toggle {
-    grid-column: 2;
+  /* The marker keeps its rail on a phone rather than stacking into a full-width
+     bar above the module it numbers -- the same reshape the illustrated cards
+     take, mark beside the words. */
+  .docs-curriculum-row {
+    column-gap: 0.75rem;
+    grid-template-columns: 3.4rem minmax(0, 1fr);
   }
 
-  .docs-local-list {
-    grid-template-columns: 1fr;
-  }
-
-  .docs-curriculum-head {
-    grid-template-columns: 4.2rem minmax(0, 1fr);
-  }
-
-  .docs-curriculum-details {
-    margin-left: 0;
-    margin-top: 0.75rem;
+  .docs-curriculum-marker {
+    min-height: 2.25rem;
   }
 }
