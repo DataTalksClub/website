@@ -118,9 +118,10 @@
   gap: 0.55rem;
 }
 
-/* The separator belongs to the item that follows a break, never to the end of
-   the line above it, so a wrapped list can never open with a stray comma. */
-.docs-pages li + li::before {
+/* The separator trails its own link rather than leading the next one, so a
+   wrapped line never opens with a stray "·" -- which is what the hub's
+   activities row did at 390px. */
+.docs-pages li:not(:last-child)::after {
   color: var(--muted);
   content: "·";
 }
