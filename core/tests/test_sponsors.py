@@ -20,6 +20,7 @@ from core.sponsors import (
     get_sponsor,
     list_sponsors,
     public_events_hub_sponsors,
+    public_home_sponsors,
     public_sponsors,
     reactivate_sponsor,
     resolve_public_sponsors,
@@ -356,7 +357,8 @@ ARCHIVED_SUPPORTER = ("fabrikam", "Fabrikam & Co")
 
 
 class SponsorPublicSurfaceTests(TestCase):
-    """The homepage and ``/sponsors`` render the ``public_directory`` placement.
+    """``/sponsors`` renders the full ``public_directory`` placement; the
+    homepage renders only its ``featured_on_home`` subset.
 
     ``setUp`` writes its sponsors through the shared service, the same way
     Studio and the admin API do, rather than relying on
@@ -376,6 +378,7 @@ class SponsorPublicSurfaceTests(TestCase):
                     name=name,
                     description=description,
                     logo_asset_key=f"sponsors/{key}.png",
+                    featured_on_home=True,
                     assignments=[
                         {"placement": "public_directory", "position": position, "enabled": True},
                     ],
@@ -405,11 +408,19 @@ class SponsorPublicSurfaceTests(TestCase):
             actor_ref="user:188",
         )
 
-    def test_homepage_and_directory_share_the_public_sponsor_source(self) -> None:
+    def test_homepage_shows_only_featured_on_home_directory_shows_everyone(self) -> None:
         featured_names = [name for _key, name, _description in FEATURED]
         self.assertEqual(
             [sponsor["name"] for sponsor in public_sponsors()],
             [*featured_names, "Open Data Partner"],
+        )
+        # The homepage teaser is a strict subset: only the sponsors this
+        # fixture marked ``featured_on_home`` -- "Open Data Partner" is a real
+        # public_directory sponsor but was never flagged, so it is on
+        # ``/sponsors`` and never on the homepage.
+        self.assertEqual(
+            [sponsor["name"] for sponsor in public_home_sponsors()],
+            featured_names,
         )
 
         home = self.client.get(reverse("home"))
@@ -417,8 +428,9 @@ class SponsorPublicSurfaceTests(TestCase):
 
         self.assertEqual(home.status_code, 200)
         self.assertContains(home, 'id="sponsors-heading"')
-        for name in (*featured_names, "Open Data Partner"):
+        for name in featured_names:
             self.assertContains(home, f'alt="{name}"')
+        self.assertNotContains(home, 'alt="Open Data Partner"')
         self.assertContains(home, f'href="{reverse("sponsors")}"')
         self.assertEqual(directory.status_code, 200)
         self.assertContains(directory, "Our Sponsors")

@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """Import the reviewed public sponsor directory into a database.
 
-One-time import.  The four featured sponsors and every other organization
-DataTalks.Club has publicly thanked are frozen, reviewed facts, checked into
-``~/prod/dtc-data/content-staging/sponsor_directory.json`` (outside this
-repository -- see ``_docs/architecture/database-only-content.md``).  Nothing
-upstream is going to move -- once
-they are in the database an editor curates name, URL, tagline, lifecycle and
-placement in Studio exactly as they do for an events_hub sponsor; only the
-directory description and logo stay import-managed, so re-running this
-script (after an edit to the reviewed file) is how those two change. See
-``scripts/prod/__init__.py`` for what the two sync models mean.
+One-time bootstrap, safe to re-run. The four featured sponsors and every
+other organization DataTalks.Club has publicly thanked are frozen, reviewed
+facts, checked into ``~/prod/dtc-data/content-staging/sponsor_directory.json``
+(outside this repository -- see ``_docs/architecture/database-only-content.md``).
+Once a sponsor is in the database an editor curates every field -- name, URL,
+tagline, lifecycle, placement, description, logo and the homepage
+``featured_on_home`` flag -- in Studio exactly as they do for an events_hub
+sponsor; ongoing maintenance never needs this script or the reviewed file
+again. ``description``, ``logo_asset_key`` and ``featured_on_home`` are the
+three fields this script still owns authoritatively when it *is* re-run: they
+are reviewed content, not a database-only Studio decision, so the reviewed
+file -- never a migration -- is where a correction to any of the three is
+recorded and replayed from. See ``scripts/prod/__init__.py`` for what the two
+sync models mean.
 
 This is production *content*, not a fixture: none of these companies is
 invented, and every write goes through ``core.sponsors``' shared

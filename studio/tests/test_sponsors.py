@@ -128,6 +128,62 @@ class StudioSponsorTests(TestCase):
         self.assertContains(stale, "Current revision 2", status_code=409)
         self.assertEqual(Sponsor.objects.get().name, "First save")
 
+    def test_description_logo_and_featured_on_home_are_studio_editable(self) -> None:
+        """Every field a sponsor has -- not just name/url/tagline/lifecycle/placement --
+        is editable through Studio, with no external file or script round-trip."""
+
+        created = self.client.post(
+            self.url,
+            self.create_payload(
+                lifecycle="active",
+                placement="public_directory",
+                description="Founded to keep data engineering education free.",
+                logo_asset_key="sponsors/acme.png",
+                featured_on_home="true",
+            ),
+        )
+        self.assert_private(created, 302)
+        sponsor = Sponsor.objects.get()
+        self.assertEqual(sponsor.description, "Founded to keep data engineering education free.")
+        self.assertEqual(sponsor.logo_asset_key, "sponsors/acme.png")
+        self.assertTrue(sponsor.featured_on_home)
+
+        # Listed with its featured flag, and the create form's own submission is
+        # never rendered back stale (the detail page is what carries the record).
+        listing = self.client.get(self.url)
+        self.assert_private(listing, 200)
+        self.assertContains(listing, "acme")
+
+        detail_url = reverse("studio:sponsor-detail", args=[sponsor.id])
+        detail = self.client.get(detail_url)
+        self.assert_private(detail, 200)
+        self.assertContains(detail, "Founded to keep data engineering education free.")
+        self.assertContains(detail, 'value="sponsors/acme.png"')
+        self.assertContains(detail, "Yes</dd>")
+
+        edited = self.client.post(
+            detail_url,
+            {
+                "idempotency_key": str(uuid.uuid4()),
+                "expected_revision": "1",
+                "name": sponsor.name,
+                "url": sponsor.url,
+                "tagline": sponsor.tagline,
+                "description": "Updated copy for the directory.",
+                "logo_asset_key": "sponsors/acme-2026.png",
+                "lifecycle": "active",
+                "placement": "public_directory",
+                "position": "1",
+                "assignment_enabled": "true",
+                # featured_on_home omitted: an unchecked checkbox never posts its key
+            },
+        )
+        self.assert_private(edited, 302)
+        sponsor.refresh_from_db()
+        self.assertEqual(sponsor.description, "Updated copy for the directory.")
+        self.assertEqual(sponsor.logo_asset_key, "sponsors/acme-2026.png")
+        self.assertFalse(sponsor.featured_on_home)
+
     def test_archive_reactivate_and_export(self) -> None:
         self.client.post(self.url, self.create_payload(lifecycle="active"))
         sponsor = Sponsor.objects.get()

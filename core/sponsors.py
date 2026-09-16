@@ -1,16 +1,18 @@
 """Database-owned sponsor directory shared by Studio, the admin API, and public pages.
 
-``description`` and ``logo_asset_key`` are the two fields behind the public
-sponsor directory (the homepage teaser and ``/sponsors``).  They arrive only
-through :func:`import_public_sponsor_directory`, from the reviewed
-``core/sponsor_directory.json`` -- never through Studio or the admin API today,
-so neither is in ``SPONSOR_CREATE``/``SPONSOR_UPDATE``'s ``writable_fields`` or
-the OpenAPI ``Sponsor`` schema.  That is a deliberate, narrower scope than the
-rest of this module: Studio- and API-driven editing of a public-directory
-sponsor's name, URL, tagline, lifecycle and placement all work exactly as they
-do for an events_hub sponsor; only the description and logo stay
-import-managed for now, the same way ``courses.homepage_testimonials.json``
-owns a testimonial's portrait rather than a self-service form.
+``description``, ``logo_asset_key`` and ``featured_on_home`` are all
+Studio-writable, through the same :func:`create_sponsor`/:func:`update_sponsor`
+service every other field uses. They are *also* reviewed-ingestion fields:
+:func:`import_public_sponsor_directory` (run by
+``scripts/prod/import_sponsors.py``) reads all three from the reviewed
+``sponsor_directory.json`` and keeps them in sync on every replay, the same
+way it already owned ``description``/``logo_asset_key``. That file, not a
+migration, is where "which sponsors are featured on the homepage" is decided
+and recorded -- see ``_docs/architecture/database-only-content.md`` on why
+real content never rides a ``RunPython`` data migration into the database.
+A Studio editor can still change any of the three between import runs; the
+next reviewed-file replay is simply the next authoritative word on it, same
+as it already is for name, URL and lifecycle.
 """
 
 from __future__ import annotations
@@ -164,13 +166,14 @@ class NormalizedSponsorPayload:
     name: str
     url: str
     tagline: str
-    #: ``None`` means "not supplied": create treats it as empty, update leaves
-    #: the stored value alone.  Studio and the admin API never supply either
-    #: field today, so an ordinary edit through either surface cannot wipe a
-    #: sponsor's description or logo -- only :func:`import_public_sponsor_directory`
-    #: (which always supplies both) sets them.
+    #: ``None`` means "not supplied": create treats it as empty (or ``False``
+    #: for ``featured_on_home``), update leaves the stored value alone. Studio
+    #: and :func:`import_public_sponsor_directory` both always supply all
+    #: three on every write, so only a caller that omits a field (the admin
+    #: API today) can leave it alone on update.
     description: str | None
     logo_asset_key: str | None
+    featured_on_home: bool | None
     lifecycle: str
     assignments: tuple[NormalizedAssignment, ...]
 
@@ -305,6 +308,17 @@ def _normalize_optional_logo_asset_key(value: object) -> str | None:
     return trimmed
 
 
+def _normalize_optional_featured_on_home(value: object) -> bool | None:
+    if value is None:
+        return None
+    if not isinstance(value, bool):
+        raise InvalidSponsor(
+            "sponsor featured_on_home is invalid",
+            fields={"featured_on_home": "featured_on_home must be true or false."},
+        )
+    return value
+
+
 def _normalize_lifecycle(value: object, *, allowed: frozenset[str]) -> str:
     if not isinstance(value, str) or value not in allowed:
         raise InvalidSponsor(
@@ -398,6 +412,7 @@ def _normalize_payload(
         ),
         description=_normalize_optional_description(payload.get("description")),
         logo_asset_key=_normalize_optional_logo_asset_key(payload.get("logo_asset_key")),
+        featured_on_home=_normalize_optional_featured_on_home(payload.get("featured_on_home")),
         lifecycle=_normalize_lifecycle(
             payload.get("lifecycle"),
             allowed=allowed_lifecycles,
@@ -510,6 +525,10 @@ def serialize_sponsor(sponsor: Sponsor) -> JsonObject:
         "name": sponsor.name,
         "url": sponsor.url,
         "tagline": sponsor.tagline,
+        "description": sponsor.description,
+        "logo_asset_key": sponsor.logo_asset_key,
+        "logo_url": sponsor.logo_url,
+        "featured_on_home": sponsor.featured_on_home,
         "lifecycle": sponsor.lifecycle,
         "source": sponsor.source,
         "revision": sponsor.revision,
@@ -527,6 +546,9 @@ def _validate_stored_sponsor(payload: JsonObject) -> JsonObject:
                 "name": payload.get("name"),
                 "url": payload.get("url", ""),
                 "tagline": payload.get("tagline", ""),
+                "description": payload.get("description", ""),
+                "logo_asset_key": payload.get("logo_asset_key", ""),
+                "featured_on_home": bool(payload.get("featured_on_home", False)),
                 "lifecycle": payload.get("lifecycle"),
                 "assignments": payload.get("assignments", []),
             },
@@ -545,6 +567,9 @@ def _validate_stored_sponsor(payload: JsonObject) -> JsonObject:
         "name": normalized.name,
         "url": normalized.url,
         "tagline": normalized.tagline,
+        "description": normalized.description or "",
+        "logo_asset_key": normalized.logo_asset_key or "",
+        "featured_on_home": bool(normalized.featured_on_home),
         "assignments": [item.as_dict() for item in normalized.assignments],
     }
 
@@ -637,12 +662,18 @@ def resolve_public_sponsors(
     placement: str = SPONSOR_PLACEMENT_EVENTS_HUB,
     *,
     using: str = "default",
+    require_featured_on_home: bool = False,
 ) -> tuple[JsonObject, ...]:
-    """Return enabled active sponsors for one placement in position order."""
+    """Return enabled active sponsors for one placement in position order.
+
+    ``require_featured_on_home`` narrows this to the homepage teaser band:
+    only sponsors an editor has explicitly marked ``featured_on_home``. It
+    never widens the result -- an archived sponsor is excluded either way.
+    """
 
     if placement not in SPONSOR_PLACEMENTS:
         raise InvalidSponsor("sponsor placement is invalid")
-    rows = list(
+    queryset = (
         SponsorPlacementAssignment.objects.using(using)
         .select_related("sponsor")
         .filter(
@@ -650,8 +681,10 @@ def resolve_public_sponsors(
             enabled=True,
             sponsor__lifecycle=Sponsor.Lifecycle.ACTIVE,
         )
-        .order_by("position", "sponsor__key")[:SPONSOR_ACTIVE_PER_PLACEMENT]
     )
+    if require_featured_on_home:
+        queryset = queryset.filter(sponsor__featured_on_home=True)
+    rows = list(queryset.order_by("position", "sponsor__key")[:SPONSOR_ACTIVE_PER_PLACEMENT])
     resolved: list[JsonObject] = []
     for assignment in rows:
         stored = _validate_stored_sponsor(serialize_sponsor(assignment.sponsor))
@@ -688,11 +721,12 @@ def public_events_hub_sponsors(*, using: str = "default") -> tuple[JsonObject, .
 
 
 def public_sponsors(*, using: str = "default") -> tuple[JsonObject, ...]:
-    """Return the public directory shared by the homepage and ``/sponsors``.
+    """Return the full public-directory featured band: ``/sponsors`` and ``/tour``.
 
-    Homepage and directory render the identical set from the identical
-    placement -- there is no separate "homepage" curation -- so this is the
-    one function both ``core.views.home`` and ``core.views.sponsors`` call.
+    Every enabled, active sponsor in the ``public_directory`` placement, not
+    only the ``featured_on_home`` ones -- see :func:`public_home_sponsors` for
+    the narrower homepage teaser. ``core.views.sponsors`` and ``core.views.tour``
+    both call this one.
     """
 
     try:
@@ -700,6 +734,28 @@ def public_sponsors(*, using: str = "default") -> tuple[JsonObject, ...]:
     except (DatabaseError, InvalidSponsor) as error:
         logger.warning(
             "Public sponsor directory is unavailable (%s).",
+            type(error).__name__,
+        )
+        return ()
+
+
+def public_home_sponsors(*, using: str = "default") -> tuple[JsonObject, ...]:
+    """Return the homepage teaser: the current, long-term ``featured_on_home`` sponsors.
+
+    A strict subset of :func:`public_sponsors` -- same placement, same
+    ordering, additionally filtered to sponsors an editor has marked
+    ``featured_on_home``. ``core.views.home`` is the one caller.
+    """
+
+    try:
+        return resolve_public_sponsors(
+            SPONSOR_PLACEMENT_PUBLIC_DIRECTORY,
+            using=using,
+            require_featured_on_home=True,
+        )
+    except (DatabaseError, InvalidSponsor) as error:
+        logger.warning(
+            "Public homepage sponsors are unavailable (%s).",
             type(error).__name__,
         )
         return ()
@@ -767,6 +823,7 @@ class SponsorDirectoryEntry(TypedDict):
     lifecycle: str
     description: str
     logo_asset_key: str
+    featured_on_home: bool
     position: int | None
 
 
@@ -824,6 +881,16 @@ def load_reviewed_sponsor_directory(source: Path) -> tuple[SponsorDirectoryEntry
             raise SponsorDirectoryImportError("reviewed_sponsor_entry_active_needs_position")
         if not is_active and position is not None:
             raise SponsorDirectoryImportError("reviewed_sponsor_entry_archived_has_position")
+        # Optional and boolean, unlike the required string fields above: most
+        # reviewed rows never mention it, and an absent key means "not
+        # featured" -- the same default the model field itself carries.
+        raw_featured_on_home = entry.get("featured_on_home", False)
+        if not isinstance(raw_featured_on_home, bool):
+            raise SponsorDirectoryImportError("reviewed_sponsor_entry_featured_on_home_invalid")
+        if raw_featured_on_home and not is_active:
+            raise SponsorDirectoryImportError(
+                "reviewed_sponsor_entry_featured_on_home_needs_active"
+            )
         parsed.append(
             SponsorDirectoryEntry(
                 key=fields["key"],
@@ -832,6 +899,7 @@ def load_reviewed_sponsor_directory(source: Path) -> tuple[SponsorDirectoryEntry
                 lifecycle=lifecycle,
                 description=fields["description"],
                 logo_asset_key=fields["logo_asset_key"],
+                featured_on_home=raw_featured_on_home,
                 position=position,
             )
         )
@@ -867,6 +935,7 @@ def _directory_entry_payload(entry: SponsorDirectoryEntry) -> JsonObject:
         "tagline": "",
         "description": entry["description"],
         "logo_asset_key": entry["logo_asset_key"],
+        "featured_on_home": entry["featured_on_home"],
         "assignments": assignments,
     }
 
@@ -885,6 +954,7 @@ def _directory_entry_matches(sponsor: Sponsor, entry: SponsorDirectoryEntry) -> 
         and sponsor.url == entry["url"]
         and sponsor.description == entry["description"]
         and sponsor.logo_asset_key == entry["logo_asset_key"]
+        and sponsor.featured_on_home == entry["featured_on_home"]
         and sponsor.lifecycle == entry["lifecycle"]
         and current_assignments == target_assignments
     )
@@ -1158,6 +1228,7 @@ def _apply_create(
             tagline=payload.tagline,
             description=payload.description or "",
             logo_asset_key=payload.logo_asset_key or "",
+            featured_on_home=bool(payload.featured_on_home),
             lifecycle=payload.lifecycle,
             source=source,
             revision=1,
@@ -1230,15 +1301,20 @@ def _apply_update(
     sponsor.source = source
     sponsor.revision += 1
     update_fields = ["name", "url", "tagline", "lifecycle", "source", "revision", "updated_at"]
-    # ``None`` means the caller (Studio, the admin API) never supplied the
-    # field: leave the stored value exactly where it is rather than blanking
-    # it out.  Only the import path supplies these explicitly.
+    # ``None`` means the caller never supplied the field: leave the stored
+    # value exactly where it is rather than blanking it out. Studio and the
+    # reviewed-directory import both always supply all three explicitly on
+    # every write; only a caller that omits a field (the admin API today)
+    # leaves one alone.
     if payload.description is not None:
         sponsor.description = payload.description
         update_fields.append("description")
     if payload.logo_asset_key is not None:
         sponsor.logo_asset_key = payload.logo_asset_key
         update_fields.append("logo_asset_key")
+    if payload.featured_on_home is not None:
+        sponsor.featured_on_home = payload.featured_on_home
+        update_fields.append("featured_on_home")
     try:
         sponsor.save(using=using, update_fields=tuple(update_fields))
         _replace_assignments(sponsor, payload.assignments, using=using)
@@ -1406,6 +1482,9 @@ def create_sponsor(
         "name": normalized.name,
         "url": normalized.url,
         "tagline": normalized.tagline,
+        "description": normalized.description,
+        "logo_asset_key": normalized.logo_asset_key,
+        "featured_on_home": normalized.featured_on_home,
         "lifecycle": normalized.lifecycle,
         "assignments": [item.as_dict() for item in normalized.assignments],
         "source": source_value,
@@ -1456,6 +1535,9 @@ def update_sponsor(
         "name": normalized.name,
         "url": normalized.url,
         "tagline": normalized.tagline,
+        "description": normalized.description,
+        "logo_asset_key": normalized.logo_asset_key,
+        "featured_on_home": normalized.featured_on_home,
         "lifecycle": normalized.lifecycle,
         "assignments": [item.as_dict() for item in normalized.assignments],
         "expected_revision": expected,

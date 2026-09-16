@@ -27,7 +27,7 @@ from core.home_content import (
     wiki_graph,
     wiki_topics,
 )
-from core.sponsors import public_sponsors, public_supporter_history
+from core.sponsors import public_home_sponsors, public_sponsors, public_supporter_history
 from courses.services.member_home import build_member_home_context
 from courses.services.testimonials import homepage_testimonials
 
@@ -121,7 +121,7 @@ def home(request: HttpRequest):
             "wiki_topics": wiki_topics(),
             "wiki_graph": wiki_graph(),
             "counts": catalogue.collection_counts(),
-            "sponsors": public_sponsors(),
+            "sponsors": public_home_sponsors(),
         },
     )
 

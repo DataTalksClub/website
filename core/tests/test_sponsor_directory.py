@@ -50,6 +50,7 @@ REVIEWED_SPONSORS = (
         "lifecycle": "active",
         "description": "A synthetic featured sponsor.",
         "logo_asset_key": "sponsors/northwind.png",
+        "featured_on_home": True,
         "position": 1,
     },
     {
@@ -210,6 +211,7 @@ class SponsorLogoDegradesOnThePublicPageTests(TestCase):
                 "name": "Good Logo",
                 "lifecycle": "active",
                 "logo_asset_key": "sponsors/dlthub.png",
+                "featured_on_home": True,
                 "assignments": [
                     {
                         "placement": SPONSOR_PLACEMENT_PUBLIC_DIRECTORY,
@@ -228,6 +230,7 @@ class SponsorLogoDegradesOnThePublicPageTests(TestCase):
                 "name": "Stale Logo",
                 "lifecycle": "active",
                 "logo_asset_key": "sponsors/removed-after-the-manifest-was-built.png",
+                "featured_on_home": True,
                 "assignments": [
                     {
                         "placement": SPONSOR_PLACEMENT_PUBLIC_DIRECTORY,
@@ -280,6 +283,12 @@ class ReviewedSponsorDirectoryLoadTests(TestCase):
             self.assertTrue(entry["description"])
         for entry in archived:
             self.assertIsNone(entry["position"])
+        # ``featured_on_home`` is optional in the reviewed file: explicit for
+        # northwind, absent (and so ``False``) for everyone else.
+        by_key = {entry["key"]: entry for entry in entries}
+        self.assertIs(by_key["northwind"]["featured_on_home"], True)
+        self.assertIs(by_key["contoso"]["featured_on_home"], False)
+        self.assertIs(by_key["adventureworks"]["featured_on_home"], False)
 
     def test_a_malformed_reviewed_file_is_refused_by_condition_code(self) -> None:
         base_entry = {
@@ -313,6 +322,27 @@ class ReviewedSponsorDirectoryLoadTests(TestCase):
             (
                 {"schema_version": 1, "sponsors": [base_entry, dict(base_entry)]},
                 "key_duplicated",
+            ),
+            (
+                {
+                    "schema_version": 1,
+                    "sponsors": [{**base_entry, "featured_on_home": "true"}],
+                },
+                "featured_on_home_invalid",
+            ),
+            (
+                {
+                    "schema_version": 1,
+                    "sponsors": [
+                        {
+                            **base_entry,
+                            "lifecycle": "archived",
+                            "position": None,
+                            "featured_on_home": True,
+                        }
+                    ],
+                },
+                "featured_on_home_needs_active",
             ),
             (
                 {
@@ -364,6 +394,30 @@ class SponsorDirectoryImportTests(TestCase):
             [sponsor["name"] for sponsor in public_sponsors()],
             list(REVIEWED_ACTIVE),
         )
+        self.assertEqual(
+            set(Sponsor.objects.filter(featured_on_home=True).values_list("key", flat=True)),
+            {"northwind"},
+        )
+
+    def test_a_reconciled_featured_on_home_change_is_replayed(self) -> None:
+        """The reviewed file, not a migration or a one-off Studio click, is the
+        source of truth for ``featured_on_home`` on every re-run."""
+
+        import_public_sponsor_directory(self.reviewed)
+        self.assertTrue(Sponsor.objects.get(key="northwind").featured_on_home)
+        self.assertFalse(Sponsor.objects.get(key="contoso").featured_on_home)
+
+        promoted = _reviewed_directory(
+            self,
+            contoso={"featured_on_home": True},
+            northwind={"featured_on_home": False},
+        )
+        report = import_public_sponsor_directory(promoted)
+
+        self.assertFalse(report.replayed)
+        self.assertEqual(report.updated, 2)
+        self.assertFalse(Sponsor.objects.get(key="northwind").featured_on_home)
+        self.assertTrue(Sponsor.objects.get(key="contoso").featured_on_home)
 
     def test_replaying_the_reviewed_file_writes_nothing(self) -> None:
         import_public_sponsor_directory(self.reviewed)

@@ -324,17 +324,27 @@ SPONSOR_INTERIM_SITE_ASSET_STATIC_PREFIX = "core/"
 class Sponsor(RevisionedModel):
     """One organization in the sponsor directory, public or Studio-managed.
 
-    ``description`` and ``logo_asset_key`` back the public sponsor directory
-    (the homepage teaser and ``/sponsors``); today they arrive only through
-    :func:`core.sponsors.import_public_sponsor_directory` from the reviewed
-    ``core/sponsor_directory.json`` and are not yet Studio-writable fields --
-    a deliberate, narrower scope than the rest of this model, noted here so it
-    is not mistaken for an oversight.
+    Every field here -- including ``description`` and ``logo_asset_key`` --
+    is Studio-writable through ``core.sponsors``' create/update service, the
+    same revisioned, audited path every other field uses. The one-time
+    ``scripts/prod/import_sponsors.py`` script only ever bootstrapped the
+    initial rows from the reviewed ``sponsor_directory.json``; ongoing
+    maintenance never touches that file again.
 
     Read the logo through :attr:`logo_url`, never by resolving
     ``logo_asset_key`` directly; that property is what keeps a bad row from
     taking the page down with it, the same guard
     ``courses.models.Testimonial.portrait_url`` uses for portraits.
+
+    ``featured_on_home`` is a narrower band than ``/sponsors``: every
+    sponsor -- active or archived -- appears on the public directory page,
+    but the homepage teaser shows only the current, long-term sponsors this
+    flag marks. A sponsor that is not ``active`` can never be featured there
+    regardless of this flag; see :func:`core.sponsors.public_home_sponsors`.
+    Studio can change it like any other field, and the reviewed
+    ``sponsor_directory.json`` import also owns it (see
+    ``core.sponsors``' module docstring) -- never a migration; see
+    ``_docs/architecture/database-only-content.md``.
     """
 
     class Lifecycle(models.TextChoices):
@@ -365,6 +375,13 @@ class Sponsor(RevisionedModel):
         ),
     )
     lifecycle = models.CharField(max_length=16, choices=Lifecycle.choices)
+    featured_on_home = models.BooleanField(
+        default=False,
+        help_text=(
+            "Show this sponsor on the homepage teaser, not only on /sponsors. "
+            "Reserved for current, long-term sponsors."
+        ),
+    )
     source = models.CharField(max_length=64)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

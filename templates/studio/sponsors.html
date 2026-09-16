@@ -54,6 +54,12 @@
               <a href="#sponsor-url">{{ message }}</a>
             {% elif field == "tagline" %}
               <a href="#sponsor-tagline">{{ message }}</a>
+            {% elif field == "description" %}
+              <a href="#sponsor-description">{{ message }}</a>
+            {% elif field == "logo_asset_key" %}
+              <a href="#sponsor-logo-asset-key">{{ message }}</a>
+            {% elif field == "featured_on_home" %}
+              <a href="#sponsor-featured-on-home">{{ message }}</a>
             {% elif field == "lifecycle" %}
               <a href="#sponsor-lifecycle">{{ message }}</a>
             {% elif field == "assignments" %}
@@ -114,6 +120,7 @@
               <th scope="col">Key</th>
               <th scope="col">Name</th>
               <th scope="col">Lifecycle</th>
+              <th scope="col">Featured on home</th>
               <th scope="col">Source</th>
               <th scope="col">Revision</th>
             </tr>
@@ -126,6 +133,7 @@
                 </th>
                 <td>{{ sponsor.name }}</td>
                 <td>{{ sponsor.lifecycle }}</td>
+                <td>{{ sponsor.featured_on_home|yesno:"Yes,No" }}</td>
                 <td>{{ sponsor.source }}</td>
                 <td>{{ sponsor.revision }}</td>
               </tr>
@@ -197,6 +205,47 @@
             {% if field_errors.tagline %}aria-invalid="true"{% endif %}
           >
         </div>
+        <div class="field">
+          <label class="field-label" for="sponsor-description">Description</label>
+          <textarea
+            class="field-input"
+            id="sponsor-description"
+            name="description"
+            maxlength="600"
+            rows="4"
+            {% if field_errors.description %}aria-invalid="true"{% endif %}
+          >{{ submitted.description }}</textarea>
+          <p class="mono-note">
+            Longer copy shown on the public sponsor directory. Leave empty for short-line
+            placements such as events_hub.
+          </p>
+        </div>
+        <div class="field">
+          <label class="field-label" for="sponsor-logo-asset-key">Logo asset key</label>
+          <input
+            class="field-input"
+            id="sponsor-logo-asset-key"
+            name="logo_asset_key"
+            value="{{ submitted.logo_asset_key }}"
+            maxlength="200"
+            placeholder="sponsors/example.png"
+            {% if field_errors.logo_asset_key %}aria-invalid="true"{% endif %}
+          >
+          <p class="mono-note">
+            Key relative to the site-assets prefix. The file itself must already exist there;
+            empty renders no logo.
+          </p>
+        </div>
+        <label class="admin-check" for="sponsor-featured-on-home">
+          <input
+            id="sponsor-featured-on-home"
+            type="checkbox"
+            name="featured_on_home"
+            value="true"
+            {% if submitted.featured_on_home %}checked{% endif %}
+          >
+          <span>Feature on the homepage (in addition to /sponsors)</span>
+        </label>
         <div class="field">
           <label class="field-label" for="sponsor-lifecycle">Lifecycle</label>
           <select class="field-input" id="sponsor-lifecycle" name="lifecycle">
