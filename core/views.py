@@ -152,20 +152,21 @@ def tour(request: HttpRequest) -> HttpResponse:
     scope in one place (the catalogue's own counts), keeps only the two
     sections a newcomer actually needs to see for themselves (courses,
     events), and then names every other channel the community runs -- the
-    podcast, the blog, the books, the wiki, the docs, the YouTube channel and
-    the Slack -- in one list. Every figure is a catalogue count, never a
-    written-in number, and every catalogue-backed row is gated on that count,
+    podcast, the blog, the books, the wiki, the docs and the YouTube channel
+    -- as one card each. Every figure is a catalogue count, never a
+    written-in number, and every catalogue-backed card is gated on that count,
     so an empty database renders the page with its claims dropped rather
-    than a promise it cannot back. The docs row is gated the same way, on
-    whether the documentation home is actually published.
+    than a promise it cannot back. The docs card is gated the same way, on
+    whether the documentation home is actually published, and the events
+    section is gated on real upcoming rows rather than drawing an invented
+    week.
     """
 
     events = event_groups()
     catalog = course_catalog()
-    upcoming = tuple(
-        {**event, "home_time": event_time_display(event["starts_at"])}
-        for event in events.upcoming[:3]
-    )
+    # The events index's own date rail, so the tour's rows read like that page's:
+    # `display_date` and `display_clock` are already on every event record.
+    upcoming = events.upcoming[:3]
     return render(
         request,
         "core/tour.html",

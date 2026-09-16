@@ -8,105 +8,576 @@
 {% endblock %}
 
 {% block page_styles %}
-  .tour-section + .tour-section {
-    border-top: 2px solid color-mix(in srgb, var(--line) 55%, transparent);
-    margin-top: clamp(2.5rem, 7vw, 5rem);
-    padding-top: clamp(2.5rem, 7vw, 5rem);
+  /* ==================================================================
+     /tour is the site's pitch page, so it borrows its skeleton from the
+     two pages that already pitch: the homepage (hero -> illustrated
+     cards -> stories -> closing ink band) and the course family landing
+     (hero with art -> stat tiles -> chapter rule -> wide illustrated
+     grid -> narrow subsections).  Everything below is layout for
+     existing components; no new surface, no new ground.
+     ================================================================== */
+
+  :root { --page: var(--lavender); }
+
+  /* --- hero: the family landing's hero (.family-hero-inner / -art / h1 /
+         -lede / -commitment / -actions), the same grid, sizes and art slot */
+  .content-page-header { padding-block: 2.5rem; }
+  .tour-hero-inner {
+    align-items: center;
+    display: grid;
+    gap: 1.5rem 2rem;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 18rem);
   }
-  .tour-section-heading { max-width: 46rem; margin-bottom: 1.5rem; }
-  .tour-section-heading h2 { font-size: clamp(1.55rem, 4vw, 2.35rem); margin: 0 0 0.65rem; }
-  .tour-section-heading p { color: var(--muted); margin: 0; }
+  .tour-hero-inner > * { min-width: 0; }
+  .tour-hero h1 {
+    font-size: clamp(2.1rem, 4.9vw, 3.4rem);
+    letter-spacing: -0.03em;
+    max-width: 19ch;
+    text-wrap: balance;
+  }
   .tour-lede {
-    max-width: 46rem;
-    font-size: clamp(1.1rem, 2.4vw, 1.4rem);
-    line-height: 1.55;
+    color: var(--body-text);
+    font-size: 1.15rem;
+    line-height: 1.6;
+    margin-top: 1rem;
+    max-width: var(--measure);
   }
   .tour-lede strong { color: var(--ink); }
+  .tour-hero-commitment {
+    color: var(--ink);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-top: 0.6rem;
+    max-width: var(--measure);
+  }
+  .tour-hero-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+    margin-top: 1.5rem;
+  }
+  .tour-hero-actions .cta { min-height: 3.25rem; }
+  .tour-hero-art {
+    aspect-ratio: 1;
+    justify-self: end;
+    max-width: 20rem;
+    width: 100%;
+  }
+  .tour-hero-art .doodle { height: 100%; object-fit: contain; }
 
-  /* The founder's story is the homepage's member-story card (`.card` +
-     `.story-quote` + `.story-person`), so his quote reads exactly like the
-     members' quotes there and on a course family page.  The one thing this
-     page adds is the pair of mono labels that name what each short excerpt
-     answers, set side by side where the card is wide enough. */
-  /* One card as wide as the page's measure, so it takes the inset a
-     `.panel` of that width already takes rather than a scroller card's. */
-  .tour-story { max-width: 46rem; padding: 1.35rem 1.5rem; }
+  /* --- who's here: the family landing's opening tiles (.stat-tiles reused,
+         four across), flush under the seam with the source as a mono note */
+  .tour-stats { display: grid; gap: 0.75rem; }
+  .tour-stat-tiles .stat-tile { min-height: 0; padding-block: 0.8rem; }
+  .tour-stat-tiles strong {
+    font-size: clamp(1.35rem, 2vw, 1.75rem);
+    font-variant-numeric: tabular-nums;
+  }
+  .tour-stats-source { margin: 0; }
+  .tour-stats-source .band-link { font-family: var(--font-sans); font-size: 0.85rem; }
+  @media (min-width: 40rem) {
+    .tour-stat-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+
+  /* --- chapter rhythm: the family landing's rule.  Three chapters open on
+         the solid ink rule; the sections that belong to the chapter before
+         them keep the plain 2.75rem gap, so the page groups instead of
+         repeating one separator eight times. */
+  .tour-chapter {
+    border-top: 2px solid var(--line);
+    margin-top: 3.5rem;
+    padding-top: 2.5rem;
+  }
+  .tour-subsection { margin-top: 2.75rem; }
+  .tour-chapter .band-head h2,
+  .tour-subsection .band-head h2 {
+    font-size: clamp(1.4rem, 3vw, 1.87rem);
+    letter-spacing: -0.02em;
+  }
+  .tour-chapter .band-link,
+  .tour-subsection .band-link {
+    align-items: center;
+    display: inline-flex;
+    min-height: 2.75rem;
+  }
+  .tour-aside {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-top: 1rem;
+    max-width: var(--measure);
+  }
+
+  /* The chapter rule spans the breakout width where the chapter breaks out:
+     it announces the width change, as on the family landing. */
+  .tour-chapter.shell-breakout { --breakout-width: min(var(--shell), calc(100vw - 2rem)); }
+
+  /* --- course cards: the homepage climb card (drawing, then mono label,
+         h3, one line), one per family, on the shared card grid */
+  .tour-course-card { padding: 1.25rem 1.35rem 1.2rem; gap: 0; }
+  .tour-course-figure {
+    align-items: center;
+    display: flex;
+    height: 9.5rem;
+    justify-content: center;
+    margin: 0 0 0.9rem;
+  }
+  .tour-course-figure .doodle { height: 100%; object-fit: contain; width: auto; }
+  .tour-course-card .mono-label { color: var(--indigo); }
+  .tour-course-card h3 { font-size: 1.15rem; letter-spacing: -0.015em; margin-top: 0.45rem; }
+  .tour-course-card h3 a { color: var(--ink); text-decoration: none; }
+  .tour-course-card p { color: var(--muted); font-size: 0.88rem; margin-top: 0.35rem; }
+
+  /* --- cohort week: spec strip, then the note beside one story card.  The
+         graduate quote uses the same member-story card the homepage and the
+         family landing draw, so the page has one quote treatment. */
+  .tour-week { display: grid; gap: 1.5rem; margin-top: 0.25rem; }
+  .tour-week-note { color: var(--body-text); }
+  .tour-week-note p + p { margin-top: 0.75rem; }
+  @media (min-width: 62rem) {
+    .tour-week-grid {
+      align-items: start;
+      display: grid;
+      gap: 1.5rem 2rem;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 24rem);
+    }
+  }
+
+  /* --- events: the events-index date rail beside the title, on list rows */
+  .tour-events .list-row { --row-cols: 11rem minmax(0, 1fr); }
+  .tour-events .when strong { display: block; font-size: 0.95rem; }
+  .tour-events .when span { color: var(--muted); display: block; font-family: var(--font-mono); font-size: 0.78rem; }
+  .tour-events h3 { font-size: 1.05rem; }
+  .tour-events h3 a { color: var(--ink); }
+  .tour-events .tour-row-meta { color: var(--muted); font-size: 0.88rem; margin: 0.2rem 0 0; }
+
+  /* --- everything else: one card per thing, whole-card links */
+  .tour-thing { gap: 0.5rem; padding: 1.15rem 1.25rem; }
+  .tour-thing h3 { font-size: 1.1rem; }
+  .tour-thing h3 a { color: var(--ink); text-decoration: none; }
+  .tour-thing p { color: var(--body-text); font-size: 0.9rem; }
+  .tour-thing .mono-note { margin-top: auto; padding-top: 0.5rem; }
+
+  /* --- slack norms: the homepage climb-step (disc + line), three across */
+  .tour-norms {
+    display: grid;
+    gap: 1.25rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .tour-norm { align-items: flex-start; display: flex; gap: 0.7rem; }
+  .tour-norm .step-number { margin-top: 0.1rem; }
+  .tour-norm p { color: var(--body-text); }
+  .tour-norm strong { color: var(--ink); display: block; margin-bottom: 0.2rem; }
+  @media (min-width: 62rem) {
+    .tour-norms { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem 2rem; }
+  }
+
+  /* --- founder story: the member-story card at the chapter width, two
+         labelled excerpts side by side */
+  .tour-story { padding: 1.5rem 1.75rem; }
   .tour-story-quotes {
     display: grid;
-    gap: 1rem 2rem;
+    gap: 1rem 2.5rem;
     grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
   }
-  .tour-story-quotes > div { display: grid; gap: 0.45rem; align-content: start; }
+  .tour-story .story-quote { font-size: 1.08rem; line-height: 1.6; }
+  .tour-story-quotes > div { align-content: start; display: grid; gap: 0.45rem; }
 
-  /* Course and event teasers: the shared dashed `.row-list`, not the bordered
-     card grid the catalogue and the events hub draw -- a tour points at
-     those pages rather than re-drawing them at full weight. */
-  .tour-row-meta { color: var(--muted); margin: 0.2rem 0 0; }
-  .tour-aside { color: var(--muted); font-size: 0.9rem; margin-top: 1rem; max-width: 46rem; }
-
-  /* A second, quieter quote: the shared "quotation gets its own surface"
-     rule the prose blockquote already draws, applied outside an article --
-     a plain outlined well rather than a second story card, so the founder's
-     card stays the page's one drawn quote. */
-  .tour-note-quote {
-    background: var(--card);
-    border: 2px solid var(--line-soft);
-    border-radius: 0.7rem;
-    color: var(--ink);
-    font-style: italic;
-    margin: 1.25rem 0 0;
-    max-width: 46rem;
-    padding: 1rem 1.2rem;
+  /* --- closing: the site-wide tour stripe's own shape (.tour-cta on ink),
+         drawn full-bleed and flush with the band's foot.  The page hides that
+         stripe (it would link to itself) and ends on this instead, which is
+         where every other page on the site puts its one ink moment. */
+  :root { --tour-close-sub: #d7d9e6; }
+  .tour-close {
+    --breakout-width: 100vw;
+    background: var(--band-ink-bg);
+    margin-bottom: -2.25rem;
+    margin-top: 3.5rem;
+    padding: clamp(1.75rem, 3.5vw, 2.75rem) 1rem;
   }
-  .tour-note-quote footer { color: var(--muted); font-style: normal; margin-top: 0.6rem; }
-
-  /* "Who's here": the same full-bleed ink stripe /courses draws for its own
-     numbers (`.courses-stats`), restated locally the way that page restates
-     it rather than sharing page-scoped CSS across templates. */
-  :root { --tour-stats-label: #b9bcd6; }
-  body.dark-mode { --tour-stats-label: #a4a9bd; }
-  .tour-stats { background: var(--band-ink-bg); padding: clamp(1.75rem, 3.5vw, 2.75rem) 1rem; }
-  .tour-stats.shell-breakout { --breakout-width: 100vw; }
-  .tour-stats-grid {
-    display: grid;
-    gap: 1.75rem 2rem;
-    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  .tour-close-inner {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    justify-content: space-between;
     margin-inline: auto;
     max-width: var(--shell);
   }
-  .tour-stats strong { color: var(--cream); display: block; font-size: clamp(1.9rem, 3.4vw, 2.6rem); line-height: 1.1; }
-  body.dark-mode .tour-stats strong { color: var(--ink); }
-  .tour-stats span { color: var(--tour-stats-label); display: block; font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.06em; margin-top: 0.3rem; text-transform: uppercase; }
-  .tour-stats-source { color: var(--tour-stats-label); font-size: 0.85rem; margin: 1.5rem auto 0; max-width: var(--shell); text-align: center; }
-  .tour-stats-source a { color: inherit; }
+  .tour-close-inner > div { flex: 1 1 26rem; }
+  .tour-close-inner > .cta { flex: none; }
+  .tour-close h2 { color: #ffffff; font-size: clamp(1.15rem, 2.4vw, 1.55rem); }
+  .tour-close p { color: var(--tour-close-sub); font-size: 0.88rem; margin-top: 0.5rem; }
+  .tour-close p + p { margin-top: 0.25rem; }
+  .tour-close a:not(.cta) { color: #ffffff; text-underline-offset: 0.2em; }
+  .tour-close .cta-primary { border-color: #ffffff; box-shadow: none; }
+  @media (min-width: 62rem) {
+    .tour-close { margin-bottom: -2.9rem; }
+  }
 
-  .tour-norms { display: grid; gap: 0.65rem; margin: 0; max-width: 46rem; padding-left: 1.2rem; }
-  .tour-norms li { padding-left: 0.2rem; }
+  /* The negative bottom margin cancels the band's own padding, the same way
+     /courses pulls its stats stripe up into the seam, so the ink runs to the
+     band's last pixel row.  The band then gives up the dashed seam it would
+     otherwise draw under the ink -- the rule `.band-ink` already carries for
+     the site-wide stripe. */
+  .tour-content { border-bottom: 0; }
 
-  .tour-sponsor-note { color: var(--muted); margin-top: 1rem; }
-  .tour-actions { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem; }
+  /* --- narrow: reshape, not reflow ---------------------------------- */
+  @media (max-width: 47.99rem) {
+    .tour-hero-inner { grid-template-columns: minmax(0, 1fr); }
+    .tour-hero-art { justify-self: center; max-width: 12rem; }
+    .tour-hero-actions .cta { justify-content: center; width: 100%; }
+    .tour-chapter { margin-top: 2.5rem; padding-top: 1.75rem; }
+    .tour-subsection { margin-top: 2rem; }
+
+    /* course cards and the "more" cards give up their surface and read as
+       the homepage's dashed list: drawing on the left, words on the right */
+    .tour-course-card,
+    .tour-thing {
+      background: none;
+      border: 0;
+      border-bottom: 1.5px dashed var(--line-soft);
+      border-radius: 0;
+      box-shadow: none;
+      padding: 0 0 0.9rem;
+    }
+    .tour-course-card {
+      column-gap: 0.9rem;
+      display: grid;
+      grid-template-columns: 5.5rem minmax(0, 1fr);
+    }
+    .tour-course-figure { grid-row: 1 / span 3; height: 5.5rem; margin: 0; }
+    .tour-course-card h3 { margin-top: 0.15rem; }
+    .tour-course-card p { margin-top: 0.2rem; }
+    .card-grid-3.tour-cards { gap: 0.9rem; }
+    .tour-thing .mono-note { padding-top: 0.15rem; }
+
+    .tour-close { margin-bottom: -2.25rem; }
+    .tour-close-inner > .cta { justify-content: center; width: 100%; }
+  }
+{% endblock %}
+
+{% block header_band_class %}
+  tour-hero
+{% endblock %}
+
+{% block content_band_class %}
+  tour-content
 {% endblock %}
 
 {% block page_header %}
-  <h1>Take the tour</h1>
-  <p>Not a highlight reel — a straight walkthrough of what DataTalks.Club actually is, for anyone deciding whether it's worth joining.</p>
+  <div class="tour-hero-inner">
+    <div>
+      <h1>Take the tour</h1>
+      {% comment %}
+        The page's own scope statement, now the hero's lede.  Every figure in
+        it is a catalogue count and every clause is gated on that count, so an
+        empty database states less rather than promising something it cannot
+        back.  It is one line because the gating reads as one sentence.
+      {% endcomment %}
+      <p class="tour-lede">
+        DataTalks.Club is an independent community for people who work with data — no employer runs it and nothing behind it is paywalled. It comes down to
+        {% if course_family_count %}<strong>{{ course_family_count }} free course{{ course_family_count|pluralize }}</strong> with homework and projects{% endif %}{% if upcoming_events %}, weekly live events with practitioners{% endif %}{% if counts.podcasts %}, <strong>{{ counts.podcasts }} podcast conversation{{ counts.podcasts|pluralize }}</strong>{% endif %}{% if counts.wiki %}, a member-written wiki of {{ counts.wiki }} topic{{ counts.wiki|pluralize }}{% endif %}, and a Slack where all of it is discussed.
+      </p>
+      <p class="tour-hero-commitment">
+        Not a highlight reel — a straight walkthrough, for anyone deciding whether it's worth joining.
+      </p>
+      <div class="tour-hero-actions">
+        <a class="cta cta-primary interactive-lift" href="{% url 'account_signup' %}">Create your free account</a>
+        <a class="cta cta-secondary interactive-lift" href="{% url 'slack' %}">Join the Slack</a>
+      </div>
+    </div>
+    {% comment %}
+      The neutral journey drawing, not a course scene: the three course cards
+      below each carry their own family's scene, and the homepage hero is 300
+      pixels above the link that leads here, so neither may be repeated.
+    {% endcomment %}
+    <div class="tour-hero-art">
+      {% include "core/_course_journey_start.html" with loading="eager" only %}
+    </div>
+  </div>
 {% endblock %}
 
 {% block page_content %}
-  <section class="tour-section" aria-labelledby="tour-what-heading">
-    <div class="tour-section-heading">
-      <h2 id="tour-what-heading">What it actually is</h2>
+  {% comment %}
+    Who's here, from the community's own 2025 survey, on the same lavender
+    stat tiles the course family landing opens its content with.  The numbers
+    sit flush under the seam, where numbers belong, and the page spends its one
+    ink moment on the close instead.
+  {% endcomment %}
+  <section class="tour-stats" aria-label="Who's here, in numbers">
+    <div class="stat-tiles tour-stat-tiles">
+      <div class="stat-tile">
+        <strong>65+</strong>
+        <span>countries</span>
+      </div>
+      <div class="stat-tile">
+        <strong>41%</strong>
+        <span>senior-level</span>
+      </div>
+      <div class="stat-tile">
+        <strong>36%</strong>
+        <span>entry-level</span>
+      </div>
+      <div class="stat-tile">
+        <strong>29%</strong>
+        <span>in data engineering</span>
+      </div>
     </div>
-    <p class="tour-lede">
-      DataTalks.Club is an independent community for people who work with data — no employer runs it and nothing behind it is paywalled. It comes down to
-      {% if course_family_count %}<strong>{{ course_family_count }} free course{{ course_family_count|pluralize }}</strong> with homework and projects{% endif %}{% if upcoming_events %}, weekly live events with practitioners{% endif %}{% if counts.podcasts %}, <strong>{{ counts.podcasts }} podcast conversation{{ counts.podcasts|pluralize }}</strong>{% endif %}{% if counts.wiki %}, a member-written wiki of {{ counts.wiki }} topic{{ counts.wiki|pluralize }}{% endif %}, and a Slack where all of it is discussed.
+    <p class="tour-stats-source mono-note">
+      Who's here, from the community's own 2025 survey ·
+      <a class="band-link" href="{% url 'public-article' slug='datatalks-club-community-demographics' %}">read the full survey →</a>
     </p>
   </section>
 
-  <section class="tour-section" aria-labelledby="tour-story-heading">
-    <div class="tour-section-heading">
-      <h2 id="tour-story-heading">How it started, and why it's free</h2>
-      <p>In his own words, from the show's own anniversary episode.</p>
+  {% if catalog_courses %}
+    <section class="tour-chapter shell-breakout" aria-labelledby="tour-courses-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="tour-courses-heading">Learn by building</h2>
+          <p>Free cohorts with homework, projects, and a certificate of completion.</p>
+        </div>
+        <a class="band-link" href="{% url 'course_list' %}">see all {{ course_family_count }} course{{ course_family_count|pluralize }} →</a>
+      </div>
+      <div class="card-grid card-grid-3 tour-cards">
+        {% for course in catalog_courses|slice:":3" %}
+          <article class="card interactive-card interactive-lift stretched-card-link tour-course-card">
+            <div class="tour-course-figure">
+              {% include "core/_course_illustration.html" with family_slug=course.family loading="lazy" only %}
+            </div>
+            <span class="mono-label">{{ course.cohort_label }}</span>
+            <h3>
+              <a class="course-link" href="{{ course.public_path }}">{{ course.title }}</a>
+            </h3>
+            <p>
+              {% if course.homework_count %}{{ course.homework_count }} homework assignment{{ course.homework_count|pluralize }}{% endif %}{% if course.homework_count and course.project_count %} · {% endif %}{% if course.project_count %}{{ course.project_count }} project{{ course.project_count|pluralize }}{% endif %}
+            </p>
+          </article>
+        {% endfor %}
+      </div>
+      <p class="tour-aside">Registration is optional — it only gets you cohort emails. The one account that matters is the free course platform account, for homework and the project.</p>
+    </section>
+  {% endif %}
+
+  <section class="tour-subsection" aria-labelledby="tour-week-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="tour-week-heading">What a cohort week looks like</h2>
+        <p>The same shape for every zoomcamp, from the community's own logistics docs.</p>
+      </div>
+    </div>
+    <div class="tour-week">
+      <dl class="spec-strip">
+        <div class="spec">
+          <dt class="mono-label">Cost</dt>
+          <dd><strong>Free, incl. certificate</strong></dd>
+        </div>
+        <div class="spec">
+          <dt class="mono-label">Length</dt>
+          <dd><strong>7–10 weeks</strong></dd>
+        </div>
+        <div class="spec">
+          <dt class="mono-label">Weekly load</dt>
+          <dd><strong>10–15 hours</strong></dd>
+        </div>
+        <div class="spec">
+          <dt class="mono-label">Final project</dt>
+          <dd><strong>2–3 weeks</strong></dd>
+        </div>
+      </dl>
+      <div class="tour-week-grid">
+        <div class="tour-week-note">
+          <p>
+            Office hours and the occasional workshop stream live on the DataTalks.Club YouTube channel — no Zoom link, no separate tool, no signup, just open YouTube at the scheduled time.
+          </p>
+          <p>
+            The certificate needs the project and its peer reviews; the weekly homework itself is optional, though it's what the leaderboard runs on.
+          </p>
+        </div>
+        {% comment %}
+          The graduate's quote on the same member-story card the founder's
+          takes below, so one page draws one kind of content one way.
+        {% endcomment %}
+        <figure class="card">
+          <blockquote class="story-quote">“The practicality of DataTalks is the huge difference. … The issue with that university and others is that everything stays in a Jupyter notebook. You know how the algorithm works … but it never goes beyond the notebook. … The difference with DataTalks is that the goal is for the person to use it in real life.”</blockquote>
+          <figcaption class="story-person">
+            <span class="story-identity">
+              <span class="avatar" aria-hidden="true"></span>
+              <span>
+                <strong>
+                  <a href="https://www.youtube.com/watch?v=B2tzuUg5uZs&amp;t=2190s" target="_blank" rel="noopener noreferrer">
+                    Dashel Ruiz Perez
+                    <span class="sr-only"> (opens in a new tab)</span>
+                  </a>
+                </strong>
+                <span class="story-context">ML Zoomcamp graduate</span>
+              </span>
+            </span>
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  {% comment %}
+    The next live events, on the events index's own date rail.  The section is
+    gated on real upcoming rows: a database with none renders no invented
+    week, and the "More than courses" grid names the events page instead.
+  {% endcomment %}
+  {% if upcoming_events %}
+    <section class="tour-subsection tour-events" aria-labelledby="tour-events-heading">
+      <div class="band-head">
+        <div>
+          <h2 id="tour-events-heading">Meet every week</h2>
+          <p>Live events with practitioners — join, ask, and learn what the community is working on.</p>
+        </div>
+        <a class="band-link" href="{% url 'events' %}">see all events →</a>
+      </div>
+      <div class="row-list">
+        {% for event in upcoming_events|slice:":2" %}
+          <article class="list-row">
+            <div class="when">
+              <strong>{{ event.display_date }}</strong>
+              <span>{{ event.display_clock }}</span>
+            </div>
+            <div>
+              <h3>
+                <a href="{{ event.public_path }}">{{ event.title }}</a>
+              </h3>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {% comment %}
+    Everything else the community runs, one whole-card link each, on the same
+    card grid the catalogue and the family editions draw.  Catalogue-backed
+    cards are gated on their real counts and state them in the mono foot; the
+    YouTube channel is a standing channel and always appears.  Slack is not a
+    card here: it is the hero's second action, the closing link and the
+    subsection below, and a seventh card would say it a fourth time.
+  {% endcomment %}
+  <section class="tour-chapter shell-breakout" aria-labelledby="tour-more-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="tour-more-heading">More than courses and events</h2>
+        <p>The rest of what the community runs — all of it free and open, whether or not you ever take a course.</p>
+      </div>
+    </div>
+    <div class="card-grid card-grid-3 tour-cards">
+      <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
+        <h3>
+          <a class="course-link" href="https://www.youtube.com/c/DataTalksClub" target="_blank" rel="noopener noreferrer">YouTube channel<span class="sr-only"> (opens in a new tab)</span></a>
+        </h3>
+        <p>Where events, office hours and course workshops stream live and stay up afterwards.</p>
+        <span class="mono-note">live streams · recordings</span>
+      </article>
+      {% if not upcoming_events %}
+        <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
+          <h3>
+            <a class="course-link" href="{% url 'events' %}">Events</a>
+          </h3>
+          <p>Live talks and workshops with practitioners, and the recordings of past ones.</p>
+          <span class="mono-note">talks · workshops · recordings</span>
+        </article>
+      {% endif %}
+      {% if counts.podcasts %}
+        <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
+          <h3>
+            <a class="course-link" href="{% url 'podcast' %}">Podcast</a>
+          </h3>
+          <p>Conversations with practitioners about the work, the tools and the career.</p>
+          <span class="mono-note">
+            {{ counts.podcasts }} conversation{{ counts.podcasts|pluralize }}{% if counts.transcripts %} · {{ counts.transcripts }} with a full transcript{% endif %}
+          </span>
+        </article>
+      {% endif %}
+      {% if counts.articles %}
+        <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
+          <h3>
+            <a class="course-link" href="{% url 'articles' %}">Blog</a>
+          </h3>
+          <p>Articles written by members and guests.</p>
+          <span class="mono-note">{{ counts.articles }} article{{ counts.articles|pluralize }}</span>
+        </article>
+      {% endif %}
+      {% if counts.books %}
+        <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
+          <h3>
+            <a class="course-link" href="{% url 'books' %}">Book of the Week</a>
+          </h3>
+          <p>Books whose authors came to answer the community's questions.</p>
+          <span class="mono-note">{{ counts.books }} book{{ counts.books|pluralize }}</span>
+        </article>
+      {% endif %}
+      {% if counts.wiki %}
+        <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
+          <h3>
+            <a class="course-link" href="{% url 'wiki-home' %}">Wiki</a>
+          </h3>
+          <p>Member-written topics, A–Z.</p>
+          <span class="mono-note">{{ counts.wiki }} topic{{ counts.wiki|pluralize }}</span>
+        </article>
+      {% endif %}
+      {% if docs_available %}
+        <article class="card interactive-card interactive-lift stretched-card-link tour-thing">
+          <h3>
+            <a class="course-link" href="{% url 'docs-home' %}">Docs</a>
+          </h3>
+          <p>The community's own documentation: how cohorts, homework, projects and certificates work.</p>
+          <span class="mono-note">cohorts · homework · certificates</span>
+        </article>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="tour-subsection" aria-labelledby="tour-slack-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="tour-slack-heading">What Slack is actually like</h2>
+        <p>Where the community actually talks: a channel per course, questions answered by other members, and every announcement. A few norms, straight from the community guidelines.</p>
+      </div>
+      <a class="band-link" href="{% url 'slack' %}">join the Slack →</a>
+    </div>
+    <ol class="tour-norms">
+      <li class="tour-norm">
+        <span class="step-number" aria-hidden="true">1</span>
+        <p>
+          <strong>
+            <a href="https://dontasktoask.com/" target="_blank" rel="noopener noreferrer">Don't ask to ask<span class="sr-only"> (opens in a new tab)</span></a>
+          </strong>
+          Just post your question in the channel.
+        </p>
+      </li>
+      <li class="tour-norm">
+        <span class="step-number step-number-2" aria-hidden="true">2</span>
+        <p>
+          <strong>Paste the error as text</strong>
+          In a code block — never a screenshot or a photo of your screen.
+        </p>
+      </li>
+      <li class="tour-norm">
+        <span class="step-number step-number-3" aria-hidden="true">3</span>
+        <p>
+          <strong>Judge the code, never the person</strong>
+          Built on mutual respect and kindness.
+        </p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="tour-chapter shell-breakout" aria-labelledby="tour-story-heading">
+    <div class="band-head">
+      <div>
+        <h2 id="tour-story-heading">How it started, and why it's free</h2>
+        <p>In his own words, from the show's own anniversary episode.</p>
+      </div>
     </div>
     <figure class="card tour-story">
       <div class="tour-story-quotes">
@@ -140,221 +611,26 @@
     </figure>
   </section>
 
-  {% if catalog_courses %}
-    <section class="tour-section" aria-labelledby="tour-courses-heading">
-      <div class="tour-section-heading">
-        <h2 id="tour-courses-heading">Learn by building</h2>
-        <p>Free cohorts with homework, projects, and a certificate of completion.</p>
-      </div>
-      <div class="row-list">
-        {% for course in catalog_courses|slice:":3" %}
-          <article class="list-row">
-            <div>
-              <h3><a href="{{ course.public_path }}">{{ course.title }}</a></h3>
-              <p class="tour-row-meta">
-                {{ course.cohort_label }}{% if course.homework_count %} · {{ course.homework_count }} homework assignment{{ course.homework_count|pluralize }}{% endif %}{% if course.project_count %} · {{ course.project_count }} project{{ course.project_count|pluralize }}{% endif %}
-              </p>
-            </div>
-          </article>
-        {% endfor %}
-      </div>
-      <p class="band-more">
-        <a class="band-link" href="{% url 'course_list' %}">see all {{ course_family_count }} course{{ course_family_count|pluralize }} →</a>
-      </p>
-      <p class="tour-aside">Registration is optional — it only gets you cohort emails. The one account that matters is the free course platform account, for homework and the project.</p>
-    </section>
-  {% endif %}
-
-  <section class="tour-section" aria-labelledby="tour-week-heading">
-    <div class="tour-section-heading">
-      <h2 id="tour-week-heading">What a cohort week looks like</h2>
-      <p>The same shape for every zoomcamp, from the community's own logistics docs.</p>
-    </div>
-    <dl class="spec-strip">
-      <div class="spec">
-        <dt class="mono-label">Cost</dt>
-        <dd><strong>Free, incl. certificate</strong></dd>
-      </div>
-      <div class="spec">
-        <dt class="mono-label">Length</dt>
-        <dd><strong>7–10 weeks</strong></dd>
-      </div>
-      <div class="spec">
-        <dt class="mono-label">Weekly load</dt>
-        <dd><strong>10–15 hours</strong></dd>
-      </div>
-      <div class="spec">
-        <dt class="mono-label">Final project</dt>
-        <dd><strong>2–3 weeks</strong></dd>
-      </div>
-    </dl>
-    <p class="tour-aside">
-      Office hours and the occasional workshop stream live on the DataTalks.Club YouTube channel — no Zoom link, no separate tool, no signup, just open YouTube at the scheduled time. The certificate needs the project and its peer reviews; the weekly homework itself is optional, though it's what the leaderboard runs on.
-    </p>
-    <blockquote class="tour-note-quote">
-      “The practicality of DataTalks is the huge difference. … The issue with that university and others is that everything stays in a Jupyter notebook. You know how the algorithm works … but it never goes beyond the notebook. … The difference with DataTalks is that the goal is for the person to use it in real life.”
-      <footer>
-        <a href="https://www.youtube.com/watch?v=B2tzuUg5uZs&amp;t=2190s" target="_blank" rel="noopener noreferrer">
-          Dashel Ruiz Perez, ML Zoomcamp graduate<span class="sr-only"> (opens in a new tab)</span>
-        </a>
-      </footer>
-    </blockquote>
-  </section>
-
-  {% if upcoming_events %}
-    <section class="tour-section" aria-labelledby="tour-events-heading">
-      <div class="tour-section-heading">
-        <h2 id="tour-events-heading">Meet every week</h2>
-        <p>Live events with practitioners — join, ask, and learn what the community is working on.</p>
-      </div>
-      <div class="row-list">
-        {% for event in upcoming_events|slice:":2" %}
-          <article class="list-row">
-            <div>
-              <h3><a href="{{ event.public_path }}">{{ event.title }}</a></h3>
-              <p class="tour-row-meta">{{ event.home_time }}</p>
-            </div>
-          </article>
-        {% endfor %}
-      </div>
-      <p class="band-more">
-        <a class="band-link" href="{% url 'events' %}">see all events →</a>
-      </p>
-    </section>
-  {% endif %}
-
-  <section class="tour-section" aria-labelledby="tour-who-heading">
-    <div class="tour-section-heading">
-      <h2 id="tour-who-heading">Who's here</h2>
-      <p>From the community's own 2025 survey.</p>
-    </div>
-    <div class="tour-stats shell-breakout" aria-label="Who's here, in numbers">
-      <div class="tour-stats-grid">
-        <div>
-          <strong>65+</strong>
-          <span>countries</span>
-        </div>
-        <div>
-          <strong>41%</strong>
-          <span>senior-level</span>
-        </div>
-        <div>
-          <strong>36%</strong>
-          <span>entry-level</span>
-        </div>
-        <div>
-          <strong>29%</strong>
-          <span>in data engineering</span>
-        </div>
-      </div>
-      <p class="tour-stats-source">
-        <a href="{% url 'public-article' slug='datatalks-club-community-demographics' %}">read the full 2025 community survey →</a>
-      </p>
-    </div>
-  </section>
-
   {% comment %}
-    Everything else the community runs, one row each in the same dashed
-    row-list the course and event teasers use.  Catalogue-backed rows are
-    gated on their real counts; the Slack and the YouTube channel are the
-    community's own standing channels and always appear.
+    The close: the site-wide tour stripe's own ink shape, drawn full-bleed and
+    flush with the band's foot.  The stripe itself is hidden here because it
+    would link to this page, and a pitch page that ends on two quiet buttons
+    on lavender ends more quietly than every page it is advertised on.
   {% endcomment %}
-  <section class="tour-section" aria-labelledby="tour-more-heading">
-    <div class="tour-section-heading">
-      <h2 id="tour-more-heading">More than courses and events</h2>
-      <p>The rest of what the community runs — all of it free and open, whether or not you ever take a course.</p>
-    </div>
-    <div class="row-list">
-      <article class="list-row">
-        <div>
-          <h3><a href="{% url 'slack' %}">Slack</a></h3>
-          <p class="tour-row-meta">Where the community actually talks: a channel per course, questions answered by other members, and every announcement.</p>
-        </div>
-      </article>
-      {% if not upcoming_events %}
-        <article class="list-row">
-          <div>
-            <h3><a href="{% url 'events' %}">Events</a></h3>
-            <p class="tour-row-meta">Live talks and workshops with practitioners, and the recordings of past ones.</p>
-          </div>
-        </article>
-      {% endif %}
-      <article class="list-row">
-        <div>
-          <h3>
-            <a href="https://www.youtube.com/c/DataTalksClub" target="_blank" rel="noopener noreferrer">YouTube channel<span class="sr-only"> (opens in a new tab)</span></a>
-          </h3>
-          <p class="tour-row-meta">Where events, office hours and course workshops stream live and stay up afterwards.</p>
-        </div>
-      </article>
-      {% if counts.podcasts %}
-        <article class="list-row">
-          <div>
-            <h3><a href="{% url 'podcast' %}">Podcast</a></h3>
-            <p class="tour-row-meta">{{ counts.podcasts }} conversation{{ counts.podcasts|pluralize }} with practitioners{% if counts.transcripts %}, {{ counts.transcripts }} with a full transcript{% endif %}.</p>
-          </div>
-        </article>
-      {% endif %}
-      {% if counts.articles %}
-        <article class="list-row">
-          <div>
-            <h3><a href="{% url 'articles' %}">Blog</a></h3>
-            <p class="tour-row-meta">{{ counts.articles }} article{{ counts.articles|pluralize }} written by members and guests.</p>
-          </div>
-        </article>
-      {% endif %}
-      {% if counts.books %}
-        <article class="list-row">
-          <div>
-            <h3><a href="{% url 'books' %}">Book of the Week</a></h3>
-            <p class="tour-row-meta">{{ counts.books }} book{{ counts.books|pluralize }} whose authors came to answer the community's questions.</p>
-          </div>
-        </article>
-      {% endif %}
-      {% if counts.wiki %}
-        <article class="list-row">
-          <div>
-            <h3><a href="{% url 'wiki-home' %}">Wiki</a></h3>
-            <p class="tour-row-meta">{{ counts.wiki }} member-written topic{{ counts.wiki|pluralize }}, A–Z.</p>
-          </div>
-        </article>
-      {% endif %}
-      {% if docs_available %}
-        <article class="list-row">
-          <div>
-            <h3><a href="{% url 'docs-home' %}">Docs</a></h3>
-            <p class="tour-row-meta">The community's own documentation: how cohorts, homework, projects and certificates work.</p>
-          </div>
-        </article>
-      {% endif %}
-    </div>
-  </section>
-
-  <section class="tour-section" aria-labelledby="tour-slack-heading">
-    <div class="tour-section-heading">
-      <h2 id="tour-slack-heading">What Slack is actually like</h2>
-      <p>A few norms, straight from the community guidelines.</p>
-    </div>
-    <ul class="tour-norms">
-      <li><a href="https://dontasktoask.com/" target="_blank" rel="noopener noreferrer">Don't ask to ask<span class="sr-only"> (opens in a new tab)</span></a> — just post your question in the channel.</li>
-      <li>Copy-paste your error as text, in a code block — never a screenshot or a photo of your screen.</li>
-      <li>Built on mutual respect and kindness: judge the code, never the person asking.</li>
-    </ul>
-  </section>
-
-  <section class="tour-section" aria-labelledby="tour-community-heading">
-    <div class="tour-section-heading">
-      <h2 id="tour-community-heading">Build in public, together</h2>
-      <p>One free account for homework, leaderboards, and events — and the Slack whenever you want it.</p>
-    </div>
-    <div class="tour-actions">
+  <section class="tour-close shell-breakout" aria-labelledby="tour-community-heading">
+    <div class="tour-close-inner">
+      <div>
+        <h2 id="tour-community-heading">Build in public, together.</h2>
+        <p>
+          One free account for homework, leaderboards, and events — and <a href="{% url 'slack' %}">the Slack</a> whenever you want it.
+        </p>
+        {% if sponsors %}
+          <p>
+            Kept free by sponsors — <a href="{% url 'sponsors' %}">see who backs it →</a>
+          </p>
+        {% endif %}
+      </div>
       <a class="cta cta-primary interactive-lift" href="{% url 'account_signup' %}">Create your free account</a>
-      <a class="cta cta-secondary interactive-lift" href="{% url 'slack' %}">Join the Slack</a>
     </div>
-    {% if sponsors %}
-      <p class="tour-sponsor-note">
-        Kept free by sponsors — <a href="{% url 'sponsors' %}">see who backs it →</a>
-      </p>
-    {% endif %}
   </section>
 {% endblock %}
