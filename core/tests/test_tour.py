@@ -137,20 +137,27 @@ class TourPageTests(TestCase):
         self.assertNotIn("--tour-stats-label", body)
 
     def test_tour_groups_its_sections_into_chapters_on_one_rule(self) -> None:
-        """Three chapters break out to the shell; their subsections do not.
+        """Every section is a chapter, at the same full breakout width.
 
         Eight sections at one weight, separated eight times by the same
         page-local `color-mix` rule, is what the page drew before: nothing
-        grouped and nothing was a chapter.  The rule is now the family
-        landing's solid `var(--line)` chapter rule, drawn three times, and the
-        left edge steps wide and narrow with it.
+        grouped and nothing was a chapter.  A later pass grouped some of
+        them into three chapters on the family landing's solid `var(--line)`
+        rule with narrower subsections hanging under them -- which then read
+        as an inconsistent width down the page, alternating wide and narrow.
+        Every section is that same chapter now: one width, one rule, top to
+        bottom.
         """
 
         source = (REPO_ROOT / "templates" / "core" / "tour.html").read_text(encoding="utf-8")
         body = self._get().content.decode()
 
-        self.assertEqual(body.count('class="tour-chapter shell-breakout"'), 3)
-        self.assertEqual(body.count('class="tour-subsection"'), 2)
+        # Who's here, Learn by building, cohort week, more than courses,
+        # Slack, how it started -- every section this fixture renders
+        # (``build_reviewed_catalog`` carries no upcoming event, so the
+        # events section itself does not render here).
+        self.assertEqual(body.count("tour-chapter shell-breakout"), 6)
+        self.assertNotIn("tour-subsection", body)
         self.assertNotIn("tour-section", body)
         self.assertNotIn("color-mix", source)
         self.assertIn("border-top: 2px solid var(--line);", source)
@@ -295,13 +302,19 @@ class TourPageTests(TestCase):
         self.assertIn('<a class="course-link" href="/slack">Slack</a>', body)
         self.assertIn("What Slack is actually like", body)
         self.assertIn('class="tour-norms"', body)
-        self.assertEqual(body.count('class="tour-norm"'), 3)
+        self.assertEqual(body.count('class="tour-norm card"'), 3)
         self.assertIn('<span class="step-number" aria-hidden="true">1</span>', body)
         self.assertIn('<span class="step-number step-number-2" aria-hidden="true">2</span>', body)
         self.assertIn('<span class="step-number step-number-3" aria-hidden="true">3</span>', body)
         self.assertIn("Don't ask to ask", body)
         self.assertIn('href="https://dontasktoask.com/"', body)
-        self.assertIn('<a class="band-link" href="/slack">join the Slack →</a>', body)
+        # The "join the Slack" action sits under the norms, not beside the
+        # heading.
+        self.assertIn('<a class="band-link tour-content-link" href="/slack">join the Slack →</a>', body)
+        self.assertLess(
+            body.index('class="tour-norms"'),
+            body.index("join the Slack →"),
+        )
 
     def test_tour_lists_every_other_channel_the_catalogue_holds(self) -> None:
         """One card per channel, each catalogue-backed card gated on its count.
@@ -366,6 +379,13 @@ class TourPageTests(TestCase):
         self.assertIn('<div class="when">', with_teaser)
         self.assertIn("<strong>Oct 1, 2026</strong>", with_teaser)
         self.assertIn("<span>20:00 CEST</span>", with_teaser)
+        # The "see all events" action sits under the row list, not beside
+        # the heading.
+        self.assertIn('<a class="band-link tour-content-link" href="/events">see all events →</a>', with_teaser)
+        self.assertLess(
+            with_teaser.index('class="row-list"'),
+            with_teaser.index("see all events →"),
+        )
 
         groups = _event_groups()
         groups.upcoming = []

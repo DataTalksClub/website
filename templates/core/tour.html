@@ -71,23 +71,21 @@
     .tour-stat-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   }
 
-  /* --- chapter rhythm: the family landing's rule.  Three chapters open on
-         the solid ink rule; the sections that belong to the chapter before
-         them keep the plain 2.75rem gap, so the page groups instead of
-         repeating one separator eight times. */
+  /* --- chapter rhythm: the family landing's rule, opening every section at
+         the same full breakout width -- the page used to alternate a
+         full-width chapter with a narrower subsection hanging under it,
+         which read as an inconsistent width down the page; every section
+         now takes the same treatment. */
   .tour-chapter {
     border-top: 2px solid var(--line);
     margin-top: 3.5rem;
     padding-top: 2.5rem;
   }
-  .tour-subsection { margin-top: 2.75rem; }
-  .tour-chapter .band-head h2,
-  .tour-subsection .band-head h2 {
+  .tour-chapter .band-head h2 {
     font-size: clamp(1.4rem, 3vw, 1.87rem);
     letter-spacing: -0.02em;
   }
-  .tour-chapter .band-link,
-  .tour-subsection .band-link {
+  .tour-chapter .band-link {
     align-items: center;
     display: inline-flex;
     min-height: 2.75rem;
@@ -134,7 +132,8 @@
   .tour-thing p { color: var(--body-text); font-size: 0.9rem; }
   .tour-thing .mono-note { margin-top: auto; padding-top: 0.5rem; }
 
-  /* --- slack norms: the homepage climb-step (disc + line), three across */
+  /* --- slack norms: the homepage climb-card's own shape (disc + heading,
+         then a description line), three real cards across */
   .tour-norms {
     display: grid;
     gap: 1.25rem;
@@ -142,10 +141,9 @@
     margin: 0;
     padding: 0;
   }
-  .tour-norm { align-items: flex-start; display: flex; gap: 0.7rem; }
-  .tour-norm .step-number { margin-top: 0.1rem; }
-  .tour-norm p { color: var(--body-text); }
-  .tour-norm strong { color: var(--ink); display: block; margin-bottom: 0.2rem; }
+  .tour-norm-head { align-items: center; display: flex; gap: 0.65rem; }
+  .tour-norm p { color: var(--body-text); margin: 0; }
+  .tour-norm strong { color: var(--ink); }
   @media (min-width: 62rem) {
     .tour-norms { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem 2rem; }
   }
@@ -205,7 +203,6 @@
     .tour-hero-art { justify-self: center; max-width: 12rem; }
     .tour-hero-actions .cta { justify-content: center; width: 100%; }
     .tour-chapter { margin-top: 2.5rem; padding-top: 1.75rem; }
-    .tour-subsection { margin-top: 2rem; }
 
     /* The "more" cards give up their surface and read as the homepage's
        dashed list: drawing on the left, words on the right.  The course
@@ -339,7 +336,7 @@
     </section>
   {% endif %}
 
-  <section class="tour-subsection" aria-labelledby="tour-week-heading">
+  <section class="tour-chapter shell-breakout" aria-labelledby="tour-week-heading">
     <div class="band-head">
       <div>
         <h2 id="tour-week-heading">What a cohort week looks like</h2>
@@ -411,13 +408,12 @@
     week, and the "More than courses" grid names the events page instead.
   {% endcomment %}
   {% if upcoming_events %}
-    <section class="tour-subsection tour-events" aria-labelledby="tour-events-heading">
+    <section class="tour-chapter shell-breakout tour-events" aria-labelledby="tour-events-heading">
       <div class="band-head">
         <div>
           <h2 id="tour-events-heading">Meet every week</h2>
           <p>Live events with practitioners — join, ask, and learn what the community is working on.</p>
         </div>
-        <a class="band-link" href="{% url 'events' %}">see all events →</a>
       </div>
       <div class="row-list">
         {% for event in upcoming_events|slice:":2" %}
@@ -434,6 +430,7 @@
           </article>
         {% endfor %}
       </div>
+      <a class="band-link tour-content-link" href="{% url 'events' %}">see all events →</a>
     </section>
   {% endif %}
 
@@ -525,39 +522,46 @@
     </div>
   </section>
 
-  <section class="tour-subsection" aria-labelledby="tour-slack-heading">
+  <section class="tour-chapter shell-breakout" aria-labelledby="tour-slack-heading">
     <div class="band-head">
       <div>
         <h2 id="tour-slack-heading">What Slack is actually like</h2>
         <p>Where the community actually talks: a channel per course, questions answered by other members, and every announcement. A few norms, straight from the community guidelines.</p>
       </div>
-      <a class="band-link" href="{% url 'slack' %}">join the Slack →</a>
     </div>
+    {% comment %}
+      Each norm is its own card -- the homepage climb-card's own shape (a
+      numbered disc beside a heading, then a description line) -- rather
+      than a bare disc-and-text row, so the section carries the same visual
+      weight as the card grids above and below it now that every chapter on
+      the page is the same full width.
+    {% endcomment %}
     <ol class="tour-norms">
-      <li class="tour-norm">
-        <span class="step-number" aria-hidden="true">1</span>
-        <p>
+      <li class="tour-norm card">
+        <div class="tour-norm-head">
+          <span class="step-number" aria-hidden="true">1</span>
           <strong>
             <a href="https://dontasktoask.com/" target="_blank" rel="noopener noreferrer">Don't ask to ask<span class="sr-only"> (opens in a new tab)</span></a>
           </strong>
-          Just post your question in the channel.
-        </p>
+        </div>
+        <p>Just post your question in the channel.</p>
       </li>
-      <li class="tour-norm">
-        <span class="step-number step-number-2" aria-hidden="true">2</span>
-        <p>
+      <li class="tour-norm card">
+        <div class="tour-norm-head">
+          <span class="step-number step-number-2" aria-hidden="true">2</span>
           <strong>Paste the error as text</strong>
-          In a code block — never a screenshot or a photo of your screen.
-        </p>
+        </div>
+        <p>In a code block — never a screenshot or a photo of your screen.</p>
       </li>
-      <li class="tour-norm">
-        <span class="step-number step-number-3" aria-hidden="true">3</span>
-        <p>
+      <li class="tour-norm card">
+        <div class="tour-norm-head">
+          <span class="step-number step-number-3" aria-hidden="true">3</span>
           <strong>Judge the code, never the person</strong>
-          Built on mutual respect and kindness.
-        </p>
+        </div>
+        <p>Built on mutual respect and kindness.</p>
       </li>
     </ol>
+    <a class="band-link tour-content-link" href="{% url 'slack' %}">join the Slack →</a>
   </section>
 
   <section class="tour-chapter shell-breakout" aria-labelledby="tour-story-heading">
