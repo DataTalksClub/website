@@ -163,7 +163,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -456,14 +455,14 @@ def discover_new_provider_events(
     Everything else is genuinely new and gets an identity, exactly as before.
     """
 
-    from historical_registrations.models import (
-        HistoricalRegistrationAggregateRevision,
-    )
     from events.models import (
         EventIdentityError,
         EventIdentityNotFound,
         canonical_detail_path,
         resolve_source_identity,
+    )
+    from historical_registrations.models import (
+        HistoricalRegistrationAggregateRevision,
     )
     from scripts.prod.registrant_import import (
         EXISTING_EVENT_AMBIGUOUS,
@@ -810,6 +809,8 @@ def load_current_registration_input(path: Path | None):
         return None
     from historical_registrations.current_registration import (
         CurrentRegistrationInputError,
+    )
+    from historical_registrations.current_registration import (
         load_current_registration_input as _load,
     )
 
@@ -1016,7 +1017,10 @@ def activate_unambiguous_mappings(
 
     from core.services import ServiceContext
     from historical_registrations.importers import ProtectedSourceError
-    from historical_registrations.services import ProviderEventMetadata, resolve_unmatched_aggregates
+    from historical_registrations.services import (
+        ProviderEventMetadata,
+        resolve_unmatched_aggregates,
+    )
     from scripts.prod.registration_sources.luma import discover_luma_events
 
     try:

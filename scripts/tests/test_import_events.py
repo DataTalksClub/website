@@ -495,12 +495,12 @@ class NewEventIdentityDiscoveryTests(TestCase):
 
         import hashlib
 
+        from events.models import (
+            Event,
+        )
         from historical_registrations.models import (
             HistoricalRegistrationAggregateRevision,
             HistoricalRegistrationSourceRun,
-        )
-        from events.models import (
-            Event,
         )
         from scripts.prod.import_events import discover_new_luma_event_identities
 
@@ -730,9 +730,9 @@ class DuplicateProviderIdentityReconciliationTests(TestCase):
     def test_a_duplicate_carrying_dependent_rows_is_reported_and_kept(self) -> None:
         """Deleting this would destroy a real Q&A question, so a human decides."""
 
+        from event_qna.ids import opaque_id
         from event_qna.models import EventQnaQuestion, EventQnaSession
         from events.models import Event
-        from event_qna.ids import opaque_id
         from scripts.prod.import_events import reconcile_duplicate_luma_identities
 
         _keep, duplicate = self._duplicate_pair()
@@ -852,13 +852,13 @@ class RunAtomicityTests(TestCase):
     def test_a_refused_run_leaves_no_partial_row_behind(self) -> None:
         from community_base.jobs.models import JobIntent
 
-        from historical_registrations.models import (
-            HistoricalRegistrationAggregateRevision,
-            HistoricalRegistrationSourceRun,
-        )
         from events.models import (
             Event,
             EventContent,
+        )
+        from historical_registrations.models import (
+            HistoricalRegistrationAggregateRevision,
+            HistoricalRegistrationSourceRun,
         )
         from scripts.prod.import_events import EventImportError
 
