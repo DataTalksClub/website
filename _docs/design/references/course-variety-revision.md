@@ -72,6 +72,39 @@ uv run --script .agents/skills/website-illustrations/scripts/finish_chroma.py \
   --solid-key-chroma 210 --key-noise-alpha 0.05
 ```
 
+### RAG-composition replacement
+
+The earlier composition still made retrieval and grounding read as a decorative
+magnifying glass. The replacement uses one continuous source → retrieval → answer
+flow, with the selected source visibly carried into the grounded answer.
+
+- Raw output: `.tmp/course-illustration-variety-20260916/llm-rag-replacement/source-keyed.png`
+- Raw SHA256: `7760ede63fee75beb346627071cabe027e1f4e49d376a687f187edc3968a5ed8`
+- Original tool output: `/home/alexey/.codex/generated_images/01a0a479-3d2f-7991-9ca7-bf120c70bac4/exec-125d8f88-6a65-4162-8674-776086d4ec3e.png`
+- Built-in image-generation backend: unverified (the tool exposes no model selector or reliable version metadata)
+- Final PNG SHA256: `2d1fbb09ab9735d2062455052759b5b18946dbf9f22708116e1be88691538c6d`
+- Installed WebP SHA256: `f7e5a84b34504567c8b5527c79870be5aec5e5a95af046b90ab1935aaf2f55da`
+
+```text
+Use case: illustration-story
+Asset type: LLM Zoomcamp light-theme course hero and course-card illustration.
+Input images: Image 1 is only the current course palette and character reference; replace its composition completely. Image 2 is the approved DataTalks.Club drawing-style and clean watercolor-edge reference; do not copy its scene or cloud silhouette.
+Primary request: Create a new, immediately legible retrieval-augmented generation scene. One seated learner works at a laptop in the lower center. On the viewer-left, a compact source library contains exactly three distinct warm-white document sheets with simple navy paragraph lines. A clear indigo retrieval path with arrowheads selects ONE green-highlighted document from that library and carries it through a small central search/retrieval node into a large answer panel on the viewer-right. The answer panel contains three short abstract navy answer lines and two tiny green source badges visibly linked back to the selected document. One small friendly green-and-indigo robot assistant stands beside the answer panel, placing the retrieved document into the answer flow with both hands. The action must clearly read left-to-right as SOURCES -> RETRIEVAL -> GROUNDED ANSWER even at 300px wide, without written labels.
+Style/medium: friendly hand-drawn editorial watercolor matching the references; confident slightly irregular dark-navy outlines, simple clean opaque warm-white fills, forest green and indigo accents, broad restrained pale-lavender watercolor wash. Clean native image quality.
+Composition/framing: balanced square composition, compact centered silhouette, generous margins. The learner is actively using the laptop rather than pointing or presenting. Keep the documents, central retrieval node, selected-document path, answer panel, robot, and all connections separate and readable. Use chunky simple shapes, not a technical diagram crowded with tiny details.
+Scene/backdrop: Return the complete illustration with its own distinct irregular lavender watercolor blurb on a perfectly uniform opaque saturated #ff00ff exterior chroma backdrop reaching all four borders. No transparency simulation, checkerboard, white rectangle, gradient, or texture outside the artwork.
+Constraints: exactly one learner, one laptop, one small robot, three source documents, one selected document, one retrieval node, and one answer panel. The robot has exactly two visibly connected arms and two simple hands. No pointing pose, magnifying glass, floating detached wires, book-reading pose, presentation board, code blocks, readable words, letters, numbers, logos, brand marks, or watermark. No compression blocks, JPEG noise, ringing, grain, speckles, cellular facets, polygon networks, mottled foreground fills, malformed hands, extra limbs, halos, or magenta inside the artwork.
+```
+
+Finishing command:
+
+```sh
+uv run --script .agents/skills/website-illustrations/scripts/finish_chroma.py \
+  .tmp/course-illustration-variety-20260916/llm-rag-replacement/source-keyed.png \
+  .tmp/course-illustration-variety-20260916/llm-rag-replacement/final \
+  --solid-key-chroma 230 --key-noise-alpha 0.05
+```
+
 ## Stock Market Analytics Zoomcamp
 
 - Raw output: `.tmp/course-illustration-variety-20260915/raw/sma.png`

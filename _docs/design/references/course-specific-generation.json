@@ -63,9 +63,9 @@
     {
       "family_slug": "llm-zoomcamp",
       "source_png": ".tmp/course-illustrations-20260915/png/llm-zoomcamp.png",
-      "source_sha256": "fa8eccdc04137d629d9a54ad0c10e352a162e24f852a16fd4ddaed0564146c01",
+      "source_sha256": "2d1fbb09ab9735d2062455052759b5b18946dbf9f22708116e1be88691538c6d",
       "installed_webp": "core/static/core/illustrations/course-llm-zoomcamp.webp",
-      "installed_sha256": "bc3ff1aece5f03e73bd39f6d255b22a7ea8d049fcb2b8a0e9ffc5a6764d68c9c",
+      "installed_sha256": "f7e5a84b34504567c8b5527c79870be5aec5e5a95af046b90ab1935aaf2f55da",
       "dimensions": [
         1254,
         1254
