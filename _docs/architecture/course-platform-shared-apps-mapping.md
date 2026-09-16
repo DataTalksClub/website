@@ -1,10 +1,24 @@
 # Course platform mapping to the shared apps
 
-Issue: #414 (plan item `D5.1`, step 1 — the mapping document). Steps 2–4 of the issue
-(data migration rehearsal, route re-pointing, app-shell deletion) stay gated on
-community-base `C5.3` (release 0.6.0), which is `todo` in that repository's
-`docs/plan/STATUS.md`; this document is the part of `D5.1` that can land before that
-release exists.
+Issue: #414 (plan item `D5.1`, step 1 — the mapping document).
+
+Status of steps 2–4: the owner has waived the `C5.3` dependency for work on the
+pinned v0.4.6 release, but the pinned release imposes a hard ordering the waiver
+cannot lift — **the two shared course apps cannot be installed on this site until
+the D4.1 events cutover (#412) moves the `events` label to the package app**:
+
+- `community_base.curriculum`'s initial migration depends on
+  `('events', '0003_provisional_integration_attempt')`, a node only the package
+  events chain has.
+- `curriculum.Course.instructors` targets `events.Host`, and the site's own
+  events app has no `Host` model, so the model registry cannot resolve while the
+  site owns the label.
+
+Steps 2–4 therefore execute on this branch immediately after #412 merges, in the
+merge order already planned (412 first, then main into 414). The decision record
+below is the part of `D5.1` that can land before that; it records the
+proposed-default decisions the P6 migration will implement, each open to owner
+veto.
 
 Sources read for this mapping: site `courses/models/` at website 65b852dd; package
 `community_base/curriculum/models.py` and `community_base/coursework/models.py` at
@@ -190,10 +204,74 @@ migration is written:
 8. Trivia but blocking: `mode` value rename (`live` → `cohort`) must be in the migration
    mapping, not left to a datafix.
 
-## Verification hooks (steps 2–4, gated on C5.3)
+## D5.1 decision record (proposed defaults, open to owner veto)
 
-- `_docs/compatibility/course-route-contracts.json` test keeps passing after routes
-  re-point at package views; `cadmin` legacy redirects re-pointed.
-- Row counts equal between site tables and package tables after the P6 rehearsal on the
-  development copy.
+The owner waived the `C5.3` gate for work on the v0.4.6 pin. Each item below is
+the proposed default the executable steps will implement; any of them can be
+vetoed before the D5.2 freeze weekend without rework beyond the named scope.
+
+1. **Install ordering (new, structural).** `community_base.curriculum` and
+   `community_base.coursework` enter `INSTALLED_APPS` only after #412's events
+   label swap lands, for the two hard reasons in the head note. The merge order
+   is 412, then main into 414, then the install + P6 import commit here.
+2. **Terminal-homework binding (gap 1).** Not migrated; the binding stays on
+   the site rows. Counted per placement in the import report.
+3. **Project flow placements (gap 2).** `CurriculumFlowItem` rows that place a
+   project are skipped and counted; module placements map to `CohortModule`.
+4. **Link and code-source content (gap 3).** `Module.link`, `Unit.link`,
+   `Unit.code_sources` have no package columns and are skipped and counted.
+5. **Cohort-level overrides (gap 4).** `description`, `outcome`,
+   `promo_summary`, `delivery_format`, `github_repo_url`, `year` stay
+   site-side; the site remains their renderer until D5.2 decides their fate.
+6. **Shared curriculum assets (gap 5).** No package home; they stay site-side
+   with the docs-asset follow-up.
+7. **Provenance id conversion (gap 6).** A site `source_content_id` present as
+   a complete provenance set converts to
+   `uuid5(namespace, source_content_id)`; site rows without a complete set
+   migrate with all-None provenance (the package validates the set as
+   all-or-nothing). The namespace is fixed in the import module.
+8. **Course people (gap 7).** `CourseInstructor`/`events.Host` rows are not
+   migrated; instructor display stays assembled site-side.
+9. **Mode rename (gap 8).** `delivery_mode` `live` → package `mode` `cohort`
+   lives in the import mapping, not a datafix.
+10. **Course status.** Migrated families get `status="published"` when the
+    site `visible` flag is set, `"draft"` otherwise; the package catalogue
+    filters on published.
+11. **Unpublished and retired shared rows.** `SharedModule` rows with
+    `published=False` and `SharedLesson` rows that are unpublished or
+    `retired_at`-stamped are skipped and counted; count equality is asserted
+    on the migratable subset.
+12. **Bespoke graph precondition.** The P6 import maps only the shared
+    current-curriculum graph; a course whose teaching material still sits in
+    cohort-owned `Module`/`Unit` rows fails the run with a bounded report
+    naming the course and the instruction to run the site's own
+    `migrate_shared_curriculum` backfill first. P6 does not reimplement the
+    backfill.
+13. **Derived rows are copied, not recomputed.** Statistics and leaderboard
+    positions were produced by the same calculators the package ported; the
+    import copies them verbatim and asserts counts. Recomputation stays
+    available as a post-import datafix, not part of P6.
+14. **Route re-pointing (issue step 3) is freeze-weekend work.** The package
+    learner views render generic donor-parity templates; re-pointing the
+    learner HTML surface without re-homing the site's templates would regress
+    the visually accepted family, module and documentation pages. D5.1 lands
+    the decision and the mount pattern (package urlconfs under the site's
+    `/courses/` prefix, site paths and URL names preserved, per the package
+    coursework urlconf's own instructions); the flip itself is D5.2. The
+    checked-in `course-route-contracts.json` is archival evidence validated
+    for internal consistency, not against the live urlconf, so the flip is
+    also where its route rows get re-recorded.
+15. **App-shell deletion (issue step 4) deletes nothing yet.** After the
+    re-point decision above, none of `courses`, `studio_courses`,
+    `course_management`, `cadmin`, `review_import`, `compatibility` is empty:
+    models serve until the D5.2 cutover, and `course_management` middleware
+    and the `cadmin` redirect shim stay mounted. Deletion is a D5.2 follow-up
+    list, one app per commit.
+
+## Verification hooks (steps 2–4, executed after the #412 merge)
+
+- `_docs/compatibility/course-route-contracts.json` test keeps passing;
+  `cadmin` legacy redirects re-pointed during the D5.2 flip.
+- Row counts equal between site tables and package tables after the P6
+  rehearsal on the development copy (migratable subset, per decision 11).
 - `uv run pytest -q` passes.
