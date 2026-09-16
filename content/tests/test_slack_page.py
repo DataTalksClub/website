@@ -5,12 +5,13 @@ front door, and it is the page the first shell copies quietly broke: five pages
 lost the Slack link because each carried its own masthead.  The page now includes
 the shared shell instead, so these tests pin what the rebuilt page must still
 offer -- the title, lede, every channel, and the one action it owns, all read
-from the page's own database row -- next to the design contract every page in
+from the page's own synced row -- next to the design contract every page in
 the system carries.
 """
 
 from __future__ import annotations
 
+import json
 import re
 from typing import Any
 
@@ -18,7 +19,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils.html import escape
 
-from content.models import ContentDocument
+from content.models import SyncedDocument
 
 RETIRED_ASSETS = (
     "/static/courses.css",
@@ -30,27 +31,39 @@ RETIRED_ASSETS = (
 TEMPLATE_SYNTAX = ("{#", "#}", "{%", "%}", "{{", "}}")
 
 
-def _reviewed_page() -> dict[str, Any]:
-    from scripts.prod.import_public_content import load_reviewed_slack_page
+def _synthetic_page() -> dict[str, Any]:
     from test_support.reference_data import SLACK_PAGE
 
-    return load_reviewed_slack_page(SLACK_PAGE)
+    page = json.loads(SLACK_PAGE.read_text(encoding="utf-8"))["page"]
+    return {
+        "title": page["title"],
+        "lead": page["lead"],
+        "channels": page["channels"],
+        "troubleshooting_url": page["troubleshooting_url"],
+    }
 
 
 class SlackPageAbsentTests(TestCase):
     """The page is its database row, so a database without one has no page."""
 
     def test_the_page_is_absent_rather_than_empty_when_no_row_publishes_it(self) -> None:
-        ContentDocument.objects.filter(exact_public_path="/slack").update(is_published=False)
+        SyncedDocument.objects.filter(content_kind="slack_page").delete()
 
         self.assertEqual(self.client.get(reverse("slack")).status_code, 404)
 
 
 class SlackPageTests(TestCase):
     def setUp(self) -> None:
-        # The reviewed page the ingest publishes; the assertions read what it
-        # says rather than restating it.
-        self.page = _reviewed_page()
+        # The synced row the parser writes; the assertions read what it says
+        # rather than restating it. Re-seed from empty so a page that hides in
+        # the shared reference data cannot pass for the row's own presence.
+        SyncedDocument.objects.filter(
+            source__slug="dtc-content", content_kind__in=("podcast_platforms", "slack_page")
+        ).delete()
+        from test_support.reference_data import load_synced_site_pages
+
+        load_synced_site_pages()
+        self.page = _synthetic_page()
         self.response = self.client.get(reverse("slack"))
         self.assertEqual(self.response.status_code, 200)
         self.body = self.response.content.decode()

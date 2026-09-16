@@ -168,6 +168,47 @@ class SyncedWikiBindingTests(CacheBindingTestBase):
         self.assertEqual(pages, ())
 
 
+class SyncedSitePageBindingTests(CacheBindingTestBase):
+    """The same guarantees for the site page rows (#384).
+
+    The platform catalog and the ``/slack`` page are one row apiece on the
+    editorial source, read behind the same stamp cache key as the wiki kinds,
+    so a warmed answer must follow the row it was read from and an absent
+    source must answer empty without reading rows.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        catalogue._synced_records.cache_clear()
+
+    def test_a_sync_write_moves_the_stamp_and_the_next_read_sees_it(self) -> None:
+        before = catalogue.podcast_platforms()
+        row = SyncedDocument.objects.get(
+            source__slug=catalogue.EDITORIAL_SOURCE_SLUG,
+            content_kind="podcast_platforms",
+        )
+        row.record = {**row.record, "platforms": row.record["platforms"][:1]}
+        row.save()
+
+        platforms = catalogue.podcast_platforms()
+
+        self.assertEqual([platform["provider"] for platform in platforms], ["apple"])
+        self.assertGreaterEqual(len(before), 2)
+
+    def test_an_absent_sync_answers_empty_without_reading_rows(self) -> None:
+        EngineContentSource.objects.filter(slug=catalogue.EDITORIAL_SOURCE_SLUG).update(
+            is_enabled=False
+        )
+
+        with CaptureQueriesContext(connection) as read:
+            page = catalogue.slack_page()
+
+        # The stamp aggregate is the only query: an absent source is no page,
+        # not a row read (and not a failure).
+        self.assertEqual(len(read), 1)
+        self.assertIsNone(page)
+
+
 class SyncedPeopleBindingTests(CacheBindingTestBase):
     """The same two guarantees for the synced people authority (#384).
 

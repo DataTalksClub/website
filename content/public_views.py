@@ -26,10 +26,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_safe
 
 from core.breadcrumbs import Trail, trail
-from core.context import current_request_id, external_context_id_or_new
 from core.runtime_config import get_str_setting
 from core.sensitive_query import has_sensitive_query_key
-from core.services import ServiceContext
 from core.sponsors import public_events_hub_sponsors
 from course_management.observability import record_event
 from courses.models import Cohort, SharedLesson, SharedModule
@@ -79,7 +77,6 @@ from .podcast_routes import (
     podcast_public_id,
 )
 from .public_query import selector_query
-from .queries import ResolvePublicDocument, resolve_public_document
 from .review_views import SLACK_PUBLIC_PATH
 from .sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
 from .wiki_content import WIKI_ASSET_ROOT
@@ -1235,15 +1232,7 @@ def _record_media_failure(
 def _section_records(section: str) -> tuple[tuple[str, str], ...]:
     # /slack is a database-owned page: it is listed when a row publishes it and
     # absent when none does, rather than being a permanent entry that 404s.
-    slack_entries = (
-        ((SLACK_PUBLIC_PATH, ""),)
-        if resolve_public_document(
-            ResolvePublicDocument(SLACK_PUBLIC_PATH),
-            context=ServiceContext(correlation_id=external_context_id_or_new(current_request_id())),
-        )
-        is not None
-        else ()
-    )
+    slack_entries = ((SLACK_PUBLIC_PATH, ""),) if catalogue.slack_page() is not None else ()
     static_sections = {
         "main": (
             ("/", ""),

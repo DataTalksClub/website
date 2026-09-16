@@ -93,6 +93,13 @@ PEOPLE_KIND = "people"
 #: kinds, the media reader composes across both stamps.
 MEDIA_KIND = "media"
 
+#: The site page kinds the editorial source publishes as one row apiece: the
+#: podcast platform catalog and the ``/slack`` page. Both are authored in the
+#: structured content repository and read like every other synced kind; a
+#: database that publishes none offers no platforms and no Slack page.
+SLACK_PAGE_KIND = "slack_page"
+SITE_PAGE_SYNCED_KINDS = ("podcast_platforms", SLACK_PAGE_KIND)
+
 #: Every kind that reads the synced rows, mapped to the source that publishes
 #: it: the dispatch ``records`` makes before falling back to the staged
 #: release. Each kind reads exactly one authority -- never a blend, never a
@@ -101,6 +108,7 @@ SYNCED_KIND_SOURCES = {
     **{kind: EDITORIAL_SOURCE_SLUG for kind in EDITORIAL_SYNCED_KINDS},
     PEOPLE_KIND: PEOPLE_SOURCE_SLUG,
     **{kind: WIKI_SOURCE_SLUG for kind in WIKI_SYNCED_KINDS},
+    **{kind: EDITORIAL_SOURCE_SLUG for kind in SITE_PAGE_SYNCED_KINDS},
 }
 
 
@@ -142,7 +150,7 @@ def records(kind: str) -> tuple[Record, ...]:
                 synced_stamp(EDITORIAL_SOURCE_SLUG), synced_stamp(PEOPLE_SOURCE_SLUG)
             )
         return _records(active_release_id(), kind)
-    if kind in WIKI_SYNCED_KINDS:
+    if kind in WIKI_SYNCED_KINDS or kind in SITE_PAGE_SYNCED_KINDS:
         return _synced_records(synced_stamp(source_slug), source_slug, kind)
     if kind == PEOPLE_KIND:
         # An absent people source is an empty profiles collection, answered
@@ -479,6 +487,13 @@ def podcast_platforms() -> tuple[Record, ...]:
     """The listening platforms the show publishes, in the offered order."""
 
     return tuple(singleton("podcast_platforms").get("platforms", ()))
+
+
+def slack_page() -> Record | None:
+    """The ``/slack`` page's record, or ``None`` when no row publishes it."""
+
+    held = records(SLACK_PAGE_KIND)
+    return held[0] if held else None
 
 
 def books() -> tuple[Record, ...]:

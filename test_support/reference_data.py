@@ -59,6 +59,7 @@ FAQ_PROJECTION = FIXTURE_ROOT / "faq_projection.json"
 HOMEPAGE_TESTIMONIALS = FIXTURE_ROOT / "homepage_testimonials.json"
 PUBLIC_CONTENT_CATALOGUE = FIXTURE_ROOT / "public_content_catalogue.json"
 SLACK_PAGE = FIXTURE_ROOT / "slack_page.json"
+PODCAST_PLATFORMS_SEED = FIXTURE_ROOT / "podcast_platforms.json"
 
 #: The collections the synthetic catalogue carries as lists in JSON, but which
 #: the real in-memory catalogue (and everything that reads it) expects as
@@ -572,6 +573,66 @@ def load_synced_media() -> int:
     return len(rows)
 
 
+def load_synced_site_pages() -> int:
+    """Publish the podcast platforms and the ``/slack`` page as synced rows.
+
+    Both are single rows on the editorial source: the platform catalog and the
+    Slack page are authored in the structured content repository now
+    (``podcast-platforms.yaml`` and ``slack.yaml``), and the catalogue reads
+    them like every other synced kind (issue #384).  The synthetic platform
+    fixture keeps the reviewed record shape -- ``key``/``title`` included --
+    because that is exactly what the parser derives from the authored file.
+    """
+
+    import hashlib
+    import json
+
+    from content.models import SyncedDocument
+
+    def _checksum(record: dict[str, Any]) -> str:
+        encoded = json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+    platforms = json.loads(PODCAST_PLATFORMS_SEED.read_text(encoding="utf-8"))
+    page = json.loads(SLACK_PAGE.read_text(encoding="utf-8"))["page"]
+    slack_record = {
+        "public_path": "/slack",
+        "title": page["title"],
+        "lead": page["lead"],
+        "channels": page["channels"],
+        "troubleshooting_url": page["troubleshooting_url"],
+    }
+    editorial_source, _ = _sync_engine_sources()
+    rows = [
+        SyncedDocument(
+            source=editorial_source,
+            content_kind="podcast_platforms",
+            stable_key="podcast_platforms",
+            slug="",
+            title="Podcast platforms",
+            summary="The listening platforms the show publishes.",
+            public_path="/-/content/podcast_platforms",
+            source_path="podcast-platforms.yaml",
+            checksum=_checksum({"platforms": platforms}),
+            record={"platforms": platforms},
+        ),
+        SyncedDocument(
+            source=editorial_source,
+            content_kind="slack_page",
+            stable_key="slack",
+            slug="slack",
+            title=slack_record["title"],
+            summary=slack_record["lead"],
+            public_path="/slack",
+            source_path="slack.yaml",
+            checksum=_checksum(slack_record),
+            record=slack_record,
+        ),
+    ]
+    SyncedDocument.objects.bulk_create(rows)
+    return len(rows)
+
+
 def load_homepage_testimonials() -> int:
     from courses.services.testimonials import import_homepage_testimonials
 
@@ -598,5 +659,6 @@ def load_reviewed_reference_data() -> dict[str, int]:
         "synced_wiki": load_synced_wiki(),
         "synced_editorial": load_synced_editorial(),
         "synced_media": load_synced_media(),
+        "synced_site_pages": load_synced_site_pages(),
         "testimonials": load_homepage_testimonials(),
     }

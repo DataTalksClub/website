@@ -975,6 +975,163 @@ class PodwikiParserTests(_CheckoutCase):
             self.assertEqual(parser.soft_delete_missing(set(), other), 0)
 
 
+def _platforms_yaml() -> bytes:
+    return (
+        b"platforms:\n"
+        b"- provider: apple\n"
+        b"  label: Apple Podcasts\n"
+        b"  url: https://podcasts.apple.com/us/podcast/id1541710331\n"
+        b"  dot: dot-bubble\n"
+        b"- provider: spotify\n"
+        b"  label: Spotify\n"
+        b"  url: https://open.spotify.com/show/0pck8zuiXdI0OrCg86DAPy\n"
+        b"  dot: dot-green\n"
+    )
+
+
+class PodcastPlatformsParserTests(_CheckoutCase):
+    def setUp(self) -> None:
+        super().setUp()
+        # The reference data seeds the synced rows the catalogue reads; the
+        # parser contract tests exercise their own synced state from empty.
+        SyncedDocument.objects.filter(source__slug="dtc-content").delete()
+
+    def test_discover_upsert_and_delete(self) -> None:
+        source = _source("dtc-content")
+        parser = get_parser("podcast_platforms")
+        with self.checkout({"podcast-platforms.yaml": _platforms_yaml()}) as checkout:
+            items = parser.discover(checkout, source)
+            self.assertEqual([item.key for item in items], ["podcast_platforms"])
+            record = items[0].data["record"]
+            self.assertEqual(
+                record["platforms"],
+                [
+                    {
+                        "key": "apple",
+                        "provider": "apple",
+                        "label": "Apple Podcasts",
+                        "title": "Apple Podcasts",
+                        "url": "https://podcasts.apple.com/us/podcast/id1541710331",
+                        "dot": "dot-bubble",
+                    },
+                    {
+                        "key": "spotify",
+                        "provider": "spotify",
+                        "label": "Spotify",
+                        "title": "Spotify",
+                        "url": "https://open.spotify.com/show/0pck8zuiXdI0OrCg86DAPy",
+                        "dot": "dot-green",
+                    },
+                ],
+            )
+            self.assertEqual(record["provenance"]["revision"], "a" * 40)
+            result = parser.upsert(items[0], source, media_store())
+        self.assertEqual(result.action, "created")
+        stored = SyncedDocument.objects.get(source=source, content_kind="podcast_platforms")
+        self.assertEqual(stored.stable_key, "podcast_platforms")
+        self.assertEqual(stored.public_path, "/-/content/podcast_platforms")
+        self.assertEqual(parser.soft_delete_missing(set(), source), 1)
+        self.assertFalse(
+            SyncedDocument.objects.filter(source=source, content_kind="podcast_platforms").exists()
+        )
+
+    def test_a_repository_without_the_catalog_publishes_no_platforms(self) -> None:
+        source = _source("dtc-content")
+        parser = get_parser("podcast_platforms")
+        with self.checkout({"podcasts/s01/e01-x.yaml": b"slug: x\n"}) as checkout:
+            self.assertEqual(parser.discover(checkout, source), [])
+            self.assertEqual(parser.soft_delete_missing(set(), source), 0)
+
+    def test_ignores_other_sources(self) -> None:
+        other = _source("some-other-site")
+        parser = get_parser("podcast_platforms")
+        with self.checkout({"podcast-platforms.yaml": _platforms_yaml()}) as checkout:
+            self.assertEqual(parser.discover(checkout, other), [])
+            self.assertEqual(parser.soft_delete_missing(set(), other), 0)
+
+    def test_a_catalog_that_cannot_be_published_is_rejected(self) -> None:
+        source = _source("dtc-content")
+        parser = get_parser("podcast_platforms")
+        insecure = (
+            b"platforms:\n"
+            b"- provider: apple\n"
+            b"  label: Apple Podcasts\n"
+            b"  url: http://podcasts.apple.com/us/podcast/id1541710331\n"
+            b"  dot: dot-bubble\n"
+        )
+        with self.checkout({"podcast-platforms.yaml": insecure}) as checkout:
+            with self.assertRaises(ContentParserError):
+                parser.discover(checkout, source)
+
+
+def _slack_yaml() -> bytes:
+    return (
+        b"title: Synthetic Slack\n"
+        b"lead: A synthetic lead.\n"
+        b"channels:\n"
+        b'- "#synthetic-general"\n'
+        b'- "#synthetic-random"\n'
+        b"troubleshooting_url: https://example.invalid/troubleshooting\n"
+    )
+
+
+class SlackPageParserTests(_CheckoutCase):
+    def setUp(self) -> None:
+        super().setUp()
+        # The reference data seeds the synced rows the catalogue reads; the
+        # parser contract tests exercise their own synced state from empty.
+        SyncedDocument.objects.filter(source__slug="dtc-content").delete()
+
+    def test_discover_upsert_and_delete(self) -> None:
+        source = _source("dtc-content")
+        parser = get_parser("slack_page")
+        with self.checkout({"slack.yaml": _slack_yaml()}) as checkout:
+            items = parser.discover(checkout, source)
+            self.assertEqual([item.key for item in items], ["slack"])
+            record = items[0].data["record"]
+            self.assertEqual(record["public_path"], "/slack")
+            self.assertEqual(record["title"], "Synthetic Slack")
+            self.assertEqual(record["lead"], "A synthetic lead.")
+            self.assertEqual(record["channels"], ["#synthetic-general", "#synthetic-random"])
+            self.assertEqual(
+                record["troubleshooting_url"], "https://example.invalid/troubleshooting"
+            )
+            self.assertEqual(record["provenance"]["revision"], "a" * 40)
+            result = parser.upsert(items[0], source, media_store())
+        self.assertEqual(result.action, "created")
+        stored = SyncedDocument.objects.get(source=source, content_kind="slack_page")
+        self.assertEqual(stored.stable_key, "slack")
+        self.assertEqual(stored.slug, "slack")
+        self.assertEqual(stored.title, "Synthetic Slack")
+        self.assertEqual(stored.summary, "A synthetic lead.")
+        self.assertEqual(parser.soft_delete_missing(set(), source), 1)
+        self.assertFalse(
+            SyncedDocument.objects.filter(source=source, content_kind="slack_page").exists()
+        )
+
+    def test_a_repository_without_the_page_publishes_no_row(self) -> None:
+        source = _source("dtc-content")
+        parser = get_parser("slack_page")
+        with self.checkout({"slack/guidelines.md": b"# Guidelines\n"}) as checkout:
+            self.assertEqual(parser.discover(checkout, source), [])
+            self.assertEqual(parser.soft_delete_missing(set(), source), 0)
+
+    def test_ignores_other_sources(self) -> None:
+        other = _source("some-other-site")
+        parser = get_parser("slack_page")
+        with self.checkout({"slack.yaml": _slack_yaml()}) as checkout:
+            self.assertEqual(parser.discover(checkout, other), [])
+            self.assertEqual(parser.soft_delete_missing(set(), other), 0)
+
+    def test_a_page_that_cannot_be_published_is_rejected(self) -> None:
+        source = _source("dtc-content")
+        parser = get_parser("slack_page")
+        bad_channel = _slack_yaml().replace(b'"#synthetic-random"', b"synthetic-random")
+        with self.checkout({"slack.yaml": bad_channel}) as checkout:
+            with self.assertRaises(ContentParserError):
+                parser.discover(checkout, source)
+
+
 class RegistrationTests(unittest.TestCase):
     def test_site_parsers_are_registered(self) -> None:
         self.assertEqual(type(get_parser("article")).__name__, "ArticlesParser")
@@ -985,3 +1142,5 @@ class RegistrationTests(unittest.TestCase):
         self.assertEqual(type(get_parser("faq")).__name__, "FaqParser")
         self.assertEqual(type(get_parser("wiki")).__name__, "PodwikiParser")
         self.assertEqual(type(get_parser("media")).__name__, "MediaParser")
+        self.assertEqual(type(get_parser("podcast_platforms")).__name__, "PodcastPlatformsParser")
+        self.assertEqual(type(get_parser("slack_page")).__name__, "SlackPageParser")
