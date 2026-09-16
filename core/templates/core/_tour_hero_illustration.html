@@ -1,0 +1,9 @@
+{% load static %}
+{% static 'core/illustrations/tour-community.webp' as tour_light %}
+{% static 'core/illustrations/tour-community-dark.webp' as tour_dark %}
+<span class="doodle-variants">
+  <img class="doodle doodle-light" src="{{ tour_light }}" alt=""
+       width="1254" height="1254" decoding="async" loading="{{ loading|default:'eager' }}">
+  <img class="doodle doodle-dark" src="{{ tour_dark }}" alt=""
+       width="1254" height="1254" decoding="async" loading="{{ loading|default:'eager' }}">
+</span>
