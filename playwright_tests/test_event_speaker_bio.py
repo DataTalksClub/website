@@ -13,8 +13,10 @@ pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
 
 SCREENSHOTS = Path(".tmp/screenshots/event-speaker-bio")
 FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
-FEATURED_SPEAKER_NAME = "Alexey Grigorev"
-FEATURED_EVENT_PATH = "/events/365/ai-dev-tools-zoomcamp-2026-course-launch"
+# The credit the reviewed events fixture puts on that event
+# (`test_support/fixtures/reference/events.json`), joined to the
+# `synthetic-rich-profile` person record that owns the biography.
+FEATURED_SPEAKER_NAME = "Synthetic O'Speaker"
 
 
 def _featured_event() -> dict:
@@ -57,11 +59,13 @@ def test_featured_event_speaker_bio_is_rendered_at_both_viewports(
 ) -> None:
     page.set_viewport_size(viewport)
     event = _featured_event()
-    assert event["public_path"] == FEATURED_EVENT_PATH
+    # The event's own published numeric path, which the allocator owns; the page
+    # under test is whichever URL the site publishes for this event.
+    event_path = event["public_path"]
     speaker = event["speakers"][0]
     bio_text = speaker["bio_blocks"][0]["text"]
 
-    response = page.goto(f"{live_server.url}{FEATURED_EVENT_PATH}")
+    response = page.goto(f"{live_server.url}{event_path}")
     assert response is not None and response.status == 200
 
     speakers = page.locator('section[aria-labelledby="event-speakers-heading"]')
