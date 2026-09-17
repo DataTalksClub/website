@@ -69,12 +69,30 @@ def _assert_no_horizontal_overflow(page: Page) -> None:
     assert overflow["content"] <= overflow["viewport"], overflow
 
 
+PLATFORMS = {
+    "apple": "Apple Podcasts",
+    "spotify": "Spotify",
+    "youtube": "YouTube",
+}
+
+
+def _listed_episode() -> dict:
+    """The newest episode that carries a video and all three listen platforms.
+
+    The episode page's listen row and its player are what this module measures,
+    so it needs an episode that publishes them.  Whether the newest episode does
+    is a property of the catalogue, not of the page.
+    """
+
+    return next(
+        record
+        for record in ordered_podcasts()
+        if record.get("video") and set(PLATFORMS) <= set(record.get("links") or {})
+    )
+
+
 def _assert_platform_buttons(page: Page, container: str) -> None:
-    platforms = {
-        "apple": "Apple Podcasts",
-        "spotify": "Spotify",
-        "youtube": "YouTube",
-    }
+    platforms = PLATFORMS
     for provider, label in platforms.items():
         button = page.locator(f'{container} a[data-podcast-platform="{provider}"]')
         expect(button).to_have_count(1)
@@ -98,7 +116,7 @@ def test_index_and_episode_render_the_design_system_in_both_themes(
 ) -> None:
     page.set_viewport_size(viewport)
     origin = live_server.url
-    episode = ordered_podcasts()[0]
+    episode = _listed_episode()
     season = podcast_seasons()[0]
     _stub_video_provider(page)
     console_errors: list[str] = []
@@ -146,7 +164,7 @@ def test_episode_play_control_is_a_labelled_keyboard_destination(
     page: Page,
     live_server,
 ) -> None:
-    episode = ordered_podcasts()[0]
+    episode = _listed_episode()
     _stub_video_provider(page)
     page.goto(f"{live_server.url}{episode['public_path']}", wait_until="networkidle")
     _settle_analytics_preferences(page)
@@ -200,7 +218,7 @@ def test_index_and_episode_stay_usable_at_320px_without_javascript(
     browser: Browser,
     live_server,
 ) -> None:
-    episode = ordered_podcasts()[0]
+    episode = _listed_episode()
     context = browser.new_context(
         java_script_enabled=False,
         reduced_motion="reduce",
