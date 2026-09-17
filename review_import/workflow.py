@@ -1093,6 +1093,12 @@ def _legacy_course_family_values(row: tuple[Any, ...]) -> dict[str, Any]:
         # CMP snapshots do not own family landing-page copy. An absent starting
         # point stays empty, including when the source predates this target field.
         "starting_point": "",
+        # Neither does it own the family's prerequisite note, its weekly-commitment
+        # line, or the three-scene learner journey: those are site-authored family
+        # copy, so an import leaves the migrated defaults in place.
+        "prerequisites": "",
+        "weekly_commitment": "",
+        "progression": "[]",
         "outcome": "",
         "github_repo_url": str(values["github_repo_url"] or ""),
         "docs_url": "",
@@ -1140,6 +1146,9 @@ def _insert_course_families(
         "title",
         "description",
         "starting_point",
+        "prerequisites",
+        "weekly_commitment",
+        "progression",
         "outcome",
         "github_repo_url",
         "docs_url",

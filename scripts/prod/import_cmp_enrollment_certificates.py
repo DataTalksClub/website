@@ -18,6 +18,12 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from scripts.prod.target import add_target_arguments, configure_target  # noqa: E402
 
+# The CMP export is frozen migration history, so this is the one-time model even
+# though the run reconciles: it matches issued certificate URLs against cohorts an
+# earlier import already wrote, exactly as ``import_cmp_content`` does.
+SYNC_MODEL = "one-time"
+BOOTSTRAPS_EMPTY_DATABASE = False
+
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)

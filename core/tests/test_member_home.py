@@ -220,6 +220,14 @@ class MemberHomeQueryBudgetTests(TestCase):
         cohort = make_cohort(family, 2026, start_date=date(2026, 1, 6), homework_count=2)
         Enrollment.objects.create(student=member, course=cohort)
 
+        # The page reads the editorial catalogue, whose records are cached
+        # against a stamp over the synced rows. Neither measurement below adds
+        # a synced row, so only the first request in the process pays that read
+        # and an unwarmed baseline would be one query larger than the cohort it
+        # is compared against. Warm it first; the budget is about per-item
+        # growth, not about who happens to fill the cache.
+        self._queries(reverse("home"))
+
         small = self._queries(reverse("home"))
 
         due = datetime(2026, 9, 30, 12, 0, tzinfo=UTC)

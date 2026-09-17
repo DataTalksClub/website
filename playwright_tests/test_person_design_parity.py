@@ -20,8 +20,11 @@ pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-179/person")
 # The widest body of work in the catalogue, and a profile with none at all.
-RICH_SLUG = "alexeygrigorev"
-SPARSE_SLUG = "aaronwishnick"
+# These are the reviewed reference profiles the browser database is seeded with
+# (`test_support/fixtures/reference/public_content_catalogue.json`), the same
+# pair `core/tests/test_design_system_shell.py` measures the shell against.
+RICH_SLUG = "synthetic-rich-profile"
+SPARSE_SLUG = "synthetic-sparse-profile"
 # The design system page ground: the warm band marks where the page starts, and a
 # profile's body of work is the cool lavender content ground that also ends the
 # page, so `--page` follows it (`_docs/design/design-system.md`).  The dark theme
@@ -36,6 +39,10 @@ VIEWPORTS = (
 
 def _profile(slug: str) -> dict:
     return catalogue.people_by_slug()[slug]
+
+
+def _group_size(person, key: str) -> int:
+    return next((group.count for group in person.groups if group.key == key), 0)
 
 
 def _shot(page: Page, name: str) -> None:
@@ -117,8 +124,15 @@ def test_a_wide_body_of_work_is_grouped_into_scannable_rows(page: Page, live_ser
         len(record["relationships"])
     )
     expect(page.locator(".stat-tile")).to_have_count(len(person.groups))
-    expect(page.locator(".person-rows-podcast .play-disc")).to_have_count(5)
-    expect(page.locator(".person-rows-events .date-rail")).to_have_count(51)
+    # Every podcast row carries a play disc and every event row a date rail --
+    # derived from the profile's own groups, like the two counts above, so the
+    # contract stays the same whichever reference profile the database holds.
+    expect(page.locator(".person-rows-podcast .play-disc")).to_have_count(
+        _group_size(person, "podcast")
+    )
+    expect(page.locator(".person-rows-events .date-rail")).to_have_count(
+        _group_size(person, "events")
+    )
     for group in person.groups:
         heading = page.locator(f"#{group.anchor}-heading")
         expect(heading).to_be_visible()

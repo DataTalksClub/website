@@ -5,6 +5,8 @@ from playwright.sync_api import Browser, Page, ViewportSize, expect
 
 from content import catalogue
 from content.docs_projection import docs_projection
+from content.podcast_content import podcast_seasons
+from content.podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS
 from events.queries import published_event_records
 
 pytestmark = [pytest.mark.smoke, pytest.mark.django_db(transaction=True)]
@@ -13,8 +15,12 @@ SCREENSHOTS = Path(".tmp/screenshots/issue-105")
 PODCAST_SCREENSHOTS = Path(".tmp/screenshots/issue-132")
 EVENT_DESCRIPTION_SCREENSHOTS = Path(".tmp/screenshots/issue-131")
 FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
-FEATURED_SPEAKER_PATH = "/people/alexeygrigorev.html"
-FEATURED_SPEAKER_NAME = "Alexey Grigorev"
+# The reviewed events fixture credits that event to the `synthetic-rich-profile`
+# person record under a display name of its own, and the profile page is headed
+# by the person record's title, so the credit and the heading are two strings.
+FEATURED_SPEAKER_PATH = "/people/synthetic-rich-profile.html"
+FEATURED_SPEAKER_NAME = "Synthetic O'Speaker"
+FEATURED_SPEAKER_TITLE = "Synthetic Rich Profile"
 HOME_HEADING = "Learn the fundamentals. Build real projects. Share your work."
 CLIMB_HEADING = "From “What does that mean?” to “Let me show you.”"
 PODCAST_HEADING = "Conversations with people who ship data"
@@ -22,14 +28,28 @@ PODCAST_HEADING = "Conversations with people who ship data"
 EVENTS_HEADING = "Something happening every week"
 
 
+def _flat_alias_episode() -> dict:
+    """An episode that still answers on its generated flat-slug alias."""
+
+    return next(
+        record
+        for record in catalogue.podcasts()
+        if record["slug"] not in PODCAST_HIERARCHICAL_ONLY_SLUGS
+    )
+
+
+def _featured_event() -> dict:
+    """Resolve the DB-backed featured event row once test data exists."""
+
+    return next(
+        event for event in published_event_records() if event["title"] == FEATURED_EVENT_TITLE
+    )
+
+
 def _featured_event_path() -> str:
     """Resolve the DB-backed numeric event URL once test data exists."""
 
-    return next(
-        event["public_path"]
-        for event in published_event_records()
-        if event["title"] == FEATURED_EVENT_TITLE
-    )
+    return _featured_event()["public_path"]
 
 
 def _shot(page: Page, name: str, *, full_page: bool = False) -> None:
@@ -215,9 +235,9 @@ def test_internal_event_to_person_flow(
         f"https://datatalks.club{featured_event_path}",
     )
     expect(page.locator('section[aria-label="Event description"]')).to_have_count(1)
-    expect(
-        page.get_by_text("The new cohort of AI Dev Tools Zoomcamp 2026 starts", exact=False)
-    ).to_be_visible()
+    # The description belongs to the event row, so read it from there instead of
+    # restating the sentence one corpus happened to publish.
+    expect(page.get_by_text(_featured_event()["description_text"], exact=False)).to_be_visible()
     expect(page.get_by_role("heading", name="Event links", exact=True)).to_have_count(0)
     expect(page.locator('a[href*="luma.com"], a[href*="lu.ma"]')).to_have_count(0)
     expect(page.locator(f'a[href="{featured_event_path}/register"]')).to_have_count(0)
@@ -226,7 +246,7 @@ def test_internal_event_to_person_flow(
 
     page.get_by_role("link", name=FEATURED_SPEAKER_NAME, exact=True).click()
     expect(page).to_have_url(f"{origin}{FEATURED_SPEAKER_PATH}")
-    expect(page.get_by_role("heading", name=FEATURED_SPEAKER_NAME, exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name=FEATURED_SPEAKER_TITLE, exact=True)).to_be_visible()
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
         "href",
         f"https://datatalks.club{FEATURED_SPEAKER_PATH}",
@@ -250,10 +270,17 @@ def test_podcast_latest_middle_and_oldest_seasons(
     failed_requests: list[str] = []
     page.on("requestfailed", lambda request: failed_requests.append(request.url))
 
+    # The hub lists seasons newest first, so the latest season is the one the
+    # unqualified hub shows.  Read the three from the catalogue rather than
+    # naming the numbers one corpus happened to publish.
+    numbers = sorted({season.number for season in podcast_seasons()})
+    assert len(numbers) >= 3, numbers
+    latest, middle, oldest = numbers[-1], numbers[len(numbers) // 2], numbers[0]
+    assert len({latest, middle, oldest}) == 3, numbers
     scenarios = (
-        (24, "/podcast"),
-        (12, "/podcast?season=12"),
-        (1, "/podcast?season=1"),
+        (latest, "/podcast"),
+        (middle, f"/podcast?season={middle}"),
+        (oldest, f"/podcast?season={oldest}"),
     )
     for season, path in scenarios:
         response = page.goto(f"{origin}{path}")
@@ -274,8 +301,8 @@ def test_podcast_latest_middle_and_oldest_seasons(
             f"https://datatalks.club{path}",
         )
         expect(page.locator("[data-podcast-season]")).to_have_count(1)
-        expect(page.get_by_role("link", name="Season 24", exact=True)).to_have_count(
-            0 if season == 24 else 1
+        expect(page.get_by_role("link", name=f"Season {latest}", exact=True)).to_have_count(
+            0 if season == latest else 1
         )
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
         _podcast_shot(page, f"podcast-season-{season}-{suffix}.png")
@@ -285,11 +312,18 @@ def test_podcast_latest_middle_and_oldest_seasons(
 
 def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server) -> None:
     origin = live_server.url
-    podcast_target = next(
-        item["public_path"]
-        for item in catalogue.podcasts()
-        if item["slug"] == "practical-llm-engineering-and-rag"
-    )
+    # Any episode that still keeps its generated flat-slug alias proves the
+    # redirect; the catalogue names which episodes those are.
+    podcast_record = _flat_alias_episode()
+    podcast_slug = podcast_record["slug"]
+    podcast_target = podcast_record["public_path"]
+    # An article and a book, read from the catalogue rather than named: the
+    # alias shape under test is the extensionless and trailing-slash detail
+    # form, which is a property of the route table, not of one record.
+    article_target = catalogue.articles()[0]["public_path"]
+    article_alias = article_target.removesuffix(".html")
+    book_target = catalogue.books()[0]["public_path"]
+    book_alias = book_target.removesuffix(".html")
     aliases = {
         "/articles.html": "/blog",
         "/blog/": "/blog",
@@ -301,26 +335,21 @@ def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server
         "/events/": "/events",
         "/courses/": "/courses",
         "/wiki/": "/wiki",
-        "/blog/guide-to-free-online-courses-at-datatalks-club": (
-            "/blog/guide-to-free-online-courses-at-datatalks-club.html"
-        ),
-        "/blog/guide-to-free-online-courses-at-datatalks-club/": (
-            "/blog/guide-to-free-online-courses-at-datatalks-club.html"
-        ),
-        "/podcast/practical-llm-engineering-and-rag": podcast_target,
-        "/podcast/practical-llm-engineering-and-rag/": podcast_target,
-        "/books/20251006-software-development-at-rocket-speed": (
-            "/books/20251006-software-development-at-rocket-speed.html"
-        ),
-        "/books/20251006-software-development-at-rocket-speed/": (
-            "/books/20251006-software-development-at-rocket-speed.html"
-        ),
-        "/people/alexeygrigorev": "/people/alexeygrigorev.html",
-        "/people/alexeygrigorev/": "/people/alexeygrigorev.html",
+        article_alias: article_target,
+        f"{article_alias}/": article_target,
+        f"/podcast/{podcast_slug}": podcast_target,
+        f"/podcast/{podcast_slug}/": podcast_target,
+        book_alias: book_target,
+        f"{book_alias}/": book_target,
+        FEATURED_SPEAKER_PATH.removesuffix(".html"): FEATURED_SPEAKER_PATH,
+        f"{FEATURED_SPEAKER_PATH.removesuffix('.html')}/": FEATURED_SPEAKER_PATH,
     }
+    # A season the catalogue actually publishes, so the podcast alias redirect is
+    # what is under test rather than a 404 on the query it carries.
+    published_season = sorted(season.number for season in podcast_seasons())[1]
     for source, target in aliases.items():
         if source in {"/podcast.html", "/podcast/"}:
-            query = "season=12"
+            query = f"season={published_season}"
         elif source in {"/events.html", "/events/"}:
             query = "filter=past"
         else:
@@ -372,7 +401,7 @@ def test_public_pages_remain_meaningful_without_javascript(
             ("/", HOME_HEADING),
             ("/events", EVENTS_HEADING),
             (_featured_event_path(), FEATURED_EVENT_TITLE),
-            (FEATURED_SPEAKER_PATH, FEATURED_SPEAKER_NAME),
+            (FEATURED_SPEAKER_PATH, FEATURED_SPEAKER_TITLE),
             ("/wiki/search", "Search"),
             ("/wiki", "DataTalks.Club Podcast Wiki"),
             ("/wiki?page=2", "DataTalks.Club Podcast Wiki"),
@@ -404,16 +433,14 @@ def test_public_pages_remain_meaningful_without_javascript(
 
 def test_oldest_latest_details_and_media_fallback(page: Page, live_server) -> None:
     origin = live_server.url
-    podcast_path = next(
-        record["public_path"]
-        for record in catalogue.podcasts()
-        if record["slug"] == "practical-llm-engineering-and-rag"
-    )
+    podcast_path = _flat_alias_episode()["public_path"]
     for path in (
-        "/blog/sponsor-datatalks-club.html",
+        catalogue.articles()[0]["public_path"],
         podcast_path,
-        "/books/20251006-software-development-at-rocket-speed.html",
-        "/wiki/a-a-testing",
+        # The first book carries no preview image, so its detail page is also the
+        # media fallback this test is named for.
+        catalogue.books()[0]["public_path"],
+        catalogue.wiki_pages()[0]["public_path"],
     ):
         response = page.goto(f"{origin}{path}")
         assert response is not None and response.status == 200

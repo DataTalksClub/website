@@ -3,6 +3,8 @@ from __future__ import annotations
 import pytest
 from playwright.sync_api import Page, expect
 
+from content.podcast_content import ordered_podcasts
+
 
 @pytest.mark.core
 @pytest.mark.parametrize(
@@ -25,7 +27,9 @@ def test_podcast_landing_keeps_bordered_cards_and_plain_blue_episode_metadata(
 
     card = page.locator("[data-podcast-episode]").first.locator(".archive-card")
     eyebrow = card.locator(".archive-body > .mono-label")
-    expect(eyebrow).to_have_text("Season 24 · Episode 6")
+    # The hub leads with the newest episode, whichever that is in the catalogue.
+    latest = ordered_podcasts()[0]
+    expect(eyebrow).to_have_text(f"Season {latest['season']} · Episode {latest['episode']}")
     expect(card.locator(".status-pill")).to_have_count(0)
 
     card_border = card.evaluate(

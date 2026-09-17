@@ -9,16 +9,35 @@ from events.queries import published_event_records
 pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-131")
-DESCRIBED_RECORDED_TITLE = "Build and Ship an AI-Assisted Full-Stack App"
-UNDESCRIBED_TITLE = "Test, Containerize, and Deploy an AI-Assisted App"
 
 
-def _event_path(title: str) -> str:
-    """Resolve the runtime public path after the DB-owned numeric IDs are available."""
+def _described_recorded_event() -> dict:
+    """A published event that carries a description and an external recording.
+
+    The two shapes this module contrasts are properties of the row, not of any
+    one event, so read them from the published records rather than naming the
+    titles one corpus happened to publish.
+    """
 
     return next(
-        event["public_path"] for event in published_event_records() if event["title"] == title
+        event for event in published_event_records() if event["description_html"] and event["links"]
     )
+
+
+def _undescribed_event() -> dict:
+    """A published event with no description and no external links at all."""
+
+    return next(
+        event
+        for event in published_event_records()
+        if not event["description_html"] and not event["links"]
+    )
+
+
+def _recording_name(event: dict) -> str:
+    """The accessible name the detail page gives that event's recording link."""
+
+    return f"{event['links'][0]['label']} (opens in a new tab)"
 
 
 def _screenshot(page: Page, name: str) -> None:
@@ -58,13 +77,15 @@ def test_described_recorded_and_undescribed_event_details(
         lambda message: console_errors.append(message.text) if message.type == "error" else None,
     )
 
-    described_path = _event_path(DESCRIBED_RECORDED_TITLE)
-    undescribed_path = _event_path(UNDESCRIBED_TITLE)
+    described = _described_recorded_event()
+    undescribed = _undescribed_event()
+    described_path = described["public_path"]
+    undescribed_path = undescribed["public_path"]
     response = page.goto(f"{live_server.url}{described_path}")
     assert response is not None and response.status == 200
-    expect(page.get_by_role("heading", name=DESCRIBED_RECORDED_TITLE, exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name=described["title"], exact=True)).to_be_visible()
     expect(page.locator('section[aria-label="Event description"]')).to_have_count(1)
-    recording = page.get_by_role("link", name="Watch recording (opens in a new tab)")
+    recording = page.get_by_role("link", name=_recording_name(described))
     expect(recording).to_be_visible()
     expect(recording).to_have_attribute("target", "_blank")
     expect(recording).to_have_attribute("rel", "noopener noreferrer")
@@ -80,7 +101,7 @@ def test_described_recorded_and_undescribed_event_details(
 
     response = page.goto(f"{live_server.url}{undescribed_path}")
     assert response is not None and response.status == 200
-    expect(page.get_by_role("heading", name=UNDESCRIBED_TITLE, exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name=undescribed["title"], exact=True)).to_be_visible()
     expect(page.locator('section[aria-label="Event description"]')).to_have_count(0)
     expect(page.get_by_role("heading", name="Event links", exact=True)).to_have_count(0)
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
@@ -111,22 +132,20 @@ def test_event_descriptions_are_meaningful_without_javascript(
     )
     page = context.new_page()
     try:
-        response = page.goto(f"{live_server.url}{_event_path(DESCRIBED_RECORDED_TITLE)}")
+        described = _described_recorded_event()
+        response = page.goto(f"{live_server.url}{described['public_path']}")
         assert response is not None and response.status == 200
-        expect(
-            page.get_by_role("heading", name=DESCRIBED_RECORDED_TITLE, exact=True)
-        ).to_be_visible()
+        expect(page.get_by_role("heading", name=described["title"], exact=True)).to_be_visible()
         expect(page.locator('section[aria-label="Event description"]')).to_have_count(1)
-        expect(
-            page.get_by_role("link", name="Watch recording (opens in a new tab)")
-        ).to_be_visible()
+        expect(page.get_by_role("link", name=_recording_name(described))).to_be_visible()
         _assert_no_provider_action(page)
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
         _screenshot(page, "no-javascript-described-mobile.png")
 
-        response = page.goto(f"{live_server.url}{_event_path(UNDESCRIBED_TITLE)}")
+        undescribed = _undescribed_event()
+        response = page.goto(f"{live_server.url}{undescribed['public_path']}")
         assert response is not None and response.status == 200
-        expect(page.get_by_role("heading", name=UNDESCRIBED_TITLE, exact=True)).to_be_visible()
+        expect(page.get_by_role("heading", name=undescribed["title"], exact=True)).to_be_visible()
         expect(page.locator('section[aria-label="Event description"]')).to_have_count(0)
         _assert_no_provider_action(page)
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
@@ -142,7 +161,7 @@ def test_event_description_reflows_at_narrow_and_zoom_equivalent_widths(
 ) -> None:
     for width in (640, 320):
         page.set_viewport_size({"width": width, "height": 900})
-        response = page.goto(f"{live_server.url}{_event_path(DESCRIBED_RECORDED_TITLE)}")
+        response = page.goto(f"{live_server.url}{_described_recorded_event()['public_path']}")
         assert response is not None and response.status == 200
         expect(page.locator('section[aria-label="Event description"]')).to_be_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
@@ -154,8 +173,8 @@ def test_event_details_inherit_dark_mode_without_provider_actions(
     live_server,
 ) -> None:
     page.set_viewport_size({"width": 1440, "height": 900})
-    described_path = _event_path(DESCRIBED_RECORDED_TITLE)
-    undescribed_path = _event_path(UNDESCRIBED_TITLE)
+    described_path = _described_recorded_event()["public_path"]
+    undescribed_path = _undescribed_event()["public_path"]
     response = page.goto(f"{live_server.url}{described_path}")
     assert response is not None and response.status == 200
     page.locator("#dark-mode-toggle:visible").click()

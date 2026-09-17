@@ -1,4 +1,4 @@
-from scripts.prod.reconcile_cmp_enrollment_certificates import _parser
+from scripts.prod.import_cmp_enrollment_certificates import _parser
 
 
 def test_certificate_reconciliation_is_dry_run_by_default() -> None:

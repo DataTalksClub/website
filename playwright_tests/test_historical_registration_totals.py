@@ -17,6 +17,7 @@ from playwright.sync_api import Page, expect
 from accounts.studio_sessions import SESSION_REFERENCE_KEY
 from accounts.studio_test_support import make_studio_user
 from content.event_content import event_groups
+from events.identity import resolve_uuid
 from events.queries import published_event_records
 from historical_registrations.models import (
     HistoricalRegistrationAggregateRevision,
@@ -111,7 +112,7 @@ def seed_total(event: dict, *, count: int, complete: bool) -> None:
     aggregate = HistoricalRegistrationAggregateRevision.objects.create(
         source_run=run,
         external_event_identifier=f"{PUBLIC_CANARY}-{suffix[:12]}",
-        event_id=event["identity_id"],
+        event_id=resolve_uuid(event["identity_id"]).pk,
         eligible_count=count,
         excluded_count=0,
         quarantined_count=0 if complete else count,
@@ -166,7 +167,7 @@ def seed_validated_overlap(event: dict, *, suffix: str) -> HistoricalRegistratio
     HistoricalRegistrationAggregateRevision.objects.create(
         source_run=run,
         external_event_identifier=f"synthetic-overlap-{suffix}",
-        event_id=event["identity_id"],
+        event_id=resolve_uuid(event["identity_id"]).pk,
         eligible_count=2,
         excluded_count=0,
         quarantined_count=0,
@@ -380,7 +381,7 @@ def test_studio_stage_replay_validate_activate_preview_rollback_and_denial(
                 source_run__provider=HistoricalRegistrationSourceRun.Provider.LUMA,
                 external_event_identifier=external_id,
             )
-            assert str(aggregate.event_id) == event["identity_id"]
+            assert aggregate.event_id == resolve_uuid(event["identity_id"]).pk
 
             response = page.goto(staged_url)
             assert_private(response)

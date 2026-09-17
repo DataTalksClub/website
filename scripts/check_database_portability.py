@@ -90,6 +90,13 @@ BACKEND_PATTERN_EXCEPTIONS: dict[Path, frozenset[str]] = {
     Path("courses/services/cmp_certificate_reconciliation.py"): frozenset(
         {"select_for_update", "pragma "}
     ),
+    # The P5 events cutover drops the legacy ``events_`` tables while their
+    # satellites still hold foreign keys into them. Constraint checking is
+    # disabled around the drop on both engines; PostgreSQL additionally needs
+    # ``DROP TABLE ... CASCADE`` to remove the dependent constraint objects,
+    # which SQLite has no spelling for and does not need. The behavior is the
+    # same on both engines and only the token is backend-specific.
+    Path("core/management/commands/rebuild_events_tables.py"): frozenset({"connection.vendor"}),
 }
 DATABASE_REFERENCE = re.compile(
     r"\b(?:postgres(?:ql)?|psycopg|database_url)\b",

@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -93,6 +94,14 @@ class LeaderboardProjectStarColorTests(TestCase):
     """The leaderboard view colors each passed-project star by cohort position."""
 
     def setUp(self):
+        # The leaderboard is cached under `leaderboard:<cohort id>` with an
+        # hour's TTL, and a rolled-back test hands the next one in the same
+        # worker the same cohort id. Without this the view can answer from a
+        # previous case's rows, which is how this class failed only when the
+        # full suite ran (`KeyError: 'Alice'`). Every other leaderboard suite
+        # clears the cache the same way.
+        cache.clear()
+
         self.course = Cohort.objects.create(slug="star-colors-course", title="Star Colors Course")
         self.project1 = self.create_project("project-1", "Project One")
         self.project2 = self.create_project("project-2", "Project Two")

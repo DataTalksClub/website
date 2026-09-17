@@ -76,6 +76,19 @@ def _top_level_import_roots(path: Path, *, known_packages: set[str]) -> tuple[st
     return tuple(sorted(imported & known_packages))
 
 
+def _label_packages(node: dict) -> set[str]:
+    """The top-level packages one verification node's test labels name.
+
+    A Django test label is a dotted path whose first segment is the package the
+    label runs (`content.tests` -> `content`). A node with no labels stands for
+    the package its id names.
+    """
+
+    labels = node.get("test_labels") or []
+    packages = {str(label).split(".", 1)[0] for label in labels}
+    return packages or {node["id"].removeprefix("django.")}
+
+
 def _reverse_imports(
     graph: dict[str, object],
 ) -> tuple[dict[str, tuple[str, ...]], dict[str, dict]]:
@@ -90,10 +103,17 @@ def _reverse_imports(
     known_packages = set(verification_nodes)
     reverse: dict[str, set[str]] = defaultdict(set)
     for importer in sorted(verification_nodes):
-        for path in _source_files(importer):
-            for imported in _top_level_import_roots(path, known_packages=known_packages):
-                if imported in owner_roots and imported != importer:
-                    reverse[imported].add(importer)
+        # Read every package the node's labels actually run, not just the package
+        # its id is named after. One verification label can cover several top-level
+        # packages -- `django.events` runs the event subsystem's four apps since the
+        # Q&A, registrant and historical-registration models were extracted out of
+        # `events/` -- and an import written in one of them binds the label the same
+        # way an import written in `events/` does.
+        for package in sorted(_label_packages(verification_nodes[importer])):
+            for path in _source_files(package):
+                for imported in _top_level_import_roots(path, known_packages=known_packages):
+                    if imported in owner_roots and imported != importer:
+                        reverse[imported].add(importer)
     return (
         {root: tuple(sorted(importers)) for root, importers in sorted(reverse.items())},
         verification_nodes,
@@ -106,7 +126,18 @@ def test_graph_is_valid_deterministic_and_preserves_reviewed_closures() -> None:
     assert application_test_labels(graph) == {
         "api": ("api",),
         "studio_courses": ("studio_courses",),
-        "content": ("accounts", "api", "content.tests", "content_sync", "core", "courses"),
+        "content": (
+            "accounts",
+            "api",
+            "content.tests",
+            "content_sync",
+            "core",
+            "courses",
+            "event_qna",
+            "event_registrants",
+            "events",
+            "historical_registrations",
+        ),
         "courses": (
             "accounts",
             "api",
@@ -130,7 +161,15 @@ def test_graph_is_valid_deterministic_and_preserves_reviewed_closures() -> None:
             "studio",
         ),
         "review_import": ("accounts", "courses", "review_import"),
-        "studio": ("accounts", "core", "events", "studio"),
+        "studio": (
+            "accounts",
+            "core",
+            "event_qna",
+            "event_registrants",
+            "events",
+            "historical_registrations",
+            "studio",
+        ),
     }
 
 

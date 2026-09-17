@@ -1,4 +1,4 @@
-import courses.models.cohort
+import courses.curriculum_source_validators
 from django.db import migrations, models
 
 
@@ -15,7 +15,9 @@ class Migration(migrations.Migration):
                 help_text=(
                     "Three ordered learner-journey scenes authored by the course repository."
                 ),
-                validators=[courses.models.cohort.validate_course_progression],
+                validators=[
+                    courses.curriculum_source_validators.validate_course_progression
+                ],
             ),
         ),
     ]

@@ -74,6 +74,28 @@ VERDICTS: dict[str, Verdict] = {
     "WebhookSignatureTests": Verdict(
         "content_sync.webhook_delivery.verify_webhook_signature is an HMAC over bytes.",
     ),
+    "GitArchiveStreamingTests": Verdict(
+        "content_sync.snapshot.run_git_archive spawns git in a temporary checkout and "
+        "counts the bytes it streams back; the refusal happens before any caller "
+        "resolves a source, so no model and no catalogue is on the path.",
+    ),
+    "ArchiveStructureBudgetTests": Verdict(
+        "content_sync.snapshot.read_snapshot_archive walks tar members and counts "
+        "structural work against a budget; it returns bytes and never resolves a row.",
+    ),
+    "SnapshotPathHardeningTests": Verdict(
+        "The snapshot path predicates compare strings; a refused name never reaches a reader.",
+    ),
+    "FetchBudgetTests": Verdict(
+        "content_sync.course_repository_ingest.fetch_course_repository_snapshot reads a "
+        "patched requests response against a monotonic deadline; the registered "
+        "ContentSource rows are written by the management command, which is covered by "
+        "CourseRepositoryRegistrationTests(TestCase).",
+    ),
+    "TransportBudgetParityTests": Verdict(
+        "Both transports are driven straight from a temporary git checkout and compared "
+        "on their refusal vocabulary; neither leg resolves a source row.",
+    ),
     "SimpleTestCaseVerdictTests": Verdict(
         "This file's own classes. They parse the package with ast and compare names; the "
         "runner reports 'Skipping setup of unused database(s)' for the module.",
