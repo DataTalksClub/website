@@ -140,7 +140,7 @@ class StudioDesignFiveAShellTests(TestCase):
             "event identities": reverse("studio:event-identity-list"),
             "event identity detail": reverse(
                 "studio:event-identity-detail",
-                kwargs={"event_id": self.event.id},
+                kwargs={"event_id": self.event.content_id},
             ),
             "historical registration totals": reverse("studio:historical-registration-list"),
         }
