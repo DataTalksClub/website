@@ -7,6 +7,7 @@ again and re-raise on invalid learning links).
 """
 
 from courses.models import Enrollment, User
+from courses.models.learner_profile import LearnerProfile
 from courses.tests.project_submission_view_base import (
     ProjectSubmissionViewTestBase,
 )
@@ -18,8 +19,10 @@ class ProjectSubmissionContainmentTests(ProjectSubmissionViewTestBase):
         self.project.save()
 
     def test_rejected_submission_rolls_back_certificate_and_enrollment(self):
-        self.user.certificate_name = "Name Before"
-        self.user.save(update_fields=["certificate_name"])
+        LearnerProfile.objects.update_or_create(
+            user=self.user,
+            defaults={"certificate_name": "Name Before"},
+        )
         self.enable_time_spent_field()
         enrollments_before = Enrollment.objects.count()
 
@@ -32,7 +35,10 @@ class ProjectSubmissionContainmentTests(ProjectSubmissionViewTestBase):
 
         self.assertEqual(response.status_code, 200)
         self.user = User.objects.get(pk=self.user.pk)
-        self.assertEqual(self.user.certificate_name, "Name Before")
+        self.assertEqual(
+            LearnerProfile.objects.get(user=self.user).certificate_name,
+            "Name Before",
+        )
         self.assertEqual(Enrollment.objects.count(), enrollments_before)
         self.assertEqual(self.project_submission_count(), 0)
 

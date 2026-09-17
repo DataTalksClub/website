@@ -5,7 +5,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from courses.models import Cohort, Enrollment
+from courses.models import Cohort, Enrollment, LearnerProfile
 from scripts.load_project_data import (
     ImportMaps,
     create_enrollments,
@@ -49,8 +49,10 @@ class LoadProjectDataScriptTest(TestCase):
         created = User.objects.get(username="new@example.com")
         self.assertEqual(maps.user_id_map[10], existing.id)
         self.assertEqual(maps.user_id_map[11], created.id)
-        self.assertEqual(created.certificate_name, "New User")
-        self.assertTrue(created.dark_mode)
+        # The course-platform fields land on the learner's profile row (D3.1).
+        profile = LearnerProfile.objects.get(user=created)
+        self.assertEqual(profile.certificate_name, "New User")
+        self.assertTrue(profile.dark_mode)
 
     def create_enrollment_import_course(self):
         return Cohort.objects.create(

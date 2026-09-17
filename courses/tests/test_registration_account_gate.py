@@ -14,6 +14,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from accounts.models import CustomUser
+from courses.models.learner_profile import LearnerProfile
 from courses.models import CourseRegistration
 from courses.tests.registration_campaign_base import RegistrationCampaignBase
 
@@ -133,10 +134,11 @@ class RegistrationFinalStepTests(RegistrationCampaignBase):
         registration = CourseRegistration.objects.get()
         self.assertEqual(registration.user, user)
         user.refresh_from_db()
-        self.assertEqual(user.certificate_name, "Blank Profile")
-        self.assertEqual(user.country, "Germany")
-        self.assertEqual(user.region, "Europe")
-        self.assertEqual(user.registration_role, CourseRegistration.Role.DATA_ENGINEER)
+        profile = LearnerProfile.objects.get(user=user)
+        self.assertEqual(profile.certificate_name, "Blank Profile")
+        self.assertEqual(profile.country, "Germany")
+        self.assertEqual(profile.region, "Europe")
+        self.assertEqual(profile.registration_role, CourseRegistration.Role.DATA_ENGINEER)
 
     def test_registering_hands_the_member_off_to_their_home(self):
         user = self.create_signed_user()

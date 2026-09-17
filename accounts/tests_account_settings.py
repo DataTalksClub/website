@@ -9,6 +9,7 @@ from django.test import SimpleTestCase
 from django.urls import resolve, reverse
 
 from accounts.studio_roles import synchronize_studio_roles
+from courses.models.learner_profile import LearnerProfile
 from accounts.tests_account_settings_base import AccountSettingsViewTestBase
 
 
@@ -240,8 +241,9 @@ class AccountSettingsProfileViewTestCase(AccountSettingsViewTestBase):
         self.assert_profile_update_saved()
 
     def test_account_settings_profile_save_preserves_dark_mode_toggle(self):
-        self.user.dark_mode = True
-        self.user.save(update_fields=["dark_mode"])
+        LearnerProfile.objects.update_or_create(
+            user=self.user, defaults={"dark_mode": True}
+        )
         self.client.force_login(self.user)
         account_settings_url = reverse("account_settings")
         payload = {
@@ -256,7 +258,7 @@ class AccountSettingsProfileViewTestCase(AccountSettingsViewTestBase):
 
         self.assertRedirects(response, account_settings_url)
         self.user.refresh_from_db()
-        self.assertTrue(self.user.dark_mode)
+        self.assertTrue(LearnerProfile.objects.get(user=self.user).dark_mode)
 
 
 class AccountSignInMethodsViewTestCase(AccountSettingsViewTestBase):

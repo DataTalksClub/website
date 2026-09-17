@@ -64,17 +64,28 @@ class EnrollmentDataAPIBase(TestCase):
         self.course.save()
 
     def configure_certificate_user(self):
+        from courses.models.learner_profile import LearnerProfile
+
         self.user.email = "student1@example.com"
-        self.user.certificate_name = "Student One"
         self.user.save()
+        LearnerProfile.objects.update_or_create(
+            user=self.user,
+            defaults={"certificate_name": "Student One"},
+        )
 
     def create_certificate_user(self, username, email, certificate_name):
-        return CustomUser.objects.create(
+        from courses.models.learner_profile import LearnerProfile
+
+        user = CustomUser.objects.create(
             username=username,
             email=email,
             password="pass",
-            certificate_name=certificate_name,
         )
+        LearnerProfile.objects.update_or_create(
+            user=user,
+            defaults={"certificate_name": certificate_name},
+        )
+        return user
 
     def create_enrolled_user(self, username, email, **enrollment_kwargs):
         user = CustomUser.objects.create(

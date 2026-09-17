@@ -2,6 +2,7 @@
 Tests for enrollment-related graduate data API views.
 """
 
+from courses.models.learner_profile import LearnerProfile
 from courses.models import Enrollment
 
 from .enrollment_base import (
@@ -70,5 +71,6 @@ class EnrollmentGraduateDataAPITestCase(EnrollmentDataAPIBase):
         first_graduate = graduates[0]
         self.assertEqual(first_graduate["email"], self.user.email)
         self.assertEqual(
-            first_graduate["name"], self.user.certificate_name
+            first_graduate["name"],
+            LearnerProfile.objects.get(user=self.user).certificate_name,
         )

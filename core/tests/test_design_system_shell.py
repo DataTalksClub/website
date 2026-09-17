@@ -287,7 +287,7 @@ class DesignFiveAShellTests(TestCase):
 
         The pill writes ``localStorage['darkMode']``, which is the only place a
         visitor without an account can keep a theme, so it stays for them.  A
-        signed-in member's theme is ``CustomUser.dark_mode``, rendered into the
+        signed-in member's theme is ``LearnerProfile.dark_mode``, rendered into the
         body server-side and changed in Account settings, so the pill would be a
         second control over the same preference and a second place to store it.
         """

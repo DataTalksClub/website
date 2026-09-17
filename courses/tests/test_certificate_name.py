@@ -1,6 +1,7 @@
 from django.test import TestCase
 
 from accounts.models import CustomUser
+from courses.models.learner_profile import LearnerProfile
 from courses.models import Cohort, Enrollment
 from courses.views.forms import EnrollmentForm
 
@@ -34,7 +35,7 @@ class CertificateNameTests(TestCase):
 
         self.assertIsNone(enrollment1.certificate_name)
         self.assertIsNone(enrollment2.certificate_name)
-        self.assertIsNone(self.user.certificate_name)
+        self.assertIsNone(LearnerProfile.objects.filter(user=self.user).first())
 
         enrollment1.certificate_name = "John Doe"
         enrollment1.save()
@@ -45,11 +46,11 @@ class CertificateNameTests(TestCase):
 
         self.assertEqual(enrollment1.certificate_name, "John Doe")
         self.assertIsNone(enrollment2.certificate_name)
-        self.assertIsNone(self.user.certificate_name)
+        self.assertIsNone(LearnerProfile.objects.filter(user=self.user).first())
 
     def test_new_enrollment_does_not_copy_user_certificate_name(self):
         """Certificate name is read from the user directly when needed."""
-        self.user.certificate_name = "Jane Doe"
+        LearnerProfile.objects.update_or_create(user=self.user, defaults={'certificate_name': "Jane Doe"})
         self.user.save()
 
         enrollment = Enrollment.objects.create(
@@ -71,7 +72,7 @@ class CertificateNameTests(TestCase):
         )
 
         # Set different certificate name on user
-        self.user.certificate_name = "Different Name"
+        LearnerProfile.objects.update_or_create(user=self.user, defaults={'certificate_name': "Different Name"})
         self.user.save()
 
         # Refresh enrollment from database
@@ -102,5 +103,5 @@ class CertificateNameTests(TestCase):
 
         self.user.refresh_from_db()
         enrollment.refresh_from_db()
-        self.assertEqual(self.user.certificate_name, "Certificate Name")
+        self.assertEqual(LearnerProfile.objects.get(user=self.user).certificate_name, "Certificate Name")
         self.assertIsNone(enrollment.certificate_name)
