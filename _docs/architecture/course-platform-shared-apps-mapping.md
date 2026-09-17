@@ -277,6 +277,13 @@ vetoed before the D5.2 freeze weekend without rework beyond the named scope.
     the default is: the site fields' accessors are prefixed `site_…`
     (state-only `AlterField` migrations; no data moves), and the package
     accessors become the canonical ones the D5.2 flip will use.
+17. **Module and lesson summary text (found while writing the import, new).**
+    The package `Module` carries `overview`/`overview_html` only and the
+    package `Unit` has no summary column at all, so the shared rows'
+    `summary` values have no home. Default: they stay site-side, are skipped
+    and counted by the P6 import (`module_lesson_summaries` in the gap
+    ledger), and their display remains the site renderer's job until D5.2
+    decides their fate.
 
 ## Verification hooks (steps 2–4, executed after the #412 merge)
 
