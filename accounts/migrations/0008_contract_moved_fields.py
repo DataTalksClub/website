@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ("accounts", "0007_move_identity_models_state"),
         ("accounts_ext", "0001_initial"),
-        ("courses", "0012_learnerprofile_data"),
+        ("courses", "0017_learnerprofile_data"),
     ]
 
     operations = [
