@@ -22,13 +22,13 @@ from django.utils import timezone
 from accounts.auth import token_required
 from accounts.identity_resolution import resolve_durable_user
 from accounts.models import CustomUser, Token
-from accounts_ext.models import AccountIdentityAlias
 from accounts.studio_authorization import (
     StudioAuthorizationDenied,
     authorize_studio_request,
 )
 from accounts.studio_sessions import create_staff_session
 from accounts.studio_test_support import make_studio_user
+from accounts_ext.models import AccountIdentityAlias
 from management_api.authentication import authenticate as authenticate_api
 from management_api.errors import APIError
 from management_auth.models import APICredential, APIPrincipal

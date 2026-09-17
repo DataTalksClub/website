@@ -15,7 +15,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("courses", "0010_restore_ai_dev_tools_zoomcamp_family_slug"),
+        ("courses", "0015_alter_courseregistration_user_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

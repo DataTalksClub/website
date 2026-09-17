@@ -77,7 +77,7 @@ def restore_user_profile_columns(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("courses", "0011_learnerprofile"),
+        ("courses", "0016_learnerprofile"),
     ]
 
     operations = [
