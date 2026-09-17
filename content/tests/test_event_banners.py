@@ -48,7 +48,7 @@ class EventBannerPageTests(TestCase):
 
         for identity_id, filename in EVENT_BANNER_FILENAMES.items():
             with self.subTest(identity_id=identity_id):
-                event = Event.objects.get(pk=identity_id)
+                event = Event.objects.get(content_id=identity_id)
                 response = self.client.get(canonical_detail_path(event.content_id))
                 body = response.content.decode()
                 image_path = f"/static/core/event-banners/{filename}"
@@ -70,7 +70,7 @@ class EventBannerPageTests(TestCase):
                 self.assertEqual(event.slug, projected_event["slug"])
 
     def test_unmapped_event_pages_keep_the_existing_no_image_fallback(self) -> None:
-        event = Event.objects.exclude(pk__in=EVENT_BANNER_FILENAMES).first()
+        event = Event.objects.exclude(content_id__in=EVENT_BANNER_FILENAMES).first()
         self.assertIsNotNone(event)
         assert event is not None
 

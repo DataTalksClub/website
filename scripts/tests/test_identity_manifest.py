@@ -11,10 +11,10 @@ from __future__ import annotations
 import json
 from copy import deepcopy
 
+from community_base.events.models import Event, EventPublicIdSequence
 from django.test import TestCase
 
 from event_qna.models import EventQnaSession
-from community_base.events.models import Event, EventPublicIdSequence
 from events.identity import create_event_identity
 from scripts.prod.identity_manifest import (
     EventIdentityError,

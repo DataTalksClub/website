@@ -98,9 +98,7 @@ class EventIdentityTests(TestCase):
         self.assertEqual(current_slug(event.content_id), "identity-fixture-renamed")
 
     def test_exact_source_identity_resolution_never_guesses(self) -> None:
-        event = (
-            Event.objects.order_by("source_identity__source_key").first()
-        )
+        event = Event.objects.order_by("source_identity__source_key").first()
         assert event is not None
         source = event.source_identity
         self.assertEqual(
@@ -142,7 +140,8 @@ class EventIdentityTests(TestCase):
         self.assertEqual(serialized["public_id"], event.public_id)
         self.assertEqual(serialized["canonical_path"], canonical_detail_path(event.content_id))
         self.assertEqual(
-            serialized["public_url"], f"https://datatalks.club{canonical_detail_path(event.content_id)}"
+            serialized["public_url"],
+            f"https://datatalks.club{canonical_detail_path(event.content_id)}",
         )
         self.assertNotIn(str(event.content_id), serialized["canonical_path"])
         with self.assertRaises(Resolver404):

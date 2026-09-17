@@ -8,6 +8,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 
 import pytest
+from community_base.events.models import Event
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
@@ -31,7 +32,6 @@ from course_management.datamailer_templates.accessibility import (
     render_current_transactional_email,
 )
 from courses.models import Cohort, HomeworkState, ProjectState, RegistrationCampaign
-from community_base.events.models import Event
 from events.identity import canonical_detail_path
 from events.queries import published_event_records
 from historical_registrations.models import (

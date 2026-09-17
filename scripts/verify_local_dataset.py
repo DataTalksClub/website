@@ -304,9 +304,9 @@ def _editorial_content_report() -> dict[str, Any]:
 
 
 def _event_report(as_of: date) -> dict[str, Any]:
+    from community_base.events.models import Event
     from django.utils import timezone
 
-    from community_base.events.models import Event
     from content.event_content import event_groups
 
     groups = event_groups()

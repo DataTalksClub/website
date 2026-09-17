@@ -64,9 +64,7 @@ def _view_context(
 ) -> dict[str, object]:
     qna = admin_event_qna(event_id)
     event = (
-        EventQnaSession.objects.select_related("event")
-        .get(event_id=_event_row(event_id).pk)
-        .event
+        EventQnaSession.objects.select_related("event").get(event_id=_event_row(event_id).pk).event
     )
     return {
         "event": event,

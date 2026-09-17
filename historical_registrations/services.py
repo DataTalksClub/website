@@ -611,9 +611,7 @@ def resolve_unmatched_aggregates(
             target_label="historical-registration-aggregate",
             outcome=AuditEvent.Outcome.SUCCEEDED,
             context=_audit_context(context, actor=actor),
-            changes={
-                "event_id": {"before": None, "after": str(canonical_event.content_id)}
-            },
+            changes={"event_id": {"before": None, "after": str(canonical_event.content_id)}},
             metadata={
                 "provider": provider,
                 "reason_code": "auto_matched_exact_title_date",

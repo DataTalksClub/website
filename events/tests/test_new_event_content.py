@@ -121,9 +121,7 @@ class NewEventContentImportTests(TestCase):
         self.assertFalse(report.replayed)
         self.event.refresh_from_db()
         self.assertEqual(self.event.kind, "workshop")
-        self.assertEqual(
-            self.event.tags, ["dtc-type:workshop"]
-        )
+        self.assertEqual(self.event.tags, ["dtc-type:workshop"])
         self.assertEqual(self.event.start_datetime.isoformat(), STARTS_AT)
         # Luma states no end anybody reviewed, so the row states none either.
         self.assertIsNone(self.event.end_datetime)

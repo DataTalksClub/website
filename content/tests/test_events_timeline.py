@@ -6,6 +6,7 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from community_base.events.models import Event
+from django.db.models import Max
 from django.test import TestCase
 from django.utils.html import escape
 
@@ -68,21 +69,30 @@ class EventTimelineDataTests(StableEventClockTestCase):
 
 class EventTimelineRouteTests(StableEventClockTestCase):
     def test_retired_legacy_event_paths_are_plain_404s(self) -> None:
-        """Events are addressed only by id: no legacy date/title or UUID path resolves.
+        """Events are addressed only by public id: no retired spelling resolves.
 
         A manifest-sourced event's ``source_key`` still carries the retired
         date-prefixed spelling verbatim, so it stands in for the removed
         ``legacy_date_path`` alias rows without depending on data that no longer
-        exists.
+        exists.  UUID spellings and out-of-range numeric ids resolve to nothing
+        as well; a numeric spelling is a public id and selects the event by
+        itself, so the storage pk is deliberately not exercised here — in the
+        shared-app world the two are indistinguishable at the URL level.
         """
 
         events = Event.objects.order_by("source_identity__source_key")
+        assigned_public_id_max = Event.objects.aggregate(max_public_id=Max("public_id"))[
+            "max_public_id"
+        ]
+        unassigned_public_id = assigned_public_id_max + 1_000_000
         for event in events:
             for path in (
                 f"/events/{event.source_identity.source_key}",
                 f"/events/{event.source_identity.source_key}/",
-                f"/events/{event.id}",
-                f"/events/{event.id}/{event.slug}",
+                f"/events/{event.content_id}",
+                f"/events/{event.content_id}/{event.slug}",
+                f"/events/{unassigned_public_id}",
+                f"/events/{unassigned_public_id}/{event.slug}",
             ):
                 with self.subTest(path=path):
                     response = self.client.get(path, follow=False)
