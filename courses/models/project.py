@@ -154,7 +154,10 @@ class ProjectVote(models.Model):
     voter = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="project_votes",
+        # D5.1: cb_coursework.ProjectVote claims the bare "project_votes"
+        # accessor; nothing site-side reads the reverse relation, so the
+        # site table's accessor is prefixed.
+        related_name="site_project_votes",
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

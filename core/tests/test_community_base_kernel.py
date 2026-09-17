@@ -2,7 +2,9 @@
 
 The released kernel, jobs app and mail app are installed. D1.1 moved durable
 intents onto the package jobs app; D1.2a installs the mail app without
-switching any send path yet. The site user model stays
+switching any send path yet. D5.1 installs the shared curriculum and
+coursework apps beside the shared events app, before anything serves from
+them (#415 flips the routes). The site user model stays
 ``accounts.CustomUser``. The configured RegisteredOnlyPolicy must gate levels
 exactly as the site's tier model does today.
 """
@@ -26,6 +28,8 @@ class KernelInstallationTests(SimpleTestCase):
             installed,
             [
                 "community_base.events",
+                "community_base.curriculum",
+                "community_base.coursework",
                 "community_base.jobs",
                 "community_base.mail",
                 "community_base.kernel.apps.KernelConfig",

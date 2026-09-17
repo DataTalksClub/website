@@ -132,6 +132,14 @@ INSTALLED_APPS = [
     # former events app is gone; its identity policy and public-record
     # readers live on as the site adapter in the events/ package.
     "community_base.events",
+    # D5.1: the shared course platform apps. Nothing serves from these
+    # tables until the D5.2 route flip (#415); until then the P6 import
+    # (scripts/prod/import_shared_course_platform.py) is their only
+    # writer. curriculum must follow the events app: its initial migration
+    # depends on the package events chain and Course.instructors targets
+    # events.Host.
+    "community_base.curriculum",
+    "community_base.coursework",
     "event_qna",
     "historical_registrations",
     "event_registrants",

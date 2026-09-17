@@ -130,6 +130,11 @@ PRODUCTION_IMPORT_PYTHON: Final = (
     "courses/services/cmp_learner_history_import.py",
     "courses/services/cmp_certificate_reconciliation.py",
     "scripts/prod/reconcile_cmp_enrollment_certificates.py",
+    # Listed after the directory so _dedupe_typecheck_paths drops the file
+    # for mypy (the directory walk already covers it) while the adoption-gate
+    # coverage test still sees the opt-in by path.
+    "scripts/prod/import_shared_course_platform.py",
+    "scripts/tests/test_import_shared_course_platform.py",
 )
 TYPECHECK_PATHS: Final = (
     "manage.py",
