@@ -31,6 +31,7 @@ EXPECTED_KEYS = frozenset(
         "homework-submission-confirmation",
         "peer-review-assignment",
         "project-score-notification",
+        "project-submission-confirmation",
         "slack-access",
     }
 )
