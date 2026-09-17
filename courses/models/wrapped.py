@@ -62,7 +62,10 @@ class UserWrappedStatistics(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='wrapped_statistics'
+        # D5.1: cb_coursework.UserWrappedStatistics claims the bare
+        # "wrapped_statistics" accessor; nothing site-side reads the
+        # reverse relation, so the site table's accessor is prefixed.
+        related_name='site_wrapped_statistics'
     )
     
     # User statistics

@@ -267,6 +267,16 @@ vetoed before the D5.2 freeze weekend without rework beyond the named scope.
     models serve until the D5.2 cutover, and `course_management` middleware
     and the `cadmin` redirect shim stay mounted. Deletion is a D5.2 follow-up
     list, one app per commit.
+16. **Reverse-accessor overlap (found at install, new).** Installing
+    `cb_coursework` beside the still-serving site tables collides on five
+    `CustomUser` reverse accessors: `course_registrations`,
+    `leaderboard_complaints`, `resolved_leaderboard_complaints`,
+    `project_votes`, `wrapped_statistics` — identical `related_name` strings
+    on both sides. The package is pinned and immutable, and a repository-wide
+    search finds no site code reading any of the five reverse relations, so
+    the default is: the site fields' accessors are prefixed `site_…`
+    (state-only `AlterField` migrations; no data moves), and the package
+    accessors become the canonical ones the D5.2 flip will use.
 
 ## Verification hooks (steps 2–4, executed after the #412 merge)
 

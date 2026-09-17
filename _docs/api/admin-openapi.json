@@ -3217,7 +3217,7 @@
         "x-audit-action": "events.identity.viewed",
         "x-capability-key": "events.identity.read",
         "x-concurrency": "none",
-        "x-django-permission": "events.historical_registration_mapping_manage",
+        "x-django-permission": "historical_registrations.historical_registration_mapping_manage",
         "x-idempotency": "none",
         "x-rate-class": "read",
         "x-rate-cost": 1
@@ -3359,7 +3359,7 @@
         "x-audit-action": "events.identity.viewed",
         "x-capability-key": "events.identity.detail",
         "x-concurrency": "none",
-        "x-django-permission": "events.historical_registration_mapping_manage",
+        "x-django-permission": "historical_registrations.historical_registration_mapping_manage",
         "x-idempotency": "none",
         "x-rate-class": "read",
         "x-rate-cost": 1
@@ -3501,7 +3501,7 @@
         "x-audit-action": "events_qna_read.audit",
         "x-capability-key": "events.qna.read",
         "x-concurrency": "none",
-        "x-django-permission": "events.manage_event_qna",
+        "x-django-permission": "event_qna.manage_event_qna",
         "x-idempotency": "none",
         "x-rate-class": "read",
         "x-rate-cost": 1
@@ -3672,7 +3672,7 @@
         "x-audit-action": "events_qna_manage.audit",
         "x-capability-key": "events.qna.manage",
         "x-concurrency": "if_match",
-        "x-django-permission": "events.manage_event_qna",
+        "x-django-permission": "event_qna.manage_event_qna",
         "x-idempotency": "required",
         "x-rate-class": "write",
         "x-rate-cost": 5
@@ -3836,7 +3836,7 @@
         "x-audit-action": "events_qna_cohost_create.audit",
         "x-capability-key": "events.qna.cohost.create",
         "x-concurrency": "none",
-        "x-django-permission": "events.manage_event_qna",
+        "x-django-permission": "event_qna.manage_event_qna",
         "x-idempotency": "required",
         "x-rate-class": "write",
         "x-rate-cost": 5
@@ -4000,7 +4000,7 @@
         "x-audit-action": "events_qna_cohost_revoke.audit",
         "x-capability-key": "events.qna.cohost.revoke",
         "x-concurrency": "none",
-        "x-django-permission": "events.manage_event_qna",
+        "x-django-permission": "event_qna.manage_event_qna",
         "x-idempotency": "required",
         "x-rate-class": "write",
         "x-rate-cost": 5
@@ -4173,7 +4173,7 @@
         "x-audit-action": "events_qna_moderate.audit",
         "x-capability-key": "events.qna.moderate",
         "x-concurrency": "if_match",
-        "x-django-permission": "events.manage_event_qna",
+        "x-django-permission": "event_qna.manage_event_qna",
         "x-idempotency": "required",
         "x-rate-class": "write",
         "x-rate-cost": 5
@@ -4337,7 +4337,7 @@
         "x-audit-action": "events_qna_provision_retry.audit",
         "x-capability-key": "events.qna.provision.retry",
         "x-concurrency": "none",
-        "x-django-permission": "events.manage_event_qna",
+        "x-django-permission": "event_qna.manage_event_qna",
         "x-idempotency": "required",
         "x-rate-class": "write",
         "x-rate-cost": 5
@@ -4479,7 +4479,7 @@
         "x-audit-action": "events.historical_registration_total.viewed",
         "x-capability-key": "events.historical_registration_total.read",
         "x-concurrency": "none",
-        "x-django-permission": "events.historical_registration_import_manage",
+        "x-django-permission": "historical_registrations.historical_registration_import_manage",
         "x-idempotency": "none",
         "x-rate-class": "read",
         "x-rate-cost": 1
@@ -4763,7 +4763,7 @@
         "x-audit-action": "events.historical_registration_import.listed",
         "x-capability-key": "events.historical_registration_import.manage",
         "x-concurrency": "none",
-        "x-django-permission": "events.historical_registration_import_manage",
+        "x-django-permission": "historical_registrations.historical_registration_import_manage",
         "x-idempotency": "none",
         "x-rate-class": "read",
         "x-rate-cost": 1
@@ -4925,7 +4925,7 @@
         "x-audit-action": "events.historical_registration_import.staged",
         "x-capability-key": "events.historical_registration_import.create",
         "x-concurrency": "none",
-        "x-django-permission": "events.historical_registration_import_manage",
+        "x-django-permission": "historical_registrations.historical_registration_import_manage",
         "x-idempotency": "required",
         "x-rate-class": "write",
         "x-rate-cost": 5
@@ -5067,7 +5067,7 @@
         "x-audit-action": "events.historical_registration_import.viewed",
         "x-capability-key": "events.historical_registration_import.detail",
         "x-concurrency": "none",
-        "x-django-permission": "events.historical_registration_import_manage",
+        "x-django-permission": "historical_registrations.historical_registration_import_manage",
         "x-idempotency": "none",
         "x-rate-class": "read",
         "x-rate-cost": 1
@@ -5231,7 +5231,7 @@
         "x-audit-action": "events.historical_registration_import.activate",
         "x-capability-key": "events.historical_registration_import.activate",
         "x-concurrency": "none",
-        "x-django-permission": "events.historical_registration_import_manage",
+        "x-django-permission": "historical_registrations.historical_registration_import_manage",
         "x-idempotency": "required",
         "x-rate-class": "write",
         "x-rate-cost": 5
@@ -5395,7 +5395,7 @@
         "x-audit-action": "events.historical_registration_import.cancel",
         "x-capability-key": "events.historical_registration_import.cancel",
         "x-concurrency": "none",
-        "x-django-permission": "events.historical_registration_import_manage",
+        "x-django-permission": "historical_registrations.historical_registration_import_manage",
         "x-idempotency": "required",
         "x-rate-class": "write",
         "x-rate-cost": 5
@@ -5559,7 +5559,7 @@
         "x-audit-action": "events.historical_registration_import.dry-run",
         "x-capability-key": "events.historical_registration_import.dry-run",
         "x-concurrency": "none",
-        "x-django-permission": "events.historical_registration_import_manage",
+        "x-django-permission": "historical_registrations.historical_registration_import_manage",
         "x-idempotency": "required",
         "x-rate-class": "write",
         "x-rate-cost": 5
@@ -5723,7 +5723,7 @@
         "x-audit-action": "events.historical_registration_import.rollback",
         "x-capability-key": "events.historical_registration_import.rollback",
         "x-concurrency": "none",
-        "x-django-permission": "events.historical_registration_import_manage",
+        "x-django-permission": "historical_registrations.historical_registration_import_manage",
         "x-idempotency": "required",
         "x-rate-class": "write",
         "x-rate-cost": 5
@@ -5887,7 +5887,7 @@
         "x-audit-action": "events.historical_registration_import.validate",
         "x-capability-key": "events.historical_registration_import.validate",
         "x-concurrency": "none",
-        "x-django-permission": "events.historical_registration_import_manage",
+        "x-django-permission": "historical_registrations.historical_registration_import_manage",
         "x-idempotency": "required",
         "x-rate-class": "write",
         "x-rate-cost": 5

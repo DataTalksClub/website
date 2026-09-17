@@ -625,7 +625,10 @@ class CourseRegistration(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="course_registrations",
+        # D5.1: the shared cb_coursework.CourseRegistration claims the bare
+        # "course_registrations" accessor; nothing site-side reads the
+        # reverse relation, so the site table's accessor is prefixed.
+        related_name="site_course_registrations",
     )
 
     email = models.EmailField()
@@ -726,7 +729,10 @@ class LeaderboardComplaint(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="leaderboard_complaints",
+        # D5.1: cb_coursework.LeaderboardComplaint claims the bare accessors;
+        # nothing site-side reads either reverse relation, so the site
+        # table's accessors are prefixed.
+        related_name="site_leaderboard_complaints",
     )
     issue_type = models.CharField(
         max_length=32,
@@ -740,7 +746,7 @@ class LeaderboardComplaint(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="resolved_leaderboard_complaints",
+        related_name="site_resolved_leaderboard_complaints",
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
