@@ -41,7 +41,7 @@ import re
 from django.db import migrations
 
 from core.redaction import is_sensitive_text
-from course_management.datamailer.sync.audit_redaction import (
+from course_management.audit_redaction import (
     EMAIL_FINGERPRINT_KEY,
     FINGERPRINT_LENGTH,
     MESSAGE_KEY,
