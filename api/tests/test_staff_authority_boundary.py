@@ -12,7 +12,7 @@ from django.contrib.auth.models import Permission
 from django.test import Client, TestCase
 from django.utils import timezone
 
-from accounts.models import User, Token
+from accounts.models import Token, User
 from accounts.studio_roles import set_single_studio_role
 from api.tests.staff_credentials import issue_staff_bearer
 from courses.models import Cohort

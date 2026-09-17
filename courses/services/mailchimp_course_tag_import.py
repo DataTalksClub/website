@@ -305,9 +305,7 @@ def import_mailchimp_course_tags(
             continue
 
         account = (
-            User.objects.filter(identity__normalized_email=normalized_email)
-            .order_by("pk")
-            .first()
+            User.objects.filter(identity__normalized_email=normalized_email).order_by("pk").first()
         )
         if account is None:
             no_account_match += 1

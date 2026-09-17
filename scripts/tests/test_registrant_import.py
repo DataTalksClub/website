@@ -111,9 +111,7 @@ class ConsolidationTests(RegistrantImportTestCase):
     def test_registrant_matching_an_existing_account_attaches_to_it_not_a_new_identity(
         self,
     ) -> None:
-        account = User.objects.create(
-            username="existing-learner", email="learner@example.invalid"
-        )
+        account = User.objects.create(username="existing-learner", email="learner@example.invalid")
         self._mint_event(event_id="evt-1", title="Event One")
         self._add_event(
             event_id="evt-1",
