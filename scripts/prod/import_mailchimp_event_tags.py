@@ -13,7 +13,7 @@ by ``normalized_email`` against accounts and prior registrant identities
 other importers already created; a row matching neither creates a new,
 login-incapable registrant-only identity, exactly like
 ``scripts/prod/import_event_registrants.py`` does for a real Luma/Eventbrite
-row. Never creates a ``CustomUser`` account.
+row. Never creates a ``User`` account.
 
 Only 8 of the export's 32 distinct ``TAGS`` values are read for anything --
 the reviewed, hardcoded mapping in ``events.mailchimp_event_tag_categories``.
@@ -53,7 +53,7 @@ from scripts.prod.target import add_target_arguments, configure_target  # noqa: 
 
 SYNC_MODEL = "one-time"
 # Reconciles against accounts and registrant identities other importers
-# already created; never creates a CustomUser, and only ever creates a
+# already created; never creates a User, and only ever creates a
 # registrant-only EventRegistrantIdentity the same way
 # import_event_registrants.py does. Never bootstraps an empty database.
 BOOTSTRAPS_EMPTY_DATABASE = False

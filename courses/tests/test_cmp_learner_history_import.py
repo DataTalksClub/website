@@ -17,7 +17,7 @@ from typing import Any
 
 from django.test import TestCase
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models import (
     Answer,
     CmpHistoryClaim,
@@ -327,7 +327,7 @@ class HistoryImportFixture(TestCase):
                 {"criteria": "Yes", "score": 2},
             ],
         )
-        self.learner = CustomUser.objects.create_user(
+        self.learner = User.objects.create_user(
             username="learner-one", email="one@example.invalid"
         )
         # The account claims import_cmp_learners.py leaves behind: CMP id -> pk.
@@ -456,7 +456,7 @@ class CourseRegistrationImportTests(HistoryImportFixture):
         # Nothing was invented to hang the skipped rows off.
         self.assertEqual(Cohort.objects.count(), 1)
         self.assertEqual(RegistrationCampaign.objects.count(), 1)
-        self.assertEqual(CustomUser.objects.count(), 1)
+        self.assertEqual(User.objects.count(), 1)
 
 
 class EnrollmentImportTests(HistoryImportFixture):
@@ -624,7 +624,7 @@ class NaturalKeyCollapseTests(HistoryImportFixture):
 class ReplayAndResumeTests(HistoryImportFixture):
     def _source(self, rows: int) -> Path:
         learners = {
-            index: CustomUser.objects.create_user(
+            index: User.objects.create_user(
                 username=f"learner-{index}", email=f"learner{index}@example.invalid"
             ).pk
             for index in range(1, rows + 1)
@@ -897,7 +897,7 @@ class ProjectSubmissionImportTests(HistoryImportFixture):
 
 class PeerReviewImportTests(HistoryImportFixture):
     def _two_project_submissions(self, **overrides) -> Path:
-        other = CustomUser.objects.create_user(username="learner-two", email="two@example.invalid")
+        other = User.objects.create_user(username="learner-two", email="two@example.invalid")
         self.user_claims = {1: self.learner.pk, 2: other.pk}
         tables = {
             "courses_enrollment": [enrollment_row(1), enrollment_row(2, student_id=2)],
@@ -934,7 +934,7 @@ class PeerReviewImportTests(HistoryImportFixture):
 
 class RubricImportTests(HistoryImportFixture):
     def _reviewed_project(self, **overrides) -> Path:
-        other = CustomUser.objects.create_user(username="learner-two", email="two@example.invalid")
+        other = User.objects.create_user(username="learner-two", email="two@example.invalid")
         self.user_claims = {1: self.learner.pk, 2: other.pk}
         tables = {
             "courses_enrollment": [enrollment_row(1), enrollment_row(2, student_id=2)],

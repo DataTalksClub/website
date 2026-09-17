@@ -2,14 +2,14 @@ import json
 
 from django.test import Client, TestCase
 
-from accounts.models import CustomUser
+from accounts.models import User
 from api.tests.staff_credentials import issue_staff_bearer
 from courses.models import Cohort, Enrollment
 
 
 class EnrollmentExportsAPITestBase(TestCase):
     def setUp(self):
-        self.staff = CustomUser.objects.create(
+        self.staff = User.objects.create(
             username="staff",
             email="staff@example.com",
             is_staff=True,
@@ -35,7 +35,7 @@ class EnrollmentExportsAPITestBase(TestCase):
         )
 
     def create_student(self, email):
-        return CustomUser.objects.create(username=email, email=email)
+        return User.objects.create(username=email, email=email)
 
     def create_enrollment(self, email, certificate_url=""):
         student = self.create_student(email)

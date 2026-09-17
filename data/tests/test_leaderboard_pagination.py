@@ -1,6 +1,6 @@
 """Pagination tests for the public leaderboard data endpoint."""
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models import Enrollment
 
 from .leaderboard_base import LeaderboardDataViewBase
@@ -9,7 +9,7 @@ from .leaderboard_base import LeaderboardDataViewBase
 class LeaderboardPaginationViewTestCase(LeaderboardDataViewBase):
     def create_paginated_leaderboard_entries(self):
         for i in range(3, 106):
-            user = CustomUser.objects.create(
+            user = User.objects.create(
                 username=f"user{i}",
                 email=f"user{i}@example.com",
             )

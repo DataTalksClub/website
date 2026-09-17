@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models import Enrollment
 from courses.tests.registration_campaign_base import RegistrationCampaignBase
 
@@ -57,7 +57,7 @@ class RegistrationCampaignCoursePageTests(RegistrationCampaignBase):
         self.assert_no_registration_action(response)
 
     def test_course_page_hides_registration_button_when_enrolled(self):
-        user = CustomUser.objects.create_user(
+        user = User.objects.create_user(
             username="enrolled",
             email="enrolled@example.com",
             password="test",

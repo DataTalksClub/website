@@ -3,7 +3,7 @@
 
 One-time import (safe to replay -- see below). Reads a Mailchimp audience
 export's **subscribed** CSV only, read in place -- and writes one fact onto
-each matching account: ``CustomUser.newsletter_subscribed``. Matched by
+each matching account: ``User.newsletter_subscribed``. Matched by
 ``normalized_email`` against accounts other importers already created; never
 creates an account of its own. The export's separate unsubscribed/cleaned
 files are never opened by this script -- scope was deliberately narrowed to

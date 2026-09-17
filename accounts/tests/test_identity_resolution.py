@@ -9,14 +9,14 @@ from accounts_ext.models import (
     IdentityState,
     normalized_email_of,
 )
-from accounts.models import CustomUser
+from accounts.models import User
 
 
 class AccountEmailResolutionTestCase(TestCase):
     def create_user(self, username, email, **kwargs):
         identity_state = kwargs.pop("identity_state", None)
         normalized_email = kwargs.pop("normalized_email", None)
-        user = CustomUser.objects.create(
+        user = User.objects.create(
             username=username,
             email=email,
             password="password",

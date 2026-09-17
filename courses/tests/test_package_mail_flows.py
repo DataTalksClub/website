@@ -5,7 +5,7 @@ from community_base.mail.service import MailConflict, MailError
 from django.test import TestCase, override_settings
 from django.utils.dateparse import parse_date
 
-from accounts.models import CustomUser
+from accounts.models import User
 from course_management.package_mail import (
     mail_idempotency_key,
     send_certificate_ready_mail,
@@ -60,7 +60,7 @@ def create_registration(cohort, **overrides):
 
 
 def create_user(email):
-    return CustomUser.objects.create_user(
+    return User.objects.create_user(
         username=email.split("@")[0],
         email=email,
         password="password",

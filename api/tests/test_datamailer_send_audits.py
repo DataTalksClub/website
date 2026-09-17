@@ -1,6 +1,6 @@
 from django.test import Client, TestCase
 
-from accounts.models import CustomUser
+from accounts.models import User
 from api.tests.staff_credentials import issue_staff_bearer
 from core.redaction import REDACTED
 from course_management.datamailer.sync.audit_redaction import (
@@ -18,7 +18,7 @@ SEND_AUDITS_URL = "/api/datamailer/send-audits"
 
 class DatamailerSendAuditsAPITestCase(TestCase):
     def setUp(self):
-        self.staff = CustomUser.objects.create(
+        self.staff = User.objects.create(
             username="staff",
             email="staff@example.com",
             is_staff=True,

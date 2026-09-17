@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.test import Client, TestCase
 from django.utils import timezone
 
-from accounts.models import CustomUser, Token
+from accounts.models import User, Token
 from api.tests.staff_credentials import issue_staff_bearer
 from courses.models import (
     Answer,
@@ -24,7 +24,7 @@ HOMEWORK_INSTRUCTIONS_URL = (
 
 class HomeworkAPITestBase(TestCase):
     def setUp(self):
-        self.user = CustomUser.objects.create(
+        self.user = User.objects.create(
             username="testuser",
             email="test@example.com",
             password="password",
@@ -54,7 +54,7 @@ class HomeworkAPITestBase(TestCase):
         )
 
     def _non_staff_client(self, username):
-        non_staff = CustomUser.objects.create(
+        non_staff = User.objects.create(
             username=username,
             email=f"{username}@example.com",
             password="password",

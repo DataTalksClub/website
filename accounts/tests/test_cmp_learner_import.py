@@ -17,7 +17,7 @@ from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount
 from django.test import TestCase
 
-from accounts.models import CmpLearnerClaim, CustomUser
+from accounts.models import CmpLearnerClaim, User
 from accounts_ext.models import CmpLearnerImportProgress
 from courses.models.learner_profile import LearnerProfile
 from accounts_ext.models import IdentityState
@@ -103,11 +103,11 @@ class _ClaimsFixtureMixin:
     boundary, so no file fixture is needed.
     """
 
-    def _user_for_source(self, source_id: int) -> CustomUser:
+    def _user_for_source(self, source_id: int) -> User:
         store = CmpClaimsStore.load()
         user_id = store.user_id_for_source(source_id)
         self.assertIsNotNone(user_id, f"source id {source_id} was never claimed")
-        return CustomUser.objects.get(pk=user_id)
+        return User.objects.get(pk=user_id)
 
     def _import(self, source: Path, *, batch_size: int = 10):
         return import_cmp_learners(source, batch_size=batch_size)
@@ -224,7 +224,7 @@ class CmpLearnerImportBasicsTests(_ClaimsFixtureMixin, TestCase):
         )
         result = self._import(source)
 
-        self.assertEqual(CustomUser.objects.count(), 2)
+        self.assertEqual(User.objects.count(), 2)
         u2 = self._user_for_source(2)
         u15515 = self._user_for_source(15515)
         self.assertFalse(EmailAddress.objects.filter(user=u2).exists())
@@ -250,7 +250,7 @@ class CmpLearnerImportBasicsTests(_ClaimsFixtureMixin, TestCase):
         members ``verified_owner_ambiguous`` and locked out.
         """
 
-        legacy_user = CustomUser(username="zc-hist-deadbeef", email="shared-learner@example.invalid")
+        legacy_user = User(username="zc-hist-deadbeef", email="shared-learner@example.invalid")
         legacy_user.set_unusable_password()
         legacy_user.save()
         legacy_pk = legacy_user.pk
@@ -271,9 +271,9 @@ class CmpLearnerImportBasicsTests(_ClaimsFixtureMixin, TestCase):
         # reference to it (enrollments, submissions, certificates) is
         # untouched.
         self.assertEqual(
-            CustomUser.objects.filter(email="shared-learner@example.invalid").count(), 1
+            User.objects.filter(email="shared-learner@example.invalid").count(), 1
         )
-        merged = CustomUser.objects.get(email="shared-learner@example.invalid")
+        merged = User.objects.get(email="shared-learner@example.invalid")
         self.assertEqual(merged.pk, legacy_pk)
         # The importer's own username choice never overwrites the identity
         # the first importer already established.
@@ -306,12 +306,12 @@ class CmpLearnerImportBasicsTests(_ClaimsFixtureMixin, TestCase):
         )
         result = self._import(source)
 
-        self.assertEqual(CustomUser.objects.count(), 2)
+        self.assertEqual(User.objects.count(), 2)
         self.assertEqual(result.cross_source_matches, ())
         self.assertEqual(result.synthesis_skipped_collisions, (2,))
 
     def test_a_taken_username_is_suffixed_not_collided(self):
-        CustomUser.objects.create_user(username="popular", email="existing@example.com")
+        User.objects.create_user(username="popular", email="existing@example.com")
         source = self._source(
             [_account_row(1, username="popular", email="one@example.com")],
             [],
@@ -343,7 +343,7 @@ class CmpLearnerImportBasicsTests(_ClaimsFixtureMixin, TestCase):
         self.assertEqual(report["account_emailaddress_in_source"], 1)
         self.assertEqual(report["accounts_already_imported"], 0)
         self.assertFalse(report["applied"])
-        self.assertEqual(CustomUser.objects.count(), 0)
+        self.assertEqual(User.objects.count(), 0)
 
     def test_status_reports_progress_without_a_source(self):
         source = self._source([_account_row(1, email="one@example.com")], [])
@@ -412,13 +412,13 @@ class CmpLearnerImportResumabilityTests(_ClaimsFixtureMixin, TestCase):
         self.assertEqual(progress.last_source_id, 10)
         self.assertEqual(progress.rows_written, 10)
         self.assertFalse(progress.completed)
-        self.assertEqual(CustomUser.objects.count(), 10)
+        self.assertEqual(User.objects.count(), 10)
         self.assertEqual(len(CmpClaimsStore.load()), 10)
 
         # A normal resume: no --edition-style flag, just run it again.
         result = self._import(source, batch_size=5)
 
-        self.assertEqual(CustomUser.objects.count(), 25)
+        self.assertEqual(User.objects.count(), 25)
         claims = CmpClaimsStore.load()
         self.assertEqual(len(claims), 25)
         self.assertEqual(
@@ -436,7 +436,7 @@ class CmpLearnerImportResumabilityTests(_ClaimsFixtureMixin, TestCase):
 
         self.assertEqual(first.accounts.written, 12)
         self.assertEqual(second.accounts.written, 12)  # cumulative, not "12 more"
-        self.assertEqual(CustomUser.objects.count(), 12)
+        self.assertEqual(User.objects.count(), 12)
         self.assertEqual(EmailAddress.objects.count(), 12)
 
     def test_a_row_already_claimed_is_skipped_even_off_the_watermark(self):
@@ -453,14 +453,14 @@ class CmpLearnerImportResumabilityTests(_ClaimsFixtureMixin, TestCase):
         progress.save()
 
         result = self._import(source, batch_size=100)
-        self.assertEqual(CustomUser.objects.count(), 5)
+        self.assertEqual(User.objects.count(), 5)
         self.assertEqual(result.accounts.skipped, 5)
 
     def test_a_lost_claims_file_recovers_by_idempotent_reattachment_not_duplication(self):
         """The one residual risk the module docstring calls out: a claims
         file that forgot an already-imported row (the narrow crash window
         between a batch's commit and its claims-file write, or -- as here --
-        a claims file lost outright) never creates a second CustomUser row
+        a claims file lost outright) never creates a second User row
         for the same source id. ``_find_cross_source_match`` finds the
         importer's own earlier row (by ``normalized_email``, unclaimed from
         the store's point of view) and safely re-attaches onto it instead.
@@ -468,7 +468,7 @@ class CmpLearnerImportResumabilityTests(_ClaimsFixtureMixin, TestCase):
 
         source = self._source(3)
         self._import(source, batch_size=100)
-        self.assertEqual(CustomUser.objects.count(), 3)
+        self.assertEqual(User.objects.count(), 3)
 
         # Simulate the claims being lost while the accounts (and their
         # watermark) survive -- the damaged state a recovery has to cope
@@ -486,7 +486,7 @@ class CmpLearnerImportResumabilityTests(_ClaimsFixtureMixin, TestCase):
         # across resumed runs against the same progress row (see
         # CmpLearnerImportProgress), so this is 3 (first run) + 3 (this
         # run's re-attachments), not "3 more" restated as a bare 3.
-        self.assertEqual(CustomUser.objects.count(), 3)
+        self.assertEqual(User.objects.count(), 3)
         self.assertEqual(result.accounts.written, 6)
         self.assertEqual(result.cross_source_matches, (1, 2, 3))
         claims = CmpClaimsStore.load()

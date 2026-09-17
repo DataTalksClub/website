@@ -1341,13 +1341,11 @@ def _assert_final_database(path: Path, expected: AllowedDataset, create_admin: b
         ):
             raise ImportFailure("target-reconciliation")
         users = connection.execute(
-            "SELECT email, is_staff, is_superuser FROM accounts_customuser ORDER BY id"
+            "SELECT email, is_staff, is_superuser FROM accounts_user ORDER BY id"
         ).fetchall()
         expected_users = 1 if create_admin else 0
         if len(users) != expected_users:
-            raise ImportFailure(
-                "target-account-boundary", table="accounts_customuser", count=len(users)
-            )
+            raise ImportFailure("target-account-boundary", table="accounts_user", count=len(users))
         if create_admin:
             user = users[0]
             if (
@@ -1355,24 +1353,24 @@ def _assert_final_database(path: Path, expected: AllowedDataset, create_admin: b
                 or not user["is_staff"]
                 or not user["is_superuser"]
             ):
-                raise ImportFailure("target-account-boundary", table="accounts_customuser")
+                raise ImportFailure("target-account-boundary", table="accounts_user")
             role_permissions = connection.execute(
                 """
                 SELECT auth_group.name AS group_name,
                        django_content_type.app_label || '.' || auth_permission.codename
                            AS permission_name
-                FROM accounts_customuser
-                JOIN accounts_customuser_groups
-                  ON accounts_customuser_groups.customuser_id = accounts_customuser.id
+                FROM accounts_user
+                JOIN accounts_user_groups
+                  ON accounts_user_groups.user_id = accounts_user.id
                 JOIN auth_group
-                  ON auth_group.id = accounts_customuser_groups.group_id
+                  ON auth_group.id = accounts_user_groups.group_id
                 JOIN auth_group_permissions
                   ON auth_group_permissions.group_id = auth_group.id
                 JOIN auth_permission
                   ON auth_permission.id = auth_group_permissions.permission_id
                 JOIN django_content_type
                   ON django_content_type.id = auth_permission.content_type_id
-                WHERE accounts_customuser.email = ?
+                WHERE accounts_user.email = ?
                 ORDER BY auth_group.name, permission_name
                 """,
                 (SYNTHETIC_ADMIN_EMAIL,),
@@ -1383,8 +1381,8 @@ def _assert_final_database(path: Path, expected: AllowedDataset, create_admin: b
                 raise ImportFailure("target-account-boundary", table="auth_group")
         deny_counts = _sensitive_zero_counts(connection)
         synthetic_role_counts = {
-            "accounts_customuser": expected_users,
-            "accounts_customuser_groups": expected_users,
+            "accounts_user": expected_users,
+            "accounts_user_groups": expected_users,
             # Creating the synthetic administrator creates its identity row
             # (plan D3.1a); it carries no learner profile.
             "accounts_ext_identitystate": expected_users,

@@ -31,7 +31,7 @@ from django.utils import timezone
 
 from accounts.identity_resolution import resolve_durable_user_id
 from accounts.models import (
-    CustomUser,
+    User,
     Token,
 )
 from accounts.tests.test_single_identity import create_verified_user
@@ -67,8 +67,8 @@ SNAPSHOT_ID = "a" * 64
 
 def mapping_document(
     *,
-    source: CustomUser,
-    survivor: CustomUser,
+    source: User,
+    survivor: User,
     field_decisions: dict[str, str] | None = None,
     authority_decision: str = "",
     evidence: list[str] | None = None,
@@ -158,11 +158,11 @@ class ReconciliationDryRunTests(TestCase):
         )
 
     def test_username_email_overlap_is_reviewed_not_auto_merged(self) -> None:
-        first = CustomUser.objects.create_user(
+        first = User.objects.create_user(
             username="overlap@example.invalid",
             email="first@example.invalid",
         )
-        second = CustomUser.objects.create_user(
+        second = User.objects.create_user(
             username="second",
             email="overlap@example.invalid",
         )
@@ -741,7 +741,7 @@ class ReconciliationTransactionalFailureTests(TransactionTestCase):
                 survivor=survivor,
                 mapping=mapping,
             )
-            CustomUser.objects.filter(pk=survivor.pk).update(
+            User.objects.filter(pk=survivor.pk).update(
                 last_name="Concurrent change",
             )
             return changes

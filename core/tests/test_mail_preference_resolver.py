@@ -106,9 +106,9 @@ def _status_summary():
 
 class PackageSendDurableRecordTest(TestCase):
     def test_a_send_records_one_durable_delivery(self):
-        from accounts.models import CustomUser
+        from accounts.models import User
 
-        CustomUser.objects.create_user(
+        User.objects.create_user(
             username="worker",
             email="worker@example.com",
             password="password",

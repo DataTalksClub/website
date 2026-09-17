@@ -19,7 +19,7 @@ from django.urls import reverse
 from django.utils import timezone
 from playwright.sync_api import Page, expect
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models import Cohort, Homework, HomeworkState
 
 pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
@@ -57,12 +57,12 @@ def _homework_path() -> str:
     )
 
 
-def _member() -> CustomUser:
+def _member() -> User:
     email = "liptest-member@example.invalid"
-    return CustomUser.objects.create_user(username=email, email=email, password="liptest-pass")
+    return User.objects.create_user(username=email, email=email, password="liptest-pass")
 
 
-def _sign_in(page: Page, live_server, user: CustomUser) -> None:
+def _sign_in(page: Page, live_server, user: User) -> None:
     client = Client()
     client.force_login(user)
     page.context.add_cookies(

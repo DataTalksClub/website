@@ -151,7 +151,7 @@ class AdminSession:
         same way the admin UI's "Login as user" button does.
         """
         user_change_url = self.url(
-            f"/admin/accounts/customuser/{user_id}/change/"
+            f"/admin/accounts/user/{user_id}/change/"
         )
         self.page.goto(user_change_url)
         # The change form template includes the loginas button/form.
@@ -218,20 +218,20 @@ class AdminSession:
     def find_user_id_by_email(self, email: str) -> int | None:
         """Look up a user id via the admin changelist search.
 
-        CustomUserAdmin has ``search_fields = ["email"]`` so the changelist
+        UserAdmin has ``search_fields = ["email"]`` so the changelist
         ``?q=`` search returns matching rows; we read the edit link id.
         """
-        user_search_url = self.url(f"/admin/accounts/customuser/?q={email}")
+        user_search_url = self.url(f"/admin/accounts/user/?q={email}")
         self.page.goto(user_search_url)
         self.page.wait_for_load_state("networkidle")
         link = self.page.locator(
-            "a[href*='/admin/accounts/customuser/']"
+            "a[href*='/admin/accounts/user/']"
         ).filter(has_text="")
 
         link_count = link.count()
         for i in range(link_count):
             href = link.nth(i).get_attribute("href") or ""
-            m = re.search(r"/admin/accounts/customuser/(\d+)/change/", href)
+            m = re.search(r"/admin/accounts/user/(\d+)/change/", href)
             if m:
                 user_id_text = m.group(1)
                 user_id = int(user_id_text)
@@ -241,13 +241,13 @@ class AdminSession:
     def create_student(self, email: str, password: str) -> int:
         """Create a non-staff student via the admin add form.
 
-        The deployed app currently registers CustomUser with a plain
+        The deployed app currently registers User with a plain
         ModelAdmin, so the add form exposes the model's raw ``password`` field.
         Older/local variants may use UserAdmin's ``password1``/``password2``
         add form. Support both: the smoke flow impersonates the student and
         does not rely on the target user's password for login.
         """
-        user_add_url = self.url("/admin/accounts/customuser/add/")
+        user_add_url = self.url("/admin/accounts/user/add/")
         self.page.goto(user_add_url)
         self.page.wait_for_load_state("networkidle")
         self._fill_student_add_form(email, password)
@@ -275,7 +275,7 @@ class AdminSession:
             self.page.fill("input[name='password']", password)
         else:
             raise AssertionError(
-                "CustomUser admin add form did not expose password fields."
+                "User admin add form did not expose password fields."
             )
 
     def _ensure_student_email_on_change_form(self, email: str) -> None:

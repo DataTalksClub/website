@@ -266,9 +266,9 @@ class EventbriteRegistrantSourcesIntegrationTests(TestCase):
         self.assertEqual(report.rows_written, 0)
 
     def test_email_consolidates_against_an_existing_account(self) -> None:
-        from accounts.models import CustomUser
+        from accounts.models import User
 
-        account = CustomUser.objects.create(username="matched", email="matched@example.invalid")
+        account = User.objects.create(username="matched", email="matched@example.invalid")
         event = _event(source_key="2020-11-10-example")
         with scratch_root() as root:
             directory = Path(root)

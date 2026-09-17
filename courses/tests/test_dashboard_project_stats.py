@@ -6,7 +6,6 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from accounts.models import CustomUser
 from courses.models import (
     Cohort,
     Enrollment,
@@ -29,7 +28,7 @@ credentials = dict(
 
 @dataclass(frozen=True)
 class ProjectSubmissionFixtureData:
-    user: CustomUser
+    user: User
     enrollment: Enrollment
     scores: dict = field(default_factory=dict)
     passed: bool = True

@@ -13,7 +13,7 @@ never pre-ticked, never carried over from a previous registration.
 from django.test import override_settings
 from django.urls import reverse
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models.learner_profile import LearnerProfile
 from courses.models import CourseRegistration
 from courses.tests.registration_campaign_base import RegistrationCampaignBase
@@ -71,7 +71,7 @@ class RegistrationAccountGateTests(RegistrationCampaignBase):
 @override_settings(REGISTRATION_REQUIRES_ACCOUNT=True)
 class RegistrationFinalStepTests(RegistrationCampaignBase):
     def blank_profile_user(self):
-        return CustomUser.objects.create_user(
+        return User.objects.create_user(
             username="blank-profile",
             email="blank-profile@example.com",
             password="test",

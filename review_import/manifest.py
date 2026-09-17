@@ -189,11 +189,18 @@ COHORT_ONLY_COLUMNS = (
 # These tables may contain identity, learner activity, communication data,
 # credentials, operational payloads, or user-authored free text. They must be
 # empty in a sanitized artifact. A final review DB may contain only the one
-# separately-created synthetic administrator in accounts_customuser.
+# separately-created synthetic administrator in accounts_user.
 SENSITIVE_TABLES = frozenset(
     {
         "account_emailaddress",
         "account_emailconfirmation",
+        "accounts_user",
+        "accounts_user_groups",
+        "accounts_user_user_permissions",
+        # The pre-rename names stay listed (plan D3.1e): an artifact built
+        # from a dump taken before the rename must still be refused if it
+        # carries rows here, and an extra name in a membership test costs
+        # nothing.
         "accounts_customuser",
         "accounts_customuser_groups",
         "accounts_customuser_user_permissions",

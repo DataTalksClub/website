@@ -1,4 +1,4 @@
-"""The allowlisted keys ``CustomUser.home_dismissals`` may hold.
+"""The allowlisted keys ``User.home_dismissals`` may hold.
 
 Owned by ``accounts`` because ``home_dismissals`` is an accounts field and the
 dismiss endpoint (``accounts/views/home_dismissals.py``) must validate against

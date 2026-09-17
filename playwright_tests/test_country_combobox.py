@@ -21,7 +21,7 @@ from django.test import Client
 from django.urls import reverse
 from playwright.sync_api import Page, expect
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models import Cohort, RegistrationCampaign
 
 pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
@@ -51,14 +51,14 @@ def _register_path() -> str:
     return reverse("registration_campaign", kwargs={"campaign_slug": "combobox"})
 
 
-def _member_without_country() -> CustomUser:
+def _member_without_country() -> User:
     # The final step asks for the profile fields the account lacks; a member
     # with no country is exactly who sees the combobox there.
     email = "combobox-member@example.invalid"
-    return CustomUser.objects.create_user(username=email, email=email)
+    return User.objects.create_user(username=email, email=email)
 
 
-def _sign_in(page: Page, live_server, user: CustomUser) -> None:
+def _sign_in(page: Page, live_server, user: User) -> None:
     client = Client()
     client.force_login(user)
     page.context.add_cookies(

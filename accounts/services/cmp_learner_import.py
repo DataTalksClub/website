@@ -12,7 +12,7 @@ already wrote, and are out of scope here.
 Every imported account arrives:
 
 * with its real email address, copied verbatim from the export's ``email`` column
-  (never rewritten, never case-folded -- ``CustomUser.save()`` computes
+  (never rewritten, never case-folded -- ``User.save()`` computes
   ``normalized_email`` on its own);
 * with ``set_unusable_password()`` called -- no password hash travels, regardless
   of what the export carries;
@@ -25,7 +25,7 @@ Every imported account arrives:
   ``accounts.auth.ConsolidatingSocialAccountAdapter``, never at import time;
 * with ``identity_state`` left at its model default, ``legacy``.
 
-``CustomUser`` itself carries no trace of any of this -- see "Claim tracking"
+``User`` itself carries no trace of any of this -- see "Claim tracking"
 below for where the CMP source id actually lives.
 
 Never import (hard security boundary, not a style preference)
@@ -68,17 +68,17 @@ So this importer does two things for email addresses:
    this importer does not merge accounts, it imports both and reports the
    collision by source id so the existing reconciliation mechanism can find it.
 
-Claim tracking -- script-owned, not a field on ``CustomUser``
+Claim tracking -- script-owned, not a field on ``User``
 ----------------------------------------------------------------
 
-Every function below that needs "which ``CustomUser`` did this importer already
+Every function below that needs "which ``User`` did this importer already
 create or attach for CMP source id N" answers it through :class:`CmpClaimsStore`,
-never through a column on ``CustomUser``. The live model carries only what the
+never through a column on ``User``. The live model carries only what the
 running application actually reads; a source-system row id is provenance, and
 provenance belongs to the one-time import, not the permanent schema -- the same
 principle ``_docs/runbooks/ingest-script-inventory.md`` states for every source in
 this migration. (An earlier revision of this importer *did* carry the id as
-``CustomUser.cmp_source_user_id``, with a ``UniqueConstraint``; that field is gone,
+``User.cmp_source_user_id``, with a ``UniqueConstraint``; that field is gone,
 along with the migration that added it, once every caller here moved to the claims
 store below.)
 
@@ -164,7 +164,7 @@ from django.db import IntegrityError, transaction
 from django.utils.dateparse import parse_datetime
 
 from accounts.identity_values import normalize_account_email
-from accounts.models import CmpLearnerClaim, CmpLearnerImportBinding, CustomUser
+from accounts.models import CmpLearnerClaim, CmpLearnerImportBinding, User
 from accounts_ext.models import CmpLearnerImportProgress
 from courses.models.learner_profile import LearnerProfile
 
@@ -272,7 +272,7 @@ BINDING_KIND = "learner-accounts"
 
 
 class CmpClaimsStore:
-    """This importer's own durable "CMP source id -> CustomUser pk" record.
+    """This importer's own durable "CMP source id -> User pk" record.
 
     Backed by the script-owned ``CmpLearnerClaim`` table: :meth:`record` is
     called inside the batch's ``transaction.atomic()`` block, so a claim is
@@ -496,12 +496,12 @@ def _unique_username(preferred: str, source_id: int | None = None) -> str:
     if source_id is not None:
         candidates.append(with_suffix(f"-cmp-{source_id}"))
     for candidate in candidates:
-        if not CustomUser.objects.filter(username=candidate).exists():
+        if not User.objects.filter(username=candidate).exists():
             return candidate
     _refuse("username-unallocatable")
 
 
-def _save_new_account(account: CustomUser, source_id: int) -> None:
+def _save_new_account(account: User, source_id: int) -> None:
     """Save one fresh account, retrying a username race once, deterministically.
 
     The pre-insert existence check does not reserve the name: a concurrent
@@ -578,9 +578,9 @@ def _save_learner_profile(user, profile_values: dict[str, object]) -> None:
     LearnerProfile.objects.update_or_create(user=user, defaults=profile_values)
 
 
-def _build_account(row: sqlite3.Row) -> tuple[CustomUser, dict[str, object]]:
+def _build_account(row: sqlite3.Row) -> tuple[User, dict[str, object]]:
     email = (row["email"] or "").strip()
-    user = CustomUser(
+    user = User(
         username=_resolve_username(row),
         email=email,
         is_staff=False,
@@ -591,7 +591,7 @@ def _build_account(row: sqlite3.Row) -> tuple[CustomUser, dict[str, object]]:
     return user, profile_values
 
 
-def _find_cross_source_match(email: str, *, claims: CmpClaimsStore) -> CustomUser | None:
+def _find_cross_source_match(email: str, *, claims: CmpClaimsStore) -> User | None:
     """An account another importer already created for ``email``, if any.
 
     Deliberately excludes any account the claims store already has an entry
@@ -607,7 +607,7 @@ def _find_cross_source_match(email: str, *, claims: CmpClaimsStore) -> CustomUse
     normalized = normalize_account_email(email)
     if not normalized:
         return None
-    for candidate in CustomUser.objects.filter(
+    for candidate in User.objects.filter(
         identity__normalized_email=normalized
     ).order_by("pk"):
         if not claims.is_claimed_user(candidate.pk):
@@ -615,7 +615,7 @@ def _find_cross_source_match(email: str, *, claims: CmpClaimsStore) -> CustomUse
     return None
 
 
-def _attach_existing_account(user: CustomUser, row: sqlite3.Row) -> CustomUser:
+def _attach_existing_account(user: User, row: sqlite3.Row) -> User:
     """Attach this CMP row onto an account a different importer already
     created for the same address, rather than creating a duplicate. Leaves
     ``username`` and ``email`` untouched -- those already identify the
@@ -715,8 +715,8 @@ def _import_email_addresses(
                     skipped += 1
                     continue
                 try:
-                    user = CustomUser.objects.get(pk=user_id)
-                except CustomUser.DoesNotExist:
+                    user = User.objects.get(pk=user_id)
+                except User.DoesNotExist:
                     skipped += 1
                     continue
                 if EmailAddress.objects.filter(user=user, email=email).exists():
@@ -758,7 +758,7 @@ def _synthesize_missing_email_addresses(
     # between the snapshot and its turn, so this is equivalent to the
     # original per-iteration DB query, not an approximation of it.
     emailless_user_ids = set(
-        CustomUser.objects.filter(pk__in=claims.claimed_user_ids())
+        User.objects.filter(pk__in=claims.claimed_user_ids())
         .exclude(pk__in=EmailAddress.objects.values("user_id"))
         .exclude(email="")
         .values_list("pk", flat=True)
@@ -786,7 +786,7 @@ def _synthesize_missing_email_addresses(
             max_id = progress.last_source_id
             for source_id, user_id in batch:
                 max_id = max(max_id, source_id)
-                user = CustomUser.objects.get(pk=user_id)
+                user = User.objects.get(pk=user_id)
                 email = user.email.strip()
                 try:
                     with transaction.atomic():

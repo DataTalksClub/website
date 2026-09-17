@@ -37,7 +37,7 @@ address is consolidated through the exact same discipline
 ``scripts.prod.registrant_import`` already established for Luma/Eventbrite rows --
 reused, not reinvented, via
 :func:`scripts.prod.registrant_import.resolve_registrant_identity`:
-``normalized_email`` against ``accounts_customuser`` first (an existing
+``normalized_email`` against ``accounts_user`` first (an existing
 account always wins), then against an existing registrant-only
 ``EventRegistrantIdentity`` (from the Luma/Eventbrite import, or from an
 earlier run of this same importer), and only then a brand-new
@@ -65,7 +65,7 @@ from typing import Any
 from django.db import transaction
 
 from accounts.identity_values import normalize_account_email
-from accounts.models import CustomUser
+from accounts.models import User
 from scripts.prod.registrant_import import resolve_registrant_identity
 
 from .mailchimp_event_tag_categories import MAILCHIMP_EVENT_TAG_CATEGORIES
@@ -135,9 +135,7 @@ def _classify_read_only(normalized_email: str) -> tuple[EventRegistrantIdentity 
     """
 
     account = (
-        CustomUser.objects.filter(identity__normalized_email=normalized_email)
-        .order_by("pk")
-        .first()
+        User.objects.filter(identity__normalized_email=normalized_email).order_by("pk").first()
     )
     if account is not None:
         identity = EventRegistrantIdentity.objects.filter(account=account).first()

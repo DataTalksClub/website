@@ -440,7 +440,7 @@ def seed_synthetic_snapshot(path: Path) -> None:
 
     forbidden_rows: tuple[tuple[str, dict[str, object]], ...] = (
         (
-            "accounts_customuser",
+            "accounts_user",
             {
                 "id": 9001,
                 "password": CANARIES["password"],
@@ -727,7 +727,7 @@ class ReviewImportWorkflowTests(TestCase):
 
         with closing(sqlite3.connect(self.target)) as connection:
             users = connection.execute(
-                "SELECT email, is_staff, is_superuser FROM accounts_customuser"
+                "SELECT email, is_staff, is_superuser FROM accounts_user"
             ).fetchall()
             self.assertEqual(users, [("review-admin@example.invalid", 1, 1)])
             self.assertEqual(
@@ -735,11 +735,11 @@ class ReviewImportWorkflowTests(TestCase):
                     """
                     SELECT auth_group.name
                     FROM auth_group
-                    JOIN accounts_customuser_groups
-                      ON accounts_customuser_groups.group_id = auth_group.id
-                    JOIN accounts_customuser
-                      ON accounts_customuser.id = accounts_customuser_groups.customuser_id
-                    WHERE accounts_customuser.email = ?
+                    JOIN accounts_user_groups
+                      ON accounts_user_groups.group_id = auth_group.id
+                    JOIN accounts_user
+                      ON accounts_user.id = accounts_user_groups.user_id
+                    WHERE accounts_user.email = ?
                     """,
                     ("review-admin@example.invalid",),
                 ).fetchall(),
@@ -1017,7 +1017,7 @@ if JobIntent.objects.count() != 0:
         with closing(sqlite3.connect(self.target)) as connection:
             self.assertEqual(
                 connection.execute(
-                    "SELECT COUNT(*) FROM accounts_customuser WHERE email = ?",
+                    "SELECT COUNT(*) FROM accounts_user WHERE email = ?",
                     ("review-admin@example.invalid",),
                 ).fetchone()[0],
                 1,

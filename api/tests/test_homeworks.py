@@ -3,7 +3,7 @@ import json
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models import Answer, Enrollment, Submission
 from api.tests.homework_api_base import (
     HOMEWORK_INSTRUCTIONS_URL,
@@ -15,7 +15,7 @@ class HomeworksAPITestCase(HomeworkAPITestBase):
     def _seed_homework_with_counts(self, slug):
         homework = self._create_homework(slug=slug)
         question = self._create_scored_question(homework)
-        student = CustomUser.objects.create(
+        student = User.objects.create(
             username=f"student-{slug}",
             email=f"student-{slug}@example.com",
             password="x",

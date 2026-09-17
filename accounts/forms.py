@@ -1,6 +1,6 @@
 from django import forms
 
-from accounts.models import CustomUser
+from accounts.models import User
 from accounts.services.timezones import build_timezone_options, is_valid_timezone
 
 # ``country``/``registration_role`` are accounts-owned compatibility
@@ -192,7 +192,7 @@ class AccountSettingsForm(forms.ModelForm):
         return user
 
     class Meta:
-        model = CustomUser
+        model = User
         fields = ["preferred_timezone"]
         labels = {
             "preferred_timezone": "Timezone",

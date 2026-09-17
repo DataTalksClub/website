@@ -6,7 +6,7 @@ from enum import StrEnum
 from typing import Any
 
 from accounts.identity_values import normalize_account_email
-from accounts.models import CustomUser
+from accounts.models import User
 from accounts_ext.models import AccountIdentityAlias, IdentityState, identity_state_of
 
 
@@ -69,7 +69,7 @@ def resolve_accounts_by_email(
         return {}
 
     users = list(
-        CustomUser.objects.select_related("identity")
+        User.objects.select_related("identity")
         .filter(identity__normalized_email__in=normalized_emails)
         .order_by("identity__normalized_email", "pk")
     )
@@ -176,7 +176,7 @@ def resolve_durable_user_id(user_id: int) -> int | None:
     return survivor.pk
 
 
-def resolve_durable_user(user: Any) -> CustomUser | None:
+def resolve_durable_user(user: Any) -> User | None:
     if user is None or getattr(user, "pk", None) is None:
         return None
     if identity_state_of(user) != IdentityState.States.ABSORBED:
@@ -184,4 +184,4 @@ def resolve_durable_user(user: Any) -> CustomUser | None:
     survivor_id = resolve_durable_user_id(user.pk)
     if survivor_id is None or survivor_id == user.pk:
         return None
-    return CustomUser.objects.filter(pk=survivor_id).first()
+    return User.objects.filter(pk=survivor_id).first()

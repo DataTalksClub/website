@@ -137,7 +137,7 @@ def test_context_rejects_unsafe_execution_namespaces(namespace: str) -> None:
 def test_current_domain_scenarios_create_every_named_leaf_as_real_orm_or_simulator_value() -> None:
     context = FactoryContext("current-domain", "worker-current", FROZEN_AT)
     expected_labels = {
-        "accounts_management.custom_user": "accounts.customuser",
+        "accounts_management.custom_user": "accounts.user",
         "editorial_content.content_source": "content.contentsource",
         "adopted_courses.course": "courses.cohort",
         "historical_event_totals.historical_source_run": (

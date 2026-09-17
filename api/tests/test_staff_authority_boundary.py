@@ -12,7 +12,7 @@ from django.contrib.auth.models import Permission
 from django.test import Client, TestCase
 from django.utils import timezone
 
-from accounts.models import CustomUser, Token
+from accounts.models import User, Token
 from accounts.studio_roles import set_single_studio_role
 from api.tests.staff_credentials import issue_staff_bearer
 from courses.models import Cohort
@@ -41,7 +41,7 @@ def make_credential(principal, scopes):
 
 class StaffAuthorityBoundaryTest(TestCase):
     def setUp(self):
-        self.staff = CustomUser.objects.create(
+        self.staff = User.objects.create(
             username="legacy-staff",
             email="legacy-staff@example.com",
             is_staff=True,

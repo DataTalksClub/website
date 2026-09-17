@@ -3,7 +3,7 @@
 import json
 
 from accounts_ext.models import AccountIdentityAlias, IdentityState, IdentityState
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models import Cohort, Enrollment
 
 from .enrollment_base import (
@@ -132,7 +132,7 @@ class EnrollmentCertificateIdentityAPITestCase(EnrollmentDataAPIBase):
         )
 
     def test_absorbed_identity_updates_only_survivor_enrollment(self):
-        source = CustomUser.objects.create(
+        source = User.objects.create(
             username="absorbed-source",
             email="former@example.com",
         )
@@ -153,7 +153,7 @@ class EnrollmentCertificateIdentityAPITestCase(EnrollmentDataAPIBase):
         )
 
     def test_case_collision_is_ambiguous_and_changes_nothing(self):
-        collision = CustomUser.objects.create(
+        collision = User.objects.create(
             username="collision",
             email="different@example.com",
         )
@@ -170,7 +170,7 @@ class EnrollmentCertificateIdentityAPITestCase(EnrollmentDataAPIBase):
         self.assert_certificate_url(self.enrollment, None)
 
     def test_unavailable_and_conflicting_absorbed_identity_fail_closed(self):
-        source = CustomUser.objects.create(
+        source = User.objects.create(
             username="source",
             email="former@example.com",
         )
@@ -200,7 +200,7 @@ class EnrollmentCertificateIdentityAPITestCase(EnrollmentDataAPIBase):
             ("inactive", IdentityState.States.LEGACY, False),
         )
         for username, state, is_active in scenarios:
-            unavailable_user = CustomUser.objects.create(
+            unavailable_user = User.objects.create(
                 username=username,
                 email=f"{username}@example.com",
                 is_active=is_active,
@@ -219,14 +219,14 @@ class EnrollmentCertificateIdentityAPITestCase(EnrollmentDataAPIBase):
                 self.assert_certificate_url(unavailable_enrollment, None)
 
     def test_mixed_batch_is_independent_correlated_and_redacted(self):
-        unavailable = CustomUser.objects.create(
+        unavailable = User.objects.create(
             username="unavailable",
             email="Stored.Unavailable@example.com",
         )
         IdentityState.objects.filter(user=unavailable).update(
             identity_state=IdentityState.States.QUARANTINED,
         )
-        CustomUser.objects.create(
+        User.objects.create(
             username="not-enrolled",
             email="not-enrolled@example.com",
         )

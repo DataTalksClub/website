@@ -10,7 +10,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from accounts.models import CustomUser
+from accounts.models import User
 from api.tests.staff_credentials import issue_staff_bearer
 from courses.models import (
     Cohort,
@@ -23,7 +23,7 @@ from courses.models import (
 @dataclass(frozen=True)
 class PassedProjectSubmissionData:
     project: Project
-    student: CustomUser
+    student: User
     enrollment: Enrollment
     commit_id: str
 
@@ -76,7 +76,7 @@ class EnrollmentDataAPIBase(TestCase):
     def create_certificate_user(self, username, email, certificate_name):
         from courses.models.learner_profile import LearnerProfile
 
-        user = CustomUser.objects.create(
+        user = User.objects.create(
             username=username,
             email=email,
             password="pass",
@@ -88,7 +88,7 @@ class EnrollmentDataAPIBase(TestCase):
         return user
 
     def create_enrolled_user(self, username, email, **enrollment_kwargs):
-        user = CustomUser.objects.create(
+        user = User.objects.create(
             username=username,
             email=email,
             password="password",
@@ -101,7 +101,7 @@ class EnrollmentDataAPIBase(TestCase):
         return user, enrollment
 
     def create_other_user(self):
-        return CustomUser.objects.create(
+        return User.objects.create(
             username="otheruser",
             email="other@example.com",
             password="password",
@@ -161,7 +161,7 @@ class EnrollmentDataAPIBase(TestCase):
         )
 
     def create_unsaved_student(self, username, email):
-        return CustomUser(
+        return User(
             username=username,
             email=email,
         )
@@ -260,14 +260,14 @@ class EnrollmentDataAPIBase(TestCase):
         self.assertEqual(enrollment.certificate_url, certificate_url)
 
     def setUp(self):
-        self.user = CustomUser.objects.create(
+        self.user = User.objects.create(
             username="testuser",
             email="testuser@example.com",
             password="password",
         )
         # The caller is an operator, not the learner below: these exports and
         # the certificate update are staff-token endpoints.
-        self.api_operator = CustomUser.objects.create(
+        self.api_operator = User.objects.create(
             username="api-operator",
             email="api-operator@example.com",
             password="password",

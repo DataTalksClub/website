@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from django.test import TestCase, override_settings
 
-from accounts.models import CustomUser
+from accounts.models import User
 from course_management.datamailer.preferences import (
     get_email_preferences_for_user,
     update_email_preferences_for_user,
@@ -37,7 +37,7 @@ class DatamailerPreferencesTest(TestCase):
         }
         categories.append(course_category)
         contact_preferences.return_value = {"categories": categories}
-        user = CustomUser.objects.create_user(
+        user = User.objects.create_user(
             username="student",
             email="Student@Example.com",
         )
@@ -67,7 +67,7 @@ class DatamailerPreferencesTest(TestCase):
         self,
         update_contact_preferences,
     ):
-        user = CustomUser.objects.create_user(
+        user = User.objects.create_user(
             username="student",
             email="student@example.com",
         )

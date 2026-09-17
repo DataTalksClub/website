@@ -1,6 +1,6 @@
 from django.test import Client, TestCase
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models import Cohort, Enrollment
 
 DATAMAILER_DISABLED_SETTINGS = {
@@ -14,7 +14,7 @@ DATAMAILER_DISABLED_SETTINGS = {
 class AccountCourseTestCase(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user = CustomUser.objects.create_user(
+        self.user = User.objects.create_user(
             username="student",
             email="student@example.com",
             password="testpass123",

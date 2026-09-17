@@ -1,6 +1,6 @@
 from django.test import Client
 
-from accounts.models import CustomUser, Token
+from accounts.models import User, Token
 from courses.models import RegistrationCampaign
 
 from .registration_campaign_base import RegistrationCampaignAPITestBase
@@ -13,7 +13,7 @@ class RegistrationCampaignAuthAPITestCase(RegistrationCampaignAPITestBase):
         return Client(HTTP_AUTHORIZATION=f"Token {token.key}")
 
     def create_non_staff_user(self):
-        return CustomUser.objects.create(
+        return User.objects.create(
             username="campaign-nonstaff",
             email="campaign-nonstaff@example.com",
         )

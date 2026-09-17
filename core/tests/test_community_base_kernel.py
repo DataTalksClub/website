@@ -5,7 +5,7 @@ intents onto the package jobs app; D1.2a installs the mail app without
 switching any send path yet. D5.1 installs the shared curriculum and
 coursework apps beside the shared events app, before anything serves from
 them (#415 flips the routes). The site user model stays
-``accounts.CustomUser``. The configured RegisteredOnlyPolicy must gate levels
+``accounts.User``. The configured RegisteredOnlyPolicy must gate levels
 exactly as the site's tier model does today.
 """
 
@@ -53,7 +53,7 @@ class KernelInstallationTests(SimpleTestCase):
         self.assertEqual(kernel_get("STUDIO_TITLE"), "DataTalks.Club Studio")
 
     def test_auth_user_model_is_unchanged(self):
-        self.assertEqual(settings.AUTH_USER_MODEL, "accounts.CustomUser")
+        self.assertEqual(settings.AUTH_USER_MODEL, "accounts.User")
 
     def test_registered_only_policy_gates(self):
         self.assertTrue(access.can_access(None, 0))

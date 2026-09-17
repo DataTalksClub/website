@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from django.test import TestCase, override_settings
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models import Cohort, Enrollment
 
 DATAMAILER_SETTINGS = {
@@ -22,14 +22,14 @@ class DatamailerSignalTest(TestCase):
     @patch("courses.signals.sync_contact")
     def test_new_user_syncs_after_commit(self, sync):
         with self.captureOnCommitCallbacks(execute=True):
-            user = CustomUser.objects.create(email="student@example.com")
+            user = User.objects.create(email="student@example.com")
 
         sync.assert_called_once_with(user)
 
     @override_settings(**DATAMAILER_SETTINGS)
     @patch("courses.signals.send_enrollment_confirmation_mail")
     def test_new_enrollment_sends_confirmation_after_commit(self, send):
-        user = CustomUser.objects.create(email="student@example.com")
+        user = User.objects.create(email="student@example.com")
         course = Cohort.objects.create(
             slug="ml-zoomcamp",
             title="ML Zoomcamp",
@@ -47,7 +47,7 @@ class DatamailerSignalTest(TestCase):
     @override_settings(**DATAMAILER_SETTINGS)
     @patch("courses.signals.erase_contact_from_datamailer")
     def test_deleted_user_erases_contact_after_commit(self, erase_contact):
-        user = CustomUser.objects.create_user(
+        user = User.objects.create_user(
             username="student",
             email="student@example.com",
         )

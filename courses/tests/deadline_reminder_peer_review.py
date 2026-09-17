@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import timedelta
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models import (
     Enrollment,
     PeerReview,
@@ -15,16 +15,16 @@ from courses.models import (
 @dataclass(frozen=True)
 class ProjectSubmissionData:
     project: Project
-    user: CustomUser
+    user: User
     enrollment: Enrollment
     label: str
 
 
 @dataclass(frozen=True)
 class PeerReviewReminderUsers:
-    reviewer: CustomUser
-    opted_out_reviewer: CustomUser
-    author: CustomUser
+    reviewer: User
+    opted_out_reviewer: User
+    author: User
 
 
 @dataclass(frozen=True)

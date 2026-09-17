@@ -5,7 +5,7 @@ from django.conf import settings
 from django.core.management import call_command
 from django.test import TestCase
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models import Cohort, Enrollment
 
 
@@ -50,7 +50,7 @@ class DeadlineReminderTestBase(TestCase):
         *,
         preferred_timezone="",
     ):
-        user = CustomUser.objects.create_user(
+        user = User.objects.create_user(
             username=username,
             email=email,
             password="password",

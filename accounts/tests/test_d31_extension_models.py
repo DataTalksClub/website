@@ -4,7 +4,7 @@ Covers what the field move ships: ``courses.LearnerProfile`` and
 ``accounts_ext.IdentityState`` carry the moved fields with their shapes
 mirrored verbatim, the four identity evidence models kept their physical
 tables while their app registration moved, the identity save-path invariant
-that used to live on ``CustomUser.save`` is preserved by the extension signal,
+that used to live on ``User.save`` is preserved by the extension signal,
 and -- since the contract phase -- the user model declares none of the twelve
 moved fields and the conditional unique constraint is enforced on
 ``IdentityState`` alone.
@@ -49,7 +49,7 @@ COMPARED_ATTRIBUTES = ("max_length", "null", "blank", "choices", "help_text")
 def _pre_contract_user_fields():
     loader = MigrationLoader(connection)
     state = loader.project_state([PRE_CONTRACT_MIGRATION])
-    model = state.apps.get_model("accounts", "CustomUser")
+    model = state.apps.get_model("accounts", "User")
     return {field.name: field for field in model._meta.get_fields()}
 
 

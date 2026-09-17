@@ -5,13 +5,13 @@ from django.core.cache import cache
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from accounts.models import CustomUser
+from accounts.models import User
 from courses.models import Cohort, Enrollment
 
 
 @dataclass(frozen=True)
 class LeaderboardEnrollmentData:
-    user: CustomUser
+    user: User
     display_name: str
     total_score: int
     position: int
@@ -59,7 +59,7 @@ class LeaderboardDataViewBase(TestCase):
         )
 
     def create_user(self, username):
-        return CustomUser.objects.create(
+        return User.objects.create(
             username=username,
             email=f"{username}@example.com",
             password="pw",

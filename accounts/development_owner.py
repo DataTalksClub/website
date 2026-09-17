@@ -12,7 +12,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from accounts.identity_values import normalize_account_email
-from accounts.models import CustomUser
+from accounts.models import User
 from accounts.studio_roles import (
     HISTORICAL_REGISTRATION_IMPORT_MANAGE,
     HISTORICAL_REGISTRATION_MAPPING_MANAGE,
@@ -110,8 +110,8 @@ def _runtime_allowed(*, allow_test: bool) -> bool:
     )
 
 
-def _matching_users(normalized_email: str, *, using: str) -> tuple[CustomUser, ...]:
-    matches: list[CustomUser] = []
+def _matching_users(normalized_email: str, *, using: str) -> tuple[User, ...]:
+    matches: list[User] = []
     for user in get_user_model().objects.using(using).order_by("pk").iterator():
         candidate = normalized_email_of(user) or normalize_account_email(user.email)
         if candidate == normalized_email:
