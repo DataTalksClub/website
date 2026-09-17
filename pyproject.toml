@@ -189,6 +189,8 @@ module = [
     "scripts.tests.test_cmp_certificate_reconciliation_cli",
     "courses.tests.test_dashboard_participation_counts",
     "courses.tests.test_leaderboard_project_stars",
+    "courses.tests.test_course_family_docs_cross_link",
+    "courses.tests.test_course_family_seo",
 ]
 ignore_errors = false
 
