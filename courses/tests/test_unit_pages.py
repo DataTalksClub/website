@@ -678,13 +678,23 @@ class PublicUnitPageTests(TestCase):
                 self.assertEqual(self.client.get(url).status_code, 404)
 
     @override_settings(NOINDEX=False)
-    def test_uses_public_course_page_index_and_cache_policy(self):
+    def test_indexes_the_cohort_unit_page_and_keeps_it_privately_cached(self):
+        """Indexable, but never shareable: the cohort path is a private variant.
+
+        PUB-02's route registry classifies ``courses.views.unit.unit_view`` as
+        private/dynamic and says why: a shared lesson is canonical at the
+        cohort-free path, so the cohort-scoped spelling of the same lesson is a
+        per-learner variant and must not be cached by a shared cache. Indexing is
+        a separate decision and stays on.
+        """
+
         response = self.client.get(self.unit_url(self.first_unit))
 
         self.assertNotIn("X-Robots-Tag", response.headers)
         cache_control = response.headers.get("Cache-Control", "")
-        self.assertNotIn("private", cache_control)
-        self.assertNotIn("no-store", cache_control)
+        self.assertIn("private", cache_control)
+        self.assertIn("no-store", cache_control)
+        self.assertNotIn("public", cache_control)
 
 
 class UnitDisplayTitleTests(TestCase):
