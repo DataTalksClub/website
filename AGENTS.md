@@ -17,19 +17,20 @@ here.
 - Keep secrets, tokens, registration data and production data out of logs,
   screenshots, issues and reports. In a log, identify a person by user id, never
   by email address.
-- Data lives in exactly three places: **scripts** (the ingestion/sync logic
-  itself), **the database** (what a public request reads), or **`~/prod`**
-  (raw, reviewed ingestion input outside the repo, for a script to consume).
-  Never a fourth place. In particular, public website content is
-  database-owned: runtime code must never read it from hardcoded Python
-  values, checked-in JSON, or a file-backed projection/fallback. A live sync
-  straight from a source checkout into the database (e.g. the
-  `community_base.content_sync` engine and its `SyncedDocument` rows) is the
-  database-owned pattern and is fine — the violation is a build step that
-  writes a checked-in or staged *projection* (an intermediate JSON tree
-  something else reads later), not a synced row. See
-  `_docs/architecture/database-only-content.md` for the current violation
-  inventory and removal plan.
+- Logic lives in scripts — a production-injection script pushes data from a
+  legacy/upstream source into production and holds none of it itself. Data
+  lives in the database (what a public request reads) or in `~/prod`, outside
+  the repo — raw ingestion input and its staged/prepped-for-ingestion form
+  alike. Never a checked-in or staged file inside the repo in between.
+  Public website content in particular is database-owned: runtime code must
+  never read it from hardcoded Python values, checked-in JSON, or a
+  file-backed projection/fallback. A live sync straight from a source
+  checkout into the database (e.g. the `community_base.content_sync` engine
+  and its `SyncedDocument` rows) is the database-owned pattern and is fine —
+  the violation is a build step that writes a checked-in or staged
+  *projection* (an intermediate JSON tree something else reads later), not a
+  synced row. See `_docs/architecture/database-only-content.md` for the
+  current violation inventory and removal plan.
 - `community-base` (`~/git/community-base`) is a shared package consumed by
   this site and by AI Shipping Labs (`~/git/ai-shipping-labs`). If you change
   anything in `community-base`, run the test suite in both consuming projects,
