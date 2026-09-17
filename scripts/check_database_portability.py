@@ -82,6 +82,14 @@ BACKEND_PATTERN_EXCEPTIONS: dict[Path, frozenset[str]] = {
     Path("courses/votes.py"): frozenset({"select_for_update"}),
     Path("courses/project_scoring.py"): frozenset({"select_for_update"}),
     Path("courses/views/project_eval_submit_save.py"): frozenset({"select_for_update"}),
+    # The CMP certificate reconciliation serializes concurrent imports with
+    # ``select_for_update`` for the same reason as the vote-budget paths
+    # above.  Its ``PRAGMA`` never touches the Django connection: it runs an
+    # integrity check on the SQLite source file the import reads, which is
+    # SQLite by contract regardless of the deployed engine.
+    Path("courses/services/cmp_certificate_reconciliation.py"): frozenset(
+        {"select_for_update", "pragma "}
+    ),
 }
 DATABASE_REFERENCE = re.compile(
     r"\b(?:postgres(?:ql)?|psycopg|database_url)\b",
