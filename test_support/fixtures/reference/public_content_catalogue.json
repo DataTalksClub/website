@@ -5277,12 +5277,12 @@
       "relationships": [
         {
           "label": "Synthetic Podcast Episode Two",
-          "public_path": "/podcast/synthetic-episode-two.html",
+          "public_path": "/podcast/s01e02/synthetic-episode-two",
           "role": "guest"
         },
         {
           "label": "Synthetic Podcast Episode One",
-          "public_path": "/podcast/synthetic-episode-one.html",
+          "public_path": "/podcast/s20e06/synthetic-episode-one",
           "role": "guest"
         },
         {
@@ -8350,91 +8350,91 @@
         "label": "Synthetic Podcast Episode One",
         "title": "Synthetic Podcast Episode One",
         "type": "podcast",
-        "url": "/podcast/synthetic-episode-one.html"
+        "url": "/podcast/s20e06/synthetic-episode-one"
       },
       {
         "id": "podcast:bulk-01",
         "label": "Synthetic podcast 01",
         "title": "Synthetic podcast 01",
         "type": "podcast",
-        "url": "/podcast/synthetic-episode-two.html"
+        "url": "/podcast/s01e02/synthetic-episode-two"
       },
       {
         "id": "podcast:bulk-02",
         "label": "Synthetic podcast 02",
         "title": "Synthetic podcast 02",
         "type": "podcast",
-        "url": "/podcast/synthetic-episode-two.html"
+        "url": "/podcast/s01e02/synthetic-episode-two"
       },
       {
         "id": "podcast:bulk-03",
         "label": "Synthetic podcast 03",
         "title": "Synthetic podcast 03",
         "type": "podcast",
-        "url": "/podcast/synthetic-episode-two.html"
+        "url": "/podcast/s01e02/synthetic-episode-two"
       },
       {
         "id": "podcast:bulk-04",
         "label": "Synthetic podcast 04",
         "title": "Synthetic podcast 04",
         "type": "podcast",
-        "url": "/podcast/synthetic-episode-two.html"
+        "url": "/podcast/s01e02/synthetic-episode-two"
       },
       {
         "id": "podcast:bulk-05",
         "label": "Synthetic podcast 05",
         "title": "Synthetic podcast 05",
         "type": "podcast",
-        "url": "/podcast/synthetic-episode-two.html"
+        "url": "/podcast/s01e02/synthetic-episode-two"
       },
       {
         "id": "podcast:bulk-06",
         "label": "Synthetic podcast 06",
         "title": "Synthetic podcast 06",
         "type": "podcast",
-        "url": "/podcast/synthetic-episode-two.html"
+        "url": "/podcast/s01e02/synthetic-episode-two"
       },
       {
         "id": "podcast:bulk-07",
         "label": "Synthetic podcast 07",
         "title": "Synthetic podcast 07",
         "type": "podcast",
-        "url": "/podcast/synthetic-episode-two.html"
+        "url": "/podcast/s01e02/synthetic-episode-two"
       },
       {
         "id": "podcast:bulk-08",
         "label": "Synthetic podcast 08",
         "title": "Synthetic podcast 08",
         "type": "podcast",
-        "url": "/podcast/synthetic-episode-two.html"
+        "url": "/podcast/s01e02/synthetic-episode-two"
       },
       {
         "id": "podcast:bulk-09",
         "label": "Synthetic podcast 09",
         "title": "Synthetic podcast 09",
         "type": "podcast",
-        "url": "/podcast/synthetic-episode-two.html"
+        "url": "/podcast/s01e02/synthetic-episode-two"
       },
       {
         "id": "podcast:bulk-10",
         "label": "Synthetic podcast 10",
         "title": "Synthetic podcast 10",
         "type": "podcast",
-        "url": "/podcast/synthetic-episode-two.html"
+        "url": "/podcast/s01e02/synthetic-episode-two"
       },
       {
         "id": "podcast:bulk-11",
         "label": "Synthetic podcast 11",
         "title": "Synthetic podcast 11",
         "type": "podcast",
-        "url": "/podcast/synthetic-episode-two.html"
+        "url": "/podcast/s01e02/synthetic-episode-two"
       },
       {
         "id": "podcast:bulk-12",
         "label": "Synthetic podcast 12",
         "title": "Synthetic podcast 12",
         "type": "podcast",
-        "url": "/podcast/synthetic-episode-two.html"
+        "url": "/podcast/s01e02/synthetic-episode-two"
       },
       {
         "id": "person:synthetic-one",
