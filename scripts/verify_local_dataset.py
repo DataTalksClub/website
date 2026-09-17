@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""Check that a prepared local database matches the shape production will serve.
+"""Check that a database matches the shape production will serve.
 
-This is the acceptance gate for ``scripts/production_data.py dataset``.  It reports numbers
-rather than prose: which cohorts exist, which of them carry module curricula and how
+This is the acceptance gate for ``scripts/production_data.py dataset``, a local
+rehearsal target by default -- and, via ``scripts.prod.target``'s
+``--deployment-target``/``--allow-production-write`` pair, a real checkpoint the
+same command can run against a deployed database (item C2 in
+``_docs/runbooks/production-data-migration.md``).  It reports numbers rather
+than prose: which cohorts exist, which of them carry module curricula and how
 large those curricula are, how many course families back them, whether any upstream test
 course leaked in, and how many future-dated events the public site would render.
 
@@ -27,7 +31,7 @@ whose declared counts or digests do not match, so what this gate is for is the i
 that never ran at all, and a count frozen here would only fail later for being right.
 
 **Expectations live in a reviewed manifest, not in this code.**  The cohort slugs and
-curriculum totals come from ``scripts/expectations/local-dataset.json``, a versioned
+curriculum totals come from ``scripts/prod/expectations/local-dataset.json``, a versioned
 file bound to the export snapshot the dataset was cut from (its ``as_of`` date).  A new
 delivery year or an upstream lesson addition is accepted by updating that file in review --
 never by editing literals here, and never by silently widening the check (audit REL-15).
@@ -42,19 +46,20 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from datetime import date
 from pathlib import Path
 from typing import Any
 
-import django
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-DEFAULT_EXPECTATIONS_PATH = Path(__file__).resolve().parent / "expectations" / "local-dataset.json"
+from scripts.prod.target import add_target_arguments, configure_target  # noqa: E402
+
+DEFAULT_EXPECTATIONS_PATH = (
+    Path(__file__).resolve().parent / "prod" / "expectations" / "local-dataset.json"
+)
 
 
 class ExpectationError(ValueError):
@@ -149,13 +154,6 @@ EXPECTED_EDITORIAL_COLLECTIONS = (
     "docs",
     "faq",
 )
-
-
-def _configure(database: Path) -> None:
-    os.environ["DTC_ENVIRONMENT"] = "local"
-    os.environ["DTC_SQLITE_PATH"] = str(database)
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings.local")
-    django.setup()
 
 
 def _cohort_report(expectations: dict[str, Any]) -> dict[str, Any]:
@@ -509,7 +507,7 @@ def _editorial_failures(editorial: dict[str, Any]) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--database", type=Path, required=True)
+    add_target_arguments(parser)
     parser.add_argument(
         "--expectations",
         type=Path,
@@ -523,10 +521,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     expectations = _load_expectations(args.expectations)
-    _configure(args.database.resolve())
+    target = configure_target(parser, args)
 
     report = {
-        "database": str(args.database.resolve()),
+        "database": target.name,
         "expectations": {
             "as_of": expectations["as_of"].isoformat(),
             "path": str(args.expectations),
