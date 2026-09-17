@@ -262,13 +262,25 @@ def run(
         # runs.  The bulk-copy path it replaced could only ever write into an empty
         # catalogue, so it had to run before the repository pull and refused outright
         # afterwards; a reconciler is what "repositories first, then CMP" needs.
+        # The family/homework slug overrides come from that same production entry
+        # point: without them this rehearsal reconciles CMP's raw "ai-dev-tools"
+        # edition slug as its own family instead of folding it into
+        # "ai-dev-tools-zoomcamp", splitting one course across two families.
         from courses.services.cmp_content_import import (
             CmpContentImportError,
             import_cmp_course_content,
         )
+        from scripts.prod.import_cmp_content import (
+            FAMILY_SLUG_OVERRIDES,
+            HOMEWORK_SLUG_OVERRIDES,
+        )
 
         try:
-            cmp_content = import_cmp_course_content(cmp_source_db).summary()
+            cmp_content = import_cmp_course_content(
+                cmp_source_db,
+                family_slug_overrides=FAMILY_SLUG_OVERRIDES,
+                homework_slug_overrides=HOMEWORK_SLUG_OVERRIDES,
+            ).summary()
         except CmpContentImportError as error:
             raise LocalPreparationError(f"cmp_content_{error}") from error
     # Step 4, after the catalogue and before the event stage: real reviewed

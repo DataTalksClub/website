@@ -44,7 +44,7 @@ class LocalPreparationOrderTests(TestCase):
 
     def test_the_course_repositories_are_pulled_before_cmp_is_reconciled(self) -> None:
         pull = self.source.index("pull_course_repositories(")
-        cmp_import = self.source.index("import_cmp_course_content(cmp_source_db")
+        cmp_import = self.source.index("import_cmp_course_content(")
         self.assertLess(
             pull,
             cmp_import,
@@ -68,7 +68,7 @@ class LocalPreparationOrderTests(TestCase):
                 self.assertIn(entry_point, scripts.prod.BOOTSTRAPPING_ENTRY_POINTS)
 
     def test_the_editorial_content_is_imported_after_the_course_catalogue(self) -> None:
-        cmp_import = self.source.index("import_cmp_course_content(cmp_source_db")
+        cmp_import = self.source.index("import_cmp_course_content(")
         editorial = self.source.index("editorial_content = _import_editorial_content()")
         self.assertLess(
             cmp_import,
