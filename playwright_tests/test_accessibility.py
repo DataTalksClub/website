@@ -148,6 +148,11 @@ def _public_rendered_states(
     wiki = catalogue.wiki_pages()[0]
     faq = _faq_anchor_sample()
     speaker = event["speakers"][0]
+    # The profile page is headed by the person record's own title.  The event
+    # carries a separate display name for the same person, and the reference
+    # catalogue deliberately spells the two differently, so the marker for the
+    # person surface has to come from the profile, not from the credit.
+    speaker_profile = catalogue.people_by_path()[speaker["public_path"]]
     docs = next(
         page
         for page in docs_pages()
@@ -171,7 +176,7 @@ def _public_rendered_states(
         PublicRenderedState("public.podcast-transcript-media", "podcast-detail", "Transcript"),
         PublicRenderedState("public.book-detail", "book", book["title"]),
         PublicRenderedState("public.event-aggregate-speaker", "event", "3 registered"),
-        PublicRenderedState("public.person-detail", "person", speaker["name"]),
+        PublicRenderedState("public.person-detail", "person", speaker_profile["title"]),
         PublicRenderedState("public.course-detail", "course", public_course["title"]),
         PublicRenderedState("public.wiki-detail", "wiki-detail", wiki["title"]),
         PublicRenderedState("public.docs-nested", "docs-detail", docs["title"]),
