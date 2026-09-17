@@ -6,17 +6,21 @@
     "note": "The reviewed production export this dataset was cut from. Every expectation below is a fact about that snapshot: re-cutting the dataset from a newer export means re-reviewing and updating this file, deliberately and in review, rather than editing literals in the verifier."
   },
   "cohorts": {
-    "note": "The reviewed 2026 delivery. Legacy cohorts are checked separately: their presence is expected but their exact set follows the pinned upstream catalogue. The published family is 'ai-dev-tools-zoomcamp', matching the repository's own name directly: curriculum_import no longer rewrites the prefix (the owner restored the '-zoomcamp' suffix as an SEO/trademark signal).",
+    "note": "The reviewed 2026 delivery, plus de-zoomcamp-2027 (open for registration) and mlops-zoomcamp-self-paced -- the owner's ruling is a self-paced edition for every course family, added here as each repository actually declares one. Legacy cohorts are checked separately: their presence is expected but their exact set follows the pinned upstream catalogue. The published family is 'ai-dev-tools-zoomcamp', matching the repository's own name directly: curriculum_import no longer rewrites the prefix (the owner restored the '-zoomcamp' suffix as an SEO/trademark signal).",
     "expected": [
       "ai-dev-tools-zoomcamp-2026",
       "de-zoomcamp-2026",
+      "de-zoomcamp-2027",
       "llm-zoomcamp-2026",
-      "ml-zoomcamp-2026"
+      "ml-zoomcamp-2026",
+      "mlops-zoomcamp-self-paced"
     ],
     "module_curricula": {
       "ai-dev-tools-zoomcamp-2026": {"modules": 4, "units": 4},
+      "de-zoomcamp-2027": {"modules": 7, "units": 88},
       "llm-zoomcamp-2026": {"modules": 7, "units": 72},
-      "ml-zoomcamp-2026": {"modules": 9, "units": 105}
+      "ml-zoomcamp-2026": {"modules": 9, "units": 105},
+      "mlops-zoomcamp-self-paced": {"modules": 6, "units": 46}
     }
   }
 }
