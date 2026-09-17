@@ -1318,13 +1318,15 @@ repository gets ingested.
 Source: `~/prod/dtc-data/content-staging/docs_projection.json` (outside this repository),
 a reviewed file pinned to a
 revision of `DataTalksClub/docs` (106 pages / 39 images).
-Transform: checks the schema version, the pinned revision, the page hierarchy
-through the same navigation builder the site renders from, every page body
-against its recorded digest and every image against its recorded size and digest,
+Transform: checks the schema version, the pinned revision, the page hierarchy,
+every page body against its recorded digest and every image against its recorded
+size and digest,
 and refuses the file whole on any mismatch — a half-imported documentation tree
 would 404 without saying so. Each run writes a new release and activates it.
-Destination: `ContentDocument` and `ContentAsset`, read by
-[`content/docs_projection.py`](../../content/docs_projection.py).
+Destination: `ContentDocument` and `ContentAsset`. Since D7.1 the served
+documentation is not this staged release: it is the `dtc-docs` parser's
+`community_base.knowledge_base` pages, read by
+[`content/docs_reader.py`](../../content/docs_reader.py).
 
 **Still not built**: `content_sync/docs/` does not exist, and nothing regenerates
 `docs_projection.json` from the source repository. Same gap as FAQ.

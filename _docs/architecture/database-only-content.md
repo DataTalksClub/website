@@ -82,8 +82,9 @@ reasoning.
 
 | Surface | Read path | Ingest |
 | --- | --- | --- |
-| Articles, podcasts, books, people, wiki, courses, media, graph, search, routes | `content/catalogue.py` -> `ContentDocument` | `scripts/prod/import_public_content.py` |
-| Documentation | `content/docs_projection.py` -> `ContentDocument`/`ContentAsset` | `scripts/prod/import_docs.py` |
+| Articles, podcasts, books, people, courses, media, graph, search, routes | `content/catalogue.py` -> `ContentDocument` | `scripts/prod/import_public_content.py` |
+| Wiki pages | `content/wiki_reader.py` -> `community_base.knowledge_base.KnowledgeBasePage` | `content/sync_parsers/podwiki.py` |
+| Documentation | `content/docs_reader.py` -> `community_base.knowledge_base.KnowledgeBasePage` | `content/sync_parsers/docs.py` |
 | Course FAQ | `content/faq_data.py` -> `ContentDocument` | `scripts/prod/import_faq.py` |
 | `/slack` | `content/review_views.py` -> `ContentDocument` | (page row) |
 | Article FAQ sections | `content/article_faq.py` -> the article's own row | with the article |
@@ -283,7 +284,7 @@ re-derivable from a checkout anyone holds), and the two things that do not
 come out even then are `luma_event_descriptions.json` and
 `public_projection_source.py`'s callers -- see above.
 
-The names left over once a projection is not a file anywhere -- `content/docs_projection.py`,
+The names left over once a projection is not a file anywhere --
 `content/media_store.py`'s `PROJECTION_ROOT`/`REVIEWED_PROJECTION_ROOT`, and
 `BRIDGE_PUBLIC_PATH`'s stale literal -- are unchanged by this relocation and
 still wait on the same things the earlier "Stage 4" entry described (now
