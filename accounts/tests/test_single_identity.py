@@ -27,8 +27,9 @@ from django.utils import timezone
 from accounts.auth import ConsolidatingSocialAccountAdapter
 from accounts.identity_inventory import account_inventory
 from accounts.identity_resolution import resolve_durable_user_id
-from accounts.models import CustomUser
-from accounts_ext.models import AccountIdentityAlias, AccountIdentityQuarantine
+from accounts.models import (
+    CustomUser,
+)
 from accounts.navigation import SAFE_ACCOUNT_DESTINATION, safe_next_path
 from accounts.studio_roles import synchronize_studio_roles
 from core.models import AuditEvent
@@ -37,6 +38,14 @@ from management_auth.constants import DIGEST_ALGORITHM, DIGEST_VERSION
 from management_auth.models import APICredential, APIPrincipal
 from management_auth.tokens import encode_secret, generate_token
 from review_import.manifest import is_sensitive_table
+from courses.models.learner_profile import LearnerProfile
+from accounts_ext.models import (
+    AccountIdentityAlias,
+    AccountIdentityQuarantine,
+    IdentityState,
+    identity_state_of,
+    set_identity_state,
+)
 
 TRANSITION_BYPASS_NEXT_VALUES = (
     "/courses/../accounts/continue/",
@@ -61,6 +70,20 @@ TRANSITION_BYPASS_NEXT_VALUES = (
 )
 
 
+LEARNER_PROFILE_KWARGS = (
+    "role",
+    "certificate_name",
+    "country",
+    "region",
+    "registration_role",
+    "github_url",
+    "linkedin_url",
+    "personal_website_url",
+    "about_me",
+    "dark_mode",
+)
+
+
 def create_verified_user(
     *,
     username: str,
@@ -69,12 +92,24 @@ def create_verified_user(
     password: str = "synthetic-password",
     **fields,
 ) -> CustomUser:
+    identity_state = fields.pop("identity_state", None)
+    normalized_email = fields.pop("normalized_email", None)
+    profile_values = {name: fields.pop(name) for name in list(fields) if name in LEARNER_PROFILE_KWARGS}
     user = CustomUser.objects.create_user(
         username=username,
         email=email,
         password=password,
         **fields,
     )
+    if profile_values:
+        LearnerProfile.objects.update_or_create(user=user, defaults=profile_values)
+    identity_defaults = {}
+    if identity_state is not None:
+        identity_defaults["identity_state"] = identity_state
+    if normalized_email is not None:
+        identity_defaults["normalized_email"] = normalized_email
+    if identity_defaults:
+        IdentityState.objects.update_or_create(user=user, defaults=identity_defaults)
     EmailAddress.objects.create(
         user=user,
         email=verified_email or email,
@@ -101,10 +136,22 @@ class SingleIdentityModelTests(TestCase):
             username="second",
             email="learner@example.invalid",
         )
-        self.assertEqual(first.normalized_email, "learner@example.invalid")
-        self.assertEqual(second.normalized_email, "learner@example.invalid")
-        self.assertEqual(first.identity_state, CustomUser.IdentityState.LEGACY)
+        self.assertEqual(
+            IdentityState.objects.get(user=first).normalized_email,
+            "learner@example.invalid",
+        )
+        self.assertEqual(
+            IdentityState.objects.get(user=second).normalized_email,
+            "learner@example.invalid",
+        )
+        self.assertEqual(
+            IdentityState.objects.get(user=first).identity_state,
+            IdentityState.States.LEGACY,
+        )
 
+        # The conditional unique index is still the one on the user table in
+        # this phase; it moves onto IdentityState with the contract migration
+        # (plan D3.1d), and this assertion moves with it.
         first.identity_state = CustomUser.IdentityState.ACTIVE
         first.save(update_fields=("identity_state",))
         second.identity_state = CustomUser.IdentityState.ACTIVE
@@ -247,8 +294,7 @@ class DurableAuthenticationTests(TestCase):
             email="quarantined@example.invalid",
             password="synthetic-password",
         )
-        user.identity_state = CustomUser.IdentityState.QUARANTINED
-        user.save(update_fields=("identity_state",))
+        set_identity_state(user, IdentityState.States.QUARANTINED)
 
         self.assertIsNone(
             authenticate(
@@ -326,8 +372,8 @@ class SocialLinkingTests(TestCase):
 
         def change_identity_after_snapshot(*, email, user_id):
             del email
-            CustomUser.objects.filter(pk=user_id).update(
-                identity_state=CustomUser.IdentityState.QUARANTINED,
+            IdentityState.objects.filter(user_id=user_id).update(
+                identity_state=IdentityState.States.QUARANTINED,
             )
             return False
 
@@ -346,7 +392,7 @@ class SocialLinkingTests(TestCase):
         self.assertEqual(raised.exception.response.status_code, 409)
         sociallogin.connect.assert_not_called()
         user.refresh_from_db()
-        self.assertEqual(user.identity_state, CustomUser.IdentityState.LEGACY)
+        self.assertEqual(identity_state_of(user), IdentityState.States.LEGACY)
         quarantine = AccountIdentityQuarantine.objects.get()
         self.assertEqual(quarantine.reason_codes, ["normalized_email_conflict"])
 

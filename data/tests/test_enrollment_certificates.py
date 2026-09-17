@@ -2,8 +2,8 @@
 
 import json
 
+from accounts_ext.models import AccountIdentityAlias, IdentityState, IdentityState
 from accounts.models import CustomUser
-from accounts_ext.models import AccountIdentityAlias
 from courses.models import Cohort, Enrollment
 
 from .enrollment_base import (
@@ -135,10 +135,13 @@ class EnrollmentCertificateIdentityAPITestCase(EnrollmentDataAPIBase):
         source = CustomUser.objects.create(
             username="absorbed-source",
             email="former@example.com",
-            identity_state=CustomUser.IdentityState.ABSORBED,
         )
-        self.user.identity_state = CustomUser.IdentityState.ACTIVE
-        self.user.save(update_fields=("identity_state",))
+        IdentityState.objects.filter(user=source).update(
+            identity_state=IdentityState.States.ABSORBED,
+        )
+        IdentityState.objects.filter(user=self.user).update(
+            identity_state=IdentityState.States.ACTIVE,
+        )
         self.create_alias(source, self.user)
 
         response = self.post_certificates([self.certificate_update(" FORMER@EXAMPLE.COM ")])
@@ -154,8 +157,8 @@ class EnrollmentCertificateIdentityAPITestCase(EnrollmentDataAPIBase):
             username="collision",
             email="different@example.com",
         )
-        CustomUser.objects.filter(pk=collision.pk).update(
-            normalized_email=self.user.normalized_email
+        IdentityState.objects.filter(user=collision).update(
+            normalized_email="testuser@example.com",
         )
 
         response = self.post_certificates([self.certificate_update("TESTUSER@example.com")])
@@ -170,10 +173,13 @@ class EnrollmentCertificateIdentityAPITestCase(EnrollmentDataAPIBase):
         source = CustomUser.objects.create(
             username="source",
             email="former@example.com",
-            identity_state=CustomUser.IdentityState.ABSORBED,
         )
-        self.user.identity_state = CustomUser.IdentityState.ACTIVE
-        self.user.save(update_fields=("identity_state",))
+        IdentityState.objects.filter(user=source).update(
+            identity_state=IdentityState.States.ABSORBED,
+        )
+        IdentityState.objects.filter(user=self.user).update(
+            identity_state=IdentityState.States.ACTIVE,
+        )
         self.create_alias(source, self.user)
         source_enrollment = Enrollment.objects.create(
             student=source,
@@ -190,16 +196,16 @@ class EnrollmentCertificateIdentityAPITestCase(EnrollmentDataAPIBase):
 
     def test_quarantined_and_inactive_identities_are_unavailable(self):
         scenarios = (
-            ("quarantined", CustomUser.IdentityState.QUARANTINED, True),
-            ("inactive", CustomUser.IdentityState.LEGACY, False),
+            ("quarantined", IdentityState.States.QUARANTINED, True),
+            ("inactive", IdentityState.States.LEGACY, False),
         )
         for username, state, is_active in scenarios:
             unavailable_user = CustomUser.objects.create(
                 username=username,
                 email=f"{username}@example.com",
-                identity_state=state,
                 is_active=is_active,
             )
+            IdentityState.objects.filter(user=unavailable_user).update(identity_state=state)
             unavailable_enrollment = Enrollment.objects.create(
                 student=unavailable_user,
                 course=self.course,
@@ -213,10 +219,12 @@ class EnrollmentCertificateIdentityAPITestCase(EnrollmentDataAPIBase):
                 self.assert_certificate_url(unavailable_enrollment, None)
 
     def test_mixed_batch_is_independent_correlated_and_redacted(self):
-        CustomUser.objects.create(
+        unavailable = CustomUser.objects.create(
             username="unavailable",
             email="Stored.Unavailable@example.com",
-            identity_state=CustomUser.IdentityState.QUARANTINED,
+        )
+        IdentityState.objects.filter(user=unavailable).update(
+            identity_state=IdentityState.States.QUARANTINED,
         )
         CustomUser.objects.create(
             username="not-enrolled",

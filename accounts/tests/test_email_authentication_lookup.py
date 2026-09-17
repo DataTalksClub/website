@@ -14,8 +14,9 @@ from django.test.utils import CaptureQueriesContext
 
 from accounts.backends import DurableAccountBackend
 from accounts.models import CustomUser
+from accounts_ext.models import IdentityState
 
-QUARANTINED = CustomUser.IdentityState.QUARANTINED
+QUARANTINED = IdentityState.States.QUARANTINED
 
 
 def make_user(email: str, *, username: str | None = None, **fields) -> CustomUser:
@@ -73,7 +74,7 @@ class EmailCandidateLookupTests(TestCase):
         # the not-yet-normalized population the fallback scans.
         first = make_user("Twin@Example.invalid", username="twin-one")
         second = make_user("twin@example.invalid", username="twin-two")
-        CustomUser.objects.filter(pk__in=(first.pk, second.pk)).update(normalized_email="")
+        IdentityState.objects.filter(user__in=(first, second)).update(normalized_email="")
 
         candidates = self.backend._email_candidates("TWIN@example.invalid")
 
@@ -88,7 +89,7 @@ class EmailCandidateLookupTests(TestCase):
         make_user("live@example.com")
         make_user("off@example.invalid", username="off", is_active=False)
         quarantined = make_user("q@example.invalid", username="q")
-        CustomUser.objects.filter(pk=quarantined.pk).update(identity_state=QUARANTINED)
+        IdentityState.objects.filter(user=quarantined).update(identity_state=QUARANTINED)
 
         self.assertEqual(self.backend._email_candidates("q@example.invalid"), ())
         self.assertEqual(self.backend._email_candidates("off@example.invalid"), ())
@@ -97,9 +98,9 @@ class EmailCandidateLookupTests(TestCase):
     def test_blank_normalized_rows_are_the_only_python_compared_population(self) -> None:
         make_user("backfilled@example.com")
         fallback_user = make_user("Fallback@Example.invalid", username="fallback-row")
-        CustomUser.objects.filter(pk=fallback_user.pk).update(normalized_email="")
+        IdentityState.objects.filter(user=fallback_user).update(normalized_email="")
         unrelated_blank = make_user("other@example.invalid", username="other-blank")
-        CustomUser.objects.filter(pk=unrelated_blank.pk).update(normalized_email="")
+        IdentityState.objects.filter(user=unrelated_blank).update(normalized_email="")
 
         with CaptureQueriesContext(connection) as context:
             candidates = self.backend._email_candidates("fallback@example.invalid")

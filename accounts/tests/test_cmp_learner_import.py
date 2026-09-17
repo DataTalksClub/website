@@ -19,6 +19,8 @@ from django.test import TestCase
 
 from accounts.models import CmpLearnerClaim, CustomUser
 from accounts_ext.models import CmpLearnerImportProgress
+from courses.models.learner_profile import LearnerProfile
+from accounts_ext.models import IdentityState
 from accounts.services.cmp_learner_import import (
     FORBIDDEN_TABLES,
     READ_TABLES,
@@ -164,9 +166,15 @@ class CmpLearnerImportBasicsTests(_ClaimsFixtureMixin, TestCase):
         self.assertFalse(user.has_usable_password())
         self.assertFalse(user.is_staff)
         self.assertFalse(user.is_superuser)
-        self.assertEqual(user.identity_state, CustomUser.IdentityState.LEGACY)
+        self.assertEqual(
+            IdentityState.objects.get(user=user).identity_state,
+            IdentityState.States.LEGACY,
+        )
         self.assertEqual(user.email, "admin@example.com")
-        self.assertEqual(user.normalized_email, "admin@example.com")
+        self.assertEqual(
+            IdentityState.objects.get(user=user).normalized_email,
+            "admin@example.com",
+        )
         self.assertFalse(SocialAccount.objects.filter(user=user).exists())
 
     def test_raw_email_address_rows_are_copied_faithfully(self):
@@ -223,8 +231,14 @@ class CmpLearnerImportBasicsTests(_ClaimsFixtureMixin, TestCase):
         self.assertTrue(EmailAddress.objects.filter(user=u15515, verified=True).exists())
         self.assertEqual(result.synthesis_skipped_collisions, (2,))
         # Both stay legacy/unmerged -- consolidating them is not this importer's job.
-        self.assertEqual(u2.identity_state, CustomUser.IdentityState.LEGACY)
-        self.assertEqual(u15515.identity_state, CustomUser.IdentityState.LEGACY)
+        self.assertEqual(
+            IdentityState.objects.get(user=u2).identity_state,
+            IdentityState.States.LEGACY,
+        )
+        self.assertEqual(
+            IdentityState.objects.get(user=u15515).identity_state,
+            IdentityState.States.LEGACY,
+        )
 
     def test_an_account_a_different_importer_already_created_is_attached_not_duplicated(self):
         """The exact shape ``import_legacy_zoomcamp.py`` leaves behind: an
@@ -267,7 +281,10 @@ class CmpLearnerImportBasicsTests(_ClaimsFixtureMixin, TestCase):
         self.assertEqual(self._user_for_source(1).pk, legacy_pk)
         self.assertFalse(merged.has_usable_password())
         self.assertEqual(merged.first_name, "First1")
-        self.assertEqual(merged.country, "US")
+        self.assertEqual(
+            LearnerProfile.objects.get(user=merged).country,
+            "US",
+        )
         # The CMP-sourced email row lands on the same, merged account.
         email_row = EmailAddress.objects.get(user=merged)
         self.assertEqual(email_row.email, "shared-learner@example.invalid")

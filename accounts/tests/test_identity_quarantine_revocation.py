@@ -28,18 +28,18 @@ from accounts.studio_authorization import (
 )
 from accounts.studio_sessions import create_staff_session
 from accounts.studio_test_support import make_studio_user
-from accounts_ext.models import AccountIdentityAlias
+from accounts_ext.models import AccountIdentityAlias, IdentityState
 from management_api.authentication import authenticate as authenticate_api
 from management_api.errors import APIError
 from management_auth.models import APICredential, APIPrincipal
 from management_auth.services import create_principal
 from management_auth.tokens import encode_secret, generate_token
 
-QUARANTINED = CustomUser.IdentityState.QUARANTINED
+QUARANTINED = IdentityState.States.QUARANTINED
 
 
 def quarantine(user: CustomUser) -> None:
-    CustomUser.objects.filter(pk=user.pk).update(identity_state=QUARANTINED)
+    IdentityState.objects.filter(user=user).update(identity_state=QUARANTINED)
     user.refresh_from_db()
 
 
@@ -89,19 +89,20 @@ class AliasContinuityTests(TestCase):
             username="absorbed-source",
             email="source@example.invalid",
         )
-        source.identity_state = CustomUser.IdentityState.ABSORBED
-        source.save(update_fields=["identity_state"])
+        IdentityState.objects.filter(user=source).update(
+            identity_state=IdentityState.States.ABSORBED
+        )
         survivor = CustomUser.objects.create_user(
             username="alias-survivor",
             email="survivor@example.invalid",
         )
-        survivor.identity_state = survivor_state
-        survivor.save(update_fields=["identity_state"])
+        IdentityState.objects.filter(user=survivor).update(identity_state=survivor_state)
         AccountIdentityAlias.objects.create(source_user_id=source.pk, survivor=survivor)
-        return source, survivor
+        # Re-fetch: the creation-time instance caches its identity relation.
+        return CustomUser.objects.get(pk=source.pk), CustomUser.objects.get(pk=survivor.pk)
 
     def test_an_absorbed_identity_still_resolves_to_an_active_survivor(self) -> None:
-        source, survivor = self.make_pair(survivor_state=CustomUser.IdentityState.ACTIVE)
+        source, survivor = self.make_pair(survivor_state=IdentityState.States.ACTIVE)
 
         self.assertEqual(resolve_durable_user(source), survivor)
 

@@ -13,6 +13,7 @@ from playwright.sync_api import Page, expect
 
 from accounts.models import CustomUser
 from accounts.studio_roles import synchronize_studio_roles
+from accounts_ext.models import IdentityState
 from courses.models import Cohort, Enrollment, RegistrationCampaign
 from courses.models.homework import Homework, HomeworkState
 from courses.models.project import Project, ProjectState
@@ -65,7 +66,7 @@ def _active_user(*, suffix: str, is_staff: bool = False) -> CustomUser:
         username=f"synthetic-{suffix}",
         email=email,
         is_staff=is_staff,
-        identity_state=CustomUser.IdentityState.ACTIVE,
+        identity_state=IdentityState.States.ACTIVE,
     )
     EmailAddress.objects.create(
         user=user,
