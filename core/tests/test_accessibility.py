@@ -156,7 +156,7 @@ class AccessibleEmailFixtureTests(SimpleTestCase):
     def test_every_committed_package_template_renders_accessible_html(self) -> None:
         templates = {t.key: t for t in mail_templates.load_templates()}
         self.assertGreaterEqual(len(templates), 8)
-        for template_key, template in templates.items():
+        for template_key, _template in templates.items():
             with self.subTest(template=template_key):
                 rendered = render_package_template(template_key)
                 self.assertIn("<title>", rendered.html)

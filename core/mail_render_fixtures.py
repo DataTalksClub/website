@@ -15,7 +15,7 @@ from community_base.mail.models import EmailDelivery
 from core import mail_templates
 
 #: List- and object-valued context keys need real shapes to iterate.
-CONTEXT_OVERRIDES = {
+CONTEXT_OVERRIDES: dict[str, Any] = {
     "assigned_reviews": [
         {
             "review_id": 1,
@@ -39,7 +39,6 @@ def render_package_template(template_key: str):
         "site_name": "DataTalks.Club",
         "site_url": "https://courses.datatalks.club",
     }
-    override: Any
     for position, key in enumerate(template.required_context, start=2):
         context[key] = f"Q{position}Z"
     # Block-tag-only variables (a {% for %} over a list) never appear as
