@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0005_cmplearnerclaim_cmplearnerimportbinding'),
+        ('accounts', '0006_newsletter_preference_changed_at_mailchimpsubscri'),
     ]
 
     operations = [
