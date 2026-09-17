@@ -1385,6 +1385,9 @@ def _assert_final_database(path: Path, expected: AllowedDataset, create_admin: b
         synthetic_role_counts = {
             "accounts_customuser": expected_users,
             "accounts_customuser_groups": expected_users,
+            # Creating the synthetic administrator creates its identity row
+            # (plan D3.1a); it carries no learner profile.
+            "accounts_ext_identitystate": expected_users,
             "auth_group": expected_users,
             "auth_group_permissions": expected_users,
         }

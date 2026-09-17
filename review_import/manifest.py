@@ -198,6 +198,12 @@ SENSITIVE_TABLES = frozenset(
         "accounts_customuser_groups",
         "accounts_customuser_user_permissions",
         "accounts_token",
+        # The D3.1 extension tables: one row per account, holding the identity
+        # reconciliation state and the member's own profile text and links.
+        # ``accounts_ext_`` is not covered by the sensitive prefixes below and
+        # ``courses_`` is not a prefix at all, so both are named here.
+        "accounts_ext_identitystate",
+        "courses_learnerprofile",
         "auth_group",
         "auth_group_permissions",
         "courses_answer",
