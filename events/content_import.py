@@ -403,9 +403,7 @@ def _matches(event: Event, record: ReviewedEventContent | NewEventContent) -> bo
             for position, speaker in enumerate(record.speakers)
         ]
         and (event.materials or [])
-        == [
-            {"label": link.label, "url": link.url} for link in record.links
-        ]
+        == [{"label": link.label, "url": link.url} for link in record.links]
     )
 
 

@@ -16,19 +16,17 @@ import io
 import json
 import tempfile
 import uuid
-from datetime import UTC, datetime
 import zipfile
+from datetime import UTC, datetime
 from pathlib import Path
 
+from community_base.events.models import Event
 from django.conf import settings
 from django.test import SimpleTestCase, TestCase
 
-from event_registrants.models import EventRegistrantIdentity, EventRegistration
-from community_base.events.models import Event
 from content.models import EventSource
+from event_registrants.models import EventRegistrantIdentity, EventRegistration
 from scripts.prod.registrant_import import RegistrantImportError, import_registrants
-
-STARTS_AT = datetime(2026, 8, 10, 15, 0, tzinfo=UTC)
 from scripts.prod.registration_sources.eventbrite_registrants import (
     PROVIDER,
     CanonicalEventbriteIdentity,
@@ -37,6 +35,8 @@ from scripts.prod.registration_sources.eventbrite_registrants import (
     load_resolved_eventbrite_identities,
     read_eventbrite_registrant_rows,
 )
+
+STARTS_AT = datetime(2026, 8, 10, 15, 0, tzinfo=UTC)
 
 _COLUMNS = (
     "Order #",

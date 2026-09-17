@@ -9,17 +9,17 @@ directly.  The reader that turns a Luma export into those rows is tested in
 
 from __future__ import annotations
 
+from community_base.events.models import Event
 from django.db import IntegrityError
 from django.test import TestCase
 
 from accounts.models import CustomUser
+from content.models import EventSource
 from event_registrants.models import (
     EventRegistrantIdentity,
     EventRegistrantImportProgress,
     EventRegistration,
 )
-from community_base.events.models import Event
-from content.models import EventSource
 from events.identity import EventIdentityError, create_event_identity, resolve_source_identity
 from scripts.prod.registrant_import import (
     EXISTING_EVENT_AMBIGUOUS,
@@ -692,7 +692,10 @@ class ProviderEventIdentityTests(TestCase):
         # suite's collection on events.models beyond what it already needs.
         from events.identity import canonical_detail_path
 
-        self.assertEqual(canonical_detail_path(event.content_id), f"/events/{event.public_id}/{event.slug}")
+        self.assertEqual(
+            canonical_detail_path(event.content_id),
+            f"/events/{event.public_id}/{event.slug}",
+        )
 
     def test_resolve_source_identity_finds_it_by_provider_and_external_id(self) -> None:
         created = create_provider_event_identity(

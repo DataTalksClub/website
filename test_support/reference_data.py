@@ -115,9 +115,7 @@ def load_event_identities() -> int:
     for item in manifest.events:
         record = schedules[str(item.id)]
         starts_at = datetime.fromisoformat(record["starts_at"])
-        ends_at = (
-            datetime.fromisoformat(record["ends_at"]) if record.get("ends_at") else None
-        )
+        ends_at = datetime.fromisoformat(record["ends_at"]) if record.get("ends_at") else None
         events.append(
             Event(
                 content_id=item.id,

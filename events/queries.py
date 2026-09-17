@@ -153,9 +153,7 @@ def published_event_records_by_path(paths: Iterable[str]) -> dict[str, dict[str,
         return {}
 
     resolved: dict[str, dict[str, Any]] = {}
-    for event in _published().filter(
-        Q(public_id__in=public_ids) | Q(content_id__in=identity_ids)
-    ):
+    for event in _published().filter(Q(public_id__in=public_ids) | Q(content_id__in=identity_ids)):
         record = _record(event)
         resolved[record["public_path"]] = record
         resolved[f"/events/{record['identity_id']}/{record['slug']}"] = record
