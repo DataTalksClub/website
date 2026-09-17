@@ -137,6 +137,7 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
 
     FIRST_PARTY_APPS = (
         "accounts",
+        "accounts_ext",
         "content",
         "core",
         "courses",

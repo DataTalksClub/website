@@ -17,7 +17,8 @@ from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount
 from django.test import TestCase
 
-from accounts.models import CmpLearnerClaim, CmpLearnerImportProgress, CustomUser
+from accounts.models import CmpLearnerClaim, CustomUser
+from accounts_ext.models import CmpLearnerImportProgress
 from accounts.services.cmp_learner_import import (
     FORBIDDEN_TABLES,
     READ_TABLES,

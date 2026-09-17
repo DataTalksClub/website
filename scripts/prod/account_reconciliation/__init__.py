@@ -21,7 +21,7 @@ the life of the application (``accounts.identity_resolution``,
 by ``accounts.auth.ConsolidatingSocialAccountAdapter`` when a live sign-in
 hits an unresolved identity collision.  Those stay exactly where they are.
 
-``accounts.models.AccountReconciliationRun`` is different from those in that
+``accounts_ext.models.AccountReconciliationRun`` is different from those in that
 nothing at request time ever reads it -- but it still has to be a real Django
 model living in an installed app, because that is the only way for it to get
 a migration and cheap FK-free lookups against ``CustomUser``.  ``scripts/prod``
@@ -84,11 +84,11 @@ from accounts.identity_values import (
     validate_safe_reference,
     validate_snapshot_id,
 )
-from accounts.models import (
+from accounts.models import CustomUser
+from accounts_ext.models import (
     AccountIdentityAlias,
     AccountIdentityQuarantine,
     AccountReconciliationRun,
-    CustomUser,
 )
 from course_management.observability import record_event
 

@@ -5,7 +5,8 @@ from allauth.core.exceptions import ImmediateHttpResponse
 from django.test import TestCase
 
 from accounts.auth import ConsolidatingSocialAccountAdapter, extract_email
-from accounts.models import AccountIdentityQuarantine, CustomUser
+from accounts.models import CustomUser
+from accounts_ext.models import AccountIdentityQuarantine
 
 
 class ExtractEmailTestCase(TestCase):

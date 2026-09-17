@@ -43,11 +43,8 @@ from accounts.auth import (
     ConsolidatingSocialAccountAdapter,
     _has_unresolved_email_collision,
 )
-from accounts.models import (
-    AccountIdentityAlias,
-    AccountIdentityQuarantine,
-    CustomUser,
-)
+from accounts.models import CustomUser
+from accounts_ext.models import AccountIdentityAlias, AccountIdentityQuarantine
 from courses.models import (
     Answer,
     AnswerTypes,

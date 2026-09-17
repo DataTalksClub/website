@@ -4,7 +4,8 @@ from accounts.identity_resolution import (
     AccountEmailResolutionStatus,
     resolve_accounts_by_email,
 )
-from accounts.models import AccountIdentityAlias, CustomUser
+from accounts.models import CustomUser
+from accounts_ext.models import AccountIdentityAlias
 
 
 class AccountEmailResolutionTestCase(TestCase):

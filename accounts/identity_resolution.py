@@ -6,7 +6,8 @@ from enum import StrEnum
 from typing import Any
 
 from accounts.identity_values import normalize_account_email
-from accounts.models import AccountIdentityAlias, CustomUser
+from accounts.models import CustomUser
+from accounts_ext.models import AccountIdentityAlias
 
 
 class AccountEmailResolutionStatus(StrEnum):

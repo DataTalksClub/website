@@ -227,7 +227,7 @@ def account_inventory() -> dict[str, Any]:
             "accounts.CustomUser.username",
             "accounts.CustomUser.email",
             "accounts.Token.key (never emitted)",
-            "accounts.AccountIdentityAlias.source_user_id",
+            "accounts_ext.AccountIdentityAlias.source_user_id",
         ],
         "public_person_policy": "editorial_identity_never_authentication",
         "content_projection_account_creation": False,
@@ -240,7 +240,7 @@ def relationship_evidence(
     *,
     alias_overrides: dict[int, int] | None = None,
 ) -> tuple[dict[str, int], dict[str, str]]:
-    from accounts.models import AccountIdentityAlias
+    from accounts_ext.models import AccountIdentityAlias
 
     aliases = dict(
         AccountIdentityAlias.objects.values_list(

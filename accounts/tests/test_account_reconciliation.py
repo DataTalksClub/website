@@ -30,12 +30,11 @@ from django.test import Client, TestCase, TransactionTestCase
 from django.utils import timezone
 
 from accounts.identity_resolution import resolve_durable_user_id
-from accounts.models import (
+from accounts.models import CustomUser, Token
+from accounts_ext.models import (
     AccountIdentityAlias,
     AccountIdentityQuarantine,
     AccountReconciliationRun,
-    CustomUser,
-    Token,
 )
 from accounts.tests.test_single_identity import create_verified_user
 from core.models import AuditEvent, StaffSession
