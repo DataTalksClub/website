@@ -77,9 +77,16 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # dependency change); the seal below moves with that reviewed commit.  The
 # lint-gate repair f3520742 reformatted pyproject metadata without a dependency
 # change, so the seal moves with that commit too.
-STUDIO_COURSES_PYPROJECT_SHA256 = "0473148341b0dea07e992f4fe50b8b5394d81eda27ad77791f8a7cddb0fd36a2"
+# D4.1 moved the shared dependency twice, and both seals move with it: 4b84c772
+# pinned community-base v0.4.6 for the shared events app, and c1514285 replaced
+# it with the v0.4.7 release (e98c3381) so installing the shared events app does
+# not also require the shared accounts app. The same wave added a mypy
+# ignore_missing_imports override for `events.models` -- the Django plugin
+# resolves the `events` label to that module name, which community_base.events
+# owns since D4.1 -- and a run of quality-gate opt-ins, both configuration only.
+STUDIO_COURSES_PYPROJECT_SHA256 = "766129bfc5250290b8750ea85350e3d678557fbac41b17033b9bd9499cb8880f"
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "67815bd8f2f15185cb04def1f411400d5b561efb41e524298f4d19dd4d1349b1"
+    "eaa1574e661b6d84a8bc406cba443a5e242cbafdcf58d2a5fdd5394385408f9c"
 )
 SECRET_PREFIX = (
     f"arn:aws:secretsmanager:{SELECTED_TARGET.aws_region}:{SELECTED_TARGET.aws_account_id}"
