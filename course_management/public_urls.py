@@ -12,8 +12,9 @@ from __future__ import annotations
 
 import logging
 from urllib.parse import urljoin, urlparse
-from django.urls import reverse
+
 from django.conf import settings
+from django.urls import reverse
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +35,7 @@ def notification_base_url() -> str:
     fallback = _fallback_base_url()
     if base_url:
         logger.warning(
-            "PUBLIC_BASE_URL=%r has no scheme/host; using %r for "
-            "notification links.",
+            "PUBLIC_BASE_URL=%r has no scheme/host; using %r for notification links.",
             base_url,
             fallback,
         )

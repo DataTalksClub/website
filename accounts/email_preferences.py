@@ -8,7 +8,6 @@ and write them through :mod:`accounts.views.email_preferences`.
 
 from dataclasses import dataclass
 
-
 CATEGORY_FIELDS = {
     "submission-results": "email_submission_confirmations",
     "deadline-reminders": "email_deadline_reminders",
@@ -32,8 +31,7 @@ EMAIL_PREFERENCE_CATEGORIES = {
             field="email_submission_confirmations",
             label="Homework and project submissions",
             description=(
-                "Sends confirmation and score emails after you submit "
-                "homework or a project."
+                "Sends confirmation and score emails after you submit homework or a project."
             ),
         ),
         EmailPreferenceCategory(
@@ -48,8 +46,7 @@ EMAIL_PREFERENCE_CATEGORIES = {
             field="email_course_updates",
             label="General course-related emails",
             description=(
-                "Sends general course and workshop messages, such as "
-                "course start announcements."
+                "Sends general course and workshop messages, such as course start announcements."
             ),
         ),
     )

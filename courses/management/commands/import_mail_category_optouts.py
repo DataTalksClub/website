@@ -60,6 +60,5 @@ class Command(BaseCommand):
                 updated += 1
 
         self.stdout.write(
-            f"opt-outs applied for {updated} user(s); "
-            f"{unknown} address(es) had no account"
+            f"opt-outs applied for {updated} user(s); {unknown} address(es) had no account"
         )
