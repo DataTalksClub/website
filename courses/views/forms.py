@@ -68,11 +68,18 @@ class EnrollmentForm(forms.ModelForm):
         }
 
     def __init__(self, *args, user=None, **kwargs):
+        from courses.models.learner_profile import learner_profile_for, profile_field_default
+
         self.user = user
         super().__init__(*args, **kwargs)
         self.enrollment_certificate_name = self.instance.certificate_name
         if self.user is not None and not self.is_bound:
-            self.initial["certificate_name"] = self.user.certificate_name
+            profile = learner_profile_for(self.user)
+            self.initial["certificate_name"] = (
+                profile.certificate_name
+                if profile is not None
+                else profile_field_default("certificate_name")
+            )
 
     def _save_enrollment(self, commit):
         enrollment = super().save(commit=False)
@@ -90,16 +97,19 @@ class EnrollmentForm(forms.ModelForm):
         return None
 
     def _sync_user_certificate_name(self, commit):
+        from courses.models.learner_profile import ensure_learner_profile
+
         if self.user is None:
             return
 
         certificate_name = self._submitted_certificate_name()
-        if self.user.certificate_name == certificate_name:
+        profile = ensure_learner_profile(self.user)
+        if profile.certificate_name == certificate_name:
             return
 
-        self.user.certificate_name = certificate_name
+        profile.certificate_name = certificate_name
         if commit:
-            self.user.save(update_fields=["certificate_name"])
+            profile.save(update_fields=["certificate_name"])
 
     def save(self, commit=True):
         enrollment = self._save_enrollment(commit)

@@ -13,6 +13,12 @@ from django.shortcuts import redirect, render
 
 from accounts.forms import AboutYouForm, about_you_country_options
 from allauth.socialaccount.models import SocialAccount
+from courses.models.learner_profile import (
+    LearnerProfile,
+    ensure_learner_profile,
+    learner_profile_for,
+    profile_field_default,
+)
 
 
 def _social_prefill_initial(user) -> dict:
@@ -26,13 +32,22 @@ def _social_prefill_initial(user) -> dict:
 
     initial: dict = {}
     accounts = SocialAccount.objects.filter(user=user)
+    profile = learner_profile_for(user)
+    github_url = (
+        profile.github_url if profile is not None else profile_field_default("github_url")
+    )
+    certificate_name = (
+        profile.certificate_name
+        if profile is not None
+        else profile_field_default("certificate_name")
+    )
     for account in accounts:
         extra_data = account.extra_data if isinstance(account.extra_data, dict) else {}
-        if account.provider == "github" and not user.github_url:
+        if account.provider == "github" and not github_url:
             profile_url = extra_data.get("html_url")
             if isinstance(profile_url, str) and profile_url.strip():
                 initial.setdefault("github_url", profile_url.strip())
-        if account.provider in {"google", "slack"} and not user.certificate_name:
+        if account.provider in {"google", "slack"} and not certificate_name:
             name = extra_data.get("name") or extra_data.get("real_name")
             if isinstance(name, str) and name.strip():
                 initial.setdefault("certificate_name", name.strip())
@@ -45,12 +60,28 @@ def welcome(request):
     # the page and skipping the checklist item are separate acts, so it
     # writes nothing to ``home_dismissals``.
     if request.method == "POST":
-        form = AboutYouForm(request.POST, instance=request.user)
+        form = AboutYouForm(request.POST, instance=ensure_learner_profile(request.user))
         if form.is_valid():
             form.save()
             return redirect("home")
     else:
-        form = AboutYouForm(instance=request.user, initial=_social_prefill_initial(request.user))
+        form = AboutYouForm(
+            instance=_unbound_or_existing_profile(request.user),
+            initial=_social_prefill_initial(request.user),
+        )
 
     context = {"form": form, "country_options": about_you_country_options()}
     return render(request, "account/welcome.html", context)
+
+
+def _unbound_or_existing_profile(user):
+    """The profile instance for a GET render, without creating a row.
+
+    Rendering must stay write-free for accounts that have no profile row yet
+    (bulk-seeded accounts): an unsaved instance renders the same defaults.
+    """
+
+    profile = learner_profile_for(user)
+    if profile is None:
+        return LearnerProfile(user=user)
+    return profile

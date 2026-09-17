@@ -32,7 +32,15 @@ def graduates_data_view(request, course_slug: str):
     for enrollment in passed_enrollments:
         student = enrollment.student
         email = student.email
-        name = student.certificate_name or enrollment.display_name
+        from courses.models.learner_profile import learner_profile_for, profile_field_default
+
+        profile = learner_profile_for(student)
+        certificate_name = (
+            profile.certificate_name
+            if profile is not None
+            else profile_field_default("certificate_name")
+        )
+        name = certificate_name or enrollment.display_name
         graduate_record = {
             "email": email,
             "name": name,

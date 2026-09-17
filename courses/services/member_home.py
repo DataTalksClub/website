@@ -67,7 +67,16 @@ EVENTS_CAP = 3
 def profile_is_complete(user) -> bool:
     """Derived, never a flag (§7.1.2): the three onboarding-owned fields are set."""
 
-    return bool(user.certificate_name and user.country and user.registration_role)
+    from courses.models.learner_profile import learner_profile_for, profile_field_default
+
+    profile = learner_profile_for(user)
+    if profile is None:
+        return bool(
+            profile_field_default("certificate_name")
+            and profile_field_default("country")
+            and profile_field_default("registration_role")
+        )
+    return bool(profile.certificate_name and profile.country and profile.registration_role)
 
 
 @dataclass(frozen=True, slots=True)

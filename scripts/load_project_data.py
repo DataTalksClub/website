@@ -33,6 +33,7 @@ from django.db import transaction
 from courses.models import (
     Cohort,
     Enrollment,
+    LearnerProfile,
     Project,
     ProjectSubmission,
     PeerReview,
@@ -271,13 +272,19 @@ def existing_users_by_username(users_data):
 
 
 def build_user(user_data):
-    certificate_name = user_data.get("certificate_name", "")
-    dark_mode = user_data.get("dark_mode", False)
     return User(
         username=user_data["username"],
         email=user_data["email"],
-        certificate_name=certificate_name,
-        dark_mode=dark_mode,
+    )
+
+
+def build_learner_profile(user_id, user_data):
+    # The course-platform fields moved to LearnerProfile (plan D3.1); the
+    # JSON export still carries them inside the user record.
+    return LearnerProfile(
+        user_id=user_id,
+        certificate_name=user_data.get("certificate_name", "") or None,
+        dark_mode=bool(user_data.get("dark_mode", False)),
     )
 
 
@@ -301,6 +308,16 @@ def create_users(users_data, maps: ImportMaps) -> None:
     existing_users = existing_users_by_username(users_data)
     users_to_create = pending_user_imports(users_data, existing_users, maps)
     bulk_create_mapped(User, users_to_create, maps.user_id_map)
+    profiles = [
+        build_learner_profile(new_id, user_data)
+        for user_data, new_id in (
+            (user_data, maps.user_id_map[user_data["id"]])
+            for user_data in users_data
+            if user_data["username"] not in existing_users
+        )
+    ]
+    if profiles:
+        LearnerProfile.objects.bulk_create(profiles, batch_size=500)
 
     print(
         "✓ Users ready "

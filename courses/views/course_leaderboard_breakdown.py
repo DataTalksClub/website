@@ -8,14 +8,20 @@ from courses.models.project import ProjectSubmission
 
 
 def leaderboard_score_breakdown_context(enrollment, user):
+    # The four public-profile fields the template renders moved onto the
+    # learner's LearnerProfile row (plan D3.1), so the opted-in record handed
+    # to the template is that row, not the user.
+    from courses.models.learner_profile import learner_profile_for
+
     is_own_record = (
         user.is_authenticated and user.id == enrollment.student_id
     )
     public_profile = None
     if enrollment.display_public_profile:
-        public_profile = enrollment.student
+        public_profile = learner_profile_for(enrollment.student)
+    # The prompt is about the opt-in, not about whether the row exists yet.
     show_public_profile_settings_link = (
-        is_own_record and public_profile is None
+        is_own_record and not enrollment.display_public_profile
     )
     submissions = leaderboard_homework_submissions(enrollment)
     project_submissions = ProjectSubmission.objects.filter(

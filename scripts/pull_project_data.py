@@ -72,12 +72,21 @@ def serialize_datetime(obj):
 
 def extract_user_data(user):
     """Extract relevant user data"""
+    from courses.models.learner_profile import learner_profile_for, profile_field_default
+
+    profile = learner_profile_for(user)
+    certificate_name = (
+        profile.certificate_name
+        if profile is not None
+        else profile_field_default("certificate_name")
+    )
+    dark_mode = profile.dark_mode if profile is not None else profile_field_default("dark_mode")
     return {
         "id": user.id,
         "username": user.username,
         "email": user.email,
-        "certificate_name": user.certificate_name,
-        "dark_mode": user.dark_mode,
+        "certificate_name": certificate_name,
+        "dark_mode": dark_mode,
     }
 
 

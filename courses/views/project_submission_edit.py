@@ -166,13 +166,16 @@ def update_user_certificate_name_from_post(
     request: HttpRequest,
     user: User,
 ) -> None:
+    from courses.models.learner_profile import ensure_learner_profile
+
     raw_certificate_name = request.POST.get("certificate_name", "")
     certificate_name = raw_certificate_name.strip()
     if not certificate_name:
         return
 
-    user.certificate_name = certificate_name
-    user.save(update_fields=["certificate_name"])
+    profile = ensure_learner_profile(user)
+    profile.certificate_name = certificate_name
+    profile.save(update_fields=["certificate_name"])
 
 
 def apply_project_submission_post_fields(

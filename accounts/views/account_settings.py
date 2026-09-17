@@ -50,8 +50,14 @@ def _account_settings_post_data(request, user):
 
 
 def _preserve_local_account_toggles(data, user):
+    from courses.models.learner_profile import learner_profile_for, profile_field_default
+
+    profile = learner_profile_for(user)
     for field in LOCAL_ACCOUNT_TOGGLE_FIELDS:
-        if getattr(user, field):
+        value = (
+            getattr(profile, field) if profile is not None else profile_field_default(field)
+        )
+        if value:
             data[field] = "on"
         else:
             data.pop(field, None)
