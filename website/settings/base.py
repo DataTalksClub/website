@@ -162,6 +162,12 @@ INSTALLED_APPS = [
     # D2.2a: the package content sync engine. Sources and parsers are
     # site owned; nothing serving changes until the D2.2c route cutover.
     "community_base.content_sync",
+    # D7.1: the shared knowledge base app stores the wiki and documentation
+    # pages the dtc-podwiki and dtc-docs parsers write. The public routes,
+    # templates and the knowledge graph stay in `content`; only storage and
+    # hierarchy resolution are the package's. The package Studio and public
+    # URL modules are deliberately not mounted.
+    "community_base.knowledge_base",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
