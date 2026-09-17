@@ -151,7 +151,7 @@ class HomeworkScoreNotificationTest(PackageNotificationBase):
         self.assertEqual(latest.category, "submission-results")
         self.assertEqual(latest.context_data["total_score"], 8)
         self.assertEqual(latest.context_data["scores_url"],
-                         "https://courses.example.com/courses/ml-zoomcamp/cohorts/2026/homework/homework-1")
+                         "https://courses.example.com/courses/ml-zoomcamp/2026/homework/homework-1")
         stale = EmailDelivery.objects.filter(
             recipient_email="scored@example.com",
         )
@@ -249,7 +249,7 @@ class ProjectScoreNotificationTest(PackageNotificationBase):
         self.assertEqual(context["total_score"], 98)
         self.assertEqual(context["github_link"], "https://github.com/example/project")
         self.assertEqual(context["scores_url"],
-                         "https://courses.example.com/courses/ml-zoomcamp/cohorts/2026/project/midterm/results")
+                         "https://courses.example.com/courses/ml-zoomcamp/2026/project/midterm/results")
 
 
 class PeerReviewAssignmentNotificationTest(PackageNotificationBase):
