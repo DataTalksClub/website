@@ -108,9 +108,7 @@ def _protected_course_template_rows() -> list[dict[str, str]]:
         for row in _read_tsv(MANIFEST_PATH)
         if row["source_path"].startswith(PROTECTED_COURSE_TEMPLATE_PREFIX)
     ]
-    retired = retired_adoption_destinations(
-        REPO_ROOT, (row["destination_path"] for row in rows)
-    )
+    retired = retired_adoption_destinations(REPO_ROOT, (row["destination_path"] for row in rows))
     return [row for row in rows if row["destination_path"] not in retired]
 
 

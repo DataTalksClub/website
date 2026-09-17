@@ -84,8 +84,7 @@ VERDICTS: dict[str, Verdict] = {
         "structural work against a budget; it returns bytes and never resolves a row.",
     ),
     "SnapshotPathHardeningTests": Verdict(
-        "The snapshot path predicates compare strings; a refused name never reaches a "
-        "reader.",
+        "The snapshot path predicates compare strings; a refused name never reaches a reader.",
     ),
     "FetchBudgetTests": Verdict(
         "content_sync.course_repository_ingest.fetch_course_repository_snapshot reads a "
