@@ -291,7 +291,7 @@ def accessibility_environment() -> AccessibilityEnvironment:
     audit_id = uuid.uuid5(uuid.NAMESPACE_URL, f"https://web.dtcdev.click/{namespace}/audit")
 
     event = published_event_records()[0]
-    database_event = Event.objects.filter(pk=event["identity_id"]).first()
+    database_event = Event.objects.filter(content_id=event["identity_id"]).first()
     if database_event is not None:
         event = {**event, "public_path": canonical_detail_path(database_event.content_id)}
     person_path = event["speakers"][0]["public_path"]

@@ -375,8 +375,8 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
         "href", f"https://datatalks.club{canonical}"
     )
 
-    event = Event.objects.get(id=first_of_page_two["identity_id"])
-    uuid_path = page.request.get(f"{origin}/events/{event.id}", max_redirects=0)
+    event = Event.objects.get(content_id=first_of_page_two["identity_id"])
+    uuid_path = page.request.get(f"{origin}/events/{event.content_id}", max_redirects=0)
     assert uuid_path.status == 404
     dated_path = page.request.get(
         f"{origin}/events/{event.source_identity.source_key}", max_redirects=0
