@@ -92,9 +92,8 @@ class Settings:
     def student_address(self, label: str) -> str:
         """Build a unique, namespaced student address for a run.
 
-        With Datamailer's ``dry_run`` flag there are no special mock/real
-        inbox addresses: nothing is delivered, so any normal address works.
-        Email verification reads CMP's own send audit, keyed on this address.
+        The development target delivers nothing to it, so any normal
+        address works; the namespace only has to make the run recognizable.
         """
         clean = _address_label(label)
         return f"{clean}@example.com"

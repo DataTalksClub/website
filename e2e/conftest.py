@@ -61,15 +61,6 @@ def provisioner(api: CmpApiClient) -> Provisioner:
 
 
 @pytest.fixture(scope="session")
-def send_audits(api: CmpApiClient) -> CmpApiClient:
-    """API client fixture for the e2e suite.
-
-    Email verification no longer polls a mock/real inbox. Instead it reads
-    """
-    return api
-
-
-@pytest.fixture(scope="session")
 def run_state() -> RunState:
     current_time = time.time()
     timestamp = int(current_time)

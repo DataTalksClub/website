@@ -27,8 +27,6 @@ class ApiError(RuntimeError):
         super().__init__(message)
 
 
-
-
 @dataclass(frozen=True)
 class ApiRequestData:
     method: str

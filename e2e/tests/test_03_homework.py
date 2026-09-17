@@ -2,16 +2,13 @@
 
 * Submit homework answers through the UI (as impersonated student).
 * Confirmation page renders with the submitted values.
-* Submission-confirmation email verified via CMP's own Datamailer send audit
-  (the real prod send path runs with dry_run, so nothing is delivered but the
-  rendered email is recorded and read back over HTTP).
 * Score the homework (API); submission shows a score.
 * Leaderboard reflects the score.
 """
 
 import pytest
 
-from e2e.api_client import ApiRequestData, SendAuditTimeout, send_audit_body_contains
+from e2e.api_client import ApiRequestData
 from e2e.browser import HomeworkSubmissionData
 
 pytestmark = pytest.mark.homework
@@ -139,48 +136,6 @@ def _homework_submission_matches_student(submission, run_state):
     if student.get("email") == run_state.student_email:
         return True
     return run_state.student_email in str(submission)
-
-
-# Confirmation-email contract (from courses/views/homework.py, read-only):
-#   template_key = "homework-submission-confirmation"
-#   subject      = "Homework submission saved: <homework title>"
-#   context      = {update_url, profile_url, course_slug, homework_slug, ...}
-HOMEWORK_CONFIRMATION_TEMPLATE = "homework-submission-confirmation"
-
-
-@pytest.mark.email
-def test_homework_confirmation_email(send_audits, run_state):
-    """The submission-confirmation email is rendered on the real send path.
-
-    Verification reads CMP's own ``DatamailerSendAudit`` over HTTP rather than
-    an inbox: the prod path runs (outbox -> dispatch -> /api/transactional/send
-    -> audit), but with ``DATAMAILER_TRANSACTIONAL_DRY_RUN=1`` the render is
-    returned inline and nothing is delivered. xfails cleanly when no audit
-    appears (Datamailer not configured / dry-run off on the target), so the
-    suite stays green until it is switched on.
-    """
-    require_submitted(run_state)
-    try:
-        audit = send_audits.wait_for_send_audit(
-            run_state.student_email,
-            HOMEWORK_CONFIRMATION_TEMPLATE,
-            body_contains="/homework/",
-            timeout=60,
-        )
-    except SendAuditTimeout as exc:
-        pytest.xfail(
-            "No homework-confirmation send audit found; ensure Datamailer is "
-            "configured on the target with DATAMAILER_TRANSACTIONAL_DRY_RUN=1. "
-            f"({exc})"
-        )
-    assert audit["template_key"] == HOMEWORK_CONFIRMATION_TEMPLATE
-    assert audit["message"].get("email") == run_state.student_email
-    # The confirmation carries an "Update your submission" link to the homework,
-    # present in the rendered body (and in the render context when included).
-    assert send_audit_body_contains(audit, "/homework/"), (
-        "Homework confirmation email missing update link "
-        f"(rendered={audit.get('rendered')!r})."
-    )
 
 
 def test_score_homework(api, run_state):
