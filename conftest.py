@@ -138,6 +138,18 @@ _EMAIL_PREFERENCES_CONSOLE_RE = re.compile(
 _OFFLINE_ROUTE_BYTES: dict[str, tuple[bytes, str]] = {}
 _YOUTUBE_EMBED_ORIGIN = "https://www.youtube-nocookie.com"
 _SPOTIFY_EMBED_ORIGIN = "https://creators.spotify.com"
+# The reviewed provider embeds an episode page may frame, keyed by origin and by
+# the exact path shape `content.podcast_content` builds. The origins are the same
+# ones `core.middleware`'s `frame-src` allows; the path shapes keep the stub to
+# the embed endpoint rather than the whole host. The creator profile inside the
+# path is content, not a boundary -- pinning one account's slug here is what made
+# the stub stop matching when the browser database moved to the synthetic
+# catalogue.
+_PROVIDER_EMBED_ROUTES = (
+    (_YOUTUBE_EMBED_ORIGIN, re.compile(r"^/embed/")),
+    (_SPOTIFY_EMBED_ORIGIN, re.compile(r"^/pod/[^/]+/[^/]+/embed/episodes/")),
+    ("https://open.spotify.com", re.compile(r"^/embed/episode/")),
+)
 PUBLIC_EVENT_TEST_NOW = datetime(2026, 8, 12, tzinfo=ZoneInfo("Europe/Berlin"))
 _LIVE_SERVER_READY_TIMEOUT_SECONDS = 10.0
 _LIVE_SERVER_SHUTDOWN_TIMEOUT_SECONDS = 10.0
@@ -834,24 +846,13 @@ def context(
                 headers={"access-control-allow-origin": "*"},
             )
             return
-        if (
-            authorization is None
-            and f"{parsed.scheme}://{parsed.netloc}" == _YOUTUBE_EMBED_ORIGIN
-            and parsed.path.startswith("/embed/")
+        if authorization is None and any(
+            f"{parsed.scheme}://{parsed.netloc}" == origin and pattern.match(parsed.path)
+            for origin, pattern in _PROVIDER_EMBED_ROUTES
         ):
             # Episode pages render a validated provider iframe.  Keep every core
             # browser scenario offline while allowing the iframe contract itself
             # to load, just as episode-specific tests do with their page route.
-            route.fulfill(status=200, content_type="text/html", body="")
-            return
-        if (
-            authorization is None
-            and f"{parsed.scheme}://{parsed.netloc}" == _SPOTIFY_EMBED_ORIGIN
-            and parsed.path.startswith("/pod/profile/datatalksclub/embed/episodes/")
-        ):
-            # The accepted podcast projection now uses Spotify's creator embed
-            # host. Keep core browser tests offline while exercising the iframe
-            # itself, under the same exact-origin boundary as YouTube above.
             route.fulfill(status=200, content_type="text/html", body="")
             return
         origin = f"{parsed.scheme}://{parsed.netloc}"
