@@ -35,4 +35,6 @@ Where the rest went: app and service boundaries are in
 `_docs/architecture/app-boundaries.md`; the page shell is in
 `_docs/design/design-system.md` and enforced by
 `courses/tests/test_content_page_shell.py`; the development host is in
-`deploy/development_target.py`.
+`deploy/development_target.py`; the prod ingest pipeline — every source, its
+run order, and what `scripts/production_data.py` does — is in
+`_docs/runbooks/data-ingest.md`.
