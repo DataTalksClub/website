@@ -28,9 +28,13 @@ class CourseListProjectsSectionTest(CourseListViewTestBase):
         response = self.course_list_response()
         content = response.content.decode()
 
-        steps_index = content.index("How our zoomcamp works")
-        projects_index = content.index("Learn by building")
-        faq_index = content.index("Frequent questions")
+        # Anchor on the section headings' ids, not their copy: the shared
+        # stylesheet names the catalogue card's other caller in a comment that
+        # quotes "Learn by building", so the plain heading text also matches a
+        # rule far earlier in the page than any of these three sections.
+        steps_index = content.index('id="how-it-works-heading"')
+        projects_index = content.index('id="courses-projects-heading"')
+        faq_index = content.index('id="courses-faq-heading"')
 
         self.assertLess(steps_index, projects_index)
         self.assertLess(projects_index, faq_index)
