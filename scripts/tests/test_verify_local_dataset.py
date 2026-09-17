@@ -460,6 +460,21 @@ def test_the_reviewed_manifest_loads(tmp_path: Path) -> None:
     assert expectations["module_curricula"]["de-zoomcamp-2026"] == (7, 72)
 
 
+def test_the_checked_in_manifest_loads() -> None:
+    """The actual reviewed file, not a synthetic fixture standing in for it.
+
+    ``_manifest()`` above never carries the ``note`` annotations the real
+    manifest uses to record review rationale, so a shape check that rejected
+    them shipped unnoticed until a real bootstrap run hit it.
+    """
+
+    from scripts.verify_local_dataset import DEFAULT_EXPECTATIONS_PATH, _load_expectations
+
+    expectations = _load_expectations(DEFAULT_EXPECTATIONS_PATH)
+
+    assert expectations["expected_cohorts"]
+
+
 def test_an_unknown_schema_is_refused_clearly(tmp_path: Path) -> None:
     from scripts.verify_local_dataset import ExpectationError, _load_expectations
 

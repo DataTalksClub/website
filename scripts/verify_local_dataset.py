@@ -94,7 +94,11 @@ def _load_expectations(path: str | Path = DEFAULT_EXPECTATIONS_PATH) -> dict[str
     except (TypeError, ValueError) as exc:
         raise ExpectationError("expectation manifest as_of must be an ISO date") from exc
     cohorts = payload["cohorts"]
-    if not isinstance(cohorts, dict) or set(cohorts) != {"expected", "module_curricula"}:
+    if (
+        not isinstance(cohorts, dict)
+        or set(cohorts) - {"note"} != {"expected", "module_curricula"}
+        or ("note" in cohorts and not isinstance(cohorts["note"], str))
+    ):
         raise ExpectationError("expectation manifest cohorts block is invalid")
     expected = cohorts["expected"]
     if (
