@@ -1,31 +1,25 @@
 """Tests for Event identity: allocation, lookup, canonical routes, and serialization.
 
-Moved from ``events/tests/test_identity.py`` when ``events/identity.py`` was
-dissolved: what is tested here is what a live route, Studio, or the admin API
-actually resolves an Event by, and it now lives directly on ``events/models.py``
--- see that module's "Identity: allocation, lookup, and canonical-path building"
-section. The reviewed manifest's own parsing/replay tests moved to
-``scripts/tests/test_identity_manifest.py`` alongside the ingest module that
-now owns that machinery; the provider-identity and duplicate-creation-guard
-tests moved to ``scripts/tests/test_registrant_import.py`` alongside
-``scripts/prod/registrant_import.py``.
+The identity policy these tests exercise moved from the former site
+``events.models`` onto ``events/identity.py`` driving the shared
+``community_base.events.Event`` row (#412): the public-ID allocator, the exact
+source-identity resolution, and the canonical path builders. The row itself is
+package-owned, so what is tested here is the site policy that wraps it.
 """
 
 from __future__ import annotations
 
 import re
-import uuid
 from typing import ClassVar
 
+from community_base.events.models import Event, EventPublicIdSequence
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import Resolver404, resolve
 
 from content import catalogue
-from events.models import (
-    Event,
-    EventContent,
+from events.identity import (
     EventIdentityNotFound,
-    EventPublicIdSequence,
     canonical_detail_path,
     canonical_registration_path,
     create_event_identity,
@@ -34,6 +28,15 @@ from events.models import (
     serialize_event_identity,
 )
 from events.queries import published_event_records
+from events.slugs import event_title_slug
+
+
+def give_content(event: Event, *, title_text: str = "A synthetic event.") -> None:
+    """Put a row into the published state its record needs, as the import would."""
+
+    event.description_html = f"<p>{title_text}</p>"
+    event.description = title_text
+    event.save(update_fields=("description_html", "description", "updated_at"))
 
 
 class EventIdentityTests(TestCase):
@@ -48,7 +51,7 @@ class EventIdentityTests(TestCase):
             source_revision="a" * 40,
             source_key="fixture-event",
         )
-        first_id = first.id
+        first_id = first.content_id
         first_public_id = first.public_id
         self.assertEqual(first_public_id, expected_first_public_id)
         first.delete()
@@ -59,25 +62,15 @@ class EventIdentityTests(TestCase):
             source_key="fixture-event-2",
         )
         self.assertEqual(second.public_id, expected_first_public_id + 1)
-        self.assertNotEqual(second.id, first_id)
+        self.assertNotEqual(second.content_id, first_id)
         self.assertEqual(
             EventPublicIdSequence.objects.get(pk=1).next_public_id,
             expected_first_public_id + 2,
         )
 
         second.public_id = 500
-        with self.assertRaisesMessage(ValueError, "event public ID is immutable"):
+        with self.assertRaisesMessage(ValidationError, "public_id is immutable"):
             second.save()
-        with self.assertRaisesMessage(
-            ValueError,
-            "event public ID must be allocated by the identity service",
-        ):
-            Event.objects.create(
-                title="Unallocated",
-                source_repository="DataTalksClub/test",
-                source_revision="a" * 40,
-                source_key="unallocated",
-            )
 
     def test_title_change_updates_only_cosmetic_slug(self) -> None:
         event = create_event_identity(
@@ -86,43 +79,47 @@ class EventIdentityTests(TestCase):
             source_revision="a" * 40,
             source_key="fixture-event",
         )
-        event_id = event.id
+        event_id = event.content_id
         public_id = event.public_id
+        # The slug is a cosmetic snapshot of the title under the site's own
+        # truncation policy; writers go through the same helper the import
+        # uses, and the identity keys never move.
         event.title = "Identity fixture renamed"
-        event.slug = ""
+        event.slug = event_title_slug(event.title)
         event.save()
         event.refresh_from_db()
 
-        self.assertEqual((event.id, event.public_id), (event_id, public_id))
+        self.assertEqual((event.content_id, event.public_id), (event_id, public_id))
         self.assertEqual(event.slug, "identity-fixture-renamed")
         self.assertEqual(
-            canonical_detail_path(event.id),
+            canonical_detail_path(event.content_id),
             f"/events/{public_id}/identity-fixture-renamed",
         )
-        self.assertEqual(current_slug(event.id), "identity-fixture-renamed")
-        event.id = uuid.uuid4()
-        with self.assertRaisesMessage(ValueError, "event identity cannot be reassigned"):
-            event.save()
+        self.assertEqual(current_slug(event.content_id), "identity-fixture-renamed")
 
     def test_exact_source_identity_resolution_never_guesses(self) -> None:
-        event = Event.objects.order_by("source_key").first()
+        event = (
+            Event.objects.order_by("source_identity__source_key").first()
+        )
         assert event is not None
+        source = event.source_identity
         self.assertEqual(
             resolve_source_identity(
-                repository=event.source_repository,
-                revision=event.source_revision,
-                source_key=event.source_key,
-            ).id,
-            event.id,
+                repository=source.repository,
+                revision=source.revision,
+                source_key=source.source_key,
+            ).content_id,
+            event.content_id,
         )
         self.assertEqual(
-            canonical_registration_path(event.id), canonical_detail_path(event.id) + "/register"
+            canonical_registration_path(event.content_id),
+            canonical_detail_path(event.content_id) + "/register",
         )
         with self.assertRaises(EventIdentityNotFound):
             resolve_source_identity(
-                repository=event.source_repository,
-                revision=event.source_revision,
-                source_key=event.source_key + "-guessed",
+                repository=source.repository,
+                revision=source.revision,
+                source_key=source.source_key + "-guessed",
             )
 
     def test_public_projection_and_management_metadata_keep_the_identity_boundary(self) -> None:
@@ -141,18 +138,18 @@ class EventIdentityTests(TestCase):
         event = Event.objects.order_by("public_id").first()
         assert event is not None
         serialized = serialize_event_identity(event)
-        self.assertEqual(serialized["id"], str(event.id))
+        self.assertEqual(serialized["id"], str(event.content_id))
         self.assertEqual(serialized["public_id"], event.public_id)
-        self.assertEqual(serialized["canonical_path"], canonical_detail_path(event.id))
+        self.assertEqual(serialized["canonical_path"], canonical_detail_path(event.content_id))
         self.assertEqual(
-            serialized["public_url"], f"https://datatalks.club{canonical_detail_path(event.id)}"
+            serialized["public_url"], f"https://datatalks.club{canonical_detail_path(event.content_id)}"
         )
-        self.assertNotIn(str(event.id), serialized["canonical_path"])
+        self.assertNotIn(str(event.content_id), serialized["canonical_path"])
         with self.assertRaises(Resolver404):
             resolve(f"/api/v1/admin/events/identities/{event.public_id}")
         self.assertEqual(
-            resolve(f"/api/v1/admin/events/identities/{event.id}").kwargs["event_id"],
-            event.id,
+            resolve(f"/api/v1/admin/events/identities/{event.content_id}").kwargs["event_id"],
+            event.content_id,
         )
 
 
@@ -165,7 +162,7 @@ class EventIdentityRouteTests(TestCase):
         event = Event.objects.order_by("public_id").first()
         assert event is not None
         cls.event = event
-        cls.path = canonical_detail_path(event.id)
+        cls.path = canonical_detail_path(event.content_id)
 
     def test_canonical_get_head_and_metadata_are_numeric_only(self) -> None:
         response = self.client.get(self.path)
@@ -183,7 +180,7 @@ class EventIdentityRouteTests(TestCase):
         )
         body = response.content.decode()
         self.assertIn(f'"url": "https://datatalks.club{self.path}"', body)
-        self.assertNotIn(str(self.event.id), body)
+        self.assertNotIn(str(self.event.content_id), body)
         head = self.client.head(self.path)
         self.assertEqual(head.status_code, 200)
         self.assertEqual(head.content, b"")
@@ -225,7 +222,7 @@ class EventIdentityRouteTests(TestCase):
         # The stored slug respects the URL budget: however long the title the
         # event was imported under, the canonical address carries the truncated
         # slug, cut at a word boundary.
-        canonical = canonical_detail_path(event.id)
+        canonical = canonical_detail_path(event.content_id)
         self.assertEqual(
             canonical,
             f"/events/{event.public_id}/how-to-work-with-ai-coding-agents-spec-driven-development",
@@ -234,15 +231,7 @@ class EventIdentityRouteTests(TestCase):
         # stale slug like any other: exactly one redirect hop to canonical.
         stale_path = f"{canonical}-context-and-loop-engineering-workflows"
 
-        # Identity alone publishes nothing: the page renders once the event
-        # carries its content row.
-        EventContent.objects.create(
-            event=event,
-            type=EventContent.Type.WEBINAR,
-            starts_at="2026-08-10T15:00:00+00:00",
-            description_html="<p>A synthetic long-slug event.</p>",
-            description_text="A synthetic long-slug event.",
-        )
+        give_content(event, title_text="A synthetic long-slug event.")
 
         response = self.client.get(stale_path, follow=False)
 
@@ -285,10 +274,10 @@ class EventIdentityRouteTests(TestCase):
             f"/events/0/{self.event.slug}",
             f"/events/{public_id}/{self.event.slug}/",
             f"/events/{public_id}/",
-            f"/events/{str(self.event.id).upper()}/{self.event.slug}",
-            f"/events/{self.event.id}/",
-            f"/events/{self.event.id}/{self.event.slug}",
-            f"/events/{self.event.id}",
+            f"/events/{str(self.event.content_id).upper()}/{self.event.slug}",
+            f"/events/{self.event.content_id}/",
+            f"/events/{self.event.content_id}/{self.event.slug}",
+            f"/events/{self.event.content_id}",
             "/events/not-inventoried",
             "/events/00000000-0000-4000-8000-000000000000/nope",
         )
@@ -328,12 +317,13 @@ class EventIdentityRouteTests(TestCase):
         # No legacy_date_path alias rows exist any more to look up: the source key of
         # a manifest-sourced event still carries the date-prefixed spelling verbatim,
         # so it stands in for the retired alias path without depending on removed data.
+        source_key = self.event.source_identity.source_key
         for path in (
-            f"/events/{self.event.source_key}",
-            f"/events/{self.event.source_key}/",
+            f"/events/{source_key}",
+            f"/events/{source_key}/",
             "/events/not-inventoried",
-            f"/events/{self.event.id}/{self.event.slug}",
-            f"/events/{self.event.id}",
+            f"/events/{self.event.content_id}/{self.event.slug}",
+            f"/events/{self.event.content_id}",
         ):
             with self.subTest(path=path):
                 get_response = self.client.get(path, follow=False)

@@ -835,11 +835,11 @@ def _courses(context: FactoryContext, state: str) -> dict[str, object]:
 
 
 def _events(context: FactoryContext, state: str) -> dict[str, object]:
-    SourceRun = _model("events.HistoricalRegistrationSourceRun")
-    Aggregate = _model("events.HistoricalRegistrationAggregateRevision")
-    Slot = _model("events.HistoricalRegistrationAggregateSlot")
-    Displacement = _model("events.HistoricalRegistrationPointerDisplacement")
-    Total = _model("events.HistoricalRegistrationTotalState")
+    SourceRun = _model("historical_registrations.HistoricalRegistrationSourceRun")
+    Aggregate = _model("historical_registrations.HistoricalRegistrationAggregateRevision")
+    Slot = _model("historical_registrations.HistoricalRegistrationAggregateSlot")
+    Displacement = _model("historical_registrations.HistoricalRegistrationPointerDisplacement")
+    Total = _model("historical_registrations.HistoricalRegistrationTotalState")
     prefix = "historical_event_totals"
     run = SourceRun.objects.create(
         id=_uuid(context, f"{prefix}.historical_source_run", state),
@@ -867,7 +867,7 @@ def _events(context: FactoryContext, state: str) -> dict[str, object]:
     )
     aggregate_factory = f"{prefix}.historical_aggregate_revision"
     aggregate_key = _key(context, aggregate_factory, state)
-    from events.models import create_event_identity
+    from events.identity import create_event_identity
 
     canonical_event = create_event_identity(
         event_id=_uuid(context, f"{prefix}.event", state),
@@ -905,9 +905,9 @@ def _events(context: FactoryContext, state: str) -> dict[str, object]:
     )
     slot = Slot.objects.create(
         id=_uuid(context, f"{prefix}.historical_aggregate_slot", state),
-        canonical_repository=canonical_event.source_repository,
-        canonical_revision=canonical_event.source_revision,
-        canonical_source_key=canonical_event.source_key,
+        canonical_repository=canonical_event.source_identity.repository,
+        canonical_revision=canonical_event.source_identity.revision,
+        canonical_source_key=canonical_event.source_identity.source_key,
         canonical_slug_snapshot=canonical_event.slug,
         provider="luma",
         coverage_boundary="synthetic-all",
@@ -921,18 +921,18 @@ def _events(context: FactoryContext, state: str) -> dict[str, object]:
     )
     total = Total.objects.create(
         id=_uuid(context, f"{prefix}.historical_total_state", state),
-        canonical_repository=canonical_event.source_repository,
-        canonical_revision=canonical_event.source_revision,
-        canonical_source_key=canonical_event.source_key,
+        canonical_repository=canonical_event.source_identity.repository,
+        canonical_revision=canonical_event.source_identity.revision,
+        canonical_source_key=canonical_event.source_identity.source_key,
         canonical_slug_snapshot=canonical_event.slug,
         complete=state != "stale_conflict",
     )
     boundary_factory = f"{prefix}.aggregate_to_native_boundary"
     boundary = Slot.objects.create(
         id=_uuid(context, boundary_factory, state),
-        canonical_repository=canonical_event.source_repository,
-        canonical_revision=canonical_event.source_revision,
-        canonical_source_key=canonical_event.source_key,
+        canonical_repository=canonical_event.source_identity.repository,
+        canonical_revision=canonical_event.source_identity.revision,
+        canonical_source_key=canonical_event.source_identity.source_key,
         canonical_slug_snapshot=canonical_event.slug,
         provider="luma",
         coverage_boundary="synthetic-native",
@@ -940,18 +940,18 @@ def _events(context: FactoryContext, state: str) -> dict[str, object]:
     )
     from core.models import AuditEvent
     from core.services import ServiceContext
-    from events.services import replace_aggregate_with_row_projection
+    from historical_registrations.services import replace_aggregate_with_row_projection
 
     with (
         patch(
-            "events.services.event_public_record",
+            "events.queries.event_public_record",
             return_value={
-                "identity_id": str(canonical_event.id),
+                "identity_id": str(canonical_event.content_id),
                 "slug": canonical_event.slug,
                 "provenance": {
-                    "repository": canonical_event.source_repository,
-                    "revision": canonical_event.source_revision,
-                    "source_key": canonical_event.source_key,
+                    "repository": canonical_event.source_identity.repository,
+                    "revision": canonical_event.source_identity.revision,
+                    "source_key": canonical_event.source_identity.source_key,
                 },
             },
         ),
@@ -1003,7 +1003,7 @@ def _events(context: FactoryContext, state: str) -> dict[str, object]:
             invalid.full_clean()
         except ValidationError:
             aggregate_value = _rejected(
-                "events.historicalregistrationaggregaterevision",
+                "historical_registrations.historicalregistrationaggregaterevision",
                 "missing_external_event_identifier",
             )
         else:

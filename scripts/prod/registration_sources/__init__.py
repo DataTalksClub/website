@@ -18,7 +18,7 @@ management API already render as a bounded refusal.
 
 from __future__ import annotations
 
-from events.importers import register_source_reader
+from historical_registrations.importers import register_source_reader
 
 from . import eventbrite, luma
 

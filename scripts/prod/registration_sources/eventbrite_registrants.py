@@ -60,7 +60,8 @@ from typing import NoReturn
 from zipfile import BadZipFile, ZipFile
 
 from accounts.identity_values import normalize_account_email
-from events.models import Event, EventRegistration
+from event_registrants.models import EventRegistration
+from community_base.events.models import Event
 from scripts.prod.registrant_import import (
     PendingEventRegistrants,
     RegistrantImportError,
@@ -150,7 +151,7 @@ def load_resolved_eventbrite_identities(
 
 
 def _resolve_canonical_event(identity: CanonicalEventbriteIdentity) -> Event | None:
-    from events.models import EventIdentityNotFound, resolve_source_identity
+    from events.identity import EventIdentityNotFound, resolve_source_identity
 
     try:
         return resolve_source_identity(

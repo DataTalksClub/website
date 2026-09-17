@@ -27,7 +27,7 @@ from core.navigation import SITE_NAVIGATION_CAPABILITIES
 from core.operational_settings_service import OPERATIONAL_SETTING_CAPABILITIES
 from core.site_settings import SITE_SETTING_CAPABILITIES
 from core.sponsors import SPONSOR_CAPABILITIES
-from events.capabilities import EVENT_CAPABILITIES
+from historical_registrations.capabilities import EVENT_CAPABILITIES
 from management_auth.fixture_capabilities import CREDENTIAL_FIXTURE_CAPABILITIES
 from management_auth.policies import (
     HIGH_RISK_FRESH_CONFIRMATION_POLICY,

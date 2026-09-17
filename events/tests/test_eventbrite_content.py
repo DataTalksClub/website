@@ -15,8 +15,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from community_base.events.models import Event
 from django.test import TestCase
 
+from content.models import EventSource
 from events.eventbrite_content import (
     DESCRIPTION_RECORD_SCHEMA_VERSION,
     EventbriteDescriptionError,
@@ -26,7 +28,6 @@ from events.eventbrite_content import (
     render_description_html,
     render_description_text,
 )
-from events.models import Event, EventContent
 
 STARTS_AT = datetime(2021, 6, 1, 17, 0, tzinfo=UTC)
 
@@ -173,17 +174,29 @@ class ParseEventbriteDescriptionRecordsTests(TestCase):
 
 def _event(*, source_key: str, repository: str = "DataTalksClub/datatalksclub.github.io") -> Event:
     event = Event(
-        id=uuid.uuid4(),
+        content_id=uuid.uuid4(),
+        public_id=5_001,
         title="Example event",
         slug="example-event",
-        source_repository=repository,
-        source_revision="a" * 40,
+        status="upcoming",
+        start_datetime=STARTS_AT,
+        source_repo=repository,
+        source_commit="a" * 40,
+    )
+    event.save()
+    EventSource.objects.create(
+        event=event,
+        repository=repository,
+        revision="a" * 40,
         source_key=source_key,
     )
-    event._allow_public_id_assignment = True
-    event.public_id = 5_001
-    event.save()
     return event
+
+
+def _describe(event: Event, *, html: str, text: str) -> None:
+    event.description_html = html
+    event.description = text
+    event.save(update_fields=("description_html", "description", "updated_at"))
 
 
 class ApplyEventbriteDescriptionsTests(TestCase):
@@ -205,9 +218,9 @@ class ApplyEventbriteDescriptionsTests(TestCase):
     def _record(self, event: Event, **overrides: object) -> dict[str, object]:
         record: dict[str, object] = {
             "eventbrite_event_id": "127017208891",
-            "canonical_repository": event.source_repository,
-            "canonical_revision": event.source_revision,
-            "canonical_source_key": event.source_key,
+            "canonical_repository": event.source_identity.repository,
+            "canonical_revision": event.source_identity.revision,
+            "canonical_source_key": event.source_identity.source_key,
             "description_html": "<p>Cleaned Eventbrite text.</p>",
             "description_text": "Cleaned Eventbrite text.",
         }
@@ -218,41 +231,29 @@ class ApplyEventbriteDescriptionsTests(TestCase):
         import tempfile
 
         event = _event(source_key="2020-11-10-example")
-        EventContent.objects.create(
-            event=event,
-            type=EventContent.Type.WEBINAR,
-            starts_at=STARTS_AT,
-            description_html="<p>Old Jekyll text.</p>",
-            description_text="Old Jekyll text.",
-        )
+        _describe(event, html="<p>Old Jekyll text.</p>", text="Old Jekyll text.")
         with tempfile.TemporaryDirectory() as directory:
             path = self._write_artifact(Path(directory), [self._record(event)])
             report = apply_eventbrite_descriptions(path=path)
 
         self.assertEqual(report.applied, 1)
         self.assertEqual(report.unchanged, 0)
-        content = EventContent.objects.get(event=event)
-        self.assertEqual(content.description_text, "Cleaned Eventbrite text.")
-        self.assertEqual(content.description_html, "<p>Cleaned Eventbrite text.</p>")
+        event.refresh_from_db()
+        self.assertEqual(event.description, "Cleaned Eventbrite text.")
+        self.assertEqual(event.description_html, "<p>Cleaned Eventbrite text.</p>")
 
     def test_dry_run_reports_without_writing(self) -> None:
         import tempfile
 
         event = _event(source_key="2020-11-10-example")
-        EventContent.objects.create(
-            event=event,
-            type=EventContent.Type.WEBINAR,
-            starts_at=STARTS_AT,
-            description_html="<p>Old Jekyll text.</p>",
-            description_text="Old Jekyll text.",
-        )
+        _describe(event, html="<p>Old Jekyll text.</p>", text="Old Jekyll text.")
         with tempfile.TemporaryDirectory() as directory:
             path = self._write_artifact(Path(directory), [self._record(event)])
             report = apply_eventbrite_descriptions(path=path, dry_run=True)
 
         self.assertEqual(report.applied, 1)
-        content = EventContent.objects.get(event=event)
-        self.assertEqual(content.description_text, "Old Jekyll text.")
+        event.refresh_from_db()
+        self.assertEqual(event.description, "Old Jekyll text.")
 
     def test_unresolved_eventbrite_id_is_reported_not_guessed(self) -> None:
         import tempfile
@@ -281,19 +282,14 @@ class ApplyEventbriteDescriptionsTests(TestCase):
             report = apply_eventbrite_descriptions(path=path)
 
         self.assertEqual(report.no_content_yet, 1)
-        self.assertFalse(EventContent.objects.filter(event=event).exists())
+        event.refresh_from_db()
+        self.assertEqual(event.description_html, "")
 
     def test_empty_eventbrite_description_does_not_blank_a_real_jekyll_one(self) -> None:
         import tempfile
 
         event = _event(source_key="2020-11-10-example")
-        EventContent.objects.create(
-            event=event,
-            type=EventContent.Type.WEBINAR,
-            starts_at=STARTS_AT,
-            description_html="<p>Real Jekyll text.</p>",
-            description_text="Real Jekyll text.",
-        )
+        _describe(event, html="<p>Real Jekyll text.</p>", text="Real Jekyll text.")
         with tempfile.TemporaryDirectory() as directory:
             path = self._write_artifact(
                 Path(directory),
@@ -303,20 +299,14 @@ class ApplyEventbriteDescriptionsTests(TestCase):
 
         self.assertEqual(report.no_eventbrite_description, 1)
         self.assertEqual(report.applied, 0)
-        content = EventContent.objects.get(event=event)
-        self.assertEqual(content.description_text, "Real Jekyll text.")
+        event.refresh_from_db()
+        self.assertEqual(event.description, "Real Jekyll text.")
 
     def test_replaying_an_already_applied_artifact_is_a_no_op(self) -> None:
         import tempfile
 
         event = _event(source_key="2020-11-10-example")
-        EventContent.objects.create(
-            event=event,
-            type=EventContent.Type.WEBINAR,
-            starts_at=STARTS_AT,
-            description_html="<p>Cleaned Eventbrite text.</p>",
-            description_text="Cleaned Eventbrite text.",
-        )
+        _describe(event, html="<p>Cleaned Eventbrite text.</p>", text="Cleaned Eventbrite text.")
         with tempfile.TemporaryDirectory() as directory:
             path = self._write_artifact(Path(directory), [self._record(event)])
             report = apply_eventbrite_descriptions(path=path)

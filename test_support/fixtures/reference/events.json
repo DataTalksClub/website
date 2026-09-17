@@ -1,1250 +1,1250 @@
 [
-  {
-    "description_html": "<p>Synthetic reviewed description for Synthetic Kickoff Webinar.</p>",
-    "description_provenance": {
-      "bridge_content_sha256": "02710c42ee9ab2bd28ccde3cd385ed28d2e2d3dde81b6917e25e35612f9d813f",
-      "normalization_original_description_sha256": "e12344b44ec407832a1f28733acb9b119b82ce7ded5be050cc003515cb9db072",
-      "normalized_internal_links": [],
-      "source_description_sha256": "ffa6a744d78d28386438b4a8e8ee32f56718633735057b1b5ddfb5d224d45d98"
-    },
-    "description_text": "Synthetic reviewed description for Synthetic Kickoff Webinar.",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "24bc1b9d-ca6d-5bd8-a540-8b2f2b6931ee",
-    "links": [
-      {
-        "label": "Watch",
-        "url": "https://example.invalid/watch"
-      }
-    ],
-    "provenance": {
-      "checksum": "f8e0203e8236bbf58e8fb649d4777bfdd81ee2b00a799408df3a27984b782457",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-1",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/1/synthetic-kickoff-webinar",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-kickoff-webinar",
-    "speakers": [
-      {
-        "key": "synthetic-rich-profile",
-        "name": "Synthetic O'Speaker",
-        "public_path": "/people/synthetic-rich-profile.html"
-      }
-    ],
-    "starts_at": "2026-01-08T00:00:00+00:00",
-    "title": "Synthetic Kickoff Webinar",
-    "type": "workshop"
+ {
+  "description_html": "<p>Synthetic reviewed description for Synthetic Kickoff Webinar.</p>",
+  "description_provenance": {
+   "bridge_content_sha256": "02710c42ee9ab2bd28ccde3cd385ed28d2e2d3dde81b6917e25e35612f9d813f",
+   "normalization_original_description_sha256": "e12344b44ec407832a1f28733acb9b119b82ce7ded5be050cc003515cb9db072",
+   "normalized_internal_links": [],
+   "source_description_sha256": "ffa6a744d78d28386438b4a8e8ee32f56718633735057b1b5ddfb5d224d45d98"
   },
-  {
-    "description_html": "<p>Synthetic reviewed description for Synthetic Data Engineering Workshop.</p>",
-    "description_provenance": {
-      "bridge_content_sha256": "557ecbebfe6c15215c800c7eeb37d9b28c3adc1d410b20c675ec60c718154c2a",
-      "normalization_original_description_sha256": "615828135a17380e359d0f98614558c1691332ab0fc578f854e95acecfea3c74",
-      "normalized_internal_links": [],
-      "source_description_sha256": "ada987408d4654e36fc691a5d4383af83cdaf396c088eb6370a5a18235786882"
-    },
-    "description_text": "Synthetic reviewed description for Synthetic Data Engineering Workshop.",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "c0339093-7f51-504c-881a-84cac2cdb31e",
-    "links": [
-      {
-        "label": "Watch",
-        "url": "https://example.invalid/watch"
-      }
-    ],
-    "provenance": {
-      "checksum": "a12d92c09cf305af460ac84440ec929bf73f6479a08327dc45ee6737001b24e5",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-2",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/2/synthetic-data-engineering-workshop",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-data-engineering-workshop",
-    "speakers": [
-      {
-        "key": "synthetic-rich-profile",
-        "name": "Synthetic Speaker 2A",
-        "public_path": "/people/synthetic-rich-profile.html"
-      }
-    ],
-    "starts_at": "2026-01-15T00:00:00+00:00",
-    "title": "Synthetic Data Engineering Workshop",
-    "type": "podcast"
+  "description_text": "Synthetic reviewed description for Synthetic Kickoff Webinar.",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "24bc1b9d-ca6d-5bd8-a540-8b2f2b6931ee",
+  "links": [
+   {
+    "label": "Watch",
+    "url": "https://example.invalid/watch"
+   }
+  ],
+  "provenance": {
+   "checksum": "f8e0203e8236bbf58e8fb649d4777bfdd81ee2b00a799408df3a27984b782457",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-1",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "<p>Synthetic reviewed description for Synthetic MLOps & Data Panel.</p>",
-    "description_provenance": {
-      "bridge_content_sha256": "0d5df1c4c048d25da73d8602b92e04350959339c64edbb3d0f31d8bc76f3f7ce",
-      "normalization_original_description_sha256": "f06ec870e75e5034351a7ea5edba1cef62a232a2666eb9f36636cc9b2d6a69dd",
-      "normalized_internal_links": [],
-      "source_description_sha256": "afd7b38a6bd8d468c6a16c11a8d23bb837ee6e02c6658739323970451ba7e2c2"
-    },
-    "description_text": "Synthetic reviewed description for Synthetic MLOps & Data Panel.",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "4affe0af-a969-5095-9e67-6faca1b18da7",
-    "links": [
-      {
-        "label": "Watch",
-        "url": "https://example.invalid/watch"
-      }
-    ],
-    "provenance": {
-      "checksum": "0492c69210cbbe3feab4779f88021af202155d3dba4e34da0870dcd38bc7c37f",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-3",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/3/synthetic-mlops-data-panel",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-mlops-data-panel",
-    "speakers": [
-      {
-        "key": "synthetic-rich-profile",
-        "name": "Synthetic Speaker 3A",
-        "public_path": "/people/synthetic-rich-profile.html"
-      }
-    ],
-    "starts_at": "2026-01-22T00:00:00+00:00",
-    "title": "Synthetic MLOps & Data Panel",
-    "type": "conference"
+  "public_path": "/events/1/synthetic-kickoff-webinar",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-kickoff-webinar",
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
+  "starts_at": "2026-01-08T00:00:00+00:00",
+  "title": "Synthetic Kickoff Webinar",
+  "type": "workshop"
+ },
+ {
+  "description_html": "<p>Synthetic reviewed description for Synthetic Data Engineering Workshop.</p>",
+  "description_provenance": {
+   "bridge_content_sha256": "557ecbebfe6c15215c800c7eeb37d9b28c3adc1d410b20c675ec60c718154c2a",
+   "normalization_original_description_sha256": "615828135a17380e359d0f98614558c1691332ab0fc578f854e95acecfea3c74",
+   "normalized_internal_links": [],
+   "source_description_sha256": "ada987408d4654e36fc691a5d4383af83cdaf396c088eb6370a5a18235786882"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "660f80ce-1a51-5caf-940c-6c72d9f1b0e0",
-    "links": [],
-    "provenance": {
-      "checksum": "4f554f5de7e719b2e1fe7b390a104c156caae99f3ebb4b26027ff54107fc7e4a",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-4",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/4/synthetic-llm-deep-dive",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-llm-deep-dive",
-    "speakers": [],
-    "starts_at": "2026-01-29T00:00:00+00:00",
-    "title": "Synthetic LLM Deep Dive",
-    "type": "webinar"
+  "description_text": "Synthetic reviewed description for Synthetic Data Engineering Workshop.",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "c0339093-7f51-504c-881a-84cac2cdb31e",
+  "links": [
+   {
+    "label": "Watch",
+    "url": "https://example.invalid/watch"
+   }
+  ],
+  "provenance": {
+   "checksum": "a12d92c09cf305af460ac84440ec929bf73f6479a08327dc45ee6737001b24e5",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-2",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "<p>Synthetic reviewed description for Synthetic Community Podcast Episode One.</p>",
-    "description_provenance": {
-      "bridge_content_sha256": "d6285251f4c7cb59b8af76a7bce12eda8c8594c7305d5cf0d89f4cd0d2896e4f",
-      "normalization_original_description_sha256": "a2806768de5f2cb1bee8eb14974a7b2941a91d1f8d48bd29d55b4b54e39eafe5",
-      "normalized_internal_links": [],
-      "source_description_sha256": "2c4b303cdbaf0dd7def127756797668bb1d6140eda7b690b39a8bf0bf0102e02"
-    },
-    "description_text": "Synthetic reviewed description for Synthetic Community Podcast Episode One.",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "1cd0c669-cf58-5b3a-aa01-2847ade64f2a",
-    "links": [
-      {
-        "label": "Watch",
-        "url": "https://example.invalid/watch"
-      }
-    ],
-    "provenance": {
-      "checksum": "c50af0c95851f6db6951dc57b06202f442753943b0c74c3da7675e8fd193732d",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-5",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/5/synthetic-community-podcast-episode-one",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-community-podcast-episode-one",
-    "speakers": [
-      {
-        "key": "synthetic-rich-profile",
-        "name": "Synthetic Speaker 5A",
-        "public_path": "/people/synthetic-rich-profile.html"
-      }
-    ],
-    "starts_at": "2026-02-05T00:00:00+00:00",
-    "title": "Synthetic Community Podcast Episode One",
-    "type": "workshop"
+  "public_path": "/events/2/synthetic-data-engineering-workshop",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-data-engineering-workshop",
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
+  "starts_at": "2026-01-15T00:00:00+00:00",
+  "title": "Synthetic Data Engineering Workshop",
+  "type": "podcast"
+ },
+ {
+  "description_html": "<p>Synthetic reviewed description for Synthetic MLOps & Data Panel.</p>",
+  "description_provenance": {
+   "bridge_content_sha256": "0d5df1c4c048d25da73d8602b92e04350959339c64edbb3d0f31d8bc76f3f7ce",
+   "normalization_original_description_sha256": "f06ec870e75e5034351a7ea5edba1cef62a232a2666eb9f36636cc9b2d6a69dd",
+   "normalized_internal_links": [],
+   "source_description_sha256": "afd7b38a6bd8d468c6a16c11a8d23bb837ee6e02c6658739323970451ba7e2c2"
   },
-  {
-    "description_html": "<p>Synthetic reviewed description for Synthetic Community Podcast Episode Two.</p>",
-    "description_provenance": {
-      "bridge_content_sha256": "7e763ec58c28cd9eaafda2ad0a499cd488c3c5f48f7f3b091f0a40288af7a89f",
-      "normalization_original_description_sha256": "2577540c67367837088d526082499781d7d4a2873af3790f19eae17f393c1f8d",
-      "normalized_internal_links": [],
-      "source_description_sha256": "5eb595adc35a67431461abb85130aa7a3a8b44efc0f320db63c533d7b2fa02e2"
-    },
-    "description_text": "Synthetic reviewed description for Synthetic Community Podcast Episode Two.",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "0868dccd-4a0d-5857-8c02-cb4325334c73",
-    "links": [
-      {
-        "label": "Watch",
-        "url": "https://example.invalid/watch"
-      }
-    ],
-    "provenance": {
-      "checksum": "1e3674c822c6c24ae37f749fdbcf98e5461fbd57a808708a674f1f2cf0323360",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-6",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/6/synthetic-community-podcast-episode-two",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-community-podcast-episode-two",
-    "speakers": [
-      {
-        "key": "synthetic-rich-profile",
-        "name": "Synthetic Speaker 6A",
-        "public_path": "/people/synthetic-rich-profile.html"
-      }
-    ],
-    "starts_at": "2026-02-12T00:00:00+00:00",
-    "title": "Synthetic Community Podcast Episode Two",
-    "type": "podcast"
+  "description_text": "Synthetic reviewed description for Synthetic MLOps & Data Panel.",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "4affe0af-a969-5095-9e67-6faca1b18da7",
+  "links": [
+   {
+    "label": "Watch",
+    "url": "https://example.invalid/watch"
+   }
+  ],
+  "provenance": {
+   "checksum": "0492c69210cbbe3feab4779f88021af202155d3dba4e34da0870dcd38bc7c37f",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-3",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "<p>Synthetic reviewed description for Synthetic Analytics Conference Talk.</p>",
-    "description_provenance": {
-      "bridge_content_sha256": "595a729bcdc58e065b36b21fda42ec17264c8aedc0761d9a663ece75a22c2a87",
-      "normalization_original_description_sha256": "08b44df83a64cf6f23877b6b6adbfa3220f5c0b53b678aa826dec50baeb087be",
-      "normalized_internal_links": [],
-      "source_description_sha256": "4a81437dc8650b7bd98859d7fe5c797b03cf8aabfbcd5b94b8d21bc4ef993491"
-    },
-    "description_text": "Synthetic reviewed description for Synthetic Analytics Conference Talk.",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "9f3c2a05-fa23-5c0f-960a-4d05694541f6",
-    "links": [
-      {
-        "label": "Watch",
-        "url": "https://example.invalid/watch"
-      }
-    ],
-    "provenance": {
-      "checksum": "b7826b4f644d80284559507a1b8e1ae87ad2e0944f33b05a38f8b10fa9a257ce",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-7",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/7/synthetic-analytics-conference-talk",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-analytics-conference-talk",
-    "speakers": [
-      {
-        "key": "synthetic-rich-profile",
-        "name": "Synthetic Speaker 7A",
-        "public_path": "/people/synthetic-rich-profile.html"
-      }
-    ],
-    "starts_at": "2026-02-19T00:00:00+00:00",
-    "title": "Synthetic Analytics Conference Talk",
-    "type": "conference"
+  "public_path": "/events/3/synthetic-mlops-data-panel",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-mlops-data-panel",
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
+  "starts_at": "2026-01-22T00:00:00+00:00",
+  "title": "Synthetic MLOps & Data Panel",
+  "type": "conference"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "660f80ce-1a51-5caf-940c-6c72d9f1b0e0",
+  "links": [],
+  "provenance": {
+   "checksum": "4f554f5de7e719b2e1fe7b390a104c156caae99f3ebb4b26027ff54107fc7e4a",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-4",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "8be0c283-cd22-5919-a0f4-deb801f577c5",
-    "links": [],
-    "provenance": {
-      "checksum": "08fba2278101a97b6c469ad0996d949c06f75b9f5968c03105aa723a8af46a05",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-8",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/8/synthetic-office-hours-session",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-office-hours-session",
-    "speakers": [],
-    "starts_at": "2026-02-26T00:00:00+00:00",
-    "title": "Synthetic Office Hours Session",
-    "type": "webinar"
+  "public_path": "/events/4/synthetic-llm-deep-dive",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-llm-deep-dive",
+  "speakers": [],
+  "starts_at": "2026-01-29T00:00:00+00:00",
+  "title": "Synthetic LLM Deep Dive",
+  "type": "webinar"
+ },
+ {
+  "description_html": "<p>Synthetic reviewed description for Synthetic Community Podcast Episode One.</p>",
+  "description_provenance": {
+   "bridge_content_sha256": "d6285251f4c7cb59b8af76a7bce12eda8c8594c7305d5cf0d89f4cd0d2896e4f",
+   "normalization_original_description_sha256": "a2806768de5f2cb1bee8eb14974a7b2941a91d1f8d48bd29d55b4b54e39eafe5",
+   "normalized_internal_links": [],
+   "source_description_sha256": "2c4b303cdbaf0dd7def127756797668bb1d6140eda7b690b39a8bf0bf0102e02"
   },
-  {
-    "description_html": "<p>Synthetic reviewed description for AI Dev Tools Zoomcamp 2026 Course Launch.</p>",
-    "description_provenance": {
-      "bridge_content_sha256": "4c9c8ef66473ec7b5e804eb484999971ade9b986c3a4298960b54dfa7732a9af",
-      "normalization_original_description_sha256": "d629fe5cbf64e9f5a6de133e8653bb9d89f6b5f181b16abfed71069731d67652",
-      "normalized_internal_links": [],
-      "source_description_sha256": "6f8452267bf1fcc65c7892ad7b611834a8c26495152539f8ba8e366ae17ee2ef"
-    },
-    "description_text": "Synthetic reviewed description for AI Dev Tools Zoomcamp 2026 Course Launch.",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "72ff7302-8567-4ba4-ab37-fa880807f073",
-    "links": [
-      {
-        "label": "Watch",
-        "url": "https://example.invalid/watch"
-      }
-    ],
-    "provenance": {
-      "checksum": "f1826b6eaa2e7fa6db78e06682a25d6cf65d5814be2b1be8e76c76e4128f64bc",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-9",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/9/ai-dev-tools-zoomcamp-2026-course-launch",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "ai-dev-tools-zoomcamp-2026-course-launch",
-    "speakers": [
-      {
-        "key": "synthetic-rich-profile",
-        "name": "Synthetic Speaker 9A",
-        "public_path": "/people/synthetic-rich-profile.html"
-      }
-    ],
-    "starts_at": "2026-08-31T10:00:00+00:00",
-    "title": "AI Dev Tools Zoomcamp 2026 Course Launch",
-    "type": "workshop"
+  "description_text": "Synthetic reviewed description for Synthetic Community Podcast Episode One.",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "1cd0c669-cf58-5b3a-aa01-2847ade64f2a",
+  "links": [
+   {
+    "label": "Watch",
+    "url": "https://example.invalid/watch"
+   }
+  ],
+  "provenance": {
+   "checksum": "c50af0c95851f6db6951dc57b06202f442753943b0c74c3da7675e8fd193732d",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-5",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "<p>Synthetic reviewed description for Synthetic Banner-Mapped Assistant Talk.</p>",
-    "description_provenance": {
-      "bridge_content_sha256": "a99cd8cf6703898ae1e94bb2e6e1df21bd02f19d0b1a7db99b0cc8081672b116",
-      "normalization_original_description_sha256": "bddf6dce35921e2a9a70223472050be82928a557c13831a61bbd1d7af24ab4c2",
-      "normalized_internal_links": [],
-      "source_description_sha256": "22bcf4ca7d4a304a6a136558fba7237dc4a8c5e909878ca49467552d86b95dc2"
-    },
-    "description_text": "Synthetic reviewed description for Synthetic Banner-Mapped Assistant Talk.",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "018ac4d8-358f-43b9-b9f5-77b874da95e9",
-    "links": [
-      {
-        "label": "Watch",
-        "url": "https://example.invalid/watch"
-      }
-    ],
-    "provenance": {
-      "checksum": "ed7cc6deee927bd17442acb390976d6598b4575a6f24bd3951e39b90496c6340",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-10",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/10/synthetic-banner-mapped-assistant-talk",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-banner-mapped-assistant-talk",
-    "speakers": [
-      {
-        "key": "synthetic-rich-profile",
-        "name": "Synthetic Speaker 10A",
-        "public_path": "/people/synthetic-rich-profile.html"
-      }
-    ],
-    "starts_at": "2026-03-12T00:00:00+00:00",
-    "title": "Synthetic Banner-Mapped Assistant Talk",
-    "type": "podcast"
+  "public_path": "/events/5/synthetic-community-podcast-episode-one",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-community-podcast-episode-one",
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
+  "starts_at": "2026-02-05T00:00:00+00:00",
+  "title": "Synthetic Community Podcast Episode One",
+  "type": "workshop"
+ },
+ {
+  "description_html": "<p>Synthetic reviewed description for Synthetic Community Podcast Episode Two.</p>",
+  "description_provenance": {
+   "bridge_content_sha256": "7e763ec58c28cd9eaafda2ad0a499cd488c3c5f48f7f3b091f0a40288af7a89f",
+   "normalization_original_description_sha256": "2577540c67367837088d526082499781d7d4a2873af3790f19eae17f393c1f8d",
+   "normalized_internal_links": [],
+   "source_description_sha256": "5eb595adc35a67431461abb85130aa7a3a8b44efc0f320db63c533d7b2fa02e2"
   },
-  {
-    "description_html": "<p>Synthetic reviewed description for Synthetic Banner-Mapped Agents Workshop.</p>",
-    "description_provenance": {
-      "bridge_content_sha256": "326260b9a3875de27991a807414aa8d9f7ccce992be3bd49efbd9c9003c3b36c",
-      "normalization_original_description_sha256": "8dbd04927c11109ed43c1790971fd1173eda1a2f38d34914664df9171033c4e6",
-      "normalized_internal_links": [],
-      "source_description_sha256": "eeae8fe6fd43ad316fc38ee51bf7c34366748af9745bccffac6ec03a8700321e"
-    },
-    "description_text": "Synthetic reviewed description for Synthetic Banner-Mapped Agents Workshop.",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "75722536-79be-44b0-bde9-17e90dd3a967",
-    "links": [
-      {
-        "label": "Watch",
-        "url": "https://example.invalid/watch"
-      }
-    ],
-    "provenance": {
-      "checksum": "973351d432c0031142193a81c649f954f36522096eac5b0c9a23c77bd23e25c7",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-11",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/11/synthetic-banner-mapped-agents-workshop",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-banner-mapped-agents-workshop",
-    "speakers": [
-      {
-        "key": "synthetic-rich-profile",
-        "name": "Synthetic Speaker 11A",
-        "public_path": "/people/synthetic-rich-profile.html"
-      }
-    ],
-    "starts_at": "2026-03-19T00:00:00+00:00",
-    "title": "Synthetic Banner-Mapped Agents Workshop",
-    "type": "conference"
+  "description_text": "Synthetic reviewed description for Synthetic Community Podcast Episode Two.",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "0868dccd-4a0d-5857-8c02-cb4325334c73",
+  "links": [
+   {
+    "label": "Watch",
+    "url": "https://example.invalid/watch"
+   }
+  ],
+  "provenance": {
+   "checksum": "1e3674c822c6c24ae37f749fdbcf98e5461fbd57a808708a674f1f2cf0323360",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-6",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "eeb08b71-091b-5a56-a748-15f48ae8064f",
-    "links": [],
-    "provenance": {
-      "checksum": "e003d288c7796d19f6fce11de7ffc6b221632a5ba0f084cb7d4b53faef572d39",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-12",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/12/synthetic-bulk-past-event-001",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-001",
-    "speakers": [],
-    "starts_at": "2025-01-04T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 001",
-    "type": "workshop"
+  "public_path": "/events/6/synthetic-community-podcast-episode-two",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-community-podcast-episode-two",
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
+  "starts_at": "2026-02-12T00:00:00+00:00",
+  "title": "Synthetic Community Podcast Episode Two",
+  "type": "podcast"
+ },
+ {
+  "description_html": "<p>Synthetic reviewed description for Synthetic Analytics Conference Talk.</p>",
+  "description_provenance": {
+   "bridge_content_sha256": "595a729bcdc58e065b36b21fda42ec17264c8aedc0761d9a663ece75a22c2a87",
+   "normalization_original_description_sha256": "08b44df83a64cf6f23877b6b6adbfa3220f5c0b53b678aa826dec50baeb087be",
+   "normalized_internal_links": [],
+   "source_description_sha256": "4a81437dc8650b7bd98859d7fe5c797b03cf8aabfbcd5b94b8d21bc4ef993491"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "78b8e833-799a-56bb-b69d-d0c28c436964",
-    "links": [],
-    "provenance": {
-      "checksum": "102b2a089199a4894e2612dc26f1b05b5e0e60fdcf9183aa8f5c2bc4cc3c0b9e",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-13",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/13/synthetic-bulk-past-event-002",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-002",
-    "speakers": [],
-    "starts_at": "2025-01-07T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 002",
-    "type": "podcast"
+  "description_text": "Synthetic reviewed description for Synthetic Analytics Conference Talk.",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "9f3c2a05-fa23-5c0f-960a-4d05694541f6",
+  "links": [
+   {
+    "label": "Watch",
+    "url": "https://example.invalid/watch"
+   }
+  ],
+  "provenance": {
+   "checksum": "b7826b4f644d80284559507a1b8e1ae87ad2e0944f33b05a38f8b10fa9a257ce",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-7",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "db710def-53c5-5e1d-9dc9-1f50049ff29e",
-    "links": [],
-    "provenance": {
-      "checksum": "d93ec368f6520c9d56263a67372a553e870565d36c8a5cd606402f837e3ed8c1",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-14",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/14/synthetic-bulk-past-event-003",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-003",
-    "speakers": [],
-    "starts_at": "2025-01-10T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 003",
-    "type": "conference"
+  "public_path": "/events/7/synthetic-analytics-conference-talk",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-analytics-conference-talk",
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
+  "starts_at": "2026-02-19T00:00:00+00:00",
+  "title": "Synthetic Analytics Conference Talk",
+  "type": "conference"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "8be0c283-cd22-5919-a0f4-deb801f577c5",
+  "links": [],
+  "provenance": {
+   "checksum": "08fba2278101a97b6c469ad0996d949c06f75b9f5968c03105aa723a8af46a05",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-8",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "68298672-3422-5f3f-a80c-6eca61b63c4b",
-    "links": [],
-    "provenance": {
-      "checksum": "2ffdf1b3b4a6ad5d0f63dccae7077c9c7a6a59211dbff37cee65ef33fedcb00f",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-15",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/15/synthetic-bulk-past-event-004",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-004",
-    "speakers": [],
-    "starts_at": "2025-01-13T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 004",
-    "type": "webinar"
+  "public_path": "/events/8/synthetic-office-hours-session",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-office-hours-session",
+  "speakers": [],
+  "starts_at": "2026-02-26T00:00:00+00:00",
+  "title": "Synthetic Office Hours Session",
+  "type": "webinar"
+ },
+ {
+  "description_html": "<p>Synthetic reviewed description for AI Dev Tools Zoomcamp 2026 Course Launch.</p>",
+  "description_provenance": {
+   "bridge_content_sha256": "4c9c8ef66473ec7b5e804eb484999971ade9b986c3a4298960b54dfa7732a9af",
+   "normalization_original_description_sha256": "d629fe5cbf64e9f5a6de133e8653bb9d89f6b5f181b16abfed71069731d67652",
+   "normalized_internal_links": [],
+   "source_description_sha256": "6f8452267bf1fcc65c7892ad7b611834a8c26495152539f8ba8e366ae17ee2ef"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "29adf594-7a4d-5398-824e-3befe50ea7e4",
-    "links": [],
-    "provenance": {
-      "checksum": "4ffa42ce90478e33427818772f7759a4b204f7e0936ad674a40ef07e70a75205",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-16",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/16/synthetic-bulk-past-event-005",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-005",
-    "speakers": [],
-    "starts_at": "2025-01-16T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 005",
-    "type": "workshop"
+  "description_text": "Synthetic reviewed description for AI Dev Tools Zoomcamp 2026 Course Launch.",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "72ff7302-8567-4ba4-ab37-fa880807f073",
+  "links": [
+   {
+    "label": "Watch",
+    "url": "https://example.invalid/watch"
+   }
+  ],
+  "provenance": {
+   "checksum": "f1826b6eaa2e7fa6db78e06682a25d6cf65d5814be2b1be8e76c76e4128f64bc",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-9",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "897568c2-c85b-5d30-979f-3c8b7f335440",
-    "links": [],
-    "provenance": {
-      "checksum": "8d165595819afd0f1859ce5d9279fb89fc92a29e50f2a75e78bc74d239bbca01",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-17",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/17/synthetic-bulk-past-event-006",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-006",
-    "speakers": [],
-    "starts_at": "2025-01-19T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 006",
-    "type": "podcast"
+  "public_path": "/events/9/ai-dev-tools-zoomcamp-2026-course-launch",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "ai-dev-tools-zoomcamp-2026-course-launch",
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
+  "starts_at": "2026-08-31T10:00:00+00:00",
+  "title": "AI Dev Tools Zoomcamp 2026 Course Launch",
+  "type": "workshop"
+ },
+ {
+  "description_html": "<p>Synthetic reviewed description for Synthetic Banner-Mapped Assistant Talk.</p>",
+  "description_provenance": {
+   "bridge_content_sha256": "a99cd8cf6703898ae1e94bb2e6e1df21bd02f19d0b1a7db99b0cc8081672b116",
+   "normalization_original_description_sha256": "bddf6dce35921e2a9a70223472050be82928a557c13831a61bbd1d7af24ab4c2",
+   "normalized_internal_links": [],
+   "source_description_sha256": "22bcf4ca7d4a304a6a136558fba7237dc4a8c5e909878ca49467552d86b95dc2"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "f78d2715-ef5a-5e7b-8add-cde6bf901a99",
-    "links": [],
-    "provenance": {
-      "checksum": "ebffdd39d15b83d8ee8c21a487f7dcbb5e85550e3ea9f0a38ec02cf1c6c5b58f",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-18",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/18/synthetic-bulk-past-event-007",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-007",
-    "speakers": [],
-    "starts_at": "2025-01-22T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 007",
-    "type": "conference"
+  "description_text": "Synthetic reviewed description for Synthetic Banner-Mapped Assistant Talk.",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "018ac4d8-358f-43b9-b9f5-77b874da95e9",
+  "links": [
+   {
+    "label": "Watch",
+    "url": "https://example.invalid/watch"
+   }
+  ],
+  "provenance": {
+   "checksum": "ed7cc6deee927bd17442acb390976d6598b4575a6f24bd3951e39b90496c6340",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-10",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "d031449d-5124-5760-8d66-7caa97a7e743",
-    "links": [],
-    "provenance": {
-      "checksum": "0ee94f3ff72cf0e6cb392575bc63a3337a500ef0a263df92d7ad7ad518185bd2",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-19",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/19/synthetic-bulk-past-event-008",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-008",
-    "speakers": [],
-    "starts_at": "2025-01-25T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 008",
-    "type": "webinar"
+  "public_path": "/events/10/synthetic-banner-mapped-assistant-talk",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-banner-mapped-assistant-talk",
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
+  "starts_at": "2026-03-12T00:00:00+00:00",
+  "title": "Synthetic Banner-Mapped Assistant Talk",
+  "type": "podcast"
+ },
+ {
+  "description_html": "<p>Synthetic reviewed description for Synthetic Banner-Mapped Agents Workshop.</p>",
+  "description_provenance": {
+   "bridge_content_sha256": "326260b9a3875de27991a807414aa8d9f7ccce992be3bd49efbd9c9003c3b36c",
+   "normalization_original_description_sha256": "8dbd04927c11109ed43c1790971fd1173eda1a2f38d34914664df9171033c4e6",
+   "normalized_internal_links": [],
+   "source_description_sha256": "eeae8fe6fd43ad316fc38ee51bf7c34366748af9745bccffac6ec03a8700321e"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "7e0c99c8-6580-548c-b733-8918397bc422",
-    "links": [],
-    "provenance": {
-      "checksum": "725d8c0b9a375484c95d35a7fc2891114ac07bc75850d15ab29cf7cf65bd8d55",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-20",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/20/synthetic-bulk-past-event-009",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-009",
-    "speakers": [],
-    "starts_at": "2025-01-28T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 009",
-    "type": "workshop"
+  "description_text": "Synthetic reviewed description for Synthetic Banner-Mapped Agents Workshop.",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "75722536-79be-44b0-bde9-17e90dd3a967",
+  "links": [
+   {
+    "label": "Watch",
+    "url": "https://example.invalid/watch"
+   }
+  ],
+  "provenance": {
+   "checksum": "973351d432c0031142193a81c649f954f36522096eac5b0c9a23c77bd23e25c7",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-11",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "4ad8f94d-d429-58ae-928a-91bb44af2bb8",
-    "links": [],
-    "provenance": {
-      "checksum": "ef91b33821d9ab8107356b1d19264ed1136e701b860fae624a44277c4dd0923f",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-21",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/21/synthetic-bulk-past-event-010",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-010",
-    "speakers": [],
-    "starts_at": "2025-01-31T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 010",
-    "type": "podcast"
+  "public_path": "/events/11/synthetic-banner-mapped-agents-workshop",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-banner-mapped-agents-workshop",
+  "speakers": [
+   {
+    "key": "synthetic-rich-profile",
+    "name": "Synthetic O'Speaker",
+    "public_path": "/people/synthetic-rich-profile.html"
+   }
+  ],
+  "starts_at": "2026-03-19T00:00:00+00:00",
+  "title": "Synthetic Banner-Mapped Agents Workshop",
+  "type": "conference"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "eeb08b71-091b-5a56-a748-15f48ae8064f",
+  "links": [],
+  "provenance": {
+   "checksum": "e003d288c7796d19f6fce11de7ffc6b221632a5ba0f084cb7d4b53faef572d39",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-12",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "42b2c690-88fb-5e68-b989-7248aad9b6c4",
-    "links": [],
-    "provenance": {
-      "checksum": "e6f8c383126d81ba3b255bf491e5a51027fbac21652bb6dc63b0d4338dc49cbf",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-22",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/22/synthetic-bulk-past-event-011",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-011",
-    "speakers": [],
-    "starts_at": "2025-02-03T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 011",
-    "type": "conference"
+  "public_path": "/events/12/synthetic-bulk-past-event-001",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-001",
+  "speakers": [],
+  "starts_at": "2025-01-04T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 001",
+  "type": "workshop"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "78b8e833-799a-56bb-b69d-d0c28c436964",
+  "links": [],
+  "provenance": {
+   "checksum": "102b2a089199a4894e2612dc26f1b05b5e0e60fdcf9183aa8f5c2bc4cc3c0b9e",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-13",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "89221cce-329a-57e5-9525-0de0a6aec6fb",
-    "links": [],
-    "provenance": {
-      "checksum": "eaade3c8f78d14c5cf15f29532deea2a77863ac7294f309a099a8f36b8fbfdb0",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-23",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/23/synthetic-bulk-past-event-012",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-012",
-    "speakers": [],
-    "starts_at": "2025-02-06T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 012",
-    "type": "webinar"
+  "public_path": "/events/13/synthetic-bulk-past-event-002",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-002",
+  "speakers": [],
+  "starts_at": "2025-01-07T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 002",
+  "type": "podcast"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "db710def-53c5-5e1d-9dc9-1f50049ff29e",
+  "links": [],
+  "provenance": {
+   "checksum": "d93ec368f6520c9d56263a67372a553e870565d36c8a5cd606402f837e3ed8c1",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-14",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "5c3a5360-79e1-5bd8-86f2-6e59c2d9e00e",
-    "links": [],
-    "provenance": {
-      "checksum": "04ed557de4c04f8672f5dec374948b76dc95885363faef305c167ebfd874e94c",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-24",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/24/synthetic-bulk-past-event-013",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-013",
-    "speakers": [],
-    "starts_at": "2025-02-09T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 013",
-    "type": "workshop"
+  "public_path": "/events/14/synthetic-bulk-past-event-003",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-003",
+  "speakers": [],
+  "starts_at": "2025-01-10T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 003",
+  "type": "conference"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "68298672-3422-5f3f-a80c-6eca61b63c4b",
+  "links": [],
+  "provenance": {
+   "checksum": "2ffdf1b3b4a6ad5d0f63dccae7077c9c7a6a59211dbff37cee65ef33fedcb00f",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-15",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "8d3bb713-9f07-56c1-8906-27e78f81c05f",
-    "links": [],
-    "provenance": {
-      "checksum": "5c7a89dec8e69a551d3e9a19ea680e96636d3fd0032da3ae343e53dfead54701",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-25",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/25/synthetic-bulk-past-event-014",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-014",
-    "speakers": [],
-    "starts_at": "2025-02-12T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 014",
-    "type": "podcast"
+  "public_path": "/events/15/synthetic-bulk-past-event-004",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-004",
+  "speakers": [],
+  "starts_at": "2025-01-13T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 004",
+  "type": "webinar"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "29adf594-7a4d-5398-824e-3befe50ea7e4",
+  "links": [],
+  "provenance": {
+   "checksum": "4ffa42ce90478e33427818772f7759a4b204f7e0936ad674a40ef07e70a75205",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-16",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "7445936d-6090-5065-9db5-b55c194f164b",
-    "links": [],
-    "provenance": {
-      "checksum": "fd4a0f424fe04cc6cb8b95f2492b119d8e87b5a1a3860525af0311cc66ebdb70",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-26",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/26/synthetic-bulk-past-event-015",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-015",
-    "speakers": [],
-    "starts_at": "2025-02-15T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 015",
-    "type": "conference"
+  "public_path": "/events/16/synthetic-bulk-past-event-005",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-005",
+  "speakers": [],
+  "starts_at": "2025-01-16T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 005",
+  "type": "workshop"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "897568c2-c85b-5d30-979f-3c8b7f335440",
+  "links": [],
+  "provenance": {
+   "checksum": "8d165595819afd0f1859ce5d9279fb89fc92a29e50f2a75e78bc74d239bbca01",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-17",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "f589bbce-7ccf-55c1-8d26-1a1532ef852f",
-    "links": [],
-    "provenance": {
-      "checksum": "e136b44152cb4508189044d3ee82f6ccd9fdec3ffd09e4062274e773ff71ad58",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-27",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/27/synthetic-bulk-past-event-016",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-016",
-    "speakers": [],
-    "starts_at": "2025-02-18T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 016",
-    "type": "webinar"
+  "public_path": "/events/17/synthetic-bulk-past-event-006",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-006",
+  "speakers": [],
+  "starts_at": "2025-01-19T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 006",
+  "type": "podcast"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "f78d2715-ef5a-5e7b-8add-cde6bf901a99",
+  "links": [],
+  "provenance": {
+   "checksum": "ebffdd39d15b83d8ee8c21a487f7dcbb5e85550e3ea9f0a38ec02cf1c6c5b58f",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-18",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "44fdcba0-dde5-5250-bdad-ce43c7277fb0",
-    "links": [],
-    "provenance": {
-      "checksum": "fa4e2735a8064b1024c10354371c303399afa7067e028875f4e74c9f1762171a",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-28",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/28/synthetic-bulk-past-event-017",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-017",
-    "speakers": [],
-    "starts_at": "2025-02-21T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 017",
-    "type": "workshop"
+  "public_path": "/events/18/synthetic-bulk-past-event-007",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-007",
+  "speakers": [],
+  "starts_at": "2025-01-22T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 007",
+  "type": "conference"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "d031449d-5124-5760-8d66-7caa97a7e743",
+  "links": [],
+  "provenance": {
+   "checksum": "0ee94f3ff72cf0e6cb392575bc63a3337a500ef0a263df92d7ad7ad518185bd2",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-19",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "250ca32c-6e8c-5abc-997c-29fa7e51940b",
-    "links": [],
-    "provenance": {
-      "checksum": "65de7183789d26a7cc35378f9bcd7d86c9858ad4f686f424befcd6b736111c62",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-29",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/29/synthetic-bulk-past-event-018",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-018",
-    "speakers": [],
-    "starts_at": "2025-02-24T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 018",
-    "type": "podcast"
+  "public_path": "/events/19/synthetic-bulk-past-event-008",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-008",
+  "speakers": [],
+  "starts_at": "2025-01-25T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 008",
+  "type": "webinar"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "7e0c99c8-6580-548c-b733-8918397bc422",
+  "links": [],
+  "provenance": {
+   "checksum": "725d8c0b9a375484c95d35a7fc2891114ac07bc75850d15ab29cf7cf65bd8d55",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-20",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "6863d0b4-b867-5f2b-a66c-69d584f801a3",
-    "links": [],
-    "provenance": {
-      "checksum": "00567a7b1a3985ec92368d2e0d03fda0d5bb45e0020cc9ee38e081230822b48a",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-30",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/30/synthetic-bulk-past-event-019",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-019",
-    "speakers": [],
-    "starts_at": "2025-02-27T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 019",
-    "type": "conference"
+  "public_path": "/events/20/synthetic-bulk-past-event-009",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-009",
+  "speakers": [],
+  "starts_at": "2025-01-28T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 009",
+  "type": "workshop"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "4ad8f94d-d429-58ae-928a-91bb44af2bb8",
+  "links": [],
+  "provenance": {
+   "checksum": "ef91b33821d9ab8107356b1d19264ed1136e701b860fae624a44277c4dd0923f",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-21",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "8ffdbf02-adaf-5d86-8c4b-e3a176fc2f2e",
-    "links": [],
-    "provenance": {
-      "checksum": "dbfa0a3e38fdb4fa9ed3e2485a07af23cf5917f97a949fa24e4e57c1a476dc9b",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-31",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/31/synthetic-bulk-past-event-020",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-020",
-    "speakers": [],
-    "starts_at": "2025-03-02T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 020",
-    "type": "webinar"
+  "public_path": "/events/21/synthetic-bulk-past-event-010",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-010",
+  "speakers": [],
+  "starts_at": "2025-01-31T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 010",
+  "type": "podcast"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "42b2c690-88fb-5e68-b989-7248aad9b6c4",
+  "links": [],
+  "provenance": {
+   "checksum": "e6f8c383126d81ba3b255bf491e5a51027fbac21652bb6dc63b0d4338dc49cbf",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-22",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "32ad7ce6-7cef-5ab2-9f2c-2520b85a3cd2",
-    "links": [],
-    "provenance": {
-      "checksum": "11a8c110a2bb7c971f0ea1deac91dcbecba3f33b13e6815a04a3039eed463256",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-32",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/32/synthetic-bulk-past-event-021",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-021",
-    "speakers": [],
-    "starts_at": "2025-03-05T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 021",
-    "type": "workshop"
+  "public_path": "/events/22/synthetic-bulk-past-event-011",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-011",
+  "speakers": [],
+  "starts_at": "2025-02-03T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 011",
+  "type": "conference"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "89221cce-329a-57e5-9525-0de0a6aec6fb",
+  "links": [],
+  "provenance": {
+   "checksum": "eaade3c8f78d14c5cf15f29532deea2a77863ac7294f309a099a8f36b8fbfdb0",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-23",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "7a2d6405-dec7-500f-83d2-36a4f43e8588",
-    "links": [],
-    "provenance": {
-      "checksum": "c0e8e002cc5fd7a72641f160ff4d031f5b12f1c59a35daf35f2b6f548f532b3d",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-33",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/33/synthetic-bulk-past-event-022",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-022",
-    "speakers": [],
-    "starts_at": "2025-03-08T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 022",
-    "type": "podcast"
+  "public_path": "/events/23/synthetic-bulk-past-event-012",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-012",
+  "speakers": [],
+  "starts_at": "2025-02-06T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 012",
+  "type": "webinar"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "5c3a5360-79e1-5bd8-86f2-6e59c2d9e00e",
+  "links": [],
+  "provenance": {
+   "checksum": "04ed557de4c04f8672f5dec374948b76dc95885363faef305c167ebfd874e94c",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-24",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "ad4617c6-045f-54bc-a84c-87c092ba28a0",
-    "links": [],
-    "provenance": {
-      "checksum": "d4964b557dbe55c2e19f53f684186d0cd1155926ea18e582b4897204102e57e9",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-34",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/34/synthetic-bulk-past-event-023",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-023",
-    "speakers": [],
-    "starts_at": "2025-03-11T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 023",
-    "type": "conference"
+  "public_path": "/events/24/synthetic-bulk-past-event-013",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-013",
+  "speakers": [],
+  "starts_at": "2025-02-09T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 013",
+  "type": "workshop"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "8d3bb713-9f07-56c1-8906-27e78f81c05f",
+  "links": [],
+  "provenance": {
+   "checksum": "5c7a89dec8e69a551d3e9a19ea680e96636d3fd0032da3ae343e53dfead54701",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-25",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "5da46f7f-73d7-50e0-bbf2-83579518839f",
-    "links": [],
-    "provenance": {
-      "checksum": "b97ebd3c4af31c1ed43457c1145dba8a606b72a0e0f7b0ffa107f0f3a30a376a",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-35",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/35/synthetic-bulk-past-event-024",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-024",
-    "speakers": [],
-    "starts_at": "2025-03-14T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 024",
-    "type": "webinar"
+  "public_path": "/events/25/synthetic-bulk-past-event-014",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-014",
+  "speakers": [],
+  "starts_at": "2025-02-12T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 014",
+  "type": "podcast"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "7445936d-6090-5065-9db5-b55c194f164b",
+  "links": [],
+  "provenance": {
+   "checksum": "fd4a0f424fe04cc6cb8b95f2492b119d8e87b5a1a3860525af0311cc66ebdb70",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-26",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "9a4364f9-0a33-5127-a116-06d9701547c8",
-    "links": [],
-    "provenance": {
-      "checksum": "54a93b10f522064ba0427e600fdea9daff34d8cfd445e272f397eb7c873cc531",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-36",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/36/synthetic-bulk-past-event-025",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-025",
-    "speakers": [],
-    "starts_at": "2025-03-17T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 025",
-    "type": "workshop"
+  "public_path": "/events/26/synthetic-bulk-past-event-015",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-015",
+  "speakers": [],
+  "starts_at": "2025-02-15T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 015",
+  "type": "conference"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "f589bbce-7ccf-55c1-8d26-1a1532ef852f",
+  "links": [],
+  "provenance": {
+   "checksum": "e136b44152cb4508189044d3ee82f6ccd9fdec3ffd09e4062274e773ff71ad58",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-27",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "6f6287cb-53ec-5bf4-b3c8-2f51d8f78400",
-    "links": [],
-    "provenance": {
-      "checksum": "baa5b822b7766265da55e8ccb247ed1840a720418fe4ad66b8a837420608be4c",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-37",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/37/synthetic-bulk-past-event-026",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-026",
-    "speakers": [],
-    "starts_at": "2025-03-20T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 026",
-    "type": "podcast"
+  "public_path": "/events/27/synthetic-bulk-past-event-016",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-016",
+  "speakers": [],
+  "starts_at": "2025-02-18T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 016",
+  "type": "webinar"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "44fdcba0-dde5-5250-bdad-ce43c7277fb0",
+  "links": [],
+  "provenance": {
+   "checksum": "fa4e2735a8064b1024c10354371c303399afa7067e028875f4e74c9f1762171a",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-28",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "c701ab9d-4cf2-5283-981e-5d5aac58178e",
-    "links": [],
-    "provenance": {
-      "checksum": "702ebb05f1cb2640c8d0a1334682dab2a4b9dc0e45857e2392e257213d54083b",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-38",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/38/synthetic-bulk-past-event-027",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-027",
-    "speakers": [],
-    "starts_at": "2025-03-23T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 027",
-    "type": "conference"
+  "public_path": "/events/28/synthetic-bulk-past-event-017",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-017",
+  "speakers": [],
+  "starts_at": "2025-02-21T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 017",
+  "type": "workshop"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "250ca32c-6e8c-5abc-997c-29fa7e51940b",
+  "links": [],
+  "provenance": {
+   "checksum": "65de7183789d26a7cc35378f9bcd7d86c9858ad4f686f424befcd6b736111c62",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-29",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "16c08b7d-593f-5f7f-8bda-bf3d9b76f04e",
-    "links": [],
-    "provenance": {
-      "checksum": "41f73569c9460bd7e6a7bb64765c6a0e0aeba29ebc4d1a05afeb85970abf1adc",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-39",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/39/synthetic-bulk-past-event-028",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-028",
-    "speakers": [],
-    "starts_at": "2025-03-26T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 028",
-    "type": "webinar"
+  "public_path": "/events/29/synthetic-bulk-past-event-018",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-018",
+  "speakers": [],
+  "starts_at": "2025-02-24T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 018",
+  "type": "podcast"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "6863d0b4-b867-5f2b-a66c-69d584f801a3",
+  "links": [],
+  "provenance": {
+   "checksum": "00567a7b1a3985ec92368d2e0d03fda0d5bb45e0020cc9ee38e081230822b48a",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-30",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "7889fb57-5728-5b58-bf9b-3cb23937237b",
-    "links": [],
-    "provenance": {
-      "checksum": "10ac30bcb63766eb64366841a503013f812a77fa57b8ccfed5439d845157e5a3",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-40",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/40/synthetic-bulk-past-event-029",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-029",
-    "speakers": [],
-    "starts_at": "2025-03-29T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 029",
-    "type": "workshop"
+  "public_path": "/events/30/synthetic-bulk-past-event-019",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-019",
+  "speakers": [],
+  "starts_at": "2025-02-27T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 019",
+  "type": "conference"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "8ffdbf02-adaf-5d86-8c4b-e3a176fc2f2e",
+  "links": [],
+  "provenance": {
+   "checksum": "dbfa0a3e38fdb4fa9ed3e2485a07af23cf5917f97a949fa24e4e57c1a476dc9b",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-31",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "19ece523-8fbc-528d-ad87-d2561ce206af",
-    "links": [],
-    "provenance": {
-      "checksum": "dc7efd775e41c929cf8932e24e79393c4b9d07a7f629cc0f0da0744ed17fdd67",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-41",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/41/synthetic-bulk-past-event-030",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-030",
-    "speakers": [],
-    "starts_at": "2025-04-01T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 030",
-    "type": "podcast"
+  "public_path": "/events/31/synthetic-bulk-past-event-020",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-020",
+  "speakers": [],
+  "starts_at": "2025-03-02T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 020",
+  "type": "webinar"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "32ad7ce6-7cef-5ab2-9f2c-2520b85a3cd2",
+  "links": [],
+  "provenance": {
+   "checksum": "11a8c110a2bb7c971f0ea1deac91dcbecba3f33b13e6815a04a3039eed463256",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-32",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "c52ac275-2746-5cc1-a025-9b245d2eaa62",
-    "links": [],
-    "provenance": {
-      "checksum": "1f3928a75d9bbe1c831fa9231af138b392e0214ae1d711e693be99138bb3155d",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-42",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/42/synthetic-bulk-past-event-031",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-031",
-    "speakers": [],
-    "starts_at": "2025-04-04T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 031",
-    "type": "conference"
+  "public_path": "/events/32/synthetic-bulk-past-event-021",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-021",
+  "speakers": [],
+  "starts_at": "2025-03-05T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 021",
+  "type": "workshop"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "7a2d6405-dec7-500f-83d2-36a4f43e8588",
+  "links": [],
+  "provenance": {
+   "checksum": "c0e8e002cc5fd7a72641f160ff4d031f5b12f1c59a35daf35f2b6f548f532b3d",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-33",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "175e2507-54cd-527d-881c-908809318e4e",
-    "links": [],
-    "provenance": {
-      "checksum": "435d4b1daa3e63a8ae0b3f0a5a78ba6124b64eec2e69fd251048351de15f05a6",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-43",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/43/synthetic-bulk-past-event-032",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-032",
-    "speakers": [],
-    "starts_at": "2025-04-07T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 032",
-    "type": "webinar"
+  "public_path": "/events/33/synthetic-bulk-past-event-022",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-022",
+  "speakers": [],
+  "starts_at": "2025-03-08T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 022",
+  "type": "podcast"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "ad4617c6-045f-54bc-a84c-87c092ba28a0",
+  "links": [],
+  "provenance": {
+   "checksum": "d4964b557dbe55c2e19f53f684186d0cd1155926ea18e582b4897204102e57e9",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-34",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "36c07552-d812-52f3-a4f7-67d2f5bbd9a0",
-    "links": [],
-    "provenance": {
-      "checksum": "1ecbfd29e999815db191815a051753cdc2d196afd494f9ef1231a5d8cf36209c",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-44",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/44/synthetic-bulk-past-event-033",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-033",
-    "speakers": [],
-    "starts_at": "2025-04-10T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 033",
-    "type": "workshop"
+  "public_path": "/events/34/synthetic-bulk-past-event-023",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-023",
+  "speakers": [],
+  "starts_at": "2025-03-11T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 023",
+  "type": "conference"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "5da46f7f-73d7-50e0-bbf2-83579518839f",
+  "links": [],
+  "provenance": {
+   "checksum": "b97ebd3c4af31c1ed43457c1145dba8a606b72a0e0f7b0ffa107f0f3a30a376a",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-35",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "dd8f7e72-7e9f-592c-9618-0afc5ee70cee",
-    "links": [],
-    "provenance": {
-      "checksum": "dcff60e7d1a18c701dd99bf73c691b6318ba128be1f33471937595e084cb42b7",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-45",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/45/synthetic-bulk-past-event-034",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-034",
-    "speakers": [],
-    "starts_at": "2025-04-13T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 034",
-    "type": "podcast"
+  "public_path": "/events/35/synthetic-bulk-past-event-024",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-024",
+  "speakers": [],
+  "starts_at": "2025-03-14T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 024",
+  "type": "webinar"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "9a4364f9-0a33-5127-a116-06d9701547c8",
+  "links": [],
+  "provenance": {
+   "checksum": "54a93b10f522064ba0427e600fdea9daff34d8cfd445e272f397eb7c873cc531",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-36",
+   "source_path": "_data/events.yaml"
   },
-  {
-    "description_html": "",
-    "description_provenance": null,
-    "description_text": "",
-    "ends_at": "",
-    "episode": null,
-    "identity_id": "c9a36b9a-6ab0-5466-abbb-5e8ec5db4508",
-    "links": [],
-    "provenance": {
-      "checksum": "db7b0fb4faed166ef0bc913c352f0534d27cec291146c9d62166e670b205809d",
-      "repository": "DataTalksClub/datatalksclub.github.io",
-      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
-      "source_key": "synthetic-event-46",
-      "source_path": "_data/events.yaml"
-    },
-    "public_path": "/events/46/synthetic-bulk-past-event-035",
-    "record_schema_version": 2,
-    "season": null,
-    "slug": "synthetic-bulk-past-event-035",
-    "speakers": [],
-    "starts_at": "2025-04-16T00:00:00+00:00",
-    "title": "Synthetic Bulk Past Event 035",
-    "type": "conference"
-  }
+  "public_path": "/events/36/synthetic-bulk-past-event-025",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-025",
+  "speakers": [],
+  "starts_at": "2025-03-17T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 025",
+  "type": "workshop"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "6f6287cb-53ec-5bf4-b3c8-2f51d8f78400",
+  "links": [],
+  "provenance": {
+   "checksum": "baa5b822b7766265da55e8ccb247ed1840a720418fe4ad66b8a837420608be4c",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-37",
+   "source_path": "_data/events.yaml"
+  },
+  "public_path": "/events/37/synthetic-bulk-past-event-026",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-026",
+  "speakers": [],
+  "starts_at": "2025-03-20T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 026",
+  "type": "podcast"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "c701ab9d-4cf2-5283-981e-5d5aac58178e",
+  "links": [],
+  "provenance": {
+   "checksum": "702ebb05f1cb2640c8d0a1334682dab2a4b9dc0e45857e2392e257213d54083b",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-38",
+   "source_path": "_data/events.yaml"
+  },
+  "public_path": "/events/38/synthetic-bulk-past-event-027",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-027",
+  "speakers": [],
+  "starts_at": "2025-03-23T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 027",
+  "type": "conference"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "16c08b7d-593f-5f7f-8bda-bf3d9b76f04e",
+  "links": [],
+  "provenance": {
+   "checksum": "41f73569c9460bd7e6a7bb64765c6a0e0aeba29ebc4d1a05afeb85970abf1adc",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-39",
+   "source_path": "_data/events.yaml"
+  },
+  "public_path": "/events/39/synthetic-bulk-past-event-028",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-028",
+  "speakers": [],
+  "starts_at": "2025-03-26T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 028",
+  "type": "webinar"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "7889fb57-5728-5b58-bf9b-3cb23937237b",
+  "links": [],
+  "provenance": {
+   "checksum": "10ac30bcb63766eb64366841a503013f812a77fa57b8ccfed5439d845157e5a3",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-40",
+   "source_path": "_data/events.yaml"
+  },
+  "public_path": "/events/40/synthetic-bulk-past-event-029",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-029",
+  "speakers": [],
+  "starts_at": "2025-03-29T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 029",
+  "type": "workshop"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "19ece523-8fbc-528d-ad87-d2561ce206af",
+  "links": [],
+  "provenance": {
+   "checksum": "dc7efd775e41c929cf8932e24e79393c4b9d07a7f629cc0f0da0744ed17fdd67",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-41",
+   "source_path": "_data/events.yaml"
+  },
+  "public_path": "/events/41/synthetic-bulk-past-event-030",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-030",
+  "speakers": [],
+  "starts_at": "2025-04-01T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 030",
+  "type": "podcast"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "c52ac275-2746-5cc1-a025-9b245d2eaa62",
+  "links": [],
+  "provenance": {
+   "checksum": "1f3928a75d9bbe1c831fa9231af138b392e0214ae1d711e693be99138bb3155d",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-42",
+   "source_path": "_data/events.yaml"
+  },
+  "public_path": "/events/42/synthetic-bulk-past-event-031",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-031",
+  "speakers": [],
+  "starts_at": "2025-04-04T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 031",
+  "type": "conference"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "175e2507-54cd-527d-881c-908809318e4e",
+  "links": [],
+  "provenance": {
+   "checksum": "435d4b1daa3e63a8ae0b3f0a5a78ba6124b64eec2e69fd251048351de15f05a6",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-43",
+   "source_path": "_data/events.yaml"
+  },
+  "public_path": "/events/43/synthetic-bulk-past-event-032",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-032",
+  "speakers": [],
+  "starts_at": "2025-04-07T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 032",
+  "type": "webinar"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "36c07552-d812-52f3-a4f7-67d2f5bbd9a0",
+  "links": [],
+  "provenance": {
+   "checksum": "1ecbfd29e999815db191815a051753cdc2d196afd494f9ef1231a5d8cf36209c",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-44",
+   "source_path": "_data/events.yaml"
+  },
+  "public_path": "/events/44/synthetic-bulk-past-event-033",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-033",
+  "speakers": [],
+  "starts_at": "2025-04-10T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 033",
+  "type": "workshop"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "dd8f7e72-7e9f-592c-9618-0afc5ee70cee",
+  "links": [],
+  "provenance": {
+   "checksum": "dcff60e7d1a18c701dd99bf73c691b6318ba128be1f33471937595e084cb42b7",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-45",
+   "source_path": "_data/events.yaml"
+  },
+  "public_path": "/events/45/synthetic-bulk-past-event-034",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-034",
+  "speakers": [],
+  "starts_at": "2025-04-13T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 034",
+  "type": "podcast"
+ },
+ {
+  "description_html": "",
+  "description_provenance": null,
+  "description_text": "",
+  "ends_at": "",
+  "episode": null,
+  "identity_id": "c9a36b9a-6ab0-5466-abbb-5e8ec5db4508",
+  "links": [],
+  "provenance": {
+   "checksum": "db7b0fb4faed166ef0bc913c352f0534d27cec291146c9d62166e670b205809d",
+   "repository": "DataTalksClub/datatalksclub.github.io",
+   "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+   "source_key": "synthetic-event-46",
+   "source_path": "_data/events.yaml"
+  },
+  "public_path": "/events/46/synthetic-bulk-past-event-035",
+  "record_schema_version": 2,
+  "season": null,
+  "slug": "synthetic-bulk-past-event-035",
+  "speakers": [],
+  "starts_at": "2025-04-16T00:00:00+00:00",
+  "title": "Synthetic Bulk Past Event 035",
+  "type": "conference"
+ }
 ]

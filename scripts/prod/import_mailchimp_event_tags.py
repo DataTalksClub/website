@@ -117,7 +117,7 @@ def main(argv: list[str] | None = None) -> int:
 
     configure_target(parser, args)
 
-    from events.mailchimp_tag_import import (
+    from event_registrants.mailchimp_tag_import import (
         MailchimpEventTagImportError,
         import_mailchimp_event_tags,
     )

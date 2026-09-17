@@ -12,13 +12,13 @@ from __future__ import annotations
 from typing import cast
 from unittest.mock import patch
 
+from community_base.events.models import Event
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.sqlite3.creation import DatabaseCreation
 from django.test import SimpleTestCase, TestCase
 
 from content.models import ContentDocument
 from courses.models import Testimonial
-from events.models import Event
 from test_support.django_runner import IsolatedSQLiteCreation
 
 

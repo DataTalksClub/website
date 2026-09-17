@@ -6,8 +6,8 @@ import pytest
 from community_base.jobs.models import JobIntent
 from playwright.sync_api import Browser, expect
 
-from events.models import EventQnaSession
-from events.qna import security, services
+from event_qna import security, services
+from event_qna.models import EventQnaSession
 from events.queries import published_event_records
 from scripts.prod.identity_manifest import load_identity_manifest
 from test_support.design_review_data import ensure_checked_event_identity_snapshot

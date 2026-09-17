@@ -1,6 +1,6 @@
 from django.urls import path
 
-from events.qna import studio_views as qna_views
+from event_qna import studio_views as qna_views
 
 from . import views
 
@@ -59,37 +59,37 @@ urlpatterns = [
         name="historical-registration-action",
     ),
     path(
-        "events/<uuid:event_id>/registration-total/",
+        "events/<int:event_id>/registration-total/",
         views.historical_registration_total,
         name="historical-registration-total",
     ),
     path(
-        "events/<uuid:event_id>/qna/",
+        "events/<int:event_id>/qna/",
         qna_views.event_qna_detail,
         name="event-qna-detail",
     ),
     path(
-        "events/<uuid:event_id>/qna/update/",
+        "events/<int:event_id>/qna/update/",
         qna_views.event_qna_update,
         name="event-qna-update",
     ),
     path(
-        "events/<uuid:event_id>/qna/questions/<str:question_id>/",
+        "events/<int:event_id>/qna/questions/<str:question_id>/",
         qna_views.event_qna_moderate,
         name="event-qna-moderate",
     ),
     path(
-        "events/<uuid:event_id>/qna/retry/",
+        "events/<int:event_id>/qna/retry/",
         qna_views.event_qna_retry,
         name="event-qna-retry",
     ),
     path(
-        "events/<uuid:event_id>/qna/cohosts/",
+        "events/<int:event_id>/qna/cohosts/",
         qna_views.event_qna_cohost,
         name="event-qna-cohost",
     ),
     path(
-        "events/<uuid:event_id>/qna/cohosts/<str:invite_id>/revoke/",
+        "events/<int:event_id>/qna/cohosts/<str:invite_id>/revoke/",
         qna_views.event_qna_cohost_revoke,
         name="event-qna-cohost-revoke",
     ),

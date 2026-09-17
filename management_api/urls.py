@@ -241,6 +241,11 @@ urlpatterns = [
         name="historical-registration-total",
     ),
     path(
+        "events/<int:event_id>/registration-total",
+        views.historical_registration_total,
+        name="historical-registration-total-int",
+    ),
+    path(
         "events/identities",
         event_identity_collection,
         name="event-identity-list",
@@ -251,27 +256,27 @@ urlpatterns = [
         name="event-identity-detail",
     ),
     path(
-        "events/<uuid:event_id>/qna",
+        "events/<int:event_id>/qna",
         event_qna_collection,
         name="admin-event-qna-read",
     ),
     path(
-        "events/<uuid:event_id>/qna/questions/<str:question_id>",
+        "events/<int:event_id>/qna/questions/<str:question_id>",
         views.event_qna_moderate,
         name="admin-event-qna-moderate",
     ),
     path(
-        "events/<uuid:event_id>/qna/retry",
+        "events/<int:event_id>/qna/retry",
         views.event_qna_retry,
         name="admin-event-qna-retry",
     ),
     path(
-        "events/<uuid:event_id>/qna/cohosts",
+        "events/<int:event_id>/qna/cohosts",
         views.event_qna_cohost_create,
         name="admin-event-qna-cohost-create",
     ),
     path(
-        "events/<uuid:event_id>/qna/cohosts/<str:invite_id>",
+        "events/<int:event_id>/qna/cohosts/<str:invite_id>",
         views.event_qna_cohost_revoke,
         name="admin-event-qna-cohost-revoke",
     ),

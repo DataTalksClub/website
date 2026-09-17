@@ -128,7 +128,13 @@ INSTALLED_APPS = [
     "content.apps.ContentConfig",
     "content_sync.apps.ContentSyncConfig",
     "courses.apps.CoursesConfig",
-    "events.apps.EventsConfig",
+    # D4.1: the shared events app owns the "events" label. The site's
+    # former events app is gone; its identity policy and public-record
+    # readers live on as the site adapter in the events/ package.
+    "community_base.events",
+    "event_qna",
+    "historical_registrations",
+    "event_registrants",
     "email_app.apps.EmailAppConfig",
     "studio.apps.StudioConfig",
     "management_api.apps.ManagementAPIConfig",
@@ -397,6 +403,13 @@ COMMUNITY_BASE: dict[str, Any] = {
     "JOBS_BACKEND": "relay",
     "MAIL_BACKEND": "relay",
     "STUDIO_TITLE": "DataTalks.Club Studio",
+    # D4.1: canonical event routes carry the public ID, as they always
+    # have on this site; slug-only spellings redirect.
+    "EVENT_URL_STYLE": "public_id",
+    # Speakers are package Host rows; the site people catalogue owns
+    # their profile pages, so the package resolves the path through
+    # this hook at read time instead of storing a copy.
+    "HOST_PROFILE_RESOLVER": "events.identity.host_profile_url",
     # D1.1: the jobs half goes live. Durable intents submit to Relay and the
     # signed ingress at internal/jobs/run receives the callbacks; the client
     # values come from the deployment environment and the run-due/sweep

@@ -15,8 +15,8 @@ from types import SimpleNamespace
 import pytest
 from playwright.sync_api import Browser, Page, ViewportSize, expect
 
-from events.models import EventQnaSession
-from events.qna import services
+from event_qna import services
+from event_qna.models import EventQnaSession
 from test_support.design_review_data import ensure_checked_event_identity_snapshot
 
 pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]

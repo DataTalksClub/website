@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
+from community_base.events.models import Event
 from django.test import TestCase
 from django.utils.html import escape
 
@@ -12,7 +13,7 @@ from content import catalogue, public_views
 from content.event_content import EventGroups, event_date_groups, event_groups
 from content.pagination import PUBLIC_PAGE_SIZE
 from content.public_routes import public_paths
-from events.models import Event, canonical_detail_path
+from events.identity import canonical_detail_path
 from events.queries import published_event_records
 
 from .pagination_support import catalogue_page_bodies
@@ -75,11 +76,11 @@ class EventTimelineRouteTests(StableEventClockTestCase):
         exists.
         """
 
-        events = Event.objects.order_by("source_key")
+        events = Event.objects.order_by("source_identity__source_key")
         for event in events:
             for path in (
-                f"/events/{event.source_key}",
-                f"/events/{event.source_key}/",
+                f"/events/{event.source_identity.source_key}",
+                f"/events/{event.source_identity.source_key}/",
                 f"/events/{event.id}",
                 f"/events/{event.id}/{event.slug}",
             ):
@@ -89,9 +90,9 @@ class EventTimelineRouteTests(StableEventClockTestCase):
                     self.assertNotIn("Location", response.headers)
 
     def test_event_identity_errors_and_unsafe_methods_have_bounded_cache_headers(self) -> None:
-        event = Event.objects.order_by("source_key").first()
+        event = Event.objects.order_by("source_identity__source_key").first()
         assert event is not None
-        canonical = canonical_detail_path(event.id)
+        canonical = canonical_detail_path(event.content_id)
         stale = f"/events/{event.public_id}/stale-title"
 
         for path in (

@@ -17,13 +17,13 @@ from playwright.sync_api import Page, expect
 from accounts.studio_sessions import SESSION_REFERENCE_KEY
 from accounts.studio_test_support import make_studio_user
 from content.event_content import event_groups
-from events.models import (
+from events.queries import published_event_records
+from historical_registrations.models import (
     HistoricalRegistrationAggregateRevision,
     HistoricalRegistrationAggregateSlot,
     HistoricalRegistrationSourceRun,
     HistoricalRegistrationTotalState,
 )
-from events.queries import published_event_records
 from scripts.prod.registration_sources import register_source_readers
 
 pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]

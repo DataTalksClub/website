@@ -13,15 +13,14 @@ from django.db import IntegrityError
 from django.test import TestCase
 
 from accounts.models import CustomUser
-from events.models import (
-    Event,
-    EventIdentityError,
+from event_registrants.models import (
     EventRegistrantIdentity,
     EventRegistrantImportProgress,
     EventRegistration,
-    create_event_identity,
-    resolve_source_identity,
 )
+from community_base.events.models import Event
+from content.models import EventSource
+from events.identity import EventIdentityError, create_event_identity, resolve_source_identity
 from scripts.prod.registrant_import import (
     EXISTING_EVENT_AMBIGUOUS,
     EXISTING_EVENT_DATE_UNUSABLE,
@@ -258,7 +257,7 @@ class UnknownEventIdentityTests(RegistrantImportTestCase):
         # (not via a blanket "no Event exists" assertion, since the test
         # database's own reference-data fixture may legitimately seed
         # unrelated Event rows).
-        self.assertFalse(Event.objects.filter(source_key="evt-undiscovered").exists())
+        self.assertFalse(EventSource.objects.filter(source_key="evt-undiscovered").exists())
 
     def test_an_event_with_no_identity_yet_never_has_its_rows_read(self) -> None:
         """No identity means no reason to open the export at all."""
@@ -686,14 +685,14 @@ class ProviderEventIdentityTests(TestCase):
 
         self.assertIsNotNone(event.public_id)
         self.assertEqual(event.title, "A Brand New Event")
-        self.assertEqual(event.source_repository, "dtc-historical-source/luma")
-        self.assertEqual(event.source_revision, "luma-aggregate-v1")
-        self.assertEqual(event.source_key, "evt-BrandNew")
+        self.assertEqual(event.source_identity.repository, "dtc-historical-source/luma")
+        self.assertEqual(event.source_identity.revision, "luma-aggregate-v1")
+        self.assertEqual(event.source_identity.source_key, "evt-BrandNew")
         # Import at call time to avoid a hard dependency from this ingest-only
         # suite's collection on events.models beyond what it already needs.
-        from events.models import canonical_detail_path
+        from events.identity import canonical_detail_path
 
-        self.assertEqual(canonical_detail_path(event.id), f"/events/{event.public_id}/{event.slug}")
+        self.assertEqual(canonical_detail_path(event.content_id), f"/events/{event.public_id}/{event.slug}")
 
     def test_resolve_source_identity_finds_it_by_provider_and_external_id(self) -> None:
         created = create_provider_event_identity(

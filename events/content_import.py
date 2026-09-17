@@ -1,8 +1,10 @@
-"""Import the reviewed event content records into ``EventContent``.
+"""Import the reviewed event content records into the shared ``events.Event`` row.
 
-:mod:`events.models` mints *identity* -- the uuid, public id and slug the
-URL is built from. This is the other half: the type, schedule, description,
-speakers and links one public event page prints.
+Since #412 the identity, schedule, description, speakers and links one public
+event page prints all live on one ``community_base.events.Event`` row. This
+module is the reviewed door that content arrives through: it reconciles
+validated records onto existing rows and never creates an event -- minting an
+identity is :func:`events.identity.create_event_identity`'s job alone.
 
 Where the records come from
 ---------------------------
@@ -22,16 +24,16 @@ result, and there is nowhere else it exists.
 So importing it reads nothing outside this repository and re-establishes no
 dependency on the retired site: the record *records* the legacy tuple as
 provenance, the same way the identity manifest does. This importer re-checks
-that tuple against the identity row rather than trusting it, so a record can
-only ever land on the event it was reviewed against.
+that tuple against the event's ``content.EventSource`` row rather than trusting
+it, so a record can only ever land on the event it was reviewed against.
 
 The reviewed description provenance is a *gate*, not a column: it is what
 lets this module refuse a description that arrived without the bridge behind
 it. The durable provenance a reader needs afterwards -- repository, revision,
-source key, checksum -- already lives on the identity row, and the next source
+source key, checksum -- lives on the ``EventSource`` row, and the next source
 to edit an event will not carry a bridge digest at all.
 
-Replaying is safe. Each content row is keyed on its event, and speakers and
+Replaying is safe. The row is updated to the record's state, and speakers and
 links are replaced as a set, so a second run reports ``replayed`` and changes
 nothing.
 
@@ -59,10 +61,12 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+from community_base.events.models import Event, EventHost, Host
 from django.db import transaction
-from django.db.models import Prefetch
 
-from .models import Event, EventContent, EventLink, EventSpeaker
+from content.models import EventSource
+
+from .identity import decode_event_tags, encode_event_tags, package_kind_for_type
 
 #: The record shape this module reads. Version 2 is the reviewed-description
 #: shape: every record carries ``description_html``/``description_text`` and a
@@ -125,7 +129,7 @@ _NEW_EVENT_ARTIFACT_SCHEMA_VERSION = 1
 
 _SPEAKER_FIELDS = frozenset({"key", "name", "public_path"})
 _LINK_FIELDS = frozenset({"label", "url"})
-_TYPES = frozenset(choice.value for choice in EventContent.Type)
+_TYPES = frozenset({"webinar", "workshop", "podcast", "conference"})
 
 
 class EventContentImportError(ValueError):
@@ -248,7 +252,9 @@ def _speaker(value: Any) -> ReviewedSpeaker:
         key=_text(value["key"], field="speaker_key", maximum=255),
         name=_text(value["name"], field="speaker_name", maximum=255),
         # Empty is meaningful: it says this speaker has no person page, which is
-        # a fact about the people catalogue rather than about the event.
+        # a fact about the people catalogue rather than about the event.  The
+        # shared row stores no path at all -- the profile link is resolved from
+        # the catalogue at read time.
         public_path=_text(
             value["public_path"], field="speaker_path", maximum=1_024, required=False
         ),
@@ -375,114 +381,141 @@ def load_reviewed_event_content(path: Path) -> tuple[ReviewedEventContent, ...]:
     return parse_reviewed_event_content(payload)
 
 
-def _matches(content: EventContent, record: ReviewedEventContent | NewEventContent) -> bool:
-    # Both record shapes decide the same columns, so both legs ask the same
+def _matches(event: Event, record: ReviewedEventContent | NewEventContent) -> bool:
+    # Both record shapes decide the same row state, so both legs ask the same
     # question of an existing row -- which is what makes a replay a no-op for
     # either of them.
+    stored_type, season, episode = decode_event_tags(event.tags)
     return (
-        content.type == record.type
-        and content.starts_at == record.starts_at
-        and content.ends_at == record.ends_at
-        and content.season == record.season
-        and content.episode == record.episode
-        and content.description_html == record.description_html
-        and content.description_text == record.description_text
+        stored_type == record.type
+        and event.start_datetime == record.starts_at
+        and event.end_datetime == record.ends_at
+        and season == record.season
+        and episode == record.episode
+        and event.description_html == record.description_html
+        and event.description == record.description_text
         and [
-            (speaker.key, speaker.name, speaker.public_path, speaker.position)
-            for speaker in content.speakers.all()
+            (link.host.external_ref, link.host.name, link.position)
+            for link in event.event_host_links.all()
         ]
         == [
-            (speaker.key, speaker.name, speaker.public_path, position)
+            (speaker.key, speaker.name, position)
             for position, speaker in enumerate(record.speakers)
         ]
-        and [(link.label, link.url, link.position) for link in content.links.all()]
-        == [(link.label, link.url, position) for position, link in enumerate(record.links)]
+        and (event.materials or [])
+        == [
+            {"label": link.label, "url": link.url} for link in record.links
+        ]
     )
 
 
-@transaction.atomic
-def import_event_content(*, path: Path, dry_run: bool = False) -> EventContentImportReport:
-    """Attach the reviewed content to the identities already in the database.
+def _apply(event: Event, record: ReviewedEventContent | NewEventContent) -> None:
+    """Write one reviewed record onto its event row, replacing speakers and links."""
 
-    This reconciles rather than bootstraps: identity is imported first, and a
-    record naming an identity this database does not hold is a refusal, not a
-    new event. Creating events is :func:`events.models.create_event_identity`'s job alone.
-    """
-
-    records = load_reviewed_event_content(path)
-    events = {
-        event.id: event
-        for event in Event.objects.filter(id__in=[record.identity_id for record in records])
-    }
-    existing = {
-        content.event_id: content
-        for content in EventContent.objects.filter(event_id__in=events).prefetch_related(
-            Prefetch("speakers", queryset=EventSpeaker.objects.order_by("position")),
-            Prefetch("links", queryset=EventLink.objects.order_by("position")),
+    event.start_datetime = record.starts_at
+    event.end_datetime = record.ends_at
+    event.description_html = record.description_html
+    event.description = record.description_text
+    event.kind = package_kind_for_type(record.type)
+    event.tags = encode_event_tags(
+        event_type=record.type, season=record.season, episode=record.episode
+    )
+    event.materials = [{"label": link.label, "url": link.url} for link in record.links]
+    event.save(
+        update_fields=(
+            "start_datetime",
+            "end_datetime",
+            "description_html",
+            "description",
+            "kind",
+            "tags",
+            "materials",
+            "updated_at",
         )
-    }
+    )
+    # Speakers are an ordered set the record owns outright: a re-run replaces
+    # them rather than merging into them.  The host row itself is shared across
+    # events -- one person is one row, keyed by the source key a credit names
+    # them with.
+    event.event_host_links.all().delete()
+    for position, speaker in enumerate(record.speakers):
+        # The display name is the host's own attribute, global across every
+        # event that credits the key, so the first import to mint the row
+        # decides it and later records never flip it back.
+        host, _ = Host.objects.get_or_create(
+            slug=speaker.key,
+            defaults={
+                "name": speaker.name,
+                "kind": "speaker",
+                "external_ref": speaker.key,
+            },
+        )
+        EventHost.objects.create(event=event, host=host, position=position, role="speaker")
 
+
+def _preflight(
+    records: tuple[ReviewedEventContent | NewEventContent, ...],
+    *,
+    error_prefix: str,
+) -> dict[uuid.UUID, Event]:
+    events = {
+        event.content_id: event
+        for event in Event.objects.filter(content_id__in=[record.identity_id for record in records])
+    }
     # Preflight the whole candidate before writing one row: a record that names
     # an unknown identity, or one whose reviewed provenance no longer matches
     # the identity it was reviewed against, must not partially apply.
     for record in records:
         event = events.get(record.identity_id)
         if event is None:
-            raise EventContentImportError("event_content_identity_unknown")
+            raise EventContentImportError(f"{error_prefix}_identity_unknown")
+        try:
+            source = event.source_identity
+        except EventSource.DoesNotExist as exc:
+            raise EventContentImportError(f"{error_prefix}_provenance_conflict") from exc
         if (
-            event.source_repository != record.provenance.repository
-            or event.source_revision != record.provenance.revision
-            or event.source_key != record.provenance.source_key
-            or event.source_path != record.provenance.source_path
-            or event.source_checksum != record.provenance.checksum
+            source.repository != record.provenance.repository
+            or source.revision != record.provenance.revision
+            or source.source_key != record.provenance.source_key
         ):
-            raise EventContentImportError("event_content_provenance_conflict")
-        if event.title != record.title or event.slug != record.slug:
-            raise EventContentImportError("event_content_identity_conflict")
+            raise EventContentImportError(f"{error_prefix}_provenance_conflict")
+        if isinstance(record, ReviewedEventContent):
+            if (
+                source.source_path != record.provenance.source_path
+                or source.source_checksum != record.provenance.checksum
+            ):
+                raise EventContentImportError(f"{error_prefix}_provenance_conflict")
+            if event.title != record.title or event.slug != record.slug:
+                raise EventContentImportError(f"{error_prefix}_identity_conflict")
+    return events
+
+
+@transaction.atomic
+def import_event_content(*, path: Path, dry_run: bool = False) -> EventContentImportReport:
+    """Attach the reviewed content to the events already in the database.
+
+    This reconciles rather than bootstraps: identity is imported first, and a
+    record naming an identity this database does not hold is a refusal, not a
+    new event. Creating events is :func:`events.identity.create_event_identity`'s
+    job alone.
+    """
+
+    records = load_reviewed_event_content(path)
+    events = _preflight(records, error_prefix="event_content")
 
     created = updated = unchanged = 0
     for record in records:
-        content = existing.get(record.identity_id)
-        if content is not None and _matches(content, record):
+        event = events[record.identity_id]
+        if _matches(event, record):
             unchanged += 1
             continue
-        if content is None:
-            created += 1
-        else:
+        if _row_has_content(event):
             updated += 1
+        else:
+            created += 1
         if dry_run:
             continue
-        content, _ = EventContent.objects.update_or_create(
-            event_id=record.identity_id,
-            defaults={
-                "type": record.type,
-                "starts_at": record.starts_at,
-                "ends_at": record.ends_at,
-                "season": record.season,
-                "episode": record.episode,
-                "description_html": record.description_html,
-                "description_text": record.description_text,
-            },
-        )
-        # Speakers and links are an ordered set, not rows with lives of their
-        # own: the reviewed record decides both membership and order, so it
-        # replaces them wholesale rather than merging.
-        content.speakers.all().delete()
-        content.links.all().delete()
-        EventSpeaker.objects.bulk_create(
-            EventSpeaker(
-                content=content,
-                key=speaker.key,
-                name=speaker.name,
-                public_path=speaker.public_path,
-                position=position,
-            )
-            for position, speaker in enumerate(record.speakers)
-        )
-        EventLink.objects.bulk_create(
-            EventLink(content=content, label=link.label, url=link.url, position=position)
-            for position, link in enumerate(record.links)
-        )
+        _apply(event, record)
 
     return EventContentImportReport(
         total=len(records),
@@ -495,6 +528,17 @@ def import_event_content(*, path: Path, dry_run: bool = False) -> EventContentIm
         replayed=created == 0 and updated == 0,
         dry_run=dry_run,
     )
+
+
+def _row_has_content(event: Event) -> bool:
+    """Whether the row already carries content, for the created/updated split.
+
+    An event imported from the manifest alone has an empty description and no
+    host links; the first content leg to reach it therefore *creates* its
+    content rather than updating something that was never there.
+    """
+
+    return bool(event.description_html) or event.event_host_links.exists()
 
 
 def _new_event_provenance(value: Any) -> NewEventSourceIdentity:
@@ -635,72 +679,21 @@ def import_new_event_content(*, path: Path, dry_run: bool = False) -> EventConte
     """
 
     records = load_new_event_content(path)
-    events = {
-        event.id: event
-        for event in Event.objects.filter(id__in=[record.identity_id for record in records])
-    }
-    existing = {
-        content.event_id: content
-        for content in EventContent.objects.filter(event_id__in=events).prefetch_related(
-            Prefetch("speakers", queryset=EventSpeaker.objects.order_by("position")),
-            Prefetch("links", queryset=EventLink.objects.order_by("position")),
-        )
-    }
-
-    # Preflight the whole candidate before writing one row, exactly as above.
-    for record in records:
-        event = events.get(record.identity_id)
-        if event is None:
-            raise EventContentImportError("new_event_content_identity_unknown")
-        if (
-            event.source_repository != record.provenance.repository
-            or event.source_revision != record.provenance.revision
-            or event.source_key != record.provenance.source_key
-        ):
-            raise EventContentImportError("new_event_content_provenance_conflict")
+    events = _preflight(records, error_prefix="new_event_content")
 
     created = updated = unchanged = 0
     for record in records:
-        content = existing.get(record.identity_id)
-        if content is not None and _matches(content, record):
+        event = events[record.identity_id]
+        if _matches(event, record):
             unchanged += 1
             continue
-        if content is None:
-            created += 1
-        else:
+        if _row_has_content(event):
             updated += 1
+        else:
+            created += 1
         if dry_run:
             continue
-        content, _ = EventContent.objects.update_or_create(
-            event_id=record.identity_id,
-            defaults={
-                "type": record.type,
-                "starts_at": record.starts_at,
-                "ends_at": record.ends_at,
-                "season": record.season,
-                "episode": record.episode,
-                "description_html": record.description_html,
-                "description_text": record.description_text,
-            },
-        )
-        # Speakers and links are an ordered set the record owns outright, same as
-        # above: a re-run replaces them rather than merging into them.
-        content.speakers.all().delete()
-        content.links.all().delete()
-        EventSpeaker.objects.bulk_create(
-            EventSpeaker(
-                content=content,
-                key=speaker.key,
-                name=speaker.name,
-                public_path=speaker.public_path,
-                position=position,
-            )
-            for position, speaker in enumerate(record.speakers)
-        )
-        EventLink.objects.bulk_create(
-            EventLink(content=content, label=link.label, url=link.url, position=position)
-            for position, link in enumerate(record.links)
-        )
+        _apply(event, record)
 
     return EventContentImportReport(
         total=len(records),

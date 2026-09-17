@@ -393,15 +393,17 @@ def _event_credit_stamp() -> tuple[int, str, int, str]:
     disguised as people with no talks (ARC-01).
     """
 
-    from events.models import Event, EventContent
+    from community_base.events.models import Event
 
+    # Identity and content are one shared row now (#412), so the events and
+    # content stamps are the same aggregate; the four-tuple stays because it is
+    # the cache key the callers hold.
     events = Event.objects.aggregate(total=Count("id"), latest=Max("updated_at"))
-    content = EventContent.objects.aggregate(total=Count("id"), latest=Max("updated_at"))
     return (
         int(events["total"] or 0),
         str(events["latest"] or ""),
-        int(content["total"] or 0),
-        str(content["latest"] or ""),
+        int(events["total"] or 0),
+        str(events["latest"] or ""),
     )
 
 
@@ -470,6 +472,25 @@ def people_by_slug() -> dict[str, Record]:
     """
 
     return {person["slug"]: person for person in people() if "slug" in person}
+
+
+def person_paths_by_slug() -> dict[str, str]:
+    """Profile pages indexed by the source key a speaker credit names them with.
+
+    This reads the raw synced people records only: no work credits are derived,
+    so it stays independent of the event records. A page that resolves a
+    speaker's profile link must not recurse through the catalogue that credits
+    people from those same events (#412).
+    """
+
+    stamp = synced_stamp(PEOPLE_SOURCE_SLUG)
+    if not stamp[0]:
+        return {}
+    return {
+        str(record["slug"]): str(record["public_path"])
+        for record in _synced_records(stamp, PEOPLE_SOURCE_SLUG, PEOPLE_KIND)
+        if record.get("slug") and record.get("public_path")
+    }
 
 
 def people_by_path() -> dict[str, Record]:
