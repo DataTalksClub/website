@@ -149,14 +149,15 @@ class SingleIdentityModelTests(TestCase):
             IdentityState.States.LEGACY,
         )
 
-        # The conditional unique index is still the one on the user table in
-        # this phase; it moves onto IdentityState with the contract migration
-        # (plan D3.1d), and this assertion moves with it.
-        first.identity_state = CustomUser.IdentityState.ACTIVE
-        first.save(update_fields=("identity_state",))
-        second.identity_state = CustomUser.IdentityState.ACTIVE
+        # The conditional unique index moved onto IdentityState with the
+        # contract migration, under its original name (plan D3.1d).
+        IdentityState.objects.filter(user=first).update(
+            identity_state=IdentityState.States.ACTIVE
+        )
         with self.assertRaises(IntegrityError), transaction.atomic():
-            second.save(update_fields=("identity_state",))
+            IdentityState.objects.filter(user=second).update(
+                identity_state=IdentityState.States.ACTIVE
+            )
 
     def test_alias_resolves_old_id_without_replacing_source_row(self) -> None:
         source = CustomUser.objects.create_user(username="source")
