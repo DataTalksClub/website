@@ -95,6 +95,11 @@
         },
         {
           "kind": "code",
+          "language": "python",
+          "text": "def synthetic_report(rows):\n    print(len(rows))\n    return \"synthetic\""
+        },
+        {
+          "kind": "code",
           "language": "bash",
           "text": "docker volume create \"synthetic-volume\""
         },
@@ -4909,7 +4914,7 @@
       "articles": 28,
       "books": 48,
       "courses": 12,
-      "media": 11,
+      "media": 13,
       "people": 6,
       "podcasts": 11,
       "transcripts": 0,
@@ -5213,6 +5218,34 @@
       "public_path": "/images/authors/synthetic-apostrophe-profile.jpg",
       "record_key": "images/authors/synthetic-apostrophe-profile.jpg",
       "slug": "images/authors/synthetic-apostrophe-profile.jpg"
+    },
+    {
+      "content_type": "image/jpeg",
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/synthetic-test-fixture",
+        "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_key": "synthetic",
+        "source_path": "synthetic.md",
+        "source_url": "https://example.invalid/synthetic"
+      },
+      "public_path": "/images/posts/synthetic-article-one/inline.jpg",
+      "record_key": "images/posts/synthetic-article-one/inline.jpg",
+      "slug": "images/posts/synthetic-article-one/inline.jpg"
+    },
+    {
+      "content_type": "image/png",
+      "provenance": {
+        "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+        "repository": "DataTalksClub/synthetic-test-fixture",
+        "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_key": "synthetic",
+        "source_path": "synthetic.md",
+        "source_url": "https://example.invalid/synthetic"
+      },
+      "public_path": "/images/posts/synthetic-article-one/chart.png",
+      "record_key": "images/posts/synthetic-article-one/chart.png",
+      "slug": "images/posts/synthetic-article-one/chart.png"
     }
   ],
   "people": [

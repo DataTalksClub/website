@@ -58,6 +58,27 @@ def richest_article() -> dict[str, Any]:
     )
 
 
+def code_article() -> dict[str, Any]:
+    """The article whose body carries a code sample.
+
+    The copy control, the language tokens and the no-JavaScript fallback are all
+    contracts of a rendered code block, so they name the article the catalogue
+    publishes one in rather than a slug.
+    """
+
+    return next(
+        record
+        for record in catalogue.articles()
+        if any(block["kind"] == "code" for block in record["blocks"])
+    )
+
+
+def code_block(record: dict[str, Any]) -> dict[str, Any]:
+    """That article's first code block, as the catalogue projects it."""
+
+    return next(block for block in record["blocks"] if block["kind"] == "code")
+
+
 def illustrated_article() -> dict[str, Any]:
     """The first article the catalogue publishes a social card for.
 
@@ -164,7 +185,7 @@ def test_a_code_sample_can_be_copied_with_accessible_feedback(
     page = context.new_page()
     try:
         response = page.goto(
-            f"{live_server.url}/blog/open-source-free-ai-agent-evaluation-tools.html",
+            f"{live_server.url}{code_article()['public_path']}",
             wait_until="networkidle",
         )
         assert response is not None and response.status == 200
@@ -202,7 +223,7 @@ def test_a_copy_failure_explains_the_manual_fallback(
     )
     try:
         response = page.goto(
-            f"{live_server.url}/blog/open-source-free-ai-agent-evaluation-tools.html",
+            f"{live_server.url}{code_article()['public_path']}",
             wait_until="networkidle",
         )
         assert response is not None and response.status == 200
@@ -228,14 +249,14 @@ def test_a_code_sample_uses_language_tokens_in_both_themes(
 ) -> None:
     page.set_viewport_size({"width": 1440, "height": 900})
     response = page.goto(
-        f"{live_server.url}/blog/open-source-free-ai-agent-evaluation-tools.html",
+        f"{live_server.url}{code_article()['public_path']}",
         wait_until="networkidle",
     )
     assert response is not None and response.status == 200
     _settle_analytics_preferences(page)
 
     code = page.locator(".prose pre code").first
-    expect(code).to_have_attribute("data-code-language", "python")
+    expect(code).to_have_attribute("data-code-language", code_block(code_article())["language"])
     expect(code.locator(".code-token-keyword").first).to_be_visible()
     expect(code.locator(".code-token-string").first).to_be_visible()
     expect(code.locator(".code-token-function").first).to_be_visible()
@@ -271,7 +292,7 @@ def test_the_copy_control_is_invisible_until_hover_or_keyboard_focus(
     page = context.new_page()
     try:
         response = page.goto(
-            f"{live_server.url}/blog/open-source-free-ai-agent-evaluation-tools.html",
+            f"{live_server.url}{code_article()['public_path']}",
             wait_until="networkidle",
         )
         assert response is not None and response.status == 200
@@ -371,7 +392,7 @@ def test_a_touch_reader_always_sees_the_copy_control(
     page = context.new_page()
     try:
         response = page.goto(
-            f"{live_server.url}/blog/open-source-free-ai-agent-evaluation-tools.html",
+            f"{live_server.url}{code_article()['public_path']}",
             wait_until="networkidle",
         )
         assert response is not None and response.status == 200
@@ -407,7 +428,7 @@ def test_a_code_sample_stays_plain_when_javascript_is_disabled(
     page = context.new_page()
     try:
         response = page.goto(
-            f"{live_server.url}/blog/open-source-free-ai-agent-evaluation-tools.html",
+            f"{live_server.url}{code_article()['public_path']}",
             wait_until="domcontentloaded",
         )
         assert response is not None and response.status == 200
@@ -415,7 +436,7 @@ def test_a_code_sample_stays_plain_when_javascript_is_disabled(
         expect(code).to_be_visible()
         expect(page.locator(".code-block-copy")).to_have_count(0)
         expect(page.locator(".code-token-keyword")).to_have_count(0)
-        assert (code.text_content() or "").startswith("from arize.otel import register")
+        assert (code.text_content() or "") == code_block(code_article())["text"]
     finally:
         context.close()
 
