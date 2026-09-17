@@ -143,7 +143,8 @@ convergence analysis.
 ## Coursework (`cb_coursework`)
 
 Ported from this site under `C5.2a`–`C5.2e`; every family is field-for-field identical
-apart from the FK renames listed. All verdicts **maps**.
+apart from the FK renames listed, plus the package-only pooled-review columns `C5.2f`
+and `C5.2g` added afterwards (decision 18). All verdicts **maps**.
 
 | Site model | Package model | Delta |
 |---|---|---|
@@ -284,6 +285,32 @@ vetoed before the D5.2 freeze weekend without rework beyond the named scope.
     and counted by the P6 import (`module_lesson_summaries` in the gap
     ledger), and their display remains the site renderer's job until D5.2
     decides their fate.
+18. **Pooled peer review (package-only, C5.2f/C5.2g).** The package grew a
+    self-paced assessment mode the site never had: `PeerReviewBatch`,
+    `PeerReview.batch`, `Project.pooled_review_window_days`, and
+    `ProjectSubmission.review_state`. Every DTC project is deadline-driven,
+    so the import answers the three new columns explicitly rather than by
+    omission.
+    - `ProjectSubmission.review_state` is **derived**, not defaulted. In
+      deadline mode the package keeps it as a pure mirror of `Project.state`
+      (`review.set_review_state_for_project`), and the package's own
+      `cb_coursework.0002` data migration backfills pre-existing rows by the
+      same table. Rows this import creates arrive after that migration has
+      run, so the import applies the identical mapping — `COMPLETED` → `SC`,
+      `PEER_REVIEWING` → `IR`, `CLOSED`/`COLLECTING_SUBMISSIONS` → `AW` —
+      from the site project's state. Leaving it at the default would drop
+      every migrated submission of a finished project out of the package
+      leaderboard (`completed_project_submissions_prefetch`) and out of
+      project statistics, both of which now filter `review_state == SCORED`.
+    - `Project.pooled_review_window_days` stays at the package default of 7.
+      It is a forward-looking operator knob for pooled assignment; the site
+      has no equivalent value, and deriving one from `peer_review_due_date`
+      would turn a historical date into a configuration setting. An operator
+      sets it when a pooled project is first run.
+    - `PeerReview.batch` stays null, and the import creates no
+      `PeerReviewBatch` rows. Null is the package's own contract for a
+      deadline-mode review, whose due date is its project's
+      `peer_review_due_date`; a migrated review is always deadline-mode.
 
 ## Verification hooks (steps 2–4, executed after the #412 merge)
 
