@@ -72,16 +72,28 @@ def restore_user_identity_columns(apps, schema_editor):
     CustomUser = apps.get_model("accounts", "CustomUser")
     IdentityState = apps.get_model("accounts_ext", "IdentityState")
 
-    identities_by_user_id = dict(
-        IdentityState.objects.values_list("user_id", "normalized_email", "identity_state")
-    )
+    identities_by_user_id = {
+        user_id: (normalized_email, identity_state)
+        for user_id, normalized_email, identity_state in IdentityState.objects.values_list(
+            "user_id", "normalized_email", "identity_state"
+        )
+    }
+    restored = []
     for user in CustomUser.objects.iterator():
         identity = identities_by_user_id.get(user.pk)
         if identity is None:
             continue
-        user.normalized_email = identity[0]
-        user.identity_state = identity[1]
-        user.save()
+        user.normalized_email, user.identity_state = identity
+        restored.append(user)
+        if len(restored) >= BATCH_SIZE:
+            CustomUser.objects.bulk_update(
+                restored, ["normalized_email", "identity_state"], batch_size=BATCH_SIZE
+            )
+            restored = []
+    if restored:
+        CustomUser.objects.bulk_update(
+            restored, ["normalized_email", "identity_state"], batch_size=BATCH_SIZE
+        )
 
 
 class Migration(migrations.Migration):

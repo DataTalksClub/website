@@ -58,13 +58,20 @@ def restore_user_profile_columns(apps, schema_editor):
     LearnerProfile = apps.get_model("courses", "LearnerProfile")
     CustomUser = apps.get_model("accounts", "CustomUser")
 
-    for profile in LearnerProfile.objects.iterator():
-        user = CustomUser.objects.filter(pk=profile.user_id).first()
-        if user is None:
-            continue
+    profiles_by_user_id = {
+        profile.user_id: profile for profile in LearnerProfile.objects.iterator()
+    }
+    restored = []
+    for user in CustomUser.objects.filter(pk__in=profiles_by_user_id).iterator():
+        profile = profiles_by_user_id[user.pk]
         for field in PROFILE_FIELDS:
             setattr(user, field, getattr(profile, field))
-        user.save()
+        restored.append(user)
+        if len(restored) >= BATCH_SIZE:
+            CustomUser.objects.bulk_update(restored, PROFILE_FIELDS, batch_size=BATCH_SIZE)
+            restored = []
+    if restored:
+        CustomUser.objects.bulk_update(restored, PROFILE_FIELDS, batch_size=BATCH_SIZE)
 
 
 class Migration(migrations.Migration):
