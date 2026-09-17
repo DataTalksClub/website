@@ -53,7 +53,9 @@ MVP has no capacity or waitlist. The schema and services must not imply unlimite
 
 ## Person relationships
 
-- Event speakers and hosts reference the canonical GitHub-backed person `short` key.
+- Event speakers and hosts are package `Host` rows keyed by `external_ref` = the canonical
+  GitHub-backed person `short` key; public profile paths resolve through `HOST_PROFILE_RESOLVER` at
+  read time, never stored on the row.
 - One person can hold multiple roles and can appear in any number of events, podcasts, articles, books, courses, or cohorts.
 - Studio selects only resolvable active profiles and shows an edit-on-GitHub link.
 - Removing a public person record is blocked while database events/courses still reference the key, unless an alias/replacement is supplied.
