@@ -4,27 +4,39 @@ Status: draft
 
 ## Event model
 
-Before full lifecycle cutover, the bounded checked projection exposes each legacy public event at
-`/events/<positive-public-id>/<current-title-slug>`. Homepage and hub links enter that internal
-detail first. Provider and
+Since D4.1 (#412) the event schema is owned by the shared `community_base.events` app, installed
+with `EVENT_URL_STYLE="public_id"`; the site ships no `events` Django app. The site keeps a thin
+adapter over the shared row:
+
+- the site's event identity UUID rides in the shared row's `content_id`; the numeric public ID and
+  the title slug are preserved across imports;
+- `content.EventSource` (site table) holds the reviewed source triple and checksum that the content
+  imports and the description bridge resolve by — the shared row has no columns for them;
+- the DTC event type, season, and episode ride in the shared row's tags; external links (recordings,
+  recaps, course/cohort references) ride in the ordered materials list;
+- speakers are written as package `Host` rows (`kind="speaker"`, `external_ref=<person short>`,
+  first-minted name wins across sites) and their public profile paths resolve at read time through
+  `HOST_PROFILE_RESOLVER` against the people catalogue;
+- package `status` (`upcoming`/`completed`) replaces the site lifecycle at the row level; the
+  site-side `draft -> published -> completed -> archived` lifecycle below remains the registration
+  and email semantics until the D4.2 cutover.
+
+Public events are exposed at `/events/<positive-public-id>/<current-title-slug>`. Provider and
 recording destinations appear only as clearly labelled safe external actions on the detail, and
-every checked speaker key resolves to `/people/<short>.html`. This surface is read-only and does
-not introduce registration, email, or provider mutations.
+every checked speaker key resolves to `/people/<short>.html` via the resolver.
 
 ### Event
 
-- UUID and immutable internal identity used by relations, services, audit, Studio, and admin API;
+- the site identity UUID (`content_id`) and the shared row's immutable key;
 - separate stable, unique, positive numeric public ID, allocated collision-safely once, never reused
   or renumbered, and exposed by management only as read-only public metadata;
-- cosmetic title-derived public slug capped at 64 characters, with explicit aliases for approved
-  renames;
-- title, summary, sanitized body, event type, image, and visibility;
+- cosmetic title-derived public slug; explicit aliases for approved renames are retired
+  (`/events/<id>/<slug>` is the only public shape);
+- title, description (bridge-resolved), kind, platform, and visibility;
 - timezone-aware start/end plus the event's IANA timezone;
-- registration open/close timestamps;
 - online/in-person location and separately protected join information;
-- lifecycle state, publication timestamps, revision, calendar UID, and calendar sequence;
-- optional recording, recap, course/cohort, or external-event relationship;
-- ordered person relationships for speakers and hosts.
+- ordered `Host` relationships for speakers and hosts, resolved to people profiles at read time;
+- the site-side provenance triple and checksum in `content.EventSource`.
 
 The public ID alone selects a public Event; its title slug is cosmetic. Publication fails closed
 without a public ID. Imports and replays preserve the checked UUID/public-ID pair and reject missing,
@@ -33,7 +45,9 @@ id: the UUID/current-slug, UUID-only, and reviewed date/title spellings that onc
 numeric/current-slug canonical are retired and resolve to nothing. No public slug-only,
 date/title-derived, UUID, provider-ID, source-key, or numeric management lookup exists.
 
-Lifecycle: `draft -> published -> completed -> archived`, with `cancelled` reachable before completion. Registration availability is derived from publication, registration window, event time, and cancellation state.
+Row status: `upcoming` or `completed` on the shared row, derived at import from the site lifecycle
+(published → upcoming, completed → completed). Registration availability is derived from publication,
+registration window, event time, and cancellation state.
 
 MVP has no capacity or waitlist. The schema and services must not imply unlimited capacity forever, but capacity workflows are deferred until their product rules are specified.
 
