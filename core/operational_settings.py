@@ -28,7 +28,7 @@ boundary, where it is unchanged.
 
 What is deliberately *not* here:
 
-* **Secrets.**    ``COURSE_REPOSITORY_WEBHOOK_SECRET`` and ``COURSE_HOMEWORK_ANSWER_KEYRING``
+* **Secrets.**  ``COURSE_REPOSITORY_WEBHOOK_SECRET`` and ``COURSE_HOMEWORK_ANSWER_KEYRING``
   stay in the environment.  ``core.configuration`` refuses to register them and
   that refusal is the point: this table is readable by anything that can read
   the database, and its values are written to an audit trail and a revision

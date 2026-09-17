@@ -407,9 +407,8 @@ COMMUNITY_BASE: dict[str, Any] = {
     # DTC mail purposes; the ses_local renderer reads it and the deploy's
     # import_mail_templates step mirrors it into the Relay catalog.
     "MAIL_TEMPLATE_DIR": str(BASE_DIR / "email_templates"),
-    # D1.2ca: category opt-outs are fields on the site user and the
-    # resolver reads them directly.
-    # the five purposes send through the package; D1.2c replaces the store.
+    # D1.2ca: the three category opt-outs are fields on the site user and
+    # the resolver reads them directly; the remote Datamailer store is gone.
     "MAIL_PREFERENCE_RESOLVER": ("course_management.mail_preferences.resolve_mail_preference"),
     "RELAY_BASE_URL": os.getenv("RELAY_BASE_URL", ""),
     "RELAY_API_KEY": os.getenv("RELAY_API_KEY", ""),
